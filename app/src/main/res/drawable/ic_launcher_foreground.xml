@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Premier plan de l'icône adaptative : crochets de code « </> ».
+     Design maison minimal (règle : aucun logo officiel tiers). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Zone sûre des icônes adaptatives : 66 dp centrés. -->
+    <group>
+        <!-- Chevron ouvrant « < » -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M42,36 L26,54 L42,72 L47,72 L31,54 L47,36 Z" />
+
+        <!-- Chevron fermant « > » -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M66,36 L82,54 L66,72 L61,72 L77,54 L61,36 Z" />
+
+        <!-- Barre oblique « / » -->
+        <path
+            android:fillColor="#FF80CBC4"
+            android:pathData="M57.5,34 L50.5,74 L46.5,74 L53.5,34 Z" />
+    </group>
+
+</vector>
