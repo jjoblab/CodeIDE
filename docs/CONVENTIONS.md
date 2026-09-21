@@ -58,6 +58,43 @@ justification commentée. Les erreurs attendues passent par `AppResult` /
 `AppError`, pas par des exceptions jusqu'à l'UI. `CancellationException` est
 toujours relancée.
 
+## Use cases (étape 1)
+
+Toute logique métier vit dans un **use case** de `core:domain` — jamais dans
+une Activity, un Fragment ou un ViewModel (règle 1 du prompt maître). Le
+patron imposé :
+
+```kotlin
+/**
+ * Marque un projet comme ouvert.
+ *
+ * @param id identifiant du projet à marquer.
+ * @return `AppResult<Unit>` : échec `Storage.NotFound` si le projet est inconnu.
+ */
+class MarkProjectOpenedUseCase @Inject constructor(
+    private val projetRepository: ProjectRepository,
+    private val dispatchers: DispatcherProvider,
+) {
+    operator suspend fun invoke(id: ProjectId): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            projetRepository.marquerOuvert(id)
+        }
+}
+```
+
+Règles du patron :
+
+- **`operator fun invoke`** : le use case s'appelle comme une fonction
+  (`useCase(id)`), sans méthode nommée arbitraire.
+- **Injection par constructeur** : repositories, `DispatcherProvider`, horloge
+  éventuelle — jamais d'objet statique.
+- **`AppResult` en retour** pour toute erreur attendue ; les exceptions ne
+  traversent jamais la frontière domaine → UI.
+- **`suspend` + `withContext(dispatchers…)`** quand il y a une I/O ; le KDoc
+  précise le contexte d'exécution attendu.
+- Un use case = **une intention utilisateur** ; si la KDoc décrit deux
+  intentions, découper.
+
 ## Journalisation
 
 Tout passe par `AppLogger` (API `core:domain`). `android.util.Log`, `println`

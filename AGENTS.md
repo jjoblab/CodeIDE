@@ -97,7 +97,11 @@ remis (format section 14) puis attente du « GO ».
 ## État d'avancement
 
 - [x] Étape 0 — Environnement, squelette, outillage → v0.1.0
-- [ ] Étape 1 — Fondations transverses → v0.2.0
+- [x] Étape 1 — Fondations transverses → v0.2.0 (`core:model` AppResult/AppError/identifiants/
+      StorageLocation, `core:domain` DispatcherProvider, `core:testing` MainDispatcherRule/
+      TestDispatcherProvider, `core:ui` thème M3 complet + BaseFragment + composants d'état +
+      insets + AppNavigator, `app` Hilt/SplashScreen/NavHost avec navigation Home ↔ Settings,
+      features placeholder, ADR 0008)
 - [ ] Étape 2 — Journalisation → v0.3.0
 - [ ] Étape 3 — Gestion des plantages → v0.4.0
 - [ ] Étape 4 — Couche données → v0.5.0
