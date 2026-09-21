@@ -39,6 +39,13 @@ en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
   `docs/CONVENTIONS.md`, `docs/ENVIRONNEMENT.md`, `docs/ROADMAP.md` et les
   ADR 0001 à 0007.
 
+### Corrigé
+
+- `scripts/verify-archive.sh` : la détection du contenu obligatoire était non
+  déterministe (SIGPIPE sur `unzip` quand `grep -q` sort à la première
+  correspondance, combiné à `pipefail`) ; le listing est désormais capturé
+  puis sondé sans tube producteur vivant.
+
 ### Notes techniques
 
 - AGP 9 active le support Kotlin **intégré** : le plugin `kotlin-android` n'est
