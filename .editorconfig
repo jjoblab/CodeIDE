@@ -1,0 +1,32 @@
+# Conventions d'édition du dépôt CodeIDE.
+# Reprend les critères de « fichiers propres » exigés par les modèles générés,
+# pour que le dépôt de l'IDE lui-même donne l'exemple.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+[*.{kt,kts}]
+indent_size = 4
+
+[*.{yml,yaml,toml,xml,md}]
+indent_size = 2
+
+[*.sh]
+indent_size = 4
+
+[*.bat]
+end_of_line = crlf
+
+[gradle/wrapper/gradle-wrapper.jar]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

@@ -1,0 +1,30 @@
+# Fichiers générés et locaux — jamais versionnés.
+# Conforme à la section 9.3 du prompt maître (contenu des archives).
+
+# Gradle
+.gradle/
+build/
+**/build/
+local.properties
+captures/
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Natif
+.cxx/
+
+# Signatures et secrets — jamais dans le dépôt ni dans les archives.
+*.keystore
+*.jks
+!gradle/wrapper/gradle-wrapper.jar
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Livrables
+dist/
