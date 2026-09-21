@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Typographie CodeIDE — points d'ancrage uniques.
+
+  Chaque style hérite de son équivalent Material 3 sans le modifier : les
+  écrans référencent toujours TextAppearance.CodeIDE.*, jamais les styles
+  Material. C'est l'endroit unique où ajuster graisses, tailles ou hauteurs
+  de ligne si la charte l'exige, sans toucher aux écrans.
+-->
+<resources>
+
+    <style name="TextAppearance.CodeIDE.DisplayLarge" parent="TextAppearance.Material3.DisplayLarge" />
+    <style name="TextAppearance.CodeIDE.DisplayMedium" parent="TextAppearance.Material3.DisplayMedium" />
+    <style name="TextAppearance.CodeIDE.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall" />
+
+    <style name="TextAppearance.CodeIDE.HeadlineLarge" parent="TextAppearance.Material3.HeadlineLarge" />
+    <style name="TextAppearance.CodeIDE.HeadlineMedium" parent="TextAppearance.Material3.HeadlineMedium" />
+    <style name="TextAppearance.CodeIDE.HeadlineSmall" parent="TextAppearance.Material3.HeadlineSmall" />
+
+    <style name="TextAppearance.CodeIDE.TitleLarge" parent="TextAppearance.Material3.TitleLarge" />
+    <style name="TextAppearance.CodeIDE.TitleMedium" parent="TextAppearance.Material3.TitleMedium" />
+    <style name="TextAppearance.CodeIDE.TitleSmall" parent="TextAppearance.Material3.TitleSmall" />
+
+    <style name="TextAppearance.CodeIDE.BodyLarge" parent="TextAppearance.Material3.BodyLarge" />
+    <style name="TextAppearance.CodeIDE.BodyMedium" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="TextAppearance.CodeIDE.BodySmall" parent="TextAppearance.Material3.BodySmall" />
+
+    <style name="TextAppearance.CodeIDE.LabelLarge" parent="TextAppearance.Material3.LabelLarge" />
+    <style name="TextAppearance.CodeIDE.LabelMedium" parent="TextAppearance.Material3.LabelMedium" />
+    <style name="TextAppearance.CodeIDE.LabelSmall" parent="TextAppearance.Material3.LabelSmall" />
+
+</resources>

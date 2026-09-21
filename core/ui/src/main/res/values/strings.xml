@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Composants d'état de core:ui. -->
+    <string name="core_ui_retry">Réessayer</string>
+</resources>

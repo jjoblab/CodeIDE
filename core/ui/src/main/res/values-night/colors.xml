@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Palette CodeIDE — mode sombre (mêmes rôles sémantiques que le mode clair).
+-->
+<resources>
+    <!-- Couleurs de marque (indigo éclairci pour le fond sombre). -->
+    <color name="codeide_primary">#BAC4FF</color>
+    <color name="codeide_on_primary">#0C2264</color>
+    <color name="codeide_primary_container">#293D8F</color>
+    <color name="codeide_on_primary_container">#DCE1FF</color>
+
+    <!-- Couleurs secondaires. -->
+    <color name="codeide_secondary">#C1C5DC</color>
+    <color name="codeide_on_secondary">#2B3042</color>
+    <color name="codeide_secondary_container">#414659</color>
+    <color name="codeide_on_secondary_container">#DDE1F9</color>
+
+    <!-- Couleurs tertiaires. -->
+    <color name="codeide_tertiary">#E3BAD7</color>
+    <color name="codeide_on_tertiary">#42273E</color>
+    <color name="codeide_tertiary_container">#5A3D56</color>
+    <color name="codeide_on_tertiary_container">#FFD7F3</color>
+
+    <!-- Erreurs. -->
+    <color name="codeide_error">#FFB4AB</color>
+    <color name="codeide_on_error">#690005</color>
+    <color name="codeide_error_container">#93000A</color>
+    <color name="codeide_on_error_container">#FFDAD6</color>
+
+    <!-- Surfaces et arrière-plans. -->
+    <color name="codeide_background">#111318</color>
+    <color name="codeide_on_background">#E2E1E9</color>
+    <color name="codeide_surface">#111318</color>
+    <color name="codeide_on_surface">#E2E1E9</color>
+    <color name="codeide_surface_variant">#46464F</color>
+    <color name="codeide_on_surface_variant">#C6C5D0</color>
+    <color name="codeide_inverse_surface">#E2E1E9</color>
+    <color name="codeide_on_inverse_surface">#2F3037</color>
+    <color name="codeide_outline">#90909A</color>
+    <color name="codeide_outline_variant">#46464F</color>
+
+    <!-- Écran de démarrage : identique au mode clair, la marque prime. -->
+    <color name="codeide_splash_background">#43559E</color>
+</resources>
