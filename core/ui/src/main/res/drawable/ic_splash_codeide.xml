@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Glyphe de l'écran de démarrage : chevrons « code » blancs sur la couleur
+  de marque. Contenu dans la zone sûre de l'icône SplashScreen (centre
+  72 dp d'un viewport 108 dp), dessin en chemin plein, pas de dépendance
+  externe. Glyphe provisoire — charte finale à l'étape 13.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="2.5"
+        android:scaleY="2.5"
+        android:translateX="24"
+        android:translateY="24">
+        <!-- Chevron gauche. -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M16.6,5.4 L9.9,12 L16.6,18.6 L18.6,16.6 L13.9,12 L18.6,7.4 Z" />
+        <!-- Chevron droit. -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M7.4,5.4 L14.1,12 L7.4,18.6 L5.4,16.6 L10.1,12 L5.4,7.4 Z" />
+        <!-- Barre oblique centrale. -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M13.6,4 L11.6,4 L10.4,20 L12.4,20 Z" />
+    </group>
+</vector>

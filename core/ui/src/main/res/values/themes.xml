@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thème CodeIDE — Material 3, clair/sombre selon le système, sans barre
+  d'action (chaque écran porte sa propre MaterialToolbar).
+
+  Les couleurs dynamiques (Android 12+) ne sont PAS activées ici : elles
+  s'appliquent par-dessus ce thème, à la demande, via
+  Activity.applyDynamicColorsIfAvailable() — voir ADR 0008.
+-->
+<resources>
+
+    <style name="Theme.CodeIDE" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Couleurs de marque. -->
+        <item name="colorPrimary">@color/codeide_primary</item>
+        <item name="colorOnPrimary">@color/codeide_on_primary</item>
+        <item name="colorPrimaryContainer">@color/codeide_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/codeide_on_primary_container</item>
+        <item name="colorSecondary">@color/codeide_secondary</item>
+        <item name="colorOnSecondary">@color/codeide_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/codeide_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/codeide_on_secondary_container</item>
+        <item name="colorTertiary">@color/codeide_tertiary</item>
+        <item name="colorOnTertiary">@color/codeide_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/codeide_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/codeide_on_tertiary_container</item>
+
+        <!-- Erreurs. -->
+        <item name="colorError">@color/codeide_error</item>
+        <item name="colorOnError">@color/codeide_on_error</item>
+        <item name="colorErrorContainer">@color/codeide_error_container</item>
+        <item name="colorOnErrorContainer">@color/codeide_on_error_container</item>
+
+        <!-- Surfaces et arrière-plans. -->
+        <item name="android:colorBackground">@color/codeide_background</item>
+        <item name="colorOnBackground">@color/codeide_on_background</item>
+        <item name="colorSurface">@color/codeide_surface</item>
+        <item name="colorOnSurface">@color/codeide_on_surface</item>
+        <item name="colorSurfaceVariant">@color/codeide_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/codeide_on_surface_variant</item>
+        <item name="colorSurfaceInverse">@color/codeide_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/codeide_on_inverse_surface</item>
+        <item name="colorOutline">@color/codeide_outline</item>
+        <item name="colorOutlineVariant">@color/codeide_outline_variant</item>
+
+        <item name="android:windowBackground">?attr/colorSurface</item>
+
+        <!-- Typographie et formes : tokens CodeIDE. -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.CodeIDE.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.CodeIDE.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.CodeIDE.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.CodeIDE.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.CodeIDE.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.CodeIDE.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.CodeIDE.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.CodeIDE.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.CodeIDE.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.CodeIDE.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.CodeIDE.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.CodeIDE.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.CodeIDE.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.CodeIDE.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.CodeIDE.LabelSmall</item>
+
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CodeIDE.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CodeIDE.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.CodeIDE.Large</item>
+    </style>
+
+    <!--
+      Thème de l'écran de démarrage (API SplashScreen).
+      Il renvoie vers Theme.CodeIDE une fois l'attente levée ; l'icône est
+      un glyphe « code » sobre, la marque definitive viendra à l'étape 13.
+    -->
+    <style name="Theme.CodeIDE.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/codeide_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_codeide</item>
+        <item name="postSplashScreenTheme">@style/Theme.CodeIDE</item>
+    </style>
+
+</resources>

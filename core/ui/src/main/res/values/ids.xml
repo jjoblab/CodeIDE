@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ids alloués par code (bouton Réessayer d'ErrorStateView). -->
+<resources>
+    <item name="error_state_retry_button" type="id" />
+</resources>

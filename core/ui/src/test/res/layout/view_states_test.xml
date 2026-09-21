@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout de test des composants d'état de core:ui (inflation Robolectric). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <jo.codeide.core.ui.EmptyStateView
+        android:id="@+id/etat_vide"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:stateTitle="@string/core_ui_retry"
+        app:stateMessage="Aucun projet pour le moment" />
+
+    <jo.codeide.core.ui.LoadingView
+        android:id="@+id/etat_chargement"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:stateMessage="Chargement en cours" />
+
+    <jo.codeide.core.ui.ErrorStateView
+        android:id="@+id/etat_erreur"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:stateTitle="Échec du chargement"
+        app:stateMessage="Vérifiez le dossier de travail"
+        app:errorRetryText="Relancer" />
+
+</LinearLayout>

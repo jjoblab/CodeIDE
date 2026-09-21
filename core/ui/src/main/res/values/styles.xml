@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Styles de composants CodeIDE — points d'ancrage uniques pour boutons,
+  barres d'outils et composants d'état. Les écrans référencent toujours
+  Widget.CodeIDE.*, jamais les styles Material directement.
+-->
+<resources>
+
+    <!-- Bouton principal : cible tactile minimale 48 dp (accessibilité). -->
+    <style name="Widget.CodeIDE.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.LabelLarge</item>
+    </style>
+
+    <!-- Bouton tonal (action secondaire). -->
+    <style name="Widget.CodeIDE.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.LabelLarge</item>
+    </style>
+
+    <!-- Bouton texte (action tertiaire). -->
+    <style name="Widget.CodeIDE.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+    </style>
+
+    <!-- Barre d'outils de haut d'écran (sans action, titre TitleLarge). -->
+    <style name="Widget.CodeIDE.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="titleTextAppearance">@style/TextAppearance.CodeIDE.TitleLarge</item>
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+    </style>
+
+</resources>

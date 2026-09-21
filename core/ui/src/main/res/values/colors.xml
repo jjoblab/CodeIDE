@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Palette CodeIDE — mode clair.
+  Les noms sont indépendants de leur valeur : un écran ne référence jamais
+  une couleur directement, mais le rôle sémantique via le thème
+  (règle 3 : aucune ressource en dur).
+-->
+<resources>
+    <!-- Couleurs de marque (indigo). -->
+    <color name="codeide_primary">#43559E</color>
+    <color name="codeide_on_primary">#FFFFFF</color>
+    <color name="codeide_primary_container">#DCE1FF</color>
+    <color name="codeide_on_primary_container">#001159</color>
+
+    <!-- Couleurs secondaires (tons neutres froids). -->
+    <color name="codeide_secondary">#595D72</color>
+    <color name="codeide_on_secondary">#FFFFFF</color>
+    <color name="codeide_secondary_container">#DDE1F9</color>
+    <color name="codeide_on_secondary_container">#161B2C</color>
+
+    <!-- Couleurs tertiaires (accent discret). -->
+    <color name="codeide_tertiary">#75546F</color>
+    <color name="codeide_on_tertiary">#FFFFFF</color>
+    <color name="codeide_tertiary_container">#FFD7F3</color>
+    <color name="codeide_on_tertiary_container">#2C1229</color>
+
+    <!-- Erreurs. -->
+    <color name="codeide_error">#BA1A1A</color>
+    <color name="codeide_on_error">#FFFFFF</color>
+    <color name="codeide_error_container">#FFDAD6</color>
+    <color name="codeide_on_error_container">#410002</color>
+
+    <!-- Surfaces et arrière-plans. -->
+    <color name="codeide_background">#F9F9FF</color>
+    <color name="codeide_on_background">#1A1B21</color>
+    <color name="codeide_surface">#F9F9FF</color>
+    <color name="codeide_on_surface">#1A1B21</color>
+    <color name="codeide_surface_variant">#E2E1EC</color>
+    <color name="codeide_on_surface_variant">#46464F</color>
+    <color name="codeide_inverse_surface">#2F3037</color>
+    <color name="codeide_on_inverse_surface">#F1F0F8</color>
+    <color name="codeide_outline">#767680</color>
+    <color name="codeide_outline_variant">#C6C5D0</color>
+
+    <!-- Écran de démarrage. -->
+    <color name="codeide_splash_background">#43559E</color>
+</resources>
