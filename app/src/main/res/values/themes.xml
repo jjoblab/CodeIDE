@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thème de base : Material 3, mode clair/sombre du système.
+         Les couleurs typographiques et les tokens arrivent à l'étape 1
+         avec core:ui ; le thème vit déjà ici pour prouver la chaîne. -->
+    <style name="Theme.CodeIDE" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">?attr/colorSurface</item>
+    </style>
+</resources>
