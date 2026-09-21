@@ -1,20 +1,21 @@
 # feature/home — Fonctionnalité — liste des projets
 
-> Statut étape 0 : squelette compilable, sans contenu fonctionnel. Ce module se remplit à l'étape 7 (accueil).
+> Statut étape 1 : fragment placeholder livré (navigation Accueil ↔ Paramètres prouvée). La liste réelle des projets arrive à l'étape 7.
 
 Écran d'accueil : liste des projets (ListAdapter + DiffUtil), tri, recherche avec debounce, états chargement/vide/erreur, statut d'accès (Introuvable / Permission perdue), actions par projet, FAB Nouveau projet et Ouvrir un dossier. Adaptatif une/deux colonnes.
 
 ## Dépendances autorisées
 
-`core:ui`, `core:domain`, `core:model`.
+`core:ui`, `core:domain`, `core:model` (via la convention `codeide.android.feature`).
 
 Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et la tâche
 `./gradlew checkModuleDependencies` qui fait échouer le build en cas de violation.
 
-## API publique prévue
+## API publique (étape 1)
 
-- HomeFragment + HomeViewModel (étape 7)
-- Liste, recherche, tri, actions par projet (étape 7)
+- **`HomeFragment`** — destination initiale du graphe de navigation (écran provisoire) : `BaseFragment<FragmentHomeBinding>`, injection Hilt de `AppNavigator`, insets edge-to-edge.
+
+Prévu à l'étape 7 : `HomeViewModel`, liste, recherche, tri, actions par projet, états vide/chargement/erreur.
 
 ## Vérifications du module
 

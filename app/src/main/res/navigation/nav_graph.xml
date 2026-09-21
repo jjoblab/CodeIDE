@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Graphe de navigation CodeIDE — étape 1 : Accueil ↔ Paramètres (placeholders).
+
+  La destination initiale (onboarding ou accueil) sera choisie
+  dynamiquement à partir de `isSetupCompleted` à l'étape 5 ; le wizard
+  (nouveau projet), le diagnostic et l'éditeur rejoindront le graphe aux
+  étapes 10 à 13.
+-->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/home">
+
+    <fragment
+        android:id="@+id/home"
+        android:name="jo.codeide.feature.home.HomeFragment"
+        android:label="@string/home_title"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settings" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settings"
+        android:name="jo.codeide.feature.settings.SettingsFragment"
+        android:label="@string/settings_title"
+        tools:layout="@layout/fragment_settings" />
+
+</navigation>

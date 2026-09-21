@@ -1,9 +1,12 @@
-// Module feature — voir README.md et docs/ARCHITECTURE.md.
-// Étape 0 : squelette avec la convention library. La convention
-// codeide.android.feature (ViewBinding + Hilt + dépendances d'interface
-// de la section 5.2) sera appliquée quand le contenu fonctionnel du module
-// arrivera (étapes 5 à 13) — elle est déjà compilée dans build-logic.
+// feature:settings — écran Paramètres (complet à partir de l'étape 6).
+// Étape 1 : fragment placeholder qui prouve la navigation AppNavigator.
 
 plugins {
-    id("codeide.android.library")
+    id("codeide.android.feature")
+}
+
+dependencies {
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

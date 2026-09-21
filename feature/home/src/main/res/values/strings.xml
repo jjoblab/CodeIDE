@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Accueil</string>
+    <string name="home_placeholder">Écran provisoire : la liste des projets arrive à l\'étape 7 du plan.</string>
+    <string name="home_open_settings">Ouvrir les paramètres</string>
+</resources>
