@@ -1,0 +1,8 @@
+# Exemption pour core:logging et core:crash uniquement.
+# Ces deux modules implémentent les sinks bas niveau de la journalisation
+# maison : ils sont les seuls autorisés à appeler android.util.Log, println
+# ou printStackTrace (règle 14 du prompt maître).
+# Ce fichier est toujours chargé APRÈS detekt.yml : sa priorité est plus haute.
+style:
+  ForbiddenMethodCall:
+    active: false
