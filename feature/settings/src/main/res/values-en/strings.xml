@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_placeholder">Placeholder screen: full settings arrive at step 6 of the plan.</string>
+    <string name="settings_back_cd">Navigate back</string>
+</resources>

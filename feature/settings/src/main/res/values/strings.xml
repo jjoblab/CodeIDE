@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_placeholder">Écran provisoire : les réglages complets arrivent à l\'étape 6 du plan.</string>
+    <string name="settings_back_cd">Revenir en arrière</string>
+</resources>

@@ -1,19 +1,21 @@
 # feature/settings — Fonctionnalité — paramètres
 
-> Statut étape 0 : squelette compilable, sans contenu fonctionnel. Ce module se remplit à l'étape 6 (paramètres).
+> Statut étape 1 : fragment placeholder livré (barre d'outils avec retour, navigation via AppNavigator). L'écran complet arrive à l'étape 6.
 
-Écran Paramètres Material 3 personnalisé (pas de PreferenceFragmentCompat), piloté par ViewModel et DataStore : apparence, langue, projets (dossier de travail, auteur, licence), à propos, avancé (réinitialisation, relance de l'assistant, diagnostic à l'étape 12). Changer le dossier de travail ne libère l'ancienne permission que si aucun projet n'en dépend.
+Écran Paramètres personnalisé Material 3 (pas de `PreferenceFragmentCompat`), piloté par un ViewModel et DataStore : apparence, langue, projets, à propos, avancé.
 
 ## Dépendances autorisées
 
-`core:ui`, `core:domain`, `core:model`.
+`core:ui`, `core:domain`, `core:model` (via la convention `codeide.android.feature`).
 
 Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et la tâche
 `./gradlew checkModuleDependencies` qui fait échouer le build en cas de violation.
 
-## API publique prévue
+## API publique (étape 1)
 
-- SettingsFragment + SettingsViewModel (étape 6)
+- **`SettingsFragment`** — destination Paramètres du graphe (écran provisoire) : `BaseFragment<FragmentSettingsBinding>`, `MaterialToolbar` avec retour via `AppNavigator.goBack()`.
+
+Prévu à l'étape 6 : `SettingsViewModel`, sections Apparence/Langue/Projets/À propos/Avancé.
 
 ## Vérifications du module
 
