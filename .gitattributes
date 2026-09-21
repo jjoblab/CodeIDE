@@ -1,0 +1,19 @@
+# Normalisation Git : fins de ligne explicites, binaires déclarés.
+* text=auto eol=lf
+
+# Scripts shell et wrapper Gradle : LF impératif.
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Scripts Windows : CRLF.
+*.bat text eol=crlf
+
+# Images et archives : binaires.
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.zip binary
+*.apk binary
+*.gz binary
