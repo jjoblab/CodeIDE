@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wizard — hôte, tablette / paysage (sw600dp, section 12.1) : la barre
+  d'outils reste pleine largeur, le contenu (indicateur, étapes, actions)
+  est borné et centré — jamais étiré. Le FrameLayout absorbe la hauteur
+  pondérée : la colonne bornée évite ainsi les poids imbriqués (le poids du
+  conteneur reste à un seul niveau).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/barre_outils"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/touch_target_min"
+        app:navigationContentDescription="@string/wizard_fermer"
+        app:navigationIcon="@drawable/ic_fermer"
+        app:title="@string/newproject_title" />
+
+    <!-- Volontairement gardé : sans lui, le conteneur d'étapes devrait
+         porter un poids dans un parent lui-même pondéré (NestedWeights). -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:ignore="UselessParent">
+
+        <LinearLayout
+            android:layout_width="@dimen/wizard_largeur_tablette"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/conteneur_indicateur"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/screen_horizontal_margin"
+                android:paddingTop="@dimen/spacing_sm"
+                android:paddingEnd="@dimen/screen_horizontal_margin"
+                android:paddingBottom="@dimen/spacing_sm">
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/indicateur_etapes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="3"
+                    android:progress="1" />
+
+                <TextView
+                    android:id="@+id/libelle_etape"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:accessibilityLiveRegion="polite" />
+            </LinearLayout>
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/conteneur_etapes"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/barre_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/screen_horizontal_margin"
+                android:paddingTop="@dimen/spacing_sm"
+                android:paddingEnd="@dimen/screen_horizontal_margin"
+                android:paddingBottom="@dimen/spacing_sm">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_precedent"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wizard_bouton_precedent" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_suivant"
+                    style="@style/Widget.CodeIDE.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wizard_bouton_suivant" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

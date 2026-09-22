@@ -1,6 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="newproject_title">Nouveau projet</string>
-    <string name="newproject_placeholder">L\'assistant de création de projet (choix du modèle, paramètres, arborescence, récapitulatif) arrive à l\'étape 10 du plan.</string>
-    <string name="newproject_retour">Retour</string>
+
+    <!-- Cadre du wizard (section 12.2). -->
+    <!-- Position d'étape, pas une quantité : aucun pluriel à accorder. -->
+    <string name="wizard_indicateur_etape" tools:ignore="PluralsCandidate">Étape %1$d sur %2$d · %3$s</string>
+    <string name="wizard_etape_modele">Modèle</string>
+    <string name="wizard_etape_configuration">Configuration</string>
+    <string name="wizard_etape_informations">Informations</string>
+    <string name="wizard_bouton_precedent">Retour</string>
+    <string name="wizard_bouton_suivant">Suivant</string>
+    <string name="wizard_fermer">Fermer le wizard</string>
+    <string name="wizard_abandon_titre">Abandonner la création ?</string>
+    <string name="wizard_abandon_message">Les informations saisies seront perdues.</string>
+    <string name="wizard_abandon_rester">Continuer</string>
+    <string name="wizard_abandon_confirmer">Abandonner</string>
+    <string name="wizard_resynchroniser">Resynchroniser la valeur dérivée</string>
+
+    <!-- Étape 1 — Modèle (section 12.3). -->
+    <string name="wizard_recherche_indication">Rechercher un modèle</string>
+    <string name="wizard_aucun_resultat">Aucun modèle ne correspond à « %1$s ».</string>
+    <string name="wizard_erreur_catalogue">Le catalogue des modèles n\'a pas pu être chargé.</string>
+    <string name="wizard_reessayer">Réessayer</string>
+    <string name="wizard_modele_selectionne">%1$s (sélectionné)</string>
+    <string name="wizard_choisir_modele">Choisir le modèle %1$s</string>
+
+    <!-- Étape 2 — Configuration : libellés des valeurs connues. -->
+    <string name="wizard_choix_application">Application console</string>
+    <string name="wizard_choix_bibliotheque">Bibliothèque</string>
+    <string name="wizard_choix_gradle">Gradle (Kotlin DSL)</string>
+    <string name="wizard_choix_maven">Maven</string>
+    <string name="wizard_choix_sources">Sources uniquement</string>
+    <string name="wizard_choix_jdk17">JDK 17</string>
+    <string name="wizard_choix_jdk21">JDK 21</string>
+    <string name="wizard_sous_titre_application">Programme avec point d\'entrée</string>
+    <string name="wizard_sous_titre_bibliotheque">Réutilisable par d\'autres projets</string>
+    <string name="wizard_icone_application">&gt;_</string>
+    <string name="wizard_icone_bibliotheque">▦</string>
+    <string name="wizard_explication_gradle">Recommandé — scripts Kotlin, wrapper sommé</string>
+    <string name="wizard_explication_maven">Fichier pom.xml classique de l\'écosystème Java</string>
+    <string name="wizard_explication_sources">Ni build, ni dépendances : juste les sources</string>
+    <string name="wizard_aide_sans_build">Sans système de build, seules les sources sont générées.</string>
+
+    <!-- Étape 3 — Informations et emplacement (section 12.3). -->
+    <string name="wizard_nom_projet">Nom du projet</string>
+    <string name="wizard_description">Description (optionnelle)</string>
+    <string name="wizard_emplacement_titre">Emplacement</string>
+    <string name="wizard_emplacement_absent">Aucun dossier de travail — choisissez un emplacement</string>
+    <string name="wizard_changer_dossier">Changer de dossier</string>
+    <string name="wizard_choisir_dossier">Choisir un dossier</string>
+    <string name="wizard_emplacement_apercu">…/%1$s</string>
+    <string name="wizard_emplacement_apercu_vide">…/ (nom du dossier à venir)</string>
+    <string name="wizard_emplacement_refuse">Ce dossier est refusé par Android (racine, Download, Android/data…). Choisissez un autre dossier.</string>
+    <string name="wizard_emplacement_erreur">Ce dossier n\'a pas pu être validé (permission ou écriture impossible). Choisissez un autre dossier.</string>
+    <string name="wizard_verification_ok">Emplacement vérifié — le nom est disponible.</string>
+    <string name="wizard_verification_collision">Ce dossier existe déjà : choisissez un autre nom.</string>
+    <string name="wizard_verification_inaccessible">L\'emplacement n\'est plus accessible (permission perdue ou dossier absent).</string>
+    <string name="wizard_verification_erreur">L\'emplacement n\'a pas pu être vérifié.</string>
+
+    <!-- Messages d'erreur localisés (raisons typées, section 12.3). -->
+    <string name="wizard_erreur_nom_longueur">Le nom doit contenir de 1 à 64 caractères (espaces de fin ignorés).</string>
+    <string name="wizard_erreur_nom_caractere">Le caractère « %1$s » est interdit dans un nom de projet.</string>
+    <string name="wizard_erreur_nom_points">« . » et « .. » ne sont pas des noms valides.</string>
+    <string name="wizard_erreur_nom_fin">Le nom ne peut pas se terminer par un point ni un espace.</string>
+    <string name="wizard_erreur_nom_reserves">Ce nom est réservé par Windows — choisissez-en un autre.</string>
+    <string name="wizard_erreur_nom_generique">Ce nom de projet n\'est pas valide.</string>
+    <string name="wizard_erreur_package_vide">Le nom de package ne peut pas être vide ni contenir de segment vide.</string>
+    <string name="wizard_erreur_package_segment">Segment « %1$s » invalide : minuscule initiale puis minuscules, chiffres et underscores.</string>
+    <string name="wizard_erreur_package_mot_cle">« %1$s » est un mot-clé Java/Kotlin réservé.</string>
+    <string name="wizard_erreur_identifiant">Identifiant invalide : lettre ou underscore initial, puis alphanumériques et underscores.</string>
+    <string name="wizard_erreur_identifiant_mot_cle">« %1$s » est un mot-clé Java/Kotlin réservé.</string>
+    <string name="wizard_erreur_version">Version invalide : format SemVer attendu (ex. « 0.1.0 »).</string>
+    <string name="wizard_erreur_artifact">Minuscules, chiffres, points et tirets uniquement ; doit commencer par une minuscule ou un chiffre.</string>
+    <string name="wizard_erreur_motif">La valeur ne correspond pas au format attendu (%1$s).</string>
 </resources>

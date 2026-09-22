@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ids alloués par code (rendu dynamique des paramètres, étape 10). -->
+<resources>
+    <item name="tag_parametre_id" type="id" />
+    <item name="tag_choix_valeur" type="id" />
+</resources>
