@@ -11,7 +11,9 @@ package jo.codeide.core.model
  * @property nom nom affiché résolu (i18n).
  * @property description description courte résolue (i18n).
  * @property category catégorie d'affichage.
- * @property iconKey clé de l'icône maison.
+ * @property iconKey monogramme de l'icône maison, résolu depuis le
+ * dictionnaire du modèle (étape 10 : ex. « kt », « jv ») — pastille texte,
+ * jamais un logo officiel.
  * @property tags étiquettes descriptives.
  */
 public data class TemplateSummary(
@@ -44,6 +46,11 @@ public data class TemplateFormEvaluation(
 /**
  * Évaluation d'un paramètre individuel.
  *
+ * Depuis l'étape 10, porte aussi les **métadonnées de rendu** du paramètre
+ * ([type], [choices], [derived], [section]) : le wizard rend les champs
+ * dynamiquement depuis cette seule évaluation (section 12.2 — « généré
+ * depuis les TemplateParameter »), sans accès aux manifestes bruts.
+ *
  * @property parameterId identifiant du paramètre.
  * @property visible le paramètre est-il visible (expression `visibleWhen`) ?
  * Un paramètre masqué vaut sa valeur par défaut, non validée, non persistée.
@@ -51,8 +58,16 @@ public data class TemplateFormEvaluation(
  * sinon dérivée (`defaultFrom`) ou valeur par défaut.
  * @property error message d'erreur développeur (français) du validateur, ou
  * `null` si la valeur est valide ; toujours `null` pour un paramètre masqué.
+ * @property errorReason raison typée correspondant à [error] (étape 10) :
+ * l'interface l'affiche via ses ressources localisées au lieu du message
+ * développeur ; `null` quand la valeur est valide.
  * @property label libellé résolu pour la langue demandue.
  * @property help aide contextuelle résolue (vide si absente).
+ * @property type type de saisie (métadonnée de rendu).
+ * @property choices valeurs possibles (type `CHOICE` uniquement).
+ * @property derived le paramètre est dérivable (`defaultFrom`) : son champ
+ * suit ses sources tant que l'utilisateur ne l'a pas modifié à la main.
+ * @property section section du wizard rendant ce paramètre.
  */
 public data class TemplateParameterEvaluation(
     public val parameterId: String,
@@ -61,4 +76,9 @@ public data class TemplateParameterEvaluation(
     public val error: String?,
     public val label: String,
     public val help: String,
+    public val errorReason: RaisonValidation? = null,
+    public val type: TemplateParameterType = TemplateParameterType.TEXT,
+    public val choices: List<String> = emptyList(),
+    public val derived: Boolean = false,
+    public val section: TemplateSection = TemplateSection.CONFIGURATION,
 )
