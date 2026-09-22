@@ -1,9 +1,10 @@
 # core/model — Modèle — entités et types partagés
 
-> Statut étape 2 : fondations (v0.2.0 : `AppResult`, `AppError`, identifiants typés, `StorageLocation`)
-> et journalisation (v0.3.0 : `LogLevel`, `LogEntry` sérialisable, `FlattenedException`),
-> plantages (v0.4.0 : `CrashReport`, `CrashReportSummary`, `CrashType`, `CrashAppInfo`, `DeviceInfo`,
-> `FlattenedException.suppressed`).
+> Statut étape 4 : fondations (v0.2.0 : `AppResult`, `AppError`, identifiants typés, `StorageLocation`),
+> journalisation (v0.3.0 : `LogLevel`, `LogEntry` sérialisable, `FlattenedException`),
+> plantages (v0.4.0 : `CrashReport`, `CrashReportSummary`, `CrashType`, `CrashAppInfo`, `DeviceInfo`),
+> couche données (v0.5.0 : `Project`, `ProjectAccessState`, `AppSettings`, `ThemeMode`,
+> `LogVerbosity`, `License`).
 
 Module Kotlin JVM pur : entités immuables et types partagés de tout le domaine. Aucune dépendance, ni Android ni autre module : c'est la base du graphe de dépendances.
 
@@ -21,7 +22,7 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 - **Identifiants typés** — `EntityId` (interface commune), `ProjectId`, `TemplateId`, `CrashReportId` (`@JvmInline value class`, non vides) ; seules données métier autorisées dans les journaux.
 - **`StorageLocation`** — emplacement SAF : `grantUri` (URI de permission), `documentUri` (URI du dossier), `displayPath` (libellé lisible) ; `toString` n'expose volontairement que le libellé (règle 15).
 
-Types prévus aux étapes suivantes : `Project`/`ProjectAccessState` (étape 4), `LogLevel`/`LogEntry` (étape 2), `CrashReport`… (étape 3).
+Couche données (étape 4, v0.5.0) : `Project` (identifiant, nom, description, emplacement SAF, modèle, horodatages, épingle), `ProjectAccessState` (calculé, jamais persisté), `AppSettings` (thème, couleurs dynamiques, langue, dossier de travail, profil auteur, licence, verbosité de journalisation, assistant terminé) et `ThemeMode`/`LogVerbosity`/`License`.
 
 ## Vérifications du module
 
