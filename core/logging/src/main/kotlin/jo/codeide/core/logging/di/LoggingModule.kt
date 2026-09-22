@@ -105,12 +105,23 @@ internal object LoggingProvidesModule {
         )
 
     /**
-     * Configuration initiale : tout passer en debug, `INFO` en release —
-     * en attendant le réglage utilisateur `AppSettings.logLevel` (étape 4).
+     * Configuration initiale, **selon la variante réellement installée**
+     * (`FLAG_DEBUGGABLE` suit la variante, pas une constante de
+     * compilation) : tout passer en debug, `INFO` en release — jusqu'à la
+     * première émission des paramètres persistés (`AppSettings.logLevel`,
+     * appliquée par `LogLevelApplier` au démarrage du processus
+     * principal, étape 4).
      */
     @Provides
     @Singleton
-    fun provideInitialLogConfig(): LogConfig = LogConfig.debugDefault()
+    fun provideInitialLogConfig(
+        @ApplicationContext context: Context,
+    ): LogConfig =
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            LogConfig.debugDefault()
+        } else {
+            LogConfig.releaseDefault()
+        }
 
     @Provides
     @Singleton
