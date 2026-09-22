@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings for the debug-only diagnostic menu (section 5.8). -->
+<resources>
+    <string name="debug_menu_bouton">Debug menu</string>
+    <string name="debug_menu_description">Open the development diagnostic menu</string>
+    <string name="debug_menu_titre">Development diagnostics</string>
+    <string name="debug_action_plantage">Trigger a crash</string>
+    <string name="debug_action_non_fatale">Non-fatal exception (logged)</string>
+    <string name="debug_action_salve">Generate logs</string>
+    <string name="debug_annuler">Cancel</string>
+</resources>

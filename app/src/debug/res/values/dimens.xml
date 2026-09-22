@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions du menu debug (section 5.8 : actions d'au moins 48 dp). -->
+<resources>
+    <dimen name="debug_menu_hauteur_min">48dp</dimen>
+    <dimen name="debug_menu_marge">16dp</dimen>
+</resources>

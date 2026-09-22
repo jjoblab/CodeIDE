@@ -1,69 +1,146 @@
 package jo.codeide
 
 import android.app.Application
-import android.os.Build
 import android.os.StrictMode
 import dagger.hilt.android.HiltAndroidApp
+import jo.codeide.core.crash.AppProcess
+import jo.codeide.core.crash.CrashHandler
+import jo.codeide.core.crash.DeviceSnapshot
+import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.RecordPendingExitInfosUseCase
+import jo.codeide.core.logging.CodeIdeAppLogger
 import jo.codeide.core.logging.LoggingInitializer
+import jo.codeide.core.model.CrashAppInfo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Application CodeIDE — point d'assemblage de Hilt (section 5.1).
+ * Application CodeIDE — point d'assemblage de Hilt (section 5.1),
+ * **sensible au processus** (section 5.8).
  *
- * Responsabilités :
- * - porter l'annotation [HiltAndroidApp] qui génère le composant racine ;
- * - activer StrictMode **uniquement en debug** (détection des I/O sur le
- *   thread principal et des fuites mémoire) ;
- * - initialiser la journalisation maison dans le **processus principal
- *   uniquement** (section 5.7 : le `FileSink` n'écrit jamais depuis un autre
- *   processus, anti-corruption) — la capture de plantages (étape 3) viendra
- *   s'installer en toute première ligne le moment venu ;
- * - LeakCanary s'installe tout seul via sa dépendance `debugImplementation`.
+ * Deux existences, un seul code :
+ * - **processus principal** : le gestionnaire de plantages s'installe en
+ *   toute première ligne (avant Hilt), la journalisation démarre (en-tête
+ *   de session, `FileSink` dans ce processus uniquement), les sorties non
+ *   traitées (`ApplicationExitInfo`) sont enregistrées au démarrage ;
+ * - **processus `:crash`** (écran dédié) : gestionnaire « sûr » qui ne
+ *   relance jamais l'écran, et **aucune** initialisation d'exécution — ni
+ *   `FileSink` démarré, ni Room ouverte, ni DataStore lue (section 5.8).
+ *   Le graphe Hilt reste assemblé par `super.onCreate()` (inévitable pour
+ *   une classe `Application` partagée), mais aucune de ces dépendances
+ *   n'y effectue d'I/O avant usage.
+ *
+ * La lambda `deviceInfo` reste évaluée paresseusement : l'installation
+ * elle-même ne fait aucune I/O.
+ *
+ * LeakCanary (debug) s'installe tout seul via `debugImplementation`.
  */
 @HiltAndroidApp
 class CodeIdeApplication : Application() {
     @Inject
     lateinit var loggingInitializer: LoggingInitializer
 
-    override fun onCreate() {
-        super.onCreate()
+    @Inject
+    lateinit var loggerMaison: CodeIdeAppLogger
 
-        if (BuildConfig.DEBUG) {
-            activerStrictMode()
+    @Inject
+    lateinit var dispatchers: DispatcherProvider
+
+    @Inject
+    lateinit var enregistrerSortiesNonTraitees: RecordPendingExitInfosUseCase
+
+    /**
+     * Gestionnaire de plantages du processus principal — porté par
+     * l'application pour que `MainActivity` y informe le pisteur du
+     * dernier écran (destination de navigation).
+     */
+    internal var gestionnairePlantages: CrashHandler? = null
+        private set
+
+    /** Portée des travaux de démarrage (enregistrement des sorties). */
+    private val porteeDemarrage by lazy { CoroutineScope(SupervisorJob() + dispatchers.io) }
+
+    override fun onCreate() {
+        // Section 5.8 : le gestionnaire s'installe AVANT toute
+        // initialisation — super.onCreate() assemble Hilt, il vient donc
+        // après. La détection de processus ne coûte aucune I/O.
+        val processus = AppProcess.detect(this)
+        when (processus) {
+            AppProcess.MAIN -> {
+                gestionnairePlantages =
+                    CrashHandler.install(this, infosBuild()) {
+                        DeviceSnapshot.depuisContext(this)
+                    }
+            }
+
+            AppProcess.CRASH -> {
+                CrashHandler.installSafe()
+            }
+
+            AppProcess.OTHER -> {
+                Unit
+            }
         }
 
-        if (estProcessusPrincipal()) {
-            loggingInitializer.initialize()
+        super.onCreate()
+
+        when (processus) {
+            AppProcess.MAIN -> initialiserProcessusPrincipal()
+            AppProcess.CRASH, AppProcess.OTHER -> Unit
         }
     }
 
     /**
-     * Indique si ce lancement est le processus principal de l'application.
+     * Informe le pisteur du dernier écran connu — appelé par l'écouteur de
+     * navigation de `MainActivity` (le libellé de destination est plus
+     * précis que le nom de l'activité).
      *
-     * Un processus `:crash` (étape 3) ne doit jamais écrire dans les fichiers
-     * de journal : seule la nomination du processus est examinée ici, la
-     * décision d'écrire revient de toute façon à la configuration du sink.
-     *
-     * @return `true` si le processus porte le nom du paquet (processus
-     * principal).
+     * @param ecran libellé de la destination affichée.
      */
-    private fun estProcessusPrincipal(): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            getProcessName() == packageName
-        } else {
-            // API 26-27 : lecture de /proc — lisible sans permission et
-            // invisible pour StrictMode (procfs, pas d'I/O disque).
-            nomProcessusCompat() == packageName
+    internal fun ecranAffiche(ecran: String) {
+        gestionnairePlantages?.onNavigatedTo(ecran)
+    }
+
+    /** Initialisation complète — processus principal uniquement. */
+    private fun initialiserProcessusPrincipal() {
+        if (BuildConfig.DEBUG) {
+            activerStrictMode()
         }
 
-    /** Nom du processus par /proc/self/cmdline (API 26-27). */
-    private fun nomProcessusCompat(): String =
-        java.io
-            .File("/proc/self/cmdline")
-            .readBytes()
-            .takeWhile { octet -> octet != 0.toByte() }
-            .toByteArray()
-            .decodeToString()
+        loggingInitializer.initialize()
+
+        // Liaison avec `core:logging` sans dépendance de module (section
+        // 5.8) : identifiant de session, filons de pain, vidage borné.
+        gestionnairePlantages?.brancherJournalisation(
+            sessionId = { loggerMaison.sessionId },
+            breadcrumbs = { loggerMaison.breadcrumbs(FILONS_RAPPORT) },
+            flush = { delai -> loggerMaison.flushBlocking(delai) },
+        )
+
+        // Détection au démarrage : ANR et plantages natifs de la session
+        // précédente, hors thread principal (section 5.8).
+        porteeDemarrage.launch {
+            val crees = enregistrerSortiesNonTraitees()
+            if (crees > 0) {
+                loggerMaison.i(TAG) { "sorties de processus enregistrées au démarrage : $crees" }
+            }
+        }
+    }
+
+    /**
+     * Identité du build pour les rapports (section 5.8) — directement depuis
+     * `BuildConfig` : l'installation précède l'injection Hilt, et ces
+     * constantes de compilation ne se lisent nulle part ailleurs.
+     */
+    private fun infosBuild(): CrashAppInfo =
+        CrashAppInfo(
+            versionName = BuildConfig.VERSION_NAME,
+            versionCode = BuildConfig.VERSION_CODE.toLong(),
+            buildType = if (BuildConfig.DEBUG) "debug" else "release",
+            applicationId = BuildConfig.APPLICATION_ID,
+        )
 
     /**
      * Active StrictMode avec journalisation (jamais de crash en debug pour
@@ -86,5 +163,12 @@ class CodeIdeApplication : Application() {
                 .penaltyLog()
                 .build(),
         )
+    }
+
+    private companion object {
+        const val TAG = "App"
+
+        /** Filons joints à un rapport de plantage (section 5.8 : 50). */
+        const val FILONS_RAPPORT = 50
     }
 }
