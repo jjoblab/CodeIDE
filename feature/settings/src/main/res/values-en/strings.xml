@@ -1,6 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Settings</string>
-    <string name="settings_placeholder">Placeholder screen: full settings arrive at step 6 of the plan.</string>
     <string name="settings_back_cd">Navigate back</string>
+
+    <!-- Apparence -->
+    <string name="settings_section_apparence">Appearance</string>
+    <string name="settings_theme_systeme">System theme</string>
+    <string name="settings_theme_clair">Light</string>
+    <string name="settings_theme_sombre">Dark</string>
+    <string name="settings_couleurs_dynamiques">Dynamic colors (Android 12+)</string>
+
+    <!-- Langue -->
+    <string name="settings_section_langue">Language</string>
+    <string name="settings_langue_systeme">System language</string>
+    <string name="settings_langue_fr">Français</string>
+    <string name="settings_langue_en">English</string>
+
+    <!-- Projets -->
+    <string name="settings_section_projets">Projects</string>
+    <string name="settings_dossier_travail">Working folder</string>
+    <string name="settings_dossier_aucun">Not configured</string>
+    <string name="settings_dossier_changer">Change</string>
+    <string name="settings_dossier_effacer">Clear</string>
+    <string name="settings_dossier_change">Working folder changed.</string>
+    <string name="settings_dossier_efface">Working folder cleared.</string>
+    <string name="settings_dossier_efface_permission_gardee">Folder cleared — permission kept: projects still use it.</string>
+    <string name="settings_dossier_refuse">Android refuses this folder (root, Download or a protected folder). Pick another one.</string>
+    <string name="settings_dossier_erreur">The folder could not be validated (permission, write or storage). Try again.</string>
+    <string name="settings_nom_auteur">Author name (optional)</string>
+    <string name="settings_licence_defaut">Default license</string>
+    <string name="settings_licence_dialogue_titre">Default license</string>
+    <string name="settings_licence_aucune">None</string>
+    <string name="settings_licence_mit">MIT</string>
+    <string name="settings_licence_apache">Apache 2.0</string>
+    <string name="settings_licence_gpl">GPL 3.0</string>
+    <string name="settings_licence_bsd">BSD 3-clause</string>
+
+    <!-- À propos -->
+    <string name="settings_section_a_propos">About</string>
+    <string name="settings_a_propos_version_libelle">Version</string>
+    <string name="settings_a_propos_version">%1$s (%2$d)</string>
+    <string name="settings_a_propos_build_libelle">Build type</string>
+    <string name="settings_a_propos_build">%1$s</string>
+    <string name="settings_licences">Open source licenses</string>
+    <string name="settings_licences_titre">Open source licenses</string>
+    <string name="settings_licences_contenu">CodeIDE ships open source libraries:\n\n- AndroidX, Jetpack and Material Components (Apache 2.0)\n- Kotlin and kotlinx.coroutines (Apache 2.0)\n- Dagger / Hilt (Apache 2.0)\n- Room and DataStore (Apache 2.0)\n- Okio (Apache 2.0)\n\nTests only: JUnit (EPL 1.0), Robolectric (MIT), MockK (Apache 2.0), Turbine (Apache 2.0).</string>
+
+    <!-- Avancé -->
+    <string name="settings_section_avance">Advanced</string>
+    <string name="settings_reinitialiser">Reset preferences</string>
+    <string name="settings_reinitialiser_titre">Reset preferences?</string>
+    <string name="settings_reinitialiser_message">Theme, language, working folder, profile and licenses go back to their defaults. Registered projects are untouched.</string>
+    <string name="settings_reinitialiser_confirmer">Reset</string>
+    <string name="settings_relancer_assistant">Run the first-launch assistant again</string>
 </resources>
