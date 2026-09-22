@@ -5,6 +5,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.PlannedContent
 import jo.codeide.core.model.PlannedFile
 import jo.codeide.core.model.ProjectTemplate
+import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateFormEvaluation
 import jo.codeide.core.model.TemplateOptions
@@ -38,7 +39,7 @@ internal data class RequeteGeneration(
 internal data class EvaluationParametres(
     val visibilites: Map<String, Boolean>,
     val valeursEffectives: Map<String, String>,
-    val erreurs: Map<String, String>,
+    val erreurs: Map<String, TemplateValidators.EchecValidation>,
     val variablesCalculees: Map<String, ExpressionValue>,
 )
 
@@ -97,13 +98,19 @@ public class TemplateEngine
             val dictionnaire = charge.dictionnaireEffectif(langue)
             val parametres =
                 charge.template.parameters.map { parametre ->
+                    val echec = evaluation.erreurs[parametre.id]
                     TemplateParameterEvaluation(
                         parameterId = parametre.id,
                         visible = evaluation.visibilites.getValue(parametre.id),
                         effectiveValue = evaluation.valeursEffectives.getValue(parametre.id),
-                        error = evaluation.erreurs[parametre.id],
+                        error = echec?.message,
                         label = dictionnaire[parametre.labelKey] ?: parametre.labelKey,
                         help = parametre.helpKey?.let { dictionnaire[it] } ?: "",
+                        errorReason = echec?.raison,
+                        type = parametre.type,
+                        choices = parametre.choices,
+                        derived = parametre.defaultFrom != null,
+                        section = parametre.section,
                     )
                 }
             return TemplateFormEvaluation(
@@ -119,6 +126,11 @@ public class TemplateEngine
          * Une clé absente des dictionnaires retombe sur la clé elle-même —
          * le fournisseur embarqué refuse de tels manifestes au chargement ;
          * ce repli ne protège que des fournisseurs externes distraits.
+         *
+         * Depuis l'étape 10, l'icône est **résolue** comme les autres
+         * libellés : le manifeste porte une clé i18n (`template.icon`) et le
+         * dictionnaire fournit le monogramme maison (ex. « kt », « jv ») —
+         * l'interface n'a jamais à connaître les dictionnaires.
          */
         public fun resumer(
             charge: LoadedTemplate,
@@ -130,7 +142,7 @@ public class TemplateEngine
                 nom = dictionnaire[charge.template.nameKey] ?: charge.template.nameKey,
                 description = dictionnaire[charge.template.descriptionKey] ?: charge.template.descriptionKey,
                 category = charge.template.category,
-                iconKey = charge.template.iconKey,
+                iconKey = dictionnaire[charge.template.iconKey] ?: charge.template.iconKey,
                 tags = charge.template.tags,
             )
         }
@@ -393,7 +405,7 @@ public class TemplateEngine
                 }
 
             // Passe 5 : validation des paramètres visibles uniquement.
-            val erreurs = LinkedHashMap<String, String>()
+            val erreurs = LinkedHashMap<String, TemplateValidators.EchecValidation>()
             template.parameters.forEach { parametre ->
                 if (!visibilites.getValue(parametre.id)) return@forEach
                 val valeur = effectives.getValue(parametre.id)
@@ -403,7 +415,7 @@ public class TemplateEngine
                     return@forEach
                 }
                 val validateur = parametre.validator ?: return@forEach
-                val erreur = TemplateValidators.valider(validateur, valeur)
+                val erreur = TemplateValidators.evaluer(validateur, valeur)
                 if (erreur != null) erreurs[parametre.id] = erreur
             }
 
@@ -430,13 +442,16 @@ public class TemplateEngine
         private fun validerType(
             parametre: jo.codeide.core.model.TemplateParameter,
             valeur: String,
-        ): String? =
+        ): TemplateValidators.EchecValidation? =
             when (parametre.type) {
                 jo.codeide.core.model.TemplateParameterType.BOOLEAN -> {
                     if (valeur.lowercase() in setOf("true", "false")) {
                         null
                     } else {
-                        "valeur booléenne attendue (« true » ou « false »), reçu « $valeur »"
+                        TemplateValidators.EchecValidation(
+                            RaisonValidation.ValeurInterdite(valeur),
+                            "valeur booléenne attendue (« true » ou « false »), reçu « $valeur »",
+                        )
                     }
                 }
 
@@ -444,7 +459,10 @@ public class TemplateEngine
                     if (valeur in parametre.choices) {
                         null
                     } else {
-                        "valeur hors des choix possibles : « $valeur »"
+                        TemplateValidators.EchecValidation(
+                            RaisonValidation.ValeurInterdite(valeur),
+                            "valeur hors des choix possibles : « $valeur »",
+                        )
                     }
                 }
 

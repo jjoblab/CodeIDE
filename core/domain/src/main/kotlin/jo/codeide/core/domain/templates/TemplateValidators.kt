@@ -1,5 +1,7 @@
 package jo.codeide.core.domain.templates
 
+import jo.codeide.core.model.RaisonValidation
+
 /**
  * Validateurs nommés des paramètres de modèle (étape 8 — section 11).
  *
@@ -164,7 +166,56 @@ internal object TemplateValidators {
         nom in NOMS || (nom.startsWith(PREFIXE_REGEX) && nom.length > PREFIXE_REGEX.length)
 
     /**
-     * Valide [valeur] avec le validateur [nom] (déjà vérifié par [nomConnu]).
+     * Échec d'une validation : **raison typée** pour l'interface (étape 10,
+     * ressources localisées) et **message français** pour les journaux et le
+     * bloc « copier les détails ».
+     */
+    internal data class EchecValidation(
+        val raison: RaisonValidation,
+        val message: String,
+    )
+
+    /**
+     * Évalue [valeur] avec le validateur [nom] (déjà vérifié par [nomConnu]).
+     *
+     * @return `null` si la valeur est valide, sinon l'échec structuré
+     * (raison typée + message français).
+     */
+    fun evaluer(
+        nom: String,
+        valeur: String,
+    ): EchecValidation? =
+        when {
+            nom == "project-name" -> {
+                validerNomProjet(valeur)
+            }
+
+            nom == "package-name" -> {
+                validerNomPackage(valeur)
+            }
+
+            nom == "identifier" -> {
+                validerIdentifiant(valeur)
+            }
+
+            nom == "semver" -> {
+                validerSemver(valeur)
+            }
+
+            nom.startsWith(PREFIXE_REGEX) -> {
+                validerRegex(valeur, nom)
+            }
+
+            else -> {
+                EchecValidation(
+                    RaisonValidation.ValeurInterdite(nom),
+                    "validateur inconnu « $nom »",
+                )
+            }
+        }
+
+    /**
+     * Valide [valeur] avec le validateur [nom] (forme historique, journaux).
      *
      * @return `null` si la valeur est valide, sinon le message d'erreur
      * français (jamais vide).
@@ -172,52 +223,68 @@ internal object TemplateValidators {
     fun valider(
         nom: String,
         valeur: String,
-    ): String? =
-        when {
-            nom == "project-name" -> validerNomProjet(valeur)
-            nom == "package-name" -> validerNomPackage(valeur)
-            nom == "identifier" -> validerIdentifiant(valeur)
-            nom == "semver" -> validerSemver(valeur)
-            nom.startsWith(PREFIXE_REGEX) -> validerRegex(valeur, nom)
-            else -> "validateur inconnu « $nom »"
-        }
+    ): String? = evaluer(nom, valeur)?.message
 
     /** Règles du nom de projet (section 12.3, transportables vers Windows). */
     @Suppress("ReturnCount") // Une clause par règle du nom (section 12.3, règle 16).
-    private fun validerNomProjet(valeur: String): String? {
+    private fun validerNomProjet(valeur: String): EchecValidation? {
         val nom = valeur.trim()
         if (nom.length !in LONGUEUR_NOM_MIN..LONGUEUR_NOM_MAX) {
-            return "le nom doit contenir de $LONGUEUR_NOM_MIN à $LONGUEUR_NOM_MAX caractères après trim"
+            return EchecValidation(
+                RaisonValidation.LongueurNom,
+                "le nom doit contenir de $LONGUEUR_NOM_MIN à $LONGUEUR_NOM_MAX caractères après trim",
+            )
         }
         val fautif = nom.firstOrNull { it in CARACTERES_INTERDITS_NOM || it.code < POINT_CONTROLE }
         if (fautif != null) {
-            return "le caractère « $fautif » est interdit dans un nom de projet"
+            return EchecValidation(
+                RaisonValidation.CaractereInterditNom(fautif),
+                "le caractère « $fautif » est interdit dans un nom de projet",
+            )
         }
         if (nom == "." || nom == "..") {
-            return "« . » et « .. » ne sont pas des noms de projet valides"
+            return EchecValidation(
+                RaisonValidation.PointsFictifsNom,
+                "« . » et « .. » ne sont pas des noms de projet valides",
+            )
         }
         if (nom.endsWith(".") || nom.endsWith(" ")) {
-            return "le nom ne peut pas se terminer par un point ni un espace"
+            return EchecValidation(
+                RaisonValidation.FinNomInterdite,
+                "le nom ne peut pas se terminer par un point ni un espace",
+            )
         }
         if (nom.uppercase() in NOMS_RESERVES_WINDOWS) {
-            return "« $nom » est un nom réservé par Windows"
+            return EchecValidation(
+                RaisonValidation.NomReserveWindows,
+                "« $nom » est un nom réservé par Windows",
+            )
         }
         return null
     }
 
     /** Nom de package Java/Kotlin : segments, mots-clés refusés. */
     @Suppress("ReturnCount") // Une clause par règle du package (règle 16).
-    private fun validerNomPackage(valeur: String): String? {
+    private fun validerNomPackage(valeur: String): EchecValidation? {
         val segments = valeur.split(".")
         if (valeur.isBlank() || segments.any { it.isEmpty() }) {
-            return "le nom de package ne peut pas être vide ni contenir de segment vide"
+            return EchecValidation(
+                RaisonValidation.PackageVideOuSegmentVide,
+                "le nom de package ne peut pas être vide ni contenir de segment vide",
+            )
         }
         segments.forEach { segment ->
             if (!MOTIF_SEGMENT_PACKAGE.matches(segment)) {
-                return "segment « $segment » invalide : minuscule initiale puis minuscules, chiffres et underscores"
+                return EchecValidation(
+                    RaisonValidation.SegmentPackageInvalide(segment),
+                    "segment « $segment » invalide : minuscule initiale puis minuscules, chiffres et underscores",
+                )
             }
             if (segment in MOTS_CLES) {
-                return "segment « $segment » : mot-clé Java/Kotlin réservé"
+                return EchecValidation(
+                    RaisonValidation.MotClePackage(segment),
+                    "segment « $segment » : mot-clé Java/Kotlin réservé",
+                )
             }
         }
         return null
@@ -225,20 +292,29 @@ internal object TemplateValidators {
 
     /** Identifiant générique (champ, variable, artefact sans tiret…). */
     @Suppress("ReturnCount") // Une clause par règle de l'identifiant (règle 16).
-    private fun validerIdentifiant(valeur: String): String? {
+    private fun validerIdentifiant(valeur: String): EchecValidation? {
         if (!MOTIF_IDENTIFIANT.matches(valeur)) {
-            return "identifiant invalide : lettre ou underscore initial, puis alphanumériques et underscores"
+            return EchecValidation(
+                RaisonValidation.IdentifiantInvalide(valeur),
+                "identifiant invalide : lettre ou underscore initial, puis alphanumériques et underscores",
+            )
         }
         if (valeur in MOTS_CLES) {
-            return "« $valeur » : mot-clé Java/Kotlin réservé"
+            return EchecValidation(
+                RaisonValidation.MotCleIdentifiant(valeur),
+                "« $valeur » : mot-clé Java/Kotlin réservé",
+            )
         }
         return null
     }
 
     /** Version SemVer 2.0.0. */
-    private fun validerSemver(valeur: String): String? {
+    private fun validerSemver(valeur: String): EchecValidation? {
         if (!MOTIF_SEMVER.matches(valeur)) {
-            return "version invalide : format SemVer attendu (ex. « 0.1.0 », « 1.0.0-rc.1 »)"
+            return EchecValidation(
+                RaisonValidation.VersionInvalide,
+                "version invalide : format SemVer attendu (ex. « 0.1.0 », « 1.0.0-rc.1 »)",
+            )
         }
         return null
     }
@@ -248,15 +324,21 @@ internal object TemplateValidators {
     private fun validerRegex(
         valeur: String,
         nom: String,
-    ): String? {
+    ): EchecValidation? {
         val motif =
             try {
                 Regex(nom.removePrefix(PREFIXE_REGEX))
             } catch (erreur: IllegalArgumentException) {
-                return "motif de validateur invalide : ${erreur.message}"
+                return EchecValidation(
+                    RaisonValidation.ValeurInterdite(nom),
+                    "motif de validateur invalide : ${erreur.message}",
+                )
             }
         if (!motif.matches(valeur)) {
-            return "valeur ne correspond pas au motif « ${nom.removePrefix(PREFIXE_REGEX)} »"
+            return EchecValidation(
+                RaisonValidation.RegexNonCorrespondance(nom.removePrefix(PREFIXE_REGEX)),
+                "valeur ne correspond pas au motif « ${nom.removePrefix(PREFIXE_REGEX)} »",
+            )
         }
         return null
     }
