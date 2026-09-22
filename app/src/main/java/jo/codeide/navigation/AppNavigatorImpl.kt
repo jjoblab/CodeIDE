@@ -71,11 +71,19 @@ internal class AppNavigatorImpl
         }
 
         override fun openOnboarding() {
-            // Garde-fou : double toucher sur le bandeau de l'accueil ne
-            // doit empiler qu'un seul assistant.
-            if (navController.currentDestination?.id == R.id.home) {
-                logger.d(TAG) { "navigation accueil -> assistant" }
-                navController.navigate(R.id.action_home_to_onboarding)
+            // Garde-fou : un double toucher ne doit empiler qu'un seul
+            // assistant — depuis le bandeau de l'accueil (étape 5) ou
+            // l'écran Paramètres (étape 6, « relancer »).
+            when (navController.currentDestination?.id) {
+                R.id.home -> {
+                    logger.d(TAG) { "navigation accueil -> assistant" }
+                    navController.navigate(R.id.action_home_to_onboarding)
+                }
+
+                R.id.settings -> {
+                    logger.d(TAG) { "navigation paramètres -> assistant" }
+                    navController.navigate(R.id.action_settings_to_onboarding)
+                }
             }
         }
 

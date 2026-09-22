@@ -6,11 +6,13 @@ import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.SetWorkspaceUseCase
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.UpdateSettingsUseCase
+import jo.codeide.core.domain.ValidateWorkspaceUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.testing.FakeAppLogger
+import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.MainDispatcherRule
@@ -69,14 +71,14 @@ class OnboardingViewModelTest {
         return URI_GRANT_DOSSIER
     }
 
-    /** ViewModel assemblé sur les fakes. */
+    /** ViewModel assemblé sur les fakes (validation déléguée au vrai cas d'usage). */
     private fun creerViewModel(sauvetage: SavedStateHandle = SavedStateHandle()): OnboardingViewModel =
         OnboardingViewModel(
             observerParametres = ObserveSettingsUseCase(depot),
             majParametres = UpdateSettingsUseCase(depot),
             definirDossier = SetWorkspaceUseCase(depot),
+            validerDossier = ValidateWorkspaceUseCase(fichiers, FakeArborescencesSaf(), horloge),
             fichiers = fichiers,
-            horloge = horloge,
             logger = FakeAppLogger(),
             savedStateHandle = sauvetage,
         )
