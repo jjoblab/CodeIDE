@@ -1,6 +1,7 @@
 # core/testing — Tests — fakes et utilitaires
 
-> Statut étape 1 : premiers utilitaires livrés (`MainDispatcherRule`, `TestDispatcherProvider`). Chaque étape suivante ajoute les fakes de ses interfaces.
+> Statut étape 2 : utilitaires coroutines (v0.2.0 : `MainDispatcherRule`, `TestDispatcherProvider`)
+> et fakes de journalisation (v0.3.0 : `FakeAppLogger`, `InMemoryLogRepository`).
 
 Fakes et utilitaires partagés par les tests de tous les modules : `MainDispatcherRule`, `TestDispatcherProvider`, `FakeFileSystem` (en mémoire), `FakeAppLogger`, `InMemoryLogRepository`, `FakeProjectRepository`, `FakeSettingsRepository`. Fakes plutôt que mocks (section 8 du prompt). Réservé aux configurations de test — vérifié par `checkModuleDependencies`.
 
