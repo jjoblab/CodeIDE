@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chaînes de l'écran de plantage (section 5.8) — français par défaut,
+  traduction anglaise dans values-en.
+-->
+<resources>
+
+    <string name="crash_label_activite">Diagnostic CodeIDE</string>
+
+    <!-- Titres et messages par mode. -->
+    <string name="crash_titre_live">Un problème inattendu est survenu</string>
+    <string name="crash_message_live">L\'application a dû s\'arrêter. Un rapport a été enregistré pour comprendre ce qui s\'est passé — vous pouvez le consulter, le copier ou le partager.</string>
+    <string name="crash_titre_consultation">Rapport de plantage</string>
+    <string name="crash_message_consultation">Rapport enregistré lors du dernier arrêt inattendu de l\'application.</string>
+
+    <!-- Résumé. -->
+    <string name="crash_resume_type">Type : %1$s</string>
+    <string name="crash_resume_ecran">Écran : %1$s</string>
+    <string name="crash_resume_version">Version : %1$s (code %2$d, %3$s)</string>
+    <string name="crash_resume_date">Date : %1$s</string>
+    <string name="crash_resume_appareil">Appareil : %1$s</string>
+    <string name="crash_ecran_inconnu">inconnu</string>
+
+    <!-- Types de plantage. -->
+    <string name="crash_type_exception">exception</string>
+    <string name="crash_type_anr">ne répondait plus (ANR)</string>
+    <string name="crash_type_natif">plantage natif</string>
+
+    <!-- Boucle de plantages. -->
+    <string name="crash_conseil_boucle">L\'application a planté plusieurs fois de suite. Le redémarrage automatique est désactivé. Vider le cache peut aider — vos données ne sont jamais touchées.</string>
+    <string name="crash_bouton_vider_cache">Vider le cache</string>
+    <string name="crash_vider_cache_titre">Vider le cache ?</string>
+    <string name="crash_vider_cache_message">Le cache de l\'application sera supprimé. Vos projets et paramètres ne sont pas concernés.</string>
+    <string name="crash_vider_cache_confirmer">Vider</string>
+    <string name="crash_annuler">Annuler</string>
+    <string name="crash_cache_vide">Cache vidé</string>
+
+    <!-- Détails techniques. -->
+    <string name="crash_details_ouvrir">Détails techniques</string>
+    <string name="crash_details_masquer">Masquer les détails</string>
+
+    <!-- Actions. -->
+    <string name="crash_bouton_redemarrer">Redémarrer l\'application</string>
+    <string name="crash_bouton_copier">Copier le rapport</string>
+    <string name="crash_bouton_partager">Partager (texte)</string>
+    <string name="crash_bouton_zip">Partager (archive)</string>
+    <string name="crash_bouton_enregistrer">Enregistrer le rapport</string>
+    <string name="crash_bouton_fermer">Fermer</string>
+
+    <!-- Confirmations et erreurs. -->
+    <string name="crash_copie_confirmee">Rapport copié</string>
+    <string name="crash_enregistrement_confirme">Rapport enregistré</string>
+    <string name="crash_archive_impossible">L\'archive n\'a pas pu être créée</string>
+    <string name="crash_redemarrage_impossible">L\'application ne peut pas être relancée</string>
+    <string name="crash_partage_sujet">CodeIDE — rapport de plantage</string>
+    <string name="crash_partager_via">Partager le rapport via</string>
+    <string name="crash_libelle_presse_papiers">rapport de plantage CodeIDE</string>
+
+    <!-- Rapport introuvable. -->
+    <string name="crash_introuvable_titre">Rapport indisponible</string>
+    <string name="crash_introuvable_message">Ce rapport n\'existe plus ou n\'a pas pu être lu. Il a peut-être été supprimé depuis.</string>
+
+</resources>
