@@ -1,8 +1,7 @@
 # feature/home — Fonctionnalité — liste des projets
 
-> Statut étape 5 (v0.6.0) : fragment placeholder + bandeau « Configurer le
-> dossier de travail » (`HomeViewModel`, piloté par les paramètres
-> applicatifs). La liste réelle des projets arrive à l'étape 7.
+> Statut étape 7 (v0.8.0) : **liste des projets complète** — voir
+> `docs/TESTS_MANUELS.md` (A1-A10) et ADR 0015-0016.
 
 Écran d'accueil : liste des projets (ListAdapter + DiffUtil), tri, recherche avec debounce, états chargement/vide/erreur, statut d'accès (Introuvable / Permission perdue), actions par projet, FAB Nouveau projet et Ouvrir un dossier. Adaptatif une/deux colonnes.
 
@@ -13,11 +12,19 @@
 Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et la tâche
 `./gradlew checkModuleDependencies` qui fait échouer le build en cas de violation.
 
-## API publique (étape 1)
+## API publique
 
-- **`HomeFragment`** — destination initiale du graphe de navigation (écran provisoire) : `BaseFragment<FragmentHomeBinding>`, injection Hilt de `AppNavigator`, insets edge-to-edge.
+- **`HomeFragment`** — destination initiale du graphe de navigation :
+  rend l'état de `HomeViewModel` (UDF), n'émet que des actions.
+- **`HomeViewModel`** — état observable `EtatAccueil` (projets filtrés
+  et triés, états d'accès, requête, tri, rafraîchissement, bandeau),
+  événements ponctuels `EffetAccueil` (snackbars), actions
+  `ActionAccueil` ; recherche/tri dans le `SavedStateHandle`.
+- **`ProjetsAccueilAdapter`** (+ `EcouteurProjets`) — `ListAdapter` +
+  `DiffUtil` ; la ligne combine projet et état d'accès.
 
-Prévu à l'étape 7 : `HomeViewModel`, liste, recherche, tri, actions par projet, états vide/chargement/erreur.
+États couverts par les tests : chargement, vide, sans résultat, erreur
+(réessai), contenu trié/filtré, accès rompu avec résolution.
 
 ## Vérifications du module
 

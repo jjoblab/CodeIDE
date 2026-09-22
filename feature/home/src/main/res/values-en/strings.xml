@@ -1,9 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="home_title">Home</string>
-    <string name="home_placeholder">Placeholder screen: the project list arrives at step 7 of the plan.</string>
     <string name="home_open_settings">Open settings</string>
     <string name="home_bandeau_titre">Workspace folder not configured</string>
     <string name="home_bandeau_texte">New projects need a workspace folder to exist.</string>
     <string name="home_bandeau_bouton">Set up</string>
+
+    <!-- Recherche et tri (étape 7). -->
+    <string name="accueil_recherche_indication">Search a project</string>
+    <string name="accueil_tri_recents">Recent</string>
+    <string name="accueil_tri_nom">Name</string>
+
+    <!-- États (chargement, vide, sans résultat, erreur). -->
+    <string name="accueil_chargement">Loading projects…</string>
+    <string name="accueil_vide_titre">No project yet</string>
+    <string name="accueil_vide_message">Create your first project or open an existing folder.</string>
+    <string name="accueil_vide_action">New project</string>
+    <string name="accueil_sans_resultat_titre">No result</string>
+    <string name="accueil_sans_resultat_message">No project matches “%1$s”.</string>
+    <string name="accueil_sans_resultat_action">Clear search</string>
+    <string name="accueil_erreur_registre_titre">List unavailable</string>
+    <string name="accueil_erreur_registre_message">The project registry could not be read.</string>
+
+    <!-- Ligne de projet. -->
+    <string name="accueil_meta_projet">%1$s · %2$s</string>
+    <string name="accueil_desc_epingle">Pinned</string>
+    <string name="accueil_desc_menu">Actions for “%1$s”</string>
+    <string name="accueil_acces_disponible">Accessible</string>
+    <string name="accueil_acces_introuvable">Missing</string>
+    <string name="accueil_acces_permission">Permission lost</string>
+
+    <!-- Actions par projet (menu contextuel). -->
+    <string name="accueil_action_ouvrir">Open</string>
+    <string name="accueil_action_relocaliser">Relocate</string>
+    <string name="accueil_action_retirer">Remove</string>
+    <string name="accueil_action_renommer">Rename</string>
+    <string name="accueil_action_epingler">Pin</string>
+    <string name="accueil_action_desepingler">Unpin</string>
+    <string name="accueil_action_retirer_liste">Remove from list</string>
+    <string name="accueil_action_supprimer">Delete from disk</string>
+
+    <!-- Dialogue de renommage. -->
+    <string name="accueil_renommer_titre">Rename project</string>
+    <string name="accueil_renommer_indication">New name</string>
+    <string name="accueil_renommer_confirmer">Rename</string>
+    <string name="accueil_annuler">Cancel</string>
+
+    <!-- Confirmation de suppression du disque (rappel du nom). -->
+    <string name="accueil_suppression_titre">Delete from disk?</string>
+    <string name="accueil_suppression_message">The folder “%1$s” and all of its content will be permanently deleted from storage. This cannot be undone.</string>
+    <string name="accueil_suppression_confirmer">Delete</string>
+
+    <!-- Actions flottantes. -->
+    <string name="accueil_nouveau_projet">New project</string>
+    <string name="accueil_ouvrir_dossier">Open an existing folder</string>
+
+    <!-- Messages (snackbars). -->
+    <string name="accueil_snackbar_importe">Project “%1$s” added</string>
+    <string name="accueil_snackbar_deja_present">This folder is already in the list</string>
+    <string name="accueil_snackbar_deplace">Project “%1$s” relocated</string>
+    <string name="accueil_snackbar_retire">Project removed from the list</string>
+    <string name="accueil_snackbar_supprime">Project deleted from disk</string>
+    <string name="accueil_snackbar_editeur">The code editor arrives in an upcoming version</string>
+
+    <string name="accueil_erreur_modele">The project template is missing or invalid.</string>
+
+    <!-- Traductions des erreurs typées (section 5.5). -->
+    <string name="accueil_erreur_permission">Folder access was denied or revoked.</string>
+    <string name="accueil_erreur_introuvable">The item cannot be found on storage.</string>
+    <string name="accueil_erreur_deja_reference">This folder is already referenced.</string>
+    <string name="accueil_erreur_espace">Storage space is running out.</string>
+    <string name="accueil_erreur_ecriture">This folder is not writable.</string>
+    <string name="accueil_erreur_stockage">A storage error occurred.</string>
+    <string name="accueil_erreur_saisie">Input rejected: check the name.</string>
+
+    <!-- Traductions des refus Android 11+ (section 5.6). -->
+    <string name="accueil_refus_racine">A storage root cannot be selected.</string>
+    <string name="accueil_refus_download">The Downloads folder is refused by Android.</string>
+    <string name="accueil_refus_android_data">The Android/data folder is protected by Android.</string>
+    <string name="accueil_refus_android_obb">The Android/obb folder is protected by Android.</string>
 </resources>

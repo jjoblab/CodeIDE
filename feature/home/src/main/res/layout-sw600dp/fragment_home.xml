@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Écran d'accueil (étape 7) : recherche avec délai, tri, bandeau du
-  dossier de travail, liste des projets (1 colonne téléphone) et groupe
+  Écran d'accueil (étape 7, variante sw600dp) : recherche avec délai, tri, bandeau du
+  dossier de travail, liste des projets (2 colonnes tablette/paysage) et groupe
   d'actions flottantes — « Nouveau projet » et « Ouvrir un dossier
   existant ». Les états (chargement, vide, sans résultat, erreur) sont
   superposés au contenu et pilotés par l'état du ViewModel.
@@ -120,7 +120,8 @@
                     android:clipToPadding="false"
                     android:paddingHorizontal="@dimen/screen_horizontal_margin"
                     android:paddingBottom="@dimen/marge_bas_fab"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
                     tools:itemCount="4"
                     tools:listitem="@layout/item_projet" />
 

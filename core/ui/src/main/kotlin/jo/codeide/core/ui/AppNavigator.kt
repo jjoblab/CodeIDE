@@ -8,10 +8,11 @@ package jo.codeide.core.ui
  * (lien Hilt `@Binds`) au-dessus du graphe Navigation Component.
  *
  * La surface grandit étape par étape, au fil du plan d'exécution :
- * ouverture de l'assistant (`onboarding`, étape 5), du wizard de création
- * (`newproject`, étape 10), d'un rapport de plantage (`diagnostics`,
- * étape 12), de l'éditeur (`editor`, étape 13)… Les écrans placeholder de
- * l'étape 1 n'ont besoin que de l'aller-retour Accueil ↔ Paramètres.
+ * ouverture de l'assistant (`onboarding`, étape 5), du wizard de
+ * création (`newproject`, étapes 7 et 10), d'un rapport de plantage
+ * (`diagnostics`, étape 12), de l'éditeur (`editor`, étape 13)… Les
+ * écrans placeholder de l'étape 1 n'ont besoin que de l'aller-retour
+ * Accueil ↔ Paramètres.
  */
 public interface AppNavigator {
     /** Ouvre l'écran Paramètres depuis n'importe quelle fonctionnalité. */
@@ -36,6 +37,15 @@ public interface AppNavigator {
      * @param id identifiant du rapport à consulter.
      */
     public fun openCrashReport(id: String)
+
+    /**
+     * Ouvre le wizard de création de projet (étape 7 : destination
+     * placeholder ; assistant complet à l'étape 10).
+     *
+     * Servi par le bouton flottant « Nouveau projet » de l'accueil et
+     * par l'état vide de la liste.
+     */
+    public fun openNewProjectWizard(): Unit
 
     /**
      * Ouvre l'assistant de premier lancement (étape 5).
