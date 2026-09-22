@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bandeau « Configurer le dossier de travail » de l'accueil (étape 5) :
+  visible quand l'assistant s'est terminé sans dossier de travail.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/spacing_md">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_md">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_bandeau"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_bandeau_titre"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_bandeau"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="@string/home_bandeau_texte"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="Les projets ont besoin d'un dossier." />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_configurer"
+            style="@style/Widget.CodeIDE.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/home_bandeau_bouton" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
