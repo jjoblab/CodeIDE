@@ -1,15 +1,17 @@
 # app — Application — assemblage final
 
-> Statut étape 2 : fondations (v0.2.0) et journalisation (v0.3.0 : initialisation dans le
-> processus principal, `BuildInfo`/`DeviceSummary`, FileProvider des exports, premiers journaux) ;
-> étape 3 : plantages (v0.4.0 : gestionnaire en première ligne d'`onCreate`, `Application` sensible
-> au processus, dialogue « rapport non consulté », menu debug).
+> Statut étape 4 : fondations (v0.2.0), journalisation (v0.3.0 : initialisation dans le
+> processus principal, `BuildInfo`/`DeviceSummary`, FileProvider des exports, premiers journaux),
+> plantages (v0.4.0 : gestionnaire en première ligne d'`onCreate`, `Application` sensible
+> au processus, dialogue « rapport non consulté », menu debug), couche données (v0.5.0 :
+> assemblage de `core:data`, branchement du niveau de journalisation persisté au démarrage
+> du processus principal).
 
 Point d'entrée de CodeIDE : héberge `MainActivity`, le graphe de navigation (Onboarding, Home, NewProject, Settings), l'assemblage Hilt et la configuration globale. C'est le seul module autorisé à dépendre de tout le reste ; il ne contient aucune logique métier.
 
 ## Dépendances autorisées
 
-Tous les modules (assemblage uniquement). Actuellement : `core:ui`, `feature:home`, `feature:settings` + bibliothèques AndroidX.
+Tous les modules (assemblage uniquement). Actuellement : `core:ui`, `feature:home`, `feature:settings`, `core:logging`, `core:crash`, `core:data` + bibliothèques AndroidX.
 
 Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et la tâche
 `./gradlew checkModuleDependencies` qui fait échouer le build en cas de violation.

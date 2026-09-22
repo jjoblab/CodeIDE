@@ -10,5 +10,8 @@
     <string name="debug_action_plantage">Provoquer un plantage</string>
     <string name="debug_action_non_fatale">Exception non fatale (journalisée)</string>
     <string name="debug_action_salve">Générer des journaux</string>
+    <string name="debug_action_saf_choisir">SAF : choisir le dossier d\'essai</string>
+    <string name="debug_action_saf_decrire">SAF : décrire le dossier choisi</string>
+    <string name="debug_action_saf_temoin">SAF : créer le fichier témoin</string>
     <string name="debug_annuler">Annuler</string>
 </resources>
