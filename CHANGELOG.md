@@ -4,6 +4,128 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.9.0] – 2026-09-22
+
+Étape 8 — Moteur de templates : logique pure + assets, sans UI et sans
+les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
+
+### Ajouté
+
+- **Modèle déclaratif** (`core:model`) : `ProjectTemplate` /
+  `TemplateParameter` (types `TEXT`/`BOOLEAN`/`CHOICE`, sections
+  `CONFIGURATION`/`INFORMATION`, validateurs nommés, dérivations
+  `defaultFrom`, visibilité `visibleWhen`, `persist`),
+  `TemplateOptions` (options communes du moteur : README, `.gitignore`,
+  `.editorconfig`, licence SPDX, langue du contenu) et
+  `TemplatePlan`/`PlannedFile`/`PlannedContent` — le **plan figé** du
+  dry-run, égalité par valeur y compris les octets binaires.
+- **Manifestes déclaratifs** (`core:domain`, `TemplateManifestParser`) :
+  `assets/templates/<id>/template.json` analysé par kotlinx.serialization,
+  **validé complètement** au chargement (schéma, `id` = répertoire,
+  SemVer, clés i18n, validateurs et fonctions dérivées **enregistrées**,
+  expressions analysables, chemins sûrs, bornes 32/32/256/12). Un
+  manifeste présent mais invalide échoue explicitement — jamais de
+  catalogue amputé en silence ; un répertoire sans manifeste est ignoré.
+- **Mini-langage d'expressions** (`ExpressionParser` — parseur écrit à
+  la main, ADR 0018) : identifiants, littéraux chaîne/booléen, `==`,
+  `!=`, `&&`, `||`, `!`, parenthèses ; bornes vérifiées avant la moindre
+  récursion (512 caractères, 128 jetons, 16 de profondeur), curseur sûr
+  en fin de flux, typage strict à l'évaluation, **aucune évaluation de
+  code** fourni par le manifeste. Même grammaire pour `visibleWhen`,
+  `when`, `computed` et `{{#if}}`.
+- **Moteur de substitution** (`TemplateRenderer`) : `{{variable|filtre}}`,
+  `{{#if expr}}…{{#else}}…{{/if}}` (imbrication ≤ 16), `{{t:clé}}` (i18n
+  du modèle, repli anglais), échappement `\{{` ; **échec explicite fichier
+  + ligne** (variable inconnue, filtre inconnu, clé i18n manquante, balise
+  mal formée) — jamais de `{{…}}` résiduel ; fins de ligne normalisées
+  (LF, CRLF pour `.bat`).
+- **Filtres d'échappement** (`TemplateFilters` — la saisie de
+  l'utilisateur ne casse **jamais** le code généré) : `kotlinString`,
+  `javaString`, `xml`, `json`, `tomlString`, `md` éprouvés avec des
+  entrées hostiles (guillemets, `\`, `$`, `</project>`, retours à la
+  ligne, emojis, Unicode) ; transformations `slug` (accents repliés par
+  NFD), `lower`, `upper`, `packagePath`.
+- **Sécurité des chemins** (`TemplatePathGuard`, après substitution) :
+  rejet de `..`, des chemins absolus (y compris lettres de lecteur), des
+  antislashs, segments vides/`.`/contrôle/espaces de bord/point final,
+  noms réservés Windows (`CON`, `COM1`…), longueurs bornées, doublons
+  insensible à la casse (FAT/NTFS) ; **jamais d'écrasement** d'un
+  dossier racine existant.
+- **Plan figé — le dry-run est l'écriture** (ADR 0017) :
+  `TemplateEngine.planifier` produit le plan complet (chemins substitués,
+  textes rendus, binaires lus, licence, métadonnées) ;
+  `PlanProjectCreationUseCase` (récapitulatif) et `CreateProjectUseCase`
+  (écriture) partagent le même `TemplateProjectPlanner` — ce qui est
+  planifié est ce qui est écrit, à l'octet près ; déterminisme garanti
+  (horloge injectée).
+- **`CreateProjectUseCase`** : revalidation systématique côté domaine,
+  progression temps réel (`CreationProgress` : préparation, dossier
+  racine, fichier par fichier, enregistrement, terminal typé), registre
+  écrit **en dernier**, **rollback complet en `NonCancellable`** (échec
+  d'écriture, d'insertion en base, ou annulation de la collecte —
+  l'annulation est ensuite relayée), résidus impossibles à supprimer
+  signalés, erreurs typées relayées sans effacement de contexte.
+- **Métadonnées du projet** : chaque projet généré contient
+  `.codeide/project.json` (`schemaVersion`, `templateId`,
+  `templateVersion`, `generator` = `CodeIDE <version>`, paramètres
+  `persist` visibles) — **aucune donnée personnelle** (ni auteur, ni
+  chemin local).
+- **API domaine** : `ListTemplatesUseCase` (catalogue agrégé, trié,
+  libellés résolus, doublons inter-fournisseurs refusés),
+  `ValidateProjectNameUseCase`, `ValidatePackageNameUseCase`,
+  `EvaluateTemplateFormUseCase` (visibilité, valeurs dérivées suivant
+  leurs sources, validité de tous les paramètres, libellés),
+  `PlanProjectCreationUseCase` (dry-run).
+- **Extension par multibinding** : `ProjectTemplateProvider` en `@IntoSet`
+  Hilt ; `EmbeddedTemplatesProvider` lit `assets/templates/` via le port
+  `TemplateAssetsSource` — les futurs plugins ajouteront des modèles sans
+  toucher au moteur, **aucun `when(templateId)` en dur**.
+- `app` : `AssetTemplateAssetsSource` (AssetManager + dispatcher d'E/S,
+  aucune traversée de chemin), `GeneratorVersionImpl`
+  (`BuildConfig.VERSION_NAME`), `di/TemplatesModule` (`@Binds` + `@IntoSet`),
+  `assets/licenses/` — textes **officiels SPDX** (`mit.txt`,
+  `bsd-3-clause.txt` substituent `{{year}}`/`{{author}}`,
+  `apache-2.0.txt`, `gpl-3.0.txt`).
+- `core:testing` : `FakeTemplateAssetsSource` (semis de modèles et de
+  licences, robinets d'échec, garde anti-traversée identique à
+  l'implémentation Android).
+- **Tests** : 635 tests verts au total (+224 depuis v0.8.0) — parseur d'expressions
+  exhaustif (grammaire, précédences, erreurs positionnées, bornes
+  exactes des deux côtés), filtres avec entrées hostiles, rendu
+  (conditionnels, i18n, échappement), sécurité des chemins, manifestes
+  (chaque règle de validation), fournisseur, moteur (formulaire dynamique,
+  plan, options, licence, métadonnées sans fuite, déterminisme, hostile),
+  use cases (catalogue, doublons, NotFound) et création (progression,
+  **plan = disque byte à byte**, rollback sur échec/annulation/base,
+  résidus, jamais d'écrasement) sur un **fixture de test** dédié ;
+  intégration Hilt du câblage `app` (licences réelles, traversées
+  refusées, répertoire `templates/` vide légitime).
+- **Documentation** : `docs/TEMPLATES.md` (contrat des concepteurs de
+  modèles — format complet, expressions, filtres, garde), section
+  « Moteur de templates » d'ARCHITECTURE.md, ADR 0017 (plan figé,
+  dry-run = écriture) et ADR 0018 (mini-langage à parseur maison borné),
+  READMEs/Module.md de `core:model`, `core:domain`, `core:testing`,
+  `app`.
+
+### Corrigé
+
+- `ExpressionParser` : une expression tronquée (ex. `(a`) levait
+  `IndexOutOfBoundsException` au lieu d'une `ExpressionException`
+  positionnée — le curseur de jetons tient désormais la fin pour acquise
+  au-delà du dernier jeton.
+- `ExpressionParser` : le comptage de profondeur doublait chaque
+  parenthèse (la 8e imbriquée échouait à tort) — chaque parenthèse ou
+  négation consomme exactement un cran (15 imbriquées passent, la 16e
+  échoue, tests des deux côtés de la borne).
+- `TemplateFilters.slug` : les marques combinantes issues de la
+  décomposition NFD (accents) étaient traitées comme des séparateurs
+  (« Éclair » → « e-clair ») — elles sont désormais éliminées
+  silencieusement (« Éclair » → « eclair »).
+- `CreateProjectUseCase` : l'erreur typée de planification
+  (`Validation`, `NotFound`…) était écrasée par un générique
+  `Template("planification impossible")` — elle est désormais relayée
+  telle quelle jusqu'à l'événement terminal.
+
 ## [0.8.0] – 2026-09-22
 
 Étape 7 — Accueil : liste des projets (section 11 du prompt maître).
