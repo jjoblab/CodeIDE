@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "id": "java",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "jvm",
+  "iconKey": "template.icon",
+  "tags": [
+    "Java",
+    "Gradle",
+    "Maven"
+  ],
+  "parameters": [
+    {
+      "id": "projectType",
+      "type": "CHOICE",
+      "labelKey": "param.projectType.label",
+      "helpKey": "param.projectType.help",
+      "choices": [
+        "application",
+        "library"
+      ],
+      "default": "application",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "buildSystem",
+      "type": "CHOICE",
+      "labelKey": "param.buildSystem.label",
+      "helpKey": "param.buildSystem.help",
+      "choices": [
+        "gradle-kts",
+        "maven",
+        "none"
+      ],
+      "default": "gradle-kts",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "jdkVersion",
+      "type": "CHOICE",
+      "labelKey": "param.jdkVersion.label",
+      "helpKey": "param.jdkVersion.help",
+      "choices": [
+        "17",
+        "21"
+      ],
+      "default": "21",
+      "visibleWhen": "buildSystem != \"none\"",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeTests",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeTests.label",
+      "helpKey": "param.includeTests.help",
+      "default": "true",
+      "visibleWhen": "buildSystem != \"none\"",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeWrapper",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeWrapper.label",
+      "helpKey": "param.includeWrapper.help",
+      "default": "true",
+      "visibleWhen": "buildSystem == \"gradle-kts\"",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.packageName.label",
+      "helpKey": "param.packageName.help",
+      "defaultFrom": "packageFromNameAndAuthor",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "groupId",
+      "type": "TEXT",
+      "labelKey": "param.groupId.label",
+      "helpKey": "param.groupId.help",
+      "defaultFrom": "parentPackage",
+      "visibleWhen": "buildSystem != \"none\"",
+      "section": "INFORMATION",
+      "persist": true,
+      "validator": "package-name"
+    },
+    {
+      "id": "artifactId",
+      "type": "TEXT",
+      "labelKey": "param.artifactId.label",
+      "helpKey": "param.artifactId.help",
+      "defaultFrom": "slug",
+      "validator": "regex:^[a-z0-9][a-z0-9._-]*$",
+      "visibleWhen": "buildSystem != \"none\"",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "version",
+      "type": "TEXT",
+      "labelKey": "param.version.label",
+      "helpKey": "param.version.help",
+      "default": "0.1.0",
+      "validator": "semver",
+      "visibleWhen": "buildSystem != \"none\"",
+      "section": "INFORMATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    {
+      "name": "gradle",
+      "expression": "buildSystem == \"gradle-kts\""
+    },
+    {
+      "name": "maven",
+      "expression": "buildSystem == \"maven\""
+    },
+    {
+      "name": "estApplication",
+      "expression": "projectType == \"application\""
+    },
+    {
+      "name": "estBibliotheque",
+      "expression": "projectType == \"library\""
+    },
+    {
+      "name": "avecTests",
+      "expression": "includeTests && buildSystem != \"none\""
+    },
+    {
+      "name": "avecWrapper",
+      "expression": "buildSystem == \"gradle-kts\" && includeWrapper"
+    }
+  ],
+  "files": [
+    {
+      "path": ".gitattributes",
+      "source": "files/gitattributes.tpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "files/gitignore.tpl",
+      "when": "includeGitignore",
+      "group": "gitignore"
+    },
+    {
+      "path": ".editorconfig",
+      "source": "files/editorconfig.tpl",
+      "when": "includeEditorconfig",
+      "group": "editorconfig"
+    },
+    {
+      "path": "README.md",
+      "source": "files/readme.md.tpl",
+      "when": "includeReadme",
+      "group": "readme"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "source": "files/settings.gradle.kts.tpl",
+      "when": "gradle"
+    },
+    {
+      "path": "build.gradle.kts",
+      "source": "files/build.gradle.kts.tpl",
+      "when": "gradle"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "source": "files/libs.versions.toml.tpl",
+      "when": "gradle"
+    },
+    {
+      "path": "gradle.properties",
+      "source": "files/gradle.properties.tpl",
+      "when": "gradle"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "source": "files/wrapper.properties.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew",
+      "source": "files/gradlew.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew.bat",
+      "source": "files/gradlew.bat.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "source": "files/gradle-wrapper.jar",
+      "when": "avecWrapper",
+      "binary": true
+    },
+    {
+      "path": "pom.xml",
+      "source": "files/pom.xml.tpl",
+      "when": "maven"
+    },
+    {
+      "path": "src/main/java/{{packageName|packagePath}}/Main.java",
+      "source": "files/main.java.tpl",
+      "when": "estApplication"
+    },
+    {
+      "path": "src/main/java/{{packageName|packagePath}}/Greeter.java",
+      "source": "files/greeter.java.tpl"
+    },
+    {
+      "path": "src/test/java/{{packageName|packagePath}}/GreeterTest.java",
+      "source": "files/greeterTest.java.tpl",
+      "when": "avecTests"
+    }
+  ]
+}
