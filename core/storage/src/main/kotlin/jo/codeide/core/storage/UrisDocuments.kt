@@ -14,6 +14,15 @@ import android.provider.DocumentsContract
  */
 internal object UrisDocuments {
     /**
+     * Identifiant de document racine de l'arborescence portée par
+     * [arbre] — décodage officiel de `DocumentsContract`.
+     *
+     * @param arbre URI d'arborescence (`…/tree/<id>`).
+     * @return l'identifiant du document racine.
+     */
+    fun idArbre(arbre: Uri): String = DocumentsContract.getTreeDocumentId(arbre)
+
+    /**
      * URI du document identifié par [idDocument] dans l'arborescence
      * portée par [arbreOuDocument] (URI d'arborescence **ou** URI de
      * document — `DocumentsContract` n'extrait que le segment `tree`).
