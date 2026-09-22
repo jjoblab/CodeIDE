@@ -8,7 +8,9 @@ import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
+import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.logging.CodeIdeAppLogger
+import jo.codeide.core.logging.LogLevelApplier
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +52,14 @@ class CodeIdeApplication : Application() {
 
     @Inject
     lateinit var enregistrerSortiesNonTraitees: RecordPendingExitInfosUseCase
+
+    /** Paramètres persistés — source du niveau de journalisation (étape 4). */
+    @Inject
+    lateinit var parametres: SettingsRepository
+
+    /** Point de bascule du niveau de journalisation (façade de core:logging). */
+    @Inject
+    lateinit var applierNiveau: LogLevelApplier
 
     /**
      * Gestionnaire de plantages du processus principal — porté par
@@ -125,6 +135,16 @@ class CodeIdeApplication : Application() {
             val crees = enregistrerSortiesNonTraitees()
             if (crees > 0) {
                 loggerMaison.i(TAG) { "sorties de processus enregistrées au démarrage : $crees" }
+            }
+        }
+
+        // Branchement du niveau persisté (étape 4, section 5.7) :
+        // AppSettings.logLevel devient la source de vérité du moteur —
+        // collecte dans la portée de démarrage du processus principal
+        // uniquement (le processus :crash ne lit jamais les paramètres).
+        porteeDemarrage.launch {
+            parametres.observeSettings().collect { reglages ->
+                applierNiveau.apply(reglages.logLevel)
             }
         }
     }

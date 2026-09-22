@@ -9,6 +9,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.GetLatestUnreviewedCrashReportUseCase
 import jo.codeide.core.domain.MarkCrashReportReviewedUseCase
 import jo.codeide.core.ui.AppNavigator
@@ -46,6 +47,11 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var logger: AppLogger
+
+    /** Port d'accès aux documents — menu debug (essais SAF S1-S5) et
+     * futur sélecteur du dossier de travail (étape 5). */
+    @Inject
+    lateinit var fichiers: FileSystem
 
     @Inject
     lateinit var navigator: AppNavigator
@@ -85,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         // Menu debug (source set `debug` de app, section 5.8) : les builds
         // de développement seules l'installent — la version release
         // embarque un no-op de même signature.
-        MenuDebug.installer(this, logger)
+        MenuDebug.installer(this, logger, fichiers)
 
         // Boîte de dialogue de la session précédente : uniquement au premier
         // affichage (une recréation — rotation — ne la ramène pas).

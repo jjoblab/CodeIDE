@@ -96,7 +96,10 @@ class PlantagesIntegrationTest {
             scenario.onActivity { }
             attendreDialogue()
             val store = CrashReportFileStore(repertoireCrashes())
-            assertFalse(store.hasUnreviewed())
+            // La consultation s'écrit hors thread principal (dispatcher
+            // d'E/S réel) : l'attendre au lieu de supposer son achèvement —
+            // le démarrage mène d'autres E/S réelles en parallèle (étape 4).
+            assertTrue("le témoin consulté doit finir par être écrit", attendreConsultation(store))
         }
     }
 
@@ -139,6 +142,16 @@ class PlantagesIntegrationTest {
             Thread.sleep(PAUSE_MS)
         }
         return null
+    }
+
+    /** Attend la fin de l'écriture asynchrone du témoin consulté. */
+    private fun attendreConsultation(store: CrashReportFileStore): Boolean {
+        repeat(TENTATIVES) {
+            if (!store.hasUnreviewed()) return true
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(PAUSE_MS)
+        }
+        return !store.hasUnreviewed()
     }
 
     private companion object {

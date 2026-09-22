@@ -30,6 +30,10 @@ dependencies {
     // CrashActivity et FileProvider du processus :crash.
     implementation(project(":core:crash"))
 
+    // Couche données (étape 4) : assemblage final — les repositories du
+    // domaine y sont liés aux sources réelles (Room, DataStore, SAF).
+    implementation(project(":core:data"))
+
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
     implementation(libs.androidx.activity)

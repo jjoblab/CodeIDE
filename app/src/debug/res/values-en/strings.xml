@@ -7,5 +7,8 @@
     <string name="debug_action_plantage">Trigger a crash</string>
     <string name="debug_action_non_fatale">Non-fatal exception (logged)</string>
     <string name="debug_action_salve">Generate logs</string>
+    <string name="debug_action_saf_choisir">SAF: pick the test folder</string>
+    <string name="debug_action_saf_decrire">SAF: describe the chosen folder</string>
+    <string name="debug_action_saf_temoin">SAF: create the witness file</string>
     <string name="debug_annuler">Cancel</string>
 </resources>
