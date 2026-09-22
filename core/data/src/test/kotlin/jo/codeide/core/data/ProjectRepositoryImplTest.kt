@@ -196,5 +196,54 @@ class ProjectRepositoryImplTest {
             assertTrue(journal.entries.any { it.tag == "Projects" && it.message.contains("ajouté") })
         }
 
+    @Test
+    fun `relocaliser remplace l'emplacement et garde le reste`() =
+        runTest {
+            val projet = ajouter(nom = "MonProjet")
+
+            val nouvelle =
+                StorageLocation(
+                    grantUri = "content://a/tree/nouveau",
+                    documentUri = "content://a/tree/nouveau/doc",
+                    displayPath = "Nouveau",
+                )
+
+            val resultat = depot.updateLocation(projet.id, nouvelle)
+
+            assertTrue(resultat is AppResult.Success)
+            val relu = (depot.getProject(projet.id) as AppResult.Success).value
+            assertEquals(nouvelle, relu.location)
+            assertEquals("MonProjet", relu.name)
+        }
+
+    @Test
+    fun `relocaliser un projet inconnu retourne NotFound`() =
+        runTest {
+            val resultat =
+                depot.updateLocation(
+                    jo.codeide.core.model
+                        .ProjectId("inconnu"),
+                    emplacement("ailleurs"),
+                )
+
+            assertEquals(AppError.StorageReason.NotFound, raisonStockage(resultat as AppResult.Failure))
+        }
+
+    @Test
+    fun `relocaliser vers un dossier déjà référencé retourne AlreadyExists`() =
+        runTest {
+            ajouter(dossier = "occupe")
+            val projet = ajouter(nom = "Deuxieme", dossier = "ailleurs")
+
+            val resultat = depot.updateLocation(projet.id, emplacement("occupe"))
+
+            assertEquals(AppError.StorageReason.AlreadyExists, raisonStockage(resultat as AppResult.Failure))
+            // L'original est intact.
+            assertEquals(
+                "content://a/tree/t/doc/ailleurs",
+                (depot.getProject(projet.id) as AppResult.Success).value.location.documentUri,
+            )
+        }
+
     private suspend fun nomsObserves(): List<String> = depot.observeProjects().first().map { it.name }
 }

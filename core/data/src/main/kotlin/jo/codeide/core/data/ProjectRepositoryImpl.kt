@@ -123,6 +123,31 @@ internal class ProjectRepositoryImpl
             }
         }
 
+        override suspend fun updateLocation(
+            id: ProjectId,
+            location: StorageLocation,
+        ): AppResult<Unit> =
+            try {
+                val lignes =
+                    dao.updateLocation(
+                        id = id.value,
+                        grantUri = location.grantUri,
+                        documentUri = location.documentUri,
+                        displayPath = location.displayPath,
+                    )
+                if (lignes > 0) {
+                    logger.d(TAG) { "Projet ${id.value} relocalisé." }
+                    AppResult.Success(Unit)
+                } else {
+                    AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"))
+                }
+            } catch (erreur: SQLiteConstraintException) {
+                // L'index unique sur document_uri : le nouveau dossier est
+                // déjà référencé par un autre projet.
+                logger.w(TAG, erreur) { "Relocalisation refusée, dossier déjà référencé (projet ${id.value})." }
+                AppResult.Failure(AppError.Storage(AppError.StorageReason.AlreadyExists, location.documentUri))
+            }
+
         override suspend fun markOpened(
             id: ProjectId,
             atMillis: Long,

@@ -25,4 +25,17 @@ internal class SafArborescences
                 val arbre = grantUri.toUri()
                 UrisDocuments.uriDocument(arbre, UrisDocuments.idArbre(arbre)).toString()
             }.getOrNull()
+
+        override fun uriDocumentDansArbre(
+            grantUri: String,
+            idDocument: String,
+        ): String? {
+            if (idDocument.isBlank()) return null
+            return runCatching {
+                // `appendPath` (via buildDocumentUriUsingTree) ré-encode
+                // chaque segment de l'identifiant décodé — séparateurs en
+                // `%2F` compris, comme pour le document racine.
+                UrisDocuments.uriDocument(grantUri.toUri(), idDocument).toString()
+            }.getOrNull()
+        }
     }
