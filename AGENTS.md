@@ -45,9 +45,11 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
    **Ne jamais deviner un numéro de version** : le vérifier sur Google Maven,
    Maven Central ou le Plugin Portal.
 10. Commits conventionnels en français (`feat(newproject): ajoute la validation du nom`).
-11. Journalisation via `AppLogger` uniquement. `android.util.Log`, `println`,
-    `printStackTrace` interdits hors `core:logging` et `core:crash`
+11. Journalisation via `AppLogger` (implémentée étape 2 — v0.3.0). `android.util.Log`,
+    `println`, `printStackTrace` interdits hors `core:logging` et `core:crash`
     (règle detekt active). **Aucune donnée personnelle dans les journaux.**
+    Voir `docs/JOURNALISATION_ET_PLANTAGES.md` et l'ADR 0009 (bornes, expurgation
+    à l'écriture, DROP_OLDEST assumé).
 12. Le gestionnaire de plantages ne doit jamais lui-même planter ni bloquer.
 
 ## Architecture (sections 5 et 6 du prompt)
@@ -102,7 +104,12 @@ remis (format section 14) puis attente du « GO ».
       TestDispatcherProvider, `core:ui` thème M3 complet + BaseFragment + composants d'état +
       insets + AppNavigator, `app` Hilt/SplashScreen/NavHost avec navigation Home ↔ Settings,
       features placeholder, ADR 0008)
-- [ ] Étape 2 — Journalisation → v0.3.0
+- [x] Étape 2 — Journalisation → v0.3.0 (`core:model` LogLevel/LogEntry/FlattenedException sérialisables,
+      `core:domain` AppLogger/LogRedactor/LogConfig/LogRepository + use cases, `core:logging` moteur asynchrone
+      borné (canal DROP_OLDEST, groupement 500 ms, flush ERROR, flushBlocking), JSONL + rotation + rétention,
+      breadcrumbs 200, export zip UTC + FileProvider cache/exports, en-tête de session, ADR 0009 ; app initialise
+      dans le processus principal uniquement ; core:testing FakeAppLogger + InMemoryLogRepository)
+- [ ] Étape 3 — Gestion des plantages → v0.4.0
 - [ ] Étape 3 — Gestion des plantages → v0.4.0
 - [ ] Étape 4 — Couche données → v0.5.0
 - [ ] Étape 5 — Onboarding → v0.6.0

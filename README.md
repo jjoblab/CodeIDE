@@ -8,8 +8,8 @@ fondations : interface et navigation, configuration de l'application, gestion de
 projets, diagnostic (journalisation et plantages) et création de projet via un
 assistant avec des modèles **Kotlin** et **Java**.
 
-> État actuel : **étape 1 terminée** (fondations transverses : types du modèle, DispatcherProvider,
-> thème Material 3 complet dans `core:ui`, application Hilt avec navigation Accueil ↔ Paramètres) — v0.2.0.
+> État actuel : **étape 2 terminée** (journalisation maison : pipeline asynchrone borné, JSONL
+> avec rotation, expurgation à l'écriture, export zip) — v0.3.0.
 > Voir `docs/ROADMAP.md` pour le détail des étapes et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide
