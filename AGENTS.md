@@ -121,7 +121,19 @@ remis (format section 14) puis attente du « GO ».
       (LIVE/VIEW, copier/partager zip/enregistrer SAF/vider cache), FileProvider dédié ADR 0010 ; liaison
       core:logging par lambdas (breadcrumbs/flush) ; app sensible au processus, dialogue rapport non consulté,
       menu debug source set debug (no-op release) ; core:testing FakeCrashReportRepository + FakePendingExitInfoRecorder)
-- [ ] Étape 4 — Couche données → v0.5.0
+- [x] Étape 4 — Couche données → v0.5.0 (`core:model` Project/ProjectAccessState/AppSettings + ThemeMode/LogVerbosity/License,
+      `core:domain` contrats FileSystem (13 opérations typées) + FileStat + ProjectRepository/SettingsRepository + ForbiddenFolders
+      (dossiers refusés Android 11+, formes raw: ramenées au volume) + use cases du registre/de l'accès/des paramètres,
+      `core:database` Room v1 (index unique document_uri, tri de l'accueil dans la requête, schéma exporté, mappeurs —
+      public CodeIdeDatabase/ProjectDao/ProjectEntity), `core:datastore` SettingsDataStore (lecture tolérante champ par champ,
+      corruption → défauts, trio de clés du dossier de travail, transformations atomiques, défauts par FLAG_DEBUGGABLE),
+      `core:storage` SafFileSystem (DocumentsContract + requêtes groupées, pré-contrôle d'homonyme et contrôle du nom retourné,
+      exceptions traduites, port PersistableUriPermissions testable, UrisDocuments) + fournisseur factice de test sur le vrai
+      protocole d'appel vérifié sur le bytecode android-all, `core:data` ProjectRepositoryImpl (UUID + horodatage à l'ajout,
+      SQLiteConstraintException → AlreadyExists) + SettingsRepositoryImpl (journalisation identifiants uniquement — règle 15),
+      `core:logging` LogLevelApplier + correction de la config initiale release (ADR 0011), app branchement du niveau persisté
+      au démarrage du processus principal + test d'intégration graphe de production ; core:testing FakeFileSystem +
+      FakeProjectRepository + FakeSettingsRepository ; ADR 0012 : renommer = libellé en base uniquement)
 - [ ] Étape 5 — Onboarding → v0.6.0
 - [ ] Étape 6 — Paramètres → v0.7.0
 - [ ] Étape 7 — Accueil → v0.8.0

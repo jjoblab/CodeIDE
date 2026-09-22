@@ -113,6 +113,43 @@ Pour chaque écran :
 - L'UI traduit les `AppError` en messages localisés ; les détails techniques
   vont dans les journaux (`AppLogger`).
 
+## Couche données (étape 4 — livrée à v0.5.0)
+
+Le registre des projets et les paramètres vivent derrière les interfaces
+du domaine (`ProjectRepository`, `SettingsRepository`) ; l'accès aux
+fichiers passe **exclusivement** par le port `FileSystem`.
+
+- **Registre** (`core:database` + `core:data`) : Room v1, table
+  `projects` avec **index unique sur `documentUri`** (le même dossier ne
+  peut pas être référencé deux fois), tri de l'accueil porté par la
+  requête (épingles d'abord, dernier ouvert d'abord, nom insensible à la
+  casse), mutations ciblées avec comptage de lignes (`0` → `NotFound`
+  côté dépôt). L'identifiant (UUID) et l'horodatage sont produits par le
+  dépôt à l'ajout. Renommer un projet ne change **que le libellé** —
+  jamais le dossier (ADR 0012). Schémas exportés dans
+  `core/database/schemas/` : référence des migrations futures, aucun
+  repli destructif.
+- **Paramètres** (`core:datastore` + `core:data`) : Preferences DataStore
+  projeté vers `AppSettings`. Lecture **tolérante** champ par champ
+  (valeur inconnue sur disque → défaut), corruption remplacée par les
+  défauts (`ReplaceFileCorruptionHandler`), transformations
+  lire-transformer-réécrire **atomiques**, dossier de travail en trio de
+  clés (incomplet → non configuré). La verbosité persistée
+  (`AppSettings.logLevel`) est appliquée au moteur de journalisation via
+  `LogLevelApplier` au démarrage du processus principal (ADR 0011).
+- **Stockage** (`core:storage`) : `SafFileSystem` sur `DocumentsContract`
+  (détails dans la section SAF ci-dessous). Permissions persistantes
+  derrière un port testable ; l'état d'accès d'un projet
+  (`ProjectAccessState`) se calcule **permission d'abord, existence
+  ensuite** (`VerifyProjectAccessUseCase`), jamais en crash.
+- **Tests** : fakes en mémoire dans `core:testing` (`FakeFileSystem`,
+  `FakeProjectRepository`, `FakeSettingsRepository`) pour les use cases
+  et les ViewModels ; DAO et DataStore testés en Robolectric ;
+  `SafFileSystem` testé contre un fournisseur de documents factice qui
+  respecte le **vrai** protocole d'appel du framework (vérifié sur le
+  bytecode d'`android-all`). Essais sur le SAF système réel :
+  procédures S1-S5 de `docs/TESTS_MANUELS.md`.
+
 ## SAF (section 5.6 — points d'attention)
 
 On obtient des **URI**, pas des chemins `File`. Le modèle `StorageLocation`
@@ -123,6 +160,15 @@ dossier) et `displayPath` (libellé lisible). Permissions persistantes via
 `DocumentsContract` et des requêtes groupées. `createDocument` peut renommer
 silencieusement en cas de collision : toujours vérifier. Toute l'app accède
 aux fichiers **uniquement** via l'interface `FileSystem` du domaine.
+
+Les URI de documents suivent la **forme moderne** (API 26+) :
+`content://<autorite>/tree/<arbre>/document/<id>` (et
+`…/document/<id>/children` pour le listing) — segment `document`, pas
+`doc`. La construction/décomposition vit dans `UrisDocuments`
+(`core:storage`), unique endroit qui manipule ces formes. Les dossiers
+refusés par Android 11+ (racine, `Download`, `Android/data`,
+`Android/obb`) sont détectés par `ForbiddenFolders` (`core:domain`, pur),
+avec les formes `raw:` ramenées au chemin relatif du volume.
 
 ## Journalisation et plantages
 

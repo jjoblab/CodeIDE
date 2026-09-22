@@ -8,10 +8,11 @@ fondations : interface et navigation, configuration de l'application, gestion de
 projets, diagnostic (journalisation et plantages) et création de projet via un
 assistant avec des modèles **Kotlin** et **Java**.
 
-> État actuel : **étape 3 terminée** (journalisation maison + gestion des plantages :
-> gestionnaire en première ligne d'`onCreate`, rapports JSON atomiques bornés et expurgés,
-> écran dédié en processus `:crash`, détection des ANR/plantages natifs, boucle de
-> plantages, menu debug) — v0.4.0.
+> État actuel : **étape 4 terminée** (journalisation maison, gestion des plantages,
+> et couche données : registre des projets en Room avec index unique sur le dossier,
+> paramètres en DataStore persistés et tolérants, port `FileSystem` implémenté sur SAF
+> avec requêtes groupées et erreurs typées, fakes de test, branchement du niveau de
+> journalisation persisté) — v0.5.0.
 > Voir `docs/ROADMAP.md` pour le détail des étapes et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide

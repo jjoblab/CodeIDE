@@ -4,6 +4,96 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.5.0] – 2026-09-22
+
+Étape 4 — Couche données (section 11 du prompt maître).
+
+### Ajouté
+
+- `core:model` : `Project` (identifiant, nom, description, emplacement
+  SAF, modèle générateur, horodatages de création et de dernière
+  ouverture, épingle — bornes validées, `toString` en identifiant seul),
+  `ProjectAccessState` (Disponible / Introuvable / Permission perdue —
+  calculé, jamais persisté), `AppSettings` (thème, couleurs dynamiques,
+  langue, dossier de travail, nom d'auteur, licence par défaut,
+  verbosité de journalisation, assistant terminé), `ThemeMode`,
+  `LogVerbosity` (projection `NORMAL`→`INFO`, `DETAILED`→`DEBUG`) et
+  `License` (les cinq choix du wizard, conversion tolérante).
+- `core:domain` : contrats de la couche données — `FileSystem`
+  (existence, description, listing groupé et trié, création de dossier
+  et de fichier avec `writeBytes` pour les fichiers binaires des
+  templates, lecture/écriture texte, suppression, permissions
+  persistantes — erreurs systématiquement typées en `AppResult`,
+  jamais d'exception vers l'appelant), `FileStat`, `ProjectRepository`
+  (observation ordonnée pour l'accueil, ajout avec identifiant produit
+  par le dépôt, retrait idempotent, renommage du libellé, épingle,
+  marquage d'ouverture), `SettingsRepository` (observation, lecture,
+  transformation atomique, dossier de travail), `ForbiddenFolders`
+  (détection pure des dossiers refusés par Android 11+ : racine,
+  `Download`, `Android/data`, `Android/obb`, formes `raw:` ramenées au
+  chemin relatif du volume) ; use cases `ObserveProjects`, `AddProject`,
+  `RemoveProject`, `SetProjectPinned`, `RenameProject`,
+  `MarkProjectOpened`, `VerifyProjectAccess` (permission d'abord,
+  existence ensuite — jamais un crash), `ObserveSettings`,
+  `UpdateSettings`, `SetWorkspace`.
+- `core:database` : Room v1 — table `projects` avec **index unique sur
+  `document_uri`**, tri de l'accueil dans la requête (épingles,
+  dernier ouvert — les jamais ouverts ferment la marche —, nom
+  insensible à la casse), mutations ciblées avec comptage de lignes,
+  schéma exporté dans `schemas/` (référence des migrations futures,
+  aucun repli destructif), mappeurs exhaustifs vers le modèle.
+- `core:datastore` : `SettingsDataStore` — projection Preferences
+  DataStore vers `AppSettings`, lecture tolérante champ par champ
+  (valeur inconnue → défaut), dossier de travail en trio de clés
+  (incomplet → non configuré), corruption remplacée par les défauts,
+  transformations lire-transformer-réécrire atomiques, défauts par
+  type de build (`FLAG_DEBUGGABLE`).
+- `core:storage` : `SafFileSystem` sur `DocumentsContract` +
+  `ContentResolver` — listing en **requête groupée** (jamais de boucle
+  sur `DocumentFile`), pré-contrôle d'homonyme insensible à la casse et
+  **contrôle du nom retourné** à la création (renommage silencieux
+  détecté, document créé nettoyé, `AlreadyExists`), exceptions traduites
+  (`SecurityException` → permission perdue, `FileNotFoundException` →
+  introuvable, indices « disque plein » → plus d'espace), permissions
+  persistantes derrière un port testable (lecture + écriture en une
+  prise), `UrisDocuments` (concentration des constructions/décompositions
+  d'URI SAF modernes).
+- `core:data` : implémentations — `ProjectRepositoryImpl` (identifiant
+  UUID et horodatage produits à l'ajout, `SQLiteConstraintException`
+  traduite en `AlreadyExists`, retrait sans toucher au disque,
+  renommage du libellé uniquement) et `SettingsRepositoryImpl`
+  (délégation pure) ; journalisation des opérations **par identifiants
+  uniquement** (règle 15, verrouillée par les tests).
+- `core:logging` : `LogLevelApplier` — façade publique du branchement
+  du niveau persisté (met à jour le niveau minimal du moteur à chaud,
+  sans toucher aux autres bornes).
+- `core:testing` : `FakeFileSystem` (arborescence d'URI en mémoire,
+  collision insensible à la casse, permissions simulées, robinets de
+  défaillance), `FakeProjectRepository` (ordre de l'accueil, unicité
+  de dossier, horloge injectable), `FakeSettingsRepository`.
+- `app` : assemblage de `core:data` et **branchement du niveau de
+  journalisation persisté** — collecte des paramètres au démarrage du
+  processus principal et application via `LogLevelApplier`
+  (ADR 0011) ; test d'intégration de la couche données sur le graphe
+  de production (Room et DataStore réels).
+- Documentation : ADR 0011 (niveau de journalisation persisté), ADR
+  0012 (renommage = libellé en base, jamais le dossier), procédures
+  manuelles SAF S1-S5 dans `docs/TESTS_MANUELS.md`, section « Couche
+  données » de `docs/ARCHITECTURE.md`.
+
+### Corrigé
+
+- `core:logging` : la configuration initiale du moteur était
+  `debugDefault()` **quelle que soit la variante** — en release, le
+  fichier journalisait donc des entrées `DEBUG`+ jusqu'à la première
+  émission des paramètres, contredisant la section 5.7 (« défaut
+  `NORMAL` »). La fourniture initiale lit désormais `FLAG_DEBUGGABLE`
+  et démarre à `INFO` en release (ADR 0011).
+- `app` (tests) : le test d'intégration du dialogue « rapport non
+  consulté » supposait l'écriture synchrone du témoin consulté ; il
+  l'attend désormais de façon déterministe (le démarrage mène d'autres
+  E/S réelles en parallèle depuis l'étape 4).
+
 ## [0.4.0] – 2026-09-22
 
 Étape 3 — Gestion des plantages (section 5.8).
