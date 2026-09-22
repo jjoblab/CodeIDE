@@ -104,6 +104,32 @@ Pour chaque écran :
 - Les features ne se connaissent pas : navigation via l'interface
   `AppNavigator` (définie dans `core:ui`, implémentée dans `app`).
 
+## Assistant de premier lancement (étape 5 — livrée à v0.6.0)
+
+Le premier lancement (`isSetupCompleted` faux) route vers
+`feature:onboarding` **en racine de la pile** — le terminer n'est pas
+une navigation réversible. L'écran de démarrage est retenu jusqu'à la
+première émission des paramètres : routage et apparence se décident
+sous le splash, jamais à découvert.
+
+- **Cinq pages, pager non swipable** (`ViewPager2`, `isUserInputEnabled
+  = false`) : bienvenue, dossier de travail, apparence, profil,
+  terminé. Le bouton retour système **recule d'une page** (désarmé sur
+  la bienvenue), transitions `MaterialSharedAxis` axe Z.
+- **Dossier de travail** : sélecteur SAF (`OpenDocumentTree`), dossiers
+  refusés par Android 11+ détectés **avant** toute prise de permission
+  (message clair par raison), test d'écriture (fichier témoin créé,
+  écrit puis supprimé), permission persistante **relâchée à tout
+  échec** (plafond système). Étape passable : « Plus tard » → bandeau
+  « Configurer le dossier de travail » à l'accueil.
+- **Apparence à aperçu immédiat** : chaque choix (thème, couleurs
+  dynamiques, langue) se persiste à l'instant ; `MainActivity` collecte
+  les paramètres et recrée l'écran. Langue via
+  `AppCompatDelegate.setApplicationLocales` (ADR 0013).
+- **Survie rotation et mort du processus** : page et champs profil dans
+  le `SavedStateHandle` du ViewModel ; l'amorçage depuis les paramètres
+  réels n'a lieu qu'une fois par vie du sauvetage (drapeau interne).
+
 ## Gestion des erreurs et résultats
 
 - `AppResult<out T>` : `Success(value)` | `Failure(error: AppError)`.

@@ -83,6 +83,27 @@ Vérification des permissions persistantes après S2 :
 écriture, et n'être comptée **qu'une fois** (plafond 512, section 5.6 :
 ne persister que le nécessaire).
 
+## Assistant de premier lancement (étape 5 → v0.6.0)
+
+Le routage (`isSetupCompleted`), le test d'écriture et la survie de
+l'état sont couverts par les tests JVM (ViewModel + test d'intégration
+avec la véritable application) ; les procédures suivantes valident le
+**parcours réel à l'écran**, sélecteur SAF système compris.
+
+Préambule commun : installation fraîche (`adb uninstall jo.codeide`
+puis `adb install app-debug.apk`) pour partir d'un `isSetupCompleted`
+faux, appareil Android 11+.
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| O1 | Premier lancement : observer l'écran après le splash | L'assistant s'ouvre (pas l'accueil) ; la barre de progression indique 1/5 ; « Commencer » avance d'une page ; le retour système **recule d'une page** (et ne quitte pas l'assistant), désarmé sur la bienvenue ; le glissement du doigt ne change **pas** de page (pager non swipable) |
+| O2 | Page dossier → « Choisir un dossier » → sélectionner `Download` (ou la racine) | Message **clair** « refusé par Android » avec la raison ; aucune permission prise (`adb shell dumpsys package jo.codeide \| grep -A2 persistedUriPermissions` vide) ; « Choisir » de nouveau propose un autre dossier |
+| O3 | Page dossier → choisir un dossier inscriptible (ex. `Documents/CodeIDE`) | « Vérification » puis le libellé du dossier s'affiche ; le fichier témoin `codeide-temoin-<horodatage>` n'est **plus** présent dans le dossier (créé puis supprimé) ; l'URI d'arborescence apparaît en lecture/écriture dans `persistedUriPermissions`, comptée une fois |
+| O4 | « Plus tard » à la page dossier, finir l'assistant | L'accueil s'ouvre avec le bandeau « Configurer le dossier de travail » ; le bandeau **disparaît** après configuration du dossier (étape 6/7 : réglages) ; relancer l'app : l'assistant ne revient pas (installation terminée) |
+| O5 | Page apparence : choisir sombre, désactiver les couleurs dynamiques, passer en anglais | Chaque choix prend effet **immédiatement** (recréation d'écran, texte bascule en anglais) ; tuer le processus (`adb shell am kill jo.codeide`) et relancer : les choix sont conservés ; sur Android 13+, le réglage système « langue par application » reflète fr/en |
+| O6 | Page profil : saisir un nom d'auteur et une licence, puis **rotation** de l'écran à chaque page ; enfin « Terminer » | Le nom et la licence restent saisis après rotation ; « Terminer » referme l'assistant sur l'accueil ; relancer : accueil direct ; (optionnel) `adb shell am kill` au milieu de l'assistant, relancer : la page et les saisies sont restaurées |
+
 ## À venir
 
-- **Étape 5+** : rotation et mort du processus dans l'assistant.
+- **Étape 6+** : écran Paramètres (chaque réglage persiste et prend effet immédiatement).
+- **Étape 7+** : liste des projets, statut d'accès, actions.

@@ -4,6 +4,70 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.6.0] – 2026-09-22
+
+Étape 5 — Assistant de premier lancement (section 11 du prompt maître).
+
+### Ajouté
+
+- `feature:onboarding` : assistant en cinq pages — bienvenue, dossier
+  de travail, apparence, profil, terminé — `ViewPager2` **non
+  swipable** (avance par boutons uniquement), indicateur de
+  progression, transitions `MaterialSharedAxis` (axe Z, sens du
+  parcours), bouton retour système qui **recule d'une page** au lieu
+  de quitter l'assistant (désarmé sur la bienvenue).
+- `OnboardingViewModel` : UDF complet (actions en entrée, état +
+  effets ponctuels en sortie). Navigation bornée dans les deux sens ;
+  **test d'écriture** du dossier de travail (création d'un fichier
+  témoin, écriture, suppression — prouver que le dossier est
+  réellement utilisable) ; permission persistante prise **puis
+  relâchée à tout échec** (le système plafonne les permissions
+  persistantes, on n'en gaspille pas une) ; persistance du dossier
+  validé comme `StorageLocation` (libellé lisible via `stat`,
+  repli sur l'identifiant de document).
+- Dossiers refusés par Android 11+ : détection `ForbiddenFolders`
+  avant toute prise de permission, message **clair et actionnable**
+  par raison (racine du stockage, `Download`, `Android/data`,
+  `Android/obb`) — jamais de crash ni de permission abandonnée.
+- Étape dossier **passable** (« Plus tard ») : l'accueil affiche
+  alors un bandeau « Configurer le dossier de travail »
+  (`feature:home` `HomeViewModel` + `bandeau_dossier.xml`) qui
+  rouvre l'assistant.
+- Page apparence à **aperçu immédiat** : thème (système/clair/sombre
+  via `AppCompatDelegate.setDefaultNightMode`), couleurs dynamiques
+  (Android 12+, ADR 0008), langue FR/EN/système via
+  `AppCompatDelegate.setApplicationLocales` (ADR 0013) — chaque
+  choix se **persiste à l'instant**, la collecte des paramètres dans
+  `MainActivity` recrée l'écran avec la nouvelle apparence.
+- Page profil : nom d'auteur optionnel (conservé dans le
+  `SavedStateHandle` à chaque frappe, écrit une seule fois à la fin —
+  pas d'écriture DataStore par touche) et licence par défaut.
+- Survie **rotation et mort du processus** : page et champs profil
+  dans le `SavedStateHandle` ; l'état s'amorce une seule fois depuis
+  les paramètres réels (dossier déjà validé, apparence choisie).
+- `app` : routage du premier lancement — `isSetupCompleted` faux →
+  l'assistant remplace l'accueil **en racine de la pile** (terminer
+  n'est pas réversible) ; vrai → accueil. L'écran de démarrage est
+  retenu jusqu'à la première émission des paramètres : routage et
+  apparence se décident **sous le splash**, jamais à découvert.
+  `android:localeConfig` déclaré (`locales_config.xml`, fr + en)
+  pour le réglage système Android 13+.
+- `core:ui` : `AppNavigator.openOnboarding` / `openHome` (retour de
+  fin d'assistant qui retire l'assistant de la pile) ; destination
+  `onboarding` dans le graphe de navigation.
+- Documentation : ADR 0013 (langue par application via AppCompat),
+  procédures manuelles O1-O6 dans `docs/TESTS_MANUELS.md`, README
+  du module `feature:onboarding`, section « Assistant de premier
+  lancement » de `docs/ARCHITECTURE.md`.
+
+### Corrigé
+
+- `app` : les couleurs dynamiques n'étaient appliquables qu'une fois
+  au démarrage (`applyDynamicColorsIfAvailable` dans `onCreate`) ;
+  elles suivent désormais le réglage utilisateur persisté, changent
+  à chaud et surviennent après restauration d'une installation
+  existante.
+
 ## [0.5.0] – 2026-09-22
 
 Étape 4 — Couche données (section 11 du prompt maître).

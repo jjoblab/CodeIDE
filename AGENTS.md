@@ -134,7 +134,11 @@ remis (format section 14) puis attente du « GO ».
       `core:logging` LogLevelApplier + correction de la config initiale release (ADR 0011), app branchement du niveau persisté
       au démarrage du processus principal + test d'intégration graphe de production ; core:testing FakeFileSystem +
       FakeProjectRepository + FakeSettingsRepository ; ADR 0012 : renommer = libellé en base uniquement)
-- [ ] Étape 5 — Onboarding → v0.6.0
+- [x] Étape 5 — Onboarding → v0.6.0 (`feature:onboarding` : pager non swipable 5 pages + MaterialSharedAxis Z, OnboardingViewModel UDF complet
+      (actions/effets), dossier de travail SAF avec dossiers refusés Android 11+ détectés avant permission + test d'écriture témoin + permission
+      relâchée à tout échec + étape passable « Plus tard », apparence à aperçu immédiat (thème/dynamique/langue persistés à l'instant,
+      setApplicationLocales ADR 0013 + locales_config), profil (SavedStateHandle, écrit en fin de parcours), `isSetupCompleted` routé sous splash
+      en racine de pile ; feature:home bandeau « Configurer le dossier de travail » + HomeViewModel ; AppNavigator.openOnboarding/openHome)
 - [ ] Étape 6 — Paramètres → v0.7.0
 - [ ] Étape 7 — Accueil → v0.8.0
 - [ ] Étape 8 — Moteur de templates → v0.9.0
