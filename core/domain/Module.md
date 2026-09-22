@@ -8,3 +8,5 @@ Module Kotlin JVM pur : cas d'usage (use cases), interfaces de repositories,
 des use cases (`operator fun invoke`, voir `docs/CONVENTIONS.md`).
 
 Contenu fonctionnel détaillé : voir `README.md` du module.
+
+Statut : étapes 0 à 4 livrées (v0.5.0) — contrats de la couche données (`FileSystem`, repositories) et leurs cas d'usage.
