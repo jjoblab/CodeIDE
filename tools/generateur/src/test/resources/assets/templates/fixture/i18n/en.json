@@ -1,0 +1,5 @@
+{
+  "template.name": "Fixture",
+  "template.description": "Model used by the harness tests",
+  "param.package.label": "Package"
+}

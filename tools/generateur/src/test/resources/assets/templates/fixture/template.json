@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "test",
+  "tags": ["test"],
+  "parameters": [
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.package.label",
+      "defaultFrom": "packageFromNameAndAuthor",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    }
+  ],
+  "computed": [],
+  "files": [
+    { "path": "src/{{packageName|packagePath}}/Main.txt", "source": "files/main.txt.tpl" },
+    { "path": "PROJET.txt", "source": "files/projet.txt.tpl" }
+  ]
+}
