@@ -1,5 +1,10 @@
 # core/datastore
 
-Stockage des préférences de l'application (thème, langue, dossier de travail, niveau de journalisation, profil auteur, `isSetupCompleted`) via Preferences DataStore, avec `ReplaceFileCorruptionHandler`. Le niveau de journalisation persisté alimente `LogConfig`.
+Source des paramètres applicatifs : Preferences DataStore projeté vers
+`AppSettings` (lecture tolérante champ par champ, corruption remplacée
+par les défauts, transformations atomiques lire-transformer-réécrire,
+dossier de travail en trio de clés, défauts par type de build pour la
+verbosité de journalisation).
 
-Contenu fonctionnel prévu : voir `README.md` du module.
+Statut : livré à l'étape 4 (v0.5.0) — voir le README du module et
+`docs/ARCHITECTURE.md` § « Couche données ».
