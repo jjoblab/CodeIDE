@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96"
+    android:tint="?attr/colorOnSurfaceVariant">
+    <!-- Illustration « aucun projet » : grand dossier, signe plus, étincelles. -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M40,16H16c-4.42,0 -7.96,3.58 -7.96,8L8,72c0,4.42 3.58,8 8,8h64c4.42,0 8,-3.58 8,-8V32c0,-4.42 -3.58,-8 -8,-8H48l-8,-8z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M60,44h8v8h8v8h-8v8h-8v-8h-8v-8h8v-8z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M22,50m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M30,38m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+</vector>

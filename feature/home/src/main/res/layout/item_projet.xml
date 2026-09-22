@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne d'un projet de l'accueil (étape 7) : pastille du type, nom +
+  épingle, description, emplacement lisible · date relative, et badge
+  d'état d'accès (Introuvable / Permission perdue) avec actions de
+  résolution dans le menu contextuel.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/carte_projet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_sm"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="@dimen/spacing_md">
+
+        <!-- Pastille du type de projet (dossier générique ; pastilles
+             « Kt » / « Jv » des modèles embarqués à l'étape 9). -->
+        <FrameLayout
+            android:layout_width="@dimen/taille_pastille"
+            android:layout_height="@dimen/taille_pastille"
+            android:background="@drawable/fond_pastille">
+
+            <ImageView
+                android:id="@+id/pastille_type"
+                android:layout_width="@dimen/taille_icone_ligne"
+                android:layout_height="@dimen/taille_icone_ligne"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_dossier_code" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/nom_projet"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    tools:text="MonProjet" />
+
+                <ImageView
+                    android:id="@+id/icone_epingle"
+                    android:layout_width="@dimen/taille_icone_epingle"
+                    android:layout_height="@dimen/taille_icone_epingle"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_epingle"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/description_projet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:visibility="gone"
+                tools:text="Une description courte du projet."
+                tools:visibility="visible" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/meta_projet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                tools:text="CodeIDE · il y a 3 h" />
+
+            <!-- Badge d'accès rompu : signalé visuellement, résolu par le
+                 menu (Relocaliser / Retirer), jamais un crash. -->
+            <LinearLayout
+                android:id="@+id/rangee_etat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/icone_etat"
+                    android:layout_width="@dimen/taille_icone_etat"
+                    android:layout_height="@dimen/taille_icone_etat"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_avertissement" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_etat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorError"
+                    tools:text="Permission perdue" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/bouton_menu"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/accueil_desc_menu"
+            android:src="@drawable/ic_menu_actions" />
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

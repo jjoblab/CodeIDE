@@ -1,9 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="home_title">Accueil</string>
-    <string name="home_placeholder">Écran provisoire : la liste des projets arrive à l\'étape 7 du plan.</string>
     <string name="home_open_settings">Ouvrir les paramètres</string>
     <string name="home_bandeau_titre">Dossier de travail non configuré</string>
     <string name="home_bandeau_texte">Les nouveaux projets ont besoin d\'un dossier de travail pour exister.</string>
     <string name="home_bandeau_bouton">Configurer</string>
+
+    <!-- Recherche et tri (étape 7). -->
+    <string name="accueil_recherche_indication">Rechercher un projet</string>
+    <string name="accueil_tri_recents">Récents</string>
+    <string name="accueil_tri_nom">Nom</string>
+
+    <!-- États (chargement, vide, sans résultat, erreur). -->
+    <string name="accueil_chargement">Chargement des projets…</string>
+    <string name="accueil_vide_titre">Aucun projet pour l\'instant</string>
+    <string name="accueil_vide_message" tools:ignore="Typos"> <!-- « existant » : français correct, faux positif du dictionnaire anglais -->Créez votre premier projet ou ouvrez un dossier existant.</string>
+    <string name="accueil_vide_action">Nouveau projet</string>
+    <string name="accueil_sans_resultat_titre">Aucun résultat</string>
+    <string name="accueil_sans_resultat_message">Aucun projet ne correspond à « %1$s ».</string>
+    <string name="accueil_sans_resultat_action">Effacer la recherche</string>
+    <string name="accueil_erreur_registre_titre">Liste indisponible</string>
+    <string name="accueil_erreur_registre_message">Le registre des projets n\'a pas pu être lu.</string>
+
+    <!-- Ligne de projet. -->
+    <string name="accueil_meta_projet">%1$s · %2$s</string>
+    <string name="accueil_desc_epingle">Épinglé</string>
+    <string name="accueil_desc_menu">Actions de « %1$s »</string>
+    <string name="accueil_acces_disponible">Accessible</string>
+    <string name="accueil_acces_introuvable">Introuvable</string>
+    <string name="accueil_acces_permission">Permission perdue</string>
+
+    <!-- Actions par projet (menu contextuel). -->
+    <string name="accueil_action_ouvrir">Ouvrir</string>
+    <string name="accueil_action_relocaliser">Relocaliser</string>
+    <string name="accueil_action_retirer">Retirer</string>
+    <string name="accueil_action_renommer">Renommer</string>
+    <string name="accueil_action_epingler">Épingler</string>
+    <string name="accueil_action_desepingler">Désépingler</string>
+    <string name="accueil_action_retirer_liste">Retirer de la liste</string>
+    <string name="accueil_action_supprimer">Supprimer du disque</string>
+
+    <!-- Dialogue de renommage. -->
+    <string name="accueil_renommer_titre">Renommer le projet</string>
+    <string name="accueil_renommer_indication">Nouveau nom</string>
+    <string name="accueil_renommer_confirmer">Renommer</string>
+    <string name="accueil_annuler">Annuler</string>
+
+    <!-- Confirmation de suppression du disque (rappel du nom). -->
+    <string name="accueil_suppression_titre">Supprimer du disque ?</string>
+    <string name="accueil_suppression_message">Le dossier « %1$s » et tout son contenu seront définitivement supprimés du stockage. Cette action est irréversible.</string>
+    <string name="accueil_suppression_confirmer">Supprimer</string>
+
+    <!-- Actions flottantes. -->
+    <string name="accueil_nouveau_projet">Nouveau projet</string>
+    <string name="accueil_ouvrir_dossier" tools:ignore="Typos"> <!-- « existant » : français correct, faux positif du dictionnaire anglais -->Ouvrir un dossier existant</string>
+
+    <!-- Messages (snackbars). -->
+    <string name="accueil_snackbar_importe">Projet « %1$s » ajouté</string>
+    <string name="accueil_snackbar_deja_present">Ce dossier est déjà dans la liste</string>
+    <string name="accueil_snackbar_deplace">Projet « %1$s » relocalisé</string>
+    <string name="accueil_snackbar_retire">Projet retiré de la liste</string>
+    <string name="accueil_snackbar_supprime">Projet supprimé du disque</string>
+    <string name="accueil_snackbar_editeur">L\'éditeur de code arrive dans une prochaine version</string>
+
+    <string name="accueil_erreur_modele">Le modèle de projet est introuvable ou invalide.</string>
+
+    <!-- Traductions des erreurs typées (section 5.5). -->
+    <string name="accueil_erreur_permission">L\'accès au dossier a été refusé ou révoqué.</string>
+    <string name="accueil_erreur_introuvable">L\'élément est introuvable sur le stockage.</string>
+    <string name="accueil_erreur_deja_reference">Ce dossier est déjà référencé.</string>
+    <string name="accueil_erreur_espace">L\'espace de stockage est insuffisant.</string>
+    <string name="accueil_erreur_ecriture">Ce dossier n\'accepte pas l\'écriture.</string>
+    <string name="accueil_erreur_stockage">Une erreur de stockage est survenue.</string>
+    <string name="accueil_erreur_saisie">La saisie est refusée : vérifiez le nom.</string>
+
+    <!-- Traductions des refus Android 11+ (section 5.6). -->
+    <string name="accueil_refus_racine">La racine d\'un stockage ne peut pas être choisie.</string>
+    <string name="accueil_refus_download">Le dossier Téléchargements est refusé par Android.</string>
+    <string name="accueil_refus_android_data">Le dossier Android/data est protégé par Android.</string>
+    <string name="accueil_refus_android_obb">Le dossier Android/obb est protégé par Android.</string>
 </resources>

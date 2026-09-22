@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dimensions propres à l'accueil — complètent les tokens de core:ui
+  (aucune valeur en dur dans les layouts).
+-->
+<resources>
+
+    <!-- Dégagement de la liste au-dessus du groupe d'actions flottantes. -->
+    <dimen name="marge_bas_fab">96dp</dimen>
+
+    <!-- Pastille du type de projet et ses icônes. -->
+    <dimen name="taille_pastille">40dp</dimen>
+    <dimen name="taille_icone_ligne">24dp</dimen>
+    <dimen name="taille_icone_epingle">16dp</dimen>
+    <dimen name="taille_icone_etat">14dp</dimen>
+
+</resources>
