@@ -4,6 +4,81 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.12.0] – 2026-09-23
+
+Étape 11 — Wizard de création, partie 2 : les étapes 4 et 5, l'écran de
+création complet et la mise en évidence à l'accueil (ADR 0023-0024). Les
+correctifs d'insets répondent aux retours d'exécution sur appareil.
+
+### Ajouté
+
+- **Étape 4 Fichiers** (`feature:newproject`, section 12.3) : interrupteurs
+  des fichiers optionnels (README.md, .gitignore, .editorconfig) chacun
+  avec sa courte explication ; **licence** pré-remplie depuis les
+  Paramètres (liste déroulante : Aucune, MIT, Apache-2.0, GPL-3.0,
+  BSD-3-Clause) avec l'**auteur et l'année des Paramètres** affichés
+  (consommés par MIT et BSD) ; **langue du contenu généré** par boutons
+  segmentés Français / English (README, commentaires, messages des
+  fichiers) ; toute combinaison est valide — l'étape ne bloque jamais.
+- **Étape 5 Récapitulatif** : résumé lisible par section (modèle,
+  configuration, informations, fichiers) avec un bouton **« Modifier »**
+  par section qui ramène à l'étape concernée (retour arrière direct,
+  jamais de raccourci vers l'avant) ; **aperçu de l'arborescence prévue**
+  issu du dry-run du plan (`PlanProjectCreationUseCase` — ce qui est
+  planifié est ce qui sera écrit, à l'octet près) : dossiers **repliables**
+  au toucher (décrits pour TalkBack), comptage des fichiers, état
+  chargement et erreur avec Réessayer.
+- **Écran de création** (hors numérotation, ADR 0023) : **liste de
+  progression en temps réel** (« Préparation… », « Création du dossier… »,
+  « Génération des fichiers (3/8) : … », « Enregistrement… ») alimentée par
+  le flot froid de `CreateProjectUseCase`, bouton **Annuler** (le domaine
+  roule le rollback en `NonCancellable`, puis retour au récapitulatif — le
+  retour système fait de même) ; **succès** : message, boutons « Ouvrir le
+  projet » (marque `lastOpenedAt` — l'éditeur arrive à l'étape 13),
+  « Retour à l'accueil » et « Créer un autre projet » (remise à zéro
+  conservant le modèle, permission éphémère relâchée) ; **échec** : message
+  compréhensible par erreur typée (collision, dossier injoignable,
+  écriture, validation, modèle, inattendu), **Réessayer**, **Copier les
+  détails** (expurgés — erreurs typées), information sur le nettoyage
+  effectué (complet ou résidus).
+- **Bouton « Créer le projet »** : le bouton principal du wizard devient
+  « Créer le projet » sur le récapitulatif, gardé par la **revalidation
+  globale** (le domaine revalide de toute façon à l'exécution, section 12.4
+  point 1) ; l'indicateur affiche désormais « Étape N sur 5 ».
+- **Mise en évidence du projet créé à l'accueil** (ADR 0024) : le wizard
+  refermé, l'accueil **défile jusqu'au nouveau projet** et marque sa carte
+  d'un **contour de la couleur primaire du thème** (suit le mode sombre) ;
+  l'identifiant transite par le `SavedStateHandle` de l'entrée d'accueil
+  de la pile de retour — survit à la recréation, consommé une seule fois.
+- `core:ui` : extension `applySystemBarsAndImeInsets` (barres système et
+  clavier en un seul écouteur) pour les écrans à barre d'actions
+  inférieure qui ne doit jamais passer sous le clavier.
+
+### Corrigé
+
+- **Insets edge-to-edge manquants** (retour d'exécution sur appareil) :
+  l'assistant de premier lancement, l'écran Paramètres et l'écran de
+  plantage (processus `:crash`) laissaient leur contenu passer sous la
+  barre d'état et la barre de navigation — conséquence bloquante : la
+  barre d'actions de l'assistant (Commencer/Suivant) était **sous la
+  barre de navigation, impossible d'avancer depuis la page de
+  bienvenue**. La racine de chaque écran absorbe désormais barres
+  système et clavier ; `MainActivity` déclare
+  `android:windowSoftInputMode="adjustResize"` (insets IME sur
+  API < 30).
+- **Bouton du menu debug obstructif** (builds debug seulement) : le
+  bouton flottant, ancré en bas à droite, recouvrait le bouton d'action
+  principal des écrans (Commencer, Suivant, Créer…) et passait sous la
+  barre de navigation. Il devient une **icône seule semi-transparente**
+  (glyphe bug, style bouton icône Material) ancrée **en bas à gauche**,
+  au-dessus de la barre de navigation via les insets — plus aucun
+  recouvrement ; il sera déplacé dans l'écran Diagnostic à l'étape 12.
+
+### Références
+
+- ADR 0023 — L'écran de création vit dans le wizard, piloté par l'état.
+- ADR 0024 — Mise en évidence du projet créé via la pile de retour.
+
 ## [0.11.0] – 2026-09-23
 
 Étape 10 — Wizard de création, partie 1 : le cadre complet et les étapes

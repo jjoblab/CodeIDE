@@ -8,12 +8,13 @@ fondations : interface et navigation, configuration de l'application, gestion de
 projets, diagnostic (journalisation et plantages) et création de projet via un
 assistant avec des modèles **Kotlin** et **Java**.
 
-> État actuel : **étape 10 terminée** (fondations, journalisation et plantages,
+> État actuel : **étape 11 terminée** (fondations, journalisation et plantages,
 > couche données, onboarding, paramètres, accueil, moteur de templates avec
 > modèles Kotlin/Java **validés réellement** (builds/tests/exécutions des
-> projets générés), et wizard de création partie 1 — cadre, machine à états,
-> rendu dynamique des paramètres, étapes Modèle/Configuration/Informations) —
-> v0.11.0.
+> projets générés), et wizard de création **complet** — cadre, machine à
+> états, rendu dynamique, cinq étapes (Modèle, Configuration, Informations,
+> Fichiers, Récapitulatif), écran de création avec progression/rollback et
+> mise en évidence du projet créé à l'accueil) — v0.12.0.
 > Voir `docs/ROADMAP.md` pour le détail des étapes et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide

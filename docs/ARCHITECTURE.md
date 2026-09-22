@@ -183,8 +183,9 @@ bandeau « dossier de travail non configuré » de l'étape 5).
 - **Adaptatif** : 1 colonne téléphone, 2 colonnes tablette/paysage
   (`layout-sw600dp`, `GridLayoutManager`).
 - **Wizard** : le bouton étendu « Nouveau projet » ouvre l'assistant
-  de `feature:newproject` (cadre + étapes 1 à 3 livrés à l'étape 10,
-  section dédiée ci-dessous).
+  de `feature:newproject` (cinq étapes + écran de création, étapes 10-11,
+  section dédiée ci-dessous) ; après une création réussie, l'accueil
+  **défile jusqu'au nouveau projet** et le marque d'un contour (ADR 0024).
 
 ## Moteur de templates (étape 8 — livrée à v0.9.0)
 
@@ -249,26 +250,26 @@ est le contrat `docs/TEMPLATES.md`.
   tableau final `combinaison → résultat`, à garder vert à toute livraison
   touchant aux modèles (sections 8 et 11 du prompt maître).
 
-## Wizard de création, partie 1 (étape 10 — livrée à v0.11.0)
+## Wizard de création (étapes 10-11 — livré à v0.12.0)
 
-Le cadre et les trois premières étapes de la section 12 du prompt maître
-(ADR 0020) : `feature:newproject`.
+Le cadre, les cinq étapes numérotées et l'écran de création de la
+section 12 du prompt maître (ADR 0020-0024) : `feature:newproject`.
 
 - **Hôte** (`NewProjectFragment`) : barre d'outils (✕ + dialogue
   « Abandonner la création ? » si des données sont saisies), **indicateur
   d'étapes** (progression linéaire + « Étape N sur M · Titre », annoncé
   TalkBack), conteneur de fragments d'étapes, **barre d'actions fixe**
   (Retour masqué sur la première étape, Suivant désactivé tant que l'étape
-  est invalide, masqué sur la dernière étape livrée — Fichiers et
-  Récapitulatif arrivent à l'étape 11). Transitions `MaterialSharedAxis`
-  axe X, coupées quand « réduire les animations » est actif ; retour
-  système = étape précédente puis abandon confirmé ; contenu borné et
-  centré sur tablette (`layout-sw600dp`).
+  est invalide, devenant **« Créer le projet »** sur le récapitulatif).
+  Transitions `MaterialSharedAxis` axe X, coupées quand « réduire les
+  animations » est actif ; retour système = étape précédente puis abandon
+  confirmé ; contenu borné et centré sur tablette (`layout-sw600dp`).
 - **Machine à états** (`WizardViewModel`, scopé à l'hôte, ADR 0020) :
   étapes déclarées dans une liste configurable (`WizardStep`), état unique
   `EtatWizard` (catalogue, modèle, nom, description, valeurs saisies,
-  champs figés, emplacement, vérification) survivant rotation **et mort du
-  processus** via `SavedStateHandle`. À chaque changement :
+  champs figés, emplacement, vérification, options communes, plan, état
+  de création) survivant rotation **et mort du processus** via
+  `SavedStateHandle`. À chaque changement :
   `EvaluateTemplateFormUseCase` réévalue visibilité (`visibleWhen`),
   valeurs dérivées (`defaultFrom`, figées par modification manuelle,
   resynchronisables), validité — les étapes ne font que rendre.
@@ -291,10 +292,37 @@ Le cadre et les trois premières étapes de la section 12 du prompt maître
   l'abandon si inutilisée), aperçu `…/<Nom>`, **vérifications
   asynchrones avec délai** (permission, joignabilité, collision de nom
   insensible à la casse) avec indicateur en cours.
+- **Étape 4 Fichiers** : interrupteurs des fichiers optionnels
+  (README/.gitignore/.editorconfig), licence pré-remplie des Paramètres
+  (auteur et année affichés — consommés par MIT et BSD), langue du
+  contenu générée (Français / English par boutons segmentés) — tout
+  alimente `TemplateOptions` du moteur ; l'étape ne bloque jamais.
+- **Étape 5 Récapitulatif** : résumé par section avec bouton
+  « Modifier » (retour arrière direct, jamais vers l'avant) et
+  **arborescence prévue repliable** (`Arborescence` : transformation pure
+  du plan — dossiers d'abord, ordre stable), comptage des fichiers,
+  chargement/erreur avec Réessayer.
+- **Écran de création** (hors numérotation, ADR 0023) : piloté par
+  `EtatCreation` dans `EtatWizard` — `EnCours` (liste des événements du
+  flot froid de `CreateProjectUseCase`, bouton Annuler = `Job.cancel()`,
+  le domaine roule le rollback en `NonCancellable` puis le ViewModel
+  ramène au récapitulatif), `Succes` (Ouvrir le projet [marque
+  `lastOpenedAt` — éditeur à l'étape 13], Retour à l'accueil, Créer un
+  autre projet), `Echec` (message par erreur typée, Réessayer, Copier
+  les détails expurgés, nettoyage signalé). L'indicateur et la barre
+  d'actions disparaissent tant que l'état n'est pas `Inactif`.
+- **Mise en évidence à l'accueil** (ADR 0024) : `AppNavigator.
+  wizardCreeProjet(id)` dépose l'identifiant dans le `SavedStateHandle`
+  de l'entrée d'accueil de la pile de retour ; l'accueil le consomme une
+  fois — défilement jusqu'au projet + contour de la couleur primaire du
+  thème.
 - **Domaine** : `EvaluerNomProjetUseCase` (raison typée du nom),
   `ResolveCreationLocationUseCase` / `ReleaseCreationLocationUseCase` /
   `VerifyCreationTargetUseCase` (ADR 0022), `RaisonValidation` (type
-  fermé, core:model) porté par `TemplateParameterEvaluation.errorReason`.
+  fermé, core:model) porté par `TemplateParameterEvaluation.errorReason`,
+  `PlanProjectCreationUseCase` (dry-run du récapitulatif) et
+  `CreateProjectUseCase` (algorithme de la section 12.4 — livrés à
+  l'étape 8, branchés au wizard à l'étape 11).
 
 ## Gestion des erreurs et résultats
 
