@@ -1,10 +1,12 @@
 # core/domain — Domaine — cas d'usage et interfaces
 
-> Statut étape 2 : fondations (v0.2.0 : `DispatcherProvider`, convention des use cases) et journalisation
+> Statut étape 4 : fondations (v0.2.0 : `DispatcherProvider`, convention des use cases), journalisation
 > (v0.3.0 : `AppLogger`, `LogRedactor`, `LogConfig`, `LogRepository`, `TimeProvider`, use cases
 > `ObserveLogs`/`ExportLogs`/`ClearLogs`, `LogExportWriter`), plantages (v0.4.0 :
 > `CrashReportRepository`, `PendingExitInfoRecorder`, use cases de lecture/consultation/suppression
-> et enregistrement des sorties).
+> et enregistrement des sorties), couche données (v0.5.0 : contrats `FileSystem`/`FileStat`,
+> `ProjectRepository`, `SettingsRepository`, `ForbiddenFolders`, use cases du registre des
+> projets, de la vérification d'accès et des paramètres).
 
 Module Kotlin JVM pur : cas d'usage (use cases), interfaces de repositories, `FileSystem`, `AppLogger`, `LogRedactor`, `DispatcherProvider`. Autorise `javax.inject` et Coroutines/Flow. Ne connaît ni Android ni les implémentations.
 
@@ -21,7 +23,7 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 - **`DefaultDispatcherProvider`** — implémentation de référence (`@Inject`), branchée sur `Dispatchers.IO/Default/Main`.
 - **Convention des use cases** — chaque use case est une classe avec `operator fun invoke`, injectable et testable unitairement ; la convention complète (signatures, `AppResult`, dispatchers) est décrite dans `docs/CONVENTIONS.md` § « Use cases ».
 
-Interfaces prévues aux étapes suivantes : `AppLogger`/`LogRepository` (étape 2), `CrashReportRepository` (étape 3), `ProjectRepository`/`SettingsRepository`/`FileSystem` (étape 4), use cases du moteur de templates (étape 8).
+Couche données (étape 4, v0.5.0) : contrats `FileSystem` (13 opérations SAF, erreurs typées `AppResult`) et `FileStat` ; `ProjectRepository` (registre — observation ordonnée pour l'accueil, ajout avec identifiant produit par le dépôt, retrait idempotent, renommage du libellé uniquement, épingle, marquage d'ouverture) ; `SettingsRepository` (observation, transformation atomique, dossier de travail) ; `ForbiddenFolders` (détection pure des dossiers refusés par Android 11+) ; use cases associés et `VerifyProjectAccessUseCase` (permission → existence, jamais un crash, section 5.6). Use cases du moteur de templates : étape 8.
 
 ## Vérifications du module
 
