@@ -1,20 +1,16 @@
 package jo.codeide.feature.onboarding
 
-import android.provider.DocumentsContract
-import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
-import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
-import jo.codeide.core.domain.ForbiddenFolders
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.SetWorkspaceUseCase
-import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.UpdateSettingsUseCase
-import jo.codeide.core.model.AppError
+import jo.codeide.core.domain.ValidateWorkspaceUseCase
+import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
@@ -141,8 +137,8 @@ class OnboardingViewModel
         private val observerParametres: ObserveSettingsUseCase,
         private val majParametres: UpdateSettingsUseCase,
         private val definirDossier: SetWorkspaceUseCase,
+        private val validerDossier: ValidateWorkspaceUseCase,
         private val fichiers: FileSystem,
-        private val horloge: TimeProvider,
         private val logger: AppLogger,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -312,125 +308,44 @@ class OnboardingViewModel
         }
 
         /**
-         * Valide un dossier revenu du sélecteur SAF : détection des
-         * dossiers refusés par Android 11+ (message clair, jamais une
-         * permission prise), permission persistante, test d'écriture
-         * (création d'un fichier témoin puis suppression) et persistance.
+         * Valide un dossier revenu du sélecteur SAF — cas d'usage de
+         * domaine (`ValidateWorkspaceUseCase`, partagé avec l'écran
+         * Paramètres de l'étape 6) : dossiers refusés par Android 11+
+         * détectés avant toute prise de permission, permission
+         * persistante, test d'écriture (création puis suppression d'un
+         * fichier témoin). Tout échec du cas d'usage relâche déjà la
+         * permission prise (le système en plafonne le nombre, 512 sur
+         * Android 11+, section 5.6).
          *
-         * Tout échec relâche la permission prise — le système en plafonne
-         * le nombre (512 sur Android 11+, section 5.6), on n'en garde pas
-         * une inutile.
+         * Il reste ici à persister le dossier validé, en relâchant la
+         * permission si cette écriture échoue à son tour.
          */
         private fun verifierDossier(uri: String) {
             etatInterne.update { it.copy(dossier = EtatDossier.Verification) }
             viewModelScope.launch {
-                when (val refus = refuserSiInterdit(uri)) {
-                    null -> {
-                        installerDossier(uri)
-                    }
-
-                    is ForbiddenFolders.Reason -> {
+                when (val resultat = validerDossier(uri)) {
+                    is ValidationDossier.Refuse -> {
                         logger.w(TAG) { "dossier de travail refusé par la plateforme" }
-                        etatInterne.update { it.copy(dossier = EtatDossier.Refuse(refus)) }
+                        etatInterne.update { it.copy(dossier = EtatDossier.Refuse(resultat.raison)) }
+                    }
+
+                    is ValidationDossier.Erreur -> {
+                        logger.w(TAG) { "échec de la validation du dossier de travail" }
+                        etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.erreur)) }
+                    }
+
+                    is ValidationDossier.Valide -> {
+                        enregistrerDossier(resultat.emplacement)
                     }
                 }
             }
-        }
-
-        /** Le dossier choisi est-il refusé par Android 11+ (section 5.6) ? */
-        private fun refuserSiInterdit(uri: String): ForbiddenFolders.Reason? {
-            val arbre = uri.toUri()
-            val idDocument = DocumentsContract.getTreeDocumentId(arbre)
-            return ForbiddenFolders.reasonFor(idDocument)
-        }
-
-        /**
-         * Prend la permission, teste l'écriture et persiste le dossier.
-         */
-        private suspend fun installerDossier(uri: String) {
-            when (val permission = fichiers.takePersistablePermission(uri)) {
-                is AppResult.Failure -> {
-                    logger.w(TAG) { "permission persistante refusée pour le dossier de travail" }
-                    etatInterne.update { it.copy(dossier = EtatDossier.Erreur(permission.error)) }
-                }
-
-                is AppResult.Success -> {
-                    poursuivreInstallation(uri)
-                }
-            }
-        }
-
-        /** Permission prise : test d'écriture puis persistance. */
-        private suspend fun poursuivreInstallation(uri: String) {
-            val arbre = uri.toUri()
-            val idDocument = DocumentsContract.getTreeDocumentId(arbre)
-            val uriDocument = DocumentsContract.buildDocumentUriUsingTree(arbre, idDocument).toString()
-            when (val echec = testerEcriture(uriDocument)) {
-                null -> {
-                    enregistrerDossier(uri, uriDocument, libelleLisible(uriDocument, idDocument))
-                }
-
-                is AppError -> {
-                    fichiers.releasePersistablePermission(uri)
-                    logger.w(TAG) { "test d'écriture du dossier de travail échoué" }
-                    etatInterne.update { it.copy(dossier = EtatDossier.Erreur(echec)) }
-                }
-            }
-        }
-
-        /**
-         * Test d'écriture (étape 5) : crée un fichier témoin, y écrit une
-         * ligne, puis le supprime — prouver que le dossier est réellement
-         * utilisable, pas seulement sélectionnable.
-         *
-         * @return `null` si le dossier est inscriptible, sinon l'erreur
-         * typée (création, écriture ou suppression impossible).
-         */
-        private suspend fun testerEcriture(uriDocument: String): AppError? {
-            val nomTemoin = "codeide-temoin-${horloge.nowMillis()}"
-            val cree =
-                when (val resultat = fichiers.createFile(uriDocument, nomTemoin, "text/plain")) {
-                    is AppResult.Failure -> return resultat.error
-                    is AppResult.Success -> resultat.value
-                }
-            val ecriture = fichiers.writeText(cree, TEMOIN_CONTENU)
-            val suppression = fichiers.delete(cree)
-            // Un témoin qui ne s'efface pas n'invalide pas le dossier
-            // (l'écriture a réussi) : simple avertissement.
-            if (suppression is AppResult.Failure) {
-                logger.w(TAG) { "le fichier témoin n'a pas pu être supprimé" }
-            }
-            return (ecriture as? AppResult.Failure)?.error
-        }
-
-        /** Libellé lisible du dossier, repli sur l'identifiant de document. */
-        private suspend fun libelleLisible(
-            uriDocument: String,
-            idDocument: String,
-        ): String {
-            val nom =
-                (fichiers.stat(uriDocument) as? AppResult.Success<FileStat>)
-                    ?.value
-                    ?.name
-                    .orEmpty()
-            return nom.ifBlank { idDocument.substringAfterLast('/') }
         }
 
         /** Persiste le dossier validé comme dossier de travail. */
-        private suspend fun enregistrerDossier(
-            uri: String,
-            uriDocument: String,
-            libelle: String,
-        ) {
-            val dossier =
-                StorageLocation(
-                    grantUri = uri,
-                    documentUri = uriDocument,
-                    displayPath = libelle,
-                )
+        private suspend fun enregistrerDossier(dossier: StorageLocation) {
             when (val resultat = definirDossier(dossier)) {
                 is AppResult.Failure -> {
-                    fichiers.releasePersistablePermission(uri)
+                    fichiers.releasePersistablePermission(dossier.grantUri)
                     logger.w(TAG) { "échec de persistance du dossier de travail" }
                     etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.error)) }
                 }
@@ -466,9 +381,6 @@ class OnboardingViewModel
 
         private companion object {
             const val TAG = "Onboarding"
-
-            /** Contenu du fichier témoin du test d'écriture. */
-            const val TEMOIN_CONTENU = "codeide"
 
             /** Clés du SavedStateHandle (page et champs du profil). */
             const val CLE_PAGE = "page"
