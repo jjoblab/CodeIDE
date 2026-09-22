@@ -56,8 +56,33 @@ Lecture des rapports hors écran : `adb shell run-as jo.codeide cat
 files/crashes/<nom>.json` — une seule ligne JSON, sans chemin, courriel ni
 URI en clair (règle 15).
 
+## Couche données — SAF (étape 4 → v0.5.0)
+
+Le port `FileSystem` est testé sur JVM contre un fournisseur factice qui
+respecte le vrai protocole d'appel du framework ; les procédures suivantes
+valident le comportement du **système réel** (fournisseur
+`com.android.externalstorage.documents`, permissions persistantes,
+dossiers refusés par Android 11+). Elles s'exécutent avec le menu debug
+(l'UI des étapes 5-6 n'existe pas encore) : les appels SAF y sont déclenchés
+par les boutons de test.
+
+Préambule commun : appairer un appareil Android 11+ ou plus récent, lancer
+l'application, ouvrir le menu debug (icône de la barre d'accueil).
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| S1 | Menu debug → « Test SAF : décrire le dossier de travail » après l'avoir choisi une fois (S2) | Le logcat affiche l'entrée `SafDebug` avec le **nom** du dossier et sa taille (`FileStat` complet) ; aucun crash, aucune exception dans les journaux |
+| S2 | Menu debug → « Test SAF : choisir un dossier » (sélecteur système), choisir `Téléchargements/CodeIDE-essai`, puis « créer un fichier témoin » | Le fichier `codeide-temoin.txt` apparaît dans le dossier (vérifiable depuis un gestionnaire de fichiers ou `adb shell ls /sdcard/Download/CodeIDE-essai/`) avec le contenu attendu ; une **deuxième** création échoue proprement : `AlreadyExists` (pré-contrôle, jamais d'écrasement, jamais de fichier « (1) » renommé) |
+| S3 | Répéter S2 en choisissant la **racine** du stockage, puis `Download` lui-même, puis `Android/data` | Le sélecteur système refuse déjà ces emplacements (grisés ou message) ; si un fournisseur exotique les proposait, le logcat affiche la raison `ForbiddenFolders` (racine / téléchargements / données protégées) — jamais de permission prise sur ces dossiers |
+| S4 | Après S2 : « Paramètres système → Applications → CodeIDE → Permissions → Fichiers et médias » → retirer l'accès (ou `adb shell pm clear-permission-flags`), puis « décrire le dossier » | `hasPersistablePermission` répond faux et l'état calculé est `PermissionLost` — jamais de crash ; la description échoue par `PermissionLost`, pas par une exception non gérée |
+| S5 | Après S2 : supprimer le dossier `CodeIDE-essai` depuis un gestionnaire de fichiers, puis « décrire le dossier » | L'état calculé est `Missing` (permission tenante, dossier disparu) ; `list` échoue par `NotFound` ; aucune boîte système, aucun crash |
+
+Vérification des permissions persistantes après S2 :
+`adb shell dumpsys package jo.codeide | grep -A2 "persistedUriPermissions"`
+— l'URI de l'arborescence choisie doit apparaître en lecture **et**
+écriture, et n'être comptée **qu'une fois** (plafond 512, section 5.6 :
+ne persister que le nécessaire).
+
 ## À venir
 
-- **Étape 4+** : parcours SAF (dossier de travail, test d'écriture,
-  dossiers refusés par Android 11+).
 - **Étape 5+** : rotation et mort du processus dans l'assistant.
