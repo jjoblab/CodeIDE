@@ -135,10 +135,98 @@ taux de livraison).
 Les procédures à dérouler **sur appareil** sont dans
 `docs/TESTS_MANUELS.md`.
 
-## 9. Gestion des plantages (étape 3 — à venir)
+## 9. Gestion des plantages (étape 3 — livrée)
 
-`CrashHandler` en première ligne d'`Application.onCreate`,
-`CrashActivity` en processus `:crash`, rapports JSON dans
-`filesDir/crashes/`, boucle de plantages, lecture d'`ApplicationExitInfo` :
-décrit par la section 5.8 du prompt maître. Le présent document sera
-complété à ce moment.
+Texte de référence : section 5.8 du prompt maître ; choix d'implémentation
+consignés dans les ADR 0006 (processus séparé) et 0010 (FileProvider du
+processus `:crash`).
+
+### 9.1 Vue d'ensemble
+
+```
+CodeIdeApplication.onCreate — PREMIÈRE ligne, avant Hilt
+   │  AppProcess.detect (API 28+ : getProcessName ; avant : /proc/self/cmdline)
+   ├─ MAIN   → CrashHandler.install(app, build, device)  ← chaîné au précédent
+   ├─ CRASH  → CrashHandler.installSafe()                 ← délègue, n'écrit rien
+   └─ OTHER  → gestionnaire système
+   ▼ (après Hilt, processus principal uniquement)
+brancherJournalisation(sessionId, breadcrumbs, flush)   ← lambdas, zéro dépendance de module
+RecordPendingExitInfosUseCase                            ← hors thread principal
+```
+
+Un plantage non géré suit l'enchaînement exigé, **entièrement dans un
+`try/catch` global avec garde de ré-entrance** :
+
+1. détection de boucle (≥ 3 plantages en 60 s, historique persistant
+   minimal `filesDir/crashes/loop-history.txt`) ;
+2. construction du `CrashReport` : exception **expurgée et bornée**
+   (100 tranches, 10 causes, supprimées incluses), filons (50 derniers),
+   dernier écran, durée du processus, indicateur de boucle ;
+3. écriture **synchrone et atomique** (`.tmp` puis renommage), réduction
+   progressive jusqu'à 256 Ko maximum ;
+4. vidage borné du journal (le reste du budget, plafonné à 500 ms —
+   budget total du gestionnaire : 2 s) ;
+5. lancement de `CrashActivity` (`NEW_TASK | CLEAR_TASK`), puis
+   `killProcess` + `exitProcess(10)` ;
+6. délégation au gestionnaire précédent si : boucle détectée, lancement
+   impossible, ou échec interne — **jamais** après un lancement réussi.
+
+### 9.2 Rapport et stockage
+
+- `filesDir/crashes/<horodatage>-<id>.json` — le préfixe horodatage rend le
+  tri lexicographique chronologique (13 chiffres jusqu'en 2286).
+- L'état « consulté » vit dans un **fichier témoin** à côté du rapport :
+  un rapport ne se réécrit jamais.
+- Réduction progressive à l'écriture : `COMPLET → REDUIT → MAIGRE →
+  MINIMAL` (filons, puis tranches, puis messages) — la lecture accepte
+  tout fichier valide ; la structure ne change jamais.
+- Rétention : 20 rapports maximum (les plus récents), témoins orphelins et
+  restes `.tmp` nettoyés à chaque écriture.
+- Sérialisation par `org.json` du framework : **aucune dépendance** sur le
+  chemin critique d'un plantage.
+
+### 9.3 Détection au démarrage
+
+`ExitInfoRecorder` (API 30+, hors thread principal, dédoublonné par
+marqueur d'horodatage) convertit les **ANR** et **plantages natifs** de la
+session précédente en rapports reconstruits — session, écran et filons de
+la session morte sont perdus, et le rapport le dit au lieu d'inventer.
+Si un rapport **non consulté** existe, `MainActivity` affiche la boîte de
+dialogue « Un problème est survenu lors de la dernière session » :
+**Voir le rapport** et **Ignorer** valent tous deux consultation.
+
+### 9.4 Écran dédié
+
+`CrashActivity` — processus `:crash` (`exported=false`,
+`excludeFromRecents`, affinité dédiée), **sans Hilt, sans Room, sans
+DataStore** : elle ne construit qu'un `CrashReportFileStore`. Deux modes :
+`LIVE` (après un plantage) et `VIEW` (consultation). Actions :
+Redémarrer (LIVE seulement, masqué en boucle), Copier, Partager (texte ou
+archive zip via le FileProvider dédié — ADR 0010), Enregistrer (SAF),
+Fermer — et, en cas de boucle, un conseil explicite plus « Vider le
+cache » (jamais les données utilisateur, avec confirmation).
+
+### 9.5 Menu debug (source set `debug` de `app`)
+
+Trois actions de recette : **Provoquer un plantage**, **Exception non
+fatale** (journalisée et attrapée — éprouve l'aplatissement dans les
+journaux, pas le gestionnaire), **Générer des journaux** (salve de 50
+entrées). La version release embarque un no-op de même signature :
+`MainActivity` ne connaît pas la variante.
+
+### 9.6 Tests
+
+Couverts par les tests unitaires (JVM et Robolectric) : aller-retour
+complet de la sérialisation, réduction, limites de taille (256 Ko),
+expurgation à la construction, écriture atomique (aucun reste `.tmp`),
+rétention (20 maximum), témoin de consultation, fichiers corrompus
+ignorés, détection de boucle (fenêtre, seuil, persistance, corruption),
+mapping `ApplicationExitInfo` (Robolectric API 30+, déduplication, autres
+processus, trace bornée, garde API 29), chaînage du gestionnaire avec
+tueur et lanceur **injectés** (le test ne tue jamais la JVM), délégations
+(boucle, échec de lancement, échec interne), garde de ré-entrance,
+écran dédié (modes, boucle, repli), intégration bout-en-bout depuis
+l'application réelle (installation, dialogue du rapport non consulté).
+
+Les procédures à dérouler **sur appareil** sont dans
+`docs/TESTS_MANUELS.md` (section Plantages, P1-P8).
