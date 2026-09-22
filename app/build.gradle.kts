@@ -25,6 +25,10 @@ dependencies {
     // de navigation et chaînes localisées de l'assistant.
     implementation(project(":feature:onboarding"))
 
+    // Wizard de création de projet (étape 7 : destination placeholder ;
+    // assistant complet à l'étape 10).
+    implementation(project(":feature:newproject"))
+
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.
     implementation(project(":core:logging"))
