@@ -22,4 +22,22 @@ public interface ArborescencesSaf {
      * illisible.
      */
     public fun uriDocument(grantUri: String): String?
+
+    /**
+     * URI du document [idDocument] **à l'intérieur** de l'arborescence
+     * [grantUri] (`…/tree/<racine>/document/<id ré-encodé>`) — ou `null`
+     * si l'URI d'arborescence est illisible.
+     *
+     * [idDocument] est l'identifiant **décodé** complet (chemin depuis la
+     * racine du volume, ex. `primary:CodeIDE/MonProjet`) : l'implémentation
+     * ré-encode chaque segment. Sert à référencer un dossier choisi par le
+     * sélecteur SAF **dans** l'arbre d'une permission déjà tenue (dossier
+     * de travail) sans prendre de permission supplémentaire (étape 7,
+     * ADR 0015) : l'URI reconstruite partage le préfixe de l'arbre, ce que
+     * la règle de libération conditionnelle des permissions sait comparer.
+     */
+    public fun uriDocumentDansArbre(
+        grantUri: String,
+        idDocument: String,
+    ): String?
 }

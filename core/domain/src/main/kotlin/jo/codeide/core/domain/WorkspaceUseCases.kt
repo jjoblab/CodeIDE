@@ -95,13 +95,14 @@ public class ValidateWorkspaceUseCase
                 arborescences.uriDocument(grantUri)
                     ?: return illisibleApresPermission(grantUri)
 
-            return when (val echec = testerEcriture(uriDocument)) {
+            val echec = testerEcriture(fichiers, uriDocument, horloge, PREFIXE_TEMOIN)
+            return when (echec) {
                 null -> {
                     ValidationDossier.Valide(
                         StorageLocation(
                             grantUri = grantUri,
                             documentUri = uriDocument,
-                            displayPath = libelleLisible(uriDocument, idDocument),
+                            displayPath = libelleLisible(fichiers, uriDocument, idDocument),
                         ),
                     )
                 }
@@ -129,44 +130,9 @@ public class ValidateWorkspaceUseCase
             return ValidationDossier.Erreur(erreur)
         }
 
-        /**
-         * Test d'écriture : crée un fichier témoin, y écrit une ligne,
-         * puis le supprime.
-         *
-         * @return `null` si le dossier est inscriptible, sinon l'erreur
-         * typée (création, écriture ou lecture impossible).
-         */
-        private suspend fun testerEcriture(uriDocument: String): AppError? {
-            val nomTemoin = "codeide-temoin-${horloge.nowMillis()}"
-            val cree =
-                when (val resultat = fichiers.createFile(uriDocument, nomTemoin, "text/plain")) {
-                    is AppResult.Failure -> return resultat.error
-                    is AppResult.Success -> resultat.value
-                }
-            val ecriture = fichiers.writeText(cree, TEMOIN_CONTENU)
-            val suppression = fichiers.delete(cree)
-            // Un témoin qui ne s'efface pas n'invalide pas le dossier
-            // (l'écriture a réussi) : simple avertissement.
-            if (suppression is AppResult.Failure) return null
-            return (ecriture as? AppResult.Failure)?.error
-        }
-
-        /** Libellé lisible du dossier, repli sur l'identifiant de document. */
-        private suspend fun libelleLisible(
-            uriDocument: String,
-            idDocument: String,
-        ): String {
-            val nom =
-                (fichiers.stat(uriDocument) as? AppResult.Success<FileStat>)
-                    ?.value
-                    ?.name
-                    .orEmpty()
-            return nom.ifBlank { idDocument.substringAfterLast('/') }
-        }
-
         private companion object {
-            /** Contenu du fichier témoin du test d'écriture. */
-            const val TEMOIN_CONTENU = "codeide"
+            /** Préfixe du fichier témoin du test d'écriture. */
+            const val PREFIXE_TEMOIN = "codeide-temoin"
         }
     }
 
@@ -345,8 +311,5 @@ internal suspend fun projetsSousDossier(
 ): Boolean = projets.observeProjects().first().any { it.estSousDossier(dossier) }
 
 /** Le projet vit-il dans l'arbre du dossier (voir [projetsSousDossier]) ? */
-private fun Project.estSousDossier(dossier: StorageLocation): Boolean {
-    val racine = dossier.documentUri
-    val cible = location.documentUri
-    return cible == racine || cible.startsWith("$racine%2F") || cible.startsWith("$racine/")
-}
+private fun Project.estSousDossier(dossier: StorageLocation): Boolean =
+    estDansArbre(dossier.documentUri, location.documentUri)

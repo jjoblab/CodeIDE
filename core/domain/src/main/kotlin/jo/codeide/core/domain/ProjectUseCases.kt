@@ -5,6 +5,7 @@ import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.model.getOrNull
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -60,10 +61,19 @@ public class AddProjectUseCase
     }
 
 /**
- * Cas d'usage « retirer un projet du registre » (étape 4).
+ * Cas d'usage « retirer un projet du registre » (étape 4, enrichi à
+ * l'étape 7).
  *
  * Ne touche **pas** au dossier sur disque : la suppression des fichiers
- * est une action explicite et séparée.
+ * est une action explicite et séparée ([DeleteProjectOnDiskUseCase]).
+ *
+ * Depuis l'étape 7, le retrait applique aussi la règle des permissions
+ * (« ne persister que le nécessaire », section 5.6) : la permission
+ * persistante du projet retiré est **libérée uniquement si** le dossier
+ * de travail ne la référence plus et si aucun projet restant ne vit
+ * dans le même arbre. Sans cela, retirer le dernier projet importé
+ * d'un arbre laisserait une permission orpheline jusqu'au plafond
+ * système (512 sur Android 11+).
  *
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
@@ -71,12 +81,32 @@ public class RemoveProjectUseCase
     @Inject
     constructor(
         private val repository: ProjectRepository,
+        private val parametres: SettingsRepository,
+        private val fichiers: FileSystem,
     ) {
         /**
          * @param id identifiant du projet à retirer.
-         * @return le succès (idempotent), ou l'échec de stockage typé.
+         * @return le succès (idempotent : retirer un projet absent réussit),
+         * ou l'échec de stockage typé.
          */
-        public suspend operator fun invoke(id: ProjectId): AppResult<Unit> = repository.removeProject(id)
+        public suspend operator fun invoke(id: ProjectId): AppResult<Unit> {
+            val projet =
+                repository.getProject(id).getOrNull()
+                    // Idempotent par contrat : un projet absent n'a plus de
+                    // permission à libérer, le retrait réussit.
+                    ?: return AppResult.Success(Unit)
+
+            return when (val retrait = repository.removeProject(id)) {
+                is AppResult.Failure -> {
+                    retrait
+                }
+
+                is AppResult.Success -> {
+                    libererPermissionSiInutilisee(repository, parametres, fichiers, projet.location.grantUri)
+                    retrait
+                }
+            }
+        }
     }
 
 /**

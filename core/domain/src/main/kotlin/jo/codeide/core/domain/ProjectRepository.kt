@@ -110,6 +110,26 @@ public interface ProjectRepository {
     ): AppResult<Unit>
 
     /**
+     * Remplace l'emplacement référencé par un projet — relocalisation
+     * (étape 7 : résolution d'un état « Permission perdue » ou
+     * « Introuvable » en re-sélectionnant le dossier déplacé).
+     *
+     * Le libellé d'affichage, la description et l'épingle ne changent
+     * pas : seul le dossier sous-jacent est réadressé. La gestion des
+     * permissions (prise de la nouvelle, libération de l'ancienne si
+     * plus personne ne l'utilise) reste à la charge du cas d'usage
+     * appelant, qui seul connaît le contexte complet.
+     *
+     * @param id identifiant du projet.
+     * @param location nouvel emplacement SAF validé au préalable.
+     * @return le succès, ou `NotFound` si le projet est inconnu.
+     */
+    public suspend fun updateLocation(
+        id: ProjectId,
+        location: StorageLocation,
+    ): AppResult<Unit>
+
+    /**
      * Marque un projet comme ouvert à l'instant donné.
      *
      * @param id identifiant du projet.
