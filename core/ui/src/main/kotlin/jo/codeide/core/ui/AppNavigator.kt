@@ -24,4 +24,16 @@ public interface AppNavigator {
      * c'est la demande explicite « ramène-moi là d'où je venais ».
      */
     public fun goBack(): Unit
+
+    /**
+     * Ouvre le rapport de plantage en **consultation** (section 5.8) :
+     * l'écran dédié vit dans un processus séparé, l'implémentation
+     * applicative (`app`) seule connaît l'activité sous-jacente.
+     *
+     * Servi par la boîte de dialogue du démarrage (« Voir le rapport »)
+     * puis, à l'étape 12, par la visionneuse des diagnostics.
+     *
+     * @param id identifiant du rapport à consulter.
+     */
+    public fun openCrashReport(id: String)
 }
