@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions locales du wizard (tokens de core:ui pour le reste, règle 3). -->
+<resources>
+    <!-- Largeur bornée du contenu du wizard sur tablette (section 12.1). -->
+    <dimen name="wizard_largeur_tablette">560dp</dimen>
+
+    <!-- Pastille monogramme des cartes de modèle (règle étape 9). -->
+    <dimen name="wizard_pastille_taille">40dp</dimen>
+    <dimen name="wizard_pastille_texte">16sp</dimen>
+</resources>

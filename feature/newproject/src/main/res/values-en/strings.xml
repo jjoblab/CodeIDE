@@ -1,6 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="newproject_title">New project</string>
-    <string name="newproject_placeholder">The project creation wizard (template choice, parameters, file tree, summary) arrives at step 10 of the plan.</string>
-    <string name="newproject_retour">Back</string>
+
+    <!-- Wizard frame (section 12.2). -->
+    <!-- Step position, not a quantity: no plural agreement needed. -->
+    <string name="wizard_indicateur_etape" tools:ignore="PluralsCandidate">Step %1$d of %2$d · %3$s</string>
+    <string name="wizard_etape_modele">Template</string>
+    <string name="wizard_etape_configuration">Configuration</string>
+    <string name="wizard_etape_informations">Information</string>
+    <string name="wizard_bouton_precedent">Back</string>
+    <string name="wizard_bouton_suivant">Next</string>
+    <string name="wizard_fermer">Close the wizard</string>
+    <string name="wizard_abandon_titre">Discard this project?</string>
+    <string name="wizard_abandon_message">The information you entered will be lost.</string>
+    <string name="wizard_abandon_rester">Keep editing</string>
+    <string name="wizard_abandon_confirmer">Discard</string>
+    <string name="wizard_resynchroniser">Resynchronize the derived value</string>
+
+    <!-- Step 1 — Template (section 12.3). -->
+    <string name="wizard_recherche_indication">Search a template</string>
+    <string name="wizard_aucun_resultat">No template matches “%1$s”.</string>
+    <string name="wizard_erreur_catalogue">The template catalog could not be loaded.</string>
+    <string name="wizard_reessayer">Try again</string>
+    <string name="wizard_modele_selectionne">%1$s (selected)</string>
+    <string name="wizard_choisir_modele">Choose the %1$s template</string>
+
+    <!-- Step 2 — Configuration: known value labels. -->
+    <string name="wizard_choix_application">Console application</string>
+    <string name="wizard_choix_bibliotheque">Library</string>
+    <string name="wizard_choix_gradle">Gradle (Kotlin DSL)</string>
+    <string name="wizard_choix_maven">Maven</string>
+    <string name="wizard_choix_sources">Sources only</string>
+    <string name="wizard_choix_jdk17">JDK 17</string>
+    <string name="wizard_choix_jdk21">JDK 21</string>
+    <string name="wizard_sous_titre_application">Program with an entry point</string>
+    <string name="wizard_sous_titre_bibliotheque">Reusable by other projects</string>
+    <string name="wizard_icone_application">&gt;_</string>
+    <string name="wizard_icone_bibliotheque">▦</string>
+    <string name="wizard_explication_gradle">Recommended — Kotlin scripts, pinned wrapper</string>
+    <string name="wizard_explication_maven">Classic pom.xml from the Java ecosystem</string>
+    <string name="wizard_explication_sources">No build, no dependencies: just sources</string>
+    <string name="wizard_aide_sans_build">Without a build system, only sources are generated.</string>
+
+    <!-- Step 3 — Information and location (section 12.3). -->
+    <string name="wizard_nom_projet">Project name</string>
+    <string name="wizard_description">Description (optional)</string>
+    <string name="wizard_emplacement_titre">Location</string>
+    <string name="wizard_emplacement_absent">No working folder yet — pick a location</string>
+    <string name="wizard_changer_dossier">Change folder</string>
+    <string name="wizard_choisir_dossier">Pick a folder</string>
+    <string name="wizard_emplacement_apercu">…/%1$s</string>
+    <string name="wizard_emplacement_apercu_vide">…/ (folder name to come)</string>
+    <string name="wizard_emplacement_refuse">Android refuses this folder (root, Download, Android/data…). Pick another one.</string>
+    <string name="wizard_emplacement_erreur">This folder could not be validated (permission or write failed). Pick another one.</string>
+    <string name="wizard_verification_ok">Location verified — the name is available.</string>
+    <string name="wizard_verification_collision">This folder already exists: pick another name.</string>
+    <string name="wizard_verification_inaccessible">The location is no longer reachable (permission lost or folder gone).</string>
+    <string name="wizard_verification_erreur">The location could not be verified.</string>
+
+    <!-- Localized error messages (typed reasons, section 12.3). -->
+    <string name="wizard_erreur_nom_longueur">The name must contain 1 to 64 characters (trailing spaces ignored).</string>
+    <string name="wizard_erreur_nom_caractere">The character “%1$s” is not allowed in a project name.</string>
+    <string name="wizard_erreur_nom_points">“.” and “..” are not valid names.</string>
+    <string name="wizard_erreur_nom_fin">The name cannot end with a dot or a space.</string>
+    <string name="wizard_erreur_nom_reserves">This name is reserved by Windows — pick another one.</string>
+    <string name="wizard_erreur_nom_generique">This project name is not valid.</string>
+    <string name="wizard_erreur_package_vide">The package name cannot be empty or contain an empty segment.</string>
+    <string name="wizard_erreur_package_segment">Invalid segment “%1$s”: leading lowercase, then lowercase letters, digits and underscores.</string>
+    <string name="wizard_erreur_package_mot_cle">“%1$s” is a reserved Java/Kotlin keyword.</string>
+    <string name="wizard_erreur_identifiant">Invalid identifier: leading letter or underscore, then alphanumerics and underscores.</string>
+    <string name="wizard_erreur_identifiant_mot_cle">“%1$s” is a reserved Java/Kotlin keyword.</string>
+    <string name="wizard_erreur_version">Invalid version: SemVer expected (e.g. “0.1.0”).</string>
+    <string name="wizard_erreur_artifact">Lowercase letters, digits, dots and dashes only; must start with a lowercase letter or a digit.</string>
+    <string name="wizard_erreur_motif">The value does not match the expected format (%1$s).</string>
 </resources>

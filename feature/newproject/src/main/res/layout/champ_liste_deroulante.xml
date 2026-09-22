@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Composant dynamique : liste déroulante exposée (ex. « Version du JDK »). -->
+<com.google.android.material.textfield.TextInputLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/champ_liste"
+    style="@style/Widget.CodeIDE.TextField.Dropdown"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_md"
+    tools:ignore="LabelFor">
+
+    <!-- Le libellé est posé dynamiquement (hint du TextInputLayout,
+         RenduParametres) : aucune indication statique possible ici. -->
+    <AutoCompleteTextView
+        android:id="@+id/saisie_liste"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="none" />
+</com.google.android.material.textfield.TextInputLayout>

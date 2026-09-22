@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resynchronisation d'un champ dérivé (flèches circulaires, section 12.2). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,6V3L8,7l4,4V8c2.76,0 5,2.24 5,5c0,0.85 -0.21,1.65 -0.58,2.35l1.46,1.46C18.59,15.41 19,13.76 19,12C19,8.69 16.31,6 12,6zM12,18c-2.76,0 -5,-2.24 -5,-5c0,-0.85 0.21,-1.65 0.58,-2.35L6.12,9.19C5.41,10.24 5,11.07 5,12c0,3.31 2.69,6 6,6v3l4,-4l-4,-4V18z" />
+</vector>

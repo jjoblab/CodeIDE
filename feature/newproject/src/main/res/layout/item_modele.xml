@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carte de modèle (étape 1) : monogramme maison, nom, description, tags. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/carte_modele"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/spacing_xs"
+    android:checkable="true"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="@dimen/corner_radius_medium"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_md">
+
+        <TextView
+            android:id="@+id/pastille_modele"
+            android:layout_width="@dimen/wizard_pastille_taille"
+            android:layout_height="@dimen/wizard_pastille_taille"
+            android:background="@drawable/fond_pastille_modele"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textSize="@dimen/wizard_pastille_texte" />
+
+        <TextView
+            android:id="@+id/nom_modele"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+        <TextView
+            android:id="@+id/description_modele"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:maxLines="3"
+            android:ellipsize="end"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/tags_modele"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorPrimary" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
