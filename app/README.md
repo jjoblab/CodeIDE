@@ -1,11 +1,12 @@
 # app — Application — assemblage final
 
-> Statut étape 4 : fondations (v0.2.0), journalisation (v0.3.0 : initialisation dans le
+> Statut : fondations (v0.2.0), journalisation (v0.3.0 : initialisation dans le
 > processus principal, `BuildInfo`/`DeviceSummary`, FileProvider des exports, premiers journaux),
 > plantages (v0.4.0 : gestionnaire en première ligne d'`onCreate`, `Application` sensible
 > au processus, dialogue « rapport non consulté », menu debug), couche données (v0.5.0 :
 > assemblage de `core:data`, branchement du niveau de journalisation persisté au démarrage
-> du processus principal).
+> du processus principal), moteur de templates (v0.9.0 : port d'assets + licences SPDX),
+> **modèles embarqués `kotlin-jvm` et `java` + tests exhaustifs de génération (v0.10.0)**.
 
 Point d'entrée de CodeIDE : héberge `MainActivity`, le graphe de navigation (Onboarding, Home, NewProject, Settings), l'assemblage Hilt et la configuration globale. C'est le seul module autorisé à dépendre de tout le reste ; il ne contient aucune logique métier.
 
@@ -32,8 +33,15 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 dispatcher d'E/S, **aucune traversée de chemin**), `templates/GeneratorVersionImpl`
 (`CodeIDE <BuildConfig.VERSION_NAME>`), `di/TemplatesModule` (`@Binds` port +
 générateur, `@IntoSet` fournisseur embarqué), `assets/licenses/` (textes officiels
-SPDX — MIT et BSD-3-Clause substituent `{{year}}`/`{{author}}`),
-`assets/templates/` (vide jusqu'à l'étape 9 : état légitime, aucun modèle).
+SPDX — MIT et BSD-3-Clause substituent `{{year}}`/`{{author}}`).
+
+Étape 9 : `assets/templates/` embarque les **modèles `kotlin-jvm` et `java`**
+(manifestes déclaratifs, i18n fr/en, fichiers `.tpl` + wrapper Gradle binaire
+sommé) ; `ModelesEmbarquesTest` (Robolectric + Hilt) couvre exhaustivement la
+génération : 192 combinaisons structurelles avec listes de fichiers attendues,
+options communes, déterminisme, entrées hostiles, création complète sur
+`FakeFileSystem` — la validation *build réel* est portée par
+`scripts/verify-templates.sh` (ADR 0019).
 
 Prévu ensuite : destination initiale conditionnelle (étape 5).
 

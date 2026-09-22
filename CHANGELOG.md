@@ -4,6 +4,64 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.10.0] – 2026-09-22
+
+Étape 9 — Modèles de projet Kotlin et Java : les deux modèles embarqués
+`kotlin-jvm` et `java`, complets et propres, avec leur **validation réelle**
+(build, test, exécution, publication des projets générés) — section 11.
+
+### Ajouté
+
+- **Modèle `kotlin-jvm`** (`app/src/main/assets/templates/kotlin-jvm/`,
+  manifeste déclaratif + i18n fr/en + 16 fichiers `files/`) : application
+  console ou bibliothèque, build `gradle-kts`/`maven`/`none`, JDK **17 ou 21**
+  (seules les LTS entièrement validées sont proposées — Kotlin 2.2.21 ne
+  supporte pas encore la cible JVM 25, ADR 0019), tests JUnit 5, Gradle
+  Wrapper avec `distributionSha256Sum`, package/group/artifact/version
+  dérivés et modifiables. L'exemple généré (`Greeter` + `Main` +
+  `GreeterTest`) compile, passe ses tests et s'exécute **sans aucune
+  modification, avec zéro avertissement** (Kotlin `-Werror`, Maven
+  équivalent) ; bibliothèque avec `explicitApi()`, jar de sources et
+  `publishToMavenLocal` fonctionnel ; Maven via `kotlin-maven-plugin` avec
+  `exec:java` et jar exécutable ; README dynamique (prérequis, commandes
+  exactes selon les choix, structure, licence) ; `.gitignore`/`.gitattributes`/
+  `.editorconfig` adaptés ; licences SPDX dans `pom.xml` et la publication.
+- **Modèle `java`** (même logique de paramètres, sources/Javadoc Java) :
+  `-Xlint:all -Werror`, bibliothèque avec jars de sources **et** Javadoc
+  (`failOnWarnings`), `maven-publish` avec coordonnées explicites.
+- **`scripts/verify-templates.sh`** : validation réelle des modèles — 18
+  combinaisons couvrantes (tous les triplets langage × type × build, chaque
+  JDK, avec/sans tests, avec/sans wrapper, les deux langues, 5 licences, noms
+  et descriptions hostiles) générées sur disque puis **compilées, testées,
+  exécutées et publiées** avec les vrais outils (wrapper Gradle, Maven,
+  `javac`, projet Gradle jetable pour `none`+Kotlin) ; vérifications
+  structurelles (aucun `{{` résiduel, pas de BOM, LF/CRLF, checksum du
+  `gradle-wrapper.jar`) ; tableau final `combinaison → résultat`, exigé vert
+  à toute livraison touchant aux modèles.
+- **Harnais `:tools:generateur`** (ADR 0019) : module JVM dédié qui produit
+  les projets sur disque depuis les **vrais** assets du dépôt en réutilisant
+  le moteur de `core:domain` — le plan figé de `PlanProjectCreationUseCase`
+  déversé tel quel (ADR 0017) ; port d'assets sur fichiers avec les mêmes
+  garanties anti-traversée que l'implémentation Android ; protocole de
+  sortie lisible par le script ; exemption detekt ciblée pour l'impression
+  console (la sortie standard est le résultat de l'outil, pas une
+  journalisation).
+- **Tests exhaustifs de génération** (`app`, `ModelesEmbarquesTest`) :
+  192 combinaisons structurelles (langage × type × build × JDK × tests ×
+  wrapper × langue) avec **listes de fichiers attendues**, options communes
+  (5 licences, interrupteurs README/.gitignore/.editorconfig),
+  déterminisme à l'octet près, entrées hostiles (guillemets, `\`, `$`,
+  `</project>`, emojis — échappements vérifiés dans le code généré),
+  `.codeide/project.json` exact sans donnée personnelle, et création
+  complète sur `FakeFileSystem` (écrit = plan, registre en dernier).
+- **Documentation** : `docs/TEMPLATES.md` enrichi (modèles embarqués,
+  tableau des versions figées **vérifiées sur les dépôts officiels** le
+  2026-09-22 — Gradle 9.7.1 sommé, Kotlin 2.2.21, JUnit 5.14.4, plugins
+  Maven, foojay 1.0.0 —, procédure de mise à jour puis revalidation,
+  procédure d'ajout d'un modèle) ; ADR 0019 (choix du harnais JVM dédié,
+  JDK 25 testé et écarté) ; `ARCHITECTURE.md`, `ROADMAP.md`, `README.md`,
+  `AGENTS.md`, README/Module.md des modules touchés.
+
 ## [0.9.0] – 2026-09-22
 
 Étape 8 — Moteur de templates : logique pure + assets, sans UI et sans

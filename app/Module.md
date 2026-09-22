@@ -7,4 +7,4 @@ autorisé à dépendre de tout le reste ; il ne contient aucune logique métier.
 
 Contenu fonctionnel détaillé : voir `README.md` du module.
 
-Statut : étapes 0 à 8 livrées (v0.9.0) — assemblage final, journalisation, plantages, couche données, navigation et **câblage du moteur de templates** (`AssetTemplateAssetsSource` sur l'AssetManager, `GeneratorVersionImpl` depuis `BuildConfig`, multibinding `@IntoSet`, licences SPDX officielles dans `assets/licenses/`).
+Statut : étapes 0 à 9 livrées (v0.10.0) — assemblage final, journalisation, plantages, couche données, navigation et **câblage du moteur de templates** (`AssetTemplateAssetsSource` sur l'AssetManager, `GeneratorVersionImpl` depuis `BuildConfig`, multibinding `@IntoSet`, licences SPDX officielles dans `assets/licenses/`) + **modèles embarqués `kotlin-jvm` et `java`** (étape 9) et leurs tests exhaustifs de génération (`ModelesEmbarquesTest`).

@@ -36,13 +36,14 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 | Dossier | Rôle |
 |---|---|
-| `app/` | Module d'application : assemblage final, MainActivity, navigation |
+| `app/` | Module d'application : assemblage final, MainActivity, navigation, **assets des modèles embarqués** (`kotlin-jvm`, `java`) |
 | `build-logic/` | Convention plugins Gradle (configurations partagées des modules) |
 | `core/` | Socle transverse : modèle, domaine, données, interface, diagnostics |
 | `feature/` | Fonctionnalités : onboarding, accueil, wizard, paramètres… |
+| `tools/` | Outils hors application : harnais de génération sur disque (`:tools:generateur`, ADR 0019) |
 | `config/detekt/` | Règles de qualité statique |
 | `docs/` | Architecture, conventions, environnement, feuille de route, ADR |
-| `scripts/` | Environnement, version, packaging, vérification d'archive |
+| `scripts/` | Environnement, version, packaging, vérification d'archive, **validation réelle des modèles** (`verify-templates.sh`) |
 | `gradle/libs.versions.toml` | Catalogue de versions — source unique des dépendances |
 
 L'architecture détaillée (modules, règles de dépendance, patrons) est décrite dans
