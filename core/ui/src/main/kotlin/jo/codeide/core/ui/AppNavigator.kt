@@ -36,4 +36,23 @@ public interface AppNavigator {
      * @param id identifiant du rapport à consulter.
      */
     public fun openCrashReport(id: String)
+
+    /**
+     * Ouvre l'assistant de premier lancement (étape 5).
+     *
+     * Servi par le bandeau « Configurer le dossier de travail » de
+     * l'accueil quand l'utilisateur a passé l'étape du dossier à
+     * l'assistant (« Plus tard »). L'assistant se referme normalement
+     * par [openHome].
+     */
+    public fun openOnboarding(): Unit
+
+    /**
+     * Retourne à l'accueil en refermant l'assistant de premier lancement
+     * (fin du parcours : `isSetupCompleted = true`).
+     *
+     * Retire l'assistant de la pile de retour — terminer l'installation
+     * n'est pas une navigation réversible.
+     */
+    public fun openHome(): Unit
 }
