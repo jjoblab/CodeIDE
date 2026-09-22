@@ -70,6 +70,14 @@ internal class AppNavigatorImpl
             activity.startActivity(intention)
         }
 
+        override fun openNewProjectWizard() {
+            // Garde-fou : un double toucher n'empile qu'un seul wizard.
+            if (navController.currentDestination?.id == R.id.home) {
+                logger.d(TAG) { "navigation accueil -> nouveau projet" }
+                navController.navigate(R.id.action_home_to_newproject)
+            }
+        }
+
         override fun openOnboarding() {
             // Garde-fou : un double toucher ne doit empiler qu'un seul
             // assistant — depuis le bandeau de l'accueil (étape 5) ou

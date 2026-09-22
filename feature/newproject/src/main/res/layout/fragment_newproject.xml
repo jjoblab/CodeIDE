@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Wizard de création de projet — placeholder de l'étape 7 : l'assistant
+  (modèles, paramètres, arborescence, récapitulatif) arrive à l'étape 10.
+-->
+<jo.codeide.core.ui.EmptyStateView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/etat_wizard"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:stateIcon="@drawable/ic_splash_codeide"
+    app:stateMessage="@string/newproject_placeholder"
+    app:stateTitle="@string/newproject_title" >
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_retour"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="@dimen/state_padding"
+        android:text="@string/newproject_retour"
+        />
+</jo.codeide.core.ui.EmptyStateView>

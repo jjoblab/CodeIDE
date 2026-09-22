@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="newproject_title">New project</string>
+    <string name="newproject_placeholder">The project creation wizard (template choice, parameters, file tree, summary) arrives at step 10 of the plan.</string>
+    <string name="newproject_retour">Back</string>
+</resources>

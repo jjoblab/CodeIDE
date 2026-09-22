@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="newproject_title">Nouveau projet</string>
+    <string name="newproject_placeholder">L\'assistant de création de projet (choix du modèle, paramètres, arborescence, récapitulatif) arrive à l\'étape 10 du plan.</string>
+    <string name="newproject_retour">Retour</string>
+</resources>

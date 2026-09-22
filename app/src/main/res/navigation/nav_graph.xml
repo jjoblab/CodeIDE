@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Graphe de navigation CodeIDE — étape 5 : l'assistant de premier
-  lancement rejoint le graphe. La destination initiale reste l'accueil ;
+  Graphe de navigation CodeIDE — étape 7 : le wizard de création
+  (destination placeholder, écran complet à l'étape 10) rejoint le
+  graphe depuis l'accueil. La destination initiale reste l'accueil ;
   `MainActivity` route vers l'assistant (en racine) quand
-  `isSetupCompleted` est faux, et le bandeau de l'accueil peut le
-  rouvrir en pile. Le wizard (nouveau projet), le diagnostic et l'éditeur
-  rejoindront le graphe aux étapes 10 à 13.
+  `isSetupCompleted` est faux. Le diagnostic et l'éditeur rejoindront
+  le graphe aux étapes 12 et 13.
 -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -24,6 +24,9 @@
         <action
             android:id="@+id/action_home_to_onboarding"
             app:destination="@id/onboarding" />
+        <action
+            android:id="@+id/action_home_to_newproject"
+            app:destination="@id/newproject" />
     </fragment>
 
     <fragment
@@ -41,5 +44,11 @@
         android:name="jo.codeide.feature.onboarding.OnboardingFragment"
         android:label="@string/onboarding_title"
         tools:layout="@layout/fragment_onboarding" />
+
+    <fragment
+        android:id="@+id/newproject"
+        android:name="jo.codeide.feature.newproject.NewProjectFragment"
+        android:label="@string/newproject_title"
+        tools:layout="@layout/fragment_newproject" />
 
 </navigation>
