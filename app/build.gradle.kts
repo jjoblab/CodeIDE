@@ -59,4 +59,6 @@ dependencies {
     // Lancement de l'activité réelle sous Robolectric avec Hilt.
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)
+    // Fakes des tests exhaustifs des modèles embarqués (étape 9).
+    testImplementation(project(":core:testing"))
 }

@@ -21,14 +21,14 @@ import javax.inject.Inject
 
 /**
  * Test d'intégration du câblage des templates (critère d'acceptation de
- * l'étape 8) : le **graphe de production** fournit le port d'assets
- * (`AssetTemplateAssetsSource` sur l'AssetManager), la version du
- * générateur (`BuildConfig`) et le fournisseur embarqué en multibinding.
+ * l'étape 8, prolongé à l'étape 9) : le **graphe de production** fournit le
+ * port d'assets (`AssetTemplateAssetsSource` sur l'AssetManager), la version
+ * du générateur (`BuildConfig`) et le fournisseur embarqué en multibinding.
  *
  * Les licences de référence sont lues en vrai depuis `assets/licenses/`
- * (textes officiels SPDX) ; le répertoire `assets/templates/` est vide
- * jusqu'à l'étape 9 — c'est un état légitime (aucun modèle), pas un
- * échec.
+ * (textes officiels SPDX) ; depuis l'étape 9, le catalogue embarque les
+ * modèles `kotlin-jvm` et `java` — les tests exhaustifs de génération vivent
+ * dans `jo.codeide.templates.ModelesEmbarquesTest`.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -115,14 +115,18 @@ class TemplatesIntegrationTest {
     }
 
     @Test
-    fun `le répertoire templates vide est un état légitime jusqu à l étape 9`() {
+    fun `le catalogue embarque les modeles kotlin-jvm et java`() {
         val repertoires = runBlocking { assets.listTemplateDirectories().getOrNull() }
 
-        // Aucun modèle embarqué avant l'étape 9 (kotlin-jvm, java) : la
-        // liste est vide mais l'appel réussit — pas d'échec de catalogue.
-        assertEquals(emptyList<String>(), repertoires)
+        // Étape 9 : les deux modèles embarqués sont servis par le port
+        // d'assets réels — triés, complets, sans répertoire parasite.
+        assertEquals(listOf("java", "kotlin-jvm"), repertoires?.sorted())
         val catalogue = runBlocking { fournisseurEmbarque.provide().getOrNull() }
-        assertEquals(emptyList<Any>(), catalogue)
+        assertEquals(2, catalogue?.size)
+        assertEquals(
+            setOf("kotlin-jvm", "java"),
+            catalogue!!.map { it.template.id.value }.toSet(),
+        )
     }
 
     @Test

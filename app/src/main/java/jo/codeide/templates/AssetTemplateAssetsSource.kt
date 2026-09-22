@@ -32,7 +32,17 @@ public class AssetTemplateAssetsSource
         private val dispatchers: DispatcherProvider,
     ) : TemplateAssetsSource {
         public override suspend fun listTemplateDirectories(): AppResult<List<String>> =
-            lire { assets -> assets.list(REPERTOIRE_MODELES)?.toList() ?: emptyList() }
+            lire { assets ->
+                // Selon la source (appareil réel ou Robolectric), `list` renvoie
+                // soit les enfants directs, soit tous les fichiers descendants :
+                // ne garder que le premier segment de chaque entrée — les vrais
+                // répertoires de modèles, sans doublon, dans un ordre déterministe.
+                entrer(assets)
+                    .map { it.substringBefore('/') }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .sorted()
+            }
 
         public override suspend fun readTemplateFile(
             templateId: String,
@@ -66,6 +76,10 @@ public class AssetTemplateAssetsSource
             } catch (io: IOException) {
                 AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, io.message ?: ""))
             }
+
+        /** Liste les entrées sous `assets/templates/` (vide si la racine manque). */
+        private fun entrer(assets: android.content.res.AssetManager): List<String> =
+            assets.list(REPERTOIRE_MODELES)?.toList() ?: emptyList()
 
         /** Un identifiant de modèle est un simple nom de répertoire. */
         private fun idModeleSur(id: String): Boolean = id.isNotEmpty() && "/" !in id && "\\" !in id && ".." !in id
