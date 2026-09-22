@@ -13,6 +13,7 @@ import jo.codeide.core.model.License
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.settings.databinding.FragmentSettingsBinding
 import javax.inject.Inject
@@ -64,6 +65,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Contenu edge-to-edge : la racine absorbe barres système et clavier
+        // — la toolbar passe sous la barre d'état, les derniers réglages
+        // restent au-dessus de la barre de navigation et du clavier.
+        binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
 
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
 

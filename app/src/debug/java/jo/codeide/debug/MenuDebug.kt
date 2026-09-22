@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -24,8 +26,12 @@ import kotlinx.coroutines.launch
  * salve de journaux, et les essais SAF de la couche données (étape 4 —
  * procédures S1 à S5 de `docs/TESTS_MANUELS.md`).
  *
- * Le bouton s'ancre au contenu de la fenêtre (coin bas-droit) sans toucher
- * aux layouts de production ; la version release porte un no-op de même
+ * Le bouton s'ancre au contenu de la fenêtre (coin bas-**gauche**, icône
+ * seule semi-transparente) sans toucher aux layouts de production : il ne
+ * recouvre jamais le bouton d'action principal d'un écran (Commencer,
+ * Suivant, Créer… — toujours en bas à droite), s'élève au-dessus de la
+ * barre de navigation via les insets, et sera déplacé dans l'écran
+ * Diagnostic à l'étape 12 ; la version release porte un no-op de même
  * signature.
  */
 object MenuDebug {
@@ -54,24 +60,49 @@ object MenuDebug {
 
         val contenu = activite.findViewById<ViewGroup>(android.R.id.content) ?: return
         val bouton =
-            MaterialButton(activite).apply {
-                text = activite.getString(R.string.debug_menu_bouton)
-                isAllCaps = false
-                minHeight = activite.resources.getDimensionPixelSize(R.dimen.debug_menu_hauteur_min)
+            MaterialButton(
+                activite,
+                null,
+                com.google.android.material.R.attr.materialIconButtonFilledStyle,
+            ).apply {
+                setIconResource(R.drawable.ic_menu_debug)
+                // Cible tactile confortable malgré le style icône (40 dp).
+                minimumHeight = activite.resources.getDimensionPixelSize(R.dimen.debug_menu_hauteur_min)
+                minimumWidth = activite.resources.getDimensionPixelSize(R.dimen.debug_menu_hauteur_min)
                 setContentDescription(activite.getString(R.string.debug_menu_description))
+                // Semi-transparent : présent mais jamais assimilé à un
+                // contrôle de l'écran de production en dessous.
+                alpha = ALPHA_BOUTON
                 setOnClickListener { ouvrirDialogue(activite, logger, fichiers) { lanceurArbre.launch(null) } }
             }
+        val marge = activite.resources.getDimensionPixelSize(R.dimen.debug_menu_marge)
         val parametres =
             FrameLayout
                 .LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply {
-                    gravity = Gravity.BOTTOM or Gravity.END
-                    val marge = activite.resources.getDimensionPixelSize(R.dimen.debug_menu_marge)
-                    marginEnd = marge
+                    // Bas-gauche : les actions principales vivent en bas à
+                    // droite (Commencer, Suivant, Créer) — le bouton debug
+                    // ne doit jamais les recouvrir.
+                    gravity = Gravity.BOTTOM or Gravity.START
+                    marginStart = marge
                     bottomMargin = marge
                 }
+
+        // Edge-to-edge : la marge basse suit la barre de navigation (le
+        // bouton ne passe jamais dessous), la marge de début suit l'encoche
+        // en paysage.
+        ViewCompat.setOnApplyWindowInsetsListener(bouton) { vue, insets ->
+            val barres = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            (vue.layoutParams as? FrameLayout.LayoutParams)?.apply {
+                bottomMargin = marge + barres.bottom
+                marginStart = marge + barres.left
+            }
+            vue.requestLayout()
+            insets
+        }
+
         contenu.addView(bouton, parametres)
     }
 
@@ -237,6 +268,9 @@ object MenuDebug {
     }
 
     private const val TAG = "Debug"
+
+    /** Translucidité du bouton flottant — visible, jamais assimilé à l'UI. */
+    private const val ALPHA_BOUTON = 0.65f
 
     /** Entrées de la salve (borne raisonnable pour l'inspection). */
     private const val SALVE = 50
