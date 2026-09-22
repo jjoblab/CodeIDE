@@ -1,7 +1,9 @@
 # core/model — Modèle — entités et types partagés
 
 > Statut étape 2 : fondations (v0.2.0 : `AppResult`, `AppError`, identifiants typés, `StorageLocation`)
-> et journalisation (v0.3.0 : `LogLevel`, `LogEntry` sérialisable, `FlattenedException`).
+> et journalisation (v0.3.0 : `LogLevel`, `LogEntry` sérialisable, `FlattenedException`),
+> plantages (v0.4.0 : `CrashReport`, `CrashReportSummary`, `CrashType`, `CrashAppInfo`, `DeviceInfo`,
+> `FlattenedException.suppressed`).
 
 Module Kotlin JVM pur : entités immuables et types partagés de tout le domaine. Aucune dépendance, ni Android ni autre module : c'est la base du graphe de dépendances.
 

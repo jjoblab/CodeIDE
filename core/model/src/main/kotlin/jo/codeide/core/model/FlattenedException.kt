@@ -24,6 +24,8 @@ import kotlinx.serialization.Serializable
  * tronquées au maximum demandé.
  * @property cause cause aplanie suivante dans la chaîne, ou `null` en fin de
  * chaîne (ou une fois la profondeur maximale atteinte).
+ * @property suppressed exceptions supprimées (`Throwable.suppressed`),
+ * aplaties à leur tour — section 5.8 : un rapport de plantage les conserve.
  */
 @Serializable
 public data class FlattenedException(
@@ -31,6 +33,7 @@ public data class FlattenedException(
     public val message: String?,
     public val frames: List<String>,
     public val cause: FlattenedException?,
+    public val suppressed: List<FlattenedException> = emptyList(),
 ) {
     public companion object {
         /** Nombre maximal de tranches de pile conservées (section 5.7). */
@@ -40,11 +43,20 @@ public data class FlattenedException(
         public const val DEFAULT_MAX_CAUSES: Int = 10
 
         /**
+         * Nombre maximal d'exceptions supprimées conservées par niveau
+         * (section 5.8 : les rapports de plantage les incluent, bornées
+         * pour ne pas exploser la taille d'un rapport).
+         */
+        public const val DEFAULT_MAX_SUPPRESSED: Int = 5
+
+        /**
          * Aplatit une [Throwable] en [FlattenedException] bornée.
          *
          * La profondeur de la chaîne des causes est limitée à [maxCauses]
          * sauts : au-delà, la chaîne est coupée (et non bouclée), ce qui rend
-         * l'opération sûre même sur des exceptions mutuellement causes.
+         * l'opération sûre même sur des exceptions mutuellement causes. Les
+         * exceptions supprimées de chaque niveau sont aplaties à leur tour
+         * ([DEFAULT_MAX_SUPPRESSED] maximum par niveau).
          *
          * @param throwable exception à photographier (jamais stockée).
          * @param maxFrames nombre maximal de tranches de pile par niveau.
@@ -60,7 +72,8 @@ public data class FlattenedException(
 
     /**
      * Recopie l'exception aplatie en transformant chaque message de la
-     * chaîne (les tranches et noms de classe sont inchangés).
+     * chaîne — y compris ceux des exceptions supprimées (les tranches et
+     * noms de classe sont inchangés).
      *
      * Utilisé par le pipeline de journalisation pour appliquer
      * l'expurgation ([jo.codeide.core.domain.LogRedactor]) aux messages
@@ -78,12 +91,14 @@ public data class FlattenedException(
             message = transform(message),
             frames = frames,
             cause = cause?.transformMessages(transform),
+            suppressed = suppressed.map { it.transformMessages(transform) },
         )
 }
 
 /**
  * Travail récursif de [FlattenedException.from] : un niveau, puis sa cause
- * tant que la profondeur le permet.
+ * tant que la profondeur le permet — les exceptions supprimées de chaque
+ * niveau sont aplaties de la même façon (une seule passe, bornée).
  */
 private fun aplatir(
     throwable: Throwable,
@@ -99,5 +114,13 @@ private fun aplatir(
                 null
             } else {
                 throwable.cause?.let { aplatir(it, maxFrames, causesRestantes - 1) }
+            },
+        suppressed =
+            if (causesRestantes <= 0) {
+                emptyList()
+            } else {
+                throwable.suppressed
+                    .take(FlattenedException.DEFAULT_MAX_SUPPRESSED)
+                    .map { aplatir(it, maxFrames, causesRestantes - 1) }
             },
     )
