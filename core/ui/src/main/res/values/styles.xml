@@ -41,6 +41,11 @@
         <item name="android:textAppearance">@style/TextAppearance.CodeIDE.BodyMedium</item>
     </style>
 
+    <!-- Champ de liste déroulante exposée (paramètres du wizard, étape 10). -->
+    <style name="Widget.CodeIDE.TextField.Dropdown" parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.BodyMedium</item>
+    </style>
+
     <!-- Barre d'outils de haut d'écran (sans action, titre TitleLarge). -->
     <style name="Widget.CodeIDE.Toolbar" parent="Widget.Material3.Toolbar">
         <item name="titleTextAppearance">@style/TextAppearance.CodeIDE.TitleLarge</item>
