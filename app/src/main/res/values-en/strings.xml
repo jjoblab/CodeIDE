@@ -2,4 +2,10 @@
 <resources>
     <!-- English: secondary interface language (values-en/). -->
     <string name="app_name">CodeIDE</string>
+
+    <!-- Unreviewed crash report dialog at startup (section 5.8). -->
+    <string name="plantage_dialogue_titre">A problem occurred during the last session</string>
+    <string name="plantage_dialogue_message">The app stopped unexpectedly on %2$s (%1$s). A report was saved to help understand what happened.</string>
+    <string name="plantage_dialogue_voir">View report</string>
+    <string name="plantage_dialogue_ignorer">Dismiss</string>
 </resources>

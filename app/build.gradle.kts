@@ -26,6 +26,10 @@ dependencies {
     implementation(project(":core:logging"))
     implementation(project(":core:domain"))
 
+    // Gestion des plantages (étape 3) : installation du gestionnaire,
+    // CrashActivity et FileProvider du processus :crash.
+    implementation(project(":core:crash"))
+
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
     implementation(libs.androidx.activity)

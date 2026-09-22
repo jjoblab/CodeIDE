@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chaînes du menu debug — source set debug uniquement (section 5.8) :
+  jamais embarquées dans une build release.
+-->
+<resources>
+    <string name="debug_menu_bouton">Menu debug</string>
+    <string name="debug_menu_description">Ouvrir le menu de diagnostic de développement</string>
+    <string name="debug_menu_titre">Diagnostic de développement</string>
+    <string name="debug_action_plantage">Provoquer un plantage</string>
+    <string name="debug_action_non_fatale">Exception non fatale (journalisée)</string>
+    <string name="debug_action_salve">Générer des journaux</string>
+    <string name="debug_annuler">Annuler</string>
+</resources>

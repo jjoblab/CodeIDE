@@ -1,6 +1,7 @@
 package jo.codeide.navigation
 
 import android.app.Activity
+import android.content.Intent
 import android.view.View
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
@@ -10,6 +11,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityComponent
 import dagger.hilt.android.scopes.ActivityScoped
 import jo.codeide.R
+import jo.codeide.core.crash.ui.CrashActivity
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
 import javax.inject.Inject
@@ -52,6 +54,19 @@ internal class AppNavigatorImpl
 
         override fun goBack() {
             navController.popBackStack()
+        }
+
+        override fun openCrashReport(id: String) {
+            // Intent explicite vers l'écran dédié, en consultation — le
+            // processus `:crash` est porté par le manifeste de core:crash
+            // (section 5.8) : le système l'isole, aucune action de notre
+            // part n'est nécessaire ici.
+            logger.d(TAG) { "ouverture du rapport de plantage en consultation" }
+            val intention =
+                Intent(activity, CrashActivity::class.java)
+                    .putExtra(CrashActivity.EXTRA_REPORT_ID, id)
+                    .putExtra(CrashActivity.EXTRA_MODE, CrashActivity.MODE_VIEW)
+            activity.startActivity(intention)
         }
     }
 

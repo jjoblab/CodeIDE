@@ -2,4 +2,14 @@
 <resources>
     <!-- Français : langue par défaut de l'interface (section 2 du prompt). -->
     <string name="app_name">CodeIDE</string>
+
+    <!--
+      Boîte de dialogue « rapport non consulté » au démarrage (section 5.8) :
+      la session précédente s'est mal terminée (exception, ANR, plantage
+      natif) et le rapport n'a été ni ouvert ni ignoré.
+    -->
+    <string name="plantage_dialogue_titre">Un problème est survenu lors de la dernière session</string>
+    <string name="plantage_dialogue_message">L\'application s\'est arrêtée de façon inattendue le %2$s (%1$s). Un rapport a été enregistré pour comprendre ce qui s\'est passé.</string>
+    <string name="plantage_dialogue_voir">Voir le rapport</string>
+    <string name="plantage_dialogue_ignorer">Ignorer</string>
 </resources>
