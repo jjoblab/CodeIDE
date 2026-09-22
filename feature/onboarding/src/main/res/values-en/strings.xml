@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Barre de l'assistant (hôte). -->
+    <string name="onboarding_title">First launch</string>
+    <string name="onboarding_commencer">Get started</string>
+    <string name="onboarding_suivant">Next</string>
+    <string name="onboarding_precedent">Back</string>
+    <string name="onboarding_terminer">Finish</string>
+
+    <!-- Page 1 — Welcome. -->
+    <string name="page_bienvenue_titre">Welcome to CodeIDE</string>
+    <string name="page_bienvenue_texte">Create, browse and edit Kotlin and Java projects right on your device. A few settings and we\'re off.</string>
+
+    <!-- Page 2 — Workspace folder. -->
+    <string name="page_dossier_titre">Workspace folder</string>
+    <string name="page_dossier_texte">Pick the folder that will hold your projects. CodeIDE only writes through the access you grant, and never leaves it.</string>
+    <string name="page_dossier_choisir">Choose a folder</string>
+    <string name="page_dossier_changer">Change folder</string>
+    <string name="page_dossier_reessayer">Try again</string>
+    <string name="page_dossier_passer">Later</string>
+    <string name="page_dossier_verification">Checking the folder…</string>
+    <string name="page_dossier_configure">Workspace folder: %1$s</string>
+    <string name="page_dossier_erreur">The folder could not be verified: the write test failed. Try again or pick another folder.</string>
+    <string name="page_dossier_refuse_racine">Android forbids the storage root: pick a sub-folder (e.g. “Documents”).</string>
+    <string name="page_dossier_refuse_download">Android forbids the Downloads folder: pick another folder.</string>
+    <string name="page_dossier_refuse_android_data">Android forbids the Android/data folder: pick another folder.</string>
+    <string name="page_dossier_refuse_android_obb">Android forbids the Android/obb folder: pick another folder.</string>
+
+    <!-- Page 3 — Appearance. -->
+    <string name="page_apparence_titre">Appearance</string>
+    <string name="page_apparence_theme">Theme</string>
+    <string name="page_apparence_theme_systeme">Follow the system</string>
+    <string name="page_apparence_theme_clair">Light</string>
+    <string name="page_apparence_theme_sombre">Dark</string>
+    <string name="page_apparence_dynamique">Dynamic colors</string>
+    <string name="page_apparence_dynamique_desc">Take colors from the wallpaper (Android 12+)</string>
+    <string name="page_apparence_langue">Language</string>
+    <string name="page_apparence_langue_systeme">Follow the system</string>
+    <string name="page_apparence_langue_fr">Français</string>
+    <string name="page_apparence_langue_en">English</string>
+
+    <!-- Page 4 — Profile. -->
+    <string name="page_profil_titre">Profile</string>
+    <string name="page_profil_texte">Optional: the author name pre-fills the README and license files of the projects you will create.</string>
+    <string name="page_profil_auteur">Author name</string>
+    <string name="page_profil_licence">Default license</string>
+    <string name="licence_none">None</string>
+    <string name="licence_mit">MIT</string>
+    <string name="licence_apache">Apache 2.0</string>
+    <string name="licence_gpl">GPL 3.0</string>
+    <string name="licence_bsd">BSD 3-Clause</string>
+
+    <!-- Page 5 — Done. -->
+    <string name="page_termine_titre">All set</string>
+    <string name="page_termine_dossier">Workspace folder: %1$s</string>
+    <string name="page_termine_dossier_absent">Workspace folder: not configured (can be set later)</string>
+    <string name="page_termine_auteur">Author: %1$s</string>
+    <string name="page_termine_auteur_absent">Author: not provided</string>
+    <string name="page_termine_licence">Default license: %1$s</string>
+    <string name="page_termine_texte">Happy coding!</string>
+
+</resources>

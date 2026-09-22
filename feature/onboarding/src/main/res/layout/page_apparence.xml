@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Page 3 — Apparence : thème, couleurs dynamiques, langue. Chaque choix
+  se persiste immédiatement (aperçu immédiat via recréation, étape 5).
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_lg">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_apparence"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/page_apparence_titre"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/page_apparence_theme"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <RadioGroup
+            android:id="@+id/groupe_theme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:orientation="vertical">
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_theme_systeme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_theme_systeme" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_theme_clair"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_theme_clair" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_theme_sombre"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_theme_sombre" />
+
+        </RadioGroup>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/interrupteur_dynamique"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/page_apparence_dynamique" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_md"
+            android:text="@string/page_apparence_dynamique_desc"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:text="@string/page_apparence_langue"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <RadioGroup
+            android:id="@+id/groupe_langue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:orientation="vertical">
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_langue_systeme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_langue_systeme" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_langue_fr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_langue_fr" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/radio_langue_en"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/page_apparence_langue_en" />
+
+        </RadioGroup>
+
+    </LinearLayout>
+
+</ScrollView>
