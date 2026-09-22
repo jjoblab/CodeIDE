@@ -3,8 +3,11 @@ package jo.codeide
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -12,6 +15,9 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.GetLatestUnreviewedCrashReportUseCase
 import jo.codeide.core.domain.MarkCrashReportReviewedUseCase
+import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.model.AppSettings
+import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applyDynamicColorsIfAvailable
 import jo.codeide.debug.MenuDebug
@@ -29,27 +35,31 @@ import javax.inject.Inject
  * Settings) et toute logique vit dans les ViewModels et le domaine.
  *
  * Cycle de démarrage :
- * 1. [installSplashScreen] **avant** `super.onCreate` (API SplashScreen,
- *    thème `Theme.CodeIDE.Splash` défini dans core:ui) ;
- * 2. couleurs dynamiques optionnelles (Android 12+, ADR 0008) ;
+ * 1. [installSplashScreen] **avant** `super.onCreate` (API SplashScreen),
+ *    retenu jusqu'à la première émission des paramètres : routage et
+ *    apparence se décident **sous l'écran de démarrage**, jamais à
+ *    découvert ;
+ * 2. apparence pilotée par les paramètres (étape 5) : thème via
+ *    [AppCompatDelegate.setDefaultNightMode], langue via
+ *    [AppCompatDelegate.setApplicationLocales] (ADR 0013), couleurs
+ *    dynamiques conditionnelles (ADR 0008) — chaque choix de l'assistant
+ *    recrée l'écran, c'est l'aperçu immédiat ;
  * 3. edge-to-edge : la fenêtre s'étend sous les barres système, chaque
  *    fragment absorbe ses insets via `applySystemBarsInsets` ;
- * 4. suivi du dernier écran (destination de navigation) pour les rapports
+ * 4. routage du premier lancement : `isSetupCompleted` faux → l'assistant
+ *    remplace l'accueil en racine de la pile (étape 5) ; vrai → accueil ;
+ * 5. suivi du dernier écran (destination de navigation) pour les rapports
  *    de plantage — section 5.8 ;
- * 5. boîte de dialogue « rapport non consulté » si la session précédente
+ * 6. boîte de dialogue « rapport non consulté » si la session précédente
  *    s'est mal terminée (section 5.8) — les deux réponses (voir, ignorer)
  *    valent consultation.
- *
- * La destination initiale (onboarding ou accueil) dépendra de
- * `isSetupCompleted` à partir de l'étape 5.
  */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var logger: AppLogger
 
-    /** Port d'accès aux documents — menu debug (essais SAF S1-S5) et
-     * futur sélecteur du dossier de travail (étape 5). */
+    /** Port d'accès aux documents — menu debug (essais SAF S1-S5). */
     @Inject
     lateinit var fichiers: FileSystem
 
@@ -62,18 +72,30 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var marquerConsulte: MarkCrashReportReviewedUseCase
 
+    /** Paramètres applicatifs — routage du premier lancement et apparence. */
+    @Inject
+    lateinit var observerParametres: ObserveSettingsUseCase
+
+    /** Vrai dès la première émission des paramètres (libère le splash). */
+    private var demarragePret = false
+
+    /** Dernière apparence appliquée — détecte les changements à chaud. */
+    private var apparenceAppliquee: AppSettings? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        installSplashScreen().setKeepOnScreenCondition { !demarragePret }
         super.onCreate(savedInstanceState)
 
-        applyDynamicColorsIfAvailable()
+        // Étape 5 : les couleurs dynamiques ne s'appliquent plus ici mais
+        // depuis les paramètres (appliquerApparence) — le réglage
+        // utilisateur décide, avec aperçu immédiat.
         enableEdgeToEdge()
 
         setContentView(R.layout.activity_main)
 
         // Premiers journaux applicatifs (section 5.7) : démarrage et
         // navigation — la session a déjà été ouverte par l'initialiseur.
-        logger.i(TAG) { "MainActivity démarrée (destination initiale : accueil)" }
+        logger.i(TAG) { "MainActivity démarrée" }
 
         // Dernier écran connu des rapports de plantage (section 5.8) : le
         // libellé de destination est plus précis que le nom d'activité.
@@ -93,11 +115,104 @@ class MainActivity : AppCompatActivity() {
         // embarque un no-op de même signature.
         MenuDebug.installer(this, logger, fichiers)
 
+        // Apparence, routage du premier lancement et libération du splash :
+        // tout se joue sur la collecte des paramètres.
+        observerParametresEtRouter()
+
         // Boîte de dialogue de la session précédente : uniquement au premier
         // affichage (une recréation — rotation — ne la ramène pas).
         if (savedInstanceState == null) {
             proposerRapportNonConsulte()
         }
+    }
+
+    /**
+     * Collecte les paramètres : applique l'apparence à chaque émission
+     * (aperçu immédiat de l'assistant, restauration au démarrage) et,
+     * sur la première, libère le splash puis route le premier lancement.
+     */
+    private fun observerParametresEtRouter() {
+        lifecycleScope.launch {
+            observerParametres().collect { reglages ->
+                appliquerApparence(reglages)
+                if (!demarragePret) {
+                    demarragePret = true
+                    routerPremierLancement(reglages.isSetupCompleted)
+                }
+            }
+        }
+    }
+
+    /**
+     * Applique l'apparence persistée : thème et langue idempotents (la
+     * recréation n'a lieu qu'au **changement**), couleurs dynamiques
+     * appliquées à chaud à l'activation — leur **désactivation** exige
+     * une recréation, l'overlay ne se retire pas.
+     */
+    private fun appliquerApparence(reglages: AppSettings) {
+        val precedente = apparenceAppliquee
+        apparenceAppliquee = reglages
+
+        AppCompatDelegate.setDefaultNightMode(modeNuit(reglages.themeMode))
+
+        val locales = localesDemandees(reglages.languageTag)
+        if (AppCompatDelegate.getApplicationLocales() != locales) {
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
+
+        val dynamiqueChange = precedente != null && precedente.useDynamicColor != reglages.useDynamicColor
+        when {
+            reglages.useDynamicColor && (precedente == null || dynamiqueChange) -> {
+                applyDynamicColorsIfAvailable()
+            }
+
+            !reglages.useDynamicColor && dynamiqueChange -> {
+                recreate()
+            }
+
+            else -> {
+                Unit
+            }
+        }
+    }
+
+    /** Mode de nuit appcompat d'un thème applicatif. */
+    private fun modeNuit(mode: ThemeMode): Int =
+        when (mode) {
+            ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+            ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+            ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
+
+    /** Locales demandées : vide = suivre le système (ADR 0013). */
+    private fun localesDemandees(tag: String): LocaleListCompat =
+        if (tag.isBlank()) {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(tag)
+        }
+
+    /**
+     * Routage du premier lancement (étape 5) : l'assistant remplace
+     * l'accueil **en racine** quand `isSetupCompleted` est faux — le
+     * retour système y quitte l'application, il ne tombe pas sur un
+     * accueil vide. Ne joue qu'une fois par vie de l'activité : après
+     * une mort du processus en plein assistant, la pile restaurée y
+     * est déjà, et la garde `home` évite tout doublon.
+     */
+    private fun routerPremierLancement(complete: Boolean) {
+        if (complete) return
+
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        if (navHost.navController.currentDestination?.id != R.id.home) return
+
+        logger.i(TAG) { "premier lancement : ouverture de l'assistant" }
+        val options =
+            NavOptions
+                .Builder()
+                .setPopUpTo(R.id.home, inclusive = true)
+                .build()
+        navHost.navController.navigate(R.id.onboarding, null, options)
     }
 
     /**

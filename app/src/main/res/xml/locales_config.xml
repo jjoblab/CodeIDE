@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Langues de l'application (ADR 0013) : alimente le réglage système
+  « langue par application » d'Android 13+. La source de vérité reste
+  AppSettings.languageTag (DataStore), appliquée à chaque démarrage et
+  à chaque changement via AppCompatDelegate.setApplicationLocales.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="fr" />
+    <locale android:name="en" />
+</locale-config>

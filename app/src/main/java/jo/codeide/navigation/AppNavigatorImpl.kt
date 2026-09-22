@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.view.View
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import dagger.Binds
 import dagger.Module
@@ -67,6 +68,28 @@ internal class AppNavigatorImpl
                     .putExtra(CrashActivity.EXTRA_REPORT_ID, id)
                     .putExtra(CrashActivity.EXTRA_MODE, CrashActivity.MODE_VIEW)
             activity.startActivity(intention)
+        }
+
+        override fun openOnboarding() {
+            // Garde-fou : double toucher sur le bandeau de l'accueil ne
+            // doit empiler qu'un seul assistant.
+            if (navController.currentDestination?.id == R.id.home) {
+                logger.d(TAG) { "navigation accueil -> assistant" }
+                navController.navigate(R.id.action_home_to_onboarding)
+            }
+        }
+
+        override fun openHome() {
+            // Fin de l'assistant (étape 5) : retour à l'accueil en
+            // retirant l'assistant de la pile — terminer l'installation
+            // n'est pas une navigation réversible.
+            logger.d(TAG) { "navigation assistant -> accueil" }
+            val options =
+                NavOptions
+                    .Builder()
+                    .setPopUpTo(R.id.onboarding, inclusive = true)
+                    .build()
+            navController.navigate(R.id.home, null, options)
         }
     }
 

@@ -21,6 +21,10 @@ dependencies {
     implementation(project(":feature:home"))
     implementation(project(":feature:settings"))
 
+    // Assistant de premier lancement (étape 5) : destination du graphe
+    // de navigation et chaînes localisées de l'assistant.
+    implementation(project(":feature:onboarding"))
+
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.
     implementation(project(":core:logging"))

@@ -6,24 +6,33 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.test.core.app.ActivityScenario
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import jo.codeide.core.domain.SettingsRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import javax.inject.Inject
 import jo.codeide.feature.home.R as RAccueil
 import jo.codeide.feature.settings.R as RParametres
 
 /**
  * Test d'intégration de `MainActivity` sur JVM (Robolectric + Hilt).
  *
- * Valide le démarrage complet de l'étape 1 : écran de démarrage
- * compat, graphe de navigation gonflé, destination initiale = accueil,
- * et aller-retour Accueil → Paramètres via `AppNavigator` — le vrai
- * fragment `feature:home` étant injecté avec sa dépendance.
+ * Valide la navigation de l'étape 1 : graphe gonflé, aller-retour
+ * Accueil → Paramètres via `AppNavigator` — le vrai fragment
+ * `feature:home` étant injecté avec sa dépendance.
+ *
+ * Depuis l'étape 5, la destination initiale dépend de
+ * `isSetupCompleted` : ces tests préparent une **installation terminée**
+ * (le premier lancement ouvrant l'assistant est couvert par
+ * `OnboardingIntegrationTest`).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26], application = dagger.hilt.android.testing.HiltTestApplication::class)
@@ -32,10 +41,23 @@ class MainActivityTest {
     @get:Rule
     val regleHilt = HiltAndroidRule(this)
 
+    /** Dépôt des paramètres : terminer l'installation avant de lancer. */
+    @Inject
+    lateinit var depotParametres: SettingsRepository
+
+    @Before
+    fun preparer() {
+        regleHilt.inject()
+        // Installation déjà terminée : l'accueil est la destination
+        // initiale (un DataStore vierge routerait vers l'assistant).
+        runBlocking {
+            depotParametres.updateSettings { it.copy(isSetupCompleted = true) }
+            depotParametres.observeSettings().first()
+        }
+    }
+
     @Test
     fun `l'activité démarre sur la destination accueil`() {
-        regleHilt.inject()
-
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activite ->
                 val navHost = conteneurNavigation(activite)
@@ -48,8 +70,6 @@ class MainActivityTest {
 
     @Test
     fun `le bouton paramètres navigue vers les paramètres`() {
-        regleHilt.inject()
-
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activite ->
                 activite.findViewById<View>(RAccueil.id.button_settings).performClick()
@@ -68,8 +88,6 @@ class MainActivityTest {
 
     @Test
     fun `le retour ramène à l'accueil`() {
-        regleHilt.inject()
-
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activite ->
                 activite.findViewById<View>(RAccueil.id.button_settings).performClick()
