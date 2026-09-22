@@ -155,6 +155,62 @@ class ProjectDaoTest {
         }
 
     @Test
+    fun `relocaliser remplace l'emplacement, pas le libellé ni l'épingle`() =
+        runTest {
+            dao.insert(ligne("a", "MonProjet").copy(isPinned = true))
+
+            val affectees =
+                dao.updateLocation(
+                    id = "a",
+                    grantUri = "content://a/tree/nouveau",
+                    documentUri = "content://a/tree/nouveau/doc",
+                    displayPath = "Nouveau",
+                )
+
+            assertEquals(1, affectees)
+            val relue = requireNotNull(dao.getById("a"))
+            assertEquals("content://a/tree/nouveau", relue.grantUri)
+            assertEquals("content://a/tree/nouveau/doc", relue.documentUri)
+            assertEquals("Nouveau", relue.displayPath)
+            assertEquals("MonProjet", relue.name)
+            assertEquals(true, relue.isPinned)
+        }
+
+    @Test
+    fun `relocaliser un identifiant inconnu n'affecte rien`() =
+        runTest {
+            assertEquals(
+                0,
+                dao.updateLocation(
+                    id = "inconnu",
+                    grantUri = "content://a/tree/n",
+                    documentUri = "content://a/tree/n/doc",
+                    displayPath = "N",
+                ),
+            )
+        }
+
+    @Test
+    fun `relocaliser vers un dossier déjà référencé est défendu par la base`() =
+        runTest {
+            dao.insert(ligne("a", "Premier", dossier = "occupe"))
+            dao.insert(ligne("b", "Second"))
+
+            var levee: SQLiteConstraintException? = null
+            try {
+                dao.updateLocation(
+                    id = "b",
+                    grantUri = "content://a/tree/occupe",
+                    documentUri = "content://a/tree/occupe/doc",
+                    displayPath = "Occupe",
+                )
+            } catch (e: SQLiteConstraintException) {
+                levee = e
+            }
+            assertTrue(levee != null)
+        }
+
+    @Test
     fun `observer un projet précis reflète insertion puis suppression`() =
         runTest {
             assertNull(dao.observeById("a").first())

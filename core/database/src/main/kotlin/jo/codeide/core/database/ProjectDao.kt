@@ -72,6 +72,30 @@ public interface ProjectDao {
     ): Int
 
     /**
+     * Remplace l'emplacement référencé (relocalisation, étape 7) —
+     * l'index unique sur `document_uri` défend le registre.
+     *
+     * @return nombre de lignes affectées (0 = identifiant inconnu) ; une
+     * violation d'unicité lève `SQLiteConstraintException`, traduite en
+     * `AlreadyExists` par le dépôt.
+     */
+    @Query(
+        """
+        UPDATE ${ProjectEntity.TABLE}
+        SET grant_uri = :grantUri,
+            document_uri = :documentUri,
+            display_path = :displayPath
+        WHERE id = :id
+        """,
+    )
+    public suspend fun updateLocation(
+        id: String,
+        grantUri: String,
+        documentUri: String,
+        displayPath: String,
+    ): Int
+
+    /**
      * Marque le projet comme ouvert à l'instant donné.
      *
      * @return nombre de lignes affectées (0 = identifiant inconnu).
