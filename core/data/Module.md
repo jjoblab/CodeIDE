@@ -1,5 +1,9 @@
-# core/data
+# core:data
 
-Implémente les repositories du domaine en combinant les sources de données (Room, DataStore, SAF) et en journalisant les opérations via `AppLogger` (identifiants uniquement). Ne contient aucune logique métier : il traduit et assemble.
+Implémentations des repositories du domaine au-dessus des sources
+réelles : registre des projets sur Room (identifiant produit à l'ajout,
+unicité du dossier défendue par la base), paramètres sur DataStore.
+Journalisation des opérations par identifiants uniquement (règle 15).
 
-Contenu fonctionnel prévu : voir `README.md` du module.
+Statut : livré à l'étape 4 (v0.5.0) — voir le README du module et
+`docs/ARCHITECTURE.md` § « Couche données ».
