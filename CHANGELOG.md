@@ -4,6 +4,55 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.7.0] – 2026-09-22
+
+Étape 6 — Écran Paramètres (section 11 du prompt maître).
+
+### Ajouté
+
+- `feature:settings` : écran **personnalisé Material 3** (pas de
+  `PreferenceFragmentCompat`), piloté par `SettingsViewModel` et
+  DataStore, en sections extensibles — Apparence (thème, couleurs
+  dynamiques), Langue, Projets (dossier de travail, nom d'auteur,
+  licence par défaut), À propos, Avancé. Chaque réglage se
+  **persiste à l'instant** et prend effet immédiatement (recréation
+  d'écran par `MainActivity`, réémission de l'état).
+- `core:domain` : cas d'usage du dossier de travail —
+  `ValidateWorkspaceUseCase` (validation partagée avec l'assistant :
+  dossiers refusés Android 11+ avant permission, test d'écriture
+  témoin, permission relâchée à tout échec), `ChangeWorkspaceUseCase`
+  et `ClearWorkspaceUseCase` (**l'ancienne permission persistante
+  n'est libérée que si aucun projet n'en dépend** — un projet dépend
+  du dossier si son URI de document vit dans son arbre),
+  `ResetPreferencesUseCase` (préférences par défaut, drapeau
+  d'installation et registre des projets conservés, ADR 0014).
+- `core:domain` : port `ArborescencesSaf` (décomposition des URI
+  d'arborescence SAF) — `core:domain` reste Kotlin JVM pur ;
+  implémenté par `core:storage` (`SafArborescences`, délégation à
+  `UrisDocuments`), faux déterministe dans `core:testing`
+  (`FakeArborescencesSaf`).
+- `feature:onboarding` : le ViewModel délègue désormais la validation
+  du dossier au `ValidateWorkspaceUseCase` partagé (même
+  comportement, tests inchangés — la logique n'est plus dupliquée
+  entre l'assistant et les paramètres).
+- Section Projets : changement de dossier (sélecteur SAF, messages
+  clairs par issue — refus Android, échec typé, permission conservée
+  signalée quand des projets l'utilisent), effacement, nom d'auteur
+  rogné à la perte de focus (pas d'écriture par frappe), licence par
+  défaut à choix unique.
+- Section À propos : version (`VERSION_NAME`/`VERSION_CODE` via
+  `CrashAppInfo` injecté), type de build, licences open source
+  embarquées (dialogue).
+- Section Avancé : « Réinitialiser les préférences » (confirmation
+  obligatoire, ADR 0014) et « Relancer l'assistant » (drapeau
+  repassé à faux puis navigation).
+- `app` : action de navigation paramètres → assistant ;
+  `AppNavigator.openOnboarding` accepte l'origine paramètres.
+- Documentation : ADR 0014 (réinitialisation : états vs préférences,
+  permissions conditionnelles), section « Écran Paramètres » de
+  `docs/ARCHITECTURE.md`, procédures manuelles M1-M5 dans
+  `docs/TESTS_MANUELS.md`, README du module `feature:settings`.
+
 ## [0.6.0] – 2026-09-22
 
 Étape 5 — Assistant de premier lancement (section 11 du prompt maître).

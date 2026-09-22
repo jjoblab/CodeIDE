@@ -139,7 +139,11 @@ remis (format section 14) puis attente du « GO ».
       relâchée à tout échec + étape passable « Plus tard », apparence à aperçu immédiat (thème/dynamique/langue persistés à l'instant,
       setApplicationLocales ADR 0013 + locales_config), profil (SavedStateHandle, écrit en fin de parcours), `isSetupCompleted` routé sous splash
       en racine de pile ; feature:home bandeau « Configurer le dossier de travail » + HomeViewModel ; AppNavigator.openOnboarding/openHome)
-- [ ] Étape 6 — Paramètres → v0.7.0
+- [x] Étape 6 — Paramètres → v0.7.0 (`feature:settings` écran personnalisé M3 piloté SettingsViewModel+DataStore : apparence/langue/projets/à propos/avancé,
+      chaque réglage persisté à l'instant ; core:domain ValidateWorkspaceUseCase (validation dossier partagée avec l'assistant) + ChangeWorkspaceUseCase/
+      ClearWorkspaceUseCase (ancienne permission libérée seulement si aucun projet n'en dépend) + ResetPreferencesUseCase (états conservés, ADR 0014) +
+      port ArborescencesSaf (SafArborescences dans core:storage, FakeArborescencesSaf dans core:testing) ; onboarding délègue la validation au use case partagé ;
+      navigation paramètres → assistant)
 - [ ] Étape 7 — Accueil → v0.8.0
 - [ ] Étape 8 — Moteur de templates → v0.9.0
 - [ ] Étape 9 — Modèles Kotlin/Java → v0.10.0

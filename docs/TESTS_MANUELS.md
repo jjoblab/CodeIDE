@@ -103,7 +103,26 @@ faux, appareil Android 11+.
 | O5 | Page apparence : choisir sombre, désactiver les couleurs dynamiques, passer en anglais | Chaque choix prend effet **immédiatement** (recréation d'écran, texte bascule en anglais) ; tuer le processus (`adb shell am kill jo.codeide`) et relancer : les choix sont conservés ; sur Android 13+, le réglage système « langue par application » reflète fr/en |
 | O6 | Page profil : saisir un nom d'auteur et une licence, puis **rotation** de l'écran à chaque page ; enfin « Terminer » | Le nom et la licence restent saisis après rotation ; « Terminer » referme l'assistant sur l'accueil ; relancer : accueil direct ; (optionnel) `adb shell am kill` au milieu de l'assistant, relancer : la page et les saisies sont restaurées |
 
+## Écran Paramètres (étape 6 → v0.7.0)
+
+Le ViewModel (persistance immédiate de chaque réglage) et les cas
+d'usage du dossier de travail (validation, permission conditionnelle)
+sont couverts par les tests JVM ; les procédures suivantes valident
+le **parcours réel à l'écran** (sélecteur système, permissions,
+relances).
+
+Préambule commun : installation de l'app, assistant terminé (O6), un
+dossier de travail configuré (O3) pour M3-M5.
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| M1 | Paramètres → Apparence : choisir « Sombre », désactiver les couleurs dynamiques, passer la langue en anglais | Chaque choix prend effet **immédiatement** (recréation d'écran, textes en anglais) ; tuer le processus puis relancer : tout est conservé ; en repasser par le réglage système « langue par application » (Android 13+) reflète le choix |
+| M2 | Paramètres → Projets : saisir « Ada Lovelace » dans le nom d'auteur, sélectionner la licence GPL 3.0 | Le nom n'est écrit qu'à la sortie du champ (focus) ; après relance, nom rogné (« Ada Lovelace ») et licence GPL proposée ; le wizard (étape 10) les pré-remplira |
+| M3 | Paramètres → Projets : « Changer » le dossier de travail → choisir un **autre** dossier inscriptible | Message « Dossier de travail changé » ; `adb shell dumpsys package jo.codeide \| grep -A4 persistedUriPermissions` : la **nouvelle** URI est tenue ; l'**ancienne n'y figure plus** (aucun projet n'en dépendait) |
+| M4 | Créer un projet dans l'ancien dossier (menu debug ou étape 7), puis changer le dossier de travail | Le message signale la **permission conservée** ; l'ancienne URI **reste** dans `persistedUriPermissions` (le projet l'utilise) ; la nouvelle est tenue |
+| M5 | Paramètres → Avancé : « Réinitialiser les préférences » (confirmer), puis « Relancer l'assistant » | Après réinitialisation : thème système, couleurs dynamiques actives, langue système, dossier non configuré — mais l'app reste installée (pas d'assistant au simple relancement, registre intact) ; « Relancer l'assistant » ouvre l'assistant, le terminer referme sur l'accueil |
+
 ## À venir
 
-- **Étape 6+** : écran Paramètres (chaque réglage persiste et prend effet immédiatement).
 - **Étape 7+** : liste des projets, statut d'accès, actions.
+- **Étape 12+** : écran Diagnostic (entrée Avancé).

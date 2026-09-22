@@ -130,6 +130,31 @@ sous le splash, jamais à découvert.
   le `SavedStateHandle` du ViewModel ; l'amorçage depuis les paramètres
   réels n'a lieu qu'une fois par vie du sauvetage (drapeau interne).
 
+## Écran Paramètres (étape 6 — livrée à v0.7.0)
+
+Écran **personnalisé Material 3** (pas de `PreferenceFragmentCompat`),
+piloté par `SettingsViewModel` et DataStore, en sections extensibles :
+Apparence, Langue, Projets, À propos, Avancé (l'entrée Diagnostic arrive
+à l'étape 12). Chaque réglage se persiste à l'instant — l'effet
+immédiat vient de la collecte de `MainActivity` (recréation d'écran),
+jamais d'un état UI divergent.
+
+- **Dossier de travail** : changement (sélecteur SAF + validation
+  partagée avec l'assistant), effacement — l'ancienne permission
+  persistante n'est **libérée que si aucun projet n'en dépend**
+  (ADR 0014) ; messages clairs par issue (refus Android, échec typé,
+  permission conservée).
+- **Port `ArborescencesSaf`** (domaine) : décomposition des URI
+  d'arborescence SAF (`DocumentsContract`) isolée derrière une
+  interface — `core:domain` reste Kotlin JVM pur ; implémenté par
+  `core:storage`, faux déterministe dans `core:testing`.
+- **Réinitialisation** : préférences par défaut, états applicatifs
+  conservés (`isSetupCompleted`), registre des projets intact
+  (ADR 0014).
+- **À propos** : version (`VERSION_NAME`/`VERSION_CODE` via
+  `CrashAppInfo` injecté), type de build, licences open source
+  embarquées.
+
 ## Gestion des erreurs et résultats
 
 - `AppResult<out T>` : `Success(value)` | `Failure(error: AppError)`.
