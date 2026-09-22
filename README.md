@@ -8,11 +8,12 @@ fondations : interface et navigation, configuration de l'application, gestion de
 projets, diagnostic (journalisation et plantages) et création de projet via un
 assistant avec des modèles **Kotlin** et **Java**.
 
-> État actuel : **étape 4 terminée** (journalisation maison, gestion des plantages,
-> et couche données : registre des projets en Room avec index unique sur le dossier,
-> paramètres en DataStore persistés et tolérants, port `FileSystem` implémenté sur SAF
-> avec requêtes groupées et erreurs typées, fakes de test, branchement du niveau de
-> journalisation persisté) — v0.5.0.
+> État actuel : **étape 10 terminée** (fondations, journalisation et plantages,
+> couche données, onboarding, paramètres, accueil, moteur de templates avec
+> modèles Kotlin/Java **validés réellement** (builds/tests/exécutions des
+> projets générés), et wizard de création partie 1 — cadre, machine à états,
+> rendu dynamique des paramètres, étapes Modèle/Configuration/Informations) —
+> v0.11.0.
 > Voir `docs/ROADMAP.md` pour le détail des étapes et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide
