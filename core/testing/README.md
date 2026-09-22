@@ -1,6 +1,6 @@
 # core/testing — Tests — fakes et utilitaires
 
-> Statut étape 2 : utilitaires coroutines (v0.2.0 : `MainDispatcherRule`, `TestDispatcherProvider`)
+> Statut étape 4 : utilitaires coroutines (v0.2.0 : `MainDispatcherRule`, `TestDispatcherProvider`), journalisation (v0.3.0 : `FakeAppLogger`, `InMemoryLogRepository`), plantages (v0.4.0 : `FakeCrashReportRepository`, `FakePendingExitInfoRecorder`), couche données (v0.5.0 : `FakeFileSystem`, `FakeProjectRepository`, `FakeSettingsRepository`)
 > et fakes de journalisation (v0.3.0 : `FakeAppLogger`, `InMemoryLogRepository`),
 > plantages (v0.4.0 : `FakeCrashReportRepository`, `FakePendingExitInfoRecorder`).
 
@@ -17,7 +17,7 @@ Consommation en `testImplementation` uniquement — vérifié par `checkModuleDe
 - **`MainDispatcherRule`** — règle JUnit 4 : installe un `TestDispatcher` (standard par défaut) comme `Dispatchers.Main` le temps du test ; le dispatcher est exposé pour les avancées manuelles (`scheduler.advanceUntilIdle()`).
 - **`TestDispatcherProvider`** — premier double de test : `DispatcherProvider` renvoyant le même dispatcher pour `io`/`default`/`main`, à construire avec le dispatcher de la règle pour partager l'horloge virtuelle.
 
-Fakes prévus aux étapes suivantes : `FakeAppLogger`/`InMemoryLogRepository` (étape 2), `FakeFileSystem`/`FakeProjectRepository`/`FakeSettingsRepository` (étape 4).
+Couche données (v0.5.0) : `FakeFileSystem` (arborescence d'URI en mémoire, robinets de défaillance, permissions simulées — tient exactement le contrat de `SafFileSystem` : collision insensible à la casse, `NotFound` sans exception), `FakeProjectRepository` (ordre de l'accueil, unicité de dossier, horloge injectable) et `FakeSettingsRepository` (transformation atomique).
 
 ## Vérifications du module
 
