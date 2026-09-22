@@ -4,6 +4,67 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.3.0] – 2026-09-22
+
+Étape 2 — Journalisation de l'application (section 5.7).
+
+### Ajouté
+
+- `core:model` : `LogLevel` (DEBUG…ERROR, comparaison `isAtLeast`),
+  `LogEntry` sérialisable (c'est la ligne JSON Lines persistée) et
+  `FlattenedException` (exception aplanie bornée — 50 trames, 10 causes,
+  chaînes cycliques tolérées, messages transformables pour l'expurgation).
+- `core:domain` : `AppLogger` (lambda de message évaluée **seulement** si
+  le niveau est actif), `LogRedactor` (expurgation idempotente : courriels
+  → `<courriel>`, URI `content://` → autorité conservée + identifiant
+  haché, chemins absolus → `<chemin>`), `LogConfig` (bornes 5.7 :
+  1 Mio / 5 archives / 7 jours), `LogRepository` (observer, lire, mesurer,
+  effacer), `TimeProvider` (horloge injectée), use cases `ObserveLogs`,
+  `ExportLogs`, `ClearLogs` (erreurs d'I/O typées en `AppError.Storage`,
+  `CancellationException` toujours relancée) et `LogExportWriter`
+  (couture d'implémentation). Couverture 88 %.
+- `core:testing` : `FakeAppLogger` (évalue immédiatement, pour observer)
+  et `InMemoryLogRepository` (robinets d'erreur pilotables).
+- `core:logging` : moteur du pipeline (filtrage, expurgation, troncature
+  4 Kio, aplatissement, breadcrumbs 200, émission), `LogcatSink`
+  (DEBUG+ en debug, WARN+ en release), `FileSink` asynchrone (canal borné
+  `DROP_OLDEST`, écriture groupée ≤ 500 ms, flush immédiat sur `ERROR`,
+  `flushBlocking` par verrou de coordination — jamais de `runBlocking`),
+  `JsonlLogStore` (rotation par décalage, rétention, lignes corrompues
+  comptées), dépôt, export zip `codeide-logs-<date>.zip` (UTC,
+  `logs.jsonl` + `device-info.txt`, nettoyage des 5 plus récents),
+  en-tête de session, module Hilt. ADR 0009.
+- `app` : initialisation de la journalisation dans le **processus
+  principal uniquement** (détection du nom de processus, repli `/proc`
+  pour API 26-27), `BuildInfo`/`DeviceSummary` (résumé non identifiant),
+  `DispatcherProvider` lié, FileProvider limité à `cache/exports/`,
+  premiers journaux (démarrage, navigation).
+- Tests : 67 nouveaux (104 verts au total) dont stress multi-threads
+  (intégrité, FIFO par producteur), rotation/rétention, temps virtuel du
+  groupement, export zip valide, expurgation exhaustive et intégration
+  bout-en-bout depuis l'application réelle.
+- Documentation : `docs/JOURNALISATION_ET_PLANTAGES.md`,
+  `docs/TESTS_MANUELS.md`, ADR 0009.
+
+### Corrigé
+
+- `checkModuleDependencies` : la consommation de `core:testing` en
+  `testImplementation` tombait à tort dans le contrôle de la liste
+  d'autorisation (les doubles de test sont précisément l'usage prévu par
+  la section 5.2) — le `continue` manquant est posé.
+
+### Notes techniques
+
+- La boucle de consommation retire par `tryReceive` en rafale : un
+  `withTimeoutOrNull` par entrée plafonnait le consommateur à ~13 000
+  entrées/s sur la machine de build et saturait le canal (perte ~60 %) ;
+  le goulot est documenté dans l'ADR 0009.
+- Le test de stress vérifie l'intégrité (aucune corruption, FIFO par
+  producteur, zéro échec d'écriture) et non un taux de livraison : la
+  perte sous surcharge est le comportement spécifié de `DROP_OLDEST`.
+- L'export et le vidage bloquant s'exécutent hors du thread principal ;
+  StrictMode (actif en debug) n'a rien relevé sur les parcours testés.
+
 ## [0.2.0] – 2026-09-22
 
 Étape 1 — Fondations transverses.
