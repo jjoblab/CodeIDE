@@ -182,7 +182,12 @@ remis (format section 14) puis attente du « GO ».
       core:model RaisonValidation fermé + TemplateParameterEvaluation élargi (type/choices/derived/section/errorReason) ; core:domain
       EvaluerNomProjetUseCase + CreationLocationUseCases [Resolve/Release/VerifyCreationTarget] + TemplateValidators → échecs structurés
       raison typée + message ; core:ui SimpleTextWatcher + style TextField.Dropdown ; 60 nouveaux tests ; ADR 0020-0022)
-- [ ] Étape 11 — Wizard (partie 2) → v0.12.0
+- [x] Étape 11 — Wizard (partie 2) → v0.12.0 (étapes 4 Fichiers [options communes TemplateOptions : README/.gitignore/.editorconfig, licence
+      pré-remplie auteur+année, langue du contenu FR/EN], 5 Récapitulatif [résumé par section + « Modifier », arborescence sèche repliable
+      Arborescence.kt] ; écran de création dans le wizard piloté par EtatCreation [ADR 0023] : progression, annulation = rollback domaine,
+      succès/échec typés ; CreateProjectRequest branché de bout en bout ; bouton « Créer le projet » ; mise en évidence à l'accueil via
+      AppNavigator [ADR 0024 : contour + défilement, identifiant dans la pile de retour] ; correctifs insets edge-to-edge onboarding/paramètres/
+      plantage + bouton debug non obstructif ; ADR 0023-0024)
 - [ ] Étape 12 — Diagnostic → v0.13.0
 - [ ] Étape 13 — Ouverture, finitions, audit → v0.14.0
 
