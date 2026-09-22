@@ -96,4 +96,55 @@ class FlattenedExceptionTest {
         assertEquals(aplatie.className, transformee.className)
         assertEquals(aplatie.frames, transformee.frames)
     }
+
+    @Test
+    fun `les exceptions supprimées sont aplaties et conservées`() {
+        val exception =
+            exceptionSansPile("principale").apply {
+                addSuppressed(exceptionSansPile("supprimée 1"))
+                addSuppressed(exceptionSansPile("supprimée 2"))
+            }
+
+        val aplatie = FlattenedException.from(exception)
+
+        assertEquals(2, aplatie.suppressed.size)
+        assertEquals("supprimée 1", aplatie.suppressed[0].message)
+        assertEquals("supprimée 2", aplatie.suppressed[1].message)
+        // Une exception sans cause ni supprimées n'en porte pas.
+        assertTrue(aplatie.suppressed[0].suppressed.isEmpty())
+    }
+
+    @Test
+    fun `les exceptions supprimées sont bornées par niveau`() {
+        val exception =
+            exceptionSansPile("principale").apply {
+                repeat(8) { indice -> addSuppressed(exceptionSansPile("supprimée $indice")) }
+            }
+
+        val aplatie = FlattenedException.from(exception)
+
+        assertEquals(FlattenedException.DEFAULT_MAX_SUPPRESSED, aplatie.suppressed.size)
+        // Ce sont les premières ajoutées qui sont conservées.
+        assertEquals("supprimée 0", aplatie.suppressed.first().message)
+    }
+
+    @Test
+    fun `une exception sans supprimées porte une liste vide`() {
+        val aplatie = FlattenedException.from(exceptionSansPile("seule"))
+
+        assertTrue(aplatie.suppressed.isEmpty())
+    }
+
+    @Test
+    fun `transformMessages transforme aussi les messages supprimés`() {
+        val exception =
+            exceptionSansPile("tete").apply {
+                addSuppressed(exceptionSansPile("secret@exemple.fr"))
+            }
+        val aplatie = FlattenedException.from(exception)
+
+        val transformee = aplatie.transformMessages { it?.uppercase() }
+
+        assertEquals("SECRET@EXEMPLE.FR", transformee.suppressed.single().message)
+    }
 }
