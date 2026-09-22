@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings of the crash screen (section 5.8). -->
+<resources>
+
+    <string name="crash_label_activite">CodeIDE diagnostics</string>
+
+    <string name="crash_titre_live">An unexpected problem occurred</string>
+    <string name="crash_message_live">The app had to stop. A report was saved to understand what happened — you can view, copy or share it.</string>
+    <string name="crash_titre_consultation">Crash report</string>
+    <string name="crash_message_consultation">Report saved during the last unexpected exit of the app.</string>
+
+    <string name="crash_resume_type">Type: %1$s</string>
+    <string name="crash_resume_ecran">Screen: %1$s</string>
+    <string name="crash_resume_version">Version: %1$s (code %2$d, %3$s)</string>
+    <string name="crash_resume_date">Date: %1$s</string>
+    <string name="crash_resume_appareil">Device: %1$s</string>
+    <string name="crash_ecran_inconnu">unknown</string>
+
+    <string name="crash_type_exception">exception</string>
+    <string name="crash_type_anr">not responding (ANR)</string>
+    <string name="crash_type_natif">native crash</string>
+
+    <string name="crash_conseil_boucle">The app crashed repeatedly. Automatic restart is disabled. Clearing the cache may help — your data is never touched.</string>
+    <string name="crash_bouton_vider_cache">Clear cache</string>
+    <string name="crash_vider_cache_titre">Clear the cache?</string>
+    <string name="crash_vider_cache_message">The app cache will be deleted. Your projects and settings are not affected.</string>
+    <string name="crash_vider_cache_confirmer">Clear</string>
+    <string name="crash_annuler">Cancel</string>
+    <string name="crash_cache_vide">Cache cleared</string>
+
+    <string name="crash_details_ouvrir">Technical details</string>
+    <string name="crash_details_masquer">Hide details</string>
+
+    <string name="crash_bouton_redemarrer">Restart the app</string>
+    <string name="crash_bouton_copier">Copy report</string>
+    <string name="crash_bouton_partager">Share (text)</string>
+    <string name="crash_bouton_zip">Share (archive)</string>
+    <string name="crash_bouton_enregistrer">Save report</string>
+    <string name="crash_bouton_fermer">Close</string>
+
+    <string name="crash_copie_confirmee">Report copied</string>
+    <string name="crash_enregistrement_confirme">Report saved</string>
+    <string name="crash_archive_impossible">The archive could not be created</string>
+    <string name="crash_redemarrage_impossible">The app cannot be relaunched</string>
+    <string name="crash_partage_sujet">CodeIDE — crash report</string>
+    <string name="crash_partager_via">Share the report via</string>
+    <string name="crash_libelle_presse_papiers">CodeIDE crash report</string>
+
+    <string name="crash_introuvable_titre">Report unavailable</string>
+    <string name="crash_introuvable_message">This report no longer exists or could not be read. It may have been deleted.</string>
+
+</resources>

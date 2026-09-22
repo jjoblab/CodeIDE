@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chemins exposés par le FileProvider du processus :crash (ADR 0010) :
+  uniquement le répertoire d'export des archives de plantage — rien d'autre
+  n'est partageable depuis l'écran dédié.
+-->
+<paths>
+    <cache-path
+        name="crash_exports"
+        path="crash_exports/" />
+</paths>

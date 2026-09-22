@@ -1,2 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Écran de plantage et fournisseur d'archives (section 5.8 du prompt
+      maître) : processus séparé :crash, invisible des autres applications,
+      hors écran récents, affinité de tâche dédiée.
+
+      Le FileProvider CI-DESSOUS vit aussi dans le processus :crash — c'est
+      l'ADR 0010 : partager une archive depuis l'écran de plantage ne doit
+      jamais ressusciter le processus principal mort.
+    -->
+    <application>
+
+        <activity
+            android:name="jo.codeide.core.crash.ui.CrashActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:process=":crash"
+            android:taskAffinity="jo.codeide.crash"
+            android:theme="@style/Theme.CodeIDE"
+            android:label="@string/crash_label_activite" />
+
+        <provider
+            android:name="jo.codeide.core.crash.CrashFileProvider"
+            android:authorities="${applicationId}.crashprovider"
+            android:exported="false"
+            android:grantUriPermissions="true"
+            android:process=":crash">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/crash_file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>
