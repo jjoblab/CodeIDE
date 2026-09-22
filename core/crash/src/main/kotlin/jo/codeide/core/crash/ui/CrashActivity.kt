@@ -8,9 +8,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import jo.codeide.core.crash.CrashLimits
 import jo.codeide.core.crash.CrashReportFileStore
 import jo.codeide.core.crash.CrashReportFormatter
@@ -54,8 +58,28 @@ class CrashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         binding = ActivityCrashBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Contenu edge-to-edge : l'écran de plantage s'étend aussi sous les
+        // barres système — la racine les absorbe pour garder titres et
+        // actions visibles et cliquables (même correctif que l'assistant).
+        val paddingGauche = binding.root.paddingLeft
+        val paddingDroite = binding.root.paddingRight
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { vue, insets ->
+            val barres =
+                insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                )
+            vue.updatePadding(
+                top = barres.top,
+                bottom = barres.bottom,
+                left = paddingGauche + barres.left,
+                right = paddingDroite + barres.right,
+            )
+            insets
+        }
 
         store = CrashReportFileStore(File(filesDir, CrashLimits.DIRECTORY_NAME))
         mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_VIEW

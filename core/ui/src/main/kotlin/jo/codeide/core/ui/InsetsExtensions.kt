@@ -56,3 +56,35 @@ public fun View.applyImeBottomInset() {
         insets
     }
 }
+
+/**
+ * Comme [applySystemBarsInsets], mais le padding bas suit **aussi** le
+ * clavier virtuel : la vue remonte quand l'IME s'ouvre (et redescend à sa
+ * fermeture, en gardant la marge de la barre de navigation).
+ *
+ * Destiné aux écrans à barre d'actions inférieure qui ne doit jamais
+ * passer sous le clavier (assistant, wizard). Nécessite
+ * `android:windowSoftInputMode="adjustResize"` pour recevoir les insets
+ * IME sur les API antérieures à 30.
+ *
+ * @param top absorber la barre d'état (et l'encoche) en haut.
+ * @param bottom absorber le maximum de (barre de navigation, clavier) en bas.
+ */
+public fun View.applySystemBarsAndImeInsets(
+    top: Boolean,
+    bottom: Boolean,
+) {
+    val initiaux = PaddingsInitiaux(paddingLeft, paddingTop, paddingRight, paddingBottom)
+    ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
+        val barres =
+            insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+            )
+        val clavier = insets.getInsets(WindowInsetsCompat.Type.ime())
+        vue.updatePadding(
+            top = initiaux.haut + if (top) barres.top else 0,
+            bottom = initiaux.bas + if (bottom) maxOf(barres.bottom, clavier.bottom) else 0,
+        )
+        insets
+    }
+}

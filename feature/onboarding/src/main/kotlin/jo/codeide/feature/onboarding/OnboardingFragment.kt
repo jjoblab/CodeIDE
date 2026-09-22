@@ -13,6 +13,7 @@ import com.google.android.material.transition.MaterialSharedAxis
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.onboarding.databinding.FragmentOnboardingBinding
 import javax.inject.Inject
@@ -62,6 +63,11 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Contenu edge-to-edge : la racine absorbe barres système et clavier
+        // — la barre d'actions « Commencer / Suivant » doit rester visible
+        // et cliquable au-dessus de la barre de navigation comme du clavier.
+        binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, retourPage)
 

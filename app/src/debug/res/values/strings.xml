@@ -4,7 +4,6 @@
   jamais embarquées dans une build release.
 -->
 <resources>
-    <string name="debug_menu_bouton">Menu debug</string>
     <string name="debug_menu_description">Ouvrir le menu de diagnostic de développement</string>
     <string name="debug_menu_titre">Diagnostic de développement</string>
     <string name="debug_action_plantage">Provoquer un plantage</string>
