@@ -155,6 +155,36 @@ jamais d'un état UI divergent.
   `CrashAppInfo` injecté), type de build, licences open source
   embarquées.
 
+## Accueil : liste des projets (étape 7 — livrée à v0.8.0)
+
+`feature:home` rend le registre des projets exploitable : liste
+(`ListAdapter` + `DiffUtil` — le projet et son état d'accès forment
+l'identité de la ligne), recherche avec délai (250 ms, insensible à la
+casse et aux accents), tri Récents/Nom (épingles **toujours** en tête),
+états soignés (chargement, vide, sans résultat, erreur avec réessai,
+bandeau « dossier de travail non configuré » de l'étape 5).
+
+- **Statut d'accès** (section 5.6) : `VerifyProjectAccessUseCase`
+  recalculé à chaque affichage, au tirer-relâcher et après toute action
+  qui déplace un dossier — jamais persisté. Un projet `Introuvable` ou
+  `Permission perdue` est signalé par un badge sur sa ligne et résolu
+  par « Relocaliser » / « Retirer » dans son menu d'actions, sans crash.
+- **Actions par projet** : ouvrir (marquage « ouvert », placeholder
+  éditeur jusqu'à l'étape 13), renommer (libellé seul, ADR 0012),
+  épingler, retirer de la liste, **supprimer du disque** — confirmation
+  avec rappel du nom, disque d'abord puis registre (ADR 0016).
+- **Import de dossier existant** : « Ouvrir un dossier existant »
+  (sélecteur SAF) ajoute le dossier au registre avec la sentinelle
+  `TemplateId.IMPORTED` ; un choix dans l'arbre du dossier de travail
+  hérite de sa permission — l'URI de document est réadressée dans cet
+  arbre (`ArborescencesSaf.uriDocumentDansArbre`) pour rester comparable
+  par la règle de libération conditionnelle (ADR 0015).
+- **Adaptatif** : 1 colonne téléphone, 2 colonnes tablette/paysage
+  (`layout-sw600dp`, `GridLayoutManager`).
+- **Wizard** : le bouton étendu « Nouveau projet » mène au placeholder
+  de `feature:newproject` — la machine à états complète arrive à
+  l'étape 10.
+
 ## Gestion des erreurs et résultats
 
 - `AppResult<out T>` : `Success(value)` | `Failure(error: AppError)`.

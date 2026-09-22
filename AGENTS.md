@@ -144,7 +144,14 @@ remis (format section 14) puis attente du « GO ».
       ClearWorkspaceUseCase (ancienne permission libérée seulement si aucun projet n'en dépend) + ResetPreferencesUseCase (états conservés, ADR 0014) +
       port ArborescencesSaf (SafArborescences dans core:storage, FakeArborescencesSaf dans core:testing) ; onboarding délègue la validation au use case partagé ;
       navigation paramètres → assistant)
-- [ ] Étape 7 — Accueil → v0.8.0
+- [x] Étape 7 — Accueil → v0.8.0 (`feature:home` liste complète : HomeViewModel UDF (EtatAccueil/ActionAccueil/EffetAccueil, recherche à délai 250 ms + tri
+      SavedStateHandle, états chargement/vide/sans résultat/erreur+réessai), ProjetsAccueilAdapter ListAdapter+DiffUtil (ligne = projet + état d'accès),
+      statut d'accès recalculé à l'affichage/au tirer-relâcher/jamais persisté avec résolution Relocaliser/Retirer, actions par projet (ouvrir/renommer
+      validé/épingler/retirer/supprimer du disque avec rappel du nom), FAB étendu Nouveau projet + Ouvrir un dossier existant, sw600dp 2 colonnes ;
+      core:domain ImportExistingFolderUseCase + RelocalizeProjectUseCase (héritage de la permission du dossier de travail via
+      ArborescencesSaf.uriDocumentDansArbre, sentinelle TemplateId.IMPORTED, ADR 0015) + DeleteProjectOnDiskUseCase + RemoveProjectUseCase enrichi
+      (libération conditionnelle, ADR 0016) + aides partagées testerEcriture/libelleLisible/libererPermissionSiInutilisee ;
+      ProjectRepository.updateLocation (Room + fake) ; feature:newproject placeholder ; AppNavigator.openNewProjectWizard ; ADR 0015-0016)
 - [ ] Étape 8 — Moteur de templates → v0.9.0
 - [ ] Étape 9 — Modèles Kotlin/Java → v0.10.0
 - [ ] Étape 10 — Wizard (partie 1) → v0.11.0

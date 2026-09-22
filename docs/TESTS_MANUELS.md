@@ -122,7 +122,32 @@ dossier de travail configuré (O3) pour M3-M5.
 | M4 | Créer un projet dans l'ancien dossier (menu debug ou étape 7), puis changer le dossier de travail | Le message signale la **permission conservée** ; l'ancienne URI **reste** dans `persistedUriPermissions` (le projet l'utilise) ; la nouvelle est tenue |
 | M5 | Paramètres → Avancé : « Réinitialiser les préférences » (confirmer), puis « Relancer l'assistant » | Après réinitialisation : thème système, couleurs dynamiques actives, langue système, dossier non configuré — mais l'app reste installée (pas d'assistant au simple relancement, registre intact) ; « Relancer l'assistant » ouvre l'assistant, le terminer referme sur l'accueil |
 
+## Accueil : liste des projets (étape 7 → v0.8.0)
+
+Le ViewModel (états, recherche avec délai, tris, états d'accès, actions)
+et les cas d'usage du domaine (import, relocalisation, suppression,
+équilibre des permissions) sont couverts par les tests JVM ; les
+procédures suivantes valident le **parcours réel à l'écran** (sélecteur
+SAF, permissions, tirer-relâcher, tablette).
+
+Préambule commun : installation de l'app, assistant terminé (O6), un
+dossier de travail configuré (O3). `dumpsys` désigne
+`adb shell dumpsys package jo.codeide | grep -A4 persistedUriPermissions`.
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| A1 | Accueil vide (aucun projet) : vérifier l'état, puis « Nouveau projet » | Illustration + message « Aucun projet pour l'instant » + bouton « Nouveau projet » ; le bouton ouvre l'écran placeholder du wizard (étape 10) ; retour système → accueil |
+| A2 | « Ouvrir un dossier existant » (petit FAB) → choisir un dossier **hors** du dossier de travail, inscriptible | Snackbar « Projet "<nom>" ajouté » ; la ligne apparaît (pastille dossier, nom, emplacement lisible, « à l'instant ») ; `dumpsys` : l'URI de l'arbre choisi est tenue |
+| A3 | « Ouvrir un dossier existant » → choisir un **sous-dossier du dossier de travail** | Le projet est ajouté **sans nouvelle permission** dans `dumpsys` (héritage, ADR 0015) ; retirer ce projet de la liste ne libère rien ; l'entrée du dossier de travail reste unique |
+| A4 | Recherche : taper « kot » (projets « Application Kotlin », « Serveur HTTP »), puis effacer | Les frappes se fondent (~250 ms) : la liste ne filtre qu'après une pause de frappe ; « sans résultat » affiche « Aucun projet ne correspond à "kot" » + bouton « Effacer la recherche » qui restaure tout ; accents et casse ignorés (« theses » trouve « Thèses ») |
+| A5 | Tri : ouvrir un projet, épingler un autre, basculer « Nom » / « Récents » | L'épinglé flotte **toujours** en tête ; « Récents » ordonne par dernier ouvert (jamais ouverts en fin) ; « Nom » ordonne alphabétiquement ; le choix survit à la rotation |
+| A6 | Actions d'un projet (⋮ ou toucher la carte) : renommer (nom vide, puis valide) ; épingler ; retirer | Le menu liste Ouvrir/Renommer/Épingler/Retirer de la liste/Supprimer du disque ; nom vide refusé avec message ; renommage : libellé seul (le dossier ne bouge pas, ADR 0012) ; retirer : snackbar « Projet retiré de la liste » et le dossier existe toujours (vérifiable via un explorateur) |
+| A7 | Supprimer du disque : confirmer, puis refuser une fois | Le message rappelle le **nom** du projet et l'irréversibilité ; annulation ne fait rien ; confirmation : snackbar « Projet supprimé du disque » et le dossier a disparu du stockage ; si l'arbre n'a plus de projet ni dossier de travail, sa permission quitte `dumpsys` |
+| A8 | État d'accès : révoquer la permission (`adb shell pm revoke`… ou retirer le dossier côté stockage), puis tirer-relâcher la liste | La ligne affiche « Permission perdue » (ou « Introuvable » si le dossier a été supprimé) **sans crash** ; les actions de résolution (Relocaliser / Retirer) ouvrent le menu ; re-sélectionner le dossier via « Relocaliser » rétablit l'accès et l'état redevient sain au prochain rafraîchissement |
+| A9 | Rotation + mort du processus pendant la consultation | Recherche, tri et position générale restaurées (SavedStateHandle) ; les états d'accès se recalculent (jamais persistés) |
+| A10 | Tablette (ou émulateur sw600dp) : consulter l'accueil | La liste passe en **2 colonnes** ; sur téléphone : 1 colonne ; les FAB restent accessibles, le bouton « Ouvrir un dossier existant » au-dessus de « Nouveau projet » |
+
 ## À venir
 
-- **Étape 7+** : liste des projets, statut d'accès, actions.
 - **Étape 12+** : écran Diagnostic (entrée Avancé).
+- **Étape 13+** : ouverture réelle d'un projet dans l'éditeur.
