@@ -1,0 +1,12 @@
+{
+  "template.name": "Fixture",
+  "template.description": "Modèle de test éprouvant le moteur",
+  "param.type.label": "Type",
+  "param.type.help": "Application ou bibliothèque",
+  "param.extras.label": "Suppléments",
+  "param.package.label": "Paquet",
+  "param.group.label": "Groupe",
+  "param.version.label": "Version",
+  "param.cache.label": "Caché",
+  "msg.hello": "Bonjour le monde"
+}

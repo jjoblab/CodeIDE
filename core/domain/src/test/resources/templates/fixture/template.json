@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture",
+  "templateVersion": "1.2.3",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "test",
+  "iconKey": "template.icon",
+  "tags": ["test", "jvm"],
+  "parameters": [
+    {
+      "id": "projectType",
+      "type": "CHOICE",
+      "labelKey": "param.type.label",
+      "helpKey": "param.type.help",
+      "choices": ["application", "library"],
+      "default": "application",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "withExtras",
+      "type": "BOOLEAN",
+      "labelKey": "param.extras.label",
+      "default": "false",
+      "visibleWhen": "projectType == \"application\"",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.package.label",
+      "defaultFrom": "packageFromNameAndAuthor",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "groupId",
+      "type": "TEXT",
+      "labelKey": "param.group.label",
+      "defaultFrom": "parentPackage",
+      "section": "INFORMATION",
+      "persist": false
+    },
+    {
+      "id": "version",
+      "type": "TEXT",
+      "labelKey": "param.version.label",
+      "default": "0.1.0",
+      "validator": "semver",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "toujoursCache",
+      "type": "TEXT",
+      "labelKey": "param.cache.label",
+      "default": "ne-pas-persister",
+      "visibleWhen": "false",
+      "section": "CONFIGURATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    { "name": "estApplication", "expression": "projectType == \"application\"" }
+  ],
+  "files": [
+    {
+      "path": "src/{{packageName|packagePath}}/Main.txt",
+      "source": "files/main.txt.tpl"
+    },
+    {
+      "path": "src/{{packageName|packagePath}}/App.txt",
+      "source": "files/app.txt.tpl",
+      "when": "estApplication"
+    },
+    {
+      "path": "src/{{packageName|packagePath}}/Lib.txt",
+      "source": "files/lib.txt.tpl",
+      "when": "!estApplication"
+    },
+    {
+      "path": "EXTRA.txt",
+      "source": "files/extra.txt.tpl",
+      "when": "withExtras"
+    },
+    {
+      "path": "README.md",
+      "source": "files/readme.md.tpl",
+      "when": "includeReadme",
+      "group": "readme"
+    },
+    {
+      "path": "data.bin",
+      "source": "files/data.bin",
+      "binary": true
+    },
+    {
+      "path": "hostile.txt",
+      "source": "files/hostile.txt.tpl"
+    }
+  ]
+}

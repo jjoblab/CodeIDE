@@ -3,6 +3,9 @@
 
 plugins {
     id("codeide.kotlin.library")
+    // Manifestes de templates déclaratifs (étape 8, ADR 0005) : DTO internes
+    // analysés par kotlinx.serialization (1.9.0, compagnon du Kotlin 2.2.10).
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kover)
 }
 
@@ -15,6 +18,9 @@ dependencies {
     // @Inject sur DefaultDispatcherProvider (injection par constructeur,
     // consommée par Hilt dans app).
     implementation(libs.javax.inject)
+
+    // Lecture des manifestes template.json (DTO internes au moteur).
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlinx.coroutines.test)
     // Fakes de test pour les cas d'usage de journalisation (testImplementation
