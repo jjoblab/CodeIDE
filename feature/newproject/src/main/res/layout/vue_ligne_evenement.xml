@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une ligne d'événement de la progression de création (section 12.3) :
+  point d'état (en cours / fait) et libellé.
+-->
+<!-- tools:ignore ciblé (UseCompoundDrawables) : le point d'état est un
+     indicateur visuel indépendant (opacité animée courant/passé), pas un
+     glyphe décoratif du texte — un drawable composé ne porterait pas la
+     cible tactile de la ligne. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/touch_target_min"
+    android:orientation="horizontal"
+    tools:ignore="UseCompoundDrawables">
+
+    <ImageView
+        android:id="@+id/icone_etat"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:contentDescription="@null"
+        android:src="@drawable/point_evenement_creation" />
+
+    <TextView
+        android:id="@+id/texte_evenement"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Génération des fichiers (3/8)…" />
+</LinearLayout>

@@ -7,7 +7,6 @@ import androidx.test.core.app.ApplicationProvider
 import jo.codeide.feature.newproject.databinding.FragmentNewprojectBinding
 import jo.codeide.feature.newproject.test.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,7 +29,7 @@ class NewProjectFragmentTest {
     fun `l indicateur porte le libellé localise de la premiere etape`() {
         val liaison = FragmentNewprojectBinding.inflate(LayoutInflater.from(contexte()))
 
-        // Trois étapes livrées à l'étape 10 : progression initiale 1/3.
+        // Cinq étapes livrées (étapes 10-11) : progression initiale 1/5.
         assertEquals(ETAPES_WIZARD.size, liaison.indicateurEtapes.max)
         assertEquals(1, liaison.indicateurEtapes.progress)
     }
@@ -61,9 +60,18 @@ class NewProjectFragmentTest {
             contexte().getString(R.string.newproject_title),
             liaison.barreOutils.title.toString(),
         )
-        // Le cadre est prêt pour l'étape 11 : liste configurable, pas de when dispersé.
-        assertEquals(listOf(EtapeId.MODELE, EtapeId.CONFIGURATION, EtapeId.INFORMATIONS), ETAPES_WIZARD.map { it.id })
+        // Liste configurable (section 12.2), pas de when dispersé — les cinq
+        // étapes numérotées de la section 12.3 sont déclarées, dans l'ordre.
+        assertEquals(
+            listOf(
+                EtapeId.MODELE,
+                EtapeId.CONFIGURATION,
+                EtapeId.INFORMATIONS,
+                EtapeId.FICHIERS,
+                EtapeId.RECAPITULATIF,
+            ),
+            ETAPES_WIZARD.map { it.id },
+        )
         assertTrue(ETAPES_WIZARD.isNotEmpty())
-        assertFalse(ETAPES_WIZARD.any { it.id == EtapeId.RECAPITULATIF })
     }
 }

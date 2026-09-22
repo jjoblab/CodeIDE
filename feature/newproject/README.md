@@ -1,8 +1,7 @@
 # feature/newproject — Fonctionnalité — wizard de création de projet
 
-> Statut étape 10 (v0.11.0) : cadre complet + étapes 1 à 3 livrées
-> (section 12 du prompt maître, ADR 0020-0022). Les étapes Fichiers,
-> Récapitulatif et l'écran de création arrivent à l'étape 11.
+> Statut étape 11 (v0.12.0) : wizard **complet** — cinq étapes + écran de
+> création (section 12 du prompt maître, ADR 0020-0024).
 
 Wizard de création en cinq étapes numérotées (Modèle, Configuration,
 Informations et emplacement, Fichiers, Récapitulatif) puis écran de
@@ -11,7 +10,7 @@ partagé scopé à l'hôte, rendu dynamique des paramètres depuis le moteur
 de templates, champs dérivés qui suivent leurs sources tant que non
 modifiés à la main.
 
-## Structure (étape 10)
+## Structure (étapes 10-11)
 
 - **`NewProjectFragment`** (hôte, ADR 0020) : barre d'outils (✕ + dialogue
   d'abandon), indicateur « Étape N sur M », conteneur d'étapes, barre
@@ -29,6 +28,16 @@ modifiés à la main.
 - **`EtapeInformationsFragment`** (étape 3) : nom, description,
   paramètres INFORMATION dérivés, carte d'emplacement (ADR 0022) avec
   vérifications asynchrones.
+- **`EtapeFichiersFragment`** (étape 4) : interrupteurs des fichiers
+  optionnels, licence pré-remplie des Paramètres (auteur + année),
+  langue du contenu générée (boutons segmentés FR/EN) → `TemplateOptions`.
+- **`EtapeRecapitulatifFragment`** (étape 5) : résumé par section avec
+  boutons « Modifier » (retour arrière direct), **arborescence prévue
+  repliable** (`Arborescence` : transformation pure du plan dry-run).
+- **`EcranCreationFragment`** + `EtatCreation` (ADR 0023) : progression
+  temps réel du flot de `CreateProjectUseCase`, Annuler = rollback
+  domaine, succès (ouvrir/accueil/autre projet), échec typé avec
+  Réessayer et Copier les détails.
 - **`ModelesAdapter`** : cartes du catalogue (DiffUtil, recherche sans
   casse ni accents).
 
@@ -43,8 +52,8 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 
 - **`NewProjectFragment`** — destination `newproject` du graphe de
   navigation (action `action_home_to_newproject`).
-- Étapes 4 (Fichiers), 5 (Récapitulatif) et écran de création avec
-  progression et rollback (étape 11).
+- Mise en évidence du projet créé à l'accueil (ADR 0024 : identifiant
+  transmis via la pile de retour, consommé par `HomeFragment`).
 
 ## Vérifications du module
 

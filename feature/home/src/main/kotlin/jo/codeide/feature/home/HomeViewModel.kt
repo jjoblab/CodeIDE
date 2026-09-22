@@ -177,6 +177,10 @@ class HomeViewModel
                 ActionAccueil.Reessayer -> {
                     observerRegistre()
                 }
+
+                is ActionAccueil.SurlignerProjet -> {
+                    etatInterne.update { it.copy(projetEnEvidence = action.id) }
+                }
             }
         }
 

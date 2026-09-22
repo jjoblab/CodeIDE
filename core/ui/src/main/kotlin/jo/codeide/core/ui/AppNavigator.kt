@@ -65,4 +65,26 @@ public interface AppNavigator {
      * n'est pas une navigation réversible.
      */
     public fun openHome(): Unit
+
+    /**
+     * Referme le wizard de création après une **création réussie** et
+     * signale à l'accueil le projet à mettre en évidence (étape 11,
+     * section 12.3 : « le nouveau projet apparaît, mis en évidence »).
+     *
+     * L'identifiant transite par le `SavedStateHandle` de l'entrée d'accueil
+     * (pile de retour) : il survit à la recréation de l'activité et ne
+     * dépend d'aucun singleton.
+     *
+     * @param projectId identifiant du projet créé.
+     */
+    public fun wizardCreeProjet(projectId: String): Unit
+
+    /**
+     * Consomme l'identifiant du dernier projet créé signalé par le wizard
+     * (étape 11) : le récepteur — l'accueil — l'utilise pour le défilement
+     * et le surlignage, une seule fois.
+     *
+     * @return l'identifiant en attente, ou `null` s'il n'y en a pas.
+     */
+    public fun consommerProjetCree(): String?
 }

@@ -1,25 +1,30 @@
 package jo.codeide.feature.newproject
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.MarkProjectOpenedUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ReleaseCreationLocationUseCase
 import jo.codeide.core.domain.ResolveCreationLocationUseCase
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.VerifyCreationTargetUseCase
+import jo.codeide.core.domain.templates.CreateProjectUseCase
 import jo.codeide.core.domain.templates.EvaluateTemplateFormUseCase
 import jo.codeide.core.domain.templates.EvaluerNomProjetUseCase
 import jo.codeide.core.domain.templates.GeneratorVersion
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.domain.templates.LoadedTemplate
+import jo.codeide.core.domain.templates.PlanProjectCreationUseCase
 import jo.codeide.core.domain.templates.ProjectTemplateProvider
 import jo.codeide.core.domain.templates.TemplateEngine
 import jo.codeide.core.domain.templates.TemplateProjectPlanner
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
+import jo.codeide.core.model.License
 import jo.codeide.core.model.ProjectTemplate
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.TemplateParameter
 import jo.codeide.core.model.TemplateParameterType
 import jo.codeide.core.model.TemplateSection
@@ -39,6 +44,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -181,20 +187,31 @@ class WizardViewModelTest {
         val fournisseur = FauxFournisseur()
         val planificateur =
             TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
-        viewModel =
-            WizardViewModel(
-                listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
-                evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
-                evaluerNom = EvaluerNomProjetUseCase(),
-                resoudreEmplacement =
-                    ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
-                relacherEmplacement = ReleaseCreationLocationUseCase(parametres, depot, fichiers),
-                verifierCible = VerifyCreationTargetUseCase(fichiers),
-                observerParametres = ObserveSettingsUseCase(parametres),
-                journal = journal,
-                savedState = SavedStateHandle(),
-            )
+        viewModel = construire(planificateur, fournisseur, SavedStateHandle())
     }
+
+    /** Construit le ViewModel complet (y compris la création, étape 11). */
+    private fun construire(
+        planificateur: TemplateProjectPlanner,
+        fournisseur: ProjectTemplateProvider,
+        sauvegarde: SavedStateHandle,
+    ): WizardViewModel =
+        WizardViewModel(
+            listerModeles = ListTemplatesUseCase(setOf(fournisseur), TemplateEngine(FakeTemplateAssetsSource())),
+            evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+            evaluerNom = EvaluerNomProjetUseCase(),
+            resoudreEmplacement =
+                ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
+            relacherEmplacement = ReleaseCreationLocationUseCase(parametres, depot, fichiers),
+            verifierCible = VerifyCreationTargetUseCase(fichiers),
+            planifierCreation = PlanProjectCreationUseCase(planificateur),
+            creerProjet = CreateProjectUseCase(planificateur, fichiers, depot, journal),
+            marquerOuvert = MarkProjectOpenedUseCase(depot),
+            horloge = horloge,
+            observerParametres = ObserveSettingsUseCase(parametres),
+            journal = journal,
+            savedState = sauvegarde,
+        )
 
     /** Version de générateur factice (jamais affichée dans ces tests). */
     private class VersionTest : GeneratorVersion {
@@ -589,6 +606,273 @@ class WizardViewModelTest {
             )
         }
 
+    // ---------------------------------------- étape 4 : fichiers
+
+    @Test
+    fun `les options de fichiers se changent et survivent à la mort du processus`() =
+        runTest {
+            advanceUntilIdle()
+
+            viewModel.action(ActionWizard.BasculerFichier(FichierOptionnel.GITIGNORE, false))
+            viewModel.action(ActionWizard.ChoisirLicence(License.MIT))
+            viewModel.action(ActionWizard.ChoisirLangueContenu("fr"))
+            advanceUntilIdle()
+
+            val options = viewModel.etat.value.options
+            assertEquals(
+                TemplateOptions(includeGitignore = false, license = License.MIT, contentLanguage = "fr"),
+                options,
+            )
+
+            val relance = relancerDepuisSauvegarde()
+            advanceUntilIdle()
+
+            assertEquals(options, relance.etat.value.options)
+        }
+
+    @Test
+    fun `une langue de contenu inconnue est ignorée`() =
+        runTest {
+            advanceUntilIdle()
+
+            viewModel.action(ActionWizard.ChoisirLangueContenu("de"))
+            advanceUntilIdle()
+
+            assertEquals(TemplateOptions.LANGUE_DEFAUT, viewModel.etat.value.options.contentLanguage)
+        }
+
+    @Test
+    fun `l étape fichiers est toujours valide`() =
+        runTest {
+            advanceUntilIdle()
+
+            assertTrue(
+                viewModel.etat.value
+                    .copy(etape = EtapeId.FICHIERS)
+                    .etapeValide,
+            )
+        }
+
+    // ---------------------------------- étape 5 : récapitulatif
+
+    @Test
+    fun `le récapitulatif calcule le plan en entrant`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+
+            assertFalse(viewModel.etat.value.chargementPlan)
+            assertFalse(viewModel.etat.value.erreurPlan)
+            val plan = viewModel.etat.value.plan
+            assertNotNull(plan)
+            // Le registre embarqué est toujours planifié (section 11).
+            assertTrue(plan!!.fichiers.any { it.chemin == ".codeide/project.json" })
+        }
+
+    @Test
+    fun `AllerEtape ne remonte jamais vers l avant`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+
+            // Retour arrière depuis le récapitulatif : direct.
+            viewModel.action(ActionWizard.AllerEtape(EtapeId.MODELE))
+            advanceUntilIdle()
+            assertEquals(EtapeId.MODELE, viewModel.etat.value.etape)
+
+            // Vers l'avant : toujours ignoré (aucun raccourci qui
+            // esquiverait les gardes de validité).
+            viewModel.action(ActionWizard.Suivant)
+            advanceUntilIdle()
+            assertEquals(EtapeId.CONFIGURATION, viewModel.etat.value.etape)
+            viewModel.action(ActionWizard.AllerEtape(EtapeId.RECAPITULATIF))
+            advanceUntilIdle()
+            assertEquals(EtapeId.CONFIGURATION, viewModel.etat.value.etape)
+        }
+
+    @Test
+    fun `l état du récapitulatif survit à la mort du processus et replanifie`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            assertNotNull(viewModel.etat.value.plan)
+
+            val relance = relancerDepuisSauvegarde()
+            advanceUntilIdle()
+
+            assertEquals(EtapeId.RECAPITULATIF, relance.etat.value.etape)
+            assertNotNull(relance.etat.value.plan)
+        }
+
+    // ------------------------------------------- création (étape 11)
+
+    @Test
+    fun `la création réussit publie le succès et émet ProjetCree`() =
+        runTest {
+            val effets = mutableListOf<EffetWizard>()
+            val collecteur =
+                launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+                    viewModel.effets.toList(effets)
+                }
+
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+
+            // Succès : le projet est en base, l'utilisateur reste sur
+            // l'écran de succès — aucun effet tant qu'il ne referme pas.
+            val creation = viewModel.etat.value.etatCreation
+            assertTrue(creation is EtatCreation.Succes)
+            val projet = (creation as EtatCreation.Succes).projet
+            assertEquals(1, depot.projets.size)
+            assertEquals(projet.id, depot.projets.single().id)
+            assertTrue(effets.isEmpty())
+
+            viewModel.action(ActionWizard.RetourAccueil)
+            advanceUntilIdle()
+            assertTrue(effets.contains(EffetWizard.ProjetCree(projet.id)))
+            collecteur.cancel()
+        }
+
+    @Test
+    fun `la création annulée ramène au récapitulatif sans rien écrire`() =
+        runTest {
+            val lent =
+                object : jo.codeide.core.domain.FileSystem by fichiers {
+                    override suspend fun createDirectory(
+                        parentDirectoryUri: String,
+                        name: String,
+                    ): AppResult<String> {
+                        kotlinx.coroutines.delay(60_000)
+                        return fichiers.createDirectory(parentDirectoryUri, name)
+                    }
+                }
+            val moteur = TemplateEngine(FakeTemplateAssetsSource())
+            val fournisseur = FauxFournisseur()
+            val planificateur =
+                TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
+            val lentViewModel =
+                WizardViewModel(
+                    listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
+                    evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+                    evaluerNom = EvaluerNomProjetUseCase(),
+                    resoudreEmplacement =
+                        ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
+                    relacherEmplacement = ReleaseCreationLocationUseCase(parametres, depot, fichiers),
+                    verifierCible = VerifyCreationTargetUseCase(fichiers),
+                    planifierCreation = PlanProjectCreationUseCase(planificateur),
+                    creerProjet = CreateProjectUseCase(planificateur, lent, depot, journal),
+                    marquerOuvert = MarkProjectOpenedUseCase(depot),
+                    horloge = horloge,
+                    observerParametres = ObserveSettingsUseCase(parametres),
+                    journal = journal,
+                    savedState = SavedStateHandle(),
+                )
+            advanceUntilIdle()
+
+            preparerEmplacementEtModele(lentViewModel)
+            avancerJusquaRecapitulatif(lentViewModel)
+
+            lentViewModel.action(ActionWizard.Creer)
+            runCurrent()
+            assertTrue(lentViewModel.etat.value.etatCreation is EtatCreation.EnCours)
+
+            lentViewModel.action(ActionWizard.AnnulerCreation)
+            advanceUntilIdle()
+
+            assertTrue(lentViewModel.etat.value.etatCreation is EtatCreation.Inactif)
+            assertEquals(EtapeId.RECAPITULATIF, lentViewModel.etat.value.etape)
+            assertTrue(depot.projets.isEmpty())
+        }
+
+    @Test
+    fun `une collision pendant la création publie l échec typé`() =
+        runTest {
+            preparerEmplacementEtModele()
+            // Un dossier du même nom existe déjà : la création échoue au
+            // moment de créer la racine (jamais d'écrasement).
+            fichiers.seedDocument(
+                arborescences.uriDocument("content://autorite/tree/travail")!! + "/monprojet",
+                FakeFileSystem.Document(name = "monprojet", isDirectory = true),
+            )
+            avancerJusquaRecapitulatif()
+
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+
+            val creation = viewModel.etat.value.etatCreation
+            assertTrue(creation is EtatCreation.Echec)
+            val echec = creation as EtatCreation.Echec
+            assertTrue(echec.erreur is jo.codeide.core.model.AppError.Storage)
+            assertTrue(depot.projets.isEmpty())
+        }
+
+    @Test
+    fun `RetourRecapitulatif referme l écran d échec sans relancer`() =
+        runTest {
+            preparerEmplacementEtModele()
+            fichiers.seedDocument(
+                arborescences.uriDocument("content://autorite/tree/travail")!! + "/monprojet",
+                FakeFileSystem.Document(name = "monprojet", isDirectory = true),
+            )
+            avancerJusquaRecapitulatif()
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+            assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Echec)
+
+            viewModel.action(ActionWizard.RetourRecapitulatif)
+            advanceUntilIdle()
+
+            assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Inactif)
+            assertEquals(EtapeId.RECAPITULATIF, viewModel.etat.value.etape)
+        }
+
+    @Test
+    fun `OuvrirProjetCree marque l ouverture et émet ProjetCree`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+            val projet = (viewModel.etat.value.etatCreation as EtatCreation.Succes).projet
+            assertNull(depot.projets.single().lastOpenedAtMillis)
+
+            val effets = mutableListOf<EffetWizard>()
+            val collecteur =
+                launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+                    viewModel.effets.toList(effets)
+                }
+            viewModel.action(ActionWizard.OuvrirProjetCree)
+            advanceUntilIdle()
+            collecteur.cancel()
+
+            assertEquals(10_000L, depot.projets.single().lastOpenedAtMillis)
+            assertTrue(effets.contains(EffetWizard.ProjetCree(projet.id)))
+        }
+
+    @Test
+    fun `Recommencer remet à zéro en conservant le modèle`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+            assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Succes)
+
+            viewModel.action(ActionWizard.Recommencer(garderModele = true))
+            advanceUntilIdle()
+
+            val etat = viewModel.etat.value
+            assertEquals(EtapeId.MODELE, etat.etape)
+            assertEquals(TemplateId("kotlin-jvm"), etat.templateId)
+            assertEquals("", etat.nomProjet)
+            assertEquals("", etat.description)
+            assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Inactif)
+            assertEquals(1, depot.projets.size) // le projet créé reste en base
+        }
+
     // ----------------------------------------------------- assistantes
 
     /** Valeur effective courante du package. */
@@ -597,6 +881,32 @@ class WizardViewModelTest {
             .parameters
             .first { it.parameterId == "packageName" }
             .effectiveValue
+
+    /**
+     * Prépare un parcours complet : dossier de travail persisté, modèle
+     * sélectionné, nom valide (vérification de cible comprise).
+     */
+    private fun kotlinx.coroutines.test.TestScope.preparerEmplacementEtModele(cible: WizardViewModel = viewModel) {
+        val grant = "content://autorite/tree/travail"
+        val uri = arborescences.uriDocument(grant)!!
+        fichiers.seedDocument(uri, FakeFileSystem.Document(name = "Travail", isDirectory = true))
+        this.launch {
+            parametres.setWorkspace(StorageLocation(grant, uri, "Travail"))
+        }
+        advanceUntilIdle()
+        cible.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        cible.action(ActionWizard.SaisirNom("MonProjet"))
+        advanceUntilIdle()
+    }
+
+    /** Fait avancer le wizard jusqu'au récapitulatif (étapes 1 à 5). */
+    private fun kotlinx.coroutines.test.TestScope.avancerJusquaRecapitulatif(cible: WizardViewModel = viewModel) {
+        repeat(4) {
+            cible.action(ActionWizard.Suivant)
+            advanceUntilIdle()
+        }
+        assertEquals(EtapeId.RECAPITULATIF, cible.etat.value.etape)
+    }
 
     /** Raison d'erreur courante du package, ou `null`. */
     private fun packageErreur(): RaisonValidation? =
@@ -611,18 +921,7 @@ class WizardViewModelTest {
         val fournisseur = FauxFournisseur()
         val planificateur =
             TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
-        val poigneeSauvegarde = viewModelPoigneeSauvegarde()
-        return WizardViewModel(
-            listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
-            evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
-            evaluerNom = EvaluerNomProjetUseCase(),
-            resoudreEmplacement = ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
-            relacherEmplacement = ReleaseCreationLocationUseCase(parametres, depot, fichiers),
-            verifierCible = VerifyCreationTargetUseCase(fichiers),
-            observerParametres = ObserveSettingsUseCase(parametres),
-            journal = journal,
-            savedState = poigneeSauvegarde,
-        )
+        return construire(planificateur, fournisseur, viewModelPoigneeSauvegarde())
     }
 
     /** Extrait le `SavedStateHandle` du ViewModel courant (champ privé). */

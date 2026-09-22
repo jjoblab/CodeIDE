@@ -107,6 +107,24 @@ internal class AppNavigatorImpl
                     .build()
             navController.navigate(R.id.home, null, options)
         }
+
+        override fun wizardCreeProjet(projectId: String) {
+            // Création réussie (étape 11) : l'identifiant est déposé sur
+            // l'entrée d'accueil de la pile de retour, puis le wizard se
+            // referme — l'accueil consommera l'identifiant à son retour.
+            logger.d(TAG) { "navigation wizard -> accueil (projet créé)" }
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set(CLE_PROJET_CREE, projectId)
+            navController.popBackStack()
+        }
+
+        override fun consommerProjetCree(): String? {
+            // Retire-et-retourne (une seule mise en évidence par création).
+            return navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.remove(CLE_PROJET_CREE)
+        }
     }
 
 /**
@@ -121,3 +139,6 @@ internal abstract class NavigationModule {
 }
 
 private const val TAG = "Navigation"
+
+/** Clé du projet créé, transmise du wizard à l'accueil (étape 11). */
+private const val CLE_PROJET_CREE = "accueil.projet_cree"
