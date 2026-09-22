@@ -29,6 +29,21 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Partage des archives de journaux (section 5.7) : le FileProvider
+          n'expose que cache/exports/ (voir res/xml/file_paths.xml), et
+          uniquement sur demande explicite de l'utilisateur.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

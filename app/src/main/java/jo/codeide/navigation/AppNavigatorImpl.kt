@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityComponent
 import dagger.hilt.android.scopes.ActivityScoped
 import jo.codeide.R
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
 import javax.inject.Inject
 
@@ -30,6 +31,7 @@ internal class AppNavigatorImpl
     @Inject
     constructor(
         private val activity: Activity,
+        private val logger: AppLogger,
     ) : AppNavigator {
         /** Contrôleur de navigation de l'activité hôte. */
         private val navController: NavController
@@ -43,6 +45,7 @@ internal class AppNavigatorImpl
             // Garde-fou : naviguer deux fois d'affilée (double toucher) ferait
             // lever deux fragments ; on ne navigue que depuis l'accueil.
             if (navController.currentDestination?.id == R.id.home) {
+                logger.d(TAG) { "navigation accueil -> paramètres" }
                 navController.navigate(R.id.action_home_to_settings)
             }
         }
@@ -62,3 +65,5 @@ internal abstract class NavigationModule {
     @Binds
     internal abstract fun bindAppNavigator(impl: AppNavigatorImpl): AppNavigator
 }
+
+private const val TAG = "Navigation"

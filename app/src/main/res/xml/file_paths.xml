@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chemins exposés par le FileProvider de CodeIDE (section 5.7).
+  Volontairement minimal : seul le répertoire des exports de journaux est
+  partageable — jamais les fichiers internes ni le dossier de travail.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- cache/exports/ : archives codeide-logs-<date>.zip -->
+    <cache-path
+        android:name="exports"
+        android:path="exports/" />
+
+</paths>

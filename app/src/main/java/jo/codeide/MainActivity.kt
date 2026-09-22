@@ -5,7 +5,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.applyDynamicColorsIfAvailable
+import javax.inject.Inject
 
 /**
  * Activité hôte unique de CodeIDE (section 5.4).
@@ -26,6 +28,9 @@ import jo.codeide.core.ui.applyDynamicColorsIfAvailable
  */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject
+    lateinit var logger: AppLogger
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -34,5 +39,13 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         setContentView(R.layout.activity_main)
+
+        // Premiers journaux applicatifs (section 5.7) : démarrage et
+        // navigation — la session a déjà été ouverte par l'initialiseur.
+        logger.i(TAG) { "MainActivity démarrée (destination initiale : accueil)" }
+    }
+
+    private companion object {
+        const val TAG = "App"
     }
 }

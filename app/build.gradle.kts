@@ -7,15 +7,29 @@ plugins {
     id("codeide.android.hilt")
 }
 
+android {
+    buildFeatures {
+        // BuildInfo du système de journalisation : VERSION_NAME/VERSION_CODE
+        // alimentent l'en-tête de session et device-info.txt (section 5.7).
+        buildConfig = true
+    }
+}
+
 dependencies {
     // Écrans et socle visuel.
     implementation(project(":core:ui"))
     implementation(project(":feature:home"))
     implementation(project(":feature:settings"))
 
+    // Journalisation maison (étape 2) : AppLogger, initialisation,
+    // FileProvider des exports.
+    implementation(project(":core:logging"))
+    implementation(project(":core:domain"))
+
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
     implementation(libs.androidx.activity)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.material)
