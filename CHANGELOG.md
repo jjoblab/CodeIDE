@@ -4,6 +4,88 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.8.0] – 2026-09-22
+
+Étape 7 — Accueil : liste des projets (section 11 du prompt maître).
+
+### Ajouté
+
+- `feature:home` : la **liste des projets** (`ListAdapter` + `DiffUtil`)
+  — nom, description courte, emplacement lisible, date d'ouverture
+  **relative** (jamais ouverts : date de création), pastille du type
+  de projet, épingle.
+- **Tri et recherche** : Récents / Nom (les épingles flottent toujours
+  en tête), recherche avec **délai de fusion des frappes (250 ms)**,
+  insensible à la casse et aux accents (nom, description et
+  emplacement parcourus) ; recherche et tri survivent à la rotation et
+  à la mort du processus (`SavedStateHandle`).
+- **États soignés** : chargement, **vide** (illustration + bouton
+  « Nouveau projet »), **sans résultat** (bouton « Effacer la
+  recherche »), **erreur** de lecture du registre avec « Réessayer »,
+  bandeau « dossier de travail non configuré » (étape 5).
+- **Statut d'accès** (section 5.6) : un projet `Introuvable` ou
+  `Permission perdue` est signalé par un badge, avec actions de
+  résolution (« Relocaliser » / « Retirer ») dans le menu — jamais un
+  crash ; états recalculés à chaque affichage, au **tirer-relâcher**
+  et après les actions qui déplacent un dossier, jamais persistés.
+- **Actions par projet** (menu contextuel) : ouvrir (marquage
+  « ouvert », placeholder éditeur jusqu'à l'étape 13), renommer
+  (dialogue validé, libellé en base uniquement — ADR 0012),
+  épingler/désépingler, **retirer de la liste** (dossier intact),
+  **supprimer du disque** avec confirmation rappelant le nom.
+- **Actions flottantes** : bouton étendu « Nouveau projet » (vers le
+  placeholder du wizard) et « Ouvrir un dossier existant » (sélecteur
+  SAF, ajoute le projet au registre).
+- **Adaptatif** : 1 colonne téléphone, 2 colonnes tablette/paysage
+  (`layout-sw600dp`).
+- `feature:newproject` : destination **placeholder** du wizard
+  (« Nouveau projet » y mène depuis l'accueil et l'état vide ;
+  l'assistant complet arrive à l'étape 10).
+- `core:domain` : `ImportExistingFolderUseCase` (« ouvrir un dossier
+  existant » : refus plateforme avant permission, test d'écriture
+  témoin, **héritage de la permission du dossier de travail** pour un
+  choix dans son arbre — l'URI de document est réadressée dans cet
+  arbre, sentinelle `TemplateId.IMPORTED`, ADR 0015),
+  `RelocalizeProjectUseCase` (résolution d'un accès rompu en
+  re-sélectionnant le dossier, même validation), et
+  `DeleteProjectOnDiskUseCase` (disque d'abord, registre ensuite,
+  ADR 0016).
+- `core:domain` : port étendu `ArborescencesSaf.uriDocumentDansArbre`
+  (réadressage d'un document dans l'arbre d'une permission tenue) —
+  implémenté par `SafArborescences`, faux déterministe dans
+  `core:testing`.
+- `ProjectRepository.updateLocation` : relocalisation d'un projet
+  (Room — `UPDATE` ciblé, index unique défendu, traduit `NotFound` /
+  `AlreadyExists`).
+- `core:ui` : styles `Widget.CodeIDE.Button.Outlined.Compact`,
+  `Widget.CodeIDE.Button.Icon` et `Widget.CodeIDE.TextField`.
+
+### Modifié
+
+- `RemoveProjectUseCase` (étape 4) : le retrait applique désormais la
+  règle « ne persister que le nécessaire » — la permission de l'arbre
+  est **libérée uniquement si** le dossier de travail ne la référence
+  plus et si aucun projet restant n'y vit (ADR 0016 ; sans cela,
+  retirer le dernier projet importé laisserait une permission
+  orpheline).
+- `ValidateWorkspaceUseCase` : le test d'écriture témoin et le
+  libellé lisible sont extraits en aides partagées du domaine
+  (`testerEcriture`, `libelleLisible`) — même contrat pour le dossier
+  de travail, l'import et la relocalisation.
+- L'entrée « Paramètres » de l'accueil devient un bouton icône (rôle
+  porté par la description d'accessibilité).
+- `FakeProjectRepository` : robinet `flowError` (échec d'observation,
+  réactif) pour éprouver l'état d'erreur de l'accueil.
+
+### Livré
+
+- ADR 0015 (import de dossier existant : héritage de la permission),
+  ADR 0016 (suppression du disque : ordre des opérations et équilibre
+  des permissions).
+- Procédures manuelles A1-A10 (`docs/TESTS_MANUELS.md`).
+- 411 tests verts (62 de plus) ; couverture Kover ≥ 80 % sur
+  `core:model` et `core:domain` respectée.
+
 ## [0.7.0] – 2026-09-22
 
 Étape 6 — Écran Paramètres (section 11 du prompt maître).
