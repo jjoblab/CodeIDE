@@ -47,10 +47,14 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
 10. Commits conventionnels en français (`feat(newproject): ajoute la validation du nom`).
 11. Journalisation via `AppLogger` (implémentée étape 2 — v0.3.0). `android.util.Log`,
     `println`, `printStackTrace` interdits hors `core:logging` et `core:crash`
-    (règle detekt active). **Aucune donnée personnelle dans les journaux.**
+    (règle detekt active). **Aucune donnée personnelle dans les journaux ni les
+    rapports de plantage** (expurgation `LogRedactor` à la construction).
     Voir `docs/JOURNALISATION_ET_PLANTAGES.md` et l'ADR 0009 (bornes, expurgation
     à l'écriture, DROP_OLDEST assumé).
-12. Le gestionnaire de plantages ne doit jamais lui-même planter ni bloquer.
+12. Le gestionnaire de plantages (implémenté étape 3 — v0.4.0, ADR 0006 et 0010)
+    ne doit jamais lui-même planter ni bloquer : `try/catch` global, garde de
+    ré-entrance, délégation au système sur boucle ou échec, aucune injection
+    sur le chemin critique, liaison avec `core:logging` par lambdas.
 
 ## Architecture (sections 5 et 6 du prompt)
 
@@ -109,8 +113,14 @@ remis (format section 14) puis attente du « GO ».
       borné (canal DROP_OLDEST, groupement 500 ms, flush ERROR, flushBlocking), JSONL + rotation + rétention,
       breadcrumbs 200, export zip UTC + FileProvider cache/exports, en-tête de session, ADR 0009 ; app initialise
       dans le processus principal uniquement ; core:testing FakeAppLogger + InMemoryLogRepository)
-- [ ] Étape 3 — Gestion des plantages → v0.4.0
-- [ ] Étape 3 — Gestion des plantages → v0.4.0
+- [x] Étape 3 — Gestion des plantages → v0.4.0 (`core:model` CrashType/CrashReport/CrashReportSummary/CrashAppInfo/DeviceInfo +
+      FlattenedException.suppressed, `core:domain` CrashReportRepository/PendingExitInfoRecorder + use cases,
+      `core:crash` CrashHandler (1re ligne d'onCreate avant Hilt, chaîné, budget ≤ 2 s, garde de ré-entrance),
+      CrashReportFileStore (JSON org.json, atomique, réduction ≤ 256 Ko, rétention 20, témoin consulté),
+      boucle 3/60 s, ExitInfoRecorder (ANR/natifs API 30+, dédoublonnés), CrashActivity processus :crash
+      (LIVE/VIEW, copier/partager zip/enregistrer SAF/vider cache), FileProvider dédié ADR 0010 ; liaison
+      core:logging par lambdas (breadcrumbs/flush) ; app sensible au processus, dialogue rapport non consulté,
+      menu debug source set debug (no-op release) ; core:testing FakeCrashReportRepository + FakePendingExitInfoRecorder)
 - [ ] Étape 4 — Couche données → v0.5.0
 - [ ] Étape 5 — Onboarding → v0.6.0
 - [ ] Étape 6 — Paramètres → v0.7.0

@@ -4,6 +4,74 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.4.0] – 2026-09-22
+
+Étape 3 — Gestion des plantages (section 5.8).
+
+### Ajouté
+
+- `core:model` : `CrashType` (EXCEPTION, ANR, NATIVE), `CrashReport`
+  (rapport complet : build, appareil non identifiant, chaîne d'exceptions
+  aplatie, filons de pain, dernier écran, durée du processus, indicateur
+  de boucle), `CrashReportSummary`, `CrashAppInfo`, `DeviceInfo`
+  (photographie non identifiante, repli `inconnu`) ; `FlattenedException`
+  conserve désormais les exceptions supprimées (5 par niveau, section 5.8).
+- `core:domain` : `CrashReportRepository` (observer, lire, marquer
+  consulté, supprimer), `PendingExitInfoRecorder` (port « détection au
+  démarrage »), use cases `ObserveCrashReports`, `GetCrashReport`,
+  `GetLatestUnreviewedCrashReport`, `MarkCrashReportReviewed`,
+  `DeleteCrashReport`, `DeleteAllCrashReports`, `HasUnreviewed`,
+  `RecordPendingExitInfos`.
+- `core:crash` : `CrashHandler` (enchaînement complet dans un `try/catch`
+  global avec garde de ré-entrance : boucle → rapport → écriture
+  atomique → vidage borné ≤ 500 ms → écran dédié → mort du processus ;
+  délégation au système sur boucle, échec de lancement ou échec interne —
+  jamais après un lancement réussi ; budget total ≤ 2 s), `AppProcess`
+  (détection du processus, repli `/proc` API 26-27), `CrashReportFileStore`
+  (JSON `org.json` du framework sur le chemin critique, écriture `.tmp`
+  puis renommage, réduction progressive jusqu'à 256 Ko, rétention 20
+  rapports, état « consulté » par fichier témoin), `CrashLoopDetector`
+  (≥ 3 plantages en 60 s, historique persistant minimal, corruption
+  tolérée), `ExitInfoRecorder` (ANR et plantages natifs d'`ApplicationExitInfo`
+  API 30+, hors thread principal, dédoublonnés par marqueur),
+  `LastScreenTracker`, `CrashActivity` (processus `:crash`, sans Hilt/Room/
+  DataStore ; modes LIVE/VIEW ; Redémarrer masqué en boucle ; Copier,
+  Partager texte, Partager archive zip, Enregistrer SAF, Vider le cache
+  avec confirmation — jamais les données utilisateur), `CrashFileProvider`
+  du processus `:crash` (ADR 0010), `DeviceSnapshot`, modules Hilt.
+- `core:logging` : `CodeIdeAppLogger.breadcrumbs(limit)` — instantané du
+  tampon circulaire pour les filons d'un rapport (liaison 5.8 par lambdas,
+  aucune dépendance de module).
+- `core:testing` : `FakeCrashReportRepository`, `FakePendingExitInfoRecorder`.
+- `app` : `CrashHandler.install` en **première ligne** d'`onCreate` (avant
+  Hilt) dans le processus principal, `installSafe` dans `:crash`
+  (initialisation minimale) ; liaison journalisation (session, filons,
+  vidage) branchée après Hilt ; boîte de dialogue « Un problème est survenu
+  lors de la dernière session » (Voir le rapport / Ignorer — les deux
+  valent consultation) ; suivi du dernier écran par destination de
+  navigation ; `openCrashReport(id)` dans `AppNavigator` ; menu debug
+  (source set `debug`) : provoquer un plantage, exception non fatale
+  journalisée, générer des journaux — no-op en release.
+- Tests : 95 nouveaux (199 verts au total) dont sérialisation
+  aller-retour, réduction et limite 256 Ko, expurgation à la construction,
+  écriture atomique (aucun reste `.tmp`), rétention 20, mapping
+  `ApplicationExitInfo` (Robolectric API 30+, déduplication, trace bornée,
+  garde API 29), chaînage du gestionnaire avec tueur et lanceur **injectés**
+  (le test ne tue jamais la JVM), écran dédié (modes, boucle, repli) et
+  intégration bout-en-bout (installation, dialogue du rapport non consulté).
+- Docs : ADR 0010 (FileProvider du processus `:crash`), guide complet
+  `docs/JOURNALISATION_ET_PLANTAGES.md` § 9, procédures P1-P8 dans
+  `docs/TESTS_MANUELS.md`.
+
+### Corrigé
+
+- `CrashReportFileStore` : la recherche d'un rapport par identifiant
+  retranche désormais l'identifiant du nom de fichier au lieu d'un
+  suffixe — un suffixe était ambigu quand un identifiant se termine par
+  celui d'un autre (« pas-vu » finit en « vu »), et le témoin « consulté »
+  pouvait être posé sur le mauvais rapport (découvert par les tests
+  avant toute livraison).
+
 ## [0.3.0] – 2026-09-22
 
 Étape 2 — Journalisation de l'application (section 5.7).
