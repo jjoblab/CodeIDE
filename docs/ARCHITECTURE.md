@@ -52,6 +52,7 @@ sections 5 et 6.
 | `feature:settings` | Paramètres |
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:editor` | Stub : futur espace de travail |
+| `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,
 API prévue) et un `Module.md` (page Dokka).
@@ -222,8 +223,31 @@ est le contrat `docs/TEMPLATES.md`.
   (schéma, modèle, version du générateur, paramètres persistés visibles) —
   aucune donnée personnelle.
 - **Extension** : `ProjectTemplateProvider` en **multibinding Hilt**
-  (`@IntoSet`) — le fournisseur embarqué lit `assets/templates/` (vide
-  jusqu'à l'étape 9), les futurs plugins s'ajouteront sans toucher au moteur.
+  (`@IntoSet`) — le fournisseur embarqué lit `assets/templates/`, les futurs
+  plugins s'ajouteront sans toucher au moteur.
+
+## Modèles embarqués et validation réelle (étape 9 — livrée à v0.10.0)
+
+- **Modèles `kotlin-jvm` et `java`** (`app/src/main/assets/templates/`) :
+  paramètres partagés (type application/bibliothèque, build
+  `gradle-kts`/`maven`/`none`, JDK 17 ou 21 — seules les LTS **entièrement
+  validées** sont proposées, ADR 0019, tests JUnit 5, Gradle Wrapper sommé,
+  package/group/artifact/version), exemple `Greeter` + `Main` +
+  `GreeterTest` **zéro avertissement**, README dynamique, `.gitignore`/
+  `.gitattributes`/`.editorconfig` adaptés, licences SPDX dans `pom.xml` et
+  la publication Gradle. Versions figées et traçabilité :
+  `docs/TEMPLATES.md`.
+- **Tests de génération** (`app`, `ModelesEmbarquesTest`) : 192
+  combinaisons structurelles avec listes de fichiers attendues, options
+  communes (5 licences × interrupteurs), déterminisme, entrées hostiles,
+  écriture complète sur `FakeFileSystem`.
+- **Validation réelle** : `scripts/verify-templates.sh` génère 18
+  combinaisons sur disque via le harnais `:tools:generateur` (module JVM
+  dédié, ADR 0019 : le plan figé de `PlanProjectCreationUseCase` déversé
+  tel quel), puis compile, teste, exécute et publie chaque projet avec les
+  vrais Gradle/Maven/javac (projet Gradle jetable pour `none`+Kotlin) —
+  tableau final `combinaison → résultat`, à garder vert à toute livraison
+  touchant aux modèles (sections 8 et 11 du prompt maître).
 
 ## Gestion des erreurs et résultats
 

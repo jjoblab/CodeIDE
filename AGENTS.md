@@ -60,8 +60,9 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
 
 Modules : `app`, `core:{model, domain, data, database, datastore, storage,
 logging, crash, ui, testing}`, `feature:{onboarding, home, newproject,
-settings, diagnostics, editor}`. `core:model` et `core:domain` sont des
-modules **Kotlin JVM purs** avec `explicitApi()`.
+settings, diagnostics, editor}`, `tools:{generateur}` (harnais de
+vérification des modèles, hors application — ADR 0019). `core:model` et
+`core:domain` sont des modules **Kotlin JVM purs** avec `explicitApi()`.
 
 Tableau des dépendances autorisées : `docs/ARCHITECTURE.md`. Patron de
 présentation : MVVM + flux unidirectionnel (UiState/Action/Effect via
