@@ -9,4 +9,4 @@ Réservé aux configurations de test — vérifié par `checkModuleDependencies`
 
 Contenu fonctionnel détaillé : voir `README.md` du module.
 
-Statut : étapes 0 à 4 livrées (v0.5.0) — fakes de la couche données (`FakeFileSystem`, `FakeProjectRepository`, `FakeSettingsRepository`).
+Statut : étapes 0 à 8 livrées (v0.9.0) — fakes de la journalisation, des plantages, de la couche données et du moteur de templates (`FakeTemplateAssetsSource`, avec robinets d'échec et garde anti-traversée).

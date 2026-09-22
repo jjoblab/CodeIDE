@@ -7,5 +7,4 @@ autorisé à dépendre de tout le reste ; il ne contient aucune logique métier.
 
 Contenu fonctionnel détaillé : voir `README.md` du module.
 
-Statut : étapes 0 à 4 livrées (v0.5.0) — assemblage final, journalisation,
-plantages et couche données (branchement du niveau persisté au démarrage).
+Statut : étapes 0 à 8 livrées (v0.9.0) — assemblage final, journalisation, plantages, couche données, navigation et **câblage du moteur de templates** (`AssetTemplateAssetsSource` sur l'AssetManager, `GeneratorVersionImpl` depuis `BuildConfig`, multibinding `@IntoSet`, licences SPDX officielles dans `assets/licenses/`).

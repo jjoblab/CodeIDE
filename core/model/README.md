@@ -24,6 +24,8 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 
 Couche données (étape 4, v0.5.0) : `Project` (identifiant, nom, description, emplacement SAF, modèle, horodatages, épingle), `ProjectAccessState` (calculé, jamais persisté), `AppSettings` (thème, couleurs dynamiques, langue, dossier de travail, profil auteur, licence, verbosité de journalisation, assistant terminé) et `ThemeMode`/`LogVerbosity`/`License`.
 
+Moteur de templates (étape 8, v0.9.0) : `ProjectTemplate` et `TemplateParameter` (types `TEXT`/`BOOLEAN`/`CHOICE`, sections du wizard, `persist`), `TemplateOptions` (options communes — README, gitignore, editorconfig, licence, langue du contenu) avec `codeTemplate()` (codes de licence du mini-langage), `TemplatePlan`/`PlannedFile`/`PlannedContent` (plan figé du dry-run — égalité par valeur, y compris les octets binaires), `TemplateSummary`/`TemplateFormEvaluation` (libellés résolus, visibilité, valeurs effectives, validité) et `CreationProgress` (progression de création + `CreateProjectRequest`).
+
 ## Vérifications du module
 
 ```bash

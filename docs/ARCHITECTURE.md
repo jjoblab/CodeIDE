@@ -185,6 +185,46 @@ bandeau « dossier de travail non configuré » de l'étape 5).
   de `feature:newproject` — la machine à états complète arrive à
   l'étape 10.
 
+## Moteur de templates (étape 8 — livrée à v0.9.0)
+
+Le cœur de la création de projet est un **moteur pur** (`core:domain`,
+package `templates`) au-dessus de manifestes déclaratifs — aucun modèle
+n'est codé en dur, ajouter un modèle = ajouter des assets (ADR 0005).
+Le format complet (manifeste, expressions, filtres, garde des chemins)
+est le contrat `docs/TEMPLATES.md`.
+
+- **Port d'assets** : `TemplateAssetsSource` (liste, lecture de fichier de
+  modèle, lecture de licence SPDX). Implémentation Android dans `app`
+  (`AssetTemplateAssetsSource`, AssetManager + dispatcher d'E/S, aucune
+  traversée de chemin) ; faux en mémoire dans `core:testing`.
+- **Mini-langage d'expressions** (ADR 0018) : parseur **écrit à la main**
+  (lexique + descente récursive), bornes avant récursion (512 caractères,
+  128 jetons, 16 de profondeur), typage strict (`Chaine`/`Booleen`),
+  aucune évaluation de code du manifeste. Même grammaire pour `visibleWhen`,
+  `when`, `computed` et `{{#if}}`.
+- **Rendu** (`TemplateRenderer`) : `{{variable|filtre}}`, conditionnels
+  `{{#if}}/{{#else}}`, i18n `{{t:clé}}`, échappement `\{{` ; échec explicite
+  fichier + ligne, **jamais de `{{…}}` résiduel**. Filtres d'échappement
+  (`kotlinString`, `javaString`, `xml`, `json`, `tomlString`, `md`) : la
+  saisie de l'utilisateur ne casse jamais le code généré.
+- **Plan figé** (ADR 0017) : `PlanProjectCreationUseCase` (dry-run du
+  récapitulatif) et `CreateProjectUseCase` partagent `TemplateProjectPlanner`
+  — le plan contient le **contenu final** ; ce qui est planifié est ce qui
+  est écrit, à l'octet près. Sécurité : garde des chemins après substitution
+  (jamais de `..`, d'absolu, de nom réservé Windows), doublons refusés,
+  dossier racine jamais écrasé.
+- **Création** (`CreateProjectUseCase`) : revalidation systématique, dossier
+  racine créé **absent** exigé, fichiers écrits avec progression
+  (`CreationProgress`), registre écrit **en dernier**, rollback complet en
+  `NonCancellable` (échec, annulation, échec d'insertion) avec résidus
+  signalés.
+- **Métadonnées** : chaque projet généré porte `.codeide/project.json`
+  (schéma, modèle, version du générateur, paramètres persistés visibles) —
+  aucune donnée personnelle.
+- **Extension** : `ProjectTemplateProvider` en **multibinding Hilt**
+  (`@IntoSet`) — le fournisseur embarqué lit `assets/templates/` (vide
+  jusqu'à l'étape 9), les futurs plugins s'ajouteront sans toucher au moteur.
+
 ## Gestion des erreurs et résultats
 
 - `AppResult<out T>` : `Success(value)` | `Failure(error: AppError)`.
