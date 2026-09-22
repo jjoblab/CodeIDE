@@ -191,12 +191,13 @@ class TemplateEngineTest {
         }
 
     @Test
-    fun `le résumé du catalogue résout nom et description`() =
+    fun `le résumé du catalogue résout nom, description et icône`() =
         runTest {
             val resume = moteur().resumer(FixtureModele.charge(), "fr")
             assertEquals("Fixture", resume.nom)
             assertEquals("Modèle de test éprouvant le moteur", resume.description)
             assertEquals("test", resume.category)
+            assertEquals("fx", resume.iconKey)
             assertEquals(listOf("test", "jvm"), resume.tags)
         }
 

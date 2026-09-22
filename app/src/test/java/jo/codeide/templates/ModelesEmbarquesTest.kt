@@ -101,8 +101,8 @@ class ModelesEmbarquesTest {
             assertEquals("Java", java.nom)
             assertEquals("jvm", kotlin.category)
             assertEquals("jvm", java.category)
-            assertEquals("template.icon", kotlin.iconKey)
-            assertEquals("template.icon", java.iconKey)
+            assertEquals("template.icon résolu en monogramme maison", "kt", kotlin.iconKey)
+            assertEquals("jv", java.iconKey)
             assertTrue(kotlin.tags.contains("Kotlin · JVM"))
             assertTrue(java.tags.contains("Gradle"))
         }

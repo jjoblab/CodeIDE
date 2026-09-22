@@ -1,6 +1,7 @@
 {
   "template.name": "Fixture",
   "template.description": "Modèle de test éprouvant le moteur",
+  "template.icon": "fx",
   "param.type.label": "Type",
   "param.type.help": "Application ou bibliothèque",
   "param.extras.label": "Suppléments",

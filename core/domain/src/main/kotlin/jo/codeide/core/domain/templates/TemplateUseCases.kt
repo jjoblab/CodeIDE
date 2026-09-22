@@ -5,6 +5,7 @@ import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.CreateProjectRequest
+import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateFormEvaluation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
@@ -77,6 +78,25 @@ public class ValidateProjectNameUseCase
                     ?: return AppResult.Success(Unit)
             return AppResult.Failure(AppError.Validation("nom de projet : $erreur"))
         }
+    }
+
+/**
+ * Cas d'usage « évaluer le nom de projet » (étape 10 — section 12.3) :
+ * même validation que [ValidateProjectNameUseCase], mais la sortie est la
+ * **raison typée** consommable par l'interface pour afficher une ressource
+ * localisée — le message français reste réservé aux journaux.
+ */
+public class EvaluerNomProjetUseCase
+    @Inject
+    constructor() {
+        /**
+         * Évalue un nom de projet.
+         *
+         * @param nom valeur saisie.
+         * @return `null` si le nom est valide, sinon la raison typée.
+         */
+        public operator fun invoke(nom: String): RaisonValidation? =
+            TemplateValidators.evaluer("project-name", nom)?.raison
     }
 
 /** Cas d'usage « valider le nom de package » (section 12.3, champ commun du wizard). */

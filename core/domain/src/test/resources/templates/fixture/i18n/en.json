@@ -1,6 +1,7 @@
 {
   "template.name": "Fixture",
   "template.description": "Model of test exercising the engine",
+  "template.icon": "fx",
   "param.type.label": "Type",
   "param.type.help": "Application or library",
   "param.extras.label": "Extras",
