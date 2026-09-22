@@ -1,6 +1,7 @@
 # core/model — Modèle — entités et types partagés
 
-> Statut étape 1 : fondations livrées (`AppResult`, `AppError`, identifiants typés, `StorageLocation`). Le module s'enrichit à chaque étape suivante.
+> Statut étape 2 : fondations (v0.2.0 : `AppResult`, `AppError`, identifiants typés, `StorageLocation`)
+> et journalisation (v0.3.0 : `LogLevel`, `LogEntry` sérialisable, `FlattenedException`).
 
 Module Kotlin JVM pur : entités immuables et types partagés de tout le domaine. Aucune dépendance, ni Android ni autre module : c'est la base du graphe de dépendances.
 
