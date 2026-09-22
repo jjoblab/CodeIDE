@@ -28,6 +28,13 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 (`DispatcherProvider`), `res/xml/file_paths.xml` (FileProvider limité à `cache/exports/`).
 Étape 3 : `di/AppCrashModule` (`CrashAppInfo` du détecteur de démarrage).
 
+Étape 8 : `templates/AssetTemplateAssetsSource` (port d'assets sur l'AssetManager,
+dispatcher d'E/S, **aucune traversée de chemin**), `templates/GeneratorVersionImpl`
+(`CodeIDE <BuildConfig.VERSION_NAME>`), `di/TemplatesModule` (`@Binds` port +
+générateur, `@IntoSet` fournisseur embarqué), `assets/licenses/` (textes officiels
+SPDX — MIT et BSD-3-Clause substituent `{{year}}`/`{{author}}`),
+`assets/templates/` (vide jusqu'à l'étape 9 : état légitime, aucun modèle).
+
 Prévu ensuite : destination initiale conditionnelle (étape 5).
 
 ## Vérifications du module

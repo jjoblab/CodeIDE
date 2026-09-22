@@ -8,4 +8,4 @@ et `FlattenedException` bornée). Aucune dépendance hors `kotlinx.serialization
 
 Contenu fonctionnel détaillé : voir `README.md` du module.
 
-Statut : étapes 0 à 4 livrées (v0.5.0) — modèle enrichi de `Project`, `ProjectAccessState`, `AppSettings` et de leurs énumérations.
+Statut : étapes 0 à 8 livrées (v0.9.0) — entités des fondations, de la journalisation, des plantages, de la couche données et du moteur de templates (`ProjectTemplate`, `TemplateOptions`, `TemplatePlan`, `CreationProgress`…).

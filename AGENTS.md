@@ -152,7 +152,20 @@ remis (format section 14) puis attente du « GO ».
       ArborescencesSaf.uriDocumentDansArbre, sentinelle TemplateId.IMPORTED, ADR 0015) + DeleteProjectOnDiskUseCase + RemoveProjectUseCase enrichi
       (libération conditionnelle, ADR 0016) + aides partagées testerEcriture/libelleLisible/libererPermissionSiInutilisee ;
       ProjectRepository.updateLocation (Room + fake) ; feature:newproject placeholder ; AppNavigator.openNewProjectWizard ; ADR 0015-0016)
-- [ ] Étape 8 — Moteur de templates → v0.9.0
+- [x] Étape 8 — Moteur de templates → v0.9.0 (`core:model` ProjectTemplate/TemplateParameter/TemplateOptions/TemplatePlan/TemplateSummary/CreationProgress +
+      codeTemplate() ; `core:domain` package templates : TemplateAssetsSource (port) + GeneratorVersion, EmbeddedTemplatesProvider (multibinding @IntoSet,
+      répertoires sans manifeste ignorés, manifeste invalide = échec explicite), TemplateManifestParser (validation complète : schéma, id=répertoire, SemVer,
+      i18n, validateurs/defaultFrom enregistrés, expressions analysables, bornes), ExpressionParser **maison** (lexique + descente récursive, bornes
+      512/128/16, curseur sûr en fin de flux — ADR 0018) + ExpressionEvaluator typé, TemplateRenderer ({{var|filtre}}, {{#if}}/{{#else}}, {{t:clé}},
+      \\{{ , échec fichier+ligne, jamais de résiduel), TemplateFilters (10 filtres, slug replie les accents NFD), TemplateValidators (5 validateurs + regex:),
+      TemplateDefaultFunctions (3 dérivées), TemplatePathGuard (garde après substitution : .., absolu, antislash, contrôle, réservés Windows, doublons
+      insensible à la casse), TemplateEngine (évaluation formulaire 5 passes, contexte + options communes, plan figé complet — dry-run = écriture, ADR 0017,
+      licence SPDX rendue, .codeide/project.json sans donnée personnelle) + use cases ListTemplates/ValidateProjectName/ValidatePackageName/
+      EvaluateTemplateForm/PlanProjectCreation + TemplateProjectPlanner partagé + CreateProjectUseCase (progression, registre en dernier, rollback
+      NonCancellable avec résidus, erreur typée relayée) ; `app` AssetTemplateAssetsSource (AssetManager + dispatchers, aucune traversée) +
+      GeneratorVersionImpl (BuildConfig) + TemplatesModule (@Binds + @IntoSet) + assets/licenses/ SPDX officiels (mit, bsd-3-clause avec {{year}}/{{author}},
+      apache-2.0, gpl-3.0) ; `core:testing` FakeTemplateAssetsSource ; fixture de test templates/fixture (hostile : guillemets, antislash, $, </project>,
+      retours ligne, emojis, Unicode) ; docs/TEMPLATES.md (contrat concepteurs) ; ADR 0017-0018)
 - [ ] Étape 9 — Modèles Kotlin/Java → v0.10.0
 - [ ] Étape 10 — Wizard (partie 1) → v0.11.0
 - [ ] Étape 11 — Wizard (partie 2) → v0.12.0
