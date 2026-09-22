@@ -139,7 +139,7 @@ Chaque projet généré contient :
 ```
 
 **Aucune donnée personnelle** (ni auteur, ni chemin local). Sert à
-reconnaître le type de projet à l'ouverture (étape 13).
+reconnaître le type de projet à l'ouverture (étape 18).
 
 ## Garde de sécurité des chemins (après substitution)
 

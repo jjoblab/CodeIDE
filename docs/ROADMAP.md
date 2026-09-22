@@ -20,7 +20,20 @@ maître) et l'attente de validation. La version de l'étape N est `0.(N+1).0`.
 | 10 | Wizard de création, partie 1 | 0.11.0 | **Terminé** | Cadre complet (ADR 0020 : hôte + indicateur + barre d'actions + `WizardViewModel` scopé à l'hôte, `SavedStateHandle` — rotation et mort du processus), rendu **dynamique** des paramètres depuis le moteur (ADR 0021 : registre de composants — tuiles segmentées, cartes radio, liste déroulante, interrupteurs, champs dérivés resynchronisables — et raisons de validation typées → ressources localisées), étapes 1 Modèle (grille de cartes + recherche prête sous 4), 2 Configuration (puces récapitulatives en direct), 3 Informations et emplacement (ADR 0022 : dossier éphémère par création, permission relâchée à l'abandon, vérifications asynchrones avec délai) ; Suivant gardé par validité, abandon confirmé |
 | 11 | Wizard de création, partie 2 | 0.12.0 | **Terminé** | Étape 4 Fichiers (interrupteurs README/.gitignore/.editorconfig, licence pré-remplie auteur+année des Paramètres, langue du contenu FR/EN par boutons segmentés), étape 5 Récapitulatif (résumé par section avec bouton « Modifier » — retour arrière direct — et **arborescence prévue repliable** issue du dry-run, nombre de fichiers), **écran de création** hors numérotation (ADR 0023 : progression temps réel, annulation = rollback domaine `NonCancellable`, succès [ouvrir/marquer ouvert, accueil, créer un autre], échec typé + Réessayer + Copier les détails expurgés + nettoyage signalé), bouton principal « Créer le projet » gardé par revalidation globale, **mise en évidence du projet créé à l'accueil** (ADR 0024 : contour primaire + défilement, identifiant via la pile de retour) ; ADR 0023-0024 |
 | 12 | Diagnostic | 0.13.0 | À faire | Journaux et plantages : visionneuses, filtres, export, réglage du niveau |
-| 13 | Ouverture de projet, finitions, audit | 0.14.0 | À faire | EditorActivity stub, accessibilité, release R8, Dokka, audit final, plan Phase 2 |
+| 13 | Fondations de l'espace de travail | 0.14.0 | À faire | `EditorActivity` et ses trois zones **sans logique** (tiroir avec en-tête et bouton fermer, onglets centraux vides avec message d'état vide, panneau inférieur replié à trois onglets vides), navigation depuis l'accueil et l'écran de succès du wizard (mise à jour `lastOpenedAt`), `EditorViewModel`/`EditorUiState` minimal, retour de base (ferme le tiroir sinon quitte), dépendance `cel-ui` via JitPack (seule dépendance externe de feature, exception documentée) |
+| 14 | Explorateur de fichiers | 0.15.0 | À faire | Arborescence **paresseuse** via `FileSystem` (énumération au dépliement, cache ViewModel), tri dossiers puis fichiers puis alphabétique, icônes par extension, gestion des erreurs d'accès (`ProjectAccessState`, bandeau de résolution), barre de navigation basse du tiroir — Explorateur active, Recherche et Git visibles mais désactivées (« Bientôt disponible ») |
+| 15 | Intégration de l'éditeur et onglets de fichiers | 0.16.0 | À faire | Ouverture tiroir → onglet (`readText`, repli neutre si langage inconnu, binaires → « Ouvrir avec »), `EditorDocument`/`EditorSession` avec `setLanguage` déduit de l'extension, `TabLayout` dynamique (ajout, fermeture, menu contextuel, point de modification), **un seul `EditorView` rebranché**, thème clair/sombre, sauvegarde automatique (debounce) + manuelle via `FileSystem.writeText`, dialogue de fermeture avec modifications non enregistrées, `session.dispose()` systématique (testé + LeakCanary) |
+| 16 | Panneau inférieur | 0.17.0 | À faire | `BottomSheetBehavior` trois états (replié/mi-hauteur/étendu) avec en-tête (poignée, titre, badge, actions), onglet **Journal applicatif** fonctionnel (réutilise `LogRepository`, version compacte + lien vers l'écran Diagnostic), onglets **Sortie** et **Problèmes** en stub explicite, persistance de l'état et de l'onglet actif |
+| 17 | Actions du tiroir et finitions de l'espace de travail | 0.18.0 | À faire | Menu contextuel de l'explorateur (nouveau fichier, nouveau dossier, renommer, supprimer avec confirmation, actualiser — validation partagée avec le wizard), reprise des onglets ouverts (`workspace-state.json` non synchronisé), accessibilité complète (TalkBack, cibles ≥ 48 dp), tablette/paysage (tiroir permanent si retenu ADR É13), audit mémoire (LeakCanary, StrictMode) |
+| 18 | Audit final de Phase 1 | 0.19.0 | À faire | Reconnaissance du type de projet à l'ouverture (`.codeide/project.json`), `assembleRelease` R8 **avec les règles ProGuard de la bibliothèque d'édition**, Dokka, audit des dépendances inutilisées/TODO/code mort/données personnelles, `verify-templates.sh` vert, plan détaillé de la Phase 2, archive finale vérifiée **et poussée sur GitHub avec le tag `v0.19.0`** |
+
+Étapes 13 à 18 : détail, critères d'acceptation et spécification complète de
+l'espace de travail (trois zones, `EditorActivity`, bibliothèque `code-editor`)
+définis par le **prompt compagnon** « EditorActivity, GitHub et bibliothèque
+d'édition » (addendum du prompt maître, fusionné le 2026-09-23). La procédure
+de livraison y ajoute la **publication GitHub** à chaque étape restante
+(`git push origin main --follow-tags` vers `jjoblab/CodeIDE`), en plus de
+l'archive autonome.
 
 ## Hors périmètre de la Phase 1
 
@@ -28,17 +41,21 @@ Autres modèles de projet (Python, Web, C++, Android…), options de
 bibliothèques dans les modèles, frameworks (Spring, Ktor…), analyse statique
 et CI dans les projets générés, projets générés multi-modules, Docker,
 terminal intégré, tooling (compilation, exécution, LSP, formatage), système
-de plugins, services d'arrière-plan, éditeur complet (coloration,
-autocomplétion), intégration Git, synchronisation cloud, réseau (`INTERNET`)
-et envoi automatique des rapports (Crashlytics, Sentry…), notifications.
+de plugins, services d'arrière-plan, autocomplétion et intelligence de code
+(l'édition et la coloration arrivent en Phase 1 via la bibliothèque
+`code-editor` — prompt compagnon), intégration Git, synchronisation cloud,
+réseau (`INTERNET`) et envoi automatique des rapports (Crashlytics, Sentry…),
+notifications.
 
 **Points d'ancrage prévus** pour ne pas rendre tout cela impossible :
 `ProjectTemplateProvider` (multibinding) et manifestes déclaratifs,
 `WizardStep` configurable, `FileSystem` abstrait, `EditorActivity` séparée,
 modules `feature:*` isolés, `.codeide/project.json`, `AppLogger` injectable.
 
-## Phase 2 (esquisse — détaillée à l'étape 13)
+## Phase 2 (esquisse — détaillée à l'étape 18)
 
-Terminal intégré · tooling (compilation, exécution, LSP, formatage) ·
-système de plugins · services d'arrière-plan · éditeur complet · autres
-langages. Le plan détaillé sera rédigé à l'étape 13, sans implémentation.
+Terminal intégré · tooling (compilation, exécution, LSP — y compris le
+branchement réel de `cel-lsp` et des diagnostics de compilation dans le
+panneau inférieur —, formatage) · système de plugins · services d'arrière-plan ·
+autocomplétion · autres langages. Le plan détaillé sera rédigé à l'étape 18,
+sans implémentation.

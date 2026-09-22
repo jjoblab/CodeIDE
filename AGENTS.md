@@ -3,8 +3,11 @@
 Ce fichier résume les règles de travail du projet CodeIDE pour qu'un agent
 (ou un développeur) reprenne **sans perte de contexte**. Il est tenu à jour à
 chaque étape. Le document de référence complet est le prompt maître
-(« CodeIDE — Prompt maître pour agent IA », version 1.0) ; en cas de
-contradiction, le prompt maître prime.
+(« CodeIDE — Prompt maître pour agent IA », version 1.0), complété par le
+**prompt compagnon** « EditorActivity, GitHub et bibliothèque d'édition »
+(addendum fusionné le 2026-09-23 : publication GitHub, bibliothèque
+`code-editor`, étapes 13 à 18 redéfinies) ; en cas de contradiction, le prompt
+maître prime, sauf les points qu'il modifie explicitement.
 
 ## Rôle
 
@@ -80,6 +83,10 @@ dans `core:ui`, implémentée dans `app`).
 - Robolectric 4.17 exige `--add-exports java.base/jdk.internal.access=ALL-UNNAMED`
   (déjà configuré dans les conventions) et `isIncludeAndroidResources = true`.
 - Tests : JUnit 4 (choix du prompt), noms de test en français avec accents graves.
+- Étape 13+ : `feature:editor` dépend de `com.github.jjoblab:cel-ui` via
+  **JitPack** (dépôt `maven { url = uri("https://jitpack.io") }` à ajouter —
+  seule dépendance externe autorisée dans une feature, exception documentée ;
+  accès réseau à `jitpack.io` vérifié le 2026-09-23).
 
 ## Commandes
 
@@ -98,7 +105,10 @@ scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
 Fonctionnalités de l'étape sans débordement ; vérification complète verte ;
 tests de la logique ajoutée (≥ 80 % sur `core:model`/`core:domain`) ; KDoc et
 docs à jour ; `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` à jour ; aucun TODO non
-tracé ; version incrémentée, tag Git, archive créée **et vérifiée** ; rapport
+tracé ; version incrémentée, tag Git, archive créée **et vérifiée** ;
+commits et tag **poussés sur `origin`** (`https://github.com/jjoblab/CodeIDE.git`,
+`git push origin main --follow-tags`) — ou échec de publication signalé
+explicitement dans le rapport (prompt compagnon, section 1.2) ; rapport
 remis (format section 14) puis attente du « GO ».
 
 ## État d'avancement
@@ -189,6 +199,11 @@ remis (format section 14) puis attente du « GO ».
       AppNavigator [ADR 0024 : contour + défilement, identifiant dans la pile de retour] ; correctifs insets edge-to-edge onboarding/paramètres/
       plantage + bouton debug non obstructif ; ADR 0023-0024)
 - [ ] Étape 12 — Diagnostic → v0.13.0
-- [ ] Étape 13 — Ouverture, finitions, audit → v0.14.0
+- [ ] Étape 13 — Fondations de l'espace de travail (`EditorActivity` trois zones, `cel-ui` via JitPack) → v0.14.0
+- [ ] Étape 14 — Explorateur de fichiers (tiroir, arborescence paresseuse) → v0.15.0
+- [ ] Étape 15 — Intégration de l'éditeur et onglets de fichiers → v0.16.0
+- [ ] Étape 16 — Panneau inférieur (journal applicatif, stubs Sortie/Problèmes) → v0.17.0
+- [ ] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0
+- [ ] Étape 18 — Audit final de Phase 1 → v0.19.0
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
