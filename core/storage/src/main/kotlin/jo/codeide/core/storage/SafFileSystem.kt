@@ -1,0 +1,381 @@
+package jo.codeide.core.storage
+
+import android.content.ContentResolver
+import android.database.Cursor
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.core.net.toUri
+import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.FileStat
+import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.model.AppError
+import jo.codeide.core.model.AppResult
+import kotlinx.coroutines.withContext
+import java.io.FileNotFoundException
+import java.io.IOException
+import javax.inject.Inject
+
+/**
+ * Implémentation SAF du port [FileSystem] (section 5.6 du prompt maître).
+ *
+ * Principes de la section 5.6, appliqués littéralement :
+ * - **URI, jamais `File`** (ADR 0003) : les documents sont adressés par
+ *   leur URI `content://` ;
+ * - **requêtes groupées** : le listing charge tous les enfants d'un
+ *   dossier en une seule requête `ContentResolver.query` sur l'URI des
+ *   enfants (`DocumentsContract.buildChildDocumentsUriUsingTree`) —
+ *   jamais de boucle sur `DocumentFile`, une requête par appel ;
+ * - **jamais d'écrasement** : l'existence d'un homonyme (insensible à
+ *   la casse) est vérifiée **avant** `createDocument`, et le nom
+ *   **retourné** est contrôlé — si le fournisseur renomme malgré tout
+ *   (course), le document créé est nettoyé et `AlreadyExists` remonte ;
+ * - **jamais un crash** : chaque exception système est traduite en
+ *   [AppError.Storage] typé (`SecurityException` → `PermissionLost`,
+ *   `FileNotFoundException` → `NotFound`, etc.).
+ *
+ * Contexte d'exécution attendu : toutes les méthodes sont suspendantes
+ * et basculent sur le dispatcher d'E/S injecté — les appels
+ * `ContentResolver` bloquent, jamais sur le thread principal ; chaque
+ * opération reste annulable (la coopération s'arrête aux frontières
+ * système, comme l'écriture d'un fichier).
+ *
+ * @param resolver résolveur de contenu de l'application.
+ * @param permissions port des permissions persistantes (testable).
+ * @param dispatchers dispatchers injectés (règle 5 du prompt).
+ */
+@Suppress("TooManyFunctions", "ReturnCount") // Périmètre exact du port FileSystem (étape 4).
+internal class SafFileSystem
+    @Inject
+    constructor(
+        private val resolver: ContentResolver,
+        private val permissions: PersistableUriPermissions,
+        private val dispatchers: DispatcherProvider,
+    ) : FileSystem {
+        override suspend fun exists(documentUri: String): Boolean =
+            withContext(dispatchers.io) {
+                resolver.interroger(documentUri) { uri -> decrireDocument(uri) } != null
+            }
+
+        override suspend fun stat(documentUri: String): AppResult<FileStat> =
+            withContext(dispatchers.io) {
+                try {
+                    val statut = resolver.interroger(documentUri) { uri -> decrireDocument(uri) }
+                    if (statut != null) {
+                        AppResult.Success(statut)
+                    } else {
+                        AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, documentUri))
+                    }
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
+        override suspend fun list(directoryUri: String): AppResult<List<FileStat>> =
+            withContext(dispatchers.io) {
+                try {
+                    val uriEnfants = UrisDocuments.uriEnfants(directoryUri.toUri())
+                    val enfants =
+                        resolver
+                            .query(uriEnfants, PROJECTION_ENFANTS, null, null, null)
+                            ?.use { curseur -> lireEnfants(curseur, directoryUri) }
+                            ?: return@withContext echecStockage(
+                                AppError.StorageReason.NotWritable,
+                                "Listing impossible de $directoryUri.",
+                            )
+                    AppResult.Success(enfants.trieParNom())
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(directoryUri))
+                }
+            }
+
+        /** Lit les enfants du curseur de requête groupée, URI reconstruites. */
+        private fun lireEnfants(
+            curseur: Cursor,
+            directoryUri: String,
+        ): List<FileStat> {
+            val resultat = mutableListOf<FileStat>()
+            while (curseur.moveToNext()) {
+                val idEnfant = curseur.colonne(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val uriEnfant = UrisDocuments.uriDocument(directoryUri.toUri(), idEnfant)
+                resultat += statutLigne(curseur, uriEnfant.toString())
+            }
+            return resultat
+        }
+
+        override suspend fun createDirectory(
+            parentDirectoryUri: String,
+            name: String,
+        ): AppResult<String> = creer(parentDirectoryUri, name, TYPE_DOSSIER)
+
+        override suspend fun createFile(
+            parentDirectoryUri: String,
+            name: String,
+            mimeType: String,
+        ): AppResult<String> = creer(parentDirectoryUri, name, mimeType)
+
+        override suspend fun writeText(
+            documentUri: String,
+            text: String,
+        ): AppResult<Unit> = writeBytes(documentUri, text.toByteArray(Charsets.UTF_8))
+
+        override suspend fun writeBytes(
+            documentUri: String,
+            bytes: ByteArray,
+        ): AppResult<Unit> =
+            withContext(dispatchers.io) {
+                try {
+                    resolver.openOutputStream(documentUri.toUri(), MODE_ECRITURE_TRUNCATE)?.use { sortie ->
+                        sortie.write(bytes)
+                        sortie.flush()
+                    }
+                        ?: return@withContext AppResult.Failure(
+                            AppError.Storage(AppError.StorageReason.NotFound, documentUri),
+                        )
+                    AppResult.Success(Unit)
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
+        override suspend fun readText(documentUri: String): AppResult<String> =
+            withContext(dispatchers.io) {
+                try {
+                    val octets =
+                        resolver.openInputStream(documentUri.toUri())?.use { entree -> entree.readBytes() }
+                            ?: return@withContext AppResult.Failure(
+                                AppError.Storage(AppError.StorageReason.NotFound, documentUri),
+                            )
+                    AppResult.Success(String(octets, Charsets.UTF_8))
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
+        override suspend fun delete(documentUri: String): AppResult<Unit> =
+            withContext(dispatchers.io) {
+                try {
+                    // Un « faux » du fournisseur signifie ici « déjà absent » : le
+                    // contrat du port accorde le succès sur un document disparu.
+                    DocumentsContract.deleteDocument(resolver, documentUri.toUri())
+                    AppResult.Success(Unit)
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
+        override suspend fun takePersistablePermission(grantUri: String): AppResult<Unit> =
+            withContext(dispatchers.io) {
+                try {
+                    permissions.prendre(grantUri.toUri())
+                    AppResult.Success(Unit)
+                } catch (erreur: SecurityException) {
+                    // Le message système éclaire le diagnostic (drapeau absent,
+                    // arborescence déjà révoquée) ; l'URI reste la clé.
+                    AppResult.Failure(
+                        AppError.Storage(AppError.StorageReason.PermissionLost, erreur.message ?: grantUri),
+                    )
+                }
+            }
+
+        override suspend fun releasePersistablePermission(grantUri: String): AppResult<Unit> =
+            withContext(dispatchers.io) {
+                permissions.liberer(grantUri.toUri())
+                AppResult.Success(Unit)
+            }
+
+        override suspend fun hasPersistablePermission(grantUri: String): Boolean = permissions.detient(grantUri.toUri())
+
+        /**
+         * Création commune dossier/fichier : pré-vérification d'homonyme
+         * (insensible à la casse), création, contrôle du nom retourné.
+         */
+        private suspend fun creer(
+            parentDirectoryUri: String,
+            name: String,
+            mimeType: String,
+        ): AppResult<String> =
+            withContext(dispatchers.io) {
+                // Section 5.6 : vérifier l'existence AVANT (createDocument peut
+                // renommer silencieusement en cas de collision).
+                val homonyme = homonymeDirect(parentDirectoryUri, name)
+                if (homonyme != null) {
+                    return@withContext echecStockage(AppError.StorageReason.AlreadyExists, homonyme)
+                }
+
+                try {
+                    val uriCree =
+                        DocumentsContract.createDocument(resolver, parentDirectoryUri.toUri(), mimeType, name)
+                            ?: return@withContext echecStockage(
+                                AppError.StorageReason.NotWritable,
+                                "Création refusée de « $name ».",
+                            )
+
+                    // Contrôle du nom retourné : si le fournisseur a renommé
+                    // (course avec une création concurrente), on nettoie le
+                    // document créé et on rapporte la collision — jamais
+                    // d'écrasement, jamais de surprise de nom.
+                    val reel = decrireDocument(uriCree)
+                    if (reel?.name != name) {
+                        nettoyerRenomme(uriCree)
+                        return@withContext echecStockage(AppError.StorageReason.AlreadyExists, name)
+                    }
+                    AppResult.Success(uriCree.toString())
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(parentDirectoryUri))
+                }
+            }
+
+        /**
+         * Cherche un enfant direct homonyme de [name] (insensible à la
+         * casse) ; retourne son URI, ou `null`.
+         */
+        private fun homonymeDirect(
+            parentDirectoryUri: String,
+            name: String,
+        ): String? {
+            val uriEnfants = UrisDocuments.uriEnfants(parentDirectoryUri.toUri())
+            resolver.query(uriEnfants, PROJECTION_ENFANTS, null, null, null)?.use { curseur ->
+                while (curseur.moveToNext()) {
+                    val nomEnfant = curseur.colonne(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    if (nomEnfant.equals(name, ignoreCase = true)) {
+                        val idEnfant = curseur.colonne(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                        return UrisDocuments.uriDocument(parentDirectoryUri.toUri(), idEnfant).toString()
+                    }
+                }
+            }
+            return null
+        }
+
+        /**
+         * Décrit un document par une requête unitaire sur son URI, ou
+         * `null` s'il n'existe pas (ligne vide).
+         */
+        private fun decrireDocument(uri: Uri): FileStat? {
+            resolver.query(uri, PROJECTION_DOCUMENT, null, null, null)?.use { curseur ->
+                if (curseur.moveToFirst()) return statutLigne(curseur, uri.toString())
+            }
+            return null
+        }
+
+        /**
+         * Supprime le document que le fournisseur vient de créer sous un nom
+         * renommé (course de collision) : le nettoyage est au mieux — c'est
+         * la collision qui doit être rapportée, pas l'échec du nettoyage.
+         */
+        @Suppress("SwallowedException") // Nettoyage au mieux, assumé (section 5.6).
+        private fun nettoyerRenomme(uriCree: Uri) {
+            try {
+                DocumentsContract.deleteDocument(resolver, uriCree)
+            } catch (nettoyage: Exception) {
+                // Rien à faire : la collision remonte à l'appelant, pas
+                // l'échec du nettoyage.
+            }
+        }
+
+        /** Échec de stockage typé — raccourcit les clauses de garde (lisibilité et longueur). */
+        private fun echecStockage(
+            raison: AppError.StorageReason,
+            details: String,
+        ): AppResult.Failure = AppResult.Failure(AppError.Storage(raison, details))
+
+        /** Construit un [FileStat] depuis la ligne courante du curseur. */
+        private fun statutLigne(
+            curseur: Cursor,
+            uri: String,
+        ): FileStat {
+            val nom = curseur.colonne(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mime = curseur.colonne(DocumentsContract.Document.COLUMN_MIME_TYPE)
+            val taille = curseur.colonneLong(DocumentsContract.Document.COLUMN_SIZE)
+            val modification = curseur.colonneLong(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+            return FileStat(
+                uri = uri,
+                name = nom,
+                isDirectory = mime == DocumentsContract.Document.MIME_TYPE_DIR,
+                sizeBytes = taille,
+                lastModifiedMillis = modification,
+            )
+        }
+
+        /**
+         * Interroge le résolveur avec une translation d'exception : `null`
+         * si le document est absent.
+         */
+        private fun <T> ContentResolver.interroger(
+            documentUri: String,
+            bloc: (Uri) -> T?,
+        ): T? = bloc(documentUri.toUri())
+
+        /** Traduit une exception système en erreur de stockage typée. */
+        private fun Exception.versErreurStockage(uri: String): AppError.Storage =
+            when (this) {
+                is SecurityException -> {
+                    AppError.Storage(AppError.StorageReason.PermissionLost, uri)
+                }
+
+                is FileNotFoundException -> {
+                    AppError.Storage(AppError.StorageReason.NotFound, uri)
+                }
+
+                // URI malformée pour ce fournisseur : le document n'est pas
+                // adressable — vue utilisateur : introuvable.
+                is IllegalArgumentException, is UnsupportedOperationException -> {
+                    AppError.Storage(AppError.StorageReason.NotFound, "$uri — URI non adressable")
+                }
+
+                is IOException -> {
+                    if (message?.contains(INDICE_PLEIN) == true || message?.contains(INDICE_ESPACE) == true) {
+                        AppError.Storage(AppError.StorageReason.NoSpace, message ?: uri)
+                    } else {
+                        AppError.Storage(AppError.StorageReason.Io, message ?: uri)
+                    }
+                }
+
+                else -> {
+                    AppError.Storage(AppError.StorageReason.Io, "${this::class.java.simpleName} — ${message ?: uri}")
+                }
+            }
+
+        private companion object {
+            /** Colonnes d'une requête de document unitaire. */
+            private val PROJECTION_DOCUMENT =
+                arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE,
+                    DocumentsContract.Document.COLUMN_SIZE,
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                )
+
+            /** Colonnes d'une requête d'enfants (l'identifiant en tête). */
+            private val PROJECTION_ENFANTS =
+                arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE,
+                    DocumentsContract.Document.COLUMN_SIZE,
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                )
+
+            /** Type MIME d'un dossier SAF. */
+            private const val TYPE_DOSSIER = DocumentsContract.Document.MIME_TYPE_DIR
+
+            /** Mode d'écriture : tronquer avant d'écrire (remplacement intégral). */
+            private const val MODE_ECRITURE_TRUNCATE = "wt"
+
+            /** Indices d'un disque plein dans les messages d'E/S (best effort). */
+            private const val INDICE_PLEIN = "ENOSPC"
+            private const val INDICE_ESPACE = "no space"
+
+            /** Ordre stable du listing : nom croissant, insensible à la casse. */
+            private fun List<FileStat>.trieParNom(): List<FileStat> = sortedBy { it.name.lowercase() }
+        }
+    }
+
+/** Colonne texte du curseur (chaîne vide si absente — jamais de crash). */
+private fun Cursor.colonne(nom: String): String = getColumnIndexOrThrow(nom).let { getString(it) ?: "" }
+
+/** Colonne entière du curseur (`-1` si absente : valeur inconnue du contrat FileStat). */
+private fun Cursor.colonneLong(nom: String): Long {
+    val index = getColumnIndexOrThrow(nom)
+    return if (isNull(index)) -1L else getLong(index)
+}
