@@ -2,7 +2,9 @@
 
 > Statut étape 2 : fondations (v0.2.0 : `DispatcherProvider`, convention des use cases) et journalisation
 > (v0.3.0 : `AppLogger`, `LogRedactor`, `LogConfig`, `LogRepository`, `TimeProvider`, use cases
-> `ObserveLogs`/`ExportLogs`/`ClearLogs`, `LogExportWriter`).
+> `ObserveLogs`/`ExportLogs`/`ClearLogs`, `LogExportWriter`), plantages (v0.4.0 :
+> `CrashReportRepository`, `PendingExitInfoRecorder`, use cases de lecture/consultation/suppression
+> et enregistrement des sorties).
 
 Module Kotlin JVM pur : cas d'usage (use cases), interfaces de repositories, `FileSystem`, `AppLogger`, `LogRedactor`, `DispatcherProvider`. Autorise `javax.inject` et Coroutines/Flow. Ne connaît ni Android ni les implémentations.
 
