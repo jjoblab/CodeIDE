@@ -1,0 +1,12 @@
+{
+  "template.name": "Fixture",
+  "template.description": "Model of test exercising the engine",
+  "param.type.label": "Type",
+  "param.type.help": "Application or library",
+  "param.extras.label": "Extras",
+  "param.package.label": "Package",
+  "param.group.label": "Group",
+  "param.version.label": "Version",
+  "param.cache.label": "Hidden",
+  "msg.hello": "Hello, world"
+}
