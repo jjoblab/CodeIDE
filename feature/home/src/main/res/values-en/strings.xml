@@ -3,4 +3,7 @@
     <string name="home_title">Home</string>
     <string name="home_placeholder">Placeholder screen: the project list arrives at step 7 of the plan.</string>
     <string name="home_open_settings">Open settings</string>
+    <string name="home_bandeau_titre">Workspace folder not configured</string>
+    <string name="home_bandeau_texte">New projects need a workspace folder to exist.</string>
+    <string name="home_bandeau_bouton">Set up</string>
 </resources>

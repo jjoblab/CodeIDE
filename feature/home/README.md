@@ -1,6 +1,8 @@
 # feature/home — Fonctionnalité — liste des projets
 
-> Statut étape 1 : fragment placeholder livré (navigation Accueil ↔ Paramètres prouvée). La liste réelle des projets arrive à l'étape 7.
+> Statut étape 5 (v0.6.0) : fragment placeholder + bandeau « Configurer le
+> dossier de travail » (`HomeViewModel`, piloté par les paramètres
+> applicatifs). La liste réelle des projets arrive à l'étape 7.
 
 Écran d'accueil : liste des projets (ListAdapter + DiffUtil), tri, recherche avec debounce, états chargement/vide/erreur, statut d'accès (Introuvable / Permission perdue), actions par projet, FAB Nouveau projet et Ouvrir un dossier. Adaptatif une/deux colonnes.
 
