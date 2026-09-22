@@ -1,9 +1,21 @@
-// Module feature — voir README.md et docs/ARCHITECTURE.md.
-// Étape 0 : squelette avec la convention library. La convention
-// codeide.android.feature (ViewBinding + Hilt + dépendances d'interface
-// de la section 5.2) sera appliquée quand le contenu fonctionnel du module
-// arrivera (étapes 5 à 13) — elle est déjà compilée dans build-logic.
+// Module feature — assistant de premier lancement (étape 5, section 11 du
+// prompt maître) : cinq pages pager non swipable, dossier de travail SAF
+// avec test d'écriture, apparence à aperçu immédiat, profil d'auteur.
 
 plugins {
-    id("codeide.android.library")
+    id("codeide.android.feature")
+}
+
+dependencies {
+    // Pager des cinq pages de l'assistant (non swipable : navigation aux
+    // boutons uniquement).
+    implementation(libs.androidx.viewpager2)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    // Fakes (FileSystem, dépôts de paramètres) et règle MainDispatcherRule.
+    testImplementation(project(":core:testing"))
 }

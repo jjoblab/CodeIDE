@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Page 5 — Terminé : récapitulatif des choix avant validation. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_xl">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/titre_termine"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/page_termine_titre"
+        android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_dossier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_auteur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_licence"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_final"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xl"
+        android:gravity="center"
+        android:text="@string/page_termine_texte"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+</LinearLayout>

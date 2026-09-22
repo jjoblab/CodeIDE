@@ -1,0 +1,127 @@
+package jo.codeide.feature.onboarding
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
+import androidx.transition.TransitionManager
+import com.google.android.material.transition.MaterialSharedAxis
+import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.collectWithLifecycle
+import jo.codeide.feature.onboarding.databinding.FragmentOnboardingBinding
+import javax.inject.Inject
+
+/**
+ * Hôte de l'assistant de premier lancement (étape 5) : pager non swipable
+ * des cinq pages, indicateur de progression et barre de navigation.
+ *
+ * Le fragment ne fait que **rendre l'état** et **émettre des actions**
+ * (section 5.3) : les changements de page partent du ViewModel, et
+ * l'animation [MaterialSharedAxis] (axe Z, sens du parcours) accompagne
+ * chaque transition. Le bouton retour système recule d'une page au lieu
+ * de quitter l'assistant.
+ */
+@AndroidEntryPoint
+class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
+    private val viewModel: OnboardingViewModel by viewModels()
+
+    /** Navigation découplée : la feature ne connaît jamais les autres. */
+    @Inject
+    lateinit var navigator: AppNavigator
+
+    /** Retour système : recule d'une page, désarmé sur la bienvenue. */
+    private val retourPage: OnBackPressedCallback =
+        object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                viewModel.onAction(ActionOnboarding.PagePrecedente)
+            }
+        }
+
+    /** Sélecteur SAF du dossier de travail (section 5.6). */
+    private val selecteurDossier =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                viewModel.onAction(ActionOnboarding.DossierChoisi(uri.toString()))
+            }
+        }
+
+    override fun createBinding(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        attachToRoot: Boolean,
+    ): FragmentOnboardingBinding = FragmentOnboardingBinding.inflate(inflater, container, attachToRoot)
+
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
+        super.onViewCreated(view, savedInstanceState)
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, retourPage)
+
+        binding.pagerPages.isUserInputEnabled = false
+        binding.pagerPages.adapter = OnboardingPagerAdapter(this)
+
+        binding.boutonPrecedent.setOnClickListener {
+            viewModel.onAction(ActionOnboarding.PagePrecedente)
+        }
+        binding.boutonSuivant.setOnClickListener {
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+        }
+
+        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
+        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet -> appliquer(effet) }
+    }
+
+    /** Rendu de l'état : page courante, progression, barre de navigation. */
+    private fun rendre(etat: EtatOnboarding) {
+        binding.progression.max = PageOnboarding.entries.size
+        binding.progression.progress = etat.page.ordinal + 1
+        allerPage(etat.page)
+
+        retourPage.isEnabled = etat.page != PageOnboarding.BIENVENUE
+        binding.boutonPrecedent.isVisible = etat.page != PageOnboarding.BIENVENUE
+        binding.boutonSuivant.setText(libelleSuivant(etat.page))
+    }
+
+    /** Change la page du pager avec l'animation MaterialSharedAxis. */
+    private fun allerPage(page: PageOnboarding) {
+        val cible = page.ordinal
+        if (binding.pagerPages.currentItem == cible) return
+
+        val enAvant = cible > binding.pagerPages.currentItem
+        val axe =
+            MaterialSharedAxis(MaterialSharedAxis.Z, enAvant).apply {
+                duration = DUREE_AXE_MS
+            }
+        TransitionManager.beginDelayedTransition(binding.pagerPages, axe)
+        binding.pagerPages.setCurrentItem(cible, false)
+    }
+
+    /** Libellé du bouton d'action selon la page (commencer, suivant, finir). */
+    private fun libelleSuivant(page: PageOnboarding): Int =
+        when (page) {
+            PageOnboarding.BIENVENUE -> R.string.onboarding_commencer
+            PageOnboarding.TERMINE -> R.string.onboarding_terminer
+            else -> R.string.onboarding_suivant
+        }
+
+    /** Application des effets ponctuels (section 5.3). */
+    private fun appliquer(effet: EffetOnboarding) {
+        when (effet) {
+            EffetOnboarding.OuvrirSelecteurDossier -> selecteurDossier.launch(null)
+            EffetOnboarding.RetourAccueil -> navigator.openHome()
+        }
+    }
+
+    private companion object {
+        /** Durée de l'animation d'axe partagé entre pages. */
+        const val DUREE_AXE_MS = 300L
+    }
+}

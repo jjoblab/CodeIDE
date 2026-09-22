@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Page 4 — Profil : nom d'auteur optionnel et licence par défaut. Les
+  frappes ne déclenchent aucune écriture disque (persistance à la fin).
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_lg">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_profil"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/page_profil_titre"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_profil"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:gravity="center"
+            android:text="@string/page_profil_texte"
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/champ_nom_conteneur"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:hint="@string/page_profil_auteur">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/champ_nom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="textPersonName|textCapWords"
+                android:maxLines="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/menu_licence_conteneur"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:hint="@string/page_profil_licence">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/menu_licence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+</ScrollView>

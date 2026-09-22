@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Barre de l'assistant (hôte). -->
+    <string name="onboarding_title">Premier lancement</string>
+    <string name="onboarding_commencer">Commencer</string>
+    <string name="onboarding_suivant">Suivant</string>
+    <string name="onboarding_precedent">Précédent</string>
+    <string name="onboarding_terminer">Terminer</string>
+
+    <!-- Page 1 — Bienvenue. -->
+    <string name="page_bienvenue_titre">Bienvenue dans CodeIDE</string>
+    <string name="page_bienvenue_texte">Créez, explorez et modifiez des projets Kotlin et Java directement depuis votre appareil. Quelques réglages et c\'est parti.</string>
+
+    <!-- Page 2 — Dossier de travail. -->
+    <string name="page_dossier_titre">Dossier de travail</string>
+    <string name="page_dossier_texte">Choisissez le dossier qui accueillera vos projets. CodeIDE n\'y écrit que par l\'accès que vous lui accordez, et n\'en sort jamais.</string>
+    <string name="page_dossier_choisir">Choisir un dossier</string>
+    <string name="page_dossier_changer">Changer de dossier</string>
+    <string name="page_dossier_reessayer">Réessayer</string>
+    <string name="page_dossier_passer">Plus tard</string>
+    <string name="page_dossier_verification">Vérification du dossier…</string>
+    <string name="page_dossier_configure">Dossier de travail : %1$s</string>
+    <string name="page_dossier_erreur">Le dossier n\'a pas pu être vérifié : le test d\'écriture a échoué. Réessayez ou choisissez un autre dossier.</string>
+    <string name="page_dossier_refuse_racine">Android interdit la racine du stockage : choisissez un sous-dossier (ex. « Documents »).</string>
+    <string name="page_dossier_refuse_download">Android interdit le dossier Téléchargements : choisissez un autre dossier.</string>
+    <string name="page_dossier_refuse_android_data">Android interdit le dossier Android/data : choisissez un autre dossier.</string>
+    <string name="page_dossier_refuse_android_obb">Android interdit le dossier Android/obb : choisissez un autre dossier.</string>
+
+    <!-- Page 3 — Apparence. -->
+    <string name="page_apparence_titre">Apparence</string>
+    <string name="page_apparence_theme">Thème</string>
+    <string name="page_apparence_theme_systeme">Suivre le système</string>
+    <string name="page_apparence_theme_clair">Clair</string>
+    <string name="page_apparence_theme_sombre">Sombre</string>
+    <string name="page_apparence_dynamique">Couleurs dynamiques</string>
+    <string name="page_apparence_dynamique_desc">Reprendre les couleurs du fond d\'écran (Android 12+)</string>
+    <string name="page_apparence_langue">Langue</string>
+    <string name="page_apparence_langue_systeme">Suivre le système</string>
+    <string name="page_apparence_langue_fr">Français</string>
+    <string name="page_apparence_langue_en">English</string>
+
+    <!-- Page 4 — Profil. -->
+    <string name="page_profil_titre">Profil</string>
+    <string name="page_profil_texte">Optionnel : le nom d\'auteur pré-remplit les README et licences des projets que vous créerez.</string>
+    <string name="page_profil_auteur">Nom d\'auteur</string>
+    <string name="page_profil_licence">Licence par défaut</string>
+    <string name="licence_none">Aucune</string>
+    <string name="licence_mit">MIT</string>
+    <string name="licence_apache">Apache 2.0</string>
+    <string name="licence_gpl">GPL 3.0</string>
+    <string name="licence_bsd">BSD 3 clauses</string>
+
+    <!-- Page 5 — Terminé. -->
+    <string name="page_termine_titre">Tout est prêt</string>
+    <string name="page_termine_dossier">Dossier de travail : %1$s</string>
+    <string name="page_termine_dossier_absent">Dossier de travail : non configuré (configurable plus tard)</string>
+    <string name="page_termine_auteur">Auteur : %1$s</string>
+    <string name="page_termine_auteur_absent">Auteur : non renseigné</string>
+    <string name="page_termine_licence">Licence par défaut : %1$s</string>
+    <string name="page_termine_texte">Bon code !</string>
+
+</resources>
