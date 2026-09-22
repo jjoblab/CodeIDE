@@ -1,5 +1,6 @@
 package jo.codeide.feature.home
 
+import android.graphics.Color
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -8,8 +9,10 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
+import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.TemplateId
 import jo.codeide.feature.home.databinding.ItemProjetBinding
 
@@ -35,6 +38,9 @@ internal data class ProjetAffiche(
 internal class ProjetsAccueilAdapter(
     private val ecouteur: EcouteurProjets,
 ) : ListAdapter<ProjetAffiche, ProjetsAccueilAdapter.VueProjet>(EcartProjet) {
+    /** Projet mis en évidence (création réussie, étape 11) : contour marqué. */
+    internal var projetEnEvidence: ProjectId? = null
+
     /** Interaction de l'utilisateur avec une ligne de projet. */
     internal interface EcouteurProjets {
         /** Toucher la carte : ouvrir le projet, ou ses actions si l'accès est rompu. */
@@ -82,6 +88,18 @@ internal class ProjetsAccueilAdapter(
 
         liaison.pastilleType.setImageResource(iconeDe(projet.templateId))
         liaison.pastilleType.contentDescription = null // décorative
+
+        // Mise en évidence du projet fraîchement créé (étape 11) : contour
+        // de la couleur primaire du thème (suit le mode sombre) — sobre,
+        // jamais une couleur sémantique (pas d'état).
+        liaison.carteProjet.strokeWidth =
+            liaison.root.resources.getDimensionPixelSize(R.dimen.accueil_surlignage_contour)
+        liaison.carteProjet.strokeColor =
+            if (projet.id == projetEnEvidence) {
+                MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorPrimary)
+            } else {
+                Color.TRANSPARENT
+            }
 
         // Badge d'accès rompu : signalé visuellement, résolu par le menu
         // (Relocaliser / Retirer), jamais un crash (section 5.6).

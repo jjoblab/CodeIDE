@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -71,6 +72,9 @@ class HomeFragment :
     /** Restaure la recherche une seule fois (puis la vue gère son texte). */
     private var premiereRendu = true
 
+    /** Le défilement vers le projet créé a-t-il déjà eu lieu ? */
+    private var surlignageDejaDefile = false
+
     override fun createBinding(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -89,6 +93,12 @@ class HomeFragment :
         adapteur = ProjetsAccueilAdapter(this)
         binding.listeProjets.adapter = adapteur
         binding.listeProjets.setHasFixedSize(true)
+
+        // Projet créé par le wizard (étape 11) : mise en évidence — le
+        // navigateur porte l'identifiant via la pile de retour (une fois).
+        navigator.consommerProjetCree()?.let { identifiant ->
+            viewModel.action(ActionAccueil.SurlignerProjet(ProjectId(identifiant)))
+        }
 
         brancherActions()
         observerEtatEtEffets()
@@ -186,7 +196,19 @@ class HomeFragment :
         }
 
         binding.listeProjets.isVisible = !etat.chargement && etat.erreur == null && etat.projets.isNotEmpty()
+        adapteur.projetEnEvidence = etat.projetEnEvidence
         adapteur.submitList(etat.projets.map { ProjetAffiche(it, etat.etatsAcces[it.id]) })
+
+        // Défilement vers le projet créé — une seule fois, quand il est
+        // enfin présent dans la liste (le registre peut émettre avant).
+        val cible = etat.projetEnEvidence
+        if (cible != null && !surlignageDejaDefile) {
+            etat.projets.indexOfFirst { it.id == cible }.takeIf { it >= 0 }?.let { position ->
+                surlignageDejaDefile = true
+                (binding.listeProjets.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(position, binding.root.height / FRACTION_ECRAN_CIBLE)
+            }
+        }
 
         synchroniserTri(etat.tri)
 
@@ -316,5 +338,10 @@ class HomeFragment :
                 viewModel.action(ActionAccueil.SupprimerDuDisque(projet.id))
             }.setNegativeButton(R.string.accueil_annuler, null)
             .show()
+    }
+
+    private companion object {
+        /** Diviseur d'écran : tiers au-dessus du projet mis en évidence. */
+        const val FRACTION_ECRAN_CIBLE = 3
     }
 }

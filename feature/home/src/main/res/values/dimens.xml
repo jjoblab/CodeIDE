@@ -14,4 +14,6 @@
     <dimen name="taille_icone_epingle">16dp</dimen>
     <dimen name="taille_icone_etat">14dp</dimen>
 
+    <!-- Contour de mise en évidence du projet créé (étape 11). -->
+    <dimen name="accueil_surlignage_contour">2dp</dimen>
 </resources>

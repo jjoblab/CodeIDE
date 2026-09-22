@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Étape 4 « Fichiers » (section 12.3) : interrupteurs des fichiers
+  optionnels, licence (auteur et année pré-remplis des Paramètres) et
+  langue du contenu généré.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/defilement_fichiers"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/screen_horizontal_margin"
+        android:paddingTop="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/screen_horizontal_margin"
+        android:paddingBottom="@dimen/spacing_md">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/wizard_fichiers_soustitre"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/interrupteur_readme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/wizard_fichiers_readme"
+            app:helperText="@string/wizard_fichiers_readme_aide" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/interrupteur_gitignore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/wizard_fichiers_gitignore"
+            app:helperText="@string/wizard_fichiers_gitignore_aide" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/interrupteur_editorconfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/wizard_fichiers_editorconfig"
+            app:helperText="@string/wizard_fichiers_editorconfig_aide" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/champ_licence"
+            style="@style/Widget.CodeIDE.TextField.Dropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:hint="@string/wizard_fichiers_licence"
+            app:helperText="@string/wizard_fichiers_licence_aide">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/saisie_licence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_auteur_licence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:accessibilityLiveRegion="polite" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:text="@string/wizard_fichiers_langue_titre"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/groupe_langue_contenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_langue_francais"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/wizard_fichiers_langue_francais" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_langue_anglais"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/wizard_fichiers_langue_anglais" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/wizard_fichiers_langue_aide"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

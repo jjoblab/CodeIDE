@@ -53,6 +53,8 @@ data class EtatAccueil(
     val montrerBandeau: Boolean = false,
     val libelleDossier: String? = null,
     val erreur: AppError? = null,
+    /** Projet créé par le wizard : défilement + surlignage (étape 11). */
+    val projetEnEvidence: ProjectId? = null,
 )
 
 /**
@@ -131,6 +133,14 @@ sealed interface ActionAccueil {
 
     /** Réessaie après un échec de lecture du registre. */
     data object Reessayer : ActionAccueil
+
+    /**
+     * Met en évidence le projet créé par le wizard (section 12.3 :
+     * « le nouveau projet apparaît, mis en évidence » — étape 11).
+     */
+    data class SurlignerProjet(
+        val id: ProjectId,
+    ) : ActionAccueil
 }
 
 /**

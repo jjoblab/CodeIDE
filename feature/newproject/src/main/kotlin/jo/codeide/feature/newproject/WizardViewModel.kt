@@ -5,17 +5,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.MarkProjectOpenedUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ReleaseCreationLocationUseCase
 import jo.codeide.core.domain.ResolveCreationLocationUseCase
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.domain.VerifyCreationTargetUseCase
+import jo.codeide.core.domain.templates.CreateProjectUseCase
 import jo.codeide.core.domain.templates.EvaluateTemplateFormUseCase
 import jo.codeide.core.domain.templates.EvaluerNomProjetUseCase
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
+import jo.codeide.core.domain.templates.PlanProjectCreationUseCase
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.CreateProjectRequest
+import jo.codeide.core.model.CreationProgress
+import jo.codeide.core.model.License
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.model.TemplateOptions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -26,6 +35,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 import javax.inject.Inject
 
@@ -46,7 +57,15 @@ import javax.inject.Inject
  * - résoudre l'emplacement effectif (override éphémère ou dossier de
  *   travail des Paramètres) et vérifier la cible **avec délai** (permission,
  *   joignabilité, collision de nom — section 12.3) ;
- * - piloter la machine à étapes (suivant gardé par validité, précédent) ;
+ * - piloter la machine à étapes (suivant gardé par validité, précédent,
+ *   « Modifier » du récapitulatif vers l'arrière uniquement) ;
+ * - porter les **options communes** de l'étape Fichiers (section 12.3) et
+ *   **planifier** le récapitulatif (dry-run — ce qui est planifié est ce
+ *   qui sera écrit, à l'octet près) ;
+ * - **créer** le projet ([CreateProjectUseCase] : revalidation, écritures
+ *   avec progression temps réel, rollback à tout échec ou annulation,
+ *   registre en dernier) ; l'annulation déclenche le rollback côté domaine
+ *   puis ramène au récapitulatif ;
  * - à l'abandon confirmé, relâcher la permission éphémère de l'override
  *   si elle ne sert plus à rien ([ReleaseCreationLocationUseCase]).
  *
@@ -69,6 +88,10 @@ class WizardViewModel
         private val resoudreEmplacement: ResolveCreationLocationUseCase,
         private val relacherEmplacement: ReleaseCreationLocationUseCase,
         private val verifierCible: VerifyCreationTargetUseCase,
+        private val planifierCreation: PlanProjectCreationUseCase,
+        private val creerProjet: CreateProjectUseCase,
+        private val marquerOuvert: MarkProjectOpenedUseCase,
+        private val horloge: TimeProvider,
         private val observerParametres: ObserveSettingsUseCase,
         private val journal: AppLogger,
         private val savedState: SavedStateHandle,
@@ -89,25 +112,52 @@ class WizardViewModel
         /** Vérification de cible en cours (délai inclus). */
         private var verificationJob: Job? = null
 
+        /** Création en cours (annulable — le domaine roule le rollback). */
+        private var creationJob: Job? = null
+
         init {
             restaurer()
             observerReglages()
             chargerCatalogue()
+            if (etatInterne.value.etape == EtapeId.RECAPITULATIF) {
+                // Mort du processus sur le récapitulatif : le plan se
+                // recalcule (il n'est pas sauvé — il se redéduit).
+                planifier()
+            }
         }
 
-        /** Applique une action du wizard. */
+        /**
+         * Applique une action du wizard (dispatch exhaustif de l'UDF).
+         *
+         * Exemption detekt ciblée (règle 16) : un branch `when` par action
+         * UDF (section 5.3) — tout éclatement arbitraire casserait la
+         * lecture exhaustive du contrat.
+         */
+        @Suppress("CyclomaticComplexMethod")
         fun action(action: ActionWizard) {
             when (action) {
                 ActionWizard.ReessayerCatalogue -> chargerCatalogue()
                 is ActionWizard.ChoisirModele -> choisirModele(action.id)
                 ActionWizard.Suivant -> avancer()
                 ActionWizard.Precedent -> reculer()
+                is ActionWizard.AllerEtape -> allerEtape(action.id)
                 is ActionWizard.SaisirNom -> saisirNom(action.valeur)
                 is ActionWizard.SaisirDescription -> saisirDescription(action.valeur)
                 is ActionWizard.SaisirTexte -> saisirTexte(action.parametreId, action.valeur)
                 is ActionWizard.ChoisirValeur -> choisirValeur(action.parametreId, action.valeur)
                 is ActionWizard.Resynchroniser -> resynchroniser(action.parametreId)
                 is ActionWizard.ChangerEmplacement -> changerEmplacement(action.grantUri)
+                is ActionWizard.BasculerFichier -> basculerFichier(action.fichier, action.inclus)
+                is ActionWizard.ChoisirLicence -> choisirLicence(action.licence)
+                is ActionWizard.ChoisirLangueContenu -> choisirLangueContenu(action.langue)
+                ActionWizard.Creer -> creer()
+                ActionWizard.ReessayerCreation -> creer()
+                ActionWizard.ReessayerPlan -> planifier()
+                ActionWizard.AnnulerCreation -> annulerCreation()
+                ActionWizard.RetourRecapitulatif -> retourRecapitulatif()
+                ActionWizard.OuvrirProjetCree -> ouvrirProjetCree()
+                ActionWizard.RetourAccueil -> retourAccueil()
+                is ActionWizard.Recommencer -> recommencer(action.garderModele)
                 ActionWizard.Fermer -> fermer()
             }
         }
@@ -148,7 +198,7 @@ class WizardViewModel
             }
         }
 
-        /** Suit les réglages : emplacement par défaut et langue. */
+        /** Suit les réglages : emplacement par défaut, langue et profil. */
         private fun observerReglages() {
             viewModelScope.launch {
                 observerParametres().collect { reglages ->
@@ -157,7 +207,11 @@ class WizardViewModel
                     langueModeles = langue
                     etatInterne.update { etat ->
                         val effectif = etat.emplacementOverride ?: reglages.workspace
-                        if (effectif != etat.emplacement) etat.copy(emplacement = effectif) else etat
+                        etat.copy(
+                            emplacement = effectif,
+                            auteur = reglages.authorName,
+                            annee = anneeCourante(),
+                        )
                     }
                     if (recharger) chargerCatalogue() else reevaluer()
                     replanifierVerification()
@@ -181,6 +235,7 @@ class WizardViewModel
             val suivante = ETAPES_WIZARD[etat.indexEtape + 1]
             savedState[CLE_ETAPE] = suivante.id.name
             etatInterne.update { it.copy(etape = suivante.id) }
+            if (suivante.id == EtapeId.RECAPITULATIF) planifier()
         }
 
         /** Revient à l'étape précédente (garde : première étape). */
@@ -190,6 +245,18 @@ class WizardViewModel
             val precedente = ETAPES_WIZARD[etat.indexEtape - 1]
             savedState[CLE_ETAPE] = precedente.id.name
             etatInterne.update { it.copy(etape = precedente.id) }
+        }
+
+        /**
+         * « Modifier » du récapitulatif (section 12.3) : retour direct à
+         * une étape — **vers l'arrière uniquement** (aucun raccourci qui
+         * esquiverait les gardes de validité).
+         */
+        private fun allerEtape(id: EtapeId) {
+            val cible = ETAPES_WIZARD.indexOfFirst { it.id == id }
+            if (cible < 0 || cible >= etatInterne.value.indexEtape) return
+            savedState[CLE_ETAPE] = id.name
+            etatInterne.update { it.copy(etape = id) }
         }
 
         // ------------------------------------------------- champs communs
@@ -272,11 +339,261 @@ class WizardViewModel
 
         /** Abandon confirmé : nettoie puis demande la fermeture. */
         private fun fermer() {
+            creationJob?.cancel()
             viewModelScope.launch {
                 relacherEmplacement(etatInterne.value.emplacementOverride)
                 effetsInterne.send(EffetWizard.Fermer)
             }
         }
+
+        // ---------------------------------------------------- options
+
+        /** Inclut ou exclut un fichier optionnel (étape 4, section 12.3). */
+        private fun basculerFichier(
+            fichier: FichierOptionnel,
+            inclus: Boolean,
+        ) {
+            val options =
+                when (fichier) {
+                    FichierOptionnel.README -> etatInterne.value.options.copy(includeReadme = inclus)
+                    FichierOptionnel.GITIGNORE -> etatInterne.value.options.copy(includeGitignore = inclus)
+                    FichierOptionnel.EDITORCONFIG -> etatInterne.value.options.copy(includeEditorconfig = inclus)
+                }
+            persisterOptions(options)
+            etatInterne.update { it.copy(options = options) }
+        }
+
+        /** Choisit la licence à générer (étape 4). */
+        private fun choisirLicence(licence: License) {
+            val options = etatInterne.value.options.copy(license = licence)
+            persisterOptions(options)
+            etatInterne.update { it.copy(options = options) }
+        }
+
+        /**
+         * Choisit la langue du contenu généré (étape 4) — bornée aux
+         * langues connues du moteur, tout autre valeur est ignorée.
+         */
+        private fun choisirLangueContenu(langue: String) {
+            if (!TemplateOptions.langueValide(langue)) return
+            val options = etatInterne.value.options.copy(contentLanguage = langue)
+            persisterOptions(options)
+            etatInterne.update { it.copy(options = options) }
+        }
+
+        /** Persiste les options dans le `SavedStateHandle`. */
+        private fun persisterOptions(options: TemplateOptions) {
+            savedState[CLE_OPT_README] = options.includeReadme
+            savedState[CLE_OPT_GITIGNORE] = options.includeGitignore
+            savedState[CLE_OPT_EDITORCONFIG] = options.includeEditorconfig
+            savedState[CLE_OPT_LICENCE] = options.license.name
+            savedState[CLE_OPT_LANGUE] = options.contentLanguage
+        }
+
+        /** Options restaurées après mort du processus (défauts sains). */
+        private fun restaurerOptions(): TemplateOptions =
+            TemplateOptions(
+                includeReadme = savedState.get<Boolean>(CLE_OPT_README) ?: true,
+                includeGitignore = savedState.get<Boolean>(CLE_OPT_GITIGNORE) ?: true,
+                includeEditorconfig = savedState.get<Boolean>(CLE_OPT_EDITORCONFIG) ?: true,
+                license =
+                    savedState.get<String>(CLE_OPT_LICENCE)?.let(License::fromPersistedName)
+                        ?: License.NONE,
+                contentLanguage =
+                    savedState.get<String>(CLE_OPT_LANGUE)?.takeIf(TemplateOptions::langueValide)
+                        ?: TemplateOptions.LANGUE_DEFAUT,
+            )
+
+        // ---------------------------------------------- plan / création
+
+        /**
+         * Planifie la création pour le récapitulatif (dry-run, section
+         * 12.3) : l'aperçu de l'arborescence reflète toutes les options.
+         */
+        private fun planifier() {
+            // Le plan est un dry-run : il n'exige ni emplacement ni cible
+            // (PlanProjectCreationUseCase n'écrit rien) — seul le modèle
+            // compte ; la revalidation complète a lieu à la création.
+            val etat = etatInterne.value
+            if (etat.templateId == null) {
+                etatInterne.update { it.copy(plan = null, chargementPlan = false, erreurPlan = true) }
+                return
+            }
+            etatInterne.update { it.copy(chargementPlan = true, erreurPlan = false) }
+            viewModelScope.launch {
+                when (val resultat = planifierCreation(requeteDeLEtat())) {
+                    is AppResult.Success -> {
+                        etatInterne.update {
+                            it.copy(plan = resultat.value, chargementPlan = false, erreurPlan = false)
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) { "plan impossible (modèle ${etat.templateId.value})" }
+                        etatInterne.update {
+                            it.copy(plan = null, chargementPlan = false, erreurPlan = true)
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Lance la création (section 12.4) : le flot froid du domaine est
+         * collecté ici — chaque événement alimente [EtatCreation.EnCours],
+         * l'événement terminal tranche succès ou échec typé.
+         */
+        private fun creer() {
+            val etat = etatInterne.value
+            if (!etat.estRecapitulatif || !etat.etapeValide) return
+            if (etat.templateId == null || etat.emplacement == null) return
+            creationJob?.cancel()
+            val requete = requeteDeLEtat()
+            etatInterne.update { it.copy(etatCreation = EtatCreation.EnCours(emptyList())) }
+            creationJob =
+                viewModelScope.launch {
+                    try {
+                        creerProjet.create(requete).collect { evenement ->
+                            when (evenement) {
+                                is CreationProgress.Termine -> {
+                                    when (val resultat = evenement.result) {
+                                        is AppResult.Success -> {
+                                            journal.i(TAG) { "projet créé" }
+                                            etatInterne.update {
+                                                it.copy(etatCreation = EtatCreation.Succes(resultat.value))
+                                            }
+                                        }
+
+                                        is AppResult.Failure -> {
+                                            etatInterne.update {
+                                                it.copy(
+                                                    etatCreation =
+                                                        EtatCreation.Echec(
+                                                            erreur = resultat.error,
+                                                            residues = evenement.residues,
+                                                        ),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                else -> {
+                                    etatInterne.update { courant ->
+                                        val enCours = courant.etatCreation as? EtatCreation.EnCours
+                                        courant.copy(
+                                            etatCreation =
+                                                EtatCreation.EnCours(enCours?.evenements.orEmpty() + evenement),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } catch (annulation: CancellationException) {
+                        // Annulation utilisateur : le domaine a déjà roulé le
+                        // rollback (NonCancellable) — retour au récapitulatif.
+                        etatInterne.update { it.copy(etatCreation = EtatCreation.Inactif) }
+                        throw annulation
+                    }
+                }
+        }
+
+        /** Annule la création en cours : rollback domaine puis récapitulatif. */
+        private fun annulerCreation() {
+            creationJob?.cancel()
+        }
+
+        /** Referme l'écran d'échec : retour au récapitulatif (sans relance). */
+        private fun retourRecapitulatif() {
+            etatInterne.update { it.copy(etatCreation = EtatCreation.Inactif) }
+        }
+
+        /**
+         * « Ouvrir le projet » (succès) : marque l'ouverture (tri des
+         * récents — l'éditeur arrive à l'étape 13) puis referme.
+         */
+        private fun ouvrirProjetCree() {
+            val succes = etatInterne.value.etatCreation as? EtatCreation.Succes ?: return
+            viewModelScope.launch {
+                marquerOuvert(succes.projet.id, horloge.nowMillis())
+                effetsInterne.send(EffetWizard.ProjetCree(succes.projet.id))
+            }
+        }
+
+        /** « Retour à l'accueil » (succès) : referme en signalant le projet. */
+        private fun retourAccueil() {
+            val succes = etatInterne.value.etatCreation as? EtatCreation.Succes ?: return
+            viewModelScope.launch {
+                effetsInterne.send(EffetWizard.ProjetCree(succes.projet.id))
+            }
+        }
+
+        /**
+         * « Créer un autre projet » : remise à zéro complète du wizard —
+         * l'emplacement éphémère est relâché (sa nouvelle valeur sera
+         * redemandée), le modèle peut être conservé pour enchaîner.
+         */
+        private fun recommencer(garderModele: Boolean) {
+            viewModelScope.launch {
+                val ancienOverride = etatInterne.value.emplacementOverride
+                val modeleGarde = etatInterne.value.templateId.takeIf { garderModele }
+                savedState[CLE_ETAPE] = EtapeId.MODELE.name
+                savedState[CLE_TEMPLATE] = modeleGarde?.value
+                savedState[CLE_NOM] = ""
+                savedState[CLE_DESCRIPTION] = ""
+                savedState[CLE_PARAM_CLES] = ArrayList<String>()
+                savedState[CLE_PARAM_VALEURS] = ArrayList<String>()
+                savedState[CLE_PARAM_MANUELS] = ArrayList<String>()
+                savedState[CLE_OVERRIDE_GRANT] = null
+                savedState[CLE_OVERRIDE_DOCUMENT] = null
+                savedState[CLE_OVERRIDE_LIBELLE] = null
+                etatInterne.update {
+                    it.copy(
+                        etape = EtapeId.MODELE,
+                        templateId = modeleGarde,
+                        evaluation = null,
+                        nomProjet = "",
+                        description = "",
+                        raisonNom = evaluerNom(""),
+                        valeursParametres = emptyMap(),
+                        modifiesManuellement = emptySet(),
+                        emplacementOverride = null,
+                        erreurEmplacement = null,
+                        verificationCible = null,
+                        verificationEnCours = false,
+                        plan = null,
+                        chargementPlan = false,
+                        erreurPlan = false,
+                        etatCreation = EtatCreation.Inactif,
+                    )
+                }
+                relacherEmplacement(ancienOverride)
+                reevaluer()
+                replanifierVerification()
+            }
+        }
+
+        /** Demande complète adressée au domaine (sections 12.3 et 12.4). */
+        private fun requeteDeLEtat(): CreateProjectRequest {
+            val etat = etatInterne.value
+            return CreateProjectRequest(
+                templateId = requireNotNull(etat.templateId) { "Un modèle est requis pour planifier." },
+                name = etat.nomProjet.trim(),
+                description = etat.description.trim(),
+                parentLocation = requireNotNull(etat.emplacement) { "Un emplacement parent est requis." },
+                parameterValues = etat.valeursParametres,
+                manuallySetParameters = etat.modifiesManuellement,
+                options = etat.options,
+            )
+        }
+
+        /** Année civile de l'horloge injectée (affichée avec l'auteur). */
+        private fun anneeCourante(): String =
+            Instant
+                .ofEpochMilli(horloge.nowMillis())
+                .atZone(ZoneId.systemDefault())
+                .year
+                .toString()
 
         // ------------------------------------------------ évaluation moteur
 
@@ -366,6 +683,7 @@ class WizardViewModel
                     modifiesManuellement = manuels,
                     emplacementOverride = override,
                     emplacement = override,
+                    options = restaurerOptions(),
                 )
         }
 
@@ -423,5 +741,10 @@ class WizardViewModel
             const val CLE_OVERRIDE_GRANT = "wizard.emplacement.grant"
             const val CLE_OVERRIDE_DOCUMENT = "wizard.emplacement.document"
             const val CLE_OVERRIDE_LIBELLE = "wizard.emplacement.libelle"
+            const val CLE_OPT_README = "wizard.options.readme"
+            const val CLE_OPT_GITIGNORE = "wizard.options.gitignore"
+            const val CLE_OPT_EDITORCONFIG = "wizard.options.editorconfig"
+            const val CLE_OPT_LICENCE = "wizard.options.licence"
+            const val CLE_OPT_LANGUE = "wizard.options.langue"
         }
     }

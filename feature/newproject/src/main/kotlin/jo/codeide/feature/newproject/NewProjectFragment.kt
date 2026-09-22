@@ -21,10 +21,16 @@ import jo.codeide.feature.newproject.databinding.FragmentNewprojectBinding
 import javax.inject.Inject
 
 /**
- * Hôte du wizard de création de projet (étape 10 — section 12.2) : barre
- * d'outils (fermeture), **indicateur d'étapes** (progression + libellé
- * « Étape N sur M »), conteneur des fragments d'étapes et **barre d'actions
- * fixe** (Retour / Suivant).
+ * Hôte du wizard de création de projet (étapes 10-11 — section 12.2) :
+ * barre d'outils (fermeture), **indicateur d'étapes** (progression +
+ * libellé « Étape N sur M »), conteneur des fragments d'étapes et **barre
+ * d'actions fixe** (Retour / Suivant — « Créer le projet » sur le
+ * récapitulatif).
+ *
+ * L'**écran de création** (hors numérotation) remplace les étapes et la
+ * barre d'actions tant que [EtatCreation] n'est pas inactif : le retour
+ * système y annule la création (le domaine roule le rollback), la fermeture
+ * ✕ aussi.
  *
  * Le [WizardViewModel] est scopé à cet hôte — les fragments d'étapes le
  * partagent (`viewModels({ requireParentFragment() })`) et ne portent aucun
@@ -67,31 +73,56 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
         (activity as? AppCompatActivity)?.setSupportActionBar(binding.barreOutils)
         binding.barreOutils.setNavigationOnClickListener { demanderFermeture() }
 
-        // Bouton retour système : étape précédente, sinon fermeture
-        // confirmée si des données ont été saisies (section 12.2).
+        // Bouton retour système : annule une création en cours (rollback
+        // domaine), sinon revient d'une étape, sinon fermeture confirmée si
+        // des données ont été saisies (section 12.2).
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (viewModel.etat.value.indexEtape > 0) {
-                        viewModel.action(ActionWizard.Precedent)
-                    } else {
-                        demanderFermeture()
+                    when {
+                        viewModel.etat.value.etatCreation != EtatCreation.Inactif -> {
+                            viewModel.action(ActionWizard.AnnulerCreation)
+                        }
+
+                        viewModel.etat.value.indexEtape > 0 -> {
+                            viewModel.action(ActionWizard.Precedent)
+                        }
+
+                        else -> {
+                            demanderFermeture()
+                        }
                     }
                 }
             },
         )
 
         binding.boutonPrecedent.setOnClickListener { viewModel.action(ActionWizard.Precedent) }
-        binding.boutonSuivant.setOnClickListener { viewModel.action(ActionWizard.Suivant) }
+        binding.boutonSuivant.setOnClickListener {
+            val etat = viewModel.etat.value
+            if (etat.estRecapitulatif) {
+                viewModel.action(ActionWizard.Creer)
+            } else {
+                viewModel.action(ActionWizard.Suivant)
+            }
+        }
 
         observerEtat()
         observerEffets()
     }
 
-    /** Observe l'état : indicateur, étape courante, barre d'actions. */
+    /** Observe l'état : indicateur, écran courant, barre d'actions. */
     private fun observerEtat() {
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
+            // Écran de création (hors numérotation) : il remplace tout.
+            val creation = etat.etatCreation != EtatCreation.Inactif
+            binding.conteneurIndicateur.isVisible = !creation
+            binding.barreActions.isVisible = !creation
+            if (creation) {
+                afficherEcranCreation()
+                return@collectWithLifecycle
+            }
+
             // Indicateur : progression linéaire + « Étape N sur M · Titre ».
             binding.indicateurEtapes.max = ETAPES_WIZARD.size
             binding.indicateurEtapes.setProgress(etat.indexEtape + 1, true)
@@ -115,20 +146,25 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
                 etapeAffichee = etat.etape
             }
 
-            // Barre d'actions : Retour masqué sur la première étape ;
-            // Suivant masqué sur la dernière étape livrée (étape 11 :
-            // Fichiers, Récapitulatif, Créer) et désactivé si invalide.
+            // Barre d'actions : Retour masqué sur la première étape ; le
+            // bouton principal devient « Créer le projet » sur le
+            // récapitulatif (section 12.3), désactivé si l'étape est
+            // invalide.
             binding.boutonPrecedent.isVisible = etat.indexEtape > 0
-            binding.boutonSuivant.isVisible = etat.aUneEtapeSuivante
+            binding.boutonSuivant.isVisible = true
+            binding.boutonSuivant.setText(
+                if (etat.estRecapitulatif) R.string.wizard_bouton_creer else R.string.wizard_bouton_suivant,
+            )
             binding.boutonSuivant.isEnabled = etat.etapeValide
         }
     }
 
-    /** Observe les effets ponctuels (fermeture après abandon confirmé). */
+    /** Observe les effets ponctuels (fermeture, création réussie). */
     private fun observerEffets() {
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
             when (effet) {
                 EffetWizard.Fermer -> navigator.goBack()
+                is EffetWizard.ProjetCree -> navigator.wizardCreeProjet(effet.id.value)
             }
         }
     }
@@ -143,7 +179,8 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
             EtapeId.MODELE -> EtapeModeleFragment::class.java
             EtapeId.CONFIGURATION -> EtapeConfigurationFragment::class.java
             EtapeId.INFORMATIONS -> EtapeInformationsFragment::class.java
-            EtapeId.FICHIERS, EtapeId.RECAPITULATIF -> EtapeModeleFragment::class.java
+            EtapeId.FICHIERS -> EtapeFichiersFragment::class.java
+            EtapeId.RECAPITULATIF -> EtapeRecapitulatifFragment::class.java
         }
 
     /** Affiche le fragment de l'étape courante, avec transition axe X. */
@@ -155,7 +192,8 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
                 EtapeId.MODELE -> EtapeModeleFragment()
                 EtapeId.CONFIGURATION -> EtapeConfigurationFragment()
                 EtapeId.INFORMATIONS -> EtapeInformationsFragment()
-                EtapeId.FICHIERS, EtapeId.RECAPITULATIF -> EtapeModeleFragment()
+                EtapeId.FICHIERS -> EtapeFichiersFragment()
+                EtapeId.RECAPITULATIF -> EtapeRecapitulatifFragment()
             }
         if (transition && animationsActivees()) {
             // Transitions Material (axe X) entre étapes, section 12.1 —
@@ -166,6 +204,23 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
         childFragmentManager.commit(allowStateLoss = true) {
             setReorderingAllowed(true)
             replace(R.id.conteneur_etapes, fragment, ETIQUETTE_ETAPE)
+        }
+    }
+
+    /**
+     * Affiche l'écran de création dans le même conteneur (une seule
+     * instance) ; sans animation — l'état visuel suffit (section 12.1 :
+     * animation sobre).
+     */
+    private fun afficherEcranCreation() {
+        val actuel = childFragmentManager.findFragmentById(R.id.conteneur_etapes)
+        if (actuel is EcranCreationFragment) return
+        // Le retour au wizard (annulation, échec) devra réafficher l'étape :
+        // la mémoire « étape affichée » est invalidée volontairement.
+        etapeAffichee = null
+        childFragmentManager.commit(allowStateLoss = true) {
+            setReorderingAllowed(true)
+            replace(R.id.conteneur_etapes, EcranCreationFragment(), ETIQUETTE_ETAPE)
         }
     }
 
@@ -180,9 +235,20 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
     /**
      * Demande de fermeture (✕, retour système depuis la première étape) :
      * dialogue de confirmation si des données ont été saisies, fermeture
-     * immédiate sinon (section 12.2).
+     * immédite sinon (section 12.2). Pendant une création, ✕ annule la
+     * création (rollback) au lieu de fermer le wizard.
      */
     fun demanderFermeture() {
+        when (viewModel.etat.value.etatCreation) {
+            is EtatCreation.EnCours -> viewModel.action(ActionWizard.AnnulerCreation)
+            is EtatCreation.Succes -> viewModel.action(ActionWizard.RetourAccueil)
+            is EtatCreation.Echec -> viewModel.action(ActionWizard.RetourRecapitulatif)
+            EtatCreation.Inactif -> confirmerAbandonEtapes()
+        }
+    }
+
+    /** Fermeture depuis les étapes : confirmation si des données sont saisies. */
+    private fun confirmerAbandonEtapes() {
         if (!viewModel.etat.value.donneesSaisies) {
             viewModel.action(ActionWizard.Fermer)
             return
