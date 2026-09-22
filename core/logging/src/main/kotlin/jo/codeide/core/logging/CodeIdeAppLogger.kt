@@ -2,6 +2,7 @@ package jo.codeide.core.logging
 
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.LogConfig
+import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +33,16 @@ class CodeIdeAppLogger
         /** Identifiant du lancement courant (présent sur chaque entrée). */
         val sessionId: String
             get() = engine.sessionId
+
+        /**
+         * Instantané des dernières entrées du tampon circulaire — filons de
+         * pain destinés au rapport de plantage (section 5.8 : `app` fournit
+         * cette lambda au gestionnaire, sans dépendance de module).
+         *
+         * @param limit taille de la fenêtre demandée (50 pour un rapport).
+         * @return au plus [limit] entrées récentes, sans I/O, thread-safe.
+         */
+        fun breadcrumbs(limit: Int): List<LogEntry> = engine.snapshot(limit)
 
         /**
          * Remplace la configuration d'exécution — effet immédiat sur les

@@ -29,7 +29,8 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 ## API publique
 
 - `CodeIdeAppLogger` — façade `AppLogger` (filtrage à chaud via
-  `updateConfig`, `sessionId`, `flushBlocking` réservé au gestionnaire de
+  `updateConfig`, `sessionId`, `breadcrumbs(limit)` pour les filons d'un
+  rapport de plantage, `flushBlocking` réservé au gestionnaire de
   plantages) ;
 - `LoggingInitializer` — démarrage du pipeline + en-tête de session,
   appelé par `app` **dans le processus principal uniquement** ;
