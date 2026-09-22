@@ -5,23 +5,29 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
+import jo.codeide.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
 
 /**
- * Tests des cas d'usage du registre de projets (étape 4) — doublés par les
- * fakes de `core:testing`, conformément à la section 8 du prompt.
+ * Tests des cas d'usage du registre de projets (étape 4, enrichis à
+ * l'étape 7 pour l'équilibre des permissions au retrait) — doublés par
+ * les fakes de `core:testing`, conformément à la section 8 du prompt.
  */
 class ProjectUseCasesTest {
     private val depot = FakeProjectRepository()
+    private val parametres = FakeSettingsRepository()
+    private val fichiers = FakeFileSystem()
     private val observer = ObserveProjectsUseCase(depot)
     private val ajouter = AddProjectUseCase(depot)
-    private val retirer = RemoveProjectUseCase(depot)
+    private val retirer = RemoveProjectUseCase(depot, parametres, fichiers)
     private val epingle = SetProjectPinnedUseCase(depot)
     private val renommer = RenameProjectUseCase(depot)
     private val marquerOuvert = MarkProjectOpenedUseCase(depot)
@@ -66,6 +72,61 @@ class ProjectUseCasesTest {
             val resultat = retirer(ProjectId("inconnu"))
 
             assertTrue(resultat is AppResult.Success)
+        }
+
+    @Test
+    fun `le retrait libère la permission du dernier projet de l'arbre`() =
+        runTest {
+            val grantUri = "arbre-import"
+            val uriDocument = arbreAutorise(grantUri)
+            val projet =
+                ajouter(
+                    "Application",
+                    "",
+                    StorageLocation(grantUri, uriDocument, "Application"),
+                    TemplateId.IMPORTED,
+                ) as AppResult.Success
+
+            retirer(projet.value.id)
+
+            assertFalse(fichiers.hasPersistablePermission(grantUri))
+        }
+
+    @Test
+    fun `le retrait garde la permission d'un autre projet du même arbre`() =
+        runTest {
+            val grantUri = "arbre-partage"
+            val racine = arbreAutorise(grantUri)
+            val premier =
+                ajouter("Premier", "", StorageLocation(grantUri, "$racine/A", "A"), TemplateId.IMPORTED)
+            val second =
+                ajouter("Second", "", StorageLocation(grantUri, "$racine/B", "B"), TemplateId.IMPORTED)
+
+            retirer((premier as AppResult.Success).value.id)
+
+            // Le second projet vit encore dans l'arbre : permission gardée.
+            assertTrue(fichiers.hasPersistablePermission(grantUri))
+            assertTrue(depot.getProject((second as AppResult.Success).value.id) is AppResult.Success)
+        }
+
+    @Test
+    fun `le retrait garde la permission du dossier de travail`() =
+        runTest {
+            val grantUri = "arbre-travail"
+            val racine = arbreAutorise(grantUri)
+            parametres.setWorkspace(StorageLocation(grantUri, racine, "CodeIDE"))
+            val projet =
+                ajouter(
+                    "Application",
+                    "",
+                    StorageLocation(grantUri, "$racine/A", "A"),
+                    TemplateId.IMPORTED,
+                ) as AppResult.Success
+
+            retirer(projet.value.id)
+
+            // Le dossier de travail référence encore l'arbre.
+            assertTrue(fichiers.hasPersistablePermission(grantUri))
         }
 
     @Test
@@ -150,4 +211,16 @@ class ProjectUseCasesTest {
 /** Extrait la raison d'une erreur de stockage (null si autre type d'erreur). */
     private fun raisonStockage(echec: AppResult.Failure): AppError.StorageReason? =
         (echec.error as? AppError.Storage)?.reason
+
+    /**
+     * Prépare un arbre de stockage tenant l'URI d'arborescence
+     * [grantUri] (dossier racine + permission), puis le retourne tel
+     * quel pour l'amorçage des emplacements.
+     */
+    private fun arbreAutorise(grantUri: String): String {
+        val uriDocument = "content://autorite/arbre/$grantUri"
+        fichiers.seedDocument(uriDocument, FakeFileSystem.Document(name = grantUri, isDirectory = true))
+        fichiers.grantPermission(grantUri)
+        return uriDocument
+    }
 }

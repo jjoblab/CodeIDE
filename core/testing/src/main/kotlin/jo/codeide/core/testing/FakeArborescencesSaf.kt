@@ -33,6 +33,17 @@ public class FakeArborescencesSaf : ArborescencesSaf {
         return "$grantUri/document/${encoder(id)}"
     }
 
+    override fun uriDocumentDansArbre(
+        grantUri: String,
+        idDocument: String,
+    ): String? =
+        // Clauses de garde : identifiant vide, arborescence illisible.
+        if (idDocument.isBlank() || segmentArbre(grantUri) == null) {
+            null
+        } else {
+            "$grantUri/document/${encoder(idDocument)}"
+        }
+
     /** Décodage en pourcentages ; `null` si la séquence est invalide. */
     private fun decoder(encode: String): String? = runCatching { URLDecoder.decode(encode, UTF8) }.getOrNull()
 

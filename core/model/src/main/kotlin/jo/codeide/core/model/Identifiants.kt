@@ -47,6 +47,20 @@ public value class TemplateId(
     init {
         require(value.isNotBlank()) { "Un identifiant de modèle ne peut pas être vide." }
     }
+
+    public companion object {
+        /**
+         * Sentinelle des projets ajoutés par « Ouvrir un dossier
+         * existant » (étape 7) : le dossier n'a été généré par aucun
+         * modèle connu, et `.codeide/project.json` — qui permettra à
+         * l'ouverture de reconnaître le vrai modèle (étape 13) — n'y est
+         * pas encore lu.
+         *
+         * L'accueil affiche alors l'icône générique « dossier » au lieu
+         * d'une pastille de type (ADR 0015).
+         */
+        public val IMPORTED: TemplateId = TemplateId("imported")
+    }
 }
 
 /**

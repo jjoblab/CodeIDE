@@ -9,7 +9,7 @@ import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.io.IOException
 import java.util.UUID
 
@@ -25,11 +25,20 @@ import java.util.UUID
  * ajouter deux projets sur le même dossier retourne `AlreadyExists`.
  *
  * Les propriétés `*Error` sont des robinets de défaillance pilotés par
- * le test (même idiom que [InMemoryLogRepository]).
+ * le test (même idiom que [InMemoryLogRepository]) : les écritures par
+ * [writeError], l'observation du registre par [flowError] — utile pour
+ * éprouver l'état d'erreur de l'accueil (étape 7).
+ *
+ * Exemption detekt ciblée (règle 16 du prompt maître) :
+ * TooManyFunctions — le fake implémente les 11 opérations du contrat
+ * [ProjectRepository], une par une, sans logique supplémentaire.
  */
-@Suppress("ReturnCount") // Clauses de garde par opération, comme le fake du FileSystem.
+@Suppress("TooManyFunctions", "ReturnCount") // Contrat complet du dépôt, clauses de garde par opération.
 public class FakeProjectRepository : ProjectRepository {
     private val etat = MutableStateFlow<List<Project>>(emptyList())
+
+    /** Robinet d'échec d'observation, réactif à l'écriture. */
+    private val erreur = MutableStateFlow<RuntimeException?>(null)
 
     /** Compteur des identifiants produits : lisible dans les assertions. */
     private var compteur = 0
@@ -37,18 +46,33 @@ public class FakeProjectRepository : ProjectRepository {
     /** Quand non nulle, toute écriture échoue. */
     public var writeError: IOException? = null
 
+    /**
+     * Quand non nulle, l'observation du registre ([observeProjects],
+     * [observeProject]) lève à la collecte — simule la perte de la
+     * base pour l'état d'erreur de l'accueil (étape 7). Réactif :
+     * l'effacer relance une émission saine, sans attendre un
+     * changement du registre.
+     */
+    public var flowError: RuntimeException?
+        get() = erreur.value
+        set(valeur) {
+            erreur.value = valeur
+        }
+
     /** Projets enregistrés, triés pour l'accueil. */
     public val projets: List<Project>
         get() = etat.value.triePourAccueil()
 
-    public override fun observeProjects(): Flow<List<Project>> = etat.map { it.triePourAccueil() }
+    public override fun observeProjects(): Flow<List<Project>> =
+        combine(etat, erreur) { liste, echec ->
+            echec?.let { throw it }
+            liste.triePourAccueil()
+        }
 
     public override fun observeProject(id: ProjectId): Flow<Project?> =
-        etat.map { liste ->
-            liste.firstOrNull {
-                it.id ==
-                    id
-            }
+        combine(etat, erreur) { liste, echec ->
+            echec?.let { throw it }
+            liste.firstOrNull { it.id == id }
         }
 
     public override suspend fun getProject(id: ProjectId): AppResult<Project> =
@@ -108,6 +132,19 @@ public class FakeProjectRepository : ProjectRepository {
         id: ProjectId,
         pinned: Boolean,
     ): AppResult<Unit> = muter(id) { it.copy(isPinned = pinned) }
+
+    public override suspend fun updateLocation(
+        id: ProjectId,
+        location: StorageLocation,
+    ): AppResult<Unit> {
+        writeError?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
+
+        // L'unicité du dossier référencé s'applique aussi en relocalisation.
+        if (etat.value.any { it.id != id && it.location.documentUri == location.documentUri }) {
+            return AppResult.Failure(AppError.Storage(AppError.StorageReason.AlreadyExists, location.documentUri))
+        }
+        return muter(id) { it.copy(location = location) }
+    }
 
     public override suspend fun markOpened(
         id: ProjectId,
