@@ -147,7 +147,34 @@ dossier de travail configuré (O3). `dumpsys` désigne
 | A9 | Rotation + mort du processus pendant la consultation | Recherche, tri et position générale restaurées (SavedStateHandle) ; les états d'accès se recalculent (jamais persistés) |
 | A10 | Tablette (ou émulateur sw600dp) : consulter l'accueil | La liste passe en **2 colonnes** ; sur téléphone : 1 colonne ; les FAB restent accessibles, le bouton « Ouvrir un dossier existant » au-dessus de « Nouveau projet » |
 
+## Wizard de création, partie 1 (étape 10 → v0.11.0)
+
+La machine à états, le rendu dynamique (visibilité, dérivations,
+resynchronisation) et l'équilibre des permissions de l'emplacement
+éphémère sont couverts par les tests JVM (`WizardViewModelTest`,
+`CreationLocationUseCasesTest`) ; les procédures suivantes valident le
+**parcours réel à l'écran** (fragments, sélecteur SAF, clavier, tablette).
+
+Préambule commun : installation de l'app, assistant terminé (O6), un
+dossier de travail configuré (O3).
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| W1 | Accueil → « Nouveau projet » : observer le cadre, choisir un modèle, revenir, re-entrer | Barre d'outils « Nouveau projet » avec ✕ ; indicateur « Étape 1 sur 3 · Modèle » + progression 1/3 ; cartes (pastille monogramme, nom, description, tags) ; **Suivant désactivé** sans sélection ; choisir un modèle coche la carte et active Suivant ; retour système depuis l'étape 1 avec données saisies → dialogue « Abandonner la création ? » (Continuer / Abandonner) ; ✕ sans saisie → accueil direct ; à la re-entrée le modèle reste présélectionné |
+| W2 | Étape 1 → Suivant : observer la transition, la barre d'actions | Transition horizontale (axe X) ; « Étape 2 sur 3 · Configuration » ; **Retour apparaît** ; puces récapitulatives « Application · Gradle · JDK 21 · JUnit 5 » |
+| W3 | Étape 2 : basculer « Sources uniquement » | `jdkVersion`, « Tests JUnit 5 » et « Gradle Wrapper » **disparaissent** (animation) ; les puces ne montrent plus que « Application · Sources uniquement » ; l'aide dynamique « Sans système de build, seules les sources sont générées » s'affiche ; revenir à Gradle : tout réapparaît ; JDK passe par liste déroulante (17/21) |
+| W4 | Étape 2 → Suivant, puis retour arrière | « Étape 3 sur 3 · Informations » : nom, description, package (dérivé), Group ID/Artifact ID/Version ; **Suivant absent** (dernière étape livrée — étapes Fichiers/Récapitulatif à l'étape 11) ; Retour → Configuration, tous les choix conservés |
+| W5 | Étape 3 : taper le nom « Mon Projet », puis « CON », puis coller un emoji | Le package suit le nom (`jeanne.monprojet` si auteur Jeanne) tant qu'il n'est pas édité ; « CON » → erreur inline « Ce nom est réservé par Windows » ; la description montre un compteur ; l'aperçu du chemin affiche `…/Mon Projet` ; modifier le package à la main → il ne suit plus, l'icône de resynchronisation apparaît, y toucher le remet en phase |
+| W6 | Étape 3 : vérification de cible | Après ~0,5 s d'indicateur : « Emplacement vérifié — le nom est disponible » ; créer au préalable (via un explorateur) un dossier du même nom dans le dossier de travail → « Ce dossier existe déjà : choisissez un autre nom » ; révoquer la permission du dossier de travail puis réouvrir le wizard → « L'emplacement n'est plus accessible » sans crash |
+| W7 | Étape 3 : « Changer de dossier » → dossier **hors** du dossier de travail, puis abandonner | La carte montre le nouveau dossier (aperçu mis à jour) ; abandonner : la permission propre **disparaît** de `dumpsys` (relâchée, ADR 0022) ; refaire avec un choix **dans** l'arbre du dossier de travail : aucune permission supplémentaire (héritage) |
+| W8 | Rotation et mort du processus à chaque étape | Modèle, choix, saisies et emplacement restaurés ; l'indicateur reste sur la bonne étape (données saisies → dialogue d'abandon au retour système) |
+| W9 | Tablette (ou émulateur sw600dp) : parcourir le wizard | Le contenu est **borné et centré** (jamais étiré) ; barre d'outils pleine largeur ; cibles tactiles ≥ 48 dp |
+| W10 | Réglage « Réduire les animations » actif (Paramètres système > Accessibilité) | Les transitions d'étapes sont supprimées (respect du réglage) |
+
 ## À venir
 
+- **Étape 11** : étapes Fichiers et Récapitulatif, écran de création
+  (progression, succès/échec, rollback, annulation) et intégration à
+  l'accueil.
 - **Étape 12+** : écran Diagnostic (entrée Avancé).
 - **Étape 13+** : ouverture réelle d'un projet dans l'éditeur.

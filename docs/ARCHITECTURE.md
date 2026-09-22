@@ -182,9 +182,9 @@ bandeau « dossier de travail non configuré » de l'étape 5).
   par la règle de libération conditionnelle (ADR 0015).
 - **Adaptatif** : 1 colonne téléphone, 2 colonnes tablette/paysage
   (`layout-sw600dp`, `GridLayoutManager`).
-- **Wizard** : le bouton étendu « Nouveau projet » mène au placeholder
-  de `feature:newproject` — la machine à états complète arrive à
-  l'étape 10.
+- **Wizard** : le bouton étendu « Nouveau projet » ouvre l'assistant
+  de `feature:newproject` (cadre + étapes 1 à 3 livrés à l'étape 10,
+  section dédiée ci-dessous).
 
 ## Moteur de templates (étape 8 — livrée à v0.9.0)
 
@@ -248,6 +248,53 @@ est le contrat `docs/TEMPLATES.md`.
   vrais Gradle/Maven/javac (projet Gradle jetable pour `none`+Kotlin) —
   tableau final `combinaison → résultat`, à garder vert à toute livraison
   touchant aux modèles (sections 8 et 11 du prompt maître).
+
+## Wizard de création, partie 1 (étape 10 — livrée à v0.11.0)
+
+Le cadre et les trois premières étapes de la section 12 du prompt maître
+(ADR 0020) : `feature:newproject`.
+
+- **Hôte** (`NewProjectFragment`) : barre d'outils (✕ + dialogue
+  « Abandonner la création ? » si des données sont saisies), **indicateur
+  d'étapes** (progression linéaire + « Étape N sur M · Titre », annoncé
+  TalkBack), conteneur de fragments d'étapes, **barre d'actions fixe**
+  (Retour masqué sur la première étape, Suivant désactivé tant que l'étape
+  est invalide, masqué sur la dernière étape livrée — Fichiers et
+  Récapitulatif arrivent à l'étape 11). Transitions `MaterialSharedAxis`
+  axe X, coupées quand « réduire les animations » est actif ; retour
+  système = étape précédente puis abandon confirmé ; contenu borné et
+  centré sur tablette (`layout-sw600dp`).
+- **Machine à états** (`WizardViewModel`, scopé à l'hôte, ADR 0020) :
+  étapes déclarées dans une liste configurable (`WizardStep`), état unique
+  `EtatWizard` (catalogue, modèle, nom, description, valeurs saisies,
+  champs figés, emplacement, vérification) survivant rotation **et mort du
+  processus** via `SavedStateHandle`. À chaque changement :
+  `EvaluateTemplateFormUseCase` réévalue visibilité (`visibleWhen`),
+  valeurs dérivées (`defaultFrom`, figées par modification manuelle,
+  resynchronisables), validité — les étapes ne font que rendre.
+- **Étape 1 Modèle** : grille de cartes sélectionnables (monogramme
+  maison résolu depuis l'i18n du modèle, nom, description, tags),
+  sélection unique présélectionnée au retour ; recherche masquée sous
+  4 modèles mais prête (état « aucun résultat » prévu).
+- **Étape 2 Configuration** : rendu **dynamique** depuis le moteur
+  (ADR 0021) — tuiles segmentées (type de projet, icône + sous-titre),
+  cartes radio (système de build, aide dynamique « sans build »),
+  liste déroulante (JDK), interrupteurs (tests, wrapper) qui
+  apparaissent/disparaissent selon `visibleWhen` ; **rangée de puces
+  récapitulatives** en direct.
+- **Étape 3 Informations et emplacement** : nom (raisons typées →
+  ressources localisées, ADR 0021), description avec compteur, champs
+  dérivés (package/groupId/artifactId/version selon la visibilité,
+  icône de resynchronisation) ; **carte d'emplacement** — dossier de
+  travail par défaut, changement « pour cette création uniquement »
+  (ADR 0022 : héritage dans l'arbre, permission propre relâchée à
+  l'abandon si inutilisée), aperçu `…/<Nom>`, **vérifications
+  asynchrones avec délai** (permission, joignabilité, collision de nom
+  insensible à la casse) avec indicateur en cours.
+- **Domaine** : `EvaluerNomProjetUseCase` (raison typée du nom),
+  `ResolveCreationLocationUseCase` / `ReleaseCreationLocationUseCase` /
+  `VerifyCreationTargetUseCase` (ADR 0022), `RaisonValidation` (type
+  fermé, core:model) porté par `TemplateParameterEvaluation.errorReason`.
 
 ## Gestion des erreurs et résultats
 

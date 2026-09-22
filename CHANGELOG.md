@@ -4,6 +4,81 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.11.0] – 2026-09-23
+
+Étape 10 — Wizard de création, partie 1 : le cadre complet et les étapes
+1 à 3 de la section 12 du prompt maître (ADR 0020-0022).
+
+### Ajouté
+
+- **Cadre du wizard** (`feature:newproject`, ADR 0020) : hôte
+  `NewProjectFragment` — barre d'outils (✕ avec dialogue « Abandonner la
+  création ? » quand des données sont saisies), **indicateur d'étapes**
+  (`LinearProgressIndicator` + libellé « Étape N sur M · Titre » annoncé
+  TalkBack), conteneur de fragments d'étapes, **barre d'actions fixe**
+  (Retour masqué sur la première étape ; Suivant **désactivé tant que
+  l'étape est invalide**, masqué sur la dernière livrée) ; transitions
+  `MaterialSharedAxis` axe X, coupées quand le réglage « réduire les
+  animations » est actif ; retour système = étape précédente puis
+  abandon confirmé ; contenu borné et centré sur tablette
+  (`layout-sw600dp`, sans poids imbriqués).
+- **Machine à états** (`WizardViewModel`, scopé à l'hôte — ADR 0020) :
+  étapes déclarées dans une **liste configurable** (`WizardStep`) — pas
+  de `when` dispersés, l'étape 11 insérera Fichiers et Récapitulatif
+  sans toucher au cadre ; état unique `EtatWizard` survivant **rotation
+  et mort du processus** (`SavedStateHandle` : étape, modèle, nom,
+  description, valeurs saisies, champs figés, emplacement éphémère) ;
+  réévaluation du formulaire **à chaque changement** via
+  `EvaluateTemplateFormUseCase` (visibilité, valeurs dérivées, validité).
+- **Étape 1 Modèle** : grille de cartes sélectionnables (monogramme
+  maison résolu depuis l'i18n, nom, description, tags), sélection unique
+  présélectionnée au retour arrière ; barre de recherche masquée tant
+  que le catalogue ne dépasse pas 4 modèles — interface prête pour la
+  croissance, état « aucun résultat » prévu ; erreurs de catalogue avec
+  Réessayer.
+- **Étape 2 Configuration** : rendu **dynamique** des paramètres depuis
+  le moteur (ADR 0021) — deux grandes **tuiles segmentées** avec icône
+  et sous-titre (type de projet), **cartes radio** avec explication et
+  aide dynamique « Sans système de build… » (système de build), **liste
+  déroulante** (JDK), **interrupteurs** (tests JUnit 5, wrapper)
+  apparaissant/disparaissant selon `visibleWhen` avec animation ;
+  **rangée de puces récapitulatives** (« Application · Gradle · JDK 21 »)
+  mise à jour en direct.
+- **Étape 3 Informations et emplacement** : nom du projet (raisons
+  **typées** → ressources localisées, ADR 0021), description avec
+  compteur, champs dérivés (package, `groupId`, `artifactId`, `version`
+  selon la visibilité) qui **suivent leurs sources tant qu'ils ne sont
+  pas modifiés à la main**, avec icône de **resynchronisation** ;
+  **carte d'emplacement** (ADR 0022) — dossier de travail des Paramètres
+  par défaut, bouton « Changer de dossier » **pour cette création
+  uniquement** (même validation que l'onboarding : dossiers refusés
+  Android 11+ avant toute permission, test d'écriture témoin ;
+  héritage de la permission du dossier de travail pour un choix dans
+  son arbre — ADR 0015), aperçu lisible `…/<Nom>`, et **vérifications
+  asynchrones avec délai 400 ms** : permission valide, dossier
+  joignable, `<NomDuProjet>` n'existe pas déjà (insensible à la casse)
+  — indicateur de vérification en cours, erreurs inline actionnables.
+- **Domaine** : `EvaluerNomProjetUseCase` (raison typée du nom),
+  `ResolveCreationLocationUseCase`, `ReleaseCreationLocationUseCase`
+  (permission propre de l'override relâchée à l'abandon si elle ne sert
+  plus — ni dossier de travail, ni arbre d'un projet) et
+  `VerifyCreationTargetUseCase` (ADR 0022) ; `RaisonValidation` (type
+  fermé dans `core:model`) porté par `TemplateParameterEvaluation` avec
+  les métadonnées de rendu (`type`, `choices`, `derived`, `section`).
+- **Composants UI** (`core:ui`) : `SimpleTextWatcher` (écouteur de saisie
+  sans boilerplate) et style `Widget.CodeIDE.TextField.Dropdown`.
+
+### Modifié
+
+- `TemplateEngine.resumer` résout désormais `iconKey` via le
+  dictionnaire i18n du modèle (monogramme maison, ex. « kt », « jv ») —
+  l'interface n'a jamais à connaître les dictionnaires ; le champ
+  `iconKey` de `TemplateSummary` porte le monogramme résolu.
+- `TemplateValidators` retourne un échec **structuré** (raison typée +
+  message français) ; les messages restent destinés aux journaux,
+  l'interface affiche les ressources (section 11 du prompt maître) —
+  comportement des messages inchangé pour `valider` (journaux).
+
 ## [0.10.0] – 2026-09-22
 
 Étape 9 — Modèles de projet Kotlin et Java : les deux modèles embarqués

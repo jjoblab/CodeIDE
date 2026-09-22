@@ -167,8 +167,21 @@ remis (format section 14) puis attente du « GO ».
       GeneratorVersionImpl (BuildConfig) + TemplatesModule (@Binds + @IntoSet) + assets/licenses/ SPDX officiels (mit, bsd-3-clause avec {{year}}/{{author}},
       apache-2.0, gpl-3.0) ; `core:testing` FakeTemplateAssetsSource ; fixture de test templates/fixture (hostile : guillemets, antislash, $, </project>,
       retours ligne, emojis, Unicode) ; docs/TEMPLATES.md (contrat concepteurs) ; ADR 0017-0018)
-- [ ] Étape 9 — Modèles Kotlin/Java → v0.10.0
-- [ ] Étape 10 — Wizard (partie 1) → v0.11.0
+- [x] Étape 9 — Modèles Kotlin/Java → v0.10.0 (`app/src/main/assets/templates/{kotlin-jvm,java}` : manifestes déclaratifs à 9 paramètres partagés + 6 variables
+      calculées + 16 fichiers par modèle (Greeter/Main/GreeterTest zéro avertissement, build Gradle + catalogue + wrapper sommé, pom Maven complet, README
+      dynamique, gitignore/gitattributes/editorconfig) + i18n fr/en complètes ; `:tools:generateur` harnais JVM (ADR 0019, plan figé déversé) ;
+      scripts/verify-templates.sh 18 combinaisons réelles vertes ; ModelesEmbarquesTest 192 combinaisons structurelles + hostiles + déterminisme ;
+      ADR 0019, TEMPLATES.md enrichi)
+- [x] Étape 10 — Wizard (partie 1) → v0.11.0 (`feature:newproject` complet : NewProjectFragment hôte [barre d'outils ✕, indicateur « Étape N sur M »,
+      barre d'actions Retour/Suivant gardé par validité, dialogue d'abandon, transitions MaterialSharedAxis X coupées si animations réduites, sw600dp borné],
+      WizardViewModel scopé à l'hôte [ADR 0020 : SavedStateHandle — rotation + mort du processus, liste configurable WizardStep], étapes = fragments enfants
+      sans état propre ; EtapeModeleFragment [grille de cartes sélectionnables, monogramme i18n, recherche masquée sous 4 modèles], EtapeConfigurationFragment
+      + EtapeInformationsFragment [rendu dynamique RenduParametres, ADR 0021 : tuiles segmentées/cartes radio/liste déroulante/interrupteurs/champs dérivés
+      resynchronisables, puces récapitulatives en direct], carte d'emplacement [ADR 0022 : dossier éphémère « pour cette création uniquement »,
+      héritage arbre de travail, vérifications asynchrones avec délai 400 ms : permission/joignabilité/collision insensible à la casse] ;
+      core:model RaisonValidation fermé + TemplateParameterEvaluation élargi (type/choices/derived/section/errorReason) ; core:domain
+      EvaluerNomProjetUseCase + CreationLocationUseCases [Resolve/Release/VerifyCreationTarget] + TemplateValidators → échecs structurés
+      raison typée + message ; core:ui SimpleTextWatcher + style TextField.Dropdown ; 60 nouveaux tests ; ADR 0020-0022)
 - [ ] Étape 11 — Wizard (partie 2) → v0.12.0
 - [ ] Étape 12 — Diagnostic → v0.13.0
 - [ ] Étape 13 — Ouverture, finitions, audit → v0.14.0
