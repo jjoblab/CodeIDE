@@ -37,8 +37,9 @@ tests JVM en couvrent déjà la fabrication (archive valide, entrées,
 
 ## Plantages (étape 3 → v0.4.0)
 
-Préambule : le menu debug n'existe **qu'en build debug** (bouton « Menu
-debug » en bas à droite de l'accueil). Les chemins internes sont lus via
+Préambule : le menu debug n'existe **qu'en build debug** — depuis l'étape 12
+il vit dans l'écran Diagnostic (Paramètres › Avancé › Diagnostic, bouton de
+la section Informations). Les chemins internes sont lus via
 `adb shell run-as jo.codeide …` (application débogable).
 
 | # | Procédure | Résultat attendu |
@@ -62,12 +63,12 @@ Le port `FileSystem` est testé sur JVM contre un fournisseur factice qui
 respecte le vrai protocole d'appel du framework ; les procédures suivantes
 valident le comportement du **système réel** (fournisseur
 `com.android.externalstorage.documents`, permissions persistantes,
-dossiers refusés par Android 11+). Elles s'exécutent avec le menu debug
-(l'UI des étapes 5-6 n'existe pas encore) : les appels SAF y sont déclenchés
-par les boutons de test.
+dossiers refusés par Android 11+). Elles s'exécutent depuis le menu debug
+de l'écran Diagnostic : les appels SAF y sont déclenchés par les boutons
+de test.
 
 Préambule commun : appairer un appareil Android 11+ ou plus récent, lancer
-l'application, ouvrir le menu debug (icône de la barre d'accueil).
+l'application : Paramètres › Avancé › Diagnostic, bouton du menu debug dans la section Informations.
 
 | # | Procédure | Résultat attendu |
 |---|---|---|
@@ -177,10 +178,29 @@ dossier de travail configuré (O3).
 | W14 | Création → **Annuler** pendant la progression (ou retour système) | La création s'arrête ; **retour au récapitulatif** (aucun écran bloqué) ; vérifier sur disque : le dossier créé a été **supprimé** (rollback) ; rien en base (l'accueil ne montre pas le projet) ; « Créer le projet » à nouveau fonctionne |
 | W15 | Créer un projet portant le nom d'un **dossier existant** (créé au préalable dans le dossier de travail) | La vérification d'étape 3 le détecte (« Ce dossier existe déjà ») ; si contourné (dossier créé entre-temps), l'écran d'échec affiche un message compréhensible, le nettoyage (« le dossier créé a été supprimé »), les boutons Réessayer et Copier les détails (presse-papiers : erreur typée, jamais de chemin) |
 | W16 | Écran de succès → « Ouvrir le projet » | Le wizard se referme ; l'accueil met le projet en évidence **et** le classe en « ouvert il y a … » (tri des récents — l'éditeur arrive à l'étape 13) |
-| W17 | Écran de succès → « Créer un autre projet » | Retour à l'étape 1 Modèle avec le modèle **précédent présélectionné**, saisies vidées ; le bouton flottant debug (build debug) reste en **bas à gauche**, icône seule semi-transparente, **au-dessus** de la barre de navigation, ne recouvre aucun bouton d'action |
+| W17 | Écran de succès → « Créer un autre projet » | Retour à l'étape 1 Modèle avec le modèle **précédent présélectionné**, saisies vidées ; **aucun outil de développement à l'écran** (le menu debug vit dans l'écran Diagnostic depuis l'étape 12) |
 | W18 | Rotation pendant l'écran de création (EnCours) puis après le succès | La liste d'événements est conservée ; l'état succès survit ; le retour système pendant EnCours annule (rollback) |
+
+## Écran Diagnostic (étape 12)
+
+Préambule : entrée **Paramètres › Avancé › Diagnostic** ; build debug
+seulement pour D11-D12 (menu debug dans la section Informations).
+
+| # | Action | Attendu |
+|---|---|---|
+| D1 | Ouvrir l'écran Diagnostic | Toolbar « Diagnostic » avec retour fonctionnel ; section Informations (version conforme au build, appareil — fabricant/modèle/Android API —, session UUID) ; onglets Journaux / Plantages |
+| D2 | Onglet Journaux : observer le chargement puis faire défiler vers le haut | Les 500 dernières entrées d'abord ; le défilement atteint le haut → un palier d'entrées plus anciennes apparaît (jusqu'à l'historique complet) ; la taille occupée (Ko/Mo lisibles, nombre de fichiers au pluriel correct) est affichée |
+| D3 | Filtres par niveau (chips) | Chaque chip retient son niveau, plusieurs se combinent ; aucune chip active = tous les niveaux ; les compteurs visuels suivent |
+| D4 | Recherche « navig » puis « MODELE » | Après ~0,25 s : seules les entrées correspondantes (message, étiquette ou classe d'exception) ; « MODELE » trouve « modèle » (accents ignorés) ; vider le champ restaure tout |
+| D5 | Activer « Suivre en direct » puis naviguer dans l'application | La liste défile automatiquement vers les nouvelles entrées tant que la bascule est active ; la désactiver stoppe le défilement |
+| D6 | Toucher une entrée avec exception | Détail complet (date, niveau, étiquette, thread, session, message sélectionnable) ; bouton « Voir l'exception » déplie la trace monospace (repliable) |
+| D7 | « Partager » (onglet Journaux) | Archive `codeide-logs-*.zip` proposée par la feuille de partage système ; l'archive ouverte contient le JSONL + `device-info.txt` sans donnée personnelle |
+| D8 | « Enregistrer » (onglet Journaux) | Sélecteur système (nom `codeide-logs-…zip` proposé) ; après enregistrement, le fichier choisi contient la même archive |
+| D9 | « Effacer » puis confirmer / annuler | Sans confirmation rien ne change ; confirmé : liste vide, taille à zéro, les nouvelles entrées réapparaissent en direct |
+| D10 | Onglet Plantages avec au moins un rapport (procédure P1 au préalable) | Liste du plus récent au plus ancien (date, type, exception, résumé, pastille « Non consulté ») ; toucher un rapport ouvre l'écran dédié en consultation ; au retour la pastille a disparu ; « Supprimer » par ligne et « Tout supprimer » demandent confirmation ; « Exporter » partage `codeide-crashes-*.zip` (JSON + texte + index) |
+| D11 | Réglage « Niveau : Normal » → « Détaillé » (build debug) | Le bouton reflète Détaillé ; les entrées DEBUG apparaissent en direct dans la visionneuse (le moteur est basculé à chaud) ; après redémarrage de l'application le réglage est conservé |
+| D12 | Rotation et mort du processus (onglets, filtres, recherche) | Onglet actif, chips cochées, recherche et bascule direct restaurés ; la liste se recharge au même état |
 
 ## À venir
 
-- **Étape 12+** : écran Diagnostic (entrée Avancé).
-- **Étape 13+** : ouverture réelle d'un projet dans l'éditeur.
+- **Étape 13+** : espace de travail de l'éditeur (EditorActivity).

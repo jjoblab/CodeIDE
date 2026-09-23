@@ -230,3 +230,17 @@ l'application réelle (installation, dialogue du rapport non consulté).
 
 Les procédures à dérouler **sur appareil** sont dans
 `docs/TESTS_MANUELS.md` (section Plantages, P1-P8).
+
+
+## Visionneuse de diagnostics (étape 12 — v0.13.0)
+
+L'écran Diagnostic (Paramètres › Avancé › Diagnostic, `feature:diagnostics`,
+ADR 0025) consomme les contrats documentés ici : onglet Journaux (fenêtre
+des 500 dernières entrées + pagination en mémoire, filtres par niveau,
+recherche à délai, suivi direct, partage/enregistrement/effacement, réglage
+Normal/Détaillé appliqué à chaud via le port `LogVerbosityApplier`) et
+onglet Plantages (historique vivant des résumés, ouverture en consultation
+via `AppNavigator.openCrashReport`, suppression, export en archive). La
+section Informations affiche version, appareil non identifiant et
+identifiant de session. Le menu debug (build debug uniquement) vit dans cet
+écran, plus sur l'accueil.
