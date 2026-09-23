@@ -228,7 +228,21 @@ remis (format section 14) puis attente du « GO ».
       [règles ProGuard cel-ui vérifiées sur APK minifié, E44] ; Dokka core:model/core:domain ;
       audit dépendances [6 entrées retirées] / TODO [aucun] / code mort [detekt strict vert] / données personnelles [LogRedactor, aucune fuite] ;
       verify-templates.sh vert ; plan détaillé Phase 2 dans ROADMAP)
-- Phase 1 terminée — v0.19.0. Prochaine : Phase 2 (étape 19, cf. ROADMAP).
+- Phase 1 terminée — v0.19.0. Phase 2 ouverte par le **terminal intégré**
+  (prompt Terminal-1) à la demande de l'utilisateur.
+- [x] Étape 19 (= Terminal T1) — `core:bootstrap` : localisation et environnement → v0.20.0
+      (ports ToolchainLocator [13 méthodes, périmètre exact du prompt] et ProcessEnvironmentProvider dans
+      core:domain ; disposition Termux filesDir/usr + filesDir/home ; JDK usr/lib/jvm/… du dépôt APT
+      [constaté sur Contents-aarch64] ; distribution Gradle = marqueur lib/gradle-launcher-*.jar,
+      symlink bin/gradle remonté seulement si la canonicalisation change ; SDK Android par plateformes
+      android.jar ; aapt2 = bit d'exécution ; cache wrapper ~/.gradle/wrapper/dists ; shell bash/sh ;
+      environnement : retrait CLASSPATH/LD_PRELOAD, HOME/TMPDIR/PREFIX/LANG/LD_LIBRARY_PATH,
+      GRADLE_USER_HOME explicite [bug getpwuid], PATH JAVA_HOME+prefix+hérité, exports conditionnels ;
+      37 tests JVM pur rejouant les bugs historiques ; règle de dépendance :core:bootstrap ajoutée à
+      checkModuleDependencies ; ADR 0032 [exception bornée à l'ADR 0003 : File du stockage privé] ;
+      module non encore référencé par app — branchement en T3/T4 ; signalé : ni paquet gradle ni
+      android-sdk dans le dépôt APT à ce jour, seul bootstrap-aarch64.zip en release)
+- Prochaine : étape 20 (= Terminal T2 — NativeProcessLauncher et BootstrapInstaller, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
@@ -243,3 +257,7 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels
   d'outils).
+- **Jamais `*/` dans un KDoc, même entre backticks** (`platforms/android-*/…`
+  ferme le commentaire prématurément — recroisé à l'étape T1 après l'avoir
+  rencontré à la 16). Écrire la constante autrement (ex. « un `android.jar`
+  sous `platforms` »).
