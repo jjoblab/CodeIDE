@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
 import jo.codeide.core.ui.BaseFragment
@@ -25,7 +26,14 @@ import jo.codeide.feature.install.databinding.FragmentInstallBinding
  *
  * Le retour système referme l'écran sans jamais interrompre une
  * installation en cours : l'annulation est un choix explicite.
+ *
+ * Correctif v0.25.0 (rapport 30e81ee0) : sans [AndroidEntryPoint], la
+ * factory par défaut ne connaît pas le constructeur `@Inject` de
+ * [InstallViewModel] — `NoSuchMethodException` à l'ouverture de l'écran
+ * sur appareil. L'annotation installe la factory Hilt (ViewModel
+ * scopé au fragment).
  */
+@AndroidEntryPoint
 class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private val viewModel: InstallViewModel by viewModels()
 
