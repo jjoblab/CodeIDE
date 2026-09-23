@@ -4,6 +4,71 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.23.0] – 2026-09-24
+
+Étape 22 (= T4 du prompt compagnon « Terminal intégré et bootstrap
+natif ») : module `core:terminal-runtime` — registre global des
+sessions shell réelles (Termux `terminal-emulator`), service
+*foreground*, traduction vers `TerminalSessionSummary`. ADR 0035.
+
+### Ajouté
+
+- **Ports du domaine** (`core:domain`, `TerminalSession.kt`) :
+  `TerminalSessionSummary` (métadonnées **sans type Termux** —
+  consommables par `feature:editor` sans dépendance `com.termux:*`) et
+  `TerminalSessionRepository` (liste observable, session active
+  observable, création avec répertoire de travail et libellé
+  optionnel, renommage, fermeture **réelle**).
+- **Module `core:terminal-runtime`** : `RegistreSessionsTermux`
+  (singleton Hilt) implémente les **deux** ports — le repository du
+  domaine **et** `TerminalRuntime.sessionFor(id)` (vraie
+  `TerminalSession` Termux, API réservée au rendu de `feature:terminal`,
+  section 4.4 du prompt). Création via le constructeur Termux avec
+  l'environnement exact de `ProcessEnvironmentProvider` complété de
+  `TERM=xterm-256color`, shell de `ToolchainLocator.defaultShell()`,
+  identifiant UUID stable et libellé « Session N ». Traduction
+  throttlée (fenêtre 250 ms, aperçu borné à 160 caractères replatés) ;
+  terminaison naturelle (`exit`) → entrée **visible morte** jusqu'à
+  fermeture explicite.
+- **`TerminalService`** (foreground, `START_STICKY`, type
+  `specialUse` documenté) : unique responsabilité de garder les
+  sessions vivantes hors écran avec une notification honnête (« N
+  session(s) de terminal active(s) », canal dédié, ouverture de l'app au
+  toucher) ; décision pure testée (`DecisionServiceTerminal`) :
+  notification tant qu'au moins une session vit, arrêt de soi-même
+  sinon. Permissions `FOREGROUND_SERVICE`,
+  `FOREGROUND_SERVICE_SPECIAL_USE`, `POST_NOTIFICATIONS` déclarées dans
+  le manifeste du module (fusion dans l'app, branchée via la dépendance
+  `:core:terminal-runtime`).
+- **Indirection de test `CoquilleSession`** : le registre ne dialogue
+  jamais avec `TerminalSession` en direct — les coquilles scriptées
+  évitent toute exécution réelle de pty dans la suite JVM.
+- **`FakeTerminalSessionRepository`** dans `core:testing` (section 2.2
+  du prompt) pour la carte d'aperçu du tiroir (T6).
+- **`THIRD_PARTY_NOTICES.md`** (créé) : `terminal-emulator` v0.118.3
+  Apache-2.0 (exception explicite du dépôt GPLv3) ; **`termux-shared`
+  refusé** — ses exceptions MIT ne couvrent pas
+  `terminal/io/extrakeys` (vérifié sur le `LICENSE.md` de v0.118.3) :
+  le clavier étendu de T5 sera implémenté en interne (ADR 0035).
+
+### Tests
+
+- `RegistreSessionsTermuxTest` (13 tests, coquilles scriptées + temps
+  virtuel) : traduction état réel → métadonnées, environnement/shell
+  canoniques transmis, session active, renommage, fermeture réelle +
+  rebascule, terminaison naturelle visible morte, sorties
+  bornées/replatées/throttlées (rafale de 50 lignes → une publication),
+  `sessionFor`, numérotation continue, redémarrage du service.
+- `TerminalServiceTest` (3 tests, service **réel** sous Robolectric —
+  critère d'acceptation « cycle de vie du service ») : arrêt de
+  soi-même quand aucune session ne vit ; notification foreground
+  **persistante** tant qu'une session vit puis arrêt après la fermeture
+  de la dernière ; le démarreur réel demande bien le service foreground
+  du terminal. Colle Termux/JNI exclue de la couverture (exécution
+  impossible en JVM, filtre kover documenté).
+- `DecisionServiceTerminalTest` (3 tests) : arrêt si aucune vivante,
+  notification du nombre sinon.
+
 ## [0.22.0] – 2026-09-23
 
 Étape 21 (= T3 du prompt compagnon « Terminal intégré et bootstrap
