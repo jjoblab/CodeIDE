@@ -217,7 +217,10 @@ remis (format section 14) puis attente du « GO ».
       onglet Journal applicatif compact [fenêtre mémoire ObserveLogsUseCase 200, filtres par niveau persistés, suivi direct, badge de compte,
       lien vers l'écran Diagnostic via AppNavigator], onglets Sortie et Problèmes en stub explicite [session.setDiagnostics documenté non câblé],
       retour système réduit le panneau étendu d'abord, état + onglet actif survivent à la rotation ; PanneauEditorViewModelTest ; ADR 0029)
-- [ ] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0
+- [x] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0 (menu contextuel de l'explorateur [créer/renommer/supprimer/actualiser]
+      + création à la racine par bouton dédié [fichier créé ouvert en onglet] ; validation partagée wizard [validateur file-name + EvaluerNomFichierUseCase] ;
+      FileSystem.rename [nouvelle URI retournée] avec migration d'onglet [session/verrou/auto-sauvegarde] ; suppression ferme l'onglet et libère ;
+      reprise par projet [.codeide/local/workspace-state.json, tolérante, gitignore des modèles déjà présent] ; accessibilité onglets + E32-E39 ; ADR 0030)
 - [ ] Étape 18 — Audit final de Phase 1 → v0.19.0
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.

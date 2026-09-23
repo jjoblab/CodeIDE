@@ -4,6 +4,58 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.18.0] – 2026-09-23
+
+Étape 17 — Actions du tiroir et finitions de l'espace de travail (prompt
+compagnon, sections 5.2/5.3 et 6, ADR 0030) : l'explorateur **agit sur
+les fichiers**, le projet **rouvre ses onglets**, l'accessibilité est
+affinée.
+
+### Ajouté
+
+- **Menu contextuel de l'explorateur** (appui long sur un nœud) :
+  Nouveau fichier, Nouveau dossier (dans le dossier visé), Renommer,
+  Supprimer (confirmation avec rappel du nom et mention « action
+  définitive »), Actualiser. Un bouton dédié de l'en-tête du tiroir
+  couvre la création **à la racine** (un projet vide reste utilisable) ;
+  un fichier créé **s'ouvre en onglet** immédiatement.
+- **Validation de nom partagée avec le wizard** : nouveau validateur
+  `file-name` (mêmes règles que le nom de projet, section 12.3 —
+  longueur 1-64 après trim, caractères interdits, « . »/« .. », fin
+  interdite, noms réservés Windows), consommé par
+  `EvaluerNomFichierUseCase` ; le dialogue montre la raison localisée
+  et reste ouvert tant que le nom est invalide.
+- **`FileSystem.rename`** (14ᵉ opération du port) : `SafFileSystem`
+  l'implémente par `DocumentsContract.renameDocument` et **retourne la
+  nouvelle URI** (SAF la change — contrat explicite) ; `FakeFileSystem`
+  déplace le sous-arbre et refuse la collision insensible à la casse.
+- **Renvoi des onglets à la réouverture du projet** :
+  `.codeide/local/workspace-state.json` (non synchronisé — exclu par les
+  `.gitignore` générés dès l'étape 9), écrit asynchrone à chaque
+  changement d'onglets (échec journalisé, jamais bloquant), lecture
+  tolérante (absent/illisible/corrompu → rien). Le `SavedStateHandle`
+  garde la priorité (rotation, mort du processus) ; le dossier
+  `.codeide/local/` est créé au besoin (projet importé sans `.codeide`).
+- **L'onglet suit le renommage** : session, auto-sauvegarde en attente
+  et verrou d'écriture migrés vers la nouvelle URI, nom/chemin/langage
+  mis à jour ; la suppression d'un document ouvert ferme l'onglet et
+  libère la session (`dispose`, ADR 0028).
+- **Accessibilité des onglets** : `contentDescription` = nom + état de
+  modification (TalkBack annonce l'onglet complet) ; procédure
+  d'audit TalkBack complète documentée (E32-E39).
+
+### Modifié
+
+- Après une opération de fichier, seul le dossier parent est
+  ré-énuméré — il **reste déplié** ; les sous-arbres obsolètes voient
+  caches et plis oubliés (rafraîchissement ciblé, ADR 0030).
+- Tests : `ActionsFichiersEditorViewModelTest` (création, renommage
+  avec suivi d'onglet, suppression avec libération, échec typé,
+  reprise par projet, corruption ignorée), `EspaceTravailUseCasesTest`
+  (round-trip, ré-écriture sans doublon, tolérance), décompte de
+  paresse de l'explorateur ajusté (la reprise liste la racine une fois
+  de plus).
+
 ## [0.17.0] – 2026-09-23
 
 Étape 16 — Panneau inférieur (prompt compagnon, section 5.5, ADR 0029) :
