@@ -282,7 +282,19 @@ remis (format section 14) puis attente du « GO ».
       service réel Robolectric 3 : arrêt automatique/notification persistante/démarreur, décision 3] ; filtres kover
       documentés [colle Termux/JNI + code généré Hilt/Dagger] ; exception lint Aligned16KB [libtermux.so amont
       non alignée, vérifié v0.118.3 ET v0.119.0-beta.3 : p_align 4096])
-- Prochaine : étape 23 (= Terminal T5 — feature:terminal écran plein écran, cf. ROADMAP).
+- [x] Étape 23 (= Terminal T5) — `feature:terminal` écran plein écran → v0.24.0
+      (TerminalActivity section 5.1 : toolbar + nouvelle session, onglets TabLayout à vues personnalisées
+      [pastille d'état, libellé, fermeture « + », appui long renommer/dupliquer/fermer], UN SEUL TerminalView
+      rebranché par identifiant de session active — jamais un rendu par onglet ; état vide ; clavier étendu
+      INTERNE ClavierEtenduView [termux-shared refusé GPLv3, ADR 0035/0036] déclaratif : Tab/Échap/flèches
+      par séquences, Ctrl/Alt bascules persistantes lues par readControlKey/readAltKey [mécanisme officiel
+      Termux] ; ClientVueTerminal : toucher = focus+IME, retour jamais mappé sur Échap, logs muets ;
+      fermeture à heuristique « au prompt » [dialogue si occupée] ; thèmes clair/sombre par couleurs de
+      l'émulateur [indices 256/257/258, disposition jackpal 259] ; réglage dédié TaillePoliceTerminal
+      [modèle + DataStore + Paramètres/Apparence + setTextSize gardé] ; AppNavigator.openTerminal
+      [extra intent → SavedStateHandle, survit rotation] ; app branche feature:terminal ; 11 tests ViewModel ;
+      POM terminal-view sans dépendance émulateur → les 2 artefacts déclarés ; Aligned16KB même exception)
+- Prochaine : étape 24 (= Terminal T6 — intégration accueil et tiroir, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

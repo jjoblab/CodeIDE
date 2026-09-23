@@ -4,6 +4,53 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.24.0] – 2026-09-24
+
+Étape 23 (= T5 du prompt compagnon « Terminal intégré et bootstrap
+natif ») : module `feature:terminal` — écran plein écran du terminal
+(toolbar, onglets de sessions, `TerminalView` unique rebranché, clavier
+étendu interne, thèmes clair/sombre, réglage de police dédié). ADR 0036.
+
+### Ajouté
+
+- **Module `feature:terminal`** : `TerminalActivity` selon la
+  disposition de la section 5.1 — toolbar « Terminal » + nouvelle
+  session, onglets défilants (pastille d'état vivante/terminée, libellé
+  court, fermeture, « + » final, appui long : renommer/dupliquer/
+  fermer), **un seul `TerminalView` rebranché** sur la session active
+  (`attachSession`, même principe que l'éditeur), état vide centré,
+  rangée de touches étendues qui remonte au-dessus du clavier virtuel.
+- **Clavier étendu interne** (`ClavierEtenduView`, `termux-shared`
+  refusé pour licence — ADR 0035/0036) : rangée déclarative Tab, Ctrl,
+  Alt, Échap, flèches ; touches directes par séquences de contrôle,
+  **Ctrl/Alt bascules persistantes** lues par le client de la vue
+  (`readControlKey`/`readAltKey` — mécanisme officiel de Termux).
+- **Fermeture d'onglet** : heuristique « shell au prompt » (fin de
+  l'aperçu avec `$`/`#`/`%`/`>`) → confirmation si une commande semble
+  en cours, fermeture directe sinon — le shell est réellement terminé,
+  jamais seulement masqué.
+- **Thèmes clair/sombre** suivant l'app : couleurs du rendu réécrites
+  dans l'émulateur (indices 256/257/258, disposition jackpal) depuis
+  les ressources `values`/`values-night`.
+- **Réglage dédié de police** (`TaillePoliceTerminal` PETITE/MOYENNE/
+  GRANDE) : modèle, clé DataStore, section Apparence des Paramètres,
+  appliqué via `setTextSize` avec garde anti-re-création de fonte.
+- **Navigation** : `AppNavigator.openTerminal(suggestedWorkingDirectory)`
+  (interface `core:ui`, implémentation `app`, extra d'intent lu via
+  `SavedStateHandle` — survit à la rotation) ; les points d'entrée UI
+  arrivent en T6.
+- **Retour système** : ferme l'écran, jamais une session (jamais mappé
+  sur Échap) — les sessions survivent via le service foreground.
+
+### Tests
+
+- `TerminalViewModelTest` (11 tests, fakes du domaine — aucune session
+  Termux réelle) : répertoire suggéré/repli `HOME` canonique,
+  sélection, fermeture directe au prompt, confirmation exigée si
+  occupée puis fermeture après accord, session terminée sans
+  confirmation, renommage nettoyé/ignoré, duplication au même
+  répertoire, taille de police exposée, heuristique prompt/sortie.
+
 ## [0.23.0] – 2026-09-24
 
 Étape 22 (= T4 du prompt compagnon « Terminal intégré et bootstrap

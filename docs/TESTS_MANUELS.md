@@ -327,6 +327,23 @@ session vit, arrêt automatique sinon).
 | E55 | **Fermeture réelle** : lancer une commande longue (`sleep 300`) puis fermer la session | Le processus shell est **réellement terminé** (`adb shell ps -A | grep sleep` vide) — pas seulement masqué de la liste |
 | E56 | **Redémarrage après mort du processus** : tuer le processus de l'app (`adb shell am kill jo.codeide`) avec des sessions ouvertes | Le service `START_STICKY` repart, constate l'état des sessions et s'arrête proprement si aucune ne survit (aucune notification orpheline persistante) |
 
+## Terminal — écran plein écran (étape 23 = T5)
+
+Préambule : bootstrap **installé** (E45) et APK debug v0.24.0+ ; l'écran
+s'ouvre pour l'instant via la navigation (`openTerminal`, points d'entrée
+visibles en T6) — `adb shell am start -n jo.codeide/.feature.terminal.TerminalActivity`
+déclenche aussi l'écran. L'acceptation exige : commandes de base,
+sessions simultanées, fermeture propre, rotation sans perte (section 9
+du prompt Terminal-1).
+
+| # | Action | Attendu |
+|---|---|---|
+| E57 | **Session réelle** : créer une session, taper `ls`, `pwd`, puis `java -version` et `gradle -version` si installés | Le shell répond dans le `TerminalView` (couleurs, défilement) ; le prompt réapparaît après chaque commande ; la notification foreground « 1 session active » est visible |
+| E58 | **Sessions simultanées** : créer 3 sessions (`+`), renommer la 2e (« build », appui long → Renommer), dupliquer la 3e, naviguer entre les onglets | Chaque onglet garde **son propre état** (processus, historique distincts) ; le libellé renommé s'affiche ; la duplication ouvre un shell dans le même répertoire ; le `+` recrée toujours à la fin de liste |
+| E59 | **Fermeture propre** : lancer `sleep 300` puis fermer l'onglet ; dans une autre session au prompt, fermer directement | La fermeture pendant une commande demande **confirmation** (« une commande semble en cours ») ; au prompt, fermeture **directe** ; le processus est réellement terminé (E55) ; l'onglet disparaît, la session active rebascule |
+| E60 | **Rotation et reprise** : faire pivoter l'appareil (et changer le thème clair/sombre en cours) avec des sessions ouvertes | Aucune session perdue ; le rendu se rebranche et garde le transcript ; le thème du rendu suit l'app ; la police suit le réglage (Paramètres → Apparence → Taille de la police du terminal) |
+| E61 | **Clavier étendu** : Tab (complétion), Échap, flèches (historique), Ctrl puis `c` | Tab complète, Échap interrompt la saisie, ↑/↓ parcourt l'historique ; Ctrl (bouton en surbrillance) combiné à `c` interrompt une commande ; Alt de même pour les combinaisons ; le retour système **ferme l'écran** sans tuer les sessions |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
