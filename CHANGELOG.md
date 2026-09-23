@@ -4,6 +4,54 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.20.0] – 2026-09-23
+
+Étape 19 (= T1 du prompt compagnon « Terminal intégré et bootstrap
+natif ») — ouverture de la Phase 2 par le terminal, à la demande de
+l'utilisateur : nouveau module `core:bootstrap`, ports du domaine et
+heuristiques de localisation entièrement en JVM pur. ADR 0032.
+
+### Ajouté
+
+- **Ports du domaine** (`core:domain`) : `ToolchainLocator` (13 méthodes
+  — périmètre exact du prompt Terminal-1, section 2.2) et
+  `ProcessEnvironmentProvider` (source unique de l'environnement des
+  sous-processus, consommée par le terminal **et** le futur tooling).
+  Exception assumée et bornée à l'ADR 0003 : ces ports exposent des
+  `File` du stockage privé (`filesDir`) — on ne peut pas `exec` une URI
+  SAF (ADR 0032).
+- **Module `core:bootstrap`** (étape T1) : disposition type Termux
+  (`filesDir/usr` + `filesDir/home`), localisation du JDK (emplacement
+  réel du paquet `openjdk-17` du dépôt APT : `usr/lib/jvm/…`, constaté
+  sur `Contents-aarch64`), des distributions Gradle (marqueur
+  `lib/gradle-launcher-*.jar` ou apparenté), du SDK Android
+  (plateformes `android.jar`), de `aapt2` (bit d'exécution), du shell
+  par défaut et du **cache du wrapper Gradle**
+  (`~/.gradle/wrapper/dists/…`, évite un retéléchargement).
+- **Environnement de sous-processus** : retrait de `CLASSPATH` et
+  `LD_PRELOAD` hérités, fixation de `HOME`, `TMPDIR`, `PREFIX`,
+  `LANG`, `LD_LIBRARY_PATH`, **`GRADLE_USER_HOME` explicite** (bug
+  `getpwuid` rejoué par les tests), composition du `PATH`, export
+  conditionnel de `JAVA_HOME`/`ANDROID_HOME`/`ANDROID_SDK_ROOT`.
+- **37 tests** en JVM pur (`core:bootstrap`) rejouant les bugs
+  historiques documentés par le prompt : répertoire « Gradle » sans JAR
+  de lancement, `bin/gradle` régulier confondu en symlink, distribution
+  du wrapper non retrouvée, cache Gradle hors de `HOME`.
+- Règle de dépendance `:core:bootstrap` → (`core:model`, `core:domain`)
+  dans `checkModuleDependencies` (module inscrit dans `settings.gradle.kts`).
+
+### Notes techniques
+
+- `core:bootstrap` n'est pas encore référencé par `app` : aucun écran ne
+  le consomme à ce stade — le branchement arrive avec l'écran
+  d'installation (T3) et `core:terminal-runtime` (T4). Les tests du
+  module valident les heuristiques indépendamment.
+- **Signalé au dépôt `codeide-packages`** : aucun paquet `gradle` ni
+  `android-sdk` dans le dépôt APT à ce jour (seuls `openjdk-17`, `git`
+  et les paquets de base) ; seul `bootstrap-aarch64.zip` est publié en
+  release. L'installateur (T2) en tiendra compte — le manque est
+  signalé, pas contourné côté app (prompt Terminal-1, section 1.1).
+
 ## [0.19.0] – 2026-09-23
 
 Étape 18 — Audit final de Phase 1 (prompt compagnon, section 6, ADR 0031) :
