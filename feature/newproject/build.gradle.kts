@@ -5,6 +5,9 @@ plugins {
 }
 
 dependencies {
+    // @RequiresApi du rendu des champs dynamiques (audit étape 18 : import direct).
+    implementation(libs.androidx.annotation)
+
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

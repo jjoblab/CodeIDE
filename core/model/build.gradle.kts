@@ -7,6 +7,9 @@ plugins {
     // core:logging, section 5.7) : le plugin compagnon du Kotlin 2.2.10.
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kover)
+    // Documentation API (audit étape 18) : module explicitApi, contrat
+    // public documenté par Dokka.
+    alias(libs.plugins.dokka)
 }
 
 dependencies {

@@ -28,6 +28,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    // @RequiresApi d'ApplicationExitInfo (audit étape 18 : import direct).
+    implementation(libs.androidx.annotation)
     // registerForActivityResult (enregistrement SAF du rapport).
     implementation(libs.androidx.activity)
     implementation(libs.androidx.material)
