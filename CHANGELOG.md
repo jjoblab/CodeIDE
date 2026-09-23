@@ -4,6 +4,49 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.17.0] – 2026-09-23
+
+Étape 16 — Panneau inférieur (prompt compagnon, section 5.5, ADR 0029) :
+la zone basse de l'espace de travail devient **fonctionnelle** — trois
+états d'ouverture, journal applicatif compact branché sur le moteur de
+journalisation existant, stubs explicites pour le tooling futur.
+
+### Ajouté
+
+- **Trois états d'ouverture** pilotés par `BottomSheetBehavior`
+  (`behavior_fitToContents=false`, `halfExpandedRatio=0,5`) : **replié**
+  (seul l'en-tête de 48 dp est visible), **mi-hauteur** et **étendu** —
+  au doigt (glissement), par l'en-tête (bascule replié ↔ mi-hauteur), par
+  les boutons **agrandir** (replié → mi-hauteur → étendu) et **réduire**,
+  et par le retour système (le panneau étendu se réduit avant toute autre
+  action — prompt compagnon 5.1). L'état et l'onglet actif vivent dans
+  `EditorUiState`/`SavedStateHandle` : ils **survivent à la rotation**.
+- **Onglet Journal applicatif fonctionnel** : fenêtre mémoire des 200
+  dernières entrées (`ObserveLogsUseCase` — ADR 0029 : pas de lecture
+  disque, l'historique complet reste à l'écran Diagnostic), mise à jour
+  **en direct** avec défilement vers la plus récente, **filtres par
+  niveau** identiques à l'étape 12 (ensemble vide = tous les niveaux,
+  puces Débug/Info/Avert./Erreur persistées), ligne compacte (niveau
+  coloré jour/nuit, heure, étiquette, message tronqué), état vide après
+  filtres et **badge de compte** dans l'en-tête. Le lien
+  « Ouvrir le journal complet » navigue vers l'écran Diagnostic
+  (`AppNavigator.openDiagnostics`) — exports et effacement restent là.
+- **Onglets Sortie et Problèmes en stub explicite** : message clair (« La
+  console apparaîtra ici une fois le tooling de compilation disponible » /
+  « Les problèmes de compilation et d'analyse apparaîtront ici ») — jamais
+  l'apparence d'une fonctionnalité cassée ; le point d'ancrage des
+  diagnostics inline (`session.setDiagnostics`, section 2.4 du prompt
+  compagnon) est documenté en commentaire, non câblé (tooling = Phase 2).
+
+### Modifié
+
+- Le titre de l'en-tête du panneau suit l'onglet actif (Console ·
+  Problèmes · Journal) au lieu d'un libellé statique.
+- Tests du ViewModel étendus (`PanneauEditorViewModelTest`) : états
+  d'ouverture et onglet actif propagés et persistés, rejou de l'état
+  courant sans effet, fenêtre du journal en direct, filtres par niveau,
+  effet du lien « journal complet », restauration après rotation.
+
 ## [0.16.0] – 2026-09-23
 
 Étape 15 — Intégration de l'éditeur et onglets de fichiers (prompt
