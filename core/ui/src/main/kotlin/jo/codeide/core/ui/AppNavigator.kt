@@ -140,4 +140,20 @@ public interface AppNavigator {
      * ne l'interrompt pas.
      */
     public fun openBootstrapInstall(): Unit
+
+    /**
+     * Ouvre l'**écran plein écran du terminal** (Terminal T5, prompt
+     * Terminal-1, section 5) : la même liste de sessions globales quel
+     * que soit le point d'entrée.
+     *
+     * Servi à l'étape T6 par l'action « Terminal » de la barre d'outils
+     * de l'accueil et par la carte d'aperçu du tiroir de l'espace de
+     * travail. Une session créée depuis ce point démarre avec le
+     * répertoire suggéré comme répertoire de travail initial — ou le
+     * répertoire général de l'application si aucun n'est fourni.
+     *
+     * @param suggestedWorkingDirectory chemin POSIX du répertoire de
+     * travail suggéré, ou `null` pour le répertoire général.
+     */
+    public fun openTerminal(suggestedWorkingDirectory: String?): Unit
 }

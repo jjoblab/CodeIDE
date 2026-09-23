@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couleurs du rendu du terminal (thème clair, Terminal T5) : fond de
+     l'écran du terminal et texte, appliquées à la palette du renderer
+     Termux (indices 256/257 — voir TerminalActivity.appliquerTheme). -->
+<resources>
+    <color name="terminal_fond">#F5F5F0</color>
+    <color name="terminal_texte">#1B1B1B</color>
+
+    <!-- Pastille d'état d'une session (identique clair/sombre). -->
+    <color name="terminal_etat_vivante">#2E7D32</color>
+    <color name="terminal_etat_terminee">#9E9E9E</color>
+</resources>

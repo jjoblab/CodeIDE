@@ -9,6 +9,10 @@
     <string name="settings_theme_clair">Clair</string>
     <string name="settings_theme_sombre">Sombre</string>
     <string name="settings_couleurs_dynamiques">Couleurs dynamiques (Android 12+)</string>
+    <string name="settings_police_terminal">Taille de la police du terminal</string>
+    <string name="settings_police_petite">Petite</string>
+    <string name="settings_police_moyenne">Moyenne</string>
+    <string name="settings_police_grande">Grande</string>
 
     <!-- Langue -->
     <string name="settings_section_langue">Langue</string>

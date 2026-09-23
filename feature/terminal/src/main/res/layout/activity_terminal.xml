@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Écran plein écran du terminal (Terminal T5, prompt Terminal-1,
+  section 5.1) : toolbar, onglets de sessions défilants, zone de rendu
+  (TerminalView unique rebranché), rangée de touches étendues.
+  L'état vide recouvre la zone de rendu quand aucune session n'existe.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_terminal"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_terminal"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/terminal_retour_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/terminal_title">
+
+        <ImageButton
+            android:id="@+id/bouton_nouvelle_session"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:layout_gravity="end|center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/terminal_nouvelle_session_cd"
+            android:src="@drawable/ic_nouvelle_session"
+            app:tint="?attr/colorOnSurface" />
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <!-- Onglets de sessions : même langage visuel que les onglets de
+         fichiers de l'éditeur (libellé court + fermeture, « + » final). -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/onglets_sessions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:tabMode="scrollable" />
+
+    <!-- Zone de rendu : UN SEUL TerminalView, rebranché sur la session
+         active (même principe que l'éditeur : limiter la mémoire). -->
+    <FrameLayout
+        android:id="@+id/conteneur_rendu"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.termux.view.TerminalView
+            android:id="@+id/vue_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:importantForAccessibility="yes" />
+
+        <!-- État vide : aucune session — message centré + création. -->
+        <LinearLayout
+            android:id="@+id/etat_vide_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_lg"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/terminal_vide_message"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_creer_session"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="@string/terminal_vide_creer" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Rangée de touches étendues (clavier interne, ADR 0036) : Tab,
+         Ctrl, Alt, Échap, flèches. Reste visible au-dessus du clavier
+         virtuel (applySystemBarsAndImeInsets côté activité). -->
+    <jo.codeide.feature.terminal.ClavierEtenduView
+        android:id="@+id/clavier_etendu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</LinearLayout>

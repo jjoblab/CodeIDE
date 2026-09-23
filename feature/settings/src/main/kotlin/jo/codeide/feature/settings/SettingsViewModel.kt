@@ -15,6 +15,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
+import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +64,14 @@ sealed interface ActionParametres {
     /** Change la licence par défaut proposée au wizard. */
     data class ChangerLicence(
         val licence: License,
+    ) : ActionParametres
+
+    /**
+     * Change la taille de la police à chasse fixe du terminal (T5 —
+     * réglage dédié minimal, prompt Terminal-1 section 5).
+     */
+    data class ChangerTaillePoliceTerminal(
+        val taille: TaillePoliceTerminal,
     ) : ActionParametres
 
     /** Demande l'ouverture du sélecteur SAF (effet ponctuel). */
@@ -164,6 +173,12 @@ class SettingsViewModel
 
                 is ActionParametres.ChangerLicence -> {
                     ecrireReglage("licence par défaut") { it.copy(defaultLicense = action.licence) }
+                }
+
+                is ActionParametres.ChangerTaillePoliceTerminal -> {
+                    ecrireReglage("taille de police du terminal") {
+                        it.copy(taillePoliceTerminal = action.taille)
+                    }
                 }
 
                 ActionParametres.DemanderChangementDossier -> {

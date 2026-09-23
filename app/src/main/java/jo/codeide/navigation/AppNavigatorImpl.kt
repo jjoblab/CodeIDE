@@ -18,6 +18,8 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.feature.editor.ClesEditor
 import jo.codeide.feature.editor.EditorActivity
+import jo.codeide.feature.terminal.ClesTerminal
+import jo.codeide.feature.terminal.TerminalActivity
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
@@ -201,6 +203,18 @@ internal class AppNavigatorImpl
                     navController.navigate(R.id.action_onboarding_to_installation)
                 }
             }
+        }
+
+        override fun openTerminal(suggestedWorkingDirectory: String?) {
+            // Terminal T5 : activité plein écran par-dessus la pile — les
+            // sessions sont globales (registre singleton) et survivent au
+            // retour via le service foreground. Le répertoire suggéré
+            // transite par l'intent (T6 : accueil et tiroir de l'espace).
+            logger.d(TAG) { "ouverture de l'écran du terminal" }
+            val intention =
+                Intent(activity, TerminalActivity::class.java)
+                    .putExtra(ClesTerminal.EXTRA_REPERTOIRE, suggestedWorkingDirectory)
+            activity.startActivity(intention)
         }
     }
 

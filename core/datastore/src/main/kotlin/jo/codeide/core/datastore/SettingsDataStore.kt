@@ -13,6 +13,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -122,6 +123,8 @@ public class SettingsDataStore(
         internal val NOM_AUTEUR: Preferences.Key<String> = stringPreferencesKey("author_name")
         internal val LICENCE: Preferences.Key<String> = stringPreferencesKey("default_license")
         internal val VERBOSITE: Preferences.Key<String> = stringPreferencesKey("log_verbosity")
+        internal val TAILLE_POLICE_TERMINAL: Preferences.Key<String> =
+            stringPreferencesKey("terminal_font_size")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
     }
 }
@@ -143,6 +146,9 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
         logLevel =
             LogVerbosity.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.VERBOSITE] }
                 ?: defaults.logLevel,
+        taillePoliceTerminal =
+            TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
+                ?: defaults.taillePoliceTerminal,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
     )
 
@@ -168,6 +174,7 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.NOM_AUTEUR, reglage.authorName)
     set(SettingsDataStore.Cles.LICENCE, reglage.defaultLicense.name)
     set(SettingsDataStore.Cles.VERBOSITE, reglage.logLevel.name)
+    set(SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL, reglage.taillePoliceTerminal.name)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
 
     val dossier = reglage.workspace

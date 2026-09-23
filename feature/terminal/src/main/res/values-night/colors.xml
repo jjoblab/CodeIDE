@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couleurs du rendu du terminal (thème sombre, Terminal T5). -->
+<resources>
+    <color name="terminal_fond">#141414</color>
+    <color name="terminal_texte">#E6E6E6</color>
+</resources>

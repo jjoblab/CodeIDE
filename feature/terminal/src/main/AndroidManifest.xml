@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Écran plein écran du terminal (Terminal T5) : activité séparée,
+         jamais exposée hors de l'application — ouverte par les deux
+         points d'entrée de l'étape T6 (accueil et tiroir de l'espace).
+         Les sessions survivent au retour : c'est le service foreground
+         de core:terminal-runtime qui les maintient en vie. -->
+    <application android:supportsRtl="true">
+        <activity
+            android:name="jo.codeide.feature.terminal.TerminalActivity"
+            android:exported="false"
+            android:label="@string/terminal_title"
+            android:windowSoftInputMode="adjustResize" />
+    </application>
+
+</manifest>

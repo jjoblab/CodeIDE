@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terminal_title">Terminal</string>
+    <string name="terminal_retour_cd">Revenir en arrière (les sessions restent ouvertes)</string>
+    <string name="terminal_nouvelle_session_cd">Nouvelle session de terminal</string>
+    <string name="terminal_onglet_fermer_cd">Fermer cette session</string>
+    <string name="terminal_vide_message">Aucune session de terminal ouverte.\nLes sessions survivent à la fermeture de l\'écran.</string>
+    <string name="terminal_vide_creer">Nouvelle session</string>
+    <string name="terminal_renommer_titre">Renommer la session</string>
+    <string name="terminal_renommer_indice">Libellé de la session</string>
+    <string name="terminal_renommer_valider">Renommer</string>
+    <string name="terminal_renommer_annuler">Annuler</string>
+    <string name="terminal_fermer_titre">Fermer la session ?</string>
+    <string name="terminal_fermer_message">Une commande semble encore en cours dans « %s ». Fermer termine réellement le shell.</string>
+    <string name="terminal_fermer_confirmer">Fermer quand même</string>
+    <string name="terminal_fermer_annuler">Annuler</string>
+    <string name="terminal_menu_renommer">Renommer</string>
+    <string name="terminal_menu_dupliquer">Dupliquer</string>
+    <string name="terminal_menu_fermer">Fermer</string>
+    <string name="terminal_session_terminee">Terminée</string>
+</resources>
