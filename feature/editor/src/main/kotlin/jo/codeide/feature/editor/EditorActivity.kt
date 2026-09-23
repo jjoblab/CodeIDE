@@ -262,6 +262,18 @@ class EditorActivity : AppCompatActivity() {
         // disponible ». La carte d'aperçu remplace l'explorateur quand la
         // destination Terminal est choisie (section 8 : carte, pas un
         // terminal embarqué).
+        //
+        // Plantage 3d8ede67 (v0.25.0 sur appareil) : la destination initiale
+        // était affectée APRÈS l'enregistrement de l'écouteur — BottomNavigationView
+        // distribue alors l'écouteur de façon SYNCHRONE pendant onCreate,
+        // qui appelait rendre() avant l'inflation du menu de la toolbar
+        // (brancherOnglets, findItem null) et l'initialisation du
+        // comportementPanneau (lateinit). La destination est affectée AVANT
+        // l'écouteur : aucune distribution n'est possible au branchement, le
+        // premier rendu réel vient de la collecte d'état (STARTED), quand
+        // tout est branché. Vues dans ce sens, ces deux ordres sont figés
+        // par ActivityEditorLayoutTest.
+        liaison.barreNavigationTiroir.selectedItemId = R.id.destination_explorateur
         liaison.barreNavigationTiroir.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.destination_explorateur -> {
@@ -279,7 +291,6 @@ class EditorActivity : AppCompatActivity() {
                 }
             }
         }
-        liaison.barreNavigationTiroir.selectedItemId = R.id.destination_explorateur
         liaison.barreNavigationTiroir.menu
             .findItem(R.id.destination_recherche)
             .contentDescription =

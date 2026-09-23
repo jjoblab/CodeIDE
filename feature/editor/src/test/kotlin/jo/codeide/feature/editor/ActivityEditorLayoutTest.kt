@@ -70,4 +70,51 @@ class ActivityEditorLayoutTest {
             ligne.visibility,
         )
     }
+
+    // ------------------------------------------------------------------
+    // Régression du plantage 3d8ede67 (v0.25.0 sur appareil) : la
+    // destination initiale de la barre était affectée APRÈS l'enregistrement
+    // de l'écouteur dans brancherExplorateur(). BottomNavigationView
+    // distribue alors l'écouteur SYNCHRONEMENT pendant onCreate :
+    // basculerVueTiroir() appelait rendre() avant l'inflation du menu de la
+    // toolbar (brancherOnglets — findItem(action_enregistrer) null,
+    // NullPointerException) et avant l'initialisation du comportementPanneau
+    // (lateinit). Les deux tests ci-dessous figent le mécanisme Material
+    // concerné : distribution synchrone à l'affectation d'une destination
+    // nouvellement sélectionnée, aucune distribution au seul enregistrement.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `affecter la destination initiale apres l'ecouteur distribue synchrone - cause du plantage 3d8ede67`() {
+        val barre = gonfler().findViewById<BottomNavigationView>(R.id.barre_navigation_tiroir)
+        var distributions = 0
+        barre.setOnItemSelectedListener { _ ->
+            distributions++
+            false
+        }
+        barre.selectedItemId = R.id.destination_explorateur
+        assertTrue(
+            "mécanisme du plantage : l'affectation d'une destination non encore " +
+                "sélectionnée distribue l'écouteur de façon synchrone",
+            distributions > 0,
+        )
+    }
+
+    @Test
+    fun `affecter la destination initiale avant l'ecouteur ne distribue rien - ordre corrige`() {
+        val barre = gonfler().findViewById<BottomNavigationView>(R.id.barre_navigation_tiroir)
+        // Ordre de brancherExplorateur() corrigé : affectation AVANT écouteur.
+        barre.selectedItemId = R.id.destination_explorateur
+        var distributions = 0
+        barre.setOnItemSelectedListener { _ ->
+            distributions++
+            false
+        }
+        assertEquals(
+            "aucune distribution au seul enregistrement — rendre() ne peut plus " +
+                "s'exécuter avant que le menu de la toolbar soit gonflé",
+            0,
+            distributions,
+        )
+    }
 }
