@@ -232,6 +232,26 @@ correcte sur les deux.
 | E12 | Supprimer le dossier du projet depuis un gestionnaire de fichiers, puis bouton Actualiser du tiroir | Bandeau « Projet introuvable » ; « Résoudre à l'accueil » ramène à l'accueil |
 | E13 | Bouton Actualiser (en-tête du tiroir) après modification externe du dossier | L'arborescence est **rechargée** (nouveaux fichiers visibles, disparus retirés), les dépliements sont réinitialisés ; la barre de navigation basse : **Explorateur** active, Recherche et Git grisés avec « Bientôt disponible » en description |
 
+## Espace de travail — éditeur et onglets (étape 15)
+
+Préambule : un projet Kotlin **et** un projet Java générés à l'étape 9 ;
+l'acceptation exige d'ouvrir, d'éditer et d'enregistrer un `.kt` et un
+`.java` réels, sans fuite après ouverture/fermeture répétée de dix onglets
+(LeakCanary en build debug).
+
+| # | Action | Attendu |
+|---|---|---|
+| E14 | Tiroir → toucher `src/main/kotlin/.../Main.kt` | Un **onglet** apparaît (icône Kotlin, nom), l'éditeur affiche le contenu **coloré** (Kotlin) ; le tiroir reste ouvert, la zone vide disparaît |
+| E15 | Ouvrir un `.java` du projet Java, puis basculer entre les deux onglets | Chaque onglet retrouve **son** contenu et sa coloration (Java) ; un seul `EditorView` en mémoire — le rebranchement est instantané, sans rechargement |
+| E16 | Éditer un fichier (taper du texte) puis attendre ~2 s | Le **point de modification** remplace la croix de fermeture ; après le délai d'inactivité, il disparaît (auto-sauvegarde) ; rouvrir le fichier depuis un gestionnaire confirme le contenu écrit |
+| E17 | Éditer puis appuyer sur l'action **Enregistrer** de la toolbar | L'écriture est immédiate, le point disparaît ; en cas d'échec (stockage retiré) : snackbar d'échec, l'onglet **reste sale** — jamais de perte silencieuse |
+| E18 | Onglet sale → croix (ou menu contextuel → Fermer) | Dialogue **Enregistrer / Ne pas enregistrer / Annuler** ; « Ne pas enregistrer » ferme sans écrire ; « Annuler » laisse l'onglet ouvert et sale |
+| E19 | Deux onglets sales → retour système | Dialogue **agrégé** (« 2 fichiers ont des modifications non enregistrées ») : « Enregistrer tout » écrit puis quitte, « Ne pas enregistrer » quitte, « Annuler » reste |
+| E20 | Menu contextuel d'onglet : Fermer les autres / Fermer tout / Déplacer / Copier le chemin | Les **propres ferment immédiatement**, seuls les sales confirment ; le déplacement réordonne ; « Copier le chemin » met `src/main/.../Main.kt` au presse-papiers (snackbar) |
+| E21 | Toucher un fichier binaire (`gradle/wrapper/gradle-wrapper.jar`) | **Aucun onglet** : la feuille système « Ouvrir avec » propose le fichier ; sans application : message « Aucune application ne sait ouvrir ce fichier » |
+| E22 | Fuites : ouvrir dix onglets puis les fermer tous (×3), naviguer, faire tourner | Aucune fuite rapportée par LeakCanary (build debug) ; aucun blocage du fil principal (StrictMode) lors des écritures |
+| E23 | « Ne pas garder les activités » + mise en arrière-plan prolongée, puis retour | Les **onglets rouverts** avec leur contenu relu, l'onglet actif restauré — y compris après mort du processus |
+
 ## À venir
 
-- **Étape 15+** : onglets et édition, panneau inférieur, actions du tiroir.
+- **Étape 16+** : panneau inférieur (journal applicatif), actions du tiroir, finitions.

@@ -4,6 +4,70 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.16.0] – 2026-09-23
+
+Étape 15 — Intégration de l'éditeur et onglets de fichiers (prompt
+compagnon, sections 2.4, 5.2 et 5.4, ADR 0028) : la zone centrale de
+l'espace de travail **édite** maintenant les fichiers du projet, avec la
+coloration syntaxique de cel-ui.
+
+### Ajouté
+
+- **Ouverture d'un fichier en onglet** (tiroir → onglet) : lecture via
+  `FileSystem.readText`, création d'`EditorDocument`/`EditorSession`
+  (classes pures de cel-core), `setLanguage` déduit de l'extension
+  (kotlin, java, xml, json, markdown, yaml, toml, properties — repli
+  **neutre** pour un langage inconnu, jamais un blocage). Une extension
+  binaire connue (png, jar, zip…) ne s'ouvre pas en onglet : l'action
+  « Ouvrir avec » propose le fichier au système (`ACTION_VIEW` avec
+  lecture accordée), avec message clair si aucune application ne sait
+  faire.
+- **Onglets dynamiques** (`TabLayout` défilant) : icône du langage, nom,
+  **point de modification** qui remplace le bouton de fermeture tant que
+  l'onglet est sale, menu contextuel (Fermer, Fermer les autres, Fermer
+  tout, Déplacer à gauche/droite, Copier le chemin dans le
+  presse-papiers).
+- **Un seul `EditorView`, rebranché** sur la session de l'onglet actif
+  à chaque changement (jamais une vue par onglet), thème clair/sombre
+  suivant le mode de l'application (`EditorTheme.light()`/`dark()`).
+- **Sauvegarde automatique** (1,5 s d'inactivité après une modification)
+  **et manuelle** (action de la toolbar), toujours via
+  `FileSystem.writeText` hors thread principal, avec **verrou par
+  fichier** — jamais deux écritures concurrentes du même fichier. Un
+  échec d'écriture laisse l'onglet sale et est signalé (snackbar) :
+  jamais de perte silencieuse.
+- **Dialogue de fermeture avec modifications non enregistrées** :
+  Enregistrer / Ne pas enregistrer / Annuler — déclenché par la
+  fermeture d'un onglet sale, « Fermer les autres », « Fermer tout » et
+  par le **retour système avec des onglets sales** (confirmation
+  agrégée, pluriel authentique). « Fermer les autres » et « Fermer
+  tout » ferment **immédiatement les onglets propres**, seuls les sales
+  confirment ; l'auto-sauvegarde des onglets sous confirmation est
+  **suspendue** — « Ne pas enregistrer » doit pouvoir gagner, jamais
+  écrire sous la question.
+- **`session.dispose()` systématique** : à la fermeture de chaque onglet
+  et à la destruction de l'activité (`onCleared` libère tout) — sinon
+  fuite du thread de restyle de cel-core. L'enveloppe interne
+  `SessionSuivie` rend la libération **observable par test**, et
+  `SessionEditionTest` éprouve de vraies sessions pures (aller-retour
+  du texte, langue, repli neutre, notification d'édition, `dispose`
+  idempotent) — critère d'acceptation de l'étape.
+- **Mort du processus** : les chemins des onglets ouverts et l'onglet
+  actif vivent dans le `SavedStateHandle` ; le ViewModel recréé rouvre
+  chaque onglet en relisant le fichier (jamais sale a priori). Le
+  fichier de reprise par projet (`workspace-state.json`) arrive à
+  l'étape 17.
+
+### Modifié
+
+- L'explorateur : un appui sur un **fichier** demande désormais son
+  ouverture en onglet (les dossiers déplient comme avant).
+- Le retour système de l'espace de travail : ferme le tiroir s'il est
+  ouvert, sinon demande la sortie — avec confirmation agrégée si des
+  onglets sont sales.
+- La zone centrale « Aucun fichier ouvert » n'apparaît que sans onglet
+  ouvert.
+
 ## [0.15.0] – 2026-09-23
 
 Étape 14 — Explorateur de fichiers (prompt compagnon, section 5.3,
