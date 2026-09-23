@@ -4,6 +4,58 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.14.0] – 2026-09-23
+
+Étape 13 — Fondations de l'espace de travail (prompt compagnon,
+section 6) : `EditorActivity` et ses trois zones, sans logique d'édition
+(ADR 0026). Première dépendance externe d'une fonctionnalité : la
+bibliothèque d'édition `cel-ui`.
+
+### Ajouté
+
+- **`EditorActivity`** (`feature:editor`, ADR 0026) : trois zones —
+  **tiroir gauche** (en-tête : nom du projet, chemin lisible,
+  « Fermer le projet » ; **permanent verrouillé ouvert sur grand écran**
+  sw600dp+, façon IDE de bureau — sous ce seuil : ouvert par ☰ ou geste de
+  bord), **zone centrale** (barre d'outils au nom du projet, onglets de
+  fichiers vides en attente de l'étape 15, états « Aucun fichier ouvert »
+  et « Projet introuvable » si l'identifiant n'est plus au registre) et
+  **panneau inférieur replié** (en-tête à poignée cliquable — replié ↔
+  mi-hauteur — et trois onglets vides Console · Problèmes · Journal, en
+  attente de l'étape 16). Contenu edge-to-edge (insets toolbar/tiroir).
+  Le bouton retour ferme le tiroir s'il est ouvert, sinon quitte.
+- **Navigation** : `AppNavigator.openEditor(projectId)` lance l'espace
+  de travail par-dessus la pile — l'accueil survit en dessous, y revenir
+  ne recharge rien. Servi par « Ouvrir » sur une carte de l'accueil et
+  par « Ouvrir le projet » de l'écran de succès du wizard ; dans les deux
+  cas `lastOpenedAt` est marqué **avant** de naviguer (le tri des récents
+  est déjà à jour au retour).
+- **`EditorViewModel`** : charge le projet dont l'identifiant est arrivé
+  par l'intention (transmis par `SavedStateHandle` — survit à la rotation
+  et à la mort du processus) et le **suit au registre** : renommage,
+  relocalisation ou suppression depuis l'accueil se répercutent sans
+  rechargement ; un projet supprimé fait passer l'écran en état
+  « introuvable », jamais de crash.
+- **Domaine** : `ObserveProjectUseCase` (observation d'un projet par
+  identifiant, pour l'espace de travail).
+- **Bibliothèque d'édition** (`cel-ui` 3.37.0 via JitPack, ADR 0026) :
+  dernière version stable vérifiée sur `github.com/jjoblab/code-editor` ;
+  coordonnées réelles `com.github.jjoblab.code-editor:cel-ui` (cel-core et
+  cel-lsp-api transitifs — `cel-lsp` volontairement exclu, Phase 2) ;
+  dépôt JitPack ajouté au gestionnaire de résolution ; règles ProGuard
+  de la bibliothèque ajoutées à `app/proguard-rules.pro` (vérification
+  release à l'étape 18).
+
+### Modifié
+
+- L'accueil remplace le snackbar « l'éditeur arrive dans une prochaine
+  version » par la **navigation réelle** vers l'espace de travail
+  (l'effet `EditeurIndisponible` devient `OuvrirEditeur(id)`).
+- Le wizard : « Ouvrir le projet » de l'écran de succès ouvre
+  directement l'éditeur (nouvel effet `OuvrirProjetEditeur`) au lieu de
+  revenir à l'accueil ; « Retour à l'accueil » conserve la mise en
+  évidence du projet créé (ADR 0024).
+
 ## [0.13.0] – 2026-09-23
 
 Étape 12 — Diagnostic : la visionneuse des journaux applicatifs et des
