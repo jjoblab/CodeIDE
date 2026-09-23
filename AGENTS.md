@@ -205,7 +205,9 @@ remis (format section 14) puis attente du « GO ».
 - [x] Étape 13 — Fondations de l'espace de travail → v0.14.0 (EditorActivity trois zones sans logique [tiroir permanent sw600dp+ — ADR 0026, zone centrale à états vides, panneau inférieur replié
       Console/Problèmes/Journal], navigation openEditor par-dessus la pile depuis l'accueil et le succès du wizard [lastOpenedAt marqué avant], EditorViewModel suit le registre via
       SavedStateHandle, cel-ui 3.37.0 via JitPack [exception documentée + règles ProGuard, résolution vérifiée] ; domaine : ObserveProjectUseCase ; ADR 0026)
-- [ ] Étape 14 — Explorateur de fichiers (tiroir, arborescence paresseuse) → v0.15.0
+- [x] Étape 14 — Explorateur de fichiers → v0.15.0 (arborescence paresseuse `ExplorateurAdapter` + cache ViewModel [ADR 0027], tri dossiers/fichiers/alpha,
+  icônes `core:ui` `IconesFichiers`, bandeau `ProjectAccessState` [résolution à l'accueil], Actualiser, barre basse Explorateur/Recherche/Git désactivées,
+  fixes appareil réel : extension canonique SAF [témoin + `mimePour` sans point + tolérance] et bouton Terminer de l'onboarding [PageSuivante finalise])
 - [ ] Étape 15 — Intégration de l'éditeur et onglets de fichiers → v0.16.0
 - [ ] Étape 16 — Panneau inférieur (journal applicatif, stubs Sortie/Problèmes) → v0.17.0
 - [ ] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0

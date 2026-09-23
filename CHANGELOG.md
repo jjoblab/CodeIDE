@@ -4,6 +4,85 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.15.0] – 2026-09-23
+
+Étape 14 — Explorateur de fichiers (prompt compagnon, section 5.3,
+ADR 0027) : l'arborescence paresseuse du tiroir de l'espace de travail.
+Cette livraison corrige aussi **deux bugs bloquants remontés sur appareil
+réel** par l'utilisateur.
+
+### Corrigé
+
+- **Le dossier de travail n'était plus vérifiable** (« le test d'écriture
+  a échoué », tout dossier, à chaque tentative). Cause racine : les
+  fournisseurs SAF complètent un nom **sans extension** par
+  l'extension canonique du type MIME demandé — le fichier témoin
+  `codeide-temoin-<millis>` créé en `text/plain` devenait
+  `…​.txt`, et le contrôle strict du nom retourné de `SafFileSystem`
+  le prenait pour un renommage de collision (`AlreadyExists`).
+  Triple correction : le témoin porte désormais l'extension `.txt`
+  (`testerEcriture`) ; `SafFileSystem` tolère la complétion
+  d'extension canonique (le motif de collision « nom (1) » reste
+  refusé, documenté et testé) ; `mimePour` du moteur de templates
+  donne aux fichiers texte **sans extension** (`gradlew`, `LICENSE`)
+  un type privé inconnu de la table système — sans quoi la création
+  de projet sur appareil réel aurait produit `gradlew.txt`.
+- **« Terminer » de l'assistant ne faisait rien** — `isSetupCompleted`
+  restait faux et l'assistant revenait à chaque lancement. Cause
+  racine : le bouton unique de l'hôte (dont le libellé devient
+  « Terminer » sur la dernière page) émettait `PageSuivante`, action
+  bornée qui ne faisait rien sur la page finale — l'action `Terminer`
+  n'était jamais émise par l'UI. Correction : `PageSuivante` sur la
+  page finale **finalise l'installation** ; garde anti double-appui
+  pendant l'écriture ; un échec d'écriture est désormais **signalé à
+  l'écran** (page Terminé) au lieu d'un silence, le bouton redevient
+  actif pour réessayer.
+- NB : aucune permission de stockage « classique »
+  (`READ/WRITE_EXTERNAL_STORAGE`) n'est requise — l'accès aux fichiers
+  passe exclusivement par les permissions persistantes SAF
+  (`takePersistableUriPermission`, ADR 0003) ; les symptômes
+  constatés venaient du bug d'extension ci-dessus.
+
+### Ajouté
+
+- **Explorateur de fichiers du tiroir** (`feature:editor`, ADR 0027) :
+  arborescence **paresseuse** — un dossier n'énumère ses enfants
+  (`FileSystem.list`) qu'à son premier dépliement, résultat mis en
+  cache dans le `EditorViewModel` pour la vie de l'écran (refermer/
+  rouvrir est instantané, testé par compteur d'appels) ; liste aplatie
+  en `ListAdapter` + `DiffUtil`, chevron qui tourne au dépliement,
+  indicateur de chargement par nœud (latence SAF réelle).
+- **Tri de l'explorateur** : dossiers d'abord, puis fichiers, puis
+  ordre alphabétique (insensible à la casse) — appliqué au moment du
+  cache, jamais re-testé à l'affichage.
+- **Icônes par extension** (`core:ui`, `IconesFichiers`) : ressources
+  vectorielles maison en badges colorés — Kotlin, Java, Gradle, XML,
+  Markdown, JSON, dossier et fichier générique (repli qui ne bloque
+  jamais une ligne).
+- **Bandeau d'accès du tiroir** : une permission perdue ou un dossier
+  racine introuvable (`ProjectAccessState`, revérifié au bouton
+  **Actualiser** de l'en-tête) remplace l'arborescence par un bandeau
+  explicite avec action « Résoudre à l'accueil » — la résolution réelle
+  (Relocaliser/Retirer) vit sur la carte du projet. Un dossier non
+  racine défaillant (supprimé entre deux énumérations) est signalé par
+  sa ligne : replié et marqué, l'appui **réessaie**.
+- **Barre de navigation basse du tiroir** : trois destinations façon
+  `BottomNavigationView` (rendu Material3) — **Explorateur** active,
+  **Recherche** et **Git** visibles mais désactivées, avec la mention
+  « Bientôt disponible » en description accessible.
+- Accessibilité : lignes ≥ 48 dp, `contentDescription` complet par nœud
+  (nom, type, profondeur, état de pli ou d'échec) et par destination.
+
+### Modifié
+
+- La zone centrale « Aucun fichier ouvert » n'annonce plus
+  l'explorateur pour l'étape suivante : il est livré.
+- `FakeFileSystem` (core:testing) expose un compteur d'appels `list`
+  — le contrat « une seule énumération par dossier » est verrouillé
+  par les tests du ViewModel.
+- Les fichiers de projet générés sans extension conservent leur nom
+  exact sur l'appareil (`gradlew`, `LICENSE`).
+
 ## [0.14.0] – 2026-09-23
 
 Étape 13 — Fondations de l'espace de travail (prompt compagnon,
