@@ -31,4 +31,15 @@ internal object DispositionsBootstrap {
 
     /** Bibliothèques natives du bootstrap (`$PREFIX/lib`). */
     internal fun librairies(racine: File): File = File(prefix(racine), "lib")
+
+    /**
+     * Répertoire de préparation de l'installation (`usr-staging`) :
+     * l'archive y est extraite, puis basculée atomiquement vers
+     * [prefix] (même système de fichiers — convention reprise de
+     * l'installateur Termux).
+     */
+    internal fun staging(racine: File): File = File(racine, "usr-staging")
+
+    /** Archive téléchargée en cours d'installation (sous la racine, jamais dans `$PREFIX`). */
+    internal fun archiveStaging(racine: File): File = File(racine, "bootstrap-staging.zip")
 }

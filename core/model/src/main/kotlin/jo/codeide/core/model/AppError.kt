@@ -69,6 +69,54 @@ public sealed interface AppError {
     ) : AppError
 
     /**
+     * Raison précise d'un échec d'installation du bootstrap natif
+     * (prompt compagnon Terminal-1, section 3.4 : « chaque échec produit
+     * un AppResult/AppError explicite »).
+     */
+    public enum class BootstrapReason {
+        /** Le dépôt des releases est injoignable, ou la réponse est invalide (réseau). */
+        ReseauIndisponible,
+
+        /** L'espace disque disponible est insuffisant avant le téléchargement. */
+        EspaceDisqueInsuffisant,
+
+        /** L'archive téléchargée est corrompue (format zip invalide, entrées incohérentes). */
+        ArchiveCorrompue,
+
+        /** L'empreinte SHA-256 de l'archive ne correspond pas à celle publiée. */
+        EmpreinteInvalide,
+
+        /** Une opération de fichier a été refusée par le système (permissions). */
+        PermissionRefusee,
+
+        /** Le script de second stage a échoué (code de sortie non nul). */
+        EchecSecondStage,
+
+        /** `apt update` ou `apt install` a échoué. */
+        EchecApt,
+
+        /** Le binaire attendu dans les assets de l'application est absent. */
+        AssetAbsent,
+
+        /** L'architecture de l'appareil n'est pas couverte par un bootstrap publié (aarch64 seul). */
+        ArchitectureNonSupportee,
+    }
+
+    /**
+     * Erreur d'installation du bootstrap natif (téléchargement,
+     * extraction, second stage, paquets APT).
+     *
+     * @property reason raison normalisée, pilotant le message et l'action
+     * proposée (réessayer, libérer de l'espace, vérifier la connexion).
+     * @property details contexte technique pour les journaux (jamais
+     * affiché tel quel).
+     */
+    public data class Bootstrap(
+        public val reason: BootstrapReason,
+        public val details: String = "",
+    ) : AppError
+
+    /**
      * Erreur non prévue par le domaine (par défaut, imprévue).
      *
      * @property details contexte technique pour les journaux.
