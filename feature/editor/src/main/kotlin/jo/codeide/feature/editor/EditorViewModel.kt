@@ -7,10 +7,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
+import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -19,6 +23,7 @@ import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
+import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.getOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -27,7 +32,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -89,12 +97,14 @@ internal class SessionSuivie(
  * Journalisation (règle 15) : identifiants et chemins génériques, jamais
  * de contenu de fichier.
  *
- * Exemption detekt ciblée (règle 16) : TooManyFunctions — l'espace de
- * travail couvre l'explorateur, les onglets, la sauvegarde et le cycle
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions, LargeClass et
+ * LongParameterList — l'espace de travail couvre l'explorateur, les
+ * onglets, la sauvegarde, les actions de fichiers (étape 17) et le cycle
  * de sortie ; l'éclater par zone casserait la localité de l'état partagé
- * (arborescence, sessions, onglets actifs).
+ * (arborescence, sessions, onglets actifs), et chaque dépendance injectée
+ * est un cas d'usage nommé — les regrouper masquerait le domaine.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
 @HiltViewModel
 class EditorViewModel
     @Inject
@@ -104,6 +114,9 @@ class EditorViewModel
         private val fichiers: FileSystem,
         private val journal: AppLogger,
         observerJournaux: ObserveLogsUseCase,
+        private val evaluerNom: EvaluerNomFichierUseCase,
+        private val enregistrerEtatEspace: EnregistrerEtatEspaceUseCase,
+        private val lireEtatEspace: LireEtatEspaceUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -186,6 +199,17 @@ class EditorViewModel
                 is ActionEditor.EnregistrerPuisFermer -> enregistrerPuisFermer(action.uris, action.quitter)
                 is ActionEditor.FermerSansEnregistrer -> fermer(action.uris, action.quitter)
                 ActionEditor.Quitter -> demanderSortie()
+                else -> onActionFichiers(action)
+            }
+        }
+
+        /** Suite du routage : actions de fichiers du tiroir (étape 17). */
+        private fun onActionFichiers(action: ActionEditor) {
+            when (action) {
+                is ActionEditor.CreerFichier -> creerFichier(action.uriParent, action.nom)
+                is ActionEditor.CreerDossier -> creerDossier(action.uriParent, action.nom)
+                is ActionEditor.RenommerDocument -> renommerDocument(action.uri, action.nouveauNom)
+                is ActionEditor.SupprimerDocument -> supprimerDocument(action.uri)
                 else -> onActionPanneau(action)
             }
         }
@@ -686,44 +710,94 @@ class EditorViewModel
             sauvetage[ClesEditor.CLE_ONGLETS] =
                 ArrayList(etat.onglets.map { "${it.uri}\n${it.cheminRelatif}" })
             sauvetage[ClesEditor.CLE_INDEX_ACTIF] = etat.indexOngletActif
+            persisterEtatEspace()
+        }
+
+        /**
+         * Reprise par projet (étape 17) : écrit
+         * `.codeide/local/workspace-state.json` sous la racine — la
+         * réouverture d'un projet (sans sauvetage) retrouve ses onglets.
+         * Asynchrone et silencieuse : un échec est journalisé, jamais
+         * bloquant pour l'édition.
+         */
+        private fun persisterEtatEspace() {
+            val racine = uriDocumentSuivie ?: return
+            val etat = etatInterne.value
+            viewModelScope.launch {
+                when (
+                    enregistrerEtatEspace(
+                        racine,
+                        etat.onglets.map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) },
+                        etat.indexOngletActif,
+                    )
+                ) {
+                    is AppResult.Success -> {
+                        Unit
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) { "échec d'enregistrement de l'état d'espace" }
+                    }
+                }
+            }
         }
 
         /** Rouvre les onglets du sauvetage (contenu relu, jamais sale). */
         private fun restaurerOnglets() {
-            val ouverts = sauvetage.get<ArrayList<String>>(ClesEditor.CLE_ONGLETS) ?: return
-            viewModelScope.launch {
-                ouverts.forEach { entree ->
-                    val uri = entree.substringBefore('\n')
-                    val chemin = entree.substringAfter('\n', "")
-                    when (val lecture = fichiers.readText(uri)) {
-                        is AppResult.Success -> {
-                            val nom = chemin.substringAfterLast('/')
-                            val session = SessionSuivie(EditorSession(EditorDocument.of(lecture.value)))
-                            FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
-                            session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
-                            sessions[uri] = session
-                            etatInterne.update { etat ->
-                                etat.copy(
-                                    onglets =
-                                        etat.onglets +
-                                            EditorTabState(
-                                                uri = uri,
-                                                cheminRelatif = chemin,
-                                                nom = nom,
-                                                langage = FichiersOuverture.langage(nom),
-                                            ),
-                                )
-                            }
-                        }
-
-                        is AppResult.Failure -> {
-                            Unit
-                        } // Fichier disparu : onglet sauté.
-                    }
-                }
-                val index = sauvetage.get<Int>(ClesEditor.CLE_INDEX_ACTIF) ?: -1
-                selectionner(index)
+            val ouverts = sauvetage.get<ArrayList<String>>(ClesEditor.CLE_ONGLETS)
+            if (ouverts != null) {
+                viewModelScope.launch { restaurer(ouverts, sauvetage.get<Int>(ClesEditor.CLE_INDEX_ACTIF) ?: -1) }
+                return
             }
+            // Pas de sauvetage (première ouverture du projet dans ce
+            // process) : la reprise par projet prend le relais (étape 17).
+            viewModelScope.launch {
+                // Attend le premier projet connu (l'observateur du registre
+                // émet sous peine d'une course sur l'URI racine).
+                val projet = etatInterne.map { it.projet }.filterNotNull().first()
+                val etat = lireEtatEspace(projet.location.documentUri) ?: return@launch
+                restaurer(
+                    etat.onglets.map { "${it.uri}\n${it.chemin}" },
+                    etat.indexActif,
+                )
+            }
+        }
+
+        /** Rouvre une liste d'onglets « uri \n chemin » à l'index donné. */
+        private suspend fun restaurer(
+            ouverts: List<String>,
+            index: Int,
+        ) {
+            ouverts.forEach { entree ->
+                val uri = entree.substringBefore('\n')
+                val chemin = entree.substringAfter('\n', "")
+                when (val lecture = fichiers.readText(uri)) {
+                    is AppResult.Success -> {
+                        val nom = chemin.substringAfterLast('/')
+                        val session = SessionSuivie(EditorSession(EditorDocument.of(lecture.value)))
+                        FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
+                        session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
+                        sessions[uri] = session
+                        etatInterne.update { etat ->
+                            etat.copy(
+                                onglets =
+                                    etat.onglets +
+                                        EditorTabState(
+                                            uri = uri,
+                                            cheminRelatif = chemin,
+                                            nom = nom,
+                                            langage = FichiersOuverture.langage(nom),
+                                        ),
+                            )
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        Unit
+                    } // Fichier disparu : onglet sauté.
+                }
+            }
+            selectionner(index)
         }
 
         /** Libère toutes les sessions à la destruction (fuite sinon, ADR 0028). */
@@ -731,6 +805,170 @@ class EditorViewModel
             sauvegardesAuto.values.forEach { it.cancel() }
             sessions.values.forEach { it.disposer() }
             sessions.clear()
+        }
+
+        // ------------------------------------------------------------------
+        // Actions de fichiers du tiroir (étape 17)
+        // ------------------------------------------------------------------
+
+        /**
+         * Évalue un nom de fichier/dossier pour le dialogue (validateur
+         * partagé du wizard) — le règle vit dans le domaine, le dialogue
+         * ne montre que la raison localisée.
+         */
+        fun evaluerNomFichier(nom: String): RaisonValidation? = evaluerNom(nom)
+
+        /** Crée un fichier dans le dossier parent, puis l'ouvre en onglet. */
+        private fun creerFichier(
+            uriParent: String,
+            nom: String,
+        ) {
+            viewModelScope.launch {
+                when (val resultat = fichiers.createFile(uriParent, nom, MIME_TEXTE)) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "fichier créé dans le tiroir" }
+                        rafraichirDossier(uriParent)
+                        ouvrir(resultat.value)
+                    }
+
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                    }
+                }
+            }
+        }
+
+        /** Crée un sous-dossier, puis déploie son parent. */
+        private fun creerDossier(
+            uriParent: String,
+            nom: String,
+        ) {
+            viewModelScope.launch {
+                when (val resultat = fichiers.createDirectory(uriParent, nom)) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "dossier créé dans le tiroir" }
+                        rafraichirDossier(uriParent)
+                        basculer(uriParent)
+                    }
+
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Renomme un document : l'arborescence est rafraîchie et **l'onglet
+         * ouvert suit** (SAF change l'URI, la session migre vers la nouvelle
+         * clé, le langage est réévalué depuis le nouveau nom).
+         */
+        private fun renommerDocument(
+            uri: String,
+            nouveauNom: String,
+        ) {
+            viewModelScope.launch {
+                when (val resultat = fichiers.rename(uri, nouveauNom)) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "document renommé dans le tiroir" }
+                        migrerOnglet(uri, resultat.value, nouveauNom)
+                        rafraichirDossier(uri.substringBeforeLast('/'), urisObsoletes = setOf(uri))
+                    }
+
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Supprime un document après confirmation côté UI : l'onglet ouvert
+         * (et les onglets sous un dossier supprimé) ferment, sessions
+         * libérées ; l'arborescence du parent est rafraîchie.
+         */
+        private fun supprimerDocument(uri: String) {
+            viewModelScope.launch {
+                when (fichiers.delete(uri)) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "document supprimé du tiroir" }
+                        val touches =
+                            etatInterne.value.onglets.map { it.uri }.filter {
+                                it == uri ||
+                                    it.startsWith("$uri/")
+                            }
+                        if (touches.isNotEmpty()) fermer(touches, quitter = false)
+                        rafraichirDossier(uri.substringBeforeLast('/'), urisObsoletes = setOf(uri))
+                    }
+
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                    }
+                }
+            }
+        }
+
+        /** Signale l'échec d'une opération de fichier (snackbar, journal). */
+        private fun echecActionFichier() {
+            journal.w(TAG) { "échec d'une opération de fichier du tiroir" }
+            canalEffets.trySend(EffetEditor.ErreurActionFichier)
+        }
+
+        /**
+         * Fait suivre l'onglet d'un document renommé : nouvelle URI, nouveau
+         * nom/chemin/langage, session déplacée sous la nouvelle clé.
+         */
+        private fun migrerOnglet(
+            ancienneUri: String,
+            nouvelleUri: String,
+            nouveauNom: String,
+        ) {
+            val session = sessions.remove(ancienneUri) ?: return
+            val sauvegardeAuto = sauvegardesAuto.remove(ancienneUri)
+            val verrou = verrousEcriture.remove(ancienneUri)
+            sessions[nouvelleUri] = session
+            sauvegardeAuto?.let { sauvegardesAuto[nouvelleUri] = it }
+            verrou?.let { verrousEcriture[nouvelleUri] = it }
+
+            etatInterne.update { etat ->
+                etat.copy(
+                    onglets =
+                        etat.onglets.map {
+                            if (it.uri != ancienneUri) {
+                                it
+                            } else {
+                                it.copy(
+                                    uri = nouvelleUri,
+                                    nom = nouveauNom,
+                                    cheminRelatif =
+                                        it.cheminRelatif.substringBeforeLast('/') +
+                                            if (it.cheminRelatif.contains('/')) "/$nouveauNom" else nouveauNom,
+                                    langage = FichiersOuverture.langage(nouveauNom),
+                                )
+                            }
+                        },
+                )
+            }
+            persisterOnglets()
+        }
+
+        /**
+         * Rafraîchit le dossier parent d'une opération : son cache d'enfants
+         * est invalidé puis ré-énuméré — il **reste déplié** (la opération
+         * ne replie pas son propre parent). Les sous-arbres obsolètes
+         * (document renommé ou supprimé) voient caches et plis oubliés :
+         * le dépliement les reconstruira à la nouvelle clé.
+         */
+        private fun rafraichirDossier(
+            uriDossier: String,
+            urisObsoletes: Set<String> = emptySet(),
+        ) {
+            enfantsEnCache.remove(uriDossier)
+            urisObsoletes.forEach { obsolete ->
+                enfantsEnCache.keys.removeAll { it == obsolete || it.startsWith("$obsolete/") }
+                dossiersDeplies.removeAll { it == obsolete || it.startsWith("$obsolete/") }
+            }
+            chargerEnfants(uriDossier)
         }
 
         // ------------------------------------------------------------------
@@ -813,6 +1051,9 @@ class EditorViewModel
 
             /** Fenêtre du journal compact (capacité du tampon mémoire). */
             const val FENETRE_JOURNAL = 200
+
+            /** Type MIME des fichiers créés depuis le tiroir (étape 17). */
+            const val MIME_TEXTE = "text/plain"
 
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "Editor"

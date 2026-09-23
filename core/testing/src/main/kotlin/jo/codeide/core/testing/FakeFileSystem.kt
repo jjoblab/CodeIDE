@@ -81,6 +81,9 @@ public class FakeFileSystem : FileSystem {
     /** Quand non nulle, toute suppression échoue. */
     public var deleteFailure: IOException? = null
 
+    /** Quand non nulle, tout renommage échoue. */
+    public var renameFailure: IOException? = null
+
     /**
      * Amorce un document sans passer par les opérations (arbre initial
      * du test).
@@ -220,6 +223,44 @@ public class FakeFileSystem : FileSystem {
             return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, "$documentUri est un dossier."))
         }
         return AppResult.Success(String(document.bytes, Charsets.UTF_8))
+    }
+
+    public override suspend fun rename(
+        documentUri: String,
+        nouveauNom: String,
+    ): AppResult<String> {
+        renameFailure?.let {
+            return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: ""))
+        }
+
+        val document =
+            documents[documentUri]
+                ?: return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, documentUri))
+
+        // Collision par nom insensible à la casse parmi les voisins : le
+        // port refuse l'écrasement (même contrat que la création).
+        val prefixeParent = documentUri.substringBeforeLast('/')
+        val voisins = documents.keys.filter { it != documentUri && it.substringBeforeLast('/') == prefixeParent }
+        if (voisins.any { documents.getValue(it).name.equals(nouveauNom, ignoreCase = true) }) {
+            return AppResult.Failure(
+                AppError.Storage(AppError.StorageReason.AlreadyExists, "$prefixeParent/$nouveauNom"),
+            )
+        }
+
+        // SAF change l'URI au renommage : le fake déplace le sous-arbre
+        // entier (dossier) sous la nouvelle clé, contenu inchangé — les
+        // enfants gardent leur nom, seul le document renommé change.
+        val sousArbre =
+            documents.entries
+                .filter { it.key == documentUri || it.key.startsWith("$documentUri/") }
+                .map { it.key to it.value }
+        sousArbre.forEach { (ancienne, _) -> documents.remove(ancienne) }
+        sousArbre.forEach { (ancienne, valeur) ->
+            documents["$prefixeParent/$nouveauNom${ancienne.removePrefix(documentUri)}"] =
+                if (ancienne == documentUri) valeur.copy(name = nouveauNom) else valeur
+        }
+        publier()
+        return AppResult.Success("$prefixeParent/$nouveauNom")
     }
 
     public override suspend fun delete(documentUri: String): AppResult<Unit> {

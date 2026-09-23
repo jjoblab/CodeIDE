@@ -1,11 +1,7 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
-import jo.codeide.core.domain.ObserveLogsUseCase
-import jo.codeide.core.domain.ObserveProjectUseCase
-import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.getOrNull
-import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeFileSystem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -414,15 +410,7 @@ class OngletsEditorViewModelTest : BaseEditorViewModelTest() {
                 FakeFileSystem.Document(name = "Autre.kt", isDirectory = false, bytes = "deux".toByteArray()),
             )
             val sauvetage = SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value))
-            val premier =
-                EditorViewModel(
-                    observerProjet = ObserveProjectUseCase(depot),
-                    verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-                    fichiers = fichiers,
-                    journal = FakeAppLogger(),
-                    observerJournaux = ObserveLogsUseCase(depotJournaux),
-                    savedStateHandle = sauvetage,
-                )
+            val premier = viewModel(alpha, sauvetage)
             advanceUntilIdle()
             val uris =
                 premier.etat.value.noeuds
@@ -434,15 +422,7 @@ class OngletsEditorViewModelTest : BaseEditorViewModelTest() {
 
             // Mort du processus : le sauvetage survit, un nouveau ViewModel
             // rouvre les onglets (contenu relu) et l'onglet actif.
-            val second =
-                EditorViewModel(
-                    observerProjet = ObserveProjectUseCase(depot),
-                    verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-                    fichiers = fichiers,
-                    journal = FakeAppLogger(),
-                    observerJournaux = ObserveLogsUseCase(depotJournaux),
-                    savedStateHandle = sauvetage,
-                )
+            val second = viewModel(alpha, sauvetage)
             advanceUntilIdle()
 
             assertEquals(

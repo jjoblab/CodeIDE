@@ -124,6 +124,24 @@ public interface FileSystem {
     public suspend fun readText(documentUri: String): AppResult<String>
 
     /**
+     * Renomme un document (dossier ou fichier) dans son dossier parent.
+     *
+     * Le **nouveau nom** est un simple segment (jamais un chemin) — la
+     * validation du nom (caractères interdits, longueur…) est du ressort
+     * de l'appelant (`EvaluerNomFichierUseCase`, étape 17).
+     *
+     * @param documentUri URI du document à renommer.
+     * @param nouveauNom nouveau nom d'affichage (dernier segment).
+     * @return l'URI du document renommé — SAF **change l'URI** lors d'un
+     *   renommage, l'appelant doit aussitôt utiliser la valeur retournée ;
+     *   ou l'échec typé (`NotFound`, `AlreadyExists`, `PermissionLost`…).
+     */
+    public suspend fun rename(
+        documentUri: String,
+        nouveauNom: String,
+    ): AppResult<String>
+
+    /**
      * Supprime un document (dossier ou fichier). Sans effet notable sur
      * un document déjà absent : l'appelant obtient le succès.
      *

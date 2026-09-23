@@ -394,6 +394,19 @@
                     android:textAppearance="?attr/textAppearanceLabelMedium"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
+                <!-- Création à la racine du projet (étape 17) : menu
+                     fichier/dossier — le menu contextuel d'un nœud couvre
+                     la création dans un dossier. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_nouveau"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_tiroir_nouveau_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    app:icon="@drawable/ic_nouveau_fichier" />
+
                 <!-- Revérifie l'état d'accès du projet (prompt compagnon 5.3). -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_actualiser"

@@ -1,6 +1,9 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
+import jo.codeide.core.domain.EvaluerNomFichierUseCase
+import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
@@ -20,10 +23,11 @@ import org.junit.Rule
 
 /**
  * Socle commun des tests du ViewModel de l'espace de travail : registre,
- * système de fichiers, dépôt de journaux et horloge factices, construction
- * du ViewModel et collecte des effets — l'explorateur (étape 14), les
- * onglets (étape 15) et le panneau inférieur (étape 16) ont chacun leur
- * classe de test, ce socle est leur partie partagée.
+ * système de fichiers, dépôt de journaux et cas d'usage d'espace factices,
+ * construction du ViewModel et collecte des effets — l'explorateur
+ * (étape 14), les onglets (étape 15), le panneau inférieur (étape 16) et
+ * les actions de fichiers (étape 17) ont chacun leur classe de test, ce
+ * socle est leur partie partagée.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class BaseEditorViewModelTest {
@@ -38,16 +42,33 @@ abstract class BaseEditorViewModelTest {
 
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
     protected fun viewModel(id: ProjectId): EditorViewModel =
+        viewModel(
+            id,
+            SavedStateHandle(
+                mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
+            ),
+        )
+
+    /**
+     * Construit le ViewModel sur un sauvetage **existant** — mort du
+     * processus : le `SavedStateHandle` survit, un nouveau ViewModel le
+     * rejoue (étape 15), y compris au-delà d'une écriture d'état d'espace
+     * (étape 17).
+     */
+    protected fun viewModel(
+        id: ProjectId,
+        sauvetage: SavedStateHandle,
+    ): EditorViewModel =
         EditorViewModel(
             observerProjet = ObserveProjectUseCase(depot),
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
             journal = FakeAppLogger(),
             observerJournaux = ObserveLogsUseCase(depotJournaux),
-            savedStateHandle =
-                SavedStateHandle(
-                    mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
-                ),
+            evaluerNom = EvaluerNomFichierUseCase(),
+            enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
+            lireEtatEspace = LireEtatEspaceUseCase(fichiers),
+            savedStateHandle = sauvetage,
         )
 
     /** Collecte les effets du ViewModel dans une liste observable. */
