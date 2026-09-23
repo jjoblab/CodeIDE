@@ -32,6 +32,7 @@ dependencies {
     implementation(project(":feature:diagnostics"))
     // Espace de travail de l'éditeur (étape 13) : EditorActivity séparée.
     implementation(project(":feature:editor"))
+    implementation(project(":feature:install"))
 
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.
@@ -45,6 +46,8 @@ dependencies {
     // Couche données (étape 4) : assemblage final — les repositories du
     // domaine y sont liés aux sources réelles (Room, DataStore, SAF).
     implementation(project(":core:data"))
+    // Terminal T3 : agrégation Hilt du module bootstrap (ports du domaine).
+    implementation(project(":core:bootstrap"))
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.

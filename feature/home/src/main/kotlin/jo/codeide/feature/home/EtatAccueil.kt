@@ -52,6 +52,8 @@ data class EtatAccueil(
     val rafraichissement: Boolean = false,
     val montrerBandeau: Boolean = false,
     val libelleDossier: String? = null,
+    /** Bandeau d'invitation au terminal (T3) : configuré mais non installé. */
+    val montrerBandeauTerminal: Boolean = false,
     val erreur: AppError? = null,
     /** Projet créé par le wizard : défilement + surlignage (étape 11). */
     val projetEnEvidence: ProjectId? = null,

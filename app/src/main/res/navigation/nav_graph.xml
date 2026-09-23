@@ -27,6 +27,9 @@
         <action
             android:id="@+id/action_home_to_newproject"
             app:destination="@id/newproject" />
+        <action
+            android:id="@+id/action_home_to_installation"
+            app:destination="@id/installation" />
     </fragment>
 
     <fragment
@@ -52,7 +55,20 @@
         android:id="@+id/onboarding"
         android:name="jo.codeide.feature.onboarding.OnboardingFragment"
         android:label="@string/onboarding_title"
-        tools:layout="@layout/fragment_onboarding" />
+        tools:layout="@layout/fragment_onboarding">
+        <action
+            android:id="@+id/action_onboarding_to_installation"
+            app:destination="@id/installation" />
+    </fragment>
+
+    <!-- Écran d'installation du bootstrap (Terminal T3) : atteint depuis
+         l'accueil (bandeau) et l'assistant (étape Terminal) — l'état de
+         l'installation est partagé, jamais relancé à l'ouverture. -->
+    <fragment
+        android:id="@+id/installation"
+        android:name="jo.codeide.feature.install.InstallFragment"
+        android:label="@string/installation_titre"
+        tools:layout="@layout/fragment_install" />
 
     <fragment
         android:id="@+id/newproject"

@@ -20,6 +20,9 @@ enum class PageOnboarding {
     /** Sélecteur SAF du dossier de travail, avec test d'écriture. */
     DOSSIER,
 
+    /** Outils du terminal : installation **passable** (Terminal T3). */
+    TERMINAL,
+
     /** Thème, couleurs dynamiques, langue — aperçu immédiat. */
     APPARENCE,
 
@@ -71,6 +74,8 @@ sealed interface EtatDossier {
  *
  * @property page page courante du pager.
  * @property dossier état de la sélection du dossier de travail.
+ * @property terminalInstalle les outils du terminal sont déjà en place
+ * (page Terminal : les boutons d'installation disparaissent).
  * @property modeTheme thème choisi (persisté dès le changement).
  * @property couleursDynamiques couleurs Material You (persistées dès le
  * changement).
@@ -86,6 +91,7 @@ sealed interface EtatDossier {
 data class EtatOnboarding(
     val page: PageOnboarding = PageOnboarding.BIENVENUE,
     val dossier: EtatDossier = EtatDossier.NonConfigure,
+    val terminalInstalle: Boolean = false,
     val modeTheme: ThemeMode = ThemeMode.SYSTEM,
     val couleursDynamiques: Boolean = true,
     val langue: String = "",

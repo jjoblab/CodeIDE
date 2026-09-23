@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DeleteProjectOnDiskUseCase
 import jo.codeide.core.domain.ImportDossier
 import jo.codeide.core.domain.ImportExistingFolderUseCase
@@ -17,9 +18,11 @@ import jo.codeide.core.domain.RemoveProjectUseCase
 import jo.codeide.core.domain.RenameProjectUseCase
 import jo.codeide.core.domain.SetProjectPinnedUseCase
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
@@ -74,6 +77,8 @@ class HomeViewModel
     constructor(
         private val observerParametres: ObserveSettingsUseCase,
         private val observerProjets: ObserveProjectsUseCase,
+        private val localisateurOutils: ToolchainLocator,
+        private val installateur: BootstrapInstaller,
         private val verifierAcces: VerifyProjectAccessUseCase,
         private val renommerProjet: RenameProjectUseCase,
         private val epinglerProjet: SetProjectPinnedUseCase,
@@ -116,11 +121,24 @@ class HomeViewModel
 
         init {
             viewModelScope.launch {
-                observerParametres().collect { reglages ->
+                // Bandeaux : le dossier (étape 5) suit les paramètres seuls ;
+                // le terminal (T3) combine paramètres **et état partagé de
+                // l'installation** — la fin d'une installation lancée depuis
+                // l'écran dédié fait disparaître le bandeau sans retour sur
+                // l'accueil, et une installation en cours le masque (le
+                // bouton rouvrirait le même écran de progression partagé).
+                combine(observerParametres(), installateur.etat) { reglages, installation ->
+                    reglages to installation
+                }.collect { (reglages, installation) ->
                     etatInterne.update {
                         it.copy(
                             montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
                             libelleDossier = reglages.workspace?.displayPath,
+                            montrerBandeauTerminal =
+                                reglages.isSetupCompleted &&
+                                    !localisateurOutils.isBootstrapInstalled() &&
+                                    installation !is EtatInstallationBootstrap.Terminee &&
+                                    installation !is EtatInstallationBootstrap.EnCours,
                         )
                     }
                 }

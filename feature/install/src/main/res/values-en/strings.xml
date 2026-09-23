@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="installation_titre">Install the terminal tools</string>
+    <string name="installation_invite_texte">The integrated terminal sets up a complete Linux environment inside the app\'s private storage: shell, JDK, package manager and command-line tools — to build and run your projects directly on the device.</string>
+    <string name="installation_invite_poids">About 40 MB to download, then packages install (the JDK alone takes more than 200 MB). A network connection is required.</string>
+    <string name="installation_annulee">Installation cancelled. You can restart it at any time.</string>
+    <string name="installation_etape_verification">Checking available space…</string>
+    <string name="installation_etape_telechargement">Downloading the archive…</string>
+    <string name="installation_etape_extraction">Extracting files…</string>
+    <string name="installation_etape_liens">Creating symbolic links…</string>
+    <string name="installation_etape_bascule">Finalizing the environment…</string>
+    <string name="installation_etape_second_stage">Configuring base packages…</string>
+    <string name="installation_etape_sources">Configuring the package repository…</string>
+    <string name="installation_etape_apt">Updating the repository…</string>
+    <string name="installation_etape_paquets">Installing tools…</string>
+    <string name="installation_terminee">Terminal tools installed</string>
+    <string name="installation_outils_aucun">Base environment installed (no additional tool requested).</string>
+    <string name="installation_outil_installe">installed</string>
+    <string name="installation_outil_absent">not installed (missing from the repository)</string>
+    <string name="installation_installer">Install now</string>
+    <string name="installation_reessayer">Retry</string>
+    <string name="installation_annuler">Cancel installation</string>
+    <string name="installation_fermer">Close</string>
+    <string name="installation_erreur_reseau">Network unavailable. Check your connection, then retry.</string>
+    <string name="installation_erreur_espace">Not enough storage space (about 1 GB free required). Free up space, then retry.</string>
+    <string name="installation_erreur_archive">Invalid downloaded archive. Retry — if it persists, a new bootstrap version will be published.</string>
+    <string name="installation_erreur_permission">The app\'s private storage refused an operation. Restart the app, then retry.</string>
+    <string name="installation_erreur_paquets">Package configuration failed. Retry — the installation restarts from scratch, harmlessly.</string>
+    <string name="installation_erreur_asset">An embedded tool binary is missing from the app. A CodeIDE update will be required.</string>
+    <string name="installation_erreur_architecture">This device\'s architecture is not supported by the bootstrap yet (arm64 required).</string>
+    <string name="installation_erreur_inconnue">Unexpected error during installation. Retry.</string>
+</resources>

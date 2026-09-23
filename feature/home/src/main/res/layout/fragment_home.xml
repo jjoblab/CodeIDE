@@ -101,6 +101,15 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
+        <!-- Bandeau « Installer les outils du terminal » (Terminal T3). -->
+        <include
+            android:id="@+id/bandeau_terminal"
+            layout="@layout/bandeau_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <!-- Contenu : tirer-relâcher pour revérifier les états d'accès. -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/rafraichissement_accueil"

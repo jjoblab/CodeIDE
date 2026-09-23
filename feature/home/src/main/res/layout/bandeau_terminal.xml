@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bandeau « Installer les outils du terminal » de l'accueil (étape T3) :
+  visible quand l'assistant est terminé sans terminal installé — le
+  « Plus tard » de l'étape Terminal y conduit.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/spacing_md">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_md">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_bandeau_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_bandeau_terminal_titre"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_bandeau_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="@string/home_bandeau_terminal_texte"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="Installez le terminal pour compiler sur l'appareil." />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_installer_terminal"
+            style="@style/Widget.CodeIDE.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/home_bandeau_terminal_bouton" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

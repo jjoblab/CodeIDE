@@ -79,4 +79,7 @@
     <string name="accueil_refus_download">Le dossier Téléchargements est refusé par Android.</string>
     <string name="accueil_refus_android_data">Le dossier Android/data est protégé par Android.</string>
     <string name="accueil_refus_android_obb">Le dossier Android/obb est protégé par Android.</string>
+    <string name="home_bandeau_terminal_titre">Terminal non installé</string>
+    <string name="home_bandeau_terminal_texte">Installez les outils du terminal (shell, JDK, ligne de commande) pour compiler et exécuter vos projets directement sur l\'appareil.</string>
+    <string name="home_bandeau_terminal_bouton">Installer les outils</string>
 </resources>

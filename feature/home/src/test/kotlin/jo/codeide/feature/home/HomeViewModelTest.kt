@@ -20,9 +20,11 @@ import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.getOrNull
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
+import jo.codeide.core.testing.FakeBootstrapInstaller
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
+import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -66,6 +68,8 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
+                FakeToolchainLocator(),
+                FakeBootstrapInstaller(),
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -558,6 +562,8 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
+                FakeToolchainLocator(),
+                FakeBootstrapInstaller(),
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -576,6 +582,8 @@ class HomeViewModelTest {
         HomeViewModel(
             ObserveSettingsUseCase(parametres),
             ObserveProjectsUseCase(depot),
+            FakeToolchainLocator(),
+            FakeBootstrapInstaller(),
             VerifyProjectAccessUseCase(depot, fichiers),
             RenameProjectUseCase(depot),
             SetProjectPinnedUseCase(depot),

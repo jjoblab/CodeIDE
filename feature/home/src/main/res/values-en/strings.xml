@@ -79,4 +79,7 @@
     <string name="accueil_refus_download">The Downloads folder is refused by Android.</string>
     <string name="accueil_refus_android_data">The Android/data folder is protected by Android.</string>
     <string name="accueil_refus_android_obb">The Android/obb folder is protected by Android.</string>
+    <string name="home_bandeau_terminal_titre">Terminal not installed</string>
+    <string name="home_bandeau_terminal_texte">Install the terminal tools (shell, JDK, command line) to build and run your projects directly on the device.</string>
+    <string name="home_bandeau_terminal_bouton">Install the tools</string>
 </resources>

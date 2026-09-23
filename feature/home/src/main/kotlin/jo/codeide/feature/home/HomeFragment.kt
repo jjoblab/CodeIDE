@@ -108,6 +108,8 @@ class HomeFragment :
     private fun brancherActions() {
         binding.buttonSettings.setOnClickListener { navigator.openSettings() }
         binding.bandeauDossier.boutonConfigurer.setOnClickListener { navigator.openOnboarding() }
+        // Include optionnel aux yeux de ViewBinding : appels sûrs, jamais de `!!`.
+        binding.bandeauTerminal?.boutonInstallerTerminal?.setOnClickListener { navigator.openBootstrapInstall() }
 
         // Recherche : chaque frappe part au ViewModel, qui fusionne les
         // frappes successives avec le délai (250 ms).
@@ -185,6 +187,7 @@ class HomeFragment :
     /** Rendu de l'état : bandeau, états superposés, liste, tri, rafraîchissement. */
     private fun rendre(etat: EtatAccueil) {
         binding.bandeauDossier.root.isVisible = etat.montrerBandeau
+        binding.bandeauTerminal?.root?.isVisible = etat.montrerBandeauTerminal
         binding.etatChargement.isVisible = etat.chargement
         binding.etatErreur.isVisible = etat.erreur != null
         binding.rafraichissementAccueil.isRefreshing = etat.rafraichissement

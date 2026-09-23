@@ -127,4 +127,17 @@ public interface AppNavigator {
      * @param projectId identifiant du projet à ouvrir.
      */
     public fun openEditor(projectId: String): Unit
+
+    /**
+     * Ouvre l'écran d'installation du bootstrap natif (Terminal T3,
+     * prompt Terminal-1, sections 3.4 et 6).
+     *
+     * Servi par le bandeau d'invitation de l'accueil quand le terminal
+     * n'est pas encore installé, et par l'étape « Terminal » de
+     * l'assistant de premier lancement (« Installer maintenant »).
+     * L'écran partage l'état réel de l'installation : l'ouvrir pendant
+     * une installation en cours n'en lance pas une seconde, le refermer
+     * ne l'interrompt pas.
+     */
+    public fun openBootstrapInstall(): Unit
 }
