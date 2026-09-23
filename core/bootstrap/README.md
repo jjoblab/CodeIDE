@@ -22,11 +22,38 @@ et bootstrap natif » (Terminal-1), sections 1.4, 2.2 et 3.
   (`ToolchainBootstrap`, `EnvironnementProcessusFournisseur`) n'apportent
   que la racine `filesDir` et la délégation.
 
-## À venir (étapes T2+)
+## Étape T2 (v0.21.0) — lanceur et installateur
 
-`NativeProcessLauncher` (sous-processus non interactifs),
-`BootstrapInstaller` (téléchargement, extraction, second stage,
-`sources.list`), `Aapt2Deployer`. Voir `docs/adr/0032` et la ROADMAP.
+- `NativeProcessLauncher` / `ManagedProcess` (ports `core:domain`) :
+  sous-processus **non interactifs** (scripts d'installation, futur
+  serveur Gradle — jamais les sessions shell interactives), environnement
+  exactement issu de `ProcessEnvironmentProvider`, flux de lignes,
+  attente annulable, terminaison explicite, `pid` par réflexion (repli
+  `-1`).
+- `BootstrapInstaller` (port `core:domain`, ADR 0033) : pipeline
+  coroutine à `StateFlow` partagé — espace disque (≥ 1 Gio), architecture
+  (`aarch64` seul publié), téléchargement `HttpURLConnection` avec
+  progression et **empreinte SHA-256 vérifiée**, extraction vers
+  `usr-staging` (permissions `0700`, garde anti-traversée), liens du
+  manifeste `SYMLINKS.txt`, bascule atomique, **second stage** via le
+  lanceur, `sources.list` avec `[trusted=yes]` (correction de l'URL
+  antérieure), `apt update` puis paquets **un à un** (état par outil,
+  échec global seulement si aucun n'est installé). Annulation propre :
+  nettoyage **synchrone** du staging (un appel suspendu depuis une
+  coroutine annulée ne revient pas — voir les leçons d'AGENTS.md).
+- `Aapt2Deployeur` : binaire cross-compilé déployé depuis les assets
+  vers `$PREFIX/bin` — l'absence d'asset à ce jour est une erreur typée
+  (`AssetAbsent`), signalée côté `codeide-packages` (paquet `aapt` en
+  amont, non publié).
+- Fakes fournis par `core:testing` : `FakeToolchainLocator`,
+  `FakeProcessEnvironmentProvider`, `FakeNativeProcessLauncher`
+  (+ `ProcessusScripte`), `FakeBootstrapInstaller`.
+
+## À venir (étapes T3+)
+
+Branchement dans `app` (écran d'installation, onboarding, permission
+`INTERNET` avec ADR dédié), sessions shell interactives
+(`core:terminal-runtime`, T4).
 
 ## Dépendances
 

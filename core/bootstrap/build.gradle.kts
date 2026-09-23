@@ -17,6 +17,8 @@ dependencies {
     // Vérification de l'implémentation contre filesDir via Robolectric.
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    // Fakes des ports du domaine (lanceur, environnement, installateur).
+    testImplementation(project(":core:testing"))
 }
 
 // Objectif de couverture ≥ 80 % sur ce module (section 8 du prompt).
