@@ -302,6 +302,11 @@ release (prompt compagnon 6, ADR 0031).
 | E42 | Paramètres → Langue : passer en anglais, revenir dans l'espace | La ligne de type **re-résout** son nom dans la nouvelle langue (« Kotlin · JVM template ») — le fichier n'est pas relu, seul le libellé change |
 | E43 | Ouvrir l'espace de travail (régression du plantage 8b5b73f1) | L'écran **s'ouvre sans plantage** ; la barre basse du tiroir montre **trois destinations** — Explorateur active, Recherche et Git grisés (« Bientôt disponible » en description) |
 | E44 | **APK release (R8)** : parcours complet — accueil, wizard, éditeur, onglets, panneau, diagnostic | Tout fonctionne **identiquement au debug** : `EditorView` s'affiche et se rebranche (règles ProGuard cel-ui correctes), sessions libérées, journaux et plantages écrits ; démarrage sensiblement plus rapide |
+| E45 | **Installation réelle (T2/T3)** : à partir de l'écran d'installation (onboarding ou à la demande), lancer l'installation sur appareil aarch64 avec ≥ 1,5 Gio libres | Progression visible jusqu'à `Terminee` ; `$PREFIX/bin/bash` exécutable ; `java -version` répond dans une session ; `git --version` répond ; l'état des outils (openjdk-17, git) conforme au dépôt APT du jour |
+| E46 | **Reprise après échec** : couper le réseau pendant le téléchargement, réessayer après reconnexion | Échec typé « réseau indisponible » immédiat, staging nettoyé ; la reprise retélécharge et rejoue tout le pipeline (second stage compris — son verrou vit sous le préfixe) |
+| E47 | **Annulation** : annuler pendant le téléchargement | État `Annulee`, retour immédiat, aucun résidu `usr-staging` ni `bootstrap-staging.zip` sous `filesDir` |
+| E48 | **Espace disque insuffisant** : remplir le stockage sous le seuil (1 Gio) avant l'installation | Refus typé **avant tout téléchargement** (aucune requête réseau émise) avec message actionnable |
+| E49 | **Correction du dépôt APT** : après installation, lire `$PREFIX/etc/apt/sources.list` | Ligne unique avec `[trusted=yes]` pointant vers `https://jjoblab.github.io/codeide-packages/apt/codeide-main stable main` (la ligne embarquée sans option est corrigée) |
 
 ## À venir
 

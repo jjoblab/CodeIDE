@@ -242,7 +242,22 @@ remis (format section 14) puis attente du « GO ».
       checkModuleDependencies ; ADR 0032 [exception bornée à l'ADR 0003 : File du stockage privé] ;
       module non encore référencé par app — branchement en T3/T4 ; signalé : ni paquet gradle ni
       android-sdk dans le dépôt APT à ce jour, seul bootstrap-aarch64.zip en release)
-- Prochaine : étape 20 (= Terminal T2 — NativeProcessLauncher et BootstrapInstaller, cf. ROADMAP).
+- [x] Étape 20 (= Terminal T2) — lanceur de sous-processus et installateur → v0.21.0
+      (ports NativeProcessLauncher/ManagedProcess + BootstrapInstaller + BootstrapAssetsSource dans
+      core:domain ; EtapeInstallation/EtatInstallationBootstrap/OutilResume + AppError.Bootstrap [9 raisons]
+      dans core:model ; installateur pipeline coroutine à StateFlow partagé : espace disque ≥ 1 Gio,
+      architecture aarch64 [erreur typée], téléchargement HttpURLConnection + empreinte SHA-256
+      [release bootstrap-2026.08.14-r3 épinglée], extraction usr-staging + permissions 0700 + liens
+      SYMLINKS.txt [séparateur « ← », sans fermer le flux], bascule atomique avec remplacement,
+      second stage via lanceur [chemin réel etc/termux/termux-bootstrap/second-stage/…, drainage
+      parallèle des deux tuyaux], sources.list atomique avec [trusted=yes] [ligne embarquée corrigée],
+      apt update + paquets un à un avec OutilResume ; Aapt2Deployeur [asset absent = erreur typée] ;
+      fakes core:testing [FakeToolchainLocator, FakeProcessEnvironmentProvider, FakeNativeProcessLauncher
+      + ProcessusScripte, FakeBootstrapInstaller] ; 49 tests dont bout en bout sous Robolectric avec
+      faux serveur HTTP et vraie archive ; traducteurs AppError étendus [accueil/wizard/diagnostic] ;
+      ADR 0033 ; INTERNET toujours absent — ajout et branchement app en T3 ; signalé : aapt2 absent des
+      assets et du dépôt APT [paquet aapt existe en amont, non publié])
+- Prochaine : étape 21 (= Terminal T3 — écran d'installation + onboarding, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
@@ -261,3 +276,21 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   ferme le commentaire prématurément — recroisé à l'étape T1 après l'avoir
   rencontré à la 16). Écrire la constante autrement (ex. « un `android.jar`
   sous `platforms` »).
+- **`Reader.readLines()` ferme le flux sous-jacent** (`use`/`useLines` dans
+  l'implémentation) : sur un `ZipInputStream`, l'entrée suivante devient
+  illisible (« Stream closed »). Lire ligne à ligne avec `BufferedReader`
+  sans fermeture, comme l'installateur Termux (rencontré à l'étape T2).
+- **Tout appel suspendu (même `withContext(NonCancellable)`) depuis une
+  coroutine déjà annulée ne revient pas** (kotlinx-coroutines 1.11,
+  constat empirique à l'étape T2) : dans le gestionnaire d'annulation,
+  le nettoyage est **synchrone**, sinon l'état terminal n'est jamais
+  publié et l'UI reste bloquée sur « en cours ».
+- **ktlint (via spotless) signale `max-line-length` sur la sortie
+  formatée, pas sur la source** : une ligne de 117 caractères peut être
+  signalée à une position décalée ; garder les littéraux longs (chemins,
+  URLs) hors des lignes de code — les extraire en constantes. Diagnostic
+  éprouvé à l'étape T2 : la position signalée ne correspond à rien sur
+  le disque, c'est la projection formatée qui compte.
+- **Le démon Gradle peut être tué par l'environnement** (mémoire) sur
+  `lintDebug` ou les tests parallèles : relancer en deux parties et
+  `--max-workers=2` pour `testDebugUnitTest koverVerify` (éprouvé T2).

@@ -4,6 +4,78 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.21.0] – 2026-09-23
+
+Étape 20 (= T2 du prompt compagnon « Terminal intégré et bootstrap
+natif ») : lanceur de sous-processus non interactifs, installateur
+complet du bootstrap en pipeline coroutine à état partagé, déploiement
+`aapt2`. ADR 0033.
+
+### Ajouté
+
+- **Ports du domaine** (`core:domain`) : `NativeProcessLauncher` /
+  `ManagedProcess` (lancement de sous-processus **non interactifs** dans
+  l'environnement canonique de `ProcessEnvironmentProvider` — flux de
+  lignes stdout/stderr, attente de sortie annulable, terminaison
+  explicite ; les sessions shell interactives restent hors périmètre,
+  section 1.5 du prompt) et `BootstrapInstaller` (état partagé
+  `StateFlow` de l'installation, démarrage idempotent, annulation) ;
+  `BootstrapAssetsSource` pour les binaires d'outils embarqués.
+- **Types du modèle** (`core:model`) : `EtapeInstallation` (progression
+  complète : espace disque, téléchargement octets/total, extraction,
+  liens symboliques, bascule, second stage, `sources.list`, `apt`),
+  `EtatInstallationBootstrap` (machine à cinq états, dont `Annulee`),
+  `OutilResume` (état par paquet) et `AppError.Bootstrap` avec neuf
+  raisons typées (réseau, espace disque, archive corrompue, empreinte,
+  permission, second stage, `apt`, asset absent, architecture non
+  supportée).
+- **Installateur** (`core:bootstrap`) : vérifications préalables
+  (espace disque ≥ 1 Gio, architecture `aarch64` — seul bootstrap
+  publié, erreur typée sinon), téléchargement `HttpURLConnection` avec
+  progression et **vérification de l'empreinte SHA-256** de la release
+  `bootstrap-2026.08.14-r3`, extraction vers `usr-staging` (permissions
+  `0700` sur `bin/`, `libexec`, assistants `apt` et second stage —
+  chemin réel constaté dans l'archive), **liens symboliques du manifeste
+  `SYMLINKS.txt`** (séparateur « ← »), garde anti-traversée sur entrées
+  **et** manifeste, bascule atomique (le préfixe existant est remplacé :
+  une reprise rejoue tout, y compris le second stage dont le verrou vit
+  sous le préfixe), exécution du second stage via le lanceur canonique
+  avec drainage parallèle des deux tuyaux, écriture atomique du
+  `sources.list` **avec `[trusted=yes]`** (correction automatique de
+  l'URL antérieure — la ligne embarquée par l'archive n'en dispose pas),
+  `apt update` puis installation des paquets **un par un** (état
+  rapporté par outil, échec global seulement si aucun n'est installé).
+- **`Aapt2Deployeur`** : déploiement du binaire cross-compilé depuis les
+  assets vers `$PREFIX/bin` (idempotent, bit d'exécution posé) —
+  l'absence de l'asset à ce jour est une erreur typée signalée, non
+  contournée.
+- **Fakes de test** (`core:testing`) : `FakeToolchainLocator`,
+  `FakeProcessEnvironmentProvider`, `FakeNativeProcessLauncher` (+
+  `ProcessusScripte`) et `FakeBootstrapInstaller` (exigés par le prompt,
+  section 2.2 — consommés par les ViewModel dès T3).
+- **Traduction de la nouvelle erreur** : branche `AppError.Bootstrap`
+  dans les traducteurs existants (accueil, wizard, diagnostic), chaînes
+  fr/en.
+
+### Tests
+
+- **49 nouveaux tests** : lanceur sur **vrais** processus `/bin/sh`
+  (lignes stdout/stderr, code de sortie, terminaison, répertoire de
+  travail, environnement exact fournisseur + `extraEnv`) ; téléchargeur
+  contre un **faux serveur HTTP** (progression totale annoncée/indéterminée,
+  HTTP 404, empreinte invalide, flux tronqué, espacement des émissions) ;
+  extracteur sur **vraies archives zip** construites à la volée
+  (extraction, permissions sélectives, liens symboliques des deux formes
+  de chemin, manifeste absent/malformé, traversée, archive non zip,
+  bascule avec remplacement) ; configurateur (sources.list absent/à
+  corriger/conforme, commandes `apt` exactes, codes de sortie traduits) ;
+  **installateur de bout en bout sous Robolectric** (faux serveur + vraie
+  archive extraite réellement + faux lanceur : succès complet, double
+  démarrage, reprise après échec, échec réseau/second stage/apt,
+  architecture, espace disque, **annulation pendant le téléchargement**
+  avec staging nettoyé) ; déployeur `aapt2` (déploiement, remplacement,
+  asset absent, nom personnalisé).
+
 ## [0.20.0] – 2026-09-23
 
 Étape 19 (= T1 du prompt compagnon « Terminal intégré et bootstrap
