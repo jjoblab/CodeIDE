@@ -9,6 +9,8 @@ dependencies {
     // Onglets Journaux / Plantages (section 5.7 du prompt maître) — le seul
     // ajout propre à ce module au-delà de la convention feature.
     implementation(libs.androidx.viewpager2)
+    // @RequiresApi du partage d'archives (audit étape 18 : import direct).
+    implementation(libs.androidx.annotation)
 
     // Tests du ViewModel : horloge virtuelle et fakes.
     testImplementation(libs.junit4)

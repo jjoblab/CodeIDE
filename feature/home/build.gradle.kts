@@ -7,6 +7,8 @@ plugins {
 dependencies {
     // Tirer-relâcher : revérification des états d'accès (étape 7).
     implementation(libs.androidx.swiperefreshlayout)
+    // @RequiresApi de la mise en évidence post-création (audit étape 18 : import direct).
+    implementation(libs.androidx.annotation)
 
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
