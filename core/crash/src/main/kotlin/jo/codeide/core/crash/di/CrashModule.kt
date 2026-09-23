@@ -10,8 +10,10 @@ import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.crash.CrashLimits
 import jo.codeide.core.crash.CrashReportFileStore
 import jo.codeide.core.crash.CrashReportRepositoryImpl
+import jo.codeide.core.crash.CrashReportsExportWriterImpl
 import jo.codeide.core.crash.ExitInfoRecorder
 import jo.codeide.core.domain.CrashReportRepository
+import jo.codeide.core.domain.CrashReportsExportWriter
 import jo.codeide.core.domain.PendingExitInfoRecorder
 import java.io.File
 import javax.inject.Singleton
@@ -31,6 +33,10 @@ internal interface CrashBindsModule {
     @Binds
     @Singleton
     fun bindCrashReportRepository(impl: CrashReportRepositoryImpl): CrashReportRepository
+
+    @Binds
+    @Singleton
+    fun bindCrashReportsExportWriter(impl: CrashReportsExportWriterImpl): CrashReportsExportWriter
 
     @Binds
     @Singleton

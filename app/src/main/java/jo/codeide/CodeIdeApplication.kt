@@ -7,10 +7,10 @@ import jo.codeide.core.crash.AppProcess
 import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
 import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.logging.CodeIdeAppLogger
-import jo.codeide.core.logging.LogLevelApplier
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
 import kotlinx.coroutines.CoroutineScope
@@ -57,9 +57,9 @@ class CodeIdeApplication : Application() {
     @Inject
     lateinit var parametres: SettingsRepository
 
-    /** Point de bascule du niveau de journalisation (façade de core:logging). */
+    /** Point de bascule du niveau de journalisation — port du domaine, implémenté par core:logging (façade interne). */
     @Inject
-    lateinit var applierNiveau: LogLevelApplier
+    lateinit var applierNiveau: LogVerbosityApplier
 
     /**
      * Gestionnaire de plantages du processus principal — porté par

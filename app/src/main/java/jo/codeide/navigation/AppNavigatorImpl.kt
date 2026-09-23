@@ -3,6 +3,7 @@ package jo.codeide.navigation
 import android.app.Activity
 import android.content.Intent
 import android.view.View
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
@@ -15,6 +16,8 @@ import jo.codeide.R
 import jo.codeide.core.crash.ui.CrashActivity
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
+import java.io.File
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -124,6 +127,46 @@ internal class AppNavigatorImpl
             return navController.currentBackStackEntry
                 ?.savedStateHandle
                 ?.remove(CLE_PROJET_CREE)
+        }
+
+        override fun openDiagnostics() {
+            // Garde-fou : un double toucher n'empile qu'un seul écran.
+            if (navController.currentDestination?.id == R.id.settings) {
+                logger.d(TAG) { "navigation paramètres -> diagnostic" }
+                navController.navigate(R.id.action_settings_to_diagnostics)
+            }
+        }
+
+        override fun partagerArchive(
+            nomFichier: String,
+            emplacementInterne: String,
+        ) {
+            // Partage d'une archive de diagnostic (étape 12) : le
+            // FileProvider n'expose que le répertoire d'export du cache —
+            // tout autre chemin est refusé ici plutôt que de lever depuis
+            // getUriForFile.
+            val fichier = File(emplacementInterne)
+            val dossierExports = File(activity.cacheDir, "exports")
+            val dansExports =
+                try {
+                    fichier.canonicalFile.parentFile == dossierExports.canonicalFile
+                } catch (e: IOException) {
+                    logger.w(TAG, e) { "chemin d'archive non résolu : $emplacementInterne" }
+                    false
+                }
+            if (!dansExports) {
+                logger.w(TAG, null) { "partage refusé : archive hors du répertoire d'export" }
+                return
+            }
+            logger.d(TAG) { "partage d'une archive de diagnostic" }
+            val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", fichier)
+            val intention =
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            activity.startActivity(Intent.createChooser(intention, nomFichier))
         }
     }
 

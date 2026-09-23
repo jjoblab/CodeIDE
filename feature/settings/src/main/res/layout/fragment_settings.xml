@@ -267,6 +267,14 @@
                 android:textAppearance="?attr/textAppearanceTitleMedium" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_diagnostic"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="start|center_vertical"
+                android:text="@string/settings_diagnostic" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_reinitialiser"
                 style="@style/Widget.CodeIDE.Button.Text"
                 android:layout_width="match_parent"

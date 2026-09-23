@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings for the diagnostics screen (étape 12). -->
+<resources>
+
+    <!-- ====== Screen ====== -->
+
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="diagnostics_retour_cd">Go back to settings</string>
+    <string name="diagnostics_onglet_journaux">Logs</string>
+    <string name="diagnostics_onglet_plantages">Crashes</string>
+
+    <!-- ====== Information section ====== -->
+
+    <string name="diagnostics_infos_titre">Information</string>
+    <string name="diagnostics_infos_version">Version %1$s (%2$d)</string>
+    <string name="diagnostics_infos_appareil">%1$s · %2$s · Android %3$s (API %4$d)</string>
+    <string name="diagnostics_infos_session">Session: %1$s</string>
+
+    <!-- ====== Logs tab ====== -->
+
+    <string name="diagnostics_recherche_indication">Search the logs</string>
+    <string name="diagnostics_niveau_debug">Debug</string>
+    <string name="diagnostics_niveau_info">Info</string>
+    <string name="diagnostics_niveau_warn">Warning</string>
+    <string name="diagnostics_niveau_error">Error</string>
+    <string name="diagnostics_pointeur_exception">Exception</string>
+    <string name="diagnostics_suivi_direct_cd">Follow new entries live</string>
+    <string name="diagnostics_usage_taille">Logs: %1$s</string>
+    <plurals name="diagnostics_usage_fichiers">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <string name="diagnostics_usage_inconnu">Log disk usage: unknown</string>
+    <string name="diagnostics_journaux_vide">No log entries for these filters.\nUse the app, then come back.</string>
+    <string name="diagnostics_verbosite_normale">Level: Normal</string>
+    <string name="diagnostics_verbosite_detaillee">Level: Detailed</string>
+    <string name="diagnostics_verbosite_titre">Logging level</string>
+    <string name="diagnostics_partager_cd">Share the log archive</string>
+    <string name="diagnostics_enregistrer_cd">Save the log archive</string>
+    <string name="diagnostics_effacer_cd">Clear all logs</string>
+    <string name="diagnostics_effacer_titre">Clear the logs?</string>
+    <string name="diagnostics_effacer_message">All log entries on this device will be permanently deleted.</string>
+    <string name="diagnostics_effacer_confirmer">Clear</string>
+
+    <!-- ====== Entry detail ====== -->
+
+    <string name="diagnostics_detail_titre">Log entry</string>
+    <string name="diagnostics_detail_voir_exception">Show exception</string>
+    <string name="diagnostics_detail_masquer_exception">Hide exception</string>
+    <string name="diagnostics_entree_description">Entry %1$s, tag %2$s: %3$s</string>
+
+    <!-- ====== Crashes tab ====== -->
+
+    <string name="diagnostics_exporter">Export</string>
+    <string name="diagnostics_tout_supprimer_cd">Delete all reports</string>
+    <string name="diagnostics_non_consulte">Unread</string>
+    <string name="diagnostics_plantages_vide">No crash reports kept.\nGood news: nothing broke.</string>
+    <string name="diagnostics_supprimer_titre">Delete this report?</string>
+    <string name="diagnostics_supprimer_message">This crash report will be permanently deleted.</string>
+    <string name="diagnostics_supprimer_confirmer">Delete</string>
+    <string name="diagnostics_supprimer_rapport_description">Delete report %1$s</string>
+    <string name="diagnostics_tout_supprimer_titre">Delete all reports?</string>
+    <string name="diagnostics_tout_supprimer_message">All kept crash reports will be permanently deleted.</string>
+    <string name="diagnostics_tout_supprimer_confirmer">Delete all</string>
+    <string name="diagnostics_rapport_description">Crash report of %1$s, type %2$s, exception %3$s</string>
+    <string name="diagnostics_type_exception">Exception</string>
+    <string name="diagnostics_type_anr">No response</string>
+    <string name="diagnostics_type_natif">Native crash</string>
+
+    <!-- ====== Errors ====== -->
+
+    <string name="diagnostics_erreur_stockage">The operation failed: storage is unavailable right now.</string>
+    <string name="diagnostics_erreur_saisie">The operation failed: invalid data.</string>
+    <string name="diagnostics_erreur_modele">The operation failed: invalid internal model.</string>
+
+    <!-- ====== Misc ====== -->
+
+    <string name="diagnostics_annuler">Cancel</string>
+</resources>

@@ -1,5 +1,6 @@
 package jo.codeide.core.logging
 
+import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.toLogLevel
 import javax.inject.Inject
@@ -26,18 +27,18 @@ import javax.inject.Singleton
  * jamais d'I/O.
  */
 @Singleton
-class LogLevelApplier
+internal class LogLevelApplier
     @Inject
-    internal constructor(
+    constructor(
         private val holder: LogConfigHolder,
-    ) {
+    ) : LogVerbosityApplier {
         /**
          * Bascule le niveau minimal du moteur selon la verbosité
          * utilisateur (`NORMAL` → `INFO`, `DETAILED` → `DEBUG`).
          *
          * @param verbosity verbosité lue dans les paramètres persistés.
          */
-        fun apply(verbosity: LogVerbosity) {
+        override fun apply(verbosity: LogVerbosity) {
             holder.update(holder.read().copy(minLevel = verbosity.toLogLevel()))
         }
     }

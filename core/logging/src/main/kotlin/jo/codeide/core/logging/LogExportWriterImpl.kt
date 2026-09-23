@@ -1,6 +1,7 @@
 package jo.codeide.core.logging
 
 import android.content.Context
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.ExportedLogs
@@ -58,24 +59,7 @@ internal class LogExportWriterImpl
 
                     val nomArchive = nomArchive(timeProvider.nowMillis())
                     val destination = File(dossier, nomArchive)
-                    FileOutputStream(destination).use { flux ->
-                        ZipOutputStream(flux).use { archive ->
-                            archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_LOGS))
-                            entries.forEach { entree ->
-                                archive.write(
-                                    (json.encodeToString(LogEntry.serializer(), entree) + "\n")
-                                        .toByteArray(Charsets.UTF_8),
-                                )
-                            }
-                            archive.closeEntry()
-
-                            archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
-                            archive.write(
-                                infosAppareil(entries, timeProvider.nowMillis()).toByteArray(Charsets.UTF_8),
-                            )
-                            archive.closeEntry()
-                        }
-                    }
+                    FileOutputStream(destination).use { flux -> ecrireArchive(entries, flux) }
                     // Nettoyage APRÈS écriture : le plafond compte l'archive
                     // qui vient d'être produite.
                     supprimerAnciensExports(dossier)
@@ -84,6 +68,57 @@ internal class LogExportWriterImpl
                     AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
                 }
             }
+
+        override suspend fun write(
+            entries: List<LogEntry>,
+            destinationUri: String,
+        ): AppResult<Unit> =
+            withContext(dispatchers.io) {
+                try {
+                    val uri = destinationUri.toUri()
+                    context.contentResolver.openOutputStream(uri, "w")?.use { flux ->
+                        ecrireArchive(entries, flux)
+                    } ?: return@withContext AppResult.Failure(
+                        AppError.Storage(AppError.StorageReason.NotWritable, "openOutputStream"),
+                    )
+                    AppResult.Success(Unit)
+                } catch (e: IOException) {
+                    AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+                } catch (e: SecurityException) {
+                    // Destination SAF révoquée entre la sélection et l'écriture :
+                    // échec typé, jamais une exception jusqu'à l'UI.
+                    AppResult.Failure(AppError.Storage(AppError.StorageReason.PermissionLost, e.javaClass.simpleName))
+                }
+            }
+
+        /**
+         * Écrit l'archive (JSON Lines + `device-info.txt`) vers le flux.
+         *
+         * Unique point d'empaquetage : l'export vers le cache et
+         * l'enregistrement direct à une destination SAF produisent la même
+         * archive, octet pour octet.
+         */
+        private fun ecrireArchive(
+            entries: List<LogEntry>,
+            flux: java.io.OutputStream,
+        ) {
+            ZipOutputStream(flux).use { archive ->
+                archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_LOGS))
+                entries.forEach { entree ->
+                    archive.write(
+                        (json.encodeToString(LogEntry.serializer(), entree) + "\n")
+                            .toByteArray(Charsets.UTF_8),
+                    )
+                }
+                archive.closeEntry()
+
+                archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
+                archive.write(
+                    infosAppareil(entries, timeProvider.nowMillis()).toByteArray(Charsets.UTF_8),
+                )
+                archive.closeEntry()
+            }
+        }
 
         /** Nom de l'archive : `codeide-logs-yyyy-MM-dd-HHmmss.zip` (UTC). */
         private fun nomArchive(nowMillis: Long): String {

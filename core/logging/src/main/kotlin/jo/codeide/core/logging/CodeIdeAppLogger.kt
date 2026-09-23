@@ -31,7 +31,7 @@ class CodeIdeAppLogger
         ): Unit = engine.log(level, tag, throwable, message)
 
         /** Identifiant du lancement courant (présent sur chaque entrée). */
-        val sessionId: String
+        override val sessionId: String
             get() = engine.sessionId
 
         /**

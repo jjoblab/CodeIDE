@@ -26,6 +26,18 @@ import jo.codeide.core.model.LogLevel
  */
 public interface AppLogger {
     /**
+     * Identifiant de la session de journalisation courante — un UUID par
+     * lancement du processus (section 5.7), identique à celui porté par
+     * chaque [jo.codeide.core.model.LogEntry] émise.
+     *
+     * Exposé pour l'écran Diagnostic (étape 12) : la section
+     * « Informations » le montre pour rattacher un export ou une capture
+     * aux entrées correspondantes. Aucune I/O, lisible depuis n'importe
+     * quel thread.
+     */
+    public val sessionId: String
+
+    /**
      * Émet une entrée de journal.
      *
      * @param level sévérité de l'entrée.

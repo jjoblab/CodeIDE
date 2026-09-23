@@ -28,6 +28,8 @@ dependencies {
     // Wizard de création de projet (étape 7 : destination placeholder ;
     // assistant complet à l'étape 10).
     implementation(project(":feature:newproject"))
+    // Écran Diagnostic (étape 12) : visionneuse journaux + plantages.
+    implementation(project(":feature:diagnostics"))
 
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.

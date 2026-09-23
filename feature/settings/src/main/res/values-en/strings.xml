@@ -48,6 +48,7 @@
 
     <!-- Avancé -->
     <string name="settings_section_avance">Advanced</string>
+    <string name="settings_diagnostic">Diagnostics (logs and crashes)</string>
     <string name="settings_reinitialiser">Reset preferences</string>
     <string name="settings_reinitialiser_titre">Reset preferences?</string>
     <string name="settings_reinitialiser_message">Theme, language, working folder, profile and licenses go back to their defaults. Registered projects are untouched.</string>

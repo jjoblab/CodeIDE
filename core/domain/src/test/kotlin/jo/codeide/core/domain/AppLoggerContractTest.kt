@@ -21,6 +21,8 @@ class AppLoggerContractTest {
         val appels = mutableListOf<Pair<LogLevel, String>>()
         val logger =
             object : AppLogger {
+                override val sessionId: String = "contrat"
+
                 override fun log(
                     level: LogLevel,
                     tag: String,
@@ -52,6 +54,8 @@ class AppLoggerContractTest {
         val exceptionRecue = mutableListOf<Throwable?>()
         val logger =
             object : AppLogger {
+                override val sessionId: String = "contrat"
+
                 override fun log(
                     level: LogLevel,
                     tag: String,

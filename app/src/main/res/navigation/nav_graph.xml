@@ -37,7 +37,16 @@
         <action
             android:id="@+id/action_settings_to_onboarding"
             app:destination="@id/onboarding" />
+        <action
+            android:id="@+id/action_settings_to_diagnostics"
+            app:destination="@id/diagnostics" />
     </fragment>
+
+    <fragment
+        android:id="@+id/diagnostics"
+        android:name="jo.codeide.feature.diagnostics.DiagnosticFragment"
+        android:label="@string/diagnostics_title"
+        tools:layout="@layout/fragment_diagnostic" />
 
     <fragment
         android:id="@+id/onboarding"

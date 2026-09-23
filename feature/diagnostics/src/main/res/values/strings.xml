@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chaînes de l'écran Diagnostic (étape 12) — français (défaut).
+  Aucune donnée personnelle n'y figure ni ne s'y affiche (règle 15).
+-->
+<resources>
+
+    <!-- ====== Écran ====== -->
+
+    <string name="diagnostics_title">Diagnostic</string>
+    <string name="diagnostics_retour_cd">Revenir aux paramètres</string>
+    <string name="diagnostics_onglet_journaux">Journaux</string>
+    <string name="diagnostics_onglet_plantages">Plantages</string>
+
+    <!-- ====== Section Informations ====== -->
+
+    <string name="diagnostics_infos_titre">Informations</string>
+    <string name="diagnostics_infos_version">Version %1$s (%2$d)</string>
+    <string name="diagnostics_infos_appareil">%1$s · %2$s · Android %3$s (API %4$d)</string>
+    <string name="diagnostics_infos_session">Session : %1$s</string>
+
+    <!-- ====== Onglet Journaux ====== -->
+
+    <string name="diagnostics_recherche_indication">Rechercher dans les journaux</string>
+    <string name="diagnostics_niveau_debug">Débogage</string>
+    <string name="diagnostics_niveau_info">Info</string>
+    <string name="diagnostics_niveau_warn">Avertissement</string>
+    <string name="diagnostics_niveau_error">Erreur</string>
+    <string name="diagnostics_pointeur_exception">Exception</string>
+    <string name="diagnostics_suivi_direct_cd">Suivre les nouvelles entrées en direct</string>
+    <string name="diagnostics_usage_taille">Journaux : %1$s</string>
+    <plurals name="diagnostics_usage_fichiers">
+        <item quantity="one">%1$d fichier</item>
+        <item quantity="other">%1$d fichiers</item>
+    </plurals>
+    <string name="diagnostics_usage_inconnu">Occupation des journaux : inconnue</string>
+    <string name="diagnostics_journaux_vide">Aucune entrée de journal pour ces filtres.\nUtilisez l\'application, puis revenez.</string>
+    <string name="diagnostics_verbosite_normale">Niveau : Normal</string>
+    <string name="diagnostics_verbosite_detaillee">Niveau : Détaillé</string>
+    <string name="diagnostics_verbosite_titre">Niveau de journalisation</string>
+    <string name="diagnostics_partager_cd">Partager l\'archive des journaux</string>
+    <string name="diagnostics_enregistrer_cd">Enregistrer l\'archive des journaux</string>
+    <string name="diagnostics_effacer_cd">Effacer tous les journaux</string>
+    <string name="diagnostics_effacer_titre">Effacer les journaux ?</string>
+    <string name="diagnostics_effacer_message">Toutes les entrées de journal de cet appareil seront définitivement effacées.</string>
+    <string name="diagnostics_effacer_confirmer">Effacer</string>
+
+    <!-- ====== Détail d'une entrée ====== -->
+
+    <string name="diagnostics_detail_titre">Entrée de journal</string>
+    <string name="diagnostics_detail_voir_exception">Voir l\'exception</string>
+    <string name="diagnostics_detail_masquer_exception">Masquer l\'exception</string>
+    <string name="diagnostics_entree_description">Entrée %1$s, étiquette %2$s : %3$s</string>
+
+    <!-- ====== Onglet Plantages ====== -->
+
+    <string name="diagnostics_exporter">Exporter</string>
+    <string name="diagnostics_tout_supprimer_cd">Supprimer tous les rapports</string>
+    <string name="diagnostics_non_consulte">Non consulté</string>
+    <string name="diagnostics_plantages_vide">Aucun rapport de plantage conservé.\nBonne nouvelle : rien ne s\'est cassé.</string>
+    <string name="diagnostics_supprimer_titre">Supprimer ce rapport ?</string>
+    <string name="diagnostics_supprimer_message">Ce rapport de plantage sera définitivement supprimé.</string>
+    <string name="diagnostics_supprimer_confirmer">Supprimer</string>
+    <string name="diagnostics_supprimer_rapport_description">Supprimer le rapport %1$s</string>
+    <string name="diagnostics_tout_supprimer_titre">Supprimer tous les rapports ?</string>
+    <string name="diagnostics_tout_supprimer_message">Tous les rapports de plantage conservés seront définitivement supprimés.</string>
+    <string name="diagnostics_tout_supprimer_confirmer">Tout supprimer</string>
+    <string name="diagnostics_rapport_description">Rapport de plantage du %1$s, type %2$s, exception %3$s</string>
+    <string name="diagnostics_type_exception">Exception</string>
+    <string name="diagnostics_type_anr">Absence de réponse</string>
+    <string name="diagnostics_type_natif">Plantage natif</string>
+
+    <!-- ====== Erreurs (opérationnelles) ====== -->
+
+    <string name="diagnostics_erreur_stockage">L\'opération a échoué : le stockage n\'est pas disponible pour le moment.</string>
+    <string name="diagnostics_erreur_saisie">L\'opération a échoué : donnée invalide.</string>
+    <string name="diagnostics_erreur_modele">L\'opération a échoué : modèle interne invalide.</string>
+
+    <!-- ====== Divers ====== -->
+
+    <string name="diagnostics_annuler">Annuler</string>
+</resources>
