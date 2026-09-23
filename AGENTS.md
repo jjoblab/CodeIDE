@@ -317,8 +317,24 @@ remis (format section 14) puis attente du « GO ».
       mesures detekt empiriques] ADR 0038 [carte + pont FUSE] ; 3 tests HomeViewModel + 8 tests
       CarteTerminalEditorViewModelTest [4 états de la carte + effets, FakeTerminalSessionRepository
       — zéro dépendance Termux nécessaire] ; test Robolectric menu tiroir → 4 destinations)
-- Prochaine : étape 25 (= Terminal T7 — finitions et audit, cf. ROADMAP), puis prompt Tooling
-      (demande utilisateur : « lancé le prompt tooling » après T6).
+- [x] Étape 25 (= Tooling G1) — tooling:protocol + tooling:testing → v0.26.0
+      (lancé à la demande de l'utilisateur juste après T6 — T7 absorbé par l'audit G6) :
+      framing FrameCodec [4 octets BE octet par octet — PIÈGE OutputStream.write(Int) n'écrit
+      QUE l'octet de poids faible, attrapé par les tests ; garde DoS 16 Mo rejet AVANT allocation,
+      troncatures typées avec diagnostic précis, EOF propre distinguée de la corruption] ;
+      catalogue 24 messages [9 requêtes + 15 événements, ErrorCode typé, @SerialName + discriminant
+      « type »] ; ProtocolJson [ignoreUnknownKeys éprouvé par golden enrichi d'un champ du futur] ;
+      24 FICHIERS DORÉS commis — le format câble est un contrat, renommer/retirer un champ fait
+      échouer le build [double test : décodage depuis le doré + adéquation sémantique JsonElement] ;
+      tooling:testing [4 fixtures Gradle réelles en ressources : minimal-java, erreur-compilation,
+      multi-module, tache-longue bornée -PdureeMs ; FixturesGradle.copier en temporaire — JAMAIS
+      construites en place] ; règles de dépendance tooling gelées dans ModuleRulesPlugin [protocol
+      sans dépendance interne, testing en config de test] ; versions VÉRIFIÉES dans docs/TOOLING.md
+      [Tooling API 9.7.1 sur repo.gradle.org — Maven Central PÉRIMÉ sur cette coordonnée ; daemon
+      Java 17 min = bootstrap openjdk-17 ✓ ; com.gradleup.shadow 9.6.1] ; 21 tests bloquants §3 au
+      vert AVANT toute ligne server/client ; ADR 0039)
+- Prochaine : étape 26 (= Tooling G2 — tooling:server sur JVM, tests d'intégration réels §7.2,
+      cf. docs/TOOLING.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
@@ -366,6 +382,17 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   `clean` systématique historique n'apportait rien : vérifications
   ciblées par module en cours d'étape, chaîne complète sans `clean` en
   fin (ADR 0037), from-scratch garanti par la CI GitHub au push.
+- **`OutputStream.write(Int)` n'écrit QUE l'octet de poids faible**
+  (rencontré à G1 dans le framing) : écrire un Int 4 octets
+  gros-boutiste exige quatre `write` masqués — un `write(taille)` seul
+  corrompt silencieusement le protocole dès que des octets suivent.
+  Les tests du round-trip l'ont attrapé : écrire les tests AVANT le
+  transport paie.
+- **Kotlin imbrique les commentaires de bloc** : `/*` au milieu d'un
+  KDoc (ex. le joker `golden/*.json`) ouvre un commentaire **imbriqué**
+  jamais refermé — « Unclosed comment » à des lignes invraisemblables.
+  Cousine de la leçon `*/` prématuré : jamais de séquence `/*` ni `*/`
+  dans un commentaire, même entre backticks.
 - **Le démon Gradle peut être tué par l'environnement** (mémoire) sur
   `lintDebug` ou les tests parallèles : relancer en deux parties et
   `--max-workers=2` pour `testDebugUnitTest koverVerify` (éprouvé T2).

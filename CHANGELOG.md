@@ -4,6 +4,54 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.26.0] – 2026-09-24
+
+Étape 25 (= G1 du prompt compagnon « Tooling Gradle (client-serveur) ») :
+modules `tooling:protocol` et `tooling:testing` — le protocole JSON de
+l'orchestrateur Gradle, avec ses tests de sortie de phase au vert avant
+toute ligne de server/client (exigence §3). ADR 0039, `docs/TOOLING.md`.
+
+### Ajouté
+
+- **Module `tooling:protocol`** (Kotlin JVM pur, seule dépendance
+  `kotlinx-serialization-json`, aucune dépendance interne) :
+  - **Framing `FrameCodec`** : 4 octets gros-boutiste + payload ;
+    rejet des frames annoncées au-delà de 16 Mo **avant allocation**
+    (garde DoS), troncatures typées (en-tête et payload, avec diagnostic
+    précis), longueur invalide rejetée, **EOF propre distinguée** de la
+    troncature (déconnexion ≠ corruption pour le futur dispatcher) ;
+  - **Catalogue des 24 messages** : 9 requêtes et 15 événements
+    (`@SerialName` + discriminant `type`), `ErrorResponse` à `ErrorCode`
+    typé (9 codes machine-lisibles — jamais une chaîne libre), enums
+    `StreamKind`/`DiagnosticSeverity` ;
+  - **`ProtocolJson`** : `ignoreUnknownKeys` (compatibilité ascendante
+    éprouvée — un champ du futur ne casse pas le décodage),
+    `encodeDefaults` pour un format câble stable ;
+  - **24 fichiers dorés** commis (`golden/*.json`) : le format câble
+    est **figé** — renommer, retirer ou changer le type d'un champ fait
+    échouer le build (double test : décodage depuis le doré + adéquation
+    sémantique de l'encodage).
+- **Module `tooling:testing`** (dépendance de test uniquement — règle
+  vérifiée par `checkModuleDependencies`) : quatre mini-projets Gradle
+  **réels** en ressources (Java minimal sans réseau, erreur de
+  compilation, multi-module avec dépendance inter-projets, tâche longue
+  bornée pilotable par `-PdureeMs` pour l'annulation) et
+  `FixturesGradle` qui les **copie** en répertoire temporaire — jamais
+  construits en place (un build corromprait la ressource).
+- **Règles de dépendance du tooling gelées** dans `ModuleRulesPlugin`
+  (protocol sans dépendance interne, api/server/client/daemon en
+  cascade, testing en configuration de test uniquement) ; modules
+  protocol/api/server déclarés Kotlin JVM purs.
+- **`docs/TOOLING.md`** : versions **vérifiées** (Tooling API 9.7.1 sur
+  repo.gradle.org — Maven Central périmé sur cette coordonnée ; daemon
+  Java 17 min, bootstrap openjdk-17 compatible ; fat jar
+  `com.gradleup.shadow` 9.6.1), plan G1-G6, décision d'ordre (tooling
+  lancé après T6 à la demande de l'utilisateur, points restants de T7
+  absorbés par l'audit G6).
+- **Tests** : 21 au total (8 round-trip/compatibilité, 10 framing dont
+  borne exacte 16 Mo et rejet avant allocation, 3 fixtures) —
+  critère bloquant §3 satisfait.
+
 ## [0.25.0] – 2026-09-24
 
 Étape 24 (= T6 du prompt compagnon « Terminal intégré et bootstrap
