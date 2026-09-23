@@ -366,7 +366,7 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertEquals(10_000L, depot.getProject(alpha.id).getOrNull()!!.lastOpenedAtMillis)
-            assertEquals(EffetAccueil.EditeurIndisponible, effetsRecus.single())
+            assertEquals(EffetAccueil.OuvrirEditeur(alpha.id), effetsRecus.single())
             arreterCollecteEffets()
         }
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions de l'espace de travail (étape 13). -->
+<resources>
+    <!-- Hauteur du panneau inférieur replié : seul l'en-tête est visible. -->
+    <dimen name="editor_panneau_replie">48dp</dimen>
+
+    <!-- Hauteur du contenu du panneau à mi-déploiement. -->
+    <dimen name="editor_panneau_mi_hauteur">220dp</dimen>
+
+    <!-- Largeur du tiroir de navigation (façon IDE de bureau). -->
+    <dimen name="editor_tiroir_largeur">280dp</dimen>
+</resources>

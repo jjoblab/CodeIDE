@@ -830,7 +830,7 @@ class WizardViewModelTest {
         }
 
     @Test
-    fun `OuvrirProjetCree marque l ouverture et émet ProjetCree`() =
+    fun `OuvrirProjetCree marque l ouverture et ouvre l editeur`() =
         runTest {
             preparerEmplacementEtModele()
             avancerJusquaRecapitulatif()
@@ -849,7 +849,7 @@ class WizardViewModelTest {
             collecteur.cancel()
 
             assertEquals(10_000L, depot.projets.single().lastOpenedAtMillis)
-            assertTrue(effets.contains(EffetWizard.ProjetCree(projet.id)))
+            assertTrue(effets.contains(EffetWizard.OuvrirProjetEditeur(projet.id)))
         }
 
     @Test

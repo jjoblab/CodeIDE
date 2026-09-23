@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chaînes de l'espace de travail (étape 13) — français (défaut).
+-->
+<resources>
+    <string name="editor_title">Éditeur</string>
+    <string name="editor_ouvrir_tiroir_cd">Ouvrir le tiroir de navigation</string>
+    <string name="editor_vide_titre">Aucun fichier ouvert</string>
+    <string name="editor_vide_message">Ouvrez un fichier depuis le tiroir de navigation pour l\'éditer ici.\nL\'explorateur arrive à l\'étape suivante.</string>
+    <string name="editor_introuvable_titre">Projet introuvable</string>
+    <string name="editor_introuvable_message">Ce projet n\'est plus enregistré. Il a peut-être été retiré depuis l\'accueil.</string>
+    <string name="editor_tiroir_section">Projet</string>
+    <string name="editor_tiroir_fermer_projet">Fermer le projet</string>
+    <string name="editor_tiroir_vide">L\'explorateur de fichiers arrive ici à l\'étape suivante.</string>
+    <string name="editor_panneau_titre">Panneau</string>
+    <string name="editor_panneau_reduire_cd">Réduire le panneau inférieur</string>
+    <string name="editor_panneau_poignee_cd">Déplier ou replier le panneau inférieur</string>
+    <string name="editor_panneau_console">Console</string>
+    <string name="editor_panneau_problemes">Problèmes</string>
+    <string name="editor_panneau_journal">Journal</string>
+</resources>

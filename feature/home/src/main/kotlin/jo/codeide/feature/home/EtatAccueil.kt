@@ -173,8 +173,10 @@ sealed interface EffetAccueil {
     /** Projet supprimé du disque. */
     data object ProjetSupprime : EffetAccueil
 
-    /** L'éditeur de code arrive à l'étape 13 (ouverture placeholder). */
-    data object EditeurIndisponible : EffetAccueil
+    /** Ouvrir le projet dans l'espace de travail (étape 13). */
+    data class OuvrirEditeur(
+        val id: ProjectId,
+    ) : EffetAccueil
 
     /** Échec typé d'une action (message localisé par l'UI). */
     data class Echec(

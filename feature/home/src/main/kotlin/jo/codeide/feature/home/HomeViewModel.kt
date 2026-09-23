@@ -347,7 +347,7 @@ class HomeViewModel
                 when (val resultat = marquerOuvert(id, horloge.nowMillis())) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "Projet ${id.value} ouvert." }
-                        emettre(EffetAccueil.EditeurIndisponible)
+                        emettre(EffetAccueil.OuvrirEditeur(id))
                     }
 
                     is AppResult.Failure -> {

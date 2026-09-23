@@ -165,6 +165,7 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
             when (effet) {
                 EffetWizard.Fermer -> navigator.goBack()
                 is EffetWizard.ProjetCree -> navigator.wizardCreeProjet(effet.id.value)
+                is EffetWizard.OuvrirProjetEditeur -> navigator.openEditor(effet.id.value)
             }
         }
     }
