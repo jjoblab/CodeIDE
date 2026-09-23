@@ -72,6 +72,7 @@
     <string name="diagnostics_erreur_stockage">The operation failed: storage is unavailable right now.</string>
     <string name="diagnostics_erreur_saisie">The operation failed: invalid data.</string>
     <string name="diagnostics_erreur_modele">The operation failed: invalid internal model.</string>
+    <string name="diagnostics_erreur_outils">Terminal tools installation failure.</string>
 
     <!-- ====== Misc ====== -->
 

@@ -37,6 +37,12 @@ internal object TraductionsAccueil {
                 R.string.accueil_erreur_modele
             }
 
+            is AppError.Bootstrap -> {
+                // Les raisons fines (réseau, espace, archive) partent dans
+                // les journaux ; l'accueil donne la marche à suivre.
+                R.string.accueil_erreur_bootstrap
+            }
+
             is AppError.Unknown -> {
                 R.string.accueil_erreur_stockage
             }

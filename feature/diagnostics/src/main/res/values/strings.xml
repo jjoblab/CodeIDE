@@ -75,6 +75,7 @@
     <string name="diagnostics_erreur_stockage">L\'opération a échoué : le stockage n\'est pas disponible pour le moment.</string>
     <string name="diagnostics_erreur_saisie">L\'opération a échoué : donnée invalide.</string>
     <string name="diagnostics_erreur_modele">L\'opération a échoué : modèle interne invalide.</string>
+    <string name="diagnostics_erreur_outils">Échec d\'installation des outils du terminal.</string>
 
     <!-- ====== Divers ====== -->
 

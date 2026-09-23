@@ -114,6 +114,12 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                 getString(R.string.wizard_echec_modele)
             }
 
+            is AppError.Bootstrap -> {
+                // Hors périmètre de la création de projet : les outils du
+                // terminal ne participent pas à la génération des fichiers.
+                getString(R.string.wizard_echec_inattendu)
+            }
+
             is AppError.Unknown -> {
                 getString(R.string.wizard_echec_inattendu)
             }

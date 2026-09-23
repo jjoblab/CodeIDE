@@ -63,6 +63,7 @@
     <string name="accueil_snackbar_supprime">Projet supprimé du disque</string>
 
     <string name="accueil_erreur_modele">Le modèle de projet est introuvable ou invalide.</string>
+    <string name="accueil_erreur_bootstrap">Impossible d\'installer les outils du terminal. Réessayez depuis l\'écran d\'installation.</string>
 
     <!-- Traductions des erreurs typées (section 5.5). -->
     <string name="accueil_erreur_permission">L\'accès au dossier a été refusé ou révoqué.</string>

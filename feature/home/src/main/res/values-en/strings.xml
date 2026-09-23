@@ -63,6 +63,7 @@
     <string name="accueil_snackbar_supprime">Project deleted from disk</string>
 
     <string name="accueil_erreur_modele">The project template is missing or invalid.</string>
+    <string name="accueil_erreur_bootstrap">Could not install the terminal tools. Retry from the installation screen.</string>
 
     <!-- Traductions des erreurs typées (section 5.5). -->
     <string name="accueil_erreur_permission">Folder access was denied or revoked.</string>
