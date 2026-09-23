@@ -34,6 +34,15 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             fichiers = fichiers,
             journal = FakeAppLogger(),
             observerJournaux = ObserveLogsUseCase(depotJournaux),
+            evaluerNom =
+                jo.codeide.core.domain
+                    .EvaluerNomFichierUseCase(),
+            enregistrerEtatEspace =
+                jo.codeide.core.domain
+                    .EnregistrerEtatEspaceUseCase(fichiers),
+            lireEtatEspace =
+                jo.codeide.core.domain
+                    .LireEtatEspaceUseCase(fichiers),
             savedStateHandle = sauvegarde,
         )
 

@@ -134,8 +134,12 @@ class TemplateValidatorsTest {
 
     @Test
     fun `les noms de validateurs connus sont exacts`() {
-        assertEquals(setOf("project-name", "package-name", "identifier", "semver"), TemplateValidators.NOMS)
+        assertEquals(
+            setOf("project-name", "file-name", "package-name", "identifier", "semver"),
+            TemplateValidators.NOMS,
+        )
         assertTrue(TemplateValidators.nomConnu("project-name"))
+        assertTrue(TemplateValidators.nomConnu("file-name"))
         assertTrue(TemplateValidators.nomConnu("regex:^a$"))
         assertFalse(TemplateValidators.nomConnu("regex:"))
         assertFalse(TemplateValidators.nomConnu("email"))

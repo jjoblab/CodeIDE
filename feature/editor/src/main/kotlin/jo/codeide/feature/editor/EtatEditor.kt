@@ -184,6 +184,29 @@ sealed interface ActionEditor {
 
     /** Ouvre l'écran Diagnostic complet depuis le journal compact. */
     data object OuvrirJournalComplet : ActionEditor
+
+    /** Crée un fichier dans le dossier [uriParent] (étape 17). */
+    data class CreerFichier(
+        val uriParent: String,
+        val nom: String,
+    ) : ActionEditor
+
+    /** Crée un sous-dossier dans le dossier [uriParent] (étape 17). */
+    data class CreerDossier(
+        val uriParent: String,
+        val nom: String,
+    ) : ActionEditor
+
+    /** Renomme le document [uri] en [nouveauNom] (étape 17). */
+    data class RenommerDocument(
+        val uri: String,
+        val nouveauNom: String,
+    ) : ActionEditor
+
+    /** Supprime le document [uri] après confirmation côté UI (étape 17). */
+    data class SupprimerDocument(
+        val uri: String,
+    ) : ActionEditor
 }
 
 /**
@@ -217,6 +240,9 @@ sealed interface EffetEditor {
 
     /** Lien « Ouvrir le journal complet » : naviguer vers l'écran Diagnostic. */
     data object OuvrirJournalComplet : EffetEditor
+
+    /** Une opération de fichier (créer/renommer/supprimer) a échoué. */
+    data object ErreurActionFichier : EffetEditor
 }
 
 /**

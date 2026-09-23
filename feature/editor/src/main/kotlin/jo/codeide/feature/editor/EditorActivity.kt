@@ -4,7 +4,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
@@ -23,17 +25,19 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
-import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
+import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
+import jo.codeide.feature.editor.databinding.DialogueNomFichierBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 import javax.inject.Inject
 
@@ -66,12 +70,12 @@ import javax.inject.Inject
  * Le bouton retour réduit le panneau étendu, ferme le tiroir s'il est
  * ouvert, sinon quitte — après confirmation si des onglets sont sales.
  *
- * Exemption detekt ciblée (règle 16) : TooManyFunctions — l'activité
- * **rend** les trois zones de l'espace de travail (tiroir, onglets,
- * éditeur, panneau) et applique les effets ; l'éclater par zone
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions et LargeClass —
+ * l'activité **rend** les trois zones de l'espace de travail (tiroir,
+ * onglets, éditeur, panneau) et applique les effets ; l'éclater par zone
  * casserait la cohérence du cycle de vie unique de l'écran.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 @AndroidEntryPoint
 class EditorActivity : AppCompatActivity() {
     private val viewModel: EditorViewModel by viewModels()
@@ -196,16 +200,23 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    /** Explorateur du tiroir : liste, actualisation, barre basse (étape 14). */
+    /** Explorateur du tiroir : liste, actualisation, création à la racine,
+     * barre basse (étape 14) et menu contextuel des nœuds (étape 17). */
     private fun brancherExplorateur() {
         adaptateurExplorateur =
-            ExplorateurAdapter { noeud ->
-                if (noeud.estDossier) {
-                    viewModel.onAction(ActionEditor.BasculerNoeud(noeud.uri))
-                } else {
-                    viewModel.onAction(ActionEditor.OuvrirFichier(noeud.uri))
-                }
-            }
+            ExplorateurAdapter(
+                surClic = { noeud ->
+                    if (noeud.estDossier) {
+                        viewModel.onAction(ActionEditor.BasculerNoeud(noeud.uri))
+                    } else {
+                        viewModel.onAction(ActionEditor.OuvrirFichier(noeud.uri))
+                    }
+                },
+                surClicLong = { noeud ->
+                    menuContextuelNoeud(noeud)
+                    true
+                },
+            )
         liaison.listeExplorateur.layoutManager = LinearLayoutManager(this)
         liaison.listeExplorateur.adapter = adaptateurExplorateur
 
@@ -213,6 +224,16 @@ class EditorActivity : AppCompatActivity() {
         // puis recharge l'arborescence (prompt compagnon 5.3).
         liaison.boutonActualiser.setOnClickListener {
             viewModel.onAction(ActionEditor.Rafraichir)
+        }
+
+        // Création à la racine (étape 17) : le menu contextuel d'un nœud
+        // couvre la création dans un dossier, celui-ci couvre la racine.
+        liaison.boutonNouveau.setOnClickListener { ancre ->
+            val racine =
+                viewModel.etat.value.projet
+                    ?.location
+                    ?.documentUri ?: return@setOnClickListener
+            menuCreationRacine(ancre, racine)
         }
 
         // Barre de navigation basse : seule « Explorateur » est active —
@@ -229,6 +250,218 @@ class EditorActivity : AppCompatActivity() {
             .findItem(R.id.destination_git)
             .contentDescription =
             getString(R.string.editor_nav_bientot, getString(R.string.editor_nav_git))
+    }
+
+    /** Menu contextuel d'un nœud de l'explorateur (étape 17). */
+    private fun menuContextuelNoeud(noeud: NoeudExplorateur) {
+        val menu = PopupMenu(this, liaison.listeExplorateur)
+        if (noeud.estDossier) {
+            menu.menu.add(
+                android.view.Menu.NONE,
+                ID_NOUVEAU_FICHIER,
+                android.view.Menu.NONE,
+                R.string.editor_menu_nouveau_fichier,
+            )
+            menu.menu.add(
+                android.view.Menu.NONE,
+                ID_NOUVEAU_DOSSIER,
+                android.view.Menu.NONE,
+                R.string.editor_menu_nouveau_dossier,
+            )
+        }
+        menu.menu.add(android.view.Menu.NONE, ID_RENOMMER, android.view.Menu.NONE, R.string.editor_menu_renommer)
+        menu.menu.add(android.view.Menu.NONE, ID_SUPPRIMER, android.view.Menu.NONE, R.string.editor_menu_supprimer)
+        menu.menu.add(
+            android.view.Menu.NONE,
+            ID_MENU_ACTUALISER,
+            android.view.Menu.NONE,
+            R.string.editor_menu_actualiser,
+        )
+        menu.setOnMenuItemClickListener { item -> surChoixMenuNoeud(noeud, item) }
+        menu.show()
+    }
+
+    /** Réagit au choix du menu contextuel d'un nœud (étape 17). */
+    private fun surChoixMenuNoeud(
+        noeud: NoeudExplorateur,
+        item: MenuItem,
+    ): Boolean {
+        when (item.itemId) {
+            ID_NOUVEAU_FICHIER -> {
+                dialogueNom(
+                    titre = getString(R.string.editor_creation_fichier_titre),
+                    indication = R.string.editor_nom_fichier_indication,
+                    bouton = R.string.editor_nom_bouton_creer,
+                    initial = "",
+                ) { nom -> viewModel.onAction(ActionEditor.CreerFichier(noeud.uri, nom)) }
+            }
+
+            ID_NOUVEAU_DOSSIER -> {
+                dialogueNom(
+                    titre = getString(R.string.editor_creation_dossier_titre),
+                    indication = R.string.editor_nom_dossier_indication,
+                    bouton = R.string.editor_nom_bouton_creer,
+                    initial = "",
+                ) { nom -> viewModel.onAction(ActionEditor.CreerDossier(noeud.uri, nom)) }
+            }
+
+            ID_RENOMMER -> {
+                dialogueNom(
+                    titre = getString(R.string.editor_renommage_titre, noeud.nom),
+                    indication = 0,
+                    bouton = R.string.editor_nom_bouton_renommer,
+                    initial = noeud.nom,
+                ) { nom -> viewModel.onAction(ActionEditor.RenommerDocument(noeud.uri, nom)) }
+            }
+
+            ID_SUPPRIMER -> {
+                dialogueSuppression(noeud)
+            }
+
+            ID_MENU_ACTUALISER -> {
+                viewModel.onAction(ActionEditor.Rafraichir)
+            }
+        }
+        return true
+    }
+
+    /** Menu de création à la racine du projet (étape 17). */
+    private fun menuCreationRacine(
+        ancre: View,
+        racine: String,
+    ) {
+        val menu = PopupMenu(this, ancre)
+        menu.menu.add(
+            android.view.Menu.NONE,
+            ID_NOUVEAU_FICHIER,
+            android.view.Menu.NONE,
+            R.string.editor_menu_nouveau_fichier,
+        )
+        menu.menu.add(
+            android.view.Menu.NONE,
+            ID_NOUVEAU_DOSSIER,
+            android.view.Menu.NONE,
+            R.string.editor_menu_nouveau_dossier,
+        )
+        menu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                ID_NOUVEAU_FICHIER -> {
+                    dialogueNom(
+                        titre = getString(R.string.editor_creation_fichier_titre),
+                        indication = R.string.editor_nom_fichier_indication,
+                        bouton = R.string.editor_nom_bouton_creer,
+                        initial = "",
+                    ) { nom -> viewModel.onAction(ActionEditor.CreerFichier(racine, nom)) }
+                }
+
+                ID_NOUVEAU_DOSSIER -> {
+                    dialogueNom(
+                        titre = getString(R.string.editor_creation_dossier_titre),
+                        indication = R.string.editor_nom_dossier_indication,
+                        bouton = R.string.editor_nom_bouton_creer,
+                        initial = "",
+                    ) { nom -> viewModel.onAction(ActionEditor.CreerDossier(racine, nom)) }
+                }
+            }
+            true
+        }
+        menu.show()
+    }
+
+    /**
+     * Dialogue de saisie d'un nom de fichier/dossier : validation
+     * **avant** envoi (validateur partagé du wizard, raison localisée
+     * sous le champ) — l'action ne part que si le nom est valide.
+     */
+    private fun dialogueNom(
+        titre: CharSequence,
+        indication: Int,
+        bouton: Int,
+        initial: String,
+        surNom: (String) -> Unit,
+    ) {
+        val corps = DialogueNomFichierBinding.inflate(layoutInflater)
+        val saisie = corps.saisieNomFichier as TextInputEditText
+        if (indication != 0) corps.champNomFichier.hint = getString(indication)
+        saisie.setText(initial)
+        saisie.setSelection(saisie.text?.length ?: 0)
+        saisie.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+
+        val dialogue =
+            MaterialAlertDialogBuilder(this)
+                .setTitle(titre)
+                .setView(corps.root)
+                .setPositiveButton(bouton, null)
+                .setNegativeButton(R.string.editor_fermeture_annuler, null)
+                .create()
+
+        // Validation au clic (le dialogue reste ouvert tant que le nom
+        // est invalide — jamais d'aller-retour silencieux).
+        dialogue.setOnShowListener {
+            dialogue.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nom =
+                    saisie.text
+                        ?.toString()
+                        ?.trim()
+                        .orEmpty()
+                val raison = viewModel.evaluerNomFichier(nom)
+                if (raison == null) {
+                    dialogue.dismiss()
+                    surNom(nom)
+                } else {
+                    corps.erreurNomFichier.text = messageNomFichier(raison, nom)
+                    corps.erreurNomFichier.isVisible = true
+                }
+            }
+        }
+        dialogue.show()
+    }
+
+    /** Message localisé de la raison d'un nom invalide (étape 17). */
+    private fun messageNomFichier(
+        raison: RaisonValidation,
+        nom: String,
+    ): String =
+        when (raison) {
+            is RaisonValidation.LongueurNom -> {
+                getString(R.string.editor_erreur_nom_longueur)
+            }
+
+            is RaisonValidation.CaractereInterditNom -> {
+                getString(R.string.editor_erreur_nom_caractere, raison.fautif.toString())
+            }
+
+            is RaisonValidation.PointsFictifsNom -> {
+                getString(R.string.editor_erreur_nom_points)
+            }
+
+            is RaisonValidation.FinNomInterdite -> {
+                getString(R.string.editor_erreur_nom_fin)
+            }
+
+            is RaisonValidation.NomReserveWindows -> {
+                getString(R.string.editor_erreur_nom_reserves, nom)
+            }
+
+            else -> {
+                getString(R.string.editor_erreur_nom_generique)
+            }
+        }
+
+    /** Confirmation de suppression d'un document (étape 17). */
+    private fun dialogueSuppression(noeud: NoeudExplorateur) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.editor_suppression_titre, noeud.nom))
+            .setMessage(
+                if (noeud.estDossier) {
+                    R.string.editor_suppression_dossier_message
+                } else {
+                    R.string.editor_suppression_fichier_message
+                },
+            ).setPositiveButton(R.string.editor_suppression_confirmer) { _, _ ->
+                viewModel.onAction(ActionEditor.SupprimerDocument(noeud.uri))
+            }.setNegativeButton(R.string.editor_fermeture_annuler, null)
+            .show()
     }
 
     /** Onglets de fichiers : sélection, fermeture, menu contextuel (étape 15). */
@@ -495,6 +728,14 @@ class EditorActivity : AppCompatActivity() {
         return liaison.ongletsFichiers.newTab().apply {
             customView = vue.root
             view.tag = vue
+            // Accessibilité (étape 17) : l'onglet annoncé par son nom et
+            // son état de modification, pas par ses vues internes.
+            view.contentDescription =
+                if (onglet.isDirty) {
+                    getString(R.string.editor_onglet_sale_cd, onglet.nom)
+                } else {
+                    onglet.nom
+                }
         }
     }
 
@@ -699,6 +940,12 @@ class EditorActivity : AppCompatActivity() {
             EffetEditor.OuvrirJournalComplet -> {
                 navigateur.openDiagnostics()
             }
+
+            EffetEditor.ErreurActionFichier -> {
+                Snackbar
+                    .make(liaison.racineEditeur, R.string.editor_action_fichier_echouee, Snackbar.LENGTH_LONG)
+                    .show()
+            }
         }
     }
 
@@ -772,5 +1019,13 @@ class EditorActivity : AppCompatActivity() {
         const val ID_DEPLACER_GAUCHE = 4
         const val ID_DEPLACER_DROITE = 5
         const val ID_COPIER_CHEMIN = 6
+
+        // Identifiants du menu contextuel des nœuds de l'explorateur
+        // (étape 17 — même approche programmatique).
+        const val ID_NOUVEAU_FICHIER = 10
+        const val ID_NOUVEAU_DOSSIER = 11
+        const val ID_RENOMMER = 12
+        const val ID_SUPPRIMER = 13
+        const val ID_MENU_ACTUALISER = 14
     }
 }

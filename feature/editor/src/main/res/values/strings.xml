@@ -46,7 +46,7 @@
 
     <!-- Onglets d\'édition (étape 15). -->
     <string name="editor_onglet_fermer_cd">Fermer cet onglet</string>
-    <string name="editor_onglet_sale_cd">Modifications non enregistrées</string>
+    <string name="editor_onglet_sale_cd">%1$s — modifications non enregistrées</string>
     <string name="editor_enregistrer">Enregistrer</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
@@ -80,6 +80,32 @@
     <string name="editor_journal_complet">Ouvrir le journal complet</string>
     <string name="editor_sortie_stub">La console apparaîtra ici une fois le tooling de compilation disponible.</string>
     <string name="editor_problemes_stub">Les problèmes de compilation et d\'analyse apparaîtront ici.</string>
+
+    <!-- Actions de fichiers du tiroir (étape 17). -->
+    <string name="editor_tiroir_nouveau_cd">Créer un fichier ou un dossier à la racine du projet</string>
+    <string name="editor_menu_nouveau_fichier">Nouveau fichier</string>
+    <string name="editor_menu_nouveau_dossier">Nouveau dossier</string>
+    <string name="editor_menu_renommer">Renommer</string>
+    <string name="editor_menu_supprimer">Supprimer</string>
+    <string name="editor_menu_actualiser">Actualiser</string>
+    <string name="editor_creation_fichier_titre">Nouveau fichier</string>
+    <string name="editor_creation_dossier_titre">Nouveau dossier</string>
+    <string name="editor_renommage_titre">Renommer « %1$s »</string>
+    <string name="editor_nom_fichier_indication">Nom du fichier</string>
+    <string name="editor_nom_dossier_indication">Nom du dossier</string>
+    <string name="editor_nom_bouton_creer">Créer</string>
+    <string name="editor_nom_bouton_renommer">Renommer</string>
+    <string name="editor_suppression_titre">Supprimer « %1$s » ?</string>
+    <string name="editor_suppression_fichier_message">Le fichier sera supprimé du stockage — action définitive.</string>
+    <string name="editor_suppression_dossier_message">Le dossier et tout son contenu seront supprimés du stockage — action définitive.</string>
+    <string name="editor_suppression_confirmer">Supprimer</string>
+    <string name="editor_action_fichier_echouee">L\'opération a échoué — réessayez ou actualisez.</string>
+    <string name="editor_erreur_nom_longueur">Le nom doit contenir de 1 à 64 caractères.</string>
+    <string name="editor_erreur_nom_caractere">Le caractère « %1$s » est interdit.</string>
+    <string name="editor_erreur_nom_points">« . » et « .. » ne sont pas des noms valides.</string>
+    <string name="editor_erreur_nom_fin">Le nom ne peut pas se terminer par un point ni un espace.</string>
+    <string name="editor_erreur_nom_reserves">« %1$s » est un nom réservé par Windows.</string>
+    <string name="editor_erreur_nom_generique">Ce nom n\'est pas valide.</string>
     <plurals name="editor_panneau_badge_cd">
         <item quantity="one">%1$d entrée affichée</item>
         <item quantity="many">%1$d entrées affichées</item>

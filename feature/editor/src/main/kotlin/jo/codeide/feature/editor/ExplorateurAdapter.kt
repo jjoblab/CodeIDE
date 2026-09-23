@@ -16,7 +16,9 @@ import jo.codeide.feature.editor.databinding.LigneNoeudArborescenceBinding
  * ([IconesFichiers], prompt compagnon 5.3).
  *
  * Un appui déplie/replie un dossier, ou **demande l'ouverture d'un
- * fichier en onglet** (étape 15) — l'appelant route selon le type.
+ * fichier en onglet** (étape 15) ; un **appui long** ouvre le menu
+ * contextuel des actions de fichiers (étape 17) — l'appelant route
+ * selon le type.
  *
  * Accessibilité : chaque ligne porte un `contentDescription` complet
  * (nom, type, profondeur, état de pli ou d'échec), les cibles font
@@ -24,6 +26,7 @@ import jo.codeide.feature.editor.databinding.LigneNoeudArborescenceBinding
  */
 internal class ExplorateurAdapter(
     private val surClic: (NoeudExplorateur) -> Unit,
+    private val surClicLong: (NoeudExplorateur) -> Boolean,
 ) : ListAdapter<NoeudExplorateur, ExplorateurAdapter.VueNoeud>(Differences) {
     /** Retrait d'indentation par niveau de profondeur, en pixels. */
     private var retraitPx: Int = 0
@@ -62,6 +65,7 @@ internal class ExplorateurAdapter(
         liaison.nomNoeud.text = noeud.nom
         liaison.racineLigne.contentDescription = decrire(liaison, noeud)
         liaison.racineLigne.setOnClickListener { surClic(noeud) }
+        liaison.racineLigne.setOnLongClickListener { surClicLong(noeud) }
     }
 
     /** Description accessible complète de la ligne (nom + type + état). */

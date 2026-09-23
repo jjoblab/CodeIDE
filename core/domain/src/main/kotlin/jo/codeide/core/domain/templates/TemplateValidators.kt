@@ -15,7 +15,7 @@ import jo.codeide.core.model.RaisonValidation
  */
 internal object TemplateValidators {
     /** Noms de validateurs non paramétrés reconnus. */
-    val NOMS: Set<String> = setOf("project-name", "package-name", "identifier", "semver")
+    val NOMS: Set<String> = setOf("project-name", "file-name", "package-name", "identifier", "semver")
 
     /** Préfixe de la forme paramétrée. */
     private const val PREFIXE_REGEX = "regex:"
@@ -187,6 +187,13 @@ internal object TemplateValidators {
     ): EchecValidation? =
         when {
             nom == "project-name" -> {
+                validerNomProjet(valeur)
+            }
+
+            // Règles du nom de fichier/dossier de l'explorateur (étape 17) :
+            // les mêmes que le nom de projet (section 12.3 — transportables
+            // vers Windows), le nom de fichier est un simple segment.
+            nom == "file-name" -> {
                 validerNomProjet(valeur)
             }
 

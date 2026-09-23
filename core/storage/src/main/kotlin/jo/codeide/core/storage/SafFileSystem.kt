@@ -151,6 +151,25 @@ internal class SafFileSystem
                 }
             }
 
+        override suspend fun rename(
+            documentUri: String,
+            nouveauNom: String,
+        ): AppResult<String> =
+            withContext(dispatchers.io) {
+                try {
+                    val renomme =
+                        DocumentsContract.renameDocument(resolver, documentUri.toUri(), nouveauNom)
+                            ?: return@withContext AppResult.Failure(
+                                AppError.Storage(AppError.StorageReason.NotFound, documentUri),
+                            )
+                    // SAF peut ajuster le nom retourné (collisions) : l'URI
+                    // (et le nom qu'elle porte) font foi — jamais l'entrée.
+                    AppResult.Success(renomme.toString())
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
         override suspend fun delete(documentUri: String): AppResult<Unit> =
             withContext(dispatchers.io) {
                 try {

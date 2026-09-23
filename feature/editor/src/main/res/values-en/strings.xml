@@ -44,7 +44,7 @@
 
     <!-- Editing tabs (step 15). -->
     <string name="editor_onglet_fermer_cd">Close this tab</string>
-    <string name="editor_onglet_sale_cd">Unsaved changes</string>
+    <string name="editor_onglet_sale_cd">%1$s — unsaved changes</string>
     <string name="editor_enregistrer">Save</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
@@ -77,6 +77,32 @@
     <string name="editor_journal_complet">Open the full log</string>
     <string name="editor_sortie_stub">The console will appear here once the build tooling is available.</string>
     <string name="editor_problemes_stub">Compilation and analysis problems will appear here.</string>
+
+    <!-- Actions de fichiers du tiroir (étape 17). -->
+    <string name="editor_tiroir_nouveau_cd">Create a file or folder at the project root</string>
+    <string name="editor_menu_nouveau_fichier">New file</string>
+    <string name="editor_menu_nouveau_dossier">New folder</string>
+    <string name="editor_menu_renommer">Rename</string>
+    <string name="editor_menu_supprimer">Delete</string>
+    <string name="editor_menu_actualiser">Refresh</string>
+    <string name="editor_creation_fichier_titre">New file</string>
+    <string name="editor_creation_dossier_titre">New folder</string>
+    <string name="editor_renommage_titre">Rename “%1$s”</string>
+    <string name="editor_nom_fichier_indication">File name</string>
+    <string name="editor_nom_dossier_indication">Folder name</string>
+    <string name="editor_nom_bouton_creer">Create</string>
+    <string name="editor_nom_bouton_renommer">Rename</string>
+    <string name="editor_suppression_titre">Delete “%1$s”?</string>
+    <string name="editor_suppression_fichier_message">The file will be deleted from storage — permanent.</string>
+    <string name="editor_suppression_dossier_message">The folder and all its content will be deleted from storage — permanent.</string>
+    <string name="editor_suppression_confirmer">Delete</string>
+    <string name="editor_action_fichier_echouee">The operation failed — retry or refresh.</string>
+    <string name="editor_erreur_nom_longueur">The name must be 1 to 64 characters long.</string>
+    <string name="editor_erreur_nom_caractere">The character “%1$s” is not allowed.</string>
+    <string name="editor_erreur_nom_points">“.” and “..” are not valid names.</string>
+    <string name="editor_erreur_nom_fin">The name cannot end with a dot or a space.</string>
+    <string name="editor_erreur_nom_reserves">“%1$s” is reserved by Windows.</string>
+    <string name="editor_erreur_nom_generique">This name is not valid.</string>
     <plurals name="editor_panneau_badge_cd">
         <item quantity="one">%1$d entry shown</item>
         <item quantity="other">%1$d entries shown</item>
