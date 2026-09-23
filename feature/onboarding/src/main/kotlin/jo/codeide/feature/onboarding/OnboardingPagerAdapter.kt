@@ -21,6 +21,7 @@ class OnboardingPagerAdapter(
         when (PageOnboarding.entries[position]) {
             PageOnboarding.BIENVENUE -> BienvenuePage()
             PageOnboarding.DOSSIER -> DossierPage()
+            PageOnboarding.TERMINAL -> TerminalPage()
             PageOnboarding.APPARENCE -> ApparencePage()
             PageOnboarding.PROFIL -> ProfilPage()
             PageOnboarding.TERMINE -> TerminePage()

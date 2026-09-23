@@ -184,6 +184,24 @@ internal class AppNavigatorImpl
                     .putExtra(ClesEditor.EXTRA_PROJECT_ID, projectId)
             activity.startActivity(intention)
         }
+
+        override fun openBootstrapInstall() {
+            // Garde-fou : un double toucher n'empile qu'un seul écran
+            // d'installation — depuis le bandeau de l'accueil (étape T3) ou
+            // l'étape « Terminal » de l'assistant. L'état partagé du domaine
+            // fait le reste : rouvrir n'interrompt ni ne relance rien.
+            when (navController.currentDestination?.id) {
+                R.id.home -> {
+                    logger.d(TAG) { "navigation accueil -> installation des outils" }
+                    navController.navigate(R.id.action_home_to_installation)
+                }
+
+                R.id.onboarding -> {
+                    logger.d(TAG) { "navigation assistant -> installation des outils" }
+                    navController.navigate(R.id.action_onboarding_to_installation)
+                }
+            }
+        }
     }
 
 /**

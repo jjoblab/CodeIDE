@@ -15,6 +15,7 @@ import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeSettingsRepository
+import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -54,6 +55,7 @@ class OnboardingViewModelTest {
     private lateinit var depot: FakeSettingsRepository
     private lateinit var fichiers: FakeFileSystem
     private lateinit var horloge: TimeProvider
+    private val localisateurOutils = FakeToolchainLocator()
 
     @Before
     fun preparer() {
@@ -79,6 +81,7 @@ class OnboardingViewModelTest {
             definirDossier = SetWorkspaceUseCase(depot),
             validerDossier = ValidateWorkspaceUseCase(fichiers, FakeArborescencesSaf(), horloge),
             fichiers = fichiers,
+            localisateurOutils = localisateurOutils,
             logger = FakeAppLogger(),
             savedStateHandle = sauvetage,
         )
@@ -102,10 +105,10 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
 
-            // Bienvenue -> Dossier -> Apparence -> Profil -> Termine.
+            // Bienvenue -> Dossier -> Terminal -> Apparence -> Profil -> Termine.
             viewModel.onAction(ActionOnboarding.Commencer)
             assertEquals(PageOnboarding.DOSSIER, viewModel.etat.value.page)
-            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
             assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
 
             // Bornes : ni au-delà de la fin, ni avant la bienvenue.
@@ -232,7 +235,7 @@ class OnboardingViewModelTest {
             }
 
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
             assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
             assertFalse(depot.reglages.isSetupCompleted)
 
@@ -249,7 +252,7 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
             // L'écriture des paramètres échoue : plus jamais un silence,
             // la page Terminé signale l'échec et le drapeau reste faux.
@@ -276,7 +279,7 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
             // La garde s'arme immédiatement, avant même l'exécution de
             // l'écriture : un deuxième appui pendant le vol est ignoré.
@@ -324,4 +327,62 @@ class OnboardingViewModelTest {
         /** URI d'arborescence du dossier refusé (`primary:Download`). */
         const val URI_GRANT_REFUSE = "content://autorite/tree/primary%3ADownload"
     }
+
+    @Test
+    fun `l etape Terminal s insere entre le dossier et l apparence`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+
+            viewModel.onAction(ActionOnboarding.Commencer)
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+
+            assertEquals(PageOnboarding.TERMINAL, viewModel.etat.value.page)
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `Plus tard passe l etape Terminal sans bloquer`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            viewModel.onAction(ActionOnboarding.Commencer)
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+
+            viewModel.onAction(ActionOnboarding.PasserTerminal)
+
+            assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `InstallerTerminal emet l ouverture de l ecran d installation`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.InstallerTerminal)
+
+            assertEquals(listOf(EffetOnboarding.OuvrirInstallation), effetsRecus)
+            // L'ouverture n'avance pas la page : le parcours reste à la
+            // même étape au retour de l'écran d'installation.
+            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `VerifierTerminal reflete la presence des outils`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.terminalInstalle)
+
+            localisateurOutils.bootstrapInstalle = true
+            viewModel.onAction(ActionOnboarding.VerifierTerminal)
+
+            assertTrue(viewModel.etat.value.terminalInstalle)
+        }
 }

@@ -125,6 +125,7 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
     private fun appliquer(effet: EffetOnboarding) {
         when (effet) {
             EffetOnboarding.OuvrirSelecteurDossier -> selecteurDossier.launch(null)
+            EffetOnboarding.OuvrirInstallation -> navigator.openBootstrapInstall()
             EffetOnboarding.RetourAccueil -> navigator.openHome()
         }
     }

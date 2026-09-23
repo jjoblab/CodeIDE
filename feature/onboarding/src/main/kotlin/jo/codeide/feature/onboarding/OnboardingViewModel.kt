@@ -8,6 +8,7 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.SetWorkspaceUseCase
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.UpdateSettingsUseCase
 import jo.codeide.core.domain.ValidateWorkspaceUseCase
 import jo.codeide.core.domain.ValidationDossier
@@ -58,6 +59,18 @@ sealed interface ActionOnboarding {
     /** « Plus tard » : l'étape dossier est passable (bandeau à l'accueil). */
     data object PasserDossier : ActionOnboarding
 
+    /**
+     * Page Terminal : « Installer maintenant » — ouvre l'écran de
+     * progression partagé (jamais bloquant pour la suite du parcours).
+     */
+    data object InstallerTerminal : ActionOnboarding
+
+    /** Page Terminal : « Plus tard » — étape passable, bandeau à l'accueil. */
+    data object PasserTerminal : ActionOnboarding
+
+    /** Revérifie si les outils du terminal sont déjà installés (retour d'écran). */
+    data object VerifierTerminal : ActionOnboarding
+
     /** Change le thème — persistance et aperçu immédiat. */
     data class ChangerTheme(
         val mode: ThemeMode,
@@ -99,6 +112,9 @@ sealed interface EffetOnboarding {
     /** Ouvre le sélecteur SAF de dossier (`ACTION_OPEN_DOCUMENT_TREE`). */
     data object OuvrirSelecteurDossier : EffetOnboarding
 
+    /** Ouvre l'écran d'installation des outils du terminal (état partagé). */
+    data object OuvrirInstallation : EffetOnboarding
+
     /** L'assistant est terminé : retour à l'accueil. */
     data object RetourAccueil : EffetOnboarding
 }
@@ -139,6 +155,7 @@ class OnboardingViewModel
         private val definirDossier: SetWorkspaceUseCase,
         private val validerDossier: ValidateWorkspaceUseCase,
         private val fichiers: FileSystem,
+        private val localisateurOutils: ToolchainLocator,
         private val logger: AppLogger,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -155,6 +172,9 @@ class OnboardingViewModel
 
         init {
             amorcerDepuisParametres()
+            // Interrogation synchrone et pure (marqueur de fichier) : aucune
+            // coroutine nécessaire, l'état est immédiatement disponible.
+            etatInterne.update { it.copy(terminalInstalle = localisateurOutils.isBootstrapInstalled()) }
         }
 
         /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
@@ -163,15 +183,33 @@ class OnboardingViewModel
                 ActionOnboarding.Commencer -> avancer()
                 ActionOnboarding.PageSuivante -> avancer()
                 ActionOnboarding.PagePrecedente -> reculer()
+                ActionOnboarding.PasserDossier -> avancer()
+                ActionOnboarding.PasserTerminal -> avancer()
+                ActionOnboarding.Terminer -> terminer()
+                else -> onActionTerminal(action)
+            }
+        }
+
+        /** Routage des étapes interactives (terminal, dossier, saisie). */
+        private fun onActionTerminal(action: ActionOnboarding) {
+            when (action) {
                 ActionOnboarding.DemanderSelectionDossier -> envoyerEffet(EffetOnboarding.OuvrirSelecteurDossier)
                 is ActionOnboarding.DossierChoisi -> verifierDossier(action.uri)
-                ActionOnboarding.PasserDossier -> avancer()
+                ActionOnboarding.InstallerTerminal -> envoyerEffet(EffetOnboarding.OuvrirInstallation)
+                ActionOnboarding.VerifierTerminal -> verifierTerminal()
+                else -> onActionSaisie(action)
+            }
+        }
+
+        /** Routage de la saisie (apparence et profil, écritures différées). */
+        private fun onActionSaisie(action: ActionOnboarding) {
+            when (action) {
                 is ActionOnboarding.ChangerTheme -> changerTheme(action.mode)
                 is ActionOnboarding.ChangerCouleursDynamiques -> changerCouleurs(action.activees)
                 is ActionOnboarding.ChangerLangue -> changerLangue(action.tag)
                 is ActionOnboarding.SaisirNomAuteur -> saisirNom(action.nom)
                 is ActionOnboarding.ChangerLicence -> changerLicence(action.licence)
-                ActionOnboarding.Terminer -> terminer()
+                else -> Unit // Routage exhaustif par les trois branches.
             }
         }
 
@@ -237,6 +275,11 @@ class OnboardingViewModel
                     courant.copy(page = page)
                 }
             }
+        }
+
+        /** Revérifie la présence des outils du terminal (retour d'écran). */
+        private fun verifierTerminal() {
+            etatInterne.update { it.copy(terminalInstalle = localisateurOutils.isBootstrapInstalled()) }
         }
 
         /** Recule d'une page, borné à la bienvenue. */

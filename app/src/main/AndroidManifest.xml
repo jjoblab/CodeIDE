@@ -4,8 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Aucune permission : règle 7 du prompt maître (pas de INTERNET,
-      pas de MANAGE_EXTERNAL_STORAGE — jamais à ce stade).
+      Permissions : INTERNET uniquement, depuis l'étape T3 du terminal
+      (ADR 0034 — unique usage réseau : téléchargement du bootstrap et
+      de ses paquets d'outils). Jamais de MANAGE_EXTERNAL_STORAGE.
 
       localeConfig (ADR 0013) : langues proposées par le réglage
       « langue par application » du système (Android 13+) — la source
@@ -14,6 +15,8 @@
       API 33 (attribut décoratif : tools:targetApi coupe le faux
       positif lint UnusedAttribute, minSdk = 26).
     -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name="jo.codeide.CodeIdeApplication"
