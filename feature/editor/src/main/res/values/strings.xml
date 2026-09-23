@@ -44,4 +44,30 @@
     <string name="editor_panneau_console">Console</string>
     <string name="editor_panneau_problemes">Problèmes</string>
     <string name="editor_panneau_journal">Journal</string>
+
+    <!-- Onglets d\'édition (étape 15). -->
+    <string name="editor_onglet_fermer_cd">Fermer cet onglet</string>
+    <string name="editor_onglet_sale_cd">Modifications non enregistrées</string>
+    <string name="editor_enregistrer">Enregistrer</string>
+    <string name="editor_menu_fermer">Fermer</string>
+    <string name="editor_menu_fermer_autres">Fermer les autres</string>
+    <string name="editor_menu_fermer_tout">Fermer tout</string>
+    <string name="editor_menu_deplacer_gauche">Déplacer à gauche</string>
+    <string name="editor_menu_deplacer_droite">Déplacer à droite</string>
+    <string name="editor_menu_copier_chemin">Copier le chemin</string>
+    <string name="editor_fermeture_titre">Modifications non enregistrées</string>
+    <string name="editor_fermeture_message">« %1$s » a des modifications non enregistrées.</string>
+    <plurals name="editor_fermeture_tout_message">
+        <item quantity="one">%1$d fichier a des modifications non enregistrées.</item>
+        <item quantity="many">%1$d fichiers ont des modifications non enregistrées.</item>
+        <item quantity="other">%1$d fichiers ont des modifications non enregistrées.</item>
+    </plurals>
+    <string name="editor_fermeture_enregistrer">Enregistrer</string>
+    <string name="editor_fermeture_enregistrer_tout">Enregistrer tout</string>
+    <string name="editor_fermeture_ne_pas_enregistrer">Ne pas enregistrer</string>
+    <string name="editor_fermeture_annuler">Annuler</string>
+    <string name="editor_erreur_ouverture">Ce fichier n\'a pas pu être lu.</string>
+    <string name="editor_erreur_enregistrement">Échec de l\'enregistrement : le contenu reste non enregistré.</string>
+    <string name="editor_ouvrir_avec_aucune">Aucune application ne sait ouvrir ce fichier.</string>
+    <string name="editor_chemin_copie">Chemin copié</string>
 </resources>

@@ -1,15 +1,10 @@
 package jo.codeide.feature.editor
 
-import androidx.lifecycle.SavedStateHandle
 import jo.codeide.core.domain.ObserveProjectUseCase
-import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
-import jo.codeide.core.model.TemplateId
 import jo.codeide.core.testing.FakeFileSystem
-import jo.codeide.core.testing.FakeProjectRepository
-import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -17,37 +12,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
 
 /**
- * Tests du ViewModel de l'espace de travail (étapes 13-14) : chargement du
- * projet reçu par l'intention, suivi au registre (renommage,
- * relocalisation, suppression) et **explorateur de fichiers paresseux** —
- * arborescence triée dossiers/fichiers/alphabétique, cache par dossier,
- * erreurs d'accès en bandeau, nœuds défaillants réessayables (critère
+ * Tests du ViewModel de l'espace de travail — suivi du registre et
+ * **explorateur de fichiers paresseux** (étapes 13-14) : arborescence
+ * triée dossiers/fichiers/alphabétique, cache par dossier, erreurs
+ * d'accès en bandeau, nœuds défaillants réessayables (critère
  * d'acceptation de l'étape 14 : tests du ViewModel avec `FakeFileSystem`).
+ * Les onglets d'édition (étape 15) vivent dans
+ * `OngletsEditorViewModelTest`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class EditorViewModelTest {
-    @get:Rule
-    val regleMain = MainDispatcherRule()
-
-    private val depot = FakeProjectRepository()
-    private val fichiers = FakeFileSystem()
-
-    /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
-    private fun viewModel(id: ProjectId): EditorViewModel =
-        EditorViewModel(
-            observerProjet = ObserveProjectUseCase(depot),
-            verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-            fichiers = fichiers,
-            savedStateHandle =
-                SavedStateHandle(
-                    mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
-                ),
-        )
-
+class EditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `le projet de l intention se charge puis suit le registre`() =
         runTest {
@@ -283,56 +260,4 @@ class EditorViewModelTest {
                     .map { it.nom },
             )
         }
-
-    // ------------------------------------------------------------------
-    // Outils
-    // ------------------------------------------------------------------
-
-    /** Enregistre un projet et rend son identifiant. */
-    private suspend fun ajouterProjet(nom: String): ProjectId {
-        val grantUri = "content://autorite/tree/$nom"
-        val documentUri = "$grantUri/doc"
-        fichiers.grantPermission(grantUri)
-        fichiers.seedDocument(
-            documentUri,
-            FakeFileSystem.Document(name = nom, isDirectory = true),
-        )
-        val projet =
-            depot.addProject(
-                nom,
-                "Une description",
-                StorageLocation(
-                    grantUri = grantUri,
-                    documentUri = documentUri,
-                    displayPath = "Projets/$nom",
-                ),
-                TemplateId.IMPORTED,
-            )
-        assertTrue(projet is jo.codeide.core.model.AppResult.Success)
-        return (projet as jo.codeide.core.model.AppResult.Success).value.id
-    }
-
-    /** Amorce un dossier enfant direct de la racine du projet. */
-    private fun semerDossier(nom: String) {
-        fichiers.seedDocument(
-            "$URI_DOCUMENT_PROJET/$nom",
-            FakeFileSystem.Document(name = nom, isDirectory = true),
-        )
-    }
-
-    /** Amorce un fichier enfant direct de la racine du projet. */
-    private fun semerFichier(nom: String) {
-        fichiers.seedDocument(
-            "$URI_DOCUMENT_PROJET/$nom",
-            FakeFileSystem.Document(name = nom, isDirectory = false),
-        )
-    }
-
-    private companion object {
-        /** URI d'arborescence du projet de test. */
-        const val URI_ARBRE_PROJET = "content://autorite/tree/Alpha"
-
-        /** URI de document (dossier racine) du projet de test. */
-        const val URI_DOCUMENT_PROJET = "$URI_ARBRE_PROJET/doc"
-    }
 }

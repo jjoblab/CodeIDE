@@ -15,16 +15,15 @@ import jo.codeide.feature.editor.databinding.LigneNoeudArborescenceBinding
  * dossiers (tourné une fois déplié), icône par extension
  * ([IconesFichiers], prompt compagnon 5.3).
  *
- * Seuls les dossiers sont actionnables à cette étape : un appui déplie ou
- * replie. Un fichier ne s'ouvre pas encore (onglets à l'étape 15) — sa
- * ligne n'offre donc volontairement aucun retour d'appui.
+ * Un appui déplie/replie un dossier, ou **demande l'ouverture d'un
+ * fichier en onglet** (étape 15) — l'appelant route selon le type.
  *
  * Accessibilité : chaque ligne porte un `contentDescription` complet
  * (nom, type, profondeur, état de pli ou d'échec), les cibles font
  * 48 dp minimum (prompt compagnon 5.3).
  */
 internal class ExplorateurAdapter(
-    private val surBasculer: (NoeudExplorateur) -> Unit,
+    private val surClic: (NoeudExplorateur) -> Unit,
 ) : ListAdapter<NoeudExplorateur, ExplorateurAdapter.VueNoeud>(Differences) {
     /** Retrait d'indentation par niveau de profondeur, en pixels. */
     private var retraitPx: Int = 0
@@ -61,11 +60,8 @@ internal class ExplorateurAdapter(
             if (noeud.estDossier) IconesFichiers.pourDossier() else IconesFichiers.pourNom(noeud.nom),
         )
         liaison.nomNoeud.text = noeud.nom
-        liaison.racineLigne.isClickable = noeud.estDossier
         liaison.racineLigne.contentDescription = decrire(liaison, noeud)
-        liaison.racineLigne.setOnClickListener {
-            if (noeud.estDossier) surBasculer(noeud)
-        }
+        liaison.racineLigne.setOnClickListener { surClic(noeud) }
     }
 
     /** Description accessible complète de la ligne (nom + type + état). */

@@ -47,6 +47,14 @@
                 android:layout_height="0dp"
                 android:layout_weight="1">
 
+                <!-- Éditeur du fichier actif : une seule vue, rebranchée sur
+                     la session de l'onglet sélectionné (ADR 0028). -->
+                <jo.codeeditor.view.EditorView
+                    android:id="@+id/vue_editeur"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progression"
                     android:layout_width="match_parent"
