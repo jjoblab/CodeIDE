@@ -216,6 +216,25 @@ sealed interface ActionEditor {
     data class PreciserLangue(
         val langue: String,
     ) : ActionEditor
+
+    /**
+     * Ouvre le terminal plein écran depuis la carte d'aperçu du tiroir
+     * (T6, section 8) : toute la carte et son bouton d'agrandissement.
+     */
+    data object OuvrirTerminal : ActionEditor
+
+    /**
+     * État vide de la carte : crée une session avec le dossier du projet
+     * courant comme répertoire de travail, puis ouvre l'écran plein
+     * écran dessus (T6, section 8).
+     */
+    data object NouvelleSessionTerminal : ActionEditor
+
+    /**
+     * Bootstrap absent : ouvre l'écran d'installation des outils du
+     * terminal (garde-fou symétrique de l'accueil, T6).
+     */
+    data object InstallerOutilsTerminal : ActionEditor
 }
 
 /**
@@ -252,7 +271,45 @@ sealed interface EffetEditor {
 
     /** Une opération de fichier (créer/renommer/supprimer) a échoué. */
     data object ErreurActionFichier : EffetEditor
+
+    /**
+     * Ouvrir l'écran plein écran du terminal (T6, section 8) : même liste
+     * globale de sessions que depuis l'accueil.
+     *
+     * @property cheminTravail répertoire suggéré (dossier réel du projet
+     * via `ResoudreRepertoireProjet`), ou `null` — l'écran terminal
+     * repliera sur le `HOME` canonique.
+     */
+    data class OuvrirTerminal(
+        val cheminTravail: String?,
+    ) : EffetEditor
+
+    /** Ouvrir l'écran d'installation du bootstrap (T6, bootstrap absent). */
+    data object OuvrirInstallationTerminal : EffetEditor
 }
+
+/**
+ * État de la carte d'aperçu du terminal dans le tiroir (T6, section 8).
+ *
+ * Zéro dépendance Termux : tout vient de
+ * [jo.codeide.core.domain.TerminalSessionSummary] — c'est le critère
+ * d'acceptation de la section 11 du prompt Terminal-1 (feature:editor
+ * ne dépend d'aucune bibliothèque `com.termux:*`).
+ *
+ * @property bootstrapInstalle bootstrap présent : la carte propose
+ * « Nouvelle session dans ce projet », sinon l'installation.
+ * @property nbSessions nombre total de sessions du registre global
+ * (vivantes **et** terminées) — l'état vide se juge sur lui.
+ * @property sessionsVivantes nombre de sessions actives (vivantes).
+ * @property sessionActive session sélectionnée dans le registre global
+ * (ou dernière vivante), dont la carte montre libellé et dernière sortie.
+ */
+data class EtatTerminalTiroir(
+    val bootstrapInstalle: Boolean = false,
+    val nbSessions: Int = 0,
+    val sessionsVivantes: Int = 0,
+    val sessionActive: jo.codeide.core.domain.TerminalSessionSummary? = null,
+)
 
 /**
  * Type de projet reconnu à l'ouverture, prêt à afficher (étape 18) : le

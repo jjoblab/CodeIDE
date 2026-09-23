@@ -30,6 +30,7 @@ import javax.inject.Inject
  *
  * Le fragment ne fait que **rendre l'état** et **émettre des actions** :
  * recherche avec délai, tri, tirer-relâcher, actions par projet (ouvrir,
+ * terminal intégré (T6),
  * renommer, épingler, retirer, supprimer du disque avec confirmation
  * rappelant le nom), import de dossier existant et relocalisation d'un
  * projet dont l'accès est rompu — tout vit dans [HomeViewModel].
@@ -107,6 +108,9 @@ class HomeFragment :
     /** Branche les interactions : titre, recherche, tri, rafraîchissement, FAB. */
     private fun brancherActions() {
         binding.buttonSettings.setOnClickListener { navigator.openSettings() }
+        // Terminal (T6) : la décision écran/installation vit au ViewModel
+        // (bootstrap installé ou non) — le fragment ne fait que relayer.
+        binding.buttonTerminal.setOnClickListener { viewModel.action(ActionAccueil.OuvrirTerminal) }
         binding.bandeauDossier.boutonConfigurer.setOnClickListener { navigator.openOnboarding() }
         // Include optionnel aux yeux de ViewBinding : appels sûrs, jamais de `!!`.
         binding.bandeauTerminal?.boutonInstallerTerminal?.setOnClickListener { navigator.openBootstrapInstall() }
@@ -174,12 +178,21 @@ class HomeFragment :
     private fun observerEtatEtEffets() {
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
-            if (effet is EffetAccueil.OuvrirEditeur) {
+            when (effet) {
                 // Espace de travail (étape 13) : l'activité s'affiche par-dessus,
                 // l'accueil survit en dessous.
-                navigator.openEditor(effet.id.value)
-            } else {
-                annoncer(effet)
+                is EffetAccueil.OuvrirEditeur -> navigator.openEditor(effet.id.value)
+
+                // Terminal (T6, section 7) : même liste globale de sessions
+                // depuis ce point d'entrée — répertoire général (null) : une
+                // nouvelle session y démarre dans le HOME canonique.
+                EffetAccueil.OuvrirTerminalEcran -> navigator.openTerminal(suggestedWorkingDirectory = null)
+
+                // Bootstrap absent : l'installation d'abord, jamais un
+                // terminal non fonctionnel.
+                EffetAccueil.OuvrirInstallationTerminal -> navigator.openBootstrapInstall()
+
+                else -> annoncer(effet)
             }
         }
     }
@@ -249,9 +262,13 @@ class HomeFragment :
     private fun annoncer(effet: EffetAccueil) {
         val message =
             when (effet) {
-                // L'ouverture de l'éditeur est interceptée par le collecteur
-                // (navigation, pas de snackbar) — elle n'arrive jamais ici.
-                is EffetAccueil.OuvrirEditeur -> return
+                // L'ouverture de l'éditeur et du terminal est interceptée par
+                // le collecteur (navigation, pas de snackbar) — elles
+                // n'arrivent jamais ici.
+                is EffetAccueil.OuvrirEditeur,
+                EffetAccueil.OuvrirTerminalEcran,
+                EffetAccueil.OuvrirInstallationTerminal,
+                -> return
 
                 is EffetAccueil.ProjetImporte -> getString(R.string.accueil_snackbar_importe, effet.nom)
 

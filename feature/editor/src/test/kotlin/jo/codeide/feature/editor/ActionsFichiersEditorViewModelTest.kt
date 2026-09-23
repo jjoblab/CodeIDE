@@ -48,6 +48,9 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
                 jo.codeide.core.domain
                     .ReconnaitreTypeProjetUseCase(fichiers),
             listerModeles = listerModeles,
+            sessionsTerminal = sessionsTerminal,
+            resoudreRepertoireProjet = resoudreRepertoire,
+            localisateurOutils = localisateurOutils,
             savedStateHandle = sauvegarde,
         )
 

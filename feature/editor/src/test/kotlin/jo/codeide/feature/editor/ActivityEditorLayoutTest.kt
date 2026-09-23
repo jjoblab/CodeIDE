@@ -50,11 +50,12 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `la barre du tiroir porte le menu externe à trois destinations`() {
+    fun `la barre du tiroir porte le menu externe à quatre destinations`() {
         val barre = gonfler().findViewById<BottomNavigationView>(R.id.barre_navigation_tiroir)
         val menu = barre.menu
-        assertEquals("trois destinations attendues", 3, menu.size())
-        assertTrue("Explorateur est la seule destination active", menu.findItem(R.id.destination_explorateur).isEnabled)
+        assertEquals("quatre destinations attendues (T6 : Terminal)", 4, menu.size())
+        assertTrue("Explorateur est active", menu.findItem(R.id.destination_explorateur).isEnabled)
+        assertTrue("Terminal est active (T6, section 8)", menu.findItem(R.id.destination_terminal).isEnabled)
         assertFalse("Recherche est désactivée", menu.findItem(R.id.destination_recherche).isEnabled)
         assertFalse("Git est désactivée", menu.findItem(R.id.destination_git).isEnabled)
     }
