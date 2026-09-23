@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Service foreground du terminal : maintient les sessions vivantes
+         hors écran avec une notification honnête (prompt Terminal-1,
+         section 4.2). Type specialUse : aucun des types normalisés ne
+         décrit « garder des shells interactifs en vie » — le sous-type
+         documenté ci-dessous l'explique à la revue Play. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name="jo.codeide.core.terminalruntime.TerminalService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Maintient des sessions de terminal interactives ouvertes tant que l'utilisateur ne les ferme pas." />
+        </service>
+    </application>
+
+</manifest>

@@ -48,6 +48,9 @@ dependencies {
     implementation(project(":core:data"))
     // Terminal T3 : agrégation Hilt du module bootstrap (ports du domaine).
     implementation(project(":core:bootstrap"))
+    // Terminal T4 : agrégation Hilt du registre des sessions + manifeste
+    // du service foreground (fusion dans l'application finale).
+    implementation(project(":core:terminal-runtime"))
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
