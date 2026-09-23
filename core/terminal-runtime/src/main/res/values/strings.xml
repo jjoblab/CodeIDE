@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terminal_service_titre">Terminal</string>
+    <string name="terminal_service_canal">Sessions de terminal</string>
+    <plurals name="terminal_service_texte">
+        <item quantity="one">%d session de terminal active</item>
+        <item quantity="other">%d sessions de terminal actives</item>
+    </plurals>
+</resources>
