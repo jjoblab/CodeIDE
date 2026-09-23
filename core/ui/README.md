@@ -20,6 +20,7 @@ Règles complètes : `docs/ARCHITECTURE.md` § « Règles de dépendance » et l
 - **`applySystemBarsInsets` / `applyImeBottomInset`** — helpers edge-to-edge (un seul écouteur d'insets par vue).
 - **`applyDynamicColorsIfAvailable`** — couleurs dynamiques Material You (Android 12+), optionnelles (ADR 0008).
 - **`AppNavigator`** — navigation découplée (`openSettings`, `goBack` à l'étape 1 ; s'enrichit à chaque étape), implémentée dans `app`.
+- **`IconesFichiers`** (étape 14) — icône d'un fichier de l'explorateur selon son extension (badges vectoriels maison : Kotlin, Java, Gradle, XML, Markdown, JSON, dossier, fichier générique en repli) ; `pourNom(nom)`, `pourDossier()`.
 
 ## Vérifications du module
 
