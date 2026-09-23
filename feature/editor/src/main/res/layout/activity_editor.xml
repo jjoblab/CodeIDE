@@ -440,6 +440,20 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="Projets/Mon Projet" />
 
+            <!-- Type reconnu depuis .codeide/project.json (étape 18). -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/type_projet_tiroir"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorPrimary"
+                android:visibility="gone"
+                tools:text="Modèle Kotlin · JVM · v1.0.0"
+                tools:visibility="visible" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_fermer_projet"
                 style="@style/Widget.CodeIDE.Button.Text"

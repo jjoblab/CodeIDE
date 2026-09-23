@@ -43,6 +43,10 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             lireEtatEspace =
                 jo.codeide.core.domain
                     .LireEtatEspaceUseCase(fichiers),
+            reconnaitreTypeProjet =
+                jo.codeide.core.domain
+                    .ReconnaitreTypeProjetUseCase(fichiers),
+            listerModeles = listerModeles,
             savedStateHandle = sauvegarde,
         )
 

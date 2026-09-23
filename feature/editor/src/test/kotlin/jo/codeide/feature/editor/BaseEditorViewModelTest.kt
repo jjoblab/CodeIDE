@@ -6,13 +6,17 @@ import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
+import jo.codeide.core.domain.templates.ListTemplatesUseCase
+import jo.codeide.core.domain.templates.TemplateEngine
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
+import jo.codeide.core.testing.FakeTemplateAssetsSource
 import jo.codeide.core.testing.InMemoryLogRepository
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +43,9 @@ abstract class BaseEditorViewModelTest {
 
     /** Dépôt de journaux en mémoire — alimente le journal compact (étape 16). */
     protected val depotJournaux = InMemoryLogRepository()
+
+    /** Catalogue vide : la reconnaissance replie sur l'identifiant brut (étape 18). */
+    protected val listerModeles = ListTemplatesUseCase(emptySet(), TemplateEngine(FakeTemplateAssetsSource()))
 
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
     protected fun viewModel(id: ProjectId): EditorViewModel =
@@ -68,6 +75,8 @@ abstract class BaseEditorViewModelTest {
             evaluerNom = EvaluerNomFichierUseCase(),
             enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
             lireEtatEspace = LireEtatEspaceUseCase(fichiers),
+            reconnaitreTypeProjet = ReconnaitreTypeProjetUseCase(fichiers),
+            listerModeles = listerModeles,
             savedStateHandle = sauvetage,
         )
 

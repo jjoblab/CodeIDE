@@ -110,10 +110,12 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             val viewModel = viewModel(alpha)
             advanceUntilIdle()
 
-            // À l'arrivée : la racine est énumérée pour l'arborescence, et
+            // À l'arrivée : la racine est énumérée pour l'arborescence,
             // une seconde fois par la reprise d'espace (.codeide/local —
-            // étape 17) ; les sous-dossiers restent paresseux.
-            assertEquals(2, fichiers.appelsList)
+            // étape 17) et une troisième par la reconnaissance du type
+            // (.codeide/project.json — étape 18) ; les sous-dossiers
+            // restent paresseux.
+            assertEquals(3, fichiers.appelsList)
 
             val uriSrc =
                 viewModel.etat.value.noeuds
@@ -123,7 +125,7 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             advanceUntilIdle()
 
             // Premier dépliement : une énumération de plus, l'enfant visible.
-            assertEquals(3, fichiers.appelsList)
+            assertEquals(4, fichiers.appelsList)
             val noeuds = viewModel.etat.value.noeuds
             assertEquals(listOf("src", "Main.kt"), noeuds.map { it.nom })
             assertEquals(1, noeuds.last().profondeur)
@@ -132,7 +134,7 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
             viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
             advanceUntilIdle()
-            assertEquals(3, fichiers.appelsList)
+            assertEquals(4, fichiers.appelsList)
             assertTrue(
                 viewModel.etat.value.noeuds
                     .any { it.nom == "Main.kt" },

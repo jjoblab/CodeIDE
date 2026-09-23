@@ -44,6 +44,10 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
             evaluerNom = EvaluerNomFichierUseCase(),
             enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
             lireEtatEspace = LireEtatEspaceUseCase(fichiers),
+            reconnaitreTypeProjet =
+                jo.codeide.core.domain
+                    .ReconnaitreTypeProjetUseCase(fichiers),
+            listerModeles = listerModeles,
             savedStateHandle = sauvegarde,
         )
 

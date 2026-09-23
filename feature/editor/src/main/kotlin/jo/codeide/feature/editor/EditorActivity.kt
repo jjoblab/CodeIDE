@@ -32,6 +32,8 @@ import jo.codeeditor.view.EditorView
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.RaisonValidation
+import jo.codeide.core.model.TemplateId
+import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
@@ -154,8 +156,23 @@ class EditorActivity : AppCompatActivity() {
         brancherPanneauInferieur()
         onBackPressedDispatcher.addCallback(this, retourEspace)
 
+        // Langue des libellés du catalogue (étape 18) — re-émise à chaque
+        // re-création de l'activité, donc après chaque changement de langue.
+        viewModel.onAction(ActionEditor.PreciserLangue(langueCourante()))
+
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
+    }
+
+    /**
+     * Langue des libellés du catalogue (étape 18) : configuration effective
+     * de l'activité (langue par application, ADR 0013), bornée aux langues
+     * connues du moteur — toute autre langue de système replie sur la
+     * valeur par défaut.
+     */
+    private fun langueCourante(): String {
+        val langue = resources.configuration.locales[0]?.language ?: return TemplateOptions.LANGUE_DEFAUT
+        return if (TemplateOptions.langueValide(langue)) langue else TemplateOptions.LANGUE_DEFAUT
     }
 
     /** Applique les insets edge-to-edge : toolbar en haut, tiroir en bas. */
@@ -622,10 +639,48 @@ class EditorActivity : AppCompatActivity() {
             liaison.cheminTiroir.text = projet.location.displayPath
             rendreTiroir(etat)
         }
+        rendreTypeProjet(etat)
         rendreOnglets(etat)
         rendreEditeur(etat)
         rendrePanneau(etat)
         majRetourSysteme(ongletsSales = etat.onglets.any { it.isDirty })
+    }
+
+    /**
+     * Ligne « type de projet » de l'en-tête du tiroir (étape 18) : modèle
+     * reconnu depuis `.codeide/project.json`, nom i18n + version ; un
+     * dossier importé sans métadonnées est dit tel, un projet créé dont
+     * le fichier a disparu affiche « type non reconnu » ; rien pendant la
+     * vérification d'accès ou en cas de panne.
+     */
+    private fun rendreTypeProjet(etat: EtatEditor) {
+        val type = etat.typeProjet
+        val acces = etat.acces
+        val enVerification = etat.verificationAcces || acces == null
+        val texte: String? =
+            when {
+                type != null && type.versionModele != null -> {
+                    getString(R.string.editor_type_projet_modele_version, type.nomModele, type.versionModele)
+                }
+
+                type != null -> {
+                    getString(R.string.editor_type_projet_modele, type.nomModele)
+                }
+
+                etat.projet == null || enVerification || acces != ProjectAccessState.Available -> {
+                    null
+                }
+
+                etat.projet?.templateId == TemplateId.IMPORTED -> {
+                    getString(R.string.editor_type_projet_importe)
+                }
+
+                else -> {
+                    getString(R.string.editor_type_projet_inconnu)
+                }
+            }
+        liaison.typeProjetTiroir.isVisible = texte != null
+        if (texte != null) liaison.typeProjetTiroir.text = texte
     }
 
     /** Contenu du tiroir : vérification, arborescence ou bandeau d'accès. */

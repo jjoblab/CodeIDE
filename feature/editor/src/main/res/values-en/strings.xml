@@ -107,4 +107,9 @@
         <item quantity="one">%1$d entry shown</item>
         <item quantity="other">%1$d entries shown</item>
     </plurals>
+    <!-- Recognized project type at open (step 18). -->
+    <string name="editor_type_projet_modele">%1$s template</string>
+    <string name="editor_type_projet_modele_version">%1$s template · v%2$s</string>
+    <string name="editor_type_projet_importe">Imported folder</string>
+    <string name="editor_type_projet_inconnu">Unrecognized project type</string>
 </resources>
