@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variantes nuit des couleurs de niveaux du journal compact (étape 16). -->
+<resources>
+    <color name="journal_compact_debug">#9AA0A6</color>
+    <color name="journal_compact_info">#8AB4F8</color>
+    <color name="journal_compact_warn">#FDD663</color>
+    <color name="journal_compact_error">#F2B8B5</color>
+</resources>

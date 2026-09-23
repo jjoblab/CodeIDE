@@ -9,10 +9,13 @@ import jo.codeeditor.session.EditorSession
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.LogEntry
+import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -58,11 +62,12 @@ internal class SessionSuivie(
 }
 
 /**
- * ViewModel de l'espace de travail (étapes 13-15) : charge le projet dont
+ * ViewModel de l'espace de travail (étapes 13-16) : charge le projet dont
  * l'identifiant est arrivé par l'intention (transmis par le
  * [SavedStateHandle] — survit à la rotation et à la mort du processus), le
- * suit au registre, alimente **l'explorateur de fichiers** du tiroir et
- * **les onglets d'édition** de la zone centrale.
+ * suit au registre, alimente **l'explorateur de fichiers** du tiroir,
+ * **les onglets d'édition** de la zone centrale et **le panneau inférieur**
+ * (journal applicatif compact, étape 16).
  *
  * Onglets (prompt compagnon 5.2/5.4) : chaque onglet ouvert détient sa
  * `EditorSession` (classe pure de cel-core) **ici, jamais une vue** —
@@ -70,6 +75,12 @@ internal class SessionSuivie(
  * La sauvegarde est automatique (délai d'inactivité après une
  * modification) **et** manuelle, toujours via `FileSystem.writeText`,
  * verrouillée par fichier contre les écritures concurrentes.
+ *
+ * Journal compact (étape 16, ADR 0029) : la fenêtre mémoire des entrées
+ * récentes ([ObserveLogsUseCase]) suffit — l'historique complet lu sur
+ * disque reste le propre de l'écran Diagnostic (lien « Ouvrir le journal
+ * complet ») ; les filtres par niveau suivent la même règle que l'étape 12
+ * (ensemble vide = tous les niveaux).
  *
  * La mort du processus rouvre les onglets (chemins et onglet actif dans
  * le `SavedStateHandle`, contenu relu) — le fichier de reprise par projet
@@ -92,10 +103,22 @@ class EditorViewModel
         private val verifierAcces: VerifyProjectAccessUseCase,
         private val fichiers: FileSystem,
         private val journal: AppLogger,
+        observerJournaux: ObserveLogsUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
-        private val etatInterne = MutableStateFlow(EtatEditor())
+        private val etatInterne =
+            MutableStateFlow(
+                EtatEditor(
+                    etatPanneau =
+                        sauvetage.get<String>(ClesEditor.CLE_ETAT_PANNEAU)?.let(EtatPanneau::valueOf)
+                            ?: EtatPanneau.REPLIE,
+                    ongletPanneau =
+                        sauvetage.get<String>(ClesEditor.CLE_ONGLET_PANNEAU)?.let(OngletPanneau::valueOf)
+                            ?: OngletPanneau.JOURNAL,
+                    filtresJournal = restaurerFiltresJournal(),
+                ),
+            )
 
         /** Effets ponctuels (dialogue de fermeture, « Ouvrir avec », sortie). */
         private val canalEffets = Channel<EffetEditor>(Channel.BUFFERED)
@@ -136,12 +159,16 @@ class EditorViewModel
         /** Sauvegardes automatiques en attente, par onglet (délai d'inactivité). */
         private val sauvegardesAuto = ConcurrentHashMap<String, Job>()
 
+        /** Fenêtre brute des entrées récentes (avant filtres), étape 16. */
+        private var entreesJournalConnues: List<LogEntry> = emptyList()
+
         init {
             val identifiant = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
             observerProjet(ProjectId(identifiant))
                 .onEach { projet -> suivre(projet) }
                 .launchIn(viewModelScope)
             restaurerOnglets()
+            observerJournal(observerJournaux)
         }
 
         /** Point d'entrée unique des actions de l'espace de travail. */
@@ -159,6 +186,18 @@ class EditorViewModel
                 is ActionEditor.EnregistrerPuisFermer -> enregistrerPuisFermer(action.uris, action.quitter)
                 is ActionEditor.FermerSansEnregistrer -> fermer(action.uris, action.quitter)
                 ActionEditor.Quitter -> demanderSortie()
+                else -> onActionPanneau(action)
+            }
+        }
+
+        /** Suite du routage : actions propres au panneau inférieur (étape 16). */
+        private fun onActionPanneau(action: ActionEditor) {
+            when (action) {
+                is ActionEditor.ChangerEtatPanneau -> changerEtatPanneau(action.etat)
+                is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
+                is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
+                ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
+                else -> Unit // Routage exhaustif par les deux branches.
             }
         }
 
@@ -694,9 +733,86 @@ class EditorViewModel
             sessions.clear()
         }
 
+        // ------------------------------------------------------------------
+        // Panneau inférieur (étape 16)
+        // ------------------------------------------------------------------
+
+        /**
+         * Change l'état d'ouverture du panneau — idempotent : l'activité
+         * applique l'état au `BottomSheetBehavior` **et** renvoie chaque
+         * transition stabilisée du comportement ; rejouer l'état courant
+         * ne fait rien (aucune boucle).
+         */
+        private fun changerEtatPanneau(etat: EtatPanneau) {
+            if (etatInterne.value.etatPanneau == etat) return
+            sauvetage[ClesEditor.CLE_ETAT_PANNEAU] = etat.name
+            etatInterne.update { it.copy(etatPanneau = etat) }
+        }
+
+        /** Sélectionne l'onglet actif du panneau inférieur — persisté. */
+        private fun selectionnerOngletPanneau(onglet: OngletPanneau) {
+            if (etatInterne.value.ongletPanneau == onglet) return
+            sauvetage[ClesEditor.CLE_ONGLET_PANNEAU] = onglet.name
+            etatInterne.update { it.copy(ongletPanneau = onglet) }
+        }
+
+        /**
+         * Bascule un niveau du filtre du journal (vide = tous les niveaux,
+         * même règle que l'écran Diagnostic) et recalcule la fenêtre.
+         */
+        private fun basculerFiltreJournal(niveau: LogLevel) {
+            val filtres =
+                etatInterne
+                    .updateAndGet { etat ->
+                        val nouveaux =
+                            if (niveau in etat.filtresJournal) {
+                                etat.filtresJournal - niveau
+                            } else {
+                                etat.filtresJournal + niveau
+                            }
+                        etat.copy(filtresJournal = nouveaux)
+                    }.filtresJournal
+            sauvetage[ClesEditor.CLE_FILTRES_JOURNAL] = ArrayList(filtres.map { it.name })
+            rafraichirJournal()
+        }
+
+        /**
+         * Collecte la fenêtre mémoire des entrées récentes (ADR 0029) :
+         * pas de lecture disque ici — l'historique complet reste le propre
+         * de l'écran Diagnostic, le panneau ne montre que le flux vivant.
+         */
+        private fun observerJournal(observerJournaux: ObserveLogsUseCase) {
+            observerJournaux(FENETRE_JOURNAL)
+                .onEach { fenetre ->
+                    entreesJournalConnues = fenetre
+                    rafraichirJournal()
+                }.launchIn(viewModelScope)
+        }
+
+        /** Recalcule la fenêtre affichée depuis les filtres courants. */
+        private fun rafraichirJournal() {
+            val filtres = etatInterne.value.filtresJournal
+            val affichees =
+                if (filtres.isEmpty()) {
+                    entreesJournalConnues
+                } else {
+                    entreesJournalConnues.filter { it.level in filtres }
+                }
+            etatInterne.update { it.copy(entreesJournal = affichees) }
+        }
+
+        /** Restitue les filtres de niveaux sauvegardés. */
+        private fun restaurerFiltresJournal(): Set<LogLevel> {
+            val noms: List<String> = sauvetage.get<ArrayList<String>>(ClesEditor.CLE_FILTRES_JOURNAL) ?: emptyList()
+            return noms.mapNotNull { nom -> LogLevel.entries.firstOrNull { it.name == nom } }.toSet()
+        }
+
         private companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /** Fenêtre du journal compact (capacité du tampon mémoire). */
+            const val FENETRE_JOURNAL = 200
 
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "Editor"

@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.getOrNull
@@ -419,6 +420,7 @@ class OngletsEditorViewModelTest : BaseEditorViewModelTest() {
                     verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
                     fichiers = fichiers,
                     journal = FakeAppLogger(),
+                    observerJournaux = ObserveLogsUseCase(depotJournaux),
                     savedStateHandle = sauvetage,
                 )
             advanceUntilIdle()
@@ -438,6 +440,7 @@ class OngletsEditorViewModelTest : BaseEditorViewModelTest() {
                     verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
                     fichiers = fichiers,
                     journal = FakeAppLogger(),
+                    observerJournaux = ObserveLogsUseCase(depotJournaux),
                     savedStateHandle = sauvetage,
                 )
             advanceUntilIdle()

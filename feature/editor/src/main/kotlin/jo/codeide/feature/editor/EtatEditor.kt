@@ -1,5 +1,7 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.model.LogEntry
+import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 
@@ -32,6 +34,41 @@ data class NoeudExplorateur(
     val chargementEnfants: Boolean = false,
     val erreurChargement: Boolean = false,
 )
+
+/**
+ * État d'ouverture du panneau inférieur (étape 16, prompt compagnon 5.5).
+ *
+ * Les trois états gérés par le `BottomSheetBehavior` : **replié** (seul
+ * l'en-tête est visible, hauteur fixe), **mi-hauteur** (par défaut à
+ * l'ouverture du panneau), **étendu** (pleine hauteur moins la toolbar).
+ */
+enum class EtatPanneau {
+    /** Seul l'en-tête du panneau est visible. */
+    REPLIE,
+
+    /** Le panneau occupe environ la moitié de la zone centrale. */
+    MI_HAUTEUR,
+
+    /** Le panneau occupe toute la hauteur disponible. */
+    ETENDU,
+}
+
+/**
+ * Onglet actif du panneau inférieur (étape 16) : **Journal** est
+ * fonctionnel, **Console** et **Problèmes** sont des stubs explicites
+ * (aucune exécution Gradle ni analyse en Phase 1 — hors périmètre,
+ * prompt maître section 13).
+ */
+enum class OngletPanneau {
+    /** Sortie de console/Gradle — stub explicite à l'étape 16. */
+    CONSOLE,
+
+    /** Problèmes de compilation et d'analyse — stub explicite à l'étape 16. */
+    PROBLEMES,
+
+    /** Journal applicatif — fonctionnel (réutilise `LogRepository`). */
+    JOURNAL,
+}
 
 /**
  * Onglet de fichier ouvert dans la zone centrale (étape 15, prompt compagnon
@@ -122,6 +159,31 @@ sealed interface ActionEditor {
 
     /** Retour système hors tiroir : quitte, après confirmation si sale. */
     data object Quitter : ActionEditor
+
+    /**
+     * Change l'état d'ouverture du panneau inférieur (en-tête, bouton
+     * agrandir/réduire, glissement, retour système) — persisté pour la
+     * rotation.
+     */
+    data class ChangerEtatPanneau(
+        val etat: EtatPanneau,
+    ) : ActionEditor
+
+    /** Sélectionne l'onglet actif du panneau inférieur — persisté. */
+    data class SelectionnerOngletPanneau(
+        val onglet: OngletPanneau,
+    ) : ActionEditor
+
+    /**
+     * Bascule un niveau du filtre du journal applicatif (vide = tous les
+     * niveaux — même règle que l'écran Diagnostic, étape 12).
+     */
+    data class BasculerFiltreJournal(
+        val niveau: LogLevel,
+    ) : ActionEditor
+
+    /** Ouvre l'écran Diagnostic complet depuis le journal compact. */
+    data object OuvrirJournalComplet : ActionEditor
 }
 
 /**
@@ -152,13 +214,17 @@ sealed interface EffetEditor {
 
     /** L'enregistrement a échoué : le contenu reste non enregistré. */
     data object ErreurEnregistrement : EffetEditor
+
+    /** Lien « Ouvrir le journal complet » : naviguer vers l'écran Diagnostic. */
+    data object OuvrirJournalComplet : EffetEditor
 }
 
 /**
- * État observable de l'espace de travail (étapes 13-15).
+ * État observable de l'espace de travail (étapes 13-16).
  *
- * Volontairement incrémental : l'état du panneau inférieur arrivera avec
- * l'étape 16 — l'état grandit avec, jamais avant.
+ * Volontairement incrémental : la reprise par projet (`workspace-state.json`)
+ * et les actions de fichiers du tiroir arrivent à l'étape 17 — l'état
+ * grandit avec, jamais avant.
  *
  * @property chargement première lecture du projet en cours.
  * @property projet projet ouvert, ou `null` si l'identifiant reçu
@@ -173,6 +239,12 @@ sealed interface EffetEditor {
  * @property noeuds liste aplatie des nœuds visibles de l'explorateur.
  * @property onglets fichiers ouverts en onglets (étape 15).
  * @property indexOngletActif position de l'onglet actif, −1 si aucun.
+ * @property etatPanneau état d'ouverture du panneau inférieur (étape 16).
+ * @property ongletPanneau onglet actif du panneau inférieur (étape 16).
+ * @property entreesJournal fenêtre compacte des entrées récentes du
+ * journal applicatif, filtrée par niveaux (étape 16).
+ * @property filtresJournal niveaux retenus — vide = tous les niveaux
+ * (même règle que l'écran Diagnostic).
  */
 data class EtatEditor(
     val chargement: Boolean = true,
@@ -183,6 +255,10 @@ data class EtatEditor(
     val noeuds: List<NoeudExplorateur> = emptyList(),
     val onglets: List<EditorTabState> = emptyList(),
     val indexOngletActif: Int = -1,
+    val etatPanneau: EtatPanneau = EtatPanneau.REPLIE,
+    val ongletPanneau: OngletPanneau = OngletPanneau.JOURNAL,
+    val entreesJournal: List<LogEntry> = emptyList(),
+    val filtresJournal: Set<LogLevel> = emptySet(),
 )
 
 /** Clés partagées de l'espace de travail. */
@@ -195,4 +271,13 @@ object ClesEditor {
 
     /** Sauvetage : position de l'onglet actif, étape 15. */
     const val CLE_INDEX_ACTIF: String = "index_onglet_actif"
+
+    /** Sauvetage : état d'ouverture du panneau inférieur, étape 16. */
+    const val CLE_ETAT_PANNEAU: String = "etat_panneau"
+
+    /** Sauvetage : onglet actif du panneau inférieur, étape 16. */
+    const val CLE_ONGLET_PANNEAU: String = "onglet_panneau"
+
+    /** Sauvetage : filtres de niveaux du journal compact, étape 16. */
+    const val CLE_FILTRES_JOURNAL: String = "filtres_journal"
 }

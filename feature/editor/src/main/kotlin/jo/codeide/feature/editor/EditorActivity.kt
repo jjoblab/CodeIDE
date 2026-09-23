@@ -26,15 +26,19 @@ import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
+import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
+import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
+import javax.inject.Inject
 
 /**
- * Espace de travail d'un projet (étapes 13-15, prompt compagnon section 5) :
+ * Espace de travail d'un projet (étapes 13-16, prompt compagnon section 5) :
  * **trois zones**.
  *
  * - tiroir de navigation gauche — en-tête (nom, chemin, « Fermer le
@@ -47,7 +51,11 @@ import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
  *   menu contextuel : fermer, fermer les autres, fermer tout, déplacer,
  *   copier le chemin) au-dessus d'**un seul `EditorView`** rebranché sur la
  *   session de l'onglet actif — thème clair/sombre suivant l'application ;
- * - panneau inférieur replié à trois onglets vides (étape 16).
+ * - panneau inférieur (étape 16, ADR 0029) : trois états pilotés par
+ *   `BottomSheetBehavior` (replié / mi-hauteur / étendu), en-tête à
+ *   poignée/titre/badge/actions, onglet **Journal applicatif** compact
+ *   fonctionnel (fenêtre mémoire, filtres par niveau, lien vers l'écran
+ *   Diagnostic) et onglets **Sortie** et **Problèmes** en stub explicite.
  *
  * Sauvegarde automatique (délai d'inactivité, côté ViewModel) et manuelle
  * (action de la toolbar). Fermeture d'un onglet sale — ou sortie avec des
@@ -55,8 +63,8 @@ import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
  * agrégé pour plusieurs fichiers. Un fichier binaire est proposé à
  * « Ouvrir avec » plutôt qu'affiché illisible.
  *
- * Le bouton retour ferme le tiroir s'il est ouvert, sinon quitte — après
- * confirmation si des onglets sont sales.
+ * Le bouton retour réduit le panneau étendu, ferme le tiroir s'il est
+ * ouvert, sinon quitte — après confirmation si des onglets sont sales.
  *
  * Exemption detekt ciblée (règle 16) : TooManyFunctions — l'activité
  * **rend** les trois zones de l'espace de travail (tiroir, onglets,
@@ -68,12 +76,19 @@ import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 class EditorActivity : AppCompatActivity() {
     private val viewModel: EditorViewModel by viewModels()
 
+    /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
+    @Inject
+    lateinit var navigateur: AppNavigator
+
     private lateinit var liaison: ActivityEditorBinding
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
     /** Adaptateur de l'arborescence paresseuse du tiroir (étape 14). */
     private lateinit var adaptateurExplorateur: ExplorateurAdapter
+
+    /** Adaptateur du journal applicatif compact du panneau (étape 16). */
+    private lateinit var adaptateurJournal: EntreesJournalCompactesAdapter
 
     /** Thèmes cel mis en cache (clair/sombre, suivant l'application). */
     private var themeClair: EditorTheme? = null
@@ -82,20 +97,41 @@ class EditorActivity : AppCompatActivity() {
     /** Sélection programmatique d'onglet : ne pas la renvoyer au ViewModel. */
     private var selectionProgrammatique = false
 
+    /** Idem pour les onglets du panneau inférieur (étape 16). */
+    private var selectionProgrammatiquePanneau = false
+
+    /** Mise à jour programmatique des filtres du journal (étape 16). */
+    private var majProgrammatiqueFiltres = false
+
+    /** Taille de la dernière fenêtre du journal rendue (suivi direct). */
+    private var tailleDerniereFenetreJournal = 0
+
     /** Le tiroir est-il ouvert (pilote le retour système) ? */
     private var tiroirOuvert = false
+
+    /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
+    private var panneauEtendu = false
 
     /** Des onglets sont-ils sales (pilote le retour système) ? */
     private var ongletsSales = false
 
-    /** Retour système : ferme le tiroir ouvert, confirme les onglets sales, sinon quitte. */
+    /** Retour système : réduit le panneau étendu, ferme le tiroir ouvert,
+     * confirme les onglets sales, sinon quitte. */
     private val retourEspace =
         object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                if (tiroirOuvert) {
-                    liaison.racineEditeur.closeDrawer(liaison.tiroir)
-                } else {
-                    viewModel.onAction(ActionEditor.Quitter)
+                when {
+                    panneauEtendu -> {
+                        viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
+                    }
+
+                    tiroirOuvert -> {
+                        liaison.racineEditeur.closeDrawer(liaison.tiroir)
+                    }
+
+                    else -> {
+                        viewModel.onAction(ActionEditor.Quitter)
+                    }
                 }
             }
         }
@@ -229,25 +265,118 @@ class EditorActivity : AppCompatActivity() {
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
     private fun brancherEditeur() = Unit
 
-    /** Panneau inférieur : replié, un appui sur l'en-tête le déplie à mi-hauteur. */
+    /**
+     * Panneau inférieur (étape 16) : trois états, en-tête (poignée, titre,
+     * badge, agrandir, réduire), onglets Console/Problèmes/Journal, filtres
+     * du journal compact et lien vers l'écran Diagnostic.
+     */
     private fun brancherPanneauInferieur() {
         comportementPanneau = BottomSheetBehavior.from(liaison.panneauInferieur)
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
+        comportementPanneau.addBottomSheetCallback(
+            object : BottomSheetBehavior.BottomSheetCallback() {
+                override fun onStateChanged(
+                    vue: View,
+                    nouvelEtat: Int,
+                ) {
+                    // Seules les transitions **stabilisées** remontent au
+                    // ViewModel (DRAGGING/SETTLING sont transitoires) — le
+                    // rejou d'un état déjà courant est sans effet (UDF).
+                    when (nouvelEtat) {
+                        BottomSheetBehavior.STATE_COLLAPSED -> {
+                            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
+                        }
 
-        liaison.entetePanneau.setOnClickListener {
-            comportementPanneau.state =
-                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
-                    BottomSheetBehavior.STATE_HALF_EXPANDED
-                } else {
-                    BottomSheetBehavior.STATE_COLLAPSED
+                        BottomSheetBehavior.STATE_HALF_EXPANDED -> {
+                            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
+                        }
+
+                        BottomSheetBehavior.STATE_EXPANDED -> {
+                            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.ETENDU))
+                        }
+
+                        else -> {
+                            Unit
+                        }
+                    }
                 }
+
+                override fun onSlide(
+                    vue: View,
+                    glissement: Float,
+                ) = Unit
+            },
+        )
+
+        // En-tête : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
+        liaison.entetePanneau.setOnClickListener {
+            val cible =
+                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
+                    EtatPanneau.MI_HAUTEUR
+                } else {
+                    EtatPanneau.REPLIE
+                }
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
         }
+
+        // Agrandir : replié -> mi-hauteur -> étendu, puis redescend.
+        liaison.boutonAgrandirPanneau.setOnClickListener {
+            val cible =
+                when (comportementPanneau.state) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> EtatPanneau.MI_HAUTEUR
+                    BottomSheetBehavior.STATE_HALF_EXPANDED -> EtatPanneau.ETENDU
+                    else -> EtatPanneau.MI_HAUTEUR
+                }
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
+        }
+
         liaison.boutonFermerPanneau.setOnClickListener {
-            comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
+        }
+
+        // Onglets du panneau : l'ordre du layout fixe la correspondance.
+        liaison.ongletsPanneau.addOnTabSelectedListener(
+            object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    if (!selectionProgrammatiquePanneau) {
+                        OngletPanneau.entries.getOrNull(tab.position)?.let {
+                            viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(it))
+                        }
+                    }
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+                override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            },
+        )
+
+        adaptateurJournal = EntreesJournalCompactesAdapter()
+        liaison.listeJournal.layoutManager = LinearLayoutManager(this)
+        liaison.listeJournal.adapter = adaptateurJournal
+
+        // Filtres par niveau — même règle que l'écran Diagnostic (étape 12).
+        liaison.chipJournalDebug.setOnCheckedChangeListener { _, _ ->
+            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.DEBUG))
+        }
+        liaison.chipJournalInfo.setOnCheckedChangeListener { _, _ ->
+            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.INFO))
+        }
+        liaison.chipJournalWarn.setOnCheckedChangeListener { _, _ ->
+            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.WARN))
+        }
+        liaison.chipJournalError.setOnCheckedChangeListener { _, _ ->
+            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.ERROR))
+        }
+
+        // Lien vers le journal complet — l'historique et les exports restent
+        // à l'écran Diagnostic (version compacte, prompt compagnon 5.5).
+        liaison.boutonJournalComplet.setOnClickListener {
+            viewModel.onAction(ActionEditor.OuvrirJournalComplet)
         }
     }
 
-    /** Rend l'état : titre, tiroir (explorateur/bandeau), onglets, éditeur. */
+    /** Rend l'état : titre, tiroir (explorateur/bandeau), onglets, éditeur, panneau. */
     private fun rendre(etat: EtatEditor) {
         val projet = etat.projet
         liaison.progression.isVisible = etat.chargement
@@ -262,6 +391,7 @@ class EditorActivity : AppCompatActivity() {
         }
         rendreOnglets(etat)
         rendreEditeur(etat)
+        rendrePanneau(etat)
         majRetourSysteme(ongletsSales = etat.onglets.any { it.isDirty })
     }
 
@@ -455,6 +585,81 @@ class EditorActivity : AppCompatActivity() {
         return themeClair!!
     }
 
+    /**
+     * Panneau inférieur (étape 16) : état d'ouverture appliqué au
+     * comportement, onglet actif réconcilié, fenêtre du journal rendue
+     * (suivi direct par défilement quand elle grandit), filtres, badge
+     * et titre de l'en-tête.
+     */
+    private fun rendrePanneau(etat: EtatEditor) {
+        // État d'ouverture — l'état du comportement peut diverger pendant
+        // un glissement ; seule la valeur stabilisée est appliquée.
+        val cibleComportement =
+            when (etat.etatPanneau) {
+                EtatPanneau.REPLIE -> BottomSheetBehavior.STATE_COLLAPSED
+                EtatPanneau.MI_HAUTEUR -> BottomSheetBehavior.STATE_HALF_EXPANDED
+                EtatPanneau.ETENDU -> BottomSheetBehavior.STATE_EXPANDED
+            }
+        if (comportementPanneau.state != cibleComportement) {
+            comportementPanneau.state = cibleComportement
+        }
+        panneauEtendu = etat.etatPanneau == EtatPanneau.ETENDU
+        majRetourSysteme()
+
+        // Onglet actif : réconciliation silencieuse de la barre.
+        val indexOnglet = OngletPanneau.entries.indexOf(etat.ongletPanneau)
+        if (liaison.ongletsPanneau.selectedTabPosition != indexOnglet) {
+            val onglet = liaison.ongletsPanneau.getTabAt(indexOnglet)
+            if (onglet != null) {
+                selectionProgrammatiquePanneau = true
+                liaison.ongletsPanneau.selectTab(onglet)
+                selectionProgrammatiquePanneau = false
+            }
+        }
+        liaison.contenuJournal.isVisible = etat.ongletPanneau == OngletPanneau.JOURNAL
+        liaison.contenuSortie.isVisible = etat.ongletPanneau == OngletPanneau.CONSOLE
+        liaison.contenuProblemes.isVisible = etat.ongletPanneau == OngletPanneau.PROBLEMES
+
+        // Titre de l'en-tête : libellé de l'onglet actif du panneau.
+        liaison.titrePanneau.setText(libelleOngletPanneau(etat.ongletPanneau))
+
+        // Journal compact : fenêtre, suivi direct, état vide, badge.
+        adaptateurJournal.submitList(etat.entreesJournal)
+        if (etat.entreesJournal.size > tailleDerniereFenetreJournal && etat.entreesJournal.isNotEmpty()) {
+            liaison.listeJournal.scrollToPosition(etat.entreesJournal.lastIndex)
+        }
+        tailleDerniereFenetreJournal = etat.entreesJournal.size
+        liaison.texteJournalVide.isVisible = etat.entreesJournal.isEmpty()
+
+        liaison.badgePanneau.isVisible = etat.ongletPanneau == OngletPanneau.JOURNAL && etat.entreesJournal.isNotEmpty()
+        if (liaison.badgePanneau.isVisible) {
+            // Formatage explicite indépendant de la locale (SetTextI18n).
+            liaison.badgePanneau.text = String.format(java.util.Locale.ROOT, "%d", etat.entreesJournal.size)
+            liaison.badgePanneau.contentDescription =
+                resources.getQuantityString(
+                    R.plurals.editor_panneau_badge_cd,
+                    etat.entreesJournal.size,
+                    etat.entreesJournal.size,
+                )
+        }
+
+        // Filtres : cochés selon l'état, sans renvoyer l'action (garde).
+        majProgrammatiqueFiltres = true
+        liaison.chipJournalDebug.isChecked = LogLevel.DEBUG in etat.filtresJournal
+        liaison.chipJournalInfo.isChecked = LogLevel.INFO in etat.filtresJournal
+        liaison.chipJournalWarn.isChecked = LogLevel.WARN in etat.filtresJournal
+        liaison.chipJournalError.isChecked = LogLevel.ERROR in etat.filtresJournal
+        majProgrammatiqueFiltres = false
+    }
+
+    /** Libellé localisé d'un onglet du panneau inférieur. */
+    private fun libelleOngletPanneau(onglet: OngletPanneau): Int =
+        when (onglet) {
+            OngletPanneau.CONSOLE -> R.string.editor_panneau_console
+            OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
+            OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
+        }
+
     /** Application des effets ponctuels. */
     private fun appliquer(effet: EffetEditor) {
         when (effet) {
@@ -489,6 +694,10 @@ class EditorActivity : AppCompatActivity() {
                 Snackbar
                     .make(liaison.racineEditeur, R.string.editor_erreur_enregistrement, Snackbar.LENGTH_LONG)
                     .show()
+            }
+
+            EffetEditor.OuvrirJournalComplet -> {
+                navigateur.openDiagnostics()
             }
         }
     }
@@ -538,7 +747,7 @@ class EditorActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Réactive le retour système selon tiroir ouvert et onglets sales. */
+    /** Réactive le retour système selon panneau étendu, tiroir ouvert et onglets sales. */
     private fun majRetourSysteme(
         tiroirOuvert: Boolean? = null,
         ongletsSales: Boolean? = null,
@@ -547,7 +756,7 @@ class EditorActivity : AppCompatActivity() {
         // Sur grand écran le tiroir est permanent : il ne se « ferme » pas.
         if (tiroirOuvert != null) this.tiroirOuvert = tiroirOuvert && !tiroirBloque
         if (ongletsSales != null) this.ongletsSales = ongletsSales
-        retourEspace.isEnabled = this.tiroirOuvert || this.ongletsSales
+        retourEspace.isEnabled = panneauEtendu || this.tiroirOuvert || this.ongletsSales
     }
 
     private companion object {

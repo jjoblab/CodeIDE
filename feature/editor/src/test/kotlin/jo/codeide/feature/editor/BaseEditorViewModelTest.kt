@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.ProjectId
@@ -9,6 +10,7 @@ import jo.codeide.core.model.TemplateId
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
+import jo.codeide.core.testing.InMemoryLogRepository
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -18,9 +20,10 @@ import org.junit.Rule
 
 /**
  * Socle commun des tests du ViewModel de l'espace de travail : registre,
- * système de fichiers et horloge factices, construction du ViewModel et
- * collecte des effets — l'explorateur (étape 14) et les onglets (étape 15)
- * ont chacun leur classe de test, ce socle est leur partie partagée.
+ * système de fichiers, dépôt de journaux et horloge factices, construction
+ * du ViewModel et collecte des effets — l'explorateur (étape 14), les
+ * onglets (étape 15) et le panneau inférieur (étape 16) ont chacun leur
+ * classe de test, ce socle est leur partie partagée.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class BaseEditorViewModelTest {
@@ -30,6 +33,9 @@ abstract class BaseEditorViewModelTest {
     protected val depot = FakeProjectRepository()
     protected val fichiers = FakeFileSystem()
 
+    /** Dépôt de journaux en mémoire — alimente le journal compact (étape 16). */
+    protected val depotJournaux = InMemoryLogRepository()
+
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
     protected fun viewModel(id: ProjectId): EditorViewModel =
         EditorViewModel(
@@ -37,6 +43,7 @@ abstract class BaseEditorViewModelTest {
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
             journal = FakeAppLogger(),
+            observerJournaux = ObserveLogsUseCase(depotJournaux),
             savedStateHandle =
                 SavedStateHandle(
                     mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),

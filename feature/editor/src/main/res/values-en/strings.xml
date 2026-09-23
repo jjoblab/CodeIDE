@@ -36,7 +36,6 @@
     <string name="editor_noeud_replie">collapsed</string>
     <string name="editor_noeud_chargement_cd">Loading folder contents</string>
 
-    <string name="editor_panneau_titre">Panel</string>
     <string name="editor_panneau_reduire_cd">Collapse the bottom panel</string>
     <string name="editor_panneau_poignee_cd">Expand or collapse the bottom panel</string>
     <string name="editor_panneau_console">Console</string>
@@ -67,4 +66,19 @@
     <string name="editor_erreur_enregistrement">Saving failed: the content remains unsaved.</string>
     <string name="editor_ouvrir_avec_aucune">No application can open this file.</string>
     <string name="editor_chemin_copie">Path copied</string>
+
+    <!-- Panneau inférieur (étape 16). -->
+    <string name="editor_panneau_agrandir_cd">Expand the bottom panel</string>
+    <string name="editor_journal_niveau_debug">Debug</string>
+    <string name="editor_journal_niveau_info">Info</string>
+    <string name="editor_journal_niveau_warn">Warn</string>
+    <string name="editor_journal_niveau_error">Error</string>
+    <string name="editor_journal_vide">No entries for these filters.</string>
+    <string name="editor_journal_complet">Open the full log</string>
+    <string name="editor_sortie_stub">The console will appear here once the build tooling is available.</string>
+    <string name="editor_problemes_stub">Compilation and analysis problems will appear here.</string>
+    <plurals name="editor_panneau_badge_cd">
+        <item quantity="one">%1$d entry shown</item>
+        <item quantity="other">%1$d entries shown</item>
+    </plurals>
 </resources>
