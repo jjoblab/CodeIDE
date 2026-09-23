@@ -311,6 +311,22 @@ release (prompt compagnon 6, ADR 0031).
 | E51 | **Parcours T3 — à la demande** : après « Plus tard », bandeau de l'accueil → « Installer les outils » | Le même écran s'ouvre (même liste d'états) ; à la fin de l'installation, le bandeau disparaît **sans repasser par l'accueil** ; aucune double installation possible |
 | E52 | **Rotation et reprise** : faire pivoter l'appareil pendant l'installation, fermer puis rouvrir l'écran | La progression reprend où elle en était (état partagé du singleton) ; aucune installation relancée ; l'annulation reste possible à tout instant |
 
+## Terminal — runtime des sessions (étape 22 = T4)
+
+Préambule : bootstrap **installé** sur un appareil aarch64 (E45) ; ces
+tests vérifient le comportement observable du runtime sans l'écran
+plein écran (T5) — via logcat (`adb shell dumpsys activity services
+jo.codeide | grep -i terminal`) et le tiroir/la notification. L'acceptation
+exige le cycle de vie documenté (ADR 0035 : notification tant qu'une
+session vit, arrêt automatique sinon).
+
+| # | Action | Attendé |
+|---|---|---|
+| E53 | **Survie en arrière-plan** : créer une session (via un futur point d'entrée — à ce stade par le test instrumenté ou T5), mettre l'app en arrière-plan ≥ 10 min | La notification « N session(s) de terminal active(s) » reste visible ; le shell répond encore au retour (le service foreground a maintenu le processus) |
+| E54 | **Notification honnête** : terminer la session avec `exit`, puis la fermer depuis la liste | Tant que le shell vit : notification présente et à jour ; après `exit` la session reste **visible morte** (`isAlive = false`) ; à la fermeture explicite, la notification disparaît et le service s'arrête (plus de service actif) |
+| E55 | **Fermeture réelle** : lancer une commande longue (`sleep 300`) puis fermer la session | Le processus shell est **réellement terminé** (`adb shell ps -A | grep sleep` vide) — pas seulement masqué de la liste |
+| E56 | **Redémarrage après mort du processus** : tuer le processus de l'app (`adb shell am kill jo.codeide`) avec des sessions ouvertes | Le service `START_STICKY` repart, constate l'état des sessions et s'arrête proprement si aucune ne survit (aucune notification orpheline persistante) |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

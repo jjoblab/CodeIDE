@@ -268,7 +268,21 @@ remis (format section 14) puis attente du « GO ».
       [AssetManager, absence aapt2 traduite null→AssetAbsent] ; ViewBinding include nullable :
       appels sûrs, jamais !! ; tests : InstallViewModelTest [11], onboarding +4 et parcours six
       pages, home constructeur enrichi)
-- Prochaine : étape 22 (= Terminal T4 — core:terminal-runtime, cf. ROADMAP).
+- [x] Étape 22 (= Terminal T4) — `core:terminal-runtime` → v0.23.0
+      (registre global `RegistreSessionsTermux` singleton Hilt servant les deux ports —
+      `TerminalSessionRepository` [domaine, métadonnées sans type Termux] et `TerminalRuntime.sessionFor`
+      [vraie session Termux, réservé au rendu] ; création via constructeur Termux avec environnement canonique
+      + `TERM=xterm-256color`, UUID + « Session N » ; throttle 250 ms / aperçu 160 caractères replatés ;
+      terminaison naturelle visible morte ; `TerminalService` foreground `specialUse` [sous-type documenté,
+      START_STICKY, arrêt de soi-même sans vivante] à décision pure `DecisionServiceTerminal` ; indirection
+      `CoquilleSession`/`FabriqueCoquilles` → coquilles scriptées dans les tests, aucun pty réel ;
+      `FakeTerminalSessionRepository` dans core:testing ; THIRD_PARTY_NOTICES créé [terminal-emulator
+      Apache-2.0, termux-shared REFUSÉ — exceptions MIT ne couvrent pas extrakeys, clavier T5 interne] ;
+      app branche :core:terminal-runtime [agrégation Hilt + fusion manifeste service] ; 19 tests module [registre 13,
+      service réel Robolectric 3 : arrêt automatique/notification persistante/démarreur, décision 3] ; filtres kover
+      documentés [colle Termux/JNI + code généré Hilt/Dagger] ; exception lint Aligned16KB [libtermux.so amont
+      non alignée, vérifié v0.118.3 ET v0.119.0-beta.3 : p_align 4096])
+- Prochaine : étape 23 (= Terminal T5 — feature:terminal écran plein écran, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

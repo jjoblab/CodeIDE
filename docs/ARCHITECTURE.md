@@ -45,6 +45,7 @@ sections 5 et 6.
 | `core:logging` | Journalisation : sinks, rotation, export |
 | `core:crash` | Capture des plantages + CrashActivity (processus séparé `:crash`) |
 | `core:bootstrap` | Localisation des outils du bootstrap, environnement de sous-processus, installateur (ADR 0032/0033) |
+| `core:terminal-runtime` | Sessions shell réelles : registre global + service foreground (ADR 0035) |
 | `core:ui` | Thème Material 3, classes de base, composants réutilisables |
 | `core:testing` | Fakes et utilitaires de test (testImplementation seulement) |
 | `feature:onboarding` | Assistant de premier lancement |
