@@ -269,6 +269,24 @@ direct et la survie à la rotation (prompt compagnon 6, ADR 0029).
 | E30 | Onglets **Sortie** puis **Problèmes** | Chaque stub affiche **son message explicite** (« La console apparaîtra ici… » / « Les problèmes de compilation… ») — pas de zone blanche ni d'apparence de fonctionnalité cassée ; badge masqué |
 | E31 | Panneau à mi-hauteur, onglet Problèmes → **rotation** de l'écran | Le panneau **reste à mi-hauteur** sur le **même onglet**, filtres du journal conservés |
 
+## Espace de travail — actions du tiroir et finitions (étape 17)
+
+Préambule : un projet Kotlin généré à l'étape 9 ; l'acceptation exige le
+parcours complet « Ouvrir un projet → créer un fichier → l'éditer →
+l'enregistrer → le renommer → le supprimer → rouvrir le projet et
+retrouver les onglets » sans erreur (prompt compagnon 6).
+
+| # | Action | Attendu |
+|---|---|---|
+| E32 | Tiroir → appui long sur un dossier → **Nouveau fichier** « Notes.md » | Le fichier apparaît dans le dossier déplié **et s'ouvre en onglet** (édition immédiate) |
+| E33 | En-tête du tiroir → bouton **créer** → Nouveau dossier « essais » | Le dossier apparaît à la racine (un projet vide reste utilisable) ; le nom invalide (« a/b », « .. », fin « . ») est refusé **dans le dialogue** avec la raison localisée |
+| E34 | **Renommer** un fichier ouvert en onglet (menu contextuel) | L'onglet **suit** : même contenu, nouveau nom/chemin, l'écriture continue de fonctionner ; l'arborescence montre le nouveau nom, le dossier parent reste déplié |
+| E35 | **Supprimer** un fichier ouvert en onglet | Confirmation (rappel du nom, « action définitive ») ; après confirmation l'onglet ferme et le fichier disparaît du tiroir et du stockage |
+| E36 | Supprimer un **dossier** contenant des fichiers ouverts | Confirmation « et tout son contenu » ; les onglets sous ce dossier ferment, sessions libérées (aucune fuite LeakCanary) |
+| E37 | Ouvrir deux fichiers, quitter l'espace, **rouvrir le projet** depuis l'accueil | Les onglets **rouvrent** dans le même ordre avec l'onglet actif restauré (`.codeide/local/workspace-state.json`) ; un projet jamais ouvert démarre vide |
+| E38 | TalkBack : parcourir tiroir, onglets, panneau | Chaque nœud, onglet (nom + état de modification), bouton et puce annoncé ; cibles ≥ 48 dp ; navigation D-pad possible |
+| E39 | Tablette (sw600dp) / paysage : ouvrir l'espace | Tiroir **permanent** (ADR 0026), panneau et onglets fonctionnels ; thème sombre et animations réduites suivent l'appareil |
+
 ## À venir
 
-- **Étape 17+** : actions du tiroir (menu contextuel de l'explorateur), finitions.
+- **Étape 18** : audit final de Phase 1 (release R8, Dokka, plan Phase 2).
