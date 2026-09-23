@@ -9,4 +9,7 @@
 
     <!-- Largeur du tiroir de navigation (façon IDE de bureau). -->
     <dimen name="editor_tiroir_largeur">280dp</dimen>
+
+    <!-- Retrait d'indentation par niveau de profondeur de l'arborescence. -->
+    <dimen name="editor_explorateur_retrait">12dp</dimen>
 </resources>

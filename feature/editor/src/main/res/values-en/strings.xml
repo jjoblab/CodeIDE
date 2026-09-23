@@ -1,15 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- English strings for the workspace (étape 13). -->
+<!-- English strings for the workspace (étapes 13-14). -->
 <resources>
     <string name="editor_title">Editor</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
-    <string name="editor_vide_message">Open a file from the navigation drawer to edit it here.\nThe file explorer arrives in the next step.</string>
+    <string name="editor_vide_message">Open a file from the navigation drawer to edit it here.</string>
     <string name="editor_introuvable_titre">Project not found</string>
     <string name="editor_introuvable_message">This project is no longer registered. It may have been removed from the home screen.</string>
     <string name="editor_tiroir_section">Project</string>
+    <string name="editor_tiroir_actualiser_cd">Recheck project access and reload the file tree</string>
     <string name="editor_tiroir_fermer_projet">Close project</string>
-    <string name="editor_tiroir_vide">The file explorer arrives here in the next step.</string>
+    <string name="editor_explorateur_vide">Empty folder</string>
+
+    <!-- Bottom navigation bar of the drawer (companion prompt 5.3). -->
+    <string name="editor_nav_explorateur">Explorer</string>
+    <string name="editor_nav_recherche">Search</string>
+    <string name="editor_nav_git">Git</string>
+    <string name="editor_nav_bientot">%1$s — coming soon</string>
+
+    <!-- Access banner of the drawer (ProjectAccessState, step 14). -->
+    <string name="editor_acces_permission_titre">Permission lost</string>
+    <string name="editor_acces_permission_message">The system revoked access to the project folder. Relocate the project from the home screen to recover it.</string>
+    <string name="editor_acces_introuvable_titre">Project not found</string>
+    <string name="editor_acces_introuvable_message">The project folder no longer exists on storage. Remove or relocate the project from the home screen.</string>
+    <string name="editor_acces_erreur_titre">Storage unreachable</string>
+    <string name="editor_acces_erreur_message">The project folder could not be read. Please try again.</string>
+    <string name="editor_acces_resoudre">Resolve on home screen</string>
+    <string name="editor_acces_reessayer">Try again</string>
+
+    <!-- File tree accessibility (companion prompt 5.3). -->
+    <string name="editor_noeud_dossier_cd">Folder %1$s, depth %2$d, %3$s</string>
+    <string name="editor_noeud_fichier_cd">File %1$s, depth %2$d</string>
+    <string name="editor_noeud_erreur_cd">%1$s: loading failed, tap to retry</string>
+    <string name="editor_noeud_deplie">expanded</string>
+    <string name="editor_noeud_replie">collapsed</string>
+    <string name="editor_noeud_chargement_cd">Loading folder contents</string>
+
     <string name="editor_panneau_titre">Panel</string>
     <string name="editor_panneau_reduire_cd">Collapse the bottom panel</string>
     <string name="editor_panneau_poignee_cd">Expand or collapse the bottom panel</string>
