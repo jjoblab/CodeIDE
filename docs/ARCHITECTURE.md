@@ -54,6 +54,7 @@ sections 5 et 6.
 | `feature:settings` | Paramètres |
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
+| `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) |
 | `feature:editor` | Stub : futur espace de travail |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 
