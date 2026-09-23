@@ -36,7 +36,7 @@ sealed interface ActionOnboarding {
     /** Page « Bienvenue » : commence le parcours. */
     data object Commencer : ActionOnboarding
 
-    /** Avance d'une page (borné : reste sur la page finale). */
+    /** Avance d'une page (borné : sur la page finale, il finalise l'installation). */
     data object PageSuivante : ActionOnboarding
 
     /** Recule d'une page (borné : reste sur la bienvenue). */
@@ -218,6 +218,15 @@ class OnboardingViewModel
 
         /** Avance d'une page, borné à la page finale. */
         private fun avancer() {
+            // Sur la page finale, le bouton unique de l'hôte s'affiche
+            // « Terminer » : avancer n'a plus de sens, c'est la finalisation
+            // de l'installation qui est demandée (bug constaté sur appareil
+            // réel : le bouton n'aboutissait à rien, `isSetupCompleted`
+            // restait faux et l'assistant revenait à chaque lancement).
+            if (etatInterne.value.page == PageOnboarding.TERMINE) {
+                terminer()
+                return
+            }
             etatInterne.update { courant ->
                 val suivante = courant.page.ordinal + 1
                 if (suivante > PageOnboarding.entries.lastIndex) {
@@ -280,9 +289,16 @@ class OnboardingViewModel
         /**
          * Termine l'assistant : profile les réglages retenus, marque
          * l'installation terminée et demande le retour à l'accueil.
+         *
+         * Garde anti double-appui ([EtatOnboarding.finalisation]) : la
+         * finalisation ne se relance pas tant qu'une tentative est en vol ;
+         * un échec d'écriture est **signalé à l'écran** (page Terminé) au
+         * lieu d'un silence — le bouton redevient actif pour réessayer.
          */
         private fun terminer() {
             val final = etatInterne.value
+            if (final.finalisation) return
+            etatInterne.update { it.copy(finalisation = true, erreurFinalisation = false) }
             viewModelScope.launch {
                 val resultat =
                     majParametres { reglages ->
@@ -300,8 +316,9 @@ class OnboardingViewModel
 
                     is AppResult.Failure -> {
                         // Sans écriture, « Terminé » ne vaut pas confirmation :
-                        // on reste sur place, la page réaffiche ses boutons.
+                        // on libère le bouton et la page signale l'échec.
                         logger.w(TAG) { "échec de la finalisation de l'assistant" }
+                        etatInterne.update { it.copy(finalisation = false, erreurFinalisation = true) }
                     }
                 }
             }

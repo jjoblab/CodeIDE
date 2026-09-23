@@ -154,7 +154,7 @@ class OnboardingViewModelTest {
             assertEquals(configure.dossier, depot.reglages.workspace)
             assertFalse(
                 "le témoin doit être supprimé",
-                fichiers.arborescence.value.containsKey("$URI_DOCUMENT_DOSSIER/codeide-temoin-1000"),
+                fichiers.arborescence.value.containsKey("$URI_DOCUMENT_DOSSIER/codeide-temoin-1000.txt"),
             )
         }
 
@@ -215,6 +215,79 @@ class OnboardingViewModelTest {
             assertEquals("Ada", depot.reglages.authorName)
             assertEquals(License.APACHE_2_0, depot.reglages.defaultLicense)
             assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
+        }
+
+    @Test
+    fun `la page suivante sur la page finale finalise l installation`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            // Régression du bug constaté sur appareil réel : le bouton unique
+            // de l'hôte s'appelle « Terminer » sur la dernière page mais
+            // émettait PageSuivante — borné, il ne faisait RIEN et
+            // isSetupCompleted restait faux (assistant en boucle).
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.Commencer)
+            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
+            assertFalse(depot.reglages.isSetupCompleted)
+
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            advanceUntilIdle()
+
+            assertTrue(depot.reglages.isSetupCompleted)
+            assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
+        }
+
+    @Test
+    fun `un echec de finalisation est signale puis retentable`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            viewModel.onAction(ActionOnboarding.Commencer)
+            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+
+            // L'écriture des paramètres échoue : plus jamais un silence,
+            // la page Terminé signale l'échec et le drapeau reste faux.
+            depot.writeError = IOException("stockage saturé simulé")
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            advanceUntilIdle()
+
+            assertFalse(depot.reglages.isSetupCompleted)
+            assertTrue("l'échec doit être visible à l'écran", viewModel.etat.value.erreurFinalisation)
+            assertFalse(viewModel.etat.value.finalisation)
+
+            // Le stockage revient : réessayer mène à bien l'installation.
+            depot.writeError = null
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            advanceUntilIdle()
+
+            assertTrue(depot.reglages.isSetupCompleted)
+            assertFalse(viewModel.etat.value.erreurFinalisation)
+        }
+
+    @Test
+    fun `la finalisation arme sa garde anti double appui`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            viewModel.onAction(ActionOnboarding.Commencer)
+            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+
+            // La garde s'arme immédiatement, avant même l'exécution de
+            // l'écriture : un deuxième appui pendant le vol est ignoré.
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            assertTrue(viewModel.etat.value.finalisation)
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            viewModel.onAction(ActionOnboarding.Terminer)
+
+            advanceUntilIdle()
+
+            assertTrue(depot.reglages.isSetupCompleted)
         }
 
     @Test

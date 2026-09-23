@@ -59,5 +59,6 @@
     <string name="page_termine_auteur_absent">Author: not provided</string>
     <string name="page_termine_licence">Default license: %1$s</string>
     <string name="page_termine_texte">Happy coding!</string>
+    <string name="page_termine_erreur">Finishing failed: your choices could not be saved. Please try again.</string>
 
 </resources>

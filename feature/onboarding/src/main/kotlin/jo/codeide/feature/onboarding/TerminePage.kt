@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.collectWithLifecycle
@@ -33,6 +34,9 @@ class TerminePage : BaseFragment<PageTermineBinding>() {
 
     /** Récapitulatif : dossier, auteur, licence — valeurs réelles ou replis. */
     private fun rendre(etat: EtatOnboarding) {
+        // Échec de la dernière finalisation : visible ici, la page où
+        // l'utilisateur se trouve quand il appuie sur « Terminer ».
+        binding.erreurFinalisation.isVisible = etat.erreurFinalisation
         binding.texteDossier.text =
             when (val dossier = etat.dossier) {
                 is EtatDossier.Configure -> {

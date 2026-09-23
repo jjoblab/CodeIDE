@@ -47,4 +47,16 @@
         android:text="@string/page_termine_texte"
         android:textAppearance="?attr/textAppearanceTitleMedium" />
 
+    <!-- Échec de la finalisation : signalé à l'écran (plus jamais un silence). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/erreur_finalisation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:gravity="center"
+        android:text="@string/page_termine_erreur"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorError"
+        android:visibility="gone" />
+
 </LinearLayout>
