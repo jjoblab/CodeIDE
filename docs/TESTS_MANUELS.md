@@ -287,6 +287,23 @@ retrouver les onglets » sans erreur (prompt compagnon 6).
 | E38 | TalkBack : parcourir tiroir, onglets, panneau | Chaque nœud, onglet (nom + état de modification), bouton et puce annoncé ; cibles ≥ 48 dp ; navigation D-pad possible |
 | E39 | Tablette (sw600dp) / paysage : ouvrir l'espace | Tiroir **permanent** (ADR 0026), panneau et onglets fonctionnels ; thème sombre et animations réduites suivent l'appareil |
 
+## Espace de travail — audit final de Phase 1 (étape 18)
+
+Préambule : un projet Kotlin **généré par le wizard** (étape 9), un
+**dossier importé** sans `.codeide`, et l'APK **release** construit par
+`./gradlew assembleRelease` (R8) installé sur l'appareil ; l'acceptation
+exige le parcours complet de la Phase 1 sans erreur, en debug comme en
+release (prompt compagnon 6, ADR 0031).
+
+| # | Action | Attendu |
+|---|---|---|
+| E40 | Ouvrir le projet Kotlin **créé par le wizard** | L'en-tête du tiroir affiche la ligne de type : « **Modèle Kotlin · JVM** » (nom i18n du catalogue) suivi de « · v… » si le fichier porte la version ; le nom et le chemin du projet restent au-dessus |
+| E41 | Ouvrir le **dossier importé** (sans `.codeide`), puis un projet créé dont `.codeide/project.json` a été supprimé | Importé : « **Dossier importé** » ; projet créé sans fichier : « **Type de projet non reconnu** » — jamais de blocage ni d'erreur, l'édition fonctionne normalement |
+| E42 | Paramètres → Langue : passer en anglais, revenir dans l'espace | La ligne de type **re-résout** son nom dans la nouvelle langue (« Kotlin · JVM template ») — le fichier n'est pas relu, seul le libellé change |
+| E43 | Ouvrir l'espace de travail (régression du plantage 8b5b73f1) | L'écran **s'ouvre sans plantage** ; la barre basse du tiroir montre **trois destinations** — Explorateur active, Recherche et Git grisés (« Bientôt disponible » en description) |
+| E44 | **APK release (R8)** : parcours complet — accueil, wizard, éditeur, onglets, panneau, diagnostic | Tout fonctionne **identiquement au debug** : `EditorView` s'affiche et se rebranche (règles ProGuard cel-ui correctes), sessions libérées, journaux et plantages écrits ; démarrage sensiblement plus rapide |
+
 ## À venir
 
-- **Étape 18** : audit final de Phase 1 (release R8, Dokka, plan Phase 2).
+- **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
+  tooling, plugins, services, autres langages).

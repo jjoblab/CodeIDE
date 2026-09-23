@@ -4,6 +4,70 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.19.0] – 2026-09-23
+
+Étape 18 — Audit final de Phase 1 (prompt compagnon, section 6, ADR 0031) :
+reconnaissance du **vrai type de projet** à l'ouverture, build release R8
+vérifié, documentation d'API, audit de dépendances — et correctif d'un
+**plantage à l'ouverture de l'espace de travail** signalé sur appareil.
+
+### Corrigé
+
+- **Plantage à l'ouverture de l'espace de travail** (rapport 8b5b73f1,
+  v0.16.0 debug, `InflateException` ligne #376 d'`activity_editor`) : le
+  menu de la barre de navigation basse du tiroir vivait en `<menu>` **inline
+  dans le layout** — `LayoutInflater` cherchait la classe `android.view.menu`
+  (inexistante) et l'activité plantait avant `onCreate`. Le menu vit
+  désormais dans `res/menu/menu_tiroir.xml`, référencé par `app:menu`.
+  Introduit à l'étape 14, indétectable à la compilation (AAPT2 ne valide pas
+  les éléments d'un layout) et invisible des tests, qui n'inflataient pas le
+  layout — désormais si : **test de régression Robolectric** gonflant le
+  vrai `activity_editor.xml` sous le thème de l'application
+  (`ActivityEditorLayoutTest`).
+
+### Ajouté
+
+- **Ligne « type de projet » dans l'en-tête du tiroir** (ADR 0031) :
+  `.codeide/project.json` est lu à l'ouverture et le **vrai modèle**
+  s'affiche — nom i18n résolu depuis le catalogue (« Modèle Kotlin · JVM »)
+  avec repli sur l'identifiant brut, et version du modèle si présente. Un
+  dossier importé reconnu affiche son modèle réel ; sans métadonnées :
+  « Dossier importé » ; un projet créé dont le fichier a disparu :
+  « Type de projet non reconnu ». Lecture **totalement tolérante**
+  (absent, illisible, corrompu, schéma futur → rien, jamais de blocage) ;
+  le nom suit la langue de l'application (`PreciserLangue` à chaque
+  re-création, ADR 0013).
+- **Dokka** sur les modules purs `explicitApi` (`core:model`,
+  `core:domain`) : contrat public documenté, tâche `dokkaHtml` vérifiée
+  dans la chaîne de livraison.
+
+### Modifié
+
+- **Audit de dépendances** : retrait des entrées du catalogue jamais
+  consommées — `androidx-constraintlayout`, `kotlinx-coroutines-android`,
+  `mockk`/`mockk-android`, `androidx-test-runner`, `androidx-test-junit`,
+  `androidx-espresso` (aucune instrumentation ni mock n'était en usage) ;
+  `robolectric`/`androidx-test-core` restent et s'ajoutent à
+  `feature:editor` pour la régression de layout.
+- Routage des actions de l'espace scindé (`onActionOnglets`) : le seuil
+  detekt de complexité cyclomatique est respecté malgré l'action
+  `PreciserLangue` (15 → 8 branches au point d'entrée).
+- Décompte de paresse de l'explorateur ajusté : la racine est listée trois
+  fois à l'ouverture (arborescence, reprise d'espace, reconnaissance du
+  type — documenté dans les tests).
+
+### Vérifié (audit final)
+
+- `assembleRelease` **R8 vert** avec les règles ProGuard de la
+  bibliothèque d'édition (cel-ui) — parcours de l'espace de travail
+  testé sur l'APK minifié (E44).
+- Aucun `TODO`/`FIXME` vivant dans le code, aucun code mort signalé par
+  detekt strict (maxIssues = 0), aucune donnée personnelle dans journaux
+  ni rapports (`LogRedactor` actif, tests de non-fuite).
+- `scripts/verify-templates.sh` vert (18 combinaisons générées, compilées,
+  testées, exécutées, publiées).
+- Plan détaillé de la Phase 2 rédigé dans `docs/ROADMAP.md`.
+
 ## [0.18.0] – 2026-09-23
 
 Étape 17 — Actions du tiroir et finitions de l'espace de travail (prompt
