@@ -1,0 +1,67 @@
+# CodeIDE — intégration continue GitHub Actions.
+#
+# Compile et vérifie le projet depuis GitHub (demande utilisateur, étape
+# T6) : la même chaîne que la vérification locale complète, SANS `clean`
+# (le build cache et la configuration cache font le travail — voir ADR
+# 0037). Les réglages mémoire séquentiels de gradle.properties sont
+# conservés tels quels : le workflow ne dérègle rien côté machine.
+#
+# Les artefacts (APK debug) sont téléchargeables depuis la page du run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compilation et vérification complète
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle (cache wrapper + dépendances)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/tags/' }}
+
+      # Les licences du SDK préinstallé du runner sont déjà acceptées ;
+      # ce rite ne fait qu'assurer que sdkmanager peut auto-installer
+      # une plateforme manquante (compileSdk 37.2) si besoin.
+      - name: Accepter les licences du SDK Android
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Vérification complète (sans clean — caches Gradle)
+        run: ./gradlew spotlessCheck detekt checkModuleDependencies lintDebug testDebugUnitTest koverVerify assembleDebug --stacktrace
+
+      - name: Publier l'APK debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeIDE-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Publier les rapports en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-echec-${{ github.sha }}
+          path: |
+            **/build/reports/**
+            **/build/test-results/**
+          if-no-files-found: ignore
+          retention-days: 14
