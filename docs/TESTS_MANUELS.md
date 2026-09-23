@@ -252,6 +252,23 @@ l'acceptation exige d'ouvrir, d'éditer et d'enregistrer un `.kt` et un
 | E22 | Fuites : ouvrir dix onglets puis les fermer tous (×3), naviguer, faire tourner | Aucune fuite rapportée par LeakCanary (build debug) ; aucun blocage du fil principal (StrictMode) lors des écritures |
 | E23 | « Ne pas garder les activités » + mise en arrière-plan prolongée, puis retour | Les **onglets rouverts** avec leur contenu relu, l'onglet actif restauré — y compris après mort du processus |
 
+## Espace de travail — panneau inférieur (étape 16)
+
+Préambule : un projet ouvert dans l'espace de travail ; l'acceptation
+exige les trois états au doigt et par les boutons, le journal vivant en
+direct et la survie à la rotation (prompt compagnon 6, ADR 0029).
+
+| # | Action | Attendu |
+|---|---|---|
+| E24 | Appui sur l'en-tête du panneau | Le panneau passe à **mi-hauteur** (en-tête + onglets + fenêtre) ; un nouvel appui le **replie** (en-tête seul, 48 dp) |
+| E25 | Glisser la poignée vers le haut / bouton **agrandir** | Le panneau passe **étendu** (pleine hauteur) ; le bouton agrandir suit replié → mi-hauteur → étendu, puis redescend |
+| E26 | Panneau **étendu** → retour système | Le panneau **se réduit** (mi-hauteur) — il ne quitte pas l'espace ni ne ferme le tiroir ; un second retour reprend le comportement antérieur (tiroir, onglets sales, sortie) |
+| E27 | Onglet **Journal** : naviguer dans l'app (accueil, paramètres) puis revenir | Les entrées récentes de **la session** s'affichent (niveau coloré, heure, étiquette, message) et la liste **défile en direct** vers la plus récente ; le badge de l'en-tête compte les entrées |
+| E28 | Décocher toutes les puces de niveau, puis n'en cocher qu'une (ex. Erreur) | Ensemble vide = **tous** les niveaux ; un niveau coché est **retenu** (seules les entrées de ce niveau restent) ; état vide explicite si la fenêtre filtrée est vide |
+| E29 | Toucher « Ouvrir le journal complet » | L'**écran Diagnostic** s'ouvre (historique complet, exports, effacement) ; revenir retrouve l'espace de travail intact |
+| E30 | Onglets **Sortie** puis **Problèmes** | Chaque stub affiche **son message explicite** (« La console apparaîtra ici… » / « Les problèmes de compilation… ») — pas de zone blanche ni d'apparence de fonctionnalité cassée ; badge masqué |
+| E31 | Panneau à mi-hauteur, onglet Problèmes → **rotation** de l'écran | Le panneau **reste à mi-hauteur** sur le **même onglet**, filtres du journal conservés |
+
 ## À venir
 
-- **Étape 16+** : panneau inférieur (journal applicatif), actions du tiroir, finitions.
+- **Étape 17+** : actions du tiroir (menu contextuel de l'explorateur), finitions.

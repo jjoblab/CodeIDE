@@ -212,7 +212,11 @@ remis (format section 14) puis attente du « GO ».
       un seul EditorView rebranché + thème clair/sombre, TabLayout dynamique [menu contextuel complet, point de modification],
       sauvegarde auto debounce + manuelle [Mutex par fichier], confirmation de fermeture agrégée avec auto-sauvegarde suspendue,
       binaires → Ouvrir avec, mort du processus → onglets rouverts ; ADR 0028)
-- [ ] Étape 16 — Panneau inférieur (journal applicatif, stubs Sortie/Problèmes) → v0.17.0
+- [x] Étape 16 — Panneau inférieur → v0.17.0 (BottomSheetBehavior trois états [replié/mi-hauteur/étendu, fitToContents=false,
+      halfExpandedRatio 0,5] piloté par l'état du ViewModel — transitions stabilisées seulement, en-tête poignée/titre/badge/agrandir/réduire,
+      onglet Journal applicatif compact [fenêtre mémoire ObserveLogsUseCase 200, filtres par niveau persistés, suivi direct, badge de compte,
+      lien vers l'écran Diagnostic via AppNavigator], onglets Sortie et Problèmes en stub explicite [session.setDiagnostics documenté non câblé],
+      retour système réduit le panneau étendu d'abord, état + onglet actif survivent à la rotation ; PanneauEditorViewModelTest ; ADR 0029)
 - [ ] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0
 - [ ] Étape 18 — Audit final de Phase 1 → v0.19.0
 
