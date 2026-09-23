@@ -208,7 +208,10 @@ remis (format section 14) puis attente du « GO ».
 - [x] Étape 14 — Explorateur de fichiers → v0.15.0 (arborescence paresseuse `ExplorateurAdapter` + cache ViewModel [ADR 0027], tri dossiers/fichiers/alpha,
   icônes `core:ui` `IconesFichiers`, bandeau `ProjectAccessState` [résolution à l'accueil], Actualiser, barre basse Explorateur/Recherche/Git désactivées,
   fixes appareil réel : extension canonique SAF [témoin + `mimePour` sans point + tolérance] et bouton Terminer de l'onboarding [PageSuivante finalise])
-- [ ] Étape 15 — Intégration de l'éditeur et onglets de fichiers → v0.16.0
+- [x] Étape 15 — Intégration de l'éditeur et onglets de fichiers → v0.16.0 (sessions EditorSession au ViewModel [SessionSuivie testée],
+      un seul EditorView rebranché + thème clair/sombre, TabLayout dynamique [menu contextuel complet, point de modification],
+      sauvegarde auto debounce + manuelle [Mutex par fichier], confirmation de fermeture agrégée avec auto-sauvegarde suspendue,
+      binaires → Ouvrir avec, mort du processus → onglets rouverts ; ADR 0028)
 - [ ] Étape 16 — Panneau inférieur (journal applicatif, stubs Sortie/Problèmes) → v0.17.0
 - [ ] Étape 17 — Actions du tiroir et finitions de l'espace de travail → v0.18.0
 - [ ] Étape 18 — Audit final de Phase 1 → v0.19.0
