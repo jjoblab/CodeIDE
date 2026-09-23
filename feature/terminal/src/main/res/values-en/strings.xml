@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terminal_title">Terminal</string>
+    <string name="terminal_retour_cd">Go back (sessions stay open)</string>
+    <string name="terminal_nouvelle_session_cd">New terminal session</string>
+    <string name="terminal_onglet_fermer_cd">Close this session</string>
+    <string name="terminal_vide_message">No terminal session open.\nSessions survive closing this screen.</string>
+    <string name="terminal_vide_creer">New session</string>
+    <string name="terminal_renommer_titre">Rename session</string>
+    <string name="terminal_renommer_indice">Session label</string>
+    <string name="terminal_renommer_valider">Rename</string>
+    <string name="terminal_renommer_annuler">Cancel</string>
+    <string name="terminal_fermer_titre">Close session?</string>
+    <string name="terminal_fermer_message">A command seems to be still running in “%s”. Closing really terminates the shell.</string>
+    <string name="terminal_fermer_confirmer">Close anyway</string>
+    <string name="terminal_fermer_annuler">Cancel</string>
+    <string name="terminal_menu_renommer">Rename</string>
+    <string name="terminal_menu_dupliquer">Duplicate</string>
+    <string name="terminal_menu_fermer">Close</string>
+    <string name="terminal_session_terminee">Finished</string>
+</resources>

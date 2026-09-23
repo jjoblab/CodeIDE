@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.License
+import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
@@ -96,6 +97,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         binding.interrupteurDynamique.setOnCheckedChangeListener { _, active ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(active))
         }
+        binding.groupePoliceTerminal.setOnCheckedChangeListener { _, id ->
+            if (!renduEnCours) {
+                viewModel.onAction(ActionParametres.ChangerTaillePoliceTerminal(tailleDeLId(id)))
+            }
+        }
     }
 
     private fun brancherLangue() {
@@ -146,6 +152,10 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
             binding.radioThemeClair.isChecked = reglages.themeMode == ThemeMode.LIGHT
             binding.radioThemeSombre.isChecked = reglages.themeMode == ThemeMode.DARK
             binding.interrupteurDynamique.isChecked = reglages.useDynamicColor
+
+            binding.radioPolicePetite.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.PETITE
+            binding.radioPoliceMoyenne.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.MOYENNE
+            binding.radioPoliceGrande.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.GRANDE
 
             binding.radioLangueSysteme.isChecked = reglages.languageTag == ""
             binding.radioLangueFr.isChecked = reglages.languageTag == "fr"
@@ -217,6 +227,14 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
             binding.radioThemeClair.id -> ThemeMode.LIGHT
             binding.radioThemeSombre.id -> ThemeMode.DARK
             else -> ThemeMode.SYSTEM
+        }
+
+    /** Taille de police du terminal du bouton coché (MOYENNE par défaut). */
+    private fun tailleDeLId(id: Int): TaillePoliceTerminal =
+        when (id) {
+            binding.radioPolicePetite.id -> TaillePoliceTerminal.PETITE
+            binding.radioPoliceGrande.id -> TaillePoliceTerminal.GRANDE
+            else -> TaillePoliceTerminal.MOYENNE
         }
 
     /** Tag BCP 47 du bouton coché, `""` pour suivre le système. */

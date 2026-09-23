@@ -51,6 +51,9 @@ dependencies {
     // Terminal T4 : agrégation Hilt du registre des sessions + manifeste
     // du service foreground (fusion dans l'application finale).
     implementation(project(":core:terminal-runtime"))
+    // Terminal T5 : écran plein écran du terminal (destination de
+    // navigation ouverte par les points d'entrée de T6).
+    implementation(project(":feature:terminal"))
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.

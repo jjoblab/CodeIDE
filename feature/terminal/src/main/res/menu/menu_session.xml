@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Menu contextuel d'un onglet de session (appui long, Terminal T5,
+     section 5 : renommer, dupliquer, fermer). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_renommer_session"
+        android:title="@string/terminal_menu_renommer" />
+    <item
+        android:id="@+id/action_dupliquer_session"
+        android:title="@string/terminal_menu_dupliquer" />
+    <item
+        android:id="@+id/action_fermer_session"
+        android:title="@string/terminal_menu_fermer" />
+</menu>

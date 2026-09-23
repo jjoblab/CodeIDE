@@ -25,6 +25,8 @@ package jo.codeide.core.model
  * @property logLevel verbosité de journalisation persistée (section 5.7) :
  * `NORMAL` = `INFO`, `DETAILED` = `DEBUG` ; alimente la configuration du
  * moteur au démarrage du processus principal.
+ * @property taillePoliceTerminal taille de la police à chasse fixe du
+ * terminal intégré (Terminal T5) — réglage dédié minimal, trois tailles.
  * @property isSetupCompleted l'assistant de premier lancement est terminé.
  */
 @Suppress("LongParameterList") // Groupe de réglages cohérent, pas un objet métier à découper.
@@ -36,6 +38,7 @@ public data class AppSettings(
     public val authorName: String = "",
     public val defaultLicense: License = License.MIT,
     public val logLevel: LogVerbosity = LogVerbosity.NORMAL,
+    public val taillePoliceTerminal: TaillePoliceTerminal = TaillePoliceTerminal.MOYENNE,
     public val isSetupCompleted: Boolean = false,
 ) {
     public companion object {

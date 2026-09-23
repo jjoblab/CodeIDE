@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Touche de la rangée étendue du terminal (ClavierEtenduView, T5) :
+     bouton texte compact, teinte et cible tactile minimale. -->
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.Material3.Button.TextButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:insetTop="0dp"
+    android:insetBottom="0dp"
+    android:minWidth="@dimen/touch_target_min"
+    android:paddingHorizontal="@dimen/spacing_sm"
+    android:textAppearance="?attr/textAppearanceLabelLarge"
+    tools:text="Tab" />

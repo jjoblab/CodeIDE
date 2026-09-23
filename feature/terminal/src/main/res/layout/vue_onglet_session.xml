@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vue personnalisée d'un onglet de session : pastille d'état, libellé,
+     fermeture — même langage visuel que les onglets de fichiers. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/spacing_md"
+    android:paddingEnd="@dimen/spacing_xs">
+
+    <!-- Pastille d'état : vivante (émeraude) / terminée (grise). -->
+    <View
+        android:id="@+id/pastille_etat_session"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="@drawable/point_session_vivante"
+        android:contentDescription="@null"
+        tools:backgroundTint="#2E7D32" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_session"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:ellipsize="end"
+        android:maxWidth="140dp"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Session 1" />
+
+    <ImageView
+        android:id="@+id/bouton_fermer_session"
+        android:layout_width="@dimen/touch_target_min"
+        android:layout_height="@dimen/touch_target_min"
+        android:contentDescription="@string/terminal_onglet_fermer_cd"
+        android:padding="14dp"
+        android:src="@drawable/ic_fermer_onglet"
+        app:tint="?attr/colorOnSurfaceVariant" />
+</LinearLayout>
