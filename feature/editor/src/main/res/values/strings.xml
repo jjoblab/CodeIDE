@@ -1,17 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Chaînes de l'espace de travail (étape 13) — français (défaut).
+  Chaînes de l'espace de travail (étapes 13-14) — français (défaut).
 -->
 <resources>
     <string name="editor_title">Éditeur</string>
     <string name="editor_ouvrir_tiroir_cd">Ouvrir le tiroir de navigation</string>
     <string name="editor_vide_titre">Aucun fichier ouvert</string>
-    <string name="editor_vide_message">Ouvrez un fichier depuis le tiroir de navigation pour l\'éditer ici.\nL\'explorateur arrive à l\'étape suivante.</string>
+    <string name="editor_vide_message">Ouvrez un fichier depuis le tiroir de navigation pour l\'éditer ici.</string>
     <string name="editor_introuvable_titre">Projet introuvable</string>
     <string name="editor_introuvable_message">Ce projet n\'est plus enregistré. Il a peut-être été retiré depuis l\'accueil.</string>
     <string name="editor_tiroir_section">Projet</string>
+    <string name="editor_tiroir_actualiser_cd">Revérifier l\'accès au projet et recharger l\'arborescence</string>
     <string name="editor_tiroir_fermer_projet">Fermer le projet</string>
-    <string name="editor_tiroir_vide">L\'explorateur de fichiers arrive ici à l\'étape suivante.</string>
+    <string name="editor_explorateur_vide">Dossier vide</string>
+
+    <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3). -->
+    <string name="editor_nav_explorateur">Explorateur</string>
+    <string name="editor_nav_recherche">Recherche</string>
+    <string name="editor_nav_git">Git</string>
+    <string name="editor_nav_bientot">%1$s — bientôt disponible</string>
+
+    <!-- Bandeau d\'accès du tiroir (ProjectAccessState, étape 14). -->
+    <string name="editor_acces_permission_titre">Permission perdue</string>
+    <string name="editor_acces_permission_message">Le système a révoqué l\'accès au dossier du projet. Relocalisez le projet depuis l\'accueil pour le récupérer.</string>
+    <string name="editor_acces_introuvable_titre">Projet introuvable</string>
+    <string name="editor_acces_introuvable_message">Le dossier du projet n\'existe plus sur le stockage. Retirez ou relocalisez le projet depuis l\'accueil.</string>
+    <string name="editor_acces_erreur_titre">Stockage injoignable</string>
+    <string name="editor_acces_erreur_message">Le dossier du projet n\'a pas pu être lu. Réessayez.</string>
+    <string name="editor_acces_resoudre">Résoudre à l\'accueil</string>
+    <string name="editor_acces_reessayer">Réessayer</string>
+
+    <!-- Accessibilité de l\'arborescence (prompt compagnon 5.3). -->
+    <string name="editor_noeud_dossier_cd">Dossier %1$s, profondeur %2$d, %3$s</string>
+    <string name="editor_noeud_fichier_cd">Fichier %1$s, profondeur %2$d</string>
+    <string name="editor_noeud_erreur_cd">%1$s : échec du chargement, appuyez pour réessayer</string>
+    <string name="editor_noeud_deplie">déplié</string>
+    <string name="editor_noeud_replie">replié</string>
+    <string name="editor_noeud_chargement_cd">Chargement du dossier en cours</string>
+
     <string name="editor_panneau_titre">Panneau</string>
     <string name="editor_panneau_reduire_cd">Réduire le panneau inférieur</string>
     <string name="editor_panneau_poignee_cd">Déplier ou replier le panneau inférieur</string>

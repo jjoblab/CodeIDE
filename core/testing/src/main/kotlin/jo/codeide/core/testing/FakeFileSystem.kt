@@ -117,7 +117,12 @@ public class FakeFileSystem : FileSystem {
         return AppResult.Success(document.toStat(documentUri))
     }
 
+    /** Nombre d'appels `list` reçus — observation des tests (cache ViewModel). */
+    public var appelsList: Int = 0
+        private set
+
     public override suspend fun list(directoryUri: String): AppResult<List<FileStat>> {
+        appelsList++
         statFailure?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         val dossier = documents[directoryUri]

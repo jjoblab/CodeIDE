@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne d'un nœud de l'arborescence : indentation, chevron, icône, nom. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_ligne"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/touch_target_min"
+    android:orientation="horizontal"
+    android:paddingStart="0dp"
+    android:paddingEnd="@dimen/spacing_md">
+
+    <!-- Indentation par profondeur (largeur posée à la liaison). -->
+    <Space
+        android:id="@+id/retrait_noeud"
+        android:layout_width="0dp"
+        android:layout_height="1dp" />
+
+    <ImageView
+        android:id="@+id/chevron_noeud"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_chevron_noeud"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:rotation="90" />
+
+    <ImageView
+        android:id="@+id/icone_noeud"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_fichier_kotlin" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nom_noeud"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Greeter.kt" />
+
+    <!-- Énumération en vol (latence SAF réelle du dépliement). -->
+    <ProgressBar
+        android:id="@+id/chargement_noeud"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:contentDescription="@string/editor_noeud_chargement_cd"
+        android:indeterminate="true"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Dernière énumération échouée : appuyer sur la ligne réessaie. -->
+    <ImageView
+        android:id="@+id/erreur_noeud"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_avertissement"
+        android:visibility="gone"
+        app:tint="?attr/colorError"
+        tools:visibility="visible" />
+</LinearLayout>

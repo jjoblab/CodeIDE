@@ -206,19 +206,40 @@
         android:background="?android:attr/colorBackground"
         android:orientation="vertical">
 
-        <!-- En-tête fixe : projet, chemin, fermeture. -->
+        <!-- En-tête fixe : projet, chemin, actualisation, fermeture. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="@dimen/spacing_md">
+            android:paddingHorizontal="@dimen/spacing_md"
+            android:paddingTop="@dimen/spacing_md"
+            android:paddingBottom="@dimen/spacing_sm">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/editor_tiroir_section"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/editor_tiroir_section"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+                <!-- Revérifie l'état d'accès du projet (prompt compagnon 5.3). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_actualiser"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_tiroir_actualiser_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    app:icon="@drawable/ic_actualiser" />
+            </LinearLayout>
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/nom_projet_tiroir"
@@ -251,17 +272,119 @@
                 android:text="@string/editor_tiroir_fermer_projet" />
         </LinearLayout>
 
-        <!-- Contenu du tiroir : l'explorateur arrive à l'étape 14. -->
-        <com.google.android.material.textview.MaterialTextView
+        <!-- Contenu du tiroir : arborescence, bandeau d'accès, états (étape 14). -->
+        <FrameLayout
             android:id="@+id/contenu_tiroir"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="@dimen/state_padding"
-            android:text="@string/editor_tiroir_vide"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/liste_explorateur"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="@dimen/spacing_xs"
+                android:paddingBottom="@dimen/spacing_xs"
+                tools:listitem="@layout/ligne_noeud_arborescence" />
+
+            <!-- Arborescence vide : dossier du projet sans enfants. -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_explorateur_vide"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:padding="@dimen/state_padding"
+                android:text="@string/editor_explorateur_vide"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
+            <!-- Vérification d'accès en vol (première charge, Actualiser). -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progression_tiroir"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+            <!-- Bandeau d'accès : permission perdue, introuvable, erreur. -->
+            <LinearLayout
+                android:id="@+id/bandeau_acces"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/icone_acces"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_avertissement"
+                    app:tint="?attr/colorError" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/titre_acces"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    tools:text="Permission perdue" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/message_acces"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Le système a révoqué l'accès au dossier du projet." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_resoudre"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    tools:text="Résoudre à l'accueil" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3) :
+             Explorateur active, Recherche et Git visibles mais désactivés.
+             Sous thème Material3, BottomNavigationView prend le rendu M3. -->
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/barre_navigation_tiroir"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:labelVisibilityMode="labeled">
+
+            <menu>
+                <item
+                    android:id="@+id/destination_explorateur"
+                    android:enabled="true"
+                    android:icon="@drawable/ic_explorateur"
+                    android:title="@string/editor_nav_explorateur" />
+
+                <item
+                    android:id="@+id/destination_recherche"
+                    android:enabled="false"
+                    android:icon="@drawable/ic_recherche"
+                    android:title="@string/editor_nav_recherche" />
+
+                <item
+                    android:id="@+id/destination_git"
+                    android:enabled="false"
+                    android:icon="@drawable/ic_git"
+                    android:title="@string/editor_nav_git" />
+            </menu>
+        </com.google.android.material.bottomnavigation.BottomNavigationView>
     </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

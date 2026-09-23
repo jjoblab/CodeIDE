@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Destination « Explorateur » de la barre basse du tiroir (contour). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.8"
+        android:pathData="M5,7.5 h4 l1.5,2 H19 q1,0 1,1 V17.5 q0,1 -1,1 H5 q-1,0 -1,-1 V8.5 q0,-1 1,-1 z" />
+</vector>
