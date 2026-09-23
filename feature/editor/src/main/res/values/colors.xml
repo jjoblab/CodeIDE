@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Couleurs des niveaux du journal compact du panneau inférieur (étape 16) —
+  variantes jour/nuit pour un contraste garanti (mêmes valeurs que l'écran
+  Diagnostic, dont les ressources ne sont pas partagées entre features).
+-->
+<resources>
+    <color name="journal_compact_debug">#5F6368</color>
+    <color name="journal_compact_info">#1A5FB4</color>
+    <color name="journal_compact_warn">#9A6700</color>
+    <color name="journal_compact_error">#B3261E</color>
+</resources>

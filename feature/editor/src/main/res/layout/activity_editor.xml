@@ -129,16 +129,24 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- ================= Panneau inférieur (replié) ================= -->
+        <!-- ================= Panneau inférieur (étape 16) =================
+             Trois états gérés par BottomSheetBehavior : replié (en-tête seul,
+             peekHeight 48 dp), mi-hauteur (ratio 0,5), étendu. -->
 
         <LinearLayout
             android:id="@+id/panneau_inferieur"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
+            app:behavior_fitToContents="false"
+            app:behavior_halfExpandedRatio="0.5"
             app:behavior_peekHeight="@dimen/editor_panneau_replie"
+            app:behavior_skipCollapsed="false"
             app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
+            <!-- En-tête toujours visible : poignée, titre de l'onglet actif,
+                 badge de compte, agrandir, réduire. Un appui bascule
+                 replié <-> mi-hauteur (prompt compagnon 5.5). -->
             <LinearLayout
                 android:id="@+id/entete_panneau"
                 android:layout_width="match_parent"
@@ -161,8 +169,36 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/spacing_sm"
                     android:layout_weight="1"
-                    android:text="@string/editor_panneau_titre"
-                    android:textAppearance="?attr/textAppearanceTitleSmall" />
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    tools:text="Journal" />
+
+                <!-- Badge de compte (nombre d'entrées affichées). -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/badge_panneau"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:background="@drawable/badge_panneau"
+                    android:gravity="center"
+                    android:minWidth="20dp"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:visibility="gone"
+                    tools:text="12"
+                    tools:visibility="visible" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_agrandir_panneau"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_panneau_agrandir_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    app:icon="@drawable/ic_agrandir_panneau" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_fermer_panneau"
@@ -175,7 +211,8 @@
                     app:icon="@drawable/ic_reduire_panneau" />
             </LinearLayout>
 
-            <!-- Trois onglets vides : le contenu arrive à l'étape 16. -->
+            <!-- Trois onglets : Journal fonctionnel, Sortie et Problèmes en
+                 stub explicite (étape 16, prompt compagnon 5.5). -->
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/onglets_panneau"
                 android:layout_width="match_parent"
@@ -200,7 +237,127 @@
             <FrameLayout
                 android:id="@+id/conteneur_panneau"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/editor_panneau_mi_hauteur" />
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <!-- Onglet Journal applicatif (fonctionnel) : filtres par
+                     niveau, fenêtre compacte, lien vers l'écran Diagnostic. -->
+                <LinearLayout
+                    android:id="@+id/contenu_journal"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:scrollbars="none">
+
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/filtres_journal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:selectionRequired="false"
+                            app:singleLine="true"
+                            app:singleSelection="false">
+
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_journal_debug"
+                                style="@style/Widget.Material3.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/editor_journal_niveau_debug" />
+
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_journal_info"
+                                style="@style/Widget.Material3.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/editor_journal_niveau_info" />
+
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_journal_warn"
+                                style="@style/Widget.Material3.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/editor_journal_niveau_warn" />
+
+                            <com.google.android.material.chip.Chip
+                                android:id="@+id/chip_journal_error"
+                                style="@style/Widget.Material3.Chip.Filter"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/editor_journal_niveau_error" />
+                        </com.google.android.material.chip.ChipGroup>
+                    </HorizontalScrollView>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/liste_journal"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingHorizontal="@dimen/screen_horizontal_margin"
+                        android:paddingBottom="@dimen/spacing_xs"
+                        tools:itemCount="6"
+                        tools:listitem="@layout/ligne_entree_journal_compacte" />
+
+                    <!-- Fenêtre vide après filtres (jamais un blanc muet). -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_journal_vide"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:padding="@dimen/state_padding"
+                        android:text="@string/editor_journal_vide"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone" />
+
+                    <!-- Lien vers l'écran Diagnostic complet (historique,
+                         exports, effacement — hors du panneau compact). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_journal_complet"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="@dimen/spacing_xs"
+                        android:text="@string/editor_journal_complet" />
+                </LinearLayout>
+
+                <!-- Onglet Sortie — stub explicite (étape 16) : le tooling
+                     de compilation est hors périmètre Phase 1. Le point
+                     d'ancrage des diagnostics (session.setDiagnostics) est
+                     noté pour le tooling futur, non câblé. -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/contenu_sortie"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:padding="@dimen/state_padding"
+                    android:text="@string/editor_sortie_stub"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:visibility="gone" />
+
+                <!-- Onglet Problèmes — stub explicite (étape 16). -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/contenu_problemes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:padding="@dimen/state_padding"
+                    android:text="@string/editor_problemes_stub"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
