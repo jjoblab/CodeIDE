@@ -307,6 +307,9 @@ release (prompt compagnon 6, ADR 0031).
 | E47 | **Annulation** : annuler pendant le téléchargement | État `Annulee`, retour immédiat, aucun résidu `usr-staging` ni `bootstrap-staging.zip` sous `filesDir` |
 | E48 | **Espace disque insuffisant** : remplir le stockage sous le seuil (1 Gio) avant l'installation | Refus typé **avant tout téléchargement** (aucune requête réseau émise) avec message actionnable |
 | E49 | **Correction du dépôt APT** : après installation, lire `$PREFIX/etc/apt/sources.list` | Ligne unique avec `[trusted=yes]` pointant vers `https://jjoblab.github.io/codeide-packages/apt/codeide-main stable main` (la ligne embarquée sans option est corrigée) |
+| E50 | **Parcours T3 — onboarding** : terminer l'assistant en choisissant « Installer maintenant » à l'étape Terminal | L'écran de progression s'ouvre au-dessus de l'assistant ; revenir en arrière n'interrompt pas l'installation ; l'étape affiche « déjà installé » au retour une fois terminée ; « Plus tard » mène à l'étape Apparence sans blocage |
+| E51 | **Parcours T3 — à la demande** : après « Plus tard », bandeau de l'accueil → « Installer les outils » | Le même écran s'ouvre (même liste d'états) ; à la fin de l'installation, le bandeau disparaît **sans repasser par l'accueil** ; aucune double installation possible |
+| E52 | **Rotation et reprise** : faire pivoter l'appareil pendant l'installation, fermer puis rouvrir l'écran | La progression reprend où elle en était (état partagé du singleton) ; aucune installation relancée ; l'annulation reste possible à tout instant |
 
 ## À venir
 

@@ -4,6 +4,57 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.22.0] – 2026-09-23
+
+Étape 21 (= T3 du prompt compagnon « Terminal intégré et bootstrap
+natif ») : écran d'installation autonome, étape « Terminal » de
+l'assistant, bandeau d'invitation à l'accueil, permission `INTERNET`
+(ADR 0034). Premier branchement de `core:bootstrap` dans l'application.
+
+### Ajouté
+
+- **Module `feature:install`** : écran d'installation déclenchable à la
+  demande — `InstallViewModel` traduit l'état **partagé** du port
+  `BootstrapInstaller` en état de rendu (phase, étape, progression
+  bornée du téléchargement, erreur typée, état par outil) ; l'ouvrir
+  pendant une installation lancée ailleurs affiche la même progression,
+  le refermer ne l'interrompt jamais ; annulation explicite, erreurs
+  **actionnables** (réseau, espace, archive, permission, paquets,
+  asset, architecture). Dépend uniquement de `core:ui`/`core:domain`/
+  `core:model` — aucune dépendance Termux.
+- **Navigation** : `AppNavigator.openBootstrapInstall()` (interface
+  `core:ui`, implémentation `app`) ; destination `installation` du
+  graphe, actions depuis l'accueil et l'assistant ; garde anti
+  double-toucher.
+- **Assistant de premier lancement** : étape « Terminal » insérée entre
+  « Dossier de travail » et « Apparence » (six pages) — explication du
+  gain (JDK, shell complet, outils) et du poids (≈ 40 Mo + paquets) ;
+  « Installer maintenant » ouvre l'écran de progression partagé, « Plus
+  tard » passe sans bloquer (bandeau à l'accueil) ; au retour, la
+  présence des outils est revérifiée (« déjà installé ») ; aucune
+  régression : parcours, rotation et mort du processus inchangés.
+- **Accueil** : bandeau « Installer les outils du terminal » quand
+  l'assistant est terminé sans terminal installé — l'état combine les
+  paramètres **et** l'état partagé de l'installation : la fin d'une
+  installation lancée depuis l'écran fait disparaître le bandeau sans
+  repasser par l'accueil.
+- **Permission `INTERNET`** (ADR 0034) : unique usage réseau de
+  l'application — téléchargement du bootstrap et paquets d'outils.
+- **Implémentation `AssetsBootstrapSource`** dans `app` (AssetManager)
+  pour le port ouvert à l'étape T2.
+
+### Tests
+
+- `InstallViewModelTest` (fake `core:testing`) : traduction de chaque
+  état partagé, progression bornée/indéterminée (y compris serveur
+  menteur sur le total), temps réel, relais des ordres.
+- Onboarding : quatre tests nouveaux (insertion de l'étape, « Plus
+  tard » non bloquant, effet d'ouverture, revérification de la présence
+  des outils) et mise à jour des parcours (six pages) — les tests
+  existants restent verts.
+- Accueil : bandeau piloté par paramètres + état d'installation
+  (constructeur enrichi des deux fakes du domaine).
+
 ## [0.21.0] – 2026-09-23
 
 Étape 20 (= T2 du prompt compagnon « Terminal intégré et bootstrap

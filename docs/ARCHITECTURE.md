@@ -44,6 +44,7 @@ sections 5 et 6.
 | `core:storage` | Accès fichiers via SAF (implémente `FileSystem`) |
 | `core:logging` | Journalisation : sinks, rotation, export |
 | `core:crash` | Capture des plantages + CrashActivity (processus séparé `:crash`) |
+| `core:bootstrap` | Localisation des outils du bootstrap, environnement de sous-processus, installateur (ADR 0032/0033) |
 | `core:ui` | Thème Material 3, classes de base, composants réutilisables |
 | `core:testing` | Fakes et utilitaires de test (testImplementation seulement) |
 | `feature:onboarding` | Assistant de premier lancement |
@@ -51,6 +52,7 @@ sections 5 et 6.
 | `feature:newproject` | Wizard de création de projet |
 | `feature:settings` | Paramètres |
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
+| `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
 | `feature:editor` | Stub : futur espace de travail |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 
@@ -58,6 +60,9 @@ Chaque module possède un `README.md` (responsabilité, dépendances autorisées
 API prévue) et un `Module.md` (page Dokka).
 
 ## Règles de dépendance (section 5.2)
+
+> Permission : `INTERNET` depuis l'étape T3 (ADR 0034) — unique usage
+> réseau, l'installateur du bootstrap.
 
 Ces règles sont **vérifiées automatiquement** par la tâche Gradle
 `checkModuleDependencies` (plugin `codeide.module-rules` de `build-logic`) :

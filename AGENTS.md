@@ -257,7 +257,18 @@ remis (format section 14) puis attente du « GO ».
       faux serveur HTTP et vraie archive ; traducteurs AppError étendus [accueil/wizard/diagnostic] ;
       ADR 0033 ; INTERNET toujours absent — ajout et branchement app en T3 ; signalé : aapt2 absent des
       assets et du dépôt APT [paquet aapt existe en amont, non publié])
-- Prochaine : étape 21 (= Terminal T3 — écran d'installation + onboarding, cf. ROADMAP).
+- [x] Étape 21 (= Terminal T3) — écran d'installation + onboarding → v0.22.0
+      (feature:install : écran autonome à état partagé du port BootstrapInstaller [traduction pure,
+      progression bornée, erreurs actionnables, annulation] ; AppNavigator.openBootstrapInstall +
+      destination installation + garde double-toucher ; onboarding : étape Terminal insérée entre
+      Dossier et Apparence [six pages, jamais bloquante, Plus tard → bandeau, revérification au
+      retour d'écran, scission onAction→onActionTerminal→onActionSaisie pour detekt] ; accueil :
+      bandeau terminal piloté par combine[paramètres, état d'installation] — disparaît sans repasser
+      par l'accueil ; INTERNET + ADR 0034 ; app branche core:bootstrap + AssetsBootstrapSource
+      [AssetManager, absence aapt2 traduite null→AssetAbsent] ; ViewBinding include nullable :
+      appels sûrs, jamais !! ; tests : InstallViewModelTest [11], onboarding +4 et parcours six
+      pages, home constructeur enrichi)
+- Prochaine : étape 22 (= Terminal T4 — core:terminal-runtime, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
@@ -294,3 +305,12 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 - **Le démon Gradle peut être tué par l'environnement** (mémoire) sur
   `lintDebug` ou les tests parallèles : relancer en deux parties et
   `--max-workers=2` pour `testDebugUnitTest koverVerify` (éprouvé T2).
+  Si le démon meurt encore : `GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1024m
+  -XX:MaxMetaspaceSize=512m ..."` + `--max-workers=1` (éprouvé T3, le
+  service web cohabitant consomme aussi de la mémoire).
+- **Apostrophes des chaînes Android via harnais Python** : dans un
+  heredoc Python, `\'` devient une apostrophe nue dans le XML (aapt le
+  refuse) — écrire `\\'` pour obtenir `\'` ; toujours vérifier avec
+  `python3 -c "repr(...)"` (rencontré T3). Même discipline pour
+  l'insertion de fonctions Kotlin par harnais : vérifier la position
+  réelle des accolades de classe avant d'insérer (AppNavigatorImpl).
