@@ -42,4 +42,29 @@
     <string name="editor_panneau_console">Console</string>
     <string name="editor_panneau_problemes">Problems</string>
     <string name="editor_panneau_journal">Log</string>
+
+    <!-- Editing tabs (step 15). -->
+    <string name="editor_onglet_fermer_cd">Close this tab</string>
+    <string name="editor_onglet_sale_cd">Unsaved changes</string>
+    <string name="editor_enregistrer">Save</string>
+    <string name="editor_menu_fermer">Close</string>
+    <string name="editor_menu_fermer_autres">Close others</string>
+    <string name="editor_menu_fermer_tout">Close all</string>
+    <string name="editor_menu_deplacer_gauche">Move left</string>
+    <string name="editor_menu_deplacer_droite">Move right</string>
+    <string name="editor_menu_copier_chemin">Copy path</string>
+    <string name="editor_fermeture_titre">Unsaved changes</string>
+    <string name="editor_fermeture_message">“%1$s” has unsaved changes.</string>
+    <plurals name="editor_fermeture_tout_message">
+        <item quantity="one">%1$d file has unsaved changes.</item>
+        <item quantity="other">%1$d files have unsaved changes.</item>
+    </plurals>
+    <string name="editor_fermeture_enregistrer">Save</string>
+    <string name="editor_fermeture_enregistrer_tout">Save all</string>
+    <string name="editor_fermeture_ne_pas_enregistrer">Don\'t save</string>
+    <string name="editor_fermeture_annuler">Cancel</string>
+    <string name="editor_erreur_ouverture">This file could not be read.</string>
+    <string name="editor_erreur_enregistrement">Saving failed: the content remains unsaved.</string>
+    <string name="editor_ouvrir_avec_aucune">No application can open this file.</string>
+    <string name="editor_chemin_copie">Path copied</string>
 </resources>

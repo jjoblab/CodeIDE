@@ -34,6 +34,31 @@ data class NoeudExplorateur(
 )
 
 /**
+ * Onglet de fichier ouvert dans la zone centrale (étape 15, prompt compagnon
+ * sections 5.2 et 5.4).
+ *
+ * L'état est la **vue observable** de l'onglet ; l'`EditorSession` réelle
+ * (classe pure de cel-core) vit dans le `EditorViewModel`, hors état —
+ * jamais dans une liste d'état sérialisable.
+ *
+ * @property uri URI de document SAF du fichier (identifiant de l'onglet).
+ * @property cheminRelatif chemin sous la racine du projet (copiable).
+ * @property nom nom d'affichage (dernier segment du chemin).
+ * @property langage langage de coloration cel, ou `null` (repli neutre).
+ * @property isDirty contenu modifié non enregistré : le point de
+ * modification remplace la fermeture tant qu'il est sale (section 5.4).
+ * @property sauvegardeEnCours une écriture est en vol pour cet onglet.
+ */
+data class EditorTabState(
+    val uri: String,
+    val cheminRelatif: String,
+    val nom: String,
+    val langage: String?,
+    val isDirty: Boolean = false,
+    val sauvegardeEnCours: Boolean = false,
+)
+
+/**
  * Intentions utilisateur de l'espace de travail (section 5.3 : `XxxAction`).
  *
  * Le fragment et l'activité n'émettent que des actions ; la logique vit
@@ -50,14 +75,90 @@ sealed interface ActionEditor {
     data class BasculerNoeud(
         val uri: String,
     ) : ActionEditor
+
+    /** Ouvre le fichier [uri] en onglet (les binaires sont détournés). */
+    data class OuvrirFichier(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Sélectionne l'onglet à la position [index]. */
+    data class SelectionnerOnglet(
+        val index: Int,
+    ) : ActionEditor
+
+    /** Ferme l'onglet [uri] — avec confirmation s'il est modifié. */
+    data class FermerOnglet(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Ferme tous les autres onglets — les propres immédiatement. */
+    data class FermerAutresOnglets(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Ferme tous les onglets — les propres immédiatement. */
+    data object FermerTousOnglets : ActionEditor
+
+    /** Déplace l'onglet [uri] de [decalage] position(s) (−1 ou +1). */
+    data class DeplacerOnglet(
+        val uri: String,
+        val decalage: Int,
+    ) : ActionEditor
+
+    /** Enregistre l'onglet actif (action de la toolbar). */
+    data object Enregistrer : ActionEditor
+
+    /** Réponse au dialogue : enregistre puis ferme (puis quitte). */
+    data class EnregistrerPuisFermer(
+        val uris: List<String>,
+        val quitter: Boolean,
+    ) : ActionEditor
+
+    /** Réponse au dialogue : ferme sans enregistrer (puis quitte). */
+    data class FermerSansEnregistrer(
+        val uris: List<String>,
+        val quitter: Boolean,
+    ) : ActionEditor
+
+    /** Retour système hors tiroir : quitte, après confirmation si sale. */
+    data object Quitter : ActionEditor
 }
 
 /**
- * État observable de l'espace de travail (étapes 13-14).
+ * Événements ponctuels de l'espace de travail (section 5.3 : `XxxEffect`).
+ */
+sealed interface EffetEditor {
+    /** Fichier binaire : proposer « Ouvrir avec » une autre application. */
+    data class OuvrirAvec(
+        val uri: String,
+    ) : EffetEditor
+
+    /** Onglets modifiés : demander Enregistrer / Ne pas enregistrer / Annuler. */
+    data class ConfirmerFermeture(
+        val uris: List<String>,
+        val quitter: Boolean,
+    ) : EffetEditor
+
+    /** Chemin d'un onglet copié dans le presse-papiers. */
+    data class CopierChemin(
+        val chemin: String,
+    ) : EffetEditor
+
+    /** L'espace de travail peut se refermer. */
+    data object Quitter : EffetEditor
+
+    /** La lecture d'un fichier a échoué. */
+    data object ErreurOuverture : EffetEditor
+
+    /** L'enregistrement a échoué : le contenu reste non enregistré. */
+    data object ErreurEnregistrement : EffetEditor
+}
+
+/**
+ * État observable de l'espace de travail (étapes 13-15).
  *
- * Volontairement incrémental : les onglets ouverts et l'état du panneau
- * inférieur arriveront avec les étapes 15 et 16 — l'état grandit avec,
- * jamais avant.
+ * Volontairement incrémental : l'état du panneau inférieur arrivera avec
+ * l'étape 16 — l'état grandit avec, jamais avant.
  *
  * @property chargement première lecture du projet en cours.
  * @property projet projet ouvert, ou `null` si l'identifiant reçu
@@ -70,6 +171,8 @@ sealed interface ActionEditor {
  * raison autre que permission perdue / dossier introuvable : bandeau
  * générique, réessayable.
  * @property noeuds liste aplatie des nœuds visibles de l'explorateur.
+ * @property onglets fichiers ouverts en onglets (étape 15).
+ * @property indexOngletActif position de l'onglet actif, −1 si aucun.
  */
 data class EtatEditor(
     val chargement: Boolean = true,
@@ -78,10 +181,18 @@ data class EtatEditor(
     val verificationAcces: Boolean = false,
     val erreurRacine: Boolean = false,
     val noeuds: List<NoeudExplorateur> = emptyList(),
+    val onglets: List<EditorTabState> = emptyList(),
+    val indexOngletActif: Int = -1,
 )
 
 /** Clés partagées de l'espace de travail. */
 object ClesEditor {
     /** Extra d'intention : identifiant du projet à ouvrir. */
     const val EXTRA_PROJECT_ID: String = "jo.codeide.editor.PROJECT_ID"
+
+    /** Sauvetage : onglets ouverts (« uri \n chemin »), étape 15. */
+    const val CLE_ONGLETS: String = "onglets_ouverts"
+
+    /** Sauvetage : position de l'onglet actif, étape 15. */
+    const val CLE_INDEX_ACTIF: String = "index_onglet_actif"
 }

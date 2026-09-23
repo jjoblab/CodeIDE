@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vue personnalisée d'un onglet : icône, nom, point de modification / fermeture. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/spacing_md"
+    android:paddingEnd="@dimen/spacing_xs">
+
+    <ImageView
+        android:id="@+id/icone_onglet"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_fichier_kotlin" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nom_onglet"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:ellipsize="end"
+        android:maxWidth="140dp"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Main.kt" />
+
+    <!-- Point de modification : remplace la fermeture tant que l'onglet est sale. -->
+    <View
+        android:id="@+id/point_salissure"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:background="@drawable/point_onglet"
+        android:contentDescription="@string/editor_onglet_sale_cd"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/bouton_fermer_onglet"
+        android:layout_width="@dimen/touch_target_min"
+        android:layout_height="@dimen/touch_target_min"
+        android:contentDescription="@string/editor_onglet_fermer_cd"
+        android:padding="14dp"
+        android:src="@drawable/ic_fermer_onglet"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:visibility="gone" />
+</LinearLayout>
