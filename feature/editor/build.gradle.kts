@@ -17,4 +17,11 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":core:testing"))
+
+    // Régression de layout (correctif v0.19.0) : gonfler le vrai
+    // activity_editor.xml sous Robolectric — un <menu> inline y faisait
+    // planter LayoutInflater (rapport 8b5b73f1). Mêmes versions que le
+    // module app, déjà vérifiées dans le catalogue.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
