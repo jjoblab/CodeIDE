@@ -344,6 +344,24 @@ du prompt Terminal-1).
 | E60 | **Rotation et reprise** : faire pivoter l'appareil (et changer le thème clair/sombre en cours) avec des sessions ouvertes | Aucune session perdue ; le rendu se rebranche et garde le transcript ; le thème du rendu suit l'app ; la police suit le réglage (Paramètres → Apparence → Taille de la police du terminal) |
 | E61 | **Clavier étendu** : Tab (complétion), Échap, flèches (historique), Ctrl puis `c` | Tab complète, Échap interrompt la saisie, ↑/↓ parcourt l'historique ; Ctrl (bouton en surbrillance) combiné à `c` interrompt une commande ; Alt de même pour les combinaisons ; le retour système **ferme l'écran** sans tuer les sessions |
 
+## Étape 24 — Terminal T6 : intégration accueil et tiroir (v0.25.0)
+
+Préambule : APK debug v0.25.0+, un projet créé sur le stockage principal
+(`/storage/emulated/0/…`). Critères d'acceptation (section 9 du prompt
+Terminal-1) : les deux points d'entrée ouvrent le **même** écran avec la
+même liste de sessions ; la carte d'aperçu se met à jour en direct ;
+aucune régression sur `feature:home`/`feature:editor`.
+
+| # | Action | Attendu |
+|---|---|---|
+| E62 | **Correctif plantage** : ouvrir l'écran « Installer les outils du terminal » (accueil sans bootstrap → bandeau, ou toolbar Terminal) | L'écran s'ouvre **sans plantage** (rapport 30e81ee0 corrigé : plus de fermeture immédiate de l'app) ; l'invite, la progression et le bouton Installer répondent |
+| E63 | **Toolbar de l'accueil, bootstrap installé** : bouton Terminal dans la barre de titre | L'écran plein écran du terminal s'ouvre ; une nouvelle session démarre dans le `HOME` canonique ; la **même liste** de sessions que depuis le tiroir d'un projet |
+| E64 | **Toolbar de l'accueil, bootstrap absent** : même bouton sans bootstrap installé | L'**écran d'installation** s'ouvre directement (jamais un terminal non fonctionnel) ; après installation, le même bouton ouvre le terminal |
+| E65 | **Carte du tiroir** : ouvrir un projet → tiroir → destination « Terminal » de la barre basse | La carte remplace l'explorateur : compteur de sessions actives, libellé + dernière sortie (monospace) + pastille de la session active ; retour sur « Explorateur » : arborescence intacte |
+| E66 | **Mise à jour en direct** : terminal ouvert depuis l'accueil, taper des commandes, puis rouvrir le tiroir du projet | La carte reflète les sessions **en direct** (compteur, sortie récente) ; fermer un onglet dans l'écran plein écran met la carte à jour ; la carte est **identique** depuis les deux points d'entrée |
+| E67 | **Nouvelle session dans ce projet** : tiroir → Terminal → état vide → « Nouvelle session dans ce projet » | La session est créée dans le **dossier réel du projet** (`pwd` le confirme : `/storage/emulated/0/…/NomDuProjet`) puis l'écran plein écran s'ouvre dessus ; pastille verte ; session visible depuis l'autre point d'entrée |
+| E68 | **Garde-fou bootstrap dans le tiroir** : désinstaller les données ou vider le stockage interne (bootstrap absent), rouvrir l'espace | La carte montre « Outils du terminal non installés » + « Installer les outils » → écran d'installation ; **aucune** session fantôme créée |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

@@ -37,7 +37,7 @@ sections 5 et 6.
 |---|---|
 | `app` | Application, MainActivity, graphe de navigation, assemblage Hilt |
 | `core:model` | Kotlin JVM pur — entités et types partagés (`AppResult`, `AppError`, `Project`…) |
-| `core:domain` | Kotlin JVM pur — use cases, interfaces (repositories, `FileSystem`, `AppLogger`…) |
+| `core:domain` | Kotlin JVM pur — use cases, interfaces (repositories, `FileSystem`, `AppLogger`… ; pont SAF → FUSE `ResoudreRepertoireProjet`, ADR 0038) |
 | `core:data` | Implémentations des repositories |
 | `core:database` | Room : entités, DAO, convertisseurs |
 | `core:datastore` | Préférences (Preferences DataStore) |
@@ -55,7 +55,7 @@ sections 5 et 6.
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
 | `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) |
-| `feature:editor` | Stub : futur espace de travail |
+| `feature:editor` | Espace de travail : tiroir (explorateur + carte d'aperçu terminal T6), onglets, panneau inférieur |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,

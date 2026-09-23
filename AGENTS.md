@@ -92,8 +92,10 @@ dans `core:ui`, implémentée dans `app`).
 
 ```bash
 source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
-./gradlew clean spotlessCheck detekt checkModuleDependencies lintDebug \
-  testDebugUnitTest koverVerify assembleDebug   # vérification complète (doit être verte)
+./gradlew spotlessCheck detekt checkModuleDependencies lintDebug \
+  testDebugUnitTest koverVerify assembleDebug   # vérification complète SANS clean (ADR 0037 :
+                                                # build cache + CI GitHub ; mesures detekt 1,6 s /
+                                                # 27 s / 6,5 s après clean)
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor              # incrémente la version
 scripts/package.sh 0                       # dist/ : archive + APK + SHA256SUMS
@@ -294,7 +296,29 @@ remis (format section 14) puis attente du « GO ».
       [modèle + DataStore + Paramètres/Apparence + setTextSize gardé] ; AppNavigator.openTerminal
       [extra intent → SavedStateHandle, survit rotation] ; app branche feature:terminal ; 11 tests ViewModel ;
       POM terminal-view sans dépendance émulateur → les 2 artefacts déclarés ; Aligned16KB même exception)
-- Prochaine : étape 24 (= Terminal T6 — intégration accueil et tiroir, cf. ROADMAP).
+- [x] Étape 24 (= Terminal T6) — intégration accueil et tiroir → v0.25.0
+      (action « Terminal » dans la toolbar de l'accueil [ic_terminal core:ui, téléphone + sw600dp] :
+      openTerminal(null) si bootstrap installé SINON openBootstrapInstall — jamais un terminal non
+      fonctionnel, décision au ViewModel [ActionAccueil.OuvrirTerminal → 2 effets typés], état
+      bootstrapInstalle ; carte d'aperçu du tiroir : 4e destination « Terminal » ACTIVE de la barre
+      basse, compteur pluriel de sessions actives, libellé + dernière sortie monospace + pastille
+      vivante/terminée de la session active, état vide « Nouvelle session dans ce projet » qui
+      CRÉE la session dans le dossier réel puis ouvre l'écran plein écran dessus, garde-fou
+      « Installer les outils » si bootstrap absent ; mise à jour EN DIRECT via
+      TerminalSessionRepository [core:domain] — AUCUNE dépendance ajoutée à feature:editor ;
+      pont SAF → FUSE ResoudreRepertoireProjet [core:domain : ExternalStorageProvider, primary →
+      /storage/emulated/0, UUID amovibles, anti-traversée . / .. / vides rejetés, garde répertoire
+      fantôme via isDirectory, pure fonction JVM 15 tests + garde-fous] réutilisable par le futur
+      tooling ; CORRECTIF plantage InstallFragment [rapport 30e81ee0 : @AndroidEntryPoint manquant
+      → NoSuchMethodException <init> [] SUR APPAREIL SEULEMENT, test de régression par réflexion
+      InstallFragmentHiltTest] ; CI GitHub Actions .github/workflows/ci.yml [push main+tags,
+      PR, manuel : JDK 21 Temurin, setup-gradle cache, licences SDK, chaîne complète SANS clean,
+      APK debug en artefact, rapports seulement si échec] ; ADR 0037 [CI + procédure sans clean,
+      mesures detekt empiriques] ADR 0038 [carte + pont FUSE] ; 3 tests HomeViewModel + 8 tests
+      CarteTerminalEditorViewModelTest [4 états de la carte + effets, FakeTerminalSessionRepository
+      — zéro dépendance Termux nécessaire] ; test Robolectric menu tiroir → 4 destinations)
+- Prochaine : étape 25 (= Terminal T7 — finitions et audit, cf. ROADMAP), puis prompt Tooling
+      (demande utilisateur : « lancé le prompt tooling » après T6).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
@@ -328,6 +352,20 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   URLs) hors des lignes de code — les extraire en constantes. Diagnostic
   éprouvé à l'étape T2 : la position signalée ne correspond à rien sur
   le disque, c'est la projection formatée qui compte.
+- **Un fragment qui obtient un `@HiltViewModel` par `by viewModels()`
+  DOIT porter `@AndroidEntryPoint`** (rapport 30e81ee0, v0.24.0 sur
+  appareil) : sans elle, la factory par défaut tente la réflexion sur un
+  constructeur sans argument — `NoSuchMethodException <init> []`,
+  invisible au compile time ET dans les tests JVM (ils construisent le
+  ViewModel directement). Le test de régression vérifie l'annotation par
+  réflexion ; tout nouveau fragment Hilt mérite son équivalent.
+- **detekt n'a PAS d'analyse incrémentale par fichier** (mesuré T6,
+  1.23.8) : une tâche réexécutée relit tout le source set du module.
+  Mais Gradle saute les modules inchangés (up-to-date, 1,6 s) et le
+  build cache restitue tout après un `clean` (6,5 s, from cache) — le
+  `clean` systématique historique n'apportait rien : vérifications
+  ciblées par module en cours d'étape, chaîne complète sans `clean` en
+  fin (ADR 0037), from-scratch garanti par la CI GitHub au push.
 - **Le démon Gradle peut être tué par l'environnement** (mémoire) sur
   `lintDebug` ou les tests parallèles : relancer en deux parties et
   `--max-workers=2` pour `testDebugUnitTest koverVerify` (éprouvé T2).

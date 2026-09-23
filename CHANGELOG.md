@@ -4,6 +4,70 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.25.0] – 2026-09-24
+
+Étape 24 (= T6 du prompt compagnon « Terminal intégré et bootstrap
+natif ») : intégration du terminal à l'accueil et au tiroir de l'espace
+de travail (sections 7 et 8). Corrigé : plantage de l'écran
+d'installation rapporté sur appareil (rapport 30e81ee0). Ajouté :
+intégration continue GitHub Actions. ADR 0037, ADR 0038.
+
+### Corrigé
+
+- **Plantage `InstallFragment` (rapport 30e81ee0, appareil réel)** :
+  l'annotation `@AndroidEntryPoint` manquait sur le fragment — la
+  factory par défaut tentait la réflexion sans constructeur vide
+  (`NoSuchMethodException: InstallViewModel.<init> []`) dès l'ouverture
+  de « Installer les outils du terminal ». L'annotation installe la
+  factory Hilt ; test de régression par réflexion (le plantage n'était
+  visible ni au compile time ni dans les tests JVM du ViewModel).
+
+### Ajouté
+
+- **Action « Terminal » dans la toolbar de l'accueil** (section 7) :
+  bouton icône dédié (téléphone et sw600dp) qui ouvre l'écran plein
+  écran (`openTerminal(null)` — répertoire général, `HOME` canonique
+  pour une nouvelle session) **ou** l'écran d'installation si le
+  bootstrap est absent : jamais un terminal non fonctionnel. La décision
+  vit dans `HomeViewModel` (`ActionAccueil.OuvrirTerminal` → effet
+  typé), l'état porte `bootstrapInstalle`.
+- **Carte d'aperçu du terminal dans le tiroir** (section 8) :
+  quatrième destination « Terminal » de la barre de navigation basse
+  (active) — carte de métadonnées (nombre de sessions actives en
+  pluriels, libellé + dernière sortie monospace de la session active,
+  pastille d'état vivante/terminée, bouton d'agrandissement), état vide
+  (« Aucune session active » + « Nouvelle session dans ce projet » qui
+  crée la session dans le dossier réel du projet puis ouvre l'écran
+  dessus), garde-fou bootstrap (« Installer les outils »). Mise à jour
+  **en direct** : même liste de sessions que l'écran plein écran, quel
+  que soit le point d'entrée. `feature:editor` ne gagne **aucune**
+  dépendance (critère d'acceptation section 11 vérifié par
+  `checkModuleDependencies`).
+- **Pont SAF → FUSE du domaine** : `ResoudreRepertoireProjet`
+  (`core:domain`) traduit l'arborescence SAF du projet en chemin FUSE
+  réel (`/storage/emulated/0/…`, volumes amovibles par UUID) —
+  durcissement anti-traversée, garde « répertoire fantôme » (volume
+  démonté → repli `HOME`), heuristiques pures testées en JVM. Le futur
+  tooling (exécution sur l'appareil) réutilise ce cas d'usage.
+- **Icône `ic_terminal`** partagée (`core:ui`, contour) : toolbar de
+  l'accueil et destination du tiroir.
+- **Intégration continue GitHub Actions** (`.github/workflows/ci.yml`)
+  : push (main + tags `v*`), pull request et manuel — JDK 21 Temurin,
+  cache Gradle, SDK du runner ; la vérification complète (spotless,
+  detekt, `checkModuleDependencies`, lint, tests, kover, APK debug)
+  tourne **depuis GitHub**, APK téléchargeable en artefact. ADR 0037.
+
+### Modifié
+
+- **Procédure de vérification locale** (ADR 0037) : le `clean`
+  systématique disparaît — mesures à l'appui (detekt 1,6 s sans
+  changement, 27 s après modification d'un module, 6,5 s après `clean`
+  via le build cache), vérifications ciblées par module en cours
+  d'étape, chaîne complète sans `clean` avant livraison, from-scratch
+  garanti par la CI au push.
+- Test Robolectric du menu du tiroir : quatre destinations attendues
+  (Terminal active).
+
 ## [0.24.0] – 2026-09-24
 
 Étape 23 (= T5 du prompt compagnon « Terminal intégré et bootstrap
