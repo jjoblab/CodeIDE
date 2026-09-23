@@ -171,7 +171,15 @@ class HomeFragment :
     /** Collecte l'état (rendu) et les effets (snackbars) sur le cycle de vie. */
     private fun observerEtatEtEffets() {
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
-        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet -> annoncer(effet) }
+        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
+            if (effet is EffetAccueil.OuvrirEditeur) {
+                // Espace de travail (étape 13) : l'activité s'affiche par-dessus,
+                // l'accueil survit en dessous.
+                navigator.openEditor(effet.id.value)
+            } else {
+                annoncer(effet)
+            }
+        }
     }
 
     /** Rendu de l'état : bandeau, états superposés, liste, tri, rafraîchissement. */
@@ -238,13 +246,22 @@ class HomeFragment :
     private fun annoncer(effet: EffetAccueil) {
         val message =
             when (effet) {
+                // L'ouverture de l'éditeur est interceptée par le collecteur
+                // (navigation, pas de snackbar) — elle n'arrive jamais ici.
+                is EffetAccueil.OuvrirEditeur -> return
+
                 is EffetAccueil.ProjetImporte -> getString(R.string.accueil_snackbar_importe, effet.nom)
+
                 EffetAccueil.DossierDejaPresent -> getString(R.string.accueil_snackbar_deja_present)
+
                 is EffetAccueil.DossierRefuse -> getString(TraductionsAccueil.refus(effet.raison))
+
                 is EffetAccueil.ProjetDeplace -> getString(R.string.accueil_snackbar_deplace, effet.nom)
+
                 EffetAccueil.ProjetRetire -> getString(R.string.accueil_snackbar_retire)
+
                 EffetAccueil.ProjetSupprime -> getString(R.string.accueil_snackbar_supprime)
-                EffetAccueil.EditeurIndisponible -> getString(R.string.accueil_snackbar_editeur)
+
                 is EffetAccueil.Echec -> getString(TraductionsAccueil.message(effet.erreur))
             }
         Snackbar.make(binding.racineAccueil, message, Snackbar.LENGTH_SHORT).show()

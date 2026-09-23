@@ -30,6 +30,8 @@ dependencies {
     implementation(project(":feature:newproject"))
     // Écran Diagnostic (étape 12) : visionneuse journaux + plantages.
     implementation(project(":feature:diagnostics"))
+    // Espace de travail de l'éditeur (étape 13) : EditorActivity séparée.
+    implementation(project(":feature:editor"))
 
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.

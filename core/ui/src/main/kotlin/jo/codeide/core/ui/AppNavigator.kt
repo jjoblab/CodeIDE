@@ -14,6 +14,7 @@ package jo.codeide.core.ui
  * écrans placeholder de l'étape 1 n'ont besoin que de l'aller-retour
  * Accueil ↔ Paramètres.
  */
+@Suppress("TooManyFunctions") // Exemption ciblée (règle 16) : une méthode par destination, l'interface croît par étape.
 public interface AppNavigator {
     /** Ouvre l'écran Paramètres depuis n'importe quelle fonctionnalité. */
     public fun openSettings(): Unit
@@ -113,4 +114,17 @@ public interface AppNavigator {
         nomFichier: String,
         emplacementInterne: String,
     ): Unit
+
+    /**
+     * Ouvre l'**espace de travail** d'un projet (étape 13) : `EditorActivity`
+     * s'affiche par-dessus la pile courante — l'accueil reste en dessous,
+     * y revenir ne recharge rien.
+     *
+     * Servi par « Ouvrir » sur une carte de l'accueil et par « Ouvrir le
+     * projet » de l'écran de succès du wizard ; l'appelant marque
+     * `lastOpenedAt` avant d'appeler.
+     *
+     * @param projectId identifiant du projet à ouvrir.
+     */
+    public fun openEditor(projectId: String): Unit
 }

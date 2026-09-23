@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Espace de travail (étape 13, prompt compagnon section 5.1) : tiroir de
+  navigation à gauche, zone centrale (toolbar + onglets vides + état vide),
+  panneau inférieur replié à trois onglets vides.
+-->
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_editeur"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:openDrawer="start">
+
+    <!-- ================= Contenu principal ================= -->
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:id="@+id/zone_centrale"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar_editeur"
+                style="@style/Widget.CodeIDE.Toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:navigationContentDescription="@string/editor_ouvrir_tiroir_cd"
+                app:navigationIcon="@drawable/ic_menu_tiroir"
+                app:title="@string/editor_title" />
+
+            <!-- Onglets de fichiers ouverts : remplis à l'étape 15. -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/onglets_fichiers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:tabMode="scrollable" />
+
+            <FrameLayout
+                android:id="@+id/conteneur_editeur"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progression"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
+
+                <!-- État vide : aucun fichier ouvert (icône + invitation). -->
+                <LinearLayout
+                    android:id="@+id/zone_vide"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="@dimen/state_padding"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="@dimen/state_icon_size"
+                        android:layout_height="@dimen/state_icon_size"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ill_editeur_vide"
+                        app:tint="?attr/colorOnSurfaceVariant" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/state_spacing"
+                        android:gravity="center"
+                        android:text="@string/editor_vide_titre"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:gravity="center"
+                        android:text="@string/editor_vide_message"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Projet introuvable : identifiant inconnu au registre. -->
+                <LinearLayout
+                    android:id="@+id/zone_introuvable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="@dimen/state_padding"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/editor_introuvable_titre"
+                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:gravity="center"
+                        android:text="@string/editor_introuvable_message"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- ================= Panneau inférieur (replié) ================= -->
+
+        <LinearLayout
+            android:id="@+id/panneau_inferieur"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:behavior_peekHeight="@dimen/editor_panneau_replie"
+            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+            <LinearLayout
+                android:id="@+id/entete_panneau"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/editor_panneau_replie"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/spacing_md">
+
+                <View
+                    android:id="@+id/poignee_panneau"
+                    android:layout_width="24dp"
+                    android:layout_height="4dp"
+                    android:background="?attr/colorOutline"
+                    android:contentDescription="@string/editor_panneau_poignee_cd" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/titre_panneau"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:text="@string/editor_panneau_titre"
+                    android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_fermer_panneau"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_panneau_reduire_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    app:icon="@drawable/ic_reduire_panneau" />
+            </LinearLayout>
+
+            <!-- Trois onglets vides : le contenu arrive à l'étape 16. -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/onglets_panneau"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/editor_panneau_console" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/editor_panneau_problemes" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/editor_panneau_journal" />
+            </com.google.android.material.tabs.TabLayout>
+
+            <FrameLayout
+                android:id="@+id/conteneur_panneau"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/editor_panneau_mi_hauteur" />
+        </LinearLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <!-- ================= Tiroir de navigation ================= -->
+
+    <LinearLayout
+        android:id="@+id/tiroir"
+        android:layout_width="@dimen/editor_tiroir_largeur"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="?android:attr/colorBackground"
+        android:orientation="vertical">
+
+        <!-- En-tête fixe : projet, chemin, fermeture. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_tiroir_section"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/nom_projet_tiroir"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                tools:text="Mon Projet" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/chemin_tiroir"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Projets/Mon Projet" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_fermer_projet"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:gravity="start|center_vertical"
+                android:text="@string/editor_tiroir_fermer_projet" />
+        </LinearLayout>
+
+        <!-- Contenu du tiroir : l'explorateur arrive à l'étape 14. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/contenu_tiroir"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="@dimen/state_padding"
+            android:text="@string/editor_tiroir_vide"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

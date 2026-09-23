@@ -333,6 +333,14 @@ sealed interface EffetWizard {
     data class ProjetCree(
         val id: ProjectId,
     ) : EffetWizard
+
+    /**
+     * « Ouvrir le projet » depuis l'écran de succès (étape 13) : ouvre
+     * l'espace de travail par-dessus — le wizard se referme à son retour.
+     */
+    data class OuvrirProjetEditeur(
+        val id: ProjectId,
+    ) : EffetWizard
 }
 
 /**

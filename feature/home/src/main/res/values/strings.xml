@@ -61,7 +61,6 @@
     <string name="accueil_snackbar_deplace">Projet « %1$s » relocalisé</string>
     <string name="accueil_snackbar_retire">Projet retiré de la liste</string>
     <string name="accueil_snackbar_supprime">Projet supprimé du disque</string>
-    <string name="accueil_snackbar_editeur">L\'éditeur de code arrive dans une prochaine version</string>
 
     <string name="accueil_erreur_modele">Le modèle de projet est introuvable ou invalide.</string>
 

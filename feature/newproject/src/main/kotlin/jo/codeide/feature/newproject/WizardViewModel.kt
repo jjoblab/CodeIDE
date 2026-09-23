@@ -516,7 +516,7 @@ class WizardViewModel
             val succes = etatInterne.value.etatCreation as? EtatCreation.Succes ?: return
             viewModelScope.launch {
                 marquerOuvert(succes.projet.id, horloge.nowMillis())
-                effetsInterne.send(EffetWizard.ProjetCree(succes.projet.id))
+                effetsInterne.send(EffetWizard.OuvrirProjetEditeur(succes.projet.id))
             }
         }
 

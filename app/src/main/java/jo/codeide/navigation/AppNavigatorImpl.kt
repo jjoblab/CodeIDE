@@ -16,6 +16,8 @@ import jo.codeide.R
 import jo.codeide.core.crash.ui.CrashActivity
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.feature.editor.ClesEditor
+import jo.codeide.feature.editor.EditorActivity
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
@@ -33,6 +35,10 @@ import javax.inject.Inject
  * `@ActivityContext`) — on l'injecte donc sans qualificateur.
  */
 @ActivityScoped
+// Exemption detekt ciblée (règle 16 du prompt maître) : une méthode par
+// destination de navigation — l'interface AppNavigator croît par étape,
+// chaque override a son objet.
+@Suppress("TooManyFunctions")
 internal class AppNavigatorImpl
     @Inject
     constructor(
@@ -167,6 +173,16 @@ internal class AppNavigatorImpl
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
             activity.startActivity(Intent.createChooser(intention, nomFichier))
+        }
+
+        override fun openEditor(projectId: String) {
+            // Espace de travail (étape 13) : activité séparée par-dessus la
+            // pile — l'accueil survit en dessous, y revenir ne recharge rien.
+            logger.d(TAG) { "ouverture de l'espace de travail du projet" }
+            val intention =
+                Intent(activity, EditorActivity::class.java)
+                    .putExtra(ClesEditor.EXTRA_PROJECT_ID, projectId)
+            activity.startActivity(intention)
         }
     }
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings for the workspace (étape 13). -->
+<resources>
+    <string name="editor_title">Editor</string>
+    <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
+    <string name="editor_vide_titre">No file open</string>
+    <string name="editor_vide_message">Open a file from the navigation drawer to edit it here.\nThe file explorer arrives in the next step.</string>
+    <string name="editor_introuvable_titre">Project not found</string>
+    <string name="editor_introuvable_message">This project is no longer registered. It may have been removed from the home screen.</string>
+    <string name="editor_tiroir_section">Project</string>
+    <string name="editor_tiroir_fermer_projet">Close project</string>
+    <string name="editor_tiroir_vide">The file explorer arrives here in the next step.</string>
+    <string name="editor_panneau_titre">Panel</string>
+    <string name="editor_panneau_reduire_cd">Collapse the bottom panel</string>
+    <string name="editor_panneau_poignee_cd">Expand or collapse the bottom panel</string>
+    <string name="editor_panneau_console">Console</string>
+    <string name="editor_panneau_problemes">Problems</string>
+    <string name="editor_panneau_journal">Log</string>
+</resources>
