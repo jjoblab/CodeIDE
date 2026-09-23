@@ -124,6 +124,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
     }
 
     private fun brancherAvance() {
+        binding.boutonDiagnostic.setOnClickListener { navigator.openDiagnostics() }
         binding.boutonReinitialiser.setOnClickListener { confirmerReinitialisation() }
         binding.boutonRelancerAssistant.setOnClickListener {
             viewModel.onAction(ActionParametres.RelancerAssistant)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Couleurs des niveaux de journal (étape 12) — variantes jour/nuit pour un
+  contraste AA sur les deux surfaces.
+-->
+<resources>
+    <!-- Débogage : teinte discrète, surface tertiaire. -->
+    <color name="niveau_debug">#5F6368</color>
+
+    <!-- Information : teinte principale du thème (surfaces claires). -->
+    <color name="niveau_info">#1A5FB4</color>
+
+    <!-- Avertissement : ambre lisible sur clair. -->
+    <color name="niveau_warn">#9A6700</color>
+
+    <!-- Erreur : rouge du thème. -->
+    <color name="niveau_error">#B3261E</color>
+</resources>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Écran Diagnostic (étape 12) : barre d'outils, section « Informations »
+  (version, appareil non identifiant, session), conteneur du menu debug
+  (build debug uniquement), puis deux onglets — Journaux et Plantages.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_diagnostic"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/diagnostics_retour_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/diagnostics_title" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/carte_informations"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_sm"
+        app:cardCornerRadius="@dimen/corner_radius_medium">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/diagnostics_infos_titre"
+                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                tools:text="Version 0.13.0 (1300)" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_appareil"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                tools:text="Google · Pixel 8 · Android 16 (API 36)" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_session"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                tools:text="Session : 3f9c…" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Conteneur du menu debug : vide en release (variante no-op),
+         bouton d'accès en debug — jamais sur les écrans de production. -->
+    <LinearLayout
+        android:id="@+id/conteneur_menu_debug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginEnd="@dimen/screen_horizontal_margin"
+        android:orientation="horizontal" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/onglets_diagnostic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs">
+
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/onglet_journaux"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/diagnostics_onglet_journaux" />
+
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/onglet_plantages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/diagnostics_onglet_plantages" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/pager_diagnostic"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>

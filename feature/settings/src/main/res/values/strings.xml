@@ -48,6 +48,7 @@
 
     <!-- Avancé -->
     <string name="settings_section_avance">Avancé</string>
+    <string name="settings_diagnostic">Diagnostic (journaux et plantages)</string>
     <string name="settings_reinitialiser">Réinitialiser les préférences</string>
     <string name="settings_reinitialiser_titre">Réinitialiser les préférences ?</string>
     <string name="settings_reinitialiser_message">Thème, langue, dossier de travail, profil et licences reviennent à leurs valeurs par défaut. Les projets enregistrés ne sont pas touchés.</string>

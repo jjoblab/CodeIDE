@@ -46,4 +46,11 @@ public class FakeAppLogger : AppLogger {
     ) {
         enregistrees += RecordedEntry(level, tag, message(), throwable)
     }
+
+    /**
+     * Identifiant de session fixe, propre à l'instance du fake — les tests
+     * de l'écran Diagnostic (étape 12) peuvent le comparer à la valeur
+     * affichée.
+     */
+    public override val sessionId: String = "fake-session-${java.util.UUID.randomUUID()}"
 }

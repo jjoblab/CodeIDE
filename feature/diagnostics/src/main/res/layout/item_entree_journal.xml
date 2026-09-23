@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne d'une entrée de journal (étape 12) : niveau coloré, heure et étiquette,
+  message tronqué — l'appui ouvre le détail repliable.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="top"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/spacing_xs">
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/niveau_entree"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:minWidth="52dp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        tools:text="ERROR"
+        tools:textColor="@color/niveau_error" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/heure_entree"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="14:23:05.128" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/etiquette_entree"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Session" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/pointeur_exception"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:text="@string/diagnostics_pointeur_exception"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorError"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/message_entree"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="navigation accueil -> paramètres" />
+    </LinearLayout>
+</LinearLayout>

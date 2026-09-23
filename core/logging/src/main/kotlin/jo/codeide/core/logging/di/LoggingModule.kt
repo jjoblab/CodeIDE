@@ -13,6 +13,7 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.LogConfig
 import jo.codeide.core.domain.LogExportWriter
 import jo.codeide.core.domain.LogRepository
+import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.SystemTimeProvider
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.logging.CodeIdeAppLogger
@@ -21,6 +22,7 @@ import jo.codeide.core.logging.JsonlLogStore
 import jo.codeide.core.logging.LogConfigHolder
 import jo.codeide.core.logging.LogEngine
 import jo.codeide.core.logging.LogExportWriterImpl
+import jo.codeide.core.logging.LogLevelApplier
 import jo.codeide.core.logging.LogRepositoryImpl
 import jo.codeide.core.logging.LogcatSink
 import jo.codeide.core.logging.LoggingLimits
@@ -53,6 +55,10 @@ internal interface LoggingBindsModule {
     @Binds
     @Singleton
     fun bindLogExportWriter(impl: LogExportWriterImpl): LogExportWriter
+
+    @Binds
+    @Singleton
+    fun bindLogVerbosityApplier(impl: LogLevelApplier): LogVerbosityApplier
 }
 
 /** Fournitures des composants internes et des valeurs de build. */

@@ -41,7 +41,7 @@ internal class LogEngine(
     private val sinks: List<LogSink>,
 ) : AppLogger {
     /** Identifiant du lancement courant — présent sur chaque entrée. */
-    val sessionId: String = UUID.randomUUID().toString()
+    override val sessionId: String = UUID.randomUUID().toString()
 
     private val breadcrumbs = CircularLogBuffer(LoggingLimits.BREADCRUMB_CAPACITY)
 

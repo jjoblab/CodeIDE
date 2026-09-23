@@ -38,6 +38,24 @@ public interface LogExportWriter {
      * @return le descriptif de l'archive produite, ou l'erreur typée.
      */
     public suspend fun write(entries: List<LogEntry>): AppResult<ExportedLogs>
+
+    /**
+     * Écrit l'archive des entrées fournies **directement** à la destination
+     * SAF choisie par l'utilisateur (action « Enregistrer » de la visionneuse
+     * de diagnostics, étape 12).
+     *
+     * Aucun fichier intermédiaire : l'archive est diffusée vers la
+     * destination, le répertoire d'export du cache n'est pas utilisé.
+     *
+     * @param entries entrées déjà expurgées, dans l'ordre chronologique.
+     * @param destinationUri URI de document (`application/zip`) ouverte en
+     * écriture par le sélecteur système.
+     * @return le succès, ou l'erreur typée rencontrée.
+     */
+    public suspend fun write(
+        entries: List<LogEntry>,
+        destinationUri: String,
+    ): AppResult<Unit>
 }
 
 /**
@@ -67,6 +85,25 @@ public class ExportLogsUseCase
             try {
                 val entries = repository.readAll()
                 exportWriter.write(entries)
+            } catch (annulation: kotlinx.coroutines.CancellationException) {
+                throw annulation
+            } catch (e: IOException) {
+                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+            }
+
+        /**
+         * Produit l'archive complète des journaux **directement** à la
+         * destination choisie (action « Enregistrer » — étape 12).
+         *
+         * @param destinationUri URI de document ouverte en écriture par le
+         * sélecteur SAF.
+         * @return le succès, ou une erreur typée (lecture ou écriture
+         * impossibles).
+         */
+        public suspend operator fun invoke(destinationUri: String): AppResult<Unit> =
+            try {
+                val entries = repository.readAll()
+                exportWriter.write(entries, destinationUri)
             } catch (annulation: kotlinx.coroutines.CancellationException) {
                 throw annulation
             } catch (e: IOException) {

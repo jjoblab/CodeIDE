@@ -12,7 +12,6 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
-import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.GetLatestUnreviewedCrashReportUseCase
 import jo.codeide.core.domain.MarkCrashReportReviewedUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
@@ -20,7 +19,6 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applyDynamicColorsIfAvailable
-import jo.codeide.debug.MenuDebug
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -58,10 +56,6 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var logger: AppLogger
-
-    /** Port d'accès aux documents — menu debug (essais SAF S1-S5). */
-    @Inject
-    lateinit var fichiers: FileSystem
 
     @Inject
     lateinit var navigator: AppNavigator
@@ -110,10 +104,8 @@ class MainActivity : AppCompatActivity() {
             (application as? CodeIdeApplication)?.ecranAffiche(destination.label?.toString().orEmpty())
         }
 
-        // Menu debug (source set `debug` de app, section 5.8) : les builds
-        // de développement seules l'installent — la version release
-        // embarque un no-op de même signature.
-        MenuDebug.installer(this, logger, fichiers)
+        // Menu debug : déplacé dans l'écran Diagnostic à l'étape 12 —
+        // plus aucune trace des outils de développement sur l'accueil.
 
         // Apparence, routage du premier lancement et libération du splash :
         // tout se joue sur la collecte des paramètres.

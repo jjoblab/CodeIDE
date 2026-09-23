@@ -87,4 +87,30 @@ public interface AppNavigator {
      * @return l'identifiant en attente, ou `null` s'il n'y en a pas.
      */
     public fun consommerProjetCree(): String?
+
+    /**
+     * Ouvre l'écran Diagnostic (étape 12) : visionneuse des journaux et des
+     * rapports de plantage.
+     *
+     * Servi par l'entrée Paramètres › Avancé › Diagnostic.
+     */
+    public fun openDiagnostics(): Unit
+
+    /**
+     * Ouvre la feuille de partage système pour une **archive de
+     * diagnostic** (journaux ou rapports de plantage, étape 12) produite
+     * dans le répertoire d'export du cache.
+     *
+     * L'implémentation applicative seule connaît l'autorité du
+     * FileProvider et le répertoire exposé : les fonctionnalités
+     * manipulent des descriptifs opaques (`ExportedLogs` du domaine),
+     * jamais d'URI de fichier interne.
+     *
+     * @param nomFichier nom lisible proposé au partage.
+     * @param emplacementInterne emplacement opaque de l'archive produite.
+     */
+    public fun partagerArchive(
+        nomFichier: String,
+        emplacementInterne: String,
+    ): Unit
 }
