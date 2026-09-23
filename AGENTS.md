@@ -221,6 +221,25 @@ remis (format section 14) puis attente du « GO ».
       + création à la racine par bouton dédié [fichier créé ouvert en onglet] ; validation partagée wizard [validateur file-name + EvaluerNomFichierUseCase] ;
       FileSystem.rename [nouvelle URI retournée] avec migration d'onglet [session/verrou/auto-sauvegarde] ; suppression ferme l'onglet et libère ;
       reprise par projet [.codeide/local/workspace-state.json, tolérante, gitignore des modèles déjà présent] ; accessibilité onglets + E32-E39 ; ADR 0030)
-- [ ] Étape 18 — Audit final de Phase 1 → v0.19.0
+- [x] Étape 18 — Audit final de Phase 1 → v0.19.0 (reconnaissance du type de projet à l'ouverture
+      [.codeide/project.json, ReconnaitreTypeProjetUseCase tolérant, nom i18n catalogue + repli identifiant, PreciserLangue re-résout, ADR 0031] ;
+      correctif plantage d'ouverture de l'espace [<menu> inline du tiroir → res/menu/menu_tiroir.xml + app:menu,
+      régression Robolectric gonflant le vrai activity_editor.xml — rapport 8b5b73f1] ; assembleRelease R8 vert
+      [règles ProGuard cel-ui vérifiées sur APK minifié, E44] ; Dokka core:model/core:domain ;
+      audit dépendances [6 entrées retirées] / TODO [aucun] / code mort [detekt strict vert] / données personnelles [LogRedactor, aucune fuite] ;
+      verify-templates.sh vert ; plan détaillé Phase 2 dans ROADMAP)
+- Phase 1 terminée — v0.19.0. Prochaine : Phase 2 (étape 19, cf. ROADMAP).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
+
+### Leçons d'ingénierie (à relire avant toute étape)
+
+- **Un layout ne se valide qu'en l'inflatable** : AAPT2 compile un `<menu>`
+  inline sans rechigner — c'est `LayoutInflater` qui plante à l'exécution
+  (`android.view.menu`, rapport 8b5b73f1, présent des étapes 14 à 18).
+  Le test de régression `ActivityEditorLayoutTest` gonfle le vrai layout
+  sous Robolectric : tout nouveau layout d'activité mérite son équivalent.
+- Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
+  puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
+  avant-plan avec délai explicite (les arrière-plans sont tués entre appels
+  d'outils).

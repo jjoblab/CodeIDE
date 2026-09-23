@@ -1,6 +1,6 @@
 # Feuille de route
 
-## Phase 1 — Fondations, configuration, création de projet (en cours)
+## Phase 1 — Fondations, configuration, création de projet (terminée — v0.19.0)
 
 Chaque étape se termine par la procédure de livraison (section 9.2 du prompt
 maître) et l'attente de validation. La version de l'étape N est `0.(N+1).0`.
@@ -25,7 +25,7 @@ maître) et l'attente de validation. La version de l'étape N est `0.(N+1).0`.
 | 15 | Intégration de l'éditeur et onglets de fichiers | 0.16.0 | **Terminé** | Ouverture tiroir → onglet (`readText`, binaires → « Ouvrir avec » [ACTION_VIEW + FLAG_GRANT_READ], langage déduit de l'extension avec repli neutre), `EditorDocument`/`EditorSession` **au ViewModel** avec `setLanguage`, `TabLayout` dynamique (ajout, fermeture, menu contextuel [Fermer/Autres/Tout, Déplacer à gauche/droite, Copier le chemin], point de modification remplaçant la fermeture tant que sale), **un seul `EditorView` rebranché** sur la session active, thème clair/sombre, sauvegarde automatique (debounce 1,5 s, suspendue sous confirmation) + manuelle via `FileSystem.writeText` avec **verrou par fichier**, dialogue de fermeture avec modifications non enregistrées (agrégé), `session.dispose()` systématique (enveloppe suivie testée + LeakCanary sur appareil), onglets rouverts après mort du processus (`SavedStateHandle` chemins, contenu relu) — ADR 0028 |
 | 16 | Panneau inférieur | 0.17.0 | **Terminé** | `BottomSheetBehavior` trois états (replié/mi-hauteur/étendu, retour système réduit l'étendu) avec en-tête (poignée, titre suivant l'onglet actif, badge de compte, agrandir/réduire), onglet **Journal applicatif** fonctionnel (fenêtre mémoire 200 entrées via `ObserveLogsUseCase`, mise à jour en direct, filtres par niveau persistés comme l'écran Diagnostic, lien « Ouvrir le journal complet » vers Diagnostic), onglets **Sortie** et **Problèmes** en stub explicite (point d'ancrage `session.setDiagnostics` documenté, non câblé), persistance de l'état et de l'onglet actif (rotation) ; ADR 0029 |
 | 17 | Actions du tiroir et finitions de l'espace de travail | 0.18.0 | **Terminé** | Menu contextuel de l'explorateur [nouveau fichier/dossier dans le dossier visé, renommer, supprimer avec confirmation, actualiser] + création à la racine par bouton dédié [fichier créé ouvert en onglet] ; validation de nom **partagée** avec le wizard [validateur `file-name`, `EvaluerNomFichierUseCase`, raison typée localisée dans le dialogue] ; `FileSystem.rename` [14ᵉ opération, nouvelle URI retournée, fake déplace le sous-arbre] ; onglet qui **suit** le renommage [session/verrou/auto-sauvegarde migrés] et fermeture à la suppression ; reprise des onglets à la réouverture (`.codeide/local/workspace-state.json` non synchronisé, créé au besoin, lecture tolérante — gitignore des modèles déjà en place) ; accessibilité des onglets (contentDescription nom + état) et procédure TalkBack E32-E39 ; ADR 0030 |
-| 18 | Audit final de Phase 1 | 0.19.0 | À faire | Reconnaissance du type de projet à l'ouverture (`.codeide/project.json`), `assembleRelease` R8 **avec les règles ProGuard de la bibliothèque d'édition**, Dokka, audit des dépendances inutilisées/TODO/code mort/données personnelles, `verify-templates.sh` vert, plan détaillé de la Phase 2, archive finale vérifiée **et poussée sur GitHub avec le tag `v0.19.0`** |
+| 18 | Audit final de Phase 1 | 0.19.0 | **Terminé** | Reconnaissance du type de projet à l'ouverture (`.codeide/project.json` lu par `ReconnaitreTypeProjetUseCase` tolérant, nom i18n du catalogue avec repli identifiant, distinction importé/non reconnu, ADR 0031) ; **correctif du plantage d'ouverture de l'espace** (menu inline du tiroir → `res/menu/menu_tiroir.xml` + `app:menu`, régression Robolectric gonflant le vrai layout, rapport 8b5b73f1) ; `assembleRelease` R8 **vert avec les règles ProGuard de cel-ui** (parcours complet vérifié sur APK minifié, E44) ; Dokka sur `core:model`/`core:domain` ; audit des dépendances (six entrées du catalogue non consommées retirées), TODO (aucun), code mort (detekt strict vert), données personnelles (LogRedactor actif, aucune fuite) ; `verify-templates.sh` vert ; plan détaillé de la Phase 2 ci-dessous ; archive finale vérifiée |
 
 Étapes 13 à 18 : détail, critères d'acceptation et spécification complète de
 l'espace de travail (trois zones, `EditorActivity`, bibliothèque `code-editor`)
@@ -52,10 +52,41 @@ notifications.
 `WizardStep` configurable, `FileSystem` abstrait, `EditorActivity` séparée,
 modules `feature:*` isolés, `.codeide/project.json`, `AppLogger` injectable.
 
-## Phase 2 (esquisse — détaillée à l'étape 18)
+## Phase 2 — Tooling, terminal, intelligence de code (plan détaillé — sans implémentation)
 
-Terminal intégré · tooling (compilation, exécution, LSP — y compris le
-branchement réel de `cel-lsp` et des diagnostics de compilation dans le
-panneau inférieur —, formatage) · système de plugins · services d'arrière-plan ·
-autocomplétion · autres langages. Le plan détaillé sera rédigé à l'étape 18,
-sans implémentation.
+Rédigé à l'étape 18 (prompt compagnon, section 6) : ordre, contenu et
+critères d'acceptation de chaque étape. La discipline de la Phase 1
+s'applique telle quelle — une étape à la fois, livraison validée (« GO
+étape N+1 »), SemVer `0.N.0`, ADR par décision structurelle, vérification
+complète verte. Chaque étape recevra au besoin un **prompt compagnon**
+dédié (le terminal a déjà le sien : « Terminal-1 »).
+
+| # | Étape | Version | Contenu prévu |
+|---|---|---|---|
+| 19 | Diagnostics de compilation et onglet Problèmes | 0.20.0 | Brancher le point d'ancrage `session.setDiagnostics` (stub documenté à l'étape 16) : analyse du fichier actif (syntaxe + symboles via `cel-lsp-api`), onglet **Problèmes** du panneau inférieur rempli pour de vrai (gravité, message, ligne), appui → saut à la ligne dans l'éditeur, compteur dans l'en-tête du panneau ; annulation/re-calcul au fil de la saisie (debounce) |
+| 20 | Exécution des projets JVM et onglet Sortie | 0.21.0 | Exécuter le `main()` d'un projet Kotlin/Java **sur l'appareil** (compilation vers DEX puis exécution ART — périmètre exact à cadrer par prompt compagnon : classes embarquées vs kotlinc), onglet **Sortie** alimenté en direct (stdout/stderr redirigés), code de sortie, arrêt, distinction exécution/échec ; le wizard a prévu l'emplacement éphémère, `.codeide/` reçoit les artéfacts |
+| 21 | Terminal intégré | 0.22.0 | Prompt compagnon « Terminal-1 » : émulateur de terminal dans la zone centrale (onglet dédié de l'espace de travail), exécution d'un shell dans le dossier du projet via SAF, clavier/extract, copier-coller, terminaison propre ; la destination « Recherche » du tiroir reste hors périmètre |
+| 22 | LSP réel et autocomplétion | 0.23.0 | Branchement de **`cel-lsp`** (présent en transitif dès l'étape 13, volontairement hors périmètre Phase 1) : serveurs de langage par extension, `CompletionSession` de cel-ui (popup, filtrage, documentation), symboles du fichier, aller-à-la-définition dans le tiroir ; barre de statut de l'état du serveur |
+| 23 | Formatage et actions de code | 0.24.0 | Formatage à la demande et à l'enregistrement (moteur par langage, borné), renommage cohérent multi-fichiers via `FileSystem.rename` (étape 17), suppressions/imports assistées ; toute action sur fichiers passe par le port — jamais d'`File` direct |
+| 24 | Système de plugins | 0.25.0 | Contrat de plugin (API `core:domain` + UI d'extension), découverte embarquée (assets signés, pas de réseau), sandbox des permissions, activation/désactivation par projet ; réutiliser le multibinding `@IntoSet` éprouvé par les modèles |
+| 25 | Services d'arrière-plan | 0.26.0 | Compilation/exécution hors écran avec `foregroundServiceType` déclarée et notification honnête, observation des modifications du dossier (SAF `takePersistableUriPermission` + re-scan à l'activation), reprise après mort du processus ; jamais de tâche en fond sans notification visible |
+| 26 | Autres langages et modèles | 0.27.0 | Modèles Python et Web (manifestes déclaratifs — le harnais `:tools:generateur` et `verify-templates.sh` s'étendent tels quels), coloration/lint par extension via les ancres `IconesFichiers`/langages de la bibliothèque ; Android natif et C++ évalués ensuite |
+
+### Principes et contraintes reconduits
+
+- **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les
+  artéfacts de compilation vivent sous `.codeide/` (non synchronisé).
+- **Pas de réseau en Phase 2 sans décision explicite** : la permission
+  `INTERNET` reste absente tant qu'un cas d'usage ne la justifie pas
+  publiquement (ADR dédiée le cas échéant) ; plugins et serveurs de langage
+  sont embarqués.
+- **Les stubs deviennent des contrats** : « Sortie », « Problèmes » et
+  `session.setDiagnostics` sont les points d'ancrage des étapes 19-20 ;
+  les trois destinations du tiroir (Explorateur/Recherche/Git) fixent
+  l'objectif de couverture de la navigation basse — « Git » reste le plus
+  lointain (estimation à refaire à l'étape 22).
+- **Robustesse d'abord** : compilation/exécution annulables, mémoire bornée
+  (les limites `LoggingLimits`/`CrashLimits` inspirent des bornes tooling),
+  échecs typés `AppResult`, aucune donnée personnelle dans les journaux.
+- La reconnaissance du type (étape 18, ADR 0031) identifie déjà le langage
+  déclaré d'un projet importé — le tooling s'y appuie au lieu de le deviner.
