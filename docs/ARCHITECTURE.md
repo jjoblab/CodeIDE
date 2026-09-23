@@ -98,8 +98,8 @@ Pour chaque écran :
 ## Activités et navigation
 
 - `MainActivity` héberge un `NavHostFragment` (Onboarding, Home, NewProject,
-  Settings en fragments) ; écran de démarrage via l'API SplashScreen ; la
-  destination initiale dépend de `isSetupCompleted`.
+  Settings, Diagnostics en fragments) ; écran de démarrage via l'API
+  SplashScreen ; la destination initiale dépend de `isSetupCompleted`.
 - `EditorActivity` (étape 13) : activité séparée, espace de travail lourd.
 - `CrashActivity` (module `core:crash`) : **processus séparé** `:crash`.
 - Les features ne se connaissent pas : navigation via l'interface

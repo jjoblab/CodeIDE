@@ -4,6 +4,80 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.13.0] – 2026-09-23
+
+Étape 12 — Diagnostic : la visionneuse des journaux applicatifs et des
+rapports de plantage (ADR 0025), accessible depuis
+Paramètres › Avancé › Diagnostic. Le menu debug quitte l'accueil pour
+y vivre.
+
+### Ajouté
+
+- **Écran Diagnostic** (`feature:diagnostics`, ADR 0025) : barre d'outils
+  avec retour, section **Informations** (version, appareil non
+  identifiant — fabricant, modèle, Android/API —, identifiant de session
+  de journalisation), deux onglets (`TabLayout` + `ViewPager2`).
+- **Onglet Journaux** : visionneuse performante — fenêtre initiale des
+  **500 dernières entrées**, entrées plus anciennes **révélées au
+  défilement** (pagination en mémoire, ADR 0025 : l'historique est lu
+  une fois, le tampon mémoire fusionne les nouveautés sans doublon) ;
+  **filtres par niveau** (chips Débogage/Info/Avertissement/Erreur,
+  combinables) ; **recherche avec délai de 250 ms** insensible à la casse
+  **et aux accents** (message, étiquette, classe d'exception — même
+  règle que l'accueil) ; **suivi en direct** (bascule : les nouvelles
+  entrées font défiler la liste) ; détail d'une entrée en dialogue avec
+  **exception repliable** ; **taille occupée sur disque** (octets lisibles
+  + pluriel authentique du nombre de fichiers) ; actions **Partager**
+  (archive zip via la feuille de partage système), **Enregistrer**
+  (sélecteur SAF, archive écrite directement à la destination) et
+  **Effacer** (confirmation explicite) ; **réglage du niveau de
+  journalisation** Normal / Détaillé — persisté dans les Paramètres
+  **puis** appliqué immédiatement au moteur (port `LogVerbosityApplier`,
+  en cas d'échec d'écriture le moteur reste intact).
+- **Onglet Plantages** : historique vivant des rapports conservés (date,
+  type, classe d'exception, résumé expurgé, pastille « Non consulté ») —
+  l'appui ouvre l'écran dédié en consultation via `AppNavigator` ; actions
+  **supprimer** par rapport, **tout supprimer** (confirmations explicites)
+  et **Exporter** (archive zip de tous les rapports, JSON complet + mise
+  en forme + index, partagée par la feuille système).
+- **Domaine** : `ReadAllLogsUseCase` (lecture complète), 
+  `MeasureLogDiskUsageUseCase` (occupation disque), `SetLogVerbosityUseCase`
+  (persistance + application), `ExportCrashReportsUseCase` + port
+  `CrashReportsExportWriter` (implémentation `core:crash`), extension des
+  writers d'export pour l'**écriture directe à une destination SAF**
+  (journaux comme plantages, sans fichier intermédiaire) ;
+  `AppLogger.sessionId` exposé par l'interface.
+- **Navigation** : `AppNavigator.openDiagnostics()` (entrée
+  Paramètres › Avancé) et `AppNavigator.partagerArchive(nomFichier,
+  emplacementInterne)` — l'implémentation applicative confine le partage au
+  répertoire d'export du cache (seul exposé par le FileProvider) et
+  ouvre la feuille de partage.
+- **Fourniture `DeviceInfo`** par `app` (mêmes champs non identifiants
+  que les rapports de plantage, photographiés à l'ouverture de l'écran).
+
+### Modifié
+
+- **Menu debug déplacé** de `MainActivity` (bouton flottant, étape 3)
+  vers l'écran Diagnostic — bouton dans la section Informations, source
+  set `debug` de `feature:diagnostics` (no-op de même signature en
+  release) : plantage de test, exception non fatale, salve de journaux et
+  essais SAF S1-S5 déménagent avec lui, plus aucune trace des outils de
+  développement sur l'accueil.
+- `LogLevelApplier` (`core:logging`) devient `internal` et **sous-type**
+  du port `LogVerbosityApplier` du domaine ; `CodeIdeApplication` injecte
+  le port — l'application ne touche plus la façade du moteur.
+- `app` dépend de `feature:diagnostics` (destination du graphe de
+  navigation).
+
+### Sécurité
+
+- Le partage d'archive exige que le fichier vive dans `cache/exports/`
+  (contrôle du chemin canonique dans `AppNavigatorImpl`) : aucune autre
+  zone du stockage interne n'est exposée, même par erreur.
+- Aucune donnée personnelle affichée ni exportée : les entrées et rapports
+  sont expurgés à la construction (règle 15), l'appareil est décrit par
+  des champs non identifiants, la session reste un UUID opaque.
+
 ## [0.12.0] – 2026-09-23
 
 Étape 11 — Wizard de création, partie 2 : les étapes 4 et 5, l'écran de

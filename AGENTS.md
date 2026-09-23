@@ -198,7 +198,10 @@ remis (format section 14) puis attente du « GO ».
       succès/échec typés ; CreateProjectRequest branché de bout en bout ; bouton « Créer le projet » ; mise en évidence à l'accueil via
       AppNavigator [ADR 0024 : contour + défilement, identifiant dans la pile de retour] ; correctifs insets edge-to-edge onboarding/paramètres/
       plantage + bouton debug non obstructif ; ADR 0023-0024)
-- [ ] Étape 12 — Diagnostic → v0.13.0
+- [x] Étape 12 — Diagnostic → v0.13.0 (`feature:diagnostics` complet : onglet Journaux [fenêtre 500 + pagination mémoire, filtres, recherche à délai, suivi direct, partage/enregistrement/effacement,
+      réglage Normal/Détaillé persisté puis appliqué via le port LogVerbosityApplier], onglet Plantages [liste vivante, ouverture VIEW, suppression, export], section Informations, menu debug
+      déplacé depuis MainActivity ; domaine : ReadAllLogs/MeasureLogDiskUsage/SetLogVerbosity/ExportCrashReports + LogExportWriter.write direct SAF ; AppNavigator.openDiagnostics + partagerArchive
+      [FileProvider confinement cache/exports] ; ADR 0025)
 - [ ] Étape 13 — Fondations de l'espace de travail (`EditorActivity` trois zones, `cel-ui` via JitPack) → v0.14.0
 - [ ] Étape 14 — Explorateur de fichiers (tiroir, arborescence paresseuse) → v0.15.0
 - [ ] Étape 15 — Intégration de l'éditeur et onglets de fichiers → v0.16.0
