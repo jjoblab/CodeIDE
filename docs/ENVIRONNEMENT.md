@@ -151,3 +151,16 @@ Domaines requis : `dl.google.com`, `maven.google.com`, `repo.maven.apache.org`,
 `api.adoptium.net` (JDK Temurin), `github.com` (redirections Adoptium).
 Si l'un d'eux est bloqué, **ne pas contourner** : lister précisément les
 domaines à autoriser et demander à l'utilisateur.
+
+
+## Bibliothèque d'édition — JitPack (étape 13)
+
+La bibliothèque `code-editor` (cel-ui) est consommée via **JitPack**
+(`https://jitpack.io`, ajouté au gestionnaire de résolution global du
+`settings.gradle.kts`) : le build reste autonome, sans jeton. Coordonnées
+réelles : `com.github.jjoblab.code-editor:cel-ui:3.37.0` (dernier tag
+stable vérifié le 2026-09-23 ; cel-core et cel-lsp-api transitifs).
+
+Alternative locale (non utilisée par défaut, prompt compagnon
+section 2.2) : GitHub Packages avec `gpr.user`/`gpr.key` dans
+`~/.gradle/gradle.properties` — jamais versionnés.

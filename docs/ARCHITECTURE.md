@@ -100,7 +100,7 @@ Pour chaque écran :
 - `MainActivity` héberge un `NavHostFragment` (Onboarding, Home, NewProject,
   Settings, Diagnostics en fragments) ; écran de démarrage via l'API
   SplashScreen ; la destination initiale dépend de `isSetupCompleted`.
-- `EditorActivity` (étape 13) : activité séparée, espace de travail lourd.
+- `EditorActivity` (étape 13, ADR 0026) : activité séparée lancée par-dessus la pile (`AppNavigator.openEditor`), espace de travail lourd — tiroir permanent sur grand écran.
 - `CrashActivity` (module `core:crash`) : **processus séparé** `:crash`.
 - Les features ne se connaissent pas : navigation via l'interface
   `AppNavigator` (définie dans `core:ui`, implémentée dans `app`).

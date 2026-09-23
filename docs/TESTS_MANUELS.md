@@ -201,6 +201,20 @@ seulement pour D11-D12 (menu debug dans la section Informations).
 | D11 | Réglage « Niveau : Normal » → « Détaillé » (build debug) | Le bouton reflète Détaillé ; les entrées DEBUG apparaissent en direct dans la visionneuse (le moteur est basculé à chaud) ; après redémarrage de l'application le réglage est conservé |
 | D12 | Rotation et mort du processus (onglets, filtres, recherche) | Onglet actif, chips cochées, recherche et bascule direct restaurés ; la liste se recharge au même état |
 
+## Espace de travail (étape 13)
+
+Préambule : créer un projet au préalable (procédures W1-W18), puis
+« Ouvrir » depuis l'accueil.
+
+| # | Action | Attendu |
+|---|---|---|
+| E1 | Accueil → « Ouvrir » un projet | L'espace de travail s'affiche **par-dessus** l'accueil : toolbar au nom du projet, tiroir fermé (téléphone), zone centrale « Aucun fichier ouvert », panneau inférieur replié ; retour → l'accueil est intact (position de défilement conservée) et le projet est classé en tête des récents |
+| E2 | Toolbar → ☰ (ou geste de bord) | Le tiroir s'ouvre : en-tête (nom du projet, chemin lisible, « Fermer le projet »), contenu réservé à l'explorateur (étape suivante) ; retour système tiroir ouvert → **le tiroir se ferme** (pas l'écran) ; retour tiroir fermé → l'écran se referme |
+| E3 | Tiroir → « Fermer le projet » | L'espace de travail se referme, retour à l'accueil tel quel |
+| E4 | Panneau inférieur : toucher l'en-tête | Le panneau passe de replié (en-tête seul) à mi-hauteur (onglets Console · Problèmes · Journal vides) et réciproquement ; le bouton d'icône le replie |
+| E5 | Rotation pendant l'espace de travail, puis « Ne pas garder les activités » + mise en arrière-plan prolongée | Le projet reste chargé (identifiant par SavedStateHandle), titre et tiroir intacts |
+| E6 | Tablette (sw600dp+) : ouvrir un projet | Le tiroir est **permanent** (panneau fixe à gauche, pas de ☰ ni geste), la zone centrale occupe le reste |
+
 ## À venir
 
-- **Étape 13+** : espace de travail de l'éditeur (EditorActivity).
+- **Étape 14+** : explorateur de fichiers dans le tiroir, onglets et édition, panneau inférieur.
