@@ -99,10 +99,11 @@ faux, appareil Android 11+.
 |---|---|---|
 | O1 | Premier lancement : observer l'écran après le splash | L'assistant s'ouvre (pas l'accueil) ; la barre de progression indique 1/5 ; « Commencer » avance d'une page ; le retour système **recule d'une page** (et ne quitte pas l'assistant), désarmé sur la bienvenue ; le glissement du doigt ne change **pas** de page (pager non swipable) |
 | O2 | Page dossier → « Choisir un dossier » → sélectionner `Download` (ou la racine) | Message **clair** « refusé par Android » avec la raison ; aucune permission prise (`adb shell dumpsys package jo.codeide \| grep -A2 persistedUriPermissions` vide) ; « Choisir » de nouveau propose un autre dossier |
-| O3 | Page dossier → choisir un dossier inscriptible (ex. `Documents/CodeIDE`) | « Vérification » puis le libellé du dossier s'affiche ; le fichier témoin `codeide-temoin-<horodatage>` n'est **plus** présent dans le dossier (créé puis supprimé) ; l'URI d'arborescence apparaît en lecture/écriture dans `persistedUriPermissions`, comptée une fois |
+| O3 | Page dossier → choisir un dossier inscriptible (ex. `Documents/CodeIDE`) | « Vérification » puis le libellé du dossier s'affiche ; le fichier témoin `codeide-temoin-<horodatage>.txt` n'est **plus** présent dans le dossier (créé puis supprimé — le nom porte l'extension canonique du type demandé, le fournisseur ne renomme pas) ; l'URI d'arborescence apparaît en lecture/écriture dans `persistedUriPermissions`, comptée une fois |
 | O4 | « Plus tard » à la page dossier, finir l'assistant | L'accueil s'ouvre avec le bandeau « Configurer le dossier de travail » ; le bandeau **disparaît** après configuration du dossier (étape 6/7 : réglages) ; relancer l'app : l'assistant ne revient pas (installation terminée) |
 | O5 | Page apparence : choisir sombre, désactiver les couleurs dynamiques, passer en anglais | Chaque choix prend effet **immédiatement** (recréation d'écran, texte bascule en anglais) ; tuer le processus (`adb shell am kill jo.codeide`) et relancer : les choix sont conservés ; sur Android 13+, le réglage système « langue par application » reflète fr/en |
 | O6 | Page profil : saisir un nom d'auteur et une licence, puis **rotation** de l'écran à chaque page ; enfin « Terminer » | Le nom et la licence restent saisis après rotation ; « Terminer » referme l'assistant sur l'accueil ; relancer : accueil direct ; (optionnel) `adb shell am kill` au milieu de l'assistant, relancer : la page et les saisies sont restaurées |
+| O7 | Régression v0.15.0 — installation neuve → parcourir l'assistant jusqu'au bout → « Terminer » | Le bouton **finalise réellement** : retour à l'accueil, et `adb shell dumpsys package jo.codeide` ne relance pas l'assistant au démarrage suivant (bug corrigé : l'action `Terminer` n'était jamais émise, `isSetupCompleted` restait faux) ; un double-appui pendant la finalisation ne double pas l'écriture ; si l'écriture échoue, un message d'erreur apparaît sur la page Terminé et le bouton redevient actif |
 
 ## Écran Paramètres (étape 6 → v0.7.0)
 
@@ -215,6 +216,22 @@ Préambule : créer un projet au préalable (procédures W1-W18), puis
 | E5 | Rotation pendant l'espace de travail, puis « Ne pas garder les activités » + mise en arrière-plan prolongée | Le projet reste chargé (identifiant par SavedStateHandle), titre et tiroir intacts |
 | E6 | Tablette (sw600dp+) : ouvrir un projet | Le tiroir est **permanent** (panneau fixe à gauche, pas de ☰ ni geste), la zone centrale occupe le reste |
 
+## Espace de travail — explorateur (étape 14)
+
+Préambule : un projet **Kotlin** et un projet **Java** générés à
+l'étape 9 (procédures W1-W18) — l'acceptation exige l'arborescence
+correcte sur les deux.
+
+| # | Action | Attendu |
+|---|---|---|
+| E7 | Ouvrir un projet → tiroir | L'arborescence se charge : **dossiers d'abord, puis fichiers, puis ordre alphabétique** ; icônes par extension (Kotlin, Gradle, XML, Markdown, JSON…), indentation par profondeur, chevron sur les seuls dossiers |
+| E8 | Déplier `src/main/kotlin` puis refermer puis rouvrir | Le premier dépliement affiche les enfants après un court instant (latence SAF réelle) ; refermer/rouvrir est **instantané** (cache ViewModel, aucune requête supplémentaire) ; un indicateur de chargement apparaît par nœud pendant l'énumération |
+| E9 | Dossier profond et noms à caractères spéciaux (ex. `gradle/wrapper`, fichier à espaces/accents) | L'indentation suit la profondeur ; les noms s'affichent tels quels (ellipsés si trop longs) ; aucun crash |
+| E10 | Projet Java vs projet Kotlin | Mêmes comportements : tri, icônes (`.java`), dépliement paresseux |
+| E11 | Révoquer la permission : `adb shell pm revoke` impossible sur SAF — à la place, retirer l'accès depuis les réglages système (Stockage) ou réinstaller l'app | Le tiroir bascule en **bandeau « Permission perdue »** avec action « Résoudre à l'accueil » ; l'accueil montre la carte du projet avec Relocaliser/Retirer |
+| E12 | Supprimer le dossier du projet depuis un gestionnaire de fichiers, puis bouton Actualiser du tiroir | Bandeau « Projet introuvable » ; « Résoudre à l'accueil » ramène à l'accueil |
+| E13 | Bouton Actualiser (en-tête du tiroir) après modification externe du dossier | L'arborescence est **rechargée** (nouveaux fichiers visibles, disparus retirés), les dépliements sont réinitialisés ; la barre de navigation basse : **Explorateur** active, Recherche et Git grisés avec « Bientôt disponible » en description |
+
 ## À venir
 
-- **Étape 14+** : explorateur de fichiers dans le tiroir, onglets et édition, panneau inférieur.
+- **Étape 15+** : onglets et édition, panneau inférieur, actions du tiroir.
