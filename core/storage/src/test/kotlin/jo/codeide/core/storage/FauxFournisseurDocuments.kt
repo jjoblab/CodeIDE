@@ -55,6 +55,14 @@ class FauxFournisseurDocuments : ContentProvider() {
     /** Quand `true`, `createDocument` renomme en cas de collision (suffixe « (1) »). */
     var provoquerRenommage = false
 
+    /**
+     * Quand `true`, `createDocument` complète un nom **sans point** par
+     * l'extension canonique du type MIME demandé — reproduction fidèle
+     * d'`ExternalStorageProvider` (le nom demandé sans extension reçoit
+     * celle du type, ex. « temoin » + `text/plain` → « temoin.txt »).
+     */
+    var completerExtension = false
+
     /** Nombre d'appels `call` reçus (assertions de la section 5.6 : requêtes groupées). */
     var appelsCall = 0
         private set
@@ -224,13 +232,23 @@ class FauxFournisseurDocuments : ContentProvider() {
         val nomDemande = extras.getString(COLONNE_NOM_AFFICHE) ?: return null
         val mime = extras.getString(COLONNE_TYPE_MIME) ?: return null
 
-        // Renommage silencieux simulé : le fournisseur choisit un autre
-        // nom en cas de collision (section 5.6).
+        // Comportements simulés du fournisseur : renommage de collision
+        // (section 5.6) ou complétion d'extension canonique
+        // (ExternalStorageProvider, noms sans point).
         val nomFinal =
-            if (provoquerRenommage && existeEnfant(idCible, nomDemande)) {
-                "$nomDemande (1)"
-            } else {
-                nomDemande
+            when {
+                provoquerRenommage && existeEnfant(idCible, nomDemande) -> {
+                    "$nomDemande (1)"
+                }
+
+                completerExtension && !nomDemande.contains('.') &&
+                    mime != DocumentsContract.Document.MIME_TYPE_DIR -> {
+                    "$nomDemande.${extensionCanonique(mime)}"
+                }
+
+                else -> {
+                    nomDemande
+                }
             }
         if (!provoquerRenommage) {
             require(!existeEnfant(idCible, nomDemande)) {
@@ -285,6 +303,16 @@ class FauxFournisseurDocuments : ContentProvider() {
         parent: String,
         nom: String,
     ): Boolean = noeuds.values.any { it.parent == parent && it.nom.equals(nom, ignoreCase = true) }
+
+    /** Extension canonique d'un type MIME connu du fournisseur de test. */
+    private fun extensionCanonique(mime: String): String =
+        when (mime) {
+            "text/plain" -> "txt"
+            "image/png" -> "png"
+            "image/jpeg" -> "jpg"
+            "application/json" -> "json"
+            else -> ""
+        }
 
     private fun supprimerEnCascade(id: String) {
         val cibles = noeuds.keys.filter { it == id || it.startsWith("$id/") }

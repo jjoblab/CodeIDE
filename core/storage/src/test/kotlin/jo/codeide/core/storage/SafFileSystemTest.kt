@@ -207,6 +207,38 @@ class SafFileSystemTest {
         }
 
     @Test
+    fun `un nom sans point complete par l extension canonique est accepte`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // ExternalStorageProvider complète « temoin » + text/plain en
+            // « temoin.txt » : ce n'est ni une collision ni un renommage —
+            // la création doit réussir et retourner l'URI réelle du document.
+            fournisseur.completerExtension = true
+            val creation = fichiers.createFile(uriDocument(travail), "codeide-temoin-1000", "text/plain")
+
+            assertTrue(creation is AppResult.Success)
+            val uriCree = (creation as AppResult.Success).value
+            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+            assertEquals("codeide-temoin-1000.txt", statut.name)
+        }
+
+    @Test
+    fun `un renommage de collision avec point reste refuse meme avec completion active`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+            fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
+
+            // Le pré-contrôle d'homonyme doit déjà rapporter la collision.
+            val creation = fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
+
+            assertEquals(
+                AppError.StorageReason.AlreadyExists,
+                raisonStockage(creation as AppResult.Failure),
+            )
+        }
+
+    @Test
     fun `writeText puis readText fait l'aller-retour exact`() =
         runTest {
             val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")

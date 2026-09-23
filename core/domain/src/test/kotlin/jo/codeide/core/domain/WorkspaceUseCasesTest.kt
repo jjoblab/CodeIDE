@@ -112,7 +112,7 @@ class WorkspaceUseCasesTest {
             assertTrue(fichiers.hasPersistablePermission(grantUri))
             assertFalse(
                 "le témoin doit être supprimé",
-                fichiers.arborescence.value.containsKey("$grantUri/document/primary%3ACodeIDE/codeide-temoin-1000"),
+                fichiers.arborescence.value.containsKey("$grantUri/document/primary%3ACodeIDE/codeide-temoin-1000.txt"),
             )
         }
 

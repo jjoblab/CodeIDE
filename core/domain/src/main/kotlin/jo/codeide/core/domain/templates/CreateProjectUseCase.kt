@@ -246,13 +246,22 @@ public class CreateProjectUseCase
                 residues.toList()
             }
 
-        /** Type MIME conseillé à SAF pour la création (indicatif). */
+        /**
+         * Type MIME conseillé à SAF pour la création (indicatif).
+         *
+         * Piège SAF (constaté sur appareil réel) : un fournisseur honnête
+         * complète un nom **sans point** par l'extension canonique du type
+         * demandé — « gradlew » ou « LICENSE » avec `text/plain` deviendraient
+         * « gradlew.txt », « LICENSE.txt », faux fichiers dans le projet
+         * généré. Un type privé inconnu de la table système ne déclenche
+         * aucune complétion : le nom demandé est préservé tel quel.
+         */
         private fun mimePour(
             contenu: PlannedContent,
             chemin: String,
         ): String =
             if (contenu is PlannedContent.Texte) {
-                "text/plain"
+                if (chemin.substringAfterLast('/').contains('.')) "text/plain" else MIME_TEXTE_SANS_EXTENSION
             } else {
                 when (chemin.substringAfterLast('.', "").lowercase()) {
                     "png" -> "image/png"
@@ -266,5 +275,8 @@ public class CreateProjectUseCase
         private companion object {
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "CreateProject"
+
+            /** Type privé pour fichier texte sans extension (voir [mimePour]). */
+            const val MIME_TEXTE_SANS_EXTENSION = "text/x-codeide"
         }
     }
