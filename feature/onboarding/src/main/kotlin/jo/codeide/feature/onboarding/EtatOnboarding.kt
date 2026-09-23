@@ -78,6 +78,10 @@ sealed interface EtatDossier {
  * @property nomAuteur nom d'auteur saisi (persisté à la fin de
  * l'assistant uniquement — pas d'écriture par frappe).
  * @property licenceDefaut licence par défaut proposée au wizard.
+ * @property finalisation finalisation en cours (garde anti double-appui
+ * du bouton « Terminer », désactivé le temps de l'écriture).
+ * @property erreurFinalisation la dernière finalisation a échoué : la page
+ * Terminé le signale à l'écran, le bouton reste actif pour réessayer.
  */
 data class EtatOnboarding(
     val page: PageOnboarding = PageOnboarding.BIENVENUE,
@@ -87,4 +91,6 @@ data class EtatOnboarding(
     val langue: String = "",
     val nomAuteur: String = "",
     val licenceDefaut: License = License.MIT,
+    val finalisation: Boolean = false,
+    val erreurFinalisation: Boolean = false,
 )

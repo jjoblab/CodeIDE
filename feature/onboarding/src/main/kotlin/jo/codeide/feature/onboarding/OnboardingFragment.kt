@@ -94,6 +94,9 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
         retourPage.isEnabled = etat.page != PageOnboarding.BIENVENUE
         binding.boutonPrecedent.isVisible = etat.page != PageOnboarding.BIENVENUE
         binding.boutonSuivant.setText(libelleSuivant(etat.page))
+        // Finalisation en vol : le bouton reste inerte le temps de l'écriture
+        // (garde anti double-appui du ViewModel, miroir visuel).
+        binding.boutonSuivant.isEnabled = !etat.finalisation
     }
 
     /** Change la page du pager avec l'animation MaterialSharedAxis. */

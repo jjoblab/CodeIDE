@@ -59,5 +59,6 @@
     <string name="page_termine_auteur_absent">Auteur : non renseigné</string>
     <string name="page_termine_licence">Licence par défaut : %1$s</string>
     <string name="page_termine_texte">Bon code !</string>
+    <string name="page_termine_erreur">La finalisation a échoué : les choix n\'ont pas pu être enregistrés. Réessayez.</string>
 
 </resources>
