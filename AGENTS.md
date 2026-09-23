@@ -96,10 +96,16 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
   testDebugUnitTest koverVerify assembleDebug   # vérification complète SANS clean (ADR 0037 :
                                                 # build cache + CI GitHub ; mesures detekt 1,6 s /
                                                 # 27 s / 6,5 s après clean)
+# clean RÉSERVÉ aux étapes qui modifient build-logic/convention plugins/
+# libs.versions.toml/settings.gradle.kts ou aux audits de fin de phase
+# (prompt Vérification-1 §2.1 ; fiabilité incrémentale prouvée empiriquement :
+# checkModuleDependencies = phase de configuration, violation attrapée sans clean)
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor              # incrémente la version
+git tag -a vX.Y.Z -m "vX.Y.Z"              # tag ANNOTÉ, jamais léger (Vérification-1 §2.5)
 scripts/package.sh 0                       # dist/ : archive + APK + SHA256SUMS
 scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
+                                            # (GRADLE_USER_HOME isolé + daemon actif, Vérification-1 §2.2)
 ```
 
 ## Définition de « terminé » (par étape)
@@ -107,11 +113,13 @@ scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
 Fonctionnalités de l'étape sans débordement ; vérification complète verte ;
 tests de la logique ajoutée (≥ 80 % sur `core:model`/`core:domain`) ; KDoc et
 docs à jour ; `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` à jour ; aucun TODO non
-tracé ; version incrémentée, tag Git, archive créée **et vérifiée** ;
-commits et tag **poussés sur `origin`** (`https://github.com/jjoblab/CodeIDE.git`,
-`git push origin main --follow-tags`) — ou échec de publication signalé
-explicitement dans le rapport (prompt compagnon, section 1.2) ; rapport
-remis (format section 14) puis attente du « GO ».
+tracé ; version incrémentée, tag Git **annoté** (`git tag -a`, jamais léger),
+archive créée **et vérifiée** ; commits et tag **poussés sur `origin`**
+(`https://github.com/jjoblab/CodeIDE.git`, `git push origin main &&
+git push origin vX.Y.Z` — chaque tag explicitement, `--follow-tags` ignore
+silencieusement les tags légers : prompt Vérification-1, section 2.5) ;
+rapport remis (format section 14, avec la **durée réelle** de chaque commande
+de vérification — Vérification-1, section 2.4) puis attente du « GO ».
 
 ## État d'avancement
 

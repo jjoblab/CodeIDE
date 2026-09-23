@@ -142,16 +142,39 @@ un chemin, un nom d'auteur ni un contenu de fichier.
   mémoire.
 - Chaque dépendance est justifiée ; les dépendances inutilisées sont retirées.
 
-## Livraison (fin d'étape, section 9.2 du prompt maître)
+## Livraison (fin d'étape, section 9.2 du prompt maître — vérification graduée, prompt compagnon Vérification-1)
 
-1. `./gradlew spotlessApply` puis la vérification complète — tout au vert.
+1. `./gradlew spotlessApply` puis la vérification complète — tout au vert —
+   en **build incrémental, sans `clean`**. Le `clean` complet est RÉSERVÉ
+   aux étapes qui modifient `build-logic`, les convention plugins,
+   `gradle/libs.versions.toml`, la déclaration des modules
+   (`settings.gradle.kts`), et aux étapes de fin de phase (audit) — le build
+   cache restitue alors la recompilation (from cache), la CI GitHub reste
+   la garantie from-scratch (ADR 0037). Fiabilité de l'incrémental vérifiée
+   empiriquement le 2026-09-24 : `checkModuleDependencies` recense les
+   déclarations en phase de configuration — une violation introduite dans
+   un build script est attrapée sans `clean` (échec en 6 s, message exact) ;
+   detekt n'a pas d'incrément par fichier mais les modules inchangés
+   restent up-to-date (mesures T6/G1).
 2. Mettre à jour `CHANGELOG.md`, `docs/ROADMAP.md`, `AGENTS.md`, les docs
    concernées et la KDoc.
 3. `scripts/bump-version.sh minor` (ou `patch`), commit `chore(release):
-   vX.Y.Z`, tag Git `vX.Y.Z`.
+   vX.Y.Z`, tag Git **annoté** : `git tag -a vX.Y.Z -m "vX.Y.Z"` (jamais
+   un tag léger — `git push origin main --follow-tags` ignore
+   silencieusement un tag léger, constaté sur v0.15.0 à v0.23.0).
 4. `scripts/package.sh <N>` : archive complète versionnée, APK debug,
    SHA256SUMS dans `dist/`.
 5. `scripts/verify-archive.sh` : l'archive est saine et **autonome** (build
-   depuis une copie extraite).
-6. Remettre le rapport (section 14) puis attendre la validation de
+   depuis une copie extraite — `GRADLE_USER_HOME` isolé, stable d'une
+   exécution à l'autre, daemon actif : prompt Vérification-1, section 2.2).
+6. Remettre le rapport (section 14) — désormais avec la **durée réelle** de
+   chaque commande de vérification (`spotlessCheck`, `detekt`,
+   `checkModuleDependencies`, `lintDebug`, `testDebugUnitTest`,
+   `koverVerify`, `assembleDebug`, `verify-archive.sh`,
+   `verify-templates.sh` si lancé) — puis attendre la validation de
    l'utilisateur.
+
+`scripts/verify-templates.sh` ne tourne que pour les étapes touchant
+réellement aux modèles embarqués, au moteur de modèles, ou aux fichiers
+partagés de `build-logic`/catalogue de versions — **jamais par défaut**
+(prompt Vérification-1, section 2.3 ; usage historique : étapes 9 et 18).
