@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.textview.MaterialTextView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -56,5 +57,16 @@ class ActivityEditorLayoutTest {
         assertTrue("Explorateur est la seule destination active", menu.findItem(R.id.destination_explorateur).isEnabled)
         assertFalse("Recherche est désactivée", menu.findItem(R.id.destination_recherche).isEnabled)
         assertFalse("Git est désactivée", menu.findItem(R.id.destination_git).isEnabled)
+    }
+
+    @Test
+    fun `la ligne type de projet du tiroir est masquée par défaut`() {
+        val ligne = gonfler().findViewById<MaterialTextView>(R.id.type_projet_tiroir)
+        assertNotNull("la ligne type de projet (étape 18) doit exister", ligne)
+        assertEquals(
+            "aucun type reconnu tant que le ViewModel n'en a pas rendu",
+            View.GONE,
+            ligne.visibility,
+        )
     }
 }

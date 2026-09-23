@@ -15,7 +15,10 @@ import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.OngletEspace
+import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
+import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
+import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.LogEntry
@@ -24,6 +27,7 @@ import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.RaisonValidation
+import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.getOrNull
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -117,6 +121,8 @@ class EditorViewModel
         private val evaluerNom: EvaluerNomFichierUseCase,
         private val enregistrerEtatEspace: EnregistrerEtatEspaceUseCase,
         private val lireEtatEspace: LireEtatEspaceUseCase,
+        private val reconnaitreTypeProjet: ReconnaitreTypeProjetUseCase,
+        private val listerModeles: ListTemplatesUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -175,6 +181,13 @@ class EditorViewModel
         /** Fenêtre brute des entrées récentes (avant filtres), étape 16. */
         private var entreesJournalConnues: List<LogEntry> = emptyList()
 
+        /** Type reconnu brut (étape 18) — conservé pour re-résoudre le nom
+         * du modèle si la langue des libellés change. */
+        private var typeProjetBrut: TypeProjetReconnu? = null
+
+        /** Langue des libellés du catalogue (étape 18), précisée par l'activité. */
+        private var langueLibelles: String = TemplateOptions.LANGUE_DEFAUT
+
         init {
             val identifiant = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
             observerProjet(ProjectId(identifiant))
@@ -190,6 +203,16 @@ class EditorViewModel
                 ActionEditor.Rafraichir -> rafraichir()
                 is ActionEditor.BasculerNoeud -> basculer(action.uri)
                 is ActionEditor.OuvrirFichier -> ouvrir(action.uri)
+                ActionEditor.Quitter -> demanderSortie()
+                is ActionEditor.PreciserLangue -> preciserLangue(action.langue)
+                else -> onActionOnglets(action)
+            }
+        }
+
+        /** Suite du routage : onglets de fichiers — sélection, fermeture,
+         * enregistrement (étapes 15 et 17). */
+        private fun onActionOnglets(action: ActionEditor) {
+            when (action) {
                 is ActionEditor.SelectionnerOnglet -> selectionner(action.index)
                 is ActionEditor.FermerOnglet -> fermerGroupe(listOf(action.uri))
                 is ActionEditor.FermerAutresOnglets -> fermerAutres(action.uri)
@@ -198,7 +221,6 @@ class EditorViewModel
                 ActionEditor.Enregistrer -> enregistrerOngletActif()
                 is ActionEditor.EnregistrerPuisFermer -> enregistrerPuisFermer(action.uris, action.quitter)
                 is ActionEditor.FermerSansEnregistrer -> fermer(action.uris, action.quitter)
-                ActionEditor.Quitter -> demanderSortie()
                 else -> onActionFichiers(action)
             }
         }
@@ -221,7 +243,7 @@ class EditorViewModel
                 is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
                 is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
                 ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
-                else -> Unit // Routage exhaustif par les deux branches.
+                else -> Unit // Routage exhaustif par les trois branches.
             }
         }
 
@@ -264,7 +286,7 @@ class EditorViewModel
             if (projet != null) verifierEtChargerRacine()
         }
 
-        /** Oublie l'arborescence et l'accès : retour à l'état avant projet. */
+        /** Oublie l'arborescence, l'accès et le type : retour à l'état avant projet. */
         private fun reinitialiser() {
             enfantsEnCache.clear()
             dossiersDeplies.clear()
@@ -272,7 +294,8 @@ class EditorViewModel
             dossiersEnErreur.clear()
             statuts.clear()
             parents.clear()
-            etatInterne.update { it.copy(acces = null, erreurRacine = false, noeuds = emptyList()) }
+            typeProjetBrut = null
+            etatInterne.update { it.copy(acces = null, erreurRacine = false, noeuds = emptyList(), typeProjet = null) }
         }
 
         /** Vérifie l'accès du projet puis énumère la racine si disponible. */
@@ -285,6 +308,7 @@ class EditorViewModel
                         etatInterne.update { it.copy(acces = verification.value, verificationAcces = false) }
                         if (verification.value == ProjectAccessState.Available) {
                             chargerEnfants(projet.location.documentUri)
+                            reconnaitreLeType(projet.location.documentUri)
                         }
                     }
 
@@ -294,6 +318,52 @@ class EditorViewModel
                         etatInterne.update { it.copy(verificationAcces = false, erreurRacine = true) }
                     }
                 }
+            }
+        }
+
+        /**
+         * Reconnaît le type du projet depuis `.codeide/project.json`
+         * (étape 18) : le nom affichable est résolu depuis le catalogue
+         * (i18n du moteur) avec repli sur l'identifiant brut — un dossier
+         * importé reconnu affiche son vrai modèle ; sans métadonnées
+         * l'état reste `null` et l'interface distingue « importé » de
+         * « non reconnu ».
+         */
+        private fun reconnaitreLeType(uriRacine: String) {
+            viewModelScope.launch {
+                typeProjetBrut = reconnaitreTypeProjet(uriRacine)
+                etatInterne.update { it.copy(typeProjet = typeProjetBrut?.let { brut -> afficher(brut) }) }
+            }
+        }
+
+        /** Compose la vue affichable du type (nom résolu + version). */
+        private suspend fun afficher(reconnu: TypeProjetReconnu): TypeProjetAffiche =
+            TypeProjetAffiche(
+                nomModele = nomDeModele(reconnu.templateId),
+                versionModele = reconnu.templateVersion,
+            )
+
+        /** Nom affichable du modèle : i18n du catalogue, repli identifiant. */
+        private suspend fun nomDeModele(identifiant: String): String =
+            (listerModeles(langueLibelles) as? AppResult.Success)
+                ?.value
+                ?.firstOrNull { it.id.value == identifiant }
+                ?.nom
+                ?.takeIf(String::isNotBlank)
+                ?: identifiant
+
+        /**
+         * Langue des libellés du catalogue (étape 18) : l'activité la
+         * précise à sa création et après chaque changement de langue de
+         * l'application (elle est re-créée) ; un changement re-résout le
+         * nom du modèle déjà reconnu.
+         */
+        private fun preciserLangue(langue: String) {
+            if (langue == langueLibelles) return
+            langueLibelles = langue
+            val reconnu = typeProjetBrut ?: return
+            viewModelScope.launch {
+                etatInterne.update { it.copy(typeProjet = afficher(reconnu)) }
             }
         }
 

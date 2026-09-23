@@ -111,4 +111,9 @@
         <item quantity="many">%1$d entrées affichées</item>
         <item quantity="other">%1$d entrées affichées</item>
     </plurals>
+    <!-- Type de projet reconnu à l'ouverture (étape 18). -->
+    <string name="editor_type_projet_modele">Modèle %1$s</string>
+    <string name="editor_type_projet_modele_version">Modèle %1$s · v%2$s</string>
+    <string name="editor_type_projet_importe">Dossier importé</string>
+    <string name="editor_type_projet_inconnu">Type de projet non reconnu</string>
 </resources>

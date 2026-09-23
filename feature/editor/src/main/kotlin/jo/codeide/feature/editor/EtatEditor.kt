@@ -207,6 +207,15 @@ sealed interface ActionEditor {
     data class SupprimerDocument(
         val uri: String,
     ) : ActionEditor
+
+    /**
+     * Précise la langue d'affichage des libellés du catalogue de modèles
+     * (étape 18) : émise à la création de l'activité, republiée par le
+     * système quand la langue de l'application change (re-création).
+     */
+    data class PreciserLangue(
+        val langue: String,
+    ) : ActionEditor
 }
 
 /**
@@ -246,11 +255,25 @@ sealed interface EffetEditor {
 }
 
 /**
- * État observable de l'espace de travail (étapes 13-16).
+ * Type de projet reconnu à l'ouverture, prêt à afficher (étape 18) : le
+ * nom du modèle est résolu depuis le catalogue (i18n du moteur) avec
+ * repli sur l'identifiant brut — l'interface n'a plus qu'à composer sa
+ * chaîne localisée.
+ *
+ * @property nomModele nom affichable du modèle (i18n) ou identifiant brut.
+ * @property versionModele version du modèle à la création, ou `null`.
+ */
+data class TypeProjetAffiche(
+    val nomModele: String,
+    val versionModele: String? = null,
+)
+
+/**
+ * État observable de l'espace de travail (étapes 13-18).
  *
  * Volontairement incrémental : la reprise par projet (`workspace-state.json`)
- * et les actions de fichiers du tiroir arrivent à l'étape 17 — l'état
- * grandit avec, jamais avant.
+ * et les actions de fichiers du tiroir arrivent à l'étape 17, la
+ * reconnaissance du type à l'étape 18 — l'état grandit avec, jamais avant.
  *
  * @property chargement première lecture du projet en cours.
  * @property projet projet ouvert, ou `null` si l'identifiant reçu
@@ -271,6 +294,9 @@ sealed interface EffetEditor {
  * journal applicatif, filtrée par niveaux (étape 16).
  * @property filtresJournal niveaux retenus — vide = tous les niveaux
  * (même règle que l'écran Diagnostic).
+ * @property typeProjet type reconnu depuis `.codeide/project.json`
+ * (étape 18) : `null` tant que la racine n'est pas lisible — l'interface
+ * distingue alors dossier importé et type non reconnu.
  */
 data class EtatEditor(
     val chargement: Boolean = true,
@@ -285,6 +311,7 @@ data class EtatEditor(
     val ongletPanneau: OngletPanneau = OngletPanneau.JOURNAL,
     val entreesJournal: List<LogEntry> = emptyList(),
     val filtresJournal: Set<LogLevel> = emptySet(),
+    val typeProjet: TypeProjetAffiche? = null,
 )
 
 /** Clés partagées de l'espace de travail. */
