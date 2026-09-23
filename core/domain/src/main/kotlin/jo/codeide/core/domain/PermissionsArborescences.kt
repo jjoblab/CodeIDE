@@ -119,6 +119,11 @@ internal suspend fun libelleLisible(
  * l'import et la relocalisation de projets (étape 7) : le même contrat
  * d'« arbre inscriptible » s'applique aux trois parcours.
  *
+ * Le témoin porte l'extension « .txt », canonique du type `text/plain`
+ * demandé : les fournisseurs SAF complètent un nom sans point par
+ * l'extension du type (voir `SafFileSystem.estAchevementExtension`) — la
+ * demander d'avance garde le contrôle du nom exact dans le cas courant.
+ *
  * @param fichiers port d'accès au stockage.
  * @param uriDocument URI du dossier à éprouver.
  * @param horloge horloge injectée (nom unique du témoin).
@@ -133,7 +138,7 @@ internal suspend fun testerEcriture(
     horloge: TimeProvider,
     prefixeTemoin: String,
 ): AppError? {
-    val nomTemoin = "$prefixeTemoin-${horloge.nowMillis()}"
+    val nomTemoin = "$prefixeTemoin-${horloge.nowMillis()}.txt"
     val cree =
         when (val resultat = fichiers.createFile(uriDocument, nomTemoin, "text/plain")) {
             is AppResult.Failure -> return resultat.error

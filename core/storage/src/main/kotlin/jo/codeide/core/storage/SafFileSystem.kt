@@ -213,9 +213,15 @@ internal class SafFileSystem
                     // Contrôle du nom retourné : si le fournisseur a renommé
                     // (course avec une création concurrente), on nettoie le
                     // document créé et on rapporte la collision — jamais
-                    // d'écrasement, jamais de surprise de nom.
-                    val reel = decrireDocument(uriCree)
-                    if (reel?.name != name) {
+                    // d'écrasement, jamais de surprise de nom. Tolérance
+                    // d'abord : les fournisseurs honnêtes complètent un nom
+                    // SANS extension par l'extension canonique du type MIME
+                    // demandé (ExternalStorageProvider crée « temoin.txt »
+                    // pour « temoin » + text/plain) — ce n'est ni une
+                    // collision ni un renommage hostile, le document reste
+                    // le nôtre sous le nom unique que garantit le fournisseur.
+                    val nomRetourne = decrireDocument(uriCree)?.name
+                    if (nomRetourne != name && !estAchevementExtension(name, nomRetourne)) {
                         nettoyerRenomme(uriCree)
                         return@withContext echecStockage(AppError.StorageReason.AlreadyExists, name)
                     }
@@ -256,6 +262,22 @@ internal class SafFileSystem
             }
             return null
         }
+
+        /**
+         * Le nom retourné est-il le nom demandé **complété d'une extension** ?
+         *
+         * Comportement réel des fournisseurs SAF (`ExternalStorageProvider`,
+         * section 5.6) : un nom sans point reçoit l'extension canonique du
+         * type MIME demandé — « gradlew » + `text/plain` crée « gradlew.txt ».
+         * Ce n'est ni une collision (le motif « nom (1) ») ni un renommage
+         * hostile : le document créé est bien le nôtre. Seul un nom demandé
+         * sans point peut être complété ainsi ; toute autre différence
+         * reste traitée comme un renommage.
+         */
+        private fun estAchevementExtension(
+            demande: String,
+            retourne: String?,
+        ): Boolean = retourne != null && !demande.contains('.') && retourne.startsWith("$demande.")
 
         /**
          * Supprime le document que le fournisseur vient de créer sous un nom
