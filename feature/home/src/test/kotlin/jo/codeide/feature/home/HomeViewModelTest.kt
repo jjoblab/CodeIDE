@@ -58,6 +58,8 @@ class HomeViewModelTest {
     private val arborescences = FakeArborescencesSaf()
     private val horloge = TimeProvider { 10_000L }
     private val journal = FakeAppLogger()
+    private val localisateur = FakeToolchainLocator()
+    private val installateur = FakeBootstrapInstaller()
 
     private lateinit var viewModel: HomeViewModel
     private val effetsRecus = mutableListOf<EffetAccueil>()
@@ -68,8 +70,8 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
-                FakeToolchainLocator(),
-                FakeBootstrapInstaller(),
+                localisateur,
+                installateur,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -562,8 +564,8 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
-                FakeToolchainLocator(),
-                FakeBootstrapInstaller(),
+                localisateur,
+                installateur,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -582,8 +584,8 @@ class HomeViewModelTest {
         HomeViewModel(
             ObserveSettingsUseCase(parametres),
             ObserveProjectsUseCase(depot),
-            FakeToolchainLocator(),
-            FakeBootstrapInstaller(),
+            localisateur,
+            installateur,
             VerifyProjectAccessUseCase(depot, fichiers),
             RenameProjectUseCase(depot),
             SetProjectPinnedUseCase(depot),
@@ -596,4 +598,53 @@ class HomeViewModelTest {
             journal,
             etat,
         )
+
+    // ------------------------------------------------------------------
+    // Terminal T6 : action de la toolbar (section 7 du prompt Terminal-1).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `action terminal sans bootstrap ouvre l installation`() =
+        runTest {
+            collecterEffets()
+            advanceUntilIdle()
+
+            viewModel.action(ActionAccueil.OuvrirTerminal)
+            advanceUntilIdle()
+
+            assertEquals(listOf(EffetAccueil.OuvrirInstallationTerminal), effetsRecus)
+            arreterCollecteEffets()
+        }
+
+    @Test
+    fun `action terminal avec bootstrap ouvre l ecran plein ecran`() =
+        runTest {
+            localisateur.bootstrapInstalle = true
+            collecterEffets()
+            advanceUntilIdle()
+
+            viewModel.action(ActionAccueil.OuvrirTerminal)
+            advanceUntilIdle()
+
+            assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
+            arreterCollecteEffets()
+        }
+
+    @Test
+    fun `installation terminee rend le terminal ouvrable sans nouveau passage`() =
+        runTest {
+            collecterEffets()
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.bootstrapInstalle)
+
+            installateur.simulerTerminee()
+            advanceUntilIdle()
+
+            assertTrue(viewModel.etat.value.bootstrapInstalle)
+            viewModel.action(ActionAccueil.OuvrirTerminal)
+            advanceUntilIdle()
+
+            assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
+            arreterCollecteEffets()
+        }
 }

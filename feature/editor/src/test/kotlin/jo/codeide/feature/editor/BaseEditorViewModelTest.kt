@@ -7,6 +7,7 @@ import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
+import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.domain.templates.TemplateEngine
@@ -14,11 +15,15 @@ import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.testing.FakeAppLogger
+import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeTemplateAssetsSource
+import jo.codeide.core.testing.FakeTerminalSessionRepository
+import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.InMemoryLogRepository
 import jo.codeide.core.testing.MainDispatcherRule
+import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -46,6 +51,20 @@ abstract class BaseEditorViewModelTest {
 
     /** Catalogue vide : la reconnaissance replie sur l'identifiant brut (étape 18). */
     protected val listerModeles = ListTemplatesUseCase(emptySet(), TemplateEngine(FakeTemplateAssetsSource()))
+
+    /** Registre global des sessions du terminal (T6) — faux de core:testing,
+     * aucune dépendance Termux nécessaire (critère d'acceptation section 10). */
+    protected val sessionsTerminal = FakeTerminalSessionRepository()
+
+    /** Localisateur d'outils factice (T6) : bootstrap non installé par défaut. */
+    protected val localisateurOutils = FakeToolchainLocator()
+
+    /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
+    protected val resoudreRepertoire =
+        ResoudreRepertoireProjet(
+            arborescences = FakeArborescencesSaf(),
+            repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
+        )
 
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
     protected fun viewModel(id: ProjectId): EditorViewModel =
@@ -77,6 +96,9 @@ abstract class BaseEditorViewModelTest {
             lireEtatEspace = LireEtatEspaceUseCase(fichiers),
             reconnaitreTypeProjet = ReconnaitreTypeProjetUseCase(fichiers),
             listerModeles = listerModeles,
+            sessionsTerminal = sessionsTerminal,
+            resoudreRepertoireProjet = resoudreRepertoire,
+            localisateurOutils = localisateurOutils,
             savedStateHandle = sauvetage,
         )
 

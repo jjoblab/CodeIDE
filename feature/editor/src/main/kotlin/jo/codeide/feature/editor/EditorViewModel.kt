@@ -16,6 +16,9 @@ import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
+import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.TerminalSessionRepository
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
@@ -36,6 +39,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -47,6 +51,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -101,6 +106,13 @@ internal class SessionSuivie(
  * Journalisation (règle 15) : identifiants et chemins génériques, jamais
  * de contenu de fichier.
  *
+ * Carte d'aperçu du terminal (T6, section 8 du prompt Terminal-1) : le
+ * tiroir consomme uniquement `TerminalSessionRepository` (core:domain) —
+ * aucune dépendance Termux n'entre ici, c'est le critère d'acceptation.
+ * La résolution du dossier réel du projet passe par
+ * `ResoudreRepertoireProjet` (même traduction SAF → FUSE que le futur
+ * tooling réutilisera).
+ *
  * Exemption detekt ciblée (règle 16) : TooManyFunctions, LargeClass et
  * LongParameterList — l'espace de travail couvre l'explorateur, les
  * onglets, la sauvegarde, les actions de fichiers (étape 17) et le cycle
@@ -123,6 +135,9 @@ class EditorViewModel
         private val lireEtatEspace: LireEtatEspaceUseCase,
         private val reconnaitreTypeProjet: ReconnaitreTypeProjetUseCase,
         private val listerModeles: ListTemplatesUseCase,
+        private val sessionsTerminal: TerminalSessionRepository,
+        private val resoudreRepertoireProjet: ResoudreRepertoireProjet,
+        private val localisateurOutils: ToolchainLocator,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -147,6 +162,12 @@ class EditorViewModel
 
         /** Effets ponctuels (dialogue de fermeture, « Ouvrir avec », sortie). */
         val effets: Flow<EffetEditor> = canalEffets.receiveAsFlow()
+
+        /** Cœur de l'état de la carte terminal (T6). */
+        private val etatTerminalInterne = MutableStateFlow(EtatTerminalTiroir())
+
+        /** État de la carte d'aperçu du terminal du tiroir (T6, section 8). */
+        val etatTerminal: StateFlow<EtatTerminalTiroir> = etatTerminalInterne.asStateFlow()
 
         /** Enfants déjà énumérés, par URI de dossier — le cache paresseux. */
         private val enfantsEnCache = LinkedHashMap<String, List<FileStat>>()
@@ -195,17 +216,66 @@ class EditorViewModel
                 .launchIn(viewModelScope)
             restaurerOnglets()
             observerJournal(observerJournaux)
+            observerSessionsTerminal()
+        }
+
+        /**
+         * Carte d'aperçu (T6, section 8) : le registre global des sessions
+         * alimente la carte **en direct** — même liste que l'écran plein
+         * écran, quel que soit le point d'entrée qui a créé les sessions.
+         */
+        private fun observerSessionsTerminal() {
+            combine(
+                sessionsTerminal.observeSessions(),
+                sessionsTerminal.observeActiveSessionId(),
+            ) { sessions, activeId ->
+                EtatTerminalTiroir(
+                    bootstrapInstalle = localisateurOutils.isBootstrapInstalled(),
+                    nbSessions = sessions.size,
+                    sessionsVivantes = sessions.count { it.isAlive },
+                    sessionActive = sessions.firstOrNull { it.id == activeId } ?: sessions.lastOrNull { it.isAlive },
+                )
+            }.onEach { etatTerminalInterne.value = it }.launchIn(viewModelScope)
         }
 
         /** Point d'entrée unique des actions de l'espace de travail. */
         fun onAction(action: ActionEditor) {
             when (action) {
-                ActionEditor.Rafraichir -> rafraichir()
-                is ActionEditor.BasculerNoeud -> basculer(action.uri)
-                is ActionEditor.OuvrirFichier -> ouvrir(action.uri)
-                ActionEditor.Quitter -> demanderSortie()
-                is ActionEditor.PreciserLangue -> preciserLangue(action.langue)
-                else -> onActionOnglets(action)
+                ActionEditor.Rafraichir -> {
+                    rafraichir()
+                }
+
+                is ActionEditor.BasculerNoeud -> {
+                    basculer(action.uri)
+                }
+
+                is ActionEditor.OuvrirFichier -> {
+                    ouvrir(action.uri)
+                }
+
+                ActionEditor.Quitter -> {
+                    demanderSortie()
+                }
+
+                is ActionEditor.PreciserLangue -> {
+                    preciserLangue(action.langue)
+                }
+
+                ActionEditor.OuvrirTerminal -> {
+                    ouvrirTerminal()
+                }
+
+                ActionEditor.NouvelleSessionTerminal -> {
+                    nouvelleSessionTerminal()
+                }
+
+                ActionEditor.InstallerOutilsTerminal -> {
+                    canalEffets.trySend(EffetEditor.OuvrirInstallationTerminal)
+                }
+
+                else -> {
+                    onActionOnglets(action)
+                }
             }
         }
 
@@ -264,6 +334,60 @@ class EditorViewModel
                     ?.cheminRelatif ?: return
             canalEffets.trySend(EffetEditor.CopierChemin(chemin))
         }
+
+        // ------------------------------------------------------------------
+        // Carte d'aperçu du terminal du tiroir (T6, sections 7 et 8)
+        // ------------------------------------------------------------------
+
+        /**
+         * Ouvre l'écran plein écran du terminal, répertoire de travail
+         * suggéré = dossier **réel** du projet courant (pont FUSE), ou
+         * `null` si le dossier n'est pas résolvable — l'écran terminal
+         * replie alors sur son `HOME` canonique, source unique de vérité.
+         */
+        private fun ouvrirTerminal() {
+            viewModelScope.launch {
+                val chemin = resoudreCheminProjet()
+                canalEffets.send(EffetEditor.OuvrirTerminal(chemin))
+            }
+        }
+
+        /**
+         * État vide de la carte : crée la session dans le dossier du
+         * projet courant **puis** ouvre l'écran plein écran dessus
+         * (section 8). Bootstrap absent : écran d'installation — jamais
+         * une session condamnée à mourir (pas de shell).
+         *
+         * Si le dossier réel est introuvable (fournisseur non stockage,
+         * volume démonté), la session n'est pas créée ici : l'écran
+         * terminal s'ouvre et son propre état vide crée dans le `HOME`
+         * canonique — la même règle, un seul endroit.
+         */
+        private fun nouvelleSessionTerminal() {
+            if (!etatTerminalInterne.value.bootstrapInstalle) {
+                canalEffets.trySend(EffetEditor.OuvrirInstallationTerminal)
+                return
+            }
+            viewModelScope.launch {
+                val chemin = resoudreCheminProjet()
+                if (chemin != null) {
+                    val libelle = etatInterne.value.projet?.name
+                    sessionsTerminal.createSession(File(chemin), libelle)
+                    journal.i(TAG) { "Session terminal créée depuis le tiroir (projet ${identifiantSuivi()})." }
+                }
+                canalEffets.send(EffetEditor.OuvrirTerminal(chemin))
+            }
+        }
+
+        /** Dossier FUSE du projet courant, ou `null` (garde du domaine). */
+        private suspend fun resoudreCheminProjet(): String? =
+            etatInterne.value.projet
+                ?.location
+                ?.grantUri
+                ?.let { resoudreRepertoireProjet(it) }
+
+        /** Identifiant du projet suivi pour le journal (générique, règle 15). */
+        private fun identifiantSuivi(): String = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
 
         // ------------------------------------------------------------------
         // Suivi du projet et explorateur (étape 14)

@@ -12,6 +12,21 @@
     <string name="editor_tiroir_fermer_projet">Close project</string>
     <string name="editor_explorateur_vide">Empty folder</string>
 
+    <!-- Terminal drawer preview card (T6, Terminal-1 prompt section 8). -->
+    <string name="editor_nav_terminal">Terminal</string>
+    <string name="editor_terminal_agrandir_cd">Expand the terminal to full screen</string>
+    <string name="editor_terminal_carte_cd">Terminal preview: %1$s</string>
+    <string name="editor_terminal_aucune_session">No active session.</string>
+    <string name="editor_terminal_nouvelle_session">New session in this project</string>
+    <string name="editor_terminal_non_installe">The terminal tools are not installed.</string>
+    <string name="editor_terminal_installer">Install the tools</string>
+    <string name="editor_terminal_session_terminee">%1$s — ended</string>
+    <!-- « many » n'existe pas en anglais (lint UnusedQuantity). -->
+    <plurals name="editor_terminal_sessions_actives">
+        <item quantity="one">%1$d active session</item>
+        <item quantity="other">%1$d active sessions</item>
+    </plurals>
+
     <!-- Bottom navigation bar of the drawer (companion prompt 5.3). -->
     <string name="editor_nav_explorateur">Explorer</string>
     <string name="editor_nav_recherche">Search</string>

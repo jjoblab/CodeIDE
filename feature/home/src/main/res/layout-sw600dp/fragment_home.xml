@@ -19,7 +19,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Titre et réglages. -->
+        <!-- Titre et actions : terminal intégré (T6) + réglages. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -35,6 +35,16 @@
                 android:layout_weight="1"
                 android:text="@string/home_title"
                 android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+            <!-- Terminal intégré (T6) : même action que la variante téléphone. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_terminal"
+                style="@style/Widget.CodeIDE.Button.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/spacing_xs"
+                android:contentDescription="@string/home_open_terminal"
+                app:icon="@drawable/ic_terminal" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_settings"

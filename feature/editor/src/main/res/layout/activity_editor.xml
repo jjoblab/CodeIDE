@@ -546,6 +546,159 @@
                     android:minHeight="@dimen/touch_target_min"
                     tools:text="Résoudre à l'accueil" />
             </LinearLayout>
+
+            <!-- Carte d'aperçu du terminal (T6, section 8) : quatrième
+                 destination de la barre basse. Métadonnées du registre
+                 global SEULEMENT — aucun rendu Termux ici : feature:editor
+                 ne dépend d'aucune bibliothèque com.termux:* (critère
+                 d'acceptation, section 11 du prompt Terminal-1). -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/carte_terminal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:layout_margin="@dimen/spacing_md"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"
+                app:cardCornerRadius="@dimen/corner_radius_medium"
+                app:cardElevation="0dp"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_md">
+
+                    <!-- En-tête : pastille d'état de la session active,
+                         titre, bouton d'agrandissement. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/pastille_terminal"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/point_onglet"
+                            android:contentDescription="@null" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/titre_carte_terminal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:layout_weight="1"
+                            android:text="@string/editor_nav_terminal"
+                            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                        <!-- Agrandissement : même écran plein écran que
+                             l'action de la toolbar de l'accueil. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_agrandir_terminal"
+                            style="@style/Widget.CodeIDE.Button.Icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/editor_terminal_agrandir_cd"
+                            android:minWidth="@dimen/touch_target_min"
+                            android:minHeight="@dimen/touch_target_min"
+                            app:icon="@drawable/ic_agrandir_panneau" />
+                    </LinearLayout>
+
+                    <!-- Compteur de sessions actives. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/compteur_sessions_terminal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="2 sessions actives" />
+
+                    <!-- Session active : libellé et dernière sortie connue. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/libelle_session_terminal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:visibility="gone"
+                        tools:text="Session 1"
+                        tools:visibility="visible" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/sortie_session_terminal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:ellipsize="end"
+                        android:fontFamily="monospace"
+                        android:maxLines="3"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="$ pwd
+/home
+$"
+                        tools:visibility="visible" />
+
+                    <!-- État vide : aucune session (bouton de création dans
+                         le dossier du projet courant). -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_aucune_session_terminal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/editor_terminal_aucune_session"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_nouvelle_session_terminal"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:minWidth="@dimen/touch_target_min"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:text="@string/editor_terminal_nouvelle_session"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
+                    <!-- Bootstrap absent : installation d'abord, jamais une
+                         session sans shell (garde-fou symétrique de
+                         l'accueil, section 7). -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_non_installe_terminal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/editor_terminal_non_installe"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_installer_terminal"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:minWidth="@dimen/touch_target_min"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:text="@string/editor_terminal_installer"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
 
         <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3) :

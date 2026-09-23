@@ -2,6 +2,7 @@ package jo.codeide.feature.editor
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
@@ -22,6 +23,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
@@ -151,6 +153,7 @@ class EditorActivity : AppCompatActivity() {
         brancherInsets()
         brancherTiroir()
         brancherExplorateur()
+        brancherTerminalTiroir()
         brancherOnglets()
         brancherEditeur()
         brancherPanneauInferieur()
@@ -161,6 +164,7 @@ class EditorActivity : AppCompatActivity() {
         viewModel.onAction(ActionEditor.PreciserLangue(langueCourante()))
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
+        viewModel.etatTerminal.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreCarteTerminal(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
     }
 
@@ -253,10 +257,27 @@ class EditorActivity : AppCompatActivity() {
             menuCreationRacine(ancre, racine)
         }
 
-        // Barre de navigation basse : seule « Explorateur » est active —
-        // les destinations désactivées annoncent « Bientôt disponible ».
+        // Barre de navigation basse : « Explorateur » et « Terminal » (T6)
+        // sont actives — les destinations désactivées annoncent « Bientôt
+        // disponible ». La carte d'aperçu remplace l'explorateur quand la
+        // destination Terminal est choisie (section 8 : carte, pas un
+        // terminal embarqué).
         liaison.barreNavigationTiroir.setOnItemSelectedListener { item ->
-            item.itemId == R.id.destination_explorateur
+            when (item.itemId) {
+                R.id.destination_explorateur -> {
+                    basculerVueTiroir(terminal = false)
+                    true
+                }
+
+                R.id.destination_terminal -> {
+                    basculerVueTiroir(terminal = true)
+                    true
+                }
+
+                else -> {
+                    false
+                }
+            }
         }
         liaison.barreNavigationTiroir.selectedItemId = R.id.destination_explorateur
         liaison.barreNavigationTiroir.menu
@@ -267,6 +288,99 @@ class EditorActivity : AppCompatActivity() {
             .findItem(R.id.destination_git)
             .contentDescription =
             getString(R.string.editor_nav_bientot, getString(R.string.editor_nav_git))
+    }
+
+    /**
+     * Carte d'aperçu du terminal (T6, section 8) : toute la carte et son
+     * bouton d'agrandissement ouvrent le même écran plein écran que
+     * l'accueil ; l'état vide crée la session dans le dossier réel du
+     * projet ; bootstrap absent → installation.
+     */
+    private fun brancherTerminalTiroir() {
+        liaison.carteTerminal.setOnClickListener { viewModel.onAction(ActionEditor.OuvrirTerminal) }
+        liaison.boutonAgrandirTerminal.setOnClickListener { viewModel.onAction(ActionEditor.OuvrirTerminal) }
+        liaison.boutonNouvelleSessionTerminal.setOnClickListener {
+            viewModel.onAction(ActionEditor.NouvelleSessionTerminal)
+        }
+        liaison.boutonInstallerTerminal.setOnClickListener {
+            viewModel.onAction(ActionEditor.InstallerOutilsTerminal)
+        }
+    }
+
+    /**
+     * Bascule le contenu du tiroir entre l'explorateur et la carte
+     * d'aperçu du terminal (T6). Revenir sur l'explorateur réapplique
+     * son rendu — les visibilités appartiennent à [rendre].
+     */
+    private fun basculerVueTiroir(terminal: Boolean) {
+        liaison.carteTerminal.isVisible = terminal
+        if (terminal) {
+            liaison.listeExplorateur.isVisible = false
+            liaison.texteExplorateurVide.isVisible = false
+            liaison.progressionTiroir.isVisible = false
+            liaison.bandeauAcces.isVisible = false
+        } else {
+            rendre(viewModel.etat.value)
+        }
+    }
+
+    /** Rendu de la carte d'aperçu du terminal (T6, section 8) : métadonnées
+     * du registre global uniquement — la carte se met à jour en direct. */
+    private fun rendreCarteTerminal(etat: EtatTerminalTiroir) {
+        liaison.compteurSessionsTerminal.text =
+            resources.getQuantityString(
+                R.plurals.editor_terminal_sessions_actives,
+                etat.sessionsVivantes,
+                etat.sessionsVivantes,
+            )
+
+        // Bootstrap absent : l'installation d'abord (garde-fou de la
+        // section 7, symétrique de l'accueil).
+        liaison.texteNonInstalleTerminal.isVisible = !etat.bootstrapInstalle
+        liaison.boutonInstallerTerminal.isVisible = !etat.bootstrapInstalle
+
+        // État vide : aucune session du tout (vivantes ou terminées).
+        val aucuneSession = etat.bootstrapInstalle && etat.nbSessions == 0
+        liaison.texteAucuneSessionTerminal.isVisible = aucuneSession
+        liaison.boutonNouvelleSessionTerminal.isVisible = aucuneSession
+
+        // Session active : pastille, libellé (état suffisé), dernière sortie.
+        val session = etat.sessionActive
+        liaison.libelleSessionTerminal.isVisible = session != null
+        liaison.sortieSessionTerminal.isVisible =
+            session != null && session.lastOutputPreview.isNotBlank()
+        if (session != null) {
+            liaison.libelleSessionTerminal.text =
+                if (session.isAlive) {
+                    session.label
+                } else {
+                    getString(R.string.editor_terminal_session_terminee, session.label)
+                }
+            liaison.sortieSessionTerminal.text = session.lastOutputPreview
+            val couleurPastille =
+                MaterialColors.getColor(
+                    liaison.root,
+                    if (session.isAlive) {
+                        androidx.appcompat.R.attr.colorPrimary
+                    } else {
+                        com.google.android.material.R.attr.colorOutline
+                    },
+                )
+            liaison.pastilleTerminal.backgroundTintList = ColorStateList.valueOf(couleurPastille)
+        }
+
+        // Accessibilité : la carte se lit d'un geste (libellé + état).
+        val resume =
+            session?.label
+                ?: getString(
+                    if (etat.bootstrapInstalle) {
+                        R.string.editor_terminal_aucune_session
+                    } else {
+                        R.string.editor_terminal_non_installe
+                    },
+                )
+        liaison.carteTerminal.contentDescription =
+            getString(R.string.editor_terminal_carte_cd, resume)
     }
 
     /** Menu contextuel d'un nœud de l'explorateur (étape 17). */
@@ -994,6 +1108,17 @@ class EditorActivity : AppCompatActivity() {
 
             EffetEditor.OuvrirJournalComplet -> {
                 navigateur.openDiagnostics()
+            }
+
+            EffetEditor.OuvrirInstallationTerminal -> {
+                navigateur.openBootstrapInstall()
+            }
+
+            is EffetEditor.OuvrirTerminal -> {
+                // T6, section 8 : même écran plein écran que l'accueil, même
+                // liste de sessions — le répertoire suggéré vient du dossier
+                // réel du projet (pont FUSE du domaine).
+                navigateur.openTerminal(effet.cheminTravail)
             }
 
             EffetEditor.ErreurActionFichier -> {

@@ -2,6 +2,8 @@
 <resources>
     <string name="home_title">Home</string>
     <string name="home_open_settings">Open settings</string>
+    <!-- Terminal intégré (T6) : action de la toolbar. -->
+    <string name="home_open_terminal">Open the integrated terminal</string>
     <string name="home_bandeau_titre">Workspace folder not configured</string>
     <string name="home_bandeau_texte">New projects need a workspace folder to exist.</string>
     <string name="home_bandeau_bouton">Set up</string>

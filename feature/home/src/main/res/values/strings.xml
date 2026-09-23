@@ -2,6 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="home_title">Accueil</string>
     <string name="home_open_settings">Ouvrir les paramètres</string>
+    <!-- Terminal intégré (T6) : action de la toolbar. -->
+    <string name="home_open_terminal">Ouvrir le terminal intégré</string>
     <string name="home_bandeau_titre">Dossier de travail non configuré</string>
     <string name="home_bandeau_texte">Les nouveaux projets ont besoin d\'un dossier de travail pour exister.</string>
     <string name="home_bandeau_bouton">Configurer</string>

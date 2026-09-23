@@ -139,6 +139,12 @@ class HomeViewModel
                                     !localisateurOutils.isBootstrapInstalled() &&
                                     installation !is EtatInstallationBootstrap.Terminee &&
                                     installation !is EtatInstallationBootstrap.EnCours,
+                            // T6 : une installation terminée rend le terminal
+                            // ouvrable sans attendre un nouveau passage du
+                            // localisateur (le marqueur disque suit de peu).
+                            bootstrapInstalle =
+                                installation is EtatInstallationBootstrap.Terminee ||
+                                    localisateurOutils.isBootstrapInstalled(),
                         )
                     }
                 }
@@ -196,10 +202,29 @@ class HomeViewModel
                     observerRegistre()
                 }
 
+                ActionAccueil.OuvrirTerminal -> {
+                    ouvrirTerminal()
+                }
+
                 is ActionAccueil.SurlignerProjet -> {
                     etatInterne.update { it.copy(projetEnEvidence = action.id) }
                 }
             }
+        }
+
+        /**
+         * Action « Terminal » de la toolbar (T6, section 7) : écran plein
+         * écran si le bootstrap est présent, installation sinon — jamais
+         * un terminal non fonctionnel.
+         */
+        private fun ouvrirTerminal() {
+            val effet =
+                if (etatInterne.value.bootstrapInstalle) {
+                    EffetAccueil.OuvrirTerminalEcran
+                } else {
+                    EffetAccueil.OuvrirInstallationTerminal
+                }
+            viewModelScope.launch { effetsInterne.send(effet) }
         }
 
         /** Épingle ou désépingle un projet. */

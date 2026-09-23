@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Terminal intégré (Terminal T6) : action de la toolbar de l'accueil et
+     destination de la barre basse du tiroir (contour, même langage que
+     ic_explorateur). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:strokeWidth="1.8"
+        android:pathData="M4,5.5 h16 q1.5,0 1.5,1.5 v10 q0,1.5 -1.5,1.5 H4 q-1.5,0 -1.5,-1.5 V7 q0,-1.5 1.5,-1.5 z M6.8,9.2 L9.6,11.5 L6.8,13.8 M12.6,14 h4.2" />
+</vector>

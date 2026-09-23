@@ -40,6 +40,9 @@ enum class TriAccueil {
  * @property montrerBandeau l'assistant s'est terminé sans dossier de
  * travail (bandeau « Configurer », étape 5).
  * @property libelleDossier libellé lisible du dossier de travail.
+ * @property bootstrapInstalle bootstrap présent (T6) : l'action
+ * « Terminal » de la toolbar ouvre l'écran plein écran, sinon elle mène
+ * à l'installation — jamais un terminal non fonctionnel.
  * @property erreur le registre est illisible : écran d'erreur avec
  * « Réessayer » ; `null` en situation normale.
  */
@@ -54,6 +57,8 @@ data class EtatAccueil(
     val libelleDossier: String? = null,
     /** Bandeau d'invitation au terminal (T3) : configuré mais non installé. */
     val montrerBandeauTerminal: Boolean = false,
+    /** Bootstrap installé (T6) : l'action « Terminal » peut l'ouvrir. */
+    val bootstrapInstalle: Boolean = false,
     val erreur: AppError? = null,
     /** Projet créé par le wizard : défilement + surlignage (étape 11). */
     val projetEnEvidence: ProjectId? = null,
@@ -137,6 +142,13 @@ sealed interface ActionAccueil {
     data object Reessayer : ActionAccueil
 
     /**
+     * Ouvre le terminal intégré depuis la toolbar (T6) : écran plein
+     * écran si le bootstrap est installé, écran d'installation sinon
+     * (section 7 du prompt Terminal-1).
+     */
+    data object OuvrirTerminal : ActionAccueil
+
+    /**
      * Met en évidence le projet créé par le wizard (section 12.3 :
      * « le nouveau projet apparaît, mis en évidence » — étape 11).
      */
@@ -179,6 +191,12 @@ sealed interface EffetAccueil {
     data class OuvrirEditeur(
         val id: ProjectId,
     ) : EffetAccueil
+
+    /** Ouvrir l'écran plein écran du terminal (T6, bootstrap installé). */
+    data object OuvrirTerminalEcran : EffetAccueil
+
+    /** Ouvrir l'écran d'installation du bootstrap (T6, section 7). */
+    data object OuvrirInstallationTerminal : EffetAccueil
 
     /** Échec typé d'une action (message localisé par l'UI). */
     data class Echec(

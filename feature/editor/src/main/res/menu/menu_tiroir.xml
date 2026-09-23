@@ -26,4 +26,12 @@
         android:enabled="false"
         android:icon="@drawable/ic_git"
         android:title="@string/editor_nav_git" />
+
+    <!-- Terminal intégré (T6, section 8) : quatrième destination, ACTIVE —
+         elle affiche la carte d'aperçu (pas un terminal embarqué). -->
+    <item
+        android:id="@+id/destination_terminal"
+        android:enabled="true"
+        android:icon="@drawable/ic_terminal"
+        android:title="@string/editor_nav_terminal" />
 </menu>
