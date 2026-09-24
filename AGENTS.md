@@ -420,8 +420,25 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       document] ; actions toolbar Synchroniser/Exécuter + sélecteur de
       tâches [Effet → dialogue, exécution au choix] ; 23 tests +
       intégration serveur étendue (16) — ADR 0043]
-- Prochaine : étape 30 (= Tooling G6 — robustesse et audit, cf.
-      docs/TOOLING.md).
+- Étape 30 (v0.31.0, G6) : robustesse éprouvée au chaos RÉEL et audit
+      final [chaos sur le harnais bout-en-bout rendu `internal` +
+      instrumenté (registre des process, dernière session) : kill -9 en
+      plein build long → build EN COURS conclu ECHOUE « connexion
+      perdue » + canal fermé [correctif `rompreBuildsEnCours()` — le
+      trou a été TROUVÉ par le chaos : l'onglet Sortie pendait à
+      jamais], daemon relance borné, connexion remonte, aucun orphelin ;
+      socket perdue côté app → process sort SEUL code 0 avant le health
+      check ; version/JDK déjà prouvés] ; délais §7.5 inventoriés aux
+      deux frontières [déjà posés G2/G3 — documentés en table dans
+      docs/TOOLING.md, rien réécrit] ; docs/TOOLING.md FINAL
+      [architecture livrée + schéma, table des délais, tableau du chaos
+      à six pannes, journalisation gradle-server, garantie CI] ; audit
+      [zéro TODO, detekt strict vert, ServerVersion inchangée 0.30.0 —
+      G6 ne redélivre pas l'orchestrateur] ; points T7 appareil
+      [targetSdk, LeakCanary] explicitement différés — 2 tests chaos
+      réels + 1 test client, ADR 0044]
+- Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
+      les prompts compagnons LSP et formatage suivront).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
