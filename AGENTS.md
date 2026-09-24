@@ -377,8 +377,30 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       écho d'identifiant corrigé côté serveur [corrélation §3.2 — défaut G2
       découvert en écrivant le client] ; `AppError.Tooling` typé jusqu'à
       l'UI ; 19 tests dont non-conflation 12 000 lignes §7.3. ADR 0041)
-- Prochaine : étape 28 (= Tooling G4 — tooling:daemon sur `NativeProcessLauncher`,
-      `JarDeployer`, health check, premier bout-en-bout réel §7.4,
+- [x] Étape 28 (= Tooling G4) — tooling:daemon → v0.29.0
+      (module Android+Hilt sur l'allow-list gelée G1 [protocol, domain,
+      client] ; `DaemonManager` : déploiement → écoute AVANT lancement §5.1 →
+      lancement `java -Xmx256m -jar` sur le port `NativeProcessLauncher`
+      JAMAIS redéfini [environnement canonique core:bootstrap] → handshake
+      secret frais [SecureRandom 32 octets/tentative, jamais écrit] →
+      surveillance [ping/pong 5 s/15 s — repère `dernierPongMs` tenu par le
+      pompe du client, stderr/stdout → journal tag `gradle-server`] →
+      relance bornée 5 tentatives [repli exponentiel 1 s→10 s, épuisement →
+      ECHOUEE] ; échecs DÉFINITIFS : handshake refusé, code 2, JAR absent ;
+      JDK absent = DECONNECTEE sans lancement + re-déclenchement à
+      l'installation du bootstrap [BootstrapInstaller.etat → Terminee] ;
+      `JarDeployer` marqueur SHA-256, copie atomique, recopie seulement au
+      changement ; coutures publiques dans tooling:client
+      [marquerEnConnexion/marquerEchouee — ADR 0041 décision 8 — et
+      GradleSocketServer/SessionTooling/EchecHandshakeClient publics] ;
+      démarrage au processus principal, mort de l'app = EOF → arrêt SEUL du
+      process [code 0, aucun orphelin] ; **BOUT-EN-BOUT RÉEL §7.4** : VRAI
+      sous-processus java [ServerMain par classpath — l'artefact shadowJar
+      n'existe pas en JVM de test], VRAI socket Unix JDK, VRAI build Gradle
+      sur fixture [connexion, pong, sortie ligne à ligne, REUSSI, arrêt
+      propre] ; exception ModuleRules : tooling:server en test SEULEMENT
+      depuis tooling:daemon ; 13 tests + kover ≥ 80 %. ADR 0042)
+- Prochaine : étape 29 (= Tooling G5 — GradleService + intégration éditeur,
       cf. docs/TOOLING.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
@@ -491,3 +513,19 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   `python3 -c "repr(...)"` (rencontré T3). Même discipline pour
   l'insertion de fonctions Kotlin par harnais : vérifier la position
   réelle des accolades de classe avant d'insérer (AppNavigatorImpl).
+- **android.jar éclipse les API java.* récentes à la COMPILATION des tests
+  unitaires Android** (leçon G4) : le classpath de compilation des tests
+  porte android.jar, et pour les classes java.* couvertes par les builtins
+  Kotlin, c'est leur version JDK 8 qui gagne — `Process.onExit()` (JDK 9)
+  et `ServerSocketChannel.open(ProtocolFamily)` (JDK 15) « ne résolvent
+  pas » alors qu'elles existent au runtime (JDK 21) et dans android.jar.
+  Diagnostiqué par bissection du classpath avec kotlinc en direct.
+  Contournements éprouvés : réflexion ciblée (précédent `pid` de
+  `ProcessusGere`) et sondage `isAlive` (miroir du port production) ; les
+  API java.* récentes vivent dans les modules purs (tooling:server) ou
+  derrière ces coutures.
+- **La mémoire de la machine de build est comptée** (leçons G4 cumulées) :
+  un test qui lance un VRAI sous-processus doit lui passer `-Xmx` borné
+  (sinon 1/4 de la RAM par défaut → le démon Gradle meurt), et les tests
+  lourds se séparent des légers par `--tests` en cours d'étape avant la
+  chaîne complète.

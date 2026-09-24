@@ -6,6 +6,7 @@ import dagger.hilt.android.HiltAndroidApp
 import jo.codeide.core.crash.AppProcess
 import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
+import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
@@ -13,6 +14,8 @@ import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.logging.CodeIdeAppLogger
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
+import jo.codeide.core.model.EtatInstallationBootstrap
+import jo.codeide.tooling.daemon.DaemonManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -60,6 +63,14 @@ class CodeIdeApplication : Application() {
     /** Point de bascule du niveau de journalisation — port du domaine, implémenté par core:logging (façade interne). */
     @Inject
     lateinit var applierNiveau: LogVerbosityApplier
+
+    /** Daemon du tooling Gradle (G4) — processus principal uniquement. */
+    @Inject
+    lateinit var daemonTooling: DaemonManager
+
+    /** Installateur du bootstrap — le daemon repart quand le JDK arrive. */
+    @Inject
+    lateinit var installateurBootstrap: BootstrapInstaller
 
     /**
      * Gestionnaire de plantages du processus principal — porté par
@@ -145,6 +156,21 @@ class CodeIdeApplication : Application() {
         porteeDemarrage.launch {
             parametres.observeSettings().collect { reglages ->
                 applierNiveau.apply(reglages.logLevel)
+            }
+        }
+
+        // Tooling G4 (§5.4) : le daemon de l'orchestrateur Gradle démarre
+        // avec le processus principal et vit tant que lui — la fermeture du
+        // socket par la mort de l'app termine proprement l'orchestrateur
+        // (EOF = fin de boucle, code de sortie 0). JDK absent au démarrage :
+        // aucun lancement, l'état reste DECONNECTEE — la collecte ci-dessous
+        // relance le daemon quand l'installation du bootstrap aboutit.
+        daemonTooling.demarrer(porteeDemarrage)
+        porteeDemarrage.launch {
+            installateurBootstrap.etat.collect { etat ->
+                if (etat is EtatInstallationBootstrap.Terminee) {
+                    daemonTooling.demarrer(porteeDemarrage)
+                }
             }
         }
     }

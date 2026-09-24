@@ -60,6 +60,11 @@ dependencies {
     // (règle §2.2) — le JAR orchestrateur, lui, reste un artefact de build
     // lié par tâche (voir preBuild plus bas).
     implementation(project(":tooling:client"))
+    // Tooling G4 : agrégation Hilt du daemon (déploiement du JAR, lancement
+    // du process orchestrateur, health check, relances bornées) — le daemon
+    // démarre avec le processus principal et s'arrête avec lui (le socket
+    // fermé par la mort de l'app termine proprement l'orchestrateur).
+    implementation(project(":tooling:daemon"))
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
