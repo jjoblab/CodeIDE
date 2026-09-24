@@ -107,6 +107,12 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # (prompt Vérification-1 §2.1 ; fiabilité incrémentale prouvée empiriquement :
 # checkModuleDependencies = phase de configuration, violation attrapée sans clean)
 ./gradlew spotlessApply                    # formatage avant commit
+# koverVerify est GRADUÉ comme verify-templates.sh (Vérification-1 §2.6) :
+# ne le lancer que si l'étape modifie un module soumis au seuil de 80 %
+# (core:model, core:domain, core:bootstrap, core:terminal-runtime,
+# tooling:client, tooling:server) — les autres modules réussissent
+# trivialement, le relancer ne vérifie rien de nouveau. La CI GitHub
+# l'exécute toujours : elle reste la garantie from-scratch (ADR 0037).
 scripts/bump-version.sh minor              # incrémente la version
 git tag -a vX.Y.Z -m "vX.Y.Z"              # tag ANNOTÉ, jamais léger (Vérification-1 §2.5)
 scripts/package.sh 0                       # dist/ : archive + APK + SHA256SUMS
@@ -117,7 +123,10 @@ scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
 ## Définition de « terminé » (par étape)
 
 Fonctionnalités de l'étape sans débordement ; vérification complète verte ;
-tests de la logique ajoutée (≥ 80 % sur `core:model`/`core:domain`) ; KDoc et
+tests de la logique ajoutée (seuil Kover ≥ 80 % sur les modules qui en ont
+une — `core:model`, `core:domain`, `core:bootstrap`,
+`core:terminal-runtime`, `tooling:client`, `tooling:server` ; le domaine
+reste le contrat nominal, les autres seuils suivent leurs build.gradle.kts) ; KDoc et
 docs à jour ; `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md` à jour ; aucun TODO non
 tracé ; version incrémentée, tag Git **annoté** (`git tag -a`, jamais léger),
 archive créée **et vérifiée** ; commits et tag **poussés sur `origin`**

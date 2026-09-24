@@ -170,11 +170,23 @@ un chemin, un nom d'auteur ni un contenu de fichier.
 6. Remettre le rapport (section 14) — désormais avec la **durée réelle** de
    chaque commande de vérification (`spotlessCheck`, `detekt`,
    `checkModuleDependencies`, `lintDebug`, `testDebugUnitTest`,
-   `koverVerify`, `assembleDebug`, `verify-archive.sh`,
-   `verify-templates.sh` si lancé) — puis attendre la validation de
-   l'utilisateur.
+   `koverVerify` si lancé (graduation ci-dessous), `assembleDebug`,
+   `verify-archive.sh`, `verify-templates.sh` si lancé) — puis attendre la
+   validation de l'utilisateur.
 
 `scripts/verify-templates.sh` ne tourne que pour les étapes touchant
 réellement aux modèles embarqués, au moteur de modèles, ou aux fichiers
 partagés de `build-logic`/catalogue de versions — **jamais par défaut**
 (prompt Vérification-1, section 2.3 ; usage historique : étapes 9 et 18).
+
+`koverVerify` suit la même logique graduée (prompt Vérification-1,
+section 2.6) : il ne tourne que pour les étapes qui modifient au moins un
+module **soumis au seuil de 80 %** — à ce jour `core:model`,
+`core:domain`, `core:bootstrap`, `core:terminal-runtime`,
+`tooling:client` et `tooling:server` (règles `verify` de leurs
+`build.gradle.kts`). Les modules sans règle de seuil réussissent
+trivialement : relancer `koverVerify` sur une étape qui n'en touche
+aucun ne vérifie rien de nouveau. La CI GitHub, elle, exécute toujours
+la chaîne complète au push — c'est elle qui garantit le from-scratch
+(ADR 0037), la graduation ne concerne que la procédure locale de fin
+d'étape.
