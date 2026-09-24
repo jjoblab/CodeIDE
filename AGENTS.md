@@ -83,6 +83,12 @@ dans `core:ui`, implémentée dans `app`).
 - Robolectric 4.17 exige `--add-exports java.base/jdk.internal.access=ALL-UNNAMED`
   (déjà configuré dans les conventions) et `isIncludeAndroidResources = true`.
 - Tests : JUnit 4 (choix du prompt), noms de test en français avec accents graves.
+- Étape G2+ : `tooling:server` dépend de `org.gradle:gradle-tooling-api`
+  (9.7.1, alignée sur le wrapper) via **`repo.gradle.org/gradle/libs-releases`**
+  — les métadonnées Maven Central de cette coordonnée sont périmées (voir
+  `docs/TOOLING.md`). Le JAR orchestrateur (7,6 Mo) est un artefact de build
+  régénéré dans `app/src/main/assets/tooling/` par `preBuild` — jamais
+  versionné ni archivé (ADR 0040).
 - Étape 13+ : `feature:editor` dépend de `com.github.jjoblab:cel-ui` via
   **JitPack** (dépôt `maven { url = uri("https://jitpack.io") }` à ajouter —
   seule dépendance externe autorisée dans une feature, exception documentée ;
@@ -341,6 +347,16 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       [Tooling API 9.7.1 sur repo.gradle.org — Maven Central PÉRIMÉ sur cette coordonnée ; daemon
       Java 17 min = bootstrap openjdk-17 ✓ ; com.gradleup.shadow 9.6.1] ; 21 tests bloquants §3 au
       vert AVANT toute ligne server/client ; ADR 0039)
+- [x] Étape 26 (= Tooling G2) — tooling:api + tooling:server → v0.27.0
+      (`tooling:api` modèles partagés + mappers protocol → api ; `tooling:server`
+      orchestrateur Tooling API complet : handshake secret/version, dispatcher borné,
+      bus d'événements sans perte (file bloquante 8192), builds avec annulation +
+      sortie ligne à ligne, Resilient Sync, tâches/dépendances/modèle, HeapMonitor,
+      timeouts §7.5 ; fat jar shadow 9.6.1 → gradle-server.jar dans les assets
+      contrôlé par preBuild §4.7 ; 15 tests d'intégration RÉELS sur vrai socket
+      Unix contre les fixtures — annulation d'une tâche de 60 s en ~2,6 s ; kover
+      ≥ 80 % ; correctif plantage 3d8ede67 + prompt Vérification-1 appliqué.
+      ADR 0040)
 - Prochaine : étape 26 (= Tooling G2 — tooling:server sur JVM, tests d'intégration réels §7.2,
       cf. docs/TOOLING.md).
 
@@ -376,6 +392,28 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   URLs) hors des lignes de code — les extraire en constantes. Diagnostic
   éprouvé à l'étape T2 : la position signalée ne correspond à rien sur
   le disque, c'est la projection formatée qui compte.
+- **Le fork `com.gradleup.shadow` CONSERVE le package historique**
+  (leçon G2) : le plugin s'applique par l'id `com.gradleup.shadow` mais
+  les classes vivent toujours sous `com.github.jengelman.gradle.plugins.shadow.*`
+  — importer depuis `com.gradleup.*` échoue avec « Unresolved reference ».
+- **`main()` dans un `object` avec `@JvmStatic` → Main-Class = le nom de
+  l'object**, pas `XxxKt` (leçon G2) : un fat jar avec Main-Class erroné
+  démarre et meurt sur `ClassNotFoundException` — tester le JAR produit
+  (`java -jar`) AVANT de livrer, pas seulement la tâche shadowJar.
+- **Les ressources d'une dépendance de test vivent dans un jar** (leçon
+  G2) : `Path.of(url.toURI())` sur une ressource `jar:` lève
+  `FileSystemNotFoundException` — monter le zipfs explicitement
+  (`FileSystems.newFileSystem`) quand le scheme est `jar` ; depuis le
+  module lui-même, c'est un simple dossier.
+- **BottomNavigationView distribue l'écouteur SYNCHRONEMENT à
+  l'affectation d'une destination nouvellement sélectionnée** (plantage
+  3d8ede67, v0.25.0) : affecter la destination initiale AVANT
+  d'enregistrer l'écouteur, sinon le rendu s'exécute en plein
+  `onCreate`, avant que le reste soit branché (menu toolbar, lateinit).
+- **La sortie d'un process séparé est son journal** (règle 14, G2) :
+  l'orchestrateur JVM ne peut pas appeler AppLogger — son stderr EST le
+  canal (tag `gradle-server`), exemption detekt ciblée plutôt qu'un
+  contournement trompeur.
 - **Un fragment qui obtient un `@HiltViewModel` par `by viewModels()`
   DOIT porter `@AndroidEntryPoint`** (rapport 30e81ee0, v0.24.0 sur
   appareil) : sans elle, la factory par défaut tente la réflexion sur un

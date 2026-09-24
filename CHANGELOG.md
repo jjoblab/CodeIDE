@@ -4,6 +4,81 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.27.0] – 2026-09-24
+
+Étape 26 (= G2 du prompt compagnon « Tooling Gradle (client-serveur) ») :
+modules `tooling:api` (modèles partagés) et `tooling:server`
+(l'orchestrateur JVM) — testé en isolation sur JVM de bureau contre les
+fixtures réelles, livré en JAR unique exécutable embarqué dans les assets
+de l'app. ADR 0040, `docs/TOOLING.md`.
+
+### Ajouté
+
+- **Module `tooling:api`** (Kotlin JVM pur, dépend de `tooling:protocol`
+  uniquement) : modèles du projet indépendants du format câble —
+  `LigneSortieBuild`, `StatutBuild`/`EtatBuild`, `InstantaneTas`,
+  `EtatConnexion`, `InfoTache`, `Diagnostic`, `ModeleProjet`/`ModeleModule`
+  — et mappers protocol → api, frontière unique (le client Android
+  n'interprétera jamais un message brut).
+- **Module `tooling:server`** (convention `codeide.tooling.server`) :
+  - `ServerMain` (`--socket`/`--secret`/`--log-level`/`--heap-intervalle-ms`,
+    codes de sortie 0/2/3/4), `ServerConfig`, `SocketClient` (UDS JDK 16+,
+    `runInterruptible` + délai de connexion) ;
+  - `Handshake` : secret + version négociée, incompatibilité = erreur
+    claire `PROTOCOL_VERSION_MISMATCH`, jamais un comportement indéfini ;
+  - `MessageDispatcher` : boucle de lecture + aiguillage dans une portée
+    bornée (`limitedParallelism(6)`), requête indécodable = `ErrorResponse`
+    typée sans couper la session, EOF propre distinguée de la corruption ;
+  - `EventBusSocket` : file bornée 8192, `put()` bloquant
+    (contre-pression = contrôle de flux, aucune perte), unique écrivain du
+    socket ;
+  - `BuildHandler` : pont `suspendCancellableCoroutine` sur
+    `BuildLauncher.run(ResultHandler)`, annulation propagée vers le
+    `CancellationTokenSource`, sortie stdout/stderr diffusée ligne à ligne
+    (`StreamingOutputStream` : UTF-8 réassemblé, `\r` retiré), tâches en
+    événements (`ProgressBridge`) ;
+  - `SyncHandler` (Resilient Sync : modèles résolus un par un,
+    `PartialSyncResult` si échec partiel), `TasksHandler` (arbre complet
+    des sous-projets), `DependenciesHandler` (dépendances inter-projets),
+    `ModelHandler` (`IdeaProject` → `ModeleProjet`, réponse `SyncResult` —
+    ADR 0040), `HeapMonitor` (tick coroutine + à la demande) ;
+  - timeouts de garde partout (build 30 min, sync 5 min, tâches 30 s…) ;
+  - `Journal` : sortie d'erreur = canal du process séparé (tag
+    `gradle-server`, exemption detekt ciblée).
+- **Assemblage** : `com.gradleup.shadow` 9.6.1 → `gradle-server.jar`
+  (7,6 Mo, `mergeServiceFiles`), recopié vers `app/src/main/assets/tooling/`
+  et contrôlé avant tout packaging (`preBuild` de l'app — §4.7) ; dépôt
+  `repo.gradle.org` ajouté (métadonnées Maven Central de la Tooling API
+  périmées).
+- **Tests** : 8 unitaires serveur (config, streaming, pont de progression),
+  9 mappers api, **15 tests d'intégration RÉELS** (`ServeurIntegrationTest`)
+  — l'orchestrateur complet sur un vrai socket Unix contre les 4 fixtures :
+  handshake (secret/version/refus), builds minimal/erreur/multi-module,
+  annulation d'une tâche de 60 s (~2,6 s), tâches/sync/dépendances/modèle,
+  ping/pong, tas, requête inconnue, arrêt propre. Couverture kover ≥ 80 %
+  sur le module.
+
+### Corrigé
+
+- `FixturesGradle` : les ressources d'une dépendance de test vivent dans
+  un jar (URI `jar:`) — montage explicite du système de fichiers zip,
+  sinon `FileSystemNotFoundException` (attrapé par les tests d'intégration).
+- Plantage 3d8ede67 (v0.25.0 sur appareil) : la destination initiale de la
+  barre du tiroir était affectée APRÈS l'écouteur — distribution synchrone
+  de `rendre()` pendant `onCreate`, avant l'inflation du menu de la
+  toolbar. Ordre inversé + deux tests de régression
+  (`ActivityEditorLayoutTest`).
+
+### Changé
+
+- Prompt compagnon Vérification-1 appliqué : vérification graduée sans
+  `clean` par défaut (fiabilité incrémentale prouvée empiriquement —
+  violation de dépendance attrapée par `checkModuleDependencies` en 6 s
+  sans clean), `scripts/verify-archive.sh` en `GRADLE_USER_HOME` isolé +
+  daemon actif, tags Git annotés uniquement (v0.15.0 à v0.26.0 convertis
+  rétroactivement), durées réelles des commandes dans le rapport de fin
+  d'étape.
+
 ## [0.26.0] – 2026-09-24
 
 Étape 25 (= G1 du prompt compagnon « Tooling Gradle (client-serveur) ») :

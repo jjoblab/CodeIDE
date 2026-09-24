@@ -75,3 +75,14 @@ dependencies {
     // Fakes des tests exhaustifs des modèles embarqués (étape 9).
     testImplementation(project(":core:testing"))
 }
+
+// ---------------------------------------------------------------------------
+// Tooling Gradle (G2, §4.7 du prompt Tooling) : le JAR orchestrateur est un
+// ARTEFACT DE BUILD régénéré par :tooling:server (shadowJar → copie vers
+// assets/tooling) — la tâche de contrôle fait échouer le packaging s'il est
+// absent ou vide. Liaison par TÂCHE (pas de dépendance de module : l'app ne
+// consomme le tooling que via l'interface du domaine, règle §2.2).
+// ---------------------------------------------------------------------------
+tasks.named("preBuild") {
+    dependsOn(":tooling:server:controlerJarAssets")
+}
