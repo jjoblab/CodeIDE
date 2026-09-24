@@ -93,8 +93,19 @@
     <string name="editor_journal_niveau_error">Erreur</string>
     <string name="editor_journal_vide">Aucune entrée pour ces filtres.</string>
     <string name="editor_journal_complet">Ouvrir le journal complet</string>
-    <string name="editor_sortie_stub">La console apparaîtra ici une fois le tooling de compilation disponible.</string>
-    <string name="editor_problemes_stub">Les problèmes de compilation et d\'analyse apparaîtront ici.</string>
+    <string name="editor_synchroniser">Synchroniser</string>
+    <string name="editor_executer">Exécuter…</string>
+    <string name="editor_executer_titre">Exécuter une tâche Gradle</string>
+    <string name="editor_sortie_vide">La sortie du build apparaîtra ici.</string>
+    <string name="editor_sortie_annuler_cd">Arrêter le build en cours</string>
+    <string name="editor_problemes_vide">Aucun problème pour le moment.</string>
+    <string name="editor_sortie_sync_en_cours">Synchronisation en cours…</string>
+    <string name="editor_sortie_sync_reussie">Synchronisé en %1$s</string>
+    <string name="editor_sortie_build_en_cours">Build en cours…</string>
+    <string name="editor_sortie_build_reussi">Build réussi en %1$s</string>
+    <string name="editor_sortie_build_echoue">Échec du build</string>
+    <string name="editor_sortie_build_annule">Build annulé</string>
+    <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->
     <string name="editor_tiroir_nouveau_cd">Créer un fichier ou un dossier à la racine du projet</string>

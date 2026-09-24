@@ -8,6 +8,7 @@ import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.getOrNull
 import jo.codeide.core.testing.FakeAppLogger
+import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -50,6 +51,27 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             sessionsTerminal = sessionsTerminal,
             resoudreRepertoireProjet = resoudreRepertoire,
             localisateurOutils = localisateurOutils,
+            tooling = tooling,
+            synchroniserProjet =
+                jo.codeide.core.domain.SynchroniserProjetUseCase(
+                    tooling,
+                    journalEspace,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            executerTachesUseCase =
+                jo.codeide.core.domain.ExecuterTachesUseCase(
+                    tooling,
+                    journalEspace,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            annulerBuild =
+                jo.codeide.core.domain
+                    .AnnulerBuildUseCase(tooling),
+            listerTachesProjet =
+                jo.codeide.core.domain.ListerTachesProjetUseCase(
+                    tooling,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
             savedStateHandle = sauvegarde,
         )
 

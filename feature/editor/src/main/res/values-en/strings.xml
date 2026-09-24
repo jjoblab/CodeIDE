@@ -90,8 +90,19 @@
     <string name="editor_journal_niveau_error">Error</string>
     <string name="editor_journal_vide">No entries for these filters.</string>
     <string name="editor_journal_complet">Open the full log</string>
-    <string name="editor_sortie_stub">The console will appear here once the build tooling is available.</string>
-    <string name="editor_problemes_stub">Compilation and analysis problems will appear here.</string>
+    <string name="editor_synchroniser">Sync</string>
+    <string name="editor_executer">Run…</string>
+    <string name="editor_executer_titre">Run a Gradle task</string>
+    <string name="editor_sortie_vide">Build output will appear here.</string>
+    <string name="editor_sortie_annuler_cd">Stop the running build</string>
+    <string name="editor_problemes_vide">No problems so far.</string>
+    <string name="editor_sortie_sync_en_cours">Syncing…</string>
+    <string name="editor_sortie_sync_reussie">Synced in %1$s</string>
+    <string name="editor_sortie_build_en_cours">Build running…</string>
+    <string name="editor_sortie_build_reussi">Build succeeded in %1$s</string>
+    <string name="editor_sortie_build_echoue">Build failed</string>
+    <string name="editor_sortie_build_annule">Build cancelled</string>
+    <string name="editor_outil_deconnecte">Gradle tools not connected</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->
     <string name="editor_tiroir_nouveau_cd">Create a file or folder at the project root</string>

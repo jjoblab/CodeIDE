@@ -59,6 +59,12 @@ abstract class BaseEditorViewModelTest {
     /** Localisateur d'outils factice (T6) : bootstrap non installé par défaut. */
     protected val localisateurOutils = FakeToolchainLocator()
 
+    /** Faux du port tooling (G5) — pilotable par les tests de l'espace. */
+    protected val tooling = FauxToolingEditor()
+
+    /** Journal de l'espace (partagé, pour les use cases tooling). */
+    protected val journalEspace = FakeAppLogger()
+
     /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
     protected val resoudreRepertoire =
         ResoudreRepertoireProjet(
@@ -99,6 +105,27 @@ abstract class BaseEditorViewModelTest {
             sessionsTerminal = sessionsTerminal,
             resoudreRepertoireProjet = resoudreRepertoire,
             localisateurOutils = localisateurOutils,
+            tooling = tooling,
+            synchroniserProjet =
+                jo.codeide.core.domain.SynchroniserProjetUseCase(
+                    tooling,
+                    journalEspace,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            executerTachesUseCase =
+                jo.codeide.core.domain.ExecuterTachesUseCase(
+                    tooling,
+                    journalEspace,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            annulerBuild =
+                jo.codeide.core.domain
+                    .AnnulerBuildUseCase(tooling),
+            listerTachesProjet =
+                jo.codeide.core.domain.ListerTachesProjetUseCase(
+                    tooling,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
             savedStateHandle = sauvetage,
         )
 

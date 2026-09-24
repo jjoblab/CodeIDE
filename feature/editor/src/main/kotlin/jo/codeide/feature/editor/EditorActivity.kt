@@ -29,8 +29,12 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeeditor.document.Selection
 import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
+import jo.codeide.core.domain.EtatConnexion
+import jo.codeide.core.domain.InfoTache
+import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.RaisonValidation
@@ -97,6 +101,15 @@ class EditorActivity : AppCompatActivity() {
 
     /** Adaptateur du journal applicatif compact du panneau (étape 16). */
     private lateinit var adaptateurJournal: EntreesJournalCompactesAdapter
+
+    /** Console du build (G5, onglet Sortie). */
+    private lateinit var adaptateurSortie: SortieAdapter
+
+    /** Diagnostics groupés (G5, onglet Problèmes). */
+    private lateinit var adaptateurProblemes: ProblemesAdapter
+
+    /** Taille de la dernière fenêtre de sortie rendue (auto-défilement). */
+    private var tailleDerniereFenetreSortie = 0
 
     /** Thèmes cel mis en cache (clair/sombre, suivant l'application). */
     private var themeClair: EditorTheme? = null
@@ -165,6 +178,7 @@ class EditorActivity : AppCompatActivity() {
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
         viewModel.etatTerminal.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreCarteTerminal(etat) }
+        viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreTooling(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
     }
 
@@ -616,6 +630,16 @@ class EditorActivity : AppCompatActivity() {
                     true
                 }
 
+                R.id.action_synchroniser -> {
+                    viewModel.onAction(ActionEditor.Synchroniser)
+                    true
+                }
+
+                R.id.action_executer -> {
+                    viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+                    true
+                }
+
                 else -> {
                     false
                 }
@@ -729,6 +753,7 @@ class EditorActivity : AppCompatActivity() {
         adaptateurJournal = EntreesJournalCompactesAdapter()
         liaison.listeJournal.layoutManager = LinearLayoutManager(this)
         liaison.listeJournal.adapter = adaptateurJournal
+        brancherToolingPanneau()
 
         // Filtres par niveau — même règle que l'écran Diagnostic (étape 12).
         liaison.chipJournalDebug.setOnCheckedChangeListener { _, _ ->
@@ -748,6 +773,26 @@ class EditorActivity : AppCompatActivity() {
         // à l'écran Diagnostic (version compacte, prompt compagnon 5.5).
         liaison.boutonJournalComplet.setOnClickListener {
             viewModel.onAction(ActionEditor.OuvrirJournalComplet)
+        }
+    }
+
+    /**
+     * Onglets Sortie et Problèmes (G5, section 6) : console du build
+     * (auto-défilement en vol), diagnostics groupés par fichier (saut à
+     * la ligne), arrêt du build.
+     */
+    private fun brancherToolingPanneau() {
+        adaptateurSortie = SortieAdapter()
+        liaison.listeSortie.layoutManager = LinearLayoutManager(this)
+        liaison.listeSortie.adapter = adaptateurSortie
+        adaptateurProblemes =
+            ProblemesAdapter { fichier, ligne ->
+                sauterAuProbleme(fichier, ligne)
+            }
+        liaison.listeProblemes.layoutManager = LinearLayoutManager(this)
+        liaison.listeProblemes.adapter = adaptateurProblemes
+        liaison.boutonAnnulerBuild.setOnClickListener {
+            viewModel.onAction(ActionEditor.AnnulerBuild)
         }
     }
 
@@ -1081,6 +1126,117 @@ class EditorActivity : AppCompatActivity() {
             OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
         }
 
+    /**
+     * Rendu du tooling (G5, §6) : état de synchronisation/build dans
+     * l'en-tête de l'onglet Sortie (annulation visible en vol), console
+     * avec auto-défilement (le suivi s'arrête quand la liste cesse de
+     * grandir — un build fini ne défile plus), diagnostics groupés.
+     */
+    private fun rendreTooling(etat: EtatGradle) {
+        liaison.statutSortie.text = libelleStatutTooling(etat)
+        liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
+
+        // Console : fenêtre bornée, auto-défilement tant qu'elle grandit.
+        adaptateurSortie.submitList(etat.lignes)
+        val enVol = etat.statutBuild == StatutBuild.EN_COURS
+        if (enVol && etat.lignes.size > tailleDerniereFenetreSortie && etat.lignes.isNotEmpty()) {
+            liaison.listeSortie.scrollToPosition(etat.lignes.lastIndex)
+        }
+        tailleDerniereFenetreSortie = etat.lignes.size
+        liaison.texteSortieVide.isVisible = etat.lignes.isEmpty()
+
+        // Problèmes : groupes aplatis (le badge du panneau reste celui du
+        // journal, étape 16 — le compte par fichier vit dans les groupes).
+        adaptateurProblemes.submitList(etat.groupesProblemes.aplatir())
+        liaison.texteProblemesVide.isVisible = etat.problemesTotal == 0
+    }
+
+    /** Libellé du statut tooling : synchronisation, puis build, puis repli. */
+    private fun libelleStatutTooling(etat: EtatGradle): String =
+        when {
+            etat.synchronisationEnCours -> {
+                getString(R.string.editor_sortie_sync_en_cours)
+            }
+
+            etat.synchronisationReussie != null -> {
+                getString(R.string.editor_sortie_sync_reussie, dureeLisible(etat.synchronisationReussie.dureeMs))
+            }
+
+            etat.messageEchecSync != null -> {
+                etat.messageEchecSync
+            }
+
+            etat.statutBuild == StatutBuild.EN_COURS -> {
+                getString(R.string.editor_sortie_build_en_cours)
+            }
+
+            etat.statutBuild == StatutBuild.REUSSI -> {
+                getString(R.string.editor_sortie_build_reussi, dureeLisible(etat.dureeBuildMs ?: 0L))
+            }
+
+            etat.statutBuild == StatutBuild.ECHOUE -> {
+                etat.messageEchecBuild ?: getString(R.string.editor_sortie_build_echoue)
+            }
+
+            etat.statutBuild == StatutBuild.ANNULE -> {
+                getString(R.string.editor_sortie_build_annule)
+            }
+
+            etat.connexion == EtatConnexion.ECHOUEE -> {
+                getString(R.string.editor_outil_deconnecte)
+            }
+
+            else -> {
+                getString(R.string.editor_sortie_vide)
+            }
+        }
+
+    /** Durée lisible (s, ou ms sous la seconde). */
+    private fun dureeLisible(dureeMs: Long): String =
+        if (dureeMs >= SEUIL_SECONDE_MS) {
+            String.format(java.util.Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
+        } else {
+            String.format(java.util.Locale.ROOT, "%dms", dureeMs)
+        }
+
+    /**
+     * Sélecteur de tâches (G5, §6) : l'appui lance l'exécution de la tâche
+     * choisie — le dialogue se ferme, la sortie arrive dans l'onglet Sortie.
+     */
+    private fun dialogueSelecteurTaches(taches: List<InfoTache>) {
+        val libelles = taches.map { tache -> tache.nomAffiche }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.editor_executer_titre)
+            .setItems(libelles) { _, indice ->
+                viewModel.onAction(ActionEditor.ExecuterTaches(listOf(taches[indice].chemin)))
+            }.setNegativeButton(R.string.editor_fermeture_annuler, null)
+            .show()
+    }
+
+    /**
+     * Saut au diagnostic (G5, §6) : sélectionne l'onglet du fichier (son
+     * chemin relatif est le suffixe du fichier diagnostiqué) puis pose le
+     * défilement et le curseur à la ligne — après le re-rendu (post) pour
+     * que la vue soit rebranchée sur la bonne session.
+     */
+    private fun sauterAuProbleme(
+        fichier: String,
+        ligne: Int,
+    ) {
+        val onglets = viewModel.etat.value.onglets
+        val index = onglets.indexOfFirst { onglet -> fichier.endsWith(onglet.cheminRelatif) }
+        if (index < 0) return
+        viewModel.onAction(ActionEditor.SelectionnerOnglet(index))
+        liaison.racineEditeur.post {
+            val session = viewModel.sessionSuivieDe(onglets[index].uri)?.session ?: return@post
+            val document = session.document
+            val ligneBornee = (ligne - 1).coerceIn(0, document.lineCount() - 1)
+            liaison.vueEditeur.scrollToLine(ligneBornee)
+            val offset = document.lineStart(ligneBornee).coerceAtMost(document.length())
+            session.setSelection(Selection.cursor(offset))
+        }
+    }
+
     /** Application des effets ponctuels. */
     private fun appliquer(effet: EffetEditor) {
         when (effet) {
@@ -1130,6 +1286,10 @@ class EditorActivity : AppCompatActivity() {
                 // liste de sessions — le répertoire suggéré vient du dossier
                 // réel du projet (pont FUSE du domaine).
                 navigateur.openTerminal(effet.cheminTravail)
+            }
+
+            is EffetEditor.OuvrirSelecteurTaches -> {
+                dialogueSelecteurTaches(effet.taches)
             }
 
             EffetEditor.ErreurActionFichier -> {
@@ -1200,6 +1360,12 @@ class EditorActivity : AppCompatActivity() {
     private companion object {
         /** Plus petit écran considéré « grand » (dp). */
         const val SEUIL_GRAND_ECRAN = 600
+
+        /** Seuil de bascule seconde/milliseconde des durées affichées (G5). */
+        const val SEUIL_SECONDE_MS = 1_000L
+
+        /** Valeur double du seuil (division de durée). */
+        const val SECONDE_MS = 1_000.0
 
         // Identifiants du menu contextuel d'onglet (pas de ressources
         // menu XML : un PopupMenu programmatique garde les libellés

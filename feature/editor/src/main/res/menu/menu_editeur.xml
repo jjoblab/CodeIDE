@@ -4,9 +4,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_synchroniser"
+        android:icon="@drawable/ic_synchroniser"
+        android:title="@string/editor_synchroniser"
+        app:iconTint="?attr/colorOnSurfaceVariant"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_executer"
+        android:icon="@drawable/ic_executer"
+        android:title="@string/editor_executer"
+        app:iconTint="?attr/colorOnSurfaceVariant"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_enregistrer"
         android:icon="@drawable/ic_enregistrer"
         android:title="@string/editor_enregistrer"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom" />
 </menu>

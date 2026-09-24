@@ -329,34 +329,94 @@
                         android:text="@string/editor_journal_complet" />
                 </LinearLayout>
 
-                <!-- Onglet Sortie — stub explicite (étape 16) : le tooling
-                     de compilation est hors périmètre Phase 1. Le point
-                     d'ancrage des diagnostics (session.setDiagnostics) est
-                     noté pour le tooling futur, non câblé. -->
-                <com.google.android.material.textview.MaterialTextView
+                <!-- Onglet Sortie (G5, section 6) : état de
+                     synchronisation/build, annulation, console du build
+                     (fenêtre bornée, auto-défilement). -->
+                <LinearLayout
                     android:id="@+id/contenu_sortie"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:padding="@dimen/state_padding"
-                    android:text="@string/editor_sortie_stub"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:visibility="gone" />
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:visibility="visible">
 
-                <!-- Onglet Problèmes — stub explicite (étape 16). -->
-                <com.google.android.material.textview.MaterialTextView
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/spacing_xs"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/statut_sortie"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:textAppearance="?attr/textAppearanceLabelMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            tools:text="Build en cours" />
+
+                        <ImageButton
+                            android:id="@+id/bouton_annuler_build"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:contentDescription="@string/editor_sortie_annuler_cd"
+                            android:src="@drawable/ic_arreter_build"
+                            android:visibility="gone"
+                            tools:visibility="visible" />
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/liste_sortie"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingBottom="@dimen/spacing_xs" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_sortie_vide"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:padding="@dimen/state_padding"
+                        android:text="@string/editor_sortie_vide"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <!-- Onglet Problèmes (G5, section 6) : diagnostics groupés
+                     par fichier, saut à la ligne. -->
+                <FrameLayout
                     android:id="@+id/contenu_problemes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:padding="@dimen/state_padding"
-                    android:text="@string/editor_problemes_stub"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:visibility="gone" />
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/liste_problemes"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipToPadding="false"
+                        android:paddingBottom="@dimen/spacing_xs" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_problemes_vide"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:padding="@dimen/state_padding"
+                        android:text="@string/editor_problemes_vide"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </FrameLayout>
             </FrameLayout>
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
