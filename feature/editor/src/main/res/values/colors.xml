@@ -9,4 +9,8 @@
     <color name="journal_compact_info">#1A5FB4</color>
     <color name="journal_compact_warn">#9A6700</color>
     <color name="journal_compact_error">#B3261E</color>
+
+    <!-- Sortie du build (G5) : stderr distincte de stdout, jour/nuit. -->
+    <color name="sortie_stdout">#3C4043</color>
+    <color name="sortie_stderr">#B3261E</color>
 </resources>

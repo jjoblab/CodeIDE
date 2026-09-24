@@ -4,6 +4,95 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.30.0] – 2026-09-24
+
+Étape 29 (= G5 du prompt compagnon « Tooling Gradle (client-serveur) ») :
+la boucle UI du tooling se referme — l'espace de travail parle à
+l'orchestrateur. L'onglet **Sortie** devient fonctionnel (lignes du build
+en direct, statut et durée en en-tête, annulation en vol), l'onglet
+**Problèmes** affiche les diagnostics de compilation groupés par fichier
+avec saut à la ligne, les **diagnostics inline** arrivent dans les onglets
+ouverts (`session.setDiagnostics`, point d'ancrage posé en 0.17.0 — ADR
+0029), et les actions **Synchroniser** / **Exécuter** rejoignent la
+toolbar de l'éditeur. ADR 0043, `docs/TOOLING.md`.
+
+### Ajouté
+
+- **Producteur de diagnostics serveur** (`tooling:server`) : les
+  compilateurs écrivent leurs positions sur **stderr**, ligne par ligne —
+  jamais dans le message d'échec final. `StreamingOutputStream` expose un
+  observateur par ligne décodée (AVANT publication), `BuildHandler` y
+  branche `ParseurDiagnostics` (formats javac `fichier:ligne[:col]:
+  error: message` et kotlinc `e: file://fichier:ligne:col message`) :
+  chaque ligne reconnue devient un événement `Diagnostic` du protocole
+  G1 ; une ligne sans position complète (contexte, carets, notes de
+  tâches) est ignorée — jamais de demi-renseignement (§1.6).
+  `ServerVersion.CURRENT` passe à 0.30.0.
+- **Use cases du domaine** (`core:domain`) : `SynchroniserProjetUseCase`,
+  `ExecuterTachesUseCase`, `AnnulerBuildUseCase` et
+  `ListerTachesProjetUseCase` — délégations pures au port
+  `GradleToolingRepository` (zéro type tooling, règle §2.2), le dossier
+  réel étant résolu par l'appelant via `ResoudreRepertoireProjet`
+  (SAF → FUSE, même traduction que le terminal T6 — une seule source de
+  vérité), journalisation identifiante (le dossier n'apparaît jamais
+  dans le journal).
+- **`GradleService` et panneaux de l'éditeur** (`feature:editor`) :
+  - `GradleService` : détenteur d'état pur (précédent
+    `FiltrageProjets` de l'accueil) — connexion (daemon G4), build suivi
+    (statut, durée, message d'échec), **fenêtre de sortie bornée à
+    2 000 lignes** (tête tronquée : la sortie complète vit dans le canal
+    rejouable du client, ADR 0041 — la console n'est qu'une vue, un
+    build bavard ne mange pas la mémoire), diagnostics groupés par
+    fichier (tri par ligne), état de synchronisation ;
+  - onglet **Sortie** : lignes colorées par flux (stdout/stderr),
+    auto-défilement tant que la fenêtre grandit (un build fini ne
+    défile plus), statut en en-tête (synchronisation en cours / réussie
+    en X s / build en cours / réussi / échec / annulé), bouton Arrêter
+    visible en vol seul ;
+  - onglet **Problèmes** : groupes repliés par fichier (nom + compte),
+    pastilles par sévérité, appui = sélection de l'onglet concerné +
+    `scrollToLine` + curseur au début de ligne (offsets bornés au
+    document) ;
+  - **diagnostics inline** : chaque onglet ouvert dont le chemin relatif
+    est le suffixe d'un fichier diagnostiqué reçoit ses soulignés
+    cel-ui (`DiagnosticShift`, sévérités erreur/avertissement/info,
+    colonne et offsets bornés au document) ; les autres onglets sont
+    nettoyés à chaque publication ;
+  - actions **Synchroniser** et **Exécuter…** dans la toolbar (icônes
+    maison), sélecteur de tâches (dialogue alimenté par
+    `ListerTachesProjetUseCase`, exécution au choix), connexion
+    débranchée = libellé dédié, libellés FR/EN.
+- **Journal unifié tag `gradle-server`** : stderr/stdout du process déjà
+  journalisés par le daemon G4 (onglet Journal, écran Diagnostic) — le
+  point du prompt est couvert par construction, rien de nouveau à
+  câbler.
+
+### Tests
+
+- `GradleUseCasesTest` (5) : délégation au port, contexte IO,
+  journalisation identifiante ;
+- `ParseurDiagnosticsTest` (6) : javac avec/sans colonne, niveaux,
+  kotlinc, bruit ignoré (caret, ligne de contexte, note de tâche) ;
+- `GradleServiceTest` (6) : fenêtre bornée, build suivi seul, groupes
+  triés, échec de synchronisation typé ;
+- `ToolingEditorViewModelTest` (6) : actions → use cases, annulation,
+  sélecteur de tâches, diagnostics → état + session inline ;
+- `ServeurIntegrationTest` étendu (16) : la fixture « erreur de
+  compilation » émet les diagnostics du build, parsés depuis stderr.
+
+### Découvertes d'ingénierie (leçons)
+
+- **Les diagnostics de compilation ne sont PAS dans le message d'échec
+  du build** : le résumé final ne porte aucune position ; les
+  `fichier:ligne:colonne` vivent sur stderr aux formats stables de
+  javac/kotlinc — les extraire du flux (et non du message) rend le
+  producteur indépendant du dialecte de l'échec final.
+- **L'appariement onglet ↔ diagnostic par SUFFIXE de chemin relatif** :
+  le dossier FUSE réel d'un projet peut être encore inconnu quand
+  l'onglet est déjà ouvert (résolution différée) ; l'espace ne construit
+  qu'un projet à la fois — le suffixe du chemin relatif suffit, un
+  préfixe exigerait une résolution qu'on n'a pas encore.
+
 ## [0.29.0] – 2026-09-24
 
 Étape 28 (= G4 du prompt compagnon « Tooling Gradle (client-serveur) ») :

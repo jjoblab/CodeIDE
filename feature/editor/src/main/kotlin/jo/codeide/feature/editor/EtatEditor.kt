@@ -235,6 +235,30 @@ sealed interface ActionEditor {
      * terminal (garde-fou symétrique de l'accueil, T6).
      */
     data object InstallerOutilsTerminal : ActionEditor
+
+    /**
+     * Synchronise le projet courant auprès de l'orchestrateur (G5, §6) :
+     * modèles, tâches, dépendances — la progression se lit dans le panneau
+     * inférieur (état de synchronisation de l'onglet Sortie).
+     */
+    data object Synchroniser : ActionEditor
+
+    /**
+     * Exécute les [taches] Gradle du projet courant (G5, §6) — la sortie
+     * arrive dans l'onglet Sortie, l'état dans son en-tête.
+     */
+    data class ExecuterTaches(
+        val taches: List<String>,
+    ) : ActionEditor
+
+    /**
+     * Ouvre le sélecteur de tâches (G5, §6) : liste les tâches du projet
+     * via l'orchestrateur, l'appui sur l'une lance l'exécution.
+     */
+    data object OuvrirSelecteurTaches : ActionEditor
+
+    /** Annule le build en cours (G5, §6 — bouton de l'onglet Sortie). */
+    data object AnnulerBuild : ActionEditor
 }
 
 /**
@@ -286,6 +310,16 @@ sealed interface EffetEditor {
 
     /** Ouvrir l'écran d'installation du bootstrap (T6, bootstrap absent). */
     data object OuvrirInstallationTerminal : EffetEditor
+
+    /**
+     * Ouvrir le sélecteur de tâches Gradle (G5, §6) : l'appui sur une
+     * entrée lance `ExecuterTaches`.
+     *
+     * @property taches tâches prêtes à afficher (chemin + libellé).
+     */
+    data class OuvrirSelecteurTaches(
+        val taches: List<jo.codeide.core.domain.InfoTache>,
+    ) : EffetEditor
 }
 
 /**

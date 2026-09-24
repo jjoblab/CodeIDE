@@ -6,17 +6,25 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
+import jo.codeeditor.shift.DiagnosticShift
+import jo.codeide.core.domain.AnnulerBuildUseCase
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
+import jo.codeide.core.domain.ExecuterTachesUseCase
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.LireEtatEspaceUseCase
+import jo.codeide.core.domain.ListerTachesProjetUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.SeveriteDiagnostic
+import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
@@ -138,6 +146,11 @@ class EditorViewModel
         private val sessionsTerminal: TerminalSessionRepository,
         private val resoudreRepertoireProjet: ResoudreRepertoireProjet,
         private val localisateurOutils: ToolchainLocator,
+        private val tooling: GradleToolingRepository,
+        private val synchroniserProjet: SynchroniserProjetUseCase,
+        private val executerTachesUseCase: ExecuterTachesUseCase,
+        private val annulerBuild: AnnulerBuildUseCase,
+        private val listerTachesProjet: ListerTachesProjetUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -168,6 +181,12 @@ class EditorViewModel
 
         /** État de la carte d'aperçu du terminal du tiroir (T6, section 8). */
         val etatTerminal: StateFlow<EtatTerminalTiroir> = etatTerminalInterne.asStateFlow()
+
+        /** Cœur de l'état tooling de l'espace de travail (G5). */
+        private val serviceGradle = GradleService()
+
+        /** État observable du tooling Gradle (G5, §6). */
+        val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
 
         /** Enfants déjà énumérés, par URI de dossier — le cache paresseux. */
         private val enfantsEnCache = LinkedHashMap<String, List<FileStat>>()
@@ -217,7 +236,39 @@ class EditorViewModel
             restaurerOnglets()
             observerJournal(observerJournaux)
             observerSessionsTerminal()
+            observerTooling()
         }
+
+        /**
+         * Tooling Gradle (G5, §6) : connexion et diagnostics suivis dès
+         * l'ouverture — l'état de connexion oriente les actions, les
+         * diagnostics alimentent l'onglet Problèmes ET les sessions
+         * ouvertes (diagnostics inline, point d'ancrage ADR 0029).
+         */
+        private fun observerTooling() {
+            tooling
+                .observeConnectionState()
+                .onEach { connexion -> serviceGradle.publierConnexion(connexion) }
+                .launchIn(viewModelScope)
+            viewModelScope.launch {
+                // La première connaissance du projet résout son dossier réel
+                // (SAF → FUSE, même traduction que le terminal) — les
+                // diagnostics, eux, se suivent dès l'ouverture : le port
+                // réserve le dossier pour un périmètre futur (l'implémentation
+                // du client est globale — un seul espace ouvert à la fois).
+                etatInterne.map { it.projet }.filterNotNull().first()
+                cheminProjet = resoudreCheminProjet()
+                tooling
+                    .observeDiagnostics(cheminProjet?.let { chemin -> File(chemin) } ?: File(DOSSIER_ANONYME))
+                    .collect { diagnostics ->
+                        serviceGradle.publierDiagnostics(diagnostics)
+                        appliquerDiagnosticsAuxSessions(diagnostics)
+                    }
+            }
+        }
+
+        /** Dossier FUSE du projet, résolu paresseusement (G5). */
+        private var cheminProjet: String? = null
 
         /**
          * Carte d'aperçu (T6, section 8) : le registre global des sessions
@@ -263,6 +314,14 @@ class EditorViewModel
 
                 ActionEditor.OuvrirTerminal -> {
                     ouvrirTerminal()
+                }
+
+                is ActionEditor.Synchroniser,
+                is ActionEditor.ExecuterTaches,
+                ActionEditor.OuvrirSelecteurTaches,
+                ActionEditor.AnnulerBuild,
+                -> {
+                    onActionTooling(action)
                 }
 
                 ActionEditor.NouvelleSessionTerminal -> {
@@ -385,6 +444,155 @@ class EditorViewModel
                 ?.location
                 ?.grantUri
                 ?.let { resoudreRepertoireProjet(it) }
+
+        // ------------------------------------------------------------------
+        // Tooling Gradle (G5, section 6 du prompt compagnon).
+        // ------------------------------------------------------------------
+
+        /** Dispatcheur des actions tooling (G5, patron des autres zones). */
+        private fun onActionTooling(action: ActionEditor) {
+            when (action) {
+                ActionEditor.Synchroniser -> {
+                    synchroniserProjetGradle()
+                }
+
+                is ActionEditor.ExecuterTaches -> {
+                    executerTachesGradle(action.taches)
+                }
+
+                ActionEditor.OuvrirSelecteurTaches -> {
+                    ouvrirSelecteurTaches()
+                }
+
+                ActionEditor.AnnulerBuild -> {
+                    serviceGradle.etat.value.buildId
+                        ?.let { identifiant -> annulerBuild(identifiant) }
+                }
+
+                else -> {
+                    Unit
+                }
+            }
+        }
+
+        /**
+         * Synchronise le projet courant : le dossier réel est résolu (une
+         * fois, mis en cache — même traduction que le terminal), le
+         * résultat alimente l'état de synchronisation de l'onglet Sortie.
+         */
+        private fun synchroniserProjetGradle() {
+            viewModelScope.launch {
+                serviceGradle.marquerSyncEnCours()
+                val dossier = dossierProjetOuEchec() ?: return@launch
+                serviceGradle.publierResultatSync(synchroniserProjet(dossier))
+                journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
+            }
+        }
+
+        /**
+         * Exécute les tâches demandées : le build est suivi dans l'onglet
+         * Sortie (lignes + état), l'onglet devient actif pour que la
+         * progression soit visible d'emblée.
+         */
+        private fun executerTachesGradle(taches: List<String>) {
+            viewModelScope.launch {
+                val dossier = dossierProjetOuEchec() ?: return@launch
+                val buildId = executerTachesUseCase(dossier, taches)
+                observerBuild(buildId)
+                selectionnerOngletPanneau(OngletPanneau.CONSOLE)
+                journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
+            }
+        }
+
+        /**
+         * Branche l'observation d'un build (sortie + état) — couture de
+         * test : le câblage des flux se éprouve sans résolution de dossier
+         * (introuvable en JVM, même garde que T6).
+         */
+        internal fun observerBuild(buildId: String) {
+            serviceGradle.suivreBuild(buildId)
+            viewModelScope.launch {
+                tooling.observeBuildOutput(buildId).collect { ligne -> serviceGradle.ajouterLigne(ligne) }
+            }
+            viewModelScope.launch {
+                tooling.observeBuildState(buildId).collect { etat -> serviceGradle.publierEtatBuild(etat) }
+            }
+        }
+
+        /** Ouvre le sélecteur de tâches (liste via l'orchestrateur). */
+        private fun ouvrirSelecteurTaches() {
+            viewModelScope.launch {
+                val dossier = dossierProjetOuEchec() ?: return@launch
+                when (val resultat = listerTachesProjet(dossier)) {
+                    is AppResult.Success -> {
+                        canalEffets.send(EffetEditor.OuvrirSelecteurTaches(resultat.value))
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) { "listage des tâches impossible (projet ${identifiantSuivi()})" }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Dossier du projet, résolu paresseusement et mis en cache ; un
+         * dossier introuvable est journalisé (identifiant, jamais de chemin)
+         * et l'état de synchronisation porte l'échec.
+         */
+        private suspend fun dossierProjetOuEchec(): File? {
+            val chemin = cheminProjet ?: resoudreCheminProjet()
+            val dossier = chemin?.let { dossier -> File(dossier) }
+            if (dossier == null) {
+                journal.w(TAG) { "dossier du projet irrésolvable (projet ${identifiantSuivi()})" }
+                serviceGradle.publierResultatSync(
+                    AppResult.Failure(
+                        AppError.Tooling(AppError.ToolingReason.Internal, "dossier du projet introuvable"),
+                    ),
+                )
+            } else {
+                cheminProjet = chemin
+            }
+            return dossier
+        }
+
+        /**
+         * Applique les diagnostics aux sessions ouvertes (inline, ADR 0029) :
+         * chaque onglet dont le chemin relatif est le SUFFIXE d'un fichier
+         * diagnostiqué reçoit les soulignés de cel-ui ; les autres sont
+         * nettoyés. L'espace ne construit qu'UN projet à la fois (les
+         * diagnostics suivent ce contexte) : le suffixe suffit, pas de
+         * préfixe de dossier — lui peut être encore inconnu (résolution
+         * différée) alors que l'onglet, lui, est déjà ouvert.
+         */
+        private fun appliquerDiagnosticsAuxSessions(diagnostics: List<DiagnosticBuild>) {
+            val parFichier = diagnostics.groupBy { diagnostic -> diagnostic.fichier }
+            etatInterne.value.onglets.forEach { onglet ->
+                val session = sessions[onglet.uri]?.session ?: return@forEach
+                val concerne =
+                    parFichier
+                        .filterKeys { fichier -> fichier.endsWith(onglet.cheminRelatif) }
+                        .values
+                        .flatten()
+                session.setDiagnostics(concerne.map { diagnostic -> diagnostic.versCelDiagnostic(session) })
+            }
+        }
+
+        /** Traduction domaine → diagnostic cel-ui (sévérités 1/2/3, offsets bornés). */
+        private fun DiagnosticBuild.versCelDiagnostic(session: EditorSession): DiagnosticShift.Diagnostic {
+            val document = session.document
+            val ligne = ligne.coerceIn(1L, document.lineCount().toLong()).toInt()
+            val debutLigne = document.lineStart(ligne - 1)
+            val debut = (debutLigne + (colonne - 1L).coerceAtLeast(0L)).coerceAtMost(document.length().toLong()).toInt()
+            val fin = (debut + 1).coerceAtMost(document.length())
+            val severite =
+                when (severite) {
+                    SeveriteDiagnostic.ERREUR -> SEVERITE_ERREUR_CEL
+                    SeveriteDiagnostic.AVERTISSEMENT -> SEVERITE_AVERTISSEMENT_CEL
+                    SeveriteDiagnostic.INFO -> SEVERITE_INFO_CEL
+                }
+            return DiagnosticShift.Diagnostic(debut, fin, severite, message)
+        }
 
         /** Identifiant du projet suivi pour le journal (générique, règle 15). */
         private fun identifiantSuivi(): String = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
@@ -1245,6 +1453,14 @@ class EditorViewModel
 
             /** Fenêtre du journal compact (capacité du tampon mémoire). */
             const val FENETRE_JOURNAL = 200
+
+            /** Dossier anonyme du port diagnostics (périmètre global courant). */
+            const val DOSSIER_ANONYME = "."
+
+            /** Sévérités cel-ui des diagnostics inline (G5) — 1/2/3. */
+            const val SEVERITE_INFO_CEL = 1
+            const val SEVERITE_AVERTISSEMENT_CEL = 2
+            const val SEVERITE_ERREUR_CEL = 3
 
             /** Type MIME des fichiers créés depuis le tiroir (étape 17). */
             const val MIME_TEXTE = "text/plain"

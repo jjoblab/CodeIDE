@@ -5,4 +5,6 @@
     <color name="journal_compact_info">#8AB4F8</color>
     <color name="journal_compact_warn">#FDD663</color>
     <color name="journal_compact_error">#F2B8B5</color>
+    <color name="sortie_stdout">#E8EAED</color>
+    <color name="sortie_stderr">#F2B8B5</color>
 </resources>

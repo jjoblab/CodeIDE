@@ -400,8 +400,28 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       sur fixture [connexion, pong, sortie ligne à ligne, REUSSI, arrêt
       propre] ; exception ModuleRules : tooling:server en test SEULEMENT
       depuis tooling:daemon ; 13 tests + kover ≥ 80 %. ADR 0042)
-- Prochaine : étape 29 (= Tooling G5 — GradleService + intégration éditeur,
-      cf. docs/TOOLING.md).
+- Étape 29 (v0.30.0, G5) : la boucle UI du tooling se referme
+      [producteur serveur : `ParseurDiagnostics` sur stderr ligne à ligne
+      — javac `f:l[:c]: error:` et kotlinc `e: file://f:l:c`, ligne sans
+      position complète ignorée, observateur de `StreamingOutputStream`
+      branché par `BuildHandler`, événements `Diagnostic` du protocole
+      G1 ; use cases domaine SynchroniserProjet/ExecuterTaches/
+      AnnulerBuild/ListerTachesProjet [délégations pures au port §2.2,
+      dossier résolu par l'APPELANT via ResoudreRepertoireProjet — une
+      seule source de vérité T6] ; `GradleService` détenteur d'état pur
+      [fenêtre de sortie BORNÉE 2 000 lignes — la sortie complète vit
+      dans le canal rejouable du client, ADR 0041] ; onglet Sortie
+      [auto-défilement tant que la fenêtre grandit, statut sync+build en
+      en-tête, bouton Arrêter en vol] ; onglet Problèmes [groupes par
+      fichier repliés, saut scrollToLine + curseur] ; diagnostics
+      inline `session.setDiagnostics` [point d'ancrage ADR 0029,
+      appariement par SUFFIXE de chemin relatif — le dossier FUSE peut
+      être encore inconnu, sévérités 1/2/3 cel-ui, offsets bornés au
+      document] ; actions toolbar Synchroniser/Exécuter + sélecteur de
+      tâches [Effet → dialogue, exécution au choix] ; 23 tests +
+      intégration serveur étendue (16) — ADR 0043]
+- Prochaine : étape 30 (= Tooling G6 — robustesse et audit, cf.
+      docs/TOOLING.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
