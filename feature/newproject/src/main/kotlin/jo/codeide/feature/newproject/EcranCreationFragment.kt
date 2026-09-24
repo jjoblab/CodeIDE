@@ -120,6 +120,12 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                 getString(R.string.wizard_echec_inattendu)
             }
 
+            is AppError.Tooling -> {
+                // Hors périmètre de la création de projet : le tooling
+                // Gradle ne participe pas à la génération des fichiers.
+                getString(R.string.wizard_echec_inattendu)
+            }
+
             is AppError.Unknown -> {
                 getString(R.string.wizard_echec_inattendu)
             }

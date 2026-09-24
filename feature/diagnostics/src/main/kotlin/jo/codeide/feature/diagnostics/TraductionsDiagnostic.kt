@@ -19,6 +19,7 @@ internal object TraductionsDiagnostic {
             is AppError.Validation -> R.string.diagnostics_erreur_saisie
             is AppError.Template -> R.string.diagnostics_erreur_modele
             is AppError.Bootstrap -> R.string.diagnostics_erreur_outils
+            is AppError.Tooling -> R.string.diagnostics_erreur_outils
             is AppError.Unknown -> R.string.diagnostics_erreur_stockage
         }
 
