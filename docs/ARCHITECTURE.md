@@ -59,6 +59,7 @@ sections 5 et 6.
 | `tooling:api` | Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
 | `tooling:server` | Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
 | `tooling:client` | Client Android du tooling : écoute du socket (l'app est le serveur), handshake au secret, façade `GradleToolingRepository` du domaine, diffusion non conflatante (ADR 0041) |
+| `tooling:daemon` | Daemon du tooling : déploiement du JAR (marqueur de version), lancement du process orchestrateur sur `NativeProcessLauncher`, health check ping/pong, relances bornées, stderr → journal `gradle-server` (ADR 0042) |
 | `tooling:testing` | Fixtures du tooling : mini-projets Gradle réels, dépendance de test uniquement |
 | `feature:editor` | Espace de travail : tiroir (explorateur + carte d'aperçu terminal T6), onglets, panneau inférieur |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
@@ -84,12 +85,22 @@ toute dépendance non autorisée **fait échouer le build**.
 | `core:data` | `core:domain`, `core:model`, les sources de données | features, `core:ui` |
 | `core:ui` | `core:model` | `core:domain`, `core:data`, features |
 | `feature:*` | `core:ui`, `core:domain`, `core:model` | `core:data`, sources de données, `core:crash`, `core:logging`, **autres features** |
+| `tooling:protocol` | rien | tout module interne (pur JVM) |
+| `tooling:api` | `tooling:protocol` | autre chose (pur JVM) |
+| `tooling:server` | `tooling:protocol`, `tooling:api` | Android, domaine (pur JVM, ADR 0040) |
+| `tooling:client` | `tooling:protocol`, `tooling:api`, `core:domain` | `tooling:server`, features |
+| `tooling:daemon` | `tooling:protocol`, `core:domain`, `tooling:client` | `tooling:server` (production — voir ci-dessous), features |
 | `app` | tout (assemblage) | — |
 | `core:testing` | `core:model`, `core:domain` | — (consommé en `testImplementation` seulement) |
 
-Règles additionnellement vérifiées : `core:testing` ne peut apparaître que
-dans les configurations de test ; `core:model` et `core:domain` ne peuvent
-appliquer aucun plugin Android (modules JVM purs).
+Règles additionnellement vérifiées : `core:testing` et `tooling:testing` ne
+peuvent apparaître que dans les configurations de test ; `core:model`,
+`core:domain`, `tooling:protocol`, `tooling:api` et `tooling:server` ne
+peuvent appliquer aucun plugin Android (modules JVM purs) ;
+**`tooling:server` n'entre dans `tooling:daemon` qu'en configuration de
+test** (bout-en-bout §7.4 : le VRAI orchestrateur relancé en sous-processus
+depuis la JVM de test, ADR 0042 — en production, le daemon ne voit du
+serveur que le JAR déployé).
 
 ## Patron de présentation : MVVM + flux unidirectionnel (UDF)
 

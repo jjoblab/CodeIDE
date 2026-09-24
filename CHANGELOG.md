@@ -4,6 +4,105 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.29.0] – 2026-09-24
+
+Étape 28 (= G4 du prompt compagnon « Tooling Gradle (client-serveur) ») :
+module `tooling:daemon` — le composant qui fait vivre l'orchestrateur :
+déploiement du JAR depuis les assets, lancement du process JVM via le port
+`NativeProcessLauncher` (jamais redéfini), health check ping/pong et
+relances bornées. **Premier bout-en-bout réel (§7.4)** : le daemon lance le
+VRAI orchestrateur en sous-processus et exécute un VRAI build Gradle. Le
+client de G3 n'est plus muet : les états `EN_CONNEXION`/`ECHOUEE` du port
+sont animés. ADR 0042, `docs/TOOLING.md`.
+
+### Ajouté (procédure)
+
+- **Logique graduée de `koverVerify`** (prompt Vérification-1, §2.6) :
+  comme `verify-templates.sh`, il ne tourne en fin d'étape que si l'étape
+  modifie au moins un module soumis au seuil de 80 % (`core:model`,
+  `core:domain`, `core:bootstrap`, `core:terminal-runtime`,
+  `tooling:client`, `tooling:server`) — la CI GitHub, elle, l'exécute
+  toujours (garantie from-scratch, ADR 0037). Documentation :
+  `docs/CONVENTIONS.md` et `AGENTS.md`.
+
+### Ajouté
+
+- **Module `tooling:daemon`** (bibliothèque Android + Hilt) :
+  - `DaemonManager` : machine d'états complète — déploiement → écoute
+    AVANT le lancement (§5.1, élimine tout fichier de découverte) →
+    lancement `java -Xmx256m -jar` sur le port `NativeProcessLauncher`
+    (environnement canonique construit par `core:bootstrap`) → handshake
+    au secret frais (`SecureRandom` 32 octets, par tentative, jamais
+    écrit/journalisé) → surveillance → mort → relance bornée
+    (`MAX_RECONNECT_ATTEMPTS` 5, repli exponentiel 1 s → 10 s) ;
+    épuisement → `ECHOUEE` (échec définitif jusqu'à un nouveau
+    `demarrer`) ; échecs DÉFINITIFS sans relance : handshake refusé
+    (`EchecHandshakeClient`), code de sortie 2 (arguments invalides —
+    notre bug), JAR indisponible ; **JDK absent = état `DECONNECTEE`
+    sans aucun lancement** (le bootstrap peut s'installer ensuite) ;
+  - `JarDeployer` (§5.4 « marqueur de version ») : copie atomique
+    (`.tmp` + renommage) du JAR des assets vers `filesDir/tooling/`,
+    recopie SEULEMENT si l'empreinte SHA-256 de la source diffère du
+    marqueur — un redémarrage sur un JAR inchangé ne recopie rien ;
+  - health check (§5.4) : `PingMessage` toutes les 5 s
+    (`HEARTBEAT_INTERVAL_MS`), orchestrateur déclaré muet si le repère
+    `dernierPongMs` vieillit au-delà de 15 s — arrêt forcé puis relance ;
+  - stderr/stdout du process → journal applicatif (tag `gradle-server`,
+    WARN/INFO — règle 14/ADR 0040) : l'onglet Journal et l'écran
+    Diagnostic voient l'orchestrateur comme tout producteur applicatif ;
+  - `HoteSocketTooling` (couture) : production = enveloppe du
+    `GradleSocketServer` de G3 (la colle `LocalSocket` reste concentrée
+    dans tooling:client), tests = hôte JVM sur vrai socket Unix ;
+  - câblage Hilt (`ModuleDaemon`) + agrégation dans `:app`.
+- **APIs publiques ciblées dans `tooling:client`** (visibilité G4, ADR
+  0041 décision 8) : `GradleApiImpl.marquerEnConnexion()`/`marquerEchouee()`
+  animent les états intermédiaires du port, `GradleApiImpl.dernierPongMs`
+  expose le repère de santé (rafraîchi par le pompe à chaque
+  `PongMessage`, initialisé à l'ouverture de session),
+  `GradleApiImpl.etatConnexion` lecture directe ; `GradleSocketServer`,
+  `SessionTooling` et `EchecHandshakeClient` deviennent publics pour le
+  daemon.
+- **Démarrage du daemon** : `CodeIdeApplication` (processus principal) —
+  `demarrer` à la création, re-déclenchement idempotent quand
+  l'installation du bootstrap aboutit (`BootstrapInstaller.etat` →
+  `Terminee`) ; la mort de l'app ferme le socket → l'orchestrateur voit
+  l'EOF et s'arrête SEUL (code 0) : aucun process orphelin.
+- **Exception de dépendance documentée** (`ModuleRulesPlugin`) :
+  `:tooling:server` n'entre dans `:tooling:daemon` qu'en configuration de
+  TEST (bout-en-bout §7.4 — le VRAI orchestrateur relancé en
+  sous-processus depuis la JVM de test ; en production le daemon ne voit
+  du serveur que le JAR déployé).
+
+### Découvertes d'ingénierie (leçons)
+
+- **android.jar éclipse les API java.* récentes à la COMPILATION des tests
+  unitaires Android** : le classpath de compilation porte android.jar, et
+  pour les classes java.* couvertes par les builtins Kotlin c'est la
+  version JDK 8 qui gagne — `Process.onExit()` (JDK 9) et
+  `ServerSocketChannel.open(ProtocolFamily)` (JDK 15) ne résolvent PAS
+  alors qu'elles existent au runtime. Contournements : réflexion ciblée
+  (même précédent que le `pid` de `ProcessusGere`) et sondage `isAlive`
+  (miroir du port production).
+
+### Tests
+
+- **13 tests tooling:daemon** :
+  - `DaemonManagerTest` (11) sur fakes : ordre écoute-avant-lancement,
+    secret transmis et capté, stderr → journal, relance avec secret neuf,
+    épuisement des 5 tentatives → `ECHOUEE`, JDK absent sans lancement,
+    handshake refusé définitif, orchestrateur muet tué par le health
+    check, `arreter` sans relance, commande par défaut, JAR indisponible
+    définitif, code 2 définitif ;
+  - `JarDeployerTest` (5) : première copie + marqueur, pas de recopie
+    sans changement, recopie au changement, source absente,
+    remplacement impossible ;
+  - `BoutEnBoutTest` (1) — **§7.4** : le daemon lance le VRAI orchestrateur
+    (sous-processus `java`, `ServerMain` par classpath) sur un VRAI
+    socket Unix JDK, handshake au secret vérifié, pong réel du health
+    check, VRAI build Gradle sur `minimal-java` (sortie ligne à ligne,
+    état `REUSSI`), arrêt propre. Couverture kover ≥ 80 % (colle Android
+    filtrée).
+
 ## [0.28.0] – 2026-09-24
 
 Étape 27 (= G3 du prompt compagnon « Tooling Gradle (client-serveur) ») :
