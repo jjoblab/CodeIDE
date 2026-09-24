@@ -61,7 +61,7 @@ L'architecture détaillée (modules, règles de dépendance, patrons) est décri
 | Android Gradle Plugin | 9.4.1 (Kotlin intégré, sans `kotlin-android`) |
 | Kotlin | 2.2.10 (version embarquée par AGP — voir ADR 0007) |
 | KSP / Hilt / Room | 2.3.12 / 2.60.1 / 2.8.5 |
-| compileSdk / targetSdk | 37.2 (android-37.2) / 37 |
+| compileSdk / targetSdk | 37.2 (android-37.2) / **28 (délibéré — exécution des binaires du bootstrap, ADR 0045)** |
 | minSdk | 26 (Android 8.0) |
 
 Interface : **vues XML + ViewBinding, Activities + Fragments, Material 3** — pas de

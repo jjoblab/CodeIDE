@@ -29,6 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.security.MessageDigest
@@ -248,6 +249,34 @@ class InstallateurBootstrapTest {
             // Staging nettoyé.
             assertFalse(File(racine, "usr-staging").exists())
             assertFalse(File(racine, "bootstrap-staging.zip").exists())
+
+            // Marqueur d'installation terminée (v0.31.1) : la localisation
+            // ne voit le bootstrap installé qu'à ce moment-là.
+            assertTrue(DispositionsBootstrap.marqueurInstallation(racine).isFile)
+            assertTrue(LocalisationOutils.bootstrapInstalle(racine))
+        }
+
+    @Test
+    fun `un second stage non exécutable échoue en PermissionRefusee typée - pas erreur inattendue`() =
+        runBlocking {
+            // W^X (rapport d'appareil réel 7842f130, v0.29.0 : Android 10+
+            // refuse à une app targetSdk >= 29 d'exécuter un binaire écrit
+            // dans ses données) : l'IOException du lanceur devait devenir
+            // une raison typée — elle tombait dans le fourre-tout
+            // « erreur inattendue » sans le moindre indice.
+            lanceur.echecLancement =
+                IOException("Cannot run program \"bash\": error=13, Permission denied")
+
+            installateur.demarrer()
+            val etat = attendreTerminal()
+
+            assertTrue("état terminal inattendu : $etat", etat is Echouee)
+            assertEquals(BootstrapReason.PermissionRefusee, raisonDe(etat))
+            // Le marqueur d'installation terminée n'est PAS déposé : un
+            // préfixe extrait (bascule posée avant le second stage) ne doit
+            // pas passer pour installé.
+            assertFalse(DispositionsBootstrap.marqueurInstallation(racine).isFile)
+            assertFalse(LocalisationOutils.bootstrapInstalle(racine))
         }
 
     @Test

@@ -4,6 +4,105 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.1] – 2026-09-25
+
+Premier lot de corrections après **retour d'appareil réel** (rapport de
+plantage 7842f130, moto g06, Android 15 / API 35, fr-HT — v0.29.0) :
+l'écran Terminal plantait à l'ouverture, l'installation du bootstrap
+échouait « de façon inattendue » après l'extraction, et la création de
+projet rapportait des collisions imaginaires. Version corrective
+(SemVer `0.N.M`), la numérotation des étapes suit son cours. ADR 0045.
+
+### Corrigé
+
+- **Plantage de l'écran Terminal à chaque ouverture**
+  (`NullPointerException` sur `List.iterator()` dans
+  `ClavierEtenduView.construire`, remontée en `InflateException` sur
+  `activity_terminal`) : la liste des touches était déclarée APRÈS le
+  bloc `init` qui l'itère — Kotlin exécute les initialisateurs dans
+  l'ordre de déclaration, la liste valait encore `null` pendant la
+  construction. Réordonnée avant le bloc, avec avertissement KDoc ;
+  test de régression `ActivityTerminalLayoutTest` gonflant le VRAI
+  layout sous Robolectric (même précédent que le correctif v0.19.0 de
+  l'éditeur).
+- **Bootstrap : « erreur inattendue » après l'extraction** — cause
+  racine W^X : Android 10 interdit à une app ciblant `targetSdk` 29+
+  d'exécuter un binaire écrit dans ses données ; le second stage
+  (`bin/bash` extrait dans `filesDir/usr`) était refusé par le noyau
+  (EACCES) et son `IOException` tombait dans le fourre-tout
+  `AppError.Unknown`. **`targetSdk` passe à 28** (précédent Termux,
+  même raison ; compileSdk 37 inchangé ; ADR 0045 — le point T7 « ADR
+  targetSdk sur appareil réel » est tranché) ; par ailleurs le refus
+  de lancement du second stage est désormais typé
+  `Bootstrap(PermissionRefusee, "second stage non exécutable : …")`
+  (même traduction que `ConfigurateurApt` pour `apt`) au lieu du
+  message muet.
+- **« Bootstrap déjà installé » après un échec d'installation** : la
+  bascule atomique pose le préfixe AVANT le second stage, et
+  `bootstrapInstalle` ne testait que « un shell exécutable sous
+  `bin/` » — vrai dès la bascule. L'installateur dépose désormais un
+  marqueur d'installation terminée
+  (`$PREFIX/.codeide-installation-terminee`) juste avant l'état
+  `Terminee`, et la localisation exige le shell ET le marqueur : un
+  préfixe extrait n'est plus « installé ». Le marqueur vit sous le
+  préfixe : une reprise le détruit avec lui, cohérent avec le contrat
+  de reprise.
+- **Création de projet : « un dossier porte déjà ce nom » mensonger** :
+  `CreateProjectUseCase.ecrirePlan` mappait TOUT échec de
+  `createFile` sur `Storage(AlreadyExists)` — un refus d'E/S, une
+  permission perdue ou un emplacement parti affichaient la collision.
+  L'erreur typée réelle remonte désormais telle quelle (l'écran
+  distingue déjà introuvable/écriture/collision). Durcissement
+  compagnon dans `SafFileSystem.creer` : la pré-vérification
+  d'homonyme vit dans le `try` (un listing refusé devient une erreur
+  de stockage typée, plus une exception non traduite) et une
+  vérification de nom retourné ILLISIBLE ne détruit plus le document
+  créé au motif d'une collision de pure invention (la décision ne se
+  prend que sur un nom lisible et différent).
+
+### Ajouté
+
+- **Directive de vérification standard** (utilisateur, 2026-09-25) :
+  chaque étape/correctif est vérifié en **légère + `assembleDebug`** —
+  hygiène (`spotlessCheck detekt`), compilation et tests des modules
+  touchés, APK toujours assemblé ; `koverVerify`, `lintDebug`,
+  `checkModuleDependencies` et les modules non touchés restent garantis
+  par la CI à chaque push (chaîne complète = référence des audits de
+  fin de phase). AGENTS.md § Commandes et CONVENTIONS.md § Livraison
+  mis à jour.
+- `FakeFileSystem.fileCreateFailure` (core:testing) : robinet de
+  défaillance propre à `createFile` — éprouver l'échec d'un fichier du
+  plan sans faire tomber la création du dossier racine.
+
+### Tests
+
+- `ActivityTerminalLayoutTest` (feature:terminal, 2) : le layout
+  terminal se gonfle sans exception (régression 7842f130) et le
+  clavier étendu porte ses huit touches ;
+- `InstallateurBootstrapTest` (+2) : succès dépose le marqueur
+  d'installation (et `bootstrapInstalle` le voit), second stage non
+  exécutable → `PermissionRefusee` typée ET marqueur absent ;
+- `LocalisationOutilsTest` (3 réécrits/ajoutés) : le double marqueur
+  (shell + installation terminée), refus du shell non exécutable, refus
+  du marqueur sans shell ;
+- `ToolchainBootstrapTest` (+1, fixture ajustée) : un préfixe extrait
+  sans marqueur n'est pas « bootstrap installé » ;
+- `CreateProjectUseCaseTest` (+1) : un échec de création de fichier
+  remonte sa raison réelle (`Io`), pas une collision, avec rollback
+  complet.
+
+### Découvertes d'ingénierie
+
+- W^X (SELinux) : `ProcessBuilder.start()` ne dit PAS « permission
+  refusé d'exécuter des données d'app » — il lève une `IOException`
+  générique ; le seul indice est le contexte (binaire extrait par
+  l'app). Termux cible 28 pour exactement cette raison depuis
+  Android 10.
+- L'ordre de déclaration Kotlin (propriétés et blocs `init`) est un
+  piège à test JVM : le NPE n'apparaissait ni à la compilation ni dans
+  les tests du ViewModel — seulement à l'inflation réelle du layout.
+  Deux leçons consolidées dans AGENTS.md § Leçons.
+
 ## [0.31.0] – 2026-09-25
 
 Étape 30 (= G6 du prompt compagnon « Tooling Gradle (client-serveur) »,

@@ -144,22 +144,37 @@ un chemin, un nom d'auteur ni un contenu de fichier.
 
 ## Livraison (fin d'étape, section 9.2 du prompt maître — vérification graduée, prompt compagnon Vérification-1)
 
-1. `./gradlew spotlessApply` puis la vérification complète — tout au vert —
-   en **build incrémental, sans `clean`**. Le `clean` complet est RÉSERVÉ
-   aux étapes qui modifient `build-logic`, les convention plugins,
-   `gradle/libs.versions.toml`, la déclaration des modules
-   (`settings.gradle.kts`), et aux étapes de fin de phase (audit) — le build
-   cache restitue alors la recompilation (from cache), la CI GitHub reste
-   la garantie from-scratch (ADR 0037). Fiabilité de l'incrémental vérifiée
-   empiriquement le 2026-09-24 : `checkModuleDependencies` recense les
-   déclarations en phase de configuration — une violation introduite dans
-   un build script est attrapée sans `clean` (échec en 6 s, message exact) ;
-   detekt n'a pas d'incrément par fichier mais les modules inchangés
-   restent up-to-date (mesures T6/G1).
+**Vérification standard (directive utilisateur du 2026-09-25, v0.31.1) :
+légère + `assembleDebug`, à chaque étape ou correctif.**
+
+1. `./gradlew spotlessApply` puis la **vérification standard** : tout au
+   vert — `spotlessCheck detekt`, **compilation des modules touchés**,
+   **tests unitaires des modules touchés** (`--max-workers=1` sur la
+   machine 4 Go), et `:app:assembleDebug` **TOUJOURS** (l'APK est le
+   produit livré — c'est lui qui attrape les casses de fusion de
+   manifeste, de ressources et de configuration de build, comme le
+   targetSdk v0.31.1). `koverVerify`, `lintDebug`,
+   `checkModuleDependencies` et les tests des modules non touchés sont
+   exécutés **par la CI GitHub à chaque push** : c'est elle qui garantit
+   le from-scratch (ADR 0037). La **chaîne complète** reste la référence
+   des audits de fin de phase, en **build incrémental, sans `clean`** :
+   `spotlessCheck detekt checkModuleDependencies lintDebug
+   testDebugUnitTest koverVerify assembleDebug`. Le `clean` complet est
+   RÉSERVÉ aux étapes qui modifient `build-logic`, les convention
+   plugins, `gradle/libs.versions.toml`, la déclaration des modules
+   (`settings.gradle.kts`), et aux étapes de fin de phase (audit) — le
+   build cache restitue alors la recompilation (from cache). Fiabilité
+   de l'incrémental vérifiée empiriquement le 2026-09-24 :
+   `checkModuleDependencies` recense les déclarations en phase de
+   configuration — une violation introduite dans un build script est
+   attrapée sans `clean` (échec en 6 s, message exact) ; detekt n'a pas
+   d'incrément par fichier mais les modules inchangés restent
+   up-to-date (mesures T6/G1).
 2. Mettre à jour `CHANGELOG.md`, `docs/ROADMAP.md`, `AGENTS.md`, les docs
    concernées et la KDoc.
-3. `scripts/bump-version.sh minor` (ou `patch`), commit `chore(release):
-   vX.Y.Z`, tag Git **annoté** : `git tag -a vX.Y.Z -m "vX.Y.Z"` (jamais
+3. `scripts/bump-version.sh minor` (ou `patch` — correction après retour
+   utilisateur, ex. v0.31.1), commit `chore(release): vX.Y.Z`, tag Git
+   **annoté** : `git tag -a vX.Y.Z -m "vX.Y.Z"` (jamais
    un tag léger — `git push origin main --follow-tags` ignore
    silencieusement un tag léger, constaté sur v0.15.0 à v0.23.0).
 4. `scripts/package.sh <N>` : archive complète versionnée, APK debug,
@@ -168,9 +183,9 @@ un chemin, un nom d'auteur ni un contenu de fichier.
    depuis une copie extraite — `GRADLE_USER_HOME` isolé, stable d'une
    exécution à l'autre, daemon actif : prompt Vérification-1, section 2.2).
 6. Remettre le rapport (section 14) — désormais avec la **durée réelle** de
-   chaque commande de vérification (`spotlessCheck`, `detekt`,
-   `checkModuleDependencies`, `lintDebug`, `testDebugUnitTest`,
-   `koverVerify` si lancé (graduation ci-dessous), `assembleDebug`,
+   chaque commande de vérification exécutée (`spotlessCheck`, `detekt`,
+   compilations et tests des modules touchés, `assembleDebug`,
+   `koverVerify`/`lintDebug`/`checkModuleDependencies` si lancés,
    `verify-archive.sh`, `verify-templates.sh` si lancé) — puis attendre la
    validation de l'utilisateur.
 

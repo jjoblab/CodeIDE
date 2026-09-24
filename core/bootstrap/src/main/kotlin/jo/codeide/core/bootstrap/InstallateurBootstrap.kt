@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -146,6 +147,7 @@ internal class InstallateurBootstrap
                 }
 
                 nettoyerStaging()
+                deposerMarqueurInstallation(racine)
                 _etat.value = Terminee(outils.toList())
             } catch (e: CancellationException) {
                 // Annulation demandée : état dédié, staging nettoyé, puis
@@ -215,7 +217,15 @@ internal class InstallateurBootstrap
             DispositionsBootstrap.archiveStaging(racine).delete()
         }
 
-        /** Lance le second stage via le lanceur canonique et en vérifie le code. */
+        /**
+         * Lance le second stage via le lanceur canonique et en vérifie le code.
+         *
+         * Exemption ciblée (ThrowsCount) : un throw par échec TYPÉ (archive
+         * incomplète, lancement refusé, code de sortie non nul), tous
+         * rattrapés par le pipeline de [executer] — même convention que
+         * `CreateProjectUseCase.ecrirePlan`.
+         */
+        @Suppress("ThrowsCount")
         private suspend fun executerSecondStage() {
             val prefixe = DispositionsBootstrap.prefix(racine)
             val script = File(prefixe, CHEMIN_SECOND_STAGE)
@@ -223,7 +233,24 @@ internal class InstallateurBootstrap
             if (!script.isFile || !bash.isFile) {
                 throw EchecBootstrap(BootstrapReason.ArchiveCorrompue, "second stage ou bash absent du préfixe")
             }
-            val processus = lanceur.launch(listOf(bash.absolutePath, script.absolutePath), workingDir = prefixe)
+            val processus =
+                try {
+                    lanceur.launch(listOf(bash.absolutePath, script.absolutePath), workingDir = prefixe)
+                } catch (e: IOException) {
+                    // Lancement refusé par le noyau — typiquement la
+                    // restriction W^X (app targetSdk >= 29, Android 10+ :
+                    // un binaire écrit dans les données de l'app ne s'exécute
+                    // pas, EACCES). Rapport d'appareil réel 7842f130 :
+                    // l'IOException non traduite tombait dans le fourre-tout
+                    // « erreur inattendue » sans indice. Traduite comme le
+                    // fait ConfigurateurApt pour apt — la raison permission
+                    // porte un message actionnable.
+                    throw EchecBootstrap(
+                        BootstrapReason.PermissionRefusee,
+                        "second stage non exécutable : ${e.message}",
+                        cause = e,
+                    )
+                }
             val sortie: Sortie = SupervisionProcessus.attendre(processus)
             if (sortie.code != 0) {
                 throw EchecBootstrap(
@@ -246,3 +273,25 @@ internal class InstallateurBootstrap
                 "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh"
         }
     }
+
+/**
+ * Dépose le marqueur d'installation **terminée** sous le préfixe.
+ *
+ * Raison d'être (rapport d'appareil réel 7842f130, v0.29.0) : la bascule
+ * atomique pose le préfixe AVANT le second stage — un échec ultérieur
+ * laissait donc un préfixe complet aux yeux du marqueur d'extraction
+ * (« shell présent »), et l'assistant affichait « bootstrap déjà
+ * installé » après un échec. Le marqueur d'installation ne survit qu'à
+ * un pipeline ALLÉ AU BOUT : [LocalisationOutils.bootstrapInstalle]
+ * exige désormais les deux. Il vit sous le préfixe : une reprise
+ * détruit celui-ci et repart de zéro, le marqueur disparaît avec lui.
+ *
+ * Fonction du fichier (hors classe) : l'installateur tient déjà le seuil
+ * detekt de fonctions par classe — le dépôt est une opération de
+ * pipeline, pas un comportement d'objet.
+ */
+private fun deposerMarqueurInstallation(racine: File) {
+    runCatching {
+        DispositionsBootstrap.marqueurInstallation(racine).writeText("")
+    }
+}

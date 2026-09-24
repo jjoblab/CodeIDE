@@ -36,4 +36,12 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":core:testing"))
+
+    // Régression de layout (correctif v0.31.1) : gonfler le vrai
+    // activity_terminal.xml sous Robolectric — la liste de touches de
+    // ClavierEtenduView était déclarée après le bloc init qui l'itère
+    // (NPE à l'inflation, rapport d'appareil 7842f130). Mêmes versions
+    // que le module app, déjà vérifiées dans le catalogue.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

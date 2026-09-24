@@ -40,10 +40,20 @@ class ToolchainBootstrapTest {
     }
 
     @Test
+    fun `un préfixe extrait sans marqueur d installation n est pas bootstrap installé`() {
+        // v0.31.1 : le shell seul (bascule posée, second stage échoué)
+        // ne suffit plus — rapport d'appareil 7842f130.
+        deposerBinaire("usr", "bin", "sh")
+
+        assertFalse(localisateur.isBootstrapInstalled())
+    }
+
+    @Test
     fun `la racine de la disposition est filesDir`() {
         deposerBinaire("usr", "bin", "sh")
         deposerBinaire("usr", "lib", "jvm", "java-17-openjdk", "bin", "java")
         deposerBinaire("usr", "lib", "jvm", "java-17-openjdk", "bin", "javac")
+        deposerFichier("usr", ".codeide-installation-terminee")
 
         assertTrue(localisateur.isBootstrapInstalled())
         assertEquals(

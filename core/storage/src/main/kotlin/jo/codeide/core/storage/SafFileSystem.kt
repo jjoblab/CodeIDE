@@ -207,6 +207,10 @@ internal class SafFileSystem
         /**
          * Création commune dossier/fichier : pré-vérification d'homonyme
          * (insensible à la casse), création, contrôle du nom retourné.
+         *
+         * La pré-vérification vit **dans** le try (v0.31.1) : un listing
+         * refusé (`SecurityException`, fournisseur muet) doit remonter en
+         * erreur de stockage typée, jamais en exception non traduite.
          */
         private suspend fun creer(
             parentDirectoryUri: String,
@@ -214,14 +218,14 @@ internal class SafFileSystem
             mimeType: String,
         ): AppResult<String> =
             withContext(dispatchers.io) {
-                // Section 5.6 : vérifier l'existence AVANT (createDocument peut
-                // renommer silencieusement en cas de collision).
-                val homonyme = homonymeDirect(parentDirectoryUri, name)
-                if (homonyme != null) {
-                    return@withContext echecStockage(AppError.StorageReason.AlreadyExists, homonyme)
-                }
-
                 try {
+                    // Section 5.6 : vérifier l'existence AVANT (createDocument
+                    // peut renommer silencieusement en cas de collision).
+                    val homonyme = homonymeDirect(parentDirectoryUri, name)
+                    if (homonyme != null) {
+                        return@withContext echecStockage(AppError.StorageReason.AlreadyExists, homonyme)
+                    }
+
                     val uriCree =
                         DocumentsContract.createDocument(resolver, parentDirectoryUri.toUri(), mimeType, name)
                             ?: return@withContext echecStockage(
@@ -239,8 +243,17 @@ internal class SafFileSystem
                     // pour « temoin » + text/plain) — ce n'est ni une
                     // collision ni un renommage hostile, le document reste
                     // le nôtre sous le nom unique que garantit le fournisseur.
+                    //
+                    // Vérification illisible (v0.31.1) : une requête unitaire
+                    // muette sur le document créé ne prouve NI un renommage NI
+                    // une collision — l'ancien code supprimait alors un
+                    // document pourtant créé au nom demandé et rapportait une
+                    // collision de pure invention. La décision de nettoyage ne
+                    // se prend que sur un nom LISIBLE et différent ; la
+                    // pré-vérification ci-dessus a déjà écarté l'homonyme
+                    // juste avant la création.
                     val nomRetourne = decrireDocument(uriCree)?.name
-                    if (nomRetourne != name && !estAchevementExtension(name, nomRetourne)) {
+                    if (nomRetourne != null && nomRetourne != name && !estAchevementExtension(name, nomRetourne)) {
                         nettoyerRenomme(uriCree)
                         return@withContext echecStockage(AppError.StorageReason.AlreadyExists, name)
                     }

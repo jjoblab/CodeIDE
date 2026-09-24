@@ -42,4 +42,13 @@ internal object DispositionsBootstrap {
 
     /** Archive téléchargée en cours d'installation (sous la racine, jamais dans `$PREFIX`). */
     internal fun archiveStaging(racine: File): File = File(racine, "bootstrap-staging.zip")
+
+    /**
+     * Marqueur d'installation **terminée** (v0.31.1) : déposé par
+     * l'installateur uniquement quand le pipeline est allé au bout —
+     * un préfixe extrait (bascule posée) ne suffit PAS : le second stage
+     * peut échouer après. Vit sous le préfixe : une reprise le détruit
+     * et repart de zéro, le marqueur disparaît avec lui.
+     */
+    internal fun marqueurInstallation(racine: File): File = File(prefix(racine), ".codeide-installation-terminee")
 }
