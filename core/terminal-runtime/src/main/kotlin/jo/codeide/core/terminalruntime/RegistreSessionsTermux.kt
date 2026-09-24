@@ -131,13 +131,26 @@ internal class RegistreSessionsTermux
                     val id = UUID.randomUUID().toString()
                     val libelle = label ?: "Session ${entrees.size + 1}"
                     val variables = environnement.baseEnvironment() + TERM_SESSION
+                    // Thread PRINCIPAL obligatoire (v0.31.2, rapport
+                    // d'appareil réel 511e1c7f) : le constructeur de
+                    // `TerminalSession` crée son `MainThreadHandler` — un
+                    // `Handler` sans Looper explicite — qui exige
+                    // `Looper.myLooper() != null`, donc le thread
+                    // principal. Lancé depuis un worker `Default` (tout le
+                    // reste du registre y vit), il plantait avec « Can't
+                    // create handler inside thread … not called
+                    // Looper.prepare() ». Termux crée lui aussi ses
+                    // sessions sur l'UI ; le fork/exec du pty est bref
+                    // (millisecondes), comme dans Termux.
                     val coquille =
-                        fabrique.creer(
-                            shell = localisateur.defaultShell(),
-                            repertoireTravail = workingDirectory.absolutePath,
-                            environnement = variables.map { (cle, valeur) -> "$cle=$valeur" }.toTypedArray(),
-                            ecouteur = this@RegistreSessionsTermux,
-                        )
+                        withContext(dispatchers.main) {
+                            fabrique.creer(
+                                shell = localisateur.defaultShell(),
+                                repertoireTravail = workingDirectory.absolutePath,
+                                environnement = variables.map { (cle, valeur) -> "$cle=$valeur" }.toTypedArray(),
+                                ecouteur = this@RegistreSessionsTermux,
+                            )
+                        }
                     entrees +=
                         Entree(
                             id,

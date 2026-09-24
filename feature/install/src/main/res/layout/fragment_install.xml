@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Écran d'installation du bootstrap natif (étape T3) : invite, progression
-  partagée, résultat par outil, erreurs typées actionnables.
+  détaillée (liste d'étapes + journal en direct des sous-processus),
+  résultat par outil, erreurs typées avec détails dépliables.
+
+  Refonte v0.31.2 (rapport d'appareil réel : « la configuration des
+  paquets a échoué » sans aucun indice) : la progression montre CE QUI SE
+  FAIT RÉELLEMENT — checklist des neuf étapes du pipeline, compteur de
+  l'étape courante et sortie en direct du second stage et d'apt.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -53,7 +59,8 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- Progression : étape courante + barre. -->
+        <!-- Progression détaillée : étape courante, compteur, barre,
+             checklist des étapes du pipeline. -->
         <LinearLayout
             android:id="@+id/progression"
             android:layout_width="match_parent"
@@ -68,14 +75,72 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="?attr/textAppearanceTitleMedium"
-                tools:text="Téléchargement…" />
+                tools:text="Téléchargement de l'archive…" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_detail_etape"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:visibility="gone"
+                tools:text="12,4 Mo sur 43,0 Mo"
+                tools:visibility="visible" />
 
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/barre_progression"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm" />
+
+            <!-- Checklist des étapes : rangées créées par le fragment. -->
+            <LinearLayout
+                android:id="@+id/conteneur_etapes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:orientation="vertical"
+                tools:background="@android:color/transparent" />
         </LinearLayout>
+
+        <!-- Journal en direct : sortie réelle des sous-processus. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/carte_journal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/installation_journal_titre"
+                    android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+                <ScrollView
+                    android:id="@+id/defilement_journal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/hauteur_journal_installation"
+                    android:layout_marginTop="@dimen/spacing_xs">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_journal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="Atteint :1 stable Release&#10;Lecture des listes de paquets…" />
+                </ScrollView>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Résultat : outils installés. -->
         <LinearLayout
@@ -102,7 +167,7 @@
                 tools:text="openjdk-17 — installé" />
         </LinearLayout>
 
-        <!-- Échec : message actionnable. -->
+        <!-- Échec : message actionnable + détails techniques dépliables. -->
         <LinearLayout
             android:id="@+id/echec"
             android:layout_width="match_parent"
@@ -118,6 +183,28 @@
                 android:layout_height="wrap_content"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 tools:text="Réseau indisponible." />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_details"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="@string/installation_details_titre"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_details"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:fontFamily="monospace"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="apt update → code 100 — E: dépôt injoignable"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <Space

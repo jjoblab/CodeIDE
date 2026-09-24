@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Hauteur de la fenêtre du journal en direct (v0.31.2) : assez pour
+         quatre-cinq lignes de sortie sans étouffer la checklist au-dessus. -->
+    <dimen name="hauteur_journal_installation">160dp</dimen>
+</resources>

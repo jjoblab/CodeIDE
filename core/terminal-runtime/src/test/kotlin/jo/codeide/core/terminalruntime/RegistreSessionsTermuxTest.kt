@@ -148,6 +148,56 @@ class RegistreSessionsTermuxTest {
         }
 
     @Test
+    fun `la coquille est fabriquee sur le dispatcher MAIN - TerminalSession exige un Looper`() =
+        runTest(ordonnanceur) {
+            // Régression du rapport d'appareil réel 511e1c7f (v0.31.1) :
+            // le constructeur de TerminalSession crée un Handler — la
+            // coquille DOIT naître sur le thread principal, pas sur un
+            // worker Default. Le compteur prouve le saut de contexte vers
+            // `dispatchers.main` pendant la création.
+            val principalCompteur = CompteurDispatchs(ordonnanceur)
+            val registre =
+                RegistreSessionsTermux(
+                    localisateur = ToolchainLocatorFaux,
+                    environnement = EnvironnementFaux,
+                    fabrique = fabrique,
+                    demarreurService = demarreur,
+                    horloge = TimeProvider { temps },
+                    dispatchers =
+                        object : jo.codeide.core.domain.DispatcherProvider {
+                            override val io = ordonnanceur
+                            override val default = ordonnanceur
+                            override val main = principalCompteur
+                        },
+                    journal = FakeAppLogger(),
+                )
+
+            registre.createSession(File("/a"))
+            advanceUntilIdle()
+
+            assertTrue(
+                "la création a basculé vers le dispatcher principal ($principalCompteur)",
+                principalCompteur.dispatchs > 0,
+            )
+        }
+
+    /** Dispatcher instrumenté : compte les dispatchs pour prouver le saut de contexte. */
+    private class CompteurDispatchs(
+        private val delegate: kotlinx.coroutines.CoroutineDispatcher,
+    ) : kotlinx.coroutines.CoroutineDispatcher() {
+        var dispatchs: Int = 0
+            private set
+
+        override fun dispatch(
+            context: kotlin.coroutines.CoroutineContext,
+            block: Runnable,
+        ) {
+            dispatchs++
+            delegate.dispatch(context, block)
+        }
+    }
+
+    @Test
     fun `la creation utilise le shell la environment canoniques et le repertoire`() =
         runTest(ordonnanceur) {
             val registre = registre()

@@ -100,6 +100,20 @@ vérification standard = légère + `assembleDebug` (AGENTS.md,
 CONVENTIONS.md). La numérotation des étapes suit son cours (31 =
 plugins, v0.32.0).
 
+**Correctif v0.31.2 (2026-09-25, après retour d'appareil réel — rapport
+511e1c7f, moto g06 / Android 15)** : plantage de l'écran Terminal à la
+première session (`TerminalSession` de Termux exige le thread principal —
+son `MainThreadHandler` est un `Handler` sans Looper ; création basculée
+sur `dispatchers.main`, `kotlinx-coroutines-android` dans
+`core:terminal-runtime`, ADR 0046), écran d'installation refondu —
+checklist des neuf étapes, compteurs et **journal en direct de la sortie
+des sous-processus** (stdout/stderr du second stage et d'apt, conservés à
+l'échec avec détails techniques dépliables — « la configuration des
+paquets a échoué » ne sera plus jamais muette) — et page
+« Notifications et stockage » dans l'assistant (demande
+`POST_NOTIFICATIONS` + explication : aucune permission de stockage
+nécessaire, SAF et stockage privé suffisent, ADR 0046).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

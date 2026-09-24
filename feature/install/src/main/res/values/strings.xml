@@ -13,6 +13,11 @@
     <string name="installation_etape_sources">Configuration du dépôt de paquets…</string>
     <string name="installation_etape_apt">Mise à jour du dépôt…</string>
     <string name="installation_etape_paquets">Installation des outils…</string>
+    <string name="installation_detail_extraction">%d fichiers extraits</string>
+    <string name="installation_detail_paquet">%1$s — paquet %2$d sur %3$d</string>
+    <string name="installation_detail_telechargement">%1$s sur %2$s</string>
+    <string name="installation_journal_titre">Journal en direct</string>
+    <string name="installation_details_titre">Détails techniques</string>
     <string name="installation_terminee">Outils du terminal installés</string>
     <string name="installation_outils_aucun">Environnement de base installé (aucun outil supplémentaire demandé).</string>
     <string name="installation_outil_installe">installé</string>
@@ -25,7 +30,7 @@
     <string name="installation_erreur_espace">Espace de stockage insuffisant (environ 1 Go libre requis). Libérez de l\'espace, puis réessayez.</string>
     <string name="installation_erreur_archive">Archive téléchargée invalide. Réessayez — si le problème persiste, une nouvelle version du bootstrap sera publiée.</string>
     <string name="installation_erreur_permission">Le stockage privé de l\'application a refusé une opération. Redémarrez l\'application, puis réessayez.</string>
-    <string name="installation_erreur_paquets">La configuration des paquets a échoué. Réessayez — l\'installation reprend depuis le début, sans dommage.</string>
+    <string name="installation_erreur_paquets">La configuration des paquets a échoué. Le journal ci-dessous montre la dernière sortie en échec — réessayez, l\'installation reprend depuis le début, sans dommage.</string>
     <string name="installation_erreur_asset">Un binaire d\'outil embarqué manque dans l\'application. Une mise à jour de CodeIDE sera nécessaire.</string>
     <string name="installation_erreur_architecture">L\'architecture de cet appareil n\'est pas encore prise en charge par le bootstrap (arm64 requis).</string>
     <string name="installation_erreur_inconnue">Erreur inattendue pendant l\'installation. Réessayez.</string>

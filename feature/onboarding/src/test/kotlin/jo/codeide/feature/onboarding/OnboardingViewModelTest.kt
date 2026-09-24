@@ -105,10 +105,10 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
 
-            // Bienvenue -> Dossier -> Terminal -> Apparence -> Profil -> Termine.
+            // Bienvenue -> Dossier -> Terminal -> Notifications -> Apparence -> Profil -> Termine.
             viewModel.onAction(ActionOnboarding.Commencer)
             assertEquals(PageOnboarding.DOSSIER, viewModel.etat.value.page)
-            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
             assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
 
             // Bornes : ni au-delà de la fin, ni avant la bienvenue.
@@ -235,7 +235,7 @@ class OnboardingViewModelTest {
             }
 
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
             assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
             assertFalse(depot.reglages.isSetupCompleted)
 
@@ -252,7 +252,7 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
             // L'écriture des paramètres échoue : plus jamais un silence,
             // la page Terminé signale l'échec et le drapeau reste faux.
@@ -279,7 +279,7 @@ class OnboardingViewModelTest {
             val viewModel = creerViewModel()
             advanceUntilIdle()
             viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
             // La garde s'arme immédiatement, avant même l'exécution de
             // l'écriture : un deuxième appui pendant le vol est ignoré.
@@ -329,7 +329,7 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `l etape Terminal s insere entre le dossier et l apparence`() =
+    fun `l etape Terminal s insere entre le dossier et les notifications`() =
         runTest(regleMain.dispatcher.scheduler) {
             val viewModel = creerViewModel()
             advanceUntilIdle()
@@ -338,6 +338,22 @@ class OnboardingViewModelTest {
             viewModel.onAction(ActionOnboarding.PageSuivante)
 
             assertEquals(PageOnboarding.TERMINAL, viewModel.etat.value.page)
+            viewModel.onAction(ActionOnboarding.PageSuivante)
+            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `l etape Notifications s insere entre le terminal et l apparence`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            // v0.31.2 (ADR 0046) : la page notifications suit le terminal
+            // (le service foreground explique POURQUOI notifier) et
+            // précède l'apparence.
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+
+            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+
+            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
             viewModel.onAction(ActionOnboarding.PageSuivante)
             assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
         }
@@ -352,7 +368,52 @@ class OnboardingViewModelTest {
 
             viewModel.onAction(ActionOnboarding.PasserTerminal)
 
-            assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
+            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `DemanderNotifications emet la requete systeme d autorisation`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.DemanderNotifications)
+
+            assertEquals(listOf(EffetOnboarding.OuvrirAutorisationNotifications), effetsRecus)
+            // La demande n'avance pas la page : l'utilisateur reste libre
+            // de refuser puis de continuer.
+            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `DemanderReglagesNotifications emet l ouverture des reglages`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.DemanderReglagesNotifications)
+
+            assertEquals(listOf(EffetOnboarding.OuvrirReglagesNotifications), effetsRecus)
+        }
+
+    @Test
+    fun `ConsignerNotifications reflete l etat reel des notifications`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.notificationsActivees)
+
+            viewModel.onAction(ActionOnboarding.ConsignerNotifications(activees = true))
+
+            assertTrue(viewModel.etat.value.notificationsActivees)
         }
 
     @Test

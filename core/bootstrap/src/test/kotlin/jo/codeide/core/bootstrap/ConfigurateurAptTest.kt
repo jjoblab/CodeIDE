@@ -30,6 +30,14 @@ class ConfigurateurAptTest {
     private val lanceur = FakeNativeProcessLauncher()
     private val configurateur = ConfigurateurApt(lanceur, dispatcheursReels())
 
+    /** Lignes reçues par le consommateur (journal d'écran). */
+    private val lignesRecues = mutableListOf<String>()
+
+    /** Consommateur capturant les lignes pour les assertions. */
+    private fun consommer(ligne: String) {
+        lignesRecues += ligne
+    }
+
     private fun prefixeAvecSourcesList(contenu: String?): File {
         val prefixe = dossierTemp.newFolder()
         if (contenu != null) {
@@ -84,7 +92,7 @@ class ConfigurateurAptTest {
         runBlocking {
             val prefixe = prefixeAvecSourcesList(null)
 
-            configurateur.miseAJour(prefixe)
+            configurateur.miseAJour(prefixe, ::consommer)
 
             assertEquals(1, lanceur.lancements.size)
             val lancement = lanceur.lancements.single()
@@ -99,7 +107,7 @@ class ConfigurateurAptTest {
             lanceur.fabrique = { ProcessusScripte(codeSortie = 100, lignesStderr = listOf("E: dépôt injoignable")) }
 
             val erreur =
-                runCatching { configurateur.miseAJour(prefixe) }.exceptionOrNull()
+                runCatching { configurateur.miseAJour(prefixe, ::consommer) }.exceptionOrNull()
 
             assertTrue(erreur is EchecBootstrap)
             assertEquals(BootstrapReason.EchecApt, (erreur as EchecBootstrap).raison)
@@ -107,11 +115,32 @@ class ConfigurateurAptTest {
         }
 
     @Test
+    fun `la sortie d apt alimente le consommateur en direct`() =
+        runBlocking {
+            // v0.31.2 : l'écran d'installation affiche la sortie réelle —
+            // stdout ET stderr doivent rejoindre le journal au fil de l'eau.
+            val prefixe = prefixeAvecSourcesList(null)
+            lanceur.fabrique = {
+                ProcessusScripte(
+                    codeSortie = 0,
+                    lignesStdout = listOf("Atteint :1 stable Release", "Lecture des listes de paquets…"),
+                    lignesStderr = listOf("W: dépôt non signé"),
+                )
+            }
+
+            configurateur.miseAJour(prefixe, ::consommer)
+
+            assertEquals(3, lignesRecues.size)
+            assertTrue("stdout d'apt transmis", "Atteint :1 stable Release" in lignesRecues)
+            assertTrue("stderr d'apt transmis", "W: dépôt non signé" in lignesRecues)
+        }
+
+    @Test
     fun `installerPaquet réussit avec le paquet en argument et -y`() =
         runBlocking {
             val prefixe = prefixeAvecSourcesList(null)
 
-            val echec = configurateur.installerPaquet(prefixe, "openjdk-17")
+            val echec = configurateur.installerPaquet(prefixe, "openjdk-17", ::consommer)
 
             assertNull(echec)
             val lancement = lanceur.lancements.single()
@@ -129,7 +158,7 @@ class ConfigurateurAptTest {
                 ProcessusScripte(codeSortie = 100, lignesStderr = listOf("E: impossible de trouver $PAQUET_FANTOME"))
             }
 
-            val echec = configurateur.installerPaquet(prefixe, PAQUET_FANTOME)
+            val echec = configurateur.installerPaquet(prefixe, PAQUET_FANTOME, ::consommer)
 
             assertNotNull(echec)
             assertEquals(BootstrapReason.EchecApt, echec!!.raison)
