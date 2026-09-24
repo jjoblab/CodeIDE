@@ -28,7 +28,8 @@ import javax.inject.Inject
  * 3. créer le dossier racine `<emplacement>/<nom>`, **échouer s'il existe
  *    déjà** (jamais d'écrasement, jamais de fusion) ;
  * 4. écrire les fichiers du plan un à un (texte ou binaire) en émettant la
- *    progression, y compris `.codeide/project.json` ;
+ *    progression, y compris `.codeide/project.json` — chaque échec remonte
+ *    avec son erreur **réelle** (jamais masquée en collision : v0.31.1) ;
  * 5. à tout échec **ou annulation** : rollback — suppression du dossier
  *    racine créé en `NonCancellable`, résidus éventuels signalés ;
  * 6. ne persister le `Project` en base **qu'après** le succès des écritures ;
@@ -179,10 +180,24 @@ public class CreateProjectUseCase
                         )
                 val nom = fichier.chemin.substringAfterLast('/')
                 val uri =
-                    fichiers.createFile(parent, nom, mimePour(fichier.contenu, fichier.chemin)).getOrNull()
-                        ?: throw EchecCreation(
-                            AppError.Storage(AppError.StorageReason.AlreadyExists, fichier.chemin),
-                        )
+                    when (
+                        val creation =
+                            fichiers.createFile(parent, nom, mimePour(fichier.contenu, fichier.chemin))
+                    ) {
+                        is AppResult.Success -> {
+                            creation.value
+                        }
+
+                        is AppResult.Failure -> {
+                            // L'échec RÉEL remonte tel quel (v0.31.1 : toute
+                            // défaillance de création — permission perdue,
+                            // E/S, emplacement parti — était ici masquée en
+                            // collision, et l'écran affichait « un dossier
+                            // porte déjà ce nom » pour une raison sans
+                            // rapport ; retour d'appareil réel 7842f130).
+                            throw EchecCreation(creation.error)
+                        }
+                    }
                 fichiersCrees += fichier.chemin to uri
                 val ecriture =
                     when (val contenu = fichier.contenu) {

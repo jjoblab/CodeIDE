@@ -178,6 +178,35 @@ class CreateProjectUseCaseTest {
         }
 
     @Test
+    fun `un échec de création de fichier remonte sa raison réelle - pas une collision`() =
+        runTest {
+            val e = Ecosysteme()
+            // v0.31.1 (retour d'appareil réel 7842f130) : toute défaillance
+            // de createFile était masquée en AlreadyExists — l'écran de
+            // création affichait « un dossier porte déjà ce nom » pour un
+            // refus d'E/S sans rapport avec une collision. L'erreur typée
+            // réelle doit remonter telle quelle.
+            e.fichiers.fileCreateFailure = IOException("EACCES")
+
+            val evenements = creer(e, e.requete())
+
+            val terminal = evenements.last() as CreationProgress.Termine
+            val erreur = (terminal.result as AppResult.Failure).error
+            assertTrue("erreur de stockage attendue : $erreur", erreur is AppError.Storage)
+            assertEquals(
+                "la raison RÉELLE (Io) remonte, jamais une collision inventée",
+                AppError.StorageReason.Io,
+                (erreur as AppError.Storage).reason,
+            )
+            // Rollback complet : le dossier racine créé est retiré.
+            assertTrue(terminal.rolledBack)
+            assertTrue(
+                e.fichiers.arborescence.value.keys
+                    .none { it.startsWith("work:/Demo") },
+            )
+        }
+
+    @Test
     fun `un échec d insertion en base déclenche aussi le rollback`() =
         runTest {
             val e = Ecosysteme()

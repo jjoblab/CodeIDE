@@ -27,10 +27,21 @@ import java.io.File
  *   autres candidats couvrent les évolutions du dépôt.
  */
 internal object LocalisationOutils {
-    /** Le bootstrap est-il extrait ? Marqueur : un shell exécutable sous `bin/`. */
+    /**
+     * Le bootstrap est-il **installé jusqu'au bout** ?
+     *
+     * Double marqueur (v0.31.1, rapport d'appareil réel 7842f130) : un
+     * shell exécutable sous `bin/` **et** le marqueur d'installation
+     * terminée déposé par l'installateur. L'ancien test (shell seul)
+     * revenait à « préfixe extrait » : la bascule atomique pose le
+     * préfixe AVANT le second stage, et un échec ultérieur laissait
+     * l'assistant affirmer « déjà installé » après un échec — le marqueur
+     * d'installation ne survit qu'à un pipeline allé au bout.
+     */
     internal fun bootstrapInstalle(racine: File): Boolean {
         val bin = File(DispositionsBootstrap.prefix(racine), "bin")
-        return File(bin, "sh").canExecute() || File(bin, "bash").canExecute()
+        val shellPresent = File(bin, "sh").canExecute() || File(bin, "bash").canExecute()
+        return shellPresent && DispositionsBootstrap.marqueurInstallation(racine).isFile
     }
 
     /**

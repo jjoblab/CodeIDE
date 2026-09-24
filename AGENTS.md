@@ -20,7 +20,10 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
 - `applicationId` = **`jo.codeide`** (imposé).
 - Kotlin 100 % (aucun Java écrit à la main) ; identifiants en anglais.
 - **KDoc, commentaires, commits, documentation, messages d'erreur : français.**
-- minSdk 26 ; compileSdk/targetSdk = dernière API stable (37.2/37 à ce jour).
+- minSdk 26 ; compileSdk = dernière API stable (37.2 à ce jour) ;
+  **targetSdk = 28, délibéré** (Android 10 interdit à une app ciblant 29+
+  d'exécuter les binaires du bootstrap extraits dans `filesDir` — W^X ;
+  ADR 0045, garde après retour d'appareil réel).
 - UI : vues XML + ViewBinding, Activities + Fragments, Material 3.
   **Pas de Jetpack Compose** (ADR 0002).
 - Langues de l'interface : français (`values/`, défaut) + anglais (`values-en/`).
@@ -98,22 +101,23 @@ dans `core:ui`, implémentée dans `app`).
 
 ```bash
 source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
-./gradlew spotlessCheck detekt checkModuleDependencies lintDebug \
-  testDebugUnitTest koverVerify assembleDebug   # vérification complète SANS clean (ADR 0037 :
-                                                # build cache + CI GitHub ; mesures detekt 1,6 s /
-                                                # 27 s / 6,5 s après clean)
-# clean RÉSERVÉ aux étapes qui modifient build-logic/convention plugins/
-# libs.versions.toml/settings.gradle.kts ou aux audits de fin de phase
-# (prompt Vérification-1 §2.1 ; fiabilité incrémentale prouvée empiriquement :
-# checkModuleDependencies = phase de configuration, violation attrapée sans clean)
+
+# VÉRIFICATION STANDARD (directive utilisateur du 2026-09-25, v0.31.1) :
+# légère + assembleDebug, à chaque étape / correctif —
+./gradlew spotlessCheck detekt            # hygiène (format + statique)
+./gradlew :<module>:compileDebugKotlin …  # compilation des modules TOUCHÉS
+./gradlew :<module>:testDebugUnitTest …   # tests des modules TOUCHÉS
+                                           # (--max-workers=1 sur 4 Go)
+./gradlew :app:assembleDebug              # TOUJOURS — l'APK est le produit
+# koverVerify, lintDebug, checkModuleDependencies, tests des modules
+# non touchés : la CI GitHub les exécute à chaque push (garantie
+# from-scratch, ADR 0037) — la chaîne complète reste LA référence des
+# audits de fin de phase :
+#   ./gradlew spotlessCheck detekt checkModuleDependencies lintDebug \
+#     testDebugUnitTest koverVerify assembleDebug   (SANS clean, ADR 0037)
 ./gradlew spotlessApply                    # formatage avant commit
-# koverVerify est GRADUÉ comme verify-templates.sh (Vérification-1 §2.6) :
-# ne le lancer que si l'étape modifie un module soumis au seuil de 80 %
-# (core:model, core:domain, core:bootstrap, core:terminal-runtime,
-# tooling:client, tooling:server) — les autres modules réussissent
-# trivialement, le relancer ne vérifie rien de nouveau. La CI GitHub
-# l'exécute toujours : elle reste la garantie from-scratch (ADR 0037).
-scripts/bump-version.sh minor              # incrémente la version
+scripts/bump-version.sh minor|patch        # incrémente la version
+                                            # (patch = correction après retour utilisateur)
 git tag -a vX.Y.Z -m "vX.Y.Z"              # tag ANNOTÉ, jamais léger (Vérification-1 §2.5)
 scripts/package.sh 0                       # dist/ : archive + APK + SHA256SUMS
 scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
@@ -122,8 +126,11 @@ scripts/verify-archive.sh dist/CodeIDE-v0.1.0-etape00.zip   # archive autonome ?
 
 ## Définition de « terminé » (par étape)
 
-Fonctionnalités de l'étape sans débordement ; vérification complète verte ;
-tests de la logique ajoutée (seuil Kover ≥ 80 % sur les modules qui en ont
+Fonctionnalités de l'étape sans débordement ; **vérification standard
+verte** (directive 2026-09-25 : légère + `assembleDebug` — hygiène,
+compilation et tests des modules touchés, APK assemblé ; la CI GitHub
+garantit par ailleurs la chaîne complète à chaque push) ; tests de la
+logique ajoutée (seuil Kover ≥ 80 % sur les modules qui en ont
 une — `core:model`, `core:domain`, `core:bootstrap`,
 `core:terminal-runtime`, `tooling:client`, `tooling:server` ; le domaine
 reste le contrat nominal, les autres seuils suivent leurs build.gradle.kts) ; KDoc et
@@ -437,6 +444,23 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       G6 ne redélivre pas l'orchestrateur] ; points T7 appareil
       [targetSdk, LeakCanary] explicitement différés — 2 tests chaos
       réels + 1 test client, ADR 0044]
+- v0.31.1 : **premier lot de corrections d'appareil réel** (rapport
+      7842f130, moto g06 / Android 15) — plantage de l'écran Terminal
+      [`ClavierEtenduView` : liste de touches déclarée APRÈS le bloc init
+      qui l'itère — ordre d'initialisation Kotlin, NPE à l'inflation,
+      test de régression `ActivityTerminalLayoutTest` gonfle le vrai
+      layout] ; bootstrap « erreur inattendue » après extraction
+      [**targetSdk 28** — W^X : Android 10 interdit l'exécution des
+      binaires extraits dans `filesDir` aux apps ciblant 29+ ; ADR 0045,
+      IOException du second stage typée `PermissionRefusee`] ; marqueur
+      d'installation terminée [`bootstrapInstalle` exige le shell ET le
+      marqueur déposé en fin de pipeline — un préfixe extrait n'est plus
+      « installé »] ; création de projet honnête [l'échec de `createFile`
+      remonte sa raison RÉELLE — toute défaillance passait « un dossier
+      porte déjà ce nom » ; `SafFileSystem.creer` : pré-vérification dans
+      le try + vérification illisible non destructive] ; directive
+      utilisateur : **vérification standard = légère + assembleDebug**
+      (§ Commandes)]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -448,7 +472,25 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   inline sans rechigner — c'est `LayoutInflater` qui plante à l'exécution
   (`android.view.menu`, rapport 8b5b73f1, présent des étapes 14 à 18).
   Le test de régression `ActivityEditorLayoutTest` gonfle le vrai layout
-  sous Robolectric : tout nouveau layout d'activité mérite son équivalent.
+  sous Robolectric : tout nouveau layout d'activité mérite son équivalent
+  (rejoint en v0.31.1 par `ActivityTerminalLayoutTest` — rapport
+  7842f130).
+- **Kotlin initialise les propriétés et blocs `init` dans l'ordre de
+  DÉCLARATION** (rapport 7842f130, v0.29.0) : une propriété déclarée
+  après le bloc `init` vaut encore `null` pendant celui-ci — si le bloc
+  l'utilise (directement ou via une méthode appelée), c'est un NPE
+  déterministe à la construction, invisible au compile time. Une vue
+  gonflable ne doit jamais consommer une propriété d'instance déclarée
+  plus bas : réordonner, ou porter la donnée constante dans le
+  `companion`.
+- **Android 10 interdit l'exécution des binaires app-data pour
+  targetSdk >= 29 (W^X)** (rapport 7842f130, v0.29.0) : SELinux refuse
+  `execute` sur `app_data_file` au domaine `untrusted_app_29+` — le
+  `ProcessBuilder.start()` lève `IOException` (EACCES) SANS autre indice.
+  Toute app qui exécute des binaires extraits (terminal intégré, outil
+  téléchargé) doit cibler 28 (précédent Termux) — ADR 0045. Symptôme
+  codeide v0.29.0 : « erreur inattendue » au second stage du bootstrap
+  alors que l'extraction avait réussi.
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

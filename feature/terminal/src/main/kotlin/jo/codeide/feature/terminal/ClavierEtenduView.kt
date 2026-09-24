@@ -46,6 +46,30 @@ class ClavierEtenduView
         var altActif: Boolean = false
             private set
 
+        /**
+         * La rangée déclarative (section 5 : « au minimum »).
+         *
+         * ⚠️ **Doit précéder le bloc `init`** : Kotlin exécute les
+         * initialisateurs et blocs `init` dans l'ordre de déclaration, et
+         * ce bloc appelle [construire] qui itère cette liste. Déclarée
+         * après lui, elle vaut encore `null` pendant la construction —
+         * plantage déterministe à l'inflation du layout (rapport
+         * d'appareil réel 7842f130, v0.29.0 : l'écran Terminal plantait
+         * à chaque ouverture, `NullPointerException` sur
+         * `List.iterator()` dans `construire`).
+         */
+        private val touches: List<Touche> =
+            listOf(
+                Touche.Directe("Tab", "\t"),
+                Touche.Bascule("Ctrl", Modificateur.CTRL),
+                Touche.Bascule("Alt", Modificateur.ALT),
+                Touche.Directe("Échap", "\u001b"),
+                Touche.Directe("←", "\u001b[D"),
+                Touche.Directe("↑", "\u001b[A"),
+                Touche.Directe("↓", "\u001b[B"),
+                Touche.Directe("→", "\u001b[C"),
+            )
+
         init {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -80,19 +104,6 @@ class ClavierEtenduView
             CTRL,
             ALT,
         }
-
-        /** La rangée déclarative (section 5 : « au minimum »). */
-        private val touches: List<Touche> =
-            listOf(
-                Touche.Directe("Tab", "\t"),
-                Touche.Bascule("Ctrl", Modificateur.CTRL),
-                Touche.Bascule("Alt", Modificateur.ALT),
-                Touche.Directe("Échap", "\u001b"),
-                Touche.Directe("←", "\u001b[D"),
-                Touche.Directe("↑", "\u001b[A"),
-                Touche.Directe("↓", "\u001b[B"),
-                Touche.Directe("→", "\u001b[C"),
-            )
 
         private fun construire() {
             for (touche in touches) {

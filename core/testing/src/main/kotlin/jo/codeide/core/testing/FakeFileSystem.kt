@@ -78,6 +78,13 @@ public class FakeFileSystem : FileSystem {
     /** Quand non nulle, toute création échoue. */
     public var createFailure: IOException? = null
 
+    /**
+     * Quand non nulle, seule la création de **fichier** échoue (v0.31.1 :
+     * éprouver l’échec d’écriture d’un fichier du plan sans faire tomber
+     * la création du dossier racine, qui partage [createFailure]).
+     */
+    public var fileCreateFailure: IOException? = null
+
     /** Quand non nulle, toute suppression échoue. */
     public var deleteFailure: IOException? = null
 
@@ -176,6 +183,9 @@ public class FakeFileSystem : FileSystem {
         name: String,
         mimeType: String,
     ): AppResult<String> {
+        fileCreateFailure?.let {
+            return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: ""))
+        }
         createFailure?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         val parent =

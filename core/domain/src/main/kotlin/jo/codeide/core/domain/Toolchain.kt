@@ -28,10 +28,12 @@ import java.io.File
 @Suppress("TooManyFunctions") // Exemption ciblée : périmètre exact du prompt Terminal-1, section 2.2 (13 méthodes).
 public interface ToolchainLocator {
     /**
-     * Le bootstrap natif est-il extrait et opérationnel ?
+     * Le bootstrap natif est-il installé **jusqu'au bout** ?
      *
      * @return `true` si la disposition Termux (`filesDir/usr`) contient un
-     * shell exécutable (`bin/sh`).
+     * shell exécutable (`bin/sh`) **et** le marqueur d'installation
+     * terminée déposé par l'installateur (v0.31.1 : un préfixe extrait
+     * seul ne suffit pas, le second stage peut échouer après la bascule).
      */
     public fun isBootstrapInstalled(): Boolean
 

@@ -60,18 +60,32 @@ class LocalisationOutilsTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `bootstrapInstalle exige un shell exécutable sous usr bin`() {
+    fun `bootstrapInstalle exige un shell exécutable et le marqueur d installation terminée`() {
         val racine = racineFactice()
         assertFalse(LocalisationOutils.bootstrapInstalle(racine))
 
+        // Shell seul (préfixe extrait, installation interrompue) : insuffisant
+        // depuis v0.31.1 — rapport d'appareil 7842f130 : l'assistant affirmait
+        // « déjà installé » après un échec au second stage.
         deposerBinaire(racine, "usr", "bin", "sh")
+        assertFalse(LocalisationOutils.bootstrapInstalle(racine))
+
+        deposerFichier(racine, "usr", ".codeide-installation-terminee")
         assertTrue(LocalisationOutils.bootstrapInstalle(racine))
     }
 
     @Test
-    fun `bootstrapInstalle ignore un shell non exécutable`() {
+    fun `bootstrapInstalle ignore un shell non exécutable même avec le marqueur`() {
         val racine = racineFactice()
         deposerFichier(racine, "usr", "bin", "sh")
+        deposerFichier(racine, "usr", ".codeide-installation-terminee")
+        assertFalse(LocalisationOutils.bootstrapInstalle(racine))
+    }
+
+    @Test
+    fun `bootstrapInstalle ignore un marqueur sans shell (préfixe dégénéré)`() {
+        val racine = racineFactice()
+        deposerFichier(racine, "usr", ".codeide-installation-terminee")
         assertFalse(LocalisationOutils.bootstrapInstalle(racine))
     }
 
