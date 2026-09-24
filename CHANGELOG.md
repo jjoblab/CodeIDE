@@ -4,6 +4,73 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.0] – 2026-09-25
+
+Étape 30 (= G6 du prompt compagnon « Tooling Gradle (client-serveur) »,
+dernière) : robustesse éprouvée au **chaos réel** et audit final. Le
+chaos a révélé un vrai trou : un build EN COURS pendait à jamais à la
+perte de l'orchestrateur — il se conclut désormais proprement. Le
+prompt est couvert de bout en bout : G1 protocole, G2 orchestrateur,
+G3 client, G4 daemon, G5 éditeur, G6 robustesse. ADR 0044,
+`docs/TOOLING.md` (final).
+
+### Corrigé
+
+- **Builds orphelins à la perte de session** (découvert par le chaos
+  §7.5) : quand l'orchestrateur meurt en plein build (kill, crash,
+  socket perdue), `romprePromesses` résolvait les requêtes en attente
+  mais aucun `BuildFinished` n'arriverait jamais — l'état du build
+  restait EN COURS à vie et son canal de sortie restait ouvert (collect
+  de l'onglet Sortie suspendu indéfiniment). `GradleApiImpl
+  .rompreBuildsEnCours()` : chaque build EN COURS passe `ECHOUE`
+  (« connexion avec l'orchestrateur perdue ») et son canal se ferme —
+  même sémantique de clôture que la fin normale, un collecteur tardif
+  draine le tampon puis complète. Prouvé unitairement (EOF factice) et
+  en réel (`kill -9` en plein build).
+
+### Ajouté
+
+- **Chaos réel §7.5** (`ChaosToolingTest`, tooling:daemon) sur le
+  harnais du bout-en-bout G4 (harnais passé `internal` et instrumenté
+  — registre des process lancés, dernière session acceptée) :
+  - **process tué en plein build** (`kill -9` sur la tâche longue) :
+    le build se conclut `ECHOUE` en quelques secondes, le canal se
+    ferme, le daemon détecte la mort et relance borné, la connexion
+    remonte avec un secret neuf, aucun process ne survit à l'arrêt ;
+  - **socket perdue côté app** (rupture du canal côté hôte) : le
+    process orchestrateur voit l'EOF et sort SEUL (code 0, avant même
+    le health check) — aucun orphelin ;
+  - version incompatible et JDK introuvable : déjà prouvés
+    (`HandshakeAppTest`, `DaemonManagerTest`) — le tableau de chaos de
+    `docs/TOOLING.md` consolide les six pannes et leurs preuves.
+- **`docs/TOOLING.md` final** : architecture livrée (schéma des
+  processus), table des délais de garde §7.5 (client + serveur + health
+  check, effet au dépassement), tableau du comportement au chaos,
+  journalisation `gradle-server`, ce que la CI garantit.
+
+### Audité
+
+- Délais de garde §7.5 inventoriés aux deux frontières — déjà en place
+  depuis G2/G3 (rien à réécrire, tout documenté) : client sync 5 min /
+  tâches 30 s / connexion 10 s ; serveur build 30 min (annulation
+  forcée) / sync 5 min / tâches et dépendances 30 s / modèle 5 min ;
+  health check ping 5 s / muet 15 s.
+- Aucun TODO/FIXME, detekt strict vert, `ServerVersion` inchangée
+  (0.30.0 — G6 ne redélivre pas l'orchestrateur : le correctif vit
+  côté client).
+- Points T7 exigeant l'appareil (ADR targetSdk, revue mémoire
+  LeakCanary) : explicitement **différés** à l'appareil réel — aucun
+  faux « terminé ».
+
+### Tests
+
+- `ChaosToolingTest` (2, réels) : kill -9 en plein build + socket
+  perdue ;
+- `GradleApiImplTest` étendu (17) : « une déconnexion échoue les builds
+  en cours » ;
+- suites daemon (10 + 4 + 1) et client (17) intégralement au vert sur
+  le harnais modifié.
+
 ## [0.30.0] – 2026-09-24
 
 Étape 29 (= G5 du prompt compagnon « Tooling Gradle (client-serveur) ») :
