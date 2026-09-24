@@ -117,6 +117,51 @@ public sealed interface AppError {
     ) : AppError
 
     /**
+     * Erreur du tooling Gradle client-serveur (prompt compagnon Tooling,
+     * G3+) : l'orchestrateur signale un [code machine-lisible], jamais une
+     * chaîne libre — l'UI traduit, elle n'interprète pas le texte brut.
+     *
+     * @property code code normalisé de l'échec (version de protocole,
+     * handshake, délai, connexion perdue…).
+     * @property message message humain de l'orchestrateur, pour le journal.
+     */
+    public data class Tooling(
+        public val code: ToolingReason,
+        public val message: String,
+    ) : AppError
+
+    /**
+     * Raisons normalisées d'un échec du tooling Gradle — miroir des
+     * `ErrorCode` du protocole (tooling:protocol), au vocabulaire du
+     * domaine.
+     */
+    public enum class ToolingReason {
+        /** Versions de protocole incompatibles app ↔ orchestrateur. */
+        ProtocolVersion,
+
+        /** Secret de handshake invalide. */
+        Handshake,
+
+        /** Requête inconnue de l'orchestrateur. */
+        UnknownRequest,
+
+        /** Frame trop grande ou corrompue (garde DoS du framing). */
+        Frame,
+
+        /** Délai de garde dépassé (build, synchronisation, tâches…). */
+        Timeout,
+
+        /** Connexion avec l'orchestrateur perdue. */
+        ConnectionLost,
+
+        /** Le lancement d'un build a échoué avant tout événement. */
+        BuildLaunch,
+
+        /** Erreur interne non classée de l'orchestrateur. */
+        Internal,
+    }
+
+    /**
      * Erreur non prévue par le domaine (par défaut, imprévue).
      *
      * @property details contexte technique pour les journaux.

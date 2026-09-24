@@ -65,6 +65,7 @@
     <string name="accueil_snackbar_supprime">Project deleted from disk</string>
 
     <string name="accueil_erreur_modele">The project template is missing or invalid.</string>
+    <string name="accueil_erreur_tooling">The Gradle tools are temporarily unreachable. Relaunch the synchronization from the editor.</string>
     <string name="accueil_erreur_bootstrap">Could not install the terminal tools. Retry from the installation screen.</string>
 
     <!-- Traductions des erreurs typées (section 5.5). -->

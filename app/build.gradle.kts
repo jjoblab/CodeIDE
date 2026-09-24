@@ -54,6 +54,12 @@ dependencies {
     // Terminal T5 : écran plein écran du terminal (destination de
     // navigation ouverte par les points d'entrée de T6).
     implementation(project(":feature:terminal"))
+    // Tooling G3 : agrégation Hilt du client tooling (liaison
+    // GradleToolingRepository → GradleApiImpl dans le graphe final). L'app
+    // ne consomme toujours le tooling que via l'interface du domaine
+    // (règle §2.2) — le JAR orchestrateur, lui, reste un artefact de build
+    // lié par tâche (voir preBuild plus bas).
+    implementation(project(":tooling:client"))
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.

@@ -43,6 +43,13 @@ internal object TraductionsAccueil {
                 R.string.accueil_erreur_bootstrap
             }
 
+            is AppError.Tooling -> {
+                // G3 : le code machine (version, handshake, délai…) part
+                // dans les journaux ; l'utilisateur reçoit la marche à
+                // suivre — l'erreur fine guide le diagnostic.
+                R.string.accueil_erreur_tooling
+            }
+
             is AppError.Unknown -> {
                 R.string.accueil_erreur_stockage
             }
