@@ -357,7 +357,19 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       Unix contre les fixtures — annulation d'une tâche de 60 s en ~2,6 s ; kover
       ≥ 80 % ; correctif plantage 3d8ede67 + prompt Vérification-1 appliqué.
       ADR 0040)
-- Prochaine : étape 26 (= Tooling G2 — tooling:server sur JVM, tests d'intégration réels §7.2,
+- [x] Étape 27 (= Tooling G3) — tooling:client → v0.28.0
+      (port `GradleToolingRepository` dans core:domain — zéro type tooling,
+      règle §2.2 ; `GradleSocketServer` namespace FICHIER
+      [`LocalSocket.bind(FILESYSTEM)` + `LocalServerSocket(FileDescriptor)`,
+      tout public API 8 — le client JDK 17 ne joint que des chemins de
+      fichiers] ; `HandshakeApp` validé AVANT tout handler §4.4 ; `GradleApiImpl`
+      corrélation par promesses + canaux bornés 4096 par build à envoi
+      suspendant [tampon pré-abonnement, rejouable après `BuildFinished`] ;
+      écho d'identifiant corrigé côté serveur [corrélation §3.2 — défaut G2
+      découvert en écrivant le client] ; `AppError.Tooling` typé jusqu'à
+      l'UI ; 19 tests dont non-conflation 12 000 lignes §7.3. ADR 0041)
+- Prochaine : étape 28 (= Tooling G4 — tooling:daemon sur `NativeProcessLauncher`,
+      `JarDeployer`, health check, premier bout-en-bout réel §7.4,
       cf. docs/TOOLING.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
@@ -414,6 +426,25 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   l'orchestrateur JVM ne peut pas appeler AppLogger — son stderr EST le
   canal (tag `gradle-server`), exemption detekt ciblée plutôt qu'un
   contournement trompeur.
+- **Écrire le client révèle les défauts du serveur** (leçon G3) : la
+  corrélation §3.2 exige que la réponse ÉCHOYE l'identifiant de la requête
+  — les handlers de G2 généraient un identifiant neuf, la promesse du
+  client n'était jamais résolue. Les deux bouts d'un protocole se testent
+  l'un contre l'autre, jamais chacun dans son coin.
+- **`Channel`, pas `SharedFlow`, pour la sortie de build** (leçon G3) : un
+  canal tamponne les valeurs émises sans abonné ET reste lisible après sa
+  fermeture (drain complet) — un `SharedFlow` à rejeu nul perd l'historique
+  pré-abonnement, précisément le bug `postValue` documenté par le prompt.
+  États = `StateFlow` (conflation légitime) ; flux = canaux (jamais).
+- **Robolectric n'a AUCUNE shadow de `LocalSocket`/`LocalServerSocket`**
+  (vérifié 4.17, leçon G3) : isoler la logique derrière une couture
+  (`SessionTooling`) testée en fake, la colle socket en couche mince
+  filtrée de kover — même précédent que la colle Termux/JNI (ADR 0035).
+- **Le namespace abstrait d'Android est inaccessible depuis un client
+  JDK** (leçon G3) : `LocalServerSocket(String)` bind en ABSTRACT, invisible
+  pour `UnixDomainSocketAddress` — l'astuce publique est
+  `LocalSocket.bind(FILESYSTEM)` puis `LocalServerSocket(FileDescriptor)`
+  (API 8), sans toucher aux interfaces cachées.
 - **Un fragment qui obtient un `@HiltViewModel` par `by viewModels()`
   DOIT porter `@AndroidEntryPoint`** (rapport 30e81ee0, v0.24.0 sur
   appareil) : sans elle, la factory par défaut tente la réflexion sur un
