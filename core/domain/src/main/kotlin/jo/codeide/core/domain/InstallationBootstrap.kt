@@ -29,6 +29,24 @@ public interface BootstrapInstaller {
     public val etat: StateFlow<EtatInstallationBootstrap>
 
     /**
+     * Journal d'installation en direct (v0.31.2, ADR 0046) : lignes de
+     * sortie réelles des sous-processus (second stage, `apt update`,
+     * `apt install`) et transitions d'étapes, destinées à l'affichage.
+     *
+     * Né du rapport d'appareil réel v0.31.1 (« la configuration des
+     * paquets a échoué » sans le moindre indice) : l'écran de
+     * progression affiche désormais ce qui se fait **réellement** —
+     * l'utilisateur voit la sortie apt au fur et à mesure, et les
+     * dernières lignes en échec restent visibles avec l'erreur.
+     *
+     * Borné par l'implémentation (les plus anciennes lignes disparaissent
+     * — seule la fin du pipeline intéresse l'écran) ; vide tant qu'aucune
+     * installation n'a démarré, conservé après un échec (diagnostic),
+     * remis à plat au redémarrage d'une installation.
+     */
+    public val journal: StateFlow<List<String>>
+
+    /**
      * Démarre l'installation si aucune n'est en cours (ni déjà
      * terminée avec succès) ; sans effet sinon.
      *

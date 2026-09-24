@@ -67,4 +67,12 @@
     <string name="page_terminal_installer">Installer maintenant</string>
     <string name="page_terminal_deja_installe">Les outils du terminal sont déjà installés.</string>
     <string name="page_terminal_passer">Plus tard</string>
+
+    <!-- Page 4 — Notifications (v0.31.2, ADR 0046). -->
+    <string name="page_notifications_titre">Notifications et stockage</string>
+    <string name="page_notifications_texte">CodeIDE affiche une notification honnête quand le terminal travaille en arrière-plan (une session ouverte survit à votre retour à l\'accueil) et pendant les longues installations d\'outils. Sur Android 13 et plus, l\'autorisation peut être accordée ou refusée — rien de bloquant : le terminal fonctionne dans tous les cas.</string>
+    <string name="page_notifications_stockage">Aucune permission de stockage n\'est demandée : l\'environnement Linux vit dans le stockage privé de l\'application, et votre dossier de travail passe par le sélecteur de dossiers du système — CodeIDE n\'y accède que par l\'autorisation que vous lui accordez.</string>
+    <string name="page_notifications_autoriser">Autoriser les notifications</string>
+    <string name="page_notifications_activees">Notifications activées — merci !</string>
+    <string name="page_notifications_reglages">Ouvrir les réglages de notification</string>
 </resources>

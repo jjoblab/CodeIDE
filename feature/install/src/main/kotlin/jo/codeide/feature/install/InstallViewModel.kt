@@ -10,6 +10,7 @@ import jo.codeide.core.model.EtatInstallationBootstrap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -39,6 +40,12 @@ sealed interface ActionInstallation {
  * `null` si indéterminée ou hors téléchargement.
  * @property erreur erreur typée (phase échec), ou `null`.
  * @property outils état par outil (phase terminée).
+ * @property journal lignes de sortie réelles des sous-processus (v0.31.2 :
+ * « ce qui se fait vraiment » — affichées en direct pendant la
+ * progression, conservées à l'échec pour le diagnostic).
+ * @property detailsEchec détails techniques de l'échec typé (code de
+ * sortie + dernières lignes d'erreur), ou `null` — affichés sous
+ * pli pour ne pas effrayer, présents pour diagnostiquer.
  */
 data class EtatInstallation(
     val phase: PhaseInstallation = PhaseInstallation.INVITE,
@@ -46,6 +53,8 @@ data class EtatInstallation(
     val progressionTelechargement: Float? = null,
     val erreur: AppError? = null,
     val outils: List<jo.codeide.core.model.OutilResume> = emptyList(),
+    val journal: List<String> = emptyList(),
+    val detailsEchec: String? = null,
 )
 
 /** Phase de rendu de l'écran d'installation. */
@@ -95,6 +104,14 @@ class InstallViewModel
             viewModelScope.launch {
                 installateur.etat.collect { partage -> etatInterne.value = traduire(partage) }
             }
+            // Journal en direct (v0.31.2) : flux séparé de l'état — il
+            // évolue à chaque ligne de sortie, sans transition d'étape.
+            etatInterne.update { it.copy(journal = installateur.journal.value) }
+            viewModelScope.launch {
+                installateur.journal.collect { lignes ->
+                    etatInterne.update { it.copy(journal = lignes) }
+                }
+            }
         }
 
         /** Point d'entrée unique du fragment. */
@@ -134,11 +151,23 @@ class InstallViewModel
                 }
 
                 is EtatInstallationBootstrap.Echouee -> {
-                    EtatInstallation(phase = PhaseInstallation.ECHEC, erreur = partage.erreur)
+                    EtatInstallation(
+                        phase = PhaseInstallation.ECHEC,
+                        erreur = partage.erreur,
+                        detailsEchec = detailsDe(partage.erreur),
+                    )
                 }
 
                 EtatInstallationBootstrap.Annulee -> {
                     EtatInstallation(phase = PhaseInstallation.ANNULEE)
                 }
+            }
+
+        /** Détails techniques affichables d'une erreur typée (sous pli). */
+        private fun detailsDe(erreur: AppError): String? =
+            when (erreur) {
+                is AppError.Bootstrap -> erreur.details.takeIf { it.isNotBlank() }
+                is AppError.Unknown -> erreur.details.takeIf { it.isNotBlank() }
+                else -> null
             }
     }

@@ -36,6 +36,14 @@ dependencies {
     // Notification honnête du service foreground (NotificationCompat).
     implementation(libs.androidx.core.ktx)
 
+    // Dispatchers.Main réel (v0.31.2, ADR 0046) : les sessions Termux
+    // DOIVENT naître sur le thread principal — TerminalSession crée un
+    // Handler dans son constructeur (crash d'appareil réel 511e1c7f :
+    // « Can't create handler inside thread that has not called
+    // Looper.prepare() »). Artefact canonique du dispatcher principal
+    // Android, chargé via ServiceLoader à l'exécution.
+    implementation(libs.kotlinx.coroutines.android)
+
     // Tests du registre (fausses coquilles de session, temps virtuel) et
     // du service foreground (cycle de vie réel sous Robolectric).
     testImplementation(libs.junit4)

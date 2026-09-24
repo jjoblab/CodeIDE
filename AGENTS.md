@@ -461,6 +461,24 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       le try + vérification illisible non destructive] ; directive
       utilisateur : **vérification standard = légère + assembleDebug**
       (§ Commandes)]
+- v0.31.2 : **deuxième lot de corrections d'appareil réel** (rapport
+      511e1c7f, moto g06 / Android 15) — plantage du terminal à la
+      première session [`TerminalSession` (Termux) crée un `Handler`
+      dans son constructeur : thread principal EXIGÉ ; création de la
+      coquille via `withContext(dispatchers.main)`,
+      `kotlinx-coroutines-android` ajouté à `core:terminal-runtime`,
+      test au dispatcher instrumenté ; ADR 0046] ; installation sous
+      surveillance [port `BootstrapInstaller.journal` : lignes d'étapes
+      + sortie RÉELLE stdout/stderr du second stage et d'apt au fil de
+      l'eau (`SupervisionProcessus` consommateur), écran refondu :
+      checklist des 9 étapes, compteurs octets/fichiers/paquet, console
+      en direct conservée à l'échec, détails techniques dépliables —
+      « la configuration des paquets a échoué » ne sera plus muette ;
+      installateur journalisé tag `Installateur`] ; page onboarding
+      « Notifications et stockage » [`POST_NOTIFICATIONS` demandé sur
+      Android 13+ avec repli réglages, état réel relu au retour ;
+      documenté : AUCUNE permission de stockage nécessaire — SAF +
+      stockage privé, ADR 0046] ; ADR 0046]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -491,6 +509,25 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   téléchargé) doit cibler 28 (précédent Termux) — ADR 0045. Symptôme
   codeide v0.29.0 : « erreur inattendue » au second stage du bootstrap
   alors que l'extraction avait réussi.
+- **`TerminalSession` (Termux) doit naître sur le thread principal**
+  (rapport 511e1c7f, v0.31.1) : son constructeur crée un `Handler` sans
+  Looper explicite (`MainThreadHandler`) — hors du thread principal,
+  `Can't create handler inside thread … not called Looper.prepare()`
+  IMMÉDIATEMENT. Termux crée ses sessions sur l'UI, toute intégration du
+  terminal-emulator doit en faire autant (`withContext(dispatchers.main)`,
+  ADR 0046). Corollaire : `Dispatchers.Main` d'Android n'existe à
+  l'exécution que si `kotlinx-coroutines-android` est dans le graphe
+  (chargement ServiceLoader) — un module qui consomme
+  `DispatcherProvider.main` en production doit déclarer l'artefact
+  lui-même.
+- **Une opération longue sans sortie visible est un future rapport de
+  panne muet** (rapports 7842f130/511e1c7f) : l'installation du bootstrap
+  drainait stdout en le JETANT — le message « la configuration des
+  paquets a échoué » couvrait trois étapes sans dire laquelle. Toute
+  étape pilotant un sous-processus au nom de l'utilisateur expose sa
+  sortie au fil de l'eau (journal d'écran) et ses détails typés à
+  l'échec (sous pli) ; stdout se draine TOUJOURS (tuyau bloquant) mais
+  se jette JAMAIS.
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

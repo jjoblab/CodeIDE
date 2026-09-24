@@ -4,6 +4,121 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.2] – 2026-09-25
+
+Deuxième lot de corrections après **retour d'appareil réel** (rapport de
+plantage 511e1c7f, moto g06, Android 15 / API 35, fr-HT — v0.31.1) :
+l'écran Terminal plantait à la première session (« Can't create handler
+inside thread that has not called Looper.prepare() »), l'écran
+d'installation n'affichait pas ce qui se faisait réellement et l'échec
+« la configuration des paquets a échoué » arrivait sans le moindre
+indice, et aucune page de l'assistant ne parlait des permissions de
+notification. Version corrective (SemVer `0.N.M`). ADR 0046.
+
+### Corrigé
+
+- **Plantage de l'écran Terminal à la création de la première session**
+  (`RuntimeException: Can't create handler inside thread
+  DefaultDispatcher-worker-1 that has not called Looper.prepare()`) :
+  le constructeur de `TerminalSession` (Termux) crée son
+  `MainThreadHandler` — un `Handler` SANS Looper explicite — qui exige
+  d'être construit sur un thread doté d'un `Looper`, donc le thread
+  principal. `RegistreSessionsTermux.createSession` tournait sur
+  `Dispatchers.Default` (worker sans Looper) : plantage déterministe à
+  l'ouverture du terminal. La création de la coquille bascule désormais
+  par `withContext(dispatchers.main)` (le fork/exec du pty est bref,
+  comme dans Termux qui crée ses sessions sur l'UI) ; la dépendance
+  `kotlinx-coroutines-android` rejoint `core:terminal-runtime` — aucun
+  module ne fournissait le dispatcher principal réel. Test de
+  régression : un dispatcher instrumenté prouve le saut de contexte
+  vers `main` pendant la création.
+
+### Ajouté
+
+- **Journal d'installation en direct** (motivation : « la configuration
+  des paquets a échoué » sans indice — l'écran montrait un libellé figé
+  et une barre indéterminée) : le port `BootstrapInstaller` expose un
+  flux `journal` (lignes bornées à 200) alimenté par les transitions
+  d'étapes ET par la **sortie réelle des sous-processus** — le drainage
+  parallèle stdout/stderr de `SupervisionProcessus` achemine chaque
+  ligne au fil de l'eau (second stage, `apt update`, `apt install`) ;
+  stdout n'est plus jeté silencieusement. À l'échec, la sortie en échec
+  reste visible : la prochaine panne d'apt sur l'appareil est
+  diagnostiquable depuis l'écran (cause racine probable : dépôt,
+  DNS, signature — le dépôt et les paquets ont été re-vérifiés sains en
+  ligne côté serveur).
+- **Écran d'installation refondu** : checklist des neuf étapes du
+  pipeline (terminée ✓ / en cours avec rotation / en attente), compteur
+  de l'étape courante (« 12,4 Mo sur 43,0 Mo », « 1 234 fichiers
+  extraits », « openjdk-17 — paquet 1 sur 2 »), barre de progression
+  déterminée dès que le serveur annonce la taille, et **console de
+  journal en direct** (monospace, auto-défilement) affichée pendant la
+  progression et conservée à l'échec.
+- **Détails techniques dépliables à l'échec** : le message actionnable
+  reste court, le code de sortie et les dernières lignes d'erreur de
+  l'étape fautive (`apt update → code 100 — E: …`) se déplient sous pli
+  — plus jamais « la configuration des paquets a échoué » sans dire
+  laquelle ni pourquoi.
+- **Page « Notifications et stockage » dans l'assistant de premier
+  lancement** (entre Terminal et Apparence) : explique ce que
+  l'application fait des notifications (service foreground du
+  terminal, installations longues), propose la demande directe
+  (`POST_NOTIFICATIONS`, Android 13+) avec repli vers les réglages, et
+  **documente pourquoi aucune permission de stockage n'est demandée**
+  (environnement Linux dans le stockage privé + dossier de travail par
+  le sélecteur du système SAF — `READ/WRITE_EXTERNAL_STORAGE` comme
+  `MANAGE_EXTERNAL_STORAGE` restent inutiles, ADR 0003/0034/0046). La
+  demande n'est jamais bloquante, l'état réel
+  (`areNotificationsEnabled`) fait foi et est relu au retour sur la
+  page.
+- **Journalisation du pipeline d'installation** : l'installateur consigne
+  désormais ses transitions d'étapes et ses échecs typés dans l'AppLogger
+  (tag `Installateur`) — les prochains rapports de plantage contiendront
+  la raison d'un échec d'installation au lieu d'un silence.
+
+### Tests
+
+- `RegistreSessionsTermuxTest` : 14 tests (+1 : création de la coquille
+  sur le dispatcher principal — régression 511e1c7f, dispatcher
+  instrumenté comptant les dispatchs).
+- `InstallateurBootstrapTest` : 13 tests (+2 : le journal suit les
+  étapes et la sortie des sous-processus ; un échec d'apt laisse la
+  sortie en échec dans le journal) — constructeur enrichi de l'AppLogger
+  double, `FakeNativeProcessLauncher`/`ProcessusScripte` inchangés.
+- `ConfigurateurAptTest` : 8 tests (+1 : la sortie d'apt alimente le
+  consommateur en direct, stdout et stderr).
+- `InstallViewModelTest` : 14 tests (+3 : journal dans l'état de rendu,
+  détails techniques de l'échec exposés, absence de détails sans
+  contenu) ; `FakeBootstrapInstaller` gagne un journal pilotable.
+- `OnboardingViewModelTest` : 19 tests (+6 : ordre Terminal →
+  Notifications → Apparence, effets de demande d'autorisation et de
+  réglages, consignation de l'état réel, bornes de navigation recalées
+  sur sept pages).
+
+### Découvertes d'ingénierie
+
+- **`TerminalSession` (Termux) exige le thread principal** : son
+  `MainThreadHandler` est un `Handler` sans Looper explicite — construit
+  hors du thread principal, il lève immédiatement. Termux crée ses
+  sessions sur l'UI ; toute intégration du terminal-emulator doit en
+  faire autant. Et sans artefact `kotlinx-coroutines-android` quelque
+  part dans le graphe, `Dispatchers.Main` n'existe pas à l'exécution
+  (le dispatcher est chargé par ServiceLoader) — un module qui l'utilise
+  doit déclarer la dépendance lui-même.
+- **L'archive réelle du bootstrap (vérifiée par téléchargement et
+  empreinte)** : `bin/apt` et `bin/dpkg` sont des fichiers réguliers, la
+  base dpkg déclare 149 paquets « install ok installed », le
+  `sources.list` embarqué porte la bonne URL sans `[trusted=yes]`
+  (corrigé par le configurateur) et le script de second stage construit
+  pour `jo.codeide` no-oppe (`TERMUX_PACKAGE_MANAGER` vide dans cette
+  publication) — l'échec « la configuration des paquets » vient donc
+  d'`apt update`/`apt install` eux-mêmes ; sa sortie exacte sera
+  désormais visible dans le journal et les détails.
+- **stdout des sous-processus doit être drainé ET affiché** : un tuyau
+  non lu bloque le processus (piège ProcessBuilder classique, déjà
+  connu) — mais le drainer en le jetant coûte le diagnostic : la sortie
+  d'apt est le seul moyen de comprendre un échec de dépôt sur l'appareil.
+
 ## [0.31.1] – 2026-09-25
 
 Premier lot de corrections après **retour d'appareil réel** (rapport de

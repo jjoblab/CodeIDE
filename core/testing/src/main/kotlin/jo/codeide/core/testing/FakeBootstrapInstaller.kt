@@ -23,6 +23,9 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
     private val _etat = MutableStateFlow<EtatInstallationBootstrap>(NonDemarree)
     override val etat: StateFlow<EtatInstallationBootstrap> = _etat.asStateFlow()
 
+    private val _journal = MutableStateFlow<List<String>>(emptyList())
+    override val journal: StateFlow<List<String>> = _journal.asStateFlow()
+
     /** Ordres `demarrer()` reçus. */
     public var demarrages: Int = 0
         private set
@@ -57,5 +60,10 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
     /** Fait passer l'état partagé à `Annulee`. */
     public fun simulerAnnulee() {
         _etat.value = Annulee
+    }
+
+    /** Publie des lignes dans le journal (vérification du rendu en direct). */
+    public fun simulerJournal(lignes: List<String>) {
+        _journal.value = lignes
     }
 }

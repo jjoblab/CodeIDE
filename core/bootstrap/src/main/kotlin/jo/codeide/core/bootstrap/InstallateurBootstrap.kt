@@ -3,6 +3,7 @@ package jo.codeide.core.bootstrap
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jo.codeide.core.bootstrap.SupervisionProcessus.Sortie
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.NativeProcessLauncher
@@ -22,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,6 +31,7 @@ import java.io.IOException
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.reflect.KClass
 
 /**
  * Installateur du bootstrap natif (prompt compagnon Terminal-1,
@@ -76,6 +79,7 @@ internal class InstallateurBootstrap
         private val espaceDisque: EspaceDisqueSonde,
         private val architecture: CapaciteArchitecture,
         private val configuration: ConfigurationBootstrap,
+        private val journalApp: AppLogger,
         operations: OperationsSysteme,
     ) : BootstrapInstaller {
         private val racine: File = contexte.filesDir
@@ -86,9 +90,15 @@ internal class InstallateurBootstrap
         private val _etat = MutableStateFlow<EtatInstallationBootstrap>(NonDemarree)
         override val etat: StateFlow<EtatInstallationBootstrap> = _etat.asStateFlow()
 
+        private val _journal = MutableStateFlow<List<String>>(emptyList())
+        override val journal: StateFlow<List<String>> = _journal.asStateFlow()
+
         private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
         private val verrou = Any()
         private var travail: Job? = null
+
+        /** Dernière étape déjà journalisée (anti-rejeu des tics de progression). */
+        private var derniereEtapeJournalisee: KClass<out EtapeInstallation>? = null
 
         override fun demarrer() {
             synchronized(verrou) {
@@ -108,11 +118,14 @@ internal class InstallateurBootstrap
 
         /** Exécute le pipeline et traduit l'issue en état partagé. */
         private suspend fun executer() {
+            // Nouvelle tentative : le journal repart à plat (celui de la
+            // tentative échouée n'a plus de valeur une fois relancée).
+            _journal.value = emptyList()
+            derniereEtapeJournalisee = null
             val outils = mutableListOf<OutilResume>()
             try {
                 majEtape(EtapeInstallation.VerificationEspaceDisque)
-                verifierEspaceDisque()
-                verifierArchitecture()
+                verifierPrealables()
 
                 preparerStaging()
                 telechargeur.telecharger(DispositionsBootstrap.archiveStaging(racine)).collect(::majEtape)
@@ -131,7 +144,7 @@ internal class InstallateurBootstrap
                 configurateur.ecrireSourcesList(prefixe, configuration.ligneDepotApt)
 
                 majEtape(EtapeInstallation.MiseAJourApt)
-                configurateur.miseAJour(prefixe)
+                configurateur.miseAJour(prefixe, ::consignerAuJournal)
 
                 val paquets = configuration.paquets
                 for ((index, paquet) in paquets.withIndex()) {
@@ -139,7 +152,7 @@ internal class InstallateurBootstrap
                     outils +=
                         OutilResume(
                             paquet = paquet,
-                            installe = configurateur.installerPaquet(prefixe, paquet) == null,
+                            installe = configurateur.installerPaquet(prefixe, paquet, ::consignerAuJournal) == null,
                         )
                 }
                 if (outils.isNotEmpty() && outils.none { it.installe }) {
@@ -148,6 +161,7 @@ internal class InstallateurBootstrap
 
                 nettoyerStaging()
                 deposerMarqueurInstallation(racine)
+                consignerAuJournal("installation terminée (${outils.count { it.installe }} outil(s) installé(s))")
                 _etat.value = Terminee(outils.toList())
             } catch (e: CancellationException) {
                 // Annulation demandée : état dédié, staging nettoyé, puis
@@ -163,11 +177,15 @@ internal class InstallateurBootstrap
                 throw e
             } catch (e: EchecBootstrap) {
                 nettoyerStaging()
+                consignerAuJournal("échec : ${e.raison}" + if (e.details.isNotBlank()) " — ${e.details}" else "")
+                journalApp.w(TAG) { "installation échouée (${e.raison}) — ${e.details}" }
                 _etat.value = Echouee(AppError.Bootstrap(e.raison, e.details))
             } catch (e: Exception) {
                 // Erreur inattendue : modélisée en Unknown, jamais
                 // remontée en exception jusqu'à l'UI (règle 6).
                 nettoyerStaging()
+                consignerAuJournal("erreur inattendue : ${e.message}")
+                journalApp.w(TAG) { "installation échouée (erreur inattendue) : ${e.message}" }
                 _etat.value = Echouee(AppError.Unknown("installation du bootstrap : ${e.message}"))
             }
         }
@@ -175,9 +193,39 @@ internal class InstallateurBootstrap
         /** Publie une étape en cours dans l'état partagé. */
         private fun majEtape(etape: EtapeInstallation) {
             _etat.value = EnCours(etape)
+            // Journal d'écran : une ligne par ÉTAPE (pas par tic — le
+            // téléchargement émet toutes les 512 Kio, l'extraction par
+            // fichier : le compteur noierait la sortie d'apt qui suit).
+            if (etape::class != derniereEtapeJournalisee) {
+                derniereEtapeJournalisee = etape::class
+                val libelle =
+                    when (etape) {
+                        is EtapeInstallation.Telechargement -> "téléchargement de l'archive…"
+                        is EtapeInstallation.Extraction -> "extraction des fichiers…"
+                        else -> LIBELLES_ETAPES[etape::class] ?: "étape en cours"
+                    }
+                consignerAuJournal(libelle)
+                journalApp.i(TAG) { "étape : $libelle" }
+            }
         }
 
-        private suspend fun verifierEspaceDisque() {
+        /**
+         * Ajoute une ligne au journal d'écran (borné — les plus anciennes
+         * lignes disparaissent, seule la fin du pipeline intéresse
+         * l'écran). Thread-safe : appelée depuis le pipeline ET les
+         * drainages de sous-processus.
+         */
+        private fun consignerAuJournal(ligne: String) {
+            _journal.update { courant -> (courant + ligne).takeLast(LIMITE_JOURNAL_ECRAN) }
+        }
+
+        /**
+         * Vérifications préalables au téléchargement : espace disque
+         * suffisant (archive + extraction + paquets) et architecture
+         * `aarch64` (seule publiée à ce jour) — un échec type lève
+         * [EchecBootstrap] AVANT tout trafic réseau.
+         */
+        private fun verifierPrealables() {
             val libres = espaceDisque.octetsLibres(racine)
             if (libres < configuration.seuilEspaceDisque) {
                 throw EchecBootstrap(
@@ -185,9 +233,6 @@ internal class InstallateurBootstrap
                     "libres : $libres octets, requis : ${configuration.seuilEspaceDisque}",
                 )
             }
-        }
-
-        private fun verifierArchitecture() {
             if (!architecture.supporteAarch64()) {
                 throw EchecBootstrap(BootstrapReason.ArchitectureNonSupportee, "l'appareil n'exécute pas arm64-v8a")
             }
@@ -251,7 +296,7 @@ internal class InstallateurBootstrap
                         cause = e,
                     )
                 }
-            val sortie: Sortie = SupervisionProcessus.attendre(processus)
+            val sortie: Sortie = SupervisionProcessus.attendre(processus, ::consignerAuJournal)
             if (sortie.code != 0) {
                 throw EchecBootstrap(
                     BootstrapReason.EchecSecondStage,
@@ -268,9 +313,26 @@ internal class InstallateurBootstrap
         }
 
         private companion object {
+            private const val TAG = "Installateur"
+
             /** Chemin du second stage, relatif au préfixe (constaté dans l'archive réelle). */
             private const val CHEMIN_SECOND_STAGE =
                 "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh"
+
+            /** Lignes du journal d'écran conservées (la fin du pipeline suffit). */
+            private const val LIMITE_JOURNAL_ECRAN = 200
+
+            /** Libellés d'étape du journal d'écran (sans compteur). */
+            private val LIBELLES_ETAPES: Map<KClass<out EtapeInstallation>, String> =
+                mapOf(
+                    EtapeInstallation.VerificationEspaceDisque::class to "vérification de l'espace disque…",
+                    EtapeInstallation.LiensSymboliques::class to "création des liens symboliques…",
+                    EtapeInstallation.BasculeVersPrefixe::class to "finalisation de l'environnement…",
+                    EtapeInstallation.SecondStage::class to "configuration des paquets de base…",
+                    EtapeInstallation.ConfigurationApt::class to "configuration du dépôt de paquets…",
+                    EtapeInstallation.MiseAJourApt::class to "mise à jour du dépôt…",
+                    EtapeInstallation.InstallationPaquets::class to "installation des outils…",
+                )
         }
     }
 

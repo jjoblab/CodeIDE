@@ -167,4 +167,45 @@ class InstallViewModelTest {
             assertNotNull(viewModel.etat.value.progressionTelechargement)
             assertTrue(viewModel.etat.value.progressionTelechargement!! <= 1f)
         }
+
+    @Test
+    fun `le journal partagé alimente l état de rendu en direct`() =
+        runTest {
+            // v0.31.2 : la sortie réelle des sous-processus doit rejoindre
+            // l'état de rendu (affichage « ce qui se fait vraiment »).
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+            assertTrue(
+                viewModel.etat.value.journal
+                    .isEmpty(),
+            )
+
+            installateur.simulerJournal(listOf("Atteint :1 stable Release", "Lecture des listes…"))
+            advanceUntilIdle()
+
+            assertEquals(listOf("Atteint :1 stable Release", "Lecture des listes…"), viewModel.etat.value.journal)
+        }
+
+    @Test
+    fun `l échec typé expose ses détails techniques pour l affichage sous pli`() =
+        runTest {
+            installateur.simulerEchouee(
+                AppError.Bootstrap(AppError.BootstrapReason.EchecApt, "apt update → code 100 — E: dépôt injoignable"),
+            )
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            assertEquals(PhaseInstallation.ECHEC, viewModel.etat.value.phase)
+            assertEquals("apt update → code 100 — E: dépôt injoignable", viewModel.etat.value.detailsEchec)
+        }
+
+    @Test
+    fun `une erreur sans détails n expose pas de section technique`() =
+        runTest {
+            installateur.simulerEchouee(AppError.Bootstrap(AppError.BootstrapReason.ReseauIndisponible, ""))
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            assertNull(viewModel.etat.value.detailsEchec)
+        }
 }

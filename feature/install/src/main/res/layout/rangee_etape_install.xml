@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rangée de la checklist des étapes d'installation (v0.31.2) :
+     icône d'état (cochée / en attente) remplacée par une rotation
+     indéterminée quand l'étape est EN COURS. Gonflée neuf fois par
+     InstallFragment. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/spacing_xs"
+    android:paddingBottom="@dimen/spacing_xs">
+
+    <FrameLayout
+        android:layout_width="20dp"
+        android:layout_height="20dp">
+
+        <ImageView
+            android:id="@+id/icone_etape"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:src="@drawable/etape_attente"
+            tools:src="@drawable/etape_faite" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/rotation_etape"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:indeterminate="true"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_etape"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Téléchargement de l'archive…" />
+
+</LinearLayout>

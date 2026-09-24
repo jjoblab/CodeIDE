@@ -14,6 +14,11 @@ import kotlinx.coroutines.launch
  * Les dernières lignes d'erreur sont conservées (bornées) pour les
  * détails d'échec — uniquement destinés aux journaux, jamais affichées
  * telles quelles (règle 15 du prompt maître).
+ *
+ * v0.31.2 : un [consommateur] optionnel reçoit **chaque ligne des deux
+ * flux au fil de l'eau** (stdout compris, acheminé au journal d'écran de
+ * l'installation) — l'ordre relatif entre les deux flux n'est pas
+ * garanti, chaque flux conserve néanmoins son ordre interne.
  */
 internal object SupervisionProcessus {
     /** Lignes conservées par flux, au maximum. */
@@ -33,18 +38,26 @@ internal object SupervisionProcessus {
     /**
      * Drain les deux sorties du processus en parallèle et attend sa fin.
      *
+     * @param consommateur receptacle optionnel de chaque ligne (stdout et
+     * stderr, ordre d'arrivée) — journal d'affichage de l'installation.
      * @return le code de sortie et un extrait borné de stderr.
      */
-    suspend fun attendre(processus: ManagedProcess): Sortie =
+    internal suspend fun attendre(
+        processus: ManagedProcess,
+        consommateur: ((String) -> Unit)? = null,
+    ): Sortie =
         coroutineScope {
             val erreurs = mutableListOf<String>()
             val drainages =
                 listOf(
-                    // stdout est drainé même sans être affiché : indispensable
-                    // pour ne pas bloquer le processus (voir KDoc de l'objet).
-                    launch { processus.stdoutLines().collect {} },
+                    launch {
+                        processus.stdoutLines().collect { ligne ->
+                            consommateur?.invoke(ligne)
+                        }
+                    },
                     launch {
                         processus.stderrLines().collect { ligne ->
+                            consommateur?.invoke(ligne)
                             if (erreurs.size < LIMITE_LIGNES) erreurs += ligne
                         }
                     },

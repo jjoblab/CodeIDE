@@ -71,11 +71,17 @@ internal class ConfigurateurApt(
     /**
      * Exécute `apt update` contre le dépôt configuré.
      *
+     * @param consommateur receptacle des lignes de sortie (journal
+     * d'écran de l'installation) — la sortie d'apt est le seul moyen de
+     * comprendre un échec du dépôt sur l'appareil.
      * @throws EchecBootstrap code de sortie non nul (dépôt injoignable,
      * signature refusée…).
      */
-    suspend fun miseAJour(prefixe: File) {
-        val sortie = executerApt(prefixe, listOf("update"))
+    suspend fun miseAJour(
+        prefixe: File,
+        consommateur: (String) -> Unit,
+    ) {
+        val sortie = executerApt(prefixe, listOf("update"), consommateur)
         if (sortie.code != 0) {
             throw EchecBootstrap(
                 BootstrapReason.EchecApt,
@@ -87,6 +93,8 @@ internal class ConfigurateurApt(
     /**
      * Installe un paquet d'outil.
      *
+     * @param consommateur receptacle des lignes de sortie (journal
+     * d'écran de l'installation).
      * @return `null` si le paquet est installé (code de sortie nul), ou
      * l'échec typé sinon (paquet absent du dépôt, dépendance cassée…) —
      * l'appelant consigne l'état par paquet sans faire échouer les
@@ -95,8 +103,9 @@ internal class ConfigurateurApt(
     suspend fun installerPaquet(
         prefixe: File,
         paquet: String,
+        consommateur: (String) -> Unit,
     ): EchecBootstrap? {
-        val sortie = executerApt(prefixe, listOf("install", "-y", paquet))
+        val sortie = executerApt(prefixe, listOf("install", "-y", paquet), consommateur)
         return if (sortie.code == 0) {
             null
         } else {
@@ -111,6 +120,7 @@ internal class ConfigurateurApt(
     private suspend fun executerApt(
         prefixe: File,
         arguments: List<String>,
+        consommateur: (String) -> Unit,
     ): SupervisionProcessus.Sortie {
         val commande = listOf(File(prefixe, "bin/apt").absolutePath) + arguments
         val processus =
@@ -119,7 +129,7 @@ internal class ConfigurateurApt(
             } catch (e: IOException) {
                 throw EchecBootstrap(BootstrapReason.PermissionRefusee, "apt introuvable : ${e.message}", cause = e)
             }
-        return SupervisionProcessus.attendre(processus)
+        return SupervisionProcessus.attendre(processus, consommateur)
     }
 
     private companion object {

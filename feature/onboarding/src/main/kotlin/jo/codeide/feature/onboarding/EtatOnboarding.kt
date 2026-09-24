@@ -7,10 +7,13 @@ import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.ThemeMode
 
 /**
- * Pages de l'assistant, dans l'ordre du parcours (étape 5 du plan).
+ * Pages de l'assistant, dans l'ordre du parcours (étape 5 du plan ;
+ * page Notifications ajoutée en v0.31.2, ADR 0046).
  *
  * L'ordre est contractuel : la bienvenue présente, le dossier de travail
- * est **passable**, l'apparence s'applique immédiatement au fil des choix,
+ * est **passable**, le terminal suit (ses outils tournent en service
+ * foreground → la page notifications qui suit explique ce que l'app
+ * en fait), l'apparence s'applique immédiatement au fil des choix,
  * le profil est optionnel, la page finale valide l'ensemble.
  */
 enum class PageOnboarding {
@@ -22,6 +25,9 @@ enum class PageOnboarding {
 
     /** Outils du terminal : installation **passable** (Terminal T3). */
     TERMINAL,
+
+    /** Permission de notification (Android 13+) — passable (v0.31.2). */
+    NOTIFICATIONS,
 
     /** Thème, couleurs dynamiques, langue — aperçu immédiat. */
     APPARENCE,
@@ -76,6 +82,9 @@ sealed interface EtatDossier {
  * @property dossier état de la sélection du dossier de travail.
  * @property terminalInstalle les outils du terminal sont déjà en place
  * (page Terminal : les boutons d'installation disparaissent).
+ * @property notificationsActivees l'autorisation de notification est
+ * effective (page Notifications, v0.31.2 : état réel relevé par le
+ * fragment, consigné ici pour le rendu).
  * @property modeTheme thème choisi (persisté dès le changement).
  * @property couleursDynamiques couleurs Material You (persistées dès le
  * changement).
@@ -92,6 +101,7 @@ data class EtatOnboarding(
     val page: PageOnboarding = PageOnboarding.BIENVENUE,
     val dossier: EtatDossier = EtatDossier.NonConfigure,
     val terminalInstalle: Boolean = false,
+    val notificationsActivees: Boolean = false,
     val modeTheme: ThemeMode = ThemeMode.SYSTEM,
     val couleursDynamiques: Boolean = true,
     val langue: String = "",

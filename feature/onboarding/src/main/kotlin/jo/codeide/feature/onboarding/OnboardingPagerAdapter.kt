@@ -22,6 +22,7 @@ class OnboardingPagerAdapter(
             PageOnboarding.BIENVENUE -> BienvenuePage()
             PageOnboarding.DOSSIER -> DossierPage()
             PageOnboarding.TERMINAL -> TerminalPage()
+            PageOnboarding.NOTIFICATIONS -> NotificationsPage()
             PageOnboarding.APPARENCE -> ApparencePage()
             PageOnboarding.PROFIL -> ProfilPage()
             PageOnboarding.TERMINE -> TerminePage()

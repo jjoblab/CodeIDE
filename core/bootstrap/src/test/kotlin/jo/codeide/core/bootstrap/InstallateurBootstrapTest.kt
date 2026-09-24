@@ -13,6 +13,7 @@ import jo.codeide.core.model.EtatInstallationBootstrap.Annulee
 import jo.codeide.core.model.EtatInstallationBootstrap.Echouee
 import jo.codeide.core.model.EtatInstallationBootstrap.EnCours
 import jo.codeide.core.model.EtatInstallationBootstrap.Terminee
+import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeNativeProcessLauncher
 import jo.codeide.core.testing.ProcessusScripte
 import kotlinx.coroutines.Dispatchers
@@ -78,6 +79,9 @@ class InstallateurBootstrapTest {
 
     private lateinit var installateur: InstallateurBootstrap
 
+    /** Journal applicatif double (v0.31.2 : l'installateur consigne ses étapes). */
+    private val journalApplicatif = FakeAppLogger()
+
     init {
         // Comportement du faux lanceur : second stage, apt update et apt
         // install, pilotables par le test via les codes configurés.
@@ -133,6 +137,7 @@ class InstallateurBootstrapTest {
                     paquets = listOf("openjdk-17", "git"),
                     seuilEspaceDisque = 1,
                 ),
+            journalApp = journalApplicatif,
             operations = OperationsSystemeNio(),
         )
 
@@ -207,6 +212,83 @@ class InstallateurBootstrapTest {
     private fun empreinteDe(octets: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(octets).joinToString("") { octet ->
             ((octet.toInt() and 0xff) + 0x100).toString(16).substring(1)
+        }
+
+    @Test
+    fun `le journal d écran suit les étapes et la sortie des sous-processus`() =
+        runBlocking {
+            // v0.31.2 (rapport d'appareil réel « la configuration des
+            // paquets a échoué » sans indice) : l'écran affiche la sortie
+            // RÉELLE du second stage et d'apt, pas un libellé figé.
+            lanceur.fabrique = { commande ->
+                val programme = commande.command.firstOrNull() ?: ""
+                when {
+                    programme.endsWith("bash") -> {
+                        ProcessusScripte(
+                            codeSortie = 0,
+                            lignesStdout = listOf("[*] Running termux bootstrap second stage"),
+                        )
+                    }
+
+                    commande.command.getOrNull(1) == "update" -> {
+                        ProcessusScripte(
+                            codeSortie = 0,
+                            lignesStdout = listOf("Atteint :1 stable Release"),
+                        )
+                    }
+
+                    else -> {
+                        ProcessusScripte(codeSortie = 0)
+                    }
+                }
+            }
+
+            installateur.demarrer()
+            attendreTerminal()
+
+            val lignes = installateur.journal.value
+            assertTrue("une ligne par étape", "vérification de l'espace disque…" in lignes)
+            assertTrue("étape extraction consignée", "extraction des fichiers…" in lignes)
+            assertTrue("sortie du second stage transmise", "[*] Running termux bootstrap second stage" in lignes)
+            assertTrue("sortie d'apt update transmise", "Atteint :1 stable Release" in lignes)
+            assertTrue("fin consignée", lignes.last().startsWith("installation terminée"))
+        }
+
+    @Test
+    fun `un échec d apt laisse la sortie en échec dans le journal`() =
+        runBlocking {
+            codeAptUpdate = 100
+            lanceur.fabrique = { commande ->
+                val programme = commande.command.firstOrNull() ?: ""
+                when {
+                    programme.endsWith("bash") -> {
+                        ProcessusScripte(codeSortie = 0)
+                    }
+
+                    commande.command.getOrNull(1) == "update" -> {
+                        ProcessusScripte(
+                            codeSortie = 100,
+                            lignesStderr =
+                                listOf(
+                                    "E: dépôt injoignable",
+                                    "E: sous-processus /bin/false a retourné un code d'erreur",
+                                ),
+                        )
+                    }
+
+                    else -> {
+                        ProcessusScripte(codeSortie = 0)
+                    }
+                }
+            }
+
+            installateur.demarrer()
+            val etat = attendreTerminal()
+
+            assertTrue(etat is Echouee)
+            val lignes = installateur.journal.value
+            assertTrue("stderr d'apt visible à l'écran", "E: dépôt injoignable" in lignes)
+            assertTrue("ligne d'échec finale", lignes.last().startsWith("échec :"))
         }
 
     @Test

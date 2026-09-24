@@ -1,6 +1,11 @@
 package jo.codeide.feature.onboarding
 
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,7 +25,7 @@ import javax.inject.Inject
 
 /**
  * Hôte de l'assistant de premier lancement (étape 5) : pager non swipable
- * des cinq pages, indicateur de progression et barre de navigation.
+ * des pages, indicateur de progression et barre de navigation.
  *
  * Le fragment ne fait que **rendre l'état** et **émettre des actions**
  * (section 5.3) : les changements de page partent du ViewModel, et
@@ -50,6 +55,17 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
             if (uri != null) {
                 viewModel.onAction(ActionOnboarding.DossierChoisi(uri.toString()))
             }
+        }
+
+    /**
+     * Requête directe d'autorisation de notification (page Notifications,
+     * v0.31.2) : utile sous Android 13+ ; la cible 28 (ADR 0045) laisse
+     * le système accorder par défaut — l'état réel est relevé au retour,
+     * quelle que soit la voie (dialogue système, réglages).
+     */
+    private val requeteNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+            viewModel.onAction(ActionOnboarding.ConsignerNotifications(notificationsActivees()))
         }
 
     override fun createBinding(
@@ -126,8 +142,39 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
         when (effet) {
             EffetOnboarding.OuvrirSelecteurDossier -> selecteurDossier.launch(null)
             EffetOnboarding.OuvrirInstallation -> navigator.openBootstrapInstall()
+            EffetOnboarding.OuvrirAutorisationNotifications -> demanderNotifications()
+            EffetOnboarding.OuvrirReglagesNotifications -> ouvrirReglagesNotifications()
             EffetOnboarding.RetourAccueil -> navigator.openHome()
         }
+    }
+
+    /**
+     * Requête d'autorisation de notification : directe sous Android 13+,
+     * relève immédiate de l'état réel sinon (accordée par défaut pour
+     * une cible ≤ 32 — l'état fait foi, pas la théorie).
+     */
+    private fun demanderNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requeteNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.onAction(ActionOnboarding.ConsignerNotifications(notificationsActivees()))
+        }
+    }
+
+    /** État réel de l'autorisation auprès du système. */
+    private fun notificationsActivees(): Boolean {
+        val gestionnaire =
+            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return gestionnaire.areNotificationsEnabled()
+    }
+
+    /** Réglages de notification de l'application (repli après refus). */
+    private fun ouvrirReglagesNotifications() {
+        val intention =
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+            }
+        startActivity(intention)
     }
 
     private companion object {

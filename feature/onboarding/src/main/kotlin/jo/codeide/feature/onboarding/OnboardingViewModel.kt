@@ -71,6 +71,28 @@ sealed interface ActionOnboarding {
     /** Revérifie si les outils du terminal sont déjà installés (retour d'écran). */
     data object VerifierTerminal : ActionOnboarding
 
+    /**
+     * Page Notifications (v0.31.2) : demande l'autorisation de
+     * notification — l'hôte déclenche la requête système (effet
+     * ponctuel) ou relève l'état réel si la plateforme n'a rien à
+     * demander.
+     */
+    data object DemanderNotifications : ActionOnboarding
+
+    /**
+     * Consigne l'état RÉEL de l'autorisation relevé par l'écran (retour
+     * de la requête système ou des réglages, relecture au retour sur la
+     * page).
+     *
+     * @property activees notifications autorisées pour l'application.
+     */
+    data class ConsignerNotifications(
+        val activees: Boolean,
+    ) : ActionOnboarding
+
+    /** Page Notifications : ouvre les réglages de notification de l'app (repli si refus). */
+    data object DemanderReglagesNotifications : ActionOnboarding
+
     /** Change le thème — persistance et aperçu immédiat. */
     data class ChangerTheme(
         val mode: ThemeMode,
@@ -114,6 +136,19 @@ sealed interface EffetOnboarding {
 
     /** Ouvre l'écran d'installation des outils du terminal (état partagé). */
     data object OuvrirInstallation : EffetOnboarding
+
+    /**
+     * Lance la requête système d'autorisation de notification (page
+     * Notifications, v0.31.2) — l'hôte l'exécute, puis consigne l'état
+     * réel via [ActionOnboarding.ConsignerNotifications].
+     */
+    data object OuvrirAutorisationNotifications : EffetOnboarding
+
+    /**
+     * Ouvre les réglages de notification de l'application (repli quand
+     * la requête directe est refusée ou indisponible).
+     */
+    data object OuvrirReglagesNotifications : EffetOnboarding
 
     /** L'assistant est terminé : retour à l'accueil. */
     data object RetourAccueil : EffetOnboarding
@@ -193,11 +228,37 @@ class OnboardingViewModel
         /** Routage des étapes interactives (terminal, dossier, saisie). */
         private fun onActionTerminal(action: ActionOnboarding) {
             when (action) {
-                ActionOnboarding.DemanderSelectionDossier -> envoyerEffet(EffetOnboarding.OuvrirSelecteurDossier)
-                is ActionOnboarding.DossierChoisi -> verifierDossier(action.uri)
-                ActionOnboarding.InstallerTerminal -> envoyerEffet(EffetOnboarding.OuvrirInstallation)
-                ActionOnboarding.VerifierTerminal -> verifierTerminal()
-                else -> onActionSaisie(action)
+                ActionOnboarding.DemanderSelectionDossier -> {
+                    envoyerEffet(EffetOnboarding.OuvrirSelecteurDossier)
+                }
+
+                is ActionOnboarding.DossierChoisi -> {
+                    verifierDossier(action.uri)
+                }
+
+                ActionOnboarding.InstallerTerminal -> {
+                    envoyerEffet(EffetOnboarding.OuvrirInstallation)
+                }
+
+                ActionOnboarding.VerifierTerminal -> {
+                    verifierTerminal()
+                }
+
+                ActionOnboarding.DemanderNotifications -> {
+                    envoyerEffet(EffetOnboarding.OuvrirAutorisationNotifications)
+                }
+
+                ActionOnboarding.DemanderReglagesNotifications -> {
+                    envoyerEffet(EffetOnboarding.OuvrirReglagesNotifications)
+                }
+
+                is ActionOnboarding.ConsignerNotifications -> {
+                    etatInterne.update { it.copy(notificationsActivees = action.activees) }
+                }
+
+                else -> {
+                    onActionSaisie(action)
+                }
             }
         }
 
