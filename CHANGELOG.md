@@ -4,6 +4,69 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.28.0] – 2026-09-24
+
+Étape 27 (= G3 du prompt compagnon « Tooling Gradle (client-serveur) ») :
+module `tooling:client` — le côté Android du dialogue. L'app est le SERVEUR
+du socket Unix (l'écoute s'ouvrira avant le lancement du process, G4), le
+handshake au secret valide toute connexion, et la façade publique
+`GradleToolingRepository` entre dans `core:domain`. ADR 0041,
+`docs/TOOLING.md`.
+
+### Ajouté
+
+- **Port `GradleToolingRepository` (core:domain)** (§5.3) : modèles du
+  domaine sans AUCUN type du protocole ni de `tooling:api` (règle §2.2 —
+  miroir de `TerminalSessionRepository`) : `LigneSortieBuild`,
+  `EtatBuild`/`StatutBuild`, `ResultatSynchronisation` (partielle = succès
+  Resilient Sync), `InfoTache`, `DiagnosticBuild`/`SeveriteDiagnostic`,
+  `InstantaneTas`, `EtatConnexion` (4 états, les intermédiaires animés
+  par G4).
+- **Module `tooling:client`** (bibliothèque Android + Hilt) :
+  - `GradleSocketServer` (§5.1) : écoute `gradle.sock` dans un répertoire
+    privé `0700`, résidu retiré, **namespace FICHIER** —
+    `LocalSocket.bind(FILESYSTEM)` + `LocalServerSocket(FileDescriptor)`
+    (tout public depuis l'API 8) car le client JDK 17 de l'orchestrateur ne
+    sait joindre que des chemins de fichiers ; accepte UNE connexion avec
+    délai de garde (§7.5) ;
+  - `HandshakeApp` (§4.4) : secret ou version invalide → `ErrorResponse`
+    typée envoyée à l'orchestrateur PUIS fermeture — AUCUNE requête
+    n'atteint un handler avant validation (§8) ;
+  - `SessionTooling`/`SessionSocketAndroid` : couture de test §7.3 /
+    session réelle (écritures sérialisées, lectures en flux froid, EOF =
+    déconnexion) ;
+  - `GradleApiImpl` (§5.3) : corrélation par livre de promesses
+    (`CompletableDeferred` par identifiant, écho §3.2), **sorties de build
+    en canaux bornés 4096 à envoi suspendant** (§5.2 — contre-pression,
+    jamais `DROP_OLDEST`, tampon pré-abonnement et rejouable après
+    `BuildFinished` : onglet ouvert tardivement ou rotation ne perd rien),
+    états en `StateFlow` (conflation légitime), `cancel` feu-and-forget,
+    sans session = échecs typés (jamais de blocage silencieux, §7.5) ;
+  - câblage Hilt + agrégation dans `:app`.
+- **`AppError.Tooling`/`ToolingReason` (core:model)** : miroir domaine des
+  `ErrorCode` du protocole — l'UI traduit le code, jamais le texte brut ;
+  traductions fr/en (accueil, diagnostics, assistant de création).
+
+### Corrigé
+
+- **Écho d'identifiant des réponses (corrélation §3.2)** — défaut de G2
+  découvert en écrivant le client : `TasksHandler`, `DependenciesHandler`,
+  `SyncHandler` et `ModelHandler` généraient un NOUVEL identifiant au lieu
+  d'échoyer celui de la requête ; la promesse du client n'était jamais
+  résolue (délai systématique). `id = requete.id` + assertions d'écho
+  ajoutées aux 3 tests d'intégration concernés.
+
+### Tests
+
+- **19 tests client** sur `SessionFactice` (le « SocketClient fake » §7.3) :
+  diffusion dans l'ordre + état final, **non-conflation sous forte charge
+  (12 000 lignes d'un trait, aucune perdue — LE test §7.3)**, corrélation,
+  erreur typée, sync partielle, annulation, tas/connexion, sans session,
+  échec d'envoi, stderr distinct, remplacement de session, déconnexion
+  rompt les promesses, handshake (secret/version/refus). Couverture kover
+  ≥ 80 % (colle `LocalSocket` filtrée — aucune shadow Robolectric, même
+  précédent que la colle Termux/JNI).
+
 ## [0.27.0] – 2026-09-24
 
 Étape 26 (= G2 du prompt compagnon « Tooling Gradle (client-serveur) ») :

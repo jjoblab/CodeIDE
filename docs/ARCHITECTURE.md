@@ -58,6 +58,7 @@ sections 5 et 6.
 | `tooling:protocol` | Protocole du tooling Gradle : framing, catalogue de messages JSON, fichiers dorés (ADR 0039) |
 | `tooling:api` | Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
 | `tooling:server` | Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
+| `tooling:client` | Client Android du tooling : écoute du socket (l'app est le serveur), handshake au secret, façade `GradleToolingRepository` du domaine, diffusion non conflatante (ADR 0041) |
 | `tooling:testing` | Fixtures du tooling : mini-projets Gradle réels, dépendance de test uniquement |
 | `feature:editor` | Espace de travail : tiroir (explorateur + carte d'aperçu terminal T6), onglets, panneau inférieur |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
