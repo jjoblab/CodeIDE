@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Aperçu · Explorateur de fichiers v2 (tiroir à fragments)</title>
+<style>
+/* =========================================================================
+   APERÇU INTERACTIF — Explorateur de fichiers CodeIDE (proposition v2)
+   Maquette de validation : rien de ceci n'est encore dans l'APK.
+   Thème sombre inspiré Material 3 / thème nuit de l'application.
+   ========================================================================= */
+
+:root{
+  --fond-page:#0b0d11;
+  --fond-ecran:#14171d;
+  --fond-tiroir:#1a1e25;
+  --fond-surface:#20252e;
+  --fond-surface-2:#262c37;
+  --fond-surface-3:#2d3441;
+  --bordure:#2c323d;
+  --bordure-fine:#242a33;
+
+  --texte:#dde3ec;
+  --texte-2:#99a2ae;
+  --texte-3:#6c7581;
+
+  --accent:#7ab8f5;
+  --accent-fort:#4f9be8;
+  --accent-doux:rgba(122,184,245,.14);
+  --vert:#6fc47a;
+  --vert-doux:rgba(111,196,122,.14);
+  --orange:#eda63f;
+  --rouge:#e5584f;
+  --rouge-doux:rgba(229,88,79,.12);
+
+  --violet:#9c86d8;           /* accent violet (privé, terminal)  */
+  --guide:#343b47;            /* traits fins reliant les nœuds    */
+  --dossier-ic:#566175;
+
+  --r-l:14px; --r-m:10px; --r-s:7px;
+  --ombre-1:0 2px 10px rgba(0,0,0,.35);
+  --ombre-2:0 10px 34px rgba(0,0,0,.5);
+  --ombre-tiroir:6px 0 26px rgba(0,0,0,.42);
+
+  --police:"Segoe UI",system-ui,Roboto,"Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"JetBrains Mono",Menlo,monospace;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ background:var(--fond-page); }
+body{
+  font-family:var(--police); color:var(--texte);
+  min-height:100vh; display:flex; justify-content:center; align-items:flex-start;
+  padding:28px 20px 48px; gap:42px;
+  background:
+    radial-gradient(900px 480px at 22% -8%, #151b26 0%, transparent 60%),
+    radial-gradient(700px 420px at 92% 108%, #10141c 0%, transparent 55%),
+    var(--fond-page);
+}
+::selection{ background:rgba(122,184,245,.3); }
+
+/* barres de défilement discrètes */
+.defile::-webkit-scrollbar{ width:8px; height:8px; }
+.defile::-webkit-scrollbar-thumb{ background:#2e3542; border-radius:6px; }
+.defile::-webkit-scrollbar-thumb:hover{ background:#3a4351; }
+.defile::-webkit-scrollbar-track{ background:transparent; }
+
+/* ======================= Panneau de notes (hors téléphone) ============== */
+
+.notes{ width:330px; flex:none; position:sticky; top:28px; align-self:flex-start; }
+.notes h1{ font-size:17px; font-weight:650; letter-spacing:.2px; }
+.notes h1 .v{ color:var(--accent); font-family:var(--mono); font-size:14px; }
+.notes .sous{ color:var(--texte-2); font-size:12.5px; margin:7px 0 18px; line-height:1.55; }
+.notes .bloc{
+  background:#13161c; border:1px solid var(--bordure-fine); border-radius:var(--r-m);
+  padding:14px 15px; margin-bottom:13px;
+}
+.notes .bloc h2{
+  font-size:11px; text-transform:uppercase; letter-spacing:1.3px;
+  color:var(--texte-3); margin-bottom:10px; font-weight:700;
+}
+.notes ul{ list-style:none; }
+.notes li{
+  font-size:12.5px; color:#b9c1cd; line-height:1.5; padding:4px 0 4px 20px;
+  position:relative;
+}
+.notes li::before{
+  content:""; position:absolute; left:2px; top:11px; width:7px; height:7px;
+  border-radius:50%; background:var(--accent); opacity:.75;
+}
+.notes li.k{ padding-left:0; }
+.notes .legende{ display:grid; grid-template-columns:26px 1fr; gap:4px 8px; align-items:center; }
+.notes .legende span{ font-size:12.5px; color:#b9c1cd; }
+.notes .pastille-demo{
+  width:10px; height:10px; border-radius:50%; margin:0 auto; border:2px solid #5a6270;
+}
+.notes .p-bleu{ background:var(--accent); border-color:var(--accent); }
+.notes .p-verte{ background:var(--vert); border-color:var(--vert); }
+.notes .p-creuse{ border-color:var(--vert); background:transparent; }
+.notes .accent-txt{ color:var(--accent); }
+.notes .vert-txt{ color:var(--vert); }
+.notes .chev-demo{ color:var(--texte-2); font-family:var(--mono); font-weight:700; text-align:center; font-size:14px; }
+.notes .disclaimer{
+  font-size:11.5px; color:var(--texte-3); line-height:1.55; margin-top:16px;
+  border-top:1px dashed var(--bordure); padding-top:12px;
+}
+
+/* ============================= Téléphone ================================= */
+
+.telephone{
+  width:414px; height:860px; flex:none; position:relative;
+  background:#05060a; border-radius:46px; padding:11px;
+  box-shadow:0 0 0 1.5px #262b33, 0 0 0 5px #0e1116, 0 30px 70px rgba(0,0,0,.55);
+}
+.ecran{
+  position:relative; width:100%; height:100%; border-radius:36px; overflow:hidden;
+  background:var(--fond-ecran);
+}
+.statut{
+  position:absolute; top:0; left:0; right:0; height:30px; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; font-size:11.5px; font-weight:600; color:#cfd6df;
+  background:linear-gradient(180deg, rgba(10,12,16,.55), rgba(10,12,16,.08) 80%, transparent);
+  pointer-events:none;
+}
+.statut .ico{ display:flex; gap:5px; align-items:center; opacity:.92; }
+
+/* ---------------- zone éditeur (derrière le tiroir) --------------------- */
+
+.zone-editeur{ position:absolute; inset:30px 0 0 0; display:flex; flex-direction:column; }
+.appbar{
+  height:52px; flex:none; display:flex; align-items:center; gap:10px; padding:0 12px;
+  background:#171a21; border-bottom:1px solid var(--bordure-fine);
+}
+.appbar .bt-icone{
+  width:38px; height:38px; border-radius:50%; border:none; background:transparent;
+  color:var(--texte-2); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex:none;
+}
+.appbar .bt-icone:hover{ background:var(--fond-surface-2); color:var(--texte); }
+.appbar .titre{ font-size:14.5px; font-weight:650; letter-spacing:.2px; }
+.appbar .titre small{ color:var(--texte-3); font-weight:500; font-size:11.5px; margin-left:8px; }
+.appbar .esp{ flex:1; }
+.appbar .executer{ color:var(--vert); }
+
+.onglets{
+  height:42px; flex:none; display:flex; align-items:stretch; overflow-x:auto;
+  background:#15181e; border-bottom:1px solid var(--bordure-fine);
+  scrollbar-width:none;
+}
+.onglets::-webkit-scrollbar{ display:none; }
+.onglet{
+  display:flex; align-items:center; gap:8px; padding:0 12px 0 13px; flex:none;
+  font-size:12.5px; color:var(--texte-2); cursor:pointer; position:relative;
+  border-right:1px solid var(--bordure-fine); background:transparent;
+  max-width:190px; transition:background .12s;
+}
+.onglet:hover{ background:#191d24; }
+.onglet .nom{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.onglet .croix{
+  width:20px; height:20px; border-radius:5px; display:flex; align-items:center;
+  justify-content:center; color:var(--texte-3); flex:none;
+}
+.onglet .croix:hover{ background:var(--fond-surface-3); color:var(--texte); }
+.onglet.actif{ background:var(--fond-ecran); color:var(--texte); }
+.onglet.actif::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:2px;
+  background:var(--accent-fort);
+}
+.onglet .type{ flex:none; display:flex; }
+
+.code{
+  flex:1; overflow:auto; padding:14px 0 22px; font-family:var(--mono);
+  font-size:12px; line-height:1.62; background:var(--fond-ecran);
+  white-space:pre; color:#c4cbd6;
+}
+.code .ln{
+  display:inline-block; width:44px; flex:none; text-align:right; padding-right:16px;
+  color:#3f4753; user-select:none;
+}
+.code .mot-cle{ color:#cf8e6d; }
+.code .chaine{ color:#6aab73; }
+.code .commentaire{ color:#767f8a; font-style:italic; }
+.code .annotation{ color:#d4b466; }
+.code .type{ color:#e5c07b; }
+.code .fonction{ color:#8fbff3; }
+.code .nombre{ color:#56b6c2; }
+.code .vide-code{
+  display:flex; height:100%; align-items:center; justify-content:center;
+  color:var(--texte-3); font-family:var(--police); font-size:13px;
+}
+
+/* ----------------------------- tiroir ------------------------------------ */
+
+.tiroir{
+  position:absolute; left:0; top:30px; bottom:0; width:262px; z-index:20;
+  background:var(--fond-tiroir); display:flex; flex-direction:column;
+  border-right:1px solid #2a303b;
+  box-shadow:8px 0 32px rgba(0,0,0,.48);
+  transition:transform .26s cubic-bezier(.4,.1,.2,1), width .18s ease;
+  touch-action:pan-y;
+}
+.tiroir.masque{ transform:translateX(-102%); }
+.tiroir.pendant-glissement{ transition:transform .26s cubic-bezier(.4,.1,.2,1); }
+
+.fragments{ flex:1; position:relative; overflow:hidden; }
+.fragment{ position:absolute; inset:0; display:none; flex-direction:column; }
+.fragment.active{ display:flex; }
+
+/* entête propre à CHAQUE fragment (plus d'entête commun) */
+.entete-frag{
+  flex:none; padding:13px 14px 11px; background:linear-gradient(180deg,#20252e,#1c212a);
+  border-bottom:1px solid var(--bordure-fine);
+}
+.entete-frag .ligne-titre{ display:flex; align-items:center; gap:10px; }
+.entete-frag .embleme{
+  width:32px; height:32px; border-radius:var(--r-s); background:var(--accent-doux);
+  color:var(--accent); display:flex; align-items:center; justify-content:center; flex:none;
+}
+.entete-frag h3{ font-size:14px; font-weight:650; letter-spacing:.2px; }
+.entete-frag .sous-titre{
+  font-size:10.5px; color:var(--texte-3); font-family:var(--mono);
+  margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.entete-frag .actions{ display:flex; gap:3px; margin:10px 0 0 -3px; }
+.bt-entete{
+  width:32px; height:32px; border-radius:var(--r-s); border:none; background:transparent;
+  color:var(--texte-2); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative;
+}
+.bt-entete:hover{ background:var(--fond-surface-2); color:var(--texte); }
+.bt-entete.actif{ color:var(--accent); background:var(--accent-doux); }
+.bt-entete.actif:hover{ background:rgba(122,184,245,.22); }
+.bt-entete.tourne svg{ animation:rotation .65s ease; }
+@keyframes rotation{ to{ transform:rotate(360deg); } }
+
+/* fil d'Ariane contextuel : le chemin de la sélection courante */
+.fil-chemin{
+  display:flex; align-items:center; gap:2px; margin-top:10px; padding:6px 9px;
+  background:#15181f; border:1px solid var(--bordure-fine); border-radius:var(--r-s);
+  overflow-x:auto; scrollbar-width:none; flex-wrap:nowrap;
+}
+.fil-chemin::-webkit-scrollbar{ display:none; }
+.fil-chemin .etiquette{
+  font-size:11px; font-family:var(--mono); color:var(--texte-2); white-space:nowrap;
+  cursor:pointer; padding:2px 5px; border-radius:4px; flex:none;
+}
+.fil-chemin .etiquette:hover{ color:var(--texte); background:var(--fond-surface-2); }
+.fil-chemin .etiquette.finale{ color:var(--accent); }
+.fil-chemin .sep{ color:var(--texte-3); font-size:10px; flex:none; padding:0 1px; }
+.fil-chemin .maison{ color:var(--texte-3); display:flex; flex:none; }
+
+/* bascule de source : arborescence projet ↔ stockage privé (exclusives) */
+.bascule-source{
+  display:flex; gap:4px; margin-top:9px; padding:3px;
+  background:#15181f; border:1px solid var(--bordure-fine); border-radius:9px;
+}
+.bascule-source .segment{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+  border:none; background:transparent; color:var(--texte-2);
+  font-size:12px; font-weight:600; font-family:var(--police);
+  padding:7px 6px; border-radius:7px; cursor:pointer;
+  transition:background .15s, color .15s, box-shadow .15s;
+}
+.bascule-source .segment:hover{ color:var(--texte); background:var(--fond-surface-2); }
+.bascule-source .segment.actif{ background:var(--fond-surface-3); color:var(--texte); }
+.bascule-source .segment.actif[data-source="projet"]{ color:var(--accent); box-shadow:inset 0 0 0 1px rgba(122,184,245,.35); }
+.bascule-source .segment.actif[data-source="prive"]{ color:#cdbaf2; box-shadow:inset 0 0 0 1px rgba(156,134,216,.45); }
+.bascule-source .segment .ic{ display:flex; flex:none; }
+
+/* barre presse-papiers (affichée après copier/couper) */
+.barre-pp{
+  flex:none; display:none; align-items:center; gap:8px; padding:7px 11px;
+  background:var(--vert-doux); border-top:1px solid rgba(111,196,122,.25);
+  font-size:11.5px; color:#a9d8ae;
+}
+.barre-pp.visible{ display:flex; }
+.barre-pp .nom-pp{ font-family:var(--mono); color:#cfe9d1; font-weight:600; }
+.barre-pp .vider{ margin-left:auto; background:none; border:none; color:#8fbf95; cursor:pointer; font-size:11px; }
+.barre-pp .vider:hover{ text-decoration:underline; }
+
+/* ------------------------------ rail fragments --------------------------- */
+
+.rail{
+  flex:none; height:66px; display:flex; background:#171a21;
+  border-top:1px solid var(--bordure-fine); padding:6px 4px 4px;
+}
+.rail .dest{
+  flex:1; border:none; background:transparent; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px; cursor:pointer;
+  color:var(--texte-3); border-radius:var(--r-m); padding:4px 2px;
+  transition:color .15s, background .15s;
+}
+.rail .dest:hover{ color:var(--texte-2); }
+.rail .dest.actif{ color:var(--accent); }
+.rail .dest .libelle{ font-size:10px; font-weight:600; letter-spacing:.2px; }
+.rail .dest .ic{ position:relative; display:flex; }
+.rail .dest.actif .ic::after{
+  content:""; position:absolute; inset:-6px -8px; border-radius:var(--r-m);
+  background:var(--accent-doux);
+}
+
+/* ====================== Arbre — design « treeview » ===================== */
+/* Dossiers : chevron de dépliage + icône. Fichiers : point d'état.        */
+/* Guides : traits fins verticaux + coudes reliant chaque nœud au parent.  */
+
+.arbre{ flex:1; overflow:auto; padding:9px 5px 20px 2px; }
+.nud{ position:relative; }
+.ligne{
+  display:flex; align-items:center; height:34px; padding-right:8px;
+  border-radius:7px; cursor:pointer; user-select:none; -webkit-user-select:none;
+  transition:background .12s; position:relative; z-index:2;
+}
+.ligne:hover{ background:rgba(255,255,255,.035); }
+.ligne.sel{
+  background:linear-gradient(90deg, var(--accent-doux), rgba(122,184,245,.03) 72%, transparent);
+  box-shadow:inset 2.5px 0 0 var(--accent-fort);
+}
+.ligne.coupee{ opacity:.5; }
+.ligne.coupee .nom{
+  text-decoration:line-through; text-decoration-color:rgba(229,88,79,.55);
+}
+.ligne.surlignee{ animation:flash-node 1.1s ease; }
+@keyframes flash-node{ 0%,55%{ background:var(--accent-doux); box-shadow:inset 2.5px 0 0 var(--accent-fort); } }
+
+.chevron{
+  width:20px; flex:none; display:flex; align-items:center; justify-content:center;
+  color:var(--texte-3);
+}
+.chevron svg{ transition:transform .16s ease; }
+.nud.deplie > .ligne .chevron svg{ transform:rotate(90deg); }
+.nud.deplie > .ligne .chevron{ color:var(--accent); }
+
+.icone{ width:20px; flex:none; margin:0 5px 0 2px; display:flex; align-items:center; }
+
+.nom{
+  font-size:13px; color:#c7ced9; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; padding-left:2px;
+}
+.nud.dossier > .ligne .nom{ color:#e2e8f1; font-weight:500; }
+.nud.prive > .ligne .nom{ color:#cdbaf2; }
+
+/* point d'état des fichiers (remplace le chevron) */
+.puce{ width:20px; flex:none; display:flex; align-items:center; justify-content:center; }
+.cercle{
+  width:7px; height:7px; border-radius:50%; border:2px solid #5a6270;
+  background:transparent; transition:all .16s ease;
+}
+.ligne.p-ouvert .cercle{ border-color:var(--vert); }
+.ligne.p-actif .cercle{
+  border-color:var(--vert); background:var(--vert);
+  box-shadow:0 0 7px rgba(111,196,122,.5);
+}
+.ligne.p-sel .cercle{ border-color:var(--accent); background:var(--accent); }
+.ligne.p-sel.p-actif .cercle{
+  border-color:var(--accent); background:var(--vert);
+  box-shadow:0 0 0 3px var(--accent-doux);
+}
+
+/* badge chemin sur les racines (projet / stockage privé) */
+.badge-chemin{
+  margin-left:auto; font-family:var(--mono); font-size:9.5px; color:var(--texte-3);
+  background:#15181f; border:1px solid var(--bordure-fine); border-radius:5px;
+  padding:2.5px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:46%; flex:none;
+}
+.nud.racine > .ligne{ height:38px; }
+
+/* guides : traits fins reliant les dossiers. Le padding-left de la liste
+   laisse les pseudo-éléments DANS la zone non rognée (overflow:hidden). */
+.liste-profonde{ margin-left:10px; padding-left:12px; }
+.liste-profonde > .nud::before{
+  content:""; position:absolute; left:-10px; top:0; bottom:0; width:1px;
+  background:var(--guide);
+}
+.liste-profonde > .nud.dernier::before{ bottom:auto; height:17px; }
+.liste-profonde > .nud::after{
+  content:""; position:absolute; left:-10px; top:16px; width:10px; height:1px;
+  background:var(--guide);
+}
+
+/* dépliage/repliage animé */
+.conteneur{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .2s ease; }
+.conteneur.ouvert{ grid-template-rows:1fr; }
+.conteneur > .liste{ min-height:0; overflow:hidden; }
+
+/* création/édition inline (nouveau, renommer) — dans le nœud même */
+.edit-inline{ display:flex; align-items:center; height:34px; gap:6px; }
+.edit-inline input{
+  background:#151920; border:1.5px solid var(--accent-fort); border-radius:6px;
+  color:var(--texte); font-size:12.5px; padding:4px 8px; width:158px;
+  font-family:var(--police); outline:none;
+}
+.edit-inline.invalide input{ border-color:var(--rouge); animation:secousse .28s; }
+@keyframes secousse{ 25%{ transform:translateX(-3px); } 75%{ transform:translateX(3px); } }
+.edit-inline .valider, .edit-inline .annuler{
+  width:26px; height:26px; border-radius:6px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; background:var(--fond-surface-3);
+}
+.edit-inline .valider{ color:var(--vert); } .edit-inline .annuler{ color:var(--texte-2); }
+
+.nud.apparait{ animation:apparition .22s ease; }
+@keyframes apparition{ from{ opacity:0; transform:translateY(-5px); } }
+.nud.disparait{ animation:disparition .22s ease forwards; }
+@keyframes disparition{ to{ opacity:0; transform:translateX(-8px); } }
+
+/* ============================== Popover ================================== */
+
+.popover{
+  position:fixed; z-index:220; width:258px; background:var(--fond-surface-2);
+  border:1px solid #333b48; border-radius:var(--r-l); box-shadow:var(--ombre-2);
+  padding:6px; opacity:0; transform:scale(.94);
+  animation:pop-in .15s ease forwards; transform-origin:top left;
+}
+@keyframes pop-in{ to{ opacity:1; transform:scale(1); } }
+.popover .fleche{
+  position:absolute; width:12px; height:12px; background:var(--fond-surface-2);
+  border-left:1px solid #333b48; border-top:1px solid #333b48; transform:rotate(45deg);
+}
+.popover .fleche.haut{ top:-7px; }
+.popover .fleche.bas{ bottom:-7px; transform:rotate(225deg); }
+.popover .tete{
+  display:flex; gap:10px; align-items:center; padding:8px 10px 9px;
+  border-bottom:1px solid var(--bordure-fine); margin-bottom:5px;
+}
+.popover .tete .p-nom{
+  font-size:13px; font-weight:600; max-width:168px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.popover .tete .p-chemin{
+  font-family:var(--mono); font-size:10px; color:var(--texte-3); margin-top:2px;
+  max-width:192px; overflow:hidden; line-height:1.45;
+  white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+}
+.popover .p-ctx{
+  font-family:var(--mono); font-size:10px; color:var(--accent);
+  padding:1px 10px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.popover .action{
+  display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:var(--r-s);
+  font-size:13px; color:#d5dbe4; cursor:pointer; border:none; background:transparent;
+  width:100%; text-align:left; font-family:var(--police);
+}
+.popover .action:hover{ background:var(--fond-surface-3); }
+.popover .action.desactivee{ opacity:.35; pointer-events:none; }
+.popover .action.dangereuse{ color:var(--rouge); }
+.popover .action.dangereuse:hover{ background:var(--rouge-doux); }
+.popover .separateur{ height:1px; background:#39414e; margin:5px 8px; }
+
+/* popover « déplacer vers » : origine + destination + chemin contextuel */
+.popover .champ{ padding:6px 10px 2px; }
+.popover .champ label{
+  display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px;
+  color:var(--texte-3); margin-bottom:5px; font-weight:700;
+}
+.popover .champ .chemin-statique{
+  font-family:var(--mono); font-size:11px; color:var(--texte-2);
+  background:#151920; border:1px solid var(--bordure-fine); border-radius:6px;
+  padding:6px 9px; word-break:break-all;
+}
+.popover .champ input{
+  width:100%; background:#151920; border:1.5px solid var(--accent-fort);
+  border-radius:6px; color:var(--texte); font-size:11.5px; padding:6px 9px;
+  font-family:var(--mono); outline:none;
+}
+.popover .erreur{ color:var(--rouge); font-size:11px; padding:4px 10px 2px; }
+.popover .boutons{ display:flex; gap:8px; padding:8px 10px 4px; }
+.bt{
+  flex:1; padding:8px; border-radius:8px; border:none; cursor:pointer;
+  font-size:12.5px; font-weight:650; font-family:var(--police);
+}
+.bt.primaire{ background:var(--accent-fort); color:#0d1420; }
+.bt.primaire:hover{ background:var(--accent); }
+.bt.secondaire{ background:var(--fond-surface-3); color:var(--texte-2); }
+.bt.dangereux{ background:var(--rouge); color:#fff; }
+.bt.dangereux:hover{ background:#ef6f66; }
+
+/* popover légende */
+.legende-ligne{
+  display:flex; gap:11px; align-items:center; padding:6px 10px;
+  font-size:12px; color:var(--texte-2);
+}
+.legende-ligne .repere{ width:20px; flex:none; display:flex; justify-content:center; }
+.legende-titre-sec{
+  font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--texte-3);
+  font-weight:700; padding:8px 10px 3px;
+}
+
+/* ============================ Snackbar =================================== */
+
+.snackbar{
+  position:absolute; left:50%; bottom:82px; transform:translate(-50%,18px);
+  z-index:150; background:#2b323e; border:1px solid #3a4351; color:var(--texte);
+  padding:10px 8px 10px 16px; border-radius:12px; box-shadow:var(--ombre-2);
+  display:flex; gap:12px; align-items:center; font-size:12.5px; opacity:0;
+  pointer-events:none; transition:all .22s ease; max-width:90%;
+}
+.snackbar.visible{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+.snackbar .txt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.snackbar .txt .chemin-snack{ font-family:var(--mono); font-size:10.5px; color:var(--texte-3); display:block; margin-top:2px; }
+.snackbar .bt-annuler{
+  background:none; border:none; color:var(--accent); font-weight:700; cursor:pointer;
+  font-size:12.5px; padding:4px 8px; flex:none;
+}
+
+/* ===================== Poignée de redimensionnement ===================== */
+/* Petit bouton vertical ⋮ accroché au bord droit du tiroir :              */
+/* on le fait glisser horizontalement pour élargir/rétrécir le tiroir.     */
+
+.poignee{
+  position:absolute; top:50%; right:-13px; transform:translateY(-50%);
+  width:26px; height:78px; z-index:40; background:var(--fond-surface-2);
+  border:1px solid #38404d; border-radius:13px; cursor:col-resize;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; box-shadow:var(--ombre-1); touch-action:none;
+  transition:border-color .15s, background .15s, transform .15s;
+}
+.poignee:hover{ background:var(--fond-surface-3); }
+.poignee.pendant{
+  border-color:var(--accent-fort); background:#2c3644;
+  transform:translateY(-50%) scale(1.08);
+}
+.poignee .point{ width:3.5px; height:3.5px; border-radius:50%; background:var(--texte-2); }
+.poignee.pendant .point{ background:var(--accent); }
+.pastille-taille{
+  position:absolute; top:calc(50% - 60px); right:-4px; z-index:41;
+  background:#10141b; color:var(--accent); font-family:var(--mono); font-size:11px;
+  padding:4px 9px; border-radius:7px; border:1px solid var(--bordure);
+  opacity:0; transition:opacity .12s; pointer-events:none;
+}
+.pastille-taille.visible{ opacity:1; }
+
+/* ================ fragments secondaires (recherche/git/terminal) ========= */
+
+.corps-frag{ flex:1; overflow:auto; padding:14px; }
+.carte-demo{
+  background:var(--fond-surface); border:1px solid var(--bordure-fine);
+  border-radius:var(--r-m); padding:12px 13px; margin-bottom:10px; font-size:12.5px;
+  color:var(--texte-2); display:flex; align-items:center; gap:11px;
+}
+.carte-demo .libelle{ color:var(--texte); font-weight:550; }
+.carte-demo .detail{ font-family:var(--mono); font-size:10.5px; color:var(--texte-3); margin-top:3px; }
+.badge-etat{
+  margin-left:auto; font-family:var(--mono); font-size:10px; font-weight:700;
+  padding:2px 8px; border-radius:6px; flex:none;
+}
+.badge-etat.modifie{ background:var(--orange); color:#241a05; }
+.badge-etat.ajoute{ background:var(--vert); color:#0c1c0e; }
+.champ-recherche{
+  display:flex; align-items:center; gap:9px; background:#151920;
+  border:1.5px solid var(--bordure); border-radius:10px; padding:10px 12px;
+  color:var(--texte-3); font-size:13px;
+}
+.note-fragment{
+  margin:14px 2px 4px; font-size:11px; color:var(--texte-3); line-height:1.55;
+  border:1px dashed var(--bordure); border-radius:var(--r-s); padding:9px 11px;
+}
+.embleme.git{ background:rgba(111,196,122,.13); color:var(--vert); }
+.embleme.recherche{ background:rgba(237,166,63,.13); color:var(--orange); }
+.embleme.terminal{ background:rgba(156,134,216,.14); color:var(--violet); }
+
+/* =============================== divers ================================== */
+
+.geste{
+  position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+  width:120px; height:4px; border-radius:4px; background:rgba(255,255,255,.18);
+  z-index:60; pointer-events:none;
+}
+
+@media (max-width:1120px){ .notes{ display:none; } }
+@media (max-width:470px){
+  body{ padding:0; gap:0; }
+  .telephone{ width:100vw; height:100vh; height:100dvh; border-radius:0; padding:0; box-shadow:none; }
+  .ecran{ border-radius:0; }
+}
+</style>
+</head>
+<body>
+<!-- ============================ Panneau de notes ============================ -->
+<aside class="notes">
+  <h1>Aperçu · Explorateur de fichiers <span class="v">v2</span></h1>
+  <p class="sous">Proposition interactive pour CodeIDE — tiroir à <b>fragments</b>,
+  arbre « treeview », popovers d'actions. À valider avant implémentation dans
+  l'application Android (<span class="mono">feature/editor</span> + <span class="mono">core/ui</span>).</p>
+
+  <div class="bloc">
+    <h2>À essayer</h2>
+    <ul>
+      <li><b>Cliquer un fichier</b> → sélectionné + ouvert dans l'onglet actif (point vert)</li>
+      <li><b>Appui long</b> (ou clic droit) sur une ligne → popover d'actions <b>ancré au doigt</b></li>
+      <li><b>Glisser la poignée ⋮</b> sur le bord droit du tiroir → élargir / rétrécir</li>
+      <li><b>Rail bas</b> 📁 🔍 🌿 ⌗ → chaque fragment a <b>son propre entête</b></li>
+      <li><b>Bascule Projet / Privé</b> dans l'entête → arborescence du projet ou du privé</li>
+      <li><b>Copier / Couper</b> puis appui long sur un dossier → <b>Coller</b></li>
+      <li><b>Déplacer vers…</b> → saisir le chemin de destination</li>
+    </ul>
+  </div>
+
+  <div class="bloc">
+    <h2>Légende — point des fichiers</h2>
+    <div class="legende">
+      <span class="pastille-demo"></span><span>fichier simple</span>
+      <span class="pastille-demo p-bleu"></span><span><b>sélectionné</b> dans l'arbre</span>
+      <span class="pastille-demo p-verte"></span><span>ouvert dans l'<b>onglet actif</b></span>
+      <span class="pastille-demo p-creuse"></span><span>ouvert dans un onglet <b>inactif</b></span>
+    </div>
+    <div class="legende" style="margin-top:9px">
+      <span class="chev-demo">▸</span><span><b>dossier</b> — chevron de dépliage, traits fins</span>
+      <span class="chev-demo">•</span><span><b>fichier</b> — point d'état</span>
+    </div>
+  </div>
+
+  <div class="bloc">
+    <h2>Correspondance avec l'existant</h2>
+    <ul>
+      <li>Étend l'ADR 0027 (arborescence paresseuse, tri dossiers→fichiers)</li>
+      <li>Étend l'ADR 0030 (actions par nœud, « créer → éditer », URI migrée)</li>
+      <li>Rail bas actuel → <b>fragments</b> : Explorateur, Recherche, Git, Terminal</li>
+      <li>Entête commun supprimé → un entête <b>par fragment</b></li>
+    </ul>
+  </div>
+
+  <p class="disclaimer">Maquette de validation — aucune de ces interactions n'est encore
+  dans l'APK. Les mises à jour (nouveau, renommer, supprimer, copier, déplacer)
+  s'appliquent <b>au nœud concerné</b>, sans recharger l'arbre entier.</p>
+</aside>
+
+<!-- ================================ Téléphone ================================ -->
+<div class="telephone">
+  <div class="ecran" id="ecran">
+
+    <div class="statut">
+      <span id="heure">21:47</span>
+      <span class="ico">
+        <svg viewBox="0 0 14 10" width="14" height="10" fill="#cfd6df">
+          <rect x="0" y="6" width="2.4" height="4" rx="0.6"/><rect x="3.6" y="4" width="2.4" height="6" rx="0.6"/>
+          <rect x="7.2" y="2" width="2.4" height="8" rx="0.6"/><rect x="10.8" y="0" width="2.4" height="10" rx="0.6"/>
+        </svg>
+        <svg viewBox="0 0 16 11" width="15" height="11" fill="none" stroke="#cfd6df" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1.5 3.4a9.5 9.5 0 0 1 13 0"/><path d="M4 6a6 6 0 0 1 8 0"/><path d="M6.5 8.6a2.6 2.6 0 0 1 3 0"/>
+        </svg>
+        <svg viewBox="0 0 20 10" width="20" height="10">
+          <rect x="0.8" y="1.5" width="15" height="7" rx="1.6" fill="none" stroke="#cfd6df" stroke-width="1.1"/>
+          <rect x="2.4" y="3.1" width="9.4" height="3.8" rx="0.8" fill="#cfd6df"/>
+          <rect x="17" y="3.6" width="2.2" height="2.9" rx="1" fill="#cfd6df"/>
+        </svg>
+      </span>
+    </div>
+
+    <!-- zone éditeur, derrière le tiroir -->
+    <div class="zone-editeur">
+      <div class="appbar">
+        <button class="bt-icone" id="bt-menu" data-ico="menu" title="Ouvrir / fermer le tiroir"></button>
+        <span class="titre">CodeIDE<small>v0.32.0-SNAPSHOT</small></span>
+        <span class="esp"></span>
+        <button class="bt-icone executer" data-ico="executer" title="Exécuter"></button>
+        <button class="bt-icone" data-ico="points" title="Plus d'options"></button>
+      </div>
+      <div class="onglets" id="onglets"></div>
+      <div class="code defile" id="code"></div>
+    </div>
+
+    <!-- tiroir : conteneur de fragments + poignée + rail -->
+    <div class="tiroir" id="tiroir">
+      <div class="fragments">
+
+        <!-- ============ FRAGMENT : EXPLORATEUR DE FICHIERS ============ -->
+        <div class="fragment active" id="frag-fichiers">
+          <div class="entete-frag">
+            <div class="ligne-titre">
+              <span class="embleme" data-ico="explorateur"></span>
+              <div style="min-width:0;flex:1">
+                <h3>Explorateur de fichiers</h3>
+                <div class="sous-titre" id="sous-titre-frag">/storage/emulated/0/CodeIDE</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="bt-entete" id="bt-nouveau" data-ico="fichier-plus" title="Nouveau (dans le dossier sélectionné)"></button>
+              <button class="bt-entete" id="bt-replier" data-ico="replier" title="Replier tout"></button>
+              <button class="bt-entete" id="bt-actualiser" data-ico="actualiser" title="Actualiser"></button>
+              <button class="bt-entete" id="bt-legende" data-ico="aide" title="Légende"></button>
+            </div>
+            <div class="bascule-source" id="bascule-source" aria-label="Arborescence affichée">
+              <button class="segment actif" data-source="projet" data-ico="explorateur" title="Arborescence du projet"><span class="ic"></span><span>Projet</span></button>
+              <button class="segment" data-source="prive" data-ico="cadenas" title="Stockage privé de l'application"><span class="ic"></span><span>Privé</span></button>
+            </div>
+            <div class="fil-chemin" id="fil-chemin"><span class="maison" data-ico="maison"></span></div>
+          </div>
+          <div class="arbre defile" id="arbre"></div>
+          <div class="barre-pp" id="barre-pp">
+            <span data-ico="presse" style="display:flex"></span>
+            <span>Presse-papiers : <span class="nom-pp" id="nom-pp"></span></span>
+            <button class="vider" id="vider-pp">Vider</button>
+          </div>
+        </div>
+
+        <!-- ============ FRAGMENT : RECHERCHE (aperçu) ============ -->
+        <div class="fragment" id="frag-recherche">
+          <div class="entete-frag">
+            <div class="ligne-titre">
+              <span class="embleme recherche" data-ico="recherche"></span>
+              <div style="min-width:0">
+                <h3>Recherche</h3>
+                <div class="sous-titre">dans CodeIDE — 214 fichiers</div>
+              </div>
+            </div>
+          </div>
+          <div class="corps-frag">
+            <div class="champ-recherche" data-ico="recherche">Rechercher dans le projet…</div>
+            <div class="note-fragment">Fragment dédié — chaque fragment du tiroir porte
+            <b>son propre entête</b> (plus d'entête commun à l'activité).
+            Développement prévu dans un lot ultérieur.</div>
+          </div>
+        </div>
+
+        <!-- ============ FRAGMENT : GIT (aperçu) ============ -->
+        <div class="fragment" id="frag-git">
+          <div class="entete-frag">
+            <div class="ligne-titre">
+              <span class="embleme git" data-ico="git"></span>
+              <div style="min-width:0">
+                <h3>Git</h3>
+                <div class="sous-titre">branche main · 4 modifications</div>
+              </div>
+              <div class="actions">
+                <button class="bt-entete" data-ico="valider" title="Commit"></button>
+              </div>
+            </div>
+          </div>
+          <div class="corps-frag">
+            <div class="carte-demo"><span data-ico="fichier-kotlin" style="display:flex"></span>
+              <div><div class="libelle">EditorActivity.kt</div><div class="detail">feature/editor/src/main/…</div></div>
+              <span class="badge-etat modifie">M</span></div>
+            <div class="carte-demo"><span data-ico="fichier-kotlin" style="display:flex"></span>
+              <div><div class="libelle">TerminalActivity.kt</div><div class="detail">feature/terminal/src/main/…</div></div>
+              <span class="badge-etat modifie">M</span></div>
+            <div class="carte-demo"><span data-ico="fichier-markdown" style="display:flex"></span>
+              <div><div class="libelle">CHANGELOG.md</div><div class="detail">/</div></div>
+              <span class="badge-etat ajoute">A</span></div>
+            <div class="note-fragment">Fragment dédié — aperçu statique pour illustrer
+            l'entête propre et la navigation par fragments du tiroir.</div>
+          </div>
+        </div>
+
+        <!-- ============ FRAGMENT : TERMINAL (aperçu) ============ -->
+        <div class="fragment" id="frag-terminal">
+          <div class="entete-frag">
+            <div class="ligne-titre">
+              <span class="embleme terminal" data-ico="terminal"></span>
+              <div style="min-width:0">
+                <h3>Terminal</h3>
+                <div class="sous-titre">2 sessions actives · termux</div>
+              </div>
+              <div class="actions">
+                <button class="bt-entete" data-ico="plus" title="Nouvelle session"></button>
+              </div>
+            </div>
+          </div>
+          <div class="corps-frag">
+            <div class="carte-demo"><span data-ico="terminal" style="display:flex"></span>
+              <div><div class="libelle">main</div><div class="detail">~/CodeIDE · 21:42</div></div>
+              <span class="badge-etat ajoute">● vivante</span></div>
+            <div class="carte-demo"><span data-ico="terminal" style="display:flex"></span>
+              <div><div class="libelle">gradle-daemon</div><div class="detail">:tooling:server · 21:35</div></div>
+              <span class="badge-etat ajoute">● vivante</span></div>
+            <div class="note-fragment">Fragment dédié — le terminal s'affiche ici dans le
+            tiroir au lieu d'une activité séparée (option à discuter).</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- rail de navigation des fragments -->
+      <div class="rail" id="rail">
+        <button class="dest actif" data-frag="fichiers" data-ico="explorateur"><span class="ic"></span><span class="libelle">Fichiers</span></button>
+        <button class="dest" data-frag="recherche" data-ico="recherche"><span class="ic"></span><span class="libelle">Recherche</span></button>
+        <button class="dest" data-frag="git" data-ico="git"><span class="ic"></span><span class="libelle">Git</span></button>
+        <button class="dest" data-frag="terminal" data-ico="terminal"><span class="ic"></span><span class="libelle">Terminal</span></button>
+      </div>
+
+      <!-- poignée ⋮ : glisser pour redimensionner le tiroir -->
+      <button class="poignee" id="poignee" title="Glisser pour redimensionner le tiroir"
+              aria-label="Redimensionner le tiroir">
+        <span class="point"></span><span class="point"></span><span class="point"></span>
+      </button>
+      <div class="pastille-taille" id="pastille-taille">69 %</div>
+    </div>
+
+    <div class="snackbar" id="snackbar">
+      <span class="txt" id="snack-txt"></span>
+      <button class="bt-annuler" id="snack-action" style="display:none">Annuler</button>
+    </div>
+    <div class="geste"></div>
+  </div>
+</div>
+
+<datalist id="liste-dossiers"></datalist>
+
+<script>
+"use strict";
+/* =========================================================================
+   Aperçu interactif — Explorateur de fichiers CodeIDE v2
+   ========================================================================= */
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- icônes d'interface (trait, 24×24, currentColor) ---------- */
+const TRAITS = {
+  menu:      '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  points:    '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+  executer:  '<polygon points="7 4 20 12 7 20" fill="currentColor" stroke="none"/>',
+  plus:      '<path d="M12 5v14M5 12h14"/>',
+  valider:   '<polyline points="20 6 9 17 4 12"/>',
+  croix:     '<path d="M18 6 6 18M6 6l12 12"/>',
+  actualiser:'<path d="M21 4v6h-6"/><path d="M3 20v-6h6"/><path d="M4.6 9a8.5 8.5 0 0 1 14-3.4L21 10M3 14l2.4 4.4A8.5 8.5 0 0 0 19.4 15"/>',
+  replier:   '<path d="M8 4l4 4 4-4M8 20l4-4 4 4"/><path d="M4 12h16"/>',
+  cadenas:   '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  aide:      '<circle cx="12" cy="12" r="9"/><path d="M9.2 9a3 3 0 0 1 5.7 1c0 2-2.9 2.5-2.9 4"/><path d="M12 17.2h.01"/>',
+  maison:    '<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/>',
+  recherche: '<circle cx="11" cy="11" r="7"/><path d="M16.2 16.2 21 21"/>',
+  git:       '<path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+  terminal:  '<polyline points="4 17 10 11 4 5"/><path d="M12 19h8"/>',
+  explorateur:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 13h8"/>',
+  presse:    '<rect x="7" y="4" width="9" height="5" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/>',
+  copier:    '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  ciseaux:   '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/>',
+  coller:    '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+  deplacer:  '<path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>',
+  crayon:    '<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  poubelle:  '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/>',
+  ouvrir:    '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><path d="M10 14 21 3"/>',
+  "fichier-plus":'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14h6"/>',
+  "dossier-plus":'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M12 10v6M9 13h6"/>',
+};
+function ico(nom, taille=18, cls=""){
+  return '<svg class="'+cls+'" viewBox="0 0 24 24" width="'+taille+'" height="'+taille+
+         '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+
+         (TRAITS[nom]||'')+'</svg>';
+}
+
+/* ---------- icônes de types de fichiers (marques colorées 24×24) ---------- */
+const MARQUES = {
+  kt:       '<rect x="3" y="3" width="18" height="18" rx="4" fill="#7F52FF"/><path d="M7 7h10l-5 5 5 5H7z" fill="#fff"/>',
+  java:     '<path d="M7 10h7v5a3.4 3.4 0 0 1-3.4 3.4A3.4 3.4 0 0 1 7 15z" fill="#f89820"/><path d="M14 11h2.4a1.9 1.9 0 0 1 0 3.8H14" fill="none" stroke="#f89820" stroke-width="1.6"/><path d="M9 7V5M12 7V5" stroke="#e28317" stroke-width="1.5" stroke-linecap="round"/>',
+  xml:      '<path d="M6 3h7l4 4v14H6z" fill="#FF7043"/><path d="M13 3v4h4" fill="#ffb59a"/><path d="M9.4 11.5 7.5 13.4l1.9 1.9M14.6 11.5l1.9 1.9-1.9 1.9" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  gradle:   '<rect x="3" y="3" width="18" height="18" rx="4" fill="#1B7EA6"/><text x="12" y="16.6" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="11.5" fill="#fff">G</text>',
+  md:       '<rect x="3" y="5" width="18" height="14" rx="3" fill="#519aba"/><path d="M6.8 15.2V9.8l2.3 2.9 2.3-2.9v5.4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linejoin="round"/><path d="M15.4 9.8v5.4l-2.2-2.6M15.4 15.2l2.2-2.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  json:     '<rect x="3" y="3" width="18" height="18" rx="4" fill="#a9b838"/><text x="12" y="16.4" text-anchor="middle" font-family="Consolas,monospace" font-weight="700" font-size="10.5" fill="#fff">{ }</text>',
+  properties:'<rect x="3" y="3" width="18" height="18" rx="4" fill="#a074c4"/><circle cx="12" cy="12" r="2.5" stroke="#fff" stroke-width="1.5" fill="none"/><path d="M12 6.6v1.8M12 15.6v1.8M6.6 12h1.8M15.6 12h1.8M8.2 8.2l1.3 1.3M14.5 14.5l1.3 1.3M15.8 8.2l-1.3 1.3M9.5 14.5l-1.3 1.3" stroke="#fff" stroke-width="1.4"/>',
+  toml:     '<rect x="3" y="3" width="18" height="18" rx="4" fill="#9d7bd8"/><text x="12" y="16.6" text-anchor="middle" font-family="Arial" font-weight="700" font-size="11.5" fill="#fff">T</text>',
+  git:      '<rect x="3" y="3" width="18" height="18" rx="4" fill="#F05033"/><path d="M9.2 8v8.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="9.2" cy="6.6" r="1.8" fill="#fff"/><circle cx="9.2" cy="17.6" r="1.8" fill="#fff"/><circle cx="15.6" cy="9.8" r="1.8" fill="#fff"/><path d="M15.6 11.6c0 3-2.9 4.1-6.4 4.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>',
+  db:       '<ellipse cx="12" cy="6.8" rx="7" ry="2.8" fill="none" stroke="#26a69a" stroke-width="1.7"/><path d="M5 6.8v10.4c0 1.55 3.1 2.8 7 2.8s7-1.25 7-2.8V6.8" fill="none" stroke="#26a69a" stroke-width="1.7"/>',
+  log:      '<path d="M6 3h7l4 4v14H6z" fill="#79828f"/><path d="M8.6 12h6.2M8.6 15h6.2M8.6 9h3" stroke="#c3cad4" stroke-width="1.4" stroke-linecap="round"/>',
+  script:   '<path d="M6 3h7l4 4v14H6z" fill="none" stroke="#98b06a" stroke-width="1.6"/><path d="M9 12l2.2 2.2L9 16.4M13.4 16h2.6" stroke="#98b06a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  fichier:  '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" fill="none" stroke="#8a93a3" stroke-width="1.7"/><path d="M14 3v5h5" fill="none" stroke="#8a93a3" stroke-width="1.7"/>',
+};
+const EXT_VERS_MARQUE = { kt:"kt", java:"java", xml:"xml", kts:"gradle", md:"md",
+  json:"json", properties:"properties", toml:"toml", db:"db", log:"log",
+  pro:"properties", txt:"log", jar:"db" };
+function extension(nom){
+  if(nom.startsWith(".")) return "git";
+  const morceaux = nom.split(".");
+  return morceaux.length > 1 ? morceaux[morceaux.length-1].toLowerCase() : "script";
+}
+function marqueFichier(nom){
+  const ext = extension(nom);
+  return '<svg viewBox="0 0 24 24" width="17" height="17" class="marque">' +
+         (MARQUES[EXT_VERS_MARQUE[ext] || "fichier"]) + '</svg>';
+}
+function marqueDossier(n){
+  let corps, remplissage = "#566175", serrure = "";
+  if(n.racine && n.prive){ remplissage = "#7c6aa8"; }
+  else if(n.racine){ remplissage = "#6b96c4"; }
+  else if(n.prive){ remplissage = "#6d5f9b"; }
+  if(n.prive){
+    serrure = '<rect x="10" y="13" width="4.6" height="3.6" rx="1" fill="#fff" opacity=".95"/>'+
+              '<path d="M11.2 13v-1a1.4 1.4 0 0 1 2.6 0v1" stroke="#fff" stroke-width="1.1" fill="none"/>';
+  }
+  corps = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" fill="'+remplissage+'"/>'+
+          '<path d="M3.6 9.6h16.8" stroke="rgba(255,255,255,.16)" stroke-width="1"/>' + serrure;
+  return '<svg viewBox="0 0 24 24" width="17" height="17" class="marque">'+corps+'</svg>';
+}
+/* variantes pour l'entête du fragment Git (aperçu) */
+TRAITS["fichier-kotlin"]  = MARQUES.kt;
+TRAITS["fichier-markdown"]= MARQUES.md;
+
+/* ============================== données ============================== */
+/* Arbre réaliste tiré du dépôt CodeIDE (jo.codeide), volontairement       */
+/* resserré : tri dossiers puis fichiers, ADR 0027.                        */
+function D(nom, enfants, deplie, opts={}){
+  return Object.assign({ nom, type:"dossier", enfants, deplie:!!deplie,
+                         prive:false, racine:false }, opts);
+}
+function F(nom){ return { nom, type:"fichier", enfants:null, deplie:false, prive:false, racine:false }; }
+
+const RACINE_PROJET = D("CodeIDE", [
+  D("app", [
+    F("build.gradle.kts"),
+    D("src", [
+      D("main", [
+        D("java", [ D("jo", [ D("codeide", [ F("CodeIdeApplication.kt"), F("MainActivity.kt") ]) ]) ]),
+        D("res", [ D("layout", [ F("activity_main.xml"), F("vue_accueil.xml") ]) ]),
+      ]),
+    ]),
+  ]),
+  D("core", [
+    D("ui", [ F("IconesFichiers.kt"), F("BaseFragment.kt"), F("DynamicColors.kt"), F("AppNavigator.kt") ]),
+    D("domain", [ F("FileSystem.kt"), F("ArborescencesSaf.kt"), F("ProjectUseCases.kt") ]),
+    D("terminal-runtime", [ F("TerminalService.kt"), F("RegistreSessionsTermux.kt") ]),
+    D("logging", [ F("LogEngine.kt"), F("JsonlLogStore.kt") ]),
+    D("bootstrap", [ F("InstallateurBootstrap.kt"), F("ToolchainBootstrap.kt") ]),
+    D("database", [ F("CodeIdeDatabase.kt"), F("ProjectDao.kt") ]),
+  ]),
+  D("feature", [
+    D("editor", [
+      F("EditorActivity.kt"), F("EditorViewModel.kt"), F("ExplorateurAdapter.kt"),
+      F("GradleService.kt"), F("EtatEditor.kt"),
+      D("res", [
+        D("layout", [ F("activity_editor.xml"), F("ligne_noeud_arborescence.xml"), F("dialogue_nom_fichier.xml") ]),
+        D("menu", [ F("menu_tiroir.xml") ]),
+      ]),
+    ], true),
+    D("terminal", [
+      F("TerminalActivity.kt"), F("TerminalViewModel.kt"), F("ClavierEtenduView.kt"),
+      D("res", [ D("layout", [ F("activity_terminal.xml"), F("vue_onglet_session.xml") ]) ]),
+    ], true),
+    D("install", [ F("InstallFragment.kt"), F("InstallViewModel.kt") ]),
+    D("newproject", [ F("WizardViewModel.kt"), F("NewProjectFragment.kt"), F("Arborescence.kt") ]),
+    D("home", [ F("HomeFragment.kt"), F("HomeViewModel.kt") ]),
+    D("settings", [ F("SettingsFragment.kt"), F("SettingsViewModel.kt") ]),
+    D("diagnostics", [ F("JournalFragment.kt"), F("PlantagesFragment.kt") ]),
+    D("onboarding", [ F("OnboardingFragment.kt") ]),
+  ], true),
+  D("docs", [
+    D("adr", [
+      F("0026-tiroir-permanent-grand-ecran-cel-ui.md"),
+      F("0027-explorateur-fichiers-arborescence-paresseuse.md"),
+      F("0030-actions-fichiers-tiroir.md"),
+      F("0038-carte-apercu-terminal-pont-saf-fuse.md"),
+      F("0050-terminal-onglets-sessions.md"),
+    ], true),
+    F("ROADMAP.md"), F("CONVENTIONS.md"), F("TOOLING.md"), F("ARCHITECTURE.md"),
+  ], true),
+  D("gradle", [ D("wrapper", [ F("gradle-wrapper.properties"), F("gradle-wrapper.jar") ]), F("libs.versions.toml") ]),
+  D("build-logic", [ D("src", [ D("kotlin", [ F("ModuleRulesPlugin.kt"), F("AndroidFeatureConventionPlugin.kt") ]) ]) ]),
+  D("tools", [ D("generateur", [ F("GenerateurModeles.kt"), F("Combinaisons.kt") ]) ]),
+  F("build.gradle.kts"), F("settings.gradle.kts"), F("gradle.properties"),
+  F("gradlew"), F("gradlew.bat"), F("version.properties"),
+  F(".gitignore"), F("README.md"), F("CHANGELOG.md"),
+], true, { racine:true, cheminRacine:"/storage/emulated/0/CodeIDE" });
+
+const RACINE_PRIVEE = D("Stockage privé", [
+  D("files", [
+    D("bootstrap", [ F("jdk-21.tar.zst"), F("apache-aapt2.zip") ]),
+    F("registre.json"),
+  ], true),
+  D("cache", [ D("exports", [ F("journal-2026-09-24.log") ]) ]),
+  D("code_cache", []),
+  D("databases", [ F("codeide.db") ]),
+  D("shared_prefs", [ F("jo.codeide_preferences.xml") ], true),
+], true, { racine:true, prive:true, cheminRacine:"/data/user/0/jo.codeide" });
+
+/* ============================== état ============================== */
+const ETAT = {
+  racines: [RACINE_PROJET, RACINE_PRIVEE],
+  source: "projet",  /* arborescence affichée : "projet" | "prive" */
+  sel: null,          /* nœud sélectionné dans l'arbre            */
+  pp: null,           /* presse-papiers : { noeud, mode }         */
+  onglets: [],        /* fichiers ouverts (vus comme onglets)     */
+  actif: null,        /* fichier de l'onglet actif                */
+};
+
+const EL_NOEUD = new WeakMap();   /* nœud → élément .nud */
+
+/* ======================== utilitaires d'arbre ======================== */
+function parentDe(n){
+  for(const r of ETAT.racines){ const p = chercherParent(r, n); if(p) return p; }
+  return null;
+}
+function chercherParent(racine, cible){
+  for(const e of racine.enfants){
+    if(e === cible) return racine;
+    if(e.type === "dossier"){ const p = chercherParent(e, cible); if(p) return p; }
+  }
+  return null;
+}
+function estAncetre(a, b){            /* a est-il un ancêtre de b ? */
+  let p = parentDe(b);
+  while(p){ if(p === a) return true; p = parentDe(p); }
+  return false;
+}
+function cheminRelatif(n){
+  const morceaux = [ n.nom ];
+  let p = parentDe(n);
+  while(p){ morceaux.unshift(p.nom); p = parentDe(p); }
+  return morceaux.join("/");
+}
+function cheminAbsolu(n){
+  let racine = n;
+  while(!racine.racine) racine = parentDe(racine);
+  return racine.cheminRacine + "/" + cheminRelatif(n).split("/").slice(1).join("/");
+}
+function trouverParChemin(chemin){    /* "CodeIDE/feature/editor" (relatif racine) */
+  const parties = chemin.replace(/\/+$/,"").split("/").filter(Boolean);
+  const racine = ETAT.racines.find(r => r.nom === parties[0]);
+  if(!racine) return null;
+  let courant = racine;
+  for(let i=1; i<parties.length; i++){
+    const suivant = courant.enfants.find(e => e.nom.toLowerCase() === parties[i].toLowerCase());
+    if(!suivant || suivant.type !== "dossier") return null;
+    courant = suivant;
+  }
+  return courant;
+}
+function nomUnique(dossier, nomSouhaite, modeCopie){
+  if(!dossier.enfants.some(e => e.nom.toLowerCase() === nomSouhaite.toLowerCase()) || !modeCopie)
+    return nomSouhaite;
+  let n = 2;
+  while(dossier.enfants.some(e => e.nom.toLowerCase() === (nomSouhaite + " (copie " + n + ")").toLowerCase())) n++;
+  return nomSouhaite + " (copie " + n + ")";
+}
+
+/* ======================== rendu de l'arbre ======================== */
+const CHEVRON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M9 5l7 7-7 7z"/></svg>';
+
+function construireLigne(n){
+  const el = document.createElement("div");
+  el.className = "ligne" + (n.type === "dossier" ? "" : " p-defaut");
+  let interieur = "";
+  if(n.type === "dossier"){
+    interieur += '<span class="chevron">'+CHEVRON+'</span>';
+    interieur += '<span class="icone">'+marqueDossier(n)+'</span>';
+    interieur += '<span class="nom">'+esc(n.nom)+'</span>';
+    if(!n.racine) interieur += '<span class="compte" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--texte-3)">'+
+                 (n.enfants.length || "")+'</span>';
+  } else {
+    interieur += '<span class="puce"><span class="cercle"></span></span>';
+    interieur += '<span class="icone">'+marqueFichier(n.nom)+'</span>';
+    interieur += '<span class="nom">'+esc(n.nom)+'</span>';
+  }
+  if(n.racine){
+    interieur += '<span class="badge-chemin" title="'+esc(n.cheminRacine)+'">'+esc(n.cheminRacine)+'</span>';
+  }
+  el.innerHTML = interieur;
+  return el;
+}
+
+function construireNud(n){
+  const el = document.createElement("div");
+  el.className = "nud" +
+    (n.type === "dossier" ? " dossier" : "") +
+    (n.deplie ? " deplie" : "") +
+    (n.racine ? " racine" : "") +
+    (n.prive ? " prive" : "");
+  EL_NOEUD.set(n, el);
+  el.__noeud = n;
+  const ligne = construireLigne(n);
+  el.appendChild(ligne);
+  if(n.type === "dossier"){
+    const conteneur = document.createElement("div");
+    conteneur.className = "conteneur" + (n.deplie ? " ouvert" : "");
+    const liste = document.createElement("div");
+    liste.className = "liste " + (n.racine ? "liste-racine" : "liste-profonde");
+    conteneur.appendChild(liste);
+    el.appendChild(conteneur);
+    remplirListe(liste, n);
+  }
+  return el;
+}
+
+function remplirListe(liste, dossier){
+  liste.innerHTML = "";
+  dossier.enfants.forEach((e, i) => {
+    const el = construireNud(e);
+    if(i === dossier.enfants.length - 1) el.classList.add("dernier");
+    liste.appendChild(el);
+  });
+}
+
+function racineActive(){
+  return ETAT.source === "prive" ? RACINE_PRIVEE : RACINE_PROJET;
+}
+function renduArbre(){
+  const arbre = $("#arbre");
+  arbre.innerHTML = "";
+  arbre.appendChild(construireNud(racineActive()));
+  rafraichirToutesLignes();
+}
+
+/* ==================== points d'état des fichiers ==================== */
+function majPuces(){
+  for(const n of ETAT.onglets){
+    const el = EL_NOEUD.get(n);
+    if(!el) continue;
+    const l = el.querySelector(":scope > .ligne");
+    if(!l) continue;
+    l.classList.toggle("p-ouvert", true);
+    l.classList.toggle("p-actif", n === ETAT.actif);
+  }
+}
+function rafraichirClassesLigne(n){
+  const el = EL_NOEUD.get(n); if(!el) return;
+  const l = el.querySelector(":scope > .ligne"); if(!l) return;
+  l.classList.remove("p-ouvert","p-actif","p-sel","coupee");
+  if(ETAT.onglets.includes(n)) l.classList.add("p-ouvert");
+  if(n === ETAT.actif) l.classList.add("p-actif");
+  if(ETAT.sel === n) l.classList.add("p-sel");
+  if(ETAT.pp && ETAT.pp.noeud === n && ETAT.pp.mode === "couper") l.classList.add("coupee");
+}
+function rafraichirToutesLignes(){
+  parcourir(ETAT.racines, n => rafraichirClassesLigne(n));
+}
+function parcourir(noeuds, f){
+  for(const n of noeuds){
+    f(n);
+    if(n.type === "dossier" && n.enfants) parcourir(n.enfants, f);
+  }
+}
+
+/* ==================== sélection & ouverture ==================== */
+function selectionner(n){
+  ETAT.sel = n;
+  rafraichirToutesLignes();
+  majFilChemin(n);
+}
+function ouvrirFichier(n){
+  if(n.type !== "fichier") return;
+  if(!ETAT.onglets.includes(n)) ETAT.onglets.push(n);
+  ETAT.actif = n;
+  renduOnglets(); renduCode();
+  rafraichirToutesLignes();
+}
+function fermerOnglet(n){
+  const i = ETAT.onglets.indexOf(n);
+  if(i < 0) return;
+  ETAT.onglets.splice(i, 1);
+  if(ETAT.actif === n) ETAT.actif = ETAT.onglets[Math.min(i, ETAT.onglets.length-1)] || null;
+  renduOnglets(); renduCode();
+  rafraichirToutesLignes();
+}
+
+/* ==================== onglets + code de l'éditeur ==================== */
+const EXTRAITS = {
+  "CodeIDE/feature/editor/EditorActivity.kt":
+'<span class="mot-cle">package</span> jo.codeide.feature.editor\n' +
+'\n' +
+'<span class="mot-cle">import</span> android.os.Bundle\n' +
+'<span class="mot-cle">import</span> androidx.activity.viewModels\n' +
+'<span class="mot-cle">import</span> androidx.appcompat.app.AppCompatActivity\n' +
+'<span class="mot-cle">import</span> dagger.hilt.android.AndroidEntryPoint\n' +
+'\n' +
+'<span class="annotation">@AndroidEntryPoint</span>\n' +
+'<span class="mot-cle">class</span> <span class="type">EditorActivity</span> : <span class="type">AppCompatActivity</span>() {\n' +
+'\n' +
+'    <span class="mot-cle">private val</span> modele: <span class="type">EditorViewModel</span> <span class="mot-cle">by</span> viewModels()\n' +
+'\n' +
+'    <span class="mot-cle">override fun</span> <span class="fonction">onCreate</span>(etat: Bundle?) {\n' +
+'        <span class="mot-cle">super</span>.onCreate(etat)\n' +
+'        setContentView(R.layout.activity_editor)\n' +
+'\n' +
+'        <span class="commentaire">// Étape 31 : le tiroir accueille des fragments dédiés</span>\n' +
+'        <span class="commentaire">// (explorateur, recherche, git, terminal) — chaque fragment</span>\n' +
+'        <span class="commentaire">// porte son propre entête, plus d\'entête commun.</span>\n' +
+'        modele.etat.observe(<span class="mot-cle">this</span>) { rendu(it) }\n' +
+'    }\n' +
+'\n' +
+'    <span class="mot-cle">private fun</span> <span class="fonction">rendu</span>(etat: <span class="type">EtatEditor</span>) {\n' +
+'        synchroniserOnglets(etat.onglets)\n' +
+'        synchroniserArborescence(etat.noeuds)\n' +
+'    }\n' +
+'}',
+
+  "CodeIDE/feature/terminal/TerminalActivity.kt":
+'<span class="mot-cle">package</span> jo.codeide.feature.terminal\n' +
+'\n' +
+'<span class="mot-cle">import</span> android.os.Bundle\n' +
+'<span class="mot-cle">import</span> androidx.activity.viewModels\n' +
+'\n' +
+'<span class="mot-cle">class</span> <span class="type">TerminalActivity</span> : <span class="type">AppCompatActivity</span>() {\n' +
+'\n' +
+'    <span class="mot-cle">private val</span> modele: <span class="type">TerminalViewModel</span> <span class="mot-cle">by</span> viewModels()\n' +
+'\n' +
+'    <span class="mot-cle">override fun</span> <span class="fonction">onCreate</span>(etat: Bundle?) {\n' +
+'        <span class="mot-cle">super</span>.onCreate(etat)\n' +
+'        setContentView(R.layout.activity_terminal)\n' +
+'\n' +
+'        <span class="commentaire">// ADR 0050 : le bouton fermer n\'apparaît que sur les</span>\n' +
+'        <span class="commentaire">// onglets de session — jamais sur l\'onglet « + ».</span>\n' +
+'        modele.sessions.observe(<span class="mot-cle">this</span>) { synchroniserOnglets(it) }\n' +
+'    }\n' +
+'}',
+
+  "CodeIDE/feature/editor/res/layout/activity_editor.xml":
+'<span class="commentaire">&lt;!-- Éspace de travail : tiroir à fragments (proposition) --&gt;</span>\n' +
+'<span class="mot-cle">&lt;DrawerLayout</span> <span class="type">id</span>=<span class="chaine">"@+id/racine_editeur"</span> …<span class="mot-cle">&gt;</span>\n' +
+'\n' +
+'    <span class="mot-cle">&lt;CoordinatorLayout&gt;</span>\n' +
+'        <span class="mot-cle">&lt;Toolbar</span> <span class="type">id</span>=<span class="chaine">"@+id/toolbar_editeur"</span> …<span class="mot-cle">/&gt;</span>\n' +
+'        <span class="mot-cle">&lt;TabLayout</span> <span class="type">id</span>=<span class="chaine">"@+id/onglets_fichiers"</span> …<span class="mot-cle">/&gt;</span>\n' +
+'    <span class="mot-cle">&lt;/CoordinatorLayout&gt;</span>\n' +
+'\n' +
+'    <span class="commentaire">&lt;!-- tiroir : un fragment + sa poignée ⋮ --&gt;</span>\n' +
+'    <span class="mot-cle">&lt;FragmentContainerView</span> <span class="type">id</span>=<span class="chaine">"@+id/tiroir_fragments"</span> …<span class="mot-cle">/&gt;</span>\n' +
+'<span class="mot-cle">&lt;/DrawerLayout&gt;</span>',
+};
+
+function extraitGenerique(n){
+  const c = cheminRelatif(n);
+  const ext = extension(n.nom);
+  if(ext === "md")
+    return '<span class="commentaire"># '+esc(n.nom)+'</span>\n\n'+
+           'Document ouvert dans l\'onglet actif.\n\n'+
+           '<span class="commentaire">Le point devient vert dans l\'arbre (fichier de l\'onglet actif).</span>\n';
+  if(ext === "xml")
+    return '<span class="commentaire">&lt;!-- '+esc(c)+' --&gt;</span>\n<span class="mot-cle">&lt;resource</span> <span class="type">schema</span>=<span class="chaine">"…"</span><span class="mot-cle">&gt;</span>\n    …\n<span class="mot-cle">&lt;/resource&gt;</span>\n';
+  return '<span class="commentaire">// '+esc(c)+'</span>\n<span class="mot-cle">package</span> jo.codeide\n\n<span class="commentaire">// Extrait simulé — le contenu réel sera servi par la bibliothèque cel-ui.</span>\n';
+}
+
+function renduCode(){
+  const zone = $("#code");
+  zone.innerHTML = "";
+  if(!ETAT.actif){
+    zone.innerHTML = '<div class="vide-code">Aucun fichier ouvert — cliquez un fichier dans l\'arbre</div>';
+    return;
+  }
+  const brut = EXTRAITS[cheminRelatif(ETAT.actif)] || extraitGenerique(ETAT.actif);
+  const lignes = brut.split("\n");
+  let html = "";
+  lignes.forEach((l, i) => {
+    html += '<span class="ln">'+(i+1)+'</span>' + (l || " ") + "\n";
+  });
+  zone.innerHTML = html;
+}
+
+function renduOnglets(){
+  const zone = $("#onglets");
+  zone.innerHTML = "";
+  ETAT.onglets.forEach(n => {
+    const el = document.createElement("div");
+    el.className = "onglet" + (n === ETAT.actif ? " actif" : "");
+    el.innerHTML = '<span class="type">'+marqueFichier(n.nom)+'</span>' +
+                   '<span class="nom">'+esc(n.nom)+'</span>' +
+                   '<span class="croix" title="Fermer">'+ico("croix",13)+'</span>';
+    el.addEventListener("pointerdown", e => {
+      if(e.target.closest(".croix")){ fermerOnglet(n); return; }
+      ETAT.actif = n; renduOnglets(); renduCode(); rafraichirToutesLignes();
+    });
+    zone.appendChild(el);
+  });
+}
+
+/* ============================== snackbar ============================== */
+let minuteurSnack = null;
+function snackbar(txt, chemin, action){
+  const barre = $("#snackbar");
+  $("#snack-txt").innerHTML = esc(txt) +
+    (chemin ? '<span class="chemin-snack">' + esc(chemin) + '</span>' : "");
+  const bt = $("#snack-action");
+  if(action){ bt.style.display = ""; bt.textContent = action.libelle;
+    bt.onclick = () => { action.f(); masquerSnack(); }; }
+  else bt.style.display = "none";
+  barre.classList.add("visible");
+  clearTimeout(minuteurSnack);
+  minuteurSnack = setTimeout(masquerSnack, 4600);
+}
+function masquerSnack(){ $("#snackbar").classList.remove("visible"); }
+
+/* ====================== fil d'Ariane contextuel ====================== */
+function majFilChemin(n){
+  const fil = $("#fil-chemin");
+  fil.innerHTML = '<span class="maison">' + ico("maison",13) + '</span>';
+  if(!n) return;
+  const chaine = [];
+  let c = n;
+  while(c){ chaine.unshift(c); c = parentDe(c); }
+  chaine.forEach((m, i) => {
+    if(i > 0){ const s = document.createElement("span"); s.className = "sep"; s.textContent = "\u203a"; fil.appendChild(s); }
+    const e = document.createElement("span");
+    e.className = "etiquette" + (i === chaine.length - 1 ? " finale" : "");
+    e.textContent = m.nom;
+    e.title = cheminAbsolu(m);
+    e.addEventListener("pointerdown", ev => { ev.stopPropagation(); selectionner(m); });
+    fil.appendChild(e);
+  });
+}
+
+/* ============================ popover ============================ */
+/* Ancré exactement là où l'utilisateur exerce l'action (appui long). */
+let popoverActuel = null;
+function fermerPopover(){
+  if(popoverActuel){ popoverActuel.remove(); popoverActuel = null; }
+}
+function ouvrirPopover(x, y, contenu){
+  fermerPopover();
+  const pop = document.createElement("div");
+  pop.className = "popover";
+  pop.innerHTML = contenu + '<span class="fleche haut"></span>';
+  document.body.appendChild(pop);
+  const rect = pop.getBoundingClientRect();
+  const ecran = $("#ecran").getBoundingClientRect();
+  let gauche = Math.min(Math.max(x - 30, ecran.left + 6), ecran.right - rect.width - 6);
+  let haut = Math.min(Math.max(y + 16, ecran.top + 6), ecran.bottom - rect.height - 6);
+  const auDessus = (y + 16 > ecran.bottom - rect.height - 6);
+  if(auDessus){ haut = Math.max(y - rect.height - 14, ecran.top + 6); }
+  pop.style.left = gauche + "px";
+  pop.style.top = haut + "px";
+  const fleche = pop.querySelector(".fleche");
+  const fx = Math.min(Math.max(x - gauche, 20), rect.width - 20);
+  fleche.style.left = Math.round(fx) + "px";
+  if(auDessus){ fleche.classList.replace("haut","bas"); pop.style.transformOrigin = Math.round(fx) + "px 100%"; }
+  else{ pop.style.transformOrigin = Math.round(fx) + "px 0%"; }
+  popoverActuel = pop;
+  return pop;
+}
+window.addEventListener("pointerdown", e => {
+  if(popoverActuel && !popoverActuel.contains(e.target)) fermerPopover();
+}, true);
+window.addEventListener("keydown", e => { if(e.key === "Escape") fermerPopover(); });
+
+/* Le chemin affiché dépend du contexte de l'action. */
+function tetePopover(n, contexte){
+  const ic = n.type === "dossier" ? marqueDossier(n) : marqueFichier(n.nom);
+  return '<div class="tete">' + ic + '<div style="min-width:0">' +
+    '<div class="p-nom">' + esc(n.nom) + '</div>' +
+    '<div class="p-chemin" title="' + esc(cheminAbsolu(n)) + '">' + esc(cheminAbsolu(n)) + '</div>' +
+    '</div></div>' +
+    (contexte ? '<div class="p-ctx" title="' + esc(contexte) + '">' + esc(contexte) + '</div>' : "");
+}
+function actionPopover(nomIco, libelle, opts = {}){
+  return '<button class="action' + (opts.danger ? " dangereuse" : "") +
+         (opts.desactive ? " desactivee" : "") + '" data-action="' + opts.id + '">' +
+         ico(nomIco, 15) + esc(libelle) +
+         (opts.note ? '<span class="raccourci">' + esc(opts.note) + '</span>' : "") + '</button>';
+}
+
+function menuContextuel(x, y, n){
+  let c = tetePopover(n, n.type === "dossier" ? "Cible \u2014 " + cheminRelatif(n) : null);
+  if(n.type === "fichier"){
+    c += actionPopover("ouvrir", "Ouvrir", { id:"ouvrir" });
+    c += '<div class="separateur"></div>';
+    c += actionPopover("copier", "Copier", { id:"copier" });
+    c += actionPopover("ciseaux", "Couper", { id:"couper" });
+    c += actionPopover("deplacer", "Déplacer vers\u2026", { id:"deplacer" });
+    c += actionPopover("crayon", "Renommer", { id:"renommer" });
+    c += '<div class="separateur"></div>';
+    c += actionPopover("poubelle", "Supprimer", { id:"supprimer", danger:true });
+  } else {
+    c += actionPopover("fichier-plus", "Nouveau fichier", { id:"nouveau-fichier" });
+    c += actionPopover("dossier-plus", "Nouveau dossier", { id:"nouveau-dossier" });
+    const ppValide = ETAT.pp && !(ETAT.pp.noeud === n || estAncetre(ETAT.pp.noeud, n));
+    c += actionPopover("coller", "Coller", { id:"coller", desactive:!ppValide, note: ETAT.pp ? ETAT.pp.noeud.nom : "" });
+    if(!n.racine){
+      c += '<div class="separateur"></div>';
+      c += actionPopover("copier", "Copier", { id:"copier" });
+      c += actionPopover("ciseaux", "Couper", { id:"couper" });
+      c += actionPopover("deplacer", "Déplacer vers\u2026", { id:"deplacer" });
+      c += actionPopover("crayon", "Renommer", { id:"renommer" });
+      c += '<div class="separateur"></div>';
+      c += actionPopover("poubelle", "Supprimer", { id:"supprimer", danger:true });
+    }
+  }
+  const pop = ouvrirPopover(x, y, c);
+  pop.addEventListener("click", e => {
+    const bt = e.target.closest("[data-action]");
+    if(!bt || bt.classList.contains("desactivee")) return;
+    executerAction(bt.dataset.action, n, x, y);
+  });
+}
+
+function executerAction(id, n, x, y){
+  switch(id){
+    case "ouvrir":      fermerPopover(); selectionner(n); ouvrirFichier(n); break;
+    case "copier":      ETAT.pp = { noeud:n, mode:"copier" }; majBarrePP(); rafraichirToutesLignes();
+                        fermerPopover(); snackbar("Copié dans le presse-papiers", cheminAbsolu(n)); break;
+    case "couper":      ETAT.pp = { noeud:n, mode:"couper" }; majBarrePP(); rafraichirToutesLignes();
+                        fermerPopover(); snackbar("Coupé — prêt à coller", cheminAbsolu(n)); break;
+    case "coller":      fermerPopover(); coller(n); break;
+    case "deplacer":    ouvrirDeplacement(x, y, n); break;
+    case "renommer":    fermerPopover(); demarrerRenommage(n); break;
+    case "supprimer":   ouvrirConfirmationSuppression(x, y, n); break;
+    case "nouveau-fichier": fermerPopover(); demarrerCreation(n, "fichier"); break;
+    case "nouveau-dossier": fermerPopover(); demarrerCreation(n, "dossier"); break;
+  }
+}
+
+/* ==================== mutations ciblées sur le nœud ==================== */
+function racineDe(n){ let r = n; while(!r.racine) r = parentDe(r); return r; }
+
+function reconstruireLigne(n){
+  const el = EL_NOEUD.get(n); if(!el) return;
+  const ancien = el.querySelector(":scope > .ligne") || el.firstElementChild;
+  if(ancien) el.replaceChild(construireLigne(n), ancien);
+}
+
+function deplier(d, ouvrir){
+  d.deplie = ouvrir;
+  const el = EL_NOEUD.get(d); if(!el) return;
+  el.classList.toggle("deplie", ouvrir);
+  const c = el.querySelector(":scope > .conteneur");
+  if(c) c.classList.toggle("ouvert", ouvrir);
+  reconstruireLigne(d);
+}
+
+function majDossier(d){
+  const el = EL_NOEUD.get(d); if(!el) return;
+  const liste = el.querySelector(":scope > .conteneur > .liste");
+  if(liste) remplirListe(liste, d);
+  reconstruireLigne(d);
+  rafraichirToutesLignes();
+}
+
+function trierEnfants(d){   /* ADR 0027 : dossiers, puis fichiers, puis nom */
+  d.enfants.sort((a, b) => {
+    if(a.type !== b.type) return a.type === "dossier" ? -1 : 1;
+    return a.nom.localeCompare(b.nom, "fr", { sensitivity:"base", numeric:true });
+  });
+}
+
+function inserer(dossier, n, surligner){
+  dossier.enfants.push(n);
+  trierEnfants(dossier);
+  deplier(dossier, true);
+  majDossier(dossier);
+  const el = EL_NOEUD.get(n);
+  if(el){
+    el.classList.add("apparait");
+    if(surligner){ const l = el.querySelector(":scope > .ligne"); if(l) l.classList.add("surlignee"); }
+    setTimeout(() => el.scrollIntoView({ block:"nearest", behavior:"smooth" }), 90);
+  }
+}
+
+function retirerDuParent(n){
+  const p = parentDe(n); if(!p) return;
+  const i = p.enfants.indexOf(n);
+  if(i >= 0) p.enfants.splice(i, 1);
+  majDossier(p);
+}
+
+function cloner(n){
+  return { nom:n.nom, type:n.type, deplie:n.deplie, prive:n.prive, racine:false,
+           enfants: n.enfants ? n.enfants.map(cloner) : null };
+}
+
+/* ==================== presse-papiers (copier / couper / coller) ==================== */
+function majBarrePP(){
+  const barre = $("#barre-pp");
+  if(!ETAT.pp){ barre.classList.remove("visible"); return; }
+  barre.classList.add("visible");
+  $("#nom-pp").textContent = ETAT.pp.noeud.nom + " (" +
+    (ETAT.pp.mode === "couper" ? "couper" : "copier") + ")";
+}
+
+function coller(dossier){
+  const src = ETAT.pp.noeud, mode = ETAT.pp.mode;
+  if(src === dossier || estAncetre(src, dossier)){
+    snackbar("Collage impossible — la destination est dans la source", null);
+    return;
+  }
+  if(mode === "couper" && parentDe(src) === dossier){
+    ETAT.pp = null; majBarrePP();
+    snackbar("Déjà dans ce dossier", cheminAbsolu(dossier));
+    return;
+  }
+  if(mode === "copier"){
+    const n = cloner(src);
+    n.nom = nomUnique(dossier, n.nom, true);
+    inserer(dossier, n, true);
+    snackbar("Copié dans " + dossier.nom, cheminAbsolu(dossier));
+  } else {
+    const p = parentDe(src);
+    retirerDuParent(src);
+    src.nom = nomUnique(dossier, src.nom, true);
+    inserer(dossier, src, true);
+    ETAT.pp = null;
+    snackbar("Déplacé dans " + dossier.nom, cheminAbsolu(dossier));
+  }
+  majBarrePP();
+  rafraichirToutesLignes();
+}
+
+/* ==================== déplacer vers (chemin de destination) ==================== */
+function ouvrirDeplacement(x, y, n){
+  const racine = racineDe(n);
+  const datalist = $("#liste-dossiers");
+  datalist.innerHTML = "";
+  parcourir([racine], d => {
+    if(d.type === "dossier" && d !== n && !estAncetre(n, d) && !d.racine){
+      const o = document.createElement("option");
+      o.value = cheminRelatif(d);
+      datalist.appendChild(o);
+    }
+  });
+  const contenu = tetePopover(n, "Déplacement — " + cheminRelatif(n)) +
+    '<div class="champ"><label>Origine</label><div class="chemin-statique">' + esc(cheminRelatif(n)) + '</div></div>' +
+    '<div class="champ"><label>Destination</label><input id="champ-destination" list="liste-dossiers" value="' +
+      esc(cheminRelatif(parentDe(n))) + '" autocomplete="off" spellcheck="false"></div>' +
+    '<div class="erreur" id="erreur-deplacement" style="display:none"></div>' +
+    '<div class="boutons"><button class="bt secondaire" id="bt-ann-dep">Annuler</button>' +
+    '<button class="bt primaire" id="bt-dep">Déplacer</button></div>';
+  const pop = ouvrirPopover(x, y, contenu);
+  const champ = pop.querySelector("#champ-destination");
+  setTimeout(() => champ.focus(), 60);
+  const err = pop.querySelector("#erreur-deplacement");
+  pop.querySelector("#bt-ann-dep").addEventListener("click", fermerPopover);
+  const tenter = () => {
+    const dest = trouverParChemin(champ.value.trim());
+    if(!dest){ err.textContent = "Dossier introuvable — chemin relatif attendu (ex. : " +
+      esc(cheminRelatif(racine)) + "/docs)"; err.style.display = "block"; return; }
+    if(dest === parentDe(n)){ err.textContent = "Déjà à cet endroit."; err.style.display = "block"; return; }
+    if(dest === n || estAncetre(n, dest)){ err.textContent = "Impossible : la destination est dans l'élément déplacé."; err.style.display = "block"; return; }
+    fermerPopover();
+    retirerDuParent(n);
+    inserer(dest, n, true);
+    selectionner(n);
+    snackbar("Déplacé vers " + dest.nom, cheminAbsolu(dest));
+  };
+  pop.querySelector("#bt-dep").addEventListener("click", tenter);
+  champ.addEventListener("keydown", e => { if(e.key === "Enter") tenter(); });
+}
+
+/* ==================== suppression + annulation ==================== */
+function ouvrirConfirmationSuppression(x, y, n){
+  const contenu = tetePopover(n, null) +
+    '<div style="padding:10px 12px 4px;font-size:12.5px;color:var(--texte-2);line-height:1.55">' +
+    'Supprimer <b>' + esc(n.nom) + '</b>' + (n.type === "dossier" ? ' <b>et tout son contenu</b>' : '') +
+    ' ?<br>Action définitive.</div>' +
+    '<div class="boutons"><button class="bt secondaire" id="bt-ann-sup">Annuler</button>' +
+    '<button class="bt dangereux" id="bt-sup">Supprimer</button></div>';
+  const pop = ouvrirPopover(x, y, contenu);
+  pop.querySelector("#bt-ann-sup").addEventListener("click", fermerPopover);
+  pop.querySelector("#bt-sup").addEventListener("click", () => { fermerPopover(); supprimer(n); });
+}
+
+function supprimer(n){
+  const parent = parentDe(n); if(!parent) return;
+  const index = parent.enfants.indexOf(n);
+  const ongletsTouches = ETAT.onglets.filter(o => o === n || estAncetre(n, o));
+  ongletsTouches.slice().forEach(fermerOnglet);
+  if(ETAT.sel === n || (n.type === "dossier" && ETAT.sel && estAncetre(n, ETAT.sel))) ETAT.sel = parent;
+  parent.enfants.splice(index, 1);
+  const el = EL_NOEUD.get(n);
+  if(el){
+    el.classList.add("disparait");
+    setTimeout(() => majDossier(parent), 220);
+  } else majDossier(parent);
+  majFilChemin(parent);
+  snackbar("Supprimé — " + n.nom, cheminAbsolu(parent), {
+    libelle: "Annuler",
+    f: () => {
+      parent.enfants.splice(Math.min(index, parent.enfants.length), 0, n);
+      majDossier(parent);
+      ongletsTouches.forEach(o => { if(!ETAT.onglets.includes(o)) ETAT.onglets.push(o); });
+      if(!ETAT.actif && ETAT.onglets.length){ ETAT.actif = ETAT.onglets[0]; renduCode(); }
+      renduOnglets();
+      rafraichirToutesLignes();
+    }
+  });
+  rafraichirToutesLignes();
+}
+
+/* ==================== création / renommage inline ==================== */
+/* La mise à jour a lieu DANS le nœud concerné (pas de rechargement).  */
+function validerNom(dossier, valeur, nCourant){
+  const v = valeur.trim();
+  if(!v) return "Nom obligatoire";
+  if(v === "." || v === "..") return "Nom réservé";
+  if(/[\/\\]/.test(v)) return "Pas de séparateur dans un nom";
+  if(v.length > 64) return "64 caractères maximum";
+  if(dossier.enfants.some(e => e !== nCourant && e.nom.toLowerCase() === v.toLowerCase()))
+    return "Un élément porte déjà ce nom";
+  return null;
+}
+
+function secousse(ed){
+  ed.classList.remove("invalide"); void ed.offsetWidth; ed.classList.add("invalide");
+}
+
+function demarrerCreation(dossier, type){
+  deplier(dossier, true);
+  const el = EL_NOEUD.get(dossier);
+  const liste = el.querySelector(":scope > .conteneur > .liste");
+  $$('.nud.dernier', liste).forEach(d => d.classList.remove("dernier"));
+  const ed = document.createElement("div");
+  ed.className = "nud dernier apparait";
+  const marque = type === "fichier" ? marqueFichier("nouveau.txt") : marqueDossier({});
+  ed.innerHTML = '<div class="edit-inline">' + marque +
+    '<input placeholder="' + (type === "fichier" ? "nom-fichier.kt" : "nom-dossier") + '" spellcheck="false">' +
+    '<button class="valider" title="Valider">' + ico("valider",14) + '</button>' +
+    '<button class="annuler" title="Annuler">' + ico("croix",14) + '</button></div>';
+  liste.appendChild(ed);
+  const champ = ed.querySelector("input");
+  setTimeout(() => champ.focus(), 60);
+  let termine = false;
+  const nettoyer = () => { if(termine) return; termine = true; ed.remove(); majDossier(dossier); };
+  const valider = () => {
+    if(termine) return;
+    const err = validerNom(dossier, champ.value, null);
+    if(err){ secousse(ed); champ.focus(); return; }
+    termine = true;
+    const nom = champ.value.trim();
+    const n = type === "fichier" ? F(nom) : D(nom, [], false);
+    inserer(dossier, n, true);
+    selectionner(n);
+    if(type === "fichier") ouvrirFichier(n);   /* ADR 0030 : créer → éditer */
+    snackbar("Créé — " + nom, cheminAbsolu(n));
+  };
+  ed.querySelector(".valider").addEventListener("click", valider);
+  ed.querySelector(".annuler").addEventListener("click", nettoyer);
+  champ.addEventListener("keydown", e => {
+    if(e.key === "Enter") valider();
+    if(e.key === "Escape") nettoyer();
+  });
+}
+
+function demarrerRenommage(n){
+  const el = EL_NOEUD.get(n); if(!el || n.racine) return;
+  const ligne = el.querySelector(":scope > .ligne");
+  if(!ligne) return;
+  const parent = parentDe(n);
+  const ed = document.createElement("div");
+  ed.className = "edit-inline";
+  ed.style.paddingLeft = "2px";
+  const marque = n.type === "fichier" ? marqueFichier(n.nom) : marqueDossier(n);
+  ed.innerHTML = marque + '<input value="' + esc(n.nom) + '" spellcheck="false">' +
+    '<button class="valider" title="Valider">' + ico("valider",14) + '</button>' +
+    '<button class="annuler" title="Annuler">' + ico("croix",14) + '</button>';
+  ligne.replaceWith(ed);
+  const champ = ed.querySelector("input");
+  champ.focus(); champ.select();
+  let termine = false;
+  const fin = () => { if(termine) return; termine = true; reconstruireLigne(n); rafraichirToutesLignes(); };
+  const valider = () => {
+    if(termine) return;
+    const err = validerNom(parent, champ.value, n);
+    if(err){ secousse(ed); champ.focus(); return; }
+    const ancien = n.nom;
+    n.nom = champ.value.trim();
+    termine = true;
+    reconstruireLigne(n);
+    rafraichirToutesLignes();
+    if(ETAT.onglets.includes(n)){ renduOnglets(); renduCode(); }  /* l'onglet suit (URI migrée) */
+    snackbar("Renommé — " + ancien + " \u2192 " + n.nom, cheminAbsolu(n));
+  };
+  ed.querySelector(".valider").addEventListener("click", valider);
+  ed.querySelector(".annuler").addEventListener("click", fin);
+  champ.addEventListener("keydown", e => {
+    if(e.key === "Enter") valider();
+    if(e.key === "Escape") fin();
+  });
+}
+
+/* ==================== interactions de l'arbre ==================== */
+/* clic = sélection / dépliage · appui long (ou clic droit) = popover */
+(function(){
+  const arbre = $("#arbre");
+  let chrono = null, ax = 0, ay = 0, longFait = false;
+  arbre.addEventListener("pointerdown", e => {
+    if(e.button === 2) return;
+    const ligne = e.target.closest(".ligne"); if(!ligne) return;
+    const nud = ligne.closest(".nud");
+    const n = nud && nud.__noeud; if(!n) return;
+    ax = e.clientX; ay = e.clientY; longFait = false;
+    clearTimeout(chrono);
+    chrono = setTimeout(() => {
+      longFait = true;
+      if(navigator.vibrate) navigator.vibrate(12);
+      menuContextuel(ax, ay, n);
+    }, 420);
+  });
+  arbre.addEventListener("pointermove", e => {
+    if(chrono && (Math.abs(e.clientX - ax) > 9 || Math.abs(e.clientY - ay) > 9)){
+      clearTimeout(chrono); chrono = null;
+    }
+  });
+  arbre.addEventListener("pointerup", e => {
+    clearTimeout(chrono); chrono = null;
+    if(longFait){ longFait = false; return; }
+    const ligne = e.target && e.target.closest ? e.target.closest(".ligne") : null;
+    if(!ligne) return;
+    const nud = ligne.closest(".nud");
+    const n = nud && nud.__noeud; if(!n) return;
+    if(n.type === "dossier"){
+      selectionner(n);
+      deplier(n, !n.deplie);
+    } else {
+      selectionner(n);
+      ouvrirFichier(n);
+    }
+  });
+  arbre.addEventListener("pointercancel", () => {
+    clearTimeout(chrono); chrono = null; longFait = false;
+  });
+  arbre.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    const ligne = e.target.closest(".ligne"); if(!ligne) return;
+    const nud = ligne.closest(".nud");
+    const n = nud && nud.__noeud; if(!n) return;
+    menuContextuel(e.clientX, e.clientY, n);
+  });
+})();
+
+/* ==================== boutons de l'entête ==================== */
+$("#bt-menu").addEventListener("click", () => $("#tiroir").classList.toggle("masque"));
+
+$("#bt-replier").addEventListener("click", () => {
+  parcourir([racineActive()], d => { if(d.type === "dossier" && !d.racine) d.deplie = false; });
+  renduArbre();
+  snackbar("Arborescence repliée", null);
+});
+
+$("#bt-actualiser").addEventListener("click", e => {
+  const bt = e.currentTarget;
+  bt.classList.remove("tourne"); void bt.offsetWidth; bt.classList.add("tourne");
+  renduArbre();
+  snackbar("Arborescence actualisée", $("#sous-titre-frag").textContent);
+});
+
+function basculerSource(source){
+  if(ETAT.source === source) return;
+  ETAT.source = source;
+  fermerPopover();
+  $$("#bascule-source .segment").forEach(b => b.classList.toggle("actif", b.dataset.source === source));
+  ETAT.sel = null;
+  majFilChemin(null);
+  renduArbre();
+  $("#sous-titre-frag").textContent = racineActive().cheminRacine;
+  snackbar(source === "prive"
+    ? "Stockage privé — arborescence exclusive"
+    : "Arborescence du projet", racineActive().cheminRacine);
+}
+$$("#bascule-source .segment").forEach(bt => {
+  bt.addEventListener("click", () => basculerSource(bt.dataset.source));
+});
+
+$("#bt-nouveau").addEventListener("click", e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const cible = (ETAT.sel && ETAT.sel.type === "dossier") ? ETAT.sel : racineActive();
+  let contenu = tetePopover(cible, "Créer dans — " + cheminRelatif(cible));
+  contenu += actionPopover("fichier-plus", "Nouveau fichier", { id:"nouveau-fichier" });
+  contenu += actionPopover("dossier-plus", "Nouveau dossier", { id:"nouveau-dossier" });
+  const pop = ouvrirPopover(r.left, r.bottom + 6, contenu);
+  pop.addEventListener("click", ev => {
+    const bt = ev.target.closest("[data-action]"); if(!bt) return;
+    fermerPopover();
+    demarrerCreation(cible, bt.dataset.action === "nouveau-fichier" ? "fichier" : "dossier");
+  });
+});
+
+$("#bt-legende").addEventListener("click", e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const pt = style => '<span class="repere"><span style="' + style + '"></span></span>';
+  const base = "width:9px;height:9px;border-radius:50%;display:inline-block;border:2px solid ";
+  let contenu = '<div class="legende-titre-sec">Points d\u2019état</div>' +
+    '<div class="legende-ligne">' + pt(base + "#5a6270") + '<span>Fichier</span></div>' +
+    '<div class="legende-ligne">' + pt(base + "#7ab8f5;background:#7ab8f5") + '<span>Sélectionné dans l\u2019arbre</span></div>' +
+    '<div class="legende-ligne">' + pt(base + "#6fc47a;background:#6fc47a") + '<span>Ouvert dans l\u2019onglet actif</span></div>' +
+    '<div class="legende-ligne">' + pt(base + "#6fc47a") + '<span>Ouvert dans un onglet inactif</span></div>' +
+    '<div class="legende-titre-sec">Notation</div>' +
+    '<div class="legende-ligne"><span class="repere" style="color:var(--texte-2)">\u25b8</span><span>Dossier (chevron de d\u00e9pliage)</span></div>' +
+    '<div class="legende-ligne"><span class="repere" style="color:var(--guide);font-weight:700">\u2514\u2500</span><span>Trait fin : lien parent \u2192 enfant</span></div>' +
+    '<div class="legende-ligne">' + pt("width:0") + '<span>Appui long sur une ligne : menu d\u2019actions</span></div>';
+  ouvrirPopover(r.left, r.bottom + 6, contenu);
+});
+
+$("#vider-pp").addEventListener("click", () => {
+  ETAT.pp = null; majBarrePP(); rafraichirToutesLignes();
+});
+
+/* ==================== rail : navigation par fragments ==================== */
+$$("#rail .dest").forEach(bt => {
+  bt.addEventListener("click", () => {
+    $$("#rail .dest").forEach(b => b.classList.toggle("actif", b === bt));
+    const id = bt.dataset.frag;
+    $$(".fragment").forEach(f => f.classList.toggle("active", f.id === "frag-" + id));
+  });
+});
+
+/* ================ poignée ⋮ : redimensionnement du tiroir ================ */
+(function(){
+  const poignee = $("#poignee"), tiroir = $("#tiroir"), ecran = $("#ecran");
+  const pastille = $("#pastille-taille");
+  let depart = null;
+
+  function appliquer(px, avecAimant){
+    const largeur = ecran.clientWidth;
+    const min = Math.round(largeur * .45), max = Math.round(largeur * .98);
+    px = Math.min(Math.max(px, min), max);
+    if(avecAimant){
+      for(const p of [.55, .69, .85, .98]){
+        const cible = Math.round(largeur * p);
+        if(Math.abs(px - cible) < 12){ px = cible; break; }
+      }
+    }
+    tiroir.style.width = px + "px";
+    pastille.textContent = Math.round(px / largeur * 100) + " %";
+    return px;
+  }
+
+  poignee.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    depart = { x: e.clientX, largeur: tiroir.getBoundingClientRect().width };
+    poignee.setPointerCapture(e.pointerId);
+    poignee.classList.add("pendant");
+    pastille.classList.add("visible");
+    tiroir.classList.add("pendant-glissement");
+  });
+  poignee.addEventListener("pointermove", e => {
+    if(!depart) return;
+    appliquer(depart.largeur + (e.clientX - depart.x), false);
+  });
+  const finir = () => {
+    if(!depart) return;
+    depart = null;
+    poignee.classList.remove("pendant");
+    tiroir.classList.remove("pendant-glissement");
+    requestAnimationFrame(() => appliquer(tiroir.getBoundingClientRect().width, true));
+    setTimeout(() => pastille.classList.remove("visible"), 380);
+  };
+  poignee.addEventListener("pointerup", finir);
+  poignee.addEventListener("pointercancel", finir);
+})();
+
+/* ============================== initialisation ============================== */
+$$("[data-ico]").forEach(el => {
+  const cible = el.querySelector(":scope > .ic") || el;
+  cible.insertAdjacentHTML("afterbegin",
+    ico(el.dataset.ico, el.classList.contains("dest") ? 20 : 17));
+});
+
+/* horloge de la barre de statut */
+(function(){
+  const maj = () => {
+    const d = new Date();
+    $("#heure").textContent =
+      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  };
+  maj(); setInterval(maj, 30000);
+})();
+
+/* arbre + onglets de départ (EditorActivity actif, TerminalActivity inactif) */
+renduArbre();
+const dossierFeature = RACINE_PROJET.enfants.find(d => d.nom === "feature");
+const dossierEditor  = dossierFeature.enfants.find(d => d.nom === "editor");
+const dossierTerm    = dossierFeature.enfants.find(d => d.nom === "terminal");
+const ongletA = dossierEditor.enfants.find(f => f.nom === "EditorActivity.kt");
+const ongletB = dossierTerm.enfants.find(f => f.nom === "TerminalActivity.kt");
+ETAT.onglets = [ongletA, ongletB];
+ETAT.actif = ongletA;
+renduOnglets();
+renduCode();
+selectionner(ongletA);
+
+/* astuce de démarrage */
+setTimeout(() => {
+  snackbar("Astuce : appui long (ou clic droit) sur une ligne pour ouvrir le menu d\u2019actions", null);
+}, 1100);
+
+</script>
+</body>
+</html>
