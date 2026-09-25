@@ -4,6 +4,53 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.32.4] – 2026-09-26
+
+### Modifié (retour appareil réel sur l'étape 31, suite)
+
+- **Vraies classes de la bibliothèque code-editor (ADR 0055)** — retour
+  utilisateur : « Pourquoi tu n'as pas utilisé les classes de
+  code-editor (symbolview et breadcrumb) ? » Vérification refaite : les
+  deux classes existent BIEN dans le tag v3.37.0 consommé (paquet
+  `jo.codeeditor.view`, présentes depuis v3.2/v3.3 — la v0.32.3 les
+  avait cherchées dans `view.chrome`, un déplacement postérieur du
+  dépôt amont). Les transcriptions maison (`VueFilArianeEditeur`,
+  `BarreSymbolesEditeur`, ~460 lignes) sont SUPPRIMÉES au profit des
+  classes réelles de `cel-ui` : `BreadcrumbBar` (segments posés par
+  `setSegments()` — API « usage manuel » documentée — depuis le scanner
+  [SymbolesEnglobants] et le chemin relatif de l'onglet ; `bind()` et
+  son SPI `SymbolProvider` ne connaissent ni le chemin ni le scanner)
+  et `SymbolBarView` (écouteur `OnSymbolTap` : Tab indente, //
+  bascule le commentaire, ↑/↓ déplacent la ligne, Dup duplique, les 28
+  symboles passent par `typeChar`). Rendu et comportement = ceux de la
+  bibliothèque (couleurs sombres, pas de défilement du fil — assumé).
+- **Barre de symboles enfin VISIBLE et collée au clavier (ADR 0055)** —
+  cause racine du « la touche virtuelle n'est pas visible » : à
+  l'ouverture de l'IME le panneau passait `STATE_COLLAPSED` (peek 48 dp
+  = en-tête seul) — la barre, placée SOUS l'en-tête, restait hors
+  écran. Correctif : le peek s'élargit à en-tête + barre (48 + 38 dp)
+  quand l'IME est ouvert, le panneau replié étant déjà posé sur le haut
+  du clavier (`adjustResize`) — la barre paraît collée au clavier ;
+  peek de repos restauré à la fermeture. Détection IME doublée :
+  insets natifs (API 30+) ET rétrécissement du root (toutes API) en OU
+  — un seul détecteur se taisait sur certains appareils.
+- **Panneau inférieur à fragments (ADR 0055)** — retour utilisateur :
+  « Pour le bottom sheet behavior, il faut aussi utiliser des fragments
+  au lieu d'empiler les vues dans le layout. » Le chrome (en-tête à
+  poignée/titre/badge/actions, barre de symboles, onglets) reste à
+  l'hôte ; le contenu des trois onglets vit dans `PanneauConsoleFragment`,
+  `PanneauProblemesFragment` et `PanneauJournalFragment`, ajoutés UNE
+  fois au `FragmentContainerView` puis montrés/cachés (même pattern que
+  le tiroir, ADR 0052 — l'état de défilement survit aux changements
+  d'onglet). Chaque fragment collecte l'état qu'il rend
+  (`activityViewModels`) ; le saut à un diagnostic passe par le contrat
+  `ControleurPanneauEditeur` (implémenté par l'activité, cast
+  contrôlé dans `onAttach` — même pattern que le Terminal du tiroir,
+  ADR 0053). Correction au passage : les show/hide du tiroir et du
+  panneau ciblent désormais leurs fragments PAR TAG (un `forEach` sur
+  les fragments du manager aurait caché les fragments de l'autre
+  conteneur).
+
 ## [0.32.3] – 2026-09-26
 
 ### Ajouté (retour appareil réel sur l'étape 31, suite)
@@ -2925,4 +2972,3 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   la détection de tests de Gradle 9 sur un module sans test. Elles seront
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
-

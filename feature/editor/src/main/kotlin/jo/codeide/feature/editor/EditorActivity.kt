@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -28,7 +27,6 @@ import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -39,10 +37,8 @@ import jo.codeeditor.document.Selection
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
-import jo.codeide.core.domain.EtatConnexion
+import jo.codeeditor.view.SymbolBarView
 import jo.codeide.core.domain.InfoTache
-import jo.codeide.core.domain.StatutBuild
-import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
@@ -75,11 +71,13 @@ import kotlin.math.abs
  *   menu contextuel : fermer, fermer les autres, fermer tout, déplacer,
  *   copier le chemin) au-dessus d'**un seul `EditorView`** rebranché sur la
  *   session de l'onglet actif — thème clair/sombre suivant l'application ;
- * - panneau inférieur (étape 16, ADR 0029) : trois états pilotés par
- *   `BottomSheetBehavior` (replié / mi-hauteur / étendu), en-tête à
- *   poignée/titre/badge/actions, onglet **Journal applicatif** compact
- *   fonctionnel (fenêtre mémoire, filtres par niveau, lien vers l'écran
- *   Diagnostic) et onglets **Sortie** et **Problèmes** en stub explicite.
+ * - panneau inférieur (étape 16, ADR 0029 ; v0.32.4, ADR 0055) : trois
+ *   états pilotés par `BottomSheetBehavior`, en-tête à
+ *   poignée/titre/badge/actions, onglets Console/Problèmes/Journal dont
+ *   le contenu vit dans des FRAGMENTS montrés/cachés (plus de vues
+ *   empilées) ; barre de symboles — la SymbolBarView de la
+ *   bibliothèque code-editor — sous l'en-tête, visible quand l'IME est
+ *   ouvert, collée au clavier (peek élargi à en-tête + barre) ;
  *
  * Sauvegarde automatique (délai d'inactivité, côté ViewModel) et manuelle
  * (action de la toolbar). Fermeture d'un onglet sale — ou sortie avec des
@@ -99,7 +97,8 @@ import kotlin.math.abs
 @AndroidEntryPoint
 class EditorActivity :
     AppCompatActivity(),
-    ControleurTerminalTiroir {
+    ControleurTerminalTiroir,
+    ControleurPanneauEditeur {
     private val viewModel: EditorViewModel by viewModels()
 
     /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
@@ -117,18 +116,6 @@ class EditorActivity :
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
-    /** Adaptateur du journal applicatif compact du panneau (étape 16). */
-    private lateinit var adaptateurJournal: EntreesJournalCompactesAdapter
-
-    /** Console du build (G5, onglet Sortie). */
-    private lateinit var adaptateurSortie: SortieAdapter
-
-    /** Diagnostics groupés (G5, onglet Problèmes). */
-    private lateinit var adaptateurProblemes: ProblemesAdapter
-
-    /** Taille de la dernière fenêtre de sortie rendue (auto-défilement). */
-    private var tailleDerniereFenetreSortie = 0
-
     /** Thèmes cel mis en cache (clair/sombre, suivant l'application). */
     private var themeClair: EditorTheme? = null
     private var themeSombre: EditorTheme? = null
@@ -138,12 +125,6 @@ class EditorActivity :
 
     /** Idem pour les onglets du panneau inférieur (étape 16). */
     private var selectionProgrammatiquePanneau = false
-
-    /** Mise à jour programmatique des filtres du journal (étape 16). */
-    private var majProgrammatiqueFiltres = false
-
-    /** Taille de la dernière fenêtre du journal rendue (suivi direct). */
-    private var tailleDerniereFenetreJournal = 0
 
     /** Le tiroir est-il ouvert (pilote le retour système) ? */
     private var tiroirOuvert = false
@@ -161,8 +142,17 @@ class EditorActivity :
     /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
     private var panneauEtendu = false
 
-    /** Le clavier virtuel est-il visible (pilote la barre de symboles) ? */
-    private var clavierVisible = false
+    /** Clavier visible selon les insets IME (API 30+) ? */
+    private var clavierParInsets = false
+
+    /** Clavier visible selon le rétrécissement du root (adjustResize) ? */
+    private var clavierParHauteur = false
+
+    /** Le clavier virtuel est-il visible (pilote la barre de symboles) ?
+     *  OU des deux détecteurs (v0.32.4) : les insets seuls se taisent
+     *  sur certains appareils en mode resize hérité, la hauteur seule
+     *  se trompe sur les écrans partagés — ensemble ils couvrent tout. */
+    private val clavierVisible: Boolean get() = clavierParInsets || clavierParHauteur
 
     /** Tâche de débounce du fil d'Ariane (200 ms, BreadCrumbBar). */
     private var travailFil: Job? = null
@@ -211,9 +201,9 @@ class EditorActivity :
         brancherOnglets()
         brancherVueVide()
         brancherFilAriane()
-        brancherBarreSymboles()
         brancherEditeur()
         brancherPanneauInferieur()
+        brancherBarreSymboles()
         onBackPressedDispatcher.addCallback(this, retourEspace)
 
         // Langue des libellés du catalogue (étape 18) — re-émise à chaque
@@ -221,7 +211,6 @@ class EditorActivity :
         viewModel.onAction(ActionEditor.PreciserLangue(langueCourante()))
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
-        viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreTooling(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
     }
 
@@ -395,9 +384,14 @@ class EditorActivity :
                 },
             ) ?: return
         val transaction = gestionnaire.beginTransaction()
-        gestionnaire.fragments.forEach { fragment ->
-            if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
-        }
+        // Ciblé PAR TAG (v0.32.4) : les fragments du PANNEAU inférieur
+        // vivent dans le même manager — un forEach global les cacherait
+        // à chaque changement de destination du tiroir.
+        listOf(TAG_EXPLORATEUR, TAG_RECHERCHE, TAG_GIT, TAG_TERMINAL)
+            .mapNotNull { tag -> gestionnaire.findFragmentByTag(tag) }
+            .forEach { fragment ->
+                if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
+            }
         transaction.commit()
 
         // État actif du rail : encoche + teinte accent de l'icône et du
@@ -619,9 +613,9 @@ class EditorActivity :
         )
     }
 
-    /** L'éditeur : le fil d'Ariane suit le caret (ADR 0054) — re-calcul
-     *  débounce 200 ms après chaque déplacement (BreadCrumbBar de la
-     *  bibliothèque, même constante). */
+    /** L'éditeur : le fil d'Ariane suit le caret (ADR 0054/0055) — re-calcul
+     *  débounce 200 ms après chaque déplacement (même constante que la
+     *  BreadcrumbBar de la bibliothèque). */
     private fun brancherFilAriane() {
         liaison.vueEditeur.addOnSelectionChangedListener { _, _, _ ->
             travailFil?.cancel()
@@ -640,34 +634,26 @@ class EditorActivity :
         majFilAriane(onglet)
     }
 
-    /** Compose et pose les segments : dossier › … › fichier › symboles
-     *  englobants (chemin relatif + scanner [SymbolesEnglobants]). Les
-     *  très gros documents renoncent aux symboles (scan O(n) trop coûteux
+    /** Compose et pose les segments (v0.32.4) : dossier / fichier /
+     *  symboles englobants — rendus par la BreadcrumbBar de la
+     *  bibliothèque via setSegments() (API « usage manuel » : bind()
+     *  écraserait les segments via son propre SymbolProvider, qui ne
+     *  connaît ni le chemin relatif ni le scanner maison). Les très
+     *  gros documents renoncent aux symboles (scan O(n) trop coûteux
      *  à chaque arrêt du caret). */
     private fun majFilAriane(onglet: EditorTabState) {
         val session = viewModel.sessionDe(onglet.uri) ?: return
-        val segments =
-            mutableListOf<VueFilArianeEditeur.Segment>()
+        val segments = mutableListOf<String>()
         onglet.cheminRelatif.split('/').dropLast(1).forEach { dossier ->
-            if (dossier.isNotBlank()) {
-                segments += VueFilArianeEditeur.Segment(dossier, VueFilArianeEditeur.Role.CHEMIN)
-            }
+            if (dossier.isNotBlank()) segments += dossier
         }
-        segments += VueFilArianeEditeur.Segment(onglet.nom, VueFilArianeEditeur.Role.FICHIER)
+        segments += onglet.nom
         if (!session.document.isLarge) {
             SymbolesEnglobants.englobants(session.text, session.selection.start).forEach { symbole ->
-                segments += VueFilArianeEditeur.Segment(symbole, VueFilArianeEditeur.Role.SYMBOLE)
+                segments += symbole
             }
         }
-        liaison.filArianeEditeur.definirSegments(segments)
-        // Défilement vers le segment courant (fin) — côté opposé en RTL.
-        val cible =
-            if (resources.configuration.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL) {
-                View.FOCUS_LEFT
-            } else {
-                View.FOCUS_RIGHT
-            }
-        liaison.defilementFilAriane.post { liaison.defilementFilAriane.fullScroll(cible) }
+        liaison.filArianeEditeur.setSegments(segments.toTypedArray())
     }
 
     /** État vide (v0.32.3) : deux actions directes — ouvrir le tiroir
@@ -685,19 +671,20 @@ class EditorActivity :
         }
     }
 
-    /** Barre de symboles au-dessus du clavier (ADR 0054) : touches
-     *  épinglées mappées sur les commandes de session, symboles insérés
-     *  par `typeChar` (fermeture automatique des paires conservée). */
+    /** Barre de symboles au-dessus du clavier (ADR 0054/0055) : la VRAIE
+     *  SymbolBarView de la bibliothèque (cel-ui) — touches épinglées
+     *  mappées sur les commandes de session, symboles insérés par
+     *  `typeChar` (fermeture automatique des paires conservée). */
     private fun brancherBarreSymboles() {
-        liaison.barreSymboles.definirEcouteur(
-            object : BarreSymbolesEditeur.Ecouteur {
-                override fun surSymbole(symbole: String) {
-                    sessionActive()?.typeChar(symbole.first())
+        liaison.barreSymboles.setOnSymbolTap(
+            object : SymbolBarView.OnSymbolTap {
+                override fun onSymbol(symbol: String) {
+                    sessionActive()?.typeChar(symbol.first())
                 }
 
-                override fun surAction(identifiant: String) {
+                override fun onAction(actionId: String) {
                     val session = sessionActive() ?: return
-                    when (identifiant) {
+                    when (actionId) {
                         ACTION_TAB -> session.indent()
                         ACTION_COMMENT -> session.toggleLineComment()
                         ACTION_MOVE_UP -> session.moveLineUp()
@@ -717,38 +704,42 @@ class EditorActivity :
         return viewModel.sessionDe(onglet.uri)
     }
 
-    /** Visibilité de l'IME : insets natifs (API 30+) puis repli par la
-     *  hauteur du root (API 26-29, `adjustResize` — le root rétrécit
-     *  quand le clavier prend sa place). */
+    /** Visibilité de l'IME (v0.32.4) : DEUX détecteurs convergent —
+     *  insets natifs (API 30+ ; silencieux sur certains appareils) et
+     *  rétrécissement du root (adjustResize, toutes API — le root
+     *  rétrécit quand le clavier prend sa place). */
     private fun observerClavier() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
-                val clavier = insets.getInsets(WindowInsetsCompat.Type.ime())
-                majBarreSymboles(clavier.bottom > 0 || insets.isVisible(WindowInsetsCompat.Type.ime()))
-                insets
-            }
-        } else {
-            liaison.racineEditeur.viewTreeObserver.addOnGlobalLayoutListener {
-                val hauteur = liaison.racineEditeur.height
-                if (hauteur > hauteurRacineMax) hauteurRacineMax = hauteur
-                val seuil =
-                    (liaison.racineEditeur.resources.displayMetrics.heightPixels * FRACTION_SEUIL_IME).toInt()
-                majBarreSymboles(hauteurRacineMax - hauteur > seuil)
-            }
+        ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
+            clavierParInsets = insets.isVisible(WindowInsetsCompat.Type.ime())
+            rafraichirBarreSymboles()
+            insets
+        }
+        liaison.racineEditeur.viewTreeObserver.addOnGlobalLayoutListener {
+            val hauteur = liaison.racineEditeur.height
+            if (hauteur > hauteurRacineMax) hauteurRacineMax = hauteur
+            val seuil =
+                (liaison.racineEditeur.resources.displayMetrics.heightPixels * FRACTION_SEUIL_IME).toInt()
+            clavierParHauteur = hauteurRacineMax - hauteur > seuil
+            rafraichirBarreSymboles()
         }
     }
 
-    /** La barre de symboles n'apparaît que si l'IME est ouvert ET qu'un
-     *  fichier est édité ; le panneau inférieur se replie alors — son
-     *  en-tête et la barre montent au-dessus du clavier. */
-    private fun majBarreSymboles(visible: Boolean) {
-        clavierVisible = visible
-        rafraichirBarreSymboles()
-    }
-
+    /** La barre n'apparaît que si l'IME est ouvert ET qu'un fichier est
+     *  édité (v0.32.4) : le peek du panneau s'élargit alors à en-tête +
+     *  barre — le panneau replié est posé sur le haut du clavier
+     *  (adjustResize), la barre paraît COLLÉE au clavier. Retour
+     *  v0.32.3 : avec le peek de repos (48 dp, en-tête seul), la barre
+     *  placée sous l'en-tête restait hors écran. */
     private fun rafraichirBarreSymboles() {
         val montrer = clavierVisible && sessionActive() != null
         liaison.barreSymboles.isVisible = montrer
+        val peekReposPx = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
+        comportementPanneau.peekHeight =
+            if (montrer) {
+                peekReposPx + (HAUTEUR_BARRE_SYMBOLES_DP * resources.displayMetrics.density).toInt()
+            } else {
+                peekReposPx
+            }
         if (montrer && comportementPanneau.state != BottomSheetBehavior.STATE_COLLAPSED) {
             comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         }
@@ -758,9 +749,10 @@ class EditorActivity :
     private fun brancherEditeur() = Unit
 
     /**
-     * Panneau inférieur (étape 16) : trois états, en-tête (poignée, titre,
-     * badge, agrandir, réduire), onglets Console/Problèmes/Journal, filtres
-     * du journal compact et lien vers l'écran Diagnostic.
+     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055) : trois états,
+     * en-tête (poignée, titre, badge, agrandir, réduire), onglets
+     * Console/Problèmes/Journal — le contenu vit dans trois fragments
+     * (Journal/Sortie/Problèmes) ajoutés une fois puis montrés/cachés.
      */
     private fun brancherPanneauInferieur() {
         comportementPanneau = BottomSheetBehavior.from(liaison.panneauInferieur)
@@ -826,6 +818,25 @@ class EditorActivity :
             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
         }
 
+        // Fragments du contenu (v0.32.4, ADR 0055) : ajoutés UNE fois
+        // au conteneur — la réconciliation d'onglet les montre/cache (le
+        // Journal et la Sortie collectent leur état eux-mêmes, l'état de
+        // défilement survit aux changements d'onglet).
+        val gestionnaire = supportFragmentManager
+        if (gestionnaire.findFragmentById(R.id.conteneur_fragments_panneau) == null) {
+            val console = PanneauConsoleFragment()
+            val problemes = PanneauProblemesFragment()
+            val journal = PanneauJournalFragment()
+            gestionnaire
+                .beginTransaction()
+                .add(R.id.conteneur_fragments_panneau, console, TAG_PANNEAU_CONSOLE)
+                .add(R.id.conteneur_fragments_panneau, problemes, TAG_PANNEAU_PROBLEMES)
+                .hide(problemes)
+                .add(R.id.conteneur_fragments_panneau, journal, TAG_PANNEAU_JOURNAL)
+                .hide(journal)
+                .commit()
+        }
+
         // Onglets du panneau : l'ordre du layout fixe la correspondance.
         liaison.ongletsPanneau.addOnTabSelectedListener(
             object : TabLayout.OnTabSelectedListener {
@@ -842,51 +853,6 @@ class EditorActivity :
                 override fun onTabReselected(tab: TabLayout.Tab) = Unit
             },
         )
-
-        adaptateurJournal = EntreesJournalCompactesAdapter()
-        liaison.listeJournal.layoutManager = LinearLayoutManager(this)
-        liaison.listeJournal.adapter = adaptateurJournal
-        brancherToolingPanneau()
-
-        // Filtres par niveau — même règle que l'écran Diagnostic (étape 12).
-        liaison.chipJournalDebug.setOnCheckedChangeListener { _, _ ->
-            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.DEBUG))
-        }
-        liaison.chipJournalInfo.setOnCheckedChangeListener { _, _ ->
-            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.INFO))
-        }
-        liaison.chipJournalWarn.setOnCheckedChangeListener { _, _ ->
-            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.WARN))
-        }
-        liaison.chipJournalError.setOnCheckedChangeListener { _, _ ->
-            if (!majProgrammatiqueFiltres) viewModel.onAction(ActionEditor.BasculerFiltreJournal(LogLevel.ERROR))
-        }
-
-        // Lien vers le journal complet — l'historique et les exports restent
-        // à l'écran Diagnostic (version compacte, prompt compagnon 5.5).
-        liaison.boutonJournalComplet.setOnClickListener {
-            viewModel.onAction(ActionEditor.OuvrirJournalComplet)
-        }
-    }
-
-    /**
-     * Onglets Sortie et Problèmes (G5, section 6) : console du build
-     * (auto-défilement en vol), diagnostics groupés par fichier (saut à
-     * la ligne), arrêt du build.
-     */
-    private fun brancherToolingPanneau() {
-        adaptateurSortie = SortieAdapter()
-        liaison.listeSortie.layoutManager = LinearLayoutManager(this)
-        liaison.listeSortie.adapter = adaptateurSortie
-        adaptateurProblemes =
-            ProblemesAdapter { fichier, ligne ->
-                sauterAuProbleme(fichier, ligne)
-            }
-        liaison.listeProblemes.layoutManager = LinearLayoutManager(this)
-        liaison.listeProblemes.adapter = adaptateurProblemes
-        liaison.boutonAnnulerBuild.setOnClickListener {
-            viewModel.onAction(ActionEditor.AnnulerBuild)
-        }
     }
 
     /** Rend l'état : titre (type en sous-titre), onglets, éditeur, panneau,
@@ -1207,14 +1173,15 @@ class EditorActivity :
     }
 
     /** L'éditeur : rebranche la vue sur la session de l'onglet actif,
-     *  rafraîchit le fil d'Ariane et la barre de symboles (v0.32.3). */
+     *  rafraîchit le fil d'Ariane (BreadcrumbBar de la bibliothèque) et
+     *  la barre de symboles (v0.32.4). */
     private fun rendreEditeur(etat: EtatEditor) {
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
         liaison.vueEditeur.isVisible = onglet != null
-        liaison.defilementFilAriane.isVisible = onglet != null
+        liaison.filArianeEditeur.isVisible = onglet != null
         rafraichirBarreSymboles()
         if (onglet == null) {
-            liaison.filArianeEditeur.definirSegments(emptyList())
+            liaison.filArianeEditeur.setSegments(emptyArray())
             return
         }
 
@@ -1241,10 +1208,10 @@ class EditorActivity :
     }
 
     /**
-     * Panneau inférieur (étape 16) : état d'ouverture appliqué au
-     * comportement, onglet actif réconcilié, fenêtre du journal rendue
-     * (suivi direct par défilement quand elle grandit), filtres, badge
-     * et titre de l'en-tête.
+     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055) : état d'ouverture
+     * appliqué au comportement, onglet actif réconcilié (barre ET
+     * fragment montré/caché), badge et titre de l'en-tête — le rendu du
+     * contenu vit dans les fragments (fenêtre, filtres, statuts).
      */
     private fun rendrePanneau(etat: EtatEditor) {
         // État d'ouverture — l'état du comportement peut diverger pendant
@@ -1271,21 +1238,17 @@ class EditorActivity :
                 selectionProgrammatiquePanneau = false
             }
         }
-        liaison.contenuJournal.isVisible = etat.ongletPanneau == OngletPanneau.JOURNAL
-        liaison.contenuSortie.isVisible = etat.ongletPanneau == OngletPanneau.CONSOLE
-        liaison.contenuProblemes.isVisible = etat.ongletPanneau == OngletPanneau.PROBLEMES
+
+        // Contenu : fragment de l'onglet montré, les autres cachés —
+        // ciblé PAR TAG (jamais via les fragments du manager : ceux du
+        // tiroir ne doivent pas être cachés, et réciproquement).
+        montrerFragmentPanneau(etat.ongletPanneau)
 
         // Titre de l'en-tête : libellé de l'onglet actif du panneau.
         liaison.titrePanneau.setText(libelleOngletPanneau(etat.ongletPanneau))
 
-        // Journal compact : fenêtre, suivi direct, état vide, badge.
-        adaptateurJournal.submitList(etat.entreesJournal)
-        if (etat.entreesJournal.size > tailleDerniereFenetreJournal && etat.entreesJournal.isNotEmpty()) {
-            liaison.listeJournal.scrollToPosition(etat.entreesJournal.lastIndex)
-        }
-        tailleDerniereFenetreJournal = etat.entreesJournal.size
-        liaison.texteJournalVide.isVisible = etat.entreesJournal.isEmpty()
-
+        // Badge (compte du journal — le rendu de la fenêtre vit dans
+        // PanneauJournalFragment).
         liaison.badgePanneau.isVisible = etat.ongletPanneau == OngletPanneau.JOURNAL && etat.entreesJournal.isNotEmpty()
         if (liaison.badgePanneau.isVisible) {
             // Formatage explicite indépendant de la locale (SetTextI18n).
@@ -1297,15 +1260,32 @@ class EditorActivity :
                     etat.entreesJournal.size,
                 )
         }
-
-        // Filtres : cochés selon l'état, sans renvoyer l'action (garde).
-        majProgrammatiqueFiltres = true
-        liaison.chipJournalDebug.isChecked = LogLevel.DEBUG in etat.filtresJournal
-        liaison.chipJournalInfo.isChecked = LogLevel.INFO in etat.filtresJournal
-        liaison.chipJournalWarn.isChecked = LogLevel.WARN in etat.filtresJournal
-        liaison.chipJournalError.isChecked = LogLevel.ERROR in etat.filtresJournal
-        majProgrammatiqueFiltres = false
     }
+
+    /** Montre le fragment de l'[onglet] du panneau et cache les deux
+     *  autres (ciblés par tag — voir [rendrePanneau]). */
+    private fun montrerFragmentPanneau(onglet: OngletPanneau) {
+        val cible = supportFragmentManager.findFragmentByTag(tagOngletPanneau(onglet)) ?: return
+        if (cible.isVisible) return
+        val transaction = supportFragmentManager.beginTransaction()
+        fragmentsPanneau().forEach { fragment ->
+            if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
+        }
+        transaction.commit()
+    }
+
+    /** Fragments du panneau inférieur, par tag. */
+    private fun fragmentsPanneau(): List<androidx.fragment.app.Fragment> =
+        listOf(TAG_PANNEAU_CONSOLE, TAG_PANNEAU_PROBLEMES, TAG_PANNEAU_JOURNAL)
+            .mapNotNull { tag -> supportFragmentManager.findFragmentByTag(tag) }
+
+    /** Tag du fragment de l'onglet du panneau (ordre du layout). */
+    private fun tagOngletPanneau(onglet: OngletPanneau): String =
+        when (onglet) {
+            OngletPanneau.CONSOLE -> TAG_PANNEAU_CONSOLE
+            OngletPanneau.PROBLEMES -> TAG_PANNEAU_PROBLEMES
+            OngletPanneau.JOURNAL -> TAG_PANNEAU_JOURNAL
+        }
 
     /** Libellé localisé d'un onglet du panneau inférieur. */
     private fun libelleOngletPanneau(onglet: OngletPanneau): Int =
@@ -1313,79 +1293,6 @@ class EditorActivity :
             OngletPanneau.CONSOLE -> R.string.editor_panneau_console
             OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
             OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
-        }
-
-    /**
-     * Rendu du tooling (G5, §6) : état de synchronisation/build dans
-     * l'en-tête de l'onglet Sortie (annulation visible en vol), console
-     * avec auto-défilement (le suivi s'arrête quand la liste cesse de
-     * grandir — un build fini ne défile plus), diagnostics groupés.
-     */
-    private fun rendreTooling(etat: EtatGradle) {
-        liaison.statutSortie.text = libelleStatutTooling(etat)
-        liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
-
-        // Console : fenêtre bornée, auto-défilement tant qu'elle grandit.
-        adaptateurSortie.submitList(etat.lignes)
-        val enVol = etat.statutBuild == StatutBuild.EN_COURS
-        if (enVol && etat.lignes.size > tailleDerniereFenetreSortie && etat.lignes.isNotEmpty()) {
-            liaison.listeSortie.scrollToPosition(etat.lignes.lastIndex)
-        }
-        tailleDerniereFenetreSortie = etat.lignes.size
-        liaison.texteSortieVide.isVisible = etat.lignes.isEmpty()
-
-        // Problèmes : groupes aplatis (le badge du panneau reste celui du
-        // journal, étape 16 — le compte par fichier vit dans les groupes).
-        adaptateurProblemes.submitList(etat.groupesProblemes.aplatir())
-        liaison.texteProblemesVide.isVisible = etat.problemesTotal == 0
-    }
-
-    /** Libellé du statut tooling : synchronisation, puis build, puis repli. */
-    private fun libelleStatutTooling(etat: EtatGradle): String =
-        when {
-            etat.synchronisationEnCours -> {
-                getString(R.string.editor_sortie_sync_en_cours)
-            }
-
-            etat.synchronisationReussie != null -> {
-                getString(R.string.editor_sortie_sync_reussie, dureeLisible(etat.synchronisationReussie.dureeMs))
-            }
-
-            etat.messageEchecSync != null -> {
-                etat.messageEchecSync
-            }
-
-            etat.statutBuild == StatutBuild.EN_COURS -> {
-                getString(R.string.editor_sortie_build_en_cours)
-            }
-
-            etat.statutBuild == StatutBuild.REUSSI -> {
-                getString(R.string.editor_sortie_build_reussi, dureeLisible(etat.dureeBuildMs ?: 0L))
-            }
-
-            etat.statutBuild == StatutBuild.ECHOUE -> {
-                etat.messageEchecBuild ?: getString(R.string.editor_sortie_build_echoue)
-            }
-
-            etat.statutBuild == StatutBuild.ANNULE -> {
-                getString(R.string.editor_sortie_build_annule)
-            }
-
-            etat.connexion == EtatConnexion.ECHOUEE -> {
-                getString(R.string.editor_outil_deconnecte)
-            }
-
-            else -> {
-                getString(R.string.editor_sortie_vide)
-            }
-        }
-
-    /** Durée lisible (s, ou ms sous la seconde). */
-    private fun dureeLisible(dureeMs: Long): String =
-        if (dureeMs >= SEUIL_SECONDE_MS) {
-            String.format(java.util.Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
-        } else {
-            String.format(java.util.Locale.ROOT, "%dms", dureeMs)
         }
 
     /**
@@ -1403,12 +1310,14 @@ class EditorActivity :
     }
 
     /**
-     * Saut au diagnostic (G5, §6) : sélectionne l'onglet du fichier (son
-     * chemin relatif est le suffixe du fichier diagnostiqué) puis pose le
-     * défilement et le curseur à la ligne — après le re-rendu (post) pour
-     * que la vue soit rebranchée sur la bonne session.
+     * Saut au diagnostic (G5, §6 ; contrat [ControleurPanneauEditeur] :
+     * appelé par PanneauProblemesFragment) : sélectionne l'onglet du
+     * fichier (son chemin relatif est le suffixe du fichier diagnostiqué)
+     * puis pose le défilement et le curseur à la ligne — après le
+     * re-rendu (post) pour que la vue soit rebranchée sur la bonne
+     * session.
      */
-    private fun sauterAuProbleme(
+    override fun sauterAuProbleme(
         fichier: String,
         ligne: Int,
     ) {
@@ -1616,7 +1525,19 @@ class EditorActivity :
         /** Débounce du fil d'Ariane (BreadCrumbBar de la bibliothèque : 200 ms). */
         const val DEBOUNCE_FIL_ARIANE_MS = 200L
 
-        /** Seuil de détection de l'IME par la hauteur du root (API < 30) :
+        /** Tags des fragments du panneau inférieur (v0.32.4, ADR 0055) —
+         *  le ciblage par tag est le garde-fou contre les show/hide qui
+         *  se traverseraient avec les fragments du tiroir. */
+        const val TAG_PANNEAU_CONSOLE = "panneau_console"
+        const val TAG_PANNEAU_PROBLEMES = "panneau_problemes"
+        const val TAG_PANNEAU_JOURNAL = "panneau_journal"
+
+        /** Hauteur de la barre de symboles (constante interne de la
+         *  SymbolBarView de la bibliothèque : 38 dp — le peek de l'IME
+         *  en dépend). */
+        const val HAUTEUR_BARRE_SYMBOLES_DP = 38
+
+        /** Seuil de détection de l'IME par la hauteur du root :
          *  un clavier occupe largement plus de 15 % de l'écran, une marge
          *  d'insets jamais ça. */
         const val FRACTION_SEUIL_IME = 0.15f
@@ -1627,12 +1548,6 @@ class EditorActivity :
         const val ACTION_MOVE_UP = "move_up"
         const val ACTION_MOVE_DOWN = "move_down"
         const val ACTION_DUPLICATE = "duplicate"
-
-        /** Seuil de bascule seconde/milliseconde des durées affichées (G5). */
-        const val SEUIL_SECONDE_MS = 1_000L
-
-        /** Valeur double du seuil (division de durée). */
-        const val SECONDE_MS = 1_000.0
 
         // Identifiants du menu contextuel d'onglet (pas de ressources
         // menu XML : un PopupMenu programmatique garde les libellés

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Problèmes du panneau inférieur (G5 §6, v0.32.4 ADR 0055) :
+     diagnostics groupés par fichier, saut à la ligne. Fragment
+     PanneauProblemesFragment — le chrome (en-tête, onglets) reste à
+     l'hôte (activity_editor.xml). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_problemes"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/spacing_xs" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_problemes_vide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="@dimen/state_padding"
+        android:text="@string/editor_problemes_vide"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+</FrameLayout>
