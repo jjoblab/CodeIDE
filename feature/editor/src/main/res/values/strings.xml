@@ -13,7 +13,9 @@
     <string name="editor_vide_astuce_explorateur">Appui long sur un fichier : toutes ses actions.</string>
     <string name="editor_vide_astuce_poignee">Poignée ⋮ du tiroir : ajuster sa largeur.</string>
     <string name="editor_vide_astuce_terminal">Terminal du tiroir : sessions côte à côte en split view.</string>
-    <string name="fil_ariane_editeur_cd">Fil d\'Ariane du fichier ouvert</string>
+    <!-- (v0.32.5) Plus de fil d'Ariane (retour d'appareil réel, ADR 0056).
+         barre_symboles_cd : conservée — la barre vit désormais au bas de
+         la colonne centrale, collée au clavier (patron CodeAssist). -->
     <string name="barre_symboles_cd">Barre de symboles au-dessus du clavier</string>
     <string name="editor_introuvable_titre">Projet introuvable</string>
     <string name="editor_introuvable_message">Ce projet n\'est plus enregistré. Il a peut-être été retiré depuis l\'accueil.</string>
@@ -101,6 +103,16 @@
     <string name="editor_sortie_build_reussi">Build réussi en %1$s</string>
     <string name="editor_sortie_build_echoue">Échec du build</string>
     <string name="editor_sortie_build_annule">Build annulé</string>
+
+    <!-- Canaux tooling de l'en-tête du panneau (v0.32.5, ADR 0056
+         décision 5) : chaque information a SON canal — Sync et Build ne
+         se mélangent jamais, ni dans l'en-tête ni dans la console. -->
+    <string name="editor_tooling_canal_sync">Sync</string>
+    <string name="editor_tooling_canal_build">Build</string>
+    <string name="editor_tooling_arreter_cd">Arrêter l\'activité tooling en cours</string>
+    <string name="editor_tooling_sync_en_cours">Synchronisation du projet…</string>
+    <string name="editor_tooling_build_taches">Build — %1$s</string>
+    <string name="editor_tooling_build_en_cours">Build en cours…</string>
     <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->

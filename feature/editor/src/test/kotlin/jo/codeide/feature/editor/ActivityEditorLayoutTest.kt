@@ -43,17 +43,6 @@ class ActivityEditorLayoutTest {
         return LayoutInflater.from(contexte).inflate(layout, parent, false)
     }
 
-    /** Index de la première vue enfant portant cet id (-1 sinon). */
-    private fun indexOfView(
-        groupe: ViewGroup,
-        id: Int,
-    ): Int {
-        for (i in 0 until groupe.childCount) {
-            if (groupe.getChildAt(i).id == id) return i
-        }
-        return -1
-    }
-
     @Test
     fun `le layout de l'espace de travail se gonfle sans exception`() {
         val racine = gonfler(R.layout.activity_editor)
@@ -76,13 +65,8 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `l espace de travail porte les vraies classes code-editor et la vue vide riche`() {
+    fun `l espace de travail porte la vraie barre de symboles colle au clavier et la vue vide riche`() {
         val racine = gonfler(R.layout.activity_editor)
-        assertEquals(
-            "le fil d'Ariane est la BreadcrumbBar de la bibliothèque (v0.32.4, retour v0.32.3)",
-            jo.codeeditor.view.BreadcrumbBar::class.java,
-            racine.findViewById<View>(R.id.fil_ariane_editeur).javaClass,
-        )
         val barre = racine.findViewById<View>(R.id.barre_symboles)
         assertEquals(
             "la barre de symboles est la SymbolBarView de la bibliothèque (v0.32.4)",
@@ -101,7 +85,34 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `le panneau inferieur porte un conteneur de fragments pas de vues empilees`() {
+    fun `la barre de symboles vit dans la colonne centrale plus dans le sheet`() {
+        val racine = gonfler(R.layout.activity_editor)
+        val barre = racine.findViewById<View>(R.id.barre_symboles)
+        val parent = barre.parent as ViewGroup
+        assertEquals(
+            "la barre appartient à la colonne CENTRALE (patron CodeAssist, v0.32.5, ADR 0056)",
+            R.id.zone_centrale,
+            parent.id,
+        )
+        assertEquals(
+            "la barre est la DERNIÈRE vue de la colonne : remontée par le padding IME, elle se pose sur le clavier",
+            parent.childCount - 1,
+            parent.indexOfChild(barre),
+        )
+        assertNotNull(
+            "fond opaque de la barre (lisible sur l'éditeur, v0.32.5)",
+            barre.background,
+        )
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(
+            "plus de fil d'Ariane dans les ressources (retiré, ADR 0056)",
+            0,
+            base.resources.getIdentifier("fil_ariane_editeur", "id", base.packageName),
+        )
+    }
+
+    @Test
+    fun `le panneau inferieur a un fond opaque une ligne tooling et un conteneur de fragments`() {
         val racine = gonfler(R.layout.activity_editor)
         assertNotNull(
             "conteneur de fragments du panneau (v0.32.4, ADR 0055)",
@@ -118,19 +129,28 @@ class ActivityEditorLayoutTest {
                 base.resources.getIdentifier(idEmpile, "id", base.packageName),
             )
         }
+        val panneau = racine.findViewById<View>(R.id.panneau_inferieur)
+        assertNotNull(
+            "fond OPAQUE du panneau — plus de sheet transparent (v0.32.5)",
+            panneau.background,
+        )
+        val ligneTooling = racine.findViewById<View>(R.id.ligne_tooling)
         assertEquals(
-            "la barre de symboles reste SOUS l'en-tête du sheet (collée au clavier, v0.32.4)",
-            R.id.barre_symboles,
-            (racine.findViewById<View>(R.id.panneau_inferieur) as LinearLayout).let { panneau ->
-                // Le sheet est vertical : la barre vient après l'en-tête,
-                // avant les onglets et le conteneur de fragments.
-                val indexEntete = indexOfView(panneau, R.id.entete_panneau)
-                val indexBarre = indexOfView(panneau, R.id.barre_symboles)
-                val indexOnglets = indexOfView(panneau, R.id.onglets_panneau)
-                assertTrue(indexEntete in 0 until indexBarre)
-                assertTrue(indexBarre < indexOnglets)
-                R.id.barre_symboles
-            },
+            "ligne tooling masquée par défaut (aucune activité, v0.32.5)",
+            View.GONE,
+            ligneTooling.visibility,
+        )
+        val ordre = (panneau as LinearLayout)
+        assertEquals(
+            "ordre du sheet : en-tête → ligne tooling → progression → onglets → conteneur",
+            listOf(
+                R.id.entete_panneau,
+                R.id.ligne_tooling,
+                R.id.progression_tooling,
+                R.id.onglets_panneau,
+                R.id.conteneur_fragments_panneau,
+            ),
+            (0 until ordre.childCount).map { ordre.getChildAt(it).id },
         )
     }
 
@@ -147,11 +167,20 @@ class ActivityEditorLayoutTest {
 
         val console = gonfler(R.layout.fragment_panneau_console)
         assertNotNull("statut de la sortie (v0.32.4)", console.findViewById<View>(R.id.statut_sortie))
+        assertNotNull(
+            "canal du statut — l'information porte sa provenance (v0.32.5)",
+            console.findViewById<View>(R.id.icone_canal_sortie),
+        )
         assertNotNull("liste de sortie (v0.32.4)", console.findViewById<View>(R.id.liste_sortie))
         assertNotNull(
             "annulation du build (v0.32.4)",
             console.findViewById<View>(R.id.bouton_annuler_build),
         )
+
+        // Ligne de console canalise (v0.32.5) : étiquette + texte.
+        val ligne = gonfler(R.layout.ligne_sortie)
+        assertNotNull("étiquette de canal en tête de ligne (v0.32.5)", ligne.findViewById<View>(R.id.canal_sortie))
+        assertNotNull("texte de la ligne (v0.32.5)", ligne.findViewById<View>(R.id.texte_sortie))
 
         val problemes = gonfler(R.layout.fragment_panneau_problemes)
         assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))

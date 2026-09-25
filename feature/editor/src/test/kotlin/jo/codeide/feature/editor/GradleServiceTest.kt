@@ -10,6 +10,7 @@ import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,10 +21,14 @@ import org.junit.Test
  * synchronisation.
  */
 class GradleServiceTest {
-    private val service = GradleService()
+    /** Horloge pilotable : les instants de départ (v0.32.5) avancent
+     *  à la main — les chronos se vérifient sans cadre Android. */
+    private var instant = 1_000L
+
+    private val service = GradleService(horloge = { instant })
 
     @Test
-    fun `les lignes du build suivi s accumulent dans l ordre`() {
+    fun `les lignes du build suivi s accumulent dans l ordre et portent le canal BUILD`() {
         service.suivreBuild("b-1")
         service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "a", 0))
         service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDERR, "b", 1))
@@ -37,6 +42,12 @@ class GradleServiceTest {
             listOf(FluxSortieBuild.STDOUT, FluxSortieBuild.STDERR),
             service.etat.value.lignes
                 .map { it.flux },
+        )
+        assertEquals(
+            "chaque ligne du build porte le canal BUILD (v0.32.5, ADR 0056)",
+            listOf(CanalTooling.BUILD, CanalTooling.BUILD),
+            service.etat.value.lignes
+                .map { it.canal },
         )
     }
 
@@ -52,12 +63,13 @@ class GradleServiceTest {
     }
 
     @Test
-    fun `un nouveau build vide la console et remet l etat`() {
+    fun `un nouveau build vide la console remet l etat et memorise taches et depart`() {
         service.suivreBuild("b-1")
         service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 12))
         service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "a", 0))
 
-        service.suivreBuild("b-2")
+        instant = 5_000L
+        service.suivreBuild("b-2", listOf("assembleDebug"))
 
         assertTrue(
             service.etat.value.lignes
@@ -65,6 +77,16 @@ class GradleServiceTest {
         )
         assertEquals(StatutBuild.EN_COURS, service.etat.value.statutBuild)
         assertNull(service.etat.value.dureeBuildMs)
+        assertEquals(
+            "les tâches demandées voyagent avec le build (v0.32.5)",
+            listOf("assembleDebug"),
+            service.etat.value.taches,
+        )
+        assertEquals(
+            "l instant de départ du chrono vient de l horloge injectée (v0.32.5)",
+            5_000L,
+            service.etat.value.debutBuildMs,
+        )
     }
 
     @Test
@@ -106,14 +128,30 @@ class GradleServiceTest {
     }
 
     @Test
-    fun `la synchronisation reussie se publie et l echec porte son message`() {
+    fun `la synchronisation reussie se publie l echec porte son message et le canal suit`() {
+        instant = 2_000L
         service.marquerSyncEnCours()
         assertTrue(service.etat.value.synchronisationEnCours)
+        assertEquals(
+            "l instant de départ du chrono de sync vient de l horloge (v0.32.5)",
+            2_000L,
+            service.etat.value.debutSyncMs,
+        )
+        assertEquals(
+            "la sync en cours EST le canal actif (v0.32.5)",
+            CanalTooling.SYNC,
+            service.etat.value.canalActif,
+        )
 
         service.publierResultatSync(
             AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 42)),
         )
         assertFalseEnCours()
+        assertNull(
+            "plus d activité : le canal actif retombe à null (v0.32.5)",
+            service.etat.value.canalActif,
+        )
+        assertEquals(CanalTooling.SYNC, service.etat.value.canalDernierResultat)
 
         service.marquerSyncEnCours()
         service.publierResultatSync(
@@ -121,6 +159,20 @@ class GradleServiceTest {
         )
         assertFalseEnCours()
         assertEquals("non connecté", service.etat.value.messageEchecSync)
+    }
+
+    @Test
+    fun `le canal actif est BUILD pendant un build et retombe a null apres`() {
+        assertNull(service.etat.value.canalActif)
+
+        service.suivreBuild("b-1")
+        assertEquals(CanalTooling.BUILD, service.etat.value.canalActif)
+        assertTrue(service.etat.value.activiteEnCours)
+
+        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 12))
+        assertNull(service.etat.value.canalActif)
+        assertFalse(service.etat.value.activiteEnCours)
+        assertEquals(CanalTooling.BUILD, service.etat.value.canalDernierResultat)
     }
 
     private fun assertFalseEnCours() {

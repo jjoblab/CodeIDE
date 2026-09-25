@@ -93,6 +93,7 @@ class ExplorateurV2EditorViewModelTest : BaseEditorViewModelTest() {
                     tooling,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
+            horloge = horlogeOutil,
             savedStateHandle = sauvegarde,
         )
 

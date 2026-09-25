@@ -4,6 +4,75 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.32.5] – 2026-09-26
+
+### Modifié (retour appareil réel sur l'étape 31, tooling à canaux)
+
+- **Fil d'Ariane retiré (ADR 0056)** — retour utilisateur : « Tu peux
+  enlever le breadcrumb pour le moment, cela ne me donne pas le design
+  espéré. » La `BreadcrumbBar` de la bibliothèque disparaît du layout
+  d'espace de travail, et le scanner maison `SymbolesEnglobants` (son
+  unique producteur, 339 lignes + 11 tests) part avec : aucun code mort
+  ne reste pour un « pour le moment ». Une future reprise partira d'un
+  design validé, pas d'une transcription.
+- **Barre de symboles VISIBLE et collée au clavier, patron CodeAssist
+  (ADR 0056)** — cause racine enfin trouvée : `enableEdgeToEdge()` rend
+  `adjustResize` inerte sur API 30+ (la fenêtre ne rétrécit pas), le
+  panneau et sa barre restaient donc DERRIÈRE le clavier — l'astuce de
+  peek de la v0.32.4 élargissait un panneau que rien ne remontait. Le
+  dépôt CodeAssist (tyron12233) a été analysé comme demandé : la barre y
+  est la DERNIÈRE vue de la colonne éditeur, remontée par les insets
+  IME, le dock se cachant pendant la frappe. Transposition : la
+  `SymbolBarView` passe du sheet au bas de `zone_centrale` ; le bas de
+  la colonne est remonté de la hauteur IME par padding
+  (`updatePadding(bottom = insets.ime().bottom)`), synchronisé IMAGE
+  PAR IMAGE avec l'animation du clavier
+  (`WindowInsetsAnimationCompat` + `DISPATCH_MODE_CONTINUE_ON_SUBTREE`)
+  ; le sheet se masque pendant la frappe et se restaure à l'état du
+  ViewModel à la fermeture ; fond opaque + filet supérieur pour lire la
+  barre comme un prolongement du clavier. Double détection IME
+  conservée (insets API 30+, rétrécissement du root avant).
+- **En-tête du panneau qui s'efface à l'extension (ADR 0056)** — retour
+  utilisateur : « Lorsque bottomsheet behavior est expand le header
+  devrait progressivement disparaitre. » L'alpha de l'en-tête suit le
+  glissement TRAME PAR TRAME (`onSlide`) : opaque jusqu'à mi-hauteur,
+  entièrement fondu à l'extension (INVISIBLE, pas GONE — pas de saut de
+  hauteur, plus d'appuis fantômes). Les onglets restent : la console
+  étendue garde sa navigation.
+- **Fond opaque du panneau inférieur (ADR 0056)** — retour : « Le
+  background du bottomsheet behavior est complètement transparent. »
+  `fond_panneau_inferieur` : coins supérieurs arrondis 12 dp, couleur
+  jour/nuit (mêmes jetons que le tiroir), élévation 8 dp — la feuille se
+  POSE sur l'éditeur au lieu de flotter en transparence.
+- **Tooling à canaux uniques (ADR 0056)** — la ligne d'activité de
+  l'en-tête affiche build, sync et tâches : icône et couleur SIGNATURE
+  du canal (Sync teal / Build bleu — `CanalTooling`), libellé de
+  l'activité en cours (« Build — assembleDebug », « Synchronisation du
+  projet… » ou le dernier résultat), chrono en vol (500 ms, horloge
+  injectée `TimeProvider`), bouton Arrêter pendant un build, progression
+  indéterminée. Le peek s'élargit pour l'accueillir : l'activité se voit
+  même panneau replié, façon barre de build d'Android Studio. Chaque
+  ligne de la console porte SON étiquette de canal en tête (colonne de
+  tag façon logcat), le statut porte l'icône du canal qu'il décrit ; le
+  Journal et les Problèmes restent des onglets distincts — leurs
+  propres canaux. `EtatGradle` gagne `taches`, `debutBuildMs`,
+  `debutSyncMs`, `canalActif` ; l'état reste pur (aucun libellé codé en
+  dur, le rendu localise).
+
+### Ajouté
+
+- **Script de nettoyage du dépôt (`scripts/nettoyage-depot.sh`)** —
+  retour : « Je veux aussi que tu me créé un script pour que je puisse
+  nettoyer le dépôt de mon côté. » Simulation par défaut,
+  `--appliquer` pour effacer : retire exactement ce qu'aucune archive de
+  livraison ne porte (mêmes exclusions que `package.sh` — build/,
+  .gradle/, .kotlin/, .idea/, captures/, .cxx/, dist/, *.iml,
+  .DS_Store), refuse de tourner hors racine de dépôt, ne touche jamais
+  .git/, épargne local.properties sauf drapeau explicite (régénéré par
+  Android Studio) et termine par l'état git non suivi. Le dépôt local
+  redevient comparable à l'archive (568 Mo d'artefacts retirés sur la
+  copie de développement).
+
 ## [0.32.4] – 2026-09-26
 
 ### Modifié (retour appareil réel sur l'étape 31, suite)

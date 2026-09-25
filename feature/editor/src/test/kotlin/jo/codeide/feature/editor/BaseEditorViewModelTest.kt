@@ -69,6 +69,14 @@ abstract class BaseEditorViewModelTest {
     /** Journal de l'espace (partagé, pour les use cases tooling). */
     protected val journalEspace = FakeAppLogger()
 
+    /** Horloge tooling pilotable (v0.32.5) : les chronos de l'en-tête du
+     *  panneau (instants de départ Sync/Build) avancent à la main — le
+     *  temps des tests reste déterministe. */
+    protected var instantOutil = 1_000L
+    protected val horlogeOutil =
+        jo.codeide.core.domain
+            .TimeProvider { instantOutil }
+
     /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
     protected val resoudreRepertoire =
         ResoudreRepertoireProjet(
@@ -111,6 +119,7 @@ abstract class BaseEditorViewModelTest {
             resoudreRepertoireProjet = resoudreRepertoire,
             localisateurOutils = localisateurOutils,
             tooling = tooling,
+            horloge = horlogeOutil,
             synchroniserProjet =
                 jo.codeide.core.domain.SynchroniserProjetUseCase(
                     tooling,

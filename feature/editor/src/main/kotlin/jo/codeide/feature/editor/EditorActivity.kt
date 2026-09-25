@@ -19,11 +19,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.isEmpty
 import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -39,6 +41,7 @@ import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.SymbolBarView
 import jo.codeide.core.domain.InfoTache
+import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
@@ -71,13 +74,17 @@ import kotlin.math.abs
  *   menu contextuel : fermer, fermer les autres, fermer tout, déplacer,
  *   copier le chemin) au-dessus d'**un seul `EditorView`** rebranché sur la
  *   session de l'onglet actif — thème clair/sombre suivant l'application ;
- * - panneau inférieur (étape 16, ADR 0029 ; v0.32.4, ADR 0055) : trois
- *   états pilotés par `BottomSheetBehavior`, en-tête à
- *   poignée/titre/badge/actions, onglets Console/Problèmes/Journal dont
- *   le contenu vit dans des FRAGMENTS montrés/cachés (plus de vues
- *   empilées) ; barre de symboles — la SymbolBarView de la
- *   bibliothèque code-editor — sous l'en-tête, visible quand l'IME est
- *   ouvert, collée au clavier (peek élargi à en-tête + barre) ;
+ * - panneau inférieur (étape 16, ADR 0029 ; v0.32.4, ADR 0055 ; v0.32.5,
+ *   ADR 0056) : trois états pilotés par `BottomSheetBehavior`, en-tête à
+ *   poignée/titre/badge/actions qui S'EFFACE PROGRESSIVEMENT à
+ *   l'extension, LIGNE TOOLING sur canal unique (Sync/Build : icône,
+ *   couleur, activité, chrono, arrêt, progression) et onglets
+ *   Console/Problèmes/Journal dont le contenu vit dans des FRAGMENTS
+ *   montrés/cachés ; fond opaque arrondi — plus de sheet transparent ;
+ *   barre de symboles — la SymbolBarView de la bibliothèque code-editor —
+ *   au BAS de la colonne centrale, remontée sur le clavier par les
+ *   insets IME (padding animé) : « collée » au clavier, le sheet
+ *   s'efface le temps de la frappe (patron CodeAssist) ;
  *
  * Sauvegarde automatique (délai d'inactivité, côté ViewModel) et manuelle
  * (action de la toolbar). Fermeture d'un onglet sale — ou sortie avec des
@@ -154,11 +161,21 @@ class EditorActivity :
      *  se trompe sur les écrans partagés — ensemble ils couvrent tout. */
     private val clavierVisible: Boolean get() = clavierParInsets || clavierParHauteur
 
-    /** Tâche de débounce du fil d'Ariane (200 ms, BreadCrumbBar). */
-    private var travailFil: Job? = null
+    /** Hauteur courante de l'IME (insets, 0 si fermé/inconnu) — remonte
+     *  le bas de la colonne centrale pour « coller » la barre de
+     *  symboles au clavier (v0.32.5, ADR 0056 décision 2). */
+    private var hauteurIme = 0
 
     /** Plus grande hauteur du root vue (détection IME API < 30). */
     private var hauteurRacineMax = 0
+
+    /** La ligne tooling de l'en-tête est-elle active (un canal a quelque
+     *  chose à montrer) — combinée au fondu de l'en-tête pour la
+     *  visibilité effective (v0.32.5). */
+    private var ligneToolingActivee = false
+
+    /** Ticker du chrono de la ligne tooling (annulé à chaque rendu). */
+    private var travailMinuteur: Job? = null
 
     /** Des onglets sont-ils sales (pilote le retour système) ? */
     private var ongletsSales = false
@@ -200,7 +217,6 @@ class EditorActivity :
         brancherPoignee()
         brancherOnglets()
         brancherVueVide()
-        brancherFilAriane()
         brancherEditeur()
         brancherPanneauInferieur()
         brancherBarreSymboles()
@@ -212,6 +228,11 @@ class EditorActivity :
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
+
+        // Ligne tooling de l'en-tête (v0.32.5) : l'état Gradle — canaux,
+        // activité en cours, chronos — rendu par l'HÔTE (le chrome lui
+        // appartient ; les fragments rendent le contenu des onglets).
+        viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreToolingEntete(etat) }
     }
 
     /**
@@ -613,49 +634,6 @@ class EditorActivity :
         )
     }
 
-    /** L'éditeur : le fil d'Ariane suit le caret (ADR 0054/0055) — re-calcul
-     *  débounce 200 ms après chaque déplacement (même constante que la
-     *  BreadcrumbBar de la bibliothèque). */
-    private fun brancherFilAriane() {
-        liaison.vueEditeur.addOnSelectionChangedListener { _, _, _ ->
-            travailFil?.cancel()
-            travailFil =
-                lifecycleScope.launch {
-                    delay(DEBOUNCE_FIL_ARIANE_MS)
-                    rafraichirFilAriane()
-                }
-        }
-    }
-
-    /** Recalcule le fil d'Ariane de l'onglet actif (caret courant). */
-    private fun rafraichirFilAriane() {
-        val etat = viewModel.etat.value
-        val onglet = etat.onglets.getOrNull(etat.indexOngletActif) ?: return
-        majFilAriane(onglet)
-    }
-
-    /** Compose et pose les segments (v0.32.4) : dossier / fichier /
-     *  symboles englobants — rendus par la BreadcrumbBar de la
-     *  bibliothèque via setSegments() (API « usage manuel » : bind()
-     *  écraserait les segments via son propre SymbolProvider, qui ne
-     *  connaît ni le chemin relatif ni le scanner maison). Les très
-     *  gros documents renoncent aux symboles (scan O(n) trop coûteux
-     *  à chaque arrêt du caret). */
-    private fun majFilAriane(onglet: EditorTabState) {
-        val session = viewModel.sessionDe(onglet.uri) ?: return
-        val segments = mutableListOf<String>()
-        onglet.cheminRelatif.split('/').dropLast(1).forEach { dossier ->
-            if (dossier.isNotBlank()) segments += dossier
-        }
-        segments += onglet.nom
-        if (!session.document.isLarge) {
-            SymbolesEnglobants.englobants(session.text, session.selection.start).forEach { symbole ->
-                segments += symbole
-            }
-        }
-        liaison.filArianeEditeur.setSegments(segments.toTypedArray())
-    }
-
     /** État vide (v0.32.3) : deux actions directes — ouvrir le tiroir
      *  des fichiers (le geste cherché) ou le terminal. */
     private fun brancherVueVide() {
@@ -671,7 +649,7 @@ class EditorActivity :
         }
     }
 
-    /** Barre de symboles au-dessus du clavier (ADR 0054/0055) : la VRAIE
+    /** Barre de symboles au-dessus du clavier (ADR 0054/0056) : la VRAIE
      *  SymbolBarView de la bibliothèque (cel-ui) — touches épinglées
      *  mappées sur les commandes de session, symboles insérés par
      *  `typeChar` (fermeture automatique des paires conservée). */
@@ -704,14 +682,25 @@ class EditorActivity :
         return viewModel.sessionDe(onglet.uri)
     }
 
-    /** Visibilité de l'IME (v0.32.4) : DEUX détecteurs convergent —
-     *  insets natifs (API 30+ ; silencieux sur certains appareils) et
-     *  rétrécissement du root (adjustResize, toutes API — le root
-     *  rétrécit quand le clavier prend sa place). */
+    /** Visibilité de l'IME (v0.32.4 ; v0.32.5, ADR 0056 décision 2) :
+     *  DEUX détecteurs convergent — insets natifs (API 30+ ; silencieux
+     *  sur certains appareils) et rétrécissement du root (resize
+     *  hérité, toutes API). En edge-to-edge (adjustResize inerte sur
+     *  API 30+), c'est l'INSET IME qui remonte la colonne centrale :
+     *  le bas de la zone monte exactement de la hauteur du clavier,
+     *  la barre — dernière vue de la colonne — se retrouve POSÉE sur
+     *  lui. Sur les resize hérités le root rétrécit déjà tout seul :
+     *  l'inset vaut 0, le padding reste nul, même résultat. Le panneau
+     *  inférieur s'efface le temps de la frappe (patron CodeAssist :
+     *  le dock disparaît quand le clavier monte, l'éditeur prime). */
     private fun observerClavier() {
         ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
-            clavierParInsets = insets.isVisible(WindowInsetsCompat.Type.ime())
-            rafraichirBarreSymboles()
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            clavierParInsets = ime > 0
+            if (ime != hauteurIme) {
+                hauteurIme = ime
+                appliquerClavier()
+            }
             insets
         }
         liaison.racineEditeur.viewTreeObserver.addOnGlobalLayoutListener {
@@ -719,29 +708,74 @@ class EditorActivity :
             if (hauteur > hauteurRacineMax) hauteurRacineMax = hauteur
             val seuil =
                 (liaison.racineEditeur.resources.displayMetrics.heightPixels * FRACTION_SEUIL_IME).toInt()
-            clavierParHauteur = hauteurRacineMax - hauteur > seuil
-            rafraichirBarreSymboles()
+            val parHauteur = hauteurRacineMax - hauteur > seuil
+            if (parHauteur != clavierParHauteur) {
+                clavierParHauteur = parHauteur
+                appliquerClavier()
+            }
+        }
+
+        // Synchronisation IMAGE PAR IMAGE avec l'animation du clavier
+        // (le « collé » doit suivre les touches, pas sauter à la fin) :
+        // CONTINUE_ON_SUBTREE relance la distribution des insets PENDANT
+        // l'animation — onProgress reçoit les valeurs intermédiaires et
+        // re-pose le padding à chaque trame.
+        ViewCompat.setWindowInsetsAnimationCallback(
+            liaison.zoneCentrale,
+            object : WindowInsetsAnimationCompat.Callback(
+                WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE,
+            ) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    animations: List<WindowInsetsAnimationCompat>,
+                ): WindowInsetsCompat {
+                    val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+                    if (ime != hauteurIme) {
+                        hauteurIme = ime
+                        clavierParInsets = ime > 0
+                        appliquerClavier()
+                    }
+                    return insets
+                }
+            },
+        )
+    }
+
+    /** Applique l'état « clavier ouvert/fermé » à la colonne centrale :
+     *  barre de symboles en bas (collée au clavier via le padding),
+     *  panneau inférieur masqué pendant la frappe puis restauré dans
+     *  l'état du ViewModel (v0.32.5). La barre n'apparaît que si l'IME
+     *  est ouvert ET qu'un fichier est édité. */
+    private fun appliquerClavier() {
+        val clavier = clavierVisible
+        val edition = sessionActive() != null
+        liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
+        liaison.barreSymboles.isVisible = clavier && edition
+        val panneau = liaison.panneauInferieur
+        if (clavier) {
+            // La frappe prime (CodeAssist) : le sheet s'efface, la barre
+            // prend le bas de l'écran. STATE_HIDDEN resterait « l'état
+            // du sheet » à la réouverture — on cache la VUE, l'état du
+            // ViewModel survit et se ré-applique au retour.
+            if (panneau.isVisible) panneau.isVisible = false
+        } else if (!panneau.isVisible) {
+            panneau.isVisible = true
+            restaurerEtatPanneau()
         }
     }
 
-    /** La barre n'apparaît que si l'IME est ouvert ET qu'un fichier est
-     *  édité (v0.32.4) : le peek du panneau s'élargit alors à en-tête +
-     *  barre — le panneau replié est posé sur le haut du clavier
-     *  (adjustResize), la barre paraît COLLÉE au clavier. Retour
-     *  v0.32.3 : avec le peek de repos (48 dp, en-tête seul), la barre
-     *  placée sous l'en-tête restait hors écran. */
-    private fun rafraichirBarreSymboles() {
-        val montrer = clavierVisible && sessionActive() != null
-        liaison.barreSymboles.isVisible = montrer
-        val peekReposPx = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
-        comportementPanneau.peekHeight =
-            if (montrer) {
-                peekReposPx + (HAUTEUR_BARRE_SYMBOLES_DP * resources.displayMetrics.density).toInt()
-            } else {
-                peekReposPx
+    /** Replace le panneau dans l'état du ViewModel après le clavier :
+     *  le comportement peut avoir dérivé pendant qu'il était masqué. */
+    private fun restaurerEtatPanneau() {
+        if (clavierVisible) return
+        val cible =
+            when (viewModel.etat.value.etatPanneau) {
+                EtatPanneau.REPLIE -> BottomSheetBehavior.STATE_COLLAPSED
+                EtatPanneau.MI_HAUTEUR -> BottomSheetBehavior.STATE_HALF_EXPANDED
+                EtatPanneau.ETENDU -> BottomSheetBehavior.STATE_EXPANDED
             }
-        if (montrer && comportementPanneau.state != BottomSheetBehavior.STATE_COLLAPSED) {
-            comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
+        if (comportementPanneau.state != cible) {
+            comportementPanneau.state = cible
         }
     }
 
@@ -769,14 +803,17 @@ class EditorActivity :
                     when (nouvelEtat) {
                         BottomSheetBehavior.STATE_COLLAPSED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
+                            appliquerFonduEntete(0f)
                         }
 
                         BottomSheetBehavior.STATE_HALF_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
+                            appliquerFonduEntete(FRACTION_MI_HAUTEUR)
                         }
 
                         BottomSheetBehavior.STATE_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.ETENDU))
+                            appliquerFonduEntete(1f)
                         }
 
                         else -> {
@@ -785,10 +822,16 @@ class EditorActivity :
                     }
                 }
 
+                /** Fondu PROGRESSIF de l'en-tête pendant le glissement
+                 *  (v0.32.5, ADR 0056 décision 3) : opaque jusqu'à
+                 *  mi-hauteur, éteint à l'extension — chaque trame du
+                 *  glissement pose l'alpha correspondant. */
                 override fun onSlide(
                     vue: View,
                     glissement: Float,
-                ) = Unit
+                ) {
+                    appliquerFonduEntete(glissement)
+                }
             },
         )
 
@@ -816,6 +859,13 @@ class EditorActivity :
 
         liaison.boutonFermerPanneau.setOnClickListener {
             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
+        }
+
+        // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de la
+        // ligne d'activité — visible seulement pendant un build (la
+        // synchronisation ne s'annule pas).
+        liaison.boutonArreterTooling.setOnClickListener {
+            viewModel.onAction(ActionEditor.AnnulerBuild)
         }
 
         // Fragments du contenu (v0.32.4, ADR 0055) : ajoutés UNE fois
@@ -1172,16 +1222,14 @@ class EditorActivity :
         menu.show()
     }
 
-    /** L'éditeur : rebranche la vue sur la session de l'onglet actif,
-     *  rafraîchit le fil d'Ariane (BreadcrumbBar de la bibliothèque) et
-     *  la barre de symboles (v0.32.4). */
+    /** L'éditeur : rebranche la vue sur la session de l'onglet actif et
+     *  réévalue la barre de symboles (une session vient d'apparaître ou
+     *  de disparaître — v0.32.5). Plus de fil d'Ariane (retiré, ADR 0056). */
     private fun rendreEditeur(etat: EtatEditor) {
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
         liaison.vueEditeur.isVisible = onglet != null
-        liaison.filArianeEditeur.isVisible = onglet != null
-        rafraichirBarreSymboles()
+        appliquerClavier()
         if (onglet == null) {
-            liaison.filArianeEditeur.setSegments(emptyArray())
             return
         }
 
@@ -1191,7 +1239,6 @@ class EditorActivity :
             liaison.vueEditeur.setFileName(onglet.nom)
         }
         liaison.vueEditeur.setTheme(themeActuel())
-        majFilAriane(onglet)
     }
 
     /** Thème cel correspondant au mode clair/sombre de l'application. */
@@ -1227,6 +1274,16 @@ class EditorActivity :
         }
         panneauEtendu = etat.etatPanneau == EtatPanneau.ETENDU
         majRetourSysteme()
+
+        // Fondu de l'en-tête (v0.32.5) : l'état stabilisé repose l'alpha
+        // (un saut programmatique d'état ne passe pas par onSlide).
+        appliquerFonduEntete(
+            when (etat.etatPanneau) {
+                EtatPanneau.REPLIE -> 0f
+                EtatPanneau.MI_HAUTEUR -> FRACTION_MI_HAUTEUR
+                EtatPanneau.ETENDU -> 1f
+            },
+        )
 
         // Onglet actif : réconciliation silencieuse de la barre.
         val indexOnglet = OngletPanneau.entries.indexOf(etat.ongletPanneau)
@@ -1273,6 +1330,191 @@ class EditorActivity :
         }
         transaction.commit()
     }
+
+    /**
+     * Fondu progressif de l'en-tête du panneau (v0.32.5, ADR 0056
+     * décision 3, retour d'appareil réel) : l'en-tête (titre + ligne
+     * tooling) reste OPAQUE jusqu'à mi-hauteur puis s'éteint
+     * progressivement — entièrement disparu à l'extension : la console
+     * étendue prend tout l'écran, l'en-tête n'y a plus de place.
+     * INVISIBLE (pas GONE) une fois éteint : la hauteur de la feuille
+     * ne saute pas en cours de glissement, et les appuis fantômes
+     * cessent (les vues invisibles ne reçoivent plus les touches).
+     *
+     * @param glissement fraction de glissement du sheet (0 replié,
+     *        1 étendu) — posée par trame par [androidx.core.view.WindowCompat]
+     *        onSlide ou par l'état stabilisé.
+     */
+    private fun appliquerFonduEntete(glissement: Float) {
+        val alpha =
+            (1f - (glissement - FRACTION_MI_HAUTEUR) / (1f - FRACTION_MI_HAUTEUR)).coerceIn(0f, 1f)
+        liaison.entetePanneau.alpha = alpha
+        liaison.ligneTooling.alpha = alpha
+        val visible = alpha > SEUIL_FONDU_VISIBLE
+        liaison.entetePanneau.isVisible = visible
+        liaison.ligneTooling.isVisible = visible && ligneToolingActivee
+    }
+
+    /**
+     * Ligne tooling de l'en-tête (v0.32.5, ADR 0056 décision 5) : chaque
+     * information a SON canal — icône et couleur signature du canal
+     * (Sync teal, Build bleu), libellé de l'activité en cours (tâches
+     * du build, résultat de la sync), chrono en vol (demi-seconde),
+     * bouton Arrêter pendant un build, progression indéterminée. Le
+     * peek s'élargit pour accueillir la ligne — l'activité se voit
+     * MÊME panneau repli (façon barre de build d'Android Studio).
+     */
+    private fun rendreToolingEntete(etat: EtatGradle) {
+        val canal = etat.canalActif ?: etat.canalDernierResultat
+        ligneToolingActivee = canal != null
+        if (canal == null) {
+            travailMinuteur?.cancel()
+            travailMinuteur = null
+        } else {
+            liaison.iconeCanalTooling.setImageResource(canal.icone)
+            liaison.iconeCanalTooling.setColorFilter(
+                androidx.core.content.ContextCompat
+                    .getColor(this, canal.couleur),
+            )
+            liaison.activiteTooling.text = libelleActiviteTooling(etat, canal)
+        }
+        liaison.progressionTooling.isVisible = etat.activiteEnCours
+        liaison.boutonArreterTooling.isVisible = etat.canalActif == CanalTooling.BUILD
+
+        // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
+        // durée du résultat — jamais de temps figé qui ment.
+        travailMinuteur?.cancel()
+        travailMinuteur = null
+        when (val actif = etat.canalActif) {
+            CanalTooling.SYNC -> {
+                val depart = etat.debutSyncMs
+                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
+            }
+
+            CanalTooling.BUILD -> {
+                val depart = etat.debutBuildMs
+                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
+            }
+
+            null -> {
+                liaison.minuteurTooling.text =
+                    if (canal == CanalTooling.SYNC) {
+                        dureeLisible(etat.synchronisationReussie?.dureeMs ?: 0L)
+                    } else if (canal == CanalTooling.BUILD) {
+                        dureeLisible(etat.dureeBuildMs ?: 0L)
+                    } else {
+                        ""
+                    }
+            }
+        }
+
+        // Le peek suit la présence de la ligne (visible = état courant du
+        // fondu conservé — un panneau étendu n'a pas d'en-tête de toute
+        // façon).
+        liaison.ligneTooling.isVisible = ligneToolingActivee && liaison.entetePanneau.isVisible
+        majPeekPanneau()
+    }
+
+    /** Libellé de l'activité tooling (v0.32.5) : la tâche en cours sur
+     *  son canal — tâches du build, synchronisation, ou le résultat du
+     *  dernier canal actif. */
+    private fun libelleActiviteTooling(
+        etat: EtatGradle,
+        canal: CanalTooling,
+    ): String =
+        when (canal) {
+            CanalTooling.SYNC -> {
+                when {
+                    etat.synchronisationEnCours -> {
+                        getString(R.string.editor_tooling_sync_en_cours)
+                    }
+
+                    etat.messageEchecSync != null -> {
+                        etat.messageEchecSync!!
+                    }
+
+                    etat.synchronisationReussie != null -> {
+                        getString(
+                            R.string.editor_sortie_sync_reussie,
+                            dureeLisible(etat.synchronisationReussie!!.dureeMs),
+                        )
+                    }
+
+                    else -> {
+                        getString(R.string.editor_tooling_sync_en_cours)
+                    }
+                }
+            }
+
+            CanalTooling.BUILD -> {
+                when {
+                    etat.statutBuild == StatutBuild.EN_COURS -> {
+                        if (etat.taches.isEmpty()) {
+                            getString(R.string.editor_tooling_build_en_cours)
+                        } else {
+                            getString(R.string.editor_tooling_build_taches, etat.taches.joinToString(", "))
+                        }
+                    }
+
+                    etat.statutBuild == StatutBuild.REUSSI -> {
+                        getString(R.string.editor_sortie_build_reussi, dureeLisible(etat.dureeBuildMs ?: 0L))
+                    }
+
+                    etat.statutBuild == StatutBuild.ECHOUE -> {
+                        etat.messageEchecBuild ?: getString(R.string.editor_sortie_build_echoue)
+                    }
+
+                    etat.statutBuild == StatutBuild.ANNULE -> {
+                        getString(R.string.editor_sortie_build_annule)
+                    }
+
+                    else -> {
+                        getString(R.string.editor_sortie_vide)
+                    }
+                }
+            }
+        }
+
+    /** Ticker du chrono en vol (500 ms — le centième de seconde est du
+     *  bruit sur un build). Annulé par le prochain rendu. */
+    private fun lancerMinuteur(texte: () -> Unit): Job? =
+        lifecycleScope.launch {
+            while (true) {
+                texte()
+                delay(PERIODE_MINUTEUR_MS)
+            }
+        }
+
+    /** Texte du chrono : temps écoulé depuis [debut] (ms de l'horloge
+     *  injectée — wall-clock du TimeProvider de production). */
+    private fun majTexteMinuteur(depart: Long?) {
+        val maintenant = System.currentTimeMillis()
+        liaison.minuteurTooling.text = dureeLisible(depart?.let { (maintenant - it).coerceAtLeast(0L) } ?: 0L)
+    }
+
+    /** Peek du panneau : en-tête seul, + ligne tooling (et progression)
+     *  quand une activité s'y affiche — l'activité tooling reste
+     *  visible même repli (v0.32.5). */
+    private fun majPeekPanneau() {
+        val peekReposPx = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
+        var peek = peekReposPx
+        if (ligneToolingActivee) {
+            peek += resources.getDimensionPixelSize(R.dimen.editor_ligne_tooling_hauteur)
+            if (liaison.progressionTooling.isVisible) {
+                peek += (HAUTEUR_PROGRESSION_TOOLING_DP * resources.displayMetrics.density).toInt()
+            }
+        }
+        comportementPanneau.peekHeight = peek
+    }
+
+    /** Durée lisible (s, ou ms sous la seconde) — même format que la
+     *  console (PanneauConsoleFragment). */
+    private fun dureeLisible(dureeMs: Long): String =
+        if (dureeMs >= SEUIL_SECONDE_MS) {
+            String.format(java.util.Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
+        } else {
+            String.format(java.util.Locale.ROOT, "%dms", dureeMs)
+        }
 
     /** Fragments du panneau inférieur, par tag. */
     private fun fragmentsPanneau(): List<androidx.fragment.app.Fragment> =
@@ -1522,9 +1764,6 @@ class EditorActivity :
         /** Durée des transitions de la poignée (maquette : `.15s`). */
         const val DUREE_ANIMATION_POIGNEE_MS = 150L
 
-        /** Débounce du fil d'Ariane (BreadCrumbBar de la bibliothèque : 200 ms). */
-        const val DEBOUNCE_FIL_ARIANE_MS = 200L
-
         /** Tags des fragments du panneau inférieur (v0.32.4, ADR 0055) —
          *  le ciblage par tag est le garde-fou contre les show/hide qui
          *  se traverseraient avec les fragments du tiroir. */
@@ -1532,15 +1771,30 @@ class EditorActivity :
         const val TAG_PANNEAU_PROBLEMES = "panneau_problemes"
         const val TAG_PANNEAU_JOURNAL = "panneau_journal"
 
-        /** Hauteur de la barre de symboles (constante interne de la
-         *  SymbolBarView de la bibliothèque : 38 dp — le peek de l'IME
-         *  en dépend). */
-        const val HAUTEUR_BARRE_SYMBOLES_DP = 38
-
         /** Seuil de détection de l'IME par la hauteur du root :
          *  un clavier occupe largement plus de 15 % de l'écran, une marge
          *  d'insets jamais ça. */
         const val FRACTION_SEUIL_IME = 0.15f
+
+        /** Fraction de glissement correspondant à mi-hauteur (le fondu de
+         *  l'en-tête démarre AU-DESSUS — v0.32.5, ADR 0056 décision 3). */
+        const val FRACTION_MI_HAUTEUR = 0.5f
+
+        /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
+         *  fantômes cessent sans saut de hauteur). */
+        const val SEUIL_FONDU_VISIBLE = 0.02f
+
+        /** Période du chrono de la ligne tooling (500 ms). */
+        const val PERIODE_MINUTEUR_MS = 500L
+
+        /** Seuil d'affichage en secondes (sous une seconde : ms). */
+        const val SEUIL_SECONDE_MS = 1_000L
+
+        /** Seconde en millisecondes (Double : division flottante, %.1fs). */
+        const val SECONDE_MS = 1_000.0
+
+        /** Hauteur de la bande de progression tooling (dp). */
+        const val HAUTEUR_PROGRESSION_TOOLING_DP = 4
 
         /** Actions des touches épinglées de la barre de symboles. */
         const val ACTION_TAB = "tab"

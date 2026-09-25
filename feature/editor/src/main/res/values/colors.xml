@@ -14,6 +14,23 @@
     <color name="sortie_stdout">#3C4043</color>
     <color name="sortie_stderr">#B3261E</color>
 
+    <!-- Panneau inférieur & barre de symboles (v0.32.5, ADR 0056) :
+         surfaces opaques — le sheet se POSE sur l'éditeur, la barre
+         « collée » au clavier se lit comme un prolongement du clavier
+         (patron CodeAssist : surface + filet). -->
+    <color name="panneau_inferieur_fond">#F7F9FC</color>
+    <color name="barre_symboles_fond">#E7EBF2</color>
+    <color name="barre_symboles_filet">#C7CEDB</color>
+
+    <!-- Canaux tooling (v0.32.5, ADR 0056 décision 5) : une couleur
+         unique par canal — Sync (teal) et Build (accent bleu) ne se
+         confondent jamais, ni dans l'en-tête ni dans la console. -->
+    <color name="canal_tooling_sync">#0E7490</color>
+    <color name="canal_tooling_build">#1E6EC8</color>
+
+    <!-- Étiquette de canal en tête de ligne de console (petite pastille). -->
+    <color name="canal_etiquette_texte">#FFFFFF</color>
+
     <!-- Jetons de l'explorateur v2 (étape 31, EXPLORATEUR_V2.md § 3.1) :
          jour — les valeurs nuit de la maquette gardent leurs noms, le jour
          prend des équivalents M3 contrastés (structure identique). -->

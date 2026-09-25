@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond de la barre de symboles (v0.32.5, ADR 0056 décision 2) : surface
+     OPAQUE + filet supérieur fin — la barre « collée » au clavier doit se
+     lire comme un prolongement du clavier, pas comme une vue flottante
+     qui laisserait passer l'éditeur derrière (patron CodeAssist :
+     surfaceContainerHigh + hairline). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/barre_symboles_fond" />
+        </shape>
+    </item>
+
+    <!-- Filet supérieur : 1 dp de démarcation nette avec l'éditeur. -->
+    <item android:gravity="top">
+        <shape android:shape="rectangle">
+            <size android:height="1dp" />
+            <solid android:color="@color/barre_symboles_filet" />
+        </shape>
+    </item>
+</layer-list>

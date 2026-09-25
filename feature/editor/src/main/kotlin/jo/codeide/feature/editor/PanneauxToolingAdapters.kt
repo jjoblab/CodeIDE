@@ -151,17 +151,25 @@ internal class ProblemesAdapter(
 }
 
 /**
- * Adaptateur de l'onglet Sortie (G5, §6) : lignes monospace du build,
- * stderr distincte par la couleur d'erreur.
+ * Adaptateur de l'onglet Sortie (G5, §6 ; v0.32.5 : lignes CANALISÉES,
+ * ADR 0056 décision 5) : étiquette de canal en tête de ligne — couleur
+ * signature Sync/Build — puis texte monospace, stderr distincte par la
+ * couleur d'erreur. Chaque ligne porte sa provenance, comme la colonne
+ * de tag de logcat.
  */
 internal class SortieAdapter : ListAdapter<LigneSortieAffichee, SortieAdapter.Holder>(DiffLignes) {
-    /** Une ligne : texte monospace, couleur selon le flux. */
+    /** Une ligne : étiquette de canal + texte monospace, couleur du
+     *  flux sur le texte, couleur du canal sur l'étiquette. */
     inner class Holder(
         private val liaison: LigneSortieBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
         fun lier(ligne: LigneSortieAffichee) {
             liaison.texteSortie.text = ligne.texte
             liaison.texteSortie.setTextColor(couleur(ligne.flux))
+            liaison.canalSortie.text = liaison.root.context.getString(ligne.canal.libelle)
+            liaison.canalSortie.setTextColor(
+                ContextCompat.getColor(liaison.root.context, ligne.canal.couleur),
+            )
         }
 
         private fun couleur(flux: FluxSortieBuild): Int =
@@ -188,7 +196,10 @@ internal class SortieAdapter : ListAdapter<LigneSortieAffichee, SortieAdapter.Ho
         override fun areItemsTheSame(
             ancienne: LigneSortieAffichee,
             nouvelle: LigneSortieAffichee,
-        ): Boolean = ancienne.texte == nouvelle.texte && ancienne.flux == nouvelle.flux
+        ): Boolean =
+            ancienne.texte == nouvelle.texte &&
+                ancienne.flux == nouvelle.flux &&
+                ancienne.canal == nouvelle.canal
 
         override fun areContentsTheSame(
             ancienne: LigneSortieAffichee,
