@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover « Choisir la destination » (v0.32.1, complément du § 10.5) :
+  ouvert par l'icône liste déroulante du champ Destination du popover
+  « Déplacer vers… », ancré à cette icône. Coque fond_popover + flèche
+  (algorithme § 10.2), titre, puis la liste des dossiers énumérés de la
+  racine active (racine incluse, nœud déplacé et ses descendants
+  exclus) — lignes maison ligne_action_popover, indentées par profondeur
+  (13 dp par niveau, guides de l'arbre § 6.2).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="258dp"
+    android:layout_height="wrap_content">
+
+    <!-- Flèche vers l'icône d'ancrage (position posée à l'exécution). -->
+    <View
+        android:id="@+id/fleche_popover"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/fond_fleche_popover"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:id="@+id/coque_popover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_popover"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_destination_choisir"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="7dp"
+            android:singleLine="true"
+            android:text="@string/deplacer_destination_choisir"
+            android:textColor="@color/explorateur_texte"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Liste déroulante des dossiers : hauteur bornée à l'exécution
+             (8 lignes max) pour rester dans l'écran, l'algorithme § 10.2
+             retournant le popover si le bas dépassait. -->
+        <ScrollView
+            android:id="@+id/defilement_destination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/liste_dossiers_destination"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                tools:ignore="UseCompoundDrawables" />
+        </ScrollView>
+    </LinearLayout>
+</FrameLayout>

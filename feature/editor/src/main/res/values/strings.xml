@@ -186,6 +186,11 @@
     <string name="deplacer_erreur_deja">Déjà à cet endroit.</string>
     <string name="deplacer_erreur_dans_source">Impossible : la destination est dans l\'élément déplacé.</string>
 
+    <!-- Popover « Choisir la destination » (v0.32.1). -->
+    <string name="deplacer_destination_choisir">Choisir la destination</string>
+    <string name="deplacer_destination_choisir_cd">Choisir le dossier de destination dans la liste</string>
+    <string name="deplacer_destination_racine">Racine</string>
+
     <!-- Popover « Supprimer » (§ 10.5). -->
     <string name="supprimer_fichier_message">Supprimer %1$s ? Action définitive.</string>
     <string name="supprimer_dossier_message">Supprimer %1$s et tout son contenu ? Action définitive.</string>

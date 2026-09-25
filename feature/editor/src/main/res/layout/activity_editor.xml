@@ -430,16 +430,23 @@
          redimensionnement collée au bord droit (§ 13, déborde à moitié :
          la largeur du tiroir inclut le débord de 13 dp).
 
+         Fond : fond_tiroir — borné à la largeur VISIBLE, la bande de
+         débord de 13 dp reste transparente (la moitié externe de la
+         poignée flotte sur l'éditeur, comme la maquette) ; les fragments
+         remplissent le tiroir visible d'un bord à l'autre.
+
          Largeur : posée à l'exécution (largeurTiroirPx dans EditorActivity,
          bornes 45-98 %, aimants 55/69/85/98) — la valeur XML n'est que la
-         valeur par défaut de premier affichage. -->
+         valeur par défaut de premier affichage. Marge haute posée aux
+         insets système (v0.32.1) : le tiroir ne passe jamais derrière la
+         barre de statut. -->
 
     <FrameLayout
         android:id="@+id/tiroir"
         android:layout_width="@dimen/editor_tiroir_largeur"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/explorateur_fond_tiroir">
+        android:background="@drawable/fond_tiroir">
 
         <!-- Colonne : fragment courant + rail commun. Le rebord droit de
              13 dp laisse la poignée déborder à moitié (§ 13). -->

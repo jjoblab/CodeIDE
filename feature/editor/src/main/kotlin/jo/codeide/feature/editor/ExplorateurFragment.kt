@@ -29,8 +29,11 @@ import jo.codeide.feature.editor.databinding.FragmentExplorateurBinding
  *
  * Les popover maison (§ 10) vivent dans [PopoverExplorateur] : actions
  * du nœud ancrées au point de contact, Nouveau ancré au bouton,
- * Déplacer vers…, confirmation Supprimer, Légende. Le snackbar (§ 15)
- * flotte dans la zone du tiroir de l'activité, au-dessus du rail.
+ * Déplacer vers…, confirmation Supprimer, Légende. Le popover
+ * « Déplacer vers… » porte en sus une liste déroulante de destination
+ * (v0.32.1) : un SECOND popover maison s'ouvre par-dessus lui, ancré à
+ * l'icône du champ Destination. Le snackbar (§ 15) flotte dans la zone
+ * du tiroir de l'activité, au-dessus du rail.
  *
  * Toutes les intentions passent par [ActionEditor] — le fragment ne
  * détient aucun état : il rend [EtatEditor] (patron UDF, section 5.3).
@@ -53,6 +56,11 @@ class ExplorateurFragment : Fragment() {
 
     /** Popover maison (un seul à la fois, § 10.5). */
     private lateinit var popover: PopoverExplorateur
+
+    /** Second popover maison (v0.32.1) : liste déroulante de destination du
+     *  popover « Déplacer vers… » — s'ouvre PAR-DESSUS lui, qui reste
+     *  affiché en dessous ; fermé au choix, au clic extérieur ou retour. */
+    private lateinit var popoverDestination: PopoverExplorateur
 
     private companion object {
         /** Rotation de l'icône Actualiser (§ 4 : 0,65 s). */
@@ -81,6 +89,24 @@ class ExplorateurFragment : Fragment() {
 
         /** Padding horizontal du séparateur « › » (§ 4.4). */
         const val PADDING_SEPARATEUR_PX = 6
+
+        /** Séparateur des chemins relatifs de l'arbre (§ 10.5). */
+        const val SEPARATEUR_CHEMIN = "/"
+
+        /** Indentation d'un niveau de dossier dans la liste de destination
+         *  (v0.32.1, lecture arborescente comme l'arbre § 6.2). */
+        const val INDENTATION_NIVEAU_DP = 13
+
+        /** Padding horizontal de base d'une ligne d'action (§ 10.4). */
+        const val PADDING_ACTION_POPOVER_DP = 10
+
+        /** Largeur de coque du popover (§ 10.1) pour la mesure de la liste. */
+        const val LARGEUR_POPOVER_DP = 258
+
+        /** Hauteur maximale de la liste de destination (v0.32.1, ≈ 8 lignes) :
+         *  sans borne, un arbre profond dépasserait l'écran malgré le
+         *  retournement § 10.2. */
+        const val HAUTEUR_MAX_LISTE_DP = 264
     }
 
     /** Adaptateur de l'arbre (mutations par nœud, § 11). */
@@ -100,6 +126,7 @@ class ExplorateurFragment : Fragment() {
         etat: Bundle?,
     ) {
         popover = PopoverExplorateur(liaison.root)
+        popoverDestination = PopoverExplorateur(liaison.root)
         brancherArbre()
         brancherActionsEntete()
         brancherBascule()
@@ -108,6 +135,7 @@ class ExplorateurFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        popoverDestination.masquer()
         popover.masquer()
         liaisonAmorce = null
         super.onDestroyView()
@@ -739,6 +767,12 @@ class ExplorateurFragment : Fragment() {
                 popover.masquer()
             }
             vue.findViewById<View>(R.id.bouton_valider_deplacer).setOnClickListener { valider() }
+
+            // Liste déroulante de destination (v0.32.1) : second popover
+            // par-dessus celui-ci, ancré à l'icône du champ.
+            vue.findViewById<View>(R.id.bouton_destination_deroulante).setOnClickListener { ancre ->
+                montrerPopoverDestination(noeud, ancre, champ, erreur, etat)
+            }
             champ.setOnEditorActionListener { _, actionId, evenement ->
                 if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
                     (
@@ -754,6 +788,91 @@ class ExplorateurFragment : Fragment() {
             }
             champ.requestFocus()
             champ.post { champ.setSelection(champ.text.length) }
+        }
+    }
+
+    /** Popover « Choisir la destination » (v0.32.1) : liste déroulante
+     *  ancrée à l'icône du champ Destination. Dossiers énumérés de la
+     *  racine active — racine incluse, nœud déplacé et ses descendants
+     *  exclus (la validation § 10.5 les refuserait de toute façon) —
+     *  indentés par profondeur comme l'arbre. Le choix REMPLIT le champ
+     *  (et l'efface de l'erreur en ligne) ; le popover « Déplacer
+     *  vers… » reste ouvert en dessous. */
+    private fun montrerPopoverDestination(
+        noeud: NoeudExplorateur,
+        ancre: View,
+        champ: android.widget.EditText,
+        erreur: MaterialTextView,
+        etat: EtatEditor,
+    ) {
+        val position = IntArray(2)
+        ancre.getLocationOnScreen(position)
+        val x = position[0] + ancre.width / 2
+        val y = position[1] + ancre.height
+        val cheminPropre = cheminRelatif(noeud, etat)
+        popoverDestination.montrer(R.layout.popover_destination_deplacer, x, y) { vue ->
+            val contexte = vue.context
+            val dp = contexte.resources.displayMetrics.density
+            val conteneur = vue.findViewById<LinearLayout>(R.id.liste_dossiers_destination)
+
+            val dossiers =
+                etat.cheminsDossiers.filterNot { chemin ->
+                    chemin == cheminPropre || chemin.startsWith("$cheminPropre$SEPARATEUR_CHEMIN")
+                }
+
+            fun dossier(chemin: String) {
+                val ligne =
+                    LayoutInflater.from(contexte).inflate(R.layout.ligne_action_popover, conteneur, false)
+                val estRacine = chemin.isEmpty()
+                val niveau = chemin.count { it == SEPARATEUR_CHEMIN[0] } + 1
+                ligne.setPaddingRelative(
+                    ((PADDING_ACTION_POPOVER_DP + niveau * INDENTATION_NIVEAU_DP) * dp).toInt(),
+                    ligne.paddingTop,
+                    ligne.paddingEnd,
+                    ligne.paddingBottom,
+                )
+                ligne
+                    .findViewById<android.widget.ImageView>(R.id.icone_action_popover)
+                    .apply {
+                        setImageResource(
+                            if (estRacine) {
+                                jo.codeide.core.ui.R.drawable.ic_maison
+                            } else {
+                                jo.codeide.core.ui.R.drawable.ic_dossier
+                            },
+                        )
+                        setColorFilter(
+                            ContextCompat.getColor(
+                                contexte,
+                                if (estRacine) R.color.explorateur_texte_2 else R.color.explorateur_dossier,
+                            ),
+                        )
+                    }
+                ligne.findViewById<MaterialTextView>(R.id.libelle_action_popover).text =
+                    if (estRacine) {
+                        getString(R.string.deplacer_destination_racine)
+                    } else {
+                        chemin.substringAfterLast(SEPARATEUR_CHEMIN)
+                    }
+                ligne.setOnClickListener {
+                    popoverDestination.masquer()
+                    champ.setText(chemin)
+                    champ.setSelection(chemin.length)
+                    erreur.isVisible = false
+                }
+                conteneur.addView(ligne)
+            }
+            dossiers.forEach { dossier(it) }
+
+            // Hauteur bornée avant la mesure § 10.2 : les libellés sont
+            // singleLine, la hauteur des lignes ne dépend pas de la largeur.
+            val defilement = vue.findViewById<android.widget.ScrollView>(R.id.defilement_destination)
+            conteneur.measure(
+                View.MeasureSpec.makeMeasureSpec((LARGEUR_POPOVER_DP * dp).toInt(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.UNSPECIFIED,
+            )
+            defilement.layoutParams.height =
+                conteneur.measuredHeight.coerceAtMost((HAUTEUR_MAX_LISTE_DP * dp).toInt())
         }
     }
 

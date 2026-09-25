@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variante RTL de fond_tiroir (voir drawable/fond_tiroir.xml) : en RTL
+     le tiroir s'ouvre au bord DROIT de l'écran, son bord externe (celui
+     de la poignée ⋮) est le GAUCHE — l'inset de 13 dp y passe. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="13dp">
+    <shape android:shape="rectangle">
+        <solid android:color="@color/explorateur_fond_tiroir" />
+    </shape>
+</inset>
