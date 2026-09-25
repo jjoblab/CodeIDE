@@ -132,6 +132,9 @@
     <string name="wizard_echec_modele">Le modèle n\'a pas pu produire les fichiers.</string>
     <string name="wizard_echec_inattendu">Une erreur inattendue est survenue.</string>
     <string name="wizard_echec_nettoyage_ok">Nettoyage effectué : le dossier créé a été supprimé.</string>
+    <!-- V0.31.5 : sortie du piège « collision » — l'échec propose ENFIN le
+         changement que le message réclame. -->
+    <string name="wizard_echec_corriger">Changer de nom ou d\'emplacement</string>
     <string name="wizard_echec_nettoyage_residus">Nettoyage partiel : certains fichiers n\'ont pas pu être supprimés.</string>
     <string name="wizard_echec_reessayer">Réessayer</string>
     <string name="wizard_echec_copier">Copier les détails</string>

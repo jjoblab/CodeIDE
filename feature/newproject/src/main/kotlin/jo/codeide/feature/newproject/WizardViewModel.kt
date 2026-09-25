@@ -11,12 +11,14 @@ import jo.codeide.core.domain.ReleaseCreationLocationUseCase
 import jo.codeide.core.domain.ResolveCreationLocationUseCase
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ValidationDossier
+import jo.codeide.core.domain.VerificationCible
 import jo.codeide.core.domain.VerifyCreationTargetUseCase
 import jo.codeide.core.domain.templates.CreateProjectUseCase
 import jo.codeide.core.domain.templates.EvaluateTemplateFormUseCase
 import jo.codeide.core.domain.templates.EvaluerNomProjetUseCase
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.domain.templates.PlanProjectCreationUseCase
+import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.CreateProjectRequest
 import jo.codeide.core.model.CreationProgress
@@ -442,6 +444,16 @@ class WizardViewModel
          * Lance la création (section 12.4) : le flot froid du domaine est
          * collecté ici — chaque événement alimente [EtatCreation.EnCours],
          * l'événement terminal tranche succès ou échec typé.
+         *
+         * V0.31.5 — **pré-vol** : la vérification de l'étape Informations
+         * (délai 400 ms) peut être obsolète au moment de l'appui sur
+         * « Créer » (résidu d'une tentative échouée, dossier déposé
+         * entre-temps par un gestionnaire de fichiers ou un nuage) : la
+         * cible est re-vérifiée juste avant d'écrire. Un échec de pré-vol
+         * s'affiche honnêtement SANS lancer une création condamnée —
+         * retour d'appareil réel : « un dossier porte déjà ce nom, toutes
+         * mes tentatives sont vaines », l'utilisateur restait bouclé sur
+         * « Réessayer » avec la même requête vouée à l'échec.
          */
         private fun creer() {
             val etat = etatInterne.value
@@ -452,50 +464,85 @@ class WizardViewModel
             etatInterne.update { it.copy(etatCreation = EtatCreation.EnCours(emptyList())) }
             creationJob =
                 viewModelScope.launch {
-                    try {
-                        creerProjet.create(requete).collect { evenement ->
-                            when (evenement) {
-                                is CreationProgress.Termine -> {
-                                    when (val resultat = evenement.result) {
-                                        is AppResult.Success -> {
-                                            journal.i(TAG) { "projet créé" }
-                                            etatInterne.update {
-                                                it.copy(etatCreation = EtatCreation.Succes(resultat.value))
-                                            }
-                                        }
+                    val verification =
+                        verifierCible(requete.parentLocation.documentUri, requete.name)
+                    when (verification) {
+                        VerificationCible.Valide -> {
+                            lancerCreation(requete)
+                        }
 
-                                        is AppResult.Failure -> {
-                                            etatInterne.update {
-                                                it.copy(
-                                                    etatCreation =
-                                                        EtatCreation.Echec(
-                                                            erreur = resultat.error,
-                                                            residues = evenement.residues,
-                                                        ),
-                                                )
-                                            }
-                                        }
+                        VerificationCible.NomDejaPris -> {
+                            publierEchecPreVol(
+                                AppError.Storage(
+                                    AppError.StorageReason.AlreadyExists,
+                                    PRE_VOL_COLLISION,
+                                ),
+                            )
+                        }
+
+                        is VerificationCible.EmplacementInaccessible -> {
+                            publierEchecPreVol(verification.erreur)
+                        }
+
+                        is VerificationCible.Erreur -> {
+                            publierEchecPreVol(verification.erreur)
+                        }
+                    }
+                }
+        }
+
+        /** Publie l'échec du pré-vol (aucune écriture n'a eu lieu). */
+        private fun publierEchecPreVol(erreur: AppError) {
+            etatInterne.update {
+                it.copy(etatCreation = EtatCreation.Echec(erreur = erreur, residues = emptyList()))
+            }
+        }
+
+        /** Collecte le flot du domaine — écritures, progression, terminal. */
+        private suspend fun lancerCreation(requete: CreateProjectRequest) {
+            try {
+                creerProjet.create(requete).collect { evenement ->
+                    when (evenement) {
+                        is CreationProgress.Termine -> {
+                            when (val resultat = evenement.result) {
+                                is AppResult.Success -> {
+                                    journal.i(TAG) { "projet créé" }
+                                    etatInterne.update {
+                                        it.copy(etatCreation = EtatCreation.Succes(resultat.value))
                                     }
                                 }
 
-                                else -> {
-                                    etatInterne.update { courant ->
-                                        val enCours = courant.etatCreation as? EtatCreation.EnCours
-                                        courant.copy(
+                                is AppResult.Failure -> {
+                                    etatInterne.update {
+                                        it.copy(
                                             etatCreation =
-                                                EtatCreation.EnCours(enCours?.evenements.orEmpty() + evenement),
+                                                EtatCreation.Echec(
+                                                    erreur = resultat.error,
+                                                    residues = evenement.residues,
+                                                ),
                                         )
                                     }
                                 }
                             }
                         }
-                    } catch (annulation: CancellationException) {
-                        // Annulation utilisateur : le domaine a déjà roulé le
-                        // rollback (NonCancellable) — retour au récapitulatif.
-                        etatInterne.update { it.copy(etatCreation = EtatCreation.Inactif) }
-                        throw annulation
+
+                        else -> {
+                            etatInterne.update { courant ->
+                                val enCours = courant.etatCreation as? EtatCreation.EnCours
+                                courant.copy(
+                                    etatCreation =
+                                        EtatCreation.EnCours(enCours?.evenements.orEmpty() + evenement),
+                                )
+                            }
+                        }
                     }
                 }
+            } catch (annulation: CancellationException) {
+                // Annulation utilisateur : le domaine a déjà roulé le
+                // rollback (NonCancellable) — retour au récapitulatif.
+                etatInterne.update { it.copy(etatCreation = EtatCreation.Inactif) }
+                throw annulation
+            }
         }
 
         /** Annule la création en cours : rollback domaine puis récapitulatif. */
@@ -730,6 +777,10 @@ class WizardViewModel
 
             /** Délai de la vérification asynchrone de cible (section 12.3). */
             const val DELAI_VERIFICATION_MS = 400L
+
+            /** Détails de l'échec de pré-vol collision (v0.31.5) — lisible
+             * dans les détails copiables de l'écran d'échec. */
+            const val PRE_VOL_COLLISION = "pré-vol : un enfant du dossier parent porte déjà ce nom"
 
             const val CLE_ETAPE = "wizard.etape"
             const val CLE_TEMPLATE = "wizard.template"

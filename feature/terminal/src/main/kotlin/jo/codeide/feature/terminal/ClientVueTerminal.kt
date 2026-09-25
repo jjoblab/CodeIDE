@@ -17,6 +17,12 @@ import com.termux.view.TerminalViewClient
  *   [ClavierEtenduView] — la vue applique alors Ctrl/Alt à l'entrée du
  *   clavier (mécanisme conçu pour les touches virtuelles) ;
  * - le toucher simple donne le focus et ouvre le clavier virtuel ;
+ * - le pincement zoome la police (v0.31.5) : le contrat Termux
+ *   (vérifié sur le bytecode de terminal-view v0.118.3) passe à
+ *   `onScale` le facteur ACCUMULÉ du geste et n'applique JAMAIS
+ *   lui-même — c'est le client qui change la taille puis retourne 1.0f
+ *   pour consommer le facteur ; l'ancien retour `scale` intact rendait
+ *   le pincement inerte (retour d'appareil réel) ;
  * - le bouton retour système **ferme l'écran** (jamais mappé sur Échap,
  *   section 5 : les sessions survivent via le service foreground) ;
  * - les journaux internes de la vue restent muets : la journalisation
@@ -27,6 +33,9 @@ import com.termux.view.TerminalViewClient
  * @param clavier la rangée de touches étendues (modificateurs).
  * @param surEmulateurPret appelé quand l'émulateur est en place
  * (re-application du thème du rendu).
+ * @param zoomer applique le facteur accumulé [facteur] (nouvelle taille
+ * en pixels via [TerminalView.setTextSize]) ; retourne `true` si le
+ * facteur a été consommé (le compteur accumulé repart à 1.0f).
  *
  * Exemption detekt ciblée (règle 16 du prompt maître) : le contrat tiers
  * `TerminalViewClient` impose 24 méthodes (précédent `ClientTermux`,
@@ -37,8 +46,9 @@ internal class ClientVueTerminal(
     private val vue: TerminalView,
     private val clavier: ClavierEtenduView,
     private val surEmulateurPret: () -> Unit,
+    private val zoomer: (facteur: Float) -> Boolean,
 ) : TerminalViewClient {
-    override fun onScale(scale: Float): Float = scale // Pincement volontairement inerte (T5).
+    override fun onScale(scale: Float): Float = if (zoomer(scale)) 1.0f else scale
 
     override fun onSingleTapUp(event: MotionEvent) {
         // Comme Termux : toucher la zone = saisir au clavier (0 = affichage

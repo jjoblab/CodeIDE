@@ -131,6 +131,8 @@
     <string name="wizard_echec_modele">The template could not produce the files.</string>
     <string name="wizard_echec_inattendu">An unexpected error occurred.</string>
     <string name="wizard_echec_nettoyage_ok">Cleanup done: the created folder was removed.</string>
+    <!-- v0.31.5: escape hatch from the "collision" trap. -->
+    <string name="wizard_echec_corriger">Change name or location</string>
     <string name="wizard_echec_nettoyage_residus">Partial cleanup: some files could not be removed.</string>
     <string name="wizard_echec_reessayer">Try again</string>
     <string name="wizard_echec_copier">Copy details</string>

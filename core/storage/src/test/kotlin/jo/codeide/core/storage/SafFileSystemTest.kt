@@ -224,6 +224,26 @@ class SafFileSystemTest {
         }
 
     @Test
+    fun `une normalisation fournisseur des espaces et points finaux est acceptee`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // v0.31.5 (retour d'appareil réel, « collision » systématique) :
+            // certaines couches de stockage rabotent les espaces/points
+            // FINAUX — « Projet. » devient « Projet ». Le document créé au
+            // nom normalisé est le nôtre : la création doit RÉUSSIR, pas
+            // rapporter une collision de pure invention (ni détruire le
+            // document fraîchement créé).
+            fournisseur.normaliserNoms = true
+            val creation = fichiers.createDirectory(uriDocument(travail), "MonProjet..")
+
+            assertTrue(creation is AppResult.Success)
+            val uriCree = (creation as AppResult.Success).value
+            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+            assertEquals("MonProjet", statut.name)
+        }
+
+    @Test
     fun `un renommage de collision avec point reste refuse meme avec completion active`() =
         runTest {
             val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")

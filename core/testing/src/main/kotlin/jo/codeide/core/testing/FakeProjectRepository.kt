@@ -63,6 +63,25 @@ public class FakeProjectRepository : ProjectRepository {
     public val projets: List<Project>
         get() = etat.value.triePourAccueil()
 
+    /**
+     * Sème un projet préexistant (v0.31.5) : éprouver le refus
+     * d'`addProject` sur un dossier déjà référencé (index unique —
+     * `AlreadyExists`) sans passer par une première création.
+     */
+    public fun seedProject(location: StorageLocation) {
+        etat.value +=
+            Project(
+                id = ProjectId("fake-seed-${++compteur}-${UUID.randomUUID()}"),
+                name = "Semé",
+                description = "",
+                location = location,
+                templateId = TemplateId("fixture"),
+                createdAtMillis = 0L,
+                lastOpenedAtMillis = null,
+                isPinned = false,
+            )
+    }
+
     public override fun observeProjects(): Flow<List<Project>> =
         combine(etat, erreur) { liste, echec ->
             echec?.let { throw it }

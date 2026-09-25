@@ -7,9 +7,13 @@ import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -225,6 +229,22 @@ class RegistreSessionsTermuxTest {
         }
 
     @Test
+    fun `creer une session active toujours la nouvelle meme si une autre vivait`() =
+        runTest(ordonnanceur) {
+            // v0.31.5 (retour d'appareil réel « je ne peux pas naviguer entre
+            // les sessions ») : l'onglet « + » et le bouton de création
+            // s'attendent à VOIR la session fraîche — l'ancien code ne
+            // l'activait que si aucune n'était active, l'écran retombait
+            // visuellement sur l'ancienne.
+            val registre = registre()
+            registre.createSession(File("/a"))
+
+            val seconde = registre.createSession(File("/b"))
+
+            assertEquals(seconde, registre.observeActiveSessionId().value)
+        }
+
+    @Test
     fun `la session active suit setActiveSession`() =
         runTest(ordonnanceur) {
             val registre = registre()
@@ -334,6 +354,49 @@ class RegistreSessionsTermuxTest {
             // Coquille scriptée : pas de session Termux réelle embarquée.
             assertNull(registre.sessionFor(id))
             assertNull(registre.sessionFor("inconnu"))
+        }
+
+    @Test
+    fun `le signal de repeint part sans attendre la fenetre de throttle`() =
+        runTest(ordonnanceur) {
+            // v0.31.5 (retour d'appareil réel « le terminal n'est pas à jour
+            // immédiatement ») : surTexteModifie doit émettre le signal de
+            // repeint IMMÉDIATEMENT — le throttle de 250 ms ne sert que
+            // l'aperçu des métadonnées. runCurrent n'exécute que ce qui est
+            // prêt MAINTENANT : un signal livré ici prouve l'absence de délai.
+            val registre = registre()
+            registre.createSession(File("/a"))
+            val coquille = coquilles.single()
+
+            val signaux = mutableListOf<Unit>()
+            val collecte = launch { registre.observeSorties().take(1).toList(signaux) }
+            advanceUntilIdle() // le collecteur est suspendu, en attente.
+
+            coquille.ecouteur?.surTexteModifie()
+            runCurrent()
+
+            assertEquals("signal immédiat, sans fenêtre de 250 ms", 1, signaux.size)
+            collecte.cancel()
+        }
+
+    @Test
+    fun `la fin naturelle emet aussi le signal de repeint`() =
+        runTest(ordonnanceur) {
+            // L'écran final du shell doit s'afficher (exit, ctrl-d).
+            val registre = registre()
+            registre.createSession(File("/a"))
+            val coquille = coquilles.single()
+
+            val signaux = mutableListOf<Unit>()
+            val collecte = launch { registre.observeSorties().take(1).toList(signaux) }
+            advanceUntilIdle()
+
+            coquille.vivante = false
+            coquille.ecouteur?.surTerminee()
+            runCurrent()
+
+            assertEquals(1, signaux.size)
+            collecte.cancel()
         }
 
     @Test

@@ -236,13 +236,16 @@ internal class SafFileSystem
                     // Contrôle du nom retourné : si le fournisseur a renommé
                     // (course avec une création concurrente), on nettoie le
                     // document créé et on rapporte la collision — jamais
-                    // d'écrasement, jamais de surprise de nom. Tolérance
+                    // d'écrasement, jamais de surprise de nom. Tolérances
                     // d'abord : les fournisseurs honnêtes complètent un nom
                     // SANS extension par l'extension canonique du type MIME
                     // demandé (ExternalStorageProvider crée « temoin.txt »
-                    // pour « temoin » + text/plain) — ce n'est ni une
-                    // collision ni un renommage hostile, le document reste
-                    // le nôtre sous le nom unique que garantit le fournisseur.
+                    // pour « temoin » + text/plain), et certains ajustent un
+                    // nom d'espaces/points FINAUX (couches compatibles
+                    // Windows, v0.31.5) — ni l'un ni l'autre n'est une
+                    // collision ni un renommage hostile : le document créé
+                    // reste le nôtre sous le nom unique que garantit le
+                    // fournisseur.
                     //
                     // Vérification illisible (v0.31.1) : une requête unitaire
                     // muette sur le document créé ne prouve NI un renommage NI
@@ -253,7 +256,15 @@ internal class SafFileSystem
                     // pré-vérification ci-dessus a déjà écarté l'homonyme
                     // juste avant la création.
                     val nomRetourne = decrireDocument(uriCree)?.name
-                    if (nomRetourne != null && nomRetourne != name && !estAchevementExtension(name, nomRetourne)) {
+                    val renommageHostile =
+                        when {
+                            nomRetourne == null -> false
+                            nomRetourne == name -> false
+                            estAchevementExtension(name, nomRetourne) -> false
+                            estNormalisationFournisseur(name, nomRetourne) -> false
+                            else -> true
+                        }
+                    if (renommageHostile) {
                         nettoyerRenomme(uriCree)
                         return@withContext echecStockage(AppError.StorageReason.AlreadyExists, name)
                     }
@@ -310,6 +321,23 @@ internal class SafFileSystem
             demande: String,
             retourne: String?,
         ): Boolean = retourne != null && !demande.contains('.') && retourne.startsWith("$demande.")
+
+        /**
+         * Le nom retourné n'est-il le nom demandé qu'**ajusté d'une
+         * normalisation de fournisseur** (v0.31.5) ?
+         *
+         * Certaines couches de stockage (cartes FAT/exFAT relues par des
+         * fournisseurs compatibles Windows, héritages de magie noire)
+         * rabotent les espaces et points FINAUX des noms créés — « Projet. »
+         * devient « Projet ». Ce n'est pas un renommage de collision : le
+         * document créé au nom normalisé est le nôtre. La comparaison ne
+         * touche ni la casse (les systèmes Unix la distinguent) ni
+         * l'intérieur du nom.
+         */
+        private fun estNormalisationFournisseur(
+            demande: String,
+            retourne: String?,
+        ): Boolean = retourne != null && retourne.trimEnd(' ', '.') == demande.trimEnd(' ', '.')
 
         /**
          * Supprime le document que le fournisseur vient de créer sous un nom

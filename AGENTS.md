@@ -521,6 +521,33 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       redémarrage à `Terminee` si marqueur) ; garde `isJdkInstalled()`
       dans l'éditeur AVANT sync/build : message actionnable au lieu
       d'une connexion perdue ; ADR 0048]
+- v0.31.5 : **cinquième lot de corrections d'appareil réel** (terminal
+      « pas à jour immédiatement »/pinch-zoom inerte/onglets
+      inopérants, création « un dossier porte déjà ce nom — toutes mes
+      tentatives sont vaines », CI lint rouge sur `feature:install`)
+      — terminal vivant [signal de repeint IMMÉDIAT
+      `TerminalRuntime.observeSorties()` (tampon 1, dernier gagnant)
+      collecté par l'activité → `onScreenUpdated()` : dans l'architecture
+      Termux c'est le client de session de l'ACTIVITÉ qui repeint, ici
+      personne ne le faisait ; zoom pincé APPLIQUÉ par le client (le
+      bytecode v0.118.3 accumule le facteur et ne l'applique JAMAIS
+      lui-même — bornes 10–30 dp, consommé comme Termux, drapeau
+      `zoomManuel` anti-écrasement) ; onglets par DIFF (plus de
+      `removeAllTabs` toutes les 250 ms — les taps atterrissaient sur des
+      vues détruites sous le doigt) et session créée TOUJOURS active ;
+      ADR 0049] ; création de projet honnête jusqu'au bout [PRÉ-VOL à
+      l'appui sur « Créer » : la cible est re-vérifiée avant toute
+      écriture (l'état « Valide » de l'étape Informations, délai
+      400 ms, peut être périmé) ; `addProject` relaye son erreur
+      RÉELLE (déjà référencé = AlreadyExists) au lieu d'un Io
+      générique ; `SafFileSystem` tolère la normalisation
+      fournisseur des espaces/points finaux ; écran d'échec : détails
+      techniques VISIBLES + bouton « Changer de nom ou
+      d'emplacement » (sortie du piège « Réessayer » en boucle) ;
+      ADR 0049] ; lint CI réparé à la source [`NestedScrollView` du
+      journal, `<plurals>` d'extraction, indice « n/total » du paquet,
+      `toUri()` dans l'onboarding — et leçon : `lintDebug` local doit
+      couvrir TOUS les modules touchés, pas seulement `:app` ; ADR 0049]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -601,6 +628,33 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   doit régler explicitement CHAQUE bouton de l'écran (v0.31.2 laissait
   « Fermer » invisible et « Réessayer » figé après lancement — les
   transitions se vérifient phase par phase, pas seulement la première).
+- **Le contrat `TerminalViewClient.onScale` n'est pas celui qu'on
+  croit** (retour v0.31.5, vérifié sur le bytecode v0.118.3) : la vue
+  ACCUMULE un facteur, le passe au client, et ne l'applique JAMAIS
+  elle-même — retourner le facteur intact rend le pincement inerte
+  sans aucun autre symptôme. Le client applique la taille puis
+  retourne `1.0f` (consommé). Diagnostiquer une bibliothèque binaire
+  sans source publié : désassembler (`javap -c`) l'artefact du cache
+  Gradle — dix minutes de bytecode valent mieux qu'une heure de
+  suppositions.
+- **Un conteneur d'onglets reconstruit mange les taps** (retour
+  v0.31.5) : `removeAllTabs` + `addTab` à chaque émission d'un état
+  qui change toutes les 250 ms détruit les vues sous le doigt de
+  l'utilisateur — la sélection programmatique garde son
+  anti-réentrance, mais le GESTE, lui, n'atterrit jamais. Et une
+  collection reconstruite doit réévaluer CHAQUE écouteur capturant un
+  identifiant positionnel (fermeture/renommage décalent les indices) :
+  diff ou rien.
+- **Une vérification asynchrone n'est pas une garantie** (retour
+  v0.31.5) : un état « Valide » de vérification datée (délai 400 ms)
+  peut être périmé au moment de l'action — une action qui écrit doit
+  re-vérifier sa précondition dans l'instant (pré-vol), et son échec
+  doit offrir la SORTIE que le message réclame (un bouton « Réessayer »
+  qui relance la même requête condamnée est un piège, pas une action).
+  Corollaire : une erreur typée doit remonter SA raison réelle à
+  chaque étage (l'insertion en base refusée n'est pas un `Io`
+  générique), et porter des détails lisibles — l'écran d'échec les
+  affiche, le prochain rapport d'appareil devient diagnosticable.
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

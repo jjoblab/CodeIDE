@@ -56,6 +56,14 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
         binding.boutonReessayer.setOnClickListener { wizard.action(ActionWizard.ReessayerCreation) }
         binding.boutonRetourRecapitulatif.setOnClickListener { wizard.action(ActionWizard.RetourRecapitulatif) }
         binding.boutonCopierDetails.setOnClickListener { copierDetails() }
+        // V0.31.5 : sortie du piège « un dossier porte déjà ce nom » — le
+        // message dit « choisis un autre nom », l'écran doit ENFIN le
+        // proposer : retour direct à l'étape Informations (retour
+        // arrière pur — les gardes de validité restent intactes).
+        binding.boutonCorriger.setOnClickListener {
+            wizard.action(ActionWizard.RetourRecapitulatif)
+            wizard.action(ActionWizard.AllerEtape(EtapeId.INFORMATIONS))
+        }
 
         wizard.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat.etatCreation, etat.nomProjet) }
     }
@@ -87,6 +95,16 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                     } else {
                         getString(R.string.wizard_echec_nettoyage_residus)
                     }
+                // V0.31.5 : les détails techniques deviennent VISIBLES (et
+                // restent copiables) — un échec de stockage porte son
+                // diagnostic (URI de l'homonyme, pré-vol, insertion
+                // refusée) ; sans lui, tout retour d'appareil réel restait
+                // une devinette.
+                binding.texteEchecDetails.isVisible = detailsTechniques(etat.erreur).isNotBlank()
+                binding.texteEchecDetails.text = detailsTechniques(etat.erreur)
+                binding.boutonCorriger.isVisible =
+                    etat.erreur is AppError.Storage &&
+                    etat.erreur.reason == AppError.StorageReason.AlreadyExists
             }
 
             EtatCreation.Inactif -> {
@@ -129,6 +147,17 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
             is AppError.Unknown -> {
                 getString(R.string.wizard_echec_inattendu)
             }
+        }
+
+    /** Détails techniques portés par l'erreur typée (v0.31.5). */
+    private fun detailsTechniques(erreur: AppError): String =
+        when (erreur) {
+            is AppError.Storage -> erreur.details
+            is AppError.Validation -> erreur.details
+            is AppError.Template -> erreur.details
+            is AppError.Bootstrap -> erreur.details
+            is AppError.Tooling -> erreur.message
+            is AppError.Unknown -> erreur.details
         }
 
     /** Copie les détails expurgés (erreurs typées — identifiants seulement). */
