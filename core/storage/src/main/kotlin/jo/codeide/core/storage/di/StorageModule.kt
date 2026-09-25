@@ -10,11 +10,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.ArborescencesSaf
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.FileSystemPrive
 import jo.codeide.core.storage.ContentResolverPersistableUriPermissions
 import jo.codeide.core.storage.PersistableUriPermissions
 import jo.codeide.core.storage.SafArborescences
 import jo.codeide.core.storage.SafFileSystem
 import javax.inject.Singleton
+import jo.codeide.core.storage.FileSystemPrive as AdaptateurPrive
 
 /**
  * Assemblage Hilt du module `core:storage` (section 5.1) : le module
@@ -51,4 +53,15 @@ internal object StorageProvidesModule {
     @Singleton
     fun providePersistableUriPermissions(resolver: ContentResolver): PersistableUriPermissions =
         ContentResolverPersistableUriPermissions(resolver)
+
+    /**
+     * Deuxième implémentation du port `FileSystem` (étape 31, ADR 0052) :
+     * le stockage **privé** de l'application sous le qualifier dédié —
+     * l'arbre « Privé » de l'explorateur. Sans qualifier, l'injection
+     * reste l'implémentation SAF des projets (liaison ci-dessus).
+     */
+    @Provides
+    @FileSystemPrive
+    @Singleton
+    fun provideFileSystemPrive(impl: AdaptateurPrive): FileSystem = impl
 }

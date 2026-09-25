@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Destination du rail de fragments du tiroir (étape 31, § 14) : colonne
+  icône 20 dp + libellé 10 sp. L'état actif (encoche autour de l'icône,
+  texte accent) se pose par le tiroir à la liaison.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="Overdraw"
+    android:id="@+id/item_rail"
+    android:layout_width="0dp"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    tools:layout_width="48dp">
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <View
+            android:id="@+id/encoche_rail"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:background="@drawable/encoche_rail_active"
+            android:contentDescription="@null"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/icone_rail"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            app:tint="@color/explorateur_texte_3"
+            tools:src="@drawable/ic_explorateur" />
+    </FrameLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_rail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/explorateur_texte_3"
+        android:textSize="10sp" tools:ignore="SmallSp"
+        android:textStyle="bold"
+        tools:text="Fichiers" />
+</LinearLayout>

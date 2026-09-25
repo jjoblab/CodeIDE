@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fragment d'aperçu statique du tiroir (étape 31, § 1 : Recherche, Git —
+  lot ultérieur) : même entête que l'explorateur (emblème coloré propre,
+  titre, sous-titre mono) et corps d'accueil décrivant la fonctionnalité
+  à venir. Configuré par ApercuSimpleFragment.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Entête du fragment (§ 4) : emblème + titre + sous-titre. -->
+    <LinearLayout android:baselineAligned="false"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_entete_explorateur"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="13dp">
+
+        <FrameLayout
+            android:id="@+id/embleme_apercu"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/fond_embleme_entete">
+
+            <ImageView
+                android:id="@+id/icone_embleme_apercu"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                tools:src="@drawable/ic_recherche" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="9dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/titre_apercu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textColor="@color/explorateur_texte"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="Recherche" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/sous_titre_apercu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="monospace"
+                android:singleLine="true"
+                android:textColor="@color/explorateur_sous_titre_entete"
+                android:textSize="10.5sp" tools:ignore="SmallSp"
+                tools:text="recherche en plein texte" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Corps d'accueil : description de la fonctionnalité à venir. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/description_apercu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/explorateur_texte_2"
+        android:textSize="12.5sp"
+        tools:text="La recherche en plein texte du projet arrivera avec son lot dédié." />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_apercu"
+        style="@style/Widget.CodeIDE.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:gravity="start|center_vertical"
+        android:minWidth="@dimen/touch_target_min"
+        android:minHeight="@dimen/touch_target_min"
+        android:visibility="gone"
+        tools:text="Commit"
+        tools:visibility="visible" />
+</LinearLayout>

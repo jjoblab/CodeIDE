@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cadenas plein du stockage privé : violet clair. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#cdbaf2"
+        android:strokeLineCap="round"
+        android:strokeWidth="1.6"
+        android:pathData="M9.5,11 L9.5,9.2 A2.5,2.5 0 0 1 14.5,9.2 L14.5,11" />
+    <path
+        android:fillColor="#cdbaf2"
+        android:pathData="M8.5,11 h7 a1,1 0 0 1 1,1 v5.5 a1,1 0 0 1 -1,1 h-7 a1,1 0 0 1 -1,-1 v-5.5 a1,1 0 0 1 1,-1 z" />
+</vector>

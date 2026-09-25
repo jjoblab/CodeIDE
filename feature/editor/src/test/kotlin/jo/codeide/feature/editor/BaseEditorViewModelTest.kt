@@ -46,6 +46,10 @@ abstract class BaseEditorViewModelTest {
     protected val depot = FakeProjectRepository()
     protected val fichiers = FakeFileSystem()
 
+    /** Deuxième port : le stockage privé de l'arbre « Privé » (étape 31) ;
+     *  instances distinctes — les deux arbres sont exclusifs (§ 5). */
+    protected val fichiersPrives = FakeFileSystem()
+
     /** Dépôt de journaux en mémoire — alimente le journal compact (étape 16). */
     protected val depotJournaux = InMemoryLogRepository()
 
@@ -95,6 +99,7 @@ abstract class BaseEditorViewModelTest {
             observerProjet = ObserveProjectUseCase(depot),
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
+            fichiersPrives = fichiersPrives,
             journal = FakeAppLogger(),
             observerJournaux = ObserveLogsUseCase(depotJournaux),
             evaluerNom = EvaluerNomFichierUseCase(),
@@ -121,6 +126,18 @@ abstract class BaseEditorViewModelTest {
             annulerBuild =
                 jo.codeide.core.domain
                     .AnnulerBuildUseCase(tooling),
+            copierArbre =
+                jo.codeide.core.domain
+                    .CopierArbreUseCase(),
+            deplacerArbre =
+                jo.codeide.core.domain
+                    .DeplacerArbreUseCase(),
+            lireArbre =
+                jo.codeide.core.domain
+                    .LireArbreUseCase(),
+            restaurerArbre =
+                jo.codeide.core.domain
+                    .RestaurerArbreUseCase(),
             listerTachesProjet =
                 jo.codeide.core.domain.ListerTachesProjetUseCase(
                     tooling,

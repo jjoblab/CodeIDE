@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover de confirmation « Supprimer » (étape 31, § 10.5) : texte
+  « Supprimer nom [et tout son contenu] ? Action définitive. », boutons
+  Annuler / Supprimer (fond rouge).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="258dp"
+    android:layout_height="wrap_content">
+
+    <View
+        android:id="@+id/fleche_popover"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/fond_fleche_popover"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:id="@+id/coque_popover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_popover"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/message_supprimer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/explorateur_texte"
+            android:textSize="12.5sp"
+            tools:text="Supprimer docs et tout son contenu ? Action définitive." />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/bouton_annuler_supprimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/fond_action_popover"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="7dp"
+                android:text="@string/deplacer_annuler"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="12.5sp" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/bouton_confirmer_supprimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/fond_bouton_dangereux_popover"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="7dp"
+                android:text="@string/popover_supprimer"
+                android:textColor="@color/explorateur_texte_sur_accent"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

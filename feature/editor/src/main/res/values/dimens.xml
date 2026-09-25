@@ -1,12 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dimensions de l'espace de travail (étape 13). -->
+<!-- Dimensionnement de l'explorateur v2 (étape 31, docs/EXPLORATEUR_V2.md
+     § 3.2, 6, 10, 13) : les valeurs de la maquette (px sur 414 de large)
+     deviennent des dp — la reproduction visuelle prime. -->
 <resources>
     <!-- Hauteur du panneau inférieur replié : seul l'en-tête est visible. -->
     <dimen name="editor_panneau_replie">48dp</dimen>
 
-    <!-- Largeur du tiroir de navigation (façon IDE de bureau). -->
-    <dimen name="editor_tiroir_largeur">280dp</dimen>
+    <!-- Lignes de nœuds (§ 6.1). -->
+    <dimen name="editor_ligne_hauteur">34dp</dimen>
+    <dimen name="editor_ligne_racine_hauteur">38dp</dimen>
+    <dimen name="editor_ligne_rayon">7dp</dimen>
+    <dimen name="editor_ligne_padding_droit">8dp</dimen>
 
-    <!-- Retrait d'indentation par niveau de profondeur de l'arborescence. -->
-    <dimen name="editor_explorateur_retrait">12dp</dimen>
+    <!-- Indentation treeview (§ 6.2 : marge 10 + retrait 12 par niveau). -->
+    <dimen name="editor_indentation">22dp</dimen>
+    <dimen name="editor_guide_decalage_gauche">10dp</dimen>
+
+    <!-- Chevron / point d'état / icônes (§ 6.1, 7, 8). -->
+    <dimen name="editor_chevron_zone">20dp</dimen>
+    <dimen name="editor_chevron_taille">13dp</dimen>
+    <dimen name="editor_point_etat_taille">7dp</dimen>
+    <dimen name="editor_point_etat_bordure">2dp</dimen>
+    <dimen name="editor_icone_noeud">17dp</dimen>
+
+    <!-- Entête du fragment (§ 4). -->
+    <dimen name="editor_entete_embleme">32dp</dimen>
+    <dimen name="editor_entete_action">32dp</dimen>
+
+    <!-- Popover (§ 10). -->
+    <dimen name="editor_popover_largeur">258dp</dimen>
+    <dimen name="editor_popover_padding">6dp</dimen>
+
+    <!-- Poignée de redimensionnement (§ 13). -->
+    <dimen name="editor_poignee_largeur">26dp</dimen>
+    <dimen name="editor_poignee_hauteur">78dp</dimen>
+
+    <!-- Rail de fragments (§ 14). -->
+    <dimen name="editor_rail_hauteur">66dp</dimen>
+
+    <!-- Barre de presse-papiers (§ 12) et snackbar (§ 15). -->
+    <dimen name="editor_presse_papiers_padding_v">7dp</dimen>
+    <dimen name="editor_presse_papiers_padding_h">11dp</dimen>
+
+    <!-- Retrait des actions de l'entête (§ 4). -->
+    <dimen name="editor_ecart_actions">3dp</dimen>
+
+    <!-- Largeur par défaut du tiroir (§ 2 : 262 sur 414 dans la maquette) ;
+         la largeur réelle suit la poignée (bornes 45-98 %, § 13). Le débord
+         de la poignée (13 dp) s'ajoute à la largeur visible. -->
+    <dimen name="editor_tiroir_largeur">262dp</dimen>
+    <dimen name="editor_tiroir_debord_poignee">13dp</dimen>
 </resources>

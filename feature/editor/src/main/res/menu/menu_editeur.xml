@@ -23,4 +23,12 @@
         android:title="@string/editor_enregistrer"
         app:iconTint="?attr/colorOnSurfaceVariant"
         app:showAsAction="ifRoom" />
+
+    <!-- Fermeture de l'espace de travail (étape 31) : l'action vivait
+         dans l'entête v1 du tiroir, elle rejoint le débordement de la
+         toolbar depuis l'architecture à fragments. -->
+    <item
+        android:id="@+id/action_fermer_projet"
+        android:title="@string/editor_tiroir_fermer_projet"
+        app:showAsAction="never" />
 </menu>

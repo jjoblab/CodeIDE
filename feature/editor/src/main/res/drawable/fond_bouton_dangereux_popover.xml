@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bouton « Supprimer » du popover de confirmation (§ 10.5). -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/explorateur_rouge_doux">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/explorateur_rouge" />
+            <corners android:radius="7dp" />
+        </shape>
+    </item>
+</ripple>

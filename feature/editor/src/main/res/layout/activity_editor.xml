@@ -421,358 +421,92 @@
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <!-- ================= Tiroir de navigation ================= -->
+    <!-- ================= Tiroir de navigation (v2, étape 31) =================
+         Architecture à fragments (ADR 0052) : chaque destination (Fichiers,
+         Recherche, Git, Terminal) est un fragment portant son propre entête
+         — plus d'entête commun. Le tiroir (FrameLayout) porte le contenu
+         des fragments (FragmentContainerView), le rail de fragments commun
+         (§ 14), la zone du snackbar maison (§ 15) et la poignée ⋮ de
+         redimensionnement collée au bord droit (§ 13, déborde à moitié :
+         la largeur du tiroir inclut le débord de 13 dp).
 
-    <LinearLayout
+         Largeur : posée à l'exécution (largeurTiroirPx dans EditorActivity,
+         bornes 45-98 %, aimants 55/69/85/98) — la valeur XML n'est que la
+         valeur par défaut de premier affichage. -->
+
+    <FrameLayout
         android:id="@+id/tiroir"
         android:layout_width="@dimen/editor_tiroir_largeur"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="?android:attr/colorBackground"
-        android:orientation="vertical">
+        android:background="@color/explorateur_fond_tiroir">
 
-        <!-- En-tête fixe : projet, chemin, actualisation, fermeture. -->
+        <!-- Colonne : fragment courant + rail commun. Le rebord droit de
+             13 dp laisse la poignée déborder à moitié (§ 13). -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/spacing_md"
-            android:paddingTop="@dimen/spacing_md"
-            android:paddingBottom="@dimen/spacing_sm">
+            android:layout_height="match_parent"
+            android:layout_marginEnd="13dp"
+            android:orientation="vertical">
 
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/conteneur_fragments_tiroir"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Rail de fragments (§ 14) : quatre destinations, remplies
+                 par EditorActivity (icônes + libellés + état actif). -->
             <LinearLayout
+                android:id="@+id/rail_fragments"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/editor_tiroir_section"
-                    android:textAppearance="?attr/textAppearanceLabelMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <!-- Création à la racine du projet (étape 17) : menu
-                     fichier/dossier — le menu contextuel d'un nœud couvre
-                     la création dans un dossier. -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_nouveau"
-                    style="@style/Widget.CodeIDE.Button.Icon"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/editor_tiroir_nouveau_cd"
-                    android:minWidth="@dimen/touch_target_min"
-                    android:minHeight="@dimen/touch_target_min"
-                    app:icon="@drawable/ic_nouveau_fichier" />
-
-                <!-- Revérifie l'état d'accès du projet (prompt compagnon 5.3). -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_actualiser"
-                    style="@style/Widget.CodeIDE.Button.Icon"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/editor_tiroir_actualiser_cd"
-                    android:minWidth="@dimen/touch_target_min"
-                    android:minHeight="@dimen/touch_target_min"
-                    app:icon="@drawable/ic_actualiser" />
-            </LinearLayout>
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/nom_projet_tiroir"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                tools:text="Mon Projet" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/chemin_tiroir"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:ellipsize="middle"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Projets/Mon Projet" />
-
-            <!-- Type reconnu depuis .codeide/project.json (étape 18). -->
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/type_projet_tiroir"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorPrimary"
-                android:visibility="gone"
-                tools:text="Modèle Kotlin · JVM · v1.0.0"
-                tools:visibility="visible" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/bouton_fermer_projet"
-                style="@style/Widget.CodeIDE.Button.Text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:gravity="start|center_vertical"
-                android:text="@string/editor_tiroir_fermer_projet" />
+                android:layout_height="66dp"
+                android:background="@color/explorateur_rail_fond"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp" />
         </LinearLayout>
 
-        <!-- Contenu du tiroir : arborescence, bandeau d'accès, états (étape 14). -->
+        <!-- Zone du snackbar maison (§ 15) : flottante au-dessus du rail,
+             centrée — la vue est gonflée/masquée par le fragment. -->
         <FrameLayout
-            android:id="@+id/contenu_tiroir"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/liste_explorateur"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingTop="@dimen/spacing_xs"
-                android:paddingBottom="@dimen/spacing_xs"
-                tools:listitem="@layout/ligne_noeud_arborescence" />
-
-            <!-- Arborescence vide : dossier du projet sans enfants. -->
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/texte_explorateur_vide"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:padding="@dimen/state_padding"
-                android:text="@string/editor_explorateur_vide"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:visibility="gone" />
-
-            <!-- Vérification d'accès en vol (première charge, Actualiser). -->
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progression_tiroir"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top"
-                android:indeterminate="true"
-                android:visibility="gone" />
-
-            <!-- Bandeau d'accès : permission perdue, introuvable, erreur. -->
-            <LinearLayout
-                android:id="@+id/bandeau_acces"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md"
-                android:visibility="gone">
-
-                <ImageView
-                    android:id="@+id/icone_acces"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_avertissement"
-                    app:tint="?attr/colorError" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/titre_acces"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
-                    tools:text="Permission perdue" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/message_acces"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="Le système a révoqué l'accès au dossier du projet." />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_resoudre"
-                    style="@style/Widget.CodeIDE.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
-                    android:minWidth="@dimen/touch_target_min"
-                    android:minHeight="@dimen/touch_target_min"
-                    tools:text="Résoudre à l'accueil" />
-            </LinearLayout>
-
-            <!-- Carte d'aperçu du terminal (T6, section 8) : quatrième
-                 destination de la barre basse. Métadonnées du registre
-                 global SEULEMENT — aucun rendu Termux ici : feature:editor
-                 ne dépend d'aucune bibliothèque com.termux:* (critère
-                 d'acceptation, section 11 du prompt Terminal-1). -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/carte_terminal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top"
-                android:layout_margin="@dimen/spacing_md"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
-                app:cardCornerRadius="@dimen/corner_radius_medium"
-                app:cardElevation="0dp"
-                tools:visibility="visible">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/spacing_md">
-
-                    <!-- En-tête : pastille d'état de la session active,
-                         titre, bouton d'agrandissement. -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <View
-                            android:id="@+id/pastille_terminal"
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
-                            android:background="@drawable/point_onglet"
-                            android:contentDescription="@null" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/titre_carte_terminal"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_sm"
-                            android:layout_weight="1"
-                            android:text="@string/editor_nav_terminal"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                        <!-- Agrandissement : même écran plein écran que
-                             l'action de la toolbar de l'accueil. -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_agrandir_terminal"
-                            style="@style/Widget.CodeIDE.Button.Icon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:contentDescription="@string/editor_terminal_agrandir_cd"
-                            android:minWidth="@dimen/touch_target_min"
-                            android:minHeight="@dimen/touch_target_min"
-                            app:icon="@drawable/ic_agrandir_panneau" />
-                    </LinearLayout>
-
-                    <!-- Compteur de sessions actives. -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/compteur_sessions_terminal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="2 sessions actives" />
-
-                    <!-- Session active : libellé et dernière sortie connue. -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/libelle_session_terminal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:visibility="gone"
-                        tools:text="Session 1"
-                        tools:visibility="visible" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/sortie_session_terminal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:ellipsize="end"
-                        android:fontFamily="monospace"
-                        android:maxLines="3"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone"
-                        tools:text="$ pwd
-/home
-$"
-                        tools:visibility="visible" />
-
-                    <!-- État vide : aucune session (bouton de création dans
-                         le dossier du projet courant). -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/texte_aucune_session_terminal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        android:text="@string/editor_terminal_aucune_session"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_nouvelle_session_terminal"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:minWidth="@dimen/touch_target_min"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:text="@string/editor_terminal_nouvelle_session"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                    <!-- Bootstrap absent : installation d'abord, jamais une
-                         session sans shell (garde-fou symétrique de
-                         l'accueil, section 7). -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/texte_non_installe_terminal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        android:text="@string/editor_terminal_non_installe"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_installer_terminal"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:minWidth="@dimen/touch_target_min"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:text="@string/editor_terminal_installer"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </FrameLayout>
-
-        <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3) :
-             Explorateur active, Recherche et Git visibles mais désactivés.
-             Sous thème Material3, BottomNavigationView prend le rendu M3.
-             Correctif v0.19.0 : le menu est référencé par app:menu
-             (res/menu/menu_tiroir.xml) — un <menu> inline dans un layout
-             fait planter LayoutInflater (android.view.menu inexistant). -->
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/barre_navigation_tiroir"
+            android:id="@+id/zone_snackbar_tiroir"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:labelVisibilityMode="labeled"
-            app:menu="@menu/menu_tiroir" />
-    </LinearLayout>
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="74dp"
+            android:paddingHorizontal="10dp" />
+
+        <!-- Poignée ⋮ de redimensionnement (§ 13) : 26 × 78 dp, collée au
+             bord droit à mi-hauteur, glissement = bornes/aimants. -->
+        <ImageView
+            android:id="@+id/poignee_tiroir"
+            android:layout_width="26dp"
+            android:layout_height="78dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/fond_poignee_tiroir"
+            android:contentDescription="@string/poignee_cd"
+            android:src="@drawable/ic_poignee_tiroir" />
+
+        <!-- Pastille de taille (§ 13) : au-dessus de la poignée, visible
+             pendant le glissement puis fondue. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/pastille_taille_tiroir"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="54dp"
+            android:background="@drawable/fond_pastille_taille"
+            android:elevation="6dp"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="9dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/explorateur_accent"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:text="55 %" />
+    </FrameLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

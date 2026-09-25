@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fragment Explorateur de fichiers v2 (étape 31, § 4-12,
+  docs/EXPLORATEUR_V2.md) : entête propre au fragment (emblème, titre,
+  sous-titre = chemin de la racine affichée, actions, bascule
+  Projet/Privé, fil d'Ariane), corps (arbre RecyclerView + états), barre
+  presse-papiers conditionnelle. Le rail de fragments et le snackbar
+  appartiennent au tiroir de l'activité, pas au fragment.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ============ Entête du fragment (§ 4) ============ -->
+    <LinearLayout
+        android:id="@+id/entete_explorateur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_entete_explorateur"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="13dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="11dp">
+
+        <!-- Ligne de titre : emblème 32 dp + titre + sous-titre chemin. -->
+        <LinearLayout android:baselineAligned="false"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/embleme_explorateur"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/fond_embleme_entete">
+
+                <ImageView
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_explorateur"
+                    app:tint="@color/explorateur_accent" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="9dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/titre_explorateur"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/editor_explorateur_titre"
+                    android:textColor="@color/explorateur_texte"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/sous_titre_explorateur"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="monospace"
+                    android:singleLine="true"
+                    android:textColor="@color/explorateur_sous_titre_entete"
+                    android:textSize="10.5sp" tools:ignore="SmallSp"
+                    tools:text="/storage/emulated/0/CodeIDE" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Ligne d'actions (§ 4.2) : nouveau, replier tout, actualiser,
+             légende — boutons 32 dp. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/bouton_nouveau_entete"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_explorateur_nouveau_cd"
+                android:padding="7dp"
+                android:src="@drawable/ic_nouveau_fichier"
+                app:tint="@color/explorateur_texte_2" />
+
+            <ImageView
+                android:id="@+id/bouton_replier_tout"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="3dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_explorateur_replier_tout_cd"
+                android:padding="6dp"
+                android:src="@drawable/ic_replier_tout" />
+
+            <ImageView
+                android:id="@+id/bouton_actualiser_entete"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="3dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_tiroir_actualiser_cd"
+                android:padding="7dp"
+                android:src="@drawable/ic_actualiser"
+                app:tint="@color/explorateur_texte_2" />
+
+            <ImageView
+                android:id="@+id/bouton_legende"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="3dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_explorateur_legende_cd"
+                android:padding="6dp"
+                android:src="@drawable/ic_legende" />
+        </LinearLayout>
+
+        <!-- Bascule Projet / Privé (§ 5) : deux segments exclusifs. -->
+        <LinearLayout android:baselineAligned="false"
+            android:id="@+id/bascule_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="9dp"
+            android:background="@drawable/fond_segments_bascule"
+            android:orientation="horizontal"
+            android:padding="3dp">
+
+            <LinearLayout
+                android:id="@+id/segment_projet"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/fond_segment_projet_actif"
+                android:clickable="true"
+                android:contentDescription="@string/editor_bascule_projet_cd"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="7dp"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/icone_segment_projet"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_explorateur"
+                    app:tint="@color/explorateur_accent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/libelle_segment_projet"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="7dp"
+                    android:text="@string/editor_bascule_projet"
+                    android:textColor="@color/explorateur_accent"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/segment_prive"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:clickable="true"
+                android:contentDescription="@string/editor_bascule_prive_cd"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="7dp"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/icone_segment_prive"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_cadenas"
+                    app:tint="@color/explorateur_texte_2" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/libelle_segment_prive"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="7dp"
+                    android:text="@string/editor_bascule_prive"
+                    android:textColor="@color/explorateur_texte_2"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Fil d'Ariane (§ 4.4) : maison + ancêtres de la sélection. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/fond_ariane"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="9dp"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:id="@+id/maison_ariane"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_ariane_racine_cd"
+                android:src="@drawable/ic_maison"
+                app:tint="@color/explorateur_texte_2" />
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                tools:ignore="InefficientWeight">
+
+                <LinearLayout
+                    android:id="@+id/segments_ariane"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ============ Corps : arbre + états (§ 6, étape 14) ============ -->
+    <FrameLayout
+        android:id="@+id/corps_explorateur"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_explorateur"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="2dp"
+            android:paddingTop="9dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="20dp"
+            android:scrollbars="vertical"
+            tools:listitem="@layout/ligne_noeud_arborescence" />
+
+        <!-- Arborescence vide : dossier du projet sans enfants. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_explorateur_vide"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="@dimen/state_padding"
+            android:text="@string/editor_explorateur_vide"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <!-- Vérification d'accès en vol (première charge, Actualiser). -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progression_tiroir"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Bandeau d'accès : permission perdue, introuvable, erreur. -->
+        <LinearLayout
+            android:id="@+id/bandeau_acces"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/icone_acces"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_avertissement"
+                app:tint="?attr/colorError" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/titre_acces"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                tools:text="Permission perdue" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/message_acces"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Le système a révoqué l'accès au dossier du projet." />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_resoudre"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:minWidth="@dimen/touch_target_min"
+                android:minHeight="@dimen/touch_target_min"
+                tools:text="Résoudre à l'accueil" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- ============ Barre presse-papiers (§ 12) ============ -->
+    <LinearLayout
+        android:id="@+id/barre_presse_papiers"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_barre_presse_papiers"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="11dp"
+        android:paddingVertical="7dp"
+        android:visibility="gone"
+        tools:ignore="UseCompoundDrawables"
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_presse_papiers"
+            app:tint="@color/explorateur_presse_papiers_texte" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_presse_papiers"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_presse_papiers_texte"
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            tools:text="Presse-papiers : docs (copier)" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/bouton_vider_presse_papiers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/presse_papiers_vider_cd"
+            android:padding="4dp"
+            android:text="@string/presse_papiers_vider"
+            android:textColor="@color/explorateur_presse_papiers_texte"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

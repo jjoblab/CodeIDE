@@ -4,25 +4,93 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
-## [Non versionné]
+## [0.32.0] – 2026-09-25
 
 ### Ajouté
 
-- **Spécification de l'explorateur de fichiers v2 (étape 31)** :
-  `docs/EXPLORATEUR_V2.md` décrit **exactement** la maquette interactive
-  validée le 2026-09-25 (copiée dans le dépôt :
-  `docs/preview/explorateur-v2.html`) pour une reproduction à l'identique —
-  tiroir à **fragments** (entête propre par fragment, plus d'entête commun),
-  poignée ⋮ de redimensionnement (bornes 45–98 %, aimants 55/69/85/98 %),
-  arbre treeview à guides fins et **chevrons** (crochets retirés après
-  retour utilisateur — les chevrons restent seuls), points d'état des
-  fichiers à 4 états, vraies icônes par type, **bascule Projet/Privé
-  exclusive** (remplace l'ancien bouton cadenas « afficher/masquer »),
-  popover maison ancré au point d'appui avec chemin contextuel, mutations
-  par nœud (créer/renommer/supprimer/copier/couper/coller/déplacer). La
-  ROADMAP inscrit cette refonte comme étape 31 (v0.32.0) ; plugins,
-  services d'arrière-plan et autres langages reculent d'un rang
-  (32 → 0.33.0, 33 → 0.34.0, 34 → 0.35.0).
+- **Explorateur de fichiers v2 (étape 31, ADR 0052)** — implémentation de
+  la spécification `docs/EXPLORATEUR_V2.md` (reproduction à l'identique de
+  la maquette validée) :
+  - **Tiroir à fragments** : chaque destination du tiroir devient un
+    fragment portant son **propre entête** (emblème coloré, titre,
+    sous-titre = chemin de la racine affichée) — plus d'entête commun ;
+    rail de fragments commun en bas (Fichiers, Recherche, Git, Terminal),
+    fragments ajoutés une fois puis montrés/cachés (plis et défilement
+    conservés). Recherche et Git sont des aperçus d'accueil (lots
+    dédiés à venir) ; la carte du terminal migre TEL QUELLE dans son
+    fragment. « Fermer le projet » rejoint le débordement de la toolbar,
+    le type de projet devient le sous-titre de la toolbar.
+  - **Poignée ⋮ de redimensionnement** du tiroir : glissement horizontal
+    borné 45-98 % de l'écran, aimants 55/69/85/98 % (±12 dp au
+    relâchement), pastille de taille « NN % » fondue 380 ms après le
+    relâchement, largeur mémorisée par session (instance sauvegardée).
+  - **Arbre treeview** : guides fins verticaux + coudes **dessinés**
+    (22 dp par niveau, trait du dernier enfant raccourci, masque
+    d'ancêtres finis), chevrons de dépliage seuls (crochets retirés
+    après retour utilisateur), **points d'état** à 4 états pilotés par
+    les onglets de l'éditeur (défaut / ouvert creux / actif plein /
+    sélectionné — la sélection prime sur la bordure, anneau combiné),
+    compteur d'enfants des dossiers, badge de chemin de la racine,
+    ligne haute 38 dp.
+  - **Vraies icônes par type** : 13 nouvelles marques (properties,
+    toml, git, db, log, script, texte, dossier privé…) + 4 icônes
+    d'action (ouvrir, renommer, supprimer, replier tout, maison,
+    presse-papiers, poignée, légende, déplacer).
+  - **Bascule Projet/Privé exclusive** (segments stylés, remplace
+    l'ancien bouton cadenas) : l'arbre du **stockage privé** de
+    l'application (`filesDir`, `cacheDir`, `codeCacheDir`,
+    `databases`, `shared_prefs`) vit derrière le même port `FileSystem`
+    via le qualifier Hilt `@FileSystemPrive` et l'adaptateur
+    `prive:///` (ADR 0003 inchangée) ; la sélection se réinitialise au
+    basculement, les onglets de l'éditeur ne sont pas touchés.
+  - **Popover maison** (jamais de menu système) : actions du nœud ancrées
+    à la **position exacte du doigt** (flèche 12 dp, retournement près du
+    bas, zoom .94→1, un seul popover à la fois, Échap/clic extérieur),
+    tête à chemin contextuel (« Cible — », « Créer dans — »), variantes
+    fichier/dossier/racine, actions dangereuses rouges, « Coller »
+    désactivé avec note du presse-papiers ; popover « Déplacer vers… » à
+    validation locale (erreurs en ligne), confirmation « Supprimer »,
+    « Légende » (pastilles + notation), « Nouveau » ancré au bouton.
+  - **Mutations par nœud** (aucun rechargement d'arbre entier) :
+    éditeur **inline** de création/renommage (repère selon le type,
+    Enter/Échap, secousse au refus), suppression avec snackbar
+    **annulable** (restaure l'élément ET rouvre ses onglets via
+    instantané mémoire), presse-papiers d'arbre copier/couper/coller
+    avec suffixe anti-collision « (copie) » / « (copie N) » (insensible
+    à la casse), collage interdit source→descendant, « Déplacer vers… »
+    par chemin relatif.
+  - **Snackbar maison** au-dessus du rail : message + chemin en seconde
+    ligne, action « Annuler », apparition fondu + montée 18 dp,
+    expiration 4 600 ms pilotée par le ViewModel.
+  - **Port `FileSystem` étendu** : `readBytes`/`writeBytes` (octets
+    bruts — copier un `.jar` ou une `.db` sans corrompre le texte) ;
+    use cases d'arbre purs dans `core:domain` (Copier/Deplacer/Lire/
+    Restaurer + `NomsCopies`).
+  - **Fils d'Ariane** de la sélection (maison + ancêtres, clic =
+    sélection), **barre presse-papiers** conditionnelle sous l'arbre.
+
+### Modifié
+
+- `activity_editor.xml` : l'empilement de vues du tiroir (~350 lignes)
+  disparaît au profit du `FragmentContainerView` + rail ; suppression de
+  `menu_tiroir.xml`, `dialogue_nom_fichier.xml` et de l'entête commun ;
+  le label du rail passe d'« Explorateur » à « Fichiers ».
+- `NoeudExplorateur` porte son état de présentation (sélection, coupe,
+  onglet actif/ouvert, dernier enfant, masque d'ancêtres, compteur,
+  flash) ; les menus contextuels système (PopupMenu/AlertDialog) de
+  l'explorateur disparaissent au profit des popovers maison.
+- `FakeFileSystem` (core:testing) : le calcul des enfants ampute SA
+  barre finale de l'URI de racine (« prive:/// ») — comportement
+  inchangé pour les racines SAF.
+
+### Tests
+
+- 91 tests : `NomsCopies` (suffixes, casse, trous), use cases d'arbre
+  (domaine), `ExplorateurV2EditorViewModelTest` (tri ADR 0027, validation
+  inline, anti-collision, coller interdit, annulation + onglets rouverts,
+  bascule exclusive, points d'état des onglets), layouts v2 gonflés sous
+  Robolectric ; attentes historiques actualisées (la racine est
+  désormais une ligne visible).
 
 ## [0.31.7] – 2026-09-25
 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne d'action du popover maison (étape 31, § 10.4, EXPLORATEUR_V2) :
+  icône 15 dp + libellé 13 sp + note mono 10 sp (nom du presse-papiers
+  de « Coller »). Le danger (rouge) et la désactivation (35 %) se posent
+  à la liaison.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_action_popover"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/fond_action_popover"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="9dp"
+    tools:ignore="UseCompoundDrawables">
+
+    <ImageView
+        android:id="@+id/icone_action_popover"
+        android:layout_width="15dp"
+        android:layout_height="15dp"
+        android:contentDescription="@null"
+        app:tint="@color/explorateur_texte"
+        tools:src="@drawable/ic_fichier_kotlin" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_action_popover"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="11dp"
+        android:layout_weight="1"
+        android:singleLine="true"
+        android:textColor="@color/explorateur_texte"
+        android:textSize="13sp"
+        tools:text="Renommer" />
+
+    <!-- Note de marge droite (§ 10.4) : presse-papiers de « Coller ». -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/note_action_popover"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:ellipsize="end"
+        android:fontFamily="monospace"
+        android:singleLine="true"
+        android:textColor="@color/explorateur_texte_3"
+        android:textSize="10sp" tools:ignore="SmallSp"
+        android:visibility="gone"
+        tools:text="docs"
+        tools:visibility="visible" />
+</LinearLayout>

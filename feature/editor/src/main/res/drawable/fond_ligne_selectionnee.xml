@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond de la ligne sélectionnée de l'arbre (étape 31, § 6.1) : dégradé
+     accent-doux → transparent sur 72 % de la largeur, barre interne
+     2,5 dp accent-fort à gauche, rayon 7 dp. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <!-- Dégradé accent-doux → transparent (§ 6.1) : la teinte
+                 s'efface d'elle-même sur ~72 % de la largeur, un inset
+                 en pourcentage étant interdit par AAPT. -->
+            <gradient
+                android:angle="0"
+                android:startColor="@color/explorateur_accent_doux"
+                android:endColor="@android:color/transparent" />
+            <corners android:radius="7dp" />
+        </shape>
+    </item>
+    <item android:right="6dp" android:top="4dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/explorateur_accent_fort" />
+            <corners
+                android:bottomLeftRadius="7dp"
+                android:bottomRightRadius="2dp"
+                android:topLeftRadius="7dp"
+                android:topRightRadius="2dp" />
+            <size android:width="2.5dp" />
+        </shape>
+    </item>
+</layer-list>

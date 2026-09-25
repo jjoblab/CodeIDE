@@ -30,7 +30,7 @@
     </plurals>
 
     <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3). -->
-    <string name="editor_nav_explorateur">Explorateur</string>
+    <string name="editor_nav_explorateur">Fichiers</string>
     <string name="editor_nav_recherche">Recherche</string>
     <string name="editor_nav_git">Git</string>
     <string name="editor_nav_bientot">%1$s — bientôt disponible</string>
@@ -142,4 +142,115 @@
     <string name="editor_type_projet_modele_version">Modèle %1$s · v%2$s</string>
     <string name="editor_type_projet_importe">Dossier importé</string>
     <string name="editor_type_projet_inconnu">Type de projet non reconnu</string>
+
+    <!-- ================================================================
+         Explorateur v2 (étape 31, docs/EXPLORATEUR_V2.md) : tiroir à
+         fragments, entête propre, bascule Projet/Privé, popover maison,
+         mutations par nœud, presse-papiers d'arbre, poignée ⋮, rail.
+         ================================================================ -->
+
+    <!-- Entête du fragment Explorateur (§ 4). -->
+    <string name="editor_explorateur_titre">Explorateur de fichiers</string>
+    <string name="editor_explorateur_nouveau_cd">Nouveau (dans le dossier sélectionné)</string>
+    <string name="editor_explorateur_replier_tout_cd">Replier tout</string>
+    <string name="editor_explorateur_legende_cd">Légende de l\'arborescence</string>
+    <string name="editor_ariane_racine_cd">Racine de l\'arborescence</string>
+    <string name="explorateur_racine_privee">Stockage privé</string>
+
+    <!-- Bascule Projet / Privé (§ 5). -->
+    <string name="editor_bascule_projet">Projet</string>
+    <string name="editor_bascule_prive">Privé</string>
+    <string name="editor_bascule_projet_cd">Afficher l\'arborescence du projet</string>
+    <string name="editor_bascule_prive_cd">Afficher l\'arborescence du stockage privé de l\'application</string>
+
+    <!-- Popover maison d'actions (§ 10). -->
+    <string name="popover_ouvrir">Ouvrir</string>
+    <string name="popover_copier">Copier</string>
+    <string name="popover_couper">Couper</string>
+    <string name="popover_coller">Coller</string>
+    <string name="popover_deplacer_vers">Déplacer vers…</string>
+    <string name="popover_supprimer">Supprimer</string>
+    <string name="popover_nouveau_fichier">Nouveau fichier</string>
+    <string name="popover_nouveau_dossier">Nouveau dossier</string>
+    <string name="popover_contexte_cible">Cible — %1$s</string>
+    <string name="popover_contexte_deplacement">Déplacement — %1$s</string>
+    <string name="popover_contexte_creation">Créer dans — %1$s</string>
+    <string name="popover_actions_cd">Actions du nœud %1$s</string>
+
+    <!-- Popover « Déplacer vers… » (§ 10.5). -->
+    <string name="deplacer_origine">Origine</string>
+    <string name="deplacer_destination">Destination</string>
+    <string name="deplacer_annuler">Annuler</string>
+    <string name="deplacer_valider">Déplacer</string>
+    <string name="deplacer_erreur_introuvable">Dossier introuvable — chemin relatif attendu</string>
+    <string name="deplacer_erreur_deja">Déjà à cet endroit.</string>
+    <string name="deplacer_erreur_dans_source">Impossible : la destination est dans l\'élément déplacé.</string>
+
+    <!-- Popover « Supprimer » (§ 10.5). -->
+    <string name="supprimer_fichier_message">Supprimer %1$s ? Action définitive.</string>
+    <string name="supprimer_dossier_message">Supprimer %1$s et tout son contenu ? Action définitive.</string>
+
+    <!-- Popover « Légende » (§ 10.5). -->
+    <string name="legende_titre">Légende</string>
+    <string name="legende_points_etat">Points d\'état</string>
+    <string name="legende_point_defaut">Fichier non ouvert</string>
+    <string name="legende_point_ouvert">Ouvert dans un onglet inactif</string>
+    <string name="legende_point_actif">Fichier de l\'onglet actif</string>
+    <string name="legende_point_selectionne">Nœud sélectionné</string>
+    <string name="legende_notation">Notation</string>
+    <string name="legende_notation_dossier">chevron — dossier dépliable</string>
+    <string name="legende_notation_guide">trait fin — parent vers enfant</string>
+    <string name="legende_notation_astuce">Appui long sur une ligne : menu d\'actions</string>
+
+    <!-- Édition inline (§ 11.1). -->
+    <string name="edition_indication_fichier">nom-fichier.kt</string>
+    <string name="edition_indication_dossier">nom-dossier</string>
+    <string name="edition_valider_cd">Valider</string>
+    <string name="edition_annuler_cd">Annuler l\'édition</string>
+    <string name="edition_champ_cd">Nom du document</string>
+
+    <!-- Snackbar de l'explorateur (§ 15). -->
+    <string name="notif_astuce">Astuce : appui long (ou clic droit) sur une ligne pour ouvrir le menu d\'actions</string>
+    <string name="notif_bascule_prive">Stockage privé — arborescence</string>
+    <string name="notif_bascule_projet">Arborescence du projet</string>
+    <string name="notif_cree">Créé — %1$s</string>
+    <string name="notif_renomme">Renommé — %1$s → %2$s</string>
+    <string name="notif_supprime">Supprimé — %1$s</string>
+    <string name="notif_copie">Copié dans le presse-papiers</string>
+    <string name="notif_coupe">Coupé — déplacé au collage</string>
+    <string name="notif_colle">Collé — %1$s dans %2$s</string>
+    <string name="notif_vide">Presse-papiers vidé</string>
+    <string name="notif_deplace">Déplacé — %1$s dans %2$s</string>
+    <string name="notif_colle_impossible">Collage impossible — la destination est dans la source</string>
+    <string name="notif_deja_present">Déjà dans ce dossier</string>
+    <string name="notif_destination_introuvable">Dossier introuvable — chemin relatif attendu</string>
+    <string name="notif_deja_cet_endroit">Déjà à cet endroit.</string>
+    <string name="notif_deplacement_dans_source">Impossible : la destination est dans l\'élément déplacé.</string>
+    <string name="notif_nom_invalide">Nom refusé : obligatoire, sans séparateur, 64 caractères max, unique</string>
+    <string name="notif_annuler">Annuler</string>
+
+    <!-- Barre presse-papiers (§ 12). -->
+    <string name="presse_papiers_copier">Presse-papiers : %1$s (copier)</string>
+    <string name="presse_papiers_couper">Presse-papiers : %1$s (couper)</string>
+    <string name="presse_papiers_vider">Vider</string>
+    <string name="presse_papiers_vider_cd">Vider le presse-papiers de l\'explorateur</string>
+
+    <!-- Poignée de redimensionnement (§ 13). -->
+    <string name="poignee_cd">Redimensionner le panneau</string>
+    <string name="poignee_taille">%1$d\u00A0%%</string>
+
+    <!-- Fragments d'aperçu du tiroir (§ 1 : Recherche, Git, Terminal). -->
+    <string name="apercu_recherche_titre">Recherche</string>
+    <string name="apercu_recherche_sous_titre">recherche en plein texte</string>
+    <string name="apercu_git_titre">Git</string>
+    <string name="apercu_git_sous_titre">statut, commit et historique</string>
+    <string name="apercu_git_commit">Commit</string>
+    <string name="apercu_terminal_titre">Terminal</string>
+    <string name="apercu_terminal_sous_titre">sessions de l\'application</string>
+    <string name="apercu_bientot">%1$s — bientôt disponible.</string>
+    <string name="apercu_recherche_description">La recherche en plein texte du projet arrivera avec son lot dédié : requêtes, filtres par type de fichier et remplacements.</string>
+    <string name="apercu_git_description">Le panneau Git affichera le statut du dépôt, la préparation des commits et l\'historique des branches.</string>
+
+    <!-- Toolbar : fermeture du projet (déplacée de l'entête v1). -->
+    <string name="editor_action_fermer_projet">Fermer le projet</string>
 </resources>

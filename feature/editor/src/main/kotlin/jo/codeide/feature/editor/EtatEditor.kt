@@ -14,16 +14,41 @@ import jo.codeide.core.model.ProjectAccessState
  * mis en cache dans le `EditorViewModel` — ce nœud n'est qu'une **vue**
  * aplatie de ce cache, jamais le détenteur de l'arborescence.
  *
- * @property uri URI de document SAF du nœud.
+ * Explorateur v2 (étape 31, `docs/EXPLORATEUR_V2.md` § 6-7) : la ligne
+ * porte désormais son état de présentation — sélection (barre + fond),
+ * coupe (presse-papiers « couper » : opacité et nom barré), point d'état
+ * piloté par les onglets de l'éditeur, marque de dernier enfant (guide
+ * raccourci), compteur d'enfants des dossiers et flash après mutation.
+ *
+ * @property uri URI de document SAF du nœud (ou `prive:///…` dans l'arbre privé).
  * @property nom nom d'affichage (dernier segment).
  * @property estDossier `true` pour un dossier (dépliable), `false` pour un
- * fichier (ouverture en onglet à l'étape 15).
- * @property profondeur niveau d'imbrication sous la racine (0 = enfant
- * direct du dossier du projet) — sert à l'indentation de la ligne.
+ * fichier (ouverture en onglet à l'étape 15 — projet uniquement).
+ * @property profondeur niveau d'imbrication sous la racine (1 = enfant
+ * direct de la racine, 0 = la racine elle-même) — sert à l'indentation.
  * @property deplie dossier déplié (chevron tourné, enfants visibles dessous).
  * @property chargementEnfants énumération des enfants en vol (latence SAF).
  * @property erreurChargement la dernière énumération a échoué : la ligne le
  * signale, un nouvel appui réessaie.
+ * @property estRacine la racine de l'arbre affiché (ligne haute + badge de
+ * chemin, jamais repliable).
+ * @property prive nœud de l'arbre du stockage privé (teintes violettes).
+ * @property selectionne nœud sélectionné dans l'arbre (§ 6.1 : fond dégradé
+ * + barre gauche ; prime sur l'état d'onglet).
+ * @property coupe nœud au presse-papiers en mode couper (§ 6.1 : opacité
+ * 50 %, nom barré).
+ * @property ongletActif fichier de l'onglet **actif** de l'éditeur (point
+ * d'état vert plein, § 7).
+ * @property ongletOuvert fichier ouvert dans un onglet non actif (point
+ * d'état vert creux, § 7).
+ * @property dernierEnfant dernier enfant de son parent (guide vertical
+ * raccourci, § 6.2).
+ * @property masqueAncetresDerniers bit *k−1* posé = l'ancêtre de
+ * profondeur *k* est un dernier enfant : son trait de guide ne traverse
+ * pas le sous-arbre (§ 6.2, notation `└`).
+ * @property nbEnfants nombre d'enfants énumérés d'un dossier (compteur de
+ * droite, masqué si négatif).
+ * @property flasher ligne récemment mutée : flash de 1,1 s au rendu (§ 6.1).
  */
 data class NoeudExplorateur(
     val uri: String,
@@ -33,6 +58,16 @@ data class NoeudExplorateur(
     val deplie: Boolean = false,
     val chargementEnfants: Boolean = false,
     val erreurChargement: Boolean = false,
+    val estRacine: Boolean = false,
+    val prive: Boolean = false,
+    val selectionne: Boolean = false,
+    val coupe: Boolean = false,
+    val ongletActif: Boolean = false,
+    val ongletOuvert: Boolean = false,
+    val dernierEnfant: Boolean = false,
+    val masqueAncetresDerniers: Int = 0,
+    val nbEnfants: Int = -1,
+    val flasher: Boolean = false,
 )
 
 /**
@@ -52,6 +87,155 @@ enum class EtatPanneau {
     /** Le panneau occupe toute la hauteur disponible. */
     ETENDU,
 }
+
+/**
+ * Source de l'arborescence affichée par l'explorateur (étape 31, § 5) :
+ * les deux arbres sont **exclusifs** — l'arbre du projet (SAF) ou celui du
+ * stockage privé de l'application, jamais les deux.
+ */
+enum class SourceArbre {
+    /** Arbre du dossier du projet (URI SAF, onglets de l'éditeur). */
+    PROJET,
+
+    /** Arbre du stockage privé (`files`, `cache`, `code_cache`,…). */
+    PRIVE,
+}
+
+/**
+ * Mode du presse-papiers d'arbre (étape 31, § 11) — presse-papiers
+ * **mémoire** de l'explorateur, jamais le presse-papiers système.
+ */
+enum class ModePressePapiers {
+    /** Copier : la source reste en place, le collage clone. */
+    COPIER,
+
+    /** Couper : la source est grisée, le collage déplace. */
+    COUPER,
+}
+
+/**
+ * Presse-papiers d'arbre (étape 31, § 12) : le document retenu et son
+ * mode — la barre du même nom l'affiche tant qu'il est occupé.
+ *
+ * @property uri URI du document retenu (copier ou couper).
+ * @property nom nom d'affichage du document.
+ * @property estDossier `true` si un dossier entier est retenu.
+ * @property mode copier (clone au collage) ou couper (déplacement).
+ */
+data class PressePapiersArbre(
+    val uri: String,
+    val nom: String,
+    val estDossier: Boolean,
+    val mode: ModePressePapiers,
+)
+
+/**
+ * Édition inline dans la liste (étape 31, § 11) : création (l'éditeur
+ * s'ajoute sous le dossier cible) ou renommage (l'éditeur remplace la
+ * ligne du nœud).
+ *
+ * @property renommage `null` pour une création, l'URI renommée sinon.
+ * @property uriParent dossier cible de la création / parent du renommage.
+ * @property estDossier créer un dossier (icône et repère du champ), sinon
+ * un fichier.
+ * @property nomInitial valeur pré-remplie (renommage), vide (création).
+ */
+data class EditionInline(
+    val renommage: String?,
+    val uriParent: String,
+    val estDossier: Boolean,
+    val nomInitial: String,
+)
+
+/**
+ * Type de notification de l'explorateur (étape 31, § 15) — la
+ * localisation vit dans l'UI, le ViewModel n'émet qu'une intention.
+ */
+enum class TypeNotificationArbre {
+    /** Astuce d'appui long (au démarrage, § 18). */
+    ASTUCE,
+
+    /** Bascule vers l'arbre privé (chemin en seconde ligne). */
+    BASCULE_PRIVE,
+
+    /** Bascule vers l'arbre du projet (chemin en seconde ligne). */
+    BASCULE_PROJET,
+
+    /** Document créé ([nom] + chemin). */
+    CREE,
+
+    /** Document renommé ([nom] ancien, [nomSecondaire] nouveau). */
+    RENOMME,
+
+    /** Document supprimé ([nom] + chemin) — annulable. */
+    SUPPRIME,
+
+    /** Document copié au presse-papiers ([nom] + chemin). */
+    COPIE,
+
+    /** Document coupé au presse-papiers ([nom] + chemin). */
+    COUPE,
+
+    /** Presse-papiers collé ([nom] dans [nomSecondaire]). */
+    COLLE,
+
+    /** Presse-papiers vidé. */
+    VIDE,
+
+    /** Déplacement réussi ([nom] dans [nomSecondaire]). */
+    DEPLACE,
+
+    /** Collage impossible : la destination est dans la source. */
+    COLLE_IMPOSSIBLE,
+
+    /** Collage impossible : déjà dans ce dossier (mode couper). */
+    DEJA_PRESENT,
+
+    /** Déplacement : dossier destination introuvable. */
+    DESTINATION_INTROUVABLE,
+
+    /** Déplacement : déjà à cet endroit. */
+    DEJA_A_CET_ENDROIT,
+
+    /** Déplacement : la destination est dans l'élément déplacé. */
+    DEPLACEMENT_DANS_SOURCE,
+
+    /** Nom refusé par la validation inline (§ 11.1). */
+    NOM_INVALIDE,
+}
+
+/**
+ * Notification de l'explorateur (snackbar maison, étape 31, § 15) :
+ * intention typée (la localisation vit dans l'UI), chemin en seconde
+ * ligne, action « Annuler » conditionnelle (restauration d'une
+ * suppression).
+ *
+ * @property type intention de la notification (localisable).
+ * @property nom nom principal du document concerné.
+ * @property nomSecondaire second nom (renommage) ou dossier cible
+ * (collage/déplacement).
+ * @property chemin chemin du document en seconde ligne, ou `null`.
+ * @property annulable une annulation existe (suppression en attente).
+ */
+data class NotificationArbre(
+    val type: TypeNotificationArbre,
+    val nom: String = "",
+    val nomSecondaire: String = "",
+    val chemin: String? = null,
+    val annulable: Boolean = false,
+)
+
+/**
+ * Segment du fil d'Ariane de l'explorateur (étape 31, § 4) : un ancêtre
+ * de la sélection courante — la racine (nom `null`) porte l'icône maison.
+ *
+ * @property uri URI du nœud cible (clic = sélection du nœud).
+ * @property nom libellé du segment, `null` pour la racine (maison).
+ */
+data class SegmentAriane(
+    val uri: String,
+    val nom: String?,
+)
 
 /**
  * Onglet actif du panneau inférieur (étape 16) : **Journal** est
@@ -207,6 +391,88 @@ sealed interface ActionEditor {
     data class SupprimerDocument(
         val uri: String,
     ) : ActionEditor
+
+    /**
+     * Bascule l'arbre affiché entre projet et stockage privé (étape 31,
+     * § 5) : les deux arbres sont exclusifs, la sélection est
+     * réinitialisée, les onglets de l'éditeur ne sont pas touchés.
+     */
+    data class BasculerSource(
+        val source: SourceArbre,
+    ) : ActionEditor
+
+    /** Sélectionne le nœud [uri] (fil d'Ariane, point d'état, popover). */
+    data class SelectionnerNoeud(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Retient [uri] au presse-papiers en mode copier (étape 31, § 11). */
+    data class CopierNoeud(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Retient [uri] au presse-papiers en mode couper (étape 31, § 11). */
+    data class CouperNoeud(
+        val uri: String,
+    ) : ActionEditor
+
+    /**
+     * Colle le presse-papiers dans le dossier [uriDossier] (étape 31,
+     * § 11) : copie (mode copier) ou déplacement (mode couper), suffixe
+     * anti-collision « (copie N) ».
+     */
+    data class CollerDans(
+        val uriDossier: String,
+    ) : ActionEditor
+
+    /**
+     * Déplace le document [uri] vers [cheminDestination] relatif à la
+     * racine de l'arbre courant (étape 31, popover « Déplacer vers… »).
+     */
+    data class DeplacerVers(
+        val uri: String,
+        val cheminDestination: String,
+    ) : ActionEditor
+
+    /** Vide le presse-papiers d'arbre (bouton « Vider », § 12). */
+    data object ViderPressePapiers : ActionEditor
+
+    /**
+     * Débute une création inline dans [uriParent] (étape 31, § 11) : un
+     * éditeur apparaît dans la liste, la validation crée le document.
+     */
+    data class DebuterCreation(
+        val uriParent: String,
+        val estDossier: Boolean,
+    ) : ActionEditor
+
+    /**
+     * Débute un renommage inline du nœud [uri] (étape 31, § 11) : la
+     * ligne devient un éditeur pré-rempli et sélectionné.
+     */
+    data class DebuterRenommage(
+        val uri: String,
+    ) : ActionEditor
+
+    /** Abandonne l'édition inline en cours (Échap, annuler, clic ailleurs). */
+    data object AnnulerEdition : ActionEditor
+
+    /** Valide l'édition inline avec [nom] (création ou renommage). */
+    data class ValiderEdition(
+        val nom: String,
+    ) : ActionEditor
+
+    /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
+    data object ReplierTout : ActionEditor
+
+    /**
+     * Annule la dernière suppression (action « Annuler » du snackbar,
+     * § 11) : restaure l'élément à sa place et rouvre ses onglets.
+     */
+    data object AnnulerSuppression : ActionEditor
+
+    /** Masque la notification courante (expiration du snackbar, § 15). */
+    data object MasquerNotification : ActionEditor
 
     /**
      * Précise la langue d'affichage des libellés du catalogue de modèles
@@ -388,6 +654,23 @@ data class TypeProjetAffiche(
  * @property typeProjet type reconnu depuis `.codeide/project.json`
  * (étape 18) : `null` tant que la racine n'est pas lisible — l'interface
  * distingue alors dossier importé et type non reconnu.
+ * @property source arbre affiché : projet ou stockage privé (étape 31,
+ * § 5 — exclusifs).
+ * @property uriSelection URI du nœud sélectionné, ou `null` (fil
+ * d'Ariane, point d'état « sélectionné », popover).
+ * @property segmentsAriane ancêtres de la sélection (§ 4) — racine seule
+ * si aucune sélection.
+ * @property pressePapiers presse-papiers d'arbre (§ 12) — `null` si vide.
+ * @property edition édition inline en cours (§ 11), ou `null`.
+ * @property notification snackbar maison de l'explorateur (§ 15), ou
+ * `null` si masqué.
+ * @property urisFlachees lignes à flasher après mutation (§ 6.1), le
+ * temps du flash de 1,1 s.
+ * @property cheminRacine chemin affiché sous le titre de l'entête du
+ * fragment (§ 4 : chemin de la racine affichée).
+ * @property nomRacine nom d'affichage de la racine (projet uniquement).
+ * @property cheminsDossiers chemins relatifs des dossiers énumérés de
+ * l'arbre courant (autocomplétion du popover « Déplacer vers… », § 10.5).
  */
 data class EtatEditor(
     val chargement: Boolean = true,
@@ -403,6 +686,16 @@ data class EtatEditor(
     val entreesJournal: List<LogEntry> = emptyList(),
     val filtresJournal: Set<LogLevel> = emptySet(),
     val typeProjet: TypeProjetAffiche? = null,
+    val source: SourceArbre = SourceArbre.PROJET,
+    val uriSelection: String? = null,
+    val segmentsAriane: List<SegmentAriane> = emptyList(),
+    val pressePapiers: PressePapiersArbre? = null,
+    val edition: EditionInline? = null,
+    val notification: NotificationArbre? = null,
+    val urisFlachees: Set<String> = emptySet(),
+    val cheminRacine: String = "",
+    val nomRacine: String? = null,
+    val cheminsDossiers: List<String> = emptyList(),
 )
 
 /** Clés partagées de l'espace de travail. */
