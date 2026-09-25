@@ -12,6 +12,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.textview.MaterialTextView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +43,17 @@ class ActivityEditorLayoutTest {
         return LayoutInflater.from(contexte).inflate(layout, parent, false)
     }
 
+    /** Index de la première vue enfant portant cet id (-1 sinon). */
+    private fun indexOfView(
+        groupe: ViewGroup,
+        id: Int,
+    ): Int {
+        for (i in 0 until groupe.childCount) {
+            if (groupe.getChildAt(i).id == id) return i
+        }
+        return -1
+    }
+
     @Test
     fun `le layout de l'espace de travail se gonfle sans exception`() {
         val racine = gonfler(R.layout.activity_editor)
@@ -64,22 +76,20 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `l'espace de travail porte fil d'Ariane barre de symboles et vue vide riche`() {
+    fun `l espace de travail porte les vraies classes code-editor et la vue vide riche`() {
         val racine = gonfler(R.layout.activity_editor)
-        assertNotNull(
-            "défilement du fil d'Ariane de l'éditeur (v0.32.3, ADR 0054)",
-            racine.findViewById<View>(R.id.defilement_fil_ariane),
+        assertEquals(
+            "le fil d'Ariane est la BreadcrumbBar de la bibliothèque (v0.32.4, retour v0.32.3)",
+            jo.codeeditor.view.BreadcrumbBar::class.java,
+            racine.findViewById<View>(R.id.fil_ariane_editeur).javaClass,
         )
-        assertNotNull(
-            "vue du fil d'Ariane (dossier › fichier › symboles)",
-            racine.findViewById<View>(R.id.fil_ariane_editeur),
+        val barre = racine.findViewById<View>(R.id.barre_symboles)
+        assertEquals(
+            "la barre de symboles est la SymbolBarView de la bibliothèque (v0.32.4)",
+            jo.codeeditor.view.SymbolBarView::class.java,
+            barre.javaClass,
         )
-        assertNotNull(
-            "barre de symboles de l'IME, masquée par défaut (v0.32.3)",
-            racine.findViewById<View>(R.id.barre_symboles).apply {
-                assertEquals(View.GONE, visibility)
-            },
-        )
+        assertEquals("barre de symboles masquée par défaut (v0.32.3)", View.GONE, barre.visibility)
         assertNotNull(
             "bouton Parcourir les fichiers de l'état vide (v0.32.3)",
             racine.findViewById<View>(R.id.bouton_vide_explorer),
@@ -88,6 +98,64 @@ class ActivityEditorLayoutTest {
             "bouton Terminal de l'état vide (v0.32.3)",
             racine.findViewById<View>(R.id.bouton_vide_terminal),
         )
+    }
+
+    @Test
+    fun `le panneau inferieur porte un conteneur de fragments pas de vues empilees`() {
+        val racine = gonfler(R.layout.activity_editor)
+        assertNotNull(
+            "conteneur de fragments du panneau (v0.32.4, ADR 0055)",
+            racine.findViewById<View>(R.id.conteneur_fragments_panneau),
+        )
+        // Les ids des vues empilées ont disparu des ressources — la
+        // vérification passe par getIdentifier (R.id.contenu_* ne compile
+        // plus, c'est le point).
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        listOf("contenu_journal", "contenu_sortie", "contenu_problemes").forEach { idEmpile ->
+            assertEquals(
+                "l'id $idEmpile (vue empilée) a disparu des ressources (v0.32.4)",
+                0,
+                base.resources.getIdentifier(idEmpile, "id", base.packageName),
+            )
+        }
+        assertEquals(
+            "la barre de symboles reste SOUS l'en-tête du sheet (collée au clavier, v0.32.4)",
+            R.id.barre_symboles,
+            (racine.findViewById<View>(R.id.panneau_inferieur) as LinearLayout).let { panneau ->
+                // Le sheet est vertical : la barre vient après l'en-tête,
+                // avant les onglets et le conteneur de fragments.
+                val indexEntete = indexOfView(panneau, R.id.entete_panneau)
+                val indexBarre = indexOfView(panneau, R.id.barre_symboles)
+                val indexOnglets = indexOfView(panneau, R.id.onglets_panneau)
+                assertTrue(indexEntete in 0 until indexBarre)
+                assertTrue(indexBarre < indexOnglets)
+                R.id.barre_symboles
+            },
+        )
+    }
+
+    @Test
+    fun `les fragments du panneau se gonflent avec leurs vues completes`() {
+        val journal = gonfler(R.layout.fragment_panneau_journal)
+        assertNotNull("filtres du journal (v0.32.4)", journal.findViewById<View>(R.id.filtres_journal))
+        assertNotNull("liste du journal (v0.32.4)", journal.findViewById<View>(R.id.liste_journal))
+        assertNotNull("vide du journal (v0.32.4)", journal.findViewById<View>(R.id.texte_journal_vide))
+        assertNotNull(
+            "lien vers le journal complet (v0.32.4)",
+            journal.findViewById<View>(R.id.bouton_journal_complet),
+        )
+
+        val console = gonfler(R.layout.fragment_panneau_console)
+        assertNotNull("statut de la sortie (v0.32.4)", console.findViewById<View>(R.id.statut_sortie))
+        assertNotNull("liste de sortie (v0.32.4)", console.findViewById<View>(R.id.liste_sortie))
+        assertNotNull(
+            "annulation du build (v0.32.4)",
+            console.findViewById<View>(R.id.bouton_annuler_build),
+        )
+
+        val problemes = gonfler(R.layout.fragment_panneau_problemes)
+        assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))
+        assertNotNull("vide des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.texte_problemes_vide))
     }
 
     @Test

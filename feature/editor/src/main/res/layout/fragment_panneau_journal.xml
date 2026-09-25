@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Journal applicatif du panneau inférieur (v0.32.4, ADR 0055) :
+     filtres par niveau, fenêtre compacte, lien vers l'écran Diagnostic.
+     Fragment PanneauJournalFragment — le chrome (en-tête, onglets) reste
+     à l'hôte (activity_editor.xml). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:scrollbars="none">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/filtres_journal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:selectionRequired="false"
+            app:singleLine="true"
+            app:singleSelection="false">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_journal_debug"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_journal_niveau_debug" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_journal_info"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_journal_niveau_info" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_journal_warn"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_journal_niveau_warn" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_journal_error"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_journal_niveau_error" />
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_journal"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/screen_horizontal_margin"
+        android:paddingBottom="@dimen/spacing_xs"
+        tools:itemCount="6"
+        tools:listitem="@layout/ligne_entree_journal_compacte" />
+
+    <!-- Fenêtre vide après filtres (jamais un blanc muet). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_journal_vide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="@dimen/state_padding"
+        android:text="@string/editor_journal_vide"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+
+    <!-- Lien vers l'écran Diagnostic complet (historique, exports,
+         effacement — hors du panneau compact). -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_journal_complet"
+        style="@style/Widget.CodeIDE.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="@dimen/spacing_xs"
+        android:text="@string/editor_journal_complet" />
+</LinearLayout>

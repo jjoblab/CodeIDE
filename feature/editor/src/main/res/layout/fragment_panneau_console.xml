@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055) : état
+     de synchronisation/build, annulation, console du build (fenêtre
+     bornée, auto-défilement). Fragment PanneauConsoleFragment — le
+     chrome (en-tête, onglets) reste à l'hôte (activity_editor.xml). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_xs"
+        android:paddingVertical="@dimen/spacing_xs">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/statut_sortie"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Build en cours" />
+
+        <ImageButton
+            android:id="@+id/bouton_annuler_build"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/editor_sortie_annuler_cd"
+            android:src="@drawable/ic_arreter_build"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_sortie"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/spacing_xs" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_sortie_vide"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="@dimen/state_padding"
+        android:text="@string/editor_sortie_vide"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+</LinearLayout>

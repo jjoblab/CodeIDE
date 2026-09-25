@@ -41,24 +41,20 @@
                 android:visibility="gone"
                 app:tabMode="scrollable" />
 
-            <!-- Fil d'Ariane de l'éditeur (v0.32.3, ADR 0054) : dossier ›
-                 … › fichier › classe › fonction, sous les onglets, au-dessus
-                 de la zone d'édition — défile si le chemin est long. -->
-            <HorizontalScrollView
-                android:id="@+id/defilement_fil_ariane"
+            <!-- Fil d'Ariane de l'éditeur (v0.32.4, ADR 0054/0055) :
+                 BreadcrumbBar — la VRAIE classe de la bibliothèque
+                 code-editor (cel-ui 3.37.0, jo.codeeditor.view),
+                 sous les onglets, au-dessus de la zone d'édition.
+                 L'hôte pose les segments (dossier › … › fichier ›
+                 classe › fonction) via setSegments() — API « usage
+                 manuel » documentée de la classe. -->
+            <jo.codeeditor.view.BreadcrumbBar
+                android:id="@+id/fil_ariane_editeur"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:overScrollMode="never"
-                android:scrollbars="none"
+                android:contentDescription="@string/fil_ariane_editeur_cd"
                 android:visibility="gone"
-                tools:visibility="visible">
-
-                <jo.codeide.feature.editor.VueFilArianeEditeur
-                    android:id="@+id/fil_ariane_editeur"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/fil_ariane_editeur_cd" />
-            </HorizontalScrollView>
+                tools:visibility="visible" />
 
             <FrameLayout
                 android:id="@+id/conteneur_editeur"
@@ -224,9 +220,13 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- ================= Panneau inférieur (étape 16) =================
+        <!-- ================= Panneau inférieur (étape 16, v0.32.4) =================
              Trois états gérés par BottomSheetBehavior : replié (en-tête seul,
-             peekHeight 48 dp), mi-hauteur (ratio 0,5), étendu. -->
+             peekHeight 48 dp), mi-hauteur (ratio 0,5), étendu.
+             Architecture à fragments (ADR 0055, retour v0.32.3) : le chrome
+             (en-tête, barre de symboles, onglets) reste à l'hôte, le contenu
+             des trois onglets vit dans des fragments ajoutés une fois puis
+             montrés/cachés — plus de vues empilées dans le layout. -->
 
         <LinearLayout
             android:id="@+id/panneau_inferieur"
@@ -306,19 +306,24 @@
                     app:icon="@drawable/ic_reduire_panneau" />
             </LinearLayout>
 
-            <!-- Barre de symboles au-dessus du clavier (v0.32.3, ADR
-                 0054) : sous l'en-tête, visible SEULEMENT quand l'IME
-                 est ouvert — l'hôte la pilote (transposition de la
-                 SymbolBarView de la bibliothèque code-editor). -->
-            <jo.codeide.feature.editor.BarreSymbolesEditeur
+            <!-- Barre de symboles au-dessus du clavier (v0.32.4, ADR
+                 0055) : SymbolBarView — la VRAIE classe de la
+                 bibliothèque code-editor (cel-ui 3.37.0), sous
+                 l'en-tête. Visible SEULEMENT quand l'IME est ouvert :
+                 le peek du panneau s'élargit alors à en-tête + barre,
+                 le panneau replié étant posé sur le haut du clavier
+                 (adjustResize) — la barre paraît collée au clavier.
+                 L'hôte pilote la visibilité et l'écouteur OnSymbolTap. -->
+            <jo.codeeditor.view.SymbolBarView
                 android:id="@+id/barre_symboles"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
+                android:contentDescription="@string/barre_symboles_cd"
                 android:visibility="gone"
                 tools:visibility="gone" />
 
-            <!-- Trois onglets : Journal fonctionnel, Sortie et Problèmes en
-                 stub explicite (étape 16, prompt compagnon 5.5). -->
+            <!-- Trois onglets (chrome de l'hôte, v0.32.4) : la sélection
+                 commute les fragments du conteneur ci-dessous. -->
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/onglets_panneau"
                 android:layout_width="match_parent"
@@ -340,190 +345,16 @@
                     android:text="@string/editor_panneau_journal" />
             </com.google.android.material.tabs.TabLayout>
 
-            <FrameLayout
-                android:id="@+id/conteneur_panneau"
+            <!-- Contenu des onglets (v0.32.4, ADR 0055) : fragments
+                 Journal / Sortie / Problèmes, ajoutés une fois par
+                 l'activité puis montrés/cachés — l'état de défilement
+                 survit aux changements d'onglet (même pattern que le
+                 tiroir, ADR 0052). -->
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/conteneur_fragments_panneau"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1">
-
-                <!-- Onglet Journal applicatif (fonctionnel) : filtres par
-                     niveau, fenêtre compacte, lien vers l'écran Diagnostic. -->
-                <LinearLayout
-                    android:id="@+id/contenu_journal"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <HorizontalScrollView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:scrollbars="none">
-
-                        <com.google.android.material.chip.ChipGroup
-                            android:id="@+id/filtres_journal"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            app:selectionRequired="false"
-                            app:singleLine="true"
-                            app:singleSelection="false">
-
-                            <com.google.android.material.chip.Chip
-                                android:id="@+id/chip_journal_debug"
-                                style="@style/Widget.Material3.Chip.Filter"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/editor_journal_niveau_debug" />
-
-                            <com.google.android.material.chip.Chip
-                                android:id="@+id/chip_journal_info"
-                                style="@style/Widget.Material3.Chip.Filter"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/editor_journal_niveau_info" />
-
-                            <com.google.android.material.chip.Chip
-                                android:id="@+id/chip_journal_warn"
-                                style="@style/Widget.Material3.Chip.Filter"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/editor_journal_niveau_warn" />
-
-                            <com.google.android.material.chip.Chip
-                                android:id="@+id/chip_journal_error"
-                                style="@style/Widget.Material3.Chip.Filter"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/editor_journal_niveau_error" />
-                        </com.google.android.material.chip.ChipGroup>
-                    </HorizontalScrollView>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/liste_journal"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:clipToPadding="false"
-                        android:paddingHorizontal="@dimen/screen_horizontal_margin"
-                        android:paddingBottom="@dimen/spacing_xs"
-                        tools:itemCount="6"
-                        tools:listitem="@layout/ligne_entree_journal_compacte" />
-
-                    <!-- Fenêtre vide après filtres (jamais un blanc muet). -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/texte_journal_vide"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:padding="@dimen/state_padding"
-                        android:text="@string/editor_journal_vide"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone" />
-
-                    <!-- Lien vers l'écran Diagnostic complet (historique,
-                         exports, effacement — hors du panneau compact). -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_journal_complet"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginBottom="@dimen/spacing_xs"
-                        android:text="@string/editor_journal_complet" />
-                </LinearLayout>
-
-                <!-- Onglet Sortie (G5, section 6) : état de
-                     synchronisation/build, annulation, console du build
-                     (fenêtre bornée, auto-défilement). -->
-                <LinearLayout
-                    android:id="@+id/contenu_sortie"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="@dimen/spacing_xs"
-                        android:paddingVertical="@dimen/spacing_xs">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/statut_sortie"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceLabelMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            tools:text="Build en cours" />
-
-                        <ImageButton
-                            android:id="@+id/bouton_annuler_build"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:contentDescription="@string/editor_sortie_annuler_cd"
-                            android:src="@drawable/ic_arreter_build"
-                            android:visibility="gone"
-                            tools:visibility="visible" />
-                    </LinearLayout>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/liste_sortie"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:clipToPadding="false"
-                        android:paddingBottom="@dimen/spacing_xs" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/texte_sortie_vide"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:padding="@dimen/state_padding"
-                        android:text="@string/editor_sortie_vide"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <!-- Onglet Problèmes (G5, section 6) : diagnostics groupés
-                     par fichier, saut à la ligne. -->
-                <FrameLayout
-                    android:id="@+id/contenu_problemes"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone"
-                    tools:visibility="gone">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/liste_problemes"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:paddingBottom="@dimen/spacing_xs" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/texte_problemes_vide"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:gravity="center"
-                        android:padding="@dimen/state_padding"
-                        android:text="@string/editor_problemes_vide"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-                </FrameLayout>
-            </FrameLayout>
+                android:layout_weight="1" />
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
