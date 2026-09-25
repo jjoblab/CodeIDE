@@ -8,6 +8,17 @@
     <color name="sortie_stdout">#E8EAED</color>
     <color name="sortie_stderr">#F2B8B5</color>
 
+    <!-- Panneau inférieur & barre de symboles (v0.32.5) : mêmes jetons
+         que le tiroir (fond_tiroir / surface) — cohérence de surface. -->
+    <color name="panneau_inferieur_fond">#1A1E25</color>
+    <color name="barre_symboles_fond">#20252E</color>
+    <color name="barre_symboles_filet">#2C323D</color>
+
+    <!-- Canaux tooling (v0.32.5) : déclinaisons nuit contrastées. -->
+    <color name="canal_tooling_sync">#5AC8DE</color>
+    <color name="canal_tooling_build">#7AB8F5</color>
+    <color name="canal_etiquette_texte">#10151C</color>
+
     <!-- Jetons nuit de l'explorateur v2 (étape 31) : les valeurs EXACTES de
          la maquette validée (EXPLORATEUR_V2.md § 3.1 — reproduction à 100 %). -->
     <color name="explorateur_fond_tiroir">#1A1E25</color>

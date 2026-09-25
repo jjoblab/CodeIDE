@@ -32,6 +32,7 @@ import jo.codeide.core.domain.RestaurerArbreUseCase
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
@@ -160,6 +161,7 @@ class EditorViewModel
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
+        private val horloge: TimeProvider,
         private val copierArbre: CopierArbreUseCase,
         private val deplacerArbre: DeplacerArbreUseCase,
         private val lireArbre: LireArbreUseCase,
@@ -195,8 +197,9 @@ class EditorViewModel
         /** État de la carte d'aperçu du terminal du tiroir (T6, section 8). */
         val etatTerminal: StateFlow<EtatTerminalTiroir> = etatTerminalInterne.asStateFlow()
 
-        /** Cœur de l'état tooling de l'espace de travail (G5). */
-        private val serviceGradle = GradleService()
+        /** Cœur de l'état tooling de l'espace de travail (G5 ; v0.32.5 :
+         *  horloge injectée — les chronos de l'en-tête se testent). */
+        private val serviceGradle = GradleService(horloge = horloge::nowMillis)
 
         /** État observable du tooling Gradle (G5, §6). */
         val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
@@ -620,7 +623,7 @@ class EditorViewModel
                 }
                 val dossier = dossierProjetOuEchec() ?: return@launch
                 val buildId = executerTachesUseCase(dossier, taches)
-                observerBuild(buildId)
+                observerBuild(buildId, taches)
                 selectionnerOngletPanneau(OngletPanneau.CONSOLE)
                 journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
             }
@@ -652,8 +655,11 @@ class EditorViewModel
          * test : le câblage des flux se éprouve sans résolution de dossier
          * (introuvable en JVM, même garde que T6).
          */
-        internal fun observerBuild(buildId: String) {
-            serviceGradle.suivreBuild(buildId)
+        internal fun observerBuild(
+            buildId: String,
+            taches: List<String> = emptyList(),
+        ) {
+            serviceGradle.suivreBuild(buildId, taches)
             viewModelScope.launch {
                 tooling.observeBuildOutput(buildId).collect { ligne -> serviceGradle.ajouterLigne(ligne) }
             }

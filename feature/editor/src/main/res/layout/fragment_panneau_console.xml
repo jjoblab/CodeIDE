@@ -17,10 +17,22 @@
         android:paddingHorizontal="@dimen/spacing_xs"
         android:paddingVertical="@dimen/spacing_xs">
 
+        <!-- Canal du statut (v0.32.5) : l'icône signature de la
+             provenance (Sync teal / Build bleu) — l'information affichée
+             ici porte TOUJOURS son canal, comme chaque ligne et chaque
+             entrée d'en-tête. -->
+        <ImageView
+            android:id="@+id/icone_canal_sortie"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@null"
+            tools:src="@drawable/ic_executer" />
+
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/statut_sortie"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:ellipsize="end"
             android:singleLine="true"

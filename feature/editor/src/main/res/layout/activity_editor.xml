@@ -41,20 +41,9 @@
                 android:visibility="gone"
                 app:tabMode="scrollable" />
 
-            <!-- Fil d'Ariane de l'éditeur (v0.32.4, ADR 0054/0055) :
-                 BreadcrumbBar — la VRAIE classe de la bibliothèque
-                 code-editor (cel-ui 3.37.0, jo.codeeditor.view),
-                 sous les onglets, au-dessus de la zone d'édition.
-                 L'hôte pose les segments (dossier › … › fichier ›
-                 classe › fonction) via setSegments() — API « usage
-                 manuel » documentée de la classe. -->
-            <jo.codeeditor.view.BreadcrumbBar
-                android:id="@+id/fil_ariane_editeur"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:contentDescription="@string/fil_ariane_editeur_cd"
-                android:visibility="gone"
-                tools:visibility="visible" />
+            <!-- (v0.32.5) Plus de fil d'Ariane ici : retiré sur retour
+                 d'appareil réel — le rendu de la bibliothèque ne
+                 donnait pas le design espéré (ADR 0056, décision 1). -->
 
             <FrameLayout
                 android:id="@+id/conteneur_editeur"
@@ -218,20 +207,41 @@
                         android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </FrameLayout>
+
+            <!-- Barre de symboles collée au clavier (v0.32.5, ADR 0056
+                 décision 2, patron CodeAssist) : DERNIÈRE vue de la
+                 colonne centrale — quand l'IME s'ouvre, le bas de la
+                 zone est remonté de la hauteur du clavier (insets IME
+                 appliqués en padding, animés), la barre se retrouve
+                 posée juste au-dessus des touches : « collée ».
+                 Masquée sinon (et le panneau réapparaît). La VRAIE
+                 SymbolBarView de la bibliothèque code-editor. -->
+            <jo.codeeditor.view.SymbolBarView
+                android:id="@+id/barre_symboles"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/fond_barre_symboles"
+                android:contentDescription="@string/barre_symboles_cd"
+                android:visibility="gone"
+                tools:visibility="gone" />
         </LinearLayout>
 
-        <!-- ================= Panneau inférieur (étape 16, v0.32.4) =================
+        <!-- ================= Panneau inférieur (étape 16, v0.32.4/0.32.5) =================
              Trois états gérés par BottomSheetBehavior : replié (en-tête seul,
-             peekHeight 48 dp), mi-hauteur (ratio 0,5), étendu.
+             peekHeight 48 dp, + ligne tooling quand une activité tourne),
+             mi-hauteur (ratio 0,5), étendu (alors l'en-tête s'est fondu).
              Architecture à fragments (ADR 0055, retour v0.32.3) : le chrome
-             (en-tête, barre de symboles, onglets) reste à l'hôte, le contenu
-             des trois onglets vit dans des fragments ajoutés une fois puis
-             montrés/cachés — plus de vues empilées dans le layout. -->
+             (en-tête, onglets) reste à l'hôte, le contenu des trois onglets
+             vit dans des fragments ajoutés une fois puis montrés/cachés.
+             Fond opaque arrondi (v0.32.5, ADR 0056 décision 4) : le panneau
+             n'est plus transparent, il se pose SUR l'éditeur. -->
 
         <LinearLayout
             android:id="@+id/panneau_inferieur"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@drawable/fond_panneau_inferieur"
+            android:elevation="8dp"
             android:orientation="vertical"
             app:behavior_fitToContents="false"
             app:behavior_halfExpandedRatio="0.5"
@@ -306,21 +316,74 @@
                     app:icon="@drawable/ic_reduire_panneau" />
             </LinearLayout>
 
-            <!-- Barre de symboles au-dessus du clavier (v0.32.4, ADR
-                 0055) : SymbolBarView — la VRAIE classe de la
-                 bibliothèque code-editor (cel-ui 3.37.0), sous
-                 l'en-tête. Visible SEULEMENT quand l'IME est ouvert :
-                 le peek du panneau s'élargit alors à en-tête + barre,
-                 le panneau replié étant posé sur le haut du clavier
-                 (adjustResize) — la barre paraît collée au clavier.
-                 L'hôte pilote la visibilité et l'écouteur OnSymbolTap. -->
-            <jo.codeeditor.view.SymbolBarView
-                android:id="@+id/barre_symboles"
+            <!-- Ligne tooling (v0.32.5, ADR 0056 décision 5) : l'activité
+                 EN COURS du tooling, sur SON canal — icône et couleur du
+                 canal (Sync ou Build), libellé de la tâche, chrono en vol,
+                 bouton Arrêter. Visible dès qu'un canal est actif ou a un
+                 résultat récent ; le peek s'élargit pour l'accueillir.
+                 Fondu avec l'en-tête quand le panneau s'étend. -->
+            <LinearLayout
+                android:id="@+id/ligne_tooling"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:contentDescription="@string/barre_symboles_cd"
+                android:layout_height="@dimen/editor_ligne_tooling_hauteur"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/spacing_md"
                 android:visibility="gone"
-                tools:visibility="gone" />
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/icone_canal_tooling"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:contentDescription="@null"
+                    tools:src="@drawable/ic_terminal" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/activite_tooling"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="Build — assembleDebug" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/minuteur_tooling"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:fontFamily="monospace"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="12,3 s" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_arreter_tooling"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_tooling_arreter_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:visibility="gone"
+                    app:icon="@drawable/ic_arreter_build"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <!-- Progression du canal actif (v0.32.5) : fine bande
+                 indéterminée sous la ligne tooling — Gradle ne donne pas
+                 de pourcentage, la bande tourne pendant l'activité. -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progression_tooling"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <!-- Trois onglets (chrome de l'hôte, v0.32.4) : la sélection
                  commute les fragments du conteneur ci-dessous. -->

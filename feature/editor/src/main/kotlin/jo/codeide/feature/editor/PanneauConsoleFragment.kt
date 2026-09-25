@@ -65,10 +65,11 @@ class PanneauConsoleFragment : Fragment() {
         super.onDestroyView()
     }
 
-    /** Rend le statut, l'annulation, la console (fenêtre bornée) et
-     *  l'état vide. */
+    /** Rend le statut (balisé de SON canal — v0.32.5), l'annulation, la
+     *  console (fenêtre bornée) et l'état vide. */
     private fun rendre(etat: EtatGradle) {
         liaison.statutSortie.text = libelleStatutTooling(etat)
+        baliserCanalStatut(etat)
         liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
         adaptateur.submitList(etat.lignes)
@@ -78,6 +79,30 @@ class PanneauConsoleFragment : Fragment() {
         }
         tailleDerniereFenetre = etat.lignes.size
         liaison.texteSortieVide.isVisible = etat.lignes.isEmpty()
+    }
+
+    /** Canal du statut (v0.32.5, ADR 0056 décision 5) : l'icône signature
+     *  de la provenance de l'information — Sync quand la ligne parle de
+     *  synchronisation, Build quand elle parle du build ; éteinte quand
+     *  la console est vide (aucune information, aucun canal). */
+    private fun baliserCanalStatut(etat: EtatGradle) {
+        val canal =
+            when {
+                etat.synchronisationEnCours || etat.synchronisationReussie != null ||
+                    etat.messageEchecSync != null -> CanalTooling.SYNC
+
+                etat.statutBuild != null -> CanalTooling.BUILD
+
+                else -> null
+            }
+        liaison.iconeCanalSortie.isVisible = canal != null
+        if (canal != null) {
+            liaison.iconeCanalSortie.setImageResource(canal.icone)
+            liaison.iconeCanalSortie.setColorFilter(
+                androidx.core.content.ContextCompat
+                    .getColor(requireContext(), canal.couleur),
+            )
+        }
     }
 
     /** Libellé du statut tooling : synchronisation, puis build, puis repli. */

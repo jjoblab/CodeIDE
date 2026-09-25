@@ -11,7 +11,6 @@
     <string name="editor_vide_astuce_explorateur">Long-press a file: all its actions.</string>
     <string name="editor_vide_astuce_poignee">Drawer handle ⋮: resize the drawer.</string>
     <string name="editor_vide_astuce_terminal">Drawer terminal: sessions side by side in split view.</string>
-    <string name="fil_ariane_editeur_cd">Breadcrumb of the open file</string>
     <string name="barre_symboles_cd">Symbol bar above the keyboard</string>
     <string name="editor_introuvable_titre">Project not found</string>
     <string name="editor_introuvable_message">This project is no longer registered. It may have been removed from the home screen.</string>
@@ -99,6 +98,14 @@
     <string name="editor_sortie_build_reussi">Build succeeded in %1$s</string>
     <string name="editor_sortie_build_echoue">Build failed</string>
     <string name="editor_sortie_build_annule">Build cancelled</string>
+
+    <!-- Tooling channels of the panel header (v0.32.5, ADR 0056). -->
+    <string name="editor_tooling_canal_sync">Sync</string>
+    <string name="editor_tooling_canal_build">Build</string>
+    <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
+    <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
+    <string name="editor_tooling_build_taches">Build — %1$s</string>
+    <string name="editor_tooling_build_en_cours">Build running…</string>
     <string name="editor_outil_deconnecte">Gradle tools not connected</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->

@@ -6,6 +6,11 @@
     <!-- Hauteur du panneau inférieur replié : seul l'en-tête est visible. -->
     <dimen name="editor_panneau_replie">48dp</dimen>
 
+    <!-- Ligne tooling de l'en-tête du panneau (v0.32.5, ADR 0056) :
+         hauteur fixe — le peek s'élargit exactement de cette valeur
+         quand une activité tooling s'affiche. -->
+    <dimen name="editor_ligne_tooling_hauteur">34dp</dimen>
+
     <!-- Lignes de nœuds (§ 6.1). -->
     <dimen name="editor_ligne_hauteur">34dp</dimen>
     <dimen name="editor_ligne_racine_hauteur">38dp</dimen>

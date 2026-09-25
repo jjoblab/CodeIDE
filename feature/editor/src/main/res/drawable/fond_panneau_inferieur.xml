@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond du panneau inférieur (v0.32.5, ADR 0056 décision 4) : OPAQUE —
+     retour d'appareil réel « le background du bottom sheet est
+     complètement transparent ». Coins supérieurs arrondis façon feuille
+     Material (12 dp), jour/nuit via la couleur panneau_inferieur_fond ;
+     l'élévation du panneau (8 dp, activity_editor.xml) pose l'ombre au
+     dessus de l'éditeur. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/panneau_inferieur_fond" />
+    <corners
+        android:topLeftRadius="12dp"
+        android:topRightRadius="12dp" />
+</shape>

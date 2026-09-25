@@ -1,13 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Une ligne de sortie du build (G5) : monospace, couleur par flux. -->
-<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/texte_sortie"
+<!-- Une ligne de sortie du tooling (G5 ; v0.32.5 : ligne CANALISÉE) :
+     étiquette de canal (Build/Sync — couleur signature) + texte
+     monospace, façon colonne de tag de logcat : la provenance de
+     l'information se lit sur CHAQUE ligne, aucune confusion possible.
+     SmallSp assumé : l'étiquette est une marque de canal, pas du texte
+     à lire de loin (précédent badge du panneau). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:ellipsize="none"
-    android:fontFamily="monospace"
-    android:paddingHorizontal="@dimen/spacing_xs"
-    android:paddingVertical="1dp"
-    android:textAppearance="?attr/textAppearanceBodySmall"
-    android:textColor="@color/sortie_stdout"
-    android:textSize="12sp" />
+    android:orientation="horizontal">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/canal_sortie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:paddingEnd="2dp"
+        android:paddingStart="@dimen/spacing_xs"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        tools:ignore="SmallSp"
+        tools:text="Build"
+        tools:textColor="@color/canal_tooling_build" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_sortie"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="none"
+        android:fontFamily="monospace"
+        android:paddingHorizontal="@dimen/spacing_xs"
+        android:paddingVertical="1dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/sortie_stdout"
+        android:textSize="12sp"
+        tools:text="> Task :app:assembleDebug" />
+</LinearLayout>
