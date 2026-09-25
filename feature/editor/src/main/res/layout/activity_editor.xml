@@ -41,6 +41,25 @@
                 android:visibility="gone"
                 app:tabMode="scrollable" />
 
+            <!-- Fil d'Ariane de l'éditeur (v0.32.3, ADR 0054) : dossier ›
+                 … › fichier › classe › fonction, sous les onglets, au-dessus
+                 de la zone d'édition — défile si le chemin est long. -->
+            <HorizontalScrollView
+                android:id="@+id/defilement_fil_ariane"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <jo.codeide.feature.editor.VueFilArianeEditeur
+                    android:id="@+id/fil_ariane_editeur"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/fil_ariane_editeur_cd" />
+            </HorizontalScrollView>
+
             <FrameLayout
                 android:id="@+id/conteneur_editeur"
                 android:layout_width="match_parent"
@@ -63,7 +82,9 @@
                     android:indeterminate="true"
                     android:visibility="gone" />
 
-                <!-- État vide : aucun fichier ouvert (icône + invitation). -->
+                <!-- État vide (v0.32.3) : illustration riche, deux actions
+                     directes et astuces de découverte — plus une simple
+                     icône + invitation. -->
                 <LinearLayout
                     android:id="@+id/zone_vide"
                     android:layout_width="wrap_content"
@@ -72,14 +93,14 @@
                     android:gravity="center"
                     android:orientation="vertical"
                     android:padding="@dimen/state_padding"
-                    android:visibility="gone">
+                    android:visibility="gone"
+                    tools:visibility="visible">
 
                     <ImageView
-                        android:layout_width="@dimen/state_icon_size"
-                        android:layout_height="@dimen/state_icon_size"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ill_editeur_vide"
-                        app:tint="?attr/colorOnSurfaceVariant" />
+                        android:src="@drawable/ill_editeur_code" />
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
@@ -87,16 +108,90 @@
                         android:layout_marginTop="@dimen/state_spacing"
                         android:gravity="center"
                         android:text="@string/editor_vide_titre"
-                        android:textAppearance="?attr/textAppearanceTitleMedium" />
+                        android:textAppearance="?attr/textAppearanceTitleLarge" />
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/spacing_xs"
                         android:gravity="center"
+                        android:maxWidth="320dp"
                         android:text="@string/editor_vide_message"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Deux actions directes : ouvrir le tiroir des fichiers
+                         (le geste que l'utilisateur cherche) ou le terminal. -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/state_spacing"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_vide_explorer"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/editor_vide_action_explorer"
+                            app:icon="@drawable/ic_explorateur" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_vide_terminal"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:text="@string/editor_vide_action_terminal"
+                            app:icon="@drawable/ic_terminal" />
+                    </LinearLayout>
+
+                    <!-- Astuces de découverte (retour d'appareil : les gestes
+                         de l'étape 31 ne se devinent pas). -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_lg"
+                        android:text="@string/editor_vide_astuces"
+                        android:textAppearance="?attr/textAppearanceLabelMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:drawablePadding="@dimen/spacing_sm"
+                        android:gravity="center"
+                        android:text="@string/editor_vide_astuce_explorateur"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        app:drawableStartCompat="@drawable/point_onglet"
+                        app:drawableTint="?attr/colorPrimary" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:drawablePadding="@dimen/spacing_sm"
+                        android:gravity="center"
+                        android:text="@string/editor_vide_astuce_poignee"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        app:drawableStartCompat="@drawable/point_onglet"
+                        app:drawableTint="?attr/colorPrimary" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:drawablePadding="@dimen/spacing_sm"
+                        android:gravity="center"
+                        android:text="@string/editor_vide_astuce_terminal"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        app:drawableStartCompat="@drawable/point_onglet"
+                        app:drawableTint="?attr/colorPrimary" />
                 </LinearLayout>
 
                 <!-- Projet introuvable : identifiant inconnu au registre. -->
@@ -210,6 +305,17 @@
                     android:minHeight="@dimen/touch_target_min"
                     app:icon="@drawable/ic_reduire_panneau" />
             </LinearLayout>
+
+            <!-- Barre de symboles au-dessus du clavier (v0.32.3, ADR
+                 0054) : sous l'en-tête, visible SEULEMENT quand l'IME
+                 est ouvert — l'hôte la pilote (transposition de la
+                 SymbolBarView de la bibliothèque code-editor). -->
+            <jo.codeide.feature.editor.BarreSymbolesEditeur
+                android:id="@+id/barre_symboles"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:visibility="gone"
+                tools:visibility="gone" />
 
             <!-- Trois onglets : Journal fonctionnel, Sortie et Problèmes en
                  stub explicite (étape 16, prompt compagnon 5.5). -->

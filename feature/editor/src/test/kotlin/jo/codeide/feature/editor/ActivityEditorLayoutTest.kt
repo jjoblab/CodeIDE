@@ -64,6 +64,33 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
+    fun `l'espace de travail porte fil d'Ariane barre de symboles et vue vide riche`() {
+        val racine = gonfler(R.layout.activity_editor)
+        assertNotNull(
+            "défilement du fil d'Ariane de l'éditeur (v0.32.3, ADR 0054)",
+            racine.findViewById<View>(R.id.defilement_fil_ariane),
+        )
+        assertNotNull(
+            "vue du fil d'Ariane (dossier › fichier › symboles)",
+            racine.findViewById<View>(R.id.fil_ariane_editeur),
+        )
+        assertNotNull(
+            "barre de symboles de l'IME, masquée par défaut (v0.32.3)",
+            racine.findViewById<View>(R.id.barre_symboles).apply {
+                assertEquals(View.GONE, visibility)
+            },
+        )
+        assertNotNull(
+            "bouton Parcourir les fichiers de l'état vide (v0.32.3)",
+            racine.findViewById<View>(R.id.bouton_vide_explorer),
+        )
+        assertNotNull(
+            "bouton Terminal de l'état vide (v0.32.3)",
+            racine.findViewById<View>(R.id.bouton_vide_terminal),
+        )
+    }
+
+    @Test
     fun `le fragment explorateur porte entete bascule et barre presse-papiers`() {
         val fragment = gonfler(R.layout.fragment_explorateur)
         assertNotNull("entête du fragment (§ 4)", fragment.findViewById<View>(R.id.entete_explorateur))

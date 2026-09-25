@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -18,6 +19,8 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.isEmpty
 import androidx.core.view.isNotEmpty
@@ -33,6 +36,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeeditor.document.Selection
+import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
 import jo.codeide.core.domain.EtatConnexion
@@ -157,6 +161,15 @@ class EditorActivity :
     /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
     private var panneauEtendu = false
 
+    /** Le clavier virtuel est-il visible (pilote la barre de symboles) ? */
+    private var clavierVisible = false
+
+    /** Tâche de débounce du fil d'Ariane (200 ms, BreadCrumbBar). */
+    private var travailFil: Job? = null
+
+    /** Plus grande hauteur du root vue (détection IME API < 30). */
+    private var hauteurRacineMax = 0
+
     /** Des onglets sont-ils sales (pilote le retour système) ? */
     private var ongletsSales = false
 
@@ -196,6 +209,9 @@ class EditorActivity :
         brancherFragmentsTiroir()
         brancherPoignee()
         brancherOnglets()
+        brancherVueVide()
+        brancherFilAriane()
+        brancherBarreSymboles()
         brancherEditeur()
         brancherPanneauInferieur()
         onBackPressedDispatcher.addCallback(this, retourEspace)
@@ -603,6 +619,141 @@ class EditorActivity :
         )
     }
 
+    /** L'éditeur : le fil d'Ariane suit le caret (ADR 0054) — re-calcul
+     *  débounce 200 ms après chaque déplacement (BreadCrumbBar de la
+     *  bibliothèque, même constante). */
+    private fun brancherFilAriane() {
+        liaison.vueEditeur.addOnSelectionChangedListener { _, _, _ ->
+            travailFil?.cancel()
+            travailFil =
+                lifecycleScope.launch {
+                    delay(DEBOUNCE_FIL_ARIANE_MS)
+                    rafraichirFilAriane()
+                }
+        }
+    }
+
+    /** Recalcule le fil d'Ariane de l'onglet actif (caret courant). */
+    private fun rafraichirFilAriane() {
+        val etat = viewModel.etat.value
+        val onglet = etat.onglets.getOrNull(etat.indexOngletActif) ?: return
+        majFilAriane(onglet)
+    }
+
+    /** Compose et pose les segments : dossier › … › fichier › symboles
+     *  englobants (chemin relatif + scanner [SymbolesEnglobants]). Les
+     *  très gros documents renoncent aux symboles (scan O(n) trop coûteux
+     *  à chaque arrêt du caret). */
+    private fun majFilAriane(onglet: EditorTabState) {
+        val session = viewModel.sessionDe(onglet.uri) ?: return
+        val segments =
+            mutableListOf<VueFilArianeEditeur.Segment>()
+        onglet.cheminRelatif.split('/').dropLast(1).forEach { dossier ->
+            if (dossier.isNotBlank()) {
+                segments += VueFilArianeEditeur.Segment(dossier, VueFilArianeEditeur.Role.CHEMIN)
+            }
+        }
+        segments += VueFilArianeEditeur.Segment(onglet.nom, VueFilArianeEditeur.Role.FICHIER)
+        if (!session.document.isLarge) {
+            SymbolesEnglobants.englobants(session.text, session.selection.start).forEach { symbole ->
+                segments += VueFilArianeEditeur.Segment(symbole, VueFilArianeEditeur.Role.SYMBOLE)
+            }
+        }
+        liaison.filArianeEditeur.definirSegments(segments)
+        // Défilement vers le segment courant (fin) — côté opposé en RTL.
+        val cible =
+            if (resources.configuration.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL) {
+                View.FOCUS_LEFT
+            } else {
+                View.FOCUS_RIGHT
+            }
+        liaison.defilementFilAriane.post { liaison.defilementFilAriane.fullScroll(cible) }
+    }
+
+    /** État vide (v0.32.3) : deux actions directes — ouvrir le tiroir
+     *  des fichiers (le geste cherché) ou le terminal. */
+    private fun brancherVueVide() {
+        liaison.boutonVideExplorer.setOnClickListener {
+            if (liaison.racineEditeur.getDrawerLockMode(liaison.tiroir) !=
+                DrawerLayout.LOCK_MODE_LOCKED_OPEN
+            ) {
+                liaison.racineEditeur.openDrawer(liaison.tiroir)
+            }
+        }
+        liaison.boutonVideTerminal.setOnClickListener {
+            viewModel.onAction(ActionEditor.OuvrirTerminal)
+        }
+    }
+
+    /** Barre de symboles au-dessus du clavier (ADR 0054) : touches
+     *  épinglées mappées sur les commandes de session, symboles insérés
+     *  par `typeChar` (fermeture automatique des paires conservée). */
+    private fun brancherBarreSymboles() {
+        liaison.barreSymboles.definirEcouteur(
+            object : BarreSymbolesEditeur.Ecouteur {
+                override fun surSymbole(symbole: String) {
+                    sessionActive()?.typeChar(symbole.first())
+                }
+
+                override fun surAction(identifiant: String) {
+                    val session = sessionActive() ?: return
+                    when (identifiant) {
+                        ACTION_TAB -> session.indent()
+                        ACTION_COMMENT -> session.toggleLineComment()
+                        ACTION_MOVE_UP -> session.moveLineUp()
+                        ACTION_MOVE_DOWN -> session.moveLineDown()
+                        ACTION_DUPLICATE -> session.duplicateSelection()
+                    }
+                }
+            },
+        )
+        observerClavier()
+    }
+
+    /** Session de l'onglet actif, ou `null` (aucun fichier ouvert). */
+    private fun sessionActive(): EditorSession? {
+        val etat = viewModel.etat.value
+        val onglet = etat.onglets.getOrNull(etat.indexOngletActif) ?: return null
+        return viewModel.sessionDe(onglet.uri)
+    }
+
+    /** Visibilité de l'IME : insets natifs (API 30+) puis repli par la
+     *  hauteur du root (API 26-29, `adjustResize` — le root rétrécit
+     *  quand le clavier prend sa place). */
+    private fun observerClavier() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
+                val clavier = insets.getInsets(WindowInsetsCompat.Type.ime())
+                majBarreSymboles(clavier.bottom > 0 || insets.isVisible(WindowInsetsCompat.Type.ime()))
+                insets
+            }
+        } else {
+            liaison.racineEditeur.viewTreeObserver.addOnGlobalLayoutListener {
+                val hauteur = liaison.racineEditeur.height
+                if (hauteur > hauteurRacineMax) hauteurRacineMax = hauteur
+                val seuil =
+                    (liaison.racineEditeur.resources.displayMetrics.heightPixels * FRACTION_SEUIL_IME).toInt()
+                majBarreSymboles(hauteurRacineMax - hauteur > seuil)
+            }
+        }
+    }
+
+    /** La barre de symboles n'apparaît que si l'IME est ouvert ET qu'un
+     *  fichier est édité ; le panneau inférieur se replie alors — son
+     *  en-tête et la barre montent au-dessus du clavier. */
+    private fun majBarreSymboles(visible: Boolean) {
+        clavierVisible = visible
+        rafraichirBarreSymboles()
+    }
+
+    private fun rafraichirBarreSymboles() {
+        val montrer = clavierVisible && sessionActive() != null
+        liaison.barreSymboles.isVisible = montrer
+        if (montrer && comportementPanneau.state != BottomSheetBehavior.STATE_COLLAPSED) {
+            comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+    }
+
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
     private fun brancherEditeur() = Unit
 
@@ -965,6 +1116,15 @@ class EditorActivity :
         vue.iconeOnglet.setImageResource(IconesFichiers.pourNom(onglet.nom))
         vue.nomOnglet.text = onglet.nom
         majVueOnglet(vue, onglet)
+        val ongletBarre = liaison.ongletsFichiers.newTab()
+        // Leçon ADR 0051 (terminal v0.31.7) : la vue racine porte un
+        // écouteur d'appui long — une telle vue CONSOMME aussi les taps
+        // simples sans agir, le TabLayout ne voit jamais le geste et
+        // l'onglet ne change pas. La racine AGIT désormais sur son propre
+        // tap : elle sélectionne l'onglet dans la barre.
+        vue.root.setOnClickListener {
+            liaison.ongletsFichiers.selectTab(ongletBarre)
+        }
         vue.boutonFermerOnglet.setOnClickListener {
             viewModel.onAction(ActionEditor.FermerOnglet(onglet.uri))
         }
@@ -972,7 +1132,7 @@ class EditorActivity :
             menuContextuelOnglet(ancre, onglet, tous)
             true
         }
-        return liaison.ongletsFichiers.newTab().apply {
+        return ongletBarre.apply {
             customView = vue.root
             view.tag = vue
             // Accessibilité (étape 17) : l'onglet annoncé par son nom et
@@ -1046,11 +1206,17 @@ class EditorActivity :
         menu.show()
     }
 
-    /** L'éditeur : rebranche la vue sur la session de l'onglet actif. */
+    /** L'éditeur : rebranche la vue sur la session de l'onglet actif,
+     *  rafraîchit le fil d'Ariane et la barre de symboles (v0.32.3). */
     private fun rendreEditeur(etat: EtatEditor) {
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
         liaison.vueEditeur.isVisible = onglet != null
-        if (onglet == null) return
+        liaison.defilementFilAriane.isVisible = onglet != null
+        rafraichirBarreSymboles()
+        if (onglet == null) {
+            liaison.filArianeEditeur.definirSegments(emptyList())
+            return
+        }
 
         val session = viewModel.sessionDe(onglet.uri)
         if (session != null && liaison.vueEditeur.getSession() !== session) {
@@ -1058,6 +1224,7 @@ class EditorActivity :
             liaison.vueEditeur.setFileName(onglet.nom)
         }
         liaison.vueEditeur.setTheme(themeActuel())
+        majFilAriane(onglet)
     }
 
     /** Thème cel correspondant au mode clair/sombre de l'application. */
@@ -1266,6 +1433,17 @@ class EditorActivity :
                 ouvrirAvec(effet.uri)
             }
 
+            EffetEditor.FichierOuvert -> {
+                // Retour d'appareil réel v0.32.3 : ouvrir un fichier depuis
+                // l'explorateur referme le tiroir — l'utilisateur a fini de
+                // parcourir. Le grand écran garde son tiroir ancré (ADR 0026).
+                if (liaison.racineEditeur.getDrawerLockMode(liaison.tiroir) !=
+                    DrawerLayout.LOCK_MODE_LOCKED_OPEN
+                ) {
+                    liaison.racineEditeur.closeDrawer(liaison.tiroir)
+                }
+            }
+
             is EffetEditor.ConfirmerFermeture -> {
                 dialogueFermeture(effet)
             }
@@ -1434,6 +1612,21 @@ class EditorActivity :
 
         /** Durée des transitions de la poignée (maquette : `.15s`). */
         const val DUREE_ANIMATION_POIGNEE_MS = 150L
+
+        /** Débounce du fil d'Ariane (BreadCrumbBar de la bibliothèque : 200 ms). */
+        const val DEBOUNCE_FIL_ARIANE_MS = 200L
+
+        /** Seuil de détection de l'IME par la hauteur du root (API < 30) :
+         *  un clavier occupe largement plus de 15 % de l'écran, une marge
+         *  d'insets jamais ça. */
+        const val FRACTION_SEUIL_IME = 0.15f
+
+        /** Actions des touches épinglées de la barre de symboles. */
+        const val ACTION_TAB = "tab"
+        const val ACTION_COMMENT = "comment"
+        const val ACTION_MOVE_UP = "move_up"
+        const val ACTION_MOVE_DOWN = "move_down"
+        const val ACTION_DUPLICATE = "duplicate"
 
         /** Seuil de bascule seconde/milliseconde des durées affichées (G5). */
         const val SEUIL_SECONDE_MS = 1_000L

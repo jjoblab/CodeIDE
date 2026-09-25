@@ -6,7 +6,15 @@
     <string name="editor_title">Éditeur</string>
     <string name="editor_ouvrir_tiroir_cd">Ouvrir le tiroir de navigation</string>
     <string name="editor_vide_titre">Aucun fichier ouvert</string>
-    <string name="editor_vide_message">Ouvrez un fichier depuis le tiroir de navigation pour l\'éditer ici.</string>
+    <string name="editor_vide_message">Ouvrez un fichier dans le tiroir des fichiers pour l\'éditer ici — ou lancez une session de terminal.</string>
+    <string name="editor_vide_action_explorer">Parcourir les fichiers</string>
+    <string name="editor_vide_action_terminal">Terminal</string>
+    <string name="editor_vide_astuces">Pour bien démarrer</string>
+    <string name="editor_vide_astuce_explorateur">Appui long sur un fichier : toutes ses actions.</string>
+    <string name="editor_vide_astuce_poignee">Poignée ⋮ du tiroir : ajuster sa largeur.</string>
+    <string name="editor_vide_astuce_terminal">Terminal du tiroir : sessions côte à côte en split view.</string>
+    <string name="fil_ariane_editeur_cd">Fil d\'Ariane du fichier ouvert</string>
+    <string name="barre_symboles_cd">Barre de symboles au-dessus du clavier</string>
     <string name="editor_introuvable_titre">Projet introuvable</string>
     <string name="editor_introuvable_message">Ce projet n\'est plus enregistré. Il a peut-être été retiré depuis l\'accueil.</string>
     <string name="editor_tiroir_section">Projet</string>
