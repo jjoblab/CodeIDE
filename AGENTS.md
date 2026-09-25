@@ -479,6 +479,26 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       Android 13+ avec repli réglages, état réel relu au retour ;
       documenté : AUCUNE permission de stockage nécessaire — SAF +
       stockage privé, ADR 0046] ; ADR 0046]
+- v0.31.3 : **troisième lot de corrections d'appareil réel** (`apt
+      update` code 100 : `mkstemp $PREFIX/tmp/… ENOENT`) — répertoire
+      `tmp` du préfixe GARANTI [l'archive publiée par `codeide-packages`
+      n'embarque pas l'entrée `tmp/` (280 répertoires côté bootstrap
+      officiel Termux dont `tmp/`, 107 sans côté publié) : créé à
+      l'extraction (test de régression) ET recréé à chaque environnement
+      de sous-processus (`assurerRepertoiresProcessus`, défense en
+      profondeur — couvre aussi `rm -rf $PREFIX/tmp`, panne documentée
+      par la FAQ Termux) ; errno 2 = ENOENT n'est PAS un refus de
+      permission (errno 13) ; ADR 0047] ; stockage partagé OPT-IN pour
+      le terminal [trio READ/WRITE + `MANAGE_EXTERNAL_STORAGE` au
+      manifeste, `requestLegacyExternalStorage`, section facultative de
+      la page Notifications : requête runtime sous Android 11, réglage
+      « Tous les fichiers » au-delà, état réel relu au retour, jamais
+      exigé — répond à la demande utilisateur dans le cadre des ADR
+      0003/0034 ; ADR 0047] ; CI réparée [`ExpiredTargetSdkVersion`
+      (ERREUR) rejoint `ExpiringTargetSdkVersion` (avertissement) dans
+      les désactivations lint — DEUX issues distinctes, la v0.31.1
+      n'avait couvert que la seconde, ADR 0047] ; chaînes EN de la page
+      Notifications comblées
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -528,6 +548,22 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   sortie au fil de l'eau (journal d'écran) et ses détails typés à
   l'échec (sous pli) ; stdout se draine TOUJOURS (tuyau bloquant) mais
   se jette JAMAIS.
+- **`ExpiringTargetSdkVersion` et `ExpiredTargetSdkVersion` sont DEUX
+  issues lint distinctes** (v0.31.1→v0.31.3) : la première est le
+  CONSEIL (sévérité avertissement, montée en erreur par
+  `warningsAsErrors`), la seconde l'ERREUR directe (« Google Play
+  requires… ») — désactiver la seule première laisse la CI rouge.
+  Toute exception lint se vérifie en exécutant LA tâche qui échoue
+  (`:app:lintDebug`), pas en supposant l'ID couvert.
+- **Un répertoire « évident » d'une archive n'y est pas forcément**
+  (retour v0.31.2, corrigé v0.31.3) : l'archive publiée n'embarque pas
+  `tmp/`, le bootstrap officiel oui — `TMPDIR` pointait donc dans le
+  vide et le premier `apt update` mourait en `mkstemp` ENOENT (errno 2
+  = « n'existe pas », PAS errno 13 = « permission refusée » : lire le
+  code d'errno avant de conclure une cause permission). Les
+  répertoires attendus par l'environnement d'un préfixe extrait se
+  garantissent côté applicatif, en profondeur (extraction + chaque
+  lancement).
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

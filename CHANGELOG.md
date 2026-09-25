@@ -4,6 +4,94 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.3] – 2026-09-25
+
+Troisième lot de corrections après **retour d'appareil réel** (app
+v0.31.2 : `apt update` sort en **code 100** à l'installation — `E:
+Unable to mkstemp $PREFIX/tmp/clearsigned.message… - GetTempFile (2:
+No such file or directory)`), plus l'échec `:app:lintDebug` de la CI
+GitHub depuis v0.31.1 (`ExpiredTargetSdkVersion`). Version corrective
+(SemVer `0.N.M`). ADR 0047.
+
+### Corrigé
+
+- **`apt update` code 100 — répertoire `tmp` du préfixe absent** :
+  l'archive publiée par `codeide-packages` **n'embarque pas l'entrée
+  `tmp/`** (constat du 2026-09-25 par comparaison avec le bootstrap
+  officiel Termux : 280 répertoires dont `tmp/` contre 107 sans), or
+  `TMPDIR` pointe sur `$PREFIX/tmp` — chaque fichier temporaire d'apt
+  vise donc un répertoire inexistant (`mkstemp` ENOENT, errno 2 : PAS
+  un refus de permission, errno 13 — le stockage privé de
+  l'application ne demande rien). Deux couches de défense :
+  l'extracteur crée désormais explicitement `staging/tmp` (porté dans
+  `$PREFIX` par la bascule, idempotent si une future archive l'embarque
+  — test de régression sur archive sans l'entrée), et
+  `assurerRepertoiresProcessus` recrée `$PREFIX/tmp` et `$HOME` à
+  CHAQUE construction d'environnement de sous-processus (lanceur natif,
+  sessions du terminal, daemon du tooling) — couvrant aussi les
+  préfixes posés avant cette version et le `tmp` supprimé à la main
+  (panne documentée par la FAQ Termux : `rm -rf $PREFIX/tmp` rend apt
+  inutilisable). Le warning « Conflicting distribution (expected
+  stable but got) » accompagnant la panne est un artefact du même
+  pipeline cassé : le `Release` servi en ligne porte bien
+  `Suite: stable` / `Codename: stable` (re-vérifié).
+- **CI rouge sur `:app:lintDebug` depuis v0.31.1**
+  (`ExpiredTargetSdkVersion` — « Google Play requires that apps target
+  API level 33 or higher ») : l'exception v0.31.1 n'avait désactivé
+  que `ExpiringTargetSdkVersion` (le CONSEIL, sévérité avertissement
+  montée en erreur par `warningsAsErrors`) — l'ERREUR directe est une
+  issue lint DISTINCTE. Les deux ID sont désormais désactivés, même
+  justification (cible 28 délibérée pour W^X, ADR 0045 ; application
+  chargée par side-loading, l'exigence Play ne s'applique pas).
+
+### Ajouté
+
+- **Accès au stockage partagé, OPT-IN, pour le terminal** (répond à la
+  demande utilisateur « demander les permissions de lecture et
+  d'écriture de stockage », réinterprétée techniquement : la panne apt
+  ne relevait d'aucune permission, mais lire/écrire la mémoire partagée
+  depuis le terminal est un besoin légitime — modèle Termux, même
+  contrainte cible 28) : trio READ/WRITE_EXTERNAL_STORAGE (Android <
+  11) + MANAGE_EXTERNAL_STORAGE (« Tous les fichiers », Android 11+)
+  au manifeste avec `requestLegacyExternalStorage` ; section
+  « facultative » sur la page Notifications de l'assistant — bouton de
+  demande (requête runtime sous Android 11, réglage système
+  au-delà), état RÉEL relu au retour sur la page
+  (`isExternalStorageManager` / permission WRITE — jamais supposé),
+  repli par les réglages de l'application. Aucun parcours ne l'exige :
+  « Suivant » passe sans rien accorder, le droit reste révocable dans
+  les réglages Android. Le fonctionnement de base, lui, n'exige
+  toujours RIEN (stockage privé + SAF, ADR 0003/0034).
+
+### Tests
+
+- `ExtracteurBootstrapTest` : une archive sans entrée `tmp/` produit
+  quand même un répertoire `tmp` dans le staging (régression code 100).
+- `AssurerRepertoiresProcessusTest` (nouveau) : création depuis racine
+  vide, idempotence avec contenu conservé, recréation après
+  suppression sous un préfixe existant.
+- `OnboardingViewModelTest` : `DemanderStockage` émet la requête sans
+  avancer la page (opt-in), `DemanderReglagesStockage` ouvre les
+  réglages, `ConsignerStockage` reflète l'état réel.
+
+### Découvertes
+
+- `ExpiringTargetSdkVersion` (avertissement) et
+  `ExpiredTargetSdkVersion` (erreur) sont DEUX issues lint distinctes :
+  désactiver la première ne couvre pas la seconde — la CI est restée
+  rouge un mois de release avant que quelqu'un la lise.
+- L'archive publiée par `codeide-packages` diverge du bootstrap
+  officiel Termux sur les entrées de répertoires vides (`tmp/` inclus)
+  — un tar(zip) bien formé n'est pas garanti équivalent entrée par
+  entrée ; les répertoires attendus par l'environnement doivent être
+  garantis côté applicatif.
+- errno fait la différence entre « permission refusée » (13, EACCES)
+  et « n'existe pas » (2, ENOENT) : lire le code d'erreur avant
+  d'en conclure une cause permission — sur stockage privé applicatif,
+  aucune permission ne s'applique de toute façon (ADR 0003/0034).
+- Les chaînes de la page Notifications (v0.31.2) n'avaient jamais été
+  traduites en anglais — comblées au passage.
+
 ## [0.31.2] – 2026-09-25
 
 Deuxième lot de corrections après **retour d'appareil réel** (rapport de

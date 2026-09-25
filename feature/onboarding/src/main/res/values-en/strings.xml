@@ -67,4 +67,18 @@
     <string name="page_terminal_installer">Install now</string>
     <string name="page_terminal_deja_installe">The terminal tools are already installed.</string>
     <string name="page_terminal_passer">Later</string>
+
+    <!-- Page 6 — Notifications and storage (v0.31.2, ADR 0046; storage
+         revised v0.31.3, ADR 0047: opt-in for the terminal). -->
+    <string name="page_notifications_titre">Notifications and storage</string>
+    <string name="page_notifications_texte">CodeIDE shows an honest notification when the terminal works in the background (an open session survives your return home) and during long tool installations. On Android 13 and above the permission can be granted or denied — nothing is blocking: the terminal works either way.</string>
+    <string name="page_notifications_stockage">The Linux environment and your workspace folder require no permission: they live in the app\'s private storage and the system folder picker.</string>
+    <string name="page_notifications_stockage_titre">Shared storage access (optional)</string>
+    <string name="page_notifications_stockage_texte">To read and write the device\'s shared memory (photos, downloads…) directly from the terminal, CodeIDE can request file access. This is entirely optional: without it everything else works, and the right can be revoked in Android settings.</string>
+    <string name="page_notifications_stockage_autoriser">Allow storage access</string>
+    <string name="page_notifications_stockage_actif">Shared storage accessible from the terminal.</string>
+    <string name="page_notifications_stockage_reglages">Open storage settings</string>
+    <string name="page_notifications_autoriser">Allow notifications</string>
+    <string name="page_notifications_activees">Notifications enabled — thank you!</string>
+    <string name="page_notifications_reglages">Open notification settings</string>
 </resources>

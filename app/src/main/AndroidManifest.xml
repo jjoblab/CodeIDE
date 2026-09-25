@@ -4,9 +4,22 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Permissions : INTERNET uniquement, depuis l'étape T3 du terminal
-      (ADR 0034 — unique usage réseau : téléchargement du bootstrap et
-      de ses paquets d'outils). Jamais de MANAGE_EXTERNAL_STORAGE.
+      Permissions (ADR 0034 ; stockage révisé par ADR 0047, v0.31.3) :
+
+      - INTERNET : unique usage réseau depuis l'étape T3 — téléchargement
+        du bootstrap et de ses paquets d'outils.
+
+      - Stockage partagé, OPT-IN (ADR 0047) : l'environnement Linux vit
+        dans le stockage privé de l'application, qui ne demande RIEN pour
+        fonctionner (apt compris — l'erreur d'appareil réel `mkstemp`
+        ENOENT était un répertoire `$PREFIX/tmp` absent, errno 2, pas un
+        refus de permission, errno 13). Le trio ci-dessous ne sert qu'à
+        l'accès OPTIONNEL au stockage partagé (`/storage/emulated/0`)
+        depuis les sessions du terminal — modèle repris de Termux,
+        même contrainte cible 28 (W^X, ADR 0045) : READ/WRITE couvrent
+        l'accès legacy (Android < 11), MANAGE_EXTERNAL_STORAGE le réglage
+        « Tous les fichiers » (Android 11+). Jamais exigés : la page de
+        l'assistant les propose, « Suivant » passe sans rien accorder.
 
       localeConfig (ADR 0013) : langues proposées par le réglage
       « langue par application » du système (Android 13+) — la source
@@ -17,12 +30,18 @@
     -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <application
         android:name="jo.codeide.CodeIdeApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
+        android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.CodeIDE"
         tools:targetApi="33">

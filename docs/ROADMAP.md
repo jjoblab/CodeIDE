@@ -114,6 +114,20 @@ paquets a échoué » ne sera plus jamais muette) — et page
 `POST_NOTIFICATIONS` + explication : aucune permission de stockage
 nécessaire, SAF et stockage privé suffisent, ADR 0046).
 
+**Correctif v0.31.3 (2026-09-25, après retour d'appareil réel — `apt
+update` code 100, `mkstemp $PREFIX/tmp ENOENT`)** : le répertoire `tmp`
+du préfixe est désormais garanti en deux couches (créé à l'extraction —
+l'archive publiée par `codeide-packages` n'embarque pas l'entrée `tmp/`
+contrairement au bootstrap officiel Termux — et recréé à chaque
+environnement de sous-processus, couvrant `rm -rf $PREFIX/tmp` documenté
+par la FAQ Termux) ; la cause n'était PAS une permission (errno 2 =
+ENOENT, pas EACCES — le stockage privé de l'application ne demande
+rien) ; stockage partagé OPT-IN pour le terminal (trio READ/WRITE +
+`MANAGE_EXTERNAL_STORAGE`, section facultative de la page
+Notifications, jamais exigé — modèle Termux, ADR 0047) ; CI réparée
+(`ExpiredTargetSdkVersion`, l'issue ERREUR distincte du warning
+`ExpiringTargetSdkVersion` désactivé en v0.31.1, ADR 0047).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

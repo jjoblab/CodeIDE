@@ -33,9 +33,17 @@ import java.util.zip.ZipInputStream
  *    `lib/apt/apt-helper` et `lib/apt/methods`, et le script de second
  *    stage (`etc/termux/termux-bootstrap/second-stage/…`, chemin
  *    constaté dans l'archive réelle) ;
- * 4. un `SYMLINKS.txt` absent est une archive corrompue (Termux :
+ * 4. le répertoire `tmp/` est **créé explicitement** : l'archive
+ *    publiée par `codeide-packages` (vérifiée le 2026-09-25) n'embarque
+ *    PAS cette entrée — contrairement au bootstrap officiel Termux
+ *    (comparaison des listes d'entrées : 280 répertoires dont `tmp/`
+ *    côté officiel, 107 sans `tmp/` côté publié) — or `TMPDIR` pointe
+ *    dessus et le premier `apt update` meurt en `mkstemp` ENOENT
+ *    (rapport d'appareil réel, code 100) ; idempotent si une future
+ *    archive l'embarque ;
+ * 5. un `SYMLINKS.txt` absent est une archive corrompue (Termux :
  *    « No SYMLINKS.txt encountered ») ;
- * 5. la bascule détruit d'abord tout préfixe existant (reprise après
+ * 6. la bascule détruit d'abord tout préfixe existant (reprise après
  *    échec), puis renomme le staging — atomique sur le même système
  *    de fichiers.
  */
@@ -97,6 +105,13 @@ internal class ExtracteurBootstrap(
                 entree = zip.nextEntry
             }
         }
+        // L'archive publiée n'embarque pas d'entrée `tmp/` (constat du
+        // 2026-09-25 — le bootstrap officiel Termux, lui, l'a) : le
+        // répertoire est créé ici, dans le staging, pour que la bascule
+        // le porte dans `$PREFIX`. Sans lui, `TMPDIR` désigne le vide et
+        // `apt` échoue en `mkstemp` ENOENT (errno 2 — PAS une permission,
+        // errno 13) dès le premier `apt update` de l'installation.
+        garantirRepertoire(File(staging, NOM_REPERTOIRE_TMP))
         if (liens.isEmpty()) {
             throw EchecBootstrap(BootstrapReason.ArchiveCorrompue, "$FICHIER_SYMLINKS absent de l'archive")
         }
@@ -217,6 +232,9 @@ internal class ExtracteurBootstrap(
     private companion object {
         private const val FICHIER_SYMLINKS = "SYMLINKS.txt"
         private const val SEPARATEUR_SYMLINK = "←"
+
+        /** Répertoire temporaire du préfixe, absent de l'archive publiée. */
+        private const val NOM_REPERTOIRE_TMP = "tmp"
 
         /** Chemin du second stage, relatif au préfixe (constaté dans l'archive réelle). */
         private const val CHEMIN_SECOND_STAGE =
