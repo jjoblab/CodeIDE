@@ -224,6 +224,54 @@ class SafFileSystemTest {
         }
 
     @Test
+    fun `un fichier cache complete par le fournisseur est accepte - regression 4a4526aa`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // V0.31.6 (retour d'appareil réel 4a4526aa) : le point INITIAL
+            // d'un fichier caché n'est pas une extension pour le fournisseur
+            // — « .gitattributes » + text/plain est complété en
+            // « .gitattributes.txt ». L'ancien contrôle (contains('.'))
+            // ratait cette famille : complétion lue comme renommage hostile
+            // → fichier fraîchement créé SUPPRIMÉ + AlreadyExists de pure
+            // invention → « un dossier porte déjà ce nom » à CHAQUE création
+            // de projet (.gitattributes est le PREMIER fichier du plan des
+            // modèles JVM — rollback complet sous les yeux de l'utilisateur).
+            fournisseur.completerExtension = true
+            val creation = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/plain")
+
+            assertTrue("la complétion d'un fichier caché n'est pas une collision", creation is AppResult.Success)
+            val uriCree = (creation as AppResult.Success).value
+            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+            assertEquals(".gitattributes.txt", statut.name)
+        }
+
+    @Test
+    fun `le mime prive des noms sans extension reelle n est jamais complete`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // La parade (v0.31.6) : le type privé « text/x-codeide » n'a pas
+            // d'extension canonique — le fournisseur ne complète RIEN et le
+            // nom demandé est préservé EXACTEMENT (.gitattributes reste
+            // .gitattributes dans le projet généré, gradlew reste gradlew).
+            fournisseur.completerExtension = true
+            val cache = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/x-codeide")
+            val gradlew = fichiers.createFile(uriDocument(travail), "gradlew", "text/x-codeide")
+
+            assertTrue(cache is AppResult.Success)
+            assertEquals(
+                ".gitattributes",
+                (fichiers.stat((cache as AppResult.Success).value) as AppResult.Success).value.name,
+            )
+            assertTrue(gradlew is AppResult.Success)
+            assertEquals(
+                "gradlew",
+                (fichiers.stat((gradlew as AppResult.Success).value) as AppResult.Success).value.name,
+            )
+        }
+
+    @Test
     fun `une normalisation fournisseur des espaces et points finaux est acceptee`() =
         runTest {
             val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")

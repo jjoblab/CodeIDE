@@ -183,7 +183,10 @@ class TerminalActivity : AppCompatActivity() {
      * réel : « je ne peux pas naviguer entre les sessions »). Ici :
      * - les onglets de sessions existants sont MIS À JOUR en place
      *   (libellé, pastille, écouteurs — l'identifiant positionnel peut
-     *   avoir glissé après une fermeture) ;
+     *   avoir glissé après une fermeture) — via
+     *   [vueOngletSessionBordable], JAMAIS le « + » (v0.31.6 : binder la
+     *   vue d'un onglet qui n'est pas une session plantait — retour
+     *   4a4526aa, premier onglet occupé par le « + » seul) ;
      * - les nouveaux sont insérés AVANT le « + » ; les disparus retirés ;
      * - le « + » est créé une fois ;
      * - la sélection ne bouge que si elle diffère de la session active.
@@ -201,19 +204,15 @@ class TerminalActivity : AppCompatActivity() {
 
         // Ajouts et mises à jour : position par position.
         for ((position, session) in sessions.withIndex()) {
-            val vueExistante = onglets.getTabAt(position)?.customView
             val vueOnglet =
-                if (vueExistante != null) {
-                    VueOngletSessionBinding.bind(vueExistante)
-                } else {
-                    VueOngletSessionBinding.inflate(layoutInflater).also { frais ->
+                vueOngletSessionBordable(onglets, ongletPlus, position)
+                    ?: VueOngletSessionBinding.inflate(layoutInflater).also { frais ->
                         onglets.addTab(
                             onglets.newTab().setCustomView(frais.root),
                             position,
                             false,
                         )
                     }
-                }
             configurerOnglet(vueOnglet, session, etat)
         }
 
@@ -488,4 +487,38 @@ class TerminalActivity : AppCompatActivity() {
     /** Dernière taille de police réellement appliquée à la vue (réglage ou
      * zoom pincé — évite re-créations de fonte et écrasements mutuels). */
     private var tailleRenduePx: Int = AUCUNE_TAILLE
+}
+
+/**
+ * Vue d'onglet de session **bordable** à la position [position], ou
+ * `null` s'il faut en insérer une fraîche (v0.31.6, retour d'appareil
+ * réel 4a4526aa).
+ *
+ * Régression du diff v0.31.5 : la liste des sessions **grandit** alors
+ * que le « + » occupe déjà la position visée (cas minimal : zéro
+ * session → le « + » seul en position 0 → première création) — l'onglet
+ * existant à cette position est le « + », dont la vue est un simple
+ * `ImageView`. Binder cette vue en [VueOngletSessionBinding] levait
+ * `NullPointerException: Missing required view with ID:
+ * bouton_fermer_session` (la vue n'a PAS cet identifiant) — l'écran du
+ * terminal plantait 60 ms après « session de terminal créée », à
+ * CHAQUE création. La décision « bordable ou non » doit exclure
+ * explicitement le « + » : seul un onglet de session porte la vue
+ * attendue.
+ *
+ * @param onglets le TabLayout synchronisé.
+ * @param ongletPlus l'onglet « + » (jamais bordable), ou `null` s'il
+ * n'existe pas encore.
+ * @param position position examinée (indice de session).
+ * @return le binding sur la vue existante, ou `null` → insertion fraîche.
+ */
+@Suppress("ReturnCount") // Clauses de garde : position absente, « + », vue nulle (règle 16).
+internal fun vueOngletSessionBordable(
+    onglets: TabLayout,
+    ongletPlus: TabLayout.Tab?,
+    position: Int,
+): VueOngletSessionBinding? {
+    val onglet = onglets.getTabAt(position) ?: return null
+    if (onglet === ongletPlus) return null
+    return onglet.customView?.let(VueOngletSessionBinding::bind)
 }

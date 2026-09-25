@@ -3,6 +3,7 @@ package jo.codeide.core.domain.templates
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.ProjectRepository
+import jo.codeide.core.domain.mimeFichierTexte
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.CreateProjectRequest
@@ -271,18 +272,25 @@ public class CreateProjectUseCase
          * Type MIME conseillé à SAF pour la création (indicatif).
          *
          * Piège SAF (constaté sur appareil réel) : un fournisseur honnête
-         * complète un nom **sans point** par l'extension canonique du type
-         * demandé — « gradlew » ou « LICENSE » avec `text/plain` deviendraient
-         * « gradlew.txt », « LICENSE.txt », faux fichiers dans le projet
-         * généré. Un type privé inconnu de la table système ne déclenche
-         * aucune complétion : le nom demandé est préservé tel quel.
+         * complète un nom **sans extension réelle** par l'extension canonique
+         * du type demandé — « gradlew » ou « LICENSE » avec `text/plain`
+         * deviendraient « gradlew.txt », « LICENSE.txt », faux fichiers dans
+         * le projet généré. V0.31.6 (retour 4a4526aa) : le point INITIAL
+         * d'un fichier caché n'est PAS une extension — « .gitattributes »
+         * (premier fichier du plan des modèles JVM !) subissait exactement
+         * cette complétion (« .gitattributes.txt »)… déclenchant en aval le
+         * contrôle « renommage hostile » → `AlreadyExists` de pure invention
+         * → rollback complet → « un dossier porte déjà ce nom » à chaque
+         * tentative. La décision vit désormais dans [mimeFichierTexte]
+         * (partagée avec l'éditeur) : type privé sans complétion pour tout
+         * nom sans extension réelle, caché compris.
          */
         private fun mimePour(
             contenu: PlannedContent,
             chemin: String,
         ): String =
             if (contenu is PlannedContent.Texte) {
-                if (chemin.substringAfterLast('/').contains('.')) "text/plain" else MIME_TEXTE_SANS_EXTENSION
+                mimeFichierTexte(chemin)
             } else {
                 when (chemin.substringAfterLast('.', "").lowercase()) {
                     "png" -> "image/png"
@@ -296,8 +304,5 @@ public class CreateProjectUseCase
         private companion object {
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "CreateProject"
-
-            /** Type privé pour fichier texte sans extension (voir [mimePour]). */
-            const val MIME_TEXTE_SANS_EXTENSION = "text/x-codeide"
         }
     }

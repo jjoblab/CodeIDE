@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
+import jo.codeide.core.domain.sansExtensionReelle
 import java.io.File
 
 /**
@@ -63,10 +64,13 @@ class FauxFournisseurDocuments : ContentProvider() {
     var normaliserNoms = false
 
     /**
-     * Quand `true`, `createDocument` complète un nom **sans point** par
-     * l'extension canonique du type MIME demandé — reproduction fidèle
-     * d'`ExternalStorageProvider` (le nom demandé sans extension reçoit
-     * celle du type, ex. « temoin » + `text/plain` → « temoin.txt »).
+     * Quand `true`, `createDocument` complète un nom **sans extension
+     * réelle** par l'extension canonique du type MIME demandé —
+     * reproduction fidèle d'`ExternalStorageProvider` (v0.31.6, retour
+     * 4a4526aa : le point INITIAL d'un fichier caché n'est pas une
+     * extension — « .gitattributes » + `text/plain` → « .gitattributes.txt »,
+     * exactement comme « temoin » sans point du tout ; un type inconnu de
+     * la table du fournisseur n'est JAMAIS complété).
      */
     var completerExtension = false
 
@@ -241,17 +245,21 @@ class FauxFournisseurDocuments : ContentProvider() {
 
         // Comportements simulés du fournisseur : renommage de collision
         // (section 5.6), complétion d'extension canonique
-        // (ExternalStorageProvider, noms sans point) ou normalisation
-        // Windows des espaces/points finaux (v0.31.5).
+        // (ExternalStorageProvider, noms sans extension RÉELLE — v0.31.6)
+        // ou normalisation Windows des espaces/points finaux (v0.31.5).
         val nomFinal =
             when {
                 provoquerRenommage && existeEnfant(idCible, nomDemande) -> {
                     "$nomDemande (1)"
                 }
 
-                completerExtension && !nomDemande.contains('.') &&
+                completerExtension &&
+                    sansExtensionReelle(nomDemande) &&
                     mime != DocumentsContract.Document.MIME_TYPE_DIR -> {
-                    "$nomDemande.${extensionCanonique(mime)}"
+                    val extension = extensionCanonique(mime)
+                    // Fidèle au fournisseur réel : pas d'extension canonique
+                    // connue (type privé) → AUCUNE complétion, nom préservé.
+                    if (extension.isEmpty()) nomDemande else "$nomDemande.$extension"
                 }
 
                 normaliserNoms -> {

@@ -188,3 +188,56 @@ public interface FileSystem {
      */
     public suspend fun hasPersistablePermission(grantUri: String): Boolean
 }
+
+/**
+ * Le nom porte-t-il une extension **réelle** ?
+ *
+ * Règle des fournisseurs SAF (`ExternalStorageProvider`, comportement
+ * constaté sur appareil réel — retour 4a4526aa, v0.31.6) : l'extension
+ * d'un nom est la partie qui suit son **dernier** point, à condition que
+ * ce point ne soit pas le premier caractère. Un nom dont le seul point
+ * est initial — « .gitattributes », « .gitignore », « .editorconfig » —
+ * est un fichier **caché** SANS extension : le fournisseur le complète
+ * alors par l'extension canonique du type MIME demandé (« .gitattributes »
+ * + `text/plain` → « .gitattributes.txt »), exactement comme « gradlew »
+ * ou « LICENSE » sans point du tout.
+ *
+ * Piège v0.31.1→v0.31.5 : le code distinguait les deux familles par
+ * `contains('.')` — le point INITIAL comptait comme une extension, le
+ * premier fichier du plan (précisément « .gitattributes ») partait donc
+ * en `text/plain`, le fournisseur le complétait en « .gitattributes.txt »,
+ * et le contrôle du nom retourné y lisait un « renommage hostile » :
+ * fichier fraîchement créé supprimé + `AlreadyExists` de pure invention
+ * → rollback complet → « un dossier porte déjà ce nom » à CHAQUE
+ * tentative, quel que soit le nom ou l'emplacement choisi.
+ *
+ * @param nom nom d'affichage (dernier segment du chemin).
+ * @return `true` si le nom n'a pas d'extension réelle (sans point, ou
+ * point initial de fichier caché) — le fournisseur peut compléter.
+ */
+public fun sansExtensionReelle(nom: String): Boolean = nom.lastIndexOf('.') <= 0
+
+/**
+ * Type MIME conseillé pour créer un fichier **texte** sans déclencher la
+ * complétion d'extension du fournisseur SAF (v0.31.6, retour 4a4526aa).
+ *
+ * Un nom sans extension réelle (voir [sansExtensionReelle]) reçoit le
+ * type privé « text/x-codeide » : inconnu de la table système
+ * (`MimeTypeMap`), il n'a pas d'extension canonique — le fournisseur ne
+ * complète RIEN et préserve le nom demandé tel quel (« .gitattributes »
+ * reste « .gitattributes », « gradlew » reste « gradlew »). Un nom avec
+ * extension réelle garde `text/plain`, sans risque de complétion.
+ *
+ * @param chemin chemin relatif complet du fichier (seul le dernier
+ * segment compte).
+ * @return le type MIME à passer à [FileSystem.createFile].
+ */
+public fun mimeFichierTexte(chemin: String): String =
+    if (sansExtensionReelle(chemin.substringAfterLast('/'))) {
+        MIME_TEXTE_SANS_COMPLETION
+    } else {
+        "text/plain"
+    }
+
+/** Type privé inconnu de la table système : aucune complétion d'extension. */
+private const val MIME_TEXTE_SANS_COMPLETION = "text/x-codeide"
