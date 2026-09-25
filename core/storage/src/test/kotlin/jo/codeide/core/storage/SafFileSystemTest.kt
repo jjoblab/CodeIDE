@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.test.core.app.ApplicationProvider
+import jo.codeide.core.domain.mimeFichierTexte
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.TestDispatcherProvider
@@ -268,6 +269,71 @@ class SafFileSystemTest {
             assertEquals(
                 "gradlew",
                 (fichiers.stat((gradlew as AppResult.Success).value) as AppResult.Success).value.name,
+            )
+        }
+
+    @Test
+    fun `readme md avec text plain est complete puis rejete honnetement - v0-31-7`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // V0.31.7 (retour d'appareil réel Android 15) : « README.md » +
+            // `text/plain` → le fournisseur complète en « README.md.txt »
+            // (l'extension « md » est absente de la table système, comme
+            // kts/kt/properties/pro). La complétion n'est PAS tolérable
+            // pour un nom AVEC extension (le projet généré porterait des
+            // fichiers mal nommés : build.gradle.kts.txt casserait Gradle)
+            // : l'échec doit rester honnête — nettoyage du document renommé
+            // + AlreadyExists portant le nom exact, détails visibles.
+            // Ce test DOCUMENTE pourquoi text/plain est désormais interdit
+            // pour les fichiers texte (voir mimeFichierTexte).
+            fournisseur.completerExtension = true
+            val creation = fichiers.createFile(uriDocument(travail), "README.md", "text/plain")
+
+            assertEquals(
+                AppError.StorageReason.AlreadyExists,
+                raisonStockage(creation as AppResult.Failure),
+            )
+            assertEquals(
+                "README.md",
+                (creation as AppResult.Failure)
+                    .error
+                    .toString()
+                    .substringAfter("details=")
+                    .trimEnd(')'),
+            )
+            // Le document complété a été nettoyé : le dossier reste vide.
+            val listing = fichiers.list(uriDocument(travail)) as AppResult.Success
+            assertTrue("le document renommé est nettoyé", listing.value.isEmpty())
+        }
+
+    @Test
+    fun `readme md avec le mime conseille est preserve - regression v0-31-7`() =
+        runTest {
+            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+            // LA régression : le plan des modèles écrit « README.md » (et
+            // build.gradle.kts, *.kt, gradle.properties…) avec le MIME
+            // conseillé par le domaine — le nom doit être préservé
+            // EXACTEMENT, extension inconnue ou pas.
+            fournisseur.completerExtension = true
+            val readme = fichiers.createFile(uriDocument(travail), "README.md", mimeFichierTexte("README.md"))
+            val script =
+                fichiers.createFile(
+                    uriDocument(travail),
+                    "build.gradle.kts",
+                    mimeFichierTexte("build.gradle.kts"),
+                )
+
+            assertTrue("le type privé ne déclenche aucune complétion", readme is AppResult.Success)
+            assertEquals(
+                "README.md",
+                (fichiers.stat((readme as AppResult.Success).value) as AppResult.Success).value.name,
+            )
+            assertTrue(script is AppResult.Success)
+            assertEquals(
+                "build.gradle.kts",
+                (fichiers.stat((script as AppResult.Success).value) as AppResult.Success).value.name,
             )
         }
 

@@ -193,6 +193,29 @@ minimal : zéro session → première création → plantage 60 ms plus
 tard) via le helper testable `vueOngletSessionBordable`, régressions
 verrouillées sur le vrai `TabLayout` (ADR 0050).
 
+**Correctif v0.31.7 (2026-09-25, après retour d'appareil réel — suite du
+rapport 4a4526aa : `Storage(AlreadyExists, details=README.md)` après
+installation de v0.31.6, et « j'appuie sur le tab layout l'onglet pour
+changer de session, rien ne se passe »)** : preuve que le correctif
+v0.31.6 a fonctionné (l'échec a PROGRESSÉ au fichier suivant — le
+premier caché `.gitattributes` passe désormais) et que la complétion
+d'extension SAF frappe AUSSI les noms AVEC extension : la table
+système (`MimeTypeMap`, variable par version et par OEM) ne connaît
+pas `md`, `kts`, `kt`, `properties`, `pro`… — `README.md` +
+`text/plain` était créé `README.md.txt`, lu comme renommage hostile →
+nettoyage + `AlreadyExists` + rollback. `mimeFichierTexte` répond
+désormais le type privé `text/x-codeide` pour TOUT fichier texte (le
+nom ne décide plus : un type sans extension canonique n'est jamais
+complété) ; la tolérance de complétion reste bornée aux noms sans
+extension réelle (jamais de corruption silencieuse du plan —
+`build.gradle.kts.txt` casserait Gradle) ; l'éditeur suit
+automatiquement (ADR 0051). Terminal : la racine d'onglet portait un
+écouteur d'appui long seul — une vue `longClickable` CONSOMME les taps
+simples (le `TabView` parent ne voyait jamais le geste : aucune
+sélection, « rien ne se passe ») : elle prend son propre écouteur de
+clic via le helper testable `brancherInteractionsOnglet` (même
+architecture que Termux), appui long et fermeture inchangés (ADR 0051).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

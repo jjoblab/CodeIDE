@@ -4,6 +4,63 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.7] – 2026-09-25
+
+Septième lot de corrections après **retour d'appareil réel** (moto g06 /
+Android 15, suite du rapport 4a4526aa) : l'écran d'échec v0.31.6 a fait
+son travail — les détails techniques pointaient désormais
+`Storage(reason=AlreadyExists, details=README.md)` : le piège
+`.gitattributes` était corrigé (premier fichier du plan passé), l'échec
+avait **progressé au fichier suivant**, preuve que la complétion
+d'extension SAF frappe aussi les noms **avec** extension ; et le tap sur
+un onglet de session du terminal ne changeait **rien** (« j'appuie sur
+le tab layout l'onglet pour changer de session, rien ne se passe »).
+Version corrective (SemVer `0.N.M`). ADR 0051.
+
+### Corrigé
+
+- **Création de projet : la complétion SAF frappe aussi les extensions
+  développeur** (`details=README.md`) : le fournisseur complète par
+  l'extension canonique du type demandé tout nom dont l'extension est
+  **absente de la table système** (`FileUtils.splitFileName`) — et
+  `md`, `kts`, `kt`, `properties`, `pro`, `gradle`, `toml`… n'y figurent
+  pas : `README.md` + `text/plain` était créé `README.md.txt`,
+  exactement la famille du piège `.gitattributes` de v0.31.6, mais sur
+  un nom AVEC extension (intolérable à tolérer : un projet généré avec
+  `build.gradle.kts.txt` casserait Gradle en silence). La parade est
+  désormais universelle : `mimeFichierTexte` répond le type privé
+  `text/x-codeide` pour **TOUT fichier texte** (aucune extension de code
+  n'est garantie dans la table, qui varie par version et par OEM) — le
+  fournisseur ne complète jamais un type sans extension canonique,
+  quel que soit le nom. L'éditeur suit (création de `notes.md` depuis
+  le tiroir : même piège latent). La complétion d'un nom **sans**
+  extension réelle reste tolérée en filet (v0.31.6 inchangé).
+- **Terminal : le tap sur un onglet de session ouvre enfin la session**
+  : la vue racine d'onglet portait un écouteur d'appui LONG seul (menu
+  renommer/dupliquer/fermer) — or une vue `longClickable` CONSOMME aussi
+  les taps simples (`View.onTouchEvent` retourne `true` pour clickable
+  **ou** longClickable, et le `performClick()` sans écouteur ne fait
+  rien) : le `TabView` parent ne voyait jamais le geste, aucune
+  sélection, « rien ne se passe ». La racine prend désormais son propre
+  écouteur de clic (même architecture que Termux, dont les vues d'onglet
+  gèrent elles-mêmes leur clic) ; l'appui long garde son menu, le
+  bouton ferme, l'écouteur du TabLayout reste pour les sélections
+  extérieures à la vue.
+
+### Tests
+
+- `MimeFichierTexteTest` : attentes durcies — TOUT fichier texte
+  (avec ou sans extension, caché ou pas) prend le type privé (5 + 4) ;
+- `SafFileSystemTest` 23 (+2) : `README.md` + `text/plain` complété
+  puis rejeté honnêtement (nettoyage + `AlreadyExists` au nom exact —
+  documente pourquoi `text/plain` est interdit) ; `README.md` et
+  `build.gradle.kts` avec le MIME conseillé préservés exactement ;
+- `FauxFournisseurDocuments` : la complétion suit la règle RÉELLE du
+  fournisseur (extension inconnue de la table → complétion, type privé
+  → jamais) au lieu de la règle « sans extension réelle » de v0.31.6 ;
+- `OngletsSessionsTest` 4 (+1) : le câblage de production rend la
+  racine cliquable — tap → ouvrir, bouton → fermer, appui long → menu.
+
 ## [0.31.6] – 2026-09-25
 
 Sixième lot de corrections après **retour d'appareil réel** (moto g06 /
@@ -2648,3 +2705,9 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   la détection de tests de Gradle 9 sur un module sans test. Elles seront
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
+
+## [Non publié]
+
+### Ajouté
+
+- (à compléter)

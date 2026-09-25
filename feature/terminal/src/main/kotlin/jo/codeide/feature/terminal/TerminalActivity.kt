@@ -248,13 +248,12 @@ class TerminalActivity : AppCompatActivity() {
     ) {
         vueOnglet.libelleSession.text = session.label
         teinterPastille(vueOnglet.pastilleEtatSession, session.isAlive)
-        vueOnglet.boutonFermerSession.setOnClickListener {
-            viewModel.onAction(ActionTerminal.FermerSession(session.id))
-        }
-        vueOnglet.root.setOnLongClickListener {
-            menuContextuel(it, session.id)
-            true
-        }
+        brancherInteractionsOnglet(
+            vueOnglet = vueOnglet,
+            ouvrirSession = { viewModel.onAction(ActionTerminal.OuvrirSession(session.id)) },
+            fermerSession = { viewModel.onAction(ActionTerminal.FermerSession(session.id)) },
+            ouvrirMenuContextuel = { ancre -> menuContextuel(ancre, session.id) },
+        )
         // Onglet actif : la sélection du TabLayout suit indexActif ; la
         // vue marque l'état pour l'accessibilité et le contraste.
         vueOnglet.root.isSelected = session.id == etat.idSessionActive
@@ -521,4 +520,40 @@ internal fun vueOngletSessionBordable(
     val onglet = onglets.getTabAt(position) ?: return null
     if (onglet === ongletPlus) return null
     return onglet.customView?.let(VueOngletSessionBinding::bind)
+}
+
+/**
+ * Branche les interactions d'une vue d'onglet de session : tap (ouvrir
+ * la session), appui long (menu contextuel), fermeture (v0.31.7, retour
+ * d'appareil réel).
+ *
+ * Régression corrigée : la racine ne portait qu'un écouteur d'appui LONG
+ * (menu renommer/dupliquer/fermer). Or une vue « longClickable » CONSOMME
+ * AUSSI les taps simples — `View.onTouchEvent` retourne `true` dès que la
+ * vue est clickable **ou** longClickable, et le `performClick()` du tap
+ * ne faisait RIEN (aucun écouteur de clic posé) ; le `TabView` parent ne
+ * voyait JAMAIS le geste → aucune sélection → « j'appuie sur l'onglet
+ * pour changer de session, rien ne se passe ». La racine prend donc son
+ * PROPRE écouteur de clic — même architecture que Termux, dont les vues
+ * d'onglet gèrent elles-mêmes leur clic (l'écouteur du TabLayout reste
+ * pour les sélections extérieures à la vue : appui hors de la zone de la
+ * vue personnalisée, navigation clavier).
+ *
+ * @param vueOnglet liaison de la vue d'onglet.
+ * @param ouvrirSession invoqué au tap simple sur l'onglet.
+ * @param fermerSession invoqué au tap sur le bouton de fermeture.
+ * @param ouvrirMenuContextuel invoqué à l'appui long (reçoit l'ancre).
+ */
+internal fun brancherInteractionsOnglet(
+    vueOnglet: VueOngletSessionBinding,
+    ouvrirSession: () -> Unit,
+    fermerSession: () -> Unit,
+    ouvrirMenuContextuel: (View) -> Unit,
+) {
+    vueOnglet.root.setOnClickListener { ouvrirSession() }
+    vueOnglet.root.setOnLongClickListener {
+        ouvrirMenuContextuel(it)
+        true
+    }
+    vueOnglet.boutonFermerSession.setOnClickListener { fermerSession() }
 }

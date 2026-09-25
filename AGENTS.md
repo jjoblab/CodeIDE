@@ -571,6 +571,33 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       plantait ; la décision « bordable » exclut désormais le « + » par
       IDENTITÉ de tab (`vueOngletSessionBordable`, testable sur le vrai
       `TabLayout`) ; ADR 0050]
+- v0.31.7 : **septième lot de corrections d'appareil réel** (suite du
+      rapport 4a4526aa : `Storage(AlreadyExists, details=README.md)` —
+      l'écran d'échec v0.31.6 a fait son travail, le piège
+      `.gitattributes` est corrigé et l'échec a PROGRESSÉ au fichier
+      suivant ; « j'appuie sur le tab layout l'onglet pour changer de
+      session, rien ne se passe ») — création de projet [leçons : (1)
+      la complétion d'extension SAF frappe AUSSI les noms AVEC
+      extension — la table système `MimeTypeMap` ne connaît pas
+      `md`/`kts`/`kt`/`properties`/`pro` (elle varie par version et
+      par OEM : AUCUNE extension de code n'y est garantie), « README.md »
+      + `text/plain` → « README.md.txt » ; (2) un diagnostic
+      d'appareil qui « avance » d'un fichier est une VICTOIRE —
+      l'écran de détails v0.31.5/0050 a transformé un échec opaque en
+      preuve ; décision : `mimeFichierTexte` répond le type privé
+      `text/x-codeide` pour TOUT fichier texte (le nom ne décide plus
+      — un type sans extension canonique n'est JAMAIS complété), la
+      tolérance de complétion reste bornée aux noms sans extension
+      réelle (tolérer sinon = corruption silencieuse :
+      `build.gradle.kts.txt` casserait Gradle) ; ADR 0051] ; onglets
+      du terminal [leçon : une vue qui porte un écouteur d'appui long
+      SEUL consomme les taps simples — `View.onTouchEvent` retourne
+      `true` pour clickable OU longClickable, et le `performClick()`
+      sans écouteur ne fait rien, le parent ne voit jamais le geste ;
+      toute vue qui consomme un tap doit AGIR sur ce tap — la racine
+      d'onglet prend son propre écouteur de clic
+      (`brancherInteractionsOnglet`, même architecture que Termux) ;
+      ADR 0051]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 

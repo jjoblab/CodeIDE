@@ -219,25 +219,38 @@ public fun sansExtensionReelle(nom: String): Boolean = nom.lastIndexOf('.') <= 0
 
 /**
  * Type MIME conseillé pour créer un fichier **texte** sans déclencher la
- * complétion d'extension du fournisseur SAF (v0.31.6, retour 4a4526aa).
+ * complétion d'extension du fournisseur SAF (v0.31.6, retour 4a4526aa ;
+ * durci v0.31.7 — retour d'appareil réel Android 15, moto g06).
  *
- * Un nom sans extension réelle (voir [sansExtensionReelle]) reçoit le
- * type privé « text/x-codeide » : inconnu de la table système
- * (`MimeTypeMap`), il n'a pas d'extension canonique — le fournisseur ne
- * complète RIEN et préserve le nom demandé tel quel (« .gitattributes »
- * reste « .gitattributes », « gradlew » reste « gradlew »). Un nom avec
- * extension réelle garde `text/plain`, sans risque de complétion.
+ * Comportement réel d'`ExternalStorageProvider`
+ * (`FileUtils.buildUniqueFile`/`splitFileName`) : quand l'extension du
+ * nom demandé n'est PAS dans la table système (`MimeTypeMap`), le
+ * fournisseur APPEND l'extension canonique du type MIME demandé. Or les
+ * extensions des fichiers de développement — « md », « kts », « kt »,
+ * « properties », « pro », « gradle », « toml »… — n'y figurent PAS de
+ * façon fiable : v0.31.7 a constaté « README.md » + `text/plain` créé
+ * « README.md.txt » (complétion lue en aval comme renommage hostile →
+ * nettoyage + `AlreadyExists(README.md)` → rollback complet → « un
+ * dossier porte déjà ce nom »), exactement la famille du piège
+ * v0.31.6 (« .gitattributes » sans extension réelle → « .gitattributes.txt »).
+ * La table varie par version d'Android et par OEM : **aucune extension de
+ * code n'y est garantie**.
  *
- * @param chemin chemin relatif complet du fichier (seul le dernier
- * segment compte).
+ * La parade couvre donc désormais TOUT fichier texte : le type privé
+ * « text/x-codeide », inconnu de la table système, n'a PAS d'extension
+ * canonique — le fournisseur ne complète RIEN, pour AUCUN nom (constaté
+ * sur l'appareil : « .gitattributes » préservé depuis v0.31.6,
+ * « README.md » et consorts depuis v0.31.7). [sansExtensionReelle] reste
+ * utilisée par le filet [SafFileSystem.estAchevementExtension]
+ * (tolérance des complétions résiduelles sur les noms sans extension).
+ *
+ * @param chemin chemin relatif complet du fichier (informatif depuis
+ * v0.31.7 — la décision ne dépend plus du nom : le type privé est sûr
+ * pour tous). Conservé pour la stabilité des appelants.
  * @return le type MIME à passer à [FileSystem.createFile].
  */
-public fun mimeFichierTexte(chemin: String): String =
-    if (sansExtensionReelle(chemin.substringAfterLast('/'))) {
-        MIME_TEXTE_SANS_COMPLETION
-    } else {
-        "text/plain"
-    }
+@Suppress("UnusedParameter") // justifié dans le KDoc ci-dessus (stabilité des appelants)
+public fun mimeFichierTexte(chemin: String): String = MIME_TEXTE_SANS_COMPLETION
 
 /** Type privé inconnu de la table système : aucune complétion d'extension. */
 private const val MIME_TEXTE_SANS_COMPLETION = "text/x-codeide"

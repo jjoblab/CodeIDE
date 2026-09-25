@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
-import jo.codeide.core.domain.sansExtensionReelle
 import java.io.File
 
 /**
@@ -64,13 +63,16 @@ class FauxFournisseurDocuments : ContentProvider() {
     var normaliserNoms = false
 
     /**
-     * Quand `true`, `createDocument` complète un nom **sans extension
-     * réelle** par l'extension canonique du type MIME demandé —
-     * reproduction fidèle d'`ExternalStorageProvider` (v0.31.6, retour
-     * 4a4526aa : le point INITIAL d'un fichier caché n'est pas une
-     * extension — « .gitattributes » + `text/plain` → « .gitattributes.txt »,
-     * exactement comme « temoin » sans point du tout ; un type inconnu de
-     * la table du fournisseur n'est JAMAIS complété).
+     * Quand `true`, `createDocument` complète par l'extension canonique
+     * du type MIME demandé tout nom dont l'extension est **inconnue de
+     * la table du fournisseur** — reproduction fidèle
+     * d'`ExternalStorageProvider` (v0.31.6, retour 4a4526aa : le point
+     * INITIAL d'un fichier caché n'est pas une extension — « .gitattributes »
+     * + `text/plain` → « .gitattributes.txt », comme « temoin » sans point
+     * du tout ; v0.31.7, retour d'appareil Android 15 : « README.md » +
+     * `text/plain` → « README.md.txt » — l'extension « md » est absente de
+     * la table système, comme kts, kt, properties, pro… ; un type inconnu
+     * de la table n'a PAS d'extension canonique et n'est JAMAIS complété).
      */
     var completerExtension = false
 
@@ -245,8 +247,9 @@ class FauxFournisseurDocuments : ContentProvider() {
 
         // Comportements simulés du fournisseur : renommage de collision
         // (section 5.6), complétion d'extension canonique
-        // (ExternalStorageProvider, noms sans extension RÉELLE — v0.31.6)
-        // ou normalisation Windows des espaces/points finaux (v0.31.5).
+        // (ExternalStorageProvider — extension inconnue de la table,
+        // v0.31.6 + v0.31.7) ou normalisation Windows des espaces/points
+        // finaux (v0.31.5).
         val nomFinal =
             when {
                 provoquerRenommage && existeEnfant(idCible, nomDemande) -> {
@@ -254,8 +257,8 @@ class FauxFournisseurDocuments : ContentProvider() {
                 }
 
                 completerExtension &&
-                    sansExtensionReelle(nomDemande) &&
-                    mime != DocumentsContract.Document.MIME_TYPE_DIR -> {
+                    mime != DocumentsContract.Document.MIME_TYPE_DIR &&
+                    extensionInconnue(nomDemande) -> {
                     val extension = extensionCanonique(mime)
                     // Fidèle au fournisseur réel : pas d'extension canonique
                     // connue (type privé) → AUCUNE complétion, nom préservé.
@@ -334,6 +337,21 @@ class FauxFournisseurDocuments : ContentProvider() {
             else -> ""
         }
 
+    /**
+     * L'extension du nom (segment après le dernier point, s'il y en a un)
+     * est-elle **inconnue** de la table du fournisseur ?
+     *
+     * Règle du fournisseur réel (FileUtils.splitFileName) : « README.md »
+     * porte une extension « md » absente de la table système (comme kts,
+     * kt, properties, pro) — le nom y est complété exactement comme un
+     * nom sans point. Seules les extensions de la table canonique
+     * (inverse de [extensionCanonique]) protègent le nom.
+     */
+    private fun extensionInconnue(nom: String): Boolean {
+        val extension = nom.substringAfterLast('.', "")
+        return extension !in EXTENSIONS_CONNUES
+    }
+
     private fun supprimerEnCascade(id: String) {
         val cibles = noeuds.keys.filter { it == id || it.startsWith("$id/") }
         cibles.forEach { cle ->
@@ -369,6 +387,11 @@ class FauxFournisseurDocuments : ContentProvider() {
         private const val SEGMENT_TREE = "tree"
         private const val SEGMENT_DOCUMENT = "document"
         private const val SEGMENT_CHILDREN = "children"
+
+        /** Extensions connues de la table du fournisseur (inverse de la
+         * table canonique) — « md », « kts », « kt »… y sont absents,
+         * comme sur l'appareil réel (v0.31.7). */
+        private val EXTENSIONS_CONNUES = setOf("txt", "png", "jpg", "json")
 
         // Protocole d'appel caché du SDK (vérifié sur le bytecode d'
         // android-all — DocumentsContract.createDocument/deleteDocument).
