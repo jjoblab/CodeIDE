@@ -25,8 +25,16 @@
     <string name="installation_etape_sources">Configuration du dépôt de paquets…</string>
     <string name="installation_etape_apt">Mise à jour du dépôt…</string>
     <string name="installation_etape_paquets">Installation des outils…</string>
-    <string name="installation_detail_extraction">%d fichiers extraits</string>
-    <string name="installation_detail_paquet">%1$s — paquet %2$d sur %3$d</string>
+    <!-- V0.31.5 (CI lint PluralsCandidate) : quantité réelle — pluriel
+         propre, accord des langues (un/plusieurs). -->
+    <plurals name="installation_detail_extraction">
+        <item quantity="one">%d fichier extrait</item>
+        <item quantity="many">%d fichiers extraits</item>
+        <item quantity="other">%d fichiers extraits</item>
+    </plurals>
+    <!-- V0.31.5 : indice « n/total », pas une quantité — le pluriel serait
+         sémantiquement faux (lint PluralsCandidate : %d suivi de mots). -->
+    <string name="installation_detail_paquet">%1$s — paquet %2$d/%3$d</string>
     <string name="installation_detail_telechargement">%1$s sur %2$s</string>
     <string name="installation_journal_titre">Journal en direct</string>
     <string name="installation_details_titre">Détails techniques</string>

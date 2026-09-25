@@ -61,8 +61,15 @@ import org.junit.Test
  *
  * Le modèle de test reproduit la structure des modèles de l'étape 9
  * (paramètres partagés) — aucune horloge réelle.
+ *
+ * Exemption detekt ciblée (règle 16 du prompt maître) : LargeClass — la
+ * machine à états complète du wizard vit dans UN état observable unique
+ * ; 33 scénarios sur les cinq étapes + création partagent la même
+ * fixture (modèle à sept paramètres, emplacement, fakes) — l'éclater
+ * disperserait la couverture sans réduire la complexité réelle.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass")
 class WizardViewModelTest {
     @get:Rule
     val regleMain = MainDispatcherRule()
@@ -806,6 +813,71 @@ class WizardViewModelTest {
             assertTrue(creation is EtatCreation.Echec)
             val echec = creation as EtatCreation.Echec
             assertTrue(echec.erreur is jo.codeide.core.model.AppError.Storage)
+            assertTrue(depot.projets.isEmpty())
+        }
+
+    @Test
+    fun `le pré-vol de collision n écrit rien - l échec vient de la vérification`() =
+        runTest {
+            // v0.31.5 (retour d'appareil réel « toutes mes tentatives sont
+            // vaines ») : la vérification de l'étape Informations (400 ms)
+            // peut être périmée à l'appui sur « Créer » — le pré-vol
+            // re-vérifie AVANT d'écrire ; une collision détectée ici ne
+            // doit même PAS tenter la création (compteur à zéro).
+            var creationsDossier = 0
+            val comptes =
+                object : jo.codeide.core.domain.FileSystem by fichiers {
+                    override suspend fun createDirectory(
+                        parentDirectoryUri: String,
+                        name: String,
+                    ): AppResult<String> {
+                        creationsDossier++
+                        return fichiers.createDirectory(parentDirectoryUri, name)
+                    }
+                }
+            val moteur = TemplateEngine(FakeTemplateAssetsSource())
+            val fournisseur = FauxFournisseur()
+            val planificateur =
+                TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
+            val vm =
+                WizardViewModel(
+                    listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
+                    evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+                    evaluerNom = EvaluerNomProjetUseCase(),
+                    resoudreEmplacement =
+                        ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
+                    relacherEmplacement = ReleaseCreationLocationUseCase(parametres, depot, fichiers),
+                    verifierCible = VerifyCreationTargetUseCase(fichiers),
+                    planifierCreation = PlanProjectCreationUseCase(planificateur),
+                    creerProjet = CreateProjectUseCase(planificateur, comptes, depot, journal),
+                    marquerOuvert = MarkProjectOpenedUseCase(depot),
+                    horloge = horloge,
+                    observerParametres = ObserveSettingsUseCase(parametres),
+                    journal = journal,
+                    savedState = SavedStateHandle(),
+                )
+            advanceUntilIdle()
+            preparerEmplacementEtModele(vm)
+            // Le dossier apparaît APRÈS la vérification de l'étape
+            // Informations : l'état porte un Valide périmé (le piège réel).
+            fichiers.seedDocument(
+                arborescences.uriDocument("content://autorite/tree/travail")!! + "/monprojet",
+                FakeFileSystem.Document(name = "monprojet", isDirectory = true),
+            )
+            avancerJusquaRecapitulatif(vm)
+
+            vm.action(ActionWizard.Creer)
+            advanceUntilIdle()
+
+            val creation = vm.etat.value.etatCreation
+            assertTrue("pré-vol : échec typé", creation is EtatCreation.Echec)
+            val echec = creation as EtatCreation.Echec
+            assertTrue(
+                "collision typée, pas une erreur générique",
+                (echec.erreur as? jo.codeide.core.model.AppError.Storage)?.reason ==
+                    jo.codeide.core.model.AppError.StorageReason.AlreadyExists,
+            )
+            assertEquals("aucune écriture tentée (pré-vol bloquant)", 0, creationsDossier)
             assertTrue(depot.projets.isEmpty())
         }
 

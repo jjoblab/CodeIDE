@@ -513,7 +513,12 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                 }
 
                 is EtapeInstallation.Extraction -> {
-                    getString(R.string.installation_detail_extraction, etape.entreesTraitees)
+                    // Pluriel propre (v0.31.5, CI lint PluralsCandidate).
+                    resources.getQuantityString(
+                        R.plurals.installation_detail_extraction,
+                        etape.entreesTraitees,
+                        etape.entreesTraitees,
+                    )
                 }
 
                 is EtapeInstallation.InstallationPaquets -> {

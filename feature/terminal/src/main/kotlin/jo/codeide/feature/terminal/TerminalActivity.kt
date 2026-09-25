@@ -17,6 +17,7 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import com.termux.terminal.TerminalSession
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.TerminalSessionSummary
 import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.terminalruntime.TerminalRuntime
 import jo.codeide.core.ui.AppNavigator
@@ -35,6 +36,16 @@ import javax.inject.Inject
  * **un seul [com.termux.view.TerminalView]** rebranché sur la session
  * active — jamais un par onglet, la mémoire en dépend — et rangée de
  * touches étendues interne ([ClavierEtenduView]).
+ *
+ * V0.31.5 (retour d'appareil réel) : le rendu suit les sorties au fil
+ * de l'eau (signal [TerminalRuntime.observeSorties] → `onScreenUpdated`,
+ * même architecture que Termux — c'est l'activité qui repeint), les
+ * onglets se resynchronisent **par diff** (plus de reconstruction
+ * complète à chaque émission d'état : un tap pendant une commande qui
+ * débitait ne pouvait jamais atterrir — les vues d'onglets étaient
+ * détruites sous le doigt toutes les 250 ms) et le pincement zoome la
+ * police (contrat Termux : le client applique, la vue n'applique
+ * jamais — voir [ClientVueTerminal]).
  *
  * Appui long sur un onglet : renommer, dupliquer (même répertoire de
  * travail), fermer. Fermeture : confirmation si une commande semble en
@@ -69,6 +80,14 @@ class TerminalActivity : AppCompatActivity() {
     /** Garde anti-réentrance pendant la resynchronisation des onglets. */
     private var renduEnCours = false
 
+    /** Onglet « + » final (créé une fois, jamais recréé). */
+    private var ongletPlus: TabLayout.Tab? = null
+
+    /** Un pincement a eu lieu : le réglage ne reprend la main qu'à son
+     * prochain changement réel (v0.31.5 — sinon chaque émission d'état
+     * écrasait le zoom par la taille du réglage 250 ms plus tard). */
+    private var zoomManuel = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -86,8 +105,18 @@ class TerminalActivity : AppCompatActivity() {
                 vue = liaison.vueTerminal,
                 clavier = liaison.clavierEtendu,
                 surEmulateurPret = { appliquerThemeRendu() },
+                zoomer = ::zoomer,
             ),
         )
+
+        // V0.31.5 — rendu vivant : chaque changement de sortie repeint la vue
+        // branchée (l'aperçu throttlé des métadonnées ne suffit pas : le texte
+        // n'apparaissait qu'au prochain layout). `onScreenUpdated` est sans
+        // effet si l'émulateur n'est pas en place ; repeindre la vue affichée
+        // alors que la session changée est une autre est sans coût.
+        runtime.observeSorties().collectWithLifecycle(this) {
+            liaison.vueTerminal.onScreenUpdated()
+        }
 
         liaison.boutonNouvelleSession.setOnClickListener {
             viewModel.onAction(ActionTerminal.NouvelleSession)
@@ -145,34 +174,91 @@ class TerminalActivity : AppCompatActivity() {
         renduEnCours = false
     }
 
-    /** Reconstruit les onglets (peu nombreux : resynchronisation simple). */
+    /** Reconstruit les onglets **par diff** (v0.31.5).
+     *
+     * Les aperçus de session changent toutes les 250 ms pendant une
+     * commande : l'ancienne reconstruction complète (removeAllTabs +
+     * addTab) détruisait les vues d'onglets sous le doigt de
+     * l'utilisateur — un tap n'atterrissait jamais (retour d'appareil
+     * réel : « je ne peux pas naviguer entre les sessions »). Ici :
+     * - les onglets de sessions existants sont MIS À JOUR en place
+     *   (libellé, pastille, écouteurs — l'identifiant positionnel peut
+     *   avoir glissé après une fermeture) ;
+     * - les nouveaux sont insérés AVANT le « + » ; les disparus retirés ;
+     * - le « + » est créé une fois ;
+     * - la sélection ne bouge que si elle diffère de la session active.
+     */
     private fun synchroniserOnglets(etat: EtatTerminal) {
         val onglets = liaison.ongletsSessions
-        onglets.removeAllTabs()
-        for (session in etat.sessions) {
-            val vueOnglet = VueOngletSessionBinding.inflate(layoutInflater)
-            vueOnglet.libelleSession.text = session.label
-            teinterPastille(vueOnglet.pastilleEtatSession, session.isAlive)
-            vueOnglet.boutonFermerSession.setOnClickListener {
-                viewModel.onAction(ActionTerminal.FermerSession(session.id))
-            }
-            vueOnglet.root.setOnLongClickListener {
-                menuContextuel(it, session.id)
-                true
-            }
-            onglets.addTab(onglets.newTab().setCustomView(vueOnglet.root), session.id == etat.idSessionActive)
+        val sessions = etat.sessions
+
+        // Retraits (fin → début : indices stables) — le « + » reste en
+        // dernière position, hors de la plage retirée.
+        val nombreSessionsAffichees = onglets.tabCount - (if (ongletPlus != null) 1 else 0)
+        for (position in (nombreSessionsAffichees - 1) downTo sessions.size) {
+            onglets.getTabAt(position)?.let(onglets::removeTab)
         }
+
+        // Ajouts et mises à jour : position par position.
+        for ((position, session) in sessions.withIndex()) {
+            val vueExistante = onglets.getTabAt(position)?.customView
+            val vueOnglet =
+                if (vueExistante != null) {
+                    VueOngletSessionBinding.bind(vueExistante)
+                } else {
+                    VueOngletSessionBinding.inflate(layoutInflater).also { frais ->
+                        onglets.addTab(
+                            onglets.newTab().setCustomView(frais.root),
+                            position,
+                            false,
+                        )
+                    }
+                }
+            configurerOnglet(vueOnglet, session, etat)
+        }
+
         // Onglet « + » final : création rapide (icône teintée par le thème).
-        val plus = ImageView(this)
-        plus.setImageResource(R.drawable.ic_nouvelle_session)
-        plus.imageTintList =
-            ColorStateList.valueOf(
-                MaterialColors.getColor(
-                    liaison.ongletsSessions,
-                    com.google.android.material.R.attr.colorOnSurface,
-                ),
-            )
-        liaison.ongletsSessions.addTab(liaison.ongletsSessions.newTab().setCustomView(plus))
+        if (ongletPlus == null) {
+            val plus = ImageView(this)
+            plus.setImageResource(R.drawable.ic_nouvelle_session)
+            plus.imageTintList =
+                ColorStateList.valueOf(
+                    MaterialColors.getColor(
+                        liaison.ongletsSessions,
+                        com.google.android.material.R.attr.colorOnSurface,
+                    ),
+                )
+            val onglet = onglets.newTab().setCustomView(plus)
+            ongletPlus = onglet
+            onglets.addTab(onglet)
+        }
+
+        // Sélection : uniquement si elle diffère (le rappel de sélection
+        // programmatique est écarté par le garde renduEnCours).
+        val indexActif = sessions.indexOfFirst { it.id == etat.idSessionActive }
+        if (indexActif >= 0 && onglets.selectedTabPosition != indexActif) {
+            onglets.getTabAt(indexActif)?.select()
+        }
+    }
+
+    /** Branche le contenu et les écouteurs d'un onglet de session. */
+    private fun configurerOnglet(
+        vueOnglet: VueOngletSessionBinding,
+        session: TerminalSessionSummary,
+        etat: EtatTerminal,
+    ) {
+        vueOnglet.libelleSession.text = session.label
+        teinterPastille(vueOnglet.pastilleEtatSession, session.isAlive)
+        vueOnglet.boutonFermerSession.setOnClickListener {
+            viewModel.onAction(ActionTerminal.FermerSession(session.id))
+        }
+        vueOnglet.root.setOnLongClickListener {
+            menuContextuel(it, session.id)
+            true
+        }
+        // Onglet actif : la sélection du TabLayout suit indexActif ; la
+        // vue marque l'état pour l'accessibilité et le contraste.
+        vueOnglet.root.isSelected = session.id == etat.idSessionActive
     }
 
     /** Teinte la pastille d'état (vivante : émeraude ; terminée : grise). */
@@ -259,8 +345,8 @@ class TerminalActivity : AppCompatActivity() {
     /**
      * Rebranche le `TerminalView` **unique** sur la session active — le
      * cœur du « un seul rendu » (même principe que l'éditeur). Sans
-     * changement d'identifiant, rien à faire : le transcript se rafraîchit
-     * de lui-même.
+     * changement d'identifiant, rien à faire : le signal de sorties
+     * (observeSorties) repeint le transcript au fil de l'eau.
      */
     @Suppress("ReturnCount") // Clauses de garde : une par cas non rendable (règle 16).
     private fun brancher(idSession: String?) {
@@ -279,6 +365,11 @@ class TerminalActivity : AppCompatActivity() {
         }
         liaison.vueTerminal.attachSession(session)
         appliquerThemeRendu()
+        // Le rebranchement doit s'afficher IMMÉDIATEMENT (v0.31.5) :
+        // attachSession passe par updateSize → invalidate, mais un
+        // repaint explicite garantit le contenu de la nouvelle session
+        // dès ce frame — même garantie que le signal de sorties.
+        liaison.vueTerminal.onScreenUpdated()
     }
 
     /**
@@ -301,7 +392,13 @@ class TerminalActivity : AppCompatActivity() {
         liaison.vueTerminal.onScreenUpdated()
     }
 
-    /** Applique la taille de police à chasse fixe (réglage dédié T5). */
+    /** Applique la taille de police à chasse fixe (réglage dédié T5).
+     *
+     * Un zoom manuel (pincement) prend la main jusqu'au prochain
+     * changement RÉEL du réglage : les émissions d'état (toutes les
+     * 250 ms pendant une commande) ne doivent pas écraser la taille
+     * pincée (v0.31.5).
+     */
     private fun appliquerTaillePolice(taille: TaillePoliceTerminal) {
         val dp =
             when (taille) {
@@ -316,10 +413,53 @@ class TerminalActivity : AppCompatActivity() {
                     dp.toFloat(),
                     resources.displayMetrics,
                 ).toInt()
-        if (pixels == tailleAppliqueePx) return
-        tailleAppliqueePx = pixels
+        if (zoomManuel || pixels == tailleRenduePx) return
+        tailleRenduePx = pixels
         liaison.vueTerminal.setTextSize(pixels)
     }
+
+    /**
+     * Applique le zoom pincé (v0.31.5) — appelé par [ClientVueTerminal]
+     * avec le facteur ACCUMULÉ du geste (contrat Termux vérifié sur le
+     * bytecode : la vue n'applique jamais elle-même).
+     *
+     * @param facteur facteur accumulé depuis le début du geste.
+     * @return `true` si le facteur a été consommé (le compteur de la vue
+     * repart à 1.0f) ; `false` pour le laisser s'accumuler (pincement
+     * négligeable, mêmes seuils que Termux).
+     */
+    private fun zoomer(facteur: Float): Boolean {
+        if (facteur in SEUIL_ZOOM_NEGIGEABLE..SEUIL_ZOOM_NOTABLE) return false
+        val courante = tailleCourantePx()
+        val cible = (courante * facteur).toInt().coerceIn(zoomMinPx, zoomMaxPx)
+        if (cible != courante) {
+            tailleRenduePx = cible
+            zoomManuel = true
+            liaison.vueTerminal.setTextSize(cible)
+        }
+        return true
+    }
+
+    /** Taille courante de la vue (réglage ou zoom) — repli moyenne. */
+    private fun tailleCourantePx(): Int =
+        if (tailleRenduePx == AUCUNE_TAILLE) {
+            TypedValue
+                .applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    POLICE_MOYENNE_DP.toFloat(),
+                    resources.displayMetrics,
+                ).toInt()
+        } else {
+            tailleRenduePx
+        }
+
+    /** Borne basse du zoom (pixels, densité courante). */
+    private val zoomMinPx: Int
+        get() = (ZOOM_MIN_DP * resources.displayMetrics.density).toInt()
+
+    /** Borne haute du zoom (pixels, densité courante). */
+    private val zoomMaxPx: Int
+        get() = (ZOOM_MAX_DP * resources.displayMetrics.density).toInt()
 
     private companion object {
         /** Indices de la palette Termux (disposition jackpal, 259 entrées). */
@@ -334,8 +474,18 @@ class TerminalActivity : AppCompatActivity() {
 
         /** Valeur sentinelle « aucune taille appliquée ». */
         const val AUCUNE_TAILLE = -1
+
+        /** Pincements négligeables (facteur accumulé, mêmes bornes que
+         * Termux) : en dessous, le facteur continue de s'accumuler. */
+        const val SEUIL_ZOOM_NEGIGEABLE = 0.9f
+        const val SEUIL_ZOOM_NOTABLE = 1.1f
+
+        /** Bornes du zoom pincé (dp, converties en pixels à l'usage). */
+        const val ZOOM_MIN_DP = 10
+        const val ZOOM_MAX_DP = 30
     }
 
-    /** Dernière taille de police appliquée (évite les re-créations de fonte). */
-    private var tailleAppliqueePx: Int = AUCUNE_TAILLE
+    /** Dernière taille de police réellement appliquée à la vue (réglage ou
+     * zoom pincé — évite re-créations de fonte et écrasements mutuels). */
+    private var tailleRenduePx: Int = AUCUNE_TAILLE
 }

@@ -210,11 +210,16 @@
                     android:text="@string/installation_journal_titre"
                     android:textAppearance="?attr/textAppearanceLabelMedium" />
 
-                <ScrollView
+                <!-- v0.31.5 (CI lint NestedScrolling) : NestedScrollView —
+                     conçu pour l'imbrication, la carte garde sa hauteur
+                     fixe et le journal défile en son sein ; le conteneur
+                     externe reste LE défilement vertical de l'écran. -->
+                <androidx.core.widget.NestedScrollView
                     android:id="@+id/defilement_journal"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/hauteur_journal_installation"
-                    android:layout_marginTop="@dimen/spacing_xs">
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:overScrollMode="never">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/texte_journal"
@@ -224,7 +229,7 @@
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         tools:text="Atteint :1 stable Release&#10;Lecture des listes de paquets…" />
-                </ScrollView>
+                </androidx.core.widget.NestedScrollView>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

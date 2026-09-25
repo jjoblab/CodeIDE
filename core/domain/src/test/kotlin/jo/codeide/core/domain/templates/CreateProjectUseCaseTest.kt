@@ -224,6 +224,36 @@ class CreateProjectUseCaseTest {
         }
 
     @Test
+    fun `l erreur REELLE d insertion remonte - dossier deja reference n est pas un Io`() =
+        runTest {
+            // v0.31.5 : l'insertion refusée (index unique sur documentUri —
+            // le dossier est déjà référencé par un autre projet) remonte
+            // AlreadyExists tel quel ; l'ancien remplacement par un Io
+            // générique (« insertion du projet en base ») masquait la
+            // raison exactement comme le masque de collision de v0.31.1.
+            val e = Ecosysteme()
+            // La base connaît déjà l'emplacement ; le système de fichiers,
+            // lui, est vierge (la racine se crée, les fichiers s'écrivent —
+            // c'est bien l'insertion qui échoue).
+            e.projets.seedProject(
+                StorageLocation(grantUri = "work:", documentUri = "work:/Demo", displayPath = "/Travail/Demo"),
+            )
+
+            val evenements = creer(e, e.requete())
+
+            val terminal = evenements.last() as CreationProgress.Termine
+            val erreur = (terminal.result as AppResult.Failure).error
+            assertTrue("erreur de stockage attendue : $erreur", erreur is AppError.Storage)
+            assertEquals(
+                "la raison RÉELLE (AlreadyExists) remonte",
+                AppError.StorageReason.AlreadyExists,
+                (erreur as AppError.Storage).reason,
+            )
+            assertTrue(terminal.rolledBack)
+            assertEquals(1, e.projets.projets.size) // Le préexistant reste seul.
+        }
+
+    @Test
     fun `une suppression impossible pendant le rollback laisse des résidus`() =
         runTest {
             val e = Ecosysteme()

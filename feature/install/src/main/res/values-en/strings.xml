@@ -25,8 +25,13 @@
     <string name="installation_etape_sources">Configuring the package repository…</string>
     <string name="installation_etape_apt">Updating the repository…</string>
     <string name="installation_etape_paquets">Installing tools…</string>
-    <string name="installation_detail_extraction">%d files extracted</string>
-    <string name="installation_detail_paquet">%1$s — package %2$d of %3$d</string>
+    <!-- v0.31.5 (CI lint PluralsCandidate): real quantity — proper plural. -->
+    <plurals name="installation_detail_extraction">
+        <item quantity="one">%d file extracted</item>
+        <item quantity="other">%d files extracted</item>
+    </plurals>
+    <!-- v0.31.5: "n/total" index, not a quantity — plural would be wrong. -->
+    <string name="installation_detail_paquet">%1$s — package %2$d/%3$d</string>
     <string name="installation_detail_telechargement">%1$s of %2$s</string>
     <string name="installation_journal_titre">Live log</string>
     <string name="installation_details_titre">Technical details</string>

@@ -2,9 +2,12 @@
 <!--
   Écran de création (section 12.3, hors numérotation) : progression en
   temps réel avec annulation, ou écran de succès / d'échec avec actions.
+  V0.31.5 : l'échec porte ses détails techniques (bornés, monospace) et
+  propose « Changer de nom ou d'emplacement » en cas de collision.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -163,6 +166,33 @@
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:gravity="center_horizontal"
                 android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+            <!-- V0.31.5 : diagnostic technique VISIBLE (borné) — URI de
+                 l'homonyme, pré-vol, insertion refusée ; reste copiable. -->
+            <TextView
+                android:id="@+id/texte_echec_details"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:ellipsize="end"
+                android:fontFamily="monospace"
+                android:gravity="center_horizontal"
+                android:maxLines="2"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- V0.31.5 : sortie du piège « choisis un autre nom » —
+                 l'écran le propose enfin (collision uniquement). -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_corriger"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:text="@string/wizard_echec_corriger"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_reessayer"

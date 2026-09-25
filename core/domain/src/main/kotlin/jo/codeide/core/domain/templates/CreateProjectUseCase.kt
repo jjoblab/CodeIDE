@@ -111,22 +111,28 @@ public class CreateProjectUseCase
                     emit(CreationProgress.Enregistrement)
 
                     // 6 — registre en dernier ; un échec déclenche aussi le rollback.
+                    // v0.31.5 : l'erreur RÉELLE de l'insertion remonte (elle
+                    // est typée — dossier déjà référencé = AlreadyExists,
+                    // base verrouillée = Io) ; l'ancien remplacement par un
+                    // Io générique masquait la raison exactement comme le
+                    // masque de collision de v0.31.1 (même principe honnête).
+                    val insertion =
+                        projets.addProject(
+                            name = requete.name,
+                            description = requete.description,
+                            location =
+                                StorageLocation(
+                                    grantUri = requete.parentLocation.grantUri,
+                                    documentUri = racine,
+                                    displayPath = requete.parentLocation.displayPath + "/" + requete.name,
+                                ),
+                            templateId = requete.templateId,
+                        )
                     val projet =
-                        projets
-                            .addProject(
-                                name = requete.name,
-                                description = requete.description,
-                                location =
-                                    StorageLocation(
-                                        grantUri = requete.parentLocation.grantUri,
-                                        documentUri = racine,
-                                        displayPath = requete.parentLocation.displayPath + "/" + requete.name,
-                                    ),
-                                templateId = requete.templateId,
-                            ).getOrNull()
-                            ?: throw EchecCreation(
-                                AppError.Storage(AppError.StorageReason.Io, "insertion du projet en base"),
-                            )
+                        when (insertion) {
+                            is AppResult.Success -> insertion.value
+                            is AppResult.Failure -> throw EchecCreation(insertion.error)
+                        }
                     emit(
                         CreationProgress.Termine(
                             AppResult.Success(projet),

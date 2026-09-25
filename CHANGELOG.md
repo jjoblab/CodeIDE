@@ -4,6 +4,123 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.5] – 2026-09-25
+
+Cinquième lot de corrections après **retour d'appareil réel** (moto g06 /
+Android 15) : l'écran du terminal « n'est pas à jour immédiatement »,
+« le pinch zoom ne fait rien », « impossible de naviguer entre les
+sessions par les onglets » ; la création de projet « un dossier porte
+déjà ce nom — toutes mes tentatives sont vaines » ; et CI rouge sur
+`feature:install:lintDebug` (8 erreurs lint, v0.31.4). Version
+corrective (SemVer `0.N.M`). ADR 0049.
+
+### Corrigé
+
+- **Terminal : le texte apparaît maintenant au frame suivant**
+  (« quand j'écris ou tape une cmd, le terminal n'est pas à jour
+  immédiatement ») : dans l'architecture Termux, c'est le client de
+  session de l'ACTIVITÉ qui repeint la vue — ici personne n'appelait
+  `onScreenUpdated()`, le registre ne servant que l'aperçu throttlé
+  (250 ms) des métadonnées. Le runtime expose désormais un **signal de
+  repeint immédiat** (`TerminalRuntime.observeSorties()` — tampon 1,
+  dernier gagnant, sans throttle) que l'écran collecte ; le
+  rebranchement de session repeint explicitement après
+  `attachSession`. Diagnostic établi sur le bytecode désassemblé de
+  `terminal-view` v0.118.3.
+- **Terminal : le pincement zoome la police** (« quand je fais un pinch
+  zoom rien ne se passe ») : le contrat Termux (vérifié sur le
+  bytecode) passe à `onScale` le facteur ACCUMULÉ du geste et
+  n'applique JAMAIS lui-même — notre client retournait le facteur
+  intact, pincement inerte par construction. Le client applique
+  désormais la taille (bornes 10–30 dp, pincements négligeables < ±10 %
+  ignorés, facteur consommé comme Termux) et un drapeau `zoomManuel`
+  empêche les émissions d'état d'écraser la taille pincée par celle du
+  réglage.
+- **Terminal : les onglets répondent, même pendant une commande**
+  (« je ne peux pas naviguer entre les sessions quand j'appuie sur les
+  onglets ») : les onglets étaient RECONSTRUITS en entier
+  (`removeAllTabs` + `addTab`) à chaque émission d'état — soit toutes
+  les 250 ms pendant qu'une commande débite : les vues d'onglets
+  étaient détruites sous le doigt, un tap n'atterrissait jamais. La
+  resynchronisation est désormais **par diff** (mise à jour en place,
+  insertions avant le « + », sélection déplacée seulement si elle
+  diffère). Et une session créée devient **toujours** la session
+  active — l'onglet « + » et le bouton de création partent de ce
+  postulat (l'ancien code ne l'activait que si aucune n'était active,
+  l'écran retombait sur l'ancienne).
+- **Création de projet : pré-vol à l'appui sur « Créer »** (« un
+  dossier porte déjà ce nom… toutes mes tentatives sont vaines ») :
+  la vérification de l'étape Informations (délai 400 ms) peut être
+  périmée au moment de créer (résidu d'une tentative échouée, dossier
+  déposé entre-temps) — la cible est **re-vérifiée juste avant
+  d'écrire** ; une collision détectée publie l'échec typé SANS lancer
+  une création condamnée (aucune écriture). `CreateProjectUseCase`
+  relaye en outre l'erreur **réelle** de l'insertion en base
+  (dossier déjà référencé = `AlreadyExists`, base verrouillée = `Io`)
+  au lieu d'un `Io` générique — même principe honnête que v0.31.1.
+  Et `SafFileSystem` tolère une **normalisation fournisseur** du nom
+  créé (espaces/points finaux rabotés — couches compatibles Windows) :
+  le document créé au nom normalisé est le nôtre, pas une collision de
+  pure invention.
+- **Création de projet : sortie du piège de collision** : l'écran
+  d'échec **affiche désormais les détails techniques** portés par
+  l'erreur (URI de l'homonyme, pré-vol, insertion refusée — monospace,
+  bornés, toujours copiables) et un bouton **« Changer de nom ou
+  d'emplacement »** ramène directement à l'étape Informations — le
+  message le réclamait depuis v0.31.0, l'écran le propose enfin
+  (« Réessayer » relançait exactement la même requête condamnée).
+- **CI lint verte** (`feature:install:lintDebug` échouait avec 8
+  erreurs sur v0.31.4) : le journal de l'écran d'installation
+  devient `NestedScrollView` (hauteur fixe et auto-défilement
+  inchangés — le conteneur externe reste LE défilement de l'écran) ;
+  « %d fichiers extraits » devient un vrai `<plurals>` (FR un/plusieurs,
+  EN one/other) ; « paquet %2$d sur %3$d » devient l'indice
+  « %2$d/%3$d » (un indice n'est pas une quantité, le pluriel serait
+  sémantiquement faux). Au passage, trois `UseKtx` latents
+  d'`onboarding` (`Uri.parse` → `toUri()`) — la CI les aurait vus dès
+  qu'`install` serait réparé.
+
+### Tests
+
+- `RegistreSessionsTermuxTest` (17, +3) : le signal de repeint part
+  **sans attendre la fenêtre de throttle** (`runCurrent` ne livre que
+  le prêt-maintenant — un signal livré prouve l'absence de délai) ;
+  la fin naturelle émet aussi le signal ; une session créée active
+  toujours la nouvelle même si une autre vivait.
+- `WizardViewModelTest` (32, +1) : le pré-vol de collision n'écrit
+  **rien** (compteur `createDirectory` à zéro sur un système de
+  fichiers instrumenté) et publie l'échec `AlreadyExists` typé.
+- `CreateProjectUseCaseTest` (11, +1) : l'insertion refusée (dossier
+  déjà référencé) remonte `AlreadyExists` — pas un `Io` masqué — avec
+  rollback complet et registre intact.
+- `SafFileSystemTest` (19, +1) : une normalisation fournisseur des
+  espaces/points finaux (« MonProjet.. » → « MonProjet ») est ACCEPTÉE
+  (réussite, URI réelle) — pas une collision, pas de nettoyage du
+  document fraîchement créé.
+- `FakeProjectRepository.seedProject` (core:testing) : semer un projet
+  préexistant pour éprouver le refus d'`addProject` (index unique).
+
+### Découvertes d'ingénierie
+
+- **Le contrat `TerminalViewClient.onScale` n'est pas celui qu'on
+  croit** : la vue (bytecode v0.118.3) accumule un facteur, le passe
+  au client, et **n'applique jamais** — retourner le facteur intact
+  rend le pincement inerte sans AUCUN autre symptôme. Un client doit
+  appliquer la taille lui-même puis retourner `1.0f`.
+- **Un TabLayout reconstruit mange les taps** : `removeAllTabs` +
+  `addTab` à chaque émission d'un état qui change toutes les 250 ms
+  détruit les vues d'onglets sous le doigt — la sélection programmatique
+  garde son anti-réentrance, mais le GESTE utilisateur, lui, n'atterrit
+  jamais. Diff ou rien.
+- **La vérification asynchrone n'est pas une garantie** : un état de
+  vérification « Valide » peut être périmé au moment de l'action — une
+  action destructrice (ou simplement coûteuse) doit re-vérifier sa
+  précondition dans l'instant, pas se fier à un cache daté.
+- **`lintDebug` local doit couvrir les modules touchés, pas seulement
+  `:app`** : la CI lance le lint de CHAQUE module — v0.31.4 n'avait
+  vérifié que `:app:lintDebug`, la CI a vu les 8 erreurs
+  d'`feature:install` que personne n'avait regardées.
+
 ## [0.31.4] – 2026-09-25
 
 Quatrième lot de corrections après **retour d'appareil réel** (app

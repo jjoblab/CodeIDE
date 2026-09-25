@@ -2,7 +2,6 @@ package jo.codeide.feature.onboarding
 
 import android.Manifest
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -11,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.transition.TransitionManager
@@ -176,7 +176,8 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
 
             EffetOnboarding.OuvrirReglagesStockage -> {
                 ouvrirReglages(Settings.ACTION_APPLICATION_DETAILS_SETTINGS) {
-                    data = Uri.parse("package:${requireContext().packageName}")
+                    // v0.31.5 (CI lint UseKtx) : extension KTX dédiée.
+                    data = "package:${requireContext().packageName}".toUri()
                 }
             }
 
@@ -213,7 +214,8 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
             val intention =
                 Intent(
                     Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.parse("package:${requireContext().packageName}"),
+                    // v0.31.5 (CI lint UseKtx) : extension KTX dédiée.
+                    "package:${requireContext().packageName}".toUri(),
                 )
             startActivity(intention)
         } else {

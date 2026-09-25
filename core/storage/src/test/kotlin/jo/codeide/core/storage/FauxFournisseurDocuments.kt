@@ -56,6 +56,13 @@ class FauxFournisseurDocuments : ContentProvider() {
     var provoquerRenommage = false
 
     /**
+     * Quand `true`, `createDocument` rabote les espaces/points FINAUX du
+     * nom demandé — reproduction des couches compatibles Windows
+     * (FAT relues, v0.31.5) : « Projet. » y devient « Projet ».
+     */
+    var normaliserNoms = false
+
+    /**
      * Quand `true`, `createDocument` complète un nom **sans point** par
      * l'extension canonique du type MIME demandé — reproduction fidèle
      * d'`ExternalStorageProvider` (le nom demandé sans extension reçoit
@@ -233,8 +240,9 @@ class FauxFournisseurDocuments : ContentProvider() {
         val mime = extras.getString(COLONNE_TYPE_MIME) ?: return null
 
         // Comportements simulés du fournisseur : renommage de collision
-        // (section 5.6) ou complétion d'extension canonique
-        // (ExternalStorageProvider, noms sans point).
+        // (section 5.6), complétion d'extension canonique
+        // (ExternalStorageProvider, noms sans point) ou normalisation
+        // Windows des espaces/points finaux (v0.31.5).
         val nomFinal =
             when {
                 provoquerRenommage && existeEnfant(idCible, nomDemande) -> {
@@ -244,6 +252,10 @@ class FauxFournisseurDocuments : ContentProvider() {
                 completerExtension && !nomDemande.contains('.') &&
                     mime != DocumentsContract.Document.MIME_TYPE_DIR -> {
                     "$nomDemande.${extensionCanonique(mime)}"
+                }
+
+                normaliserNoms -> {
+                    nomDemande.trimEnd(' ', '.')
                 }
 
                 else -> {

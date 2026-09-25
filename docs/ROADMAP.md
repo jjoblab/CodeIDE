@@ -146,6 +146,30 @@ d'outils (`openjdk-17`, `git`) devenant **optionnels et différés**
 de la base, garde JDK dans l'éditeur avant sync/build avec message
 actionnable, ADR 0048).
 
+**Correctif v0.31.5 (2026-09-25, après retour d'appareil réel —
+terminal « pas à jour immédiatement » / pinch-zoom inerte / onglets
+inopérants, création de projet « un dossier porte déjà ce nom »,
+CI lint rouge sur `feature:install`)** : terminal vivant (signal de
+repeint **immédiat** `TerminalRuntime.observeSorties()` collecté par
+l'activité — dans l'architecture Termux c'est le client de session de
+l'ACTIVITÉ qui repeint la vue, personne ne le faisait ; zoom pincé
+appliqué par le client selon le vrai contrat du bytecode v0.118.3 —
+bornes 10–30 dp, facteur consommé ; onglets resynchronisés **par
+diff** — la reconstruction complète toutes les 250 ms détruisait les
+vues sous le doigt, les taps n'atterrissaient jamais ; une session
+créée devient toujours active, ADR 0049) ; création de projet honnête
+jusqu'au bout (**pré-vol** à l'appui sur « Créer » — la cible est
+re-vérifiée avant toute écriture, l'état « Valide » de l'étape
+Informations pouvant être périmé ; erreur **réelle** de l'insertion
+en base relayée au lieu d'un `Io` générique ; normalisation
+fournisseur des espaces/points finaux tolérée par `SafFileSystem` ;
+détails techniques **visibles** à l'écran d'échec et bouton
+« Changer de nom ou d'emplacement » — sortie du piège « Réessayer »
+en boucle, ADR 0049) ; lint réparé à la source (`NestedScrollView`
+du journal, `<plurals>` de l'extraction, indice « n/total » du
+paquet, `toUri()` dans l'onboarding — la vérification locale étend
+son `lintDebug` à TOUS les modules touchés, ADR 0049).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les
