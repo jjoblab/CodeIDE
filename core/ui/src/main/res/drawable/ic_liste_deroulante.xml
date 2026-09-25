@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chevron descendant d'un champ de saisie (liste déroulante maison de
+     l'explorateur v2 : ouvre le popover de choix de destination). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2.4"
+        android:pathData="M6,9.5 L12,15.5 L18,9.5" />
+</vector>

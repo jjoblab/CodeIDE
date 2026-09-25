@@ -1,8 +1,10 @@
 package jo.codeide.core.ui
 
 import android.view.View
+import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 
 /** Paddings initiaux d'une vue, capturés avant l'application des insets. */
@@ -37,6 +39,35 @@ public fun View.applySystemBarsInsets(
             top = initiaux.haut + if (top) barres.top else 0,
             bottom = initiaux.bas + if (bottom) barres.bottom else 0,
         )
+        insets
+    }
+}
+
+/**
+ * Comme [applySystemBarsInsets], mais la barre d'état (et l'encoche)
+ * devient une **marge haute** au lieu d'un padding : la vue RACCOURCIT —
+ * rien d'elle ne se peint derrière la barre de statut — au lieu d'y
+ * étendre son fond. La barre de navigation reste un padding bas.
+ *
+ * Destiné au tiroir de l'espace de travail (ADR 0052, maquette
+ * EXPLORATEUR_V2 § 2 : le tiroir s'ouvre SOUS la barre de statut) :
+ * un tiroir plein écran paddingé montrerait son entête sous les icônes
+ * de la barre de statut. Nécessite un parent dont les LayoutParams
+ * portent des marges (DrawerLayout, LinearLayout…). Ne pas combiner
+ * avec [applySystemBarsInsets] sur la même vue (un seul écouteur
+ * d'insets).
+ *
+ * @param bottom absorber la barre de navigation en bas (padding).
+ */
+public fun View.applySystemBarsInsetsTopMargin(bottom: Boolean = true) {
+    val initiaux = PaddingsInitiaux(paddingLeft, paddingTop, paddingRight, paddingBottom)
+    ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
+        val barres =
+            insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+            )
+        vue.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = barres.top }
+        vue.updatePadding(bottom = initiaux.bas + if (bottom) barres.bottom else 0)
         insets
     }
 }

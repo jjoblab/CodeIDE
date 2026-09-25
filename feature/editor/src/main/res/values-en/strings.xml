@@ -182,6 +182,11 @@
     <string name="deplacer_erreur_deja">Already there.</string>
     <string name="deplacer_erreur_dans_source">Impossible: the destination is inside the moved item.</string>
 
+    <!-- “Choose destination” popover (v0.32.1). -->
+    <string name="deplacer_destination_choisir">Choose destination</string>
+    <string name="deplacer_destination_choisir_cd">Pick the destination folder from the list</string>
+    <string name="deplacer_destination_racine">Root</string>
+
     <!-- “Delete” popover (§ 10.5). -->
     <string name="supprimer_fichier_message">Delete %1$s? This cannot be undone.</string>
     <string name="supprimer_dossier_message">Delete %1$s and all its contents? This cannot be undone.</string>

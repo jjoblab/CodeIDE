@@ -4,6 +4,39 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.32.1] – 2026-09-26
+
+### Corrigé (retour appareil réel sur l'étape 31)
+
+- **Fond de la ligne sélectionnée de l'arbre** : la « barre » 2,5 dp du
+  drawable `fond_ligne_selectionnee` s'étirait en réalité PLEINE LARGEUR
+  (un `<size>` sur le shape ne borne pas une couche de `layer-list`)
+  — la ligne sélectionnée apparaissait comme un bloc plein au lieu du
+  dégradé `accent-doux → transparent` avec fine barre `accent-fort` au
+  bord. La barre est désormais un calque de largeur fixe (`android:width`
+  sur l'item) ancré au bord de départ sur toute la hauteur, coins
+  suivant le rayon 7 dp — la réplique de `.ligne.sel` de la maquette.
+- **Liste déroulante de destination du popover « Déplacer vers… »** :
+  le champ Destination porte désormais une icône chevron ; un appui
+  ouvre un SECOND popover maison par-dessus le premier, listant les
+  dossiers énumérés de la racine active (racine incluse — ligne
+  « Racine » à la maison, nœud déplacé et ses descendants exclus),
+  indentés par profondeur, hauteur bornée à ~8 lignes. Le choix remplit
+  le champ (et efface l'erreur en ligne) ; le popover « Déplacer
+  vers… » reste ouvert en dessous — le chemin reste éditable au clavier.
+- **Fragments ajustés au tiroir + poignée à cheval** : le fond du tiroir
+  est borné à la largeur VISIBLE (`fond_tiroir`, inset fin de 13 dp) —
+  la bande de débord reste transparente, la moitié externe de la
+  poignée ⋮ flotte sur l'éditeur assombri exactement comme `right:-13px`
+  dans la maquette ; les fragments et le rail remplissent le tiroir
+  visible d'un bord à l'autre (plus de liseré de fond sous la poignée).
+- **Tiroir sous la barre de statut** : nouvelle extension
+  `applySystemBarsInsetsTopMargin` (core:ui) — la barre d'état devient
+  une MARGE haute du tiroir (il ne peint plus rien derrière elle), la
+  barre de navigation reste un rembourrage bas. `DrawerLayout` respecte
+  la marge verticale de ses tiroirs (vérifié dans le bytecode
+  androidx 1.1.1 : `onLayout` pose `childTop = lp.topMargin`).
+
 ## [0.32.0] – 2026-09-25
 
 ### Ajouté

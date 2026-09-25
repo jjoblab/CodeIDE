@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.textview.MaterialTextView
 import org.junit.Assert.assertEquals
@@ -95,6 +96,45 @@ class ActivityEditorLayoutTest {
         assertNotNull(gonfler(R.layout.popover_deplacer).findViewById<View>(R.id.champ_destination_deplacer))
         assertNotNull(gonfler(R.layout.popover_supprimer).findViewById<View>(R.id.message_supprimer))
         assertNotNull(gonfler(R.layout.popover_legende).findViewById<View>(R.id.legende_point_actif))
+    }
+
+    @Test
+    fun `la barre du fond de ligne selectionnee reste fine et pleine hauteur`() {
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val fond =
+            ContextCompat.getDrawable(contexte, R.drawable.fond_ligne_selectionnee)
+                as android.graphics.drawable.LayerDrawable
+        val hauteur = 136
+        fond.setBounds(0, 0, 320, hauteur)
+        val barre = fond.getDrawable(1)
+        assertEquals(
+            "la barre doit couvrir toute la hauteur de la ligne (§ 6.1 — l'ancien calque s'étirait pleine largeur)",
+            hauteur,
+            barre.bounds.height(),
+        )
+        assertTrue(
+            "la barre doit rester large de ~2,5 dp, pas s'étirer (v0.32.1)",
+            barre.bounds.width() <= 4,
+        )
+        assertTrue("la barre reste ancrée au bord de départ", barre.bounds.left == 0)
+    }
+
+    @Test
+    fun `le popover deplacer porte la liste deroulante de destination`() {
+        val popover = gonfler(R.layout.popover_deplacer)
+        assertNotNull(
+            "icône liste déroulante du champ Destination (v0.32.1)",
+            popover.findViewById<View>(R.id.bouton_destination_deroulante),
+        )
+        assertNotNull(
+            "titre du popover de choix de destination (v0.32.1)",
+            gonfler(R.layout.popover_destination_deplacer).findViewById<View>(R.id.titre_destination_choisir),
+        )
+        assertNotNull(
+            "liste des dossiers destination (v0.32.1)",
+            gonfler(R.layout.popover_destination_deplacer).findViewById<View>(R.id.liste_dossiers_destination),
+        )
     }
 
     @Test

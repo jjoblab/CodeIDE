@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond du tiroir de l'espace de travail (étape 31, § 13 v2) : pleine
+     hauteur, mais borné à la LARGEUR VISIBLE — le tiroir porte 13 dp de
+     débord au bord de fin pour la poignée ⋮ (26 dp, à cheval sur le
+     bord), et cette bande doit rester TRANSPARENTE : sa moitié externe
+     flotte au-dessus de l'éditeur assombri, comme `right:-13px` dans la
+     maquette EXPLORATEUR_V2. Les fragments remplissent ainsi le tiroir
+     visible d'un bord à l'autre (v0.32.1).
+
+     Variante ldrtl : l'inset passe au bord gauche (le tiroir « start »
+     s'ouvre à droite en RTL, son bord externe devient le gauche). -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetRight="13dp">
+    <shape android:shape="rectangle">
+        <solid android:color="@color/explorateur_fond_tiroir" />
+    </shape>
+</inset>

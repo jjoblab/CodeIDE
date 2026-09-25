@@ -45,6 +45,7 @@ import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
+import jo.codeide.core.ui.applySystemBarsInsetsTopMargin
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
@@ -208,10 +209,12 @@ class EditorActivity : AppCompatActivity() {
         return if (TemplateOptions.langueValide(langue)) langue else TemplateOptions.LANGUE_DEFAUT
     }
 
-    /** Applique les insets edge-to-edge : toolbar en haut, tiroir en bas. */
+    /** Applique les insets edge-to-edge : toolbar paddingée en haut, tiroir
+     *  sous la barre de statut (MARGE haute — v0.32.1 : il ne peint plus rien
+     *  derrière elle) et rembourré au-dessus de la barre de navigation. */
     private fun brancherInsets() {
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
-        liaison.tiroir.applySystemBarsInsets(top = false, bottom = true)
+        liaison.tiroir.applySystemBarsInsetsTopMargin(bottom = true)
     }
 
     /** Ouvre/ferme le tiroir ; sur grand écran il reste ancré (ADR 0026). */
