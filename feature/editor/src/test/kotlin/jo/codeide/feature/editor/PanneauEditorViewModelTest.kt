@@ -33,6 +33,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             observerProjet = ObserveProjectUseCase(depot),
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
+            fichiersPrives = fichiersPrives,
             journal = FakeAppLogger(),
             observerJournaux = ObserveLogsUseCase(depotJournaux),
             evaluerNom =
@@ -52,6 +53,18 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             resoudreRepertoireProjet = resoudreRepertoire,
             localisateurOutils = localisateurOutils,
             tooling = tooling,
+            copierArbre =
+                jo.codeide.core.domain
+                    .CopierArbreUseCase(),
+            deplacerArbre =
+                jo.codeide.core.domain
+                    .DeplacerArbreUseCase(),
+            lireArbre =
+                jo.codeide.core.domain
+                    .LireArbreUseCase(),
+            restaurerArbre =
+                jo.codeide.core.domain
+                    .RestaurerArbreUseCase(),
             synchroniserProjet =
                 jo.codeide.core.domain.SynchroniserProjetUseCase(
                     tooling,

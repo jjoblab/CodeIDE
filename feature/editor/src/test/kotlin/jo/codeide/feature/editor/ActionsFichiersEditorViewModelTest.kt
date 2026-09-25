@@ -40,6 +40,7 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
             observerProjet = ObserveProjectUseCase(depot),
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
+            fichiersPrives = fichiersPrives,
             journal = FakeAppLogger(),
             observerJournaux = ObserveLogsUseCase(depotJournaux),
             evaluerNom = EvaluerNomFichierUseCase(),
@@ -68,6 +69,18 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
             annulerBuild =
                 jo.codeide.core.domain
                     .AnnulerBuildUseCase(tooling),
+            copierArbre =
+                jo.codeide.core.domain
+                    .CopierArbreUseCase(),
+            deplacerArbre =
+                jo.codeide.core.domain
+                    .DeplacerArbreUseCase(),
+            lireArbre =
+                jo.codeide.core.domain
+                    .LireArbreUseCase(),
+            restaurerArbre =
+                jo.codeide.core.domain
+                    .RestaurerArbreUseCase(),
             listerTachesProjet =
                 jo.codeide.core.domain.ListerTachesProjetUseCase(
                     tooling,

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Champ de l'éditeur inline (étape 31, § 11.1) : cuve, bordure fine
+     6 dp ; focus → bordure 1,5 dp accent-fort. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/explorateur_fond_cuve" />
+            <stroke android:width="1.5dp" android:color="@color/explorateur_accent_fort" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/explorateur_fond_cuve" />
+            <stroke android:width="1dp" android:color="@color/explorateur_bordure_fine" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+</selector>

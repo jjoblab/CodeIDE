@@ -124,6 +124,16 @@ public interface FileSystem {
     public suspend fun readText(documentUri: String): AppResult<String>
 
     /**
+     * Lit intégralement un document **binaire** — octets bruts, sans
+     * décodage (étape 31, ADR 0052 : le presse-papiers de l'explorateur
+     * copie des `.jar`/`.db` tels quels, `readText` les corromprait).
+     *
+     * @param documentUri URI du document.
+     * @return les octets du document, ou l'échec typé.
+     */
+    public suspend fun readBytes(documentUri: String): AppResult<ByteArray>
+
+    /**
      * Renomme un document (dossier ou fichier) dans son dossier parent.
      *
      * Le **nouveau nom** est un simple segment (jamais un chemin) — la

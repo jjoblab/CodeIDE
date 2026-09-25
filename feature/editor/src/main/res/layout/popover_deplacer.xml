@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover « Déplacer vers… » (étape 31, § 10.5) : origine statique
+  (chemin relatif mono), destination éditable (autocomplétion simple par
+  les dossiers énumérés), erreurs en ligne, boutons Annuler/Déplacer.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="258dp"
+    android:layout_height="wrap_content">
+
+    <View
+        android:id="@+id/fleche_popover"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/fond_fleche_popover"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:id="@+id/coque_popover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_popover"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_deplacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/popover_deplacer_vers"
+            android:textColor="@color/explorateur_texte"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/deplacer_origine"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="10sp" tools:ignore="SmallSp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/champ_origine_deplacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:background="@drawable/fond_champ_inline"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_texte_2"
+            android:textSize="11sp"
+            tools:text="docs/adr" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/deplacer_destination"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="10sp" tools:ignore="SmallSp" />
+
+        <EditText
+            android:id="@+id/champ_destination_deplacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:background="@drawable/fond_champ_inline"
+            android:fontFamily="monospace"
+            android:hint="@string/deplacer_destination"
+            android:importantForAutofill="no"
+            android:inputType="textNoSuggestions"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_texte"
+            android:textColorHint="@color/explorateur_texte_3"
+            android:textSize="11.5sp"
+            tools:text="docs" />
+
+        <!-- Erreur en ligne (rouge 11 sp, § 10.5). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/erreur_deplacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/explorateur_rouge"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:text="Dossier introuvable — chemin relatif attendu"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/bouton_annuler_deplacer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/fond_action_popover"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="7dp"
+                android:text="@string/deplacer_annuler"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="12.5sp" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/bouton_valider_deplacer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/fond_bouton_primaire_popover"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="7dp"
+                android:text="@string/deplacer_valider"
+                android:textColor="@color/explorateur_texte_sur_accent"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

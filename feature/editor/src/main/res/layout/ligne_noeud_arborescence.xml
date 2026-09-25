@@ -1,75 +1,198 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ligne d'un nœud de l'arborescence : indentation, chevron, icône, nom. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Ligne d'un nœud de l'arborescence v2 (étape 31, § 6.1-6.3,
+  docs/EXPLORATEUR_V2.md) : guides dessinés par VueGuides, chevron des
+  dossiers (20 dp, tourné déplié), point d'état des fichiers (VuePointEtat,
+  20 dp), icône 17 dp, nom 13 sp, compteur d'enfants mono 10 sp, badge de
+  chemin de la racine, états chargement/erreur.
+
+  Hauteur 34 dp (38 dp racine) posée à la liaison ; la barre de
+  sélection et le fond dégradé viennent de fond_ligne_selectionnee.
+  L'éditeur inline (§ 11) remplace le contenu standard : le conteneur
+  edition_noeud, mutuellement exclusif avec le contenu standard.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/racine_ligne"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="34dp"
+    android:background="@null"
     android:foreground="?attr/selectableItemBackground"
-    android:gravity="center_vertical"
-    android:minHeight="@dimen/touch_target_min"
-    android:orientation="horizontal"
     android:paddingStart="0dp"
-    android:paddingEnd="@dimen/spacing_md">
+    android:paddingEnd="@dimen/editor_ligne_padding_droit">
 
-    <!-- Indentation par profondeur (largeur posée à la liaison). -->
-    <Space
-        android:id="@+id/retrait_noeud"
-        android:layout_width="0dp"
-        android:layout_height="1dp" />
-
-    <ImageView
-        android:id="@+id/chevron_noeud"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginStart="@dimen/spacing_sm"
+    <!-- Guides fins (traits verticaux + coude), dessin programmatique. -->
+    <jo.codeide.feature.editor.VueGuides
+        android:id="@+id/guides_ligne"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:contentDescription="@null"
-        android:src="@drawable/ic_chevron_noeud"
-        app:tint="?attr/colorOnSurfaceVariant"
-        tools:rotation="90" />
+        tools:ignore="Overdraw" />
 
-    <ImageView
-        android:id="@+id/icone_noeud"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:contentDescription="@null"
-        tools:src="@drawable/ic_fichier_kotlin" />
+    <!-- Contenu standard : chevron/point, icône, nom, compteurs. -->
+    <LinearLayout
+        android:id="@+id/contenu_ligne"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/nom_noeud"
-        android:layout_width="0dp"
+        <!-- Zone du chevron (dossiers) ou du point d'état (fichiers) : 20 dp. -->
+        <ImageView
+            android:id="@+id/chevron_noeud"
+            android:layout_width="@dimen/editor_chevron_zone"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="center"
+            android:src="@drawable/ic_chevron_noeud"
+            app:tint="@color/explorateur_texte_3"
+            tools:rotation="90" />
+
+        <jo.codeide.feature.editor.VuePointEtat
+            android:id="@+id/point_etat_noeud"
+            android:layout_width="@dimen/editor_chevron_zone"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Icône du type (17 dp, marges 5/2 § 8). -->
+        <ImageView
+            android:id="@+id/icone_noeud"
+            android:layout_width="@dimen/editor_icone_noeud"
+            android:layout_height="@dimen/editor_icone_noeud"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="2dp"
+            android:contentDescription="@null"
+            tools:src="@drawable/ic_fichier_kotlin" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/nom_noeud"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_nom_fichier"
+            android:textSize="13sp"
+            tools:text="Greeter.kt" />
+
+        <!-- Énumération en vol (latence SAF réelle du dépliement). -->
+        <ProgressBar
+            android:id="@+id/chargement_noeud"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="@dimen/editor_ecart_actions"
+            android:contentDescription="@string/editor_noeud_chargement_cd"
+            android:indeterminate="true"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Dernière énumération échouée : appuyer sur la ligne réessaie. -->
+        <ImageView
+            android:id="@+id/erreur_noeud"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="@dimen/editor_ecart_actions"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_avertissement"
+            android:visibility="gone"
+            app:tint="@color/explorateur_rouge"
+            tools:visibility="visible" />
+
+        <!-- Compteur d'enfants du dossier (mono 10 sp, texte 3). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/compte_noeud"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/editor_ecart_actions"
+            android:fontFamily="monospace"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="10sp" tools:ignore="SmallSp"
+            android:visibility="gone"
+            tools:text="12"
+            tools:visibility="visible" />
+
+        <!-- Badge de chemin de la racine (mono 9,5 sp, tronqué). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/badge_racine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/editor_ecart_actions"
+            android:background="@drawable/fond_badge_racine"
+            android:ellipsize="middle"
+            android:fontFamily="monospace"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingBottom="2.5dp"
+            android:paddingTop="2.5dp"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="9.5sp" tools:ignore="SmallSp"
+            android:visibility="gone"
+            tools:text="/storage/emulated/0/CodeIDE"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Éditeur inline (§ 11) : création sous le parent ou renommage de
+         la ligne. Icône + champ + valider/annuler. -->
+    <LinearLayout
+        android:id="@+id/edition_noeud"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:paddingVertical="@dimen/spacing_sm"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        tools:text="Greeter.kt" />
-
-    <!-- Énumération en vol (latence SAF réelle du dépliement). -->
-    <ProgressBar
-        android:id="@+id/chargement_noeud"
-        style="?android:attr/progressBarStyleSmall"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:contentDescription="@string/editor_noeud_chargement_cd"
-        android:indeterminate="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="4dp"
         android:visibility="gone"
-        tools:visibility="visible" />
+        tools:visibility="visible">
 
-    <!-- Dernière énumération échouée : appuyer sur la ligne réessaie. -->
-    <ImageView
-        android:id="@+id/erreur_noeud"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:contentDescription="@null"
-        android:src="@drawable/ic_avertissement"
-        android:visibility="gone"
-        app:tint="?attr/colorError"
-        tools:visibility="visible" />
-</LinearLayout>
+        <ImageView
+            android:id="@+id/icone_edition"
+            android:layout_width="@dimen/editor_icone_noeud"
+            android:layout_height="@dimen/editor_icone_noeud"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="@null"
+            tools:src="@drawable/ic_fichier_kotlin" />
+
+        <EditText
+            android:id="@+id/champ_edition"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/fond_champ_inline"
+            android:fontFamily="monospace"
+            android:hint="@string/edition_champ_cd"
+            android:imeOptions="actionDone"
+            android:importantForAutofill="no"
+            android:inputType="textNoSuggestions"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="5dp"
+            android:singleLine="true"
+            android:textColor="@color/explorateur_texte"
+            android:textColorHint="@color/explorateur_texte_3"
+            android:textSize="12sp"
+            tools:text="Greeter.kt" />
+
+        <ImageButton
+            android:id="@+id/bouton_valider_edition"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="3dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/edition_valider_cd"
+            android:src="@drawable/ic_fait"
+            app:tint="@color/explorateur_vert" />
+
+        <ImageButton
+            android:id="@+id/bouton_annuler_edition"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/edition_annuler_cd"
+            android:src="@drawable/ic_fermer_onglet"
+            app:tint="@color/explorateur_texte_2" />
+    </LinearLayout>
+</FrameLayout>

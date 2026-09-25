@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flèche du popover (étape 31, § 10.1) : carré tourné à 45°, mêmes
+     fond/bordure que la coque — la vue porte la rotation, deux couches
+     de la même forme évitent le crénelage de bordure à l'intersection. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <rotate
+            android:fromDegrees="45"
+            android:pivotX="50%"
+            android:pivotY="50%"
+            android:toDegrees="45">
+            <shape android:shape="rectangle">
+                <solid android:color="@color/explorateur_popover_bordure" />
+                <corners android:radius="2dp" />
+            </shape>
+        </rotate>
+    </item>
+    <item android:bottom="1dp" android:left="1dp" android:right="1dp" android:top="1dp">
+        <rotate
+            android:fromDegrees="45"
+            android:pivotX="50%"
+            android:pivotY="50%"
+            android:toDegrees="45">
+            <shape android:shape="rectangle">
+                <solid android:color="@color/explorateur_fond_surface_2" />
+                <corners android:radius="2dp" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

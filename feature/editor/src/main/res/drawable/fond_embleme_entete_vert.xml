@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variante verte de l'emblème d'entête (Git). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/explorateur_vert_doux" />
+    <corners android:radius="7dp" />
+</shape>

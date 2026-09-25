@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ouvrir un fichier (popover de l'explorateur v2, étape 31) : flèche
+     sortante d'une boîte, contour gris du tiroir. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#8a93a3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.8"
+        android:pathData="M13,5.5 L19.5,5.5 L19.5,12 M19.5,5.5 L10,15 M17,4.5 L19.5,5.5 L18.5,8" />
+</vector>

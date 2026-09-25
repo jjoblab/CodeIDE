@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Renommer (popover de l'explorateur v2, étape 31) : crayon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#8a93a3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.8"
+        android:pathData="M4.5,19.5 L5.5,16 L15.5,6 a1.6,1.6 0 0 1 2.3,0 L18,6.2 a1.6,1.6 0 0 1 0,2.3 L8,18.5 Z M14,7.5 L16.5,10" />
+</vector>

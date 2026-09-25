@@ -5,9 +5,9 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
@@ -18,16 +18,19 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.children
+import androidx.core.view.isEmpty
+import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
-import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeeditor.document.Selection
 import jo.codeeditor.view.EditorTheme
@@ -37,7 +40,6 @@ import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.ProjectAccessState
-import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.ui.AppNavigator
@@ -45,18 +47,21 @@ import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
-import jo.codeide.feature.editor.databinding.DialogueNomFichierBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.abs
 
 /**
  * Espace de travail d'un projet (étapes 13-16, prompt compagnon section 5) :
  * **trois zones**.
  *
- * - tiroir de navigation gauche — en-tête (nom, chemin, « Fermer le
- *   projet », bouton **Actualiser**), **explorateur de fichiers paresseux**
- *   (étape 14, ADR 0027) et barre de navigation basse — permanent sur grand
- *   écran (ADR 0026) ;
+ * - tiroir de navigation gauche — **architecture à fragments** (étape 31,
+ *   ADR 0052) : Fichiers/Recherche/Git/Terminal, chacun son entête, rail
+ *   de fragments commun, poignée ⋮ de redimensionnement — permanent sur
+ *   grand écran (ADR 0026) ;
  * - zone centrale — **onglets de fichiers dynamiques** et éditeur (étape
  *   15, ADR 0028) : un `TabLayout` défilant (icône du langage, nom, point
  *   de modification remplaçant la fermeture tant que l'onglet est sale,
@@ -83,7 +88,7 @@ import javax.inject.Inject
  * onglets, éditeur, panneau) et applique les effets ; l'éclater par zone
  * casserait la cohérence du cycle de vie unique de l'écran.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("TooManyFunctions", "LargeClass", "CyclomaticComplexMethod", "ReturnCount", "MagicNumber")
 @AndroidEntryPoint
 class EditorActivity : AppCompatActivity() {
     private val viewModel: EditorViewModel by viewModels()
@@ -95,9 +100,6 @@ class EditorActivity : AppCompatActivity() {
     private lateinit var liaison: ActivityEditorBinding
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
-
-    /** Adaptateur de l'arborescence paresseuse du tiroir (étape 14). */
-    private lateinit var adaptateurExplorateur: ExplorateurAdapter
 
     /** Adaptateur du journal applicatif compact du panneau (étape 16). */
     private lateinit var adaptateurJournal: EntreesJournalCompactesAdapter
@@ -130,6 +132,16 @@ class EditorActivity : AppCompatActivity() {
     /** Le tiroir est-il ouvert (pilote le retour système) ? */
     private var tiroirOuvert = false
 
+    /** Destination courante du rail de fragments (§ 14). */
+    private var destinationCourante: Int = R.id.destination_explorateur
+
+    /** Largeur visible du tiroir en pixels (§ 13 — 63 % par défaut, mémorisée
+     *  par instance sauvegardée). */
+    private var largeurTiroirPx: Int = 0
+
+    /** Masquage automatique du snackbar (4 600 ms, § 15). */
+    private var travailSnackbar: Job? = null
+
     /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
     private var panneauEtendu = false
 
@@ -160,13 +172,17 @@ class EditorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        savedInstanceState?.let {
+            largeurTiroirPx = it.getInt(CLE_LARGEUR_TIROIR, 0)
+            destinationCourante = it.getInt(CLE_DESTINATION_TIROIR, R.id.destination_explorateur)
+        }
         liaison = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(liaison.root)
 
         brancherInsets()
         brancherTiroir()
-        brancherExplorateur()
-        brancherTerminalTiroir()
+        brancherFragmentsTiroir()
+        brancherPoignee()
         brancherOnglets()
         brancherEditeur()
         brancherPanneauInferieur()
@@ -177,7 +193,6 @@ class EditorActivity : AppCompatActivity() {
         viewModel.onAction(ActionEditor.PreciserLangue(langueCourante()))
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
-        viewModel.etatTerminal.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreCarteTerminal(etat) }
         viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreTooling(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
     }
@@ -204,7 +219,6 @@ class EditorActivity : AppCompatActivity() {
         liaison.toolbarEditeur.setNavigationOnClickListener {
             liaison.racineEditeur.openDrawer(liaison.tiroir)
         }
-        liaison.boutonFermerProjet.setOnClickListener { viewModel.onAction(ActionEditor.Quitter) }
 
         liaison.racineEditeur.addDrawerListener(
             object : DrawerLayout.SimpleDrawerListener() {
@@ -235,389 +249,231 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    /** Explorateur du tiroir : liste, actualisation, création à la racine,
-     * barre basse (étape 14) et menu contextuel des nœuds (étape 17). */
-    private fun brancherExplorateur() {
-        adaptateurExplorateur =
-            ExplorateurAdapter(
-                surClic = { noeud ->
-                    if (noeud.estDossier) {
-                        viewModel.onAction(ActionEditor.BasculerNoeud(noeud.uri))
-                    } else {
-                        viewModel.onAction(ActionEditor.OuvrirFichier(noeud.uri))
+    /**
+     * Tiroir à fragments (étape 31, ADR 0052) : les quatre destinations
+     * (Fichiers, Recherche, Git, Terminal) sont ajoutées UNE fois au
+     * `FragmentContainerView` puis montrées/cachées — l'état de
+     * défilement de l'arbre et les plis survivent aux changements de
+     * destination. Chaque fragment porte son propre entête (§ 4) : plus
+     * d'entête commun dans l'activité.
+     */
+    private fun brancherFragmentsTiroir() {
+        val gestionnaire = supportFragmentManager
+        if (gestionnaire.findFragmentById(R.id.conteneur_fragments_tiroir) == null) {
+            val explorateur = ExplorateurFragment()
+            val recherche = RechercheFragment()
+            val git = GitFragment()
+            val terminal = TerminalTiroirFragment()
+            gestionnaire
+                .beginTransaction()
+                .add(R.id.conteneur_fragments_tiroir, explorateur, TAG_EXPLORATEUR)
+                .add(R.id.conteneur_fragments_tiroir, recherche, TAG_RECHERCHE)
+                .hide(recherche)
+                .add(R.id.conteneur_fragments_tiroir, git, TAG_GIT)
+                .hide(git)
+                .add(R.id.conteneur_fragments_tiroir, terminal, TAG_TERMINAL)
+                .hide(terminal)
+                .commit()
+        }
+        construireRail()
+        selectionnerDestination(destinationCourante)
+    }
+
+    /** Construit le rail de fragments (§ 14) : quatre destinations
+     * (icône 20 dp + libellé 10 sp), état actif = encoche + accent. */
+    private fun construireRail() {
+        val rail = liaison.railFragments
+        if (rail.isNotEmpty()) return
+        val destinations =
+            listOf(
+                Triple(
+                    R.id.destination_explorateur,
+                    jo.codeide.core.ui.R.drawable.ic_explorateur,
+                    R.string.editor_nav_explorateur,
+                ),
+                Triple(
+                    R.id.destination_recherche,
+                    jo.codeide.core.ui.R.drawable.ic_recherche,
+                    R.string.editor_nav_recherche,
+                ),
+                Triple(R.id.destination_git, jo.codeide.core.ui.R.drawable.ic_git, R.string.editor_nav_git),
+                Triple(
+                    R.id.destination_terminal,
+                    jo.codeide.core.ui.R.drawable.ic_terminal,
+                    R.string.editor_nav_terminal,
+                ),
+            )
+        val dp = resources.displayMetrics.density
+        destinations.forEach { (identifiant, icone, libelle) ->
+            val item =
+                layoutInflater.inflate(R.layout.item_rail_fragment, rail, false) as android.widget.LinearLayout
+            item.id = identifiant
+            item.minimumHeight = (HAUTEUR_RAIL_DP * dp).toInt()
+            item.setOnClickListener { selectionnerDestination(identifiant) }
+            item.findViewById<android.widget.ImageView>(R.id.icone_rail).apply {
+                setImageResource(icone)
+                tag = identifiant
+            }
+            item.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.libelle_rail).apply {
+                setText(libelle)
+                tag = identifiant
+            }
+            item.findViewById<View>(R.id.encoche_rail).tag = identifiant
+            rail.addView(item)
+        }
+    }
+
+    /** Montre le fragment de [destination] et marque le rail (§ 14). */
+    private fun selectionnerDestination(destination: Int) {
+        destinationCourante = destination
+        val gestionnaire = supportFragmentManager
+        val cible =
+            gestionnaire.findFragmentByTag(
+                when (destination) {
+                    R.id.destination_recherche -> TAG_RECHERCHE
+                    R.id.destination_git -> TAG_GIT
+                    R.id.destination_terminal -> TAG_TERMINAL
+                    else -> TAG_EXPLORATEUR
+                },
+            ) ?: return
+        val transaction = gestionnaire.beginTransaction()
+        gestionnaire.fragments.forEach { fragment ->
+            if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
+        }
+        transaction.commit()
+
+        // État actif du rail : encoche + teinte accent de l'icône et du
+        // libellé (§ 14).
+        val accent =
+            androidx.core.content.ContextCompat
+                .getColor(this, R.color.explorateur_accent)
+        val inactif =
+            androidx.core.content.ContextCompat
+                .getColor(this, R.color.explorateur_texte_3)
+        liaison.railFragments.children.forEach { item ->
+            val actif = item.id == destination
+            item.findViewById<View>(R.id.encoche_rail).isVisible = actif
+            item.findViewById<android.widget.ImageView>(R.id.icone_rail).setColorFilter(if (actif) accent else inactif)
+            item
+                .findViewById<com.google.android.material.textview.MaterialTextView>(R.id.libelle_rail)
+                .setTextColor(if (actif) accent else inactif)
+        }
+    }
+
+    /**
+     * Poignée ⋮ de redimensionnement du tiroir (§ 13) : glissement
+     * horizontal, bornes 45-98 % de l'écran, aimants 55/69/85/98 %
+     * (tolérance ±12 dp, appliqués au relâchement), pastille de taille
+     * pendant le glissement puis fondu 380 ms après le relâchement.
+     * La largeur est mémorisée par instance sauvegardée (§ 19).
+     */
+    private fun brancherPoignee() {
+        val dp = resources.displayMetrics.density
+        appliquerLargeurTiroir(initialiserSiNecessaire = true)
+        // Exemption ClickableViewAccessibility : performClick() est bien
+        // appelé au ACTION_UP (le glissement n'est pas un clic ordinaire).
+        @Suppress("ClickableViewAccessibility")
+        liaison.poigneeTiroir.setOnTouchListener(
+            object : View.OnTouchListener {
+                private var abscisseDepart = 0f
+                private var largeurDepart = 0
+
+                override fun onTouch(
+                    vue: View,
+                    evenement: MotionEvent,
+                ): Boolean {
+                    when (evenement.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            abscisseDepart = evenement.rawX
+                            largeurDepart = largeurTiroirPx
+                            liaison.racineEditeur.requestDisallowInterceptTouchEvent(true)
+                            liaison.pastilleTailleTiroir.isVisible = true
+                            liaison.pastilleTailleTiroir.alpha = 1f
+                            return true
+                        }
+
+                        MotionEvent.ACTION_MOVE -> {
+                            val cible = largeurDepart + (evenement.rawX - abscisseDepart).toInt()
+                            appliquerLargeurTiroir(cible, animer = false)
+                            montrerTailleEnPourcent()
+                            return true
+                        }
+
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            liaison.racineEditeur.requestDisallowInterceptTouchEvent(false)
+                            vue.performClick()
+                            viserAimants(dp)
+                            liaison.pastilleTailleTiroir
+                                .animate()
+                                .alpha(0f)
+                                .setStartDelay(DELAI_PASTILLE_MS)
+                                .setDuration(DUREE_FONDU_PASTILLE_MS)
+                                .withEndAction { liaison.pastilleTailleTiroir.isVisible = false }
+                            return true
+                        }
                     }
-                },
-                surClicLong = { noeud ->
-                    menuContextuelNoeud(noeud)
-                    true
-                },
-            )
-        liaison.listeExplorateur.layoutManager = LinearLayoutManager(this)
-        liaison.listeExplorateur.adapter = adaptateurExplorateur
-
-        // Bouton d'actualisation de l'en-tête : revérifie l'accès au projet
-        // puis recharge l'arborescence (prompt compagnon 5.3).
-        liaison.boutonActualiser.setOnClickListener {
-            viewModel.onAction(ActionEditor.Rafraichir)
-        }
-
-        // Création à la racine (étape 17) : le menu contextuel d'un nœud
-        // couvre la création dans un dossier, celui-ci couvre la racine.
-        liaison.boutonNouveau.setOnClickListener { ancre ->
-            val racine =
-                viewModel.etat.value.projet
-                    ?.location
-                    ?.documentUri ?: return@setOnClickListener
-            menuCreationRacine(ancre, racine)
-        }
-
-        // Barre de navigation basse : « Explorateur » et « Terminal » (T6)
-        // sont actives — les destinations désactivées annoncent « Bientôt
-        // disponible ». La carte d'aperçu remplace l'explorateur quand la
-        // destination Terminal est choisie (section 8 : carte, pas un
-        // terminal embarqué).
-        //
-        // Plantage 3d8ede67 (v0.25.0 sur appareil) : la destination initiale
-        // était affectée APRÈS l'enregistrement de l'écouteur — BottomNavigationView
-        // distribue alors l'écouteur de façon SYNCHRONE pendant onCreate,
-        // qui appelait rendre() avant l'inflation du menu de la toolbar
-        // (brancherOnglets, findItem null) et l'initialisation du
-        // comportementPanneau (lateinit). La destination est affectée AVANT
-        // l'écouteur : aucune distribution n'est possible au branchement, le
-        // premier rendu réel vient de la collecte d'état (STARTED), quand
-        // tout est branché. Vues dans ce sens, ces deux ordres sont figés
-        // par ActivityEditorLayoutTest.
-        liaison.barreNavigationTiroir.selectedItemId = R.id.destination_explorateur
-        liaison.barreNavigationTiroir.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.destination_explorateur -> {
-                    basculerVueTiroir(terminal = false)
-                    true
+                    return false
                 }
-
-                R.id.destination_terminal -> {
-                    basculerVueTiroir(terminal = true)
-                    true
-                }
-
-                else -> {
-                    false
-                }
-            }
-        }
-        liaison.barreNavigationTiroir.menu
-            .findItem(R.id.destination_recherche)
-            .contentDescription =
-            getString(R.string.editor_nav_bientot, getString(R.string.editor_nav_recherche))
-        liaison.barreNavigationTiroir.menu
-            .findItem(R.id.destination_git)
-            .contentDescription =
-            getString(R.string.editor_nav_bientot, getString(R.string.editor_nav_git))
+            },
+        )
     }
 
-    /**
-     * Carte d'aperçu du terminal (T6, section 8) : toute la carte et son
-     * bouton d'agrandissement ouvrent le même écran plein écran que
-     * l'accueil ; l'état vide crée la session dans le dossier réel du
-     * projet ; bootstrap absent → installation.
-     */
-    private fun brancherTerminalTiroir() {
-        liaison.carteTerminal.setOnClickListener { viewModel.onAction(ActionEditor.OuvrirTerminal) }
-        liaison.boutonAgrandirTerminal.setOnClickListener { viewModel.onAction(ActionEditor.OuvrirTerminal) }
-        liaison.boutonNouvelleSessionTerminal.setOnClickListener {
-            viewModel.onAction(ActionEditor.NouvelleSessionTerminal)
+    /** Largeur visible du tiroir : fraction de l'écran bornée 45-98 %
+     *  (§ 13) ; le débord de la poignée (13 dp) s'ajoute à la vue. */
+    private fun appliquerLargeurTiroir(
+        largeurVisible: Int? = null,
+        animer: Boolean = true,
+        initialiserSiNecessaire: Boolean = false,
+    ) {
+        val ecran = resources.displayMetrics.widthPixels
+        val debord = (DEBORD_POIGNEE_DP * resources.displayMetrics.density).toInt()
+        if (largeurTiroirPx == 0) {
+            val fraction = FRACTION_TIROIR_DEFAUT
+            largeurTiroirPx = (fraction * ecran).toInt()
         }
-        liaison.boutonInstallerTerminal.setOnClickListener {
-            viewModel.onAction(ActionEditor.InstallerOutilsTerminal)
+        if (largeurVisible != null) {
+            largeurTiroirPx =
+                largeurVisible.coerceIn((FRACTION_MIN * ecran).toInt(), (FRACTION_MAX * ecran).toInt())
         }
-    }
-
-    /**
-     * Bascule le contenu du tiroir entre l'explorateur et la carte
-     * d'aperçu du terminal (T6). Revenir sur l'explorateur réapplique
-     * son rendu — les visibilités appartiennent à [rendre].
-     */
-    private fun basculerVueTiroir(terminal: Boolean) {
-        liaison.carteTerminal.isVisible = terminal
-        if (terminal) {
-            liaison.listeExplorateur.isVisible = false
-            liaison.texteExplorateurVide.isVisible = false
-            liaison.progressionTiroir.isVisible = false
-            liaison.bandeauAcces.isVisible = false
+        if (initialiserSiNecessaire && largeurVisible == null && largeurTiroirPx != 0) {
+            // première pose : largeur par défaut déjà calculée
+        }
+        val parametres = liaison.tiroir.layoutParams
+        val cible = largeurTiroirPx + debord
+        if (animer && parametres.width != cible) {
+            val depart = parametres.width
+            android.animation.ValueAnimator
+                .ofInt(depart, cible)
+                .apply {
+                    duration = DUREE_LARGEUR_MS
+                    addUpdateListener { animateur ->
+                        parametres.width = animateur.animatedValue as Int
+                        liaison.tiroir.layoutParams = parametres
+                    }
+                }.start()
         } else {
-            rendre(viewModel.etat.value)
+            parametres.width = cible
+            liaison.tiroir.layoutParams = parametres
         }
     }
 
-    /** Rendu de la carte d'aperçu du terminal (T6, section 8) : métadonnées
-     * du registre global uniquement — la carte se met à jour en direct. */
-    private fun rendreCarteTerminal(etat: EtatTerminalTiroir) {
-        liaison.compteurSessionsTerminal.text =
-            resources.getQuantityString(
-                R.plurals.editor_terminal_sessions_actives,
-                etat.sessionsVivantes,
-                etat.sessionsVivantes,
-            )
-
-        // Bootstrap absent : l'installation d'abord (garde-fou de la
-        // section 7, symétrique de l'accueil).
-        liaison.texteNonInstalleTerminal.isVisible = !etat.bootstrapInstalle
-        liaison.boutonInstallerTerminal.isVisible = !etat.bootstrapInstalle
-
-        // État vide : aucune session du tout (vivantes ou terminées).
-        val aucuneSession = etat.bootstrapInstalle && etat.nbSessions == 0
-        liaison.texteAucuneSessionTerminal.isVisible = aucuneSession
-        liaison.boutonNouvelleSessionTerminal.isVisible = aucuneSession
-
-        // Session active : pastille, libellé (état suffisé), dernière sortie.
-        val session = etat.sessionActive
-        liaison.libelleSessionTerminal.isVisible = session != null
-        liaison.sortieSessionTerminal.isVisible =
-            session != null && session.lastOutputPreview.isNotBlank()
-        if (session != null) {
-            liaison.libelleSessionTerminal.text =
-                if (session.isAlive) {
-                    session.label
-                } else {
-                    getString(R.string.editor_terminal_session_terminee, session.label)
-                }
-            liaison.sortieSessionTerminal.text = session.lastOutputPreview
-            val couleurPastille =
-                MaterialColors.getColor(
-                    liaison.root,
-                    if (session.isAlive) {
-                        androidx.appcompat.R.attr.colorPrimary
-                    } else {
-                        com.google.android.material.R.attr.colorOutline
-                    },
-                )
-            liaison.pastilleTerminal.backgroundTintList = ColorStateList.valueOf(couleurPastille)
-        }
-
-        // Accessibilité : la carte se lit d'un geste (libellé + état).
-        val resume =
-            session?.label
-                ?: getString(
-                    if (etat.bootstrapInstalle) {
-                        R.string.editor_terminal_aucune_session
-                    } else {
-                        R.string.editor_terminal_non_installe
-                    },
-                )
-        liaison.carteTerminal.contentDescription =
-            getString(R.string.editor_terminal_carte_cd, resume)
+    /** Aimants de largeur (§ 13 : 55/69/85/98 %, tolérance ±12 dp). */
+    private fun viserAimants(dp: Float) {
+        val ecran = resources.displayMetrics.widthPixels
+        val cible =
+            AIMANTS_TIROIR
+                .map { it to (it * ecran).toInt() }
+                .filter { abs(it.second - largeurTiroirPx) <= TOLERANCE_AIMANT_DP * dp }
+                .minByOrNull { abs(it.second - largeurTiroirPx) }
+                ?.second ?: largeurTiroirPx
+        appliquerLargeurTiroir(cible, animer = true)
+        montrerTailleEnPourcent()
     }
 
-    /** Menu contextuel d'un nœud de l'explorateur (étape 17). */
-    private fun menuContextuelNoeud(noeud: NoeudExplorateur) {
-        val menu = PopupMenu(this, liaison.listeExplorateur)
-        if (noeud.estDossier) {
-            menu.menu.add(
-                android.view.Menu.NONE,
-                ID_NOUVEAU_FICHIER,
-                android.view.Menu.NONE,
-                R.string.editor_menu_nouveau_fichier,
-            )
-            menu.menu.add(
-                android.view.Menu.NONE,
-                ID_NOUVEAU_DOSSIER,
-                android.view.Menu.NONE,
-                R.string.editor_menu_nouveau_dossier,
-            )
-        }
-        menu.menu.add(android.view.Menu.NONE, ID_RENOMMER, android.view.Menu.NONE, R.string.editor_menu_renommer)
-        menu.menu.add(android.view.Menu.NONE, ID_SUPPRIMER, android.view.Menu.NONE, R.string.editor_menu_supprimer)
-        menu.menu.add(
-            android.view.Menu.NONE,
-            ID_MENU_ACTUALISER,
-            android.view.Menu.NONE,
-            R.string.editor_menu_actualiser,
-        )
-        menu.setOnMenuItemClickListener { item -> surChoixMenuNoeud(noeud, item) }
-        menu.show()
-    }
-
-    /** Réagit au choix du menu contextuel d'un nœud (étape 17). */
-    private fun surChoixMenuNoeud(
-        noeud: NoeudExplorateur,
-        item: MenuItem,
-    ): Boolean {
-        when (item.itemId) {
-            ID_NOUVEAU_FICHIER -> {
-                dialogueNom(
-                    titre = getString(R.string.editor_creation_fichier_titre),
-                    indication = R.string.editor_nom_fichier_indication,
-                    bouton = R.string.editor_nom_bouton_creer,
-                    initial = "",
-                ) { nom -> viewModel.onAction(ActionEditor.CreerFichier(noeud.uri, nom)) }
-            }
-
-            ID_NOUVEAU_DOSSIER -> {
-                dialogueNom(
-                    titre = getString(R.string.editor_creation_dossier_titre),
-                    indication = R.string.editor_nom_dossier_indication,
-                    bouton = R.string.editor_nom_bouton_creer,
-                    initial = "",
-                ) { nom -> viewModel.onAction(ActionEditor.CreerDossier(noeud.uri, nom)) }
-            }
-
-            ID_RENOMMER -> {
-                dialogueNom(
-                    titre = getString(R.string.editor_renommage_titre, noeud.nom),
-                    indication = 0,
-                    bouton = R.string.editor_nom_bouton_renommer,
-                    initial = noeud.nom,
-                ) { nom -> viewModel.onAction(ActionEditor.RenommerDocument(noeud.uri, nom)) }
-            }
-
-            ID_SUPPRIMER -> {
-                dialogueSuppression(noeud)
-            }
-
-            ID_MENU_ACTUALISER -> {
-                viewModel.onAction(ActionEditor.Rafraichir)
-            }
-        }
-        return true
-    }
-
-    /** Menu de création à la racine du projet (étape 17). */
-    private fun menuCreationRacine(
-        ancre: View,
-        racine: String,
-    ) {
-        val menu = PopupMenu(this, ancre)
-        menu.menu.add(
-            android.view.Menu.NONE,
-            ID_NOUVEAU_FICHIER,
-            android.view.Menu.NONE,
-            R.string.editor_menu_nouveau_fichier,
-        )
-        menu.menu.add(
-            android.view.Menu.NONE,
-            ID_NOUVEAU_DOSSIER,
-            android.view.Menu.NONE,
-            R.string.editor_menu_nouveau_dossier,
-        )
-        menu.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                ID_NOUVEAU_FICHIER -> {
-                    dialogueNom(
-                        titre = getString(R.string.editor_creation_fichier_titre),
-                        indication = R.string.editor_nom_fichier_indication,
-                        bouton = R.string.editor_nom_bouton_creer,
-                        initial = "",
-                    ) { nom -> viewModel.onAction(ActionEditor.CreerFichier(racine, nom)) }
-                }
-
-                ID_NOUVEAU_DOSSIER -> {
-                    dialogueNom(
-                        titre = getString(R.string.editor_creation_dossier_titre),
-                        indication = R.string.editor_nom_dossier_indication,
-                        bouton = R.string.editor_nom_bouton_creer,
-                        initial = "",
-                    ) { nom -> viewModel.onAction(ActionEditor.CreerDossier(racine, nom)) }
-                }
-            }
-            true
-        }
-        menu.show()
-    }
-
-    /**
-     * Dialogue de saisie d'un nom de fichier/dossier : validation
-     * **avant** envoi (validateur partagé du wizard, raison localisée
-     * sous le champ) — l'action ne part que si le nom est valide.
-     */
-    private fun dialogueNom(
-        titre: CharSequence,
-        indication: Int,
-        bouton: Int,
-        initial: String,
-        surNom: (String) -> Unit,
-    ) {
-        val corps = DialogueNomFichierBinding.inflate(layoutInflater)
-        val saisie = corps.saisieNomFichier as TextInputEditText
-        if (indication != 0) corps.champNomFichier.hint = getString(indication)
-        saisie.setText(initial)
-        saisie.setSelection(saisie.text?.length ?: 0)
-        saisie.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-
-        val dialogue =
-            MaterialAlertDialogBuilder(this)
-                .setTitle(titre)
-                .setView(corps.root)
-                .setPositiveButton(bouton, null)
-                .setNegativeButton(R.string.editor_fermeture_annuler, null)
-                .create()
-
-        // Validation au clic (le dialogue reste ouvert tant que le nom
-        // est invalide — jamais d'aller-retour silencieux).
-        dialogue.setOnShowListener {
-            dialogue.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val nom =
-                    saisie.text
-                        ?.toString()
-                        ?.trim()
-                        .orEmpty()
-                val raison = viewModel.evaluerNomFichier(nom)
-                if (raison == null) {
-                    dialogue.dismiss()
-                    surNom(nom)
-                } else {
-                    corps.erreurNomFichier.text = messageNomFichier(raison, nom)
-                    corps.erreurNomFichier.isVisible = true
-                }
-            }
-        }
-        dialogue.show()
-    }
-
-    /** Message localisé de la raison d'un nom invalide (étape 17). */
-    private fun messageNomFichier(
-        raison: RaisonValidation,
-        nom: String,
-    ): String =
-        when (raison) {
-            is RaisonValidation.LongueurNom -> {
-                getString(R.string.editor_erreur_nom_longueur)
-            }
-
-            is RaisonValidation.CaractereInterditNom -> {
-                getString(R.string.editor_erreur_nom_caractere, raison.fautif.toString())
-            }
-
-            is RaisonValidation.PointsFictifsNom -> {
-                getString(R.string.editor_erreur_nom_points)
-            }
-
-            is RaisonValidation.FinNomInterdite -> {
-                getString(R.string.editor_erreur_nom_fin)
-            }
-
-            is RaisonValidation.NomReserveWindows -> {
-                getString(R.string.editor_erreur_nom_reserves, nom)
-            }
-
-            else -> {
-                getString(R.string.editor_erreur_nom_generique)
-            }
-        }
-
-    /** Confirmation de suppression d'un document (étape 17). */
-    private fun dialogueSuppression(noeud: NoeudExplorateur) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.editor_suppression_titre, noeud.nom))
-            .setMessage(
-                if (noeud.estDossier) {
-                    R.string.editor_suppression_dossier_message
-                } else {
-                    R.string.editor_suppression_fichier_message
-                },
-            ).setPositiveButton(R.string.editor_suppression_confirmer) { _, _ ->
-                viewModel.onAction(ActionEditor.SupprimerDocument(noeud.uri))
-            }.setNegativeButton(R.string.editor_fermeture_annuler, null)
-            .show()
+    /** Pastille de taille : « NN % » (§ 13). */
+    private fun montrerTailleEnPourcent() {
+        val ecran = resources.displayMetrics.widthPixels
+        liaison.pastilleTailleTiroir.text = getString(R.string.poignee_taille, (100f * largeurTiroirPx / ecran).toInt())
     }
 
     /** Onglets de fichiers : sélection, fermeture, menu contextuel (étape 15). */
@@ -637,6 +493,11 @@ class EditorActivity : AppCompatActivity() {
 
                 R.id.action_executer -> {
                     viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+                    true
+                }
+
+                R.id.action_fermer_projet -> {
+                    viewModel.onAction(ActionEditor.Quitter)
                     true
                 }
 
@@ -796,7 +657,8 @@ class EditorActivity : AppCompatActivity() {
         }
     }
 
-    /** Rend l'état : titre, tiroir (explorateur/bandeau), onglets, éditeur, panneau. */
+    /** Rend l'état : titre (type en sous-titre), onglets, éditeur, panneau,
+     *  snackbar de l'explorateur. */
     private fun rendre(etat: EtatEditor) {
         val projet = etat.projet
         liaison.progression.isVisible = etat.chargement
@@ -805,23 +667,22 @@ class EditorActivity : AppCompatActivity() {
         liaison.zoneIntrouvable.isVisible = !etat.chargement && projet == null
         if (projet != null) {
             liaison.toolbarEditeur.title = projet.name
-            liaison.nomProjetTiroir.text = projet.name
-            liaison.cheminTiroir.text = projet.location.displayPath
-            rendreTiroir(etat)
         }
         rendreTypeProjet(etat)
         rendreOnglets(etat)
         rendreEditeur(etat)
         rendrePanneau(etat)
+        rendreSnackbarArbre(etat.notification)
         majRetourSysteme(ongletsSales = etat.onglets.any { it.isDirty })
     }
 
     /**
-     * Ligne « type de projet » de l'en-tête du tiroir (étape 18) : modèle
+     * Type de projet (étape 18) en sous-titre de la toolbar : modèle
      * reconnu depuis `.codeide/project.json`, nom i18n + version ; un
      * dossier importé sans métadonnées est dit tel, un projet créé dont
      * le fichier a disparu affiche « type non reconnu » ; rien pendant la
-     * vérification d'accès ou en cas de panne.
+     * vérification d'accès ou en cas de panne. (L'entête v1 du tiroir
+     * disparaît avec l'architecture à fragments, étape 31.)
      */
     private fun rendreTypeProjet(etat: EtatEditor) {
         val type = etat.typeProjet
@@ -849,60 +710,140 @@ class EditorActivity : AppCompatActivity() {
                     getString(R.string.editor_type_projet_inconnu)
                 }
             }
-        liaison.typeProjetTiroir.isVisible = texte != null
-        if (texte != null) liaison.typeProjetTiroir.text = texte
+        liaison.toolbarEditeur.subtitle = texte
     }
 
-    /** Contenu du tiroir : vérification, arborescence ou bandeau d'accès. */
-    private fun rendreTiroir(etat: EtatEditor) {
-        adaptateurExplorateur.submitList(etat.noeuds)
-
-        liaison.boutonActualiser.isEnabled = !etat.verificationAcces
-
-        val acces = etat.acces
-        val enVerification = etat.verificationAcces || acces == null
-        val panne =
-            !enVerification &&
-                (etat.erreurRacine || acces == ProjectAccessState.PermissionLost || acces == ProjectAccessState.Missing)
-        val arbreVisible = !enVerification && !panne && acces == ProjectAccessState.Available
-
-        liaison.progressionTiroir.isVisible = enVerification
-        liaison.bandeauAcces.isVisible = panne
-        liaison.listeExplorateur.isVisible = arbreVisible
-        liaison.texteExplorateurVide.isVisible = arbreVisible && etat.noeuds.isEmpty()
-
-        if (panne) rendreBandeauAcces(etat)
-    }
-
-    /** Bandeau d'accès : variantes permission perdue, introuvable, erreur. */
-    private fun rendreBandeauAcces(etat: EtatEditor) {
-        when {
-            etat.erreurRacine || etat.acces == null -> {
-                liaison.titreAcces.setText(R.string.editor_acces_erreur_titre)
-                liaison.messageAcces.setText(R.string.editor_acces_erreur_message)
-                liaison.boutonResoudre.setText(R.string.editor_acces_reessayer)
-                liaison.boutonResoudre.setOnClickListener {
-                    viewModel.onAction(ActionEditor.Rafraichir)
+    /**
+     * Snackbar maison de l'explorateur (étape 31, § 15) : centré au-dessus
+     * du rail du tiroir, message + chemin en seconde ligne, action
+     * « Annuler » pour une suppression en attente, masquage automatique
+     * après 4 600 ms — l'expiration remonte au ViewModel
+     * ([ActionEditor.MasquerNotification]).
+     */
+    private fun rendreSnackbarArbre(notification: NotificationArbre?) {
+        if (notification == null) {
+            masquerSnackbar()
+            return
+        }
+        if (liaison.zoneSnackbarTiroir.isEmpty()) {
+            layoutInflater.inflate(R.layout.vue_snackbar_arbre, liaison.zoneSnackbarTiroir)
+        }
+        val vue = liaison.zoneSnackbarTiroir.getChildAt(0)
+        vue
+            .findViewById<com.google.android.material.textview.MaterialTextView>(R.id.texte_snackbar_arbre)
+            .text = texteNotification(notification)
+        val vueChemin =
+            vue.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.chemin_snackbar_arbre)
+        vueChemin.isVisible = notification.chemin != null
+        notification.chemin?.let { vueChemin.text = it }
+        vue
+            .findViewById<com.google.android.material.textview.MaterialTextView>(R.id.action_snackbar_arbre)
+            .apply {
+                isVisible = notification.annulable
+                setOnClickListener {
+                    viewModel.onAction(ActionEditor.AnnulerSuppression)
                 }
             }
+        vue.alpha = 0f
+        vue.translationY = 18 * resources.displayMetrics.density
+        vue.isVisible = true
+        vue
+            .animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(220)
+            .start()
 
-            etat.acces == ProjectAccessState.PermissionLost -> {
-                liaison.titreAcces.setText(R.string.editor_acces_permission_titre)
-                liaison.messageAcces.setText(R.string.editor_acces_permission_message)
-                liaison.boutonResoudre.setText(R.string.editor_acces_resoudre)
-                // La résolution vit à l'accueil (Relocaliser / Retirer) :
-                // refermer l'espace de travail y ramène, accueil sous-jacent.
-                liaison.boutonResoudre.setOnClickListener { finish() }
+        // Masquage automatique (4 600 ms, § 15) — remplacé à chaque
+        // nouvelle notification.
+        travailSnackbar?.cancel()
+        travailSnackbar =
+            lifecycleScope.launch {
+                delay(4600)
+                viewModel.onAction(ActionEditor.MasquerNotification)
             }
+    }
 
-            else -> {
-                liaison.titreAcces.setText(R.string.editor_acces_introuvable_titre)
-                liaison.messageAcces.setText(R.string.editor_acces_introuvable_message)
-                liaison.boutonResoudre.setText(R.string.editor_acces_resoudre)
-                liaison.boutonResoudre.setOnClickListener { finish() }
-            }
+    /** Masque le snackbar (plus de notification). */
+    private fun masquerSnackbar() {
+        travailSnackbar?.cancel()
+        travailSnackbar = null
+        if (liaison.zoneSnackbarTiroir.isNotEmpty()) {
+            liaison.zoneSnackbarTiroir.removeAllViews()
         }
     }
+
+    /** Message localisé d'une notification de l'explorateur (§ 15). */
+    private fun texteNotification(notification: NotificationArbre): String =
+        when (notification.type) {
+            TypeNotificationArbre.ASTUCE -> {
+                getString(R.string.notif_astuce)
+            }
+
+            TypeNotificationArbre.BASCULE_PRIVE -> {
+                getString(R.string.notif_bascule_prive)
+            }
+
+            TypeNotificationArbre.BASCULE_PROJET -> {
+                getString(R.string.notif_bascule_projet)
+            }
+
+            TypeNotificationArbre.CREE -> {
+                getString(R.string.notif_cree, notification.nom)
+            }
+
+            TypeNotificationArbre.RENOMME -> {
+                getString(R.string.notif_renomme, notification.nom, notification.nomSecondaire)
+            }
+
+            TypeNotificationArbre.SUPPRIME -> {
+                getString(R.string.notif_supprime, notification.nom)
+            }
+
+            TypeNotificationArbre.COPIE -> {
+                getString(R.string.notif_copie)
+            }
+
+            TypeNotificationArbre.COUPE -> {
+                getString(R.string.notif_coupe)
+            }
+
+            TypeNotificationArbre.VIDE -> {
+                getString(R.string.notif_vide)
+            }
+
+            TypeNotificationArbre.COLLE -> {
+                getString(R.string.notif_colle, notification.nom, notification.nomSecondaire)
+            }
+
+            TypeNotificationArbre.DEPLACE -> {
+                getString(R.string.notif_deplace, notification.nom, notification.nomSecondaire)
+            }
+
+            TypeNotificationArbre.COLLE_IMPOSSIBLE -> {
+                getString(R.string.notif_colle_impossible)
+            }
+
+            TypeNotificationArbre.DEJA_PRESENT -> {
+                getString(R.string.notif_deja_present)
+            }
+
+            TypeNotificationArbre.DESTINATION_INTROUVABLE -> {
+                getString(R.string.notif_destination_introuvable)
+            }
+
+            TypeNotificationArbre.DEJA_A_CET_ENDROIT -> {
+                getString(R.string.notif_deja_cet_endroit)
+            }
+
+            TypeNotificationArbre.DEPLACEMENT_DANS_SOURCE -> {
+                getString(R.string.notif_deplacement_dans_source)
+            }
+
+            TypeNotificationArbre.NOM_INVALIDE -> {
+                getString(R.string.notif_nom_invalide)
+            }
+        }
 
     /** Onglets : réconciliation de la barre avec l'état (ajouts, retraits). */
     private fun rendreOnglets(etat: EtatEditor) {
@@ -1357,9 +1298,54 @@ class EditorActivity : AppCompatActivity() {
         retourEspace.isEnabled = panneauEtendu || this.tiroirOuvert || this.ongletsSales
     }
 
+    override fun onSaveInstanceState(etat: Bundle) {
+        super.onSaveInstanceState(etat)
+        etat.putInt(CLE_LARGEUR_TIROIR, largeurTiroirPx)
+        etat.putInt(CLE_DESTINATION_TIROIR, destinationCourante)
+    }
+
     private companion object {
+        /** Clés de sauvegarde du tiroir (largeur mémorisée par session,
+         * destination du rail, § 13 / § 19). */
+        const val CLE_LARGEUR_TIROIR = "largeur_tiroir_px"
+        const val CLE_DESTINATION_TIROIR = "destination_tiroir"
+
         /** Plus petit écran considéré « grand » (dp). */
         const val SEUIL_GRAND_ECRAN = 600
+
+        /** Étiquettes des fragments du tiroir (§ 14 — restauration). */
+        const val TAG_EXPLORATEUR = "tiroir_explorateur"
+        const val TAG_RECHERCHE = "tiroir_recherche"
+        const val TAG_GIT = "tiroir_git"
+        const val TAG_TERMINAL = "tiroir_terminal"
+
+        /** Bornes de largeur du tiroir (§ 13 : 45 % ↔ 98 %). */
+        const val FRACTION_MIN = 0.45f
+        const val FRACTION_MAX = 0.98f
+
+        /** Largeur par défaut (§ 2 : 262 sur 414 dans la maquette). */
+        const val FRACTION_TIROIR_DEFAUT = 0.63f
+
+        /** Aimants de largeur (§ 13 : 55 / 69 / 85 / 98 %). */
+        val AIMANTS_TIROIR = listOf(0.55f, 0.69f, 0.85f, 0.98f)
+
+        /** Hauteur du rail de fragments (§ 14 : 66 dp). */
+        const val HAUTEUR_RAIL_DP = 66
+
+        /** Débord de la poignée hors du tiroir (§ 13 : 13 dp). */
+        const val DEBORD_POIGNEE_DP = 13
+
+        /** Durée d'animation de la largeur hors glissement (§ 13 : 0,18 s). */
+        const val DUREE_LARGEUR_MS = 180L
+
+        /** Tolérance des aimants (§ 13 : ±12 dp). */
+        const val TOLERANCE_AIMANT_DP = 12
+
+        /** Fondu de la pastille de taille après relâchement (§ 13 : 380 ms). */
+        const val DELAI_PASTILLE_MS = 380L
+
+        /** Durée du fondu de la pastille (§ 13 : 120 ms). */
+        const val DUREE_FONDU_PASTILLE_MS = 120L
 
         /** Seuil de bascule seconde/milliseconde des durées affichées (G5). */
         const val SEUIL_SECONDE_MS = 1_000L
@@ -1376,13 +1362,5 @@ class EditorActivity : AppCompatActivity() {
         const val ID_DEPLACER_GAUCHE = 4
         const val ID_DEPLACER_DROITE = 5
         const val ID_COPIER_CHEMIN = 6
-
-        // Identifiants du menu contextuel des nœuds de l'explorateur
-        // (étape 17 — même approche programmatique).
-        const val ID_NOUVEAU_FICHIER = 10
-        const val ID_NOUVEAU_DOSSIER = 11
-        const val ID_RENOMMER = 12
-        const val ID_SUPPRIMER = 13
-        const val ID_MENU_ACTUALISER = 14
     }
 }

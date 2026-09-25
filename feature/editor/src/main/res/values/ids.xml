@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Destinations du rail de fragments du tiroir (étape 31, § 14) :
+     Fichiers, Recherche, Git, Terminal — identifiants stables pour la
+     sélection programmatique du rail. -->
+<resources>
+    <item name="destination_explorateur" type="id" />
+    <item name="destination_recherche" type="id" />
+    <item name="destination_git" type="id" />
+    <item name="destination_terminal" type="id" />
+</resources>

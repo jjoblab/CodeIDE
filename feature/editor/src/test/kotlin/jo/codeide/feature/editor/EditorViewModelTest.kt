@@ -89,11 +89,13 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
 
             assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
             val noeuds = viewModel.etat.value.noeuds
+            // v2 (étape 31, § 6.1) : la racine ouvre la liste (ligne haute).
             assertEquals(
-                listOf("alpha-utils", "Zeta", "Main.kt", "readme.md"),
+                listOf("Alpha", "alpha-utils", "Zeta", "Main.kt", "readme.md"),
                 noeuds.map { it.nom },
             )
-            assertTrue(noeuds.all { it.profondeur == 0 })
+            // v2 (§ 6.1) : la racine est profondeur 0, ses enfants 1.
+            assertTrue(noeuds.all { it.profondeur <= 1 })
             assertTrue(noeuds.first { it.nom == "alpha-utils" }.estDossier)
             assertFalse(noeuds.first { it.nom == "Main.kt" }.estDossier)
         }
@@ -127,8 +129,10 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             // Premier dépliement : une énumération de plus, l'enfant visible.
             assertEquals(4, fichiers.appelsList)
             val noeuds = viewModel.etat.value.noeuds
-            assertEquals(listOf("src", "Main.kt"), noeuds.map { it.nom })
-            assertEquals(1, noeuds.last().profondeur)
+            // v2 : la racine précède les enfants dépliés (§ 6.1).
+            assertEquals(listOf("Alpha", "src", "Main.kt"), noeuds.map { it.nom })
+            // v2 : la racine est profondeur 0, ses enfants 1 (§ 6.1).
+            assertEquals(2, noeuds.last().profondeur)
 
             // Refermer puis rouvrir : le cache répond, aucun nouvel appel.
             viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
@@ -259,7 +263,7 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
                     ?.displayPath,
             )
             assertEquals(
-                listOf("Autre.kt"),
+                listOf("Alpha", "Autre.kt"),
                 viewModel.etat.value.noeuds
                     .map { it.nom },
             )

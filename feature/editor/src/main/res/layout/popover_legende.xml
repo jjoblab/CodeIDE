@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover « Légende » (étape 31, § 10.5) : sections Points d'état (les
+  quatre états du § 7 avec pastilles dessinées) et Notation (chevron,
+  trait parent → enfant, rappel de l'appui long).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="258dp"
+    android:layout_height="wrap_content">
+
+    <View
+        android:id="@+id/fleche_popover"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/fond_fleche_popover"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:id="@+id/coque_popover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_popover"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/legende_titre"
+            android:textColor="@color/explorateur_texte"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/legende_points_etat"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="10sp" tools:ignore="SmallSp"
+            android:textAllCaps="true" />
+
+        <!-- Pastilles : vues VuePointEtat réutilisées à l'état figé. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <jo.codeide.feature.editor.VuePointEtat
+                android:id="@+id/legende_point_defaut"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legende_point_defaut"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <jo.codeide.feature.editor.VuePointEtat
+                android:id="@+id/legende_point_ouvert"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legende_point_ouvert"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <jo.codeide.feature.editor.VuePointEtat
+                android:id="@+id/legende_point_actif"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legende_point_actif"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <jo.codeide.feature.editor.VuePointEtat
+                android:id="@+id/legende_point_selectionne"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legende_point_selectionne"
+                android:textColor="@color/explorateur_texte_2"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/legende_notation"
+            android:textAllCaps="true"
+            android:textColor="@color/explorateur_texte_3"
+            android:textSize="10sp" tools:ignore="SmallSp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/legende_ligne_dossier"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/legende_notation_dossier"
+            android:textColor="@color/explorateur_texte_2"
+            android:textSize="11.5sp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/legende_ligne_guide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/legende_notation_guide"
+            android:textColor="@color/explorateur_texte_2"
+            android:textSize="11.5sp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/legende_ligne_astuce"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/legende_notation_astuce"
+            android:textColor="@color/explorateur_texte_2"
+            android:textSize="11.5sp" />
+    </LinearLayout>
+</FrameLayout>

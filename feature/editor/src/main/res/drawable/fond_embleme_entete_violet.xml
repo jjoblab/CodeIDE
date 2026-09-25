@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variante violette de l'emblème d'entête (Terminal, privé). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/explorateur_violet_doux" />
+    <corners android:radius="7dp" />
+</shape>

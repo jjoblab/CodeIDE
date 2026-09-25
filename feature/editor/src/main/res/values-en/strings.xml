@@ -138,4 +138,115 @@
     <string name="editor_type_projet_modele_version">%1$s template · v%2$s</string>
     <string name="editor_type_projet_importe">Imported folder</string>
     <string name="editor_type_projet_inconnu">Unrecognized project type</string>
+
+    <!-- ================================================================
+         File explorer v2 (step 31, docs/EXPLORATEUR_V2.md): fragment
+         drawer, per-fragment header, Project/Private switch, custom
+         popover, per-node mutations, tree clipboard, resize handle.
+         ================================================================ -->
+
+    <!-- Explorer fragment header (§ 4). -->
+    <string name="editor_explorateur_titre">File explorer</string>
+    <string name="editor_explorateur_nouveau_cd">New (in the selected folder)</string>
+    <string name="editor_explorateur_replier_tout_cd">Collapse all</string>
+    <string name="editor_explorateur_legende_cd">Tree legend</string>
+    <string name="editor_ariane_racine_cd">Tree root</string>
+    <string name="explorateur_racine_privee">Private storage</string>
+
+    <!-- Project / Private switch (§ 5). -->
+    <string name="editor_bascule_projet">Project</string>
+    <string name="editor_bascule_prive">Private</string>
+    <string name="editor_bascule_projet_cd">Show the project tree</string>
+    <string name="editor_bascule_prive_cd">Show the app private storage tree</string>
+
+    <!-- Custom action popover (§ 10). -->
+    <string name="popover_ouvrir">Open</string>
+    <string name="popover_copier">Copy</string>
+    <string name="popover_couper">Cut</string>
+    <string name="popover_coller">Paste</string>
+    <string name="popover_deplacer_vers">Move to…</string>
+    <string name="popover_supprimer">Delete</string>
+    <string name="popover_nouveau_fichier">New file</string>
+    <string name="popover_nouveau_dossier">New folder</string>
+    <string name="popover_contexte_cible">Target — %1$s</string>
+    <string name="popover_contexte_deplacement">Move — %1$s</string>
+    <string name="popover_contexte_creation">Create in — %1$s</string>
+    <string name="popover_actions_cd">Actions of node %1$s</string>
+
+    <!-- “Move to…” popover (§ 10.5). -->
+    <string name="deplacer_origine">Origin</string>
+    <string name="deplacer_destination">Destination</string>
+    <string name="deplacer_annuler">Cancel</string>
+    <string name="deplacer_valider">Move</string>
+    <string name="deplacer_erreur_introuvable">Folder not found — relative path expected</string>
+    <string name="deplacer_erreur_deja">Already there.</string>
+    <string name="deplacer_erreur_dans_source">Impossible: the destination is inside the moved item.</string>
+
+    <!-- “Delete” popover (§ 10.5). -->
+    <string name="supprimer_fichier_message">Delete %1$s? This cannot be undone.</string>
+    <string name="supprimer_dossier_message">Delete %1$s and all its contents? This cannot be undone.</string>
+
+    <!-- “Legend” popover (§ 10.5). -->
+    <string name="legende_titre">Legend</string>
+    <string name="legende_points_etat">State dots</string>
+    <string name="legende_point_defaut">File not open</string>
+    <string name="legende_point_ouvert">Open in an inactive tab</string>
+    <string name="legende_point_actif">File of the active tab</string>
+    <string name="legende_point_selectionne">Selected node</string>
+    <string name="legende_notation">Notation</string>
+    <string name="legende_notation_dossier">chevron — expandable folder</string>
+    <string name="legende_notation_guide">thin line — parent to child</string>
+    <string name="legende_notation_astuce">Long-press a row: action menu</string>
+
+    <!-- Inline editor (§ 11.1). -->
+    <string name="edition_indication_fichier">file-name.kt</string>
+    <string name="edition_indication_dossier">folder-name</string>
+    <string name="edition_valider_cd">Confirm</string>
+    <string name="edition_annuler_cd">Cancel editing</string>
+    <string name="edition_champ_cd">Document name</string>
+
+    <!-- Explorer snackbar (§ 15). -->
+    <string name="notif_astuce">Tip: long-press (or right-click) a row to open the action menu</string>
+    <string name="notif_bascule_prive">Private storage — tree</string>
+    <string name="notif_bascule_projet">Project tree</string>
+    <string name="notif_cree">Created — %1$s</string>
+    <string name="notif_renomme">Renamed — %1$s → %2$s</string>
+    <string name="notif_supprime">Deleted — %1$s</string>
+    <string name="notif_copie">Copied to the clipboard</string>
+    <string name="notif_coupe">Cut — moved on paste</string>
+    <string name="notif_colle">Pasted — %1$s into %2$s</string>
+    <string name="notif_vide">Clipboard cleared</string>
+    <string name="notif_deplace">Moved — %1$s into %2$s</string>
+    <string name="notif_colle_impossible">Paste impossible — the destination is inside the source</string>
+    <string name="notif_deja_present">Already in this folder</string>
+    <string name="notif_destination_introuvable">Folder not found — relative path expected</string>
+    <string name="notif_deja_cet_endroit">Already there.</string>
+    <string name="notif_deplacement_dans_source">Impossible: the destination is inside the moved item.</string>
+    <string name="notif_nom_invalide">Name refused: required, no separator, 64 characters max, unique</string>
+    <string name="notif_annuler">Undo</string>
+
+    <!-- Clipboard bar (§ 12). -->
+    <string name="presse_papiers_copier">Clipboard: %1$s (copy)</string>
+    <string name="presse_papiers_couper">Clipboard: %1$s (cut)</string>
+    <string name="presse_papiers_vider">Clear</string>
+    <string name="presse_papiers_vider_cd">Clear the explorer clipboard</string>
+
+    <!-- Resize handle (§ 13). -->
+    <string name="poignee_cd">Resize the panel</string>
+    <string name="poignee_taille">%1$d\u00A0%%</string>
+
+    <!-- Drawer preview fragments (§ 1: Search, Git, Terminal). -->
+    <string name="apercu_recherche_titre">Search</string>
+    <string name="apercu_recherche_sous_titre">full-text search</string>
+    <string name="apercu_git_titre">Git</string>
+    <string name="apercu_git_sous_titre">status, commit and history</string>
+    <string name="apercu_git_commit">Commit</string>
+    <string name="apercu_terminal_titre">Terminal</string>
+    <string name="apercu_terminal_sous_titre">app sessions</string>
+    <string name="apercu_bientot">%1$s — coming soon.</string>
+    <string name="apercu_recherche_description">Project-wide full-text search will arrive with its dedicated batch: queries, file type filters and replacements.</string>
+    <string name="apercu_git_description">The Git panel will show repository status, commit staging and branch history.</string>
+
+    <!-- Toolbar: closing the workspace (moved from the v1 header). -->
+    <string name="editor_action_fermer_projet">Close the project</string>
 </resources>

@@ -9,13 +9,18 @@ import jo.codeeditor.session.EditorSession
 import jo.codeeditor.shift.DiagnosticShift
 import jo.codeide.core.domain.AnnulerBuildUseCase
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.ArbreMemoire
+import jo.codeide.core.domain.CopierArbreUseCase
+import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.ExecuterTachesUseCase
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.FileSystemPrive
 import jo.codeide.core.domain.GradleToolingRepository
+import jo.codeide.core.domain.LireArbreUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ListerTachesProjetUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
@@ -23,6 +28,7 @@ import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.RestaurerArbreUseCase
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
@@ -129,7 +135,7 @@ internal class SessionSuivie(
  * (arborescence, sessions, onglets actifs), et chaque dépendance injectée
  * est un cas d'usage nommé — les regrouper masquerait le domaine.
  */
-@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList", "CyclomaticComplexMethod", "LongMethod", "ReturnCount")
 @HiltViewModel
 class EditorViewModel
     @Inject
@@ -137,6 +143,8 @@ class EditorViewModel
         observerProjet: ObserveProjectUseCase,
         private val verifierAcces: VerifyProjectAccessUseCase,
         private val fichiers: FileSystem,
+        @param:FileSystemPrive
+        private val fichiersPrives: FileSystem,
         private val journal: AppLogger,
         observerJournaux: ObserveLogsUseCase,
         private val evaluerNom: EvaluerNomFichierUseCase,
@@ -152,6 +160,10 @@ class EditorViewModel
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
+        private val copierArbre: CopierArbreUseCase,
+        private val deplacerArbre: DeplacerArbreUseCase,
+        private val lireArbre: LireArbreUseCase,
+        private val restaurerArbre: RestaurerArbreUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -189,23 +201,71 @@ class EditorViewModel
         /** État observable du tooling Gradle (G5, §6). */
         val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
 
-        /** Enfants déjà énumérés, par URI de dossier — le cache paresseux. */
-        private val enfantsEnCache = LinkedHashMap<String, List<FileStat>>()
+        /** Cache, plis et connaissances d'UN arbre (projet ou privé) — la
+         * structure intime de l'arborescence paresseuse ADR 0027, dupliquée
+         * par source (étape 31 : les deux arbres sont exclusifs mais
+         * gardent chacun leurs plis d'une bascule à l'autre). */
+        private class EtatArbre {
+            /** Enfants déjà énumérés, par URI de dossier — le cache paresseux. */
+            val enfantsEnCache = LinkedHashMap<String, List<FileStat>>()
 
-        /** Dossiers dépliés (les fichiers n'ont pas d'état de pli). */
-        private val dossiersDeplies = mutableSetOf<String>()
+            /** Dossiers dépliés (les fichiers n'ont pas d'état de pli). */
+            val dossiersDeplies = mutableSetOf<String>()
 
-        /** Énumérations en vol (indicateur de chargement par nœud). */
-        private val enumerationsEnCours = mutableSetOf<String>()
+            /** Énumérations en vol (indicateur de chargement par nœud). */
+            val enumerationsEnCours = mutableSetOf<String>()
 
-        /** Dossiers dont la dernière énumération a échoué (réessai par appui). */
-        private val dossiersEnErreur = mutableSetOf<String>()
+            /** Dossiers dont la dernière énumération a échoué (réessai). */
+            val dossiersEnErreur = mutableSetOf<String>()
 
-        /** Documents décrits au fil des énumérations (nom, type). */
-        private val statuts = HashMap<String, FileStat>()
+            /** Documents décrits au fil des énumérations (nom, type). */
+            val statuts = HashMap<String, FileStat>()
 
-        /** Parent connu de chaque document énuméré (chemin relatif). */
-        private val parents = HashMap<String, String>()
+            /** Parent connu de chaque document énuméré. */
+            val parents = HashMap<String, String>()
+
+            /** Oublie tout : retour à l'arbre avant énumération. */
+            fun reinitialiser() {
+                enfantsEnCache.clear()
+                dossiersDeplies.clear()
+                enumerationsEnCours.clear()
+                dossiersEnErreur.clear()
+                statuts.clear()
+                parents.clear()
+            }
+        }
+
+        /** Arbre du projet (SAF, onglets de l'éditeur). */
+        private val arbreProjet = EtatArbre()
+
+        /** Arbre du stockage privé (étape 31, § 5). */
+        private val arbrePrive = EtatArbre()
+
+        /** Source de l'arbre affiché (étape 31 : exclusif, § 5). */
+        private var source = SourceArbre.PROJET
+
+        /** Arbre affiché selon la source courante. */
+        private val arbre: EtatArbre
+            get() = if (source == SourceArbre.PRIVE) arbrePrive else arbreProjet
+
+        /** Système de fichiers de l'arbre affiché. */
+        private val systeme: FileSystem
+            get() = if (source == SourceArbre.PRIVE) fichiersPrives else fichiers
+
+        /** Presse-papiers d'arbre mémoire (étape 31, § 12). */
+        private var pressePapiers: PressePapiersArbre? = null
+
+        /** Suppression annulable en attente (snackbar, étape 31, § 11). */
+        private var annulationEnAttente: AnnulationSuppression? = null
+
+        /** Expiration du snackbar maison (§ 15 : 4 600 ms). */
+        private var jobNotification: Job? = null
+
+        /** Fin du flash de ligne mutée (§ 6.1 : 1,1 s). */
+        private var jobFlash: Job? = null
+
+        /** Snackbar d'astuce déjà montré pour cette session (§ 18). */
+        private var astuceMontree = false
 
         /** URI de document du projet suivi — détecte la relocalisation. */
         private var uriDocumentSuivie: String? = null
@@ -238,6 +298,16 @@ class EditorViewModel
             observerJournal(observerJournaux)
             observerSessionsTerminal()
             observerTooling()
+
+            // Astuce d'appui long après 1,1 s (§ 18 de la spécification v2)
+            // — une fois par session seulement.
+            viewModelScope.launch {
+                delay(DELAI_ASTUCE_MS)
+                if (!astuceMontree) {
+                    astuceMontree = true
+                    notifier(NotificationArbre(type = TypeNotificationArbre.ASTUCE))
+                }
+            }
         }
 
         /**
@@ -302,6 +372,7 @@ class EditorViewModel
                 }
 
                 is ActionEditor.OuvrirFichier -> {
+                    selectionner(action.uri)
                     ouvrir(action.uri)
                 }
 
@@ -355,13 +426,29 @@ class EditorViewModel
             }
         }
 
-        /** Suite du routage : actions de fichiers du tiroir (étape 17). */
+        /** Suite du routage : actions de fichiers du tiroir (étape 17) et
+         * actions de l'explorateur v2 (étape 31 : bascule, sélection,
+         * presse-papiers, édition inline, annulation). */
         private fun onActionFichiers(action: ActionEditor) {
             when (action) {
                 is ActionEditor.CreerFichier -> creerFichier(action.uriParent, action.nom)
                 is ActionEditor.CreerDossier -> creerDossier(action.uriParent, action.nom)
                 is ActionEditor.RenommerDocument -> renommerDocument(action.uri, action.nouveauNom)
                 is ActionEditor.SupprimerDocument -> supprimerDocument(action.uri)
+                is ActionEditor.BasculerSource -> basculerSource(action.source)
+                is ActionEditor.SelectionnerNoeud -> selectionner(action.uri)
+                is ActionEditor.CopierNoeud -> copierNoeud(action.uri)
+                is ActionEditor.CouperNoeud -> couperNoeud(action.uri)
+                is ActionEditor.CollerDans -> collerDans(action.uriDossier)
+                is ActionEditor.DeplacerVers -> deplacerVers(action.uri, action.cheminDestination)
+                ActionEditor.ViderPressePapiers -> viderPressePapiers()
+                is ActionEditor.DebuterCreation -> debuterCreation(action.uriParent, action.estDossier)
+                is ActionEditor.DebuterRenommage -> debuterRenommage(action.uri)
+                ActionEditor.AnnulerEdition -> annulerEdition()
+                is ActionEditor.ValiderEdition -> validerEdition(action.nom)
+                ActionEditor.ReplierTout -> replierTout()
+                ActionEditor.AnnulerSuppression -> annulerSuppression()
+                ActionEditor.MasquerNotification -> masquerNotification()
                 else -> onActionPanneau(action)
             }
         }
@@ -661,16 +748,21 @@ class EditorViewModel
             if (projet != null) verifierEtChargerRacine()
         }
 
-        /** Oublie l'arborescence, l'accès et le type : retour à l'état avant projet. */
+        /** Oublie l'arborescence du projet, l'accès et le type : retour à
+         * l'état avant projet (l'arbre privé garde ses plis). */
         private fun reinitialiser() {
-            enfantsEnCache.clear()
-            dossiersDeplies.clear()
-            enumerationsEnCours.clear()
-            dossiersEnErreur.clear()
-            statuts.clear()
-            parents.clear()
+            arbreProjet.reinitialiser()
             typeProjetBrut = null
-            etatInterne.update { it.copy(acces = null, erreurRacine = false, noeuds = emptyList(), typeProjet = null) }
+            etatInterne.update {
+                it.copy(
+                    acces = null,
+                    erreurRacine = false,
+                    noeuds = if (source == SourceArbre.PROJET) emptyList() else it.noeuds,
+                    typeProjet = null,
+                    uriSelection = if (source == SourceArbre.PROJET) null else it.uriSelection,
+                    segmentsAriane = if (source == SourceArbre.PROJET) emptyList() else it.segmentsAriane,
+                )
+            }
         }
 
         /** Vérifie l'accès du projet puis énumère la racine si disponible. */
@@ -744,31 +836,33 @@ class EditorViewModel
 
         /**
          * Énumère les enfants d'un dossier (racine ou dépliement) et les
-         * met en cache. Une permission perdue fait basculer tout le tiroir
-         * en bandeau ; un dossier disparu n'est un état d'accès **que pour
-         * la racine** — sinon c'est le nœud qui signale, réessayable.
+         * met en cache dans l'arbre actif. Une permission perdue fait
+         * basculer tout le tiroir en bandeau (projet uniquement) ; un
+         * dossier disparu n'est un état d'accès **que pour la racine**
+         * projet — sinon c'est le nœud qui signale, réessayable.
          */
         private fun chargerEnfants(uriDossier: String) {
-            if (uriDossier in enumerationsEnCours) return
-            enumerationsEnCours += uriDossier
+            val arbre = arbre
+            if (uriDossier in arbre.enumerationsEnCours) return
+            arbre.enumerationsEnCours += uriDossier
             reconstruireNoeuds()
             viewModelScope.launch {
-                when (val resultat = fichiers.list(uriDossier)) {
+                when (val resultat = systeme.list(uriDossier)) {
                     is AppResult.Success -> {
-                        enfantsEnCache[uriDossier] = resultat.value.tries()
+                        arbre.enfantsEnCache[uriDossier] = resultat.value.tries()
                         resultat.value.forEach { enfant ->
-                            statuts[enfant.uri] = enfant
-                            parents[enfant.uri] = uriDossier
+                            arbre.statuts[enfant.uri] = enfant
+                            arbre.parents[enfant.uri] = uriDossier
                         }
-                        dossiersEnErreur -= uriDossier
+                        arbre.dossiersEnErreur -= uriDossier
                     }
 
                     is AppResult.Failure -> {
                         when {
                             (resultat.error as? AppError.Storage)?.reason ==
-                                AppError.StorageReason.PermissionLost -> {
-                                enfantsEnCache.clear()
-                                dossiersDeplies.clear()
+                                AppError.StorageReason.PermissionLost &&
+                                arbre === arbreProjet -> {
+                                arbreProjet.reinitialiser()
                                 etatInterne.update {
                                     it.copy(acces = ProjectAccessState.PermissionLost, noeuds = emptyList())
                                 }
@@ -777,8 +871,7 @@ class EditorViewModel
                             (resultat.error as? AppError.Storage)?.reason ==
                                 AppError.StorageReason.NotFound &&
                                 uriDossier == uriDocumentSuivie -> {
-                                enfantsEnCache.clear()
-                                dossiersDeplies.clear()
+                                arbreProjet.reinitialiser()
                                 etatInterne.update {
                                     it.copy(acces = ProjectAccessState.Missing, noeuds = emptyList())
                                 }
@@ -788,37 +881,39 @@ class EditorViewModel
                                 // Échec passager d'un dossier (disparu entre
                                 // temps, E/S) : replié et marqué, l'appui
                                 // réessaiera l'énumération.
-                                dossiersEnErreur += uriDossier
-                                dossiersDeplies -= uriDossier
+                                arbre.dossiersEnErreur += uriDossier
+                                arbre.dossiersDeplies -= uriDossier
                             }
                         }
                     }
                 }
-                enumerationsEnCours -= uriDossier
+                arbre.enumerationsEnCours -= uriDossier
                 reconstruireNoeuds()
             }
         }
 
         /**
-         * Déplie ou replie un dossier. Le premier dépliement énumère ; un
-         * dossier en erreur est toujours **replié** — l'appui réessaie
-         * directement l'énumération au lieu de le replier sans rien faire.
+         * Déplie ou replie un dossier de l'arbre actif. Le premier
+         * dépliement énumère ; un dossier en erreur est toujours
+         * **replié** — l'appui réessaie directement l'énumération au lieu
+         * de le replier sans rien faire.
          */
         private fun basculer(uri: String) {
+            val arbre = arbre
             when {
-                uri in dossiersEnErreur -> {
-                    dossiersDeplies += uri
+                uri in arbre.dossiersEnErreur -> {
+                    arbre.dossiersDeplies += uri
                     chargerEnfants(uri)
                 }
 
-                uri in dossiersDeplies -> {
-                    dossiersDeplies -= uri
+                uri in arbre.dossiersDeplies -> {
+                    arbre.dossiersDeplies -= uri
                     reconstruireNoeuds()
                 }
 
                 else -> {
-                    dossiersDeplies += uri
-                    if (uri !in enfantsEnCache) {
+                    arbre.dossiersDeplies += uri
+                    if (uri !in arbre.enfantsEnCache) {
                         chargerEnfants(uri)
                     } else {
                         reconstruireNoeuds()
@@ -827,30 +922,86 @@ class EditorViewModel
             }
         }
 
-        /** Bouton Actualiser : vérification d'accès puis rechargement complet. */
+        /**
+         * Bouton Actualiser (§ 4) : re-vérifie l'accès du projet et
+         * recharge son arbre — ou recharge l'arbre privé affiché (les
+         * deux sources rafraîchissent indépendamment).
+         */
         private fun rafraichir() {
+            if (source == SourceArbre.PRIVE) {
+                arbrePrive.reinitialiser()
+                chargerEnfants(URI_RACINE_PRIVEE)
+                return
+            }
             if (etatInterne.value.verificationAcces) return
             reinitialiser()
             verifierEtChargerRacine()
         }
 
-        /** Reconstruit la liste aplatie des nœuds visibles. */
-        private fun reconstruireNoeuds() {
-            val racine = uriDocumentSuivie ?: return
-            val visibles = mutableListOf<NoeudExplorateur>()
-            ajouterEnfantsVisibles(racine, 0, visibles)
-            etatInterne.update { it.copy(noeuds = visibles) }
+        /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
+        private fun replierTout() {
+            arbre.dossiersDeplies.clear()
+            reconstruireNoeuds()
         }
 
-        /** Aplatit récursivement les enfants visibles du dossier donné. */
+        /**
+         * Reconstruit la liste aplatie des nœuds visibles de l'arbre
+         * **affiché** : la racine ouvre la liste (ligne haute, badge de
+         * chemin, § 6.1), chaque ligne porte son état de présentation
+         * (sélection, coupe, point d'état des onglets, guides, flash).
+         */
+        private fun reconstruireNoeuds() {
+            val arbre = arbre
+            val racine = uriRacineDe(arbre) ?: return
+            val etat = etatInterne.value
+            val presse = pressePapiers
+            val visibles = mutableListOf<NoeudExplorateur>()
+            visibles +=
+                NoeudExplorateur(
+                    uri = racine,
+                    nom = etat.projet?.name ?: racine,
+                    estDossier = true,
+                    profondeur = 0,
+                    deplie = true,
+                    estRacine = true,
+                    prive = arbre === arbrePrive,
+                    selectionne = etat.uriSelection == racine,
+                    nbEnfants = arbre.enfantsEnCache[racine]?.size ?: -1,
+                )
+            ajouterEnfantsVisibles(arbre, racine, 1, 0, visibles)
+            etatInterne.update {
+                it.copy(
+                    noeuds = visibles,
+                    pressePapiers = presse,
+                    cheminRacine =
+                        if (arbre === arbrePrive) {
+                            CHEMIN_RACINE_PRIVEE
+                        } else {
+                            etat.projet?.location?.displayPath ?: ""
+                        },
+                    nomRacine = if (arbre === arbrePrive) null else etat.projet?.name,
+                    cheminsDossiers = calculerCheminsDossiers(arbre),
+                )
+            }
+        }
+
+        /** Aplatit récursivement les enfants visibles du dossier donné.
+         *
+         * [masqueAncetres] porte, bit par bit, les ancêtres « derniers
+         * enfants » : le bit *k−1* posé masque le trait de guide du
+         * niveau *k* sous ce sous-arbre (§ 6.2). */
         private fun ajouterEnfantsVisibles(
+            arbre: EtatArbre,
             uriDossier: String,
             profondeur: Int,
+            masqueAncetres: Int,
             visibles: MutableList<NoeudExplorateur>,
         ) {
-            val enfants = enfantsEnCache[uriDossier] ?: return
-            for (enfant in enfants) {
-                val deplie = enfant.isDirectory && enfant.uri in dossiersDeplies
+            val enfants = arbre.enfantsEnCache[uriDossier] ?: return
+            val etat = etatInterne.value
+            val presse = pressePapiers
+            for ((indice, enfant) in enfants.withIndex()) {
+                val deplie = enfant.isDirectory && enfant.uri in arbre.dossiersDeplies
                 visibles +=
                     NoeudExplorateur(
                         uri = enfant.uri,
@@ -858,16 +1009,171 @@ class EditorViewModel
                         estDossier = enfant.isDirectory,
                         profondeur = profondeur,
                         deplie = deplie,
-                        chargementEnfants = enfant.uri in enumerationsEnCours,
-                        erreurChargement = enfant.uri in dossiersEnErreur,
+                        chargementEnfants = enfant.uri in arbre.enumerationsEnCours,
+                        erreurChargement = enfant.uri in arbre.dossiersEnErreur,
+                        prive = arbre === arbrePrive,
+                        selectionne = etat.uriSelection == enfant.uri,
+                        coupe = presse?.mode == ModePressePapiers.COUPER && presse.uri == enfant.uri,
+                        ongletActif =
+                            arbre === arbreProjet &&
+                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri == enfant.uri,
+                        ongletOuvert =
+                            arbre === arbreProjet &&
+                                enfant.uri in etat.onglets.map { it.uri } &&
+                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri != enfant.uri,
+                        dernierEnfant = indice == enfants.lastIndex,
+                        masqueAncetresDerniers = masqueAncetres,
+                        nbEnfants = if (enfant.isDirectory) arbre.enfantsEnCache[enfant.uri]?.size ?: -1 else -1,
+                        flasher = enfant.uri in etat.urisFlachees,
                     )
-                if (deplie) ajouterEnfantsVisibles(enfant.uri, profondeur + 1, visibles)
+                if (deplie) {
+                    ajouterEnfantsVisibles(
+                        arbre,
+                        enfant.uri,
+                        profondeur + 1,
+                        masqueAncetres or (1 shl (profondeur - 1)),
+                        visibles,
+                    )
+                }
             }
         }
+
+        /** URI de la racine de l'arbre donné. */
+        private fun uriRacineDe(arbre: EtatArbre): String? =
+            if (arbre === arbrePrive) URI_RACINE_PRIVEE else uriDocumentSuivie
 
         /** Tri de l'explorateur : dossiers d'abord, puis fichiers, puis nom. */
         private fun List<FileStat>.tries(): List<FileStat> =
             sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+
+        // ------------------------------------------------------------------
+        // Explorateur v2 : bascule, sélection, notifications (étape 31)
+        // ------------------------------------------------------------------
+
+        /**
+         * Bascule l'arbre affiché (§ 5) : exclusif — la sélection est
+         * réinitialisée, le sous-titre suit la racine, l'arbre cible
+         * reprend ses plis ; les onglets de l'éditeur ne sont pas
+         * touchés. Le premier passage au privé l'énumère.
+         */
+        private fun basculerSource(nouvelle: SourceArbre) {
+            if (nouvelle == source) return
+            source = nouvelle
+            etatInterne.update {
+                it.copy(
+                    source = nouvelle,
+                    uriSelection = null,
+                    segmentsAriane = emptyList(),
+                    edition = null,
+                )
+            }
+            if (nouvelle == SourceArbre.PRIVE) {
+                if (URI_RACINE_PRIVEE !in arbrePrive.enfantsEnCache) {
+                    chargerEnfants(URI_RACINE_PRIVEE)
+                }
+                notifier(NotificationArbre(type = TypeNotificationArbre.BASCULE_PRIVE, chemin = CHEMIN_RACINE_PRIVEE))
+            } else {
+                notifier(
+                    NotificationArbre(
+                        type = TypeNotificationArbre.BASCULE_PROJET,
+                        chemin = etatInterne.value.cheminRacine.ifBlank { null },
+                    ),
+                )
+            }
+            reconstruireNoeuds()
+        }
+
+        /**
+         * Sélectionne un nœud de l'arbre actif (§ 17 : tout tap
+         * sélectionne) — le fil d'Ariane suit (§ 4).
+         */
+        private fun selectionner(uri: String?) {
+            etatInterne.update {
+                it.copy(
+                    uriSelection = uri,
+                    segmentsAriane = construireAriane(uri),
+                )
+            }
+            if (uri != null) reconstruireNoeuds()
+        }
+
+        /** Ancêtres de la sélection, de la racine au nœud (§ 4). */
+        private fun construireAriane(uri: String?): List<SegmentAriane> {
+            val racine = uriRacineDe(arbre) ?: return emptyList()
+            val segments = ArrayDeque<SegmentAriane>()
+            var courant: String? = uri
+            while (courant != null && courant != racine && arbre.parents.containsKey(courant)) {
+                segments.addFirst(SegmentAriane(courant, arbre.statuts[courant]?.name))
+                courant = arbre.parents[courant]
+            }
+            if (uri != null && courant == null) return listOf(SegmentAriane(racine, null))
+            return listOf(SegmentAriane(racine, null)) + segments
+        }
+
+        /**
+         * Chemins relatifs des dossiers énumérés de l'arbre donné
+         * (autocomplétion du popover « Déplacer vers… », § 10.5).
+         */
+        private fun calculerCheminsDossiers(arbre: EtatArbre): List<String> =
+            arbre.statuts.values
+                .filter { it.isDirectory }
+                .map { stat -> cheminRelatifDans(arbre, stat.uri) }
+                .filter { it.isNotEmpty() }
+                .sorted()
+                .let { chemins ->
+                    if (uriRacineDe(arbre) != null) listOf("") + chemins else chemins
+                }
+
+        /**
+         * Publie le snackbar maison (§ 15) avec expiration automatique
+         * (4 600 ms) ; une annulation reste possible tant qu'il est affiché.
+         */
+        private fun notifier(notification: NotificationArbre) {
+            etatInterne.update { it.copy(notification = notification) }
+            jobNotification?.cancel()
+            jobNotification =
+                viewModelScope.launch {
+                    delay(DELAI_NOTIFICATION_MS)
+                    etatInterne.update { etat ->
+                        if (etat.notification == notification) etat.copy(notification = null) else etat
+                    }
+                    if (etatInterne.value.notification == null) annulationEnAttente = null
+                }
+        }
+
+        /** Masque le snackbar et oublie l'annulation en attente. */
+        private fun masquerNotification() {
+            annulationEnAttente = null
+            etatInterne.update { it.copy(notification = null) }
+        }
+
+        /** Marque des lignes à flasher (§ 6.1 : 1,1 s). */
+        private fun flasher(uris: Set<String>) {
+            if (uris.isEmpty()) return
+            etatInterne.update { it.copy(urisFlachees = uris) }
+            jobFlash?.cancel()
+            jobFlash =
+                viewModelScope.launch {
+                    delay(DELAI_FLASH_MS)
+                    etatInterne.update { it.copy(urisFlachees = emptySet()) }
+                }
+        }
+
+        /** Chemin relatif d'un URI dans l'arbre donné ("" si racine). */
+        private fun cheminRelatifDans(
+            arbre: EtatArbre,
+            uri: String,
+        ): String {
+            val racine = uriRacineDe(arbre) ?: return ""
+            if (uri == racine) return ""
+            val segments = ArrayDeque<String>()
+            var courant: String? = uri
+            while (courant != null && courant != racine && arbre.parents.containsKey(courant)) {
+                segments.addFirst(arbre.statuts[courant]?.name ?: courant.substringAfterLast('/'))
+                courant = arbre.parents[courant]
+            }
+            return if (courant != racine) "" else segments.joinToString("/")
+        }
 
         // ------------------------------------------------------------------
         // Onglets d'édition (étape 15)
@@ -882,7 +1188,7 @@ class EditorViewModel
                     return
                 }
 
-            val nomConnu = statuts[uri]?.name ?: uri.substringAfterLast('/')
+            val nomConnu = arbreProjet.statuts[uri]?.name ?: uri.substringAfterLast('/')
             if (FichiersOuverture.estBinaire(nomConnu)) {
                 canalEffets.trySend(EffetEditor.OuvrirAvec(uri))
                 return
@@ -909,7 +1215,7 @@ class EditorViewModel
         ) {
             if (sessions.containsKey(uri)) return
             val chemin = cheminRelatifDe(uri)
-            val nom = statuts[uri]?.name ?: chemin.substringAfterLast('/')
+            val nom = arbreProjet.statuts[uri]?.name ?: chemin.substringAfterLast('/')
             val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
             FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
@@ -929,6 +1235,8 @@ class EditorViewModel
                 )
             }
             persisterOnglets()
+            // Point d'état des nœuds (§ 7) : l'arbre suit les onglets.
+            reconstruireNoeuds()
         }
 
         /** Une modification rend l'onglet sale et (re)programme l'auto-sauvegarde. */
@@ -958,6 +1266,8 @@ class EditorViewModel
                     etat
                 }
             }
+            // Point d'état : l'onglet actif change (vert plein ↔ creux).
+            reconstruireNoeuds()
         }
 
         /** Déplace un onglet d'une position (réordonnancement du menu contextuel). */
@@ -981,6 +1291,9 @@ class EditorViewModel
                 }
             }
             persisterOnglets()
+            // Point d'état : l'ordre des onglets ne change pas les états,
+            // l'actif oui — reconstruction légère et sûre.
+            reconstruireNoeuds()
         }
 
         /** « Fermer les autres » : les propres partent, les sales confirment. */
@@ -1077,6 +1390,8 @@ class EditorViewModel
                 etat.copy(onglets = onglets, indexOngletActif = index)
             }
             persisterOnglets()
+            // Point d'état : les onglets fermés perdent leur point (§ 7).
+            reconstruireNoeuds()
             if (quitter) canalEffets.trySend(EffetEditor.Quitter)
         }
 
@@ -1135,19 +1450,8 @@ class EditorViewModel
         }
 
         /** Chemin relatif d'un document sous la racine (parents connus). */
-        private fun cheminRelatifDe(uri: String): String {
-            val racine = uriDocumentSuivie
-            val segments = ArrayDeque<String>()
-            var courant: String? = uri
-            while (courant != null && courant != racine && parents.containsKey(courant)) {
-                segments.addFirst(statuts[courant]?.name ?: courant.substringAfterLast('/'))
-                courant = parents[courant]
-            }
-            return when {
-                segments.isEmpty() -> statuts[uri]?.name ?: uri.substringAfterLast('/')
-                else -> segments.joinToString("/")
-            }
-        }
+        private fun cheminRelatifDe(uri: String): String =
+            cheminRelatifDans(arbreProjet, uri).ifEmpty { uri.substringAfterLast('/') }
 
         /** Onglets ouverts et actif dans le sauvetage (mort du processus). */
         private fun persisterOnglets() {
@@ -1263,7 +1567,99 @@ class EditorViewModel
          */
         fun evaluerNomFichier(nom: String): RaisonValidation? = evaluerNom(nom)
 
-        /** Crée un fichier dans le dossier parent, puis l'ouvre en onglet. */
+        /**
+         * Suppression annulable : instantané mémoire du document supprimé,
+         * son parent, l'arbre d'origine et les onglets fermés (§ 11).
+         */
+        private data class AnnulationSuppression(
+            val source: SourceArbre,
+            val uriParent: String,
+            val instantane: ArbreMemoire,
+            val urisOnglets: List<String>,
+            val etaitActif: Boolean,
+        )
+
+        /**
+         * Débute une création inline (§ 11) : l'éditeur apparaît dans la
+         * liste sous [uriParent] — le dossier est déplié au besoin.
+         */
+        private fun debuterCreation(
+            uriParent: String,
+            estDossier: Boolean,
+        ) {
+            if (source == SourceArbre.PROJET && uriParent != uriDocumentSuivie) {
+                arbreProjet.dossiersDeplies += uriParent
+                if (uriParent !in arbreProjet.enfantsEnCache) chargerEnfants(uriParent)
+            }
+            etatInterne.update {
+                it.copy(
+                    edition =
+                        EditionInline(
+                            renommage = null,
+                            uriParent = uriParent,
+                            estDossier = estDossier,
+                            nomInitial = "",
+                        ),
+                )
+            }
+            reconstruireNoeuds()
+        }
+
+        /**
+         * Débute un renommage inline (§ 11) : la ligne du nœud devient un
+         * éditeur pré-rempli, la sélection suit le nœud.
+         */
+        private fun debuterRenommage(uri: String) {
+            val arbre = arbre
+            val parent = arbre.parents[uri] ?: uriRacineDe(arbre) ?: return
+            etatInterne.update {
+                it.copy(
+                    uriSelection = uri,
+                    segmentsAriane = construireAriane(uri),
+                    edition =
+                        EditionInline(
+                            renommage = uri,
+                            uriParent = parent,
+                            estDossier = arbre.statuts[uri]?.isDirectory ?: false,
+                            nomInitial = arbre.statuts[uri]?.name ?: uri.substringAfterLast('/'),
+                        ),
+                )
+            }
+            reconstruireNoeuds()
+        }
+
+        /** Abandonne l'édition inline (§ 11 : Échap, annuler, clic ailleurs). */
+        private fun annulerEdition() {
+            if (etatInterne.value.edition == null) return
+            etatInterne.update { it.copy(edition = null) }
+            reconstruireNoeuds()
+        }
+
+        /**
+         * Valide l'édition inline (§ 11) : nom validé (§ 11.1 — le refus
+         * est unNom invalide signalé à l'UI sans fermer l'éditeur) puis
+         * création ou renommage selon le mode.
+         */
+        private fun validerEdition(nom: String) {
+            val edition = etatInterne.value.edition ?: return
+            if (nom.isBlank() || evaluerNom(nom.trim()) != null) {
+                notifier(NotificationArbre(type = TypeNotificationArbre.NOM_INVALIDE, nom = nom.trim()))
+                return
+            }
+            etatInterne.update { it.copy(edition = null) }
+            if (edition.renommage == null) {
+                if (edition.estDossier) {
+                    creerDossier(edition.uriParent, nom.trim())
+                } else {
+                    creerFichier(edition.uriParent, nom.trim())
+                }
+            } else {
+                renommerDocument(edition.renommage, nom.trim())
+            }
+        }
+
+        /** Crée un fichier : déplie le parent, insère trié, flash, ouvre
+         * en onglet actif (ADR 0030 « créer → éditer », projet uniquement). */
         private fun creerFichier(
             uriParent: String,
             nom: String,
@@ -1278,11 +1674,20 @@ class EditorViewModel
                 // retour d'appareil Android 15) : lu en aval comme renommage
                 // hostile → AlreadyExists de pure invention (même famille que
                 // le piège de création de projet, retour 4a4526aa puis v0.31.7).
-                when (val resultat = fichiers.createFile(uriParent, nom, mimeFichierTexte(nom))) {
+                when (val resultat = systeme.createFile(uriParent, nom, mimeFichierTexte(nom))) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "fichier créé dans le tiroir" }
                         rafraichirDossier(uriParent)
-                        ouvrir(resultat.value)
+                        if (source == SourceArbre.PROJET) ouvrir(resultat.value)
+                        selectionner(resultat.value)
+                        flasher(setOf(resultat.value))
+                        notifier(
+                            NotificationArbre(
+                                type = TypeNotificationArbre.CREE,
+                                nom = nom,
+                                chemin = cheminAffichageDe(resultat.value),
+                            ),
+                        )
                     }
 
                     is AppResult.Failure -> {
@@ -1292,17 +1697,26 @@ class EditorViewModel
             }
         }
 
-        /** Crée un sous-dossier, puis déploie son parent. */
+        /** Crée un sous-dossier : déplie le parent, insère trié, flash. */
         private fun creerDossier(
             uriParent: String,
             nom: String,
         ) {
             viewModelScope.launch {
-                when (val resultat = fichiers.createDirectory(uriParent, nom)) {
+                when (val resultat = systeme.createDirectory(uriParent, nom)) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "dossier créé dans le tiroir" }
+                        arbre.dossiersDeplies += uriParent
                         rafraichirDossier(uriParent)
-                        basculer(uriParent)
+                        selectionner(resultat.value)
+                        flasher(setOf(resultat.value))
+                        notifier(
+                            NotificationArbre(
+                                type = TypeNotificationArbre.CREE,
+                                nom = nom,
+                                chemin = cheminAffichageDe(resultat.value),
+                            ),
+                        )
                     }
 
                     is AppResult.Failure -> {
@@ -1322,11 +1736,21 @@ class EditorViewModel
             nouveauNom: String,
         ) {
             viewModelScope.launch {
-                when (val resultat = fichiers.rename(uri, nouveauNom)) {
+                when (val resultat = systeme.rename(uri, nouveauNom)) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "document renommé dans le tiroir" }
                         migrerOnglet(uri, resultat.value, nouveauNom)
                         rafraichirDossier(uri.substringBeforeLast('/'), urisObsoletes = setOf(uri))
+                        selectionner(resultat.value)
+                        flasher(setOf(resultat.value))
+                        notifier(
+                            NotificationArbre(
+                                type = TypeNotificationArbre.RENOMME,
+                                nom = uri.substringAfterLast('/'),
+                                nomSecondaire = nouveauNom,
+                                chemin = cheminAffichageDe(resultat.value),
+                            ),
+                        )
                     }
 
                     is AppResult.Failure -> {
@@ -1337,22 +1761,93 @@ class EditorViewModel
         }
 
         /**
-         * Supprime un document après confirmation côté UI : l'onglet ouvert
-         * (et les onglets sous un dossier supprimé) ferment, sessions
-         * libérées ; l'arborescence du parent est rafraîchie.
+         * Supprime un document après confirmation côté UI (§ 11) : un
+         * instantané mémoire est pris **avant** — l'annulation du snackbar
+         * restaure l'élément (et ses onglets, y compris l'actif s'il n'y
+         * en a plus). L'onglet ouvert (et les onglets sous un dossier
+         * supprimé) ferment, sessions libérées ; la sélection remonte au
+         * parent.
          */
         private fun supprimerDocument(uri: String) {
+            val arbre = arbre
+            val parent = arbre.parents[uri] ?: uriRacineDe(arbre) ?: return
             viewModelScope.launch {
-                when (fichiers.delete(uri)) {
+                when (val instantane = lireArbre(systeme, uri)) {
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                        return@launch
+                    }
+
                     is AppResult.Success -> {
-                        journal.i(TAG) { "document supprimé du tiroir" }
+                        val ongletsOuverts = etatInterne.value.onglets
                         val touches =
-                            etatInterne.value.onglets.map { it.uri }.filter {
-                                it == uri ||
-                                    it.startsWith("$uri/")
+                            ongletsOuverts.map { it.uri }.filter {
+                                it == uri || it.startsWith("$uri/")
                             }
-                        if (touches.isNotEmpty()) fermer(touches, quitter = false)
-                        rafraichirDossier(uri.substringBeforeLast('/'), urisObsoletes = setOf(uri))
+                        val etaitActif =
+                            ongletsOuverts.getOrNull(etatInterne.value.indexOngletActif)?.uri in touches
+                        when (systeme.delete(uri)) {
+                            is AppResult.Success -> {
+                                journal.i(TAG) { "document supprimé du tiroir" }
+                                if (touches.isNotEmpty()) fermer(touches, quitter = false)
+                                annulationEnAttente =
+                                    AnnulationSuppression(
+                                        source = source,
+                                        uriParent = parent,
+                                        instantane = instantane.value,
+                                        urisOnglets = touches,
+                                        etaitActif = etaitActif,
+                                    )
+                                selectionner(parent)
+                                rafraichirDossier(parent, urisObsoletes = setOf(uri))
+                                notifier(
+                                    NotificationArbre(
+                                        type = TypeNotificationArbre.SUPPRIME,
+                                        nom = instantane.value.nom,
+                                        chemin = cheminAffichageDe(uri),
+                                        annulable = true,
+                                    ),
+                                )
+                            }
+
+                            is AppResult.Failure -> {
+                                echecActionFichier()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Annule la dernière suppression (§ 11) : restaure l'élément à sa
+         * place (suffixe anti-collision si un homonyme est apparu), rouvre
+         * ses onglets — y compris l'onglet actif s'il n'y en a plus.
+         */
+        private fun annulerSuppression() {
+            val annulation = annulationEnAttente ?: return
+            annulationEnAttente = null
+            val arbreDOrigine = if (annulation.source == SourceArbre.PRIVE) arbrePrive else arbreProjet
+            val systemeDOrigine = if (annulation.source == SourceArbre.PRIVE) fichiersPrives else fichiers
+            viewModelScope.launch {
+                when (val restauration = restaurerArbre(systemeDOrigine, annulation.uriParent, annulation.instantane)) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "suppression annulée dans le tiroir" }
+                        if (annulation.uriParent !in arbreDOrigine.enfantsEnCache) {
+                            chargerEnfants(annulation.uriParent)
+                        } else {
+                            rafraichirDossier(annulation.uriParent)
+                        }
+                        selectionner(restauration.value)
+                        flasher(setOf(restauration.value))
+                        annulation.urisOnglets.forEach { uri -> ouvrir(uri) }
+                        notifier(
+                            NotificationArbre(
+                                type = TypeNotificationArbre.CREE,
+                                nom = annulation.instantane.nom,
+                                chemin = cheminAffichageDe(restauration.value),
+                            ),
+                        )
                     }
 
                     is AppResult.Failure -> {
@@ -1360,6 +1855,235 @@ class EditorViewModel
                     }
                 }
             }
+        }
+
+        /** Retient un document au presse-papiers en mode copier (§ 11). */
+        private fun copierNoeud(uri: String) {
+            val arbre = arbre
+            val statut = arbre.statuts[uri] ?: return
+            pressePapiers =
+                PressePapiersArbre(
+                    uri = uri,
+                    nom = statut.name,
+                    estDossier = statut.isDirectory,
+                    mode = ModePressePapiers.COPIER,
+                )
+            notifier(
+                NotificationArbre(
+                    type = TypeNotificationArbre.COPIE,
+                    nom = statut.name,
+                    chemin = cheminAffichageDe(uri),
+                ),
+            )
+            reconstruireNoeuds()
+        }
+
+        /** Retient un document au presse-papiers en mode couper (§ 11). */
+        private fun couperNoeud(uri: String) {
+            val arbre = arbre
+            val statut = arbre.statuts[uri] ?: return
+            pressePapiers =
+                PressePapiersArbre(
+                    uri = uri,
+                    nom = statut.name,
+                    estDossier = statut.isDirectory,
+                    mode = ModePressePapiers.COUPER,
+                )
+            notifier(
+                NotificationArbre(
+                    type = TypeNotificationArbre.COUPE,
+                    nom = statut.name,
+                    chemin = cheminAffichageDe(uri),
+                ),
+            )
+            reconstruireNoeuds()
+        }
+
+        /** Vide le presse-papiers d'arbre (§ 12). */
+        private fun viderPressePapiers() {
+            pressePapiers = null
+            notifier(NotificationArbre(type = TypeNotificationArbre.VIDE))
+            reconstruireNoeuds()
+        }
+
+        /**
+         * Colle le presse-papiers dans [uriDossier] (§ 11) : garde-fous
+         * d'abord (destination dans la source, déjà présent en mode
+         * couper), puis copie ou déplacement, insertion triée + flash.
+         * Le presse-papiers est vidé après un collage en mode couper.
+         */
+        private fun collerDans(uriDossier: String) {
+            val presse = pressePapiers ?: return
+            when {
+                uriDossier == presse.uri || uriDossier.startsWith("${presse.uri}/") -> {
+                    notifier(NotificationArbre(type = TypeNotificationArbre.COLLE_IMPOSSIBLE, nom = presse.nom))
+                    return
+                }
+
+                presse.mode == ModePressePapiers.COUPER && arbre.parents[presse.uri] == uriDossier -> {
+                    notifier(NotificationArbre(type = TypeNotificationArbre.DEJA_PRESENT, nom = presse.nom))
+                    return
+                }
+            }
+            viewModelScope.launch {
+                val operation: suspend () -> AppResult<String> =
+                    if (presse.mode == ModePressePapiers.COUPER) {
+                        { deplacerArbre(systeme, presse.uri, uriDossier) }
+                    } else {
+                        { copierArbre(systeme, presse.uri, uriDossier) }
+                    }
+                when (val resultat = operation()) {
+                    is AppResult.Success -> {
+                        journal.i(TAG) { "collage effectué dans le tiroir" }
+                        if (presse.mode == ModePressePapiers.COUPER) {
+                            pressePapiers = null
+                            rafraichirDossier(arbre.parents[presse.uri] ?: return@launch)
+                        }
+                        rafraichirDossier(uriDossier)
+                        selectionner(resultat.value)
+                        flasher(setOf(resultat.value))
+                        notifier(
+                            NotificationArbre(
+                                type =
+                                    if (presse.mode == ModePressePapiers.COUPER) {
+                                        TypeNotificationArbre.DEPLACE
+                                    } else {
+                                        TypeNotificationArbre.COLLE
+                                    },
+                                nom = presse.nom,
+                                nomSecondaire = nomDeDossier(uriDossier),
+                                chemin = cheminAffichageDe(resultat.value),
+                            ),
+                        )
+                    }
+
+                    is AppResult.Failure -> {
+                        echecActionFichier()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Déplace un document vers un chemin relatif saisi (§ 10.5) :
+         * résolution du dossier destination segment par segment depuis la
+         * racine, garde-fous (introuvable, déjà là, destination dans
+         * l'élément), puis déplacement — la sélection suit (§ 11).
+         */
+        private fun deplacerVers(
+            uri: String,
+            cheminDestination: String,
+        ) {
+            val chemin = cheminDestination.trim().trim('/')
+            if (chemin.isEmpty()) {
+                notifier(NotificationArbre(type = TypeNotificationArbre.DESTINATION_INTROUVABLE))
+                return
+            }
+            viewModelScope.launch {
+                when (val cible = resoudreDossierParChemin(chemin)) {
+                    null -> {
+                        notifier(NotificationArbre(type = TypeNotificationArbre.DESTINATION_INTROUVABLE, nom = chemin))
+                    }
+
+                    else -> {
+                        val uriParent = cible ?: return@launch
+                        when {
+                            uriParent == arbre.parents[uri] -> {
+                                notifier(
+                                    NotificationArbre(
+                                        type = TypeNotificationArbre.DEJA_A_CET_ENDROIT,
+                                        nom = uri.substringAfterLast('/'),
+                                    ),
+                                )
+                            }
+
+                            uriParent == uri || uriParent.startsWith("$uri/") -> {
+                                notifier(
+                                    NotificationArbre(
+                                        type = TypeNotificationArbre.DEPLACEMENT_DANS_SOURCE,
+                                        nom = uri.substringAfterLast('/'),
+                                    ),
+                                )
+                            }
+
+                            else -> {
+                                when (val resultat = deplacerArbre(systeme, uri, uriParent)) {
+                                    is AppResult.Success -> {
+                                        journal.i(TAG) { "document déplacé dans le tiroir" }
+                                        val ancienParent = arbre.parents[uri]
+                                        if (ancienParent !=
+                                            null
+                                        ) {
+                                            rafraichirDossier(ancienParent, urisObsoletes = setOf(uri))
+                                        }
+                                        rafraichirDossier(uriParent)
+                                        selectionner(resultat.value)
+                                        flasher(setOf(resultat.value))
+                                        notifier(
+                                            NotificationArbre(
+                                                type = TypeNotificationArbre.DEPLACE,
+                                                nom = uri.substringAfterLast('/'),
+                                                nomSecondaire = nomDeDossier(uriParent),
+                                                chemin = cheminAffichageDe(resultat.value),
+                                            ),
+                                        )
+                                    }
+
+                                    is AppResult.Failure -> {
+                                        echecActionFichier()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Résout un dossier de l'arbre actif par son chemin relatif
+         * (segments séparés par `/`) : chaque segment est cherché parmi
+         * les enfants **énumérés** du dossier courant (autocomplétion du
+         * popover ne propose que des chemins connus, § 10.5).
+         */
+        private suspend fun resoudreDossierParChemin(chemin: String): String? {
+            val arbre = arbre
+            var courant = uriRacineDe(arbre) ?: return null
+            for (segment in chemin.split('/')) {
+                if (segment.isBlank()) continue
+                val enfants = arbre.enfantsEnCache[courant] ?: return null
+                val suivant =
+                    enfants.firstOrNull { it.isDirectory && it.name.equals(segment, ignoreCase = true) }
+                        ?: return null
+                courant = suivant.uri
+            }
+            return courant
+        }
+
+        /** Nom d'affichage d'un dossier (dernier segment, ou racine). */
+        private fun nomDeDossier(uri: String): String =
+            when {
+                uri == URI_RACINE_PRIVEE -> ""
+
+                // la racine privée est localisée par l'UI
+                source == SourceArbre.PROJET && uri == uriDocumentSuivie -> etatInterne.value.projet?.name ?: ""
+
+                else -> arbre.statuts[uri]?.name ?: uri.substringAfterLast('/')
+            }
+
+        /**
+         * Chemin d'affichage d'un document pour les secondes lignes du
+         * snackbar (§ 15) : chemin de la racine + chemin relatif.
+         */
+        private fun cheminAffichageDe(uri: String): String {
+            val racine =
+                if (source == SourceArbre.PRIVE) {
+                    CHEMIN_RACINE_PRIVEE
+                } else {
+                    etatInterne.value.cheminRacine.ifBlank { etatInterne.value.projet?.name ?: "" }
+                }
+            val relatif = cheminRelatifDans(arbre, uri)
+            return if (relatif.isEmpty()) racine else "$racine/$relatif"
         }
 
         /** Signale l'échec d'une opération de fichier (snackbar, journal). */
@@ -1407,20 +2131,22 @@ class EditorViewModel
         }
 
         /**
-         * Rafraîchit le dossier parent d'une opération : son cache d'enfants
-         * est invalidé puis ré-énuméré — il **reste déplié** (la opération
-         * ne replie pas son propre parent). Les sous-arbres obsolètes
-         * (document renommé ou supprimé) voient caches et plis oubliés :
-         * le dépliement les reconstruira à la nouvelle clé.
+         * Rafraîchit le dossier parent d'une opération de l'arbre actif :
+         * son cache d'enfants est invalidé puis ré-énuméré — il **reste
+         * déplié** (l'opération ne replie pas son propre parent). Les
+         * sous-arbres obsolètes (document renommé ou supprimé) voient
+         * caches et plis oubliés : le dépliement les reconstruira à la
+         * nouvelle clé.
          */
         private fun rafraichirDossier(
             uriDossier: String,
             urisObsoletes: Set<String> = emptySet(),
         ) {
-            enfantsEnCache.remove(uriDossier)
+            val arbre = arbre
+            arbre.enfantsEnCache.remove(uriDossier)
             urisObsoletes.forEach { obsolete ->
-                enfantsEnCache.keys.removeAll { it == obsolete || it.startsWith("$obsolete/") }
-                dossiersDeplies.removeAll { it == obsolete || it.startsWith("$obsolete/") }
+                arbre.enfantsEnCache.keys.removeAll { it == obsolete || it.startsWith("$obsolete/") }
+                arbre.dossiersDeplies.removeAll { it == obsolete || it.startsWith("$obsolete/") }
             }
             chargerEnfants(uriDossier)
         }
@@ -1502,6 +2228,26 @@ class EditorViewModel
         private companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /** Durée d'affichage du snackbar maison (§ 15 : 4 600 ms). */
+            const val DELAI_NOTIFICATION_MS = 4_600L
+
+            /** Durée du flash de ligne mutée (§ 6.1 : 1,1 s). */
+            const val DELAI_FLASH_MS = 1_100L
+
+            /** Délai de l'astuce d'appui long au démarrage (§ 18 : 1,1 s). */
+            const val DELAI_ASTUCE_MS = 1_100L
+
+            /** URI de la racine virtuelle du stockage privé (schéma maison,
+             * étape 31 — ne traverse jamais le port `FileSystem`). */
+            const val URI_RACINE_PRIVEE = "prive:///"
+
+            /** Chemin affiché de la racine du stockage privé (donnée système,
+             * applicationId figé par le prompt maître — § 4/§ 9). Exemption
+             * SdCardPath : libellé d'affichage de la spécification, aucun
+             * accès disque derrière. */
+            @Suppress("SdCardPath")
+            const val CHEMIN_RACINE_PRIVEE = "/data/user/0/jo.codeide"
 
             /** Message actionnable du refus tooling sans JDK (v0.31.4, ADR 0048). */
             const val MESSAGE_JDK_ABSENT =

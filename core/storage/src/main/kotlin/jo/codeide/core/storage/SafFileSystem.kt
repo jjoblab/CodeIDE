@@ -152,6 +152,20 @@ internal class SafFileSystem
                 }
             }
 
+        override suspend fun readBytes(documentUri: String): AppResult<ByteArray> =
+            withContext(dispatchers.io) {
+                try {
+                    val octets =
+                        resolver.openInputStream(documentUri.toUri())?.use { entree -> entree.readBytes() }
+                            ?: return@withContext AppResult.Failure(
+                                AppError.Storage(AppError.StorageReason.NotFound, documentUri),
+                            )
+                    AppResult.Success(octets)
+                } catch (erreur: Exception) {
+                    AppResult.Failure(erreur.versErreurStockage(documentUri))
+                }
+            }
+
         override suspend fun rename(
             documentUri: String,
             nouveauNom: String,

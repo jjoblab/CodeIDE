@@ -148,12 +148,20 @@ public class FakeFileSystem : FileSystem {
             }
 
             else -> {
+                // Étape 31 : l'arbre privé du tiroir vit sous une racine
+                // « prive:/// » (barre finale) — le préfixe d'enfants se
+                // calcule sur l'URI amputée de SA barre finale (et
+                // d'elle seule : trimEnd écorcherait les « // » du
+                // schéma), le comportement est inchangé pour les racines
+                // SAF (« content://… » sans barre finale).
+                val prefixeDossier =
+                    if (directoryUri.endsWith("/")) directoryUri.dropLast(1) else directoryUri
                 AppResult.Success(
                     documents
-                        .filterKeys { it != directoryUri && it.startsWith("$directoryUri/") }
+                        .filterKeys { it != directoryUri && it.startsWith("$prefixeDossier/") }
                         .filter { (uri, _) ->
                             // Enfants directs : un seul segment au-delà du parent.
-                            uri.removePrefix("$directoryUri/").count { c -> c == '/' } == 0
+                            uri.removePrefix("$prefixeDossier/").count { c -> c == '/' } == 0
                         }.map { (uri, document) -> document.toStat(uri) }
                         .sortedBy { it.name.lowercase() },
                 )
@@ -233,6 +241,18 @@ public class FakeFileSystem : FileSystem {
             return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, "$documentUri est un dossier."))
         }
         return AppResult.Success(String(document.bytes, Charsets.UTF_8))
+    }
+
+    public override suspend fun readBytes(documentUri: String): AppResult<ByteArray> {
+        readFailure?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
+
+        val document =
+            documents[documentUri]
+                ?: return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, documentUri))
+        if (document.isDirectory) {
+            return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, "$documentUri est un dossier."))
+        }
+        return AppResult.Success(document.bytes)
     }
 
     public override suspend fun rename(
