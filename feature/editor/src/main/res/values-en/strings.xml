@@ -4,7 +4,15 @@
     <string name="editor_title">Editor</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
-    <string name="editor_vide_message">Open a file from the navigation drawer to edit it here.</string>
+    <string name="editor_vide_message">Open a file from the file drawer to edit it here — or start a terminal session.</string>
+    <string name="editor_vide_action_explorer">Browse files</string>
+    <string name="editor_vide_action_terminal">Terminal</string>
+    <string name="editor_vide_astuces">Getting started</string>
+    <string name="editor_vide_astuce_explorateur">Long-press a file: all its actions.</string>
+    <string name="editor_vide_astuce_poignee">Drawer handle ⋮: resize the drawer.</string>
+    <string name="editor_vide_astuce_terminal">Drawer terminal: sessions side by side in split view.</string>
+    <string name="fil_ariane_editeur_cd">Breadcrumb of the open file</string>
+    <string name="barre_symboles_cd">Symbol bar above the keyboard</string>
     <string name="editor_introuvable_titre">Project not found</string>
     <string name="editor_introuvable_message">This project is no longer registered. It may have been removed from the home screen.</string>
     <string name="editor_tiroir_section">Project</string>

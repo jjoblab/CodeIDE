@@ -1202,6 +1202,9 @@ class EditorViewModel
                 .firstOrNull { it.uri == uri }
                 ?.let {
                     selectionner(etatInterne.value.onglets.indexOf(it))
+                    // Déjà ouvert : le tiroir se referme aussi — le fichier
+                    // demandé est maintenant devant l'utilisateur.
+                    canalEffets.trySend(EffetEditor.FichierOuvert)
                     return
                 }
 
@@ -1215,6 +1218,7 @@ class EditorViewModel
                 when (val lecture = fichiers.readText(uri)) {
                     is AppResult.Success -> {
                         ajouterOnglet(uri, lecture.value)
+                        canalEffets.trySend(EffetEditor.FichierOuvert)
                     }
 
                     is AppResult.Failure -> {

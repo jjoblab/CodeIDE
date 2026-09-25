@@ -560,6 +560,15 @@ sealed interface EffetEditor {
     /** L'espace de travail peut se refermer. */
     data object Quitter : EffetEditor
 
+    /**
+     * Un fichier vient d'être ouvert (nouvel onglet ou sélection d'un
+     * onglet existant) depuis l'explorateur du tiroir — l'hôte referme
+     * le tiroir : l'utilisateur a fini de parcourir (retour d'appareil
+     * réel v0.32.3, « quand on ouvre fichiers depuis l'explorateur, le
+     * drawer doit se fermer »).
+     */
+    data object FichierOuvert : EffetEditor
+
     /** La lecture d'un fichier a échoué. */
     data object ErreurOuverture : EffetEditor
 

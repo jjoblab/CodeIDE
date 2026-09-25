@@ -227,6 +227,21 @@ sélection, « rien ne se passe ») : elle prend son propre écouteur de
 clic via le helper testable `brancherInteractionsOnglet` (même
 architecture que Termux), appui long et fermeture inchangés (ADR 0051).
 
+**Correctif v0.32.3 (2026-09-26, après retour d'appareil réel —
+onglets de l'éditeur, ouverture depuis l'explorateur, état vide, fil
+d'Ariane et touches virtuelles)** : (1) le tap sur un onglet de fichier
+ne changeait RIEN — la leçon ADR 0051 (vue à appui long seul = taps
+consommés sans action) n'avait été fixée que pour le terminal : la
+racine d'onglet de l'éditeur agit désormais sur son propre tap
+(sélection) ; (2) ouvrir un fichier depuis l'explorateur referme le
+tiroir — effet `FichierOuvert` (grand écran ancré excepté) ; (3) état
+vide enrichi (illustration `</>`, actions « Parcourir les fichiers » /
+« Terminal », astuces de découverte) ; (4) **fil d'Ariane de l'éditeur**
+et **barre de symboles au-dessus du clavier**, transposés de la
+bibliothèque code-editor (`BreadcrumbBar`, `SymbolBarView`) — ADR 0054.
+Vérification légère (AGENTS.md) : spotless + detekt + tests
+feature:editor + lintDebug + assembleDebug.
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

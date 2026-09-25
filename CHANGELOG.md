@@ -4,6 +4,60 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.32.3] – 2026-09-26
+
+### Ajouté (retour appareil réel sur l'étape 31, suite)
+
+- **Fil d'Ariane de l'éditeur (ADR 0054)** — « dossier › … › fichier ›
+  classe › fonction » sous les onglets, au-dessus de la zone d'édition,
+  transposé de la `BreadcrumbBar` de la bibliothèque code-editor
+  (`view/chrome/BreadcrumbBar.java`, « à la CodeAssist/IntelliJ ») :
+  barre de 28 dp, monospace 12 sp, chevrons ›, dernier segment en gras
+  accent. Le SPI `SymbolProvider` n'étant pas encore câblé dans
+  cel-ui 3.37.0, le scanner [SymbolesEnglobants] est maison — portées
+  par profondeur d'accolades (Kotlin ET Java, annotations et
+  modificateurs tolérés, lignes de commentaire ignorées, `fun x() = …`
+  refermé par la déclaration suivante) ; il suit le caret avec le même
+  débounce de 200 ms que la bibliothèque, se décompose depuis le chemin
+  relatif de l'onglet, renonce aux symboles sur les très gros documents
+  (`EditorDocument.isLarge`) et défile vers le segment courant.
+- **Barre de symboles au-dessus du clavier (ADR 0054)** — transposée de
+  la `SymbolBarView` de la bibliothèque code-editor : touches épinglées
+  (Tab, //, ↑, ↓, Dup) + rangée défilante de 28 symboles, sous l'en-tête
+  du panneau inférieur, **visible uniquement quand l'IME est ouvert**.
+  Touches en `onTouchEvent` brut (à la CodeAssist) : jamais de vol de
+  focus, l'éditeur garde le sien et le clavier reste ouvert ; Tab
+  indente, // bascule le commentaire de ligne, ↑/↓ déplacent la ligne,
+  Dup duplique la sélection, chaque symbole s'insère par `typeChar`
+  (fermeture automatique des paires conservée). Détection de l'IME :
+  insets natifs (API 30+) avec repli par la hauteur du root
+  (`adjustResize`, API 26-29). Quand elle apparaît, le panneau se
+  replie — son en-tête et la barre montent au-dessus du clavier.
+
+### Corrigé (retour appareil réel)
+
+- **Les onglets de fichiers changent enfin de fichier** : la vue racine
+  d'un onglet porte un écouteur d'appui long (menu contextuel) — or une
+  telle vue CONSOMME aussi les taps simples sans agir (leçon ADR 0051
+  fixée pour le terminal en v0.31.7, jamais appliquée aux onglets de
+  l'ÉDITEUR) : le `TabLayout` ne voyait jamais le geste, l'appui ne
+  changeait rien. La racine agit désormais sur son propre tap — elle
+  sélectionne l'onglet (`brancherInteractionsOnglet` du terminal,
+  même architecture que Termux).
+- **Ouvrir un fichier depuis l'explorateur referme le tiroir** —
+  nouvel effet `EffetEditor.FichierOuvert` émis dans les deux chemins de
+  l'ouverture (onglet déjà présent sélectionné, nouvel onglet ajouté) ;
+  le grand écran garde son tiroir ancré (ADR 0026).
+
+### Modifié
+
+- **État vide de l'éditeur enrichi** : illustration « fenêtre de code
+  `</>` » (80 dp, accent), titre et message réécrits, deux actions
+  directes — « Parcourir les fichiers » (ouvre le tiroir) et
+  « Terminal » — et trois astuces de découverte (appui long sur un
+  fichier, poignée ⋮ du tiroir, split view du terminal) : les gestes
+  de l'étape 31 ne se devinent pas.
+
 ## [0.32.2] – 2026-09-26
 
 ### Ajouté (retour appareil réel sur l'étape 31)
@@ -2872,8 +2926,3 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
 
-## [Non publié]
-
-### Ajouté
-
-- (à compléter)
