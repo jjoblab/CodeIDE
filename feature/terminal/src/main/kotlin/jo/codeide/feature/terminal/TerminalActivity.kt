@@ -103,8 +103,9 @@ class TerminalActivity : AppCompatActivity() {
         liaison.vueTerminal.setTerminalViewClient(
             ClientVueTerminal(
                 vue = liaison.vueTerminal,
-                clavier = liaison.clavierEtendu,
-                surEmulateurPret = { appliquerThemeRendu() },
+                lireCtrl = { liaison.clavierEtendu.ctrlActif },
+                lireAlt = { liaison.clavierEtendu.altActif },
+                surEmulateurPret = { appliquerThemeRenduTerminal() },
                 zoomer = ::zoomer,
             ),
         )
@@ -362,7 +363,7 @@ class TerminalActivity : AppCompatActivity() {
             return
         }
         liaison.vueTerminal.attachSession(session)
-        appliquerThemeRendu()
+        appliquerThemeRenduTerminal()
         // Le rebranchement doit s'afficher IMMÉDIATEMENT (v0.31.5) :
         // attachSession passe par updateSize → invalidate, mais un
         // repaint explicite garantit le contenu de la nouvelle session
@@ -371,23 +372,12 @@ class TerminalActivity : AppCompatActivity() {
     }
 
     /**
-     * Applique le thème de l'app au rendu : les couleurs courantes vivent
-     * dans l'émulateur (`mColors.mCurrentColors`, disposition jackpal —
-     * 259 entrées, indices 256/257/258 = premier plan/arrière-plan/curseur)
-     * ; la palette par défaut de Termux est sombre, le thème clair de
-     * l'application réécrit ces trois entrées (ressources
-     * `values`/`values-night`).
+     * Applique le thème de l'app au rendu — extrait dans
+     * [appliquerThemeRendu] (partagé avec les panneaux du tiroir depuis
+     * la v0.32.2), indices 256/257/258 = premier plan/arrière-plan/curseur.
      */
-    private fun appliquerThemeRendu() {
-        val fond = ContextCompat.getColor(this, R.color.terminal_fond)
-        val texte = ContextCompat.getColor(this, R.color.terminal_texte)
-        liaison.vueTerminal.setBackgroundColor(fond)
-        val emulator = liaison.vueTerminal.mEmulator ?: return
-        val couleurs = emulator.mColors.mCurrentColors
-        couleurs[INDICE_PREMIER_PLAN] = texte
-        couleurs[INDICE_ARRIERE_PLAN] = fond
-        couleurs[INDICE_CURSEUR] = texte
-        liaison.vueTerminal.onScreenUpdated()
+    private fun appliquerThemeRenduTerminal() {
+        liaison.vueTerminal.appliquerThemeRendu()
     }
 
     /** Applique la taille de police à chasse fixe (réglage dédié T5).
@@ -460,11 +450,6 @@ class TerminalActivity : AppCompatActivity() {
         get() = (ZOOM_MAX_DP * resources.displayMetrics.density).toInt()
 
     private companion object {
-        /** Indices de la palette Termux (disposition jackpal, 259 entrées). */
-        const val INDICE_PREMIER_PLAN = 256
-        const val INDICE_ARRIERE_PLAN = 257
-        const val INDICE_CURSEUR = 258
-
         /** Tailles de police (dp) du réglage dédié minimal. */
         const val POLICE_PETITE_DP = 13
         const val POLICE_MOYENNE_DP = 15

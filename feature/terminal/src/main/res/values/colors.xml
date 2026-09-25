@@ -9,4 +9,27 @@
     <!-- Pastille d'état d'une session (identique clair/sombre). -->
     <color name="terminal_etat_vivante">#2E7D32</color>
     <color name="terminal_etat_terminee">#9E9E9E</color>
+
+
+    <!-- Jetons du fragment Terminal du tiroir (v0.32.2, ADR 0053) —
+         jour : mêmes équivalents M3 contrastés que l'explorateur v2
+         (EXPLORATEUR_V2.md § 3.1, structure identique ; les ressources
+         ne sont pas partagées entre features). -->
+    <color name="tiroir_terminal_entete_debut">#ECEFF4</color>
+    <color name="tiroir_terminal_entete_fin">#E7EBF2</color>
+    <color name="tiroir_terminal_surface">#E7EBF1</color>
+    <color name="tiroir_terminal_surface_2">#DDE3EC</color>
+    <color name="tiroir_terminal_surface_3">#D3DAE5</color>
+    <color name="tiroir_terminal_bordure_fine">#D3DAE4</color>
+    <color name="tiroir_terminal_texte">#1B222C</color>
+    <color name="tiroir_terminal_texte_2">#55606E</color>
+    <color name="tiroir_terminal_texte_3">#7A8492</color>
+    <color name="tiroir_terminal_violet">#6A55A8</color>
+    <color name="tiroir_terminal_violet_doux">#596A55A8</color>
+    <color name="tiroir_terminal_sous_titre">#7A8492</color>
+    <color name="tiroir_terminal_vert_doux">#242E7D38</color>
+    <color name="tiroir_terminal_gris_doux">#249E9E9E</color>
+    <color name="tiroir_terminal_bouton_actif_fond">#C9D6E4</color>
+    <color name="tiroir_terminal_bouton_actif_bordure">#B7C0CD</color>
+    <color name="tiroir_terminal_accent">#1E6EC8</color>
 </resources>

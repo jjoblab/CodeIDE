@@ -85,6 +85,7 @@
                 android:inputType="textNoSuggestions"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="6dp"
+                android:paddingStart="8dp"
                 android:paddingEnd="32dp"
                 android:singleLine="true"
                 android:textColor="@color/explorateur_texte"

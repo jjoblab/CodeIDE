@@ -4,6 +4,51 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.32.2] – 2026-09-26
+
+### Ajouté (retour appareil réel sur l'étape 31)
+
+- **Terminal du tiroir : rendu réel, split view et plein écran intégré
+  (ADR 0053)** — le fragment Terminal déménage dans `feature:terminal`
+  (seul feature autorisé au runtime Termux) et rend de **vraies
+  sessions** : entête à la maquette (emblème violet, « Terminal »,
+  sous-titre « N sessions actives · termux », ligne d'actions) avec
+  trois modes — **liste** (une carte par session : chemin · heure,
+  badge ● vivante/● terminée, boutons « agrandir dans le tiroir » et
+  « plein écran », toucher la carte l'agrandit), **split vertical**
+  (panneaux empilés) et **split en colonnes** (côte à côte) actifs dès
+  deux sessions, et **plein écran dans le tiroir** (un panneau remplit
+  le tiroir, retour liste). L'appui sur une carte ne navigue plus
+  d'office : les boutons explicites agrandissent dans le tiroir OU
+  ouvrent l'écran plein écran. Clavier étendu partagé (la séquence
+  part au panneau focalisé), pincement zoom par panneau, attachement
+  rattrapé au fil des sorties. L'activité d'édition crée le fragment
+  par **fabrique Hilt** (`FabriqueFragmentTerminalTiroir`, core:ui) et
+  sert un contrat `ControleurTerminalTiroir` (plein écran, créer dans le
+  dossier du projet **sans naviguer** — nouvelle action
+  `CreerSessionTerminal`, installation) — les features ne se référencent
+  toujours pas.
+
+### Corrigé (retour appareil réel sur l'étape 31)
+
+- **Animation de la poignée ⋮** : l'écouteur tactile consommant tout,
+  l'état pressé du sélecteur ne s'activait jamais — la poignée restait
+  figée pendant le glissement. Le glissement pose désormais
+  explicitement l'état « pendant » de la maquette : fond actif + bordure
+  accent-fort (sélecteur), points ⋮ accent, **grossissement 1.08 animé
+  sur 150 ms** (pivot au centre, à cheval sur le rebord du tiroir —
+  moitié dedans, moitié dehors), retour symétrique au relâchement.
+- **Tiroir au-dessus de la barre de navigation** :
+  `applySystemBarsInsetsTopMargin` devient `applySystemBarsInsetsMargins`
+  (core:ui) — la barre de navigation est désormais une MARGE basse du
+  tiroir (comme la barre de statut en haut, v0.32.1) : le tiroir ne
+  peint plus rien derrière elle, son rail s'arrête au-dessus des gestes.
+- **Lint `RtlSymmetry` du champ Destination du popover « Déplacer
+  vers… »** (défaut latent v0.32.1, révélé par le passage lint) :
+  `paddingStart` explicite posé à côté du `paddingEnd` de la place du
+  chevron — la symétrie RTL de la boîte de saisie est maintenant
+  déclarée complète, rendu inchangé.
+
 ## [0.32.1] – 2026-09-26
 
 ### Corrigé (retour appareil réel sur l'étape 31)

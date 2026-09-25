@@ -44,30 +44,38 @@ public fun View.applySystemBarsInsets(
 }
 
 /**
- * Comme [applySystemBarsInsets], mais la barre d'état (et l'encoche)
- * devient une **marge haute** au lieu d'un padding : la vue RACCOURCIT —
- * rien d'elle ne se peint derrière la barre de statut — au lieu d'y
- * étendre son fond. La barre de navigation reste un padding bas.
+ * Comme [applySystemBarsInsets], mais les barres système deviennent des
+ * **marges** au lieu de paddings : la vue RACCOURCIT — rien d'elle ne se
+ * peint derrière la barre de statut ni derrière la barre de navigation —
+ * au lieu d'y étendre son fond.
  *
  * Destiné au tiroir de l'espace de travail (ADR 0052, maquette
- * EXPLORATEUR_V2 § 2 : le tiroir s'ouvre SOUS la barre de statut) :
- * un tiroir plein écran paddingé montrerait son entête sous les icônes
- * de la barre de statut. Nécessite un parent dont les LayoutParams
- * portent des marges (DrawerLayout, LinearLayout…). Ne pas combiner
- * avec [applySystemBarsInsets] sur la même vue (un seul écouteur
- * d'insets).
+ * EXPLORATEUR_V2 § 2 : le tiroir s'ouvre SOUS la barre de statut ;
+ * v0.32.2 : il s'arrête AUSSI au-dessus de la barre de navigation —
+ * retour d'appareil réel, « le tiroir chevauche la navbar »). Un tiroir
+ * plein écran paddingé montrerait son entête sous les icônes de la barre
+ * de statut et son rail sous les gestes de navigation. Nécessite un
+ * parent dont les LayoutParams portent des marges (DrawerLayout gère les
+ * marges verticales des tiroirs — vérifié au bytecode, v0.32.1). Ne pas
+ * combiner avec [applySystemBarsInsets] sur la même vue (un seul
+ * écouteur d'insets).
  *
- * @param bottom absorber la barre de navigation en bas (padding).
+ * @param top absorber la barre d'état (et l'encoche) en marge haute.
+ * @param bottom absorber la barre de navigation en marge basse.
  */
-public fun View.applySystemBarsInsetsTopMargin(bottom: Boolean = true) {
-    val initiaux = PaddingsInitiaux(paddingLeft, paddingTop, paddingRight, paddingBottom)
+public fun View.applySystemBarsInsetsMargins(
+    top: Boolean = true,
+    bottom: Boolean = true,
+) {
     ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
         val barres =
             insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
             )
-        vue.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = barres.top }
-        vue.updatePadding(bottom = initiaux.bas + if (bottom) barres.bottom else 0)
+        vue.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            if (top) topMargin = barres.top
+            if (bottom) bottomMargin = barres.bottom
+        }
         insets
     }
 }

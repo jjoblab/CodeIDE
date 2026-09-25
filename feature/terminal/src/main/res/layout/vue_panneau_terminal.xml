@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Panneau de rendu d'une session dans le tiroir terminal (v0.32.2,
+  ADR 0053) : mini-entête (libellé monospace + retour liste en mode
+  plein écran du tiroir, agrandir, plein écran) au-dessus de la
+  TerminalView interactive. Un panneau par session affichée — la
+  molette mémoire est bornée par le nombre de sessions.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/fond_mini_entete_panneau"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="3dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/libelle_panneau"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:textColor="@color/tiroir_terminal_texte_2"
+            android:textSize="10.5sp" tools:ignore="SmallSp"
+            tools:text="main" />
+
+        <ImageView
+            android:id="@+id/bouton_retour_liste_panneau"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/tiroir_terminal_retour_liste_cd"
+            android:padding="7dp"
+            android:src="@drawable/ic_retour_liste"
+            android:visibility="gone"
+            app:tint="@color/tiroir_terminal_texte_2"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/bouton_agrandir_panneau"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
+            android:padding="7dp"
+            android:src="@drawable/ic_agrandir_dans_tiroir"
+            app:tint="@color/tiroir_terminal_texte_2" />
+
+        <ImageView
+            android:id="@+id/bouton_plein_ecran_panneau"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
+            android:padding="7dp"
+            android:src="@drawable/ic_plein_ecran_externe"
+            app:tint="@color/tiroir_terminal_texte_2" />
+    </LinearLayout>
+
+    <!-- Rendu interactif : focus → saisie clavier virtuel ; toucher →
+         focus + clavier (contrat ClientVueTerminal). -->
+    <com.termux.view.TerminalView
+        android:id="@+id/vue_terminal_panneau"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:importantForAccessibility="yes" />
+</LinearLayout>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Carte d'une session du tiroir terminal (v0.32.2, ADR 0053) — réplique
+  de .carte-demo de la maquette : icône, libellé, détail (chemin · heure),
+  badge d'état (● vivante / ● terminée) et deux boutons : agrandir la
+  session dans le tiroir, l'ouvrir en plein écran. Toucher la carte
+  l'agrandit dans le tiroir.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/carte_session"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/fond_carte_session_terminal"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="13dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="12dp">
+
+    <ImageView
+        android:layout_width="17dp"
+        android:layout_height="17dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_terminal"
+        app:tint="@color/tiroir_terminal_violet" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="11dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/libelle_session_carte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textColor="@color/tiroir_terminal_texte"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            tools:text="main" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/detail_session_carte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:ellipsize="middle"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:textColor="@color/tiroir_terminal_texte_3"
+            android:textSize="10.5sp" tools:ignore="SmallSp"
+            tools:text="~/CodeIDE · 21:42" />
+    </LinearLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/badge_etat_session"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/fond_badge_etat_session"
+        android:fontFamily="monospace"
+        android:paddingStart="8dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="2dp"
+        android:textSize="10sp" tools:ignore="SmallSp"
+        tools:text="● vivante" />
+
+    <ImageView
+        android:id="@+id/bouton_agrandir_session"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="2dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
+        android:padding="10dp"
+        android:src="@drawable/ic_agrandir_dans_tiroir"
+        app:tint="@color/tiroir_terminal_texte_2" />
+
+    <ImageView
+        android:id="@+id/bouton_plein_ecran_session"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
+        android:padding="10dp"
+        android:src="@drawable/ic_plein_ecran_externe"
+        app:tint="@color/tiroir_terminal_texte_2" />
+</LinearLayout>

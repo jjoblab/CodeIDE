@@ -13,9 +13,11 @@ import com.termux.view.TerminalViewClient
  * interne au mécanisme officiel de Termux et ramène les sollicitations
  * d'interface vers l'activité.
  *
- * - [readControlKey]/[readAltKey] renvoient l'état des modificateurs du
- *   [ClavierEtenduView] — la vue applique alors Ctrl/Alt à l'entrée du
- *   clavier (mécanisme conçu pour les touches virtuelles) ;
+ * - [readControlKey]/[readAltKey] interrogent l'état des modificateurs
+ *   du [ClavierEtenduView] via les lambdas [lireCtrl]/[lireAlt] (v0.32.2 :
+ *   le tiroir partage le clavier entre plusieurs panneaux) — la vue
+ *   applique alors Ctrl/Alt à l'entrée du clavier (mécanisme conçu pour
+ *   les touches virtuelles) ;
  * - le toucher simple donne le focus et ouvre le clavier virtuel ;
  * - le pincement zoome la police (v0.31.5) : le contrat Termux
  *   (vérifié sur le bytecode de terminal-view v0.118.3) passe à
@@ -30,7 +32,9 @@ import com.termux.view.TerminalViewClient
  *   `ClientTermux` dans `core:terminal-runtime`).
  *
  * @param vue la vue de rendu branchée.
- * @param clavier la rangée de touches étendues (modificateurs).
+ * @param lireCtrl lit l'état du modificateur Ctrl (rangée de touches
+ * étendues — ou jamais, si l'hôte n'en porte pas).
+ * @param lireAlt lit l'état du modificateur Alt.
  * @param surEmulateurPret appelé quand l'émulateur est en place
  * (re-application du thème du rendu).
  * @param zoomer applique le facteur accumulé [facteur] (nouvelle taille
@@ -44,7 +48,8 @@ import com.termux.view.TerminalViewClient
 @Suppress("TooManyFunctions")
 internal class ClientVueTerminal(
     private val vue: TerminalView,
-    private val clavier: ClavierEtenduView,
+    private val lireCtrl: () -> Boolean,
+    private val lireAlt: () -> Boolean,
     private val surEmulateurPret: () -> Unit,
     private val zoomer: (facteur: Float) -> Boolean,
 ) : TerminalViewClient {
@@ -82,9 +87,9 @@ internal class ClientVueTerminal(
 
     override fun onLongPress(event: MotionEvent): Boolean = false
 
-    override fun readControlKey(): Boolean = clavier.ctrlActif
+    override fun readControlKey(): Boolean = lireCtrl()
 
-    override fun readAltKey(): Boolean = clavier.altActif
+    override fun readAltKey(): Boolean = lireAlt()
 
     override fun readShiftKey(): Boolean = false
 

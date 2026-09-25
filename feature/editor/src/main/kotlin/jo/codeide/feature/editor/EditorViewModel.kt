@@ -400,6 +400,10 @@ class EditorViewModel
                     nouvelleSessionTerminal()
                 }
 
+                ActionEditor.CreerSessionTerminal -> {
+                    creerSessionTerminal()
+                }
+
                 ActionEditor.InstallerOutilsTerminal -> {
                     canalEffets.trySend(EffetEditor.OuvrirInstallationTerminal)
                 }
@@ -510,7 +514,18 @@ class EditorViewModel
          * terminal s'ouvre et son propre état vide crée dans le `HOME`
          * canonique — la même règle, un seul endroit.
          */
-        private fun nouvelleSessionTerminal() {
+        private fun nouvelleSessionTerminal() = creerSessionTerminal(ouvrirEnPleinEcran = true)
+
+        /**
+         * Crée une session dans le dossier du projet courant, **sans**
+         * navigation (v0.32.2, ADR 0053) : le tiroir terminal l'affiche
+         * dès son apparition dans le registre — l'utilisateur reste
+         * maître du mode (liste, split, agrandie dans le tiroir). Même
+         * garde-fous que [nouvelleSessionTerminal] : bootstrap absent →
+         * installation ; dossier introuvable → la création passe au
+         * `HOME` canonique côté écran plein écran si l'utilisateur y va.
+         */
+        private fun creerSessionTerminal(ouvrirEnPleinEcran: Boolean = false) {
             if (!etatTerminalInterne.value.bootstrapInstalle) {
                 canalEffets.trySend(EffetEditor.OuvrirInstallationTerminal)
                 return
@@ -522,7 +537,9 @@ class EditorViewModel
                     sessionsTerminal.createSession(File(chemin), libelle)
                     journal.i(TAG) { "Session terminal créée depuis le tiroir (projet ${identifiantSuivi()})." }
                 }
-                canalEffets.send(EffetEditor.OuvrirTerminal(chemin))
+                if (ouvrirEnPleinEcran) {
+                    canalEffets.send(EffetEditor.OuvrirTerminal(chemin))
+                }
             }
         }
 

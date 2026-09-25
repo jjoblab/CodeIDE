@@ -497,6 +497,16 @@ sealed interface ActionEditor {
     data object NouvelleSessionTerminal : ActionEditor
 
     /**
+     * Crée une session dans le dossier du projet courant **sans naviguer**
+     * (v0.32.2, ADR 0053) : servie par le contrôleur du tiroir terminal —
+     * la session apparaît dans le tiroir (liste ou split), l'utilisateur
+     * choisit ensuite de l'agrandir dans le tiroir ou de l'ouvrir en
+     * plein écran. Bootstrap absent : l'installation s'ouvre (même
+     * garde-fou que [NouvelleSessionTerminal]).
+     */
+    data object CreerSessionTerminal : ActionEditor
+
+    /**
      * Bootstrap absent : ouvre l'écran d'installation des outils du
      * terminal (garde-fou symétrique de l'accueil, T6).
      */
