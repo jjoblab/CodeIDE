@@ -85,6 +85,9 @@ sealed interface EtatDossier {
  * @property notificationsActivees l'autorisation de notification est
  * effective (page Notifications, v0.31.2 : état réel relevé par le
  * fragment, consigné ici pour le rendu).
+ * @property stockagePartageActif l'accès OPT-IN au stockage partagé est
+ * effectif (page Notifications, v0.31.3, ADR 0047 : `isExternalStorageManager`
+ * sous Android 11+, permission WRITE sinon — état réel, jamais supposé).
  * @property modeTheme thème choisi (persisté dès le changement).
  * @property couleursDynamiques couleurs Material You (persistées dès le
  * changement).
@@ -102,6 +105,7 @@ data class EtatOnboarding(
     val dossier: EtatDossier = EtatDossier.NonConfigure,
     val terminalInstalle: Boolean = false,
     val notificationsActivees: Boolean = false,
+    val stockagePartageActif: Boolean = false,
     val modeTheme: ThemeMode = ThemeMode.SYSTEM,
     val couleursDynamiques: Boolean = true,
     val langue: String = "",

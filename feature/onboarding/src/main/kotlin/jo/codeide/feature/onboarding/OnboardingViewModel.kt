@@ -93,6 +93,28 @@ sealed interface ActionOnboarding {
     /** Page Notifications : ouvre les réglages de notification de l'app (repli si refus). */
     data object DemanderReglagesNotifications : ActionOnboarding
 
+    /**
+     * Page Notifications : demande l'accès au stockage partagé (v0.31.3,
+     * ADR 0047 — opt-in pour le terminal) — l'hôte déclenche la requête
+     * runtime (Android < 11) ou le réglage « Tous les fichiers » (11+).
+     */
+    data object DemanderStockage : ActionOnboarding
+
+    /**
+     * Consigne l'état RÉEL de l'accès au stockage partagé relevé par
+     * l'écran (retour de requête/réglages, relecture au retour sur la
+     * page — source de vérité : `isExternalStorageManager` en 11+,
+     * permission WRITE sinon).
+     *
+     * @property actif stockage partagé accessible à l'application.
+     */
+    data class ConsignerStockage(
+        val actif: Boolean,
+    ) : ActionOnboarding
+
+    /** Page Notifications : ouvre les réglages de stockage de l'app (repli si refus). */
+    data object DemanderReglagesStockage : ActionOnboarding
+
     /** Change le thème — persistance et aperçu immédiat. */
     data class ChangerTheme(
         val mode: ThemeMode,
@@ -149,6 +171,20 @@ sealed interface EffetOnboarding {
      * la requête directe est refusée ou indisponible).
      */
     data object OuvrirReglagesNotifications : EffetOnboarding
+
+    /**
+     * Lance la demande d'accès au stockage partagé (page Notifications,
+     * v0.31.3, ADR 0047) — requête runtime sous Android 11, réglage
+     * « Tous les fichiers » au-delà ; l'hôte consigne ensuite l'état
+     * réel via [ActionOnboarding.ConsignerStockage].
+     */
+    data object OuvrirAutorisationStockage : EffetOnboarding
+
+    /**
+     * Ouvre les réglages de stockage de l'application (repli après refus
+     * ou réactivation manuelle).
+     */
+    data object OuvrirReglagesStockage : EffetOnboarding
 
     /** L'assistant est terminé : retour à l'accueil. */
     data object RetourAccueil : EffetOnboarding
@@ -254,6 +290,18 @@ class OnboardingViewModel
 
                 is ActionOnboarding.ConsignerNotifications -> {
                     etatInterne.update { it.copy(notificationsActivees = action.activees) }
+                }
+
+                ActionOnboarding.DemanderStockage -> {
+                    envoyerEffet(EffetOnboarding.OuvrirAutorisationStockage)
+                }
+
+                ActionOnboarding.DemanderReglagesStockage -> {
+                    envoyerEffet(EffetOnboarding.OuvrirReglagesStockage)
+                }
+
+                is ActionOnboarding.ConsignerStockage -> {
+                    etatInterne.update { it.copy(stockagePartageActif = action.actif) }
                 }
 
                 else -> {

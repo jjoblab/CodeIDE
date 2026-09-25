@@ -1,8 +1,8 @@
 package jo.codeide.feature.onboarding
 
-import android.app.NotificationManager
-import android.content.Context
+import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -65,7 +65,19 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
      */
     private val requeteNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
-            viewModel.onAction(ActionOnboarding.ConsignerNotifications(notificationsActivees()))
+            viewModel.onAction(ActionOnboarding.ConsignerNotifications(etatNotifications(requireContext())))
+        }
+
+    /**
+     * Requête runtime du stockage partagé (v0.31.3, ADR 0047 —
+     * Android < 11 : READ+WRITE, même groupe de permissions). Sous
+     * Android 11+, [OuvrirAutorisationStockage] mène au réglage « Tous
+     * les fichiers » (ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION) et
+     * ce lanceur n'est pas utilisé.
+     */
+    private val requeteStockage =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+            viewModel.onAction(ActionOnboarding.ConsignerStockage(etatStockagePartage(requireContext())))
         }
 
     override fun createBinding(
@@ -140,11 +152,37 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
     /** Application des effets ponctuels (section 5.3). */
     private fun appliquer(effet: EffetOnboarding) {
         when (effet) {
-            EffetOnboarding.OuvrirSelecteurDossier -> selecteurDossier.launch(null)
-            EffetOnboarding.OuvrirInstallation -> navigator.openBootstrapInstall()
-            EffetOnboarding.OuvrirAutorisationNotifications -> demanderNotifications()
-            EffetOnboarding.OuvrirReglagesNotifications -> ouvrirReglagesNotifications()
-            EffetOnboarding.RetourAccueil -> navigator.openHome()
+            EffetOnboarding.OuvrirSelecteurDossier -> {
+                selecteurDossier.launch(null)
+            }
+
+            EffetOnboarding.OuvrirInstallation -> {
+                navigator.openBootstrapInstall()
+            }
+
+            EffetOnboarding.OuvrirAutorisationNotifications -> {
+                demanderNotifications()
+            }
+
+            EffetOnboarding.OuvrirReglagesNotifications -> {
+                ouvrirReglages(Settings.ACTION_APP_NOTIFICATION_SETTINGS) {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+                }
+            }
+
+            EffetOnboarding.OuvrirAutorisationStockage -> {
+                demanderStockage()
+            }
+
+            EffetOnboarding.OuvrirReglagesStockage -> {
+                ouvrirReglages(Settings.ACTION_APPLICATION_DETAILS_SETTINGS) {
+                    data = Uri.parse("package:${requireContext().packageName}")
+                }
+            }
+
+            EffetOnboarding.RetourAccueil -> {
+                navigator.openHome()
+            }
         }
     }
 
@@ -157,23 +195,50 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requeteNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            viewModel.onAction(ActionOnboarding.ConsignerNotifications(notificationsActivees()))
+            viewModel.onAction(ActionOnboarding.ConsignerNotifications(etatNotifications(requireContext())))
         }
     }
 
-    /** État réel de l'autorisation auprès du système. */
-    private fun notificationsActivees(): Boolean {
-        val gestionnaire =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        return gestionnaire.areNotificationsEnabled()
+    /**
+     * Demande d'accès au stockage partagé (v0.31.3, ADR 0047) : le
+     * réglage système « Tous les fichiers » sous Android 11+ (la
+     * permission runtime n'y suffit plus), la requête runtime
+     * READ+WRITE sinon (cible 28 = stockage legacy, ADR 0045).
+     *
+     * Termux, même contrainte cible 28, fait exactement ce choix — le
+     * modèle est éprouvé sur le terrain.
+     */
+    private fun demanderStockage() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intention =
+                Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:${requireContext().packageName}"),
+                )
+            startActivity(intention)
+        } else {
+            requeteStockage.launch(
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                ),
+            )
+        }
     }
 
-    /** Réglages de notification de l'application (repli après refus). */
-    private fun ouvrirReglagesNotifications() {
-        val intention =
-            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
-            }
+    /**
+     * Ouvre une page de réglages système — repli commun après un refus
+     * (notifications v0.31.2, stockage v0.31.3, ADR 0046/0047) : la
+     * page réglages des notifications directement pour celle-ci, la
+     * fiche de l'application pour le stockage. Tous les droits y
+     * restent réversibles — la page relit l'état réel au retour
+     * ([NotificationsPage.onResume]).
+     */
+    private fun ouvrirReglages(
+        action: String,
+        configurer: Intent.() -> Unit,
+    ) {
+        val intention = Intent(action).apply(configurer)
         startActivity(intention)
     }
 

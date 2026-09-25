@@ -68,10 +68,16 @@
     <string name="page_terminal_deja_installe">Les outils du terminal sont déjà installés.</string>
     <string name="page_terminal_passer">Plus tard</string>
 
-    <!-- Page 4 — Notifications (v0.31.2, ADR 0046). -->
+    <!-- Page 4 — Notifications (v0.31.2, ADR 0046 ; stockage révisé
+         v0.31.3, ADR 0047 : opt-in pour le terminal). -->
     <string name="page_notifications_titre">Notifications et stockage</string>
     <string name="page_notifications_texte">CodeIDE affiche une notification honnête quand le terminal travaille en arrière-plan (une session ouverte survit à votre retour à l\'accueil) et pendant les longues installations d\'outils. Sur Android 13 et plus, l\'autorisation peut être accordée ou refusée — rien de bloquant : le terminal fonctionne dans tous les cas.</string>
-    <string name="page_notifications_stockage">Aucune permission de stockage n\'est demandée : l\'environnement Linux vit dans le stockage privé de l\'application, et votre dossier de travail passe par le sélecteur de dossiers du système — CodeIDE n\'y accède que par l\'autorisation que vous lui accordez.</string>
+    <string name="page_notifications_stockage">L\'environnement Linux et votre dossier de travail n\'exigent aucune permission : ils vivent dans le stockage privé de l\'application et le sélecteur de dossiers du système.</string>
+    <string name="page_notifications_stockage_titre">Accès au stockage partagé (facultatif)</string>
+    <string name="page_notifications_stockage_texte">Pour lire et écrire dans la mémoire partagée de l\'appareil (photos, téléchargements…) directement depuis le terminal, CodeIDE peut demander l\'accès aux fichiers. C\'est purement facultatif : sans lui, tout le reste fonctionne, et le droit se révoque dans les réglages Android.</string>
+    <string name="page_notifications_stockage_autoriser">Autoriser l\'accès au stockage</string>
+    <string name="page_notifications_stockage_actif">Stockage partagé accessible depuis le terminal.</string>
+    <string name="page_notifications_stockage_reglages">Ouvrir les réglages de stockage</string>
     <string name="page_notifications_autoriser">Autoriser les notifications</string>
     <string name="page_notifications_activees">Notifications activées — merci !</string>
     <string name="page_notifications_reglages">Ouvrir les réglages de notification</string>

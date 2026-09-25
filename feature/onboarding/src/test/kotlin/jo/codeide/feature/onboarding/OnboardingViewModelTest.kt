@@ -417,6 +417,51 @@ class OnboardingViewModelTest {
         }
 
     @Test
+    fun `DemanderStockage emet la requete systeme d acces au stockage`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.DemanderStockage)
+
+            assertEquals(listOf(EffetOnboarding.OuvrirAutorisationStockage), effetsRecus)
+            // OPT-IN : la demande n'avance pas la page, refuser puis
+            // continuer reste le chemin normal (v0.31.3, ADR 0047).
+            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+        }
+
+    @Test
+    fun `DemanderReglagesStockage emet l ouverture des reglages de stockage`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val effetsRecus = mutableListOf<EffetOnboarding>()
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effetsRecus)
+            }
+
+            viewModel.onAction(ActionOnboarding.DemanderReglagesStockage)
+
+            assertEquals(listOf(EffetOnboarding.OuvrirReglagesStockage), effetsRecus)
+        }
+
+    @Test
+    fun `ConsignerStockage reflete l etat reel de l acces partage`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.stockagePartageActif)
+
+            viewModel.onAction(ActionOnboarding.ConsignerStockage(actif = true))
+
+            assertTrue(viewModel.etat.value.stockagePartageActif)
+        }
+
+    @Test
     fun `InstallerTerminal emet l ouverture de l ecran d installation`() =
         runTest(regleMain.dispatcher.scheduler) {
             val effetsRecus = mutableListOf<EffetOnboarding>()

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Page Notifications de l'assistant (v0.31.2, ADR 0046) : pourquoi
-  l'application notifie (service du terminal, installations longues),
-  pourquoi AUCUNE permission de stockage n'est demandée (SAF + stockage
-  privé), demande directe ou repli vers les réglages. Jamais bloquante.
+  Page Notifications de l'assistant (v0.31.2, ADR 0046 ; stockage
+  révisé v0.31.3, ADR 0047) : pourquoi l'application notifie (service
+  du terminal, installations longues), pourquoi le fonctionnement de
+  base n'exige AUCUNE permission de stockage (SAF + stockage privé),
+  et demande OPT-IN du stockage partagé pour le terminal (Android 11+ :
+  réglage « Tous les fichiers », sinon requête runtime). Jamais
+  bloquante : « Suivant » poursuit le parcours quoi qu'il en soit.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -29,13 +32,6 @@
             android:text="@string/page_notifications_texte"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:text="@string/page_notifications_stockage"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_autoriser_notifications"
             android:layout_width="match_parent"
@@ -60,6 +56,54 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/page_notifications_reglages" />
+
+        <!-- Stockage partagé, OPT-IN (v0.31.3, ADR 0047) : rien de
+             requis pour fonctionner, tout pour le confort du terminal. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:text="@string/page_notifications_stockage"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/page_notifications_stockage_titre"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/page_notifications_stockage_texte"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_autoriser_stockage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/page_notifications_stockage_autoriser" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_stockage_actif"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/page_notifications_stockage_actif"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_reglages_stockage"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="@string/page_notifications_stockage_reglages" />
 
     </LinearLayout>
 

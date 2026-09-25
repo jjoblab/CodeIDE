@@ -84,6 +84,22 @@ class ExtracteurBootstrapTest {
         }
 
     @Test
+    fun `crée le répertoire tmp du staging même absent de l archive`() =
+        runBlocking {
+            // Régression v0.31.3 (rapport d'appareil réel, apt code 100) :
+            // l'archive publiée par codeide-packages n'embarque PAS
+            // l'entrée `tmp/` (contrairement au bootstrap officiel
+            // Termux) — l'extracteur doit la créer lui-même, sinon
+            // `TMPDIR` désigne le vide et `mkstemp` échoue en ENOENT.
+            val archive = ecrireArchive("bin/sh" to octets("x"))
+            val staging = File(dossierTemp.newFolder(), "usr-staging")
+
+            extracteur.extraire(archive, staging).toList()
+
+            assertTrue(File(staging, "tmp").isDirectory)
+        }
+
+    @Test
     fun `pose le bit d exécution sur bin libexec et les assistants apt uniquement`() =
         runBlocking {
             val archive =
