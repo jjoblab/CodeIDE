@@ -50,10 +50,17 @@
           Thème de l'écran de démarrage : installSplashScreen() le
           convertit en Theme.CodeIDE dès que la fenêtre est prête
           (définitions dans core:ui).
+
+          singleTop (v0.31.4, ADR 0048) : les activités plein écran
+          (terminal, éditeur) remontent cette activité via
+          REORDER_TO_FRONT | SINGLE_TOP avec un extra de routage —
+          l'instance existante reçoit onNewIntent SANS recréation ni
+          duplication, l'activité appelante survit dessous.
         -->
         <activity
             android:name="jo.codeide.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.CodeIDE.Splash"
             android:windowSoftInputMode="adjustResize">
 

@@ -38,6 +38,44 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `la synchronisation sans JDK est refusée avec un message actionnable - v0 31 4`() =
+        runTest {
+            // ADR 0048 : les outils étant optionnels et différés, la
+            // « demande ultérieure » se fait par un refus AVANT toute
+            // tentative — message actionnable (où installer) au lieu
+            // d'une connexion perdue opaque.
+            val id = ajouterProjet("projet-sans-jdk")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.onAction(ActionEditor.Synchroniser)
+            avancer()
+
+            val etat = viewModel.etatGradle.value
+            assertTrue(etat.synchronisationEnCours.not())
+            assertTrue(etat.messageEchecSync?.contains("JDK absent") == true)
+            assertNull(tooling.dossierRecu)
+        }
+
+    @Test
+    fun `l exécution de tâches sans JDK est refusée sans build - v0 31 4`() =
+        runTest {
+            val id = ajouterProjet("projet-sans-jdk")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.onAction(ActionEditor.ExecuterTaches(listOf("saluer")))
+            avancer()
+
+            assertNull(viewModel.etatGradle.value.buildId)
+            assertNull(tooling.dossierRecu)
+            assertTrue(
+                viewModel.etatGradle.value.messageEchecSync
+                    ?.contains("JDK absent") == true,
+            )
+        }
+
+    @Test
     fun `l execution sans dossier ne lance aucun build`() =
         runTest {
             val id = ajouterProjet("projet-g5")

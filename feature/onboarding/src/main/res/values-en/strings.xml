@@ -62,10 +62,10 @@
     <string name="page_termine_erreur">Finishing failed: your choices could not be saved. Please try again.</string>
 
     <string name="page_terminal_titre">A terminal in your pocket</string>
-    <string name="page_terminal_texte">CodeIDE can install a complete Linux environment: shell, JDK and command-line tools, to build and run your projects directly on the device — no computer needed.</string>
-    <string name="page_terminal_poids">About 40 MB to download, then several hundred MB installed (the repository currently provides the JDK and git; Gradle and the Android SDK will follow).</string>
+    <string name="page_terminal_texte">CodeIDE can install a Linux environment: shell and package manager, to use the terminal directly on the device. Development tools (JDK, git) install on demand, when you need them.</string>
+    <string name="page_terminal_poids">About 40 MB to download for the base environment (repository updated automatically). Optional tools — JDK, git — are offered after the install.</string>
     <string name="page_terminal_installer">Install now</string>
-    <string name="page_terminal_deja_installe">The terminal tools are already installed.</string>
+    <string name="page_terminal_deja_installe">The terminal environment is already installed.</string>
     <string name="page_terminal_passer">Later</string>
 
     <!-- Page 6 — Notifications and storage (v0.31.2, ADR 0046; storage

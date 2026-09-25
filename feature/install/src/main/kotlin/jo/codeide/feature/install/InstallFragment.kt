@@ -10,12 +10,14 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.install.databinding.FragmentInstallBinding
+import jo.codeide.feature.install.databinding.RangeeOutilInstallBinding
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -29,38 +31,51 @@ import kotlin.math.roundToInt
  * installation déjà lancée y affiche la même progression, la refermer
  * ne l'interrompt pas.
  *
- * Refonte v0.31.2 (rapport d'appareil réel : « la configuration des
- * paquets a échoué » sans indice) : la progression montre **ce qui se
- * fait réellement** — checklist des neuf étapes du pipeline (terminée /
- * en cours avec rotation / en attente), compteur de l'étape courante
- * (octets, fichiers, paquet) et **journal en direct** de la sortie des
- * sous-processus (second stage, apt). À l'échec, le message actionnable
- * reste court et les détails techniques (code de sortie, dernières
- * lignes d'erreur) se déplient sous pli : la prochaine panne sur
- * l'appareil est diagnostiquable depuis l'écran.
+ * Refonte v0.31.4 (rapport d'appareil réel : « l'écran ne se met pas à
+ * jour correctement… un design plus propre » + ADR 0048) :
+ * - la progression est **structurée en deux sections** —
+ *   « Environnement de base » (huit étapes obligatoires, jusqu'à
+ *   `apt update`) et « Outils de développement » (paquets optionnels,
+ *   installés à la demande) ;
+ * - le journal en direct ne s'efface plus entre les étapes (état et
+ *   journal combinés côté ViewModel) ;
+ * - les états terminaux montrent ENFIN leurs actions : « Fermer » et
+ *   « Installer les outils maintenant » à la réussite de la base,
+ *   « Réessayer » à l'échec (v0.31.2 laissait l'écran sans aucun
+ *   bouton une fois l'installation lancée) ;
+ * - l'échec **des outils** est un état distinct : la base reste
+ *   installée, seule la phase d'outils est reprise.
  *
  * Le retour système referme l'écran sans jamais interrompre une
  * installation en cours : l'annulation est un choix explicite.
  *
  * Exemption detekt ciblée (règle 16 du prompt maître, précédent
- * OnboardingViewModel) : la refonte v0.31.2 rend cinq phases (invite,
- * progression détaillée, journal, résultat, échec) — chaque zone
- * d'affichage a son gestionnaire privé cohésif, l'éclater nuirait à
- * la localité du rendu par phase.
+ * v0.31.2) : le rendu par zone (invite, progression, journal, résultat,
+ * échec) — chaque zone d'affichage a son gestionnaire privé cohésif.
  */
 @AndroidEntryPoint
 @Suppress("TooManyFunctions")
 class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private val viewModel: InstallViewModel by viewModels()
 
-    /** Rangée de checklist gonflée : ses trois vues pilotables. */
+    /** Rangée de la checklist de base gonflée : ses trois vues pilotables. */
     private data class RangeeEtape(
         val icone: ImageView,
-        val rotation: com.google.android.material.progressindicator.CircularProgressIndicator,
+        val rotation: CircularProgressIndicator,
         val libelle: TextView,
     )
 
+    /** Rangée d'un outil gonflée : ses quatre vues pilotables. */
+    private data class RangeeOutil(
+        val icone: ImageView,
+        val rotation: CircularProgressIndicator,
+        val libelle: TextView,
+        val statut: TextView,
+    )
+
     private val rangees = mutableListOf<RangeeEtape>()
+
+    private val rangeesOutils = mutableListOf<RangeeOutil>()
 
     /** Pli des détails techniques (état d'affichage éphémère). */
     private var detailsOuverts = false
@@ -81,7 +96,9 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         /** Opacité des étapes terminée et courante. */
         private const val ALPHA_ETAPE_ACTIVE = 1f
 
-        /** Modèles d'étapes de la checklist, dans l'ordre du pipeline. */
+        /** Modèles d'étapes de la base, dans l'ordre du pipeline (ADR 0048 :
+         *  la checklist s'arrête à `apt update` — les outils vivent dans
+         *  leur propre section). */
         private val MODELES_CHECKLIST =
             listOf(
                 EtapeInstallation.VerificationEspaceDisque,
@@ -92,7 +109,6 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                 EtapeInstallation.SecondStage,
                 EtapeInstallation.ConfigurationApt,
                 EtapeInstallation.MiseAJourApt,
-                EtapeInstallation.InstallationPaquets("", 0, 0),
             )
     }
 
@@ -109,6 +125,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.boutonInstaller.setOnClickListener { viewModel.onAction(ActionInstallation.Installer) }
+        binding.boutonInstallerOutils.setOnClickListener { viewModel.onAction(ActionInstallation.InstallerOutils) }
         binding.boutonAnnuler.setOnClickListener { viewModel.onAction(ActionInstallation.Annuler) }
         binding.boutonFermer.setOnClickListener { findNavController().popBackStack() }
         binding.boutonDetails.setOnClickListener {
@@ -126,78 +143,306 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         binding.invite.isVisible = etat.phase == PhaseInstallation.INVITE || etat.phase == PhaseInstallation.ANNULEE
         binding.progression.isVisible = etat.phase == PhaseInstallation.PROGRESSION
         binding.resultat.isVisible = etat.phase == PhaseInstallation.TERMINEE
-        binding.echec.isVisible = etat.phase == PhaseInstallation.ECHEC
+        binding.echec.isVisible =
+            etat.phase == PhaseInstallation.ECHEC || etat.phase == PhaseInstallation.OUTILS_ECHEC
         binding.texteAnnulee.isVisible = etat.phase == PhaseInstallation.ANNULEE
 
         when (etat.phase) {
             PhaseInstallation.INVITE, PhaseInstallation.ANNULEE -> {
-                binding.boutonInstaller.isVisible = true
-                binding.boutonInstaller.setText(
-                    if (etat.phase == PhaseInstallation.ANNULEE) {
-                        R.string.installation_reessayer
-                    } else {
-                        R.string.installation_installer
-                    },
-                )
-                binding.carteJournal.isVisible = false
+                rendreInvite(etat.phase == PhaseInstallation.ANNULEE)
             }
 
             PhaseInstallation.PROGRESSION -> {
-                binding.boutonInstaller.isVisible = false
-                binding.boutonAnnuler.isVisible = true
-                binding.texteEtape.setText(libelleEtape(etat.libelleEtape))
-                rendreDetailEtape(etat.libelleEtape)
-                val progression = etat.progressionTelechargement
-                if (progression != null) {
-                    binding.barreProgression.isIndeterminate = false
-                    binding.barreProgression.progress = (progression * ECHELLE_POURCENT).roundToInt()
-                } else {
-                    binding.barreProgression.isIndeterminate = true
-                }
-                rendreChecklist(etat.libelleEtape)
-                rendreJournal(etat, defiler = true)
+                rendreProgression(etat)
             }
 
             PhaseInstallation.TERMINEE -> {
-                binding.boutonAnnuler.isVisible = false
-                binding.carteJournal.isVisible = false
-                rendreOutils(etat.outils)
+                rendreResultat(etat)
             }
 
             PhaseInstallation.ECHEC -> {
-                binding.boutonAnnuler.isVisible = false
-                binding.texteErreur.setText(messageErreur(etat.erreur))
-                binding.boutonDetails.isVisible = etat.detailsEchec != null
-                rendreDetails()
-                // L'échec garde le journal ouvert : c'est la sortie EN
-                // ÉCHEC qui diagnostique (« la configuration des paquets
-                // a échoué » sans elle ne veut rien dire).
-                rendreJournal(etat, defiler = true)
+                rendreEchecBase(etat)
+            }
+
+            PhaseInstallation.OUTILS_ECHEC -> {
+                rendreEchecOutils(etat)
             }
         }
     }
 
-    /** Résumé des outils installés (paquet par paquet). */
-    private fun rendreOutils(outils: List<jo.codeide.core.model.OutilResume>) {
-        if (outils.isEmpty()) {
-            binding.texteOutils.setText(R.string.installation_outils_aucun)
+    /** Progression (base ou outils) : en-tête d'étape, sections, journal. */
+    private fun rendreProgression(etat: EtatInstallation) {
+        binding.boutonInstaller.isVisible = false
+        binding.boutonInstallerOutils.isVisible = false
+        binding.boutonFermer.isVisible = false
+        binding.boutonAnnuler.isVisible = true
+        binding.texteEtape.setText(libelleEtape(etat.libelleEtape))
+        rendreDetailEtape(etat.libelleEtape)
+        val progression = etat.progressionTelechargement
+        if (progression != null) {
+            binding.barreProgression.isIndeterminate = false
+            binding.barreProgression.progress = (progression * ECHELLE_POURCENT).roundToInt()
+        } else {
+            binding.barreProgression.isIndeterminate = true
+        }
+        rendreChecklist(etat.libelleEtape)
+        rendreSectionOutils(etat.libelleEtape, etat.paquetsOutils)
+        rendreJournal(etat, defiler = true)
+    }
+
+    /** Résultat : environnement prêt, proposition des outils, actions. */
+    private fun rendreResultat(etat: EtatInstallation) {
+        binding.boutonInstaller.isVisible = false
+        binding.boutonAnnuler.isVisible = false
+        binding.boutonFermer.isVisible = true
+        binding.carteJournal.isVisible = false
+        val outilsManquants = etat.outils.isEmpty() || etat.outils.any { !it.installe }
+        binding.boutonInstallerOutils.isVisible = outilsManquants
+        binding.texteOutilsRequis.isVisible = outilsManquants
+        rendreResultatOutils(etat.outils, etat.paquetsOutils)
+    }
+
+    /** Échec de la base : reprise complète proposée. */
+    private fun rendreEchecBase(etat: EtatInstallation) {
+        binding.boutonInstaller.isVisible = true
+        binding.boutonInstaller.setText(R.string.installation_reessayer)
+        binding.boutonInstallerOutils.isVisible = false
+        binding.boutonFermer.isVisible = false
+        binding.boutonAnnuler.isVisible = false
+        binding.texteErreur.setText(messageErreur(etat.erreur))
+        binding.boutonDetails.isVisible = etat.detailsEchec != null
+        binding.conteneurEchecOutils.isVisible = false
+        rendreDetails()
+        // L'échec garde le journal ouvert : c'est la sortie EN ÉCHEC qui
+        // diagnostique (« la configuration des paquets a échoué » sans
+        // elle ne veut rien dire).
+        rendreJournal(etat, defiler = true)
+    }
+
+    /** Échec des outils : base intacte, reprise de la seule phase d'outils. */
+    private fun rendreEchecOutils(etat: EtatInstallation) {
+        binding.boutonInstaller.isVisible = false
+        binding.boutonInstallerOutils.isVisible = true
+        binding.boutonInstallerOutils.setText(R.string.installation_reessayer_outils)
+        binding.boutonFermer.isVisible = true
+        binding.boutonAnnuler.isVisible = false
+        binding.texteErreur.setText(R.string.installation_erreur_outils)
+        binding.boutonDetails.isVisible = etat.detailsEchec != null
+        binding.conteneurEchecOutils.isVisible = true
+        rendreOutilsSimples(binding.conteneurEchecOutils, etat.outils, etat.paquetsOutils)
+        rendreDetails()
+        rendreJournal(etat, defiler = true)
+    }
+
+    /** Invite : le bouton propose l'installation (ou la reprise). */
+    private fun rendreInvite(annulee: Boolean) {
+        binding.boutonInstaller.isVisible = true
+        binding.boutonInstaller.setText(
+            if (annulee) R.string.installation_reessayer else R.string.installation_installer,
+        )
+        binding.boutonInstallerOutils.isVisible = false
+        binding.boutonAnnuler.isVisible = false
+        binding.boutonFermer.isVisible = false
+        binding.carteJournal.isVisible = false
+    }
+
+    /** Section « Outils de développement » pendant la progression. */
+    private fun rendreSectionOutils(
+        etape: EtapeInstallation?,
+        paquets: List<String>,
+    ) {
+        val enCours = etape as? EtapeInstallation.InstallationPaquets
+        binding.texteOutilsAttente.isVisible = enCours == null
+        if (enCours == null) {
+            // Phase de base : les outils attendent, tous « optionnels ».
+            rendreOutilsEnAttente(paquets)
             return
         }
-        binding.texteOutils.text =
-            outils.joinToString(separator = "\n") { outil ->
-                val suffixe =
-                    getString(
-                        if (outil.installe) {
-                            R.string.installation_outil_installe
-                        } else {
-                            R.string.installation_outil_absent
-                        },
-                    )
-                "${outil.paquet} — $suffixe"
+        // Phase d'outils : le paquet courant tourne, les précédents sont
+        // installés (les échecs sont rapportés à l'état terminal), les
+        // suivants attendent.
+        val noms = paquets.ifEmpty { List(enCours.total) { enCours.paquet } }
+        construireRangeesOutils(noms)
+        for ((index, rangee) in rangeesOutils.withIndex()) {
+            val rang = index + 1
+            when {
+                rang < enCours.index -> {
+                    rendreRangeeOutil(rangee, EtatRangeeOutil.INSTALLE, R.string.installation_outil_statut_installe)
+                }
+
+                rang == enCours.index -> {
+                    rendreRangeeOutil(rangee, EtatRangeeOutil.ENCOURS, R.string.installation_outil_statut_encours)
+                }
+
+                else -> {
+                    rendreRangeeOutil(rangee, EtatRangeeOutil.ATTENTE, R.string.installation_outil_statut_attente)
+                }
             }
+        }
     }
 
-    /** Gonfle les neuf rangées de la checklist (une fois par vue). */
+    /** Résultat : propositions d'action selon l'état des outils. */
+    private fun rendreResultatOutils(
+        outils: List<jo.codeide.core.model.OutilResume>,
+        paquets: List<String>,
+    ) {
+        if (outils.isEmpty()) {
+            // Jamais demandés : proposition claire, rangée par rangée.
+            construireRangeesOutils(paquets)
+            for (rangee in rangeesOutils) {
+                rendreRangeeOutil(rangee, EtatRangeeOutil.ATTENTE, R.string.installation_outil_statut_attente)
+            }
+            return
+        }
+        construireRangeesOutils(outils.map { it.paquet })
+        for ((index, outil) in outils.withIndex()) {
+            if (outil.installe) {
+                rendreRangeeOutil(
+                    rangeesOutils[index],
+                    EtatRangeeOutil.INSTALLE,
+                    R.string.installation_outil_statut_installe,
+                )
+            } else {
+                rendreRangeeOutil(
+                    rangeesOutils[index],
+                    EtatRangeeOutil.ABSENT,
+                    R.string.installation_outil_statut_absent,
+                )
+            }
+        }
+    }
+
+    /** Outils tous « en attente » (phase de base, section 2). */
+    private fun rendreOutilsEnAttente(paquets: List<String>) {
+        construireRangeesOutils(paquets)
+        for (rangee in rangeesOutils) {
+            rendreRangeeOutil(rangee, EtatRangeeOutil.ATTENTE, R.string.installation_outil_statut_attente)
+        }
+    }
+
+    /**
+     * Rendu d'outils dans un conteneur quelconque (échec des outils) :
+     * état par paquet de la dernière tentative.
+     */
+    private fun rendreOutilsSimples(
+        conteneur: ViewGroup,
+        outils: List<jo.codeide.core.model.OutilResume>,
+        paquets: List<String>,
+    ) {
+        conteneur.removeAllViews()
+        val gonfleur = LayoutInflater.from(requireContext())
+        val sources =
+            outils.ifEmpty {
+                paquets.map { paquet ->
+                    jo.codeide.core.model
+                        .OutilResume(paquet, false)
+                }
+            }
+        for (outil in sources) {
+            val rangee = RangeeOutilInstallBinding.inflate(gonfleur, conteneur, true)
+            rangee.libelleOutil.text = outil.paquet
+            if (outil.installe) {
+                configurerRangeeOutil(
+                    icone = rangee.iconeOutil,
+                    rotation = rangee.rotationOutil,
+                    statut = rangee.statutOutil,
+                    etat = EtatRangeeOutil.INSTALLE,
+                    libelleStatut = getString(R.string.installation_outil_statut_installe),
+                )
+            } else {
+                configurerRangeeOutil(
+                    icone = rangee.iconeOutil,
+                    rotation = rangee.rotationOutil,
+                    statut = rangee.statutOutil,
+                    etat = EtatRangeeOutil.ABSENT,
+                    libelleStatut = getString(R.string.installation_outil_statut_absent),
+                )
+            }
+        }
+    }
+
+    /** Gonfle les rangées d'outils (une fois par vue, sur changement de liste). */
+    private fun construireRangeesOutils(paquets: List<String>) {
+        val nomsCourants = rangeesOutils.map { it.libelle.text.toString() }
+        if (nomsCourants == paquets) return
+        binding.conteneurOutils.removeAllViews()
+        rangeesOutils.clear()
+        val gonfleur = LayoutInflater.from(requireContext())
+        for (paquet in paquets) {
+            val rangee = RangeeOutilInstallBinding.inflate(gonfleur, binding.conteneurOutils, true)
+            rangee.libelleOutil.text = paquet
+            rangeesOutils +=
+                RangeeOutil(
+                    icone = rangee.iconeOutil,
+                    rotation = rangee.rotationOutil,
+                    libelle = rangee.libelleOutil,
+                    statut = rangee.statutOutil,
+                )
+        }
+    }
+
+    /** État d'affichage d'une rangée d'outil. */
+    private enum class EtatRangeeOutil {
+        ATTENTE,
+        ENCOURS,
+        INSTALLE,
+        ABSENT,
+    }
+
+    /** Applique un état à une rangée d'outil (icône, rotation, statut). */
+    private fun rendreRangeeOutil(
+        rangee: RangeeOutil,
+        etat: EtatRangeeOutil,
+        ressourceStatut: Int,
+    ) {
+        configurerRangeeOutil(
+            icone = rangee.icone,
+            rotation = rangee.rotation,
+            statut = rangee.statut,
+            etat = etat,
+            libelleStatut = getString(ressourceStatut),
+        )
+    }
+
+    /** Configuration effective d'une rangée d'outil gonflée. */
+    private fun configurerRangeeOutil(
+        icone: ImageView,
+        rotation: CircularProgressIndicator,
+        statut: TextView,
+        etat: EtatRangeeOutil,
+        libelleStatut: String,
+    ) {
+        when (etat) {
+            EtatRangeeOutil.ENCOURS -> {
+                icone.isVisible = false
+                rotation.isVisible = true
+            }
+
+            else -> {
+                icone.isVisible = true
+                rotation.isVisible = false
+                icone.setImageResource(
+                    when (etat) {
+                        EtatRangeeOutil.INSTALLE -> R.drawable.etape_faite
+                        else -> R.drawable.etape_attente
+                    },
+                )
+                icone.imageTintList =
+                    ColorStateList.valueOf(
+                        androidx.core.content.ContextCompat.getColor(
+                            requireContext(),
+                            when (etat) {
+                                EtatRangeeOutil.INSTALLE -> R.color.vert_etape_faite
+                                else -> R.color.gris_etape_attente
+                            },
+                        ),
+                    )
+            }
+        }
+        statut.text = libelleStatut
+    }
+
+    /** Gonfle les huit rangées de la checklist de base (une fois par vue). */
     private fun construireChecklist() {
         val libelles =
             listOf(
@@ -209,7 +454,6 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                 R.string.installation_etape_second_stage,
                 R.string.installation_etape_sources,
                 R.string.installation_etape_apt,
-                R.string.installation_etape_paquets,
             )
         val gonfleur = LayoutInflater.from(requireContext())
         for (libelle in libelles) {
@@ -224,7 +468,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         }
     }
 
-    /** Met à jour la checklist : terminées, courante (rotation), en attente. */
+    /** Met à jour la checklist de base : terminées, courante, en attente. */
     private fun rendreChecklist(etape: EtapeInstallation?) {
         val indexCourant = etape?.let(::positionChecklist) ?: -1
         for ((index, rangee) in rangees.withIndex()) {

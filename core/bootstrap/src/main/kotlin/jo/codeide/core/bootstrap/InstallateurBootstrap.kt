@@ -15,6 +15,7 @@ import jo.codeide.core.model.EtatInstallationBootstrap.Annulee
 import jo.codeide.core.model.EtatInstallationBootstrap.Echouee
 import jo.codeide.core.model.EtatInstallationBootstrap.EnCours
 import jo.codeide.core.model.EtatInstallationBootstrap.NonDemarree
+import jo.codeide.core.model.EtatInstallationBootstrap.OutilsEchoues
 import jo.codeide.core.model.EtatInstallationBootstrap.Terminee
 import jo.codeide.core.model.OutilResume
 import kotlinx.coroutines.CoroutineScope
@@ -53,13 +54,20 @@ import kotlin.reflect.KClass
  * 5. exécution du script de second stage via [NativeProcessLauncher]
  *    (postinst des paquets, verrou anti double exécution) ;
  * 6. écriture/correction du `sources.list` du dépôt CodeIDE ;
- * 7. `apt update` puis installation des paquets d'outils **un par un**
- *    — un paquet absent du dépôt est rapporté non installé, seul
- *    l'échec total lève une erreur.
+ * 7. `apt update` — **obligatoire** (ADR 0048) : le dépôt doit être à
+ *    jour avant la fin de la première configuration.
+ *
+ * Les paquets d'outils (`openjdk`, `git`…) ne font PLUS partie de la
+ * première configuration (v0.31.4) : [installerOutils] les installe
+ * à la demande, plus tard — un même singleton d'état couvre les deux
+ * phases ([EnCours] porte les étapes des deux).
  *
  * L'état est partagé ([etat]) : l'onboarding et le déclenchement à la
  * demande observent la même installation, jamais doublée (`demarrer()`
- * est sans effet pendant `EnCours` et après `Terminee`).
+ * est sans effet pendant `EnCours` et après `Terminee`). Au démarrage
+ * du processus, le marqueur d'installation déjà présent remet l'état à
+ * `Terminee` (outils non tentés) : l'écran propose la phase d'outils,
+ * jamais une réinstallation de zéro.
  *
  * Le pipeline vit dans une portée interne : il survit à la rotation et
  * aux changements d'écran — l'appelant n'a pas de coroutine à conserver.
@@ -87,8 +95,19 @@ internal class InstallateurBootstrap
         private val extracteur = ExtracteurBootstrap(operations, dispatchers)
         private val configurateur = ConfigurateurApt(lanceur, dispatchers)
 
-        private val _etat = MutableStateFlow<EtatInstallationBootstrap>(NonDemarree)
+        /**
+         * État initial : `Terminee` (outils non tentés) quand le marqueur
+         * d'installation complet existe déjà — un redémarrage de
+         * l'application ne propose JAMAIS de réinstaller l'environnement
+         * de base par-dessus (le préfixe serait détruit pour rien).
+         */
+        private val _etat =
+            MutableStateFlow<EtatInstallationBootstrap>(
+                if (LocalisationOutils.bootstrapInstalle(racine)) Terminee(emptyList()) else NonDemarree,
+            )
         override val etat: StateFlow<EtatInstallationBootstrap> = _etat.asStateFlow()
+
+        override val paquetsOutils: List<String> = configuration.paquets
 
         private val _journal = MutableStateFlow<List<String>>(emptyList())
         override val journal: StateFlow<List<String>> = _journal.asStateFlow()
@@ -104,9 +123,24 @@ internal class InstallateurBootstrap
             synchronized(verrou) {
                 when (_etat.value) {
                     is EnCours, is Terminee -> return
+
                     NonDemarree, is Echouee, Annulee -> Unit
+
+                    // Échec des outils = base déjà installée : `demarrer()`
+                    // reste sans effet, seule `installerOutils()` reprend.
+                    is OutilsEchoues -> return
                 }
                 travail = portee.launch { executer() }
+            }
+        }
+
+        override fun installerOutils() {
+            synchronized(verrou) {
+                when (_etat.value) {
+                    is EnCours, NonDemarree, is Echouee, Annulee -> return
+                    is Terminee, is OutilsEchoues -> Unit
+                }
+                travail = portee.launch { executerInstallationOutils() }
             }
         }
 
@@ -116,18 +150,22 @@ internal class InstallateurBootstrap
             }
         }
 
-        /** Exécute le pipeline et traduit l'issue en état partagé. */
+        /** Exécute le pipeline de base et traduit l'issue en état partagé. */
         private suspend fun executer() {
             // Nouvelle tentative : le journal repart à plat (celui de la
-            // tentative échouée n'a plus de valeur une fois relancée).
+            // tentative échouée n'a plus de valeur une fois relancée) —
+            // AVANT la première émission d'étape, sans quoi son libellé
+            // serait effacé.
             _journal.value = emptyList()
             derniereEtapeJournalisee = null
-            val outils = mutableListOf<OutilResume>()
             try {
                 majEtape(EtapeInstallation.VerificationEspaceDisque)
                 verifierPrealables()
 
-                preparerStaging()
+                withContext(dispatchers.io) {
+                    supprimerRecursivement(DispositionsBootstrap.staging(racine))
+                    DispositionsBootstrap.archiveStaging(racine).delete()
+                }
                 telechargeur.telecharger(DispositionsBootstrap.archiveStaging(racine)).collect(::majEtape)
                 extracteur
                     .extraire(DispositionsBootstrap.archiveStaging(racine), DispositionsBootstrap.staging(racine))
@@ -143,26 +181,16 @@ internal class InstallateurBootstrap
                 majEtape(EtapeInstallation.ConfigurationApt)
                 configurateur.ecrireSourcesList(prefixe, configuration.ligneDepotApt)
 
+                // OBLIGATOIRE (ADR 0048) : la première configuration se
+                // termine dépôt à jour — les paquets d'outils, eux, sont
+                // optionnels et différés (installerOutils).
                 majEtape(EtapeInstallation.MiseAJourApt)
                 configurateur.miseAJour(prefixe, ::consignerAuJournal)
 
-                val paquets = configuration.paquets
-                for ((index, paquet) in paquets.withIndex()) {
-                    majEtape(EtapeInstallation.InstallationPaquets(paquet, index + 1, paquets.size))
-                    outils +=
-                        OutilResume(
-                            paquet = paquet,
-                            installe = configurateur.installerPaquet(prefixe, paquet, ::consignerAuJournal) == null,
-                        )
-                }
-                if (outils.isNotEmpty() && outils.none { it.installe }) {
-                    throw EchecBootstrap(BootstrapReason.EchecApt, "aucun paquet d'outil n'a pu être installé")
-                }
-
                 nettoyerStaging()
                 deposerMarqueurInstallation(racine)
-                consignerAuJournal("installation terminée (${outils.count { it.installe }} outil(s) installé(s))")
-                _etat.value = Terminee(outils.toList())
+                consignerAuJournal("environnement de base installé (dépôt à jour)")
+                _etat.value = Terminee(emptyList())
             } catch (e: CancellationException) {
                 // Annulation demandée : état dédié, staging nettoyé, puis
                 // relance systématique de l'annulation (règle 6 du prompt
@@ -187,6 +215,61 @@ internal class InstallateurBootstrap
                 consignerAuJournal("erreur inattendue : ${e.message}")
                 journalApp.w(TAG) { "installation échouée (erreur inattendue) : ${e.message}" }
                 _etat.value = Echouee(AppError.Unknown("installation du bootstrap : ${e.message}"))
+            }
+        }
+
+        /**
+         * Exécute la phase **optionnelle** des outils (un paquet à la
+         * fois) : l'environnement de base est déjà en place — son échec
+         * ne le touche jamais, et son annulation le conserve.
+         */
+        private suspend fun executerInstallationOutils() {
+            val prefixe = DispositionsBootstrap.prefix(racine)
+            val paquets = configuration.paquets
+            val outils = mutableListOf<OutilResume>()
+            try {
+                for ((index, paquet) in paquets.withIndex()) {
+                    majEtape(EtapeInstallation.InstallationPaquets(paquet, index + 1, paquets.size))
+                    outils +=
+                        OutilResume(
+                            paquet = paquet,
+                            installe = configurateur.installerPaquet(prefixe, paquet, ::consignerAuJournal) == null,
+                        )
+                }
+                if (outils.isNotEmpty() && outils.none { it.installe }) {
+                    // Échec total des outils (état distinct, ADR 0048) :
+                    // l'environnement de base reste en place — l'écran
+                    // propose la reprise de la seule phase d'outils.
+                    consignerAuJournal("échec : aucun paquet d'outil n'a pu être installé")
+                    journalApp.w(TAG) { "installation des outils échouée (EchecApt) — aucun paquet installé" }
+                    _etat.value =
+                        OutilsEchoues(
+                            AppError.Bootstrap(BootstrapReason.EchecApt, "aucun paquet d'outil n'a pu être installé"),
+                            outils.toList(),
+                        )
+                    return
+                }
+                consignerAuJournal("outils installés (${outils.count { it.installe }}/${outils.size})")
+                _etat.value = Terminee(outils.toList())
+            } catch (e: CancellationException) {
+                // Annulation pendant les outils : l'environnement de base
+                // reste installé — retour à Terminee avec ce qui a été
+                // traité (règle 6 : l'annulation est relancée).
+                _etat.value = Terminee(outils.toList())
+                consignerAuJournal(
+                    "installation des outils annulée (${outils.count { it.installe }}/${outils.size} traités)",
+                )
+                throw e
+            } catch (e: Exception) {
+                // Échec inattendu de la phase d'outils : typé, l'état de
+                // base n'est pas compromis pour autant.
+                consignerAuJournal("échec des outils : ${e.message}")
+                journalApp.w(TAG) { "installation des outils échouée : ${e.message}" }
+                _etat.value =
+                    OutilsEchoues(
+                        AppError.Unknown("installation des outils : ${e.message}"),
+                        outils.toList(),
+                    )
             }
         }
 
@@ -235,14 +318,6 @@ internal class InstallateurBootstrap
             }
             if (!architecture.supporteAarch64()) {
                 throw EchecBootstrap(BootstrapReason.ArchitectureNonSupportee, "l'appareil n'exécute pas arm64-v8a")
-            }
-        }
-
-        /** Nettoie tout résidu d'une installation précédente. */
-        private suspend fun preparerStaging() {
-            withContext(dispatchers.io) {
-                supprimerRecursivement(DispositionsBootstrap.staging(racine))
-                DispositionsBootstrap.archiveStaging(racine).delete()
             }
         }
 
@@ -305,13 +380,6 @@ internal class InstallateurBootstrap
             }
         }
 
-        private fun supprimerRecursivement(racine: File) {
-            if (racine.isDirectory) {
-                racine.listFiles()?.forEach { enfant -> supprimerRecursivement(enfant) }
-            }
-            racine.delete()
-        }
-
         private companion object {
             private const val TAG = "Installateur"
 
@@ -356,4 +424,17 @@ private fun deposerMarqueurInstallation(racine: File) {
     runCatching {
         DispositionsBootstrap.marqueurInstallation(racine).writeText("")
     }
+}
+
+/**
+ * Suppression récursive (staging, préfixe résiduel) — fonction du fichier
+ * pour la même raison que [deposerMarqueurInstallation] : l'installateur
+ * tient le seuil detekt de fonctions par classe, la suppression est une
+ * opération de pipeline, pas un comportement d'objet.
+ */
+private fun supprimerRecursivement(racine: File) {
+    if (racine.isDirectory) {
+        racine.listFiles()?.forEach { enfant -> supprimerRecursivement(enfant) }
+    }
+    racine.delete()
 }

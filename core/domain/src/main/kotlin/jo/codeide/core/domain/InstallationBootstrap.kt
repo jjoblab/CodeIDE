@@ -16,6 +16,14 @@ import java.io.InputStream
  * bootstrap est en place. Les reprises ne se font qu'après `Echouee`
  * ou `Annulee` (et repartent de zéro : staging nettoyé).
  *
+ * Depuis v0.31.4 (ADR 0048) : le pipeline de `demarrer()` couvre
+ * l'**environnement de base** et s'arrête après `apt update`
+ * (obligatoire — le dépôt doit être à jour) ; les paquets d'outils
+ * (`openjdk`, `git`…) forment une phase **optionnelle et différée**,
+ * relancée à la demande par [installerOutils] — les fonctionnalités
+ * qui en dépendent (tooling Gradle, compilation) la proposent quand
+ * elles en ont besoin, jamais pendant la première configuration.
+ *
  * L'implémentation de référence vit dans `core:bootstrap` : pipeline
  * coroutine (téléchargement, extraction, liens symboliques, second
  * stage, `sources.list`, `apt`), erreurs typées
@@ -24,9 +32,16 @@ import java.io.InputStream
 public interface BootstrapInstaller {
     /**
      * État partagé de l'installation, mis à jour à chaque étape et à
-     * chaque transition terminale.
+     * chaque transition terminale (base **et** outils).
      */
     public val etat: StateFlow<EtatInstallationBootstrap>
+
+    /**
+     * Paquets d'outils configurés pour la phase optionnelle — exposés
+     * pour que l'écran propose leur installation (libellés, comptes)
+     * AVANT toute tentative : l'utilisateur sait ce qu'il accepte.
+     */
+    public val paquetsOutils: List<String>
 
     /**
      * Journal d'installation en direct (v0.31.2, ADR 0046) : lignes de
@@ -47,8 +62,8 @@ public interface BootstrapInstaller {
     public val journal: StateFlow<List<String>>
 
     /**
-     * Démarre l'installation si aucune n'est en cours (ni déjà
-     * terminée avec succès) ; sans effet sinon.
+     * Démarre l'installation de l'**environnement de base** si aucune
+     * n'est en cours (ni déjà terminée avec succès) ; sans effet sinon.
      *
      * Le pipeline tourne dans une portée interne à l'implémentation :
      * survivre à la rotation, au changement d'écran et aux deux points
@@ -57,9 +72,27 @@ public interface BootstrapInstaller {
     public fun demarrer()
 
     /**
+     * Installe les **paquets d'outils** (phase optionnelle, ADR 0048) :
+     * sans effet avant `Terminee` (l'environnement de base doit exister)
+     * ou pendant un `EnCours` ; relançable après `OutilsEchoues`.
+     *
+     * Un paquet absent du dépôt est signalé non installé sans faire
+     * échouer l'ensemble ; seul l'échec total mène à `OutilsEchoues`.
+     * `apt install` étant idempotent, un paquet déjà installé est une
+     * réussite immédiate. L'annulation en pleine phase d'outils
+     * **conserve** l'environnement de base : retour à `Terminee` avec
+     * les paquets déjà traités.
+     *
+     * Même portée interne que `demarrer()` : aucune coroutine à conserver
+     * côté appelant.
+     */
+    public fun installerOutils()
+
+    /**
      * Annule l'installation en cours (sans effet sinon) : le
      * téléchargement est interrompu, les répertoires de préparation
-     * sont supprimés, l'état devient `Annulee`.
+     * sont supprimés, l'état devient `Annulee` (phase de base) ou
+     * `Terminee` avec les outils déjà traités (phase d'outils).
      */
     public fun annuler()
 }
