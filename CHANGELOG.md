@@ -4,6 +4,52 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.6] – 2026-09-25
+
+Sixième lot de corrections après **retour d'appareil réel** (moto g06 /
+Android 15) : la création de projet échouait **à chaque tentative** avec
+« un dossier porte déjà ce nom à l'emplacement choisi — rien n'a été
+écrasé » (le dossier apparaissait puis disparaissait, l'écran d'échec
+affichant « .gitattributes » en détails techniques) ; et l'écran du
+terminal **plantait** 60 ms après la création de la première session
+(`NullPointerException : Missing required view with ID:
+bouton_fermer_session`). Version corrective (SemVer `0.N.M`). ADR 0050.
+
+### Corrigé
+
+- **Création de projet : le piège `.gitattributes`** (« le dossier créé
+  a été supprimé… toutes mes tentatives sont vaines ») : le point
+  INITIAL d'un fichier caché n'est **pas** une extension pour le
+  fournisseur SAF — `.gitattributes` (premier fichier du plan des
+  modèles JVM, avec `.gitignore` et `.editorconfig`) partait en
+  `text/plain` (l'ancien test `contains('.')` voyait « une extension »)
+  et le fournisseur le complétait en `.gitattributes.txt` ; le contrôle
+  du nom retourné y lisait un **renommage hostile** : fichier
+  fraîchement créé SUPPRIMÉ, `AlreadyExists` de pure invention, rollback
+  complet — d'où le dossier vu naître puis disparaître, et le message
+  mensonger « choisis un autre nom » (aucun nom, aucun emplacement ne
+  pouvait marcher). La règle MIME vit désormais dans une fonction
+  partagée (`mimeFichierTexte`) : tout nom **sans extension réelle**
+  (caché ou sans point — `gradlew`, `LICENSE`) part en type privé
+  `text/x-codeide`, inconnu de la table système : le fournisseur ne
+  complète RIEN et le nom demandé est préservé exactement. Filet de
+  sécurité : une complétion de ce type de nom, si un fournisseur
+  l'impose malgré tout, est désormais tolérée (le document créé reste le
+  nôtre) au lieu d'être lue comme une collision. L'éditeur profite de la
+  même règle (création d'un `.gitignore`/`Makefile` depuis le tiroir).
+- **Terminal : plus de plantage à la première session** (rapport
+  4a4526aa, `NullPointerException: Missing required view with ID:
+  bouton_fermer_session` dans `VueOngletSessionBinding.bind`) : la
+  resynchronisation d'onglets par diff (v0.31.5) bindait en binding de
+  session l'onglet existant à la position visée — or quand la liste
+  **grandit**, cette position est occupée par le « + » (cas minimal :
+  zéro session → « + » seul en position 0 → première création), dont la
+  vue est un simple `ImageView` sans `bouton_fermer_session`. La
+  décision « bordable » exclut désormais explicitement le « + » (helper
+  `vueOngletSessionBordable`, verrouillé par une régression sur le vrai
+  `TabLayout` du layout) ; l'insertion fraîche prend place avant le
+  « + », comme prévu.
+
 ## [0.31.5] – 2026-09-25
 
 Cinquième lot de corrections après **retour d'appareil réel** (moto g06 /

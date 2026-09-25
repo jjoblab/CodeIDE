@@ -29,6 +29,7 @@ import jo.codeide.core.domain.TerminalSessionRepository
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
+import jo.codeide.core.domain.mimeFichierTexte
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -1268,7 +1269,13 @@ class EditorViewModel
             nom: String,
         ) {
             viewModelScope.launch {
-                when (val resultat = fichiers.createFile(uriParent, nom, MIME_TEXTE)) {
+                // V0.31.6 : le type MIME suit la règle partagée [mimeFichierTexte]
+                // — un nom sans extension réelle (« .gitignore », « Makefile »)
+                // partait en `text/plain` et le fournisseur SAF le complétait
+                // (« .gitignore.txt »), lu en aval comme un renommage hostile :
+                // `AlreadyExists` de pure invention (retour 4a4526aa, même
+                // famille que le piège de création de projet).
+                when (val resultat = fichiers.createFile(uriParent, nom, mimeFichierTexte(nom))) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "fichier créé dans le tiroir" }
                         rafraichirDossier(uriParent)
@@ -1509,9 +1516,6 @@ class EditorViewModel
             const val SEVERITE_INFO_CEL = 1
             const val SEVERITE_AVERTISSEMENT_CEL = 2
             const val SEVERITE_ERREUR_CEL = 3
-
-            /** Type MIME des fichiers créés depuis le tiroir (étape 17). */
-            const val MIME_TEXTE = "text/plain"
 
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "Editor"

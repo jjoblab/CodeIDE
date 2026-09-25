@@ -170,6 +170,29 @@ du journal, `<plurals>` de l'extraction, indice « n/total » du
 paquet, `toUri()` dans l'onboarding — la vérification locale étend
 son `lintDebug` à TOUS les modules touchés, ADR 0049).
 
+**Correctif v0.31.6 (2026-09-25, après retour d'appareil réel 4a4526aa —
+création de projet « le dossier créé a été supprimé, .gitattributes »
+persistant malgré le pré-vol, plantage `NullPointerException :
+bouton_fermer_session` de l'écran Terminal à la première session)** :
+le point INITIAL d'un fichier caché n'est pas une extension — ni pour
+le fournisseur SAF (qui complète « .gitattributes » + `text/plain` en
+« .gitattributes.txt »), ni pour nos contrôles (`contains('.')` voyait
+une extension) : le premier fichier du plan des modèles JVM déclenchait
+un « renommage hostile » de pure invention → fichier fraîchement créé
+supprimé, `AlreadyExists` (« un dossier porte déjà ce nom », AUCUN nom
+ne pouvait marcher), rollback complet sous les yeux de l'utilisateur.
+Règle partagée `mimeFichierTexte`/`sansExtensionReelle` (`core:domain`)
+: tout nom sans extension réelle part en type privé `text/x-codeide`
+(sans complétion, nom préservé exactement), le filet
+`estAchevementExtension` tolère désormais la complétion d'un caché,
+l'éditeur suit la même règle (ADR 0050) ; terminal : la décision
+« border la vue existante » du diff d'onglets exclut explicitement le
+« + » (sa vue est un `ImageView` sans `bouton_fermer_session` — quand
+la liste grandit, la position visée est occupée par le « + », cas
+minimal : zéro session → première création → plantage 60 ms plus
+tard) via le helper testable `vueOngletSessionBordable`, régressions
+verrouillées sur le vrai `TabLayout` (ADR 0050).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

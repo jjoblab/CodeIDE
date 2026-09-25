@@ -548,6 +548,29 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       journal, `<plurals>` d'extraction, indice « n/total » du paquet,
       `toUri()` dans l'onboarding — et leçon : `lintDebug` local doit
       couvrir TOUS les modules touchés, pas seulement `:app` ; ADR 0049]
+- v0.31.6 : **sixième lot de corrections d'appareil réel** (rapport
+      4a4526aa : création « le dossier créé a été supprimé,
+      .gitattributes » — l'échec `AlreadyExists` se fabriquait PENDANT
+      l'écriture, le pré-vol de v0.31.5 était vert ; plantage
+      `NullPointerException: bouton_fermer_session` de l'écran Terminal
+      à la première session) — fichiers cachés SAF [leçon : le point
+      INITIAL d'un nom n'est PAS une extension — ni pour le fournisseur
+      (« .gitattributes » + `text/plain` → « .gitattributes.txt »),
+      ni pour nos contrôles (`contains('.')` voyait une extension) ;
+      le premier fichier du plan des modèles JVM déclenchait un
+      « renommage hostile » de pure invention → fichier créé SUPPRIMÉ +
+      `AlreadyExists` + rollback → « un dossier porte déjà ce nom »
+      AUCUN nom ne pouvait marcher ; règle partagée
+      `mimeFichierTexte`/`sansExtensionReelle` (`core:domain`) : nom
+      sans extension réelle → type privé `text/x-codeide` sans
+      complétion, filet `estAchevementExtension` élargi aux cachés,
+      l'éditeur suit la même règle ; ADR 0050] ; onglets du terminal
+      [leçon : quand la liste de sessions GRANDIT, la position visée
+      par le diff est occupée par le « + » (zéro session → « + » seul
+      en 0) — binder sa vue (un `ImageView`) en `VueOngletSessionBinding`
+      plantait ; la décision « bordable » exclut désormais le « + » par
+      IDENTITÉ de tab (`vueOngletSessionBordable`, testable sur le vrai
+      `TabLayout`) ; ADR 0050]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -655,6 +678,28 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   chaque étage (l'insertion en base refusée n'est pas un `Io`
   générique), et porter des détails lisibles — l'écran d'échec les
   affiche, le prochain rapport d'appareil devient diagnosticable.
+- **Le point initial d'un nom de fichier n'est PAS une extension**
+  (rapport 4a4526aa, v0.31.6) : `.gitattributes`, `.gitignore`,
+  `.editorconfig` sont des fichiers CACHÉS sans extension — le
+  fournisseur SAF les complète par l'extension canonique du type
+  demandé (`.gitattributes.txt` pour `text/plain`), exactement comme
+  les noms sans point. Toute décision MIME fondée sur `contains('.')`
+  fabrique des « renommages hostiles » de pure invention : la règle
+  est `lastIndexOf('.') <= 0` (partagée : `sansExtensionReelle`), et le
+  type privé sans complétion (`text/x-codeide`) protège le nom exact.
+  Corollaire : quand un écran d'échec affiche des détails techniques,
+  les LIRE — « .gitattributes » dans un message « un dossier porte déjà
+  ce nom » désignait le FICHIER en cause, pas le dossier.
+- **Un diff de conteneur doit identifier ce qu'il réutilise**
+  (rapport 4a4526aa, v0.31.6) : resynchroniser « position par
+  position » suppose que la position N porte un élément de la même
+  ESPÈCE — quand la liste grandit, la position visée peut être occupée
+  par un onglet d'une AUTRE espèce (le « + », dont la vue est un
+  `ImageView`) : binder la vue trouvée par habitude lève un NPE
+  `Missing required view with ID`. La réutilisation se décide par
+  IDENTITÉ (`===` avec l'onglet « + »), pas par présence ; le cas
+  minimal (conteneur à UN seul élément, celui qu'on ne borde jamais)
+  fait partie de la régression.
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

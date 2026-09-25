@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
+import jo.codeide.core.domain.sansExtensionReelle
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.withContext
@@ -310,17 +311,32 @@ internal class SafFileSystem
          * Le nom retourné est-il le nom demandé **complété d'une extension** ?
          *
          * Comportement réel des fournisseurs SAF (`ExternalStorageProvider`,
-         * section 5.6) : un nom sans point reçoit l'extension canonique du
-         * type MIME demandé — « gradlew » + `text/plain` crée « gradlew.txt ».
+         * section 5.6) : un nom **sans extension réelle** reçoit
+         * l'extension canonique du type MIME demandé — « gradlew » +
+         * `text/plain` crée « gradlew.txt ». V0.31.6 (retour d'appareil
+         * réel 4a4526aa) : le point INITIAL d'un fichier caché n'est pas
+         * une extension pour le fournisseur — « .gitattributes » +
+         * `text/plain` crée « .gitattributes.txt », exactement comme un
+         * nom sans point du tout. L'ancien test `!demande.contains('.')`
+         * ratait cette famille : la complétion était lue comme un renommage
+         * hostile → fichier fraîchement créé SUPPRIMÉ + `AlreadyExists` de
+         * pure invention → « un dossier porte déjà ce nom » à chaque
+         * création de projet (le premier fichier du plan des modèles JVM
+         * est précisément `.gitattributes`).
+         *
          * Ce n'est ni une collision (le motif « nom (1) ») ni un renommage
-         * hostile : le document créé est bien le nôtre. Seul un nom demandé
-         * sans point peut être complété ainsi ; toute autre différence
-         * reste traitée comme un renommage.
+         * hostile : le document créé est le nôtre. Seul un nom demandé sans
+         * extension réelle (voir [sansExtensionReelle]) peut être complété
+         * ainsi ; toute autre différence reste traitée comme un renommage.
+         * (Les appelants sérieux — création de projet, éditeur — demandent
+         * le type privé sans complétion pour ces noms : la complétion ne
+         * devrait jamais se produire ; cette tolérance est le filet pour
+         * les fournisseurs qui complètent malgré tout.)
          */
         private fun estAchevementExtension(
             demande: String,
             retourne: String?,
-        ): Boolean = retourne != null && !demande.contains('.') && retourne.startsWith("$demande.")
+        ): Boolean = retourne != null && sansExtensionReelle(demande) && retourne.startsWith("$demande.")
 
         /**
          * Le nom retourné n'est-il le nom demandé qu'**ajusté d'une
