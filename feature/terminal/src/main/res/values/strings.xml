@@ -18,4 +18,28 @@
     <string name="terminal_menu_dupliquer">Dupliquer</string>
     <string name="terminal_menu_fermer">Fermer</string>
     <string name="terminal_session_terminee">Terminée</string>
+
+
+    <!-- Fragment Terminal du tiroir (v0.32.2, ADR 0053) : entête à la
+         maquette, split view, cartes de sessions, plein écran. -->
+    <plurals name="tiroir_terminal_sessions_actives">
+        <item quantity="one">%1$d session active · termux</item>
+        <item quantity="other">%1$d sessions actives · termux</item>
+    </plurals>
+    <string name="tiroir_terminal_nouvelle_session_cd">Nouvelle session de terminal</string>
+    <string name="tiroir_terminal_mode_liste_cd">Afficher les sessions en liste</string>
+    <string name="tiroir_terminal_split_vertical_cd">Split vertical : sessions empilées</string>
+    <string name="tiroir_terminal_split_colonnes_cd">Split en colonnes : sessions côte à côte</string>
+    <string name="tiroir_terminal_aucune_session">Aucune session de terminal ouverte.</string>
+    <string name="tiroir_terminal_nouvelle_session">Nouvelle session dans ce projet</string>
+    <string name="tiroir_terminal_non_installe">Les outils du terminal ne sont pas installés.</string>
+    <string name="tiroir_terminal_installer">Installer les outils</string>
+    <string name="tiroir_terminal_carte_cd">Session %1$s — toucher l\'agrandit dans le tiroir</string>
+    <string name="tiroir_terminal_agrandir_dans_tiroir_cd">Agrandir %1$s dans le tiroir</string>
+    <string name="tiroir_terminal_plein_ecran_cd">Ouvrir %1$s en plein écran</string>
+    <string name="tiroir_terminal_retour_liste_cd">Revenir à la liste des sessions</string>
+    <string name="tiroir_terminal_session_vivante">● vivante</string>
+    <string name="tiroir_terminal_session_terminee">● terminée</string>
+    <string name="tiroir_terminal_detail_session">%1$s · %2$s</string>
+    <string name="tiroir_terminal_split_indisponible">Le split nécessite au moins deux sessions.</string>
 </resources>

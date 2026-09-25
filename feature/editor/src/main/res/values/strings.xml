@@ -16,18 +16,6 @@
 
     <!-- Carte d\'aperçu du terminal du tiroir (T6, section 8 du prompt Terminal-1). -->
     <string name="editor_nav_terminal">Terminal</string>
-    <string name="editor_terminal_agrandir_cd">Agrandir le terminal en plein écran</string>
-    <string name="editor_terminal_carte_cd">Aperçu du terminal : %1$s</string>
-    <string name="editor_terminal_aucune_session">Aucune session active.</string>
-    <string name="editor_terminal_nouvelle_session">Nouvelle session dans ce projet</string>
-    <string name="editor_terminal_non_installe">Les outils du terminal ne sont pas installés.</string>
-    <string name="editor_terminal_installer">Installer les outils</string>
-    <string name="editor_terminal_session_terminee">%1$s — terminée</string>
-    <plurals name="editor_terminal_sessions_actives">
-        <item quantity="one">%1$d session active</item>
-        <item quantity="many">%1$d sessions actives</item>
-        <item quantity="other">%1$d sessions actives</item>
-    </plurals>
 
     <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3). -->
     <string name="editor_nav_explorateur">Fichiers</string>
@@ -250,8 +238,6 @@
     <string name="apercu_git_titre">Git</string>
     <string name="apercu_git_sous_titre">statut, commit et historique</string>
     <string name="apercu_git_commit">Commit</string>
-    <string name="apercu_terminal_titre">Terminal</string>
-    <string name="apercu_terminal_sous_titre">sessions de l\'application</string>
     <string name="apercu_bientot">%1$s — bientôt disponible.</string>
     <string name="apercu_recherche_description">La recherche en plein texte du projet arrivera avec son lot dédié : requêtes, filtres par type de fichier et remplacements.</string>
     <string name="apercu_git_description">Le panneau Git affichera le statut du dépôt, la préparation des commits et l\'historique des branches.</string>

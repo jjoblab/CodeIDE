@@ -18,4 +18,28 @@
     <string name="terminal_menu_dupliquer">Duplicate</string>
     <string name="terminal_menu_fermer">Close</string>
     <string name="terminal_session_terminee">Finished</string>
+
+
+    <!-- Terminal drawer fragment (v0.32.2, ADR 0053): mockup-style
+         header, split view, session cards, full screen. -->
+    <plurals name="tiroir_terminal_sessions_actives">
+        <item quantity="one">%1$d active session · termux</item>
+        <item quantity="other">%1$d active sessions · termux</item>
+    </plurals>
+    <string name="tiroir_terminal_nouvelle_session_cd">New terminal session</string>
+    <string name="tiroir_terminal_mode_liste_cd">Show sessions as a list</string>
+    <string name="tiroir_terminal_split_vertical_cd">Vertical split: stacked sessions</string>
+    <string name="tiroir_terminal_split_colonnes_cd">Column split: side-by-side sessions</string>
+    <string name="tiroir_terminal_aucune_session">No terminal session open.</string>
+    <string name="tiroir_terminal_nouvelle_session">New session in this project</string>
+    <string name="tiroir_terminal_non_installe">The terminal tools are not installed.</string>
+    <string name="tiroir_terminal_installer">Install the tools</string>
+    <string name="tiroir_terminal_carte_cd">Session %1$s — tapping expands it in the drawer</string>
+    <string name="tiroir_terminal_agrandir_dans_tiroir_cd">Expand %1$s in the drawer</string>
+    <string name="tiroir_terminal_plein_ecran_cd">Open %1$s in full screen</string>
+    <string name="tiroir_terminal_retour_liste_cd">Back to the session list</string>
+    <string name="tiroir_terminal_session_vivante">● alive</string>
+    <string name="tiroir_terminal_session_terminee">● ended</string>
+    <string name="tiroir_terminal_detail_session">%1$s · %2$s</string>
+    <string name="tiroir_terminal_split_indisponible">Split needs at least two sessions.</string>
 </resources>

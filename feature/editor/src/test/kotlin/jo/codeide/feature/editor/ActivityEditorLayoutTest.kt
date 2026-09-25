@@ -151,15 +151,14 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `les fragments d'apercu et le fragment terminal se gonflent`() {
+    fun `les fragments d'apercu se gonflent`() {
         assertNotNull(
             "aperçu Recherche/Git (§ 1)",
             gonfler(R.layout.fragment_apercu_simple).findViewById<View>(R.id.description_apercu),
         )
-        assertNotNull(
-            "carte du terminal migrée dans son fragment (T6)",
-            gonfler(R.layout.fragment_terminal_tiroir).findViewById<View>(R.id.carte_terminal),
-        )
+        // Le fragment Terminal du tiroir vit dans feature:terminal depuis
+        // la v0.32.2 (rendu réel des sessions, ADR 0053) : ses layouts se
+        // gonflent dans SES tests — plus rien ici.
         assertTrue(
             "le tiroir v2 ne référence plus la barre BottomNavigationView",
             true,

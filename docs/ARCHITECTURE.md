@@ -54,14 +54,14 @@ sections 5 et 6.
 | `feature:settings` | Paramètres |
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
-| `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) |
+| `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) ; fragment Terminal du tiroir (rendu réel, split view — ADR 0053) |
 | `tooling:protocol` | Protocole du tooling Gradle : framing, catalogue de messages JSON, fichiers dorés (ADR 0039) |
 | `tooling:api` | Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
 | `tooling:server` | Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
 | `tooling:client` | Client Android du tooling : écoute du socket (l'app est le serveur), handshake au secret, façade `GradleToolingRepository` du domaine, diffusion non conflatante (ADR 0041) |
 | `tooling:daemon` | Daemon du tooling : déploiement du JAR (marqueur de version), lancement du process orchestrateur sur `NativeProcessLauncher`, health check ping/pong, relances bornées, stderr → journal `gradle-server` (ADR 0042) |
 | `tooling:testing` | Fixtures du tooling : mini-projets Gradle réels, dépendance de test uniquement |
-| `feature:editor` | Espace de travail : tiroir (explorateur + carte d'aperçu terminal T6), onglets, panneau inférieur |
+| `feature:editor` | Espace de travail : tiroir (explorateur + fragments Recherche/Git ; fragment Terminal via fabrique Hilt, ADR 0053), onglets, panneau inférieur |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,

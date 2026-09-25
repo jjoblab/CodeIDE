@@ -3,4 +3,26 @@
 <resources>
     <color name="terminal_fond">#141414</color>
     <color name="terminal_texte">#E6E6E6</color>
+
+
+    <!-- Jetons du fragment Terminal du tiroir (v0.32.2, ADR 0053) —
+         nuit : valeurs de la maquette EXPLORATEUR_V2 (§ 3.1) : fond
+         surface 2 #262C37, accent #7AB8F5, violet #9C86D8. -->
+    <color name="tiroir_terminal_entete_debut">#20252E</color>
+    <color name="tiroir_terminal_entete_fin">#1C212A</color>
+    <color name="tiroir_terminal_surface">#20252E</color>
+    <color name="tiroir_terminal_surface_2">#262C37</color>
+    <color name="tiroir_terminal_surface_3">#2D3441</color>
+    <color name="tiroir_terminal_bordure_fine">#242A33</color>
+    <color name="tiroir_terminal_texte">#DDE3EC</color>
+    <color name="tiroir_terminal_texte_2">#99A2AE</color>
+    <color name="tiroir_terminal_texte_3">#6C7581</color>
+    <color name="tiroir_terminal_violet">#9C86D8</color>
+    <color name="tiroir_terminal_violet_doux">#739C86D8</color>
+    <color name="tiroir_terminal_sous_titre">#6C7581</color>
+    <color name="tiroir_terminal_vert_doux">#246FC47A</color>
+    <color name="tiroir_terminal_gris_doux">#249E9E9E</color>
+    <color name="tiroir_terminal_bouton_actif_fond">#2C3644</color>
+    <color name="tiroir_terminal_bouton_actif_bordure">#38404D</color>
+    <color name="tiroir_terminal_accent">#7AB8F5</color>
 </resources>

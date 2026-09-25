@@ -43,9 +43,11 @@ import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.ControleurTerminalTiroir
+import jo.codeide.core.ui.FabriqueFragmentTerminalTiroir
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.applySystemBarsInsets
-import jo.codeide.core.ui.applySystemBarsInsetsTopMargin
+import jo.codeide.core.ui.applySystemBarsInsetsMargins
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
@@ -91,12 +93,21 @@ import kotlin.math.abs
  */
 @Suppress("TooManyFunctions", "LargeClass", "CyclomaticComplexMethod", "ReturnCount", "MagicNumber")
 @AndroidEntryPoint
-class EditorActivity : AppCompatActivity() {
+class EditorActivity :
+    AppCompatActivity(),
+    ControleurTerminalTiroir {
     private val viewModel: EditorViewModel by viewModels()
 
     /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
     @Inject
     lateinit var navigateur: AppNavigator
+
+    /** Fabrique du fragment Terminal du tiroir (v0.32.2, ADR 0053) :
+     * le rendu réel des sessions vit dans `feature:terminal` — la
+     * fabrique seule traverse la frontière (les features ne se
+     * référencent pas). */
+    @Inject
+    lateinit var fabriqueTerminalTiroir: FabriqueFragmentTerminalTiroir
 
     private lateinit var liaison: ActivityEditorBinding
 
@@ -210,11 +221,13 @@ class EditorActivity : AppCompatActivity() {
     }
 
     /** Applique les insets edge-to-edge : toolbar paddingée en haut, tiroir
-     *  sous la barre de statut (MARGE haute — v0.32.1 : il ne peint plus rien
-     *  derrière elle) et rembourré au-dessus de la barre de navigation. */
+     *  sous la barre de statut (MARGE haute — v0.32.1) et AU-DESSUS de la
+     *  barre de navigation (MARGE basse — v0.32.2 : retour d'appareil réel,
+     *  « le tiroir chevauche la navbar » — il ne peint plus rien derrière
+     *  l'une ni l'autre, le rail du tiroir s'arrête au-dessus des gestes). */
     private fun brancherInsets() {
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
-        liaison.tiroir.applySystemBarsInsetsTopMargin(bottom = true)
+        liaison.tiroir.applySystemBarsInsetsMargins()
     }
 
     /** Ouvre/ferme le tiroir ; sur grand écran il reste ancré (ADR 0026). */
@@ -258,7 +271,9 @@ class EditorActivity : AppCompatActivity() {
      * `FragmentContainerView` puis montrées/cachées — l'état de
      * défilement de l'arbre et les plis survivent aux changements de
      * destination. Chaque fragment porte son propre entête (§ 4) : plus
-     * d'entête commun dans l'activité.
+     * d'entête commun dans l'activité. Le fragment Terminal vient de la
+     * fabrique Hilt (v0.32.2, ADR 0053) : sa classe vit dans
+     * `feature:terminal` (rendu réel des sessions, split view).
      */
     private fun brancherFragmentsTiroir() {
         val gestionnaire = supportFragmentManager
@@ -266,7 +281,7 @@ class EditorActivity : AppCompatActivity() {
             val explorateur = ExplorateurFragment()
             val recherche = RechercheFragment()
             val git = GitFragment()
-            val terminal = TerminalTiroirFragment()
+            val terminal = fabriqueTerminalTiroir.creer()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_tiroir, explorateur, TAG_EXPLORATEUR)
@@ -280,6 +295,30 @@ class EditorActivity : AppCompatActivity() {
         }
         construireRail()
         selectionnerDestination(destinationCourante)
+    }
+
+    // ------------------------------------------------------------------
+    // Contrôleur du Terminal du tiroir (v0.32.2, ADR 0053) : les
+    // commandes que le fragment Terminal (feature:terminal) adresse à
+    // son hôte — elles réclament l'état de l'espace de travail.
+    // ------------------------------------------------------------------
+
+    /** Plein écran : répertoire suggéré = dossier réel du projet (FUSE). */
+    override fun ouvrirEcranTerminal() {
+        viewModel.onAction(ActionEditor.OuvrirTerminal)
+    }
+
+    /** Crée une session dans le dossier du projet, SANS navigation :
+     * elle apparaît dans le tiroir (liste ou split), l'utilisateur
+     * choisit ensuite de l'agrandir dans le tiroir ou de l'ouvrir en
+     * plein écran. Bootstrap absent : l'installation s'ouvre. */
+    override fun creerSessionProjet() {
+        viewModel.onAction(ActionEditor.CreerSessionTerminal)
+    }
+
+    /** Ouvre l'écran d'installation du bootstrap natif. */
+    override fun ouvrirInstallationBootstrap() {
+        viewModel.onAction(ActionEditor.InstallerOutilsTerminal)
     }
 
     /** Construit le rail de fragments (§ 14) : quatre destinations
@@ -369,6 +408,16 @@ class EditorActivity : AppCompatActivity() {
      * (tolérance ±12 dp, appliqués au relâchement), pastille de taille
      * pendant le glissement puis fondu 380 ms après le relâchement.
      * La largeur est mémorisée par instance sauvegardée (§ 19).
+     *
+     * Animation « pendant » (v0.32.2, retour d'appareil réel — la
+     * maquette `.poignee.pendant` transposée) : l'écouteur tactile
+     * consommant TOUT, l'état pressé du sélecteur ne s'active jamais de
+     * lui-même — il est posé et retiré à la main. Pendant le glissement :
+     * fond actif + bordure accent-fort (sélecteur `state_pressed`),
+     * points ⋮ accent, et **grossissement 1.08** animé sur 150 ms — le
+     * pivot au centre de la poignée, à cheval sur le rebord du tiroir
+     * (moitié dedans, moitié dehors, § 13). Au relâchement, retour
+     * symétrique.
      */
     private fun brancherPoignee() {
         val dp = resources.displayMetrics.density
@@ -390,6 +439,7 @@ class EditorActivity : AppCompatActivity() {
                             abscisseDepart = evenement.rawX
                             largeurDepart = largeurTiroirPx
                             liaison.racineEditeur.requestDisallowInterceptTouchEvent(true)
+                            animerPoigneePendant(vue as ImageView, pendant = true)
                             liaison.pastilleTailleTiroir.isVisible = true
                             liaison.pastilleTailleTiroir.alpha = 1f
                             return true
@@ -405,6 +455,7 @@ class EditorActivity : AppCompatActivity() {
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                             liaison.racineEditeur.requestDisallowInterceptTouchEvent(false)
                             vue.performClick()
+                            animerPoigneePendant(vue as ImageView, pendant = false)
                             viserAimants(dp)
                             liaison.pastilleTailleTiroir
                                 .animate()
@@ -419,6 +470,33 @@ class EditorActivity : AppCompatActivity() {
                 }
             },
         )
+    }
+
+    /** Pose (ou retire) l'état « pendant le glissement » de la poignée :
+     * sélecteur pressé (fond actif + bordure accent-fort), points ⋮
+     * accent, grossissement 1.08 animé (150 ms) — retour symétrique au
+     * relâchement (maquette : `transition ... .15s`, `scale(1.08)`). */
+    private fun animerPoigneePendant(
+        poignee: ImageView,
+        pendant: Boolean,
+    ) {
+        // L'état pressé active la variante du sélecteur de fond
+        // (fond #2C3644 nuit / #C9D6E4 jour + bordure accent-fort).
+        poignee.isPressed = pendant
+        // Points ⋮ : la teinte de l'ImageView teinte les trois disques
+        // (seuls éléments du src) — accent pendant, couleur propre sinon.
+        poignee.imageTintList =
+            if (pendant) {
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.explorateur_accent))
+            } else {
+                null
+            }
+        poignee
+            .animate()
+            .scaleX(if (pendant) ECHELLE_POIGNEE_PENDANTE else 1f)
+            .scaleY(if (pendant) ECHELLE_POIGNEE_PENDANTE else 1f)
+            .setDuration(DUREE_ANIMATION_POIGNEE_MS)
+            .start()
     }
 
     /** Largeur visible du tiroir : fraction de l'écran bornée 45-98 %
@@ -1349,6 +1427,13 @@ class EditorActivity : AppCompatActivity() {
 
         /** Durée du fondu de la pastille (§ 13 : 120 ms). */
         const val DUREE_FONDU_PASTILLE_MS = 120L
+
+        /** Grossissement de la poignée pendant le glissement (v0.32.2,
+         * maquette `.poignee.pendant` : `scale(1.08)`). */
+        const val ECHELLE_POIGNEE_PENDANTE = 1.08f
+
+        /** Durée des transitions de la poignée (maquette : `.15s`). */
+        const val DUREE_ANIMATION_POIGNEE_MS = 150L
 
         /** Seuil de bascule seconde/milliseconde des durées affichées (G5). */
         const val SEUIL_SECONDE_MS = 1_000L

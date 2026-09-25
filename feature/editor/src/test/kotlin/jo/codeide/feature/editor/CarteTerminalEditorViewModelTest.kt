@@ -172,4 +172,40 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
             assertTrue(sessionsTerminal.creations.isEmpty())
             assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirTerminal(null)), effets)
         }
+
+    @Test
+    fun `creer session sans bootstrap ouvre l installation`() =
+        runTest {
+            val modele = viewModel(ajouterProjet("Alpha"))
+            val effets = mutableListOf<EffetEditor>()
+            collecterEffets(modele, effets)
+            advanceUntilIdle()
+
+            // v0.32.2 : le tiroir terminal crée SANS naviguer — même
+            // garde-fou bootstrap que la création ouvrante.
+            modele.onAction(ActionEditor.CreerSessionTerminal)
+            advanceUntilIdle()
+
+            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
+            assertTrue(sessionsTerminal.creations.isEmpty())
+        }
+
+    @Test
+    fun `creer session avec bootstrap mais dossier introuvable ne navigue pas`() =
+        runTest {
+            localisateurOutils.bootstrapInstalle = true
+            val modele = viewModel(ajouterProjet("Alpha"))
+            val effets = mutableListOf<EffetEditor>()
+            collecterEffets(modele, effets)
+            advanceUntilIdle()
+
+            modele.onAction(ActionEditor.CreerSessionTerminal)
+            advanceUntilIdle()
+
+            // Dossier introuvable en JVM (garde du domaine) : pas de
+            // création douteuse ET surtout AUCUNE navigation — l'appel
+            // venant du tiroir, l'utilisateur y reste.
+            assertTrue(sessionsTerminal.creations.isEmpty())
+            assertTrue(effets.isEmpty())
+        }
 }
