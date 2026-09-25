@@ -146,6 +146,17 @@ class InstallViewModelTest {
         }
 
     @Test
+    fun `l ordre d installation des outils est relayé - v0 31 4`() =
+        runTest {
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            viewModel.onAction(ActionInstallation.InstallerOutils)
+
+            assertEquals(1, installateur.installationsOutils)
+        }
+
+    @Test
     fun `fermer ne sollicite pas l installateur`() =
         runTest {
             val viewModel = InstallViewModel(installateur)
@@ -155,6 +166,7 @@ class InstallViewModelTest {
 
             assertEquals(0, installateur.demarrages)
             assertEquals(0, installateur.annulations)
+            assertEquals(0, installateur.installationsOutils)
         }
 
     @Test
@@ -184,6 +196,54 @@ class InstallViewModelTest {
             advanceUntilIdle()
 
             assertEquals(listOf("Atteint :1 stable Release", "Lecture des listes…"), viewModel.etat.value.journal)
+        }
+
+    @Test
+    fun `le journal survit aux changements d état - v0 31 4`() =
+        runTest {
+            // Rapport d'appareil réel (« l'écran ne se met pas à jour
+            // correctement ») : chaque émission d'état reconstruisait un
+            // état SANS journal — le journal clignotait puis restait vide
+            // jusqu'à la prochaine ligne. La combinaison état + journal
+            // le rend persistant.
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            installateur.simulerJournal(listOf("Atteint :1 stable Release"))
+            advanceUntilIdle()
+            installateur.simulerEnCours(EtapeInstallation.Extraction(entreesTraitees = 40))
+            advanceUntilIdle()
+
+            assertEquals(PhaseInstallation.PROGRESSION, viewModel.etat.value.phase)
+            assertEquals(listOf("Atteint :1 stable Release"), viewModel.etat.value.journal)
+        }
+
+    @Test
+    fun `l échec des outils devient une phase dédiée - base conservée - v0 31 4`() =
+        runTest {
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            installateur.simulerOutilsEchoues(
+                AppError.Bootstrap(AppError.BootstrapReason.EchecApt, "code 100"),
+                listOf(OutilResume("openjdk-17", false), OutilResume("git", false)),
+            )
+            advanceUntilIdle()
+
+            assertEquals(PhaseInstallation.OUTILS_ECHEC, viewModel.etat.value.phase)
+            val erreur = viewModel.etat.value.erreur as AppError.Bootstrap
+            assertEquals(AppError.BootstrapReason.EchecApt, erreur.reason)
+            assertEquals(2, viewModel.etat.value.outils.size)
+        }
+
+    @Test
+    fun `les paquets d outils proposés alimentent l état de rendu`() =
+        runTest {
+            installateur.semerPaquetsOutils(listOf("openjdk-17", "git"))
+            val viewModel = InstallViewModel(installateur)
+            advanceUntilIdle()
+
+            assertEquals(listOf("openjdk-17", "git"), viewModel.etat.value.paquetsOutils)
         }
 
     @Test

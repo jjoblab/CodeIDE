@@ -82,14 +82,17 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_xs">
 
+        <!-- Onglets SANS identifiant (v0.31.4) : `TabLayout` consomme ses
+             `TabItem` à l'inflation et la vue disparaît de l'arbre — le
+             binding généré exigeait `onglet_journaux`/`onglet_plantages`
+             et plantait (« Missing required view »). Le médiateur règle
+             les libellés par position, aucun code ne vise ces vues. -->
         <com.google.android.material.tabs.TabItem
-            android:id="@+id/onglet_journaux"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/diagnostics_onglet_journaux" />
 
         <com.google.android.material.tabs.TabItem
-            android:id="@+id/onglet_plantages"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/diagnostics_onglet_plantages" />

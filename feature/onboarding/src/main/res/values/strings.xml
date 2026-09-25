@@ -62,10 +62,10 @@
     <string name="page_termine_erreur">La finalisation a échoué : les choix n\'ont pas pu être enregistrés. Réessayez.</string>
 
     <string name="page_terminal_titre">Un terminal dans votre poche</string>
-    <string name="page_terminal_texte">CodeIDE peut installer un environnement Linux complet : shell, JDK et outils en ligne de commande, pour compiler et exécuter vos projets directement sur l\'appareil — sans ordinateur.</string>
-    <string name="page_terminal_poids">Environ 40 Mo à télécharger, puis plusieurs centaines de Mo installés (le dépôt fournit aujourd\'hui le JDK et git ; Gradle et le SDK Android arriveront).</string>
+    <string name="page_terminal_texte">CodeIDE peut installer un environnement Linux : shell et gestionnaire de paquets, pour utiliser le terminal directement sur l\'appareil. Les outils de développement (JDK, git) s\'installent à la demande, quand vous en aurez besoin.</string>
+    <string name="page_terminal_poids">Environ 40 Mo à télécharger pour l\'environnement de base (dépôt mis à jour automatiquement). Les outils optionnels — JDK, git — se proposent après l\'installation.</string>
     <string name="page_terminal_installer">Installer maintenant</string>
-    <string name="page_terminal_deja_installe">Les outils du terminal sont déjà installés.</string>
+    <string name="page_terminal_deja_installe">L\'environnement du terminal est déjà installé.</string>
     <string name="page_terminal_passer">Plus tard</string>
 
     <!-- Page 4 — Notifications (v0.31.2, ADR 0046 ; stockage révisé

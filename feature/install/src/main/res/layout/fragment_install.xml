@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Écran d'installation du bootstrap natif (étape T3) : invite, progression
-  détaillée (liste d'étapes + journal en direct des sous-processus),
-  résultat par outil, erreurs typées avec détails dépliables.
+  détaillée (sections « Environnement de base » / « Outils de
+  développement » + journal en direct), résultat par outil, erreurs
+  typées avec détails dépliables.
 
-  Refonte v0.31.2 (rapport d'appareil réel : « la configuration des
-  paquets a échoué » sans aucun indice) : la progression montre CE QUI SE
-  FAIT RÉELLEMENT — checklist des neuf étapes du pipeline, compteur de
-  l'étape courante et sortie en direct du second stage et d'apt.
+  Refonte v0.31.4 (rapport d'appareil réel : « l'écran ne se met pas à
+  jour correctement » + « les étapes rangées pour un design plus
+  professionnel ») : progression structurée en DEUX sections — l'une
+  obligatoire (huit étapes du pipeline jusqu'à `apt update`, ADR 0048),
+  l'autre optionnelle (paquets d'outils, installés à la demande) —
+  en-tête d'étape courante avec compteur, journal en direct sous carte
+  (rafraîchi en continu depuis la v0.31.4) et résultat en deux temps :
+  environnement prêt, puis proposition claire des outils avec leurs
+  statuts.
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -27,7 +33,8 @@
             android:text="@string/installation_titre"
             android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-        <!-- Invite : ce qu'apporte le terminal et son poids. -->
+        <!-- Invite : ce qu'apporte l'environnement, son poids, et le
+             découpage base / outils optionnels. -->
         <LinearLayout
             android:id="@+id/invite"
             android:layout_width="match_parent"
@@ -46,7 +53,50 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:text="@string/installation_invite_poids"
-                android:textAppearance="?attr/textAppearanceBodySmall" />
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- Aperçu structuré : la base (obligatoire), les outils
+                 (optionnels, proposés plus tard). -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_md">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/installation_section_base"
+                        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/installation_invite_base"
+                        android:textAppearance="?attr/textAppearanceBodySmall" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/installation_section_outils"
+                        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/installation_invite_outils"
+                        android:textAppearance="?attr/textAppearanceBodySmall" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <com.google.android.material.textview.MaterialTextView
@@ -59,8 +109,8 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- Progression détaillée : étape courante, compteur, barre,
-             checklist des étapes du pipeline. -->
+        <!-- Progression détaillée : en-tête d'étape courante (libellé +
+             compteur + barre), puis les deux sections de la checklist. -->
         <LinearLayout
             android:id="@+id/progression"
             android:layout_width="match_parent"
@@ -93,12 +143,48 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm" />
 
-            <!-- Checklist des étapes : rangées créées par le fragment. -->
+            <!-- Section 1 : environnement de base (obligatoire) — rangées
+                 créées par le fragment. -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/titre_section_base"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="@string/installation_section_base"
+                android:textAppearance="?attr/textAppearanceLabelLarge" />
+
             <LinearLayout
                 android:id="@+id/conteneur_etapes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:orientation="vertical"
+                tools:background="@android:color/transparent" />
+
+            <!-- Section 2 : outils de développement (optionnels) —
+                 statuts créés par le fragment. -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/titre_section_outils"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_md"
+                android:text="@string/installation_section_outils"
+                android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_outils_attente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="@string/installation_outils_attente"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <LinearLayout
+                android:id="@+id/conteneur_outils"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
                 android:orientation="vertical"
                 tools:background="@android:color/transparent" />
         </LinearLayout>
@@ -142,7 +228,8 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Résultat : outils installés. -->
+        <!-- Résultat : environnement prêt, statuts des outils, proposition
+             d'installation immédiate ou différée. -->
         <LinearLayout
             android:id="@+id/resultat"
             android:layout_width="match_parent"
@@ -155,19 +242,36 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/installation_terminee"
+                android:text="@string/installation_terminee_base"
                 android:textAppearance="?attr/textAppearanceTitleMedium" />
 
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/texte_outils"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_xs"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                tools:text="openjdk-17 — installé" />
+                android:text="@string/installation_terminee_base_detail"
+                android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_outils_requis"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="@string/installation_outils_requis_detail"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <LinearLayout
+                android:id="@+id/conteneur_resultat_outils"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:orientation="vertical"
+                tools:background="@android:color/transparent" />
         </LinearLayout>
 
-        <!-- Échec : message actionnable + détails techniques dépliables. -->
+        <!-- Échec (base OU outils) : message actionnable + détails
+             techniques dépliables. -->
         <LinearLayout
             android:id="@+id/echec"
             android:layout_width="match_parent"
@@ -205,6 +309,16 @@
                 android:visibility="gone"
                 tools:text="apt update → code 100 — E: dépôt injoignable"
                 tools:visibility="visible" />
+
+            <LinearLayout
+                android:id="@+id/conteneur_echec_outils"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:background="@android:color/transparent"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <Space
@@ -218,6 +332,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_md"
             android:text="@string/installation_installer" />
+
+        <!-- Phase résultat : installe les outils optionnels maintenant
+             (sinon « Fermer » — les fonctionnalités les proposeront). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_installer_outils"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/installation_installer_outils"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_annuler"

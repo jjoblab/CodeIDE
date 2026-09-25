@@ -128,6 +128,24 @@ Notifications, jamais exigé — modèle Termux, ADR 0047) ; CI réparée
 (`ExpiredTargetSdkVersion`, l'issue ERREUR distincte du warning
 `ExpiringTargetSdkVersion` désactivé en v0.31.1, ADR 0047).
 
+**Correctif v0.31.4 (2026-09-25, après retour d'appareil réel — rapport
+`f2699ac5` : plantage au retour depuis le terminal, écran
+d'installation qui « ne se met pas à jour correctement », demande
+« apt update obligatoire, outils optionnels »)** : navigateur robuste
+hors graphe (`@ActivityScoped` injecté par une activité pleine écran
+sans conteneur plantait à chaque retour — `goBack()` referme l'écran,
+les navigations vers le graphe relaient `MainActivity` devenue
+`singleTop` via un routage `EXTRA_ECRAN_CIBLE` sans recréation, ADR
+0048) ; écran d'installation réparé et refondu (journal **combiné** à
+l'état dans un seul flux — il s'effaçait à chaque étape ; boutons
+terminaux enfin rendus ; deux sections : base / outils, ADR 0048) ;
+**première configuration resserrée sur l'environnement de base**
+(shell, apt, dépôt à jour — `apt update` obligatoire), les paquets
+d'outils (`openjdk-17`, `git`) devenant **optionnels et différés**
+(`installerOutils()` à la demande, échec des outils distinct de celui
+de la base, garde JDK dans l'éditeur avant sync/build avec message
+actionnable, ADR 0048).
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

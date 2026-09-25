@@ -1,5 +1,6 @@
 package jo.codeide
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -7,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -19,6 +21,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applyDynamicColorsIfAvailable
+import jo.codeide.navigation.RoutageEcran
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -31,6 +34,13 @@ import javax.inject.Inject
  * Porte le [androidx.navigation.fragment.NavHostFragment] et ne fait rien
  * d'autre : chaque écran est un fragment (Onboarding, Home, NewProject,
  * Settings) et toute logique vit dans les ViewModels et le domaine.
+ *
+ * Depuis v0.31.4 (crash d'appareil réel f2699ac5), l'activité est
+ * `singleTop` et accepte un **routage d'écran** ([EXTRA_ECRAN_CIBLE]) :
+ * les activités plein écran (terminal, éditeur) relancent cet hôte avec
+ * `REORDER_TO_FRONT | SINGLE_TOP` — l'instance existante est remontée
+ * sans recréation, l'appelante survit dessous — et l'écran demandé
+ * (installation, diagnostic…) s'ouvre dans le graphe.
  *
  * Cycle de démarrage :
  * 1. [installSplashScreen] **avant** `super.onCreate` (API SplashScreen),
@@ -91,6 +101,12 @@ class MainActivity : AppCompatActivity() {
         // navigation — la session a déjà été ouverte par l'initialiseur.
         logger.i(TAG) { "MainActivity démarrée" }
 
+        // Routage demandé par une activité plein écran (v0.31.4) : consommé
+        // après la première émission des paramètres — le routage du premier
+        // lancement doit avoir posé la racine (accueil ou assistant) d'abord.
+        // Un `onNewIntent` suivra pour les remontées à chaud.
+        routageEnAttente = savedInstanceState == null && intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)
+
         // Dernier écran connu des rapports de plantage (section 5.8) : le
         // libellé de destination est plus précis que le nom d'activité.
         // Cast sûr : sous l'application de test Hilt, le pisteur n'existe
@@ -119,6 +135,102 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Routage demandé par une activité plein écran avant la création
+     * complète (consommé après le routage du premier lancement).
+     */
+    private var routageEnAttente = false
+
+    /**
+     * Remontée à chaud d'une activité plein écran : l'instance reçoit
+     * l'intention de routage **sans recréation** (`singleTop` +
+     * `REORDER_TO_FRONT`) — l'écran demandé s'ouvre dans le graphe vivant.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)) {
+            routerEcranCible(intent)
+        }
+    }
+
+    /**
+     * Ouvre l'écran demandé par une activité plein écran dans le graphe :
+     * l'action dédiée depuis son origine naturelle (animations et pile),
+     * sinon la destination directe (globale au graphe). Sans effet si
+     * l'écran demandé est déjà affiché — un double routage n'empile rien.
+     */
+    private fun routerEcranCible(intent: Intent) {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        val controleur = navHost.navController
+        when (intent.getStringExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)) {
+            RoutageEcran.ECRAN_INSTALLATION -> {
+                logger.d(TAG) { "routage externe -> installation des outils" }
+                ouvrirEcranRoutage(
+                    controleur,
+                    destination = R.id.installation,
+                    actions =
+                        mapOf(
+                            R.id.home to R.id.action_home_to_installation,
+                            R.id.onboarding to R.id.action_onboarding_to_installation,
+                        ),
+                )
+            }
+
+            RoutageEcran.ECRAN_DIAGNOSTIC -> {
+                logger.d(TAG) { "routage externe -> diagnostic" }
+                ouvrirEcranRoutage(
+                    controleur,
+                    destination = R.id.diagnostics,
+                    actions = mapOf(R.id.settings to R.id.action_settings_to_diagnostics),
+                )
+            }
+
+            RoutageEcran.ECRAN_PARAMETRES -> {
+                logger.d(TAG) { "routage externe -> paramètres" }
+                ouvrirEcranRoutage(
+                    controleur,
+                    destination = R.id.settings,
+                    actions = mapOf(R.id.home to R.id.action_home_to_settings),
+                )
+            }
+
+            RoutageEcran.ECRAN_ASSISTANT -> {
+                logger.d(TAG) { "routage externe -> assistant" }
+                ouvrirEcranRoutage(
+                    controleur,
+                    destination = R.id.onboarding,
+                    actions = mapOf(R.id.home to R.id.action_home_to_onboarding),
+                )
+            }
+
+            RoutageEcran.ECRAN_NOUVEAU_PROJET -> {
+                logger.d(TAG) { "routage externe -> nouveau projet" }
+                ouvrirEcranRoutage(
+                    controleur,
+                    destination = R.id.newproject,
+                    actions = mapOf(R.id.home to R.id.action_home_to_newproject),
+                )
+            }
+        }
+    }
+
+    /**
+     * Navigation routée : action dédiée depuis l'origine indiquée,
+     * destination directe ailleurs, rien si déjà en place.
+     */
+    private fun ouvrirEcranRoutage(
+        controleur: NavController,
+        destination: Int,
+        actions: Map<Int, Int>,
+    ) {
+        val origine = controleur.currentDestination?.id
+        when (origine) {
+            destination -> Unit
+            else -> controleur.navigate(actions[origine] ?: destination)
+        }
+    }
+
+    /**
      * Collecte les paramètres : applique l'apparence à chaque émission
      * (aperçu immédiat de l'assistant, restauration au démarrage) et,
      * sur la première, libère le splash puis route le premier lancement.
@@ -130,6 +242,12 @@ class MainActivity : AppCompatActivity() {
                 if (!demarragePret) {
                     demarragePret = true
                     routerPremierLancement(reglages.isSetupCompleted)
+                    // Routage demandé avant la création complète (intention
+                    // de lancement) : maintenant que la racine est posée.
+                    if (routageEnAttente) {
+                        routageEnAttente = false
+                        routerEcranCible(intent)
+                    }
                 }
             }
         }

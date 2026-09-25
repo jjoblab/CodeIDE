@@ -4,6 +4,105 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.31.4] – 2026-09-25
+
+Quatrième lot de corrections après **retour d'appareil réel** (app
+v0.31.3, rapport de plantage `f2699ac5` : retour depuis l'écran du
+terminal → `IllegalStateException: Le conteneur de navigation est
+introuvable dans MainActivity`), écran d'installation « qui ne se met
+pas à jour correctement », et demande explicite : **`apt update`
+obligatoire, paquets d'outils optionnels** pour la première
+configuration (proposés plus tard par les fonctionnalités). Version
+corrective (SemVer `0.N.M`). ADR 0048.
+
+### Corrigé
+
+- **Plantage déterministe au retour depuis le terminal** (rapport
+  `f2699ac5` — l'app s'effondrait juste après l'ouverture d'un projet
+  et un passage au terminal, d'où l'impression que « le problème de
+  création de projet persiste ») : `AppNavigatorImpl` est scopé à
+  l'activité qui l'injecte — injecté par `TerminalActivity` (plein
+  écran, SANS conteneur de navigation), son accès au contrôleur
+  levait à chaque flèche retour. Le navigateur est désormais **robuste
+  hors graphe** : `goBack()` referme l'activité plein écran (les
+  sessions du terminal survivent via le service foreground —
+  l'intention documentée de l'écran), et les navigations vers le
+  graphe appelées depuis le terminal ou l'éditeur relancent
+  `MainActivity` (désormais `singleTop`) avec un **routage d'écran**
+  `EXTRA_ECRAN_CIBLE` + `REORDER_TO_FRONT` — l'instance existante
+  reçoit `onNewIntent` sans recréation, l'activité appelante survit
+  dessous (retour système = retour à l'éditeur, état intact). Trois
+  chemins latents de la même classe corrigés au passage : flèche
+  retour du terminal, « journal complet » de l'éditeur
+  (diagnostics), carte Terminal de l'éditeur (installation).
+- **Écran d'installation : journal effacé et boutons terminaux
+  manquants** (rapport « ne se met pas à jour correctement ») :
+  chaque émission d'état reconstruisait un état de rendu **sans
+  journal** — la sortie en direct clignotait puis restait vide entre
+  les tics de progression ; et depuis v0.31.2, les phases réussite et
+  échec n'affichaient AUCUN bouton (le « Fermer » n'était jamais rendu
+  visible, le « Réessayer » restait masqué après lancement) — seul le
+  geste système permettait de sortir. L'état et le journal sont
+  désormais **combinés** dans un seul flux, et chaque phase rend ses
+  actions explicitement.
+
+### Ajouté
+
+- **Outils de développement optionnels et différés** (demande
+  utilisateur, ADR 0048) : la première configuration couvre
+  l'**environnement de base** — shell, apt, dépôt mis à jour
+  (`apt update` OBLIGATOIRE, la correction v0.31.3 rendue permanente)
+  — sans les paquets d'outils. Ceux-ci (`openjdk-17`, `git` ; SDK
+  Android et cmdline-tools quand le dépôt les publiera) s'installent
+  **à la demande** depuis le même écran (bouton dédié, statuts par
+  paquet) ou plus tard : la synchronisation, l'exécution de tâches et
+  le sélecteur de l'éditeur refusent AVANT toute tentative quand le
+  JDK manque, avec un message actionnable dans l'onglet Sortie
+  (« installez les outils depuis la carte Terminal du tiroir ») au
+  lieu d'une connexion perdue opaque après reprises. L'échec des
+  outils est un état distinct (`OutilsEchoues`) : l'environnement de
+  base reste installé, seule la phase d'outils est reprise ; son
+  annulation conserve aussi la base. Au redémarrage de l'application,
+  un bootstrap déjà installé (marqueur) démarre l'état à « terminé »
+  — proposition d'outils, jamais une réinstallation destructrice.
+- **Écran d'installation refondu** (design « plus professionnel,
+  plus propre ») : progression structurée en deux sections —
+  « Environnement de base » (huit étapes du pipeline) et « Outils de
+  développement » (statuts par paquet : en attente optionnelle, en
+  cours avec rotation, installé, absent) —, invite à carte
+  découpée (inclus / optionnel), résultat en deux temps (environnement
+  prêt, puis proposition des outils) et compteurs d'étape inchangés.
+
+### Tests
+
+- `InstallateurBootstrapTest` : pipeline de base arrêté après
+  `apt update` (aucun `apt install`), `installerOutils` à la demande
+  (paquets, échec global → `OutilsEchoues` base conservée, échec
+  partiel rapporté), annulation en pleine phase d'outils → retour à
+  `Terminee` base intacte, `installerOutils` sans base terminée sans
+  effet, redémarrage avec marqueur → état initial `Terminee`.
+- `InstallViewModelTest` : journal **persistant à travers les
+  changements d'état** (régression du rapport d'appareil), phase
+  `OUTILS_ECHEC`, relais de l'ordre d'installation des outils,
+  paquets proposés dans l'état de rendu.
+- `MainActivityTest` : routage d'écran à froid (intention de
+  lancement) et à chaud (`onNewIntent`, `singleTop`).
+- `ToolingEditorViewModelTest` : refus JDK typé (synchronisation et
+  exécution) sans aucun appel tooling.
+- `BootstrapInstallationTest` (modèle) : six états de la machine,
+  `OutilsEchoues` distinct de `Echouee`.
+
+### Découvertes
+
+- `@ActivityScoped` (Hilt) lie l'implémentation à l'activité qui
+  l'injecte — une implémentation pensée « pour MainActivity » devient
+  fautive dès qu'une seconde activité l'injecte : le défaut ne se
+  voyait pas dans le graphe, uniquement sur l'appareil.
+- Deux bugs pouvaient coexister dans le même écran sans jamais se
+  rencontrer : l'effacement du journal (v0.31.2) masquait l'absence
+  des boutons terminaux — le journal clignotant retenait toute
+  l'attention du retour utilisateur.
+
 ## [0.31.3] – 2026-09-25
 
 Troisième lot de corrections après **retour d'appareil réel** (app

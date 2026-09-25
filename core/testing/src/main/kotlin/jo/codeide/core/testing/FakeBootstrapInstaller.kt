@@ -8,6 +8,7 @@ import jo.codeide.core.model.EtatInstallationBootstrap.Annulee
 import jo.codeide.core.model.EtatInstallationBootstrap.Echouee
 import jo.codeide.core.model.EtatInstallationBootstrap.EnCours
 import jo.codeide.core.model.EtatInstallationBootstrap.NonDemarree
+import jo.codeide.core.model.EtatInstallationBootstrap.OutilsEchoues
 import jo.codeide.core.model.EtatInstallationBootstrap.Terminee
 import jo.codeide.core.model.OutilResume
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +27,19 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
     private val _journal = MutableStateFlow<List<String>>(emptyList())
     override val journal: StateFlow<List<String>> = _journal.asStateFlow()
 
+    /** Paquets d'outils exposés (v0.31.4 : proposition à l'écran). */
+    public var paquets: List<String> = emptyList()
+        private set
+
+    override val paquetsOutils: List<String>
+        get() = paquets
+
     /** Ordres `demarrer()` reçus. */
     public var demarrages: Int = 0
+        private set
+
+    /** Ordres `installerOutils()` reçus (v0.31.4). */
+    public var installationsOutils: Int = 0
         private set
 
     /** Ordres `annuler()` reçus. */
@@ -36,6 +48,10 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
 
     public override fun demarrer() {
         demarrages++
+    }
+
+    public override fun installerOutils() {
+        installationsOutils++
     }
 
     public override fun annuler() {
@@ -57,6 +73,14 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
         _etat.value = Echouee(erreur)
     }
 
+    /** Fait passer l'état partagé à `OutilsEchoues` (v0.31.4). */
+    public fun simulerOutilsEchoues(
+        erreur: AppError,
+        outils: List<OutilResume> = emptyList(),
+    ) {
+        _etat.value = OutilsEchoues(erreur, outils)
+    }
+
     /** Fait passer l'état partagé à `Annulee`. */
     public fun simulerAnnulee() {
         _etat.value = Annulee
@@ -65,5 +89,10 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
     /** Publie des lignes dans le journal (vérification du rendu en direct). */
     public fun simulerJournal(lignes: List<String>) {
         _journal.value = lignes
+    }
+
+    /** Sème les paquets d'outils proposés (vérification de l'affichage). */
+    public fun semerPaquetsOutils(paquets: List<String>) {
+        this.paquets = paquets
     }
 }

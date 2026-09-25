@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.ManagedProcess
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppError.BootstrapReason
 import jo.codeide.core.model.EtapeInstallation
@@ -12,12 +13,15 @@ import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.EtatInstallationBootstrap.Annulee
 import jo.codeide.core.model.EtatInstallationBootstrap.Echouee
 import jo.codeide.core.model.EtatInstallationBootstrap.EnCours
+import jo.codeide.core.model.EtatInstallationBootstrap.OutilsEchoues
 import jo.codeide.core.model.EtatInstallationBootstrap.Terminee
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeNativeProcessLauncher
 import jo.codeide.core.testing.ProcessusScripte
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
@@ -251,7 +255,7 @@ class InstallateurBootstrapTest {
             assertTrue("étape extraction consignée", "extraction des fichiers…" in lignes)
             assertTrue("sortie du second stage transmise", "[*] Running termux bootstrap second stage" in lignes)
             assertTrue("sortie d'apt update transmise", "Atteint :1 stable Release" in lignes)
-            assertTrue("fin consignée", lignes.last().startsWith("installation terminée"))
+            assertTrue("fin consignée", lignes.last().startsWith("environnement de base installé"))
         }
 
     @Test
@@ -292,14 +296,16 @@ class InstallateurBootstrapTest {
         }
 
     @Test
-    fun `pipeline complet aboutit à Terminee avec les outils et le préfixe en place`() =
+    fun `le pipeline de base s arrête après apt update - les outils sont différés`() =
         runBlocking {
+            // ADR 0048 : la première configuration couvre l'environnement
+            // de base (shell, apt, dépôt à jour) — les paquets d'outils ne
+            // font PLUS partie du pipeline initial.
             installateur.demarrer()
             val etat = attendreTerminal()
 
             assertTrue("état terminal inattendu : $etat", etat is Terminee)
-            val outils = (etat as Terminee).outils
-            assertEquals(listOf("openjdk-17" to true, "git" to true), outils.map { it.paquet to it.installe })
+            assertTrue("outils non tentés pendant la base", (etat as Terminee).outils.isEmpty())
 
             // Préfixe réellement installé : shell exécutable, lien symbolique
             // du manifeste, second stage, sources.list corrigé.
@@ -313,8 +319,9 @@ class InstallateurBootstrapTest {
             assertTrue(File(prefixe, CHEMIN_SECOND_STAGE_TEST).isFile)
             assertEquals("$EN_TETE_DEPOT\n$LIGNE_DEPOT_CANONIQUE\n", sourcesListDu(prefixe).readText())
 
-            // Second stage + apt update + 2 installs via le lanceur canonique.
-            assertEquals(4, lanceur.lancements.size)
+            // Second stage + apt update SEULEMENT via le lanceur canonique
+            // (aucun apt install pendant la base).
+            assertEquals(2, lanceur.lancements.size)
             assertTrue(
                 lanceur.lancements[0]
                     .command
@@ -336,6 +343,158 @@ class InstallateurBootstrapTest {
             // ne voit le bootstrap installé qu'à ce moment-là.
             assertTrue(DispositionsBootstrap.marqueurInstallation(racine).isFile)
             assertTrue(LocalisationOutils.bootstrapInstalle(racine))
+        }
+
+    @Test
+    fun `installerOutils depuis Terminee installe les paquets à la demande`() =
+        runBlocking {
+            installateur.demarrer()
+            attendreTerminal()
+            val precedent = installateur.etat.value
+
+            installateur.installerOutils()
+            val etat = attendreChangementPuisTerminal(precedent)
+
+            assertTrue("état après outils : $etat", etat is Terminee)
+            assertEquals(
+                listOf("openjdk-17" to true, "git" to true),
+                (etat as Terminee).outils.map { it.paquet to it.installe },
+            )
+            // Base (2 lancements) + outils (2 installs).
+            assertEquals(4, lanceur.lancements.size)
+            assertTrue(LocalisationOutils.bootstrapInstalle(racine))
+        }
+
+    @Test
+    fun `installerOutils sans base terminée est sans effet`() =
+        runBlocking {
+            installateur.installerOutils()
+
+            assertEquals(EtatInstallationBootstrap.NonDemarree, installateur.etat.value)
+            assertEquals(0, lanceur.lancements.size)
+        }
+
+    @Test
+    fun `un paquet en échec est rapporté non installé sans échec global`() =
+        runBlocking {
+            codesPaquets["git"] = 100
+
+            installateur.demarrer()
+            attendreTerminal()
+            val precedent = installateur.etat.value
+            installateur.installerOutils()
+            val etat = attendreChangementPuisTerminal(precedent)
+
+            assertTrue(etat is Terminee)
+            val outils = (etat as Terminee).outils
+            assertEquals(listOf("openjdk-17" to true, "git" to false), outils.map { it.paquet to it.installe })
+        }
+
+    @Test
+    fun `tous les paquets en échec mènent à OutilsEchoues - base conservée`() =
+        runBlocking {
+            codesPaquets["openjdk-17"] = 100
+            codesPaquets["git"] = 100
+
+            installateur.demarrer()
+            attendreTerminal()
+            val precedent = installateur.etat.value
+            installateur.installerOutils()
+            val etat = attendreChangementPuisTerminal(precedent)
+
+            assertTrue("état des outils : $etat", etat is OutilsEchoues)
+            val erreur = (etat as OutilsEchoues).erreur as AppError.Bootstrap
+            assertEquals(BootstrapReason.EchecApt, erreur.reason)
+            // La base reste en place : reprise possible de la seule phase
+            // d'outils, jamais une réinstallation complète.
+            assertTrue(LocalisationOutils.bootstrapInstalle(racine))
+
+            // Reprise de la seule phase d'outils après l'échec : la base
+            // n'est jamais rejouée, le pipeline d'outils retente. (L'attente
+            // se cale sur les lancements d'apt install — les deux états
+            // OutilsEchoues successifs sont ÉGAUX, un changement d'état ne
+            // serait pas observable.)
+            val lancementsAvant = lanceur.lancements.size
+            installateur.installerOutils()
+            avecDelai(30_000) {
+                while (lanceur.lancements.size < lancementsAvant + 2) {
+                    delay(25)
+                }
+                while (!estTerminal(installateur.etat.value)) {
+                    delay(25)
+                }
+            }
+            assertTrue("reprise des outils : ${installateur.etat.value}", installateur.etat.value is OutilsEchoues)
+        }
+
+    @Test
+    fun `annulation pendant les outils revient à Terminee - base conservée`() =
+        runBlocking {
+            installateur.demarrer()
+            attendreTerminal()
+
+            // Paquet lent : fenêtre déterministe pour annuler PENDANT les
+            // outils (le pipeline de base, lui, reste intouché).
+            val processusLent =
+                object : ManagedProcess {
+                    override val pid: Int = 42_425
+
+                    override fun isAlive(): Boolean = true
+
+                    override fun stdoutLines(): Flow<String> = emptyList<String>().asFlow()
+
+                    override fun stderrLines(): Flow<String> = emptyList<String>().asFlow()
+
+                    override suspend fun awaitExit(): Int {
+                        delay(2_000)
+                        return 0
+                    }
+
+                    override fun kill(force: Boolean) = Unit
+                }
+            lanceur.fabrique = { commande ->
+                if (commande.command.getOrNull(1) == "install") processusLent else ProcessusScripte()
+            }
+
+            installateur.installerOutils()
+            var annule = false
+            while (!estTerminal(installateur.etat.value)) {
+                if (!annule && installateur.etat.value is EnCours) {
+                    val etape = (installateur.etat.value as EnCours).etape
+                    if (etape is EtapeInstallation.InstallationPaquets) {
+                        installateur.annuler()
+                        annule = true
+                    }
+                }
+                delay(10)
+            }
+
+            val courant = installateur.etat.value
+            assertTrue("état après annulation : $courant", courant is Terminee)
+            assertTrue("outils partiels", (courant as Terminee).outils.isEmpty())
+            // Aucun staging à nettoyer, la base est toujours installée.
+            assertTrue(LocalisationOutils.bootstrapInstalle(racine))
+            assertTrue(File(racine, "usr/bin/sh").isFile)
+        }
+
+    @Test
+    fun `un démarrage avec marqueur démarre à Terminee - jamais de réinstallation`() =
+        runBlocking {
+            installateur.demarrer()
+            attendreTerminal()
+            val lancementsAvant = lanceur.lancements.size
+
+            // Nouvelle instance (mort du processus, relance de l'app) :
+            // le marqueur fait foi, l'état repart à Terminee — pas de
+            // pipeline rejoué par-dessus un préfixe sain.
+            val apresRedemarrage = construireInstallateur()
+            assertTrue("état initial : ${apresRedemarrage.etat.value}", apresRedemarrage.etat.value is Terminee)
+            apresRedemarrage.demarrer()
+            apresRedemarrage.installerOutils()
+
+            // Aucun effet : ni téléchargement, ni second stage, ni apt.
+            assertEquals(lancementsAvant, lanceur.lancements.size)
+            assertEquals(1, requetes.get())
         }
 
     @Test
@@ -368,7 +527,7 @@ class InstallateurBootstrapTest {
             attendreTerminal()
             installateur.demarrer()
 
-            assertEquals(4, lanceur.lancements.size)
+            assertEquals(2, lanceur.lancements.size)
             assertEquals(1, requetes.get())
         }
 
@@ -389,7 +548,7 @@ class InstallateurBootstrapTest {
 
             assertTrue("état de reprise : $etat", etat is Terminee)
             assertEquals(2, requetes.get())
-            assertEquals(5, lanceur.lancements.size)
+            assertEquals(3, lanceur.lancements.size)
         }
 
     @Test
@@ -419,32 +578,6 @@ class InstallateurBootstrapTest {
             assertEquals(BootstrapReason.EchecSecondStage, raisonDe(etat))
             // Le préfixe reste en place : une reprise le remplacera à la bascule.
             assertTrue(File(racine, "usr/bin/sh").isFile)
-        }
-
-    @Test
-    fun `un paquet en échec est rapporté non installé sans échec global`() =
-        runBlocking {
-            codesPaquets["git"] = 100
-
-            installateur.demarrer()
-            val etat = attendreTerminal()
-
-            assertTrue(etat is Terminee)
-            val outils = (etat as Terminee).outils
-            assertEquals(listOf("openjdk-17" to true, "git" to false), outils.map { it.paquet to it.installe })
-        }
-
-    @Test
-    fun `tous les paquets en échec lèvent EchecApt`() =
-        runBlocking {
-            codesPaquets["openjdk-17"] = 100
-            codesPaquets["git"] = 100
-
-            installateur.demarrer()
-            val etat = attendreTerminal()
-
-            assertTrue(etat is Echouee)
-            assertEquals(BootstrapReason.EchecApt, raisonDe(etat))
         }
 
     @Test
@@ -506,7 +639,8 @@ class InstallateurBootstrapTest {
     /**
      * Attend d'abord que l'état **change** (le nouveau pipeline démarre
      * de façon asynchrone — l'ancien état terminal reste publié un
-     * instant), puis attend le nouvel état terminal.
+     * instant), puis attend le nouvel état terminal (Terminee,
+     * OutilsEchoues compris).
      */
     private suspend fun attendreChangementPuisTerminal(
         precedent: EtatInstallationBootstrap,
@@ -516,23 +650,26 @@ class InstallateurBootstrapTest {
             while (installateur.etat.value == precedent) {
                 delay(25)
             }
-            var courant: EtatInstallationBootstrap = installateur.etat.value
-            while (courant !is Terminee && courant !is Echouee && courant !is Annulee) {
+            while (!estTerminal(installateur.etat.value)) {
                 delay(25)
-                courant = installateur.etat.value
             }
-            courant
+            installateur.etat.value
         }
 
     /** Attend l'état terminal de l'installation (échec du test au délai). */
     private suspend fun attendreTerminal(delaiMs: Long = 30_000): EtatInstallationBootstrap =
         avecDelai(delaiMs) {
-            var courant: EtatInstallationBootstrap = installateur.etat.value
-            while (courant !is Terminee && courant !is Echouee && courant !is Annulee) {
+            while (!estTerminal(installateur.etat.value)) {
                 delay(25)
-                courant = installateur.etat.value
             }
-            courant
+            installateur.etat.value
+        }
+
+    /** L'état est-il terminal (base ou outils) ? */
+    private fun estTerminal(etat: EtatInstallationBootstrap): Boolean =
+        when (etat) {
+            is Terminee, is Echouee, Annulee, is OutilsEchoues -> true
+            else -> false
         }
 
     /** Exécute [bloc] sous un délai global, en échouant proprement au dépassement. */

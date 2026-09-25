@@ -479,10 +479,18 @@ class EditorViewModel
          * Synchronise le projet courant : le dossier réel est résolu (une
          * fois, mis en cache — même traduction que le terminal), le
          * résultat alimente l'état de synchronisation de l'onglet Sortie.
+         *
+         * Garde JDK (v0.31.4, ADR 0048) : les outils étant optionnels et
+         * différés, un refus AVANT toute tentative remplace une connexion
+         * perdue opaque — c'est la « demande ultérieure » des outils.
          */
         private fun synchroniserProjetGradle() {
             viewModelScope.launch {
                 serviceGradle.marquerSyncEnCours()
+                if (jdkAbsent()) {
+                    refuserSansJdk()
+                    return@launch
+                }
                 val dossier = dossierProjetOuEchec() ?: return@launch
                 serviceGradle.publierResultatSync(synchroniserProjet(dossier))
                 journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
@@ -493,15 +501,45 @@ class EditorViewModel
          * Exécute les tâches demandées : le build est suivi dans l'onglet
          * Sortie (lignes + état), l'onglet devient actif pour que la
          * progression soit visible d'emblée.
+         *
+         * Même garde JDK que la synchronisation (v0.31.4) : le message
+         * actionnable s'affiche dans la console au lieu d'un échec de
+         * connexion sans indice.
          */
         private fun executerTachesGradle(taches: List<String>) {
             viewModelScope.launch {
+                if (jdkAbsent()) {
+                    selectionnerOngletPanneau(OngletPanneau.CONSOLE)
+                    refuserSansJdk()
+                    return@launch
+                }
                 val dossier = dossierProjetOuEchec() ?: return@launch
                 val buildId = executerTachesUseCase(dossier, taches)
                 observerBuild(buildId)
                 selectionnerOngletPanneau(OngletPanneau.CONSOLE)
                 journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
             }
+        }
+
+        /**
+         * Le JDK de compilation est-il absent ? (Outils optionnels,
+         * ADR 0048 — l'installation différée se propose à l'écran
+         * d'installation, pas au milieu d'un build.)
+         */
+        private fun jdkAbsent(): Boolean = !localisateurOutils.isJdkInstalled()
+
+        /**
+         * Refus typé d'une demande de tooling sans JDK : message
+         * actionnable dans l'onglet Sortie (où installer les outils),
+         * journalisé — jamais une connexion perdue sans indice.
+         */
+        private fun refuserSansJdk() {
+            journal.w(TAG) { "tooling refusé : JDK absent (outils du terminal non installés)" }
+            serviceGradle.publierResultatSync(
+                AppResult.Failure(
+                    AppError.Tooling(AppError.ToolingReason.Internal, MESSAGE_JDK_ABSENT),
+                ),
+            )
         }
 
         /**
@@ -522,6 +560,10 @@ class EditorViewModel
         /** Ouvre le sélecteur de tâches (liste via l'orchestrateur). */
         private fun ouvrirSelecteurTaches() {
             viewModelScope.launch {
+                if (jdkAbsent()) {
+                    refuserSansJdk()
+                    return@launch
+                }
                 val dossier = dossierProjetOuEchec() ?: return@launch
                 when (val resultat = listerTachesProjet(dossier)) {
                     is AppResult.Success -> {
@@ -1450,6 +1492,12 @@ class EditorViewModel
         private companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /** Message actionnable du refus tooling sans JDK (v0.31.4, ADR 0048). */
+            const val MESSAGE_JDK_ABSENT =
+                "JDK absent — les outils du terminal ne sont pas installés. " +
+                    "Ouvrez l'écran d'installation depuis la carte Terminal du tiroir, " +
+                    "installez les outils, puis relancez."
 
             /** Fenêtre du journal compact (capacité du tampon mémoire). */
             const val FENETRE_JOURNAL = 200

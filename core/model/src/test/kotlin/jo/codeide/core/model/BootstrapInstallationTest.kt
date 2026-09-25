@@ -47,7 +47,7 @@ class BootstrapInstallationTest {
     }
 
     @Test
-    fun `la machine à états de l installation couvre ses cinq états`() {
+    fun `la machine à états de l installation couvre ses six états`() {
         val nonDemarree: EtatInstallationBootstrap = EtatInstallationBootstrap.NonDemarree
         val enCours = EtatInstallationBootstrap.EnCours(EtapeInstallation.SecondStage)
         val terminee =
@@ -62,6 +62,14 @@ class BootstrapInstallationTest {
                 AppError.Bootstrap(AppError.BootstrapReason.ReseauIndisponible, "HTTP 404"),
             )
         val annulee: EtatInstallationBootstrap = EtatInstallationBootstrap.Annulee
+        val outilsEchoues =
+            EtatInstallationBootstrap.OutilsEchoues(
+                AppError.Bootstrap(AppError.BootstrapReason.EchecApt, "aucun paquet installé"),
+                listOf(
+                    OutilResume(paquet = "openjdk-17", installe = false),
+                    OutilResume(paquet = "git", installe = false),
+                ),
+            )
 
         assertTrue(nonDemarree is EtatInstallationBootstrap.NonDemarree)
         assertEquals(EtapeInstallation.SecondStage, enCours.etape)
@@ -69,6 +77,13 @@ class BootstrapInstallationTest {
         assertFalse(terminee.outils[1].installe)
         assertEquals(AppError.BootstrapReason.ReseauIndisponible, (echouee.erreur as AppError.Bootstrap).reason)
         assertTrue(annulee is EtatInstallationBootstrap.Annulee)
+        // v0.31.4 (ADR 0048) : l'échec des OUTILS est distinct de l'échec
+        // de la base — la base reste installée, seule la phase d'outils
+        // est reprise.
+        assertEquals(AppError.BootstrapReason.EchecApt, (outilsEchoues.erreur as AppError.Bootstrap).reason)
+        assertEquals(2, outilsEchoues.outils.size)
+        assertFalse(outilsEchoues.outils[0].installe)
+        assertNotEquals(outilsEchoues, echouee)
         assertNotEquals(nonDemarree, annulee)
     }
 

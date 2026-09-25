@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="installation_titre">Installer les outils du terminal</string>
-    <string name="installation_invite_texte">Le terminal intégré installe un environnement Linux complet dans le stockage privé de l\'application : shell, JDK, gestionnaire de paquets et outils en ligne de commande — pour compiler et exécuter vos projets directement sur l\'appareil.</string>
-    <string name="installation_invite_poids">Téléchargement d\'environ 40 Mo, puis installation des paquets (le JDK seul occupe plus de 200 Mo). Une connexion réseau est nécessaire.</string>
+    <!-- v0.31.4 (ADR 0048) : la première configuration installe
+         l'ENVIRONNEMENT DE BASE (shell + apt + dépôt à jour) ; les
+         paquets d'outils (JDK, git…) sont optionnels et différés. -->
+    <string name="installation_titre">Installer l\'environnement du terminal</string>
+    <string name="installation_invite_texte">Le terminal intégré installe un environnement Linux dans le stockage privé de l\'application : shell, gestionnaire de paquets et dépôt à jour — utilisable dès la fin de l\'installation.</string>
+    <string name="installation_invite_poids">Téléchargement d\'environ 40 Mo pour l\'environnement de base. Une connexion réseau est nécessaire.</string>
+    <string name="installation_section_base">Environnement de base</string>
+    <string name="installation_invite_base">Shell Linux, gestionnaire de paquets et dépôt CodeIDE — installés obligatoirement, le dépôt est mis à jour (apt update) à la fin.</string>
+    <string name="installation_section_outils">Outils de développement</string>
+    <string name="installation_invite_outils">JDK (openjdk-17), git… — optionnels pour la première configuration : installables tout de suite après l\'environnement, ou plus tard quand les fonctionnalités qui les exigent vous les proposeront.</string>
+    <string name="installation_outils_attente">Optionnels — proposés après l\'installation de l\'environnement de base.</string>
+    <string name="installation_outil_statut_attente">non installé (optionnel)</string>
+    <string name="installation_outil_statut_installe">installé</string>
+    <string name="installation_outil_statut_absent">non installé (absent du dépôt)</string>
+    <string name="installation_outil_statut_encours">installation en cours…</string>
     <string name="installation_annulee">Installation annulée. Vous pouvez la relancer à tout moment.</string>
     <string name="installation_etape_verification">Vérification de l\'espace disponible…</string>
     <string name="installation_etape_telechargement">Téléchargement de l\'archive…</string>
@@ -18,10 +30,11 @@
     <string name="installation_detail_telechargement">%1$s sur %2$s</string>
     <string name="installation_journal_titre">Journal en direct</string>
     <string name="installation_details_titre">Détails techniques</string>
-    <string name="installation_terminee">Outils du terminal installés</string>
-    <string name="installation_outils_aucun">Environnement de base installé (aucun outil supplémentaire demandé).</string>
-    <string name="installation_outil_installe">installé</string>
-    <string name="installation_outil_absent">non installé (absent du dépôt)</string>
+    <string name="installation_terminee_base">Environnement de base installé</string>
+    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts — le terminal est utilisable dès maintenant.</string>
+    <string name="installation_outils_requis_detail">Les outils de développement (JDK, git) sont nécessaires pour synchroniser et compiler les projets Gradle.</string>
+    <string name="installation_installer_outils">Installer les outils maintenant</string>
+    <string name="installation_reessayer_outils">Réessayer l\'installation des outils</string>
     <string name="installation_installer">Installer maintenant</string>
     <string name="installation_reessayer">Réessayer</string>
     <string name="installation_annuler">Annuler l\'installation</string>
@@ -31,6 +44,7 @@
     <string name="installation_erreur_archive">Archive téléchargée invalide. Réessayez — si le problème persiste, une nouvelle version du bootstrap sera publiée.</string>
     <string name="installation_erreur_permission">Le stockage privé de l\'application a refusé une opération. Redémarrez l\'application, puis réessayez.</string>
     <string name="installation_erreur_paquets">La configuration des paquets a échoué. Le journal ci-dessous montre la dernière sortie en échec — réessayez, l\'installation reprend depuis le début, sans dommage.</string>
+    <string name="installation_erreur_outils">L\'installation des outils a échoué. L\'environnement de base reste installé et le terminal reste utilisable — réessayez, le journal ci-dessous montre la dernière sortie en échec.</string>
     <string name="installation_erreur_asset">Un binaire d\'outil embarqué manque dans l\'application. Une mise à jour de CodeIDE sera nécessaire.</string>
     <string name="installation_erreur_architecture">L\'architecture de cet appareil n\'est pas encore prise en charge par le bootstrap (arm64 requis).</string>
     <string name="installation_erreur_inconnue">Erreur inattendue pendant l\'installation. Réessayez.</string>

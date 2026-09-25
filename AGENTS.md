@@ -499,6 +499,28 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       les désactivations lint — DEUX issues distinctes, la v0.31.1
       n'avait couvert que la seconde, ADR 0047] ; chaînes EN de la page
       Notifications comblées
+- v0.31.4 : **quatrième lot de corrections d'appareil réel** (rapport
+      `f2699ac5` : retour depuis le terminal → conteneur de navigation
+      introuvable) — navigateur robuste hors graphe [`@ActivityScoped`
+      lie `AppNavigatorImpl` à l'activité qui l'INJECTE : injecté par
+      `TerminalActivity` (sans conteneur), chaque flèche retour
+      plantait ; `goBack()` referme désormais l'activité plein écran,
+      les navigations vers le graphe depuis terminal/éditeur relaient
+      `MainActivity` `singleTop` avec routage `EXTRA_ECRAN_CIBLE` +
+      `REORDER_TO_FRONT` (onNewIntent sans recréation, appelante
+      conservée dessous) — 3 chemins latents corrigés au passage dont
+      la carte Terminal de l'éditeur ; ADR 0048] ; écran d'installation
+      réparé puis refondu [journal combiné à l'état dans UN flux (il
+      s'effaçait à chaque étape) + boutons terminaux enfin rendus
+      (« Fermer »/« Réessayer » invisibles depuis v0.31.2) + deux
+      sections : base (huit étapes) / outils (statuts par paquet) ;
+      ADR 0048] ; outils de développement OPTIONNELS et différés
+      [demande utilisateur : `apt update` obligatoire en fin de
+      première configuration, `openjdk`/`git` installés à la demande
+      (`installerOutils()`, état `OutilsEchoues` base conservée,
+      redémarrage à `Terminee` si marqueur) ; garde `isJdkInstalled()`
+      dans l'éditeur AVANT sync/build : message actionnable au lieu
+      d'une connexion perdue ; ADR 0048]
 - Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
@@ -564,6 +586,21 @@ Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
   répertoires attendus par l'environnement d'un préfixe extrait se
   garantissent côté applicatif, en profondeur (extraction + chaque
   lancement).
+- **`@ActivityScoped` lie l'implémentation à l'activité qui l'INJECTE**
+  (rapport f2699ac5, v0.31.4) : une classe de navigation pensée « pour
+  MainActivity » devient fautive dès qu'une seconde activité plein
+  écran l'injecte — son layout n'a pas le conteneur attendu et chaque
+  appel lève. Toute dépendance scopée à l'activité doit se poser la
+  question « que deviens-je injecté ailleurs ? » : getter nullable,
+  repli documenté (`finish()`, routage vers l'hôte) — jamais `error()`.
+- **Un flux d'état UI reconstruit écrase tout champ non alimenté**
+  (retour v0.31.4) : traduire l'état domaine en état de rendu SANS le
+  journal revenait à vider l'écran à chaque étape — deux flux
+  asynchrones (état, journal) se COMBINENT dans un seul flux de rendu,
+  ils ne s'écrasent pas l'un l'autre. Corollaire : un rendu par phase
+  doit régler explicitement CHAQUE bouton de l'écran (v0.31.2 laissait
+  « Fermer » invisible et « Réessayer » figé après lancement — les
+  transitions se vérifient phase par phase, pas seulement la première).
 - Environnement recyclé (JDK/SDK supprimés) : relancer `scripts/setup-env.sh`,
   puis **toujours** `source scripts/env.sh` avant `./gradlew`, builds en
   avant-plan avec délai explicite (les arrière-plans sont tués entre appels

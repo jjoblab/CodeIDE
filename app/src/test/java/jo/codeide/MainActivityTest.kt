@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -112,6 +113,68 @@ class MainActivityTest {
                 val navHost = conteneurNavigation(activite)
                 assertEquals(R.id.home, navHost.navController.currentDestination?.id)
             }
+        }
+    }
+
+    /**
+     * Routage d'écran (v0.31.4, crash f2699ac5) : les activités plein
+     * écran relancent l'hôte avec [jo.codeide.navigation.RoutageEcran.EXTRA_ECRAN_CIBLE]
+     * — l'écran demandé s'ouvre dans le graphe dès la création.
+     */
+    @Test
+    fun `une intention de routage ouvre l écran d installation à la création`() {
+        val intention =
+            android.content
+                .Intent(
+                    androidx.test.core.app.ApplicationProvider
+                        .getApplicationContext<android.content.Context>(),
+                    MainActivity::class.java,
+                ).putExtra(
+                    jo.codeide.navigation.RoutageEcran.EXTRA_ECRAN_CIBLE,
+                    jo.codeide.navigation.RoutageEcran.ECRAN_INSTALLATION,
+                )
+        ActivityScenario.launch<MainActivity>(intention).use { scenario ->
+            scenario.onActivity { activite ->
+                shadowOf(android.os.Looper.getMainLooper()).idle()
+            }
+            scenario.onActivity { activite ->
+                val navHost = conteneurNavigation(activite)
+                assertEquals(R.id.installation, navHost.navController.currentDestination?.id)
+            }
+        }
+    }
+
+    /** Même routage, remontée à chaud (`onNewIntent`, singleTop). */
+    @Test
+    fun `une intention de routage à chaud ouvre l écran diagnostic`() {
+        // Robolectric ne relaie pas `startActivity` de l'activité vers
+        // `onNewIntent` (il crée une instance) : le contrôleur d'activité
+        // livre l'intention exactement comme le fait le système pour une
+        // activité singleTop déjà au premier plan.
+        val controleur = Robolectric.buildActivity(MainActivity::class.java).setup()
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        val intention =
+            android.content
+                .Intent(
+                    androidx.test.core.app.ApplicationProvider
+                        .getApplicationContext<android.content.Context>(),
+                    MainActivity::class.java,
+                ).putExtra(
+                    jo.codeide.navigation.RoutageEcran.EXTRA_ECRAN_CIBLE,
+                    jo.codeide.navigation.RoutageEcran.ECRAN_DIAGNOSTIC,
+                )
+        controleur.newIntent(intention)
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        try {
+            val navHost = conteneurNavigation(controleur.get())
+            assertEquals(
+                "destination : ${navHost.navController.currentDestination?.label}",
+                R.id.diagnostics,
+                navHost.navController.currentDestination?.id,
+            )
+        } finally {
+            controleur.destroy()
         }
     }
 
