@@ -1269,12 +1269,15 @@ class EditorViewModel
             nom: String,
         ) {
             viewModelScope.launch {
-                // V0.31.6 : le type MIME suit la règle partagée [mimeFichierTexte]
-                // — un nom sans extension réelle (« .gitignore », « Makefile »)
-                // partait en `text/plain` et le fournisseur SAF le complétait
-                // (« .gitignore.txt »), lu en aval comme un renommage hostile :
-                // `AlreadyExists` de pure invention (retour 4a4526aa, même
-                // famille que le piège de création de projet).
+                // V0.31.7 : le type MIME suit la règle partagée [mimeFichierTexte]
+                // — TOUT fichier texte part avec le type privé « text/x-codeide »
+                // (sans extension canonique : le fournisseur SAF ne complète
+                // jamais le nom). v0.31.6 avait couvert les noms sans extension
+                // réelle (« .gitignore.txt »), v0.31.7 couvre les extensions
+                // absentes de la table système (« README.md » → « README.md.txt »,
+                // retour d'appareil Android 15) : lu en aval comme renommage
+                // hostile → AlreadyExists de pure invention (même famille que
+                // le piège de création de projet, retour 4a4526aa puis v0.31.7).
                 when (val resultat = fichiers.createFile(uriParent, nom, mimeFichierTexte(nom))) {
                     is AppResult.Success -> {
                         journal.i(TAG) { "fichier créé dans le tiroir" }

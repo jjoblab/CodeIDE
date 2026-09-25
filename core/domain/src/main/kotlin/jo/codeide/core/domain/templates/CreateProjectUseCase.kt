@@ -271,19 +271,20 @@ public class CreateProjectUseCase
         /**
          * Type MIME conseillé à SAF pour la création (indicatif).
          *
-         * Piège SAF (constaté sur appareil réel) : un fournisseur honnête
-         * complète un nom **sans extension réelle** par l'extension canonique
-         * du type demandé — « gradlew » ou « LICENSE » avec `text/plain`
-         * deviendraient « gradlew.txt », « LICENSE.txt », faux fichiers dans
-         * le projet généré. V0.31.6 (retour 4a4526aa) : le point INITIAL
-         * d'un fichier caché n'est PAS une extension — « .gitattributes »
-         * (premier fichier du plan des modèles JVM !) subissait exactement
-         * cette complétion (« .gitattributes.txt »)… déclenchant en aval le
-         * contrôle « renommage hostile » → `AlreadyExists` de pure invention
-         * → rollback complet → « un dossier porte déjà ce nom » à chaque
-         * tentative. La décision vit désormais dans [mimeFichierTexte]
-         * (partagée avec l'éditeur) : type privé sans complétion pour tout
-         * nom sans extension réelle, caché compris.
+         * Piège SAF (constaté sur appareil réel, deux fois) : un fournisseur
+         * honnête complète un nom dont l'extension est **absente de la table
+         * système** par l'extension canonique du type demandé — « gradlew »
+         * ou « LICENSE » avec `text/plain` deviendraient « gradlew.txt »,
+         * « LICENSE.txt » (v0.31.6, retour 4a4526aa : le point initial de
+         * « .gitattributes » n'y changeait rien) ; « README.md » avec
+         * `text/plain` devenait « README.md.txt » (v0.31.7, Android 15 :
+         * l'extension « md » est absente de la table, comme kts, kt,
+         * properties, pro)… déclenchant en aval le contrôle « renommage
+         * hostile » → `AlreadyExists` de pure invention → rollback complet
+         * → « un dossier porte déjà ce nom » à chaque tentative. La décision
+         * vit dans [mimeFichierTexte] (partagée avec l'éditeur) : type privé
+         * sans complétion pour TOUT fichier texte — son nom est préservé
+         * quel qu'il soit.
          */
         private fun mimePour(
             contenu: PlannedContent,

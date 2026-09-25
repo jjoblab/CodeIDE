@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -92,5 +93,40 @@ class OngletsSessionsTest {
             View.VISIBLE,
             bordable.boutonFermerSession.visibility,
         )
+    }
+
+    @Test
+    fun `un tap sur la vue d onglet ouvre la session - regression v0-31-7`() {
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val vue = VueOngletSessionBinding.inflate(LayoutInflater.from(contexte))
+        var ouvertes = 0
+        var fermees = 0
+        var menus = 0
+
+        // Câblage de production : la racine doit être cliquable — une vue
+        // « longClickable » (appui long, menu contextuel) CONSOMME les taps
+        // simples (View.onTouchEvent retourne true pour clickable OU
+        // longClickable) ; sans écouteur de clic, le tap était avalé et le
+        // TabView parent ne voyait jamais le geste : « j'appuie sur
+        // l'onglet pour changer de session, rien ne se passe ».
+        brancherInteractionsOnglet(
+            vueOnglet = vue,
+            ouvrirSession = { ouvertes++ },
+            fermerSession = { fermees++ },
+            ouvrirMenuContextuel = { menus++ },
+        )
+
+        assertTrue("la racine doit être cliquable pour agir sur le tap consommé", vue.root.isClickable)
+        assertTrue("la racine garde l'appui long (menu contextuel)", vue.root.isLongClickable)
+
+        vue.root.performClick()
+        assertEquals("le tap simple ouvre la session", 1, ouvertes)
+
+        vue.boutonFermerSession.performClick()
+        assertEquals("le bouton ferme la session", 1, fermees)
+
+        vue.root.performLongClick()
+        assertEquals("l'appui long ouvre le menu contextuel", 1, menus)
     }
 }
