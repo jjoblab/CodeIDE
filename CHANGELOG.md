@@ -4,6 +4,26 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [Non versionné]
+
+### Ajouté
+
+- **Spécification de l'explorateur de fichiers v2 (étape 31)** :
+  `docs/EXPLORATEUR_V2.md` décrit **exactement** la maquette interactive
+  validée le 2026-09-25 (copiée dans le dépôt :
+  `docs/preview/explorateur-v2.html`) pour une reproduction à l'identique —
+  tiroir à **fragments** (entête propre par fragment, plus d'entête commun),
+  poignée ⋮ de redimensionnement (bornes 45–98 %, aimants 55/69/85/98 %),
+  arbre treeview à guides fins et **chevrons** (crochets retirés après
+  retour utilisateur — les chevrons restent seuls), points d'état des
+  fichiers à 4 états, vraies icônes par type, **bascule Projet/Privé
+  exclusive** (remplace l'ancien bouton cadenas « afficher/masquer »),
+  popover maison ancré au point d'appui avec chemin contextuel, mutations
+  par nœud (créer/renommer/supprimer/copier/couper/coller/déplacer). La
+  ROADMAP inscrit cette refonte comme étape 31 (v0.32.0) ; plugins,
+  services d'arrière-plan et autres langages reculent d'un rang
+  (32 → 0.33.0, 33 → 0.34.0, 34 → 0.35.0).
+
 ## [0.31.7] – 2026-09-25
 
 Septième lot de corrections après **retour d'appareil réel** (moto g06 /
