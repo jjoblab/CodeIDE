@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Palette CodeIDE — mode sombre (mêmes rôles sémantiques que le mode clair).
+
+  Depuis l'ADR 0059 : déclinaisons nuit des rôles étendus et des jetons
+  de conception des panneaux (explorateur, terminal, barre de symboles).
+  Les valeurs identiques au mode clair (pastilles d'état du terminal,
+  gris doux) ne sont PAS répétées ici — la ressource de `values/` suffit.
 -->
 <resources>
     <!-- Couleurs de marque (indigo éclairci pour le fond sombre). -->
@@ -41,4 +46,89 @@
 
     <!-- Écran de démarrage : identique au mode clair, la marque prime. -->
     <color name="codeide_splash_background">#43559E</color>
+
+    <!-- Rôles étendus (ADR 0059) : journal & sortie, nuit contrastée. -->
+    <color name="codeide_journal_debug">#9AA0A6</color>
+    <color name="codeide_journal_info">#8AB4F8</color>
+    <color name="codeide_journal_warn">#FDD663</color>
+    <color name="codeide_journal_error">#F2B8B5</color>
+    <color name="codeide_stdout">#E8EAED</color>
+    <color name="codeide_stderr">#F2B8B5</color>
+    <color name="codeide_succes">#81C995</color>
+    <color name="codeide_info">#8AB4F8</color>
+
+    <!-- Canaux tooling : déclinaisons nuit contrastées. -->
+    <color name="codeide_canal_sync">#5AC8DE</color>
+    <color name="codeide_canal_build">#7AB8F5</color>
+    <color name="codeide_canal_taches">#A78BFA</color>
+    <color name="codeide_canal_etiquette">#10151C</color>
+
+    <!-- Statuts Git : nuit. -->
+    <color name="codeide_git_ajoute">#6FC47A</color>
+    <color name="codeide_git_modifie">#FDD663</color>
+    <color name="codeide_git_supprime">#E5584F</color>
+
+    <!-- Accents par langage : nuit. -->
+    <color name="codeide_langage_kotlin">#B39AFF</color>
+    <color name="codeide_langage_java">#F5A85C</color>
+    <color name="codeide_langage_gradle">#7FB2C2</color>
+    <color name="codeide_langage_markdown">#8AB4F8</color>
+    <color name="codeide_langage_xml">#F0A868</color>
+    <color name="codeide_langage_json">#C2CE6E</color>
+
+    <!-- Rendu du terminal : thème sombre (Terminal T5). -->
+    <color name="codeide_terminal_fond">#141414</color>
+    <color name="codeide_terminal_texte">#E6E6E6</color>
+
+    <!-- Jetons de conception des panneaux : nuit (maquette EXPLORATEUR_V2
+         § 3.1, reproduction exacte ; cohérence éditeur/terminal). -->
+    <color name="codeide_panneau_inferieur_fond">#1A1E25</color>
+    <color name="codeide_barre_symboles_fond">#20252E</color>
+    <color name="codeide_barre_symboles_filet">#2C323D</color>
+
+    <color name="codeide_explorateur_fond_tiroir">#1A1E25</color>
+    <color name="codeide_explorateur_fond_entete_debut">#20252E</color>
+    <color name="codeide_explorateur_fond_entete_fin">#1C212A</color>
+    <color name="codeide_explorateur_fond_cuve">#15181F</color>
+    <color name="codeide_explorateur_fond_surface">#20252E</color>
+    <color name="codeide_explorateur_fond_surface_2">#262C37</color>
+    <color name="codeide_explorateur_fond_surface_3">#2D3441</color>
+    <color name="codeide_explorateur_bordure">#2C323D</color>
+    <color name="codeide_explorateur_bordure_fine">#242A33</color>
+    <color name="codeide_explorateur_texte">#DDE3EC</color>
+    <color name="codeide_explorateur_texte_2">#99A2AE</color>
+    <color name="codeide_explorateur_texte_3">#6C7581</color>
+    <color name="codeide_explorateur_nom_dossier">#E2E8F1</color>
+    <color name="codeide_explorateur_nom_fichier">#C7CED9</color>
+    <color name="codeide_explorateur_accent">#7AB8F5</color>
+    <color name="codeide_explorateur_accent_fort">#4F9BE8</color>
+    <color name="codeide_explorateur_vert">#6FC47A</color>
+    <color name="codeide_explorateur_rouge">#E5584F</color>
+    <color name="codeide_explorateur_violet">#9C86D8</color>
+    <color name="codeide_explorateur_guide">#343B47</color>
+    <color name="codeide_explorateur_dossier">#566175</color>
+    <color name="codeide_explorateur_dossier_racine_projet">#6B96C4</color>
+    <color name="codeide_explorateur_dossier_racine_prive">#7C6AA8</color>
+    <color name="codeide_explorateur_dossier_prive">#6D5F9B</color>
+    <color name="codeide_explorateur_nom_prive">#CDBAF2</color>
+    <color name="codeide_explorateur_survol">#0DFFFFFF</color>
+    <color name="codeide_explorateur_snackbar_fond">#2B323E</color>
+    <color name="codeide_explorateur_snackbar_bordure">#3A4351</color>
+    <color name="codeide_explorateur_barre_presse_papiers">#243B28</color>
+    <color name="codeide_explorateur_presse_papiers_texte">#A9D8AE</color>
+    <color name="codeide_explorateur_point_defaut">#5A6270</color>
+    <color name="codeide_explorateur_popover_bordure">#333B48</color>
+    <color name="codeide_explorateur_accent_doux">#247AB8F5</color>
+    <color name="codeide_explorateur_vert_doux">#246FC47A</color>
+    <color name="codeide_explorateur_rouge_doux">#1FE5584F</color>
+    <color name="codeide_explorateur_violet_doux">#739C86D8</color>
+    <color name="codeide_explorateur_accent_halo">#597AB8F5</color>
+    <color name="codeide_explorateur_flash">#337AB8F5</color>
+    <color name="codeide_explorateur_poignee_fond_actif">#2C3644</color>
+    <color name="codeide_explorateur_poignee_bordure">#38404D</color>
+    <color name="codeide_explorateur_vert_fond_onglet">#806FC47A</color>
+    <color name="codeide_explorateur_sous_titre_entete">#6C7581</color>
+    <color name="codeide_explorateur_texte_sur_accent">#0D1420</color>
+    <color name="codeide_explorateur_rail_fond">#171A21</color>
+    <color name="codeide_explorateur_rail_bordure">#242A33</color>
 </resources>

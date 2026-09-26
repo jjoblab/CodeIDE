@@ -23,7 +23,7 @@
         android:textStyle="bold"
         tools:ignore="SmallSp"
         tools:text="Build"
-        tools:textColor="@color/canal_tooling_build" />
+        tools:textColor="?attr/colorCanalBuild" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/texte_sortie"
@@ -35,7 +35,7 @@
         android:paddingHorizontal="@dimen/spacing_xs"
         android:paddingVertical="1dp"
         android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="@color/sortie_stdout"
+        android:textColor="?attr/colorStdout"
         android:textSize="12sp"
         tools:text="> Task :app:assembleDebug" />
 </LinearLayout>

@@ -123,7 +123,11 @@ internal class VuePointEtat
             // Anneau externe (sélection + actif) : 3 dp d'accent doux.
             if (etat == EtatPoint.SELECTION_ACTIF) {
                 pinceau.style = Paint.Style.FILL
-                pinceau.color = ContextCompat.getColor(context, R.color.explorateur_accent_doux)
+                pinceau.color =
+                    ContextCompat.getColor(
+                        context,
+                        jo.codeide.core.ui.R.color.codeide_explorateur_accent_doux,
+                    )
                 canevas.drawCircle(cx, cy, rayonExterieur + EPAISSEUR_ANNEAU_DP * dp, pinceau)
             }
 
@@ -142,7 +146,11 @@ internal class VuePointEtat
             if (etat == EtatPoint.ACTIF) {
                 pinceau.style = Paint.Style.STROKE
                 pinceau.strokeWidth = EPAISSEUR_HALO_DP * dp
-                pinceau.color = ContextCompat.getColor(context, R.color.explorateur_vert_fond_onglet)
+                pinceau.color =
+                    ContextCompat.getColor(
+                        context,
+                        jo.codeide.core.ui.R.color.codeide_explorateur_vert_fond_onglet,
+                    )
                 canevas.drawCircle(cx, cy, rayonExterieur + DEBORDEMENT_HALO_DP * dp, pinceau)
             }
         }
@@ -155,18 +163,26 @@ internal class VuePointEtat
             when (role) {
                 Role.BORDURE -> {
                     when (etat) {
-                        EtatPoint.DEFAUT -> R.color.explorateur_point_defaut
-                        EtatPoint.OUVERT, EtatPoint.ACTIF -> R.color.explorateur_vert
-                        EtatPoint.SELECTIONNE, EtatPoint.SELECTION_ACTIF -> R.color.explorateur_accent
+                        EtatPoint.DEFAUT -> {
+                            jo.codeide.core.ui.R.color.codeide_explorateur_point_defaut
+                        }
+
+                        EtatPoint.OUVERT, EtatPoint.ACTIF -> {
+                            jo.codeide.core.ui.R.color.codeide_explorateur_vert
+                        }
+
+                        EtatPoint.SELECTIONNE, EtatPoint.SELECTION_ACTIF -> {
+                            jo.codeide.core.ui.R.color.codeide_explorateur_accent
+                        }
                     }
                 }
 
                 Role.FOND -> {
                     when (etat) {
                         EtatPoint.DEFAUT, EtatPoint.OUVERT -> android.R.color.transparent
-                        EtatPoint.ACTIF -> R.color.explorateur_vert
-                        EtatPoint.SELECTIONNE -> R.color.explorateur_accent
-                        EtatPoint.SELECTION_ACTIF -> R.color.explorateur_vert
+                        EtatPoint.ACTIF -> jo.codeide.core.ui.R.color.codeide_explorateur_vert
+                        EtatPoint.SELECTIONNE -> jo.codeide.core.ui.R.color.codeide_explorateur_accent
+                        EtatPoint.SELECTION_ACTIF -> jo.codeide.core.ui.R.color.codeide_explorateur_vert
                     }
                 }
             }.let { ContextCompat.getColor(context, it) }

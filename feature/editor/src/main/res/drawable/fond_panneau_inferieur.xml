@@ -7,7 +7,7 @@
      dessus de l'éditeur. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/panneau_inferieur_fond" />
+    <solid android:color="@color/codeide_panneau_inferieur_fond" />
     <corners
         android:topLeftRadius="12dp"
         android:topRightRadius="12dp" />

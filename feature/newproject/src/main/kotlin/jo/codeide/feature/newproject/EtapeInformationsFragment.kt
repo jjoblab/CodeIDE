@@ -158,9 +158,9 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
         val emplacement = etat.emplacement
         val couleur =
             if (emplacement == null) {
-                R.color.wizard_avertissement
+                jo.codeide.core.ui.R.color.codeide_error
             } else {
-                R.color.wizard_emplacement_normal
+                jo.codeide.core.ui.R.color.codeide_on_surface
             }
         binding.texteEmplacement.text = emplacement?.displayPath ?: getString(R.string.wizard_emplacement_absent)
         binding.texteEmplacement.setTextColor(

@@ -28,7 +28,7 @@
             android:id="@+id/message_supprimer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/explorateur_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="12.5sp"
             tools:text="Supprimer docs et tout son contenu ? Action définitive." />
 
@@ -49,7 +49,7 @@
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="7dp"
                 android:text="@string/deplacer_annuler"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="12.5sp" />
 
             <com.google.android.material.textview.MaterialTextView
@@ -63,7 +63,7 @@
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="7dp"
                 android:text="@string/popover_supprimer"
-                android:textColor="@color/explorateur_texte_sur_accent"
+                android:textColor="@color/codeide_explorateur_texte_sur_accent"
                 android:textSize="12.5sp"
                 android:textStyle="bold" />
         </LinearLayout>

@@ -432,8 +432,8 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                         androidx.core.content.ContextCompat.getColor(
                             requireContext(),
                             when (etat) {
-                                EtatRangeeOutil.INSTALLE -> R.color.vert_etape_faite
-                                else -> R.color.gris_etape_attente
+                                EtatRangeeOutil.INSTALLE -> jo.codeide.core.ui.R.color.codeide_succes
+                                else -> jo.codeide.core.ui.R.color.codeide_outline
                             },
                         ),
                     )
@@ -487,7 +487,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private fun couleurEtat(faite: Boolean): Int =
         androidx.core.content.ContextCompat.getColor(
             requireContext(),
-            if (faite) R.color.vert_etape_faite else R.color.gris_etape_attente,
+            if (faite) jo.codeide.core.ui.R.color.codeide_succes else jo.codeide.core.ui.R.color.codeide_outline,
         )
 
     /** Position d'une étape du pipeline dans la checklist (même classe). */

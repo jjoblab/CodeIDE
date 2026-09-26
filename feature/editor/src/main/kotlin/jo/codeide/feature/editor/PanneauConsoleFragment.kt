@@ -10,6 +10,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
 import java.util.Locale
@@ -98,9 +99,11 @@ class PanneauConsoleFragment : Fragment() {
         liaison.iconeCanalSortie.isVisible = canal != null
         if (canal != null) {
             liaison.iconeCanalSortie.setImageResource(canal.icone)
+            // Couleur de marque du canal : harmonisée avec le primaire du
+            // thème courant (ADR 0059 — se rapproche du fond d'écran en
+            // couleurs dynamiques).
             liaison.iconeCanalSortie.setColorFilter(
-                androidx.core.content.ContextCompat
-                    .getColor(requireContext(), canal.couleur),
+                ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur),
             )
         }
     }

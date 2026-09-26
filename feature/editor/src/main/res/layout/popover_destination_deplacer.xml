@@ -37,7 +37,7 @@
             android:paddingVertical="7dp"
             android:singleLine="true"
             android:text="@string/deplacer_destination_choisir"
-            android:textColor="@color/explorateur_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="13sp"
             android:textStyle="bold" />
 

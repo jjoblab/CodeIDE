@@ -6,6 +6,6 @@
     android:viewportWidth="10"
     android:viewportHeight="10">
     <path
-        android:fillColor="@color/journal_compact_warn"
+        android:fillColor="?attr/colorJournalWarn"
         android:pathData="M5,5m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
 </vector>

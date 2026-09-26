@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jo.codeide.core.domain.FluxSortieBuild
+import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
 import jo.codeide.feature.editor.databinding.LigneSortieBinding
@@ -168,15 +169,15 @@ internal class SortieAdapter : ListAdapter<LigneSortieAffichee, SortieAdapter.Ho
             liaison.texteSortie.setTextColor(couleur(ligne.flux))
             liaison.canalSortie.text = liaison.root.context.getString(ligne.canal.libelle)
             liaison.canalSortie.setTextColor(
-                ContextCompat.getColor(liaison.root.context, ligne.canal.couleur),
+                ThemeHarmonizer.harmoniserAvecPrimaire(liaison.root.context, ligne.canal.couleur),
             )
         }
 
         private fun couleur(flux: FluxSortieBuild): Int =
             if (flux == FluxSortieBuild.STDERR) {
-                ContextCompat.getColor(liaison.root.context, R.color.sortie_stderr)
+                ContextCompat.getColor(liaison.root.context, jo.codeide.core.ui.R.color.codeide_stderr)
             } else {
-                ContextCompat.getColor(liaison.root.context, R.color.sortie_stdout)
+                ContextCompat.getColor(liaison.root.context, jo.codeide.core.ui.R.color.codeide_stdout)
             }
     }
 

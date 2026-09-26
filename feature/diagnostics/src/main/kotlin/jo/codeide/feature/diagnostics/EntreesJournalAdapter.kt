@@ -6,7 +6,9 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import jo.codeide.core.model.LogEntry
+import jo.codeide.core.model.LogLevel
 import jo.codeide.feature.diagnostics.databinding.ItemEntreeJournalBinding
 
 /**
@@ -72,6 +74,10 @@ internal class EntreesJournalAdapter(
                     .SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault())
                     .format(java.util.Date(entree.timestampMillis))
             liaison.niveauEntree.text = contexte.getString(TraductionsDiagnostic.niveau(entree.level))
+            // Niveau coloré (étape 12, complété ADR 0059) : le rôle de
+            // couleur partagé colorJournalX — mêmes jetons que la console
+            // compacte de l'éditeur, jour/nuit via le thème.
+            liaison.niveauEntree.setTextColor(couleurNiveau(entree.level))
             liaison.etiquetteEntree.text = entree.tag
             liaison.messageEntree.text = entree.message
             liaison.pointeurException.isVisible = entree.exception != null
@@ -83,5 +89,17 @@ internal class EntreesJournalAdapter(
                     entree.message,
                 )
         }
+
+        /** Rôle de thème du niveau de journal (attrs étendus, ADR 0059). */
+        private fun couleurNiveau(niveau: LogLevel): Int =
+            MaterialColors.getColor(
+                liaison.root,
+                when (niveau) {
+                    LogLevel.DEBUG -> jo.codeide.core.ui.R.attr.colorJournalDebug
+                    LogLevel.INFO -> jo.codeide.core.ui.R.attr.colorJournalInfo
+                    LogLevel.WARN -> jo.codeide.core.ui.R.attr.colorJournalWarn
+                    LogLevel.ERROR -> jo.codeide.core.ui.R.attr.colorJournalError
+                },
+            )
     }
 }
