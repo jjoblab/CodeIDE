@@ -1,12 +1,14 @@
 package jo.codeide.core.model
 
 /**
- * Paramètres applicatifs de CodeIDE (étape 4 — couche données).
+ * Paramètres applicatifs de CodeIDE (étape 4 — couche données ; ADR 0059
+ * pour l'extension Éditeur/Terminal/Notifications).
  *
  * Réglages de l'**application** (et non d'un projet) : apparence, langue,
- * dossier de travail, profil d'auteur et niveau de journalisation. La
- * source de vérité est Preferences DataStore (module `core:datastore`) ;
- * ce modèle est la projection immutable consommée par le domaine et l'UI.
+ * notifications, éditeur, terminal, dossier de travail, profil d'auteur
+ * et niveau de journalisation. La source de vérité est Preferences
+ * DataStore (module `core:datastore`) ; ce modèle est la projection
+ * immutable consommée par le domaine et l'UI.
  *
  * [workspace] mérite attention (section 5.6) : c'est l'emplacement du
  * dossier de travail choisi à l'onboarding (ou dans les Paramètres). Les
@@ -15,9 +17,25 @@ package jo.codeide.core.model
  * permission persistante. `null` signifie « non configuré » (onboarding
  * passable, bandeau « Configurer le dossier de travail » à l'accueil).
  *
+ * Sections Éditeur et Terminal (ADR 0059) : les réglages sont **persistés
+ * avant consommation** pour l'éditeur (le moteur embarqué expose la
+ * typographie via cel-ui, l'abonnement viendra avec la coloration) ; le
+ * terminal consomme déjà style du curseur et copie de sélection.
+ *
  * @property themeMode mode de thème (système, clair, sombre).
  * @property useDynamicColor couleurs Material You (Android 12+, ADR 0008).
  * @property languageTag langue BCP 47 demandée, `""` pour suivre le système.
+ * @property notificationsSync notifications du canal Synchronisation.
+ * @property notificationsBuild notifications du canal Build.
+ * @property sonNotifications son des notifications du tooling.
+ * @property editorRetourLigne retour à la ligne automatique de l'éditeur.
+ * @property editorNumerosLigne numéros de ligne dans la gouttière.
+ * @property editorSurlignerLigneActuelle surlignage de la ligne active.
+ * @property editorTailleTabulation largeur des tabulations (espaces).
+ * @property editorSauvegardeAuto sauvegarde à chaque perte de focus.
+ * @property editorTaillePolice taille de police de l'éditeur.
+ * @property styleCurseurTerminal style du curseur de l'émulateur.
+ * @property copieSelectionAuto copier la sélection du terminal dès sa fin.
  * @property workspace dossier de travail (ou `null` si non configuré).
  * @property authorName nom d'auteur optionnel (pré-remplit README et
  * licence du wizard) ; vide si non renseigné.
@@ -26,7 +44,7 @@ package jo.codeide.core.model
  * `NORMAL` = `INFO`, `DETAILED` = `DEBUG` ; alimente la configuration du
  * moteur au démarrage du processus principal.
  * @property taillePoliceTerminal taille de la police à chasse fixe du
- * terminal intégré (Terminal T5) — réglage dédié minimal, trois tailles.
+ * terminal intégré (Terminal T5) — section Terminal des Paramètres.
  * @property isSetupCompleted l'assistant de premier lancement est terminé.
  */
 @Suppress("LongParameterList") // Groupe de réglages cohérent, pas un objet métier à découper.
@@ -34,6 +52,17 @@ public data class AppSettings(
     public val themeMode: ThemeMode = ThemeMode.SYSTEM,
     public val useDynamicColor: Boolean = true,
     public val languageTag: String = "",
+    public val notificationsSync: Boolean = true,
+    public val notificationsBuild: Boolean = true,
+    public val sonNotifications: Boolean = false,
+    public val editorRetourLigne: Boolean = true,
+    public val editorNumerosLigne: Boolean = true,
+    public val editorSurlignerLigneActuelle: Boolean = false,
+    public val editorTailleTabulation: TailleTabulation = TailleTabulation.QUATRE,
+    public val editorSauvegardeAuto: Boolean = true,
+    public val editorTaillePolice: TaillePoliceEditeur = TaillePoliceEditeur.MOYENNE,
+    public val styleCurseurTerminal: StyleCurseurTerminal = StyleCurseurTerminal.BLOC,
+    public val copieSelectionAuto: Boolean = false,
     public val workspace: StorageLocation? = null,
     public val authorName: String = "",
     public val defaultLicense: License = License.MIT,

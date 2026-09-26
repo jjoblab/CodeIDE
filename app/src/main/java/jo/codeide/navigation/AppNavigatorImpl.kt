@@ -2,6 +2,7 @@ package jo.codeide.navigation
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Bundle
 import android.view.View
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
@@ -17,6 +18,7 @@ import jo.codeide.R
 import jo.codeide.core.crash.ui.CrashActivity
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.SectionParametres
 import jo.codeide.feature.editor.ClesEditor
 import jo.codeide.feature.editor.EditorActivity
 import jo.codeide.feature.terminal.ClesTerminal
@@ -81,6 +83,55 @@ internal class AppNavigatorImpl
                 ecran = RoutageEcran.ECRAN_PARAMETRES,
                 journal = "paramètres",
             )
+        }
+
+        override fun openSettingsSection(section: SectionParametres) {
+            // Les sections ne s'ouvrent QUE depuis le maître des paramètres
+            // (ADR 0059 : deux niveaux) — navigation directe par destination,
+            // l'écran « bientôt » reçoit la section en argument.
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id != R.id.settings) {
+                logger.w(TAG) { "ouverture d'une section des paramètres hors du maître : ignorée" }
+                return
+            }
+            when (section) {
+                SectionParametres.IA, SectionParametres.OUTILS, SectionParametres.SECURITE -> {
+                    logger.d(TAG) { "navigation paramètres -> section bientôt disponible" }
+                    val arguments = Bundle()
+                    arguments.putString(CLE_SECTION_BIENTOT, section.name)
+                    controleur.navigate(R.id.settings_bientot, arguments)
+                }
+
+                else -> {
+                    val destination =
+                        when (section) {
+                            SectionParametres.APPARENCE -> R.id.settings_apparence
+
+                            SectionParametres.LANGUE -> R.id.settings_langue
+
+                            SectionParametres.NOTIFICATIONS -> R.id.settings_notifications
+
+                            SectionParametres.EDITEUR -> R.id.settings_editeur
+
+                            SectionParametres.TERMINAL -> R.id.settings_terminal
+
+                            SectionParametres.PROJETS -> R.id.settings_projets
+
+                            SectionParametres.A_PROPOS -> R.id.settings_apropos
+
+                            SectionParametres.AVANCE -> R.id.settings_avance
+
+                            // Atteints seulement via la branche « bientôt »
+                            // ci-dessus — branche conservée pour l'exhaustivité.
+                            SectionParametres.IA,
+                            SectionParametres.OUTILS,
+                            SectionParametres.SECURITE,
+                            -> R.id.settings_bientot
+                        }
+                    logger.d(TAG) { "navigation paramètres -> section" }
+                    controleur.navigate(destination)
+                }
+            }
         }
 
         override fun goBack() {
@@ -348,3 +399,6 @@ private const val TAG = "Navigation"
 
 /** Clé du projet créé, transmise du wizard à l'accueil (étape 11). */
 private const val CLE_PROJET_CREE = "accueil.projet_cree"
+
+/** Clé de la section « bientôt disponible » (ADR 0059). */
+private const val CLE_SECTION_BIENTOT = "section"

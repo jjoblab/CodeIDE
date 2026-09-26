@@ -45,6 +45,68 @@
             app:destination="@id/diagnostics" />
     </fragment>
 
+    <!-- ===== Sections des Paramètres (ADR 0059 : deux niveaux) ===== -->
+
+    <fragment
+        android:id="@+id/settings_apparence"
+        android:name="jo.codeide.feature.settings.ApparenceFragment"
+        android:label="@string/settings_apparence_titre"
+        tools:layout="@layout/fragment_settings_apparence" />
+
+    <fragment
+        android:id="@+id/settings_langue"
+        android:name="jo.codeide.feature.settings.LangueFragment"
+        android:label="@string/settings_langue_titre"
+        tools:layout="@layout/fragment_settings_langue" />
+
+    <fragment
+        android:id="@+id/settings_notifications"
+        android:name="jo.codeide.feature.settings.NotificationsFragment"
+        android:label="@string/settings_notifications_titre"
+        tools:layout="@layout/fragment_settings_notifications" />
+
+    <fragment
+        android:id="@+id/settings_editeur"
+        android:name="jo.codeide.feature.settings.EditeurFragment"
+        android:label="@string/settings_editeur_titre"
+        tools:layout="@layout/fragment_settings_editeur" />
+
+    <fragment
+        android:id="@+id/settings_terminal"
+        android:name="jo.codeide.feature.settings.TerminalSectionFragment"
+        android:label="@string/settings_terminal_titre"
+        tools:layout="@layout/fragment_settings_terminal" />
+
+    <fragment
+        android:id="@+id/settings_projets"
+        android:name="jo.codeide.feature.settings.ProjetsFragment"
+        android:label="@string/settings_projets_titre"
+        tools:layout="@layout/fragment_settings_projets" />
+
+    <fragment
+        android:id="@+id/settings_apropos"
+        android:name="jo.codeide.feature.settings.AProposFragment"
+        android:label="@string/settings_apropos_titre"
+        tools:layout="@layout/fragment_settings_apropos" />
+
+    <fragment
+        android:id="@+id/settings_avance"
+        android:name="jo.codeide.feature.settings.AvanceFragment"
+        android:label="@string/settings_avance_titre"
+        tools:layout="@layout/fragment_settings_avance" />
+
+    <!-- Écran générique « bientôt disponible » : IA, Outils de
+         développement, Sécurité — le même fragment, les arguments
+         portent la section (patron réutilisable, ADR 0059). -->
+    <fragment
+        android:id="@+id/settings_bientot"
+        android:name="jo.codeide.feature.settings.BientotFragment"
+        android:label="@string/settings_title">
+        <argument
+            android:name="section"
+            app:argType="jo.codeide.core.ui.SectionParametres" />
+    </fragment>
+
     <fragment
         android:id="@+id/diagnostics"
         android:name="jo.codeide.feature.diagnostics.DiagnosticFragment"

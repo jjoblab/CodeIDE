@@ -58,4 +58,105 @@
     <string name="settings_reinitialiser_message">Theme, language, working folder, profile and licenses go back to their defaults. Registered projects are untouched.</string>
     <string name="settings_reinitialiser_confirmer">Reset</string>
     <string name="settings_relancer_assistant">Run the first-launch assistant again</string>
+
+    <!-- ===== Restructuration ADR 0059 : master screen, two levels ===== -->
+
+    <!-- Master sections. -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_modules">Modules</string>
+    <string name="settings_section_environnement">Environment</string>
+    <string name="settings_section_application">Application</string>
+
+    <!-- Master rows. -->
+    <string name="settings_maitre_apparence">Appearance</string>
+    <string name="settings_dyn_activees">Dynamic colors on</string>
+    <string name="settings_dyn_desactivees">Dynamic colors off</string>
+    <string name="settings_maitre_langue">Language</string>
+    <string name="settings_maitre_notifications">Notifications</string>
+    <string name="settings_notif_sync_build_actives">Sync and build on</string>
+    <string name="settings_notif_partiel">Sync or build on</string>
+    <string name="settings_notif_toutes_desactivees">Notifications off</string>
+    <string name="settings_maitre_editeur">Editor</string>
+    <string name="settings_sous_editeur">Word wrap, line numbers…</string>
+    <string name="settings_maitre_terminal">Terminal</string>
+    <string name="settings_maitre_ia">AI</string>
+    <string name="settings_sous_ia">Built-in coding assistant</string>
+    <string name="settings_maitre_projets">Projects</string>
+    <string name="settings_sous_projets">Working folder, author, license</string>
+    <string name="settings_maitre_outils">Developer tools</string>
+    <string name="settings_sous_outils">Gradle daemon, PRoot/Ubuntu bootstrap</string>
+    <string name="settings_maitre_securite">Security and privacy</string>
+    <string name="settings_sous_securite">Crash reports, app lock</string>
+    <string name="settings_maitre_apropos">About</string>
+    <string name="settings_maitre_avance">Advanced</string>
+
+    <!-- "Soon" chip of the master screen. -->
+    <string name="settings_bientot">Soon</string>
+
+    <!-- Generic "coming soon" screen. -->
+    <string name="settings_bientot_titre_ia">AI assistant — coming soon</string>
+    <string name="settings_bientot_texte_ia">This section will appear in the menu as soon as the module is ready.</string>
+    <string name="settings_bientot_titre_outils">Coming soon</string>
+    <string name="settings_bientot_texte_outils">Gradle daemon, PRoot/Ubuntu bootstrap, storage used — to be validated with you.</string>
+    <string name="settings_bientot_titre_securite">Coming soon</string>
+    <string name="settings_bientot_texte_securite">Crash reports, app lock — to be validated with you.</string>
+
+    <!-- Appearance section. -->
+    <string name="settings_apparence_titre">Appearance</string>
+    <string name="settings_theme_libelle">Theme</string>
+    <string name="settings_couleurs_dynamiques_sous">Adapts the UI to your wallpaper (Material You)</string>
+    <string name="settings_palette_legende">Primary · Secondary · Tertiary</string>
+
+    <!-- Language section. -->
+    <string name="settings_langue_titre">Language</string>
+
+    <!-- Notifications section. -->
+    <string name="settings_notifications_titre">Notifications</string>
+    <string name="settings_notif_sync">Sync</string>
+    <string name="settings_notif_sync_sous">Notify at the start and end of a sync</string>
+    <string name="settings_notif_build">Build</string>
+    <string name="settings_notif_build_sous">Notify when a build finishes</string>
+    <string name="settings_notif_son">Sound</string>
+
+    <!-- Editor section. -->
+    <string name="settings_editeur_titre">Editor</string>
+    <string name="settings_taille_police">Font size</string>
+    <string name="settings_retour_ligne">Word wrap</string>
+    <string name="settings_numeros_ligne">Line numbers</string>
+    <string name="settings_surligner_ligne">Highlight current line</string>
+    <string name="settings_taille_tabulation">Tab size</string>
+    <string name="settings_sauvegarde_auto">Auto-save</string>
+
+    <!-- Terminal section. -->
+    <string name="settings_terminal_titre">Terminal</string>
+    <string name="settings_style_curseur">Cursor style</string>
+    <string name="settings_curseur_bloc">Block</string>
+    <string name="settings_curseur_ligne">Underline</string>
+    <string name="settings_curseur_barre">Bar</string>
+    <string name="settings_copie_selection">Auto-copy the selection</string>
+
+    <!-- Projects section. -->
+    <string name="settings_projets_titre">Projects</string>
+
+    <!-- About and Advanced sections. -->
+    <string name="settings_apropos_titre">About</string>
+    <string name="settings_avance_titre">Advanced</string>
+
+    <!-- Accessibility descriptions of the master rows. -->
+    <string name="settings_cd_ligne_apparence">Open appearance settings</string>
+    <string name="settings_cd_ligne_langue">Open language settings</string>
+    <string name="settings_cd_ligne_notifications">Open notification settings</string>
+    <string name="settings_cd_ligne_editeur">Open editor settings</string>
+    <string name="settings_cd_ligne_terminal">Open terminal settings</string>
+    <string name="settings_cd_ligne_ia">AI assistant — coming soon</string>
+    <string name="settings_cd_ligne_projets">Open project settings</string>
+    <string name="settings_cd_ligne_outils">Developer tools — coming soon</string>
+    <string name="settings_cd_ligne_securite">Security and privacy — coming soon</string>
+    <string name="settings_cd_ligne_apropos">Open app information</string>
+    <string name="settings_cd_ligne_avance">Open advanced settings</string>
+
+    <string name="settings_tab_deux">2</string>
+    <string name="settings_tab_quatre">4</string>
+    <string name="settings_tab_huit">8</string>
+
 </resources>

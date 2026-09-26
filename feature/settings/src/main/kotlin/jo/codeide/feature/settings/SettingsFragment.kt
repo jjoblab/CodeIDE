@@ -4,56 +4,51 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.LinearLayout
 import androidx.core.view.isVisible
-import androidx.fragment.app.viewModels
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
-import jo.codeide.core.model.License
+import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.SectionParametres
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.settings.databinding.FragmentSettingsBinding
+import jo.codeide.feature.settings.databinding.LigneParametreBinding
 import javax.inject.Inject
 
 /**
- * Écran Paramètres (étape 6) : **écran personnalisé Material 3** (pas de
- * `PreferenceFragmentCompat`), piloté par un ViewModel et DataStore.
+ * Écran maître des Paramètres (ADR 0059) : sections groupées en cartes M3
+ * (Général, Modules, Environnement, Application), une rangée par section —
+ * icône, libellé, **sous-titre d'état** et chevron vers le fragment
+ * dédié. Les sections pas encore développées (IA, Outils de
+ * développement, Sécurité) restent visibles mais atténuées, puce
+ * « Bientôt » à la place du chevron, vers l'écran minimal générique.
  *
- * Sections extensibles : Apparence (thème, couleurs dynamiques), Langue,
- * Projets (dossier de travail, nom d'auteur, licence par défaut), À
- * propos (version, build, licences), Avancé (réinitialiser avec
- * confirmation, relancer l'assistant — l'entrée Diagnostic arrive à
- * l'étape 12).
+ * Le patron reste réutilisable : ajouter une section = une entrée dans
+ * [ModeleLigne] et une destination dans le graphe — jamais de retouche du
+ * maître pour les sections « bientôt » existantes.
  *
- * Le fragment ne fait que **rendre l'état** et **émettre des actions**
- * (section 5.3) : chaque réglage se persiste à l'instant, l'effet
- * immédiat vient de la recréation d'écran par `MainActivity`.
- *
- * Exemption detekt ciblée (règle 16 du prompt maître) :
- * TooManyFunctions — l'écran rend cinq sections (apparence, langue,
- * projets, à propos, avancé) ; chaque section a ses branchements et
- * son rendu. L'éclater en fragments n'apporterait que du pontage.
+ * Le fragment ne fait que **rendre l'état** (section 5.3) : la persistance
+ * vit dans le ViewModel partagé (une instance par activité hôte,
+ * consommée par toutes les sections).
  */
-@Suppress("TooManyFunctions")
 @AndroidEntryPoint
 class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
-    private val viewModel: SettingsViewModel by viewModels()
+    private val viewModel: SettingsViewModel by activityViewModels()
 
     /** Navigation découplée : la feature ne connaît jamais les autres. */
     @Inject
     lateinit var navigator: AppNavigator
 
-    /** Sélecteur SAF du dossier de travail (section 5.6). */
-    private val selecteurDossier =
-        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            if (uri != null) {
-                viewModel.onAction(ActionParametres.DossierChoisi(uri.toString()))
-            }
-        }
+    /** Rangées gonflées du maître, indexées par section. */
+    private val rangees = mutableMapOf<SectionParametres, LigneParametreBinding>()
+
+    /** Sous-titres par section — recalculés à chaque émission d'état. */
+    private val sousTitres = mutableMapOf<SectionParametres, (EtatParametres) -> String>()
 
     override fun createBinding(
         inflater: LayoutInflater,
@@ -67,238 +62,245 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
     ) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Contenu edge-to-edge : la racine absorbe barres système et clavier
-        // — la toolbar passe sous la barre d'état, les derniers réglages
-        // restent au-dessus de la barre de navigation et du clavier.
+        // Contenu edge-to-edge : la racine absorbe barres système et clavier.
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
 
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
 
-        brancherApparence()
-        brancherLangue()
-        brancherProjets()
-        brancherAvance()
+        construireCartes()
 
-        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
-        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet -> appliquer(effet) }
-    }
-
-    // ------------------------------------------------------------------
-    // Branchement des contrôles → actions (une seule fois)
-    // ------------------------------------------------------------------
-
-    /** Vrai pendant le rendu programmatique — coupe les fausses actions. */
-    private var renduEnCours = false
-
-    private fun brancherApparence() {
-        binding.groupeTheme.setOnCheckedChangeListener { _, id ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerTheme(modeDuTheme(id)))
-        }
-        binding.interrupteurDynamique.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(active))
-        }
-        binding.groupePoliceTerminal.setOnCheckedChangeListener { _, id ->
-            if (!renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerTaillePoliceTerminal(tailleDeLId(id)))
+        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
+            sousTitres.forEach { (section, calcul) ->
+                rangees[section]?.sousTitreLigneParametre?.text = calcul(etat)
             }
         }
     }
 
-    private fun brancherLangue() {
-        binding.groupeLangue.setOnCheckedChangeListener { _, id ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerLangue(langueDeLId(id)))
-        }
-    }
-
-    private fun brancherProjets() {
-        binding.boutonChangerDossier.setOnClickListener {
-            viewModel.onAction(ActionParametres.DemanderChangementDossier)
-        }
-        binding.boutonEffacerDossier.setOnClickListener {
-            viewModel.onAction(ActionParametres.EffacerDossier)
-        }
-        binding.champNomAuteur.setOnFocusChangeListener { _, aLeFocus ->
-            if (!aLeFocus && !renduEnCours) {
-                val nom =
-                    binding.champNomAuteur.text
-                        ?.toString()
-                        .orEmpty()
-                viewModel.onAction(ActionParametres.ValiderNomAuteur(nom))
-            }
-        }
-        binding.valeurLicence.setOnClickListener { ouvrirChoixLicence() }
-    }
-
-    private fun brancherAvance() {
-        binding.boutonDiagnostic.setOnClickListener { navigator.openDiagnostics() }
-        binding.boutonReinitialiser.setOnClickListener { confirmerReinitialisation() }
-        binding.boutonRelancerAssistant.setOnClickListener {
-            viewModel.onAction(ActionParametres.RelancerAssistant)
-        }
-        binding.valeurLicences.setOnClickListener { ouvrirLicences() }
-    }
-
     // ------------------------------------------------------------------
-    // Rendu de l'état
+    // Construction des cartes (une seule fois)
     // ------------------------------------------------------------------
 
-    /** Rendu complet de l'état : sélections, dossier, retour, à propos. */
-    private fun rendre(etat: EtatParametres) {
-        renduEnCours = true
-        try {
-            val reglages = etat.reglage
+    /** Une rangée du maître : présentation + navigation + sous-titre d'état. */
+    private data class ModeleLigne(
+        val section: SectionParametres,
+        val icone: Int,
+        val titre: Int,
+        val description: Int,
+        val bientot: Boolean,
+        val sousTitre: (EtatParametres) -> String,
+    )
 
-            binding.radioThemeSysteme.isChecked = reglages.themeMode == ThemeMode.SYSTEM
-            binding.radioThemeClair.isChecked = reglages.themeMode == ThemeMode.LIGHT
-            binding.radioThemeSombre.isChecked = reglages.themeMode == ThemeMode.DARK
-            binding.interrupteurDynamique.isChecked = reglages.useDynamicColor
+    /**
+     * Construit une entrée du maître.
+     *
+     * Exemption detekt ciblée (règle 16) : LongParameterList — les six
+     * paramètres sont la description complète d'une rangée (section,
+     * icône, libellé, description d'accès, état « bientôt », sous-titre) ;
+     * les regrouper en objet nuirait à la lisibilité déclarative de
+     * [construireCartes].
+     */
+    @Suppress("LongParameterList")
+    private fun ligne(
+        section: SectionParametres,
+        icone: Int,
+        titre: Int,
+        description: Int,
+        bientot: Boolean = false,
+        sousTitre: (EtatParametres) -> String,
+    ): ModeleLigne = ModeleLigne(section, icone, titre, description, bientot, sousTitre)
 
-            binding.radioPolicePetite.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.PETITE
-            binding.radioPoliceMoyenne.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.MOYENNE
-            binding.radioPoliceGrande.isChecked = reglages.taillePoliceTerminal == TaillePoliceTerminal.GRANDE
-
-            binding.radioLangueSysteme.isChecked = reglages.languageTag == ""
-            binding.radioLangueFr.isChecked = reglages.languageTag == "fr"
-            binding.radioLangueEn.isChecked = reglages.languageTag == "en"
-
-            if (!binding.champNomAuteur.isFocused) {
-                binding.champNomAuteur.setText(reglages.authorName)
+    /** Gonfle les rangées dans le conteneur d'une carte. */
+    private fun ajouterRangees(
+        conteneur: LinearLayout,
+        modeles: List<ModeleLigne>,
+    ) {
+        modeles.forEach { modele ->
+            val liaison = LigneParametreBinding.inflate(layoutInflater, conteneur, false)
+            liaison.iconeLigneParametre.setImageResource(modele.icone)
+            liaison.titreLigneParametre.setText(modele.titre)
+            liaison.root.contentDescription = getString(modele.description)
+            liaison.chevronLigneParametre.isVisible = !modele.bientot
+            liaison.puceBientotLigneParametre.isVisible = modele.bientot
+            if (modele.bientot) {
+                liaison.root.alpha = ALPHA_BIENTOT
             }
-            binding.valeurLicence.text = libelleLicence(reglages.defaultLicense)
-
-            val dossier = reglages.workspace
-            binding.texteDossier.text =
-                dossier?.displayPath ?: getString(R.string.settings_dossier_aucun)
-            binding.boutonEffacerDossier.isVisible = dossier != null
-
-            binding.progressionDossier.isVisible = etat.verificationDossier
-            binding.boutonChangerDossier.isEnabled = !etat.verificationDossier
-            binding.boutonEffacerDossier.isEnabled = !etat.verificationDossier
-            rendreRetourDossier(etat.retourDossier)
-
-            binding.texteVersion.text =
-                getString(
-                    R.string.settings_a_propos_version,
-                    etat.infosBuild.versionName,
-                    etat.infosBuild.versionCode,
-                )
-            binding.texteBuild.text =
-                getString(R.string.settings_a_propos_build, etat.infosBuild.buildType)
-        } finally {
-            renduEnCours = false
+            liaison.root.setOnClickListener { navigator.openSettingsSection(modele.section) }
+            conteneur.addView(liaison.root)
+            rangees[modele.section] = liaison
+            sousTitres[modele.section] = modele.sousTitre
         }
     }
 
-    /** Message transitoire sous la rangée du dossier. */
-    private fun rendreRetourDossier(retour: RetourDossier) {
-        val message =
-            when (retour) {
-                RetourDossier.Aucun -> {
-                    null
-                }
+    private fun construireCartes() {
+        construireCarteGenerale()
+        construireCarteModules()
+        construireCarteEnvironnement()
+        construireCarteApplication()
+    }
 
-                RetourDossier.Change -> {
-                    getString(R.string.settings_dossier_change)
-                }
-
-                is RetourDossier.Efface -> {
-                    if (retour.permissionGardee) {
-                        getString(R.string.settings_dossier_efface_permission_gardee)
-                    } else {
-                        getString(R.string.settings_dossier_efface)
+    /** Carte « Général » : Apparence, Langue, Notifications. */
+    private fun construireCarteGenerale() {
+        ajouterRangees(
+            binding.rangeesGeneral,
+            listOf(
+                ligne(
+                    SectionParametres.APPARENCE,
+                    jo.codeide.core.ui.R.drawable.ic_palette,
+                    R.string.settings_maitre_apparence,
+                    R.string.settings_cd_ligne_apparence,
+                ) { etat ->
+                    val mode =
+                        when (etat.reglage.themeMode) {
+                            ThemeMode.SYSTEM -> getString(R.string.settings_theme_systeme)
+                            ThemeMode.LIGHT -> getString(R.string.settings_theme_clair)
+                            ThemeMode.DARK -> getString(R.string.settings_theme_sombre)
+                        }
+                    val dynamique =
+                        getString(
+                            if (etat.reglage.useDynamicColor) {
+                                R.string.settings_dyn_activees
+                            } else {
+                                R.string.settings_dyn_desactivees
+                            },
+                        )
+                    "$mode · $dynamique"
+                },
+                ligne(
+                    SectionParametres.LANGUE,
+                    jo.codeide.core.ui.R.drawable.ic_traduire,
+                    R.string.settings_maitre_langue,
+                    R.string.settings_cd_ligne_langue,
+                ) { etat ->
+                    when (etat.reglage.languageTag) {
+                        "fr" -> getString(R.string.settings_langue_fr)
+                        "en" -> getString(R.string.settings_langue_en)
+                        else -> getString(R.string.settings_langue_systeme)
                     }
-                }
+                },
+                ligne(
+                    SectionParametres.NOTIFICATIONS,
+                    jo.codeide.core.ui.R.drawable.ic_notifications,
+                    R.string.settings_maitre_notifications,
+                    R.string.settings_cd_ligne_notifications,
+                ) { etat ->
+                    when {
+                        etat.reglage.notificationsSync && etat.reglage.notificationsBuild -> {
+                            getString(R.string.settings_notif_sync_build_actives)
+                        }
 
-                RetourDossier.Refuse -> {
-                    getString(R.string.settings_dossier_refuse)
-                }
+                        etat.reglage.notificationsSync || etat.reglage.notificationsBuild -> {
+                            getString(R.string.settings_notif_partiel)
+                        }
 
-                RetourDossier.Erreur -> {
-                    getString(R.string.settings_dossier_erreur)
-                }
-            }
-        binding.texteRetourDossier.text = message
-        binding.texteRetourDossier.isVisible = message != null
-    }
-
-    /** Thème correspondant au bouton radio coché. */
-    private fun modeDuTheme(id: Int): ThemeMode =
-        when (id) {
-            binding.radioThemeClair.id -> ThemeMode.LIGHT
-            binding.radioThemeSombre.id -> ThemeMode.DARK
-            else -> ThemeMode.SYSTEM
-        }
-
-    /** Taille de police du terminal du bouton coché (MOYENNE par défaut). */
-    private fun tailleDeLId(id: Int): TaillePoliceTerminal =
-        when (id) {
-            binding.radioPolicePetite.id -> TaillePoliceTerminal.PETITE
-            binding.radioPoliceGrande.id -> TaillePoliceTerminal.GRANDE
-            else -> TaillePoliceTerminal.MOYENNE
-        }
-
-    /** Tag BCP 47 du bouton coché, `""` pour suivre le système. */
-    private fun langueDeLId(id: Int): String =
-        when (id) {
-            binding.radioLangueFr.id -> "fr"
-            binding.radioLangueEn.id -> "en"
-            else -> ""
-        }
-
-    /** Libellé localisé d'une licence. */
-    private fun libelleLicence(licence: License): String =
-        getString(
-            when (licence) {
-                License.NONE -> R.string.settings_licence_aucune
-                License.MIT -> R.string.settings_licence_mit
-                License.APACHE_2_0 -> R.string.settings_licence_apache
-                License.GPL_3_0 -> R.string.settings_licence_gpl
-                License.BSD_3_CLAUSE -> R.string.settings_licence_bsd
-            },
+                        else -> {
+                            getString(R.string.settings_notif_toutes_desactivees)
+                        }
+                    }
+                },
+            ),
         )
-
-    // ------------------------------------------------------------------
-    // Dialogues (choix licence, licences ouvertes, confirmation)
-    // ------------------------------------------------------------------
-
-    /** Choix de la licence par défaut (liste à choix unique). */
-    private fun ouvrirChoixLicence() {
-        val licences = License.entries.toTypedArray()
-        val courante = licences.indexOfFirst { it == viewModel.etat.value.reglage.defaultLicense }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.settings_licence_dialogue_titre)
-            .setSingleChoiceItems(licences.map { libelleLicence(it) }.toTypedArray(), courante) { dialogue, lequel ->
-                viewModel.onAction(ActionParametres.ChangerLicence(licences[lequel]))
-                dialogue.dismiss()
-            }.setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
-    /** Licences open source des dépendances embarquées (texte embarqué). */
-    private fun ouvrirLicences() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.settings_licences_titre)
-            .setMessage(R.string.settings_licences_contenu)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+    /** Carte « Modules » : Éditeur, Terminal, IA (bientôt). */
+    private fun construireCarteModules() {
+        ajouterRangees(
+            binding.rangeesModules,
+            listOf(
+                ligne(
+                    SectionParametres.EDITEUR,
+                    jo.codeide.core.ui.R.drawable.ic_editer,
+                    R.string.settings_maitre_editeur,
+                    R.string.settings_cd_ligne_editeur,
+                ) { getString(R.string.settings_sous_editeur) },
+                ligne(
+                    SectionParametres.TERMINAL,
+                    jo.codeide.core.ui.R.drawable.ic_terminal,
+                    R.string.settings_maitre_terminal,
+                    R.string.settings_cd_ligne_terminal,
+                ) { etat ->
+                    val police =
+                        when (etat.reglage.taillePoliceTerminal) {
+                            TaillePoliceTerminal.PETITE -> getString(R.string.settings_police_petite)
+                            TaillePoliceTerminal.MOYENNE -> getString(R.string.settings_police_moyenne)
+                            TaillePoliceTerminal.GRANDE -> getString(R.string.settings_police_grande)
+                        }
+                    val curseur =
+                        when (etat.reglage.styleCurseurTerminal) {
+                            StyleCurseurTerminal.BLOC -> getString(R.string.settings_curseur_bloc)
+                            StyleCurseurTerminal.LIGNE -> getString(R.string.settings_curseur_ligne)
+                            StyleCurseurTerminal.BARRE -> getString(R.string.settings_curseur_barre)
+                        }
+                    "$police · $curseur"
+                },
+                ligne(
+                    SectionParametres.IA,
+                    jo.codeide.core.ui.R.drawable.ic_smart_toy,
+                    R.string.settings_maitre_ia,
+                    R.string.settings_cd_ligne_ia,
+                    bientot = true,
+                ) { getString(R.string.settings_sous_ia) },
+            ),
+        )
     }
 
-    /** Confirmation avant la réinitialisation des préférences. */
-    private fun confirmerReinitialisation() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.settings_reinitialiser_titre)
-            .setMessage(R.string.settings_reinitialiser_message)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.settings_reinitialiser_confirmer) { _, _ ->
-                viewModel.onAction(ActionParametres.ReinitialiserPreferences)
-            }.show()
+    /** Carte « Environnement » : Projets, Outils de développement (bientôt). */
+    private fun construireCarteEnvironnement() {
+        ajouterRangees(
+            binding.rangeesEnvironnement,
+            listOf(
+                ligne(
+                    SectionParametres.PROJETS,
+                    jo.codeide.core.ui.R.drawable.ic_dossier,
+                    R.string.settings_maitre_projets,
+                    R.string.settings_cd_ligne_projets,
+                ) { getString(R.string.settings_sous_projets) },
+                ligne(
+                    SectionParametres.OUTILS,
+                    jo.codeide.core.ui.R.drawable.ic_outils,
+                    R.string.settings_maitre_outils,
+                    R.string.settings_cd_ligne_outils,
+                    bientot = true,
+                ) { getString(R.string.settings_sous_outils) },
+            ),
+        )
     }
 
-    /** Application des effets ponctuels. */
-    private fun appliquer(effet: EffetParametres) {
-        when (effet) {
-            EffetParametres.OuvrirSelecteurDossier -> selecteurDossier.launch(null)
-            EffetParametres.OuvrirAssistant -> navigator.openOnboarding()
-        }
+    /** Carte « Application » : Sécurité (bientôt), À propos, Avancé. */
+    private fun construireCarteApplication() {
+        ajouterRangees(
+            binding.rangeesApplication,
+            listOf(
+                ligne(
+                    SectionParametres.SECURITE,
+                    jo.codeide.core.ui.R.drawable.ic_bouclier,
+                    R.string.settings_maitre_securite,
+                    R.string.settings_cd_ligne_securite,
+                    bientot = true,
+                ) { getString(R.string.settings_sous_securite) },
+                ligne(
+                    SectionParametres.A_PROPOS,
+                    jo.codeide.core.ui.R.drawable.ic_info,
+                    R.string.settings_maitre_apropos,
+                    R.string.settings_cd_ligne_apropos,
+                ) { etat ->
+                    getString(
+                        R.string.settings_a_propos_version,
+                        etat.infosBuild.versionName,
+                        etat.infosBuild.versionCode,
+                    )
+                },
+                ligne(
+                    SectionParametres.AVANCE,
+                    jo.codeide.core.ui.R.drawable.ic_avance,
+                    R.string.settings_maitre_avance,
+                    R.string.settings_cd_ligne_avance,
+                ) { getString(R.string.settings_section_avance) },
+            ),
+        )
+    }
+
+    private companion object {
+        /** Atténuation des rangées « bientôt disponible » (opacité réduite). */
+        const val ALPHA_BIENTOT = 0.55f
     }
 }

@@ -58,4 +58,105 @@
     <string name="settings_reinitialiser_message">Thème, langue, dossier de travail, profil et licences reviennent à leurs valeurs par défaut. Les projets enregistrés ne sont pas touchés.</string>
     <string name="settings_reinitialiser_confirmer">Réinitialiser</string>
     <string name="settings_relancer_assistant">Relancer l\'assistant de premier lancement</string>
+
+    <!-- ===== Restructuration ADR 0059 : écran maître à deux niveaux ===== -->
+
+    <!-- Sections du maître. -->
+    <string name="settings_section_general">Général</string>
+    <string name="settings_section_modules">Modules</string>
+    <string name="settings_section_environnement">Environnement</string>
+    <string name="settings_section_application">Application</string>
+
+    <!-- Lignes du maître. -->
+    <string name="settings_maitre_apparence">Apparence</string>
+    <string name="settings_dyn_activees">Couleurs dynamiques activées</string>
+    <string name="settings_dyn_desactivees">Couleurs dynamiques désactivées</string>
+    <string name="settings_maitre_langue">Langue</string>
+    <string name="settings_maitre_notifications">Notifications</string>
+    <string name="settings_notif_sync_build_actives">Sync et build activées</string>
+    <string name="settings_notif_partiel">Sync ou build activées</string>
+    <string name="settings_notif_toutes_desactivees">Notifications désactivées</string>
+    <string name="settings_maitre_editeur">Éditeur</string>
+    <string name="settings_sous_editeur">Retour à la ligne, numéros de ligne…</string>
+    <string name="settings_maitre_terminal">Terminal</string>
+    <string name="settings_maitre_ia">IA</string>
+    <string name="settings_sous_ia">Assistant de code intégré</string>
+    <string name="settings_maitre_projets">Projets</string>
+    <string name="settings_sous_projets">Dossier de travail, auteur, licence</string>
+    <string name="settings_maitre_outils">Outils de développement</string>
+    <string name="settings_sous_outils">Daemon Gradle, bootstrap PRoot/Ubuntu</string>
+    <string name="settings_maitre_securite">Sécurité et confidentialité</string>
+    <string name="settings_sous_securite">Rapports de plantage, verrouillage</string>
+    <string name="settings_maitre_apropos">À propos</string>
+    <string name="settings_maitre_avance">Avancé</string>
+
+    <!-- Puce « Bientôt » de l'écran maître. -->
+    <string name="settings_bientot">Bientôt</string>
+
+    <!-- Écran générique « bientôt disponible ». -->
+    <string name="settings_bientot_titre_ia">Assistant IA — bientôt disponible</string>
+    <string name="settings_bientot_texte_ia">Cette section apparaîtra dans le menu dès que le module sera prêt.</string>
+    <string name="settings_bientot_titre_outils">Bientôt disponible</string>
+    <string name="settings_bientot_texte_outils">Daemon Gradle, bootstrap PRoot/Ubuntu, espace utilisé — proposition à valider avec toi.</string>
+    <string name="settings_bientot_titre_securite">Bientôt disponible</string>
+    <string name="settings_bientot_texte_securite">Rapports de plantage, verrouillage de l\'app — proposition à valider avec toi.</string>
+
+    <!-- Section Apparence. -->
+    <string name="settings_apparence_titre">Apparence</string>
+    <string name="settings_theme_libelle">Thème</string>
+    <string name="settings_couleurs_dynamiques_sous">Adapte l\'interface au fond d\'écran (Material You)</string>
+    <string name="settings_palette_legende">Primaire · Secondaire · Tertiaire</string>
+
+    <!-- Section Langue. -->
+    <string name="settings_langue_titre">Langue</string>
+
+    <!-- Section Notifications. -->
+    <string name="settings_notifications_titre">Notifications</string>
+    <string name="settings_notif_sync">Synchronisation</string>
+    <string name="settings_notif_sync_sous">Notifier au début et à la fin d\'un sync</string>
+    <string name="settings_notif_build">Build</string>
+    <string name="settings_notif_build_sous">Notifier à la fin d\'un build</string>
+    <string name="settings_notif_son">Son</string>
+
+    <!-- Section Éditeur. -->
+    <string name="settings_editeur_titre">Éditeur</string>
+    <string name="settings_taille_police">Taille de police</string>
+    <string name="settings_retour_ligne">Retour à la ligne</string>
+    <string name="settings_numeros_ligne">Numéros de ligne</string>
+    <string name="settings_surligner_ligne">Surligner la ligne actuelle</string>
+    <string name="settings_taille_tabulation">Taille de tabulation</string>
+    <string name="settings_sauvegarde_auto">Sauvegarde automatique</string>
+
+    <!-- Section Terminal. -->
+    <string name="settings_terminal_titre">Terminal</string>
+    <string name="settings_style_curseur">Style du curseur</string>
+    <string name="settings_curseur_bloc">Bloc</string>
+    <string name="settings_curseur_ligne">Ligne</string>
+    <string name="settings_curseur_barre">Barre</string>
+    <string name="settings_copie_selection">Copier la sélection automatiquement</string>
+
+    <!-- Section Projets. -->
+    <string name="settings_projets_titre">Projets</string>
+
+    <!-- Sections À propos et Avancé. -->
+    <string name="settings_apropos_titre">À propos</string>
+    <string name="settings_avance_titre">Avancé</string>
+
+    <!-- Descriptions d\'accessibilité des rangées du maître. -->
+    <string name="settings_cd_ligne_apparence">Ouvrir les réglages d\'apparence</string>
+    <string name="settings_cd_ligne_langue">Ouvrir les réglages de langue</string>
+    <string name="settings_cd_ligne_notifications">Ouvrir les réglages de notifications</string>
+    <string name="settings_cd_ligne_editeur">Ouvrir les réglages de l\'éditeur</string>
+    <string name="settings_cd_ligne_terminal">Ouvrir les réglages du terminal</string>
+    <string name="settings_cd_ligne_ia">Assistant IA — bientôt disponible</string>
+    <string name="settings_cd_ligne_projets">Ouvrir les réglages des projets</string>
+    <string name="settings_cd_ligne_outils">Outils de développement — bientôt disponible</string>
+    <string name="settings_cd_ligne_securite">Sécurité et confidentialité — bientôt disponible</string>
+    <string name="settings_cd_ligne_apropos">Ouvrir les informations de l\'application</string>
+    <string name="settings_cd_ligne_avance">Ouvrir les réglages avancés</string>
+
+    <string name="settings_tab_deux">2</string>
+    <string name="settings_tab_quatre">4</string>
+    <string name="settings_tab_huit">8</string>
+
 </resources>

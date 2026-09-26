@@ -20,6 +20,13 @@ public interface AppNavigator {
     public fun openSettings(): Unit
 
     /**
+     * Ouvre une **section** de l'écran Paramètres (ADR 0059 : navigation à
+     * deux niveaux) depuis l'écran maître — chaque section vit dans son
+     * propre fragment du graphe de navigation.
+     */
+    public fun openSettingsSection(section: SectionParametres): Unit
+
+    /**
      * Revient en arrière dans la pile de navigation.
      *
      * À distinguer d'une fermeture de dialogue ou d'un retour système :
@@ -156,4 +163,48 @@ public interface AppNavigator {
      * travail suggéré, ou `null` pour le répertoire général.
      */
     public fun openTerminal(suggestedWorkingDirectory: String?): Unit
+}
+
+/**
+ * Sections de l'écran Paramètres (ADR 0059 : navigation à deux niveaux).
+ *
+ * Le maître demande l'ouverture d'une section par cette enum — les
+ * destinations concrètes du graphe vivent dans `app` (implémentation de
+ * [AppNavigator]), les libellés, icônes et textes « bientôt disponible »
+ * restent dans `feature:settings` (seule consommatrice) : l'enum ne
+ * porte que le jeton de navigation.
+ */
+public enum class SectionParametres {
+    /** Apparence : thème, couleurs dynamiques, aperçu de palette. */
+    APPARENCE,
+
+    /** Langue de l'interface. */
+    LANGUE,
+
+    /** Notifications des canaux tooling. */
+    NOTIFICATIONS,
+
+    /** Réglages de l'éditeur (entièrement créés par l'ADR 0059). */
+    EDITEUR,
+
+    /** Réglages du terminal (police migrée depuis Apparence). */
+    TERMINAL,
+
+    /** IA — bientôt disponible (écran minimal, aucun réglage). */
+    IA,
+
+    /** Projets : dossier de travail, auteur, licence. */
+    PROJETS,
+
+    /** Outils de développement — bientôt disponible. */
+    OUTILS,
+
+    /** Sécurité et confidentialité — bientôt disponible. */
+    SECURITE,
+
+    /** À propos : version, build, licences. */
+    A_PROPOS,
+
+    /** Avancé : diagnostic, réinitialisation, assistant. */
+    AVANCE,
 }

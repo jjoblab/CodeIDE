@@ -17,6 +17,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.model.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +48,15 @@ import javax.inject.Singleton
  * de notification (passer foreground, rendre en cours, rendre résultat,
  * ouvrir l'app) et la durée lisible : les regrouper déplacerait le
  * problème, chaque geste porte sa décision.
+ *
+ * Réglages utilisateur (ADR 0059) : les interrupteurs par canal
+ * (Synchronisation, Build) filtrent la décision pure — un canal coupé ne
+ * montre ni notification en cours détaillée ni notification finale ;
+ * le service reste foreground le temps de l'activité (obligation
+ * Android) avec une notification neutre discrète. Le réglage Son
+ * choisit entre le canal silencieux (IMPORTANCE_LOW) et le canal sonore
+ * (IMPORTANCE_DEFAULT) — jamais de mutation d'un canal existant
+ * (verrouillé par le système après création).
  */
 @Suppress("TooManyFunctions")
 @AndroidEntryPoint
@@ -55,6 +66,12 @@ internal class ToolingService : Service() {
 
     @Inject
     lateinit var journal: AppLogger
+
+    @Inject
+    lateinit var observerParametres: ObserveSettingsUseCase
+
+    /** Derniers réglages connus (collectés dès le démarrage du service). */
+    private var reglages = AppSettings()
 
     private val portee = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -69,12 +86,20 @@ internal class ToolingService : Service() {
         // dans les cinq secondes qui suivent startForegroundService.
         rendreEtat(serviceGradle.etat.value)
         observerEtat()
+        observerReglages()
         return START_STICKY
     }
 
     override fun onDestroy() {
         portee.cancel()
         super.onDestroy()
+    }
+
+    /** Suit les réglages (canaux, son) pour filtrer la décision. */
+    private fun observerReglages() {
+        portee.launch {
+            observerParametres().collect { reglages = it }
+        }
     }
 
     /** Suit l'état process-wide : notification, résultat, ou arrêt. */
@@ -84,9 +109,24 @@ internal class ToolingService : Service() {
         }
     }
 
-    /** Applique la décision pure : en cours, résultat final, ou arrêt. */
+    /** Applique la décision pure (filtrée par les réglages, ADR 0059). */
     private fun rendreEtat(etat: EtatGradle) {
-        when (val decision = decisionNotificationTooling(etat)) {
+        val decision = decisionNotificationTooling(etat)
+        if (!canalAutorise(decision)) {
+            // Canal coupé par l'utilisateur : ni détail ni résultat — si
+            // une activité vit encore, l'obligation de premier plan tient
+            // avec une notification neutre discrète, sinon le service
+            // s'arrête simplement.
+            if (decision is DecisionNotificationTooling.EnCours) {
+                journal.d(TAG) { "canal coupé par les réglages : notification neutre" }
+                demarrerEnAvantPlan(notificationNeutre())
+            } else {
+                journal.d(TAG) { "canal coupé par les réglages : rien à montrer" }
+                stopSelf()
+            }
+            return
+        }
+        when (decision) {
             DecisionNotificationTooling.Rien -> {
                 journal.d(TAG) { "plus d'activité tooling : arrêt du service" }
                 stopSelf()
@@ -113,6 +153,54 @@ internal class ToolingService : Service() {
                 stopSelf()
             }
         }
+    }
+
+    /**
+     * Le canal de la décision est-il autorisé par les réglages (ADR 0059) ?
+     * `Rien` et le canal Taches (sélecteur sans notification propre)
+     * passent toujours ; Sync et Build suivent leurs interrupteurs.
+     */
+    private fun canalAutorise(decision: DecisionNotificationTooling): Boolean =
+        when (decision) {
+            DecisionNotificationTooling.Rien -> {
+                true
+            }
+
+            is DecisionNotificationTooling.EnCours -> {
+                when (decision.canal) {
+                    CanalTooling.SYNC -> reglages.notificationsSync
+                    CanalTooling.BUILD -> reglages.notificationsBuild
+                    CanalTooling.TACHES -> true
+                }
+            }
+
+            is DecisionNotificationTooling.Resultat -> {
+                when (decision.canal) {
+                    CanalTooling.SYNC -> reglages.notificationsSync
+                    CanalTooling.BUILD -> reglages.notificationsBuild
+                    CanalTooling.TACHES -> true
+                }
+            }
+        }
+
+    /** Notification neutre : l'obligation de premier plan, sans détail. */
+    private fun notificationNeutre(): Notification {
+        val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        gestionnaire.createNotificationChannel(
+            NotificationChannel(
+                canalCourant(),
+                getString(R.string.tooling_service_canal),
+                importanceDuCanal(),
+            ),
+        )
+        return NotificationCompat
+            .Builder(this, canalCourant())
+            .setSmallIcon(R.drawable.ic_executer)
+            .setContentTitle(getString(R.string.tooling_service_titre))
+            .setContentText(getString(R.string.tooling_service_neutre_texte))
+            .setOngoing(true)
+            .setContentIntent(intentionOuverture())
+            .build()
     }
 
     /** Passe foreground avec la notification en cours (persistante). */
@@ -199,13 +287,13 @@ internal class ToolingService : Service() {
         val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         gestionnaire.createNotificationChannel(
             NotificationChannel(
-                CANAL,
+                canalCourant(),
                 getString(R.string.tooling_service_canal),
-                NotificationManager.IMPORTANCE_LOW,
+                importanceDuCanal(),
             ),
         )
         return NotificationCompat
-            .Builder(this, CANAL)
+            .Builder(this, canalCourant())
             .setSmallIcon(R.drawable.ic_executer)
             .setContentTitle(getString(R.string.tooling_service_titre))
             .setContentText(texte)
@@ -214,6 +302,22 @@ internal class ToolingService : Service() {
             .setContentIntent(intentionOuverture())
             .build()
     }
+
+    /**
+     * Canal de notification courant (ADR 0059) : silencieux ou sonore
+     * selon le réglage — deux canaux distincts plutôt qu'une mutation
+     * (l'importance d'un canal existant est figée par le système après
+     * création).
+     */
+    private fun canalCourant(): String = if (reglages.sonNotifications) CANAL_SONORE else CANAL
+
+    /** Importance du canal courant : sonore par défaut, basse sinon. */
+    private fun importanceDuCanal(): Int =
+        if (reglages.sonNotifications) {
+            NotificationManager.IMPORTANCE_DEFAULT
+        } else {
+            NotificationManager.IMPORTANCE_LOW
+        }
 
     /** Ouvre l'app au toucher (l'éditeur y montrera le détail des canaux). */
     private fun intentionOuverture(): PendingIntent? {
@@ -239,6 +343,9 @@ internal class ToolingService : Service() {
     private companion object {
         const val TAG = "ToolingService"
         const val CANAL = "tooling"
+
+        /** Canal sonore du tooling (réglage Son, ADR 0059). */
+        const val CANAL_SONORE = "tooling_sonore"
         const val IDENTIFIANT_NOTIFICATION = 42_002
 
         /** Millisecondes par seconde (durée lisible). */

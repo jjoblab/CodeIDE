@@ -275,4 +275,8 @@
 
     <!-- Toolbar: closing the workspace (moved from the v1 header). -->
     <string name="editor_action_fermer_projet">Close the project</string>
+
+    <!-- Neutral notification (channels off, ADR 0059). -->
+    <string name="tooling_service_neutre_texte">Background task</string>
+
 </resources>
