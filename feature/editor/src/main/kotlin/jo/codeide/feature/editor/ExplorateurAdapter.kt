@@ -182,7 +182,11 @@ internal class ExplorateurAdapter(
             liaison.chevronNoeud.setColorFilter(
                 ContextCompat.getColor(
                     contexte,
-                    if (noeud.deplie) R.color.explorateur_accent else R.color.explorateur_texte_3,
+                    if (noeud.deplie) {
+                        jo.codeide.core.ui.R.color.codeide_explorateur_accent
+                    } else {
+                        jo.codeide.core.ui.R.color.codeide_explorateur_texte_3
+                    },
                 ),
             )
         } else {
@@ -223,9 +227,9 @@ internal class ExplorateurAdapter(
             ContextCompat.getColor(
                 contexte,
                 when {
-                    noeud.prive -> R.color.explorateur_nom_prive
-                    noeud.estDossier -> R.color.explorateur_nom_dossier
-                    else -> R.color.explorateur_nom_fichier
+                    noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_prive
+                    noeud.estDossier -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_dossier
+                    else -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_fichier
                 },
             ),
         )
@@ -265,10 +269,10 @@ internal class ExplorateurAdapter(
     /** Teinte du dossier selon le contexte (§ 8). */
     private fun teinteDossier(noeud: NoeudExplorateur): Int =
         when {
-            noeud.estRacine && noeud.prive -> R.color.explorateur_dossier_racine_prive
-            noeud.estRacine -> R.color.explorateur_dossier_racine_projet
-            noeud.prive -> R.color.explorateur_dossier_prive
-            else -> R.color.explorateur_dossier
+            noeud.estRacine && noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_racine_prive
+            noeud.estRacine -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_racine_projet
+            noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_prive
+            else -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier
         }
 
     // ------------------------------------------------------------------

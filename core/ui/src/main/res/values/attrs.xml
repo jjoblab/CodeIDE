@@ -3,6 +3,10 @@
   Attributs XML des composants d'état de core:ui.
   Les attributs communs (stateIcon, stateTitle, stateMessage) sont déclarés
   une seule fois puis réutilisés par chaque composant.
+
+  Depuis l'ADR 0059 : rôles de couleur sémantiques étendus, exposés comme
+  attrs de thème (même patron que les rôles Material 3 — voir themes.xml).
+  Un écran référence ?attr/colorJournalInfo, jamais une couleur en dur.
 -->
 <resources>
 
@@ -22,5 +26,38 @@
         <attr name="stateMessage" />
         <attr name="errorRetryText" format="string" />
     </declare-styleable>
+
+    <!-- Niveaux de journal (console compacte, écran Diagnostic). -->
+    <attr name="colorJournalDebug" format="color" />
+    <attr name="colorJournalInfo" format="color" />
+    <attr name="colorJournalWarn" format="color" />
+    <attr name="colorJournalError" format="color" />
+
+    <!-- Sortie du build. -->
+    <attr name="colorStdout" format="color" />
+    <attr name="colorStderr" format="color" />
+
+    <!-- États positifs et signal d'information. -->
+    <attr name="colorSucces" format="color" />
+    <attr name="colorInfo" format="color" />
+
+    <!-- Canaux tooling : Sync, Build, Taches (+ étiquette de pastille). -->
+    <attr name="colorCanalSync" format="color" />
+    <attr name="colorCanalBuild" format="color" />
+    <attr name="colorCanalTaches" format="color" />
+    <attr name="colorCanalEtiquette" format="color" />
+
+    <!-- Statuts Git. -->
+    <attr name="colorGitAjoute" format="color" />
+    <attr name="colorGitModifie" format="color" />
+    <attr name="colorGitSupprime" format="color" />
+
+    <!-- Accents par langage. -->
+    <attr name="colorLangageKotlin" format="color" />
+    <attr name="colorLangageJava" format="color" />
+    <attr name="colorLangageGradle" format="color" />
+    <attr name="colorLangageMarkdown" format="color" />
+    <attr name="colorLangageXml" format="color" />
+    <attr name="colorLangageJson" format="color" />
 
 </resources>

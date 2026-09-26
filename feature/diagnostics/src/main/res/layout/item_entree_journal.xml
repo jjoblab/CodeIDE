@@ -19,7 +19,7 @@
         android:minWidth="52dp"
         android:textAppearance="?attr/textAppearanceLabelSmall"
         tools:text="ERROR"
-        tools:textColor="@color/niveau_error" />
+        tools:textColor="?attr/colorJournalError" />
 
     <LinearLayout
         android:layout_width="0dp"

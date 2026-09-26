@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/popover_deplacer_vers"
-            android:textColor="@color/explorateur_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -40,7 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/deplacer_origine"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10sp" tools:ignore="SmallSp" />
 
         <com.google.android.material.textview.MaterialTextView
@@ -54,7 +54,7 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="6dp"
             android:singleLine="true"
-            android:textColor="@color/explorateur_texte_2"
+            android:textColor="@color/codeide_explorateur_texte_2"
             android:textSize="11sp"
             tools:text="docs/adr" />
 
@@ -63,7 +63,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/deplacer_destination"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10sp" tools:ignore="SmallSp" />
 
         <!-- Champ destination + icône liste déroulante (v0.32.1) : un
@@ -88,8 +88,8 @@
                 android:paddingStart="8dp"
                 android:paddingEnd="32dp"
                 android:singleLine="true"
-                android:textColor="@color/explorateur_texte"
-                android:textColorHint="@color/explorateur_texte_3"
+                android:textColor="@color/codeide_explorateur_texte"
+                android:textColorHint="@color/codeide_explorateur_texte_3"
                 android:textSize="11.5sp"
                 tools:text="docs" />
 
@@ -103,7 +103,7 @@
                 android:contentDescription="@string/deplacer_destination_choisir_cd"
                 android:padding="4dp"
                 android:src="@drawable/ic_liste_deroulante"
-                app:tint="@color/explorateur_texte_2" />
+                app:tint="@color/codeide_explorateur_texte_2" />
         </FrameLayout>
 
         <!-- Erreur en ligne (rouge 11 sp, § 10.5). -->
@@ -112,7 +112,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textColor="@color/explorateur_rouge"
+            android:textColor="@color/codeide_explorateur_rouge"
             android:textSize="11sp"
             android:visibility="gone"
             tools:text="Dossier introuvable — chemin relatif attendu"
@@ -135,7 +135,7 @@
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="7dp"
                 android:text="@string/deplacer_annuler"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="12.5sp" />
 
             <com.google.android.material.textview.MaterialTextView
@@ -149,7 +149,7 @@
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="7dp"
                 android:text="@string/deplacer_valider"
-                android:textColor="@color/explorateur_texte_sur_accent"
+                android:textColor="@color/codeide_explorateur_texte_sur_accent"
                 android:textSize="12.5sp"
                 android:textStyle="bold" />
         </LinearLayout>

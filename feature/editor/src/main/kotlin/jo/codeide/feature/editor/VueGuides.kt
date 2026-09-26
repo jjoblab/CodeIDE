@@ -46,7 +46,11 @@ internal class VueGuides
         private var dernierEnfant: Boolean = false
 
         private val pinceau = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val couleurGuide = ContextCompat.getColor(contexte, R.color.explorateur_guide)
+        private val couleurGuide =
+            ContextCompat.getColor(
+                contexte,
+                jo.codeide.core.ui.R.color.codeide_explorateur_guide,
+            )
         private val dp = contexte.resources.displayMetrics.density
 
         /**

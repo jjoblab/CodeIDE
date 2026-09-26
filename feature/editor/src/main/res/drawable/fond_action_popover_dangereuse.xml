@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Action dangereuse du popover (§ 10.4) : survol rouge doux. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/explorateur_rouge_doux">
+    android:color="@color/codeide_explorateur_rouge_doux">
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@android:color/transparent" />

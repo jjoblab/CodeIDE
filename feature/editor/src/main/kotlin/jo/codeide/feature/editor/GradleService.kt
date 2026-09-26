@@ -54,9 +54,9 @@ enum class CanalTooling {
     val couleur: Int
         get() =
             when (this) {
-                SYNC -> R.color.canal_tooling_sync
-                BUILD -> R.color.canal_tooling_build
-                TACHES -> R.color.canal_tooling_taches
+                SYNC -> jo.codeide.core.ui.R.color.codeide_canal_sync
+                BUILD -> jo.codeide.core.ui.R.color.codeide_canal_build
+                TACHES -> jo.codeide.core.ui.R.color.codeide_canal_taches
             }
 
     /** Icône du canal (en-tête du panneau et statut de la console). */

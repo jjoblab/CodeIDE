@@ -39,7 +39,7 @@
             android:layout_height="20dp"
             android:layout_gravity="center"
             android:contentDescription="@null"
-            app:tint="@color/explorateur_texte_3"
+            app:tint="@color/codeide_explorateur_texte_3"
             tools:src="@drawable/ic_explorateur" />
     </FrameLayout>
 
@@ -48,7 +48,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="@color/explorateur_texte_3"
+        android:textColor="@color/codeide_explorateur_texte_3"
         android:textSize="10sp" tools:ignore="SmallSp"
         android:textStyle="bold"
         tools:text="Fichiers" />

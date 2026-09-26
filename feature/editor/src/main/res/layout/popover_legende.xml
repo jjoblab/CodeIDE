@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/legende_titre"
-            android:textColor="@color/explorateur_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/legende_points_etat"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10sp" tools:ignore="SmallSp"
             android:textAllCaps="true" />
 
@@ -61,7 +61,7 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:text="@string/legende_point_defaut"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
@@ -84,7 +84,7 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:text="@string/legende_point_ouvert"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
@@ -107,7 +107,7 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:text="@string/legende_point_actif"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
@@ -130,7 +130,7 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:text="@string/legende_point_selectionne"
-                android:textColor="@color/explorateur_texte_2"
+                android:textColor="@color/codeide_explorateur_texte_2"
                 android:textSize="11.5sp" />
         </LinearLayout>
 
@@ -140,7 +140,7 @@
             android:layout_marginTop="10dp"
             android:text="@string/legende_notation"
             android:textAllCaps="true"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10sp" tools:ignore="SmallSp" />
 
         <com.google.android.material.textview.MaterialTextView
@@ -149,7 +149,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="@string/legende_notation_dossier"
-            android:textColor="@color/explorateur_texte_2"
+            android:textColor="@color/codeide_explorateur_texte_2"
             android:textSize="11.5sp" />
 
         <com.google.android.material.textview.MaterialTextView
@@ -158,7 +158,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/legende_notation_guide"
-            android:textColor="@color/explorateur_texte_2"
+            android:textColor="@color/codeide_explorateur_texte_2"
             android:textSize="11.5sp" />
 
         <com.google.android.material.textview.MaterialTextView
@@ -167,7 +167,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/legende_notation_astuce"
-            android:textColor="@color/explorateur_texte_2"
+            android:textColor="@color/codeide_explorateur_texte_2"
             android:textSize="11.5sp" />
     </LinearLayout>
 </FrameLayout>

@@ -61,10 +61,10 @@ internal class EntreesJournalCompactesAdapter :
     /** Couleur du niveau, jour/nuit par ressources qualifiées. */
     private fun couleurNiveau(niveau: LogLevel): Int =
         when (niveau) {
-            LogLevel.DEBUG -> R.color.journal_compact_debug
-            LogLevel.INFO -> R.color.journal_compact_info
-            LogLevel.WARN -> R.color.journal_compact_warn
-            LogLevel.ERROR -> R.color.journal_compact_error
+            LogLevel.DEBUG -> jo.codeide.core.ui.R.color.codeide_journal_debug
+            LogLevel.INFO -> jo.codeide.core.ui.R.color.codeide_journal_info
+            LogLevel.WARN -> jo.codeide.core.ui.R.color.codeide_journal_warn
+            LogLevel.ERROR -> jo.codeide.core.ui.R.color.codeide_journal_error
         }
 
     private companion object {

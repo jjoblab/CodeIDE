@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Couleurs locales du wizard — mode sombre (mêmes rôles). -->
-<resources>
-    <color name="wizard_avertissement">#FFB4AB</color>
-    <color name="wizard_emplacement_normal">#E2E1E9</color>
-</resources>

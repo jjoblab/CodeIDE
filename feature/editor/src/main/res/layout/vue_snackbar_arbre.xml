@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="2"
-            android:textColor="@color/explorateur_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="12.5sp"
             tools:text="Créé — TestClass.kt" />
 
@@ -43,7 +43,7 @@
             android:ellipsize="middle"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10.5sp" tools:ignore="SmallSp"
             android:visibility="gone"
             tools:text="feature/editor/src/main/kotlin"
@@ -61,7 +61,7 @@
         android:paddingHorizontal="8dp"
         android:paddingVertical="4dp"
         android:text="@string/notif_annuler"
-        android:textColor="@color/explorateur_accent"
+        android:textColor="@color/codeide_explorateur_accent"
         android:textSize="12.5sp"
         android:textStyle="bold"
         android:visibility="gone"

@@ -4,6 +4,12 @@
   Les noms sont indépendants de leur valeur : un écran ne référence jamais
   une couleur directement, mais le rôle sémantique via le thème
   (règle 3 : aucune ressource en dur).
+
+  Depuis l'ADR 0059, la palette porte AUSSI les rôles sémantiques étendus
+  (journal, canaux tooling, statuts Git, accents par langage, succès) et
+  les jetons de conception des panneaux (explorateur, terminal, barre de
+  symboles) — centralisés ici pour être partagés entre features, avec
+  déclinaison nuit dans values-night/.
 -->
 <resources>
     <!-- Couleurs de marque (indigo). -->
@@ -44,4 +50,127 @@
 
     <!-- Écran de démarrage. -->
     <color name="codeide_splash_background">#43559E</color>
+
+    <!-- ============================================================
+         Rôles sémantiques étendus (ADR 0059) — journal & sortie.
+
+         Niveaux de journal partagés par la console compacte de l'éditeur
+         et l'écran Diagnostic (les valeurs étaient dupliquées entre
+         features ; teintes fonctionnelles, jamais harmonisées : la
+         sévérité doit rester reconnaissable).
+         ============================================================ -->
+    <color name="codeide_journal_debug">#5F6368</color>
+    <color name="codeide_journal_info">#1A5FB4</color>
+    <color name="codeide_journal_warn">#9A6700</color>
+    <color name="codeide_journal_error">#B3261E</color>
+
+    <!-- Sortie du build : stderr distincte de stdout. -->
+    <color name="codeide_stdout">#3C4043</color>
+    <color name="codeide_stderr">#B3261E</color>
+
+    <!-- Succès / information : états positifs et signal neutre. -->
+    <color name="codeide_succes">#2E7D32</color>
+    <color name="codeide_info">#1A5FB4</color>
+
+    <!-- ============================================================
+         Canaux tooling (ADR 0056 décision 5) : une couleur par canal —
+         Sync (teal), Build (bleu accent), Taches (violet). Valeurs de
+         marque : harmonisées avec colorPrimary à l'exécution via
+         ThemeHarmonizer quand les couleurs dynamiques sont actives.
+         ============================================================ -->
+    <color name="codeide_canal_sync">#0E7490</color>
+    <color name="codeide_canal_build">#1E6EC8</color>
+    <color name="codeide_canal_taches">#7C3AED</color>
+
+    <!-- Étiquette de canal en tête de ligne de console (pastille). -->
+    <color name="codeide_canal_etiquette">#FFFFFF</color>
+
+    <!-- ============================================================
+         Statuts Git (ADR 0059) : ajouté / modifié / supprimé — teintes
+         fonctionnelles (vert / ambre / rouge), jamais harmonisées.
+         ============================================================ -->
+    <color name="codeide_git_ajoute">#2E7D38</color>
+    <color name="codeide_git_modifie">#9A6700</color>
+    <color name="codeide_git_supprime">#C6362D</color>
+
+    <!-- ============================================================
+         Accents par langage (ADR 0059) : identité visuelle des fichiers
+         et de la coloration à venir. Valeurs de marque : harmonisées
+         avec colorPrimary à l'exécution via ThemeHarmonizer.
+         ============================================================ -->
+    <color name="codeide_langage_kotlin">#7F52FF</color>
+    <color name="codeide_langage_java">#E76F00</color>
+    <color name="codeide_langage_gradle">#02303A</color>
+    <color name="codeide_langage_markdown">#1A5FB4</color>
+    <color name="codeide_langage_xml">#B35C00</color>
+    <color name="codeide_langage_json">#7B8A1E</color>
+
+    <!-- ============================================================
+         Rendu du terminal (Terminal T5) : fond et texte appliqués à la
+         palette Termux (indices 256/257 — RenduTerminal).
+         ============================================================ -->
+    <color name="codeide_terminal_fond">#F5F5F0</color>
+    <color name="codeide_terminal_texte">#1B1B1B</color>
+
+    <!-- Pastille d'état d'une session (identique clair/sombre). -->
+    <color name="codeide_terminal_etat_vivante">#2E7D32</color>
+    <color name="codeide_terminal_etat_terminee">#9E9E9E</color>
+
+    <!-- ============================================================
+         Jetons de conception des panneaux (ADR 0059, ex feature:editor
+         et feature:terminal) : explorateur v2 (EXPLORATEUR_V2.md § 3.1),
+         panneau inférieur et barre de symboles — centralisés jour/nuit.
+         ============================================================ -->
+    <color name="codeide_panneau_inferieur_fond">#F7F9FC</color>
+    <color name="codeide_barre_symboles_fond">#E7EBF2</color>
+    <color name="codeide_barre_symboles_filet">#C7CEDB</color>
+
+    <color name="codeide_explorateur_fond_tiroir">#F7F9FC</color>
+    <color name="codeide_explorateur_fond_entete_debut">#ECEFF4</color>
+    <color name="codeide_explorateur_fond_entete_fin">#E7EBF2</color>
+    <color name="codeide_explorateur_fond_cuve">#F0F3F8</color>
+    <color name="codeide_explorateur_fond_surface">#E7EBF1</color>
+    <color name="codeide_explorateur_fond_surface_2">#DDE3EC</color>
+    <color name="codeide_explorateur_fond_surface_3">#D3DAE5</color>
+    <color name="codeide_explorateur_bordure">#C7CEDB</color>
+    <color name="codeide_explorateur_bordure_fine">#D3DAE4</color>
+    <color name="codeide_explorateur_texte">#1B222C</color>
+    <color name="codeide_explorateur_texte_2">#55606E</color>
+    <color name="codeide_explorateur_texte_3">#7A8492</color>
+    <color name="codeide_explorateur_nom_dossier">#25303E</color>
+    <color name="codeide_explorateur_nom_fichier">#3A4452</color>
+    <color name="codeide_explorateur_accent">#1E6EC8</color>
+    <color name="codeide_explorateur_accent_fort">#1559B0</color>
+    <color name="codeide_explorateur_vert">#2E7D38</color>
+    <color name="codeide_explorateur_rouge">#C6362D</color>
+    <color name="codeide_explorateur_violet">#6A55A8</color>
+    <color name="codeide_explorateur_guide">#C4CBD7</color>
+    <color name="codeide_explorateur_dossier">#6E7A8C</color>
+    <color name="codeide_explorateur_dossier_racine_projet">#3A6A9A</color>
+    <color name="codeide_explorateur_dossier_racine_prive">#5A4A88</color>
+    <color name="codeide_explorateur_dossier_prive">#4E4080</color>
+    <color name="codeide_explorateur_nom_prive">#5A48A0</color>
+    <color name="codeide_explorateur_survol">#14000000</color>
+    <color name="codeide_explorateur_snackbar_fond">#2A323E</color>
+    <color name="codeide_explorateur_snackbar_bordure">#4A5364</color>
+    <color name="codeide_explorateur_barre_presse_papiers">#E2F1E4</color>
+    <color name="codeide_explorateur_presse_papiers_texte">#2E7D38</color>
+    <color name="codeide_explorateur_point_defaut">#7A8492</color>
+    <color name="codeide_explorateur_popover_bordure">#C7CEDB</color>
+    <color name="codeide_explorateur_accent_doux">#241E6EC8</color>
+    <color name="codeide_explorateur_vert_doux">#242E7D38</color>
+    <color name="codeide_explorateur_rouge_doux">#1FC6362D</color>
+    <color name="codeide_explorateur_violet_doux">#596A55A8</color>
+    <color name="codeide_explorateur_accent_halo">#591E6EC8</color>
+    <color name="codeide_explorateur_flash">#331E6EC8</color>
+    <color name="codeide_explorateur_poignee_fond_actif">#C9D6E4</color>
+    <color name="codeide_explorateur_poignee_bordure">#B7C0CD</color>
+    <color name="codeide_explorateur_vert_fond_onglet">#802E7D38</color>
+    <color name="codeide_explorateur_sous_titre_entete">#7A8492</color>
+    <color name="codeide_explorateur_texte_sur_accent">#FFFFFF</color>
+    <color name="codeide_explorateur_rail_fond">#ECEFF4</color>
+    <color name="codeide_explorateur_rail_bordure">#D3DAE4</color>
+
+    <!-- Gris doux du tiroir du terminal (pas d'équivalent explorateur). -->
+    <color name="codeide_tiroir_terminal_gris_doux">#249E9E9E</color>
 </resources>

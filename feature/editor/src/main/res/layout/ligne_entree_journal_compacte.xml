@@ -20,7 +20,7 @@
         android:minWidth="48dp"
         android:textAppearance="?attr/textAppearanceLabelSmall"
         tools:text="ERROR"
-        tools:textColor="@color/journal_compact_error" />
+        tools:textColor="?attr/colorJournalError" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/heure_entree"

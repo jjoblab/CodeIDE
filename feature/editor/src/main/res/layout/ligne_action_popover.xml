@@ -25,7 +25,7 @@
         android:layout_width="15dp"
         android:layout_height="15dp"
         android:contentDescription="@null"
-        app:tint="@color/explorateur_texte"
+        app:tint="@color/codeide_explorateur_texte"
         tools:src="@drawable/ic_fichier_kotlin" />
 
     <com.google.android.material.textview.MaterialTextView
@@ -35,7 +35,7 @@
         android:layout_marginStart="11dp"
         android:layout_weight="1"
         android:singleLine="true"
-        android:textColor="@color/explorateur_texte"
+        android:textColor="@color/codeide_explorateur_texte"
         android:textSize="13sp"
         tools:text="Renommer" />
 
@@ -48,7 +48,7 @@
         android:ellipsize="end"
         android:fontFamily="monospace"
         android:singleLine="true"
-        android:textColor="@color/explorateur_texte_3"
+        android:textColor="@color/codeide_explorateur_texte_3"
         android:textSize="10sp" tools:ignore="SmallSp"
         android:visibility="gone"
         tools:text="docs"

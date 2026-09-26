@@ -8,7 +8,7 @@
 
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/barre_symboles_fond" />
+            <solid android:color="@color/codeide_barre_symboles_fond" />
         </shape>
     </item>
 
@@ -16,7 +16,7 @@
     <item android:gravity="top">
         <shape android:shape="rectangle">
             <size android:height="1dp" />
-            <solid android:color="@color/barre_symboles_filet" />
+            <solid android:color="@color/codeide_barre_symboles_filet" />
         </shape>
     </item>
 </layer-list>

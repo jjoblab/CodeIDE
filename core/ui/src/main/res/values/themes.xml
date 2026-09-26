@@ -42,6 +42,35 @@
         <item name="colorOutline">@color/codeide_outline</item>
         <item name="colorOutlineVariant">@color/codeide_outline_variant</item>
 
+        <!-- Rôles sémantiques étendus (ADR 0059) : journal & sortie. -->
+        <item name="colorJournalDebug">@color/codeide_journal_debug</item>
+        <item name="colorJournalInfo">@color/codeide_journal_info</item>
+        <item name="colorJournalWarn">@color/codeide_journal_warn</item>
+        <item name="colorJournalError">@color/codeide_journal_error</item>
+        <item name="colorStdout">@color/codeide_stdout</item>
+        <item name="colorStderr">@color/codeide_stderr</item>
+        <item name="colorSucces">@color/codeide_succes</item>
+        <item name="colorInfo">@color/codeide_info</item>
+
+        <!-- Canaux tooling. -->
+        <item name="colorCanalSync">@color/codeide_canal_sync</item>
+        <item name="colorCanalBuild">@color/codeide_canal_build</item>
+        <item name="colorCanalTaches">@color/codeide_canal_taches</item>
+        <item name="colorCanalEtiquette">@color/codeide_canal_etiquette</item>
+
+        <!-- Statuts Git. -->
+        <item name="colorGitAjoute">@color/codeide_git_ajoute</item>
+        <item name="colorGitModifie">@color/codeide_git_modifie</item>
+        <item name="colorGitSupprime">@color/codeide_git_supprime</item>
+
+        <!-- Accents par langage. -->
+        <item name="colorLangageKotlin">@color/codeide_langage_kotlin</item>
+        <item name="colorLangageJava">@color/codeide_langage_java</item>
+        <item name="colorLangageGradle">@color/codeide_langage_gradle</item>
+        <item name="colorLangageMarkdown">@color/codeide_langage_markdown</item>
+        <item name="colorLangageXml">@color/codeide_langage_xml</item>
+        <item name="colorLangageJson">@color/codeide_langage_json</item>
+
         <item name="android:windowBackground">?attr/colorSurface</item>
 
         <!-- Typographie et formes : tokens CodeIDE. -->

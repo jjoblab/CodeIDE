@@ -49,6 +49,7 @@ import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.ControleurTerminalTiroir
 import jo.codeide.core.ui.FabriqueFragmentTerminalTiroir
 import jo.codeide.core.ui.IconesFichiers
+import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.applySystemBarsInsetsMargins
 import jo.codeide.core.ui.collectWithLifecycle
@@ -419,10 +420,10 @@ class EditorActivity :
         // libellé (§ 14).
         val accent =
             androidx.core.content.ContextCompat
-                .getColor(this, R.color.explorateur_accent)
+                .getColor(this, jo.codeide.core.ui.R.color.codeide_explorateur_accent)
         val inactif =
             androidx.core.content.ContextCompat
-                .getColor(this, R.color.explorateur_texte_3)
+                .getColor(this, jo.codeide.core.ui.R.color.codeide_explorateur_texte_3)
         liaison.railFragments.children.forEach { item ->
             val actif = item.id == destination
             item.findViewById<View>(R.id.encoche_rail).isVisible = actif
@@ -518,7 +519,12 @@ class EditorActivity :
         // (seuls éléments du src) — accent pendant, couleur propre sinon.
         poignee.imageTintList =
             if (pendant) {
-                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.explorateur_accent))
+                ColorStateList.valueOf(
+                    ContextCompat.getColor(
+                        this,
+                        jo.codeide.core.ui.R.color.codeide_explorateur_accent,
+                    ),
+                )
             } else {
                 null
             }
@@ -1372,9 +1378,10 @@ class EditorActivity :
             travailMinuteur = null
         } else {
             liaison.iconeCanalTooling.setImageResource(canal.icone)
+            // Couleur de marque du canal : harmonisée avec le primaire du
+            // thème courant (ADR 0059).
             liaison.iconeCanalTooling.setColorFilter(
-                androidx.core.content.ContextCompat
-                    .getColor(this, canal.couleur),
+                ThemeHarmonizer.harmoniserAvecPrimaire(this, canal.couleur),
             )
             liaison.activiteTooling.text = libelleActiviteTooling(etat, canal)
         }

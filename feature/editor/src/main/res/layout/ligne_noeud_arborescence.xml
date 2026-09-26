@@ -46,7 +46,7 @@
             android:contentDescription="@null"
             android:scaleType="center"
             android:src="@drawable/ic_chevron_noeud"
-            app:tint="@color/explorateur_texte_3"
+            app:tint="@color/codeide_explorateur_texte_3"
             tools:rotation="90" />
 
         <jo.codeide.feature.editor.VuePointEtat
@@ -75,7 +75,7 @@
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="@color/explorateur_nom_fichier"
+            android:textColor="@color/codeide_explorateur_nom_fichier"
             android:textSize="13sp"
             tools:text="Greeter.kt" />
 
@@ -100,7 +100,7 @@
             android:contentDescription="@null"
             android:src="@drawable/ic_avertissement"
             android:visibility="gone"
-            app:tint="@color/explorateur_rouge"
+            app:tint="@color/codeide_explorateur_rouge"
             tools:visibility="visible" />
 
         <!-- Compteur d'enfants du dossier (mono 10 sp, texte 3). -->
@@ -110,7 +110,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/editor_ecart_actions"
             android:fontFamily="monospace"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10sp" tools:ignore="SmallSp"
             android:visibility="gone"
             tools:text="12"
@@ -130,7 +130,7 @@
             android:paddingBottom="2.5dp"
             android:paddingTop="2.5dp"
             android:singleLine="true"
-            android:textColor="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="9.5sp" tools:ignore="SmallSp"
             android:visibility="gone"
             tools:text="/storage/emulated/0/CodeIDE"
@@ -171,8 +171,8 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="5dp"
             android:singleLine="true"
-            android:textColor="@color/explorateur_texte"
-            android:textColorHint="@color/explorateur_texte_3"
+            android:textColor="@color/codeide_explorateur_texte"
+            android:textColorHint="@color/codeide_explorateur_texte_3"
             android:textSize="12sp"
             tools:text="Greeter.kt" />
 
@@ -184,7 +184,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/edition_valider_cd"
             android:src="@drawable/ic_fait"
-            app:tint="@color/explorateur_vert" />
+            app:tint="@color/codeide_explorateur_vert" />
 
         <ImageButton
             android:id="@+id/bouton_annuler_edition"
@@ -193,6 +193,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/edition_annuler_cd"
             android:src="@drawable/ic_fermer_onglet"
-            app:tint="@color/explorateur_texte_2" />
+            app:tint="@color/codeide_explorateur_texte_2" />
     </LinearLayout>
 </FrameLayout>

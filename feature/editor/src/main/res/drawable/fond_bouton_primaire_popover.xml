@@ -2,10 +2,10 @@
 <!-- Bouton primaire du popover « Déplacer vers… » (§ 10.5) : accent fort,
      rayon 7 dp. -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/explorateur_survol">
+    android:color="@color/codeide_explorateur_survol">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/explorateur_accent_fort" />
+            <solid android:color="@color/codeide_explorateur_accent_fort" />
             <corners android:radius="7dp" />
         </shape>
     </item>
