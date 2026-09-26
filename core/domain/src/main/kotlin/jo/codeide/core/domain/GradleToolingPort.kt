@@ -48,6 +48,14 @@ public interface GradleToolingRepository {
     public suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation>
 
     /**
+     * État de synchronisation annoncé PAR L'ORCHESTRATEUR (étape 32,
+     * ADR 0057) : `en cours` dès l'événement de départ du serveur,
+     * `terminé` au résultat — l'UI se met à jour sur un fait du serveur,
+     * pas sur la présomption de son propre geste.
+     */
+    public fun observeSyncState(): Flow<EtatSyncTooling>
+
+    /**
      * Liste les tâches d'un projet (sélecteur « Exécuter »), arbre des
      * sous-projets compris.
      *
@@ -161,6 +169,18 @@ public data class ResultatSynchronisation(
     public val modelesEchoues: List<String> = emptyList(),
     public val dureeMs: Long = 0,
     public val messageEchec: String? = null,
+)
+
+/**
+ * État de synchronisation vu du client, alimenté par les événements de
+ * l'orchestrateur (étape 32, ADR 0057).
+ *
+ * @property enCours `true` entre l'événement de départ et le résultat.
+ * @property projectDir dossier annoncé par l'orchestrateur.
+ */
+public data class EtatSyncTooling(
+    public val enCours: Boolean = false,
+    public val projectDir: String? = null,
 )
 
 /**

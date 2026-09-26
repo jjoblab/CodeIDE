@@ -30,9 +30,9 @@ import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.RestaurerArbreUseCase
 import jo.codeide.core.domain.SeveriteDiagnostic
+import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
-import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
@@ -161,11 +161,11 @@ class EditorViewModel
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
-        private val horloge: TimeProvider,
         private val copierArbre: CopierArbreUseCase,
         private val deplacerArbre: DeplacerArbreUseCase,
         private val lireArbre: LireArbreUseCase,
         private val restaurerArbre: RestaurerArbreUseCase,
+        private val serviceGradle: GradleService,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -197,11 +197,9 @@ class EditorViewModel
         /** État de la carte d'aperçu du terminal du tiroir (T6, section 8). */
         val etatTerminal: StateFlow<EtatTerminalTiroir> = etatTerminalInterne.asStateFlow()
 
-        /** Cœur de l'état tooling de l'espace de travail (G5 ; v0.32.5 :
-         *  horloge injectée — les chronos de l'en-tête se testent). */
-        private val serviceGradle = GradleService(horloge = horloge::nowMillis)
-
-        /** État observable du tooling Gradle (G5, §6). */
+        /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
+         *  détenteur process-wide y publie, l'activité ET le service de
+         *  notification l'observent — ADR 0057). */
         val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
 
         /** Cache, plis et connaissances d'UN arbre (projet ou privé) — la
@@ -302,6 +300,19 @@ class EditorViewModel
             observerSessionsTerminal()
             observerTooling()
 
+            // Étape 32 (ADR 0057) : l'état tooling est process-wide —
+            // l'espace qui s'ouvre s'y rattache (console vierge, activités
+            // en vol conservées : un build parti avant la fermeture reste
+            // suivi, son observation repart).
+            serviceGradle.attacher()
+            rattacherBuildEnVol()
+
+            // Sync d'ouverture (étape 32, ADR 0057) : dès que le projet
+            // est connu, le tooling démarre — comme l'ouverture d'un
+            // projet dans Android Studio, la synchronisation (modèles +
+            // résolution des dépendances) part SANS attendre un geste.
+            lancerSyncOuverture()
+
             // Astuce d'appui long après 1,1 s (§ 18 de la spécification v2)
             // — une fois par session seulement.
             viewModelScope.launch {
@@ -314,16 +325,26 @@ class EditorViewModel
         }
 
         /**
-         * Tooling Gradle (G5, §6) : connexion et diagnostics suivis dès
+         * Tooling Gradle (G5, §6 ; étape 32 : sync d'ouverture) : connexion,
+         * diagnostics et état de sync annoncé PAR le serveur suivis dès
          * l'ouverture — l'état de connexion oriente les actions, les
          * diagnostics alimentent l'onglet Problèmes ET les sessions
-         * ouvertes (diagnostics inline, point d'ancrage ADR 0029).
+         * ouvertes (diagnostics inline, point d'ancrage ADR 0029), le
+         * `SyncStarted` de l'orchestrateur confirme le départ (canal Sync
+         * posé sur un fait du serveur, pas sur la présomption du geste).
          */
         private fun observerTooling() {
             tooling
                 .observeConnectionState()
                 .onEach { connexion -> serviceGradle.publierConnexion(connexion) }
                 .launchIn(viewModelScope)
+            tooling
+                .observeSyncState()
+                .onEach { etatSync ->
+                    if (etatSync.enCours) {
+                        serviceGradle.marquerSyncEnCours()
+                    }
+                }.launchIn(viewModelScope)
             viewModelScope.launch {
                 // La première connaissance du projet résout son dossier réel
                 // (SAF → FUSE, même traduction que le terminal) — les
@@ -340,6 +361,44 @@ class EditorViewModel
                     }
             }
         }
+
+        /**
+         * Rattache l'observation d'un build parti avant la fermeture de
+         * l'espace (étape 32, ADR 0057) : l'état process-wide garde le
+         * build en vol — ses sorties et son état continuent d'alimenter
+         * la console dès la ré-ouverture, comme un IDE qui se rattache à
+         * ses tâches de fond.
+         */
+        private fun rattacherBuildEnVol() {
+            val etat = serviceGradle.etat.value
+            val buildId = etat.buildId
+            if (etat.statutBuild == StatutBuild.EN_COURS && buildId != null) {
+                observerBuild(buildId, etat.taches)
+                journal.i(TAG) { "build en vol rattache (${etat.taches.size} tache(s))" }
+            }
+        }
+
+        /**
+         * Sync d'ouverture (étape 32, ADR 0057) : UNE fois par espace,
+         * dès la première connaissance du projet — la synchronisation
+         * force la résolution des modèles (GradleProject, IdeaProject :
+         * structure, dépendances, classpaths) que les fonctionnalités à
+         * venir (LSP) consommeront. Garde JDK d'abord (ADR 0048) : le
+         * refus typé s'affiche dans le canal Sync s'il n'y a pas d'outils.
+         */
+        private fun lancerSyncOuverture() {
+            viewModelScope.launch {
+                etatInterne.map { it.projet }.filterNotNull().first()
+                if (!syncOuvertureLancee) {
+                    syncOuvertureLancee = true
+                    journal.i(TAG) { "sync d'ouverture lancee (projet ${identifiantSuivi()})" }
+                    synchroniserProjetGradle()
+                }
+            }
+        }
+
+        /** La sync d'ouverture a-t-elle déjà été lancée pour cet espace ? */
+        private var syncOuvertureLancee = false
 
         /** Dossier FUSE du projet, résolu paresseusement (G5). */
         private var cheminProjet: String? = null
@@ -668,20 +727,32 @@ class EditorViewModel
             }
         }
 
-        /** Ouvre le sélecteur de tâches (liste via l'orchestrateur). */
+        /**
+         * Ouvre le sélecteur de tâches (liste via l'orchestrateur) — le
+         * listage vit sur SON canal (étape 32, ADR 0057) : indicateur de
+         * vol pendant la requête, le sélecteur est le résultat.
+         */
         private fun ouvrirSelecteurTaches() {
             viewModelScope.launch {
+                serviceGradle.marquerTachesEnCours()
                 if (jdkAbsent()) {
+                    serviceGradle.tachesTerminees()
                     refuserSansJdk()
                     return@launch
                 }
-                val dossier = dossierProjetOuEchec() ?: return@launch
+                val dossier = dossierProjetOuEchec()
+                if (dossier == null) {
+                    serviceGradle.tachesTerminees()
+                    return@launch
+                }
                 when (val resultat = listerTachesProjet(dossier)) {
                     is AppResult.Success -> {
+                        serviceGradle.tachesTerminees()
                         canalEffets.send(EffetEditor.OuvrirSelecteurTaches(resultat.value))
                     }
 
                     is AppResult.Failure -> {
+                        serviceGradle.tachesTerminees()
                         journal.w(TAG) { "listage des tâches impossible (projet ${identifiantSuivi()})" }
                     }
                 }

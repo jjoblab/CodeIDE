@@ -4,6 +4,59 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.33.0] – 2026-09-26
+
+### Ajouté (étape 32 — tooling professionnel, ADR 0057)
+
+- **Sync à l'ouverture du projet** — comme dans Android Studio : dès la
+  première connaissance du projet, la synchronisation part SANS attendre
+  un geste. La résolution des modèles (`GradleProject` : tâches ;
+  `IdeaProject` : structure IDE, dépendances, classpaths) force la
+  configuration du projet — le socle des fonctionnalités LSP à venir. La
+  garde JDK (ADR 0048) répond dans le canal Sync dès l'ouverture si les
+  outils manquent : un refus actionnable, jamais une erreur opaque.
+- **`SyncStarted` diffusé PAR le serveur** — 25e message du protocole
+  (fichier doré inclus) : l'orchestrateur annonce le départ d'une sync
+  AVANT la résolution, symétrique du `BuildStarted` des builds. L'en-tête
+  et la notification se posent sur un fait du serveur, pas sur la
+  présomption du geste ; le client l'observe par le port
+  (`observeSyncState`), le marquage devient idempotent (le chrono ne se
+  remet pas à zéro à la confirmation), et la perte de session conclut
+  proprement tout « en cours ».
+- **Canal Taches** — `CanalTooling.TACHES` (violet, `ic_liste_taches`) :
+  le listage du sélecteur « Exécuter » vit sur SON canal — indicateur de
+  vol dans l'en-tête (« Chargement des tâches… » + chrono), le sélecteur
+  est le résultat. Priorité du canal actif : Sync > Build > Taches.
+- **Service de notification du tooling** — `ToolingService` (foreground,
+  type `specialUse` documenté) : le `GradleService` pilote le service
+  d'Android par le port `DemarreurServiceTooling` au premier départ
+  d'activité ; la décision de contenu est pure
+  (`decisionNotificationTooling`) — notification en cours pendant
+  l'activité, notification finale au résultat (reste dans le tiroir),
+  arrêt de soi-même au repos. Même contrat que le service du terminal :
+  honnête, jamais collant.
+- **État tooling process-wide** — `GradleService` devient `@Singleton`
+  (le ViewModel l'injecte) : `attacher()` ouvre une session d'espace
+  (console et problèmes vierges, activités en vol conservées),
+  `rattacherBuildEnVol()` reprend l'observation d'un build parti avant la
+  fermeture — ses sorties continuent d'arriver à la ré-ouverture.
+
+### Modifié
+
+- `GradleToolingRepository` gagne `observeSyncState` (modèle domaine
+  `EtatSyncTooling`, zéro type tooling — règle §2.2) ; les faux des tests
+  suivent.
+- `EditorViewModel` n'a plus d'horloge propre (supprimée) : les chronos
+  vivent dans le `GradleService` singleton injecté.
+- `ServeurIntegrationTest` gèle l'ordre `SyncStarted` → `SyncResult` ;
+  `ServerVersion.CURRENT` passe à 0.33.0 (annoncée au handshake).
+- Vérification légère complète : `tooling:protocol`, `core:domain`,
+  `tooling:client`, `tooling:server`, `feature:editor` verts (112 tests
+  d'espace), `spotlessCheck` + `detekt` globaux verts ; situation réelle
+  validée par harnais contre le VRAI jar (sync ~1,1 s sur daemon réel,
+  32 tâches listées, build exécuté avec sortie, ping/pong, sortie propre
+  code 0 — ADR 0057 décision 6).
+
 ## [0.32.5] – 2026-09-26
 
 ### Modifié (retour appareil réel sur l'étape 31, tooling à canaux)

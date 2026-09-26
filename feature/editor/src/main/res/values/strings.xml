@@ -105,15 +105,35 @@
     <string name="editor_sortie_build_annule">Build annulé</string>
 
     <!-- Canaux tooling de l'en-tête du panneau (v0.32.5, ADR 0056
-         décision 5) : chaque information a SON canal — Sync et Build ne
-         se mélangent jamais, ni dans l'en-tête ni dans la console. -->
+         décision 5 ; étape 32 : canal Taches) : chaque information a SON
+         canal — Sync, Build et Taches ne se mélangent jamais, ni dans
+         l'en-tête ni dans la console. -->
     <string name="editor_tooling_canal_sync">Sync</string>
     <string name="editor_tooling_canal_build">Build</string>
+    <string name="editor_tooling_canal_taches">Tâches</string>
     <string name="editor_tooling_arreter_cd">Arrêter l\'activité tooling en cours</string>
     <string name="editor_tooling_sync_en_cours">Synchronisation du projet…</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build en cours…</string>
+    <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>
     <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
+
+    <!-- Service de notification du tooling (étape 32, ADR 0057) : mêmes
+         jetons que le service du terminal — titre de canal, titre de
+         notification, textes par activité et par résultat. -->
+    <string name="tooling_service_titre">Tooling Gradle</string>
+    <string name="tooling_service_canal">Activités Gradle</string>
+    <string name="tooling_service_sync_en_cours">Synchronisation du projet en cours…</string>
+    <string name="tooling_service_build_en_cours">Build en cours…</string>
+    <string name="tooling_service_build_taches">Build en cours — %1$s</string>
+    <string name="tooling_service_taches_en_cours">Chargement des tâches…</string>
+    <string name="tooling_service_sync_reussie">Synchronisation réussie en %1$s</string>
+    <string name="tooling_service_sync_echouee">Synchronisation échouée</string>
+    <string name="tooling_service_build_reussi">Build réussi en %1$s</string>
+    <string name="tooling_service_build_echoue">Build échoué</string>
+    <string name="tooling_service_build_annule">Build annulé</string>
+    <string name="tooling_service_duree_secondes">%1$d s</string>
+    <string name="tooling_service_duree_minutes">%1$d min</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->
     <string name="editor_tiroir_nouveau_cd">Créer un fichier ou un dossier à la racine du projet</string>

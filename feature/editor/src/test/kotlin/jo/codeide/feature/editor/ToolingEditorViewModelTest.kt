@@ -20,6 +20,89 @@ import org.junit.Test
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
+    fun `l ouverture du projet declenche la synchronisation automatique - etape 32`() =
+        runTest {
+            // JDK semé : la garde passe, la résolution du dossier échoue en
+            // JVM (même garde que T6) — l'ÉCHEC PUBLIÉ SANS GESTE prouve que
+            // la sync d'ouverture a bien tenté de partir.
+            localisateurOutils.jdk = java.io.File("/outils/jdk")
+            val id = ajouterProjet("projet-ouverture")
+            val viewModel = viewModel(id)
+            avancer()
+
+            val etat = viewModel.etatGradle.value
+            assertTrue(
+                "aucun geste : la sync d ouverture a déjà tenté (étape 32)",
+                etat.synchronisationEnCours.not(),
+            )
+            assertEquals("dossier du projet introuvable", etat.messageEchecSync)
+            assertEquals(
+                "l orchestrateur n est pas sollicité (dossier irrésolvable en JVM)",
+                0,
+                tooling.nbSynchronisations,
+            )
+
+            // Une seconde boucle d avance ne RETENTE PAS : une seule sync
+            // d ouverture par espace de travail.
+            avancer()
+            assertEquals(0, tooling.nbSynchronisations)
+        }
+
+    @Test
+    fun `la sync d ouverture passe par la garde JDK quand les outils manquent`() =
+        runTest {
+            val id = ajouterProjet("projet-ouverture-sans-jdk")
+            val viewModel = viewModel(id)
+            avancer()
+
+            // Aucun geste : la garde ADR 0048 a répondu dans le canal Sync.
+            assertTrue(
+                viewModel.etatGradle.value.messageEchecSync
+                    ?.contains("JDK absent") == true,
+            )
+            assertEquals(0, tooling.nbSynchronisations)
+        }
+
+    @Test
+    fun `un build en vol est rattache a la reouverture de l espace - etape 32`() =
+        runTest {
+            val id = ajouterProjet("projet-rattachement")
+            val viewModel = viewModel(id)
+            avancer()
+
+            // Un build tourne (couture), l'espace se referme : le
+            // ViewModel meurt, PAS l'état process-wide.
+            viewModel.observerBuild("b-vol", listOf("assembleDebug"))
+            tooling.emettreLigne("b-vol", ligne = "etape 1")
+            avancer()
+
+            // Ré-ouverture : le nouvel espace se rattache au build en vol.
+            val rouvert = viewModel(id)
+            avancer()
+
+            assertEquals("b-vol", rouvert.etatGradle.value.buildId)
+            assertEquals(
+                "les tâches du build en vol voyagent au rattachement (étape 32)",
+                listOf("assembleDebug"),
+                rouvert.etatGradle.value.taches,
+            )
+            assertEquals(StatutBuild.EN_COURS, rouvert.etatGradle.value.statutBuild)
+
+            tooling.emettreLigne("b-vol", ligne = "etape 2")
+            tooling.terminerBuild("b-vol", StatutBuild.REUSSI)
+            avancer()
+
+            assertEquals(StatutBuild.REUSSI, rouvert.etatGradle.value.statutBuild)
+            assertEquals(
+                "la vue console repart vierge à l attache (l historique complet reste " +
+                    "rejouable côté client) mais la sortie CONTINUE d arriver au build rattache",
+                listOf("etape 2"),
+                rouvert.etatGradle.value.lignes
+                    .map { ligne -> ligne.texte },
+            )
+        }
+
+    @Test
     fun `la synchronisation sans dossier publie l echec sans appel tooling`() =
         runTest {
             val id = ajouterProjet("projet-g5")
