@@ -42,4 +42,9 @@
     <string name="tiroir_terminal_session_terminee">● ended</string>
     <string name="tiroir_terminal_detail_session">%1$s · %2$s</string>
     <string name="tiroir_terminal_split_indisponible">Split needs at least two sessions.</string>
+
+    <!-- Automatic selection copy (ADR 0059). -->
+    <string name="terminal_selection_libelle">Terminal selection</string>
+    <string name="terminal_selection_copiee">Selection copied</string>
+
 </resources>

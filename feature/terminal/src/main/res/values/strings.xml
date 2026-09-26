@@ -42,4 +42,9 @@
     <string name="tiroir_terminal_session_terminee">● terminée</string>
     <string name="tiroir_terminal_detail_session">%1$s · %2$s</string>
     <string name="tiroir_terminal_split_indisponible">Le split nécessite au moins deux sessions.</string>
+
+    <!-- Copie automatique de la sélection (ADR 0059). -->
+    <string name="terminal_selection_libelle">Sélection du terminal</string>
+    <string name="terminal_selection_copiee">Sélection copiée</string>
+
 </resources>

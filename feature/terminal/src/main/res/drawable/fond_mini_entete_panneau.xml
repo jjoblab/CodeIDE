@@ -2,6 +2,6 @@
 <!-- Mini-entête d'un panneau de split (v0.32.2) : surface 2, coins hauts
      arrondis — le libellé de la session au-dessus de son rendu. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/tiroir_terminal_surface_2" />
+    <solid android:color="@color/codeide_explorateur_fond_surface_2" />
     <corners android:radius="8dp" />
 </shape>

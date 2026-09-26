@@ -34,7 +34,7 @@
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="@color/tiroir_terminal_texte_2"
+            android:textColor="@color/codeide_explorateur_texte_2"
             android:textSize="10.5sp" tools:ignore="SmallSp"
             tools:text="main" />
 
@@ -47,7 +47,7 @@
             android:padding="7dp"
             android:src="@drawable/ic_retour_liste"
             android:visibility="gone"
-            app:tint="@color/tiroir_terminal_texte_2"
+            app:tint="@color/codeide_explorateur_texte_2"
             tools:visibility="visible" />
 
         <ImageView
@@ -58,7 +58,7 @@
             android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
             android:padding="7dp"
             android:src="@drawable/ic_agrandir_dans_tiroir"
-            app:tint="@color/tiroir_terminal_texte_2" />
+            app:tint="@color/codeide_explorateur_texte_2" />
 
         <ImageView
             android:id="@+id/bouton_plein_ecran_panneau"
@@ -68,7 +68,7 @@
             android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
             android:padding="7dp"
             android:src="@drawable/ic_plein_ecran_externe"
-            app:tint="@color/tiroir_terminal_texte_2" />
+            app:tint="@color/codeide_explorateur_texte_2" />
     </LinearLayout>
 
     <!-- Rendu interactif : focus → saisie clavier virtuel ; toucher →

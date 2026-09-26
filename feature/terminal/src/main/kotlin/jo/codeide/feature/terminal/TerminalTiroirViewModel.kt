@@ -3,6 +3,7 @@ package jo.codeide.feature.terminal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
 import jo.codeide.core.domain.TerminalSessionSummary
 import jo.codeide.core.domain.ToolchainLocator
@@ -49,11 +50,15 @@ sealed interface ModeTerminalTiroir {
  * @property bootstrapInstalle vrai si les outils du terminal sont
  * installés — faux : l'installation passe avant toute session.
  * @property mode mode d'affichage courant.
+ * @property copieSelectionAuto copier la sélection au presse-papiers dès
+ * la fin de la sélection (ADR 0059 — même réglage que l'écran plein
+ * écran, partagé par les panneaux du tiroir).
  */
 data class EtatTerminalTiroir(
     val sessions: List<TerminalSessionSummary> = emptyList(),
     val bootstrapInstalle: Boolean = false,
     val mode: ModeTerminalTiroir = ModeTerminalTiroir.Liste,
+    val copieSelectionAuto: Boolean = false,
 )
 
 /**
@@ -86,6 +91,7 @@ class TerminalTiroirViewModel
     constructor(
         registre: TerminalSessionRepository,
         localisateur: ToolchainLocator,
+        observeReglages: ObserveSettingsUseCase,
     ) : ViewModel() {
         /** Mode courant (cœur local — les sessions viennent du registre). */
         private val modeInterne = MutableStateFlow<ModeTerminalTiroir>(ModeTerminalTiroir.Liste)
@@ -95,11 +101,13 @@ class TerminalTiroirViewModel
             combine(
                 registre.observeSessions(),
                 modeInterne,
-            ) { sessions, mode ->
+                observeReglages(),
+            ) { sessions, mode, reglages ->
                 EtatTerminalTiroir(
                     sessions = sessions,
                     bootstrapInstalle = localisateur.isBootstrapInstalled(),
                     mode = mode.aplatirSiSessionPerdue(sessions),
+                    copieSelectionAuto = reglages.copieSelectionAuto,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminalTiroir())
 

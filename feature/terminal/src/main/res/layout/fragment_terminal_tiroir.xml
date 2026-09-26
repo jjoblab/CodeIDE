@@ -47,7 +47,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_terminal"
-                    app:tint="@color/tiroir_terminal_violet" />
+                    app:tint="@color/codeide_explorateur_violet" />
             </FrameLayout>
 
             <LinearLayout
@@ -63,7 +63,7 @@
                     android:ellipsize="end"
                     android:singleLine="true"
                     android:text="@string/terminal_title"
-                    android:textColor="@color/tiroir_terminal_texte"
+                    android:textColor="@color/codeide_explorateur_texte"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -74,7 +74,7 @@
                     android:ellipsize="end"
                     android:fontFamily="monospace"
                     android:singleLine="true"
-                    android:textColor="@color/tiroir_terminal_sous_titre"
+                    android:textColor="@color/codeide_explorateur_sous_titre_entete"
                     android:textSize="10.5sp" tools:ignore="SmallSp"
                     tools:text="2 sessions actives · termux" />
             </LinearLayout>
@@ -97,7 +97,7 @@
                 android:contentDescription="@string/tiroir_terminal_nouvelle_session_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_nouvelle_session"
-                app:tint="@color/tiroir_terminal_violet" />
+                app:tint="@color/codeide_explorateur_violet" />
 
             <ImageView
                 android:id="@+id/bouton_mode_liste"
@@ -108,7 +108,7 @@
                 android:contentDescription="@string/tiroir_terminal_mode_liste_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_vue_liste"
-                app:tint="@color/tiroir_terminal_texte_2" />
+                app:tint="@color/codeide_explorateur_texte_2" />
 
             <ImageView
                 android:id="@+id/bouton_mode_split_vertical"
@@ -119,7 +119,7 @@
                 android:contentDescription="@string/tiroir_terminal_split_vertical_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_split_vertical"
-                app:tint="@color/tiroir_terminal_texte_2" />
+                app:tint="@color/codeide_explorateur_texte_2" />
 
             <ImageView
                 android:id="@+id/bouton_mode_split_colonnes"
@@ -130,7 +130,7 @@
                 android:contentDescription="@string/tiroir_terminal_split_colonnes_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_split_colonnes"
-                app:tint="@color/tiroir_terminal_texte_2" />
+                app:tint="@color/codeide_explorateur_texte_2" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/hint_split_indisponible"
@@ -142,7 +142,7 @@
                 android:ellipsize="end"
                 android:singleLine="true"
                 android:text="@string/tiroir_terminal_split_indisponible"
-                android:textColor="@color/tiroir_terminal_texte_3"
+                android:textColor="@color/codeide_explorateur_texte_3"
                 android:textSize="9.5sp" tools:ignore="SmallSp"
                 android:visibility="gone"
                 tools:visibility="visible" />
@@ -196,7 +196,7 @@
                         android:gravity="center"
                         android:text="@string/tiroir_terminal_aucune_session"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="@color/tiroir_terminal_texte_2" />
+                        android:textColor="@color/codeide_explorateur_texte_2" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bouton_creer_session_tiroir"
@@ -226,7 +226,7 @@
                         android:gravity="center"
                         android:text="@string/tiroir_terminal_non_installe"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="@color/tiroir_terminal_texte_2" />
+                        android:textColor="@color/codeide_explorateur_texte_2" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bouton_installer_terminal_tiroir"

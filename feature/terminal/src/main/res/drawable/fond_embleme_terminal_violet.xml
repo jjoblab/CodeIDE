@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Emblème violet de l'entête Terminal (maquette : rgba(156,134,216,.14)). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/tiroir_terminal_violet_doux" />
+    <solid android:color="@color/codeide_explorateur_violet_doux" />
     <corners android:radius="7dp" />
 </shape>

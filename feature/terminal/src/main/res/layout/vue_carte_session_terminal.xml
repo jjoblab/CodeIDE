@@ -27,7 +27,7 @@
         android:layout_height="17dp"
         android:contentDescription="@null"
         android:src="@drawable/ic_terminal"
-        app:tint="@color/tiroir_terminal_violet" />
+        app:tint="@color/codeide_explorateur_violet" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:singleLine="true"
-            android:textColor="@color/tiroir_terminal_texte"
+            android:textColor="@color/codeide_explorateur_texte"
             android:textSize="12.5sp"
             android:textStyle="bold"
             tools:text="main" />
@@ -55,7 +55,7 @@
             android:ellipsize="middle"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="@color/tiroir_terminal_texte_3"
+            android:textColor="@color/codeide_explorateur_texte_3"
             android:textSize="10.5sp" tools:ignore="SmallSp"
             tools:text="~/CodeIDE · 21:42" />
     </LinearLayout>
@@ -83,7 +83,7 @@
         android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
         android:padding="10dp"
         android:src="@drawable/ic_agrandir_dans_tiroir"
-        app:tint="@color/tiroir_terminal_texte_2" />
+        app:tint="@color/codeide_explorateur_texte_2" />
 
     <ImageView
         android:id="@+id/bouton_plein_ecran_session"
@@ -93,5 +93,5 @@
         android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
         android:padding="10dp"
         android:src="@drawable/ic_plein_ecran_externe"
-        app:tint="@color/tiroir_terminal_texte_2" />
+        app:tint="@color/codeide_explorateur_texte_2" />
 </LinearLayout>

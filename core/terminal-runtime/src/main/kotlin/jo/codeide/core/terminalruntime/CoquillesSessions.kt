@@ -1,8 +1,16 @@
 package jo.codeide.core.terminalruntime
 
+import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
+import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.model.StyleCurseurTerminal
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Coquille d'une session shell vue par le registre (abstraction interne
@@ -71,6 +79,7 @@ internal interface FabriqueCoquilles {
 @Suppress("TooManyFunctions")
 private class ClientTermux(
     private val ecouteur: EcouteurCoquille,
+    private val styleCurseur: () -> StyleCurseurTerminal,
 ) : TerminalSessionClient {
     override fun onTextChanged(changedSession: TerminalSession) {
         ecouteur.surTexteModifie()
@@ -100,7 +109,12 @@ private class ClientTermux(
 
     override fun onTerminalCursorStateChange(state: Boolean) = Unit
 
-    override fun getTerminalCursorStyle(): Int = STYLE_CURSEUR_BLOC
+    override fun getTerminalCursorStyle(): Int =
+        when (styleCurseur()) {
+            StyleCurseurTerminal.BLOC -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
+            StyleCurseurTerminal.LIGNE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE
+            StyleCurseurTerminal.BARRE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR
+        }
 
     // Journaux internes de l'émulateur (l'artefact JitPack v0.118.3 les
     // exige sur le client) : silencieux par design — les événements utiles
@@ -140,11 +154,6 @@ private class ClientTermux(
         tag: String,
         e: Exception,
     ) = Unit
-
-    private companion object {
-        /** Curseur bloc stable (même défaut que Termux sans préférence). */
-        private const val STYLE_CURSEUR_BLOC = 2
-    }
 }
 
 /**
@@ -161,6 +170,7 @@ internal class CoquilleTermux
         repertoireTravail: String,
         environnement: Array<String>,
         ecouteur: EcouteurCoquille,
+        styleCurseur: () -> StyleCurseurTerminal,
     ) : CoquilleSession {
         internal val session: TerminalSession =
             TerminalSession(
@@ -175,7 +185,7 @@ internal class CoquilleTermux
                 // transcriptRows =
                 TRANSCRIPT_ROWS,
                 // client =
-                ClientTermux(ecouteur),
+                ClientTermux(ecouteur, styleCurseur),
             )
 
         override fun estVivante(): Boolean = session.isRunning
@@ -201,11 +211,48 @@ internal class CoquilleTermux
 /** Fabrique de production : sessions Termux réelles. */
 internal class FabriqueCoquillesTermux
     @Inject
-    constructor() : FabriqueCoquilles {
+    constructor(
+        private val porteurStyleCurseur: PorteurStyleCurseur,
+    ) : FabriqueCoquilles {
         override fun creer(
             shell: String,
             repertoireTravail: String,
             environnement: Array<String>,
             ecouteur: EcouteurCoquille,
-        ): CoquilleSession = CoquilleTermux(shell, repertoireTravail, environnement, ecouteur)
+        ): CoquilleSession =
+            CoquilleTermux(shell, repertoireTravail, environnement, ecouteur, porteurStyleCurseur::lireStyle)
+    }
+
+/**
+ * Détenteur du style de curseur courant (ADR 0059) : collecte les
+ * paramètres applicatifs en tâche de fond et expose la dernière valeur
+ * connue — l'émulateur Termux la relit à chaque `setCursorStyle()`
+ * (notamment à la création d'une session), les sessions vivantes la
+ * rappellent quand l'écran constate un changement du réglage.
+ *
+ * Singleton du processus : une seule collecte, une seule source de
+ * vérité pour toutes les sessions. NB : l'ancien client renvoyait la
+ * constante 2 en l'appelant « bloc » — c'était le style BARRE de
+ * l'enum Termux ; le porteur corrige le mapping (BLOC = 0).
+ */
+@Singleton
+internal class PorteurStyleCurseur
+    @Inject
+    constructor(
+        observeReglages: ObserveSettingsUseCase,
+    ) {
+        /** Dernier style persisté connu (BLOC avant la première émission). */
+        @Volatile
+        internal var style: StyleCurseurTerminal = StyleCurseurTerminal.BLOC
+
+        /** Alias de lecture stable pour les coquilles (référence de méthode). */
+        internal fun lireStyle(): StyleCurseurTerminal = style
+
+        private val portee = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        init {
+            portee.launch {
+                observeReglages().collect { reglages -> style = reglages.styleCurseurTerminal }
+            }
+        }
     }

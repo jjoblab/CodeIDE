@@ -1,5 +1,7 @@
 package jo.codeide.feature.terminal
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -7,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -190,8 +193,8 @@ class TerminalTiroirFragment : Fragment() {
     /** Sélection, teinte et disponibilité des boutons de mode. */
     private fun rendreBoutonsModes(etat: EtatTerminalTiroir) {
         val plusieurs = etat.sessions.size >= SEUIL_SESSIONS_SPLIT
-        val accent = ColorStateList.valueOf(couleur(R.color.tiroir_terminal_accent))
-        val neutre = ColorStateList.valueOf(couleur(R.color.tiroir_terminal_texte_2))
+        val accent = ColorStateList.valueOf(couleur(jo.codeide.core.ui.R.color.codeide_explorateur_accent))
+        val neutre = ColorStateList.valueOf(couleur(jo.codeide.core.ui.R.color.codeide_explorateur_texte_2))
 
         liaison.boutonModeListe.isSelected = etat.mode == ModeTerminalTiroir.Liste
         liaison.boutonModeSplitVertical.isSelected = etat.mode == ModeTerminalTiroir.SplitVertical
@@ -264,9 +267,9 @@ class TerminalTiroirFragment : Fragment() {
         carte.badgeEtatSession.setTextColor(
             couleur(
                 if (vivante) {
-                    R.color.terminal_etat_vivante
+                    jo.codeide.core.ui.R.color.codeide_terminal_etat_vivante
                 } else {
-                    R.color.terminal_etat_terminee
+                    jo.codeide.core.ui.R.color.codeide_terminal_etat_terminee
                 },
             ),
         )
@@ -274,9 +277,9 @@ class TerminalTiroirFragment : Fragment() {
             ColorStateList.valueOf(
                 couleur(
                     if (vivante) {
-                        R.color.tiroir_terminal_vert_doux
+                        jo.codeide.core.ui.R.color.codeide_explorateur_vert_doux
                     } else {
-                        R.color.tiroir_terminal_gris_doux
+                        jo.codeide.core.ui.R.color.codeide_tiroir_terminal_gris_doux
                     },
                 ),
             )
@@ -381,10 +384,22 @@ class TerminalTiroirFragment : Fragment() {
                 lireAlt = { liaisonAmorce?.clavierEtenduTiroir?.altActif ?: false },
                 surEmulateurPret = { vue.appliquerThemeRendu() },
                 zoomer = { facteur -> zoomerPanneau(panne, facteur) },
+                copieSelectionAuto = { viewModel.etat.value.copieSelectionAuto },
+                copierTexte = { texte -> copierSelectionVersPressePapiers(texte) },
             ),
         )
         brancherPanneau(panne)
         return panne
+    }
+
+    /** Copie la sélection d'un panneau au presse-papiers (ADR 0059). */
+    private fun copierSelectionVersPressePapiers(texte: String) {
+        val pressePapiers =
+            requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        pressePapiers.setPrimaryClip(
+            ClipData.newPlainText(getString(R.string.terminal_selection_libelle), texte),
+        )
+        Toast.makeText(requireContext(), R.string.terminal_selection_copiee, Toast.LENGTH_SHORT).show()
     }
 
     /** Branche (et rebranche) un panneau sur sa session Termux. */

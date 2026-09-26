@@ -65,6 +65,8 @@ class TerminalViewModel
                     sessions = sessions,
                     idSessionActive = idActive,
                     taillePolice = reglages.taillePoliceTerminal,
+                    styleCurseur = reglages.styleCurseurTerminal,
+                    copieSelectionAuto = reglages.copieSelectionAuto,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminal())
 
