@@ -277,3 +277,31 @@ modules touchés + lintDebug.
   échecs typés `AppResult`, aucune donnée personnelle dans les journaux.
 - La reconnaissance du type (étape 18, ADR 0031) identifie déjà le langage
   déclaré d'un projet importé — le tooling s'y appuie au lieu de le deviner.
+
+**v0.34.0 (2026-09-26, retour utilisateur — cohérence Material You +
+refonte des Paramètres)** : quatre chantiers (ADR 0059) : (1) les
+couleurs dynamiques s'appliquent au niveau **Application** dans chaque
+processus (principal et `:crash`) via un miroir synchrone
+SharedPreferences de `useDynamicColor`/`themeMode` (aucun `runBlocking`,
+aucune dépendance Hilt au démarrage — `CodeIdeApplication` décide avant
+`super.onCreate()`), réécrit à chaque persistance et à chaque émission
+observée ; `MainActivity` ne garde que le changement à chaud
+(`recreate()` à la désactivation) ; (2) 21 **rôles de couleur étendus**
+(journal, stdout/stderr, succès/info, canaux Sync/Build/Taches, statuts
+Git, accents par langage) exposés comme attrs de thème jour/nuit dans
+core:ui, les couleurs de marque s'harmonisant avec le `colorPrimary`
+courant via `ThemeHarmonizer` (`MaterialColors.harmonize`) ; (3)
+**migration complète** des ~170 littéraux hex des cinq features vers
+core:ui (les jetons `tiroir_terminal_*` dupliqués de l'explorateur
+depuis l'ADR 0053 sont unifiés ; la coloration du niveau de journal de
+l'écran Diagnostic, prévue mais jamais branchée, est appliquée) ;
+(4) **écran Paramètres à deux niveaux** : maître en cartes M3
+(Général/Modules/Environnement/Application, sous-titres d'état,
+navigation `SectionParametres`), un fragment par section, `AppSettings`
+étendu (Éditeur persisté-avant-consommation, Terminal avec curseur
+BLOC/LIGNE/BARRE consommé par l'émulateur Termux + copie automatique de
+sélection, Notifications Sync/Build/Son filtrant réellement
+`ToolingService`), IA/Outils/Sécurité en état « Bientôt disponible »
+générique (aucune logique inventée, en attente de confirmation du
+contenu). Vérification légère (AGENTS.md) : spotless + detekt + tests
+des modules touchés + lintDebug + assembleDebug.

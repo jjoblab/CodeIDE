@@ -13,7 +13,10 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.StyleCurseurTerminal
+import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -117,6 +120,17 @@ public class SettingsDataStore(
         internal val MODE_THEME: Preferences.Key<String> = stringPreferencesKey("theme_mode")
         internal val COULEURS_DYNAMIQUES: Preferences.Key<Boolean> = booleanPreferencesKey("dynamic_color")
         internal val LANGUE: Preferences.Key<String> = stringPreferencesKey("language_tag")
+        internal val NOTIFICATIONS_SYNC: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_sync")
+        internal val NOTIFICATIONS_BUILD: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_build")
+        internal val SON_NOTIFICATIONS: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_sound")
+        internal val EDITEUR_RETOUR_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_word_wrap")
+        internal val EDITEUR_NUMEROS_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_line_numbers")
+        internal val EDITEUR_SURLIGNER_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_highlight_line")
+        internal val EDITEUR_TAILLE_TAB: Preferences.Key<String> = stringPreferencesKey("editor_tab_size")
+        internal val EDITEUR_SAUVEGARDE_AUTO: Preferences.Key<Boolean> = booleanPreferencesKey("editor_autosave")
+        internal val EDITEUR_TAILLE_POLICE: Preferences.Key<String> = stringPreferencesKey("editor_font_size")
+        internal val STYLE_CURSEUR: Preferences.Key<String> = stringPreferencesKey("terminal_cursor_style")
+        internal val COPIE_SELECTION: Preferences.Key<Boolean> = booleanPreferencesKey("terminal_auto_copy")
         internal val AUTORISATION_TRAVAIL: Preferences.Key<String> = stringPreferencesKey("workspace_grant_uri")
         internal val DOCUMENT_TRAVAIL: Preferences.Key<String> = stringPreferencesKey("workspace_document_uri")
         internal val LIBELLE_TRAVAIL: Preferences.Key<String> = stringPreferencesKey("workspace_display_path")
@@ -129,7 +143,16 @@ public class SettingsDataStore(
     }
 }
 
-/** Projette les préférences vers [AppSettings], en retombant sur [defaults]. */
+/**
+ * Projette les préférences vers [AppSettings], en retombant sur [defaults].
+ *
+ * Exemption detekt ciblée (règle 16 du prompt maître) :
+ * CyclomaticComplexMethod — une branche par champ persisté (21 réglages,
+ * ADR 0059), chacune retombant sur son défaut : c'est une projection
+ * plate, l'éclater en sous-fonctions déplacerait le problème sans rien
+ * clarifier.
+ */
+@Suppress("CyclomaticComplexMethod")
 internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
     AppSettings(
         themeMode =
@@ -137,6 +160,24 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
                 ?: defaults.themeMode,
         useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
         languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
+        notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
+        notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
+        sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
+        editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
+        editorNumerosLigne = this[SettingsDataStore.Cles.EDITEUR_NUMEROS_LIGNE] ?: defaults.editorNumerosLigne,
+        editorSurlignerLigneActuelle =
+            this[SettingsDataStore.Cles.EDITEUR_SURLIGNER_LIGNE] ?: defaults.editorSurlignerLigneActuelle,
+        editorTailleTabulation =
+            TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TAB])
+                ?: defaults.editorTailleTabulation,
+        editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
+        editorTaillePolice =
+            TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
+                ?: defaults.editorTaillePolice,
+        styleCurseurTerminal =
+            StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
+                ?: defaults.styleCurseurTerminal,
+        copieSelectionAuto = this[SettingsDataStore.Cles.COPIE_SELECTION] ?: defaults.copieSelectionAuto,
         workspace = emplacementTravail() ?: defaults.workspace,
         authorName = this[SettingsDataStore.Cles.NOM_AUTEUR] ?: defaults.authorName,
         defaultLicense =
@@ -171,6 +212,17 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.MODE_THEME, reglage.themeMode.name)
     set(SettingsDataStore.Cles.COULEURS_DYNAMIQUES, reglage.useDynamicColor)
     set(SettingsDataStore.Cles.LANGUE, reglage.languageTag)
+    set(SettingsDataStore.Cles.NOTIFICATIONS_SYNC, reglage.notificationsSync)
+    set(SettingsDataStore.Cles.NOTIFICATIONS_BUILD, reglage.notificationsBuild)
+    set(SettingsDataStore.Cles.SON_NOTIFICATIONS, reglage.sonNotifications)
+    set(SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE, reglage.editorRetourLigne)
+    set(SettingsDataStore.Cles.EDITEUR_NUMEROS_LIGNE, reglage.editorNumerosLigne)
+    set(SettingsDataStore.Cles.EDITEUR_SURLIGNER_LIGNE, reglage.editorSurlignerLigneActuelle)
+    set(SettingsDataStore.Cles.EDITEUR_TAILLE_TAB, reglage.editorTailleTabulation.name)
+    set(SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO, reglage.editorSauvegardeAuto)
+    set(SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE, reglage.editorTaillePolice.name)
+    set(SettingsDataStore.Cles.STYLE_CURSEUR, reglage.styleCurseurTerminal.name)
+    set(SettingsDataStore.Cles.COPIE_SELECTION, reglage.copieSelectionAuto)
     set(SettingsDataStore.Cles.NOM_AUTEUR, reglage.authorName)
     set(SettingsDataStore.Cles.LICENCE, reglage.defaultLicense.name)
     set(SettingsDataStore.Cles.VERBOSITE, reglage.logLevel.name)

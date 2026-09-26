@@ -284,4 +284,8 @@
 
     <!-- Toolbar : fermeture du projet (déplacée de l'entête v1). -->
     <string name="editor_action_fermer_projet">Fermer le projet</string>
+
+    <!-- Notification neutre (canaux coupés, ADR 0059). -->
+    <string name="tooling_service_neutre_texte">Tâche en arrière-plan</string>
+
 </resources>
