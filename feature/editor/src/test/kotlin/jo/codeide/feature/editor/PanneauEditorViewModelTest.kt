@@ -85,7 +85,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
                     tooling,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
-            horloge = horlogeOutil,
+            serviceGradle = serviceGradleTest,
             savedStateHandle = sauvegarde,
         )
 

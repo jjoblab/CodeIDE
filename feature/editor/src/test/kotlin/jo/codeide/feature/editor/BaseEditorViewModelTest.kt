@@ -77,6 +77,15 @@ abstract class BaseEditorViewModelTest {
         jo.codeide.core.domain
             .TimeProvider { instantOutil }
 
+    /** Faux du port de lancement du service de notification (étape 32) :
+     *  les transitions se comptent, aucun Android nécessaire. */
+    private val demarreurServiceOutil = FauxDemarreurServiceTooling()
+
+    /** Détenteur d'état tooling process-wide (étape 32) — le socle en
+     *  construit UN par test : les activités en vol d'un test ne
+     *  saignent jamais vers le suivant. */
+    protected val serviceGradleTest = GradleService(horloge = horlogeOutil, demarreur = demarreurServiceOutil)
+
     /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
     protected val resoudreRepertoire =
         ResoudreRepertoireProjet(
@@ -119,7 +128,6 @@ abstract class BaseEditorViewModelTest {
             resoudreRepertoireProjet = resoudreRepertoire,
             localisateurOutils = localisateurOutils,
             tooling = tooling,
-            horloge = horlogeOutil,
             synchroniserProjet =
                 jo.codeide.core.domain.SynchroniserProjetUseCase(
                     tooling,
@@ -152,6 +160,7 @@ abstract class BaseEditorViewModelTest {
                     tooling,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
+            serviceGradle = serviceGradleTest,
             savedStateHandle = sauvetage,
         )
 

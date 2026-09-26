@@ -3,6 +3,7 @@ package jo.codeide.feature.editor
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
+import jo.codeide.core.domain.EtatSyncTooling
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.InfoTache
@@ -41,6 +42,10 @@ class FauxToolingEditor : GradleToolingRepository {
     /** Dossier passé à chaque opération (assertions). */
     var dossierRecu: File? = null
 
+    /** Nombre de synchronisations demandées (assertion de la sync
+     *  d'ouverture, étape 32). */
+    var nbSynchronisations: Int = 0
+
     /** Tâches du dernier build demandé. */
     var tachesDemandees: List<String> = emptyList()
 
@@ -65,6 +70,7 @@ class FauxToolingEditor : GradleToolingRepository {
 
     override suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation> {
         dossierRecu = projectDir
+        nbSynchronisations++
         return prochaineSynchronisation
     }
 
@@ -90,6 +96,11 @@ class FauxToolingEditor : GradleToolingRepository {
     override fun observeHeap(): Flow<InstantaneTas> = MutableStateFlow(InstantaneTas(0, 0))
 
     override fun observeConnectionState(): Flow<EtatConnexion> = connexionInterne
+
+    /** État de sync annoncé (pilotable — étape 32). */
+    val syncInterne = MutableStateFlow(EtatSyncTooling())
+
+    override fun observeSyncState(): Flow<EtatSyncTooling> = syncInterne
 
     override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = diagnosticsInterne
 

@@ -144,6 +144,8 @@ class GradleUseCasesTest {
 
         override fun observeConnectionState(): Flow<EtatConnexion> = MutableStateFlow(EtatConnexion.DECONNECTEE)
 
+        override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
+
         override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = MutableStateFlow(emptyList())
     }
 }

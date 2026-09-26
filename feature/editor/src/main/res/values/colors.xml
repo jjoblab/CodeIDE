@@ -22,11 +22,13 @@
     <color name="barre_symboles_fond">#E7EBF2</color>
     <color name="barre_symboles_filet">#C7CEDB</color>
 
-    <!-- Canaux tooling (v0.32.5, ADR 0056 décision 5) : une couleur
-         unique par canal — Sync (teal) et Build (accent bleu) ne se
-         confondent jamais, ni dans l'en-tête ni dans la console. -->
+    <!-- Canaux tooling (v0.32.5, ADR 0056 décision 5 ; étape 32 : Taches) :
+         une couleur unique par canal — Sync (teal), Build (accent bleu) et
+         Taches (violet) ne se confondent jamais, ni dans l'en-tête ni dans
+         la console. -->
     <color name="canal_tooling_sync">#0E7490</color>
     <color name="canal_tooling_build">#1E6EC8</color>
+    <color name="canal_tooling_taches">#7C3AED</color>
 
     <!-- Étiquette de canal en tête de ligne de console (petite pastille). -->
     <color name="canal_etiquette_texte">#FFFFFF</color>

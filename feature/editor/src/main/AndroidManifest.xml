@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Service foreground du tooling (étape 32, ADR 0057) : tient la
+         notification honnête des activités Gradle (sync, build, tâches)
+         pendant qu'elles tournent — démarre au premier départ d'activité,
+         s'arrête de lui-même au repos. Type specialUse : aucun des types
+         normalisés ne décrit « informer des activités de build Gradle » —
+         le sous-type documenté ci-dessous l'explique à la revue Play. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Espace de travail de l'éditeur (étape 13) : activité séparée de
          MainActivity, jamais exposée hors de l'application. supportsRtl :
          les layouts utilisent des attributs start/end — la valeur est
@@ -10,6 +20,15 @@
             android:name="jo.codeide.feature.editor.EditorActivity"
             android:exported="false"
             android:label="@string/editor_title" />
+
+        <service
+            android:name="jo.codeide.feature.editor.ToolingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Tient au courant l'utilisateur des activités de tooling Gradle (synchronisation, build, listage des tâches) pendant qu'elles tournent." />
+        </service>
     </application>
 
 </manifest>

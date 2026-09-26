@@ -1396,6 +1396,11 @@ class EditorActivity :
                 travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
             }
 
+            CanalTooling.TACHES -> {
+                val depart = etat.debutTachesMs
+                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
+            }
+
             null -> {
                 liaison.minuteurTooling.text =
                     if (canal == CanalTooling.SYNC) {
@@ -1415,9 +1420,9 @@ class EditorActivity :
         majPeekPanneau()
     }
 
-    /** Libellé de l'activité tooling (v0.32.5) : la tâche en cours sur
-     *  son canal — tâches du build, synchronisation, ou le résultat du
-     *  dernier canal actif. */
+    /** Libellé de l'activité tooling (v0.32.5 ; étape 32 : canal Taches) :
+     *  la tâche en cours sur son canal — tâches du build, synchronisation,
+     *  listage, ou le résultat du dernier canal actif. */
     private fun libelleActiviteTooling(
         etat: EtatGradle,
         canal: CanalTooling,
@@ -1472,6 +1477,11 @@ class EditorActivity :
                         getString(R.string.editor_sortie_vide)
                     }
                 }
+            }
+
+            CanalTooling.TACHES -> {
+                // Indicateur de vol : le sélecteur est le résultat du canal.
+                getString(R.string.editor_tooling_taches_en_cours)
             }
         }
 
