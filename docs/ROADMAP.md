@@ -379,3 +379,25 @@ délai protocole de 10 s reste pour le connect seul). Chemin de
 production `java -jar` validé au harnais JVM (connexion + handshake
 complets). Vérification (AGENTS.md) : spotless + detekt + tests
 des modules touchés (client, daemon, protocol, server) + lintDebug.
+
+**v0.35.2 (2026-09-27, retour utilisateur — journal de terrain « Too
+small maximum heap », ADR 0062)** : la VM de l'orchestrateur ne
+démarrant pas, le tag `gradle-server` (branché dès le lancement,
+ADR 0061) a livré la cause racine au premier journal : la commande
+de production passait `-Xmx256` — un nombre NU, lu en OCTETS (256 o <
+minimum de la VM) — là où la spécification (ADR 0042, TOOLING.md)
+et les tests écrivaient à la main `-Xmx256m`. Reproduction desktop
+immédiate (`java -Xmx256 -version` → exit 1, mêmes deux lignes ;
+`-Xmx256m` → exit 0). Correctif : (1) suffixe d'unité OBLIGATOIRE
+dans `commandeParDefaut` (`-Xmx${TAS_MO}m`), discipline portée par
+le contrat de `TAS_MO` ; (2) `BoutEnBoutTest`/`ChaosToolingTest`
+référencent la MÊME constante (plus de citation en dur) ; (3) test de
+régression qui fait exécuter le `-Xmx` de la VRAIE commande
+production par la VRAIE JVM des tests (`-version`, code 0 attendu) :
+une taille invalide est désormais refusée en CI, jamais sur l'appareil.
+Les warnings « JDK introuvable » du journal sont l'état conçu pendant
+l'installation du bootstrap (ADR 0042 : le daemon re-teste à la
+prochaine demande — le journal le confirme, l'orchestrateur démarre
+une fois les outils installés). Vérification (AGENTS.md) : spotless +
+detekt + tests du module touché (daemon : 22 tests dont bout-en-bout
+réel, 0 échec).
