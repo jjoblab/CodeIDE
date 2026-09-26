@@ -357,3 +357,25 @@ retour d'empilement de vues traité par conception, régression couverte
 par NavigationSectionsTest. Vérification (AGENTS.md) : spotless +
 detekt + tests des modules touchés (model, datastore, data, ui,
 app, settings, editor) + lintDebug + assembleDebug.
+
+**v0.35.1 (2026-09-27, retour utilisateur — « orchestrateur non
+connecté » à l'ouverture d'un projet, ADR 0061)** : le daemon du
+tooling gelait en silence : (1) le `accept()` d'`android.net.
+LocalServerSocket` n'est pas interruptible, le délai de connexion de
+l'écoute ne se déclenchait donc JAMAIS — la coroutine du daemon
+restait suspendue indéfiniment, sans relance ni état `ECHOUEE`
+(les tests bout-en-bout utilisaient un hôte JVM à canal NIO
+interruptible, insensible au défaut) ; l'accept vit désormais dans
+un job détaché réveillé par un client factice (le noyau complète la
+connexion dans le backlog : `accept(2)` rend la main) et l'échec
+typé remonte au daemon qui relance borné ; (2) les sorties du
+process orchestrateur n'étaient lues qu'APRÈS la connexion : une
+JVM qui meurt avant de se connecter (reproduction JVM du chemin
+`java -jar` : validé sain, mais stderr explicite sur échec) était
+muette — stderr/stdout sont journalisés dès le lancement, tag
+`gradle-server` ; (3) fenêtre de connexion dédiée de 30 s côté app
+(`FENETRE_CONNEXION_MS` — démarrage à froid de la JVM compris, le
+délai protocole de 10 s reste pour le connect seul). Chemin de
+production `java -jar` validé au harnais JVM (connexion + handshake
+complets). Vérification (AGENTS.md) : spotless + detekt + tests
+des modules touchés (client, daemon, protocol, server) + lintDebug.
