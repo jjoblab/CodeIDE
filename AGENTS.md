@@ -31,6 +31,35 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
 - SemVer : `0.N.0` par étape validée, `0.N.M` par correction.
 - Aucune permission `INTERNET` ni `MANAGE_EXTERNAL_STORAGE` en Phase 1.
 
+## Identité Git (règle permanente — v0.34.2)
+
+Toute écriture git — commit, tag annoté, merge — se fait
+**exclusivement** sous l'identité du propriétaire du dépôt :
+
+- `user.name` = `jjoblab`
+- `user.email` = `olson12jb@gmail.com`
+
+Avant de committer, vérifier la configuration ; si elle manque, la
+poser au niveau du dépôt :
+
+```bash
+git config user.name "jjoblab"
+git config user.email "olson12jb@gmail.com"
+```
+
+Aucune identité d'agent (« Agent CodeIDE », « Z User » ou autre) ni
+d'adresse `noreply` GitHub ne doit jamais apparaître dans
+l'historique : l'intégralité de celui-ci a été réécrite en v0.34.2
+pour n'offrir que `jjoblab <olson12jb@gmail.com>` (auteurs,
+committers et taggers de tags). Contrôle en fin de session :
+
+```bash
+git log --format='%an <%ae> | %cn <%ce>' | sort -u
+git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
+```
+
+→ chaque commande ne doit renvoyer que `jjoblab <olson12jb@gmail.com>`.
+
 ## Règles impératives (abrégées — section 3 du prompt maître)
 
 1. Aucune logique métier dans Activity/Fragment/ViewModel : elle vit dans des

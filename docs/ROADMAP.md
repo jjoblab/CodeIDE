@@ -317,3 +317,17 @@ asynchrone disque) avec ajout de la dépendance `core-ktx` à core:data,
 jusque-là présente seulement transitivement. Vérification légère :
 spotless global + detekt core:data + lintDebug core:data (rapport
 « No issues found ») + 15 tests core:data verts.
+
+**Correctif v0.34.2 (2026-09-27, identité git unifiée sous le
+propriétaire du dépôt)** : l'historique **complet** a été réécrit —
+les 165 commits (auteurs et committers) et les 48 tags annotés
+(taggers) portent désormais exclusivement `jjoblab
+<olson12jb@gmail.com>`, effaçant les identités d'agent qui s'étaient
+glissées (« Agent CodeIDE », « Z User » du sandbox) et les adresses
+noreply GitHub ; dates d'auteurs, de committers et de tags
+préservées. Une section permanente « Identité Git » est ajoutée à
+AGENTS.md (vérification `git config` avant tout commit + contrôles de
+fin de session), et la configuration du sandbox est corrigée.
+Conséquence : **tous les SHA ont changé** — le push vers GitHub
+nécessite `git push --force origin main --tags` (la CI rejouera par
+tag). Aucun changement applicatif (version 0.34.2/3402).
