@@ -1,6 +1,7 @@
 package jo.codeide.core.data
 
 import android.content.Context
+import androidx.core.content.edit
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 
@@ -57,9 +58,9 @@ public object MiroirApparence {
 
     /**
      * Réécrit le miroir après une persistance DataStore réussie —
-     * `apply()` (asynchrone disque, synchrone mémoire) suffit : la
-     * prochaine lecture, au prochain démarrage de processus, retombera
-     * sur un fichier déjà visible.
+     * l'extension KTX `edit` valide via `apply()` (asynchrone disque,
+     * synchrone mémoire) : la prochaine lecture, au prochain démarrage
+     * de processus, retombera sur un fichier déjà visible.
      *
      * @param context contexte applicatif.
      * @param reglages état persisté source de la recopie.
@@ -70,9 +71,9 @@ public object MiroirApparence {
     ) {
         context
             .getSharedPreferences(FICHIER, Context.MODE_PRIVATE)
-            .edit()
-            .putString(CLE_MODE_THEME, reglages.themeMode.name)
-            .putBoolean(CLE_COULEURS_DYNAMIQUES, reglages.useDynamicColor)
-            .apply()
+            .edit {
+                putString(CLE_MODE_THEME, reglages.themeMode.name)
+                putBoolean(CLE_COULEURS_DYNAMIQUES, reglages.useDynamicColor)
+            }
     }
 }

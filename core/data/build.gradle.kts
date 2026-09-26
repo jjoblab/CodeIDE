@@ -21,6 +21,10 @@ dependencies {
     // Journalisation des opérations (identifiants uniquement, règle 15).
     implementation(project(":core:logging"))
 
+    // SharedPreferences.edit {} (extension KTX, exigée par Lint) pour le
+    // miroir d'apparence de MiroirApparence.
+    implementation(libs.androidx.core.ktx)
+
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

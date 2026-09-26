@@ -305,3 +305,15 @@ sélection, Notifications Sync/Build/Son filtrant réellement
 générique (aucune logique inventée, en attente de confirmation du
 contenu). Vérification légère (AGENTS.md) : spotless + detekt + tests
 des modules touchés + lintDebug + assembleDebug.
+
+**Correctif v0.34.1 (2026-09-26, échec CI après la v0.34.0 — lint
+`UseKtx`)** : l'écriture du miroir d'apparence (chantier 1 de la
+v0.34.0) utilisait l'enchaînement Java `edit().putString().apply()` —
+`lintDebug` de core:data (non couvert par la vérification légère de la
+v0.34.0, qui n'avait linté que les features) refusait le build en CI :
+l'unique erreur `UseKtx` du projet. Corrigé par l'extension KTX
+`SharedPreferences.edit { … }` (comportement identique — `apply()`
+asynchrone disque) avec ajout de la dépendance `core-ktx` à core:data,
+jusque-là présente seulement transitivement. Vérification légère :
+spotless global + detekt core:data + lintDebug core:data (rapport
+« No issues found ») + 15 tests core:data verts.
