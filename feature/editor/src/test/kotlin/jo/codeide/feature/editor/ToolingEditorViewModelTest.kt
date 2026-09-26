@@ -49,6 +49,22 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `le classpath LSP n est pas sollicite quand la sync n a rien resolu - ADR 0058`() =
+        runTest {
+            // Même limite JVM que la sync d'ouverture : le dossier ne se
+            // résout pas, la sync échoue AVANT l'orchestrateur — la
+            // préparation du classpath LSP ne part jamais quand la sync
+            // n'a rien résolu (elle suit une sync UTILE, jamais un échec).
+            localisateurOutils.jdk = java.io.File("/outils/jdk")
+            val id = ajouterProjet("projet-classpath")
+            val viewModel = viewModel(id)
+            avancer()
+
+            assertEquals(0, tooling.nbSynchronisations)
+            assertEquals("le classpath LSP suit une sync résolue, rien d'autre", 0, tooling.nbClasspaths)
+        }
+
+    @Test
     fun `la sync d ouverture passe par la garde JDK quand les outils manquent`() =
         runTest {
             val id = ajouterProjet("projet-ouverture-sans-jdk")

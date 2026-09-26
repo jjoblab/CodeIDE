@@ -127,6 +127,9 @@ class GradleUseCasesTest {
             return prochainesTaches
         }
 
+        override suspend fun classpath(projectDir: File): AppResult<ClasspathProjet> =
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
         override suspend fun build(
             projectDir: File,
             tasks: List<String>,

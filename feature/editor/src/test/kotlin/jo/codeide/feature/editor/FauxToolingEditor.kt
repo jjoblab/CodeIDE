@@ -1,5 +1,6 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.domain.ClasspathProjet
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
@@ -39,12 +40,19 @@ class FauxToolingEditor : GradleToolingRepository {
     var prochainesTaches: AppResult<List<InfoTache>> =
         AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
+    /** Réponse de `classpath` (ADR 0058 — préparation LSP). */
+    var prochainClasspath: AppResult<ClasspathProjet> =
+        AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
     /** Dossier passé à chaque opération (assertions). */
     var dossierRecu: File? = null
 
     /** Nombre de synchronisations demandées (assertion de la sync
      *  d'ouverture, étape 32). */
     var nbSynchronisations: Int = 0
+
+    /** Nombre de préparations de classpath demandées (assertion ADR 0058). */
+    var nbClasspaths: Int = 0
 
     /** Tâches du dernier build demandé. */
     var tachesDemandees: List<String> = emptyList()
@@ -77,6 +85,12 @@ class FauxToolingEditor : GradleToolingRepository {
     override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> {
         dossierRecu = projectDir
         return prochainesTaches
+    }
+
+    override suspend fun classpath(projectDir: File): AppResult<ClasspathProjet> {
+        dossierRecu = projectDir
+        nbClasspaths++
+        return prochainClasspath
     }
 
     override suspend fun build(

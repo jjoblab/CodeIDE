@@ -27,68 +27,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
-    /** Construit le ViewModel avec un sauvetage gardé par le test. */
-    private fun viewModel(sauvegarde: SavedStateHandle): EditorViewModel =
-        EditorViewModel(
-            observerProjet = ObserveProjectUseCase(depot),
-            verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-            fichiers = fichiers,
-            fichiersPrives = fichiersPrives,
-            journal = FakeAppLogger(),
-            observerJournaux = ObserveLogsUseCase(depotJournaux),
-            evaluerNom =
-                jo.codeide.core.domain
-                    .EvaluerNomFichierUseCase(),
-            enregistrerEtatEspace =
-                jo.codeide.core.domain
-                    .EnregistrerEtatEspaceUseCase(fichiers),
-            lireEtatEspace =
-                jo.codeide.core.domain
-                    .LireEtatEspaceUseCase(fichiers),
-            reconnaitreTypeProjet =
-                jo.codeide.core.domain
-                    .ReconnaitreTypeProjetUseCase(fichiers),
-            listerModeles = listerModeles,
-            sessionsTerminal = sessionsTerminal,
-            resoudreRepertoireProjet = resoudreRepertoire,
-            localisateurOutils = localisateurOutils,
-            tooling = tooling,
-            copierArbre =
-                jo.codeide.core.domain
-                    .CopierArbreUseCase(),
-            deplacerArbre =
-                jo.codeide.core.domain
-                    .DeplacerArbreUseCase(),
-            lireArbre =
-                jo.codeide.core.domain
-                    .LireArbreUseCase(),
-            restaurerArbre =
-                jo.codeide.core.domain
-                    .RestaurerArbreUseCase(),
-            synchroniserProjet =
-                jo.codeide.core.domain.SynchroniserProjetUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            executerTachesUseCase =
-                jo.codeide.core.domain.ExecuterTachesUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            annulerBuild =
-                jo.codeide.core.domain
-                    .AnnulerBuildUseCase(tooling),
-            listerTachesProjet =
-                jo.codeide.core.domain.ListerTachesProjetUseCase(
-                    tooling,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            serviceGradle = serviceGradleTest,
-            savedStateHandle = sauvegarde,
-        )
-
     @Test
     fun `etat initial replie sur l'onglet journal`() =
         runTest {
@@ -106,7 +44,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             val alpha = ajouterProjet("Alpha")
             val sauvegarde =
                 SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value))
-            val viewModel = viewModel(sauvegarde)
+            val viewModel = viewModel(alpha, sauvegarde)
             advanceUntilIdle()
 
             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
@@ -130,7 +68,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             val alpha = ajouterProjet("Alpha")
             val sauvegarde =
                 SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value))
-            val viewModel = viewModel(sauvegarde)
+            val viewModel = viewModel(alpha, sauvegarde)
             advanceUntilIdle()
 
             viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.CONSOLE))
@@ -249,7 +187,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             val alpha = ajouterProjet("Alpha")
             val sauvegarde =
                 SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value))
-            val premier = viewModel(sauvegarde)
+            val premier = viewModel(alpha, sauvegarde)
             advanceUntilIdle()
 
             premier.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
@@ -258,7 +196,7 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
 
             // « Rotation » : un nouveau ViewModel sur le même sauvetage
             // retrouve l'état du panneau, l'onglet actif et les filtres.
-            val second = viewModel(sauvegarde)
+            val second = viewModel(alpha, sauvegarde)
             advanceUntilIdle()
 
             assertEquals(EtatPanneau.MI_HAUTEUR, second.etat.value.etatPanneau)

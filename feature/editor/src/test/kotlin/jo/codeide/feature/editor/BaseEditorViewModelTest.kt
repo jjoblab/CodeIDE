@@ -134,6 +134,13 @@ abstract class BaseEditorViewModelTest {
                     journalEspace,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
+            preparerClasspathLsp =
+                jo.codeide.core.domain.PreparerClasspathLspUseCase(
+                    tooling,
+                    fichiers,
+                    journalEspace,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
             executerTachesUseCase =
                 jo.codeide.core.domain.ExecuterTachesUseCase(
                     tooling,
