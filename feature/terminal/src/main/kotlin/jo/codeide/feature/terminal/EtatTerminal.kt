@@ -1,6 +1,7 @@
 package jo.codeide.feature.terminal
 
 import jo.codeide.core.domain.TerminalSessionSummary
+import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceTerminal
 
 /** Clés d'intent partagées entre la navigation (app) et l'écran. */
@@ -15,12 +16,17 @@ object ClesTerminal {
  * @property sessions liste globale des sessions, dans l'ordre de création.
  * @property idSessionActive identifiant de la session rendue, ou `null`.
  * @property taillePolice taille de la police à chasse fixe (réglage
- * dédié minimal de l'étape T5).
+ * dédié minimal de l'étape T5, section Terminal des Paramètres — ADR 0059).
+ * @property styleCurseur style du curseur de l'émulateur (ADR 0059).
+ * @property copieSelectionAuto copier la sélection au presse-papiers dès
+ * la fin de la sélection (ADR 0059).
  */
 data class EtatTerminal(
     val sessions: List<TerminalSessionSummary> = emptyList(),
     val idSessionActive: String? = null,
     val taillePolice: TaillePoliceTerminal = TaillePoliceTerminal.MOYENNE,
+    val styleCurseur: StyleCurseurTerminal = StyleCurseurTerminal.BLOC,
+    val copieSelectionAuto: Boolean = false,
 )
 
 /**

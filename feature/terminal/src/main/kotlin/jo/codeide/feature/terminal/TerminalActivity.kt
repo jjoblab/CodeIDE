@@ -1,11 +1,15 @@
 package jo.codeide.feature.terminal
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +22,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.termux.terminal.TerminalSession
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.TerminalSessionSummary
+import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.terminalruntime.TerminalRuntime
 import jo.codeide.core.ui.AppNavigator
@@ -107,6 +112,8 @@ class TerminalActivity : AppCompatActivity() {
                 lireAlt = { liaison.clavierEtendu.altActif },
                 surEmulateurPret = { appliquerThemeRenduTerminal() },
                 zoomer = ::zoomer,
+                copieSelectionAuto = { viewModel.uiState.value.copieSelectionAuto },
+                copierTexte = ::copierVersPressePapiers,
             ),
         )
 
@@ -172,6 +179,7 @@ class TerminalActivity : AppCompatActivity() {
         liaison.vueTerminal.isVisible = etat.sessions.isNotEmpty()
         brancher(etat.idSessionActive)
         appliquerTaillePolice(etat.taillePolice)
+        appliquerStyleCurseurSiChange(etat.styleCurseur)
         renduEnCours = false
     }
 
@@ -268,7 +276,11 @@ class TerminalActivity : AppCompatActivity() {
         val couleur =
             ContextCompat.getColor(
                 this,
-                if (vivante) R.color.terminal_etat_vivante else R.color.terminal_etat_terminee,
+                if (vivante) {
+                    jo.codeide.core.ui.R.color.codeide_terminal_etat_vivante
+                } else {
+                    jo.codeide.core.ui.R.color.codeide_terminal_etat_terminee
+                },
             )
         pastille.background?.setTint(couleur)
     }
@@ -407,6 +419,27 @@ class TerminalActivity : AppCompatActivity() {
     }
 
     /**
+     * Réapplique le style du curseur quand le réglage change (ADR 0059) :
+     * `setCursorStyle()` relit la valeur fournie par le client de session
+     * (lui-même branché sur les paramètres) — les sessions vivantes
+     * changent de curseur sans redémarrage.
+     */
+    private fun appliquerStyleCurseurSiChange(style: StyleCurseurTerminal) {
+        if (style == styleCurseurRendu) return
+        styleCurseurRendu = style
+        liaison.vueTerminal.appliquerStyleCurseur()
+    }
+
+    /** Copie la sélection au presse-papiers (retour discret, ADR 0059). */
+    private fun copierVersPressePapiers(texte: String) {
+        val pressePapiers = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        pressePapiers.setPrimaryClip(
+            ClipData.newPlainText(getString(R.string.terminal_selection_libelle), texte),
+        )
+        Toast.makeText(this, R.string.terminal_selection_copiee, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
      * Applique le zoom pincé (v0.31.5) — appelé par [ClientVueTerminal]
      * avec le facteur ACCUMULÉ du geste (contrat Termux vérifié sur le
      * bytecode : la vue n'applique jamais elle-même).
@@ -471,6 +504,10 @@ class TerminalActivity : AppCompatActivity() {
     /** Dernière taille de police réellement appliquée à la vue (réglage ou
      * zoom pincé — évite re-créations de fonte et écrasements mutuels). */
     private var tailleRenduePx: Int = AUCUNE_TAILLE
+
+    /** Dernier style de curseur réellement appliqué (ADR 0059 — évite de
+     * redemander à l'émulateur à chaque émission d'état). */
+    private var styleCurseurRendu: StyleCurseurTerminal? = null
 }
 
 /**

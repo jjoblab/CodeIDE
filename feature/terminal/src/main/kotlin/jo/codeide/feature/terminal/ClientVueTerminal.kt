@@ -27,6 +27,11 @@ import com.termux.view.TerminalViewClient
  *   le pincement inerte (retour d'appareil réel) ;
  * - le bouton retour système **ferme l'écran** (jamais mappé sur Échap,
  *   section 5 : les sessions survivent via le service foreground) ;
+ * - copie automatique de la sélection (ADR 0059) : à la **fin** du mode
+ *   sélection ([copyModeChanged] à faux), le texte sélectionné conservé
+ *   par Termux ([TerminalView.getStoredSelectedText]) part au
+ *   presse-papiers si le réglage [copieSelectionAuto] est actif —
+ *   l'hôte fournit la lecture du réglage et l'écriture ;
  * - les journaux internes de la vue restent muets : la journalisation
  *   maison (`AppLogger`) passe par le registre (même choix que
  *   `ClientTermux` dans `core:terminal-runtime`).
@@ -40,18 +45,30 @@ import com.termux.view.TerminalViewClient
  * @param zoomer applique le facteur accumulé [facteur] (nouvelle taille
  * en pixels via [TerminalView.setTextSize]) ; retourne `true` si le
  * facteur a été consommé (le compteur accumulé repart à 1.0f).
+ * @param copieSelectionAuto lit le réglage « copier la sélection » de
+ * l'hôte (ADR 0059).
+ * @param copierTexte écrit du texte au presse-papiers (retour
+ * utilisateur de l'hôte — l'appelant peut montrer un toast).
  *
  * Exemption detekt ciblée (règle 16 du prompt maître) : le contrat tiers
  * `TerminalViewClient` impose 24 méthodes (précédent `ClientTermux`,
  * `ToolchainLocator`) — aucune n'est de notre ressort.
  */
-@Suppress("TooManyFunctions")
+@Suppress(
+    // Exemption detekt ciblée (règle 16) : TooManyFunctions — le contrat
+    // tiers TerminalViewClient impose 24 méthodes ; LongParameterList —
+    // sept lambdas d'hôte, chacune documentée dans le KDoc de la classe.
+    "TooManyFunctions",
+    "LongParameterList",
+)
 internal class ClientVueTerminal(
     private val vue: TerminalView,
     private val lireCtrl: () -> Boolean,
     private val lireAlt: () -> Boolean,
     private val surEmulateurPret: () -> Unit,
     private val zoomer: (facteur: Float) -> Boolean,
+    private val copieSelectionAuto: () -> Boolean = { false },
+    private val copierTexte: (texte: String) -> Unit = {},
 ) : TerminalViewClient {
     override fun onScale(scale: Float): Float = if (zoomer(scale)) 1.0f else scale
 
@@ -72,7 +89,19 @@ internal class ClientVueTerminal(
 
     override fun isTerminalViewSelected(): Boolean = vue.hasFocus()
 
-    override fun copyModeChanged(copyMode: Boolean) = Unit
+    override fun copyModeChanged(copyMode: Boolean) {
+        // Fin du mode sélection : copie automatique si le réglage est actif
+        // (ADR 0059) — Termux conserve le texte sélectionné après la fin
+        // du mode, on le lit puis on le consomme pour ne pas recopier une
+        // sélection déjà prise à la fin suivante.
+        if (!copyMode && copieSelectionAuto()) {
+            val texte = vue.storedSelectedText
+            if (!texte.isNullOrEmpty()) {
+                copierTexte(texte)
+                vue.unsetStoredSelectedText()
+            }
+        }
+    }
 
     override fun onKeyDown(
         keyCode: Int,

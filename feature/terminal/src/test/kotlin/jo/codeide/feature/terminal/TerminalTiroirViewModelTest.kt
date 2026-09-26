@@ -1,6 +1,9 @@
 package jo.codeide.feature.terminal
 
+import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.TerminalSessionSummary
+import jo.codeide.core.model.AppSettings
+import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.FakeTerminalSessionRepository
 import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.MainDispatcherRule
@@ -30,6 +33,7 @@ class TerminalTiroirViewModelTest {
 
     private val registre = FakeTerminalSessionRepository()
     private val localisateur = FakeToolchainLocator()
+    private val depotReglages = FakeSettingsRepository()
 
     private fun resume(
         id: String,
@@ -48,6 +52,7 @@ class TerminalTiroirViewModelTest {
         TerminalTiroirViewModel(
             registre = registre,
             localisateur = localisateur,
+            observeReglages = ObserveSettingsUseCase(depotReglages),
         )
 
     private fun TestScope.dernierEtat(modele: TerminalTiroirViewModel): EtatTerminalTiroir {

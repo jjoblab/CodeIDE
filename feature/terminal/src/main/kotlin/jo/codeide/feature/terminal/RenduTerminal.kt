@@ -12,16 +12,32 @@ import com.termux.view.TerminalView
  * 256/257/258 = premier plan/arrière-plan/curseur) ; la palette par
  * défaut de Termux est sombre, le thème de l'application réécrit ces
  * trois entrées (ressources `values`/`values-night`).
+ *
+ * ADR 0059 : le **style** du curseur (bloc / ligne / barre) vient du
+ * réglage utilisateur — l'émulateur le relit depuis le client de session
+ * (`TerminalSessionClient.getTerminalCursorStyle`, branché sur les
+ * paramètres par `core:terminal-runtime`), il suffit de redemander.
  */
 internal fun TerminalView.appliquerThemeRendu() {
-    val fond = ContextCompat.getColor(context, R.color.terminal_fond)
-    val texte = ContextCompat.getColor(context, R.color.terminal_texte)
+    val fond = ContextCompat.getColor(context, jo.codeide.core.ui.R.color.codeide_terminal_fond)
+    val texte = ContextCompat.getColor(context, jo.codeide.core.ui.R.color.codeide_terminal_texte)
     setBackgroundColor(fond)
     val emulateur = mEmulator ?: return
     val couleurs = emulateur.mColors.mCurrentColors
     couleurs[INDICE_PREMIER_PLAN] = texte
     couleurs[INDICE_ARRIERE_PLAN] = fond
     couleurs[INDICE_CURSEUR] = texte
+    onScreenUpdated()
+}
+
+/**
+ * Réapplique le style du curseur persisté — `setCursorStyle()` relit la
+ * valeur fournie par le client de session (donc par les paramètres), les
+ * sessions vivantes changent de curseur sans redémarrage.
+ */
+internal fun TerminalView.appliquerStyleCurseur() {
+    val emulateur = mEmulator ?: return
+    emulateur.setCursorStyle()
     onScreenUpdated()
 }
 
