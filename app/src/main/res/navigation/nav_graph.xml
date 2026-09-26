@@ -104,7 +104,7 @@
         android:label="@string/settings_title">
         <argument
             android:name="section"
-            app:argType="jo.codeide.core.ui.SectionParametres" />
+            app:argType="string" />
     </fragment>
 
     <fragment

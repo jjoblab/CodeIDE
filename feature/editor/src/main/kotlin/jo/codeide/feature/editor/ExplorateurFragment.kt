@@ -12,11 +12,18 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.textview.MaterialTextView
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.ui.collectWithLifecycle
+import jo.codeide.core.ui.couleurBordureDiscrete
+import jo.codeide.core.ui.couleurConteneurPrimaire
+import jo.codeide.core.ui.couleurPrimaire
+import jo.codeide.core.ui.couleurSurSurface
+import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.FragmentExplorateurBinding
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Fragment **Explorateur de fichiers v2** (étape 31,
@@ -285,44 +292,32 @@ class ExplorateurFragment : Fragment() {
                 null
             }
         liaison.libelleSegmentProjet.setTextColor(
-            ContextCompat.getColor(
-                requireContext(),
-                if (projet) {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_accent
-                } else {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_texte_2
-                },
-            ),
+            if (projet) {
+                requireContext().couleurPrimaire()
+            } else {
+                requireContext().couleurSurSurfaceDiscret()
+            },
         )
         liaison.libelleSegmentPrive.setTextColor(
-            ContextCompat.getColor(
-                requireContext(),
-                if (!projet) {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_nom_prive
-                } else {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_texte_2
-                },
-            ),
+            if (!projet) {
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_explorateur_nom_prive)
+            } else {
+                requireContext().couleurSurSurfaceDiscret()
+            },
         )
         liaison.iconeSegmentProjet.setColorFilter(
-            ContextCompat.getColor(
-                requireContext(),
-                if (projet) {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_accent
-                } else {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_texte_2
-                },
-            ),
+            if (projet) {
+                requireContext().couleurPrimaire()
+            } else {
+                requireContext().couleurSurSurfaceDiscret()
+            },
         )
         liaison.iconeSegmentPrive.setColorFilter(
-            ContextCompat.getColor(
-                requireContext(),
-                if (!projet) {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_nom_prive
-                } else {
-                    jo.codeide.core.ui.R.color.codeide_explorateur_texte_2
-                },
-            ),
+            if (!projet) {
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_explorateur_nom_prive)
+            } else {
+                requireContext().couleurSurSurfaceDiscret()
+            },
         )
         liaison.boutonActualiserEntete.isEnabled = !etat.verificationAcces
     }
@@ -332,8 +327,8 @@ class ExplorateurFragment : Fragment() {
     private fun rendreAriane(etat: EtatEditor) {
         val conteneur = liaison.segmentsAriane
         conteneur.removeAllViews()
-        val accent = ContextCompat.getColor(requireContext(), jo.codeide.core.ui.R.color.codeide_explorateur_accent)
-        val texte2 = ContextCompat.getColor(requireContext(), jo.codeide.core.ui.R.color.codeide_explorateur_texte_2)
+        val accent = requireContext().couleurPrimaire()
+        val texte2 = requireContext().couleurSurSurfaceDiscret()
         liaison.maisonAriane.setColorFilter(accent.takeIf { etat.segmentsAriane.isEmpty() } ?: texte2)
 
         etat.segmentsAriane.forEachIndexed { indice, segment ->
@@ -552,25 +547,19 @@ class ExplorateurFragment : Fragment() {
                 ligne
                     .findViewById<android.widget.ImageView>(R.id.icone_action_popover)
                     .setColorFilter(
-                        ContextCompat.getColor(
-                            contexte,
-                            if (dangereuse) {
-                                jo.codeide.core.ui.R.color.codeide_explorateur_rouge
-                            } else {
-                                jo.codeide.core.ui.R.color.codeide_explorateur_texte
-                            },
-                        ),
+                        if (dangereuse) {
+                            ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_rouge)
+                        } else {
+                            contexte.couleurSurSurface()
+                        },
                     )
                 ligne.findViewById<MaterialTextView>(R.id.libelle_action_popover).text = libelle
                 ligne.findViewById<MaterialTextView>(R.id.libelle_action_popover).setTextColor(
-                    ContextCompat.getColor(
-                        contexte,
-                        if (dangereuse) {
-                            jo.codeide.core.ui.R.color.codeide_explorateur_rouge
-                        } else {
-                            jo.codeide.core.ui.R.color.codeide_explorateur_texte
-                        },
-                    ),
+                    if (dangereuse) {
+                        ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_rouge)
+                    } else {
+                        contexte.couleurSurSurface()
+                    },
                 )
                 if (dangereuse) {
                     racine.setBackgroundResource(R.drawable.fond_action_popover_dangereuse)
@@ -602,12 +591,7 @@ class ExplorateurFragment : Fragment() {
                                         (MARGE_V_SEPARATEUR_ACTIONS_DP * resources.displayMetrics.density).toInt(),
                                     )
                                 }
-                        setBackgroundColor(
-                            ContextCompat.getColor(
-                                contexte,
-                                jo.codeide.core.ui.R.color.codeide_explorateur_popover_bordure,
-                            ),
-                        )
+                        setBackgroundColor(contexte.couleurBordureDiscrete())
                     }
                 conteneur.addView(trait)
             }
@@ -871,14 +855,11 @@ class ExplorateurFragment : Fragment() {
                             },
                         )
                         setColorFilter(
-                            ContextCompat.getColor(
-                                contexte,
-                                if (estRacine) {
-                                    jo.codeide.core.ui.R.color.codeide_explorateur_texte_2
-                                } else {
-                                    jo.codeide.core.ui.R.color.codeide_explorateur_dossier
-                                },
-                            ),
+                            if (estRacine) {
+                                contexte.couleurSurSurfaceDiscret()
+                            } else {
+                                ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_dossier)
+                            },
                         )
                     }
                 ligne.findViewById<MaterialTextView>(R.id.libelle_action_popover).text =

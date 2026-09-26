@@ -12,6 +12,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
@@ -119,6 +120,7 @@ public class SettingsDataStore(
     internal object Cles {
         internal val MODE_THEME: Preferences.Key<String> = stringPreferencesKey("theme_mode")
         internal val COULEURS_DYNAMIQUES: Preferences.Key<Boolean> = booleanPreferencesKey("dynamic_color")
+        internal val PALETTE: Preferences.Key<String> = stringPreferencesKey("color_palette")
         internal val LANGUE: Preferences.Key<String> = stringPreferencesKey("language_tag")
         internal val NOTIFICATIONS_SYNC: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_sync")
         internal val NOTIFICATIONS_BUILD: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_build")
@@ -159,6 +161,9 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
             ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
                 ?: defaults.themeMode,
         useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
+        paletteCouleur =
+            PaletteCouleur.depuisNom(this[SettingsDataStore.Cles.PALETTE])
+                ?: defaults.paletteCouleur,
         languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
         notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
         notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
@@ -211,6 +216,7 @@ private fun Preferences.emplacementTravail(): StorageLocation? {
 private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.MODE_THEME, reglage.themeMode.name)
     set(SettingsDataStore.Cles.COULEURS_DYNAMIQUES, reglage.useDynamicColor)
+    set(SettingsDataStore.Cles.PALETTE, reglage.paletteCouleur.name)
     set(SettingsDataStore.Cles.LANGUE, reglage.languageTag)
     set(SettingsDataStore.Cles.NOTIFICATIONS_SYNC, reglage.notificationsSync)
     set(SettingsDataStore.Cles.NOTIFICATIONS_BUILD, reglage.notificationsBuild)

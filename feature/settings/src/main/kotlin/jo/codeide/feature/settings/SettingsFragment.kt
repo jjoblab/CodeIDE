@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.model.ThemeMode
@@ -155,15 +156,13 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                             ThemeMode.LIGHT -> getString(R.string.settings_theme_clair)
                             ThemeMode.DARK -> getString(R.string.settings_theme_sombre)
                         }
-                    val dynamique =
-                        getString(
-                            if (etat.reglage.useDynamicColor) {
-                                R.string.settings_dyn_activees
-                            } else {
-                                R.string.settings_dyn_desactivees
-                            },
-                        )
-                    "$mode · $dynamique"
+                    val couleurs =
+                        if (etat.reglage.useDynamicColor) {
+                            getString(R.string.settings_dyn_activees)
+                        } else {
+                            getString(libellePalette(etat.reglage.paletteCouleur))
+                        }
+                    "$mode · $couleurs"
                 },
                 ligne(
                     SectionParametres.LANGUE,
@@ -303,4 +302,17 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         /** Atténuation des rangées « bientôt disponible » (opacité réduite). */
         const val ALPHA_BIENTOT = 0.55f
     }
+
+    /** Libellé localisé d'une palette (sous-titre du maître, ADR 0060). */
+    private fun libellePalette(palette: PaletteCouleur): Int =
+        when (palette) {
+            PaletteCouleur.INDIGO -> R.string.settings_palette_indigo
+            PaletteCouleur.BLEU -> R.string.settings_palette_bleu
+            PaletteCouleur.TURQUOISE -> R.string.settings_palette_turquoise
+            PaletteCouleur.VERT -> R.string.settings_palette_vert
+            PaletteCouleur.AMBRE -> R.string.settings_palette_ambre
+            PaletteCouleur.ROUGE -> R.string.settings_palette_rouge
+            PaletteCouleur.VIOLET -> R.string.settings_palette_violet
+            PaletteCouleur.ROSE -> R.string.settings_palette_rose
+        }
 }

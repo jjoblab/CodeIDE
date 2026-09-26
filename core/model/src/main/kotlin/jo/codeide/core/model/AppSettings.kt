@@ -24,6 +24,8 @@ package jo.codeide.core.model
  *
  * @property themeMode mode de thème (système, clair, sombre).
  * @property useDynamicColor couleurs Material You (Android 12+, ADR 0008).
+ * @property paletteCouleur palette statique quand les couleurs dynamiques
+ * sont désactivées (ADR 0060).
  * @property languageTag langue BCP 47 demandée, `""` pour suivre le système.
  * @property notificationsSync notifications du canal Synchronisation.
  * @property notificationsBuild notifications du canal Build.
@@ -51,6 +53,7 @@ package jo.codeide.core.model
 public data class AppSettings(
     public val themeMode: ThemeMode = ThemeMode.SYSTEM,
     public val useDynamicColor: Boolean = true,
+    public val paletteCouleur: PaletteCouleur = PaletteCouleur.INDIGO,
     public val languageTag: String = "",
     public val notificationsSync: Boolean = true,
     public val notificationsBuild: Boolean = true,

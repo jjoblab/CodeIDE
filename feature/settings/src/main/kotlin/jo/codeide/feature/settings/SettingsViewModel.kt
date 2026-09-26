@@ -15,6 +15,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
@@ -47,6 +48,15 @@ sealed interface ActionParametres {
     /** Active ou désactive les couleurs dynamiques. */
     data class ChangerCouleursDynamiques(
         val activees: Boolean,
+    ) : ActionParametres
+
+    /**
+     * Change la palette statique (ADR 0060) — sans objet quand les
+     * couleurs dynamiques sont actives, mais persistée quand même :
+     * elle s'appliquera dès leur désactivation.
+     */
+    data class ChangerPalette(
+        val palette: PaletteCouleur,
     ) : ActionParametres
 
     /**
@@ -215,15 +225,8 @@ class SettingsViewModel
         /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
         fun onAction(action: ActionParametres) {
             if (traiterReglageSection(action)) return
+            if (traiterReglageApparence(action)) return
             when (action) {
-                is ActionParametres.ChangerTheme -> {
-                    ecrireReglage("thème") { it.copy(themeMode = action.mode) }
-                }
-
-                is ActionParametres.ChangerCouleursDynamiques -> {
-                    ecrireReglage("couleurs dynamiques") { it.copy(useDynamicColor = action.activees) }
-                }
-
                 is ActionParametres.ChangerLangue -> {
                     ecrireReglage("langue") { it.copy(languageTag = action.tag) }
                 }
@@ -269,6 +272,34 @@ class SettingsViewModel
                     Unit
                 }
             }
+        }
+
+        /**
+         * Réglages d'apparence (ADR 0059/0060) : thème, couleurs
+         * dynamiques et palette — unifiés ici pour garder le dispatcheur
+         * `onAction` sous la borne de complexité detekt.
+         *
+         * @return vrai si l'action a été consommée (réglage persisté).
+         */
+        private fun traiterReglageApparence(action: ActionParametres): Boolean {
+            when (action) {
+                is ActionParametres.ChangerTheme -> {
+                    ecrireReglage("thème") { it.copy(themeMode = action.mode) }
+                }
+
+                is ActionParametres.ChangerCouleursDynamiques -> {
+                    ecrireReglage("couleurs dynamiques") { it.copy(useDynamicColor = action.activees) }
+                }
+
+                is ActionParametres.ChangerPalette -> {
+                    ecrireReglage("palette de couleurs") { it.copy(paletteCouleur = action.palette) }
+                }
+
+                else -> {
+                    return false
+                }
+            }
+            return true
         }
 
         /**

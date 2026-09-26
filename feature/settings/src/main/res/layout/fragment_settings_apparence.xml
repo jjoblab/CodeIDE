@@ -4,11 +4,16 @@
   toolbar (flèche retour + titre), le même SettingsViewModel que le
   maître — seule la présentation change.
 -->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
+     garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
+     avec windowBackground est assumé (une surface plein écran). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -186,6 +191,34 @@
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="@dimen/spacing_sm"
+            android:background="?attr/colorOutlineVariant" />
+
+        <!-- Palette statique (ADR 0060) : une rangée par palette, trois
+             pastilles (primaire / conteneur primaire / tertiaire) et un
+             bouton radio — le conteneur est gonflé programmatiquement par
+             ApparenceFragment (les couleurs des pastilles sont propres à
+             chaque palette, les attrs de thème ne peuvent pas les porter
+             toutes à la fois). -->
+        <LinearLayout
+            android:id="@+id/rangees_palette"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_palette_dynamique"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="@string/settings_palette_indisponible_dynamiques"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
 
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>

@@ -107,6 +107,18 @@
     <string name="settings_couleurs_dynamiques_sous">Adapte l\'interface au fond d\'écran (Material You)</string>
     <string name="settings_palette_legende">Primaire · Secondaire · Tertiaire</string>
 
+    <!-- Sélecteur de palette statique (ADR 0060). -->
+    <string name="settings_palette_titre">Palette de couleurs</string>
+    <string name="settings_palette_indisponible_dynamiques">Désactivez les couleurs dynamiques pour choisir une palette</string>
+    <string name="settings_palette_indigo">Indigo (par défaut)</string>
+    <string name="settings_palette_bleu">Bleu</string>
+    <string name="settings_palette_turquoise">Turquoise</string>
+    <string name="settings_palette_vert">Vert</string>
+    <string name="settings_palette_ambre">Ambre</string>
+    <string name="settings_palette_rouge">Rouge</string>
+    <string name="settings_palette_violet">Violet</string>
+    <string name="settings_palette_rose">Rose</string>
+
     <!-- Section Langue. -->
     <string name="settings_langue_titre">Langue</string>
 

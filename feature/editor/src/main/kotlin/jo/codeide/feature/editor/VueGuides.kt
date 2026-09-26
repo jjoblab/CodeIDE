@@ -5,7 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
-import androidx.core.content.ContextCompat
+import jo.codeide.core.ui.couleurBordureDiscrete
 
 /**
  * Guides de l'arborescence (étape 31, § 6.2, spécification
@@ -46,11 +46,7 @@ internal class VueGuides
         private var dernierEnfant: Boolean = false
 
         private val pinceau = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val couleurGuide =
-            ContextCompat.getColor(
-                contexte,
-                jo.codeide.core.ui.R.color.codeide_explorateur_guide,
-            )
+        private val couleurGuide = contexte.couleurBordureDiscrete()
         private val dp = contexte.resources.displayMetrics.density
 
         /**

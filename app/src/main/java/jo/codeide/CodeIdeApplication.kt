@@ -3,7 +3,6 @@ package jo.codeide
 import android.app.Application
 import android.os.StrictMode
 import androidx.appcompat.app.AppCompatDelegate
-import com.google.android.material.color.DynamicColors
 import dagger.hilt.android.HiltAndroidApp
 import jo.codeide.core.crash.AppProcess
 import jo.codeide.core.crash.CrashHandler
@@ -19,6 +18,7 @@ import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.ThemeMode
+import jo.codeide.core.ui.AppliquerApparence
 import jo.codeide.tooling.daemon.DaemonManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -109,20 +109,27 @@ class CodeIdeApplication : Application() {
             }
         }
 
-        // ADR 0059 — point d'application unique de l'apparence, pour
+        // ADR 0059/0060 — point d'application unique de l'apparence, pour
         // TOUS les processus (chaque processus a son propre onCreate()) :
         // lecture synchrone du miroir (SharedPreferences, pas de
-        // coroutine, pas de Hilt), puis mode de nuit et callback
-        // Material You posés AVANT super.onCreate() — les activités
-        // qui démarrent ensuite (EditorActivity, TerminalActivity,
-        // CrashActivity…) héritent du thème sans passer par MainActivity.
+        // coroutine, pas de Hilt), puis mode de nuit et couleurs
+        // (dynamiques ou palette statique) posés AVANT super.onCreate()
+        // — les activités qui démarrent ensuite (EditorActivity,
+        // TerminalActivity, CrashActivity…) héritent du thème sans passer
+        // par MainActivity. Le callback de couleurs vit dans
+        // AppliquerApparence (core:ui) : il suit le réglage utilisateur,
+        // contrairement au callback Material qui teste seulement la
+        // capacité de l'appareil (retour utilisateur v0.34 : l'éditeur
+        // et le diagnostic gardaient le fond d'écran après désactivation).
         // StrictMode n'est pas encore actif (il s'arme après
         // super.onCreate(), dans le processus principal uniquement).
         val apparence = MiroirApparence.lire(this)
         AppCompatDelegate.setDefaultNightMode(modeNuit(apparence.modeTheme))
-        if (apparence.couleursDynamiques) {
-            DynamicColors.applyToActivitiesIfAvailable(this)
-        }
+        AppliquerApparence.installer(
+            application = this,
+            couleursDynamiques = apparence.couleursDynamiques,
+            palette = apparence.paletteCouleur,
+        )
 
         super.onCreate()
 
@@ -180,13 +187,18 @@ class CodeIdeApplication : Application() {
         // AppSettings.logLevel devient la source de vérité du moteur —
         // collecte dans la portée de démarrage du processus principal
         // uniquement (le processus :crash ne lit jamais les paramètres).
-        // La même émission recopie le miroir d'apparence (ADR 0059) : une
-        // montée de version depuis v0.33.x re-converge le fichier dès le
-        // premier démarrage, avant même qu'un réglage ne soit touché.
+        // La même émission recopie le miroir d'apparence (ADR 0059) et
+        // met à jour l'état coloré (ADR 0060) : une montée de version
+        // depuis v0.33.x re-converge le fichier dès le premier
+        // démarrage, avant même qu'un réglage ne soit touché.
         porteeDemarrage.launch {
             parametres.observeSettings().collect { reglages ->
                 applierNiveau.apply(reglages.logLevel)
                 MiroirApparence.ecrire(this@CodeIdeApplication, reglages)
+                AppliquerApparence.mettreAJour(
+                    couleursDynamiques = reglages.useDynamicColor,
+                    palette = reglages.paletteCouleur,
+                )
             }
         }
 

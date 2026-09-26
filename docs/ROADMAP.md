@@ -331,3 +331,29 @@ fin de session), et la configuration du sandbox est corrigée.
 Conséquence : **tous les SHA ont changé** — le push vers GitHub
 nécessite `git push --force origin main --tags` (la CI rejouera par
 tag). Aucun changement applicatif (version 0.34.2/3402).
+
+**v0.35.0 (2026-09-27, retour utilisateur — « le thème et les
+paramètres pas à 100 % » : palettes + tiroir M3, ADR 0060)** :
+(1) **correctif couleurs dynamiques désactivées** : le callback
+Material appliquait l'overlay du fond d'écran à toute activité créée
+en ne testant que la capacité de l'appareil — après désactivation,
+l'éditeur et l'écran Diagnostic gardaient le fond d'écran ; il est
+remplacé par `AppliquerApparence` (core:ui), callback maison appliquant
+dynamique OU palette selon le réglage courant, dans chaque processus,
+avec recréation des activités vivantes au changement ;
+(2) **huit palettes statiques** (Indigo par défaut, Bleu, Turquoise,
+Vert, Ambre, Rouge, Violet, Rose) : schémas Material 3 complets
+jour/nuit générés par le moteur HCT de la bibliothèque Material —
+sélecteur dans la section Apparence (désactivé tant que les couleurs
+dynamiques sont actives), persisté dans DataStore et le miroir
+synchrone ; (3) **tiroir de l'explorateur citoyen M3** : les ~90
+références aux gris-bleu dessinés à la main migrent vers les rôles
+Material 3 (surfaces, textes, accents, bordures) — le tiroir suit
+enfin le mode clair/sombre, les couleurs dynamiques ET la palette ;
+les teintes fonctionnelles (statuts Git, pastilles d'état) restent
+fixes jour/nuit ; (4) **sections des Paramètres** : racines opaques
+(?attr/colorSurface) et argument « bientôt » redevenu string —
+retour d'empilement de vues traité par conception, régression couverte
+par NavigationSectionsTest. Vérification (AGENTS.md) : spotless +
+detekt + tests des modules touchés (model, datastore, data, ui,
+app, settings, editor) + lintDebug + assembleDebug.

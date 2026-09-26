@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
@@ -21,7 +20,6 @@ import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
-import jo.codeide.core.ui.applyDynamicColorsIfAvailable
 import jo.codeide.navigation.RoutageEcran
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -83,9 +81,6 @@ class MainActivity : AppCompatActivity() {
 
     /** Vrai dès la première émission des paramètres (libère le splash). */
     private var demarragePret = false
-
-    /** Dernière apparence appliquée — détecte les changements à chaud. */
-    private var apparenceAppliquee: AppSettings? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { !demarragePret }
@@ -256,47 +251,21 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Applique l'apparence persistée : thème et langue idempotents (la
-     * recréation n'a lieu qu'au **changement**), couleurs dynamiques
-     * appliquées à chaud à l'activation — leur **désactivation** exige
-     * une recréation, l'overlay ne se retire pas.
+     * recréation n'a lieu qu'au **changement**).
      *
-     * ADR 0059 : l'application à froid (premier lancement d'une activité)
-     * vit désormais dans `CodeIdeApplication` (callback Material You posé
-     * au démarrage du processus, miroir synchrone) — le branchement
-     * `precedente == null` d'antan est redondant, il ne reste ici que le
-     * **changement à chaud** : activation (recouvrement immédiat de
-     * l'activité au premier plan + inscription pour les activités
-     * suivantes du processus) et désactivation (recréation).
+     * ADR 0060 : les couleurs (dynamiques ou palette statique) ne se
+     * pilotent plus ici — `AppliquerApparence` (core:ui) suit chaque
+     * émission des réglages au niveau Application et recrée les
+     * activités vivantes au changement, **toutes** (éditeur compris,
+     * l'overlay ne se retire pas autrement). Ne restent ici que le mode
+     * de nuit et la langue, portés par `AppCompatDelegate`.
      */
     private fun appliquerApparence(reglages: AppSettings) {
-        val precedente = apparenceAppliquee
-        apparenceAppliquee = reglages
-
         AppCompatDelegate.setDefaultNightMode(modeNuit(reglages.themeMode))
 
         val locales = localesDemandees(reglages.languageTag)
         if (AppCompatDelegate.getApplicationLocales() != locales) {
             AppCompatDelegate.setApplicationLocales(locales)
-        }
-
-        val dynamiqueChange = precedente != null && precedente.useDynamicColor != reglages.useDynamicColor
-        when {
-            reglages.useDynamicColor && dynamiqueChange -> {
-                // Application au premier plan (effet immédiat) et
-                // inscription au niveau Application : les activités
-                // ouvertes ensuite dans ce processus hériteront aussi de
-                // l'overlay sans attendre un redémarrage.
-                applyDynamicColorsIfAvailable()
-                DynamicColors.applyToActivitiesIfAvailable(application)
-            }
-
-            !reglages.useDynamicColor && dynamiqueChange -> {
-                recreate()
-            }
-
-            else -> {
-                Unit
-            }
         }
     }
 

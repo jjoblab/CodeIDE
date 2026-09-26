@@ -46,7 +46,7 @@
             android:contentDescription="@null"
             android:scaleType="center"
             android:src="@drawable/ic_chevron_noeud"
-            app:tint="@color/codeide_explorateur_texte_3"
+            app:tint="?attr/colorOnSurfaceVariant"
             tools:rotation="90" />
 
         <jo.codeide.feature.editor.VuePointEtat
@@ -75,7 +75,7 @@
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="@color/codeide_explorateur_nom_fichier"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="13sp"
             tools:text="Greeter.kt" />
 
@@ -110,7 +110,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/editor_ecart_actions"
             android:fontFamily="monospace"
-            android:textColor="@color/codeide_explorateur_texte_3"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="10sp" tools:ignore="SmallSp"
             android:visibility="gone"
             tools:text="12"
@@ -130,7 +130,7 @@
             android:paddingBottom="2.5dp"
             android:paddingTop="2.5dp"
             android:singleLine="true"
-            android:textColor="@color/codeide_explorateur_texte_3"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="9.5sp" tools:ignore="SmallSp"
             android:visibility="gone"
             tools:text="/storage/emulated/0/CodeIDE"
@@ -171,8 +171,8 @@
             android:paddingHorizontal="8dp"
             android:paddingVertical="5dp"
             android:singleLine="true"
-            android:textColor="@color/codeide_explorateur_texte"
-            android:textColorHint="@color/codeide_explorateur_texte_3"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             tools:text="Greeter.kt" />
 
@@ -193,6 +193,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/edition_annuler_cd"
             android:src="@drawable/ic_fermer_onglet"
-            app:tint="@color/codeide_explorateur_texte_2" />
+            app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 </FrameLayout>

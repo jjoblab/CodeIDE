@@ -3,13 +3,14 @@ package jo.codeide.core.data
 import android.content.Context
 import androidx.core.content.edit
 import jo.codeide.core.model.AppSettings
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.ThemeMode
 
 /**
- * Miroir synchrone du réglage d'apparence (ADR 0059) : deux clés — mode
- * de thème et couleurs dynamiques — dupliquées de DataStore vers des
- * `SharedPreferences` dédiées, **lisibles sans coroutine avant toute
- * activité**.
+ * Miroir synchrone du réglage d'apparence (ADR 0059 ; palette : ADR 0060) :
+ * trois clés — mode de thème, couleurs dynamiques et palette statique —
+ * dupliquées de DataStore vers des `SharedPreferences` dédiées,
+ * **lisibles sans coroutine avant toute activité**.
  *
  * Pourquoi un miroir : DataStore est asynchrone par conception, or
  * `CodeIdeApplication.onCreate()` doit décider **synchrone** (et dans le
@@ -34,10 +35,14 @@ public object MiroirApparence {
     /** Clé des couleurs dynamiques (booléen). */
     private const val CLE_COULEURS_DYNAMIQUES = "couleurs_dynamiques"
 
+    /** Clé de la palette statique (nom du [PaletteCouleur], ADR 0060). */
+    private const val CLE_PALETTE = "palette_couleurs"
+
     /** Apparence lue en miroir — tuple minimal, rien de plus. */
     public data class EtatApparence(
         public val modeTheme: ThemeMode,
         public val couleursDynamiques: Boolean,
+        public val paletteCouleur: PaletteCouleur,
     )
 
     /**
@@ -53,7 +58,9 @@ public object MiroirApparence {
             ThemeMode.entries.firstOrNull { it.name == preferences.getString(CLE_MODE_THEME, null) }
                 ?: ThemeMode.SYSTEM
         val dynamiques = preferences.getBoolean(CLE_COULEURS_DYNAMIQUES, true)
-        return EtatApparence(modeTheme = mode, couleursDynamiques = dynamiques)
+        val palette =
+            PaletteCouleur.depuisNom(preferences.getString(CLE_PALETTE, null)) ?: PaletteCouleur.INDIGO
+        return EtatApparence(modeTheme = mode, couleursDynamiques = dynamiques, paletteCouleur = palette)
     }
 
     /**
@@ -74,6 +81,7 @@ public object MiroirApparence {
             .edit {
                 putString(CLE_MODE_THEME, reglages.themeMode.name)
                 putBoolean(CLE_COULEURS_DYNAMIQUES, reglages.useDynamicColor)
+                putString(CLE_PALETTE, reglages.paletteCouleur.name)
             }
     }
 }

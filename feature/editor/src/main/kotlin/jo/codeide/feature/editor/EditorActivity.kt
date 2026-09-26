@@ -16,7 +16,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
@@ -53,6 +52,11 @@ import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.applySystemBarsInsetsMargins
 import jo.codeide.core.ui.collectWithLifecycle
+import jo.codeide.core.ui.couleurBordureDiscrete
+import jo.codeide.core.ui.couleurConteneurPrimaire
+import jo.codeide.core.ui.couleurPrimaire
+import jo.codeide.core.ui.couleurSurSurface
+import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 import kotlinx.coroutines.Job
@@ -60,6 +64,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Espace de travail d'un projet (étapes 13-16, prompt compagnon section 5) :
@@ -417,13 +422,9 @@ class EditorActivity :
         transaction.commit()
 
         // État actif du rail : encoche + teinte accent de l'icône et du
-        // libellé (§ 14).
-        val accent =
-            androidx.core.content.ContextCompat
-                .getColor(this, jo.codeide.core.ui.R.color.codeide_explorateur_accent)
-        val inactif =
-            androidx.core.content.ContextCompat
-                .getColor(this, jo.codeide.core.ui.R.color.codeide_explorateur_texte_3)
+        // libellé (§ 14) — rôles M3 : suit dynamique et palette (ADR 0060).
+        val accent = this.couleurPrimaire()
+        val inactif = this.couleurSurSurfaceDiscret()
         liaison.railFragments.children.forEach { item ->
             val actif = item.id == destination
             item.findViewById<View>(R.id.encoche_rail).isVisible = actif
@@ -519,12 +520,7 @@ class EditorActivity :
         // (seuls éléments du src) — accent pendant, couleur propre sinon.
         poignee.imageTintList =
             if (pendant) {
-                ColorStateList.valueOf(
-                    ContextCompat.getColor(
-                        this,
-                        jo.codeide.core.ui.R.color.codeide_explorateur_accent,
-                    ),
-                )
+                ColorStateList.valueOf(this.couleurPrimaire())
             } else {
                 null
             }

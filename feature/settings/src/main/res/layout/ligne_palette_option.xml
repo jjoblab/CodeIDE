@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rangée d'option de palette (section Apparence, ADR 0060) : trois
+  pastilles fixes de la palette (primaire, conteneur, tertiaire) +
+  libellé + bouton radio. Gonflée programmatiquement par
+  ApparenceFragment — jamais posée telle quelle dans un écran.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_ligne_palette"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/touch_target_min"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/spacing_xs">
+
+    <View
+        android:id="@+id/pastille_primaire_palette"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:background="@drawable/pastille_palette_primaire"
+        tools:backgroundTint="#43559E" />
+
+    <View
+        android:id="@+id/pastille_conteneur_palette"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:background="@drawable/pastille_palette_secondaire"
+        tools:backgroundTint="#DCE1FF" />
+
+    <View
+        android:id="@+id/pastille_tertiaire_palette"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:background="@drawable/pastille_palette_tertiaire"
+        tools:backgroundTint="#75546F" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_ligne_palette"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="Indigo" />
+
+    <com.google.android.material.radiobutton.MaterialRadioButton
+        android:id="@+id/radio_ligne_palette"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false" />
+</LinearLayout>

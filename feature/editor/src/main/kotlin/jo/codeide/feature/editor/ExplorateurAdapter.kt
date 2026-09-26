@@ -13,8 +13,15 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import jo.codeide.core.ui.IconesFichiers
+import jo.codeide.core.ui.couleurBordureDiscrete
+import jo.codeide.core.ui.couleurConteneurPrimaire
+import jo.codeide.core.ui.couleurPrimaire
+import jo.codeide.core.ui.couleurSurSurface
+import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.LigneNoeudArborescenceBinding
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Adaptateur de l'arborescence v2 (étape 31, § 6-7 et § 11,
@@ -180,14 +187,11 @@ internal class ExplorateurAdapter(
                     .start()
             }
             liaison.chevronNoeud.setColorFilter(
-                ContextCompat.getColor(
-                    contexte,
-                    if (noeud.deplie) {
-                        jo.codeide.core.ui.R.color.codeide_explorateur_accent
-                    } else {
-                        jo.codeide.core.ui.R.color.codeide_explorateur_texte_3
-                    },
-                ),
+                if (noeud.deplie) {
+                    contexte.couleurPrimaire()
+                } else {
+                    contexte.couleurSurSurfaceDiscret()
+                },
             )
         } else {
             liaison.pointEtatNoeud.programmer(pointDEtatDe(noeud))
@@ -224,14 +228,11 @@ internal class ExplorateurAdapter(
                 noeud.nom
             }
         liaison.nomNoeud.setTextColor(
-            ContextCompat.getColor(
-                contexte,
-                when {
-                    noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_prive
-                    noeud.estDossier -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_dossier
-                    else -> jo.codeide.core.ui.R.color.codeide_explorateur_nom_fichier
-                },
-            ),
+            when {
+                noeud.prive -> ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_nom_prive)
+                noeud.estDossier -> contexte.couleurSurSurface()
+                else -> contexte.couleurSurSurfaceDiscret()
+            },
         )
     }
 

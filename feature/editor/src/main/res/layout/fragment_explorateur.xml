@@ -45,7 +45,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_explorateur"
-                    app:tint="@color/codeide_explorateur_accent" />
+                    app:tint="?attr/colorPrimary" />
             </FrameLayout>
 
             <LinearLayout
@@ -62,7 +62,7 @@
                     android:ellipsize="end"
                     android:singleLine="true"
                     android:text="@string/editor_explorateur_titre"
-                    android:textColor="@color/codeide_explorateur_texte"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -73,7 +73,7 @@
                     android:ellipsize="end"
                     android:fontFamily="monospace"
                     android:singleLine="true"
-                    android:textColor="@color/codeide_explorateur_sous_titre_entete"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="10.5sp" tools:ignore="SmallSp"
                     tools:text="/storage/emulated/0/CodeIDE" />
             </LinearLayout>
@@ -95,7 +95,7 @@
                 android:contentDescription="@string/editor_explorateur_nouveau_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_nouveau_fichier"
-                app:tint="@color/codeide_explorateur_texte_2" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageView
                 android:id="@+id/bouton_replier_tout"
@@ -116,7 +116,7 @@
                 android:contentDescription="@string/editor_tiroir_actualiser_cd"
                 android:padding="7dp"
                 android:src="@drawable/ic_actualiser"
-                app:tint="@color/codeide_explorateur_texte_2" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageView
                 android:id="@+id/bouton_legende"
@@ -160,7 +160,7 @@
                     android:layout_height="17dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_explorateur"
-                    app:tint="@color/codeide_explorateur_accent" />
+                    app:tint="?attr/colorPrimary" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/libelle_segment_projet"
@@ -168,7 +168,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="7dp"
                     android:text="@string/editor_bascule_projet"
-                    android:textColor="@color/codeide_explorateur_accent"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -195,7 +195,7 @@
                     android:layout_height="17dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_cadenas"
-                    app:tint="@color/codeide_explorateur_texte_2" />
+                    app:tint="?attr/colorOnSurfaceVariant" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/libelle_segment_prive"
@@ -203,7 +203,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="7dp"
                     android:text="@string/editor_bascule_prive"
-                    android:textColor="@color/codeide_explorateur_texte_2"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -227,7 +227,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/editor_ariane_racine_cd"
                 android:src="@drawable/ic_maison"
-                app:tint="@color/codeide_explorateur_texte_2" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <HorizontalScrollView
                 android:layout_width="0dp"

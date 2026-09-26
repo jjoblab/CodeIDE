@@ -1,7 +1,7 @@
 // core:ui — socle visuel partagé : thème Material 3, classes de base,
 // composants d'état, helpers insets et AppNavigator (section 5.1).
-// Dépend de modules : aucun à ce stade (core:model autorisé mais inutilisé
-// — aucune dépendance morte, règle du prompt maître).
+// Dépend de core:model pour PaletteCouleur (ADR 0060 — point d'application
+// de l'apparence colorée).
 
 plugins {
     id("codeide.android.library")
@@ -10,6 +10,9 @@ plugins {
 dependencies {
     // Flow apparaît dans la signature publique (extensions de collecte) : api.
     api(libs.kotlinx.coroutines.core)
+
+    // PaletteCouleur, consommée par AppliquerApparence (ADR 0060).
+    implementation(project(":core:model"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment)

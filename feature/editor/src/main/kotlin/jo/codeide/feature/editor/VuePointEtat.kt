@@ -8,6 +8,10 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.core.content.ContextCompat
+import jo.codeide.core.ui.couleurConteneurPrimaire
+import jo.codeide.core.ui.couleurPrimaire
+import jo.codeide.core.ui.couleurSurSurfaceDiscret
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Point d'état des fichiers de l'arbre (étape 31, § 7, spécification
@@ -123,11 +127,7 @@ internal class VuePointEtat
             // Anneau externe (sélection + actif) : 3 dp d'accent doux.
             if (etat == EtatPoint.SELECTION_ACTIF) {
                 pinceau.style = Paint.Style.FILL
-                pinceau.color =
-                    ContextCompat.getColor(
-                        context,
-                        jo.codeide.core.ui.R.color.codeide_explorateur_accent_doux,
-                    )
+                pinceau.color = context.couleurConteneurPrimaire()
                 canevas.drawCircle(cx, cy, rayonExterieur + EPAISSEUR_ANNEAU_DP * dp, pinceau)
             }
 
@@ -164,28 +164,39 @@ internal class VuePointEtat
                 Role.BORDURE -> {
                     when (etat) {
                         EtatPoint.DEFAUT -> {
-                            jo.codeide.core.ui.R.color.codeide_explorateur_point_defaut
+                            context.couleurSurSurfaceDiscret()
                         }
 
                         EtatPoint.OUVERT, EtatPoint.ACTIF -> {
-                            jo.codeide.core.ui.R.color.codeide_explorateur_vert
+                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
                         }
 
                         EtatPoint.SELECTIONNE, EtatPoint.SELECTION_ACTIF -> {
-                            jo.codeide.core.ui.R.color.codeide_explorateur_accent
+                            context.couleurPrimaire()
                         }
                     }
                 }
 
                 Role.FOND -> {
                     when (etat) {
-                        EtatPoint.DEFAUT, EtatPoint.OUVERT -> android.R.color.transparent
-                        EtatPoint.ACTIF -> jo.codeide.core.ui.R.color.codeide_explorateur_vert
-                        EtatPoint.SELECTIONNE -> jo.codeide.core.ui.R.color.codeide_explorateur_accent
-                        EtatPoint.SELECTION_ACTIF -> jo.codeide.core.ui.R.color.codeide_explorateur_vert
+                        EtatPoint.DEFAUT, EtatPoint.OUVERT -> {
+                            android.graphics.Color.TRANSPARENT
+                        }
+
+                        EtatPoint.ACTIF -> {
+                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
+                        }
+
+                        EtatPoint.SELECTIONNE -> {
+                            context.couleurPrimaire()
+                        }
+
+                        EtatPoint.SELECTION_ACTIF -> {
+                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
+                        }
                     }
                 }
-            }.let { ContextCompat.getColor(context, it) }
+            }
 
         /** Rôle de couleur demandé par l'interpolation. */
         private enum class Role {

@@ -107,6 +107,18 @@
     <string name="settings_couleurs_dynamiques_sous">Adapts the UI to your wallpaper (Material You)</string>
     <string name="settings_palette_legende">Primary · Secondary · Tertiary</string>
 
+    <!-- Static palette picker (ADR 0060). -->
+    <string name="settings_palette_titre">Color palette</string>
+    <string name="settings_palette_indisponible_dynamiques">Turn dynamic colors off to pick a palette</string>
+    <string name="settings_palette_indigo">Indigo (default)</string>
+    <string name="settings_palette_bleu">Blue</string>
+    <string name="settings_palette_turquoise">Turquoise</string>
+    <string name="settings_palette_vert">Green</string>
+    <string name="settings_palette_ambre">Amber</string>
+    <string name="settings_palette_rouge">Red</string>
+    <string name="settings_palette_violet">Violet</string>
+    <string name="settings_palette_rose">Pink</string>
+
     <!-- Language section. -->
     <string name="settings_langue_titre">Language</string>
 

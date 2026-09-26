@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Overlays de palettes statiques (ADR 0060) : appliqués au thème de chaque
+  activité par [jo.codeide.core.ui.AppliquerApparence] quand les couleurs
+  dynamiques sont désactivées — même mécanisme que l'overlay Material You
+  (theme.applyStyle AVANT le gonflement du contenu, onActivityPreCreated).
+
+  Un style par [jo.codeide.core.model.PaletteCouleur] ; les couleurs se
+  résolent jour/nuit toutes seules (palettes-couleurs.xml est qualifié
+  values/values-night). L'INDIGO, palette par défaut, reprend les
+  couleurs de marque codeide_* : aucun changement visuel à la mise à
+  jour.
+
+  Les rôles sémantiques étendus (journal, canaux tooling, statuts Git,
+  accents par langage) ne sont PAS surchargés : ils restent fonctionnels
+  ou s'harmonisent à l'exécution avec le colorPrimary courant
+  (ThemeHarmonizer, ADR 0059).
+-->
+<resources>
+    <!-- Palette par défaut (marque) -->
+    <style name="ThemeOverlay.CodeIDE.PaletteIndigo" parent="">
+        <item name="colorPrimary">@color/codeide_primary</item>
+        <item name="colorOnPrimary">@color/codeide_on_primary</item>
+        <item name="colorPrimaryContainer">@color/codeide_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/codeide_on_primary_container</item>
+        <item name="colorSecondary">@color/codeide_secondary</item>
+        <item name="colorOnSecondary">@color/codeide_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/codeide_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/codeide_on_secondary_container</item>
+        <item name="colorTertiary">@color/codeide_tertiary</item>
+        <item name="colorOnTertiary">@color/codeide_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/codeide_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/codeide_on_tertiary_container</item>
+        <item name="colorError">@color/codeide_error</item>
+        <item name="colorOnError">@color/codeide_on_error</item>
+        <item name="colorErrorContainer">@color/codeide_error_container</item>
+        <item name="colorOnErrorContainer">@color/codeide_on_error_container</item>
+        <item name="android:colorBackground">@color/codeide_background</item>
+        <item name="colorOnBackground">@color/codeide_on_background</item>
+        <item name="colorSurface">@color/codeide_surface</item>
+        <item name="colorOnSurface">@color/codeide_on_surface</item>
+        <item name="colorSurfaceVariant">@color/codeide_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/codeide_on_surface_variant</item>
+        <item name="colorOutline">@color/codeide_outline</item>
+        <item name="colorOutlineVariant">@color/codeide_outline_variant</item>
+        <item name="colorSurfaceInverse">@color/codeide_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/codeide_on_inverse_surface</item>
+    </style>
+
+    <!-- Bleu -->
+    <style name="ThemeOverlay.CodeIDE.PaletteBleu" parent="">
+        <item name="colorPrimary">@color/palette_bleu_primary</item>
+        <item name="colorOnPrimary">@color/palette_bleu_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_bleu_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_bleu_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_bleu_secondary</item>
+        <item name="colorOnSecondary">@color/palette_bleu_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_bleu_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_bleu_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_bleu_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_bleu_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_bleu_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_bleu_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_bleu_error</item>
+        <item name="colorOnError">@color/palette_bleu_onError</item>
+        <item name="colorErrorContainer">@color/palette_bleu_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_bleu_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_bleu_background</item>
+        <item name="colorOnBackground">@color/palette_bleu_onBackground</item>
+        <item name="colorSurface">@color/palette_bleu_surface</item>
+        <item name="colorOnSurface">@color/palette_bleu_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_bleu_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_bleu_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_bleu_outline</item>
+        <item name="colorOutlineVariant">@color/palette_bleu_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_bleu_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_bleu_inverseOnSurface</item>
+    </style>
+
+    <!-- Turquoise -->
+    <style name="ThemeOverlay.CodeIDE.PaletteTurquoise" parent="">
+        <item name="colorPrimary">@color/palette_turquoise_primary</item>
+        <item name="colorOnPrimary">@color/palette_turquoise_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_turquoise_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_turquoise_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_turquoise_secondary</item>
+        <item name="colorOnSecondary">@color/palette_turquoise_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_turquoise_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_turquoise_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_turquoise_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_turquoise_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_turquoise_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_turquoise_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_turquoise_error</item>
+        <item name="colorOnError">@color/palette_turquoise_onError</item>
+        <item name="colorErrorContainer">@color/palette_turquoise_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_turquoise_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_turquoise_background</item>
+        <item name="colorOnBackground">@color/palette_turquoise_onBackground</item>
+        <item name="colorSurface">@color/palette_turquoise_surface</item>
+        <item name="colorOnSurface">@color/palette_turquoise_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_turquoise_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_turquoise_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_turquoise_outline</item>
+        <item name="colorOutlineVariant">@color/palette_turquoise_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_turquoise_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_turquoise_inverseOnSurface</item>
+    </style>
+
+    <!-- Vert -->
+    <style name="ThemeOverlay.CodeIDE.PaletteVert" parent="">
+        <item name="colorPrimary">@color/palette_vert_primary</item>
+        <item name="colorOnPrimary">@color/palette_vert_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_vert_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_vert_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_vert_secondary</item>
+        <item name="colorOnSecondary">@color/palette_vert_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_vert_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_vert_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_vert_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_vert_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_vert_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_vert_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_vert_error</item>
+        <item name="colorOnError">@color/palette_vert_onError</item>
+        <item name="colorErrorContainer">@color/palette_vert_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_vert_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_vert_background</item>
+        <item name="colorOnBackground">@color/palette_vert_onBackground</item>
+        <item name="colorSurface">@color/palette_vert_surface</item>
+        <item name="colorOnSurface">@color/palette_vert_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_vert_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_vert_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_vert_outline</item>
+        <item name="colorOutlineVariant">@color/palette_vert_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_vert_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_vert_inverseOnSurface</item>
+    </style>
+
+    <!-- Ambre -->
+    <style name="ThemeOverlay.CodeIDE.PaletteAmbre" parent="">
+        <item name="colorPrimary">@color/palette_ambre_primary</item>
+        <item name="colorOnPrimary">@color/palette_ambre_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_ambre_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_ambre_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_ambre_secondary</item>
+        <item name="colorOnSecondary">@color/palette_ambre_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_ambre_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_ambre_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_ambre_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_ambre_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_ambre_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_ambre_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_ambre_error</item>
+        <item name="colorOnError">@color/palette_ambre_onError</item>
+        <item name="colorErrorContainer">@color/palette_ambre_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_ambre_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_ambre_background</item>
+        <item name="colorOnBackground">@color/palette_ambre_onBackground</item>
+        <item name="colorSurface">@color/palette_ambre_surface</item>
+        <item name="colorOnSurface">@color/palette_ambre_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_ambre_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_ambre_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_ambre_outline</item>
+        <item name="colorOutlineVariant">@color/palette_ambre_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_ambre_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_ambre_inverseOnSurface</item>
+    </style>
+
+    <!-- Rouge -->
+    <style name="ThemeOverlay.CodeIDE.PaletteRouge" parent="">
+        <item name="colorPrimary">@color/palette_rouge_primary</item>
+        <item name="colorOnPrimary">@color/palette_rouge_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_rouge_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_rouge_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_rouge_secondary</item>
+        <item name="colorOnSecondary">@color/palette_rouge_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_rouge_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_rouge_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_rouge_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_rouge_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_rouge_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_rouge_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_rouge_error</item>
+        <item name="colorOnError">@color/palette_rouge_onError</item>
+        <item name="colorErrorContainer">@color/palette_rouge_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_rouge_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_rouge_background</item>
+        <item name="colorOnBackground">@color/palette_rouge_onBackground</item>
+        <item name="colorSurface">@color/palette_rouge_surface</item>
+        <item name="colorOnSurface">@color/palette_rouge_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_rouge_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_rouge_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_rouge_outline</item>
+        <item name="colorOutlineVariant">@color/palette_rouge_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_rouge_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_rouge_inverseOnSurface</item>
+    </style>
+
+    <!-- Violet -->
+    <style name="ThemeOverlay.CodeIDE.PaletteViolet" parent="">
+        <item name="colorPrimary">@color/palette_violet_primary</item>
+        <item name="colorOnPrimary">@color/palette_violet_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_violet_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_violet_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_violet_secondary</item>
+        <item name="colorOnSecondary">@color/palette_violet_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_violet_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_violet_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_violet_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_violet_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_violet_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_violet_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_violet_error</item>
+        <item name="colorOnError">@color/palette_violet_onError</item>
+        <item name="colorErrorContainer">@color/palette_violet_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_violet_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_violet_background</item>
+        <item name="colorOnBackground">@color/palette_violet_onBackground</item>
+        <item name="colorSurface">@color/palette_violet_surface</item>
+        <item name="colorOnSurface">@color/palette_violet_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_violet_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_violet_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_violet_outline</item>
+        <item name="colorOutlineVariant">@color/palette_violet_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_violet_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_violet_inverseOnSurface</item>
+    </style>
+
+    <!-- Rose -->
+    <style name="ThemeOverlay.CodeIDE.PaletteRose" parent="">
+        <item name="colorPrimary">@color/palette_rose_primary</item>
+        <item name="colorOnPrimary">@color/palette_rose_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/palette_rose_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/palette_rose_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/palette_rose_secondary</item>
+        <item name="colorOnSecondary">@color/palette_rose_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/palette_rose_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/palette_rose_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/palette_rose_tertiary</item>
+        <item name="colorOnTertiary">@color/palette_rose_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/palette_rose_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/palette_rose_onTertiaryContainer</item>
+        <item name="colorError">@color/palette_rose_error</item>
+        <item name="colorOnError">@color/palette_rose_onError</item>
+        <item name="colorErrorContainer">@color/palette_rose_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/palette_rose_onErrorContainer</item>
+        <item name="android:colorBackground">@color/palette_rose_background</item>
+        <item name="colorOnBackground">@color/palette_rose_onBackground</item>
+        <item name="colorSurface">@color/palette_rose_surface</item>
+        <item name="colorOnSurface">@color/palette_rose_onSurface</item>
+        <item name="colorSurfaceVariant">@color/palette_rose_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/palette_rose_onSurfaceVariant</item>
+        <item name="colorOutline">@color/palette_rose_outline</item>
+        <item name="colorOutlineVariant">@color/palette_rose_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/palette_rose_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/palette_rose_inverseOnSurface</item>
+    </style>
+
+</resources>

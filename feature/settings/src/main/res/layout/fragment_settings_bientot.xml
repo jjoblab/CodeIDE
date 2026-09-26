@@ -4,11 +4,16 @@
   une phrase, pilotés par les arguments de navigation — le patron reste
   réutilisable pour toute future section sans retoucher le maître.
 -->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
+     garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
+     avec windowBackground est assumé (une surface plein écran). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar

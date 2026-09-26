@@ -9,6 +9,7 @@ import jo.codeide.core.domain.ValidateWorkspaceUseCase
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.ThemeMode
@@ -120,6 +121,7 @@ class SettingsViewModelTest {
 
             viewModel.onAction(ActionParametres.ChangerTheme(ThemeMode.DARK))
             viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(false))
+            viewModel.onAction(ActionParametres.ChangerPalette(PaletteCouleur.VIOLET))
             viewModel.onAction(ActionParametres.ChangerLangue("en"))
             viewModel.onAction(ActionParametres.ValiderNomAuteur("Ada Lovelace "))
             viewModel.onAction(ActionParametres.ChangerLicence(License.BSD_3_CLAUSE))
@@ -128,6 +130,7 @@ class SettingsViewModelTest {
             val reglages = depot.reglages
             assertEquals(ThemeMode.DARK, reglages.themeMode)
             assertFalse(reglages.useDynamicColor)
+            assertEquals(PaletteCouleur.VIOLET, reglages.paletteCouleur)
             assertEquals("en", reglages.languageTag)
             assertEquals("le nom d'auteur est rogné à la validation", "Ada Lovelace", reglages.authorName)
             assertEquals(License.BSD_3_CLAUSE, reglages.defaultLicense)

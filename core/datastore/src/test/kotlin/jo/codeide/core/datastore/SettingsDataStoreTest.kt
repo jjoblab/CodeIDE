@@ -12,6 +12,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
+import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -95,6 +96,7 @@ class SettingsDataStoreTest {
                 it.copy(
                     themeMode = ThemeMode.DARK,
                     useDynamicColor = false,
+                    paletteCouleur = PaletteCouleur.VERT,
                     languageTag = "fr",
                     workspace = dossier,
                     authorName = "Jo",
@@ -108,6 +110,7 @@ class SettingsDataStoreTest {
 
             assertEquals(ThemeMode.DARK, relu.themeMode)
             assertEquals(false, relu.useDynamicColor)
+            assertEquals(PaletteCouleur.VERT, relu.paletteCouleur)
             assertEquals("fr", relu.languageTag)
             assertEquals(dossier, relu.workspace)
             assertEquals("Jo", relu.authorName)
