@@ -102,11 +102,30 @@
     <!-- Tooling channels of the panel header (v0.32.5, ADR 0056). -->
     <string name="editor_tooling_canal_sync">Sync</string>
     <string name="editor_tooling_canal_build">Build</string>
+    <string name="editor_tooling_canal_taches">Tasks</string>
     <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
     <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build running…</string>
+    <string name="editor_tooling_taches_en_cours">Loading tasks…</string>
     <string name="editor_outil_deconnecte">Gradle tools not connected</string>
+
+    <!-- Tooling notification service (step 32, ADR 0057): same tokens as
+         the terminal service — channel title, notification title, texts
+         per activity and per result. -->
+    <string name="tooling_service_titre">Gradle Tooling</string>
+    <string name="tooling_service_canal">Gradle Activities</string>
+    <string name="tooling_service_sync_en_cours">Project synchronization in progress…</string>
+    <string name="tooling_service_build_en_cours">Build in progress…</string>
+    <string name="tooling_service_build_taches">Build in progress — %1$s</string>
+    <string name="tooling_service_taches_en_cours">Loading tasks…</string>
+    <string name="tooling_service_sync_reussie">Synchronization succeeded in %1$s</string>
+    <string name="tooling_service_sync_echouee">Synchronization failed</string>
+    <string name="tooling_service_build_reussi">Build succeeded in %1$s</string>
+    <string name="tooling_service_build_echoue">Build failed</string>
+    <string name="tooling_service_build_annule">Build cancelled</string>
+    <string name="tooling_service_duree_secondes">%1$d s</string>
+    <string name="tooling_service_duree_minutes">%1$d min</string>
 
     <!-- Actions de fichiers du tiroir (étape 17). -->
     <string name="editor_tiroir_nouveau_cd">Create a file or folder at the project root</string>

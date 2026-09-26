@@ -34,62 +34,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
-    /** Construit le ViewModel avec un sauvetage gardé par le test. */
-    private fun viewModel(sauvegarde: SavedStateHandle): EditorViewModel =
-        EditorViewModel(
-            observerProjet = ObserveProjectUseCase(depot),
-            verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-            fichiers = fichiers,
-            fichiersPrives = fichiersPrives,
-            journal = FakeAppLogger(),
-            observerJournaux = ObserveLogsUseCase(depotJournaux),
-            evaluerNom = EvaluerNomFichierUseCase(),
-            enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
-            lireEtatEspace = LireEtatEspaceUseCase(fichiers),
-            reconnaitreTypeProjet =
-                jo.codeide.core.domain
-                    .ReconnaitreTypeProjetUseCase(fichiers),
-            listerModeles = listerModeles,
-            sessionsTerminal = sessionsTerminal,
-            resoudreRepertoireProjet = resoudreRepertoire,
-            localisateurOutils = localisateurOutils,
-            tooling = tooling,
-            synchroniserProjet =
-                jo.codeide.core.domain.SynchroniserProjetUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            executerTachesUseCase =
-                jo.codeide.core.domain.ExecuterTachesUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            annulerBuild =
-                jo.codeide.core.domain
-                    .AnnulerBuildUseCase(tooling),
-            copierArbre =
-                jo.codeide.core.domain
-                    .CopierArbreUseCase(),
-            deplacerArbre =
-                jo.codeide.core.domain
-                    .DeplacerArbreUseCase(),
-            lireArbre =
-                jo.codeide.core.domain
-                    .LireArbreUseCase(),
-            restaurerArbre =
-                jo.codeide.core.domain
-                    .RestaurerArbreUseCase(),
-            listerTachesProjet =
-                jo.codeide.core.domain.ListerTachesProjetUseCase(
-                    tooling,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            serviceGradle = serviceGradleTest,
-            savedStateHandle = sauvegarde,
-        )
-
     @Test
     fun `la validation de nom partage les regles du wizard`() {
         val evaluer = EvaluerNomFichierUseCase()
@@ -258,6 +202,7 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
             // s'écrit sous .codeide/local/workspace-state.json).
             val premiere =
                 viewModel(
+                    alpha,
                     SavedStateHandle(
                         mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
                     ),
@@ -271,6 +216,7 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
             // vivant) : la reprise par projet prend le relais.
             val seconde =
                 viewModel(
+                    alpha,
                     SavedStateHandle(
                         mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
                     ),

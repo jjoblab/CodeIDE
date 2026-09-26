@@ -243,6 +243,22 @@ bibliothèque code-editor (`BreadcrumbBar`, `SymbolBarView`) — ADR 0054.
 Vérification légère (AGENTS.md) : spotless + detekt + tests
 feature:editor + lintDebug + assembleDebug.
 
+**Correctif v0.33.1 (2026-09-26, retour utilisateur après la v0.33.0 —
+classpaths LSP + traductions manquantes)** : (1) l'étape 32 résolvait
+`IdeaProject` à la sync d'ouverture mais JETAIT le résultat — comme
+Android Studio prépare l'index du projet, les **classpaths, sources et
+AARs** sont désormais résolus par requête dédiée (`ClasspathRequest`,
+26e/27e messages du protocole, fichiers dorés inclus) puis PERSISTÉS
+sous `.codeide/local/lsp-classpath.json` (schéma versionné, écriture
+tolérante) pour que les LSP à venir s'en servent à n'importe quel
+moment, sans re-résolution — `PreparerClasspathLspUseCase` suit chaque
+sync utile (ouverture ou geste, réussie comme partielle), silencieusement
+(journal seul, jamais dans le canal Sync) ; ADR 0058 ; (2) les 15 chaînes
+tooling de l'étape 32 absentes de `values-en` cassaient `lintDebug` en
+CI (`MissingTranslation`) — parité FR/EN rétablie sur les 13 modules de
+ressources. Vérification légère (AGENTS.md) : spotless + tests des
+modules touchés + lintDebug.
+
 ### Principes et contraintes reconduits
 
 - **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les

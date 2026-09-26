@@ -2,6 +2,7 @@ package jo.codeide.core.domain
 
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import java.io.File
 
 /**
@@ -18,7 +19,13 @@ import java.io.File
  * fois la connexion établie — sinon les opérations renvoient un échec
  * [jo.codeide.core.model.AppError.Tooling] de connexion et les flux
  * restent muets, jamais de blocage silencieux (§7.5).
+ *
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions — chaque pub
+ * est un CANAL d'information distinct du tooling (build, sync, classpath
+ * LSP, tâches, tas, connexion, diagnostics), le contrat complet d'un
+ * orchestrateur IDE ; même justification que `GradleApiImpl` côté client.
  */
+@Suppress("TooManyFunctions")
 public interface GradleToolingRepository {
     /**
      * Sortie d'un build, ligne à ligne — diffusion **jamais conflatée**
@@ -62,6 +69,18 @@ public interface GradleToolingRepository {
      * @param projectDir répertoire racine du projet Gradle.
      */
     public suspend fun taches(projectDir: File): AppResult<List<InfoTache>>
+
+    /**
+     * Résout le classpath compilé de chaque module (préparation LSP,
+     * ADR 0058 — comme Android Studio prépare l'index du projet à la
+     * sync) : répertoires sources, jars, AARs, dossiers de classes et
+     * modules frères, jar de sources attaché quand Gradle le connaît.
+     * L'appelant PERSISTE la réponse pour que les LSP s'en servent le
+     * moment venu, sans re-résolution.
+     *
+     * @param projectDir répertoire racine du projet Gradle.
+     */
+    public suspend fun classpath(projectDir: File): AppResult<ClasspathProjet>
 
     /**
      * Lance un build de tâches données.
@@ -194,6 +213,71 @@ public data class InfoTache(
     public val chemin: String,
     public val groupe: String? = null,
     public val nomAffiche: String,
+)
+
+/**
+ * Nature d'une entrée de classpath (ADR 0058) — miroir domaine du
+ * protocole, sans type tooling (règle §2.2).
+ */
+public enum class TypeEntreeClasspath {
+    /** Archive JAR (bytecode compilé). */
+    JAR,
+
+    /** Archive AAR Android (bytecode + ressources). */
+    AAR,
+
+    /** Dossier de classes (sortie d'un module ou dossier exposé). */
+    DOSSIER,
+
+    /** Dépendance vers un module frère (portée par son nom). */
+    MODULE,
+}
+
+/**
+ * Une entrée du classpath d'un module (ADR 0058) : chemin du jar, de
+ * l'AAR ou du dossier de classes — ou NOM du module frère quand
+ * [type] vaut [TypeEntreeClasspath.MODULE] ; [sources] porte le jar de
+ * sources attaché quand Gradle le connaît.
+ *
+ * @property chemin fichier/dossier concerné, ou nom du module frère.
+ * @property type nature de l'entrée.
+ * @property portee portée de la dépendance (`compile`, `test`…), si connue.
+ * @property sources jar de sources attaché, `null` si aucun.
+ */
+@Serializable
+public data class EntreeClasspath(
+    public val chemin: String,
+    public val type: TypeEntreeClasspath,
+    public val portee: String? = null,
+    public val sources: String? = null,
+)
+
+/**
+ * Classpath d'UN module (ADR 0058) : répertoires sources (le module
+ * et ses tests) et entrées compilées.
+ *
+ * @property nom nom du module Gradle (ex. `:app`).
+ * @property dossiersSources répertoires sources absolus.
+ * @property entrees entrées du classpath compilé.
+ */
+@Serializable
+public data class ModuleClasspath(
+    public val nom: String,
+    public val dossiersSources: List<String> = emptyList(),
+    public val entrees: List<EntreeClasspath> = emptyList(),
+)
+
+/**
+ * Classpath compilé d'un projet (ADR 0058) — prêt à PERSISTER pour que
+ * les LSP s'en servent le moment venu.
+ *
+ * @property projectDir répertoire racine résolu.
+ * @property modules classpath de chaque module, racine incluse.
+ */
+@Serializable
+public data class ClasspathProjet(
+    public val projectDir: String,
+    public val modules: List<ModuleClasspath> = emptyList(),
 )
 
 /** Gravité d'un diagnostic de code. */

@@ -40,63 +40,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExplorateurV2EditorViewModelTest : BaseEditorViewModelTest() {
-    /** Construit le ViewModel avec un sauvetage gardé par le test
-     *  (faux privé hérité du socle, arbre « Privé » § 5). */
-    private fun viewModel(sauvegarde: SavedStateHandle): EditorViewModel =
-        EditorViewModel(
-            observerProjet = ObserveProjectUseCase(depot),
-            verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-            fichiers = fichiers,
-            fichiersPrives = fichiersPrives,
-            journal = FakeAppLogger(),
-            observerJournaux = ObserveLogsUseCase(depotJournaux),
-            evaluerNom = EvaluerNomFichierUseCase(),
-            enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
-            lireEtatEspace = LireEtatEspaceUseCase(fichiers),
-            reconnaitreTypeProjet =
-                jo.codeide.core.domain
-                    .ReconnaitreTypeProjetUseCase(fichiers),
-            listerModeles = listerModeles,
-            sessionsTerminal = sessionsTerminal,
-            resoudreRepertoireProjet = resoudreRepertoire,
-            localisateurOutils = localisateurOutils,
-            tooling = tooling,
-            synchroniserProjet =
-                jo.codeide.core.domain.SynchroniserProjetUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            executerTachesUseCase =
-                jo.codeide.core.domain.ExecuterTachesUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            annulerBuild =
-                jo.codeide.core.domain
-                    .AnnulerBuildUseCase(tooling),
-            copierArbre =
-                jo.codeide.core.domain
-                    .CopierArbreUseCase(),
-            deplacerArbre =
-                jo.codeide.core.domain
-                    .DeplacerArbreUseCase(),
-            lireArbre =
-                jo.codeide.core.domain
-                    .LireArbreUseCase(),
-            restaurerArbre =
-                jo.codeide.core.domain
-                    .RestaurerArbreUseCase(),
-            listerTachesProjet =
-                jo.codeide.core.domain.ListerTachesProjetUseCase(
-                    tooling,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            serviceGradle = serviceGradleTest,
-            savedStateHandle = sauvegarde,
-        )
-
     // ------------------------------------------------------------------
     // Tri ADR 0027 (§ 6.4)
     // ------------------------------------------------------------------

@@ -26,9 +26,11 @@ import jo.codeide.core.domain.ListerTachesProjetUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.OngletEspace
+import jo.codeide.core.domain.PreparerClasspathLspUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.RestaurerArbreUseCase
+import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.SynchroniserProjetUseCase
@@ -158,6 +160,7 @@ class EditorViewModel
         private val localisateurOutils: ToolchainLocator,
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
+        private val preparerClasspathLsp: PreparerClasspathLspUseCase,
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
@@ -659,8 +662,44 @@ class EditorViewModel
                     return@launch
                 }
                 val dossier = dossierProjetOuEchec() ?: return@launch
-                serviceGradle.publierResultatSync(synchroniserProjet(dossier))
+                val resultat = synchroniserProjet(dossier)
+                serviceGradle.publierResultatSync(resultat)
+                preparerClasspathLspSiSyncUtile(dossier, resultat)
                 journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
+            }
+        }
+
+        /**
+         * Prépare le classpath LSP après une sync utile (ADR 0058) : comme
+         * Android Studio prépare l'index du projet, les classpaths, sources
+         * et AARs résolus par la sync sont PERSISTÉS sous
+         * `.codeide/local/lsp-classpath.json` — les LSP à venir s'en
+         * servent le moment venu, sans re-résolution. Sync échouée sec :
+         * rien à préparer ; sync partielle : on prépare ce qui se résout.
+         * En échec de préparation, le journal seul le dit — jamais
+         * bloquant pour l'édition, jamais dans le canal Sync.
+         */
+        private suspend fun preparerClasspathLspSiSyncUtile(
+            dossier: File,
+            resultat: AppResult<ResultatSynchronisation>,
+        ) {
+            val resultatSync = (resultat as? AppResult.Success)?.value ?: return
+            if (!resultatSync.reussie && !resultatSync.partielle) return
+            val uriRacine =
+                etatInterne.value.projet
+                    ?.location
+                    ?.grantUri ?: return
+            when (val preparation = preparerClasspathLsp(dossier, uriRacine)) {
+                is AppResult.Success -> {
+                    journal.i(TAG) {
+                        "classpath LSP préparé (${preparation.value.modules.size} module(s), " +
+                            "projet ${identifiantSuivi()})"
+                    }
+                }
+
+                is AppResult.Failure -> {
+                    journal.w(TAG) { "classpath LSP non préparé (projet ${identifiantSuivi()})" }
+                }
             }
         }
 
