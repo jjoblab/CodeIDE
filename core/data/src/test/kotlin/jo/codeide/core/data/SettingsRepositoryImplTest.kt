@@ -62,7 +62,7 @@ class SettingsRepositoryImplTest {
                 scope = portee,
                 produceFile = { File(contexte.cacheDir, "test-data-${compteur.incrementAndGet()}.preferences_pb") },
             )
-        depot = SettingsRepositoryImpl(SettingsDataStore(stock, defauts), journal)
+        depot = SettingsRepositoryImpl(SettingsDataStore(stock, defauts), journal, contexte)
     }
 
     @After
