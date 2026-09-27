@@ -58,7 +58,10 @@ import kotlin.reflect.KClass
  *    jour avant la fin de la première configuration ;
  * 7 bis. profil shell CodeIDE (`$PREFIX/etc/codeide.sh` + ligne du
  *    `.bashrc` — correctifs C1/C2 du prompt Terminal) : PS1 personnalisé
- *    et état des outils visibles à l'ouverture de chaque session.
+ *    et état des outils visibles à l'ouverture de chaque session ;
+ * 7 ter. commande `$PREFIX/bin/gradle` (correctif C4) : découverte du
+ *    wrapper du projet, sinon de la distribution du wrapper en cache,
+ *    sinon un message qui explique — jamais « command not found » sec.
  *
  * Les paquets d'outils (`openjdk`, `git`…) ne font PLUS partie de la
  * première configuration (v0.31.4) : [installerOutils] les installe
@@ -98,6 +101,7 @@ internal class InstallateurBootstrap
         private val extracteur = ExtracteurBootstrap(operations, dispatchers)
         private val configurateur = ConfigurateurApt(lanceur, dispatchers)
         private val ecrivainProfil = EcrivainProfilShell(journalApp)
+        private val ecrivainGradle = EcrivainGradleCli(operations, journalApp)
 
         /**
          * État initial : `Terminee` (outils non tentés) quand le marqueur
@@ -197,6 +201,12 @@ internal class InstallateurBootstrap
                 // optionnel, réécrit en entier (idempotent).
                 ecrivainProfil.ecrire(racine)
                 consignerAuJournal("profil shell CodeIDE posé (codeide.sh + .bashrc)")
+
+                // Commande gradle du terminal (correctif C4) : découverte
+                // wrapper/dists — jamais « command not found » sans
+                // explication.
+                ecrivainGradle.ecrire(racine)
+                consignerAuJournal("commande gradle posée (découverte wrapper/dists)")
 
                 nettoyerStaging()
                 deposerMarqueurInstallation(racine)

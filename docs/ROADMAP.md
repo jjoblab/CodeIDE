@@ -535,3 +535,18 @@ lui-même au-delà), injecté dans `FabriqueCoquillesTermux` et transmis à
 (`CopieurPressePapiersAndroidTest` : normal/vide/nul, remplacement, Toast
 par API) + manuel E73. Vérification (AGENTS.md) : spotless + detekt +
 tests du module touché (terminal-runtime) + assembleDebug.
+
+**v0.36.3 (2026-09-27, correctif C4 du prompt Terminal — « gradle: command
+not found » malgré un projet déjà construit)** : la liste de paquets du
+bootstrap ne contenait que `openjdk-17` et `git` — aucune commande `gradle`,
+et la distribution téléchargée par le wrapper (builds lancés depuis l'app)
+restait invisible du terminal. Plutôt qu'un paquet apt figé (mauvaise
+version selon les projets — l'ancien projet l'avait déjà écarté), un script
+de DÉCOUVERTE `$PREFIX/bin/gradle` (EcrivainGradleCli, posé à
+l'installation de base, 0755, shebang absolu vers le sh du bootstrap) :
+`./gradlew` du répertoire courant d'abord, sinon la distribution du wrapper
+la plus récemment utilisée dans `$GRADLE_USER_HOME/wrapper/dists` (`ls -dt`),
+sinon un message qui EXPLIQUE et sortie 127 — jamais d'échec muet. Tests
+avec EXÉCUTION RÉELLE des trois scénarios (EcrivainGradleCliTest) +
+manuels E74-E76. Vérification (AGENTS.md) : spotless + detekt + tests du
+module touché (bootstrap) + assembleDebug.

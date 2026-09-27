@@ -388,6 +388,20 @@ no-op).
 |---|---|---|
 | E73 | **Copier une sélection réelle** : sélectionner du texte du transcript (appui long → poignées), appuyer sur « Copier » dans la barre d'action native, puis coller (`Ctrl puis V`, ou coller dans une autre app) | Le texte sélectionné arrive au presse-papiers **réellement** (le collage le prouve) ; sur Android 12-, un Toast « Copié » confirme ; sur Android 13+, le bandeau système suffit (aucun double toast) ; la copie automatique en sortie de mode sélection (ADR 0059) continue de coexister |
 
+## Correctif Terminal C4 — commande `gradle` du terminal (v0.36.3)
+
+Préambule : APK debug v0.36.3+, bootstrap installé (la commande est posée à
+l'installation de base). Ce test couvre le correctif C4 du prompt Terminal :
+« gradle: command not found » malgré un projet déjà construit — le bootstrap
+n'installe JAMAIS de paquet gradle (chaque projet peut exiger sa version),
+la commande découvre Gradle au moment de l'appel.
+
+| # | Action | Attendu |
+|---|---|---|
+| E74 | **Dans un projet avec wrapper** : ouvrir un terminal dans le dossier d'un projet créé par l'app, taper `gradle --version` | La version du wrapper DU projet répond (le `./gradlew` local est exécuté) ; `ls -l $PREFIX/bin/gradle` montre le bit d'exécution posé |
+| E75 | **Hors projet, cache présent** : après un build lancé depuis l'app (le wrapper a téléchargé sa distribution), taper `gradle --version` depuis le HOME | La distribution du wrapper la plus récemment utilisée répond (`$GRADLE_USER_HOME/wrapper/dists/…`) — plus JAMAIS « command not found » sans explication |
+| E76 | **Rien trouvé** : supprimer `$GRADLE_USER_HOME/wrapper/dists` (ou installation neuve), taper `gradle build` hors de tout projet | Sortie en **127** avec le message qui EXPLIQUE : rejoindre un projet avec `./gradlew`, ou lancer d'abord une sync/build depuis l'app — jamais un échec muet |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

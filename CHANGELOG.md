@@ -4,6 +4,32 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.36.3] – 2026-09-27
+
+### Ajouté (correctif C4 du prompt Terminal — retour utilisateur)
+
+- **Commande `gradle` du terminal** (`$PREFIX/bin/gradle`, posée à
+  l'installation de base, 0755) : le bootstrap n'installe JAMAIS de paquet
+  `gradle` — chaque projet peut exiger une version différente (c'est
+  l'intérêt du wrapper). À la place, la commande DÉCOUVRE Gradle au moment
+  de l'appel : `./gradlew` du répertoire courant d'abord (le projet décide
+  de sa version), sinon la distribution du wrapper la plus récemment
+  utilisée dans `$GRADLE_USER_HOME/wrapper/dists` (posée par un build/sync
+  lancés depuis l'app), sinon un message qui EXPLIQUE quoi faire (rejoindre
+  un projet avec wrapper / lancer une sync depuis l'app) et sortie **127** —
+  jamais « command not found » sans explication.
+- Le shebang pointe vers le `sh` DU bootstrap (chemin absolu résolu à
+  l'écriture : un shebang ne connaît pas `$PREFIX`) ; comportement repris de
+  l'ancien projet (`BootstrapScripts.java`), adapté au bootstrap natif.
+
+### Notes techniques
+
+- Tests (`EcrivainGradleCliTest`) : pose (shebang absolu, bit d'exécution,
+  idempotence) puis EXÉCUTION RÉELLE des trois scénarios — `./gradlew` du
+  projet prioritaire même avec cache présent, distribution la plus récente
+  choisie entre deux (`ls -dt`), échec explicite en 127. Manuels E74-E76
+  dans `docs/TESTS_MANUELS.md`.
+
 ## [0.36.2] – 2026-09-27
 
 ### Corrigé (correctif C3 du prompt Terminal — retour utilisateur)
