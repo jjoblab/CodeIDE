@@ -90,6 +90,41 @@ l'expérience de la version antérieure)
 | **Orchestrateur muet** (vivant mais bloqué) | health check ping/pong : muet 15 s → kill forcé → relance bornée | `DaemonManagerTest` |
 | **Épuisement des relances** (5) | `ECHOUEE` — échec définitif jusqu'à un nouveau `demarrer` (jamais de boucle infinie) | `DaemonManagerTest` |
 
+## Avertissement bénin du daemon Gradle (correctif C5 — comportement CONNU, pas un bug)
+
+Pendant l'exécution de tâches Gradle, cette ligne peut apparaître sur
+stderr (elle rejoint alors la console du build) :
+
+```
+Unable to set daemon's environment variables to match the client because:
+There is no native integration with this operating environment.
+```
+
+**C'est un diagnostic de Gradle lui-même, littéral** : sa bibliothèque
+`native-platform` n'a pas de binding compilé pour cette combinaison
+OS/architecture (Android, libc bionic). Gradle continue avec
+l'environnement du daemon **tel qu'il était à son premier démarrage** pour
+un `GRADLE_USER_HOME` donné, au lieu de le resynchroniser sur le client —
+le build n'échoue pas à cause de ça (comportement connu et documenté sur
+les plateformes non standard, pas spécifique à CodeIDE).
+
+**Pourquoi c'est sans conséquence ici** : l'app fournit l'environnement
+COMPLET et canonique (`ProcessEnvironmentProvider.baseEnvironment()` :
+`HOME`, `PREFIX`, `PATH`, `JAVA_HOME`, `ANDROID_HOME`,
+`GRADLE_USER_HOME`…) dès le **tout premier** lancement du process
+orchestrateur — `LanceurProcessusNatifs.launch` repart de cet environnement
+à CHAQUE lancement, sans jamais hériter du processus de l'app (couvert par
+`LanceurProcessusNatifsTest`). Or c'est précisément au premier démarrage
+du daemon Gradle que l'environnement compte, puisqu'il ne sera plus
+resynchronisé ensuite : la garantie est déjà en place, l'avertissement ne
+signale que l'absence de resynchronisation ULTÉRIEURE — sans objet ici.
+
+**Affichage** (v0.36.0) : la console du panneau Sortie détecte ce préfixe
+exact et rend la ligne en style INFORMATIF (couleur de sortie standard) au
+lieu du rouge d'erreur de stderr — l'utilisateur n'est pas alarmé pour un
+diagnostic bénin (`GradleService`, constante
+`AVERTISSEMENT_DAEMON_BENIN`, testé dans `GradleServiceTest`).
+
 ## Journalisation
 
 stderr/stdout du process orchestrateur → `AppLogger` tag **`gradle-server`**

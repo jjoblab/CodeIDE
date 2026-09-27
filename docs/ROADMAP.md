@@ -550,3 +550,20 @@ sinon un message qui EXPLIQUE et sortie 127 — jamais d'échec muet. Tests
 avec EXÉCUTION RÉELLE des trois scénarios (EcrivainGradleCliTest) +
 manuels E74-E76. Vérification (AGENTS.md) : spotless + detekt + tests du
 module touché (bootstrap) + assembleDebug.
+
+**v0.36.4 (2026-09-27, correctif C5 du prompt Terminal — avertissement du
+daemon Gradle sur l'environnement natif)** : « Unable to set daemon's
+environment variables to match the client because: There is no native
+integration with this operating environment. » n'est PAS un bug —
+diagnostic littéral de Gradle (native-platform sans binding Android/bionic,
+daemon gardant l'environnement de son premier démarrage). Réduction
+d'impact : (1) section dédiée dans docs/TOOLING.md expliquant le
+comportement, pourquoi il est sans conséquence (l'environnement complet et
+canonique est fourni au PREMIER lancement de l'orchestrateur par
+LanceurProcessusNatifs.launch — baseEnvironment() à chaque lancement,
+couvert par LanceurProcessusNatifsTest — et c'est le seul moment qui
+compte) ; (2) test manuel E77 ; (3) l'affichage apaisé en style informatif
+était déjà en place depuis v0.36.0 (GradleService,
+AVERTISSEMENT_DAEMON_BENIN, testé). Aucun test automatisé requis
+(comportement de Gradle, pas du projet). Vérification (AGENTS.md) :
+documentation + assembleDebug.

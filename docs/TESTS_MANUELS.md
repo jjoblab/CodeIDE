@@ -402,6 +402,17 @@ la commande découvre Gradle au moment de l'appel.
 | E75 | **Hors projet, cache présent** : après un build lancé depuis l'app (le wrapper a téléchargé sa distribution), taper `gradle --version` depuis le HOME | La distribution du wrapper la plus récemment utilisée répond (`$GRADLE_USER_HOME/wrapper/dists/…`) — plus JAMAIS « command not found » sans explication |
 | E76 | **Rien trouvé** : supprimer `$GRADLE_USER_HOME/wrapper/dists` (ou installation neuve), taper `gradle build` hors de tout projet | Sortie en **127** avec le message qui EXPLIQUE : rejoindre un projet avec `./gradlew`, ou lancer d'abord une sync/build depuis l'app — jamais un échec muet |
 
+## Correctif Tooling C5 — avertissement bénin du daemon Gradle (v0.36.4)
+
+Préambule : APK debug v0.36.4+, bootstrap installé (JDK), un projet avec
+wrapper, premier build après installation (l'avertissement apparaît
+typiquement au premier lancement du daemon Gradle — voir
+`docs/TOOLING.md`, section « Avertissement bénin du daemon Gradle »).
+
+| # | Action | Attendu |
+|---|---|---|
+| E77 | **Avertissement apaisé** : lancer un build (premier lancement du daemon Gradle) et observer l'onglet Sortie pendant l'exécution | La ligne « Unable to set daemon's environment variables… » apparaît éventuellement en style INFORMATIF (couleur de sortie standard, pas le rouge d'erreur) ; le build se termine normalement (réussi) ; les VRAIES erreurs de stderr restent rouges — l'utilisateur n'est pas alarmé pour un diagnostic bénin documenté |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

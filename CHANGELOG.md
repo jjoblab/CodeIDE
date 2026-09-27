@@ -4,6 +4,35 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.36.4] – 2026-09-27
+
+### Modifié (correctif C5 du prompt Terminal — avertissement du daemon Gradle)
+
+- **L'avertissement « Unable to set daemon's environment variables… There
+  is no native integration with this operating environment. » est documenté
+  comme CONNU et bénin** : nouvelle section dédiée dans `docs/TOOLING.md`
+  (diagnostic littéral de la bibliothèque `native-platform` de Gradle — pas
+  de binding compilé pour Android/bionic ; le daemon garde l'environnement
+  de son premier démarrage, le build n'échoue pas à cause de ça) et test
+  manuel E77 dans `docs/TESTS_MANUELS.md` — un futur diagnostic ne repart
+  plus de zéro.
+- **Vérification tracée** : l'app fournit l'environnement COMPLET et
+  canonique dès le TOUT PREMIER lancement du process orchestrateur
+  (`LanceurProcessusNatifs.launch` repart de
+  `ProcessEnvironmentProvider.baseEnvironment()` à chaque lancement, couvert
+  par `LanceurProcessusNatifsTest`) — c'est précisément le seul moment où
+  l'environnement compte, le daemon ne le resynchronisant jamais ensuite :
+  la garantie exigée par le correctif était déjà en place, elle est
+  maintenant documentée.
+- Rappel : depuis v0.36.0, la console rend cette ligne en style INFORMATIF
+  au lieu du rouge d'erreur (`GradleService.AVERTISSEMENT_DAEMON_BENIN`,
+  testé dans `GradleServiceTest`).
+
+### Notes techniques
+
+- Aucun test automatisé requis par le prompt (comportement de Gradle, pas
+  du projet) — documentation et test manuel uniquement.
+
 ## [0.36.3] – 2026-09-27
 
 ### Ajouté (correctif C4 du prompt Terminal — retour utilisateur)
