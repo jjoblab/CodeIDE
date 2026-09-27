@@ -4,6 +4,36 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.36.2] – 2026-09-27
+
+### Corrigé (correctif C3 du prompt Terminal — retour utilisateur)
+
+- **« Copier » la sélection fonctionne** : `ClientTermux.onCopyTextToClipboard`
+  était un no-op — le commentaire prétendait que « l'écran traitera via
+  `TerminalView` », FAUX : `TerminalViewClient` ne déclare PAS cette méthode,
+  elle n'appartient qu'à `TerminalSessionClient`, et c'est par elle que Termux
+  signale la copie demandée par l'utilisateur (sélection + « Copier » de la
+  barre d'action native) — l'action était silencieusement ignorée. La vraie
+  écriture vit désormais dans `CopieurPressePapiersAndroid` (port
+  `CopieurPressePapiers` injecté dans `FabriqueCoquillesTermux`, même patron
+  lambda que le style de curseur) : `ClipboardManager.setPrimaryClip` avec
+  garde texte vide/nul.
+- Confirmation adaptée à l'API : sur Android 13+, le système affiche déjà son
+  propre bandeau à chaque copie — aucun Toast maison (pas de doublon) ; en
+  dessous, un Toast court « Copié » reste utile.
+- La copie automatique en sortie de mode sélection (ADR 0059) est INTACTE :
+  les deux mécanismes coexistent (complémentaires, pas concurrents).
+
+### Notes techniques
+
+- Tests (`CopieurPressePapiersAndroidTest`, Robolectric) : texte normal /
+  vide / nul, remplacement du clip courant, Toast présent en API 28 et absent
+  en API 34 (compté par `ShadowToast`). Test manuel E73 (sélection réelle sur
+  appareil) dans `docs/TESTS_MANUELS.md`.
+- `core:terminal-runtime` étant Android-aware (il porte `TerminalService`),
+  l'injection `@ApplicationContext` du copieur y est directe — rien ne remonte
+  à `feature:terminal`.
+
 ## [0.36.1] – 2026-09-27
 
 ### Ajouté (correctifs C1/C2 du prompt Terminal — retour utilisateur)

@@ -519,3 +519,19 @@ côté terminal-runtime : tout passe par les fichiers shell. Tests
 `ProfilShellTest` (contenu, idempotence, .bashrc préservé, syntaxe et
 sourcing par le VRAI bash) + manuels E69-E72. Vérification (AGENTS.md) :
 spotless + detekt + tests du module touché (bootstrap) + assembleDebug.
+
+**v0.36.2 (2026-09-27, correctif C3 du prompt Terminal — « copier la
+sélection ne fait rien »)** : `ClientTermux.onCopyTextToClipboard` était un
+no-op appuyé par un commentaire faux (« l'écran les traitera via
+TerminalView » — `TerminalViewClient` ne déclare PAS cette méthode : elle
+n'appartient qu'à `TerminalSessionClient`, et c'est le chemin exact de
+l'action « Copier » de la barre native après sélection, confirmé par
+l'ancien projet qui écrivait au presse-papiers à cet endroit). Nouveau port
+`CopieurPressePapiers` + implémentation Android (`ClipboardManager`, garde
+texte vide/nul, Toast seulement sous l'API 33 — le système confirme
+lui-même au-delà), injecté dans `FabriqueCoquillesTermux` et transmis à
+`ClientTermux` par lambda (patron style de curseur). Copie automatique ADR
+0059 intacte : les deux coexistent. Tests Robolectric
+(`CopieurPressePapiersAndroidTest` : normal/vide/nul, remplacement, Toast
+par API) + manuel E73. Vérification (AGENTS.md) : spotless + detekt +
+tests du module touché (terminal-runtime) + assembleDebug.

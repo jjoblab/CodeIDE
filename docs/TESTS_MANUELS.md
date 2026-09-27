@@ -376,6 +376,18 @@ optionnel). Ces tests couvrent les correctifs C1 (PS1 personnalisé) et C2
 | E71 | **Invite et bienvenue visibles** : ouvrir une session de terminal (JDK et git installés) | L'invite affiche `codeide:<répertoire>$` colorée ; dans un dossier Git : `codeide:<répertoire> (main)$` ; la bannière « CodeIDE — terminal intégré » s'affiche à l'ouverture avec l'état réel du JDK (`/…/java-17…`), du SDK Android et de Gradle |
 | E72 | **Bienvenue silencieuse hors session** : lancer un script via le tooling (build Gradle) et surveiller sa sortie | Aucune bannière ne pollue la sortie des shells **non interactifs** (garde `case $- in *i*)`) — le tooling n'affiche jamais « CodeIDE — terminal intégré » |
 
+## Correctif Terminal C3 — copier la sélection (v0.36.2)
+
+Préambule : APK debug v0.36.2+, terminal ouvert avec une session vivante.
+Ce test couvre le correctif C3 du prompt compagnon Terminal : l'action
+« Copier » de la barre d'action native après sélection était
+silencieusement ignorée (`ClientTermux.onCopyTextToClipboard` était un
+no-op).
+
+| # | Action | Attendu |
+|---|---|---|
+| E73 | **Copier une sélection réelle** : sélectionner du texte du transcript (appui long → poignées), appuyer sur « Copier » dans la barre d'action native, puis coller (`Ctrl puis V`, ou coller dans une autre app) | Le texte sélectionné arrive au presse-papiers **réellement** (le collage le prouve) ; sur Android 12-, un Toast « Copié » confirme ; sur Android 13+, le bandeau système suffit (aucun double toast) ; la copie automatique en sortie de mode sélection (ADR 0059) continue de coexister |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

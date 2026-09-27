@@ -5,6 +5,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.TerminalSessionRepository
+import jo.codeide.core.terminalruntime.CopieurPressePapiers
+import jo.codeide.core.terminalruntime.CopieurPressePapiersAndroid
 import jo.codeide.core.terminalruntime.DemarreurService
 import jo.codeide.core.terminalruntime.DemarreurServiceAndroid
 import jo.codeide.core.terminalruntime.FabriqueCoquilles
@@ -37,6 +39,11 @@ internal interface TerminalRuntimeBindsModule {
     @Binds
     @Singleton
     fun bindFabriqueCoquilles(impl: FabriqueCoquillesTermux): FabriqueCoquilles
+
+    /** Copie presse-papiers (correctif C3) : implémentation Android. */
+    @Binds
+    @Singleton
+    fun bindCopieurPressePapiers(impl: CopieurPressePapiersAndroid): CopieurPressePapiers
 
     /** Démarrage du service foreground : implémentation Android. */
     @Binds

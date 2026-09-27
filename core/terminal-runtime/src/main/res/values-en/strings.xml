@@ -6,4 +6,6 @@
         <item quantity="one">%d active terminal session</item>
         <item quantity="other">%d active terminal sessions</item>
     </plurals>
+    <string name="terminal_selection_libelle">Terminal selection</string>
+    <string name="terminal_selection_copiee">Copied</string>
 </resources>

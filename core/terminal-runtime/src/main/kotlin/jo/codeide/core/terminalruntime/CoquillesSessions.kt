@@ -72,6 +72,13 @@ internal interface FabriqueCoquilles {
 /**
  * Adaptateur du client Termux vers l'écouteur du registre.
  *
+ * Correctif C3 du prompt Terminal : [onCopyTextToClipboard] — c'est par
+ * LUI que Termux signale la copie demandée par l'utilisateur (sélection
+ * puis « Copier » dans la barre d'action native) ET les séquences OSC 52 —
+ * délègue la vraie écriture au [CopieurPressePapiers] injecté (l'ancien
+ * no-op reposait sur un commentaire faux : `TerminalViewClient` ne déclare
+ * PAS cette méthode, l'action était silencieusement ignorée).
+ *
  * Exemption detekt ciblée (règle 16 du prompt maître) : le contrat tiers
  * `TerminalSessionClient` impose 16 méthodes — journalisation interne,
  * accessibilité et curseur comprises ; aucune n'est de notre ressort.
@@ -80,6 +87,7 @@ internal interface FabriqueCoquilles {
 private class ClientTermux(
     private val ecouteur: EcouteurCoquille,
     private val styleCurseur: () -> StyleCurseurTerminal,
+    private val copierTexte: (String?) -> Unit,
 ) : TerminalSessionClient {
     override fun onTextChanged(changedSession: TerminalSession) {
         ecouteur.surTexteModifie()
@@ -96,10 +104,16 @@ private class ClientTermux(
     // Services d'accessibilité du terminal : sans vue de rendu ici (le
     // rendu vit dans feature:terminal), ces sollicitations n'ont pas
     // d'abonné — l'écran les traitera via TerminalView.
+    //
+    // Copie demandée par l'utilisateur (C3) : la vraie écriture au
+    // presse-papiers — garde sur texte vide incluse — vit dans le
+    // copieur injecté, testable sans Android.
     override fun onCopyTextToClipboard(
         session: TerminalSession,
         text: String,
-    ) = Unit
+    ) {
+        copierTexte(text)
+    }
 
     override fun onPasteTextFromClipboard(session: TerminalSession) = Unit
 
@@ -171,6 +185,7 @@ internal class CoquilleTermux
         environnement: Array<String>,
         ecouteur: EcouteurCoquille,
         styleCurseur: () -> StyleCurseurTerminal,
+        copierTexte: (String?) -> Unit,
     ) : CoquilleSession {
         internal val session: TerminalSession =
             TerminalSession(
@@ -185,7 +200,7 @@ internal class CoquilleTermux
                 // transcriptRows =
                 TRANSCRIPT_ROWS,
                 // client =
-                ClientTermux(ecouteur, styleCurseur),
+                ClientTermux(ecouteur, styleCurseur, copierTexte),
             )
 
         override fun estVivante(): Boolean = session.isRunning
@@ -213,6 +228,7 @@ internal class FabriqueCoquillesTermux
     @Inject
     constructor(
         private val porteurStyleCurseur: PorteurStyleCurseur,
+        private val copieurPressePapiers: CopieurPressePapiers,
     ) : FabriqueCoquilles {
         override fun creer(
             shell: String,
@@ -220,7 +236,14 @@ internal class FabriqueCoquillesTermux
             environnement: Array<String>,
             ecouteur: EcouteurCoquille,
         ): CoquilleSession =
-            CoquilleTermux(shell, repertoireTravail, environnement, ecouteur, porteurStyleCurseur::lireStyle)
+            CoquilleTermux(
+                shell,
+                repertoireTravail,
+                environnement,
+                ecouteur,
+                porteurStyleCurseur::lireStyle,
+                copieurPressePapiers::copier,
+            )
     }
 
 /**
