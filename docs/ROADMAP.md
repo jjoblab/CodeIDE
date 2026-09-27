@@ -440,3 +440,27 @@ UI mort pendant un build gèle le pompe, les pongs ne sont plus traités
 — la découpe santé/livraison mérite sa propre ADR (contrat de
 non-perte de `pomperFin` en jeu). Vérification (AGENTS.md) : spotless
 + detekt + tests des modules touchés (bootstrap, daemon).
+
+**v0.35.4 (2026-09-27, retour utilisateur — « les vues sont empilées »
+dans les sections des Paramètres, ADR 0064)** : les sept sections
+dédiées de l'écran à deux niveaux (Apparence, À propos, Avancé,
+Éditeur, Notifications, Projets, Terminal — ADR 0059/0060)
+affichaient leurs rangées superposées au coin haut-gauche de la carte.
+Le `ScrollView` était sain (un seul enfant, la carte) — la faute était
+à la carte elle-même : `MaterialCardView` étend `FrameLayout`, et le
+`LinearLayout` vertical de contenu fermait trop tôt ou n'existait pas,
+si bien que toutes les rangées suivantes (séparateurs, interrupteurs,
+sélecteurs, champ de saisie) devenaient des enfants DIRECTS de la
+carte, posés au même coin. Chaque carte porte désormais un unique
+`LinearLayout` vertical sans id — la structure du maître, appliquée
+aux sections : aucun code Kotlin n'a bougé, les id et les bindings
+sont intacts. Régression (`SectionsParametresLayoutTest`) : chaque
+layout est gonflé sous le thème réel PUIS mesuré et posé à taille
+d'écran, et le test vérifie la structure (un unique conteneur
+vertical par carte, les quatre cartes du maître comprises) ET le
+symptôme exact (aucune rangée visible ne chevauche celle du dessus,
+vues `gone` exclues) — les tests existants ne regardaient que la
+PRÉSENCE des vues, jamais leurs positions : un gonflage sans pose ne
+superpose rien. Échec avéré sur les sept layouts avant correctif,
+succès après. Vérification (AGENTS.md) : spotless + detekt + tests
+du module touché (settings).
