@@ -362,6 +362,20 @@ aucune régression sur `feature:home`/`feature:editor`.
 | E67 | **Nouvelle session dans ce projet** : tiroir → Terminal → état vide → « Nouvelle session dans ce projet » | La session est créée dans le **dossier réel du projet** (`pwd` le confirme : `/storage/emulated/0/…/NomDuProjet`) puis l'écran plein écran s'ouvre dessus ; pastille verte ; session visible depuis l'autre point d'entrée |
 | E68 | **Garde-fou bootstrap dans le tiroir** : désinstaller les données ou vider le stockage interne (bootstrap absent), rouvrir l'espace | La carte montre « Outils du terminal non installés » + « Installer les outils » → écran d'installation ; **aucune** session fantôme créée |
 
+## Correctifs Terminal C1/C2 — profil shell de CodeIDE (v0.36.1)
+
+Préambule : APK debug v0.36.1+, installation de base du bootstrap **terminée**
+(E45 — le profil est posé à l'installation de base, avant tout paquet
+optionnel). Ces tests couvrent les correctifs C1 (PS1 personnalisé) et C2
+(message de bienvenue avec l'état des outils) du prompt compagnon Terminal.
+
+| # | Action | Attendu |
+|---|---|---|
+| E69 | **Profil généré** : après l'installation de base, lire `$PREFIX/etc/codeide.sh` (`adb shell run-as jo.codeide cat files/usr/etc/codeide.sh`) | Le fichier existe et contient : le `PS1` personnalisé `codeide:<répertoire> (<branche>)$`, la fonction `__codeide_git_branch`, la bannière de bienvenue et les lignes d'état `JAVA_HOME`/`ANDROID_HOME`/`Gradle` — régénéré en entier à chaque réinstallation |
+| E70 | **Inclusion du .bashrc** : lire le `.bashrc` du HOME du bootstrap (`adb shell run-as jo.codeide cat files/home/.bashrc`) | **Une seule** ligne `[ -f "$PREFIX/etc/codeide.sh" ] && . "$PREFIX/etc/codeide.sh"` — relancer l'installation complète une seconde fois : la ligne n'est **pas dupliquée** (contenu du `.bashrc` préservé) |
+| E71 | **Invite et bienvenue visibles** : ouvrir une session de terminal (JDK et git installés) | L'invite affiche `codeide:<répertoire>$` colorée ; dans un dossier Git : `codeide:<répertoire> (main)$` ; la bannière « CodeIDE — terminal intégré » s'affiche à l'ouverture avec l'état réel du JDK (`/…/java-17…`), du SDK Android et de Gradle |
+| E72 | **Bienvenue silencieuse hors session** : lancer un script via le tooling (build Gradle) et surveiller sa sortie | Aucune bannière ne pollue la sortie des shells **non interactifs** (garde `case $- in *i*)`) — le tooling n'affiche jamais « CodeIDE — terminal intégré » |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

@@ -55,7 +55,10 @@ import kotlin.reflect.KClass
  *    (postinst des paquets, verrou anti double exécution) ;
  * 6. écriture/correction du `sources.list` du dépôt CodeIDE ;
  * 7. `apt update` — **obligatoire** (ADR 0048) : le dépôt doit être à
- *    jour avant la fin de la première configuration.
+ *    jour avant la fin de la première configuration ;
+ * 7 bis. profil shell CodeIDE (`$PREFIX/etc/codeide.sh` + ligne du
+ *    `.bashrc` — correctifs C1/C2 du prompt Terminal) : PS1 personnalisé
+ *    et état des outils visibles à l'ouverture de chaque session.
  *
  * Les paquets d'outils (`openjdk`, `git`…) ne font PLUS partie de la
  * première configuration (v0.31.4) : [installerOutils] les installe
@@ -94,6 +97,7 @@ internal class InstallateurBootstrap
         private val telechargeur = TelechargeurBootstrap(configuration, dispatchers)
         private val extracteur = ExtracteurBootstrap(operations, dispatchers)
         private val configurateur = ConfigurateurApt(lanceur, dispatchers)
+        private val ecrivainProfil = EcrivainProfilShell(journalApp)
 
         /**
          * État initial : `Terminee` (outils non tentés) quand le marqueur
@@ -186,6 +190,13 @@ internal class InstallateurBootstrap
                 // optionnels et différés (installerOutils).
                 majEtape(EtapeInstallation.MiseAJourApt)
                 configurateur.miseAJour(prefixe, ::consignerAuJournal)
+
+                // Profil shell CodeIDE (correctifs C1/C2) : PS1
+                // personnalisé + état des outils à l'ouverture d'une session
+                // — posé à l'installation de BASE, avant tout paquet
+                // optionnel, réécrit en entier (idempotent).
+                ecrivainProfil.ecrire(racine)
+                consignerAuJournal("profil shell CodeIDE posé (codeide.sh + .bashrc)")
 
                 nettoyerStaging()
                 deposerMarqueurInstallation(racine)

@@ -500,3 +500,22 @@ jour en place, filtrage, apaisement C5), `ToolingEditorViewModelTest`,
 vert. Vérification (AGENTS.md) : spotless + detekt + tests des modules
 touchés + assembleDebug. La step 35 planifiée (Autres langages) recule à
 0.37.0.
+
+**v0.36.1 (2026-09-27, correctifs C1/C2 du prompt Terminal — « aucune
+invite personnalisée, les chemins ne sont visibles nulle part »)** :
+`core:bootstrap` ne générait AUCUN profil shell — chaque session affichait
+l'invite par défaut (`$`) et l'état des outils restait invisible alors que
+`JAVA_HOME`/`ANDROID_HOME` sont injectés depuis toujours. Nouvel
+`EcrivainProfilShell`, posé à l'installation de BASE (avant tout paquet
+optionnel) : `$PREFIX/etc/codeide.sh` régénéré en entier (idempotent,
+atomique) — PS1 personnalisé `codeide:<répertoire> (<branche Git>)$` (C1,
+branche silencieuse hors dépôt) et message de bienvenue avec l'état RÉEL du
+JDK/SDK Android/Gradle (C2) ; la ligne d'inclusion du `.bashrc` n'est
+ajoutée QUE si absente (jamais dupliquée). Écart au plan initial : la garde
+de la bienvenue est `case $- in *i*)` (POSIX) et non `[ -n "$PS1" ]` — le
+profil pose PS1 juste avant, cette garde aurait TOUJOURS affiché la
+bannière, y compris aux shells non interactifs du tooling. Aucun changement
+côté terminal-runtime : tout passe par les fichiers shell. Tests
+`ProfilShellTest` (contenu, idempotence, .bashrc préservé, syntaxe et
+sourcing par le VRAI bash) + manuels E69-E72. Vérification (AGENTS.md) :
+spotless + detekt + tests du module touché (bootstrap) + assembleDebug.

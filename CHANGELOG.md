@@ -4,6 +4,92 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.36.1] – 2026-09-27
+
+### Ajouté (correctifs C1/C2 du prompt Terminal — retour utilisateur)
+
+- **Profil shell de CodeIDE** (`EcrivainProfilShell`, posé à l'installation de
+  base du bootstrap, avant tout paquet optionnel) : `$PREFIX/etc/codeide.sh`
+  régénéré ENTIÈREMENT à chaque installation (idempotent par construction,
+  écriture atomique) — `PS1` personnalisé `codeide:<répertoire> (<branche Git>)$`
+  (couleurs, branche silencieuse hors dépôt — C1) et message de bienvenue
+  affichant l'état RÉEL des outils (JDK / SDK Android / Gradle — C2 :
+  `JAVA_HOME`/`ANDROID_HOME` étaient déjà injectés dans chaque session, ils
+  sont enfin VISIBLES).
+- La ligne d'inclusion `[ -f "$PREFIX/etc/codeide.sh" ] && . "$PREFIX/etc/codeide.sh"`
+  est ajoutée au `.bashrc` du HOME du bootstrap **seulement si absente**
+  (jamais dupliquée, contenu existant préservé).
+
+### Notes techniques
+
+- La garde de la bienvenue est `case $- in *i*)` (test POSIX canonique
+  d'interactivité) et NON `[ -n "$PS1" ]` comme dans le plan initial : le
+  profil POSE `PS1` juste avant, la garde `[ -n "$PS1" ]` aurait toujours
+  affiché la bannière — y compris pour les shells non interactifs du tooling.
+- Aucun changement côté `TerminalSession`/`core:terminal-runtime` : le
+  mécanisme passe entièrement par les fichiers shell sourcés par bash.
+- Tests (`ProfilShellTest`) : contenu généré (PS1 exact, branche Git, état des
+  outils), idempotence (réécriture entière + inclusion unique au second
+  passage), `.bashrc` préservé, et syntaxe/sourcing exécutés par le VRAI
+  `bash` du poste (`sh -n`, sourcing non interactif : PS1 posé, bienvenue
+  muette). Tests manuels E69-E72 dans `docs/TESTS_MANUELS.md`.
+
+## [0.36.0] – 2026-09-27
+
+### Ajouté (G8 — affichage des tâches, fin de la boîte noire de sync, écran de configuration — ADR 0065)
+
+- **Tâches au fil du build dans la console** : les événements `TaskStarted`/`TaskFinished`
+  ne sont plus jetés par `GradleApiImpl.pomper` — `observeTachesBuild` (canal borné par
+  build, tamponné avant le lancement, fermé à la fin) alimente l'onglet Sortie : une ligne
+  par tâche (`> Tâche :app:xxx…`), mise à jour EN PLACE à sa fin (durée MESURÉE par
+  l'opération Gradle, sautée grisée, échec rouge — comme la vue Build d'Android Studio).
+- **Progression de la synchronisation** : protocole **v3**, nouveau `SyncProgress` par
+  phase (`CONNEXION` / `MODELE_GRADLE` / `MODELE_IDEA`, annoncé au départ puis à la fin
+  avec sa durée) — la sync déroule ses étapes dans la console du canal Sync au lieu d'un
+  « en cours » muet ; la première connexion (distribution + daemon Gradle) est enfin
+  visible. `TaskFinished` enrichi de `durationMs` et `skipped` (champs à défauts,
+  compatibles v2). Fichiers dorés régénérés (28 messages).
+- **Écran de configuration du tooling** (engrenage de l'onglet Sortie, dialogue plein
+  écran `Theme.CodeIDE.PleinEcran` — accessible DEPUIS la console sans quitter
+  l'espace de travail) : affichage des tâches (filtrage en vol, relu à chaque événement),
+  mode hors ligne (`--offline`), arguments Gradle libres (persistés à la fin de saisie),
+  état vivant de l'orchestrateur (connexion + tas) — réglages persistés à l'instant dans
+  DataStore (`toolingAfficherTaches`, `toolingHorsLigne`, `toolingArguments`), consommés
+  par le nouvel `OptionsTooling` (patron `PorteurStyleCurseur`).
+
+### Modifié
+
+- `build()` du port tooling porte les **arguments Gradle supplémentaires**
+  (`BuildRequest.arguments`, vides par défaut) — la chaîne use case → client →
+  orchestrateur est complète.
+- **`--console=plain` est forcé** sur tout build de l'orchestrateur (ajouté en DERNIER
+  argument : l'occurrence finale d'une option Gradle gagne, un client qui passerait son
+  propre `--console` resterait maître) — la sortie texte ne repose plus sur la seule
+  détection TTY de Gradle.
+- La console affiche l'avertissement bénin du daemon Gradle (« Unable to set daemon's
+  environment variables… no native integration ») en style INFORMATIF au lieu du rouge
+  d'erreur — comportement connu et documenté (préparation du correctif C5 du prompt
+  Terminal ; la documentation TOOLING/TESTS_MANUELS suit à la livraison C5).
+- Les lignes de console deviennent TYPIÉES (`LigneConsole` scellée : `Sortie`/`Tache`/
+  `Etape`, identité stable — mise à jour en place sans scintillement), `PanneauConsoleFragment`
+  gagne l'engrenage de configuration ; durées partagées `DureesLisibles`.
+
+### Notes techniques
+
+- Protocole v3 : égalité EXACTE exigée au handshake (inchangé) — un orchestrateur v2
+  refusera de parler à une app v3 avec un message clair, jamais de décodage raté en
+  pleine session ; app et orchestrateur sont livrés ensemble (JAR redéployé au SHA-256).
+- `SyncHandler` hoiste la connexion AVANT les modèles (sa propre phase, la plus longue
+  d'une première sync) ; son échec sec publie « connexion Gradle impossible : … » au lieu
+  de deux « modèles non résolus » qui ne disent pas la cause.
+- Tests : protocole (catalogue 28 + dorés v3), `ProgressBridgeTest` (durée/sauté),
+  intégration serveur (phases de sync entre `SyncStarted` et `SyncResult`, tâches
+  traversantes), client (dispatch réparé, étapes jamais conflattées, arguments),
+  `GradleServiceTest` (mise à jour en place, filtrage du réglage, avertissement apaisé),
+  `ToolingEditorViewModelTest` (câblage des nouveaux flux), `ConfigToolingViewModelTest`,
+  layout Robolectric de l'écran de configuration ; kover ≥ 80 % vert sur les modules à
+  seuil. ADR 0065.
+
 ## [0.33.0] – 2026-09-26
 
 ### Ajouté (étape 32 — tooling professionnel, ADR 0057)
@@ -3094,59 +3180,3 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   la détection de tests de Gradle 9 sur un module sans test. Elles seront
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
-
-## [0.36.0] – 2026-09-27
-
-### Ajouté (G8 — affichage des tâches, fin de la boîte noire de sync, écran de configuration — ADR 0065)
-
-- **Tâches au fil du build dans la console** : les événements `TaskStarted`/`TaskFinished`
-  ne sont plus jetés par `GradleApiImpl.pomper` — `observeTachesBuild` (canal borné par
-  build, tamponné avant le lancement, fermé à la fin) alimente l'onglet Sortie : une ligne
-  par tâche (`> Tâche :app:xxx…`), mise à jour EN PLACE à sa fin (durée MESURÉE par
-  l'opération Gradle, sautée grisée, échec rouge — comme la vue Build d'Android Studio).
-- **Progression de la synchronisation** : protocole **v3**, nouveau `SyncProgress` par
-  phase (`CONNEXION` / `MODELE_GRADLE` / `MODELE_IDEA`, annoncé au départ puis à la fin
-  avec sa durée) — la sync déroule ses étapes dans la console du canal Sync au lieu d'un
-  « en cours » muet ; la première connexion (distribution + daemon Gradle) est enfin
-  visible. `TaskFinished` enrichi de `durationMs` et `skipped` (champs à défauts,
-  compatibles v2). Fichiers dorés régénérés (28 messages).
-- **Écran de configuration du tooling** (engrenage de l'onglet Sortie, dialogue plein
-  écran `Theme.CodeIDE.PleinEcran` — accessible DEPUIS la console sans quitter
-  l'espace de travail) : affichage des tâches (filtrage en vol, relu à chaque événement),
-  mode hors ligne (`--offline`), arguments Gradle libres (persistés à la fin de saisie),
-  état vivant de l'orchestrateur (connexion + tas) — réglages persistés à l'instant dans
-  DataStore (`toolingAfficherTaches`, `toolingHorsLigne`, `toolingArguments`), consommés
-  par le nouvel `OptionsTooling` (patron `PorteurStyleCurseur`).
-
-### Modifié
-
-- `build()` du port tooling porte les **arguments Gradle supplémentaires**
-  (`BuildRequest.arguments`, vides par défaut) — la chaîne use case → client →
-  orchestrateur est complète.
-- **`--console=plain` est forcé** sur tout build de l'orchestrateur (ajouté en DERNIER
-  argument : l'occurrence finale d'une option Gradle gagne, un client qui passerait son
-  propre `--console` resterait maître) — la sortie texte ne repose plus sur la seule
-  détection TTY de Gradle.
-- La console affiche l'avertissement bénin du daemon Gradle (« Unable to set daemon's
-  environment variables… no native integration ») en style INFORMATIF au lieu du rouge
-  d'erreur — comportement connu et documenté (préparation du correctif C5 du prompt
-  Terminal ; la documentation TOOLING/TESTS_MANUELS suit à la livraison C5).
-- Les lignes de console deviennent TYPIÉES (`LigneConsole` scellée : `Sortie`/`Tache`/
-  `Etape`, identité stable — mise à jour en place sans scintillement), `PanneauConsoleFragment`
-  gagne l'engrenage de configuration ; durées partagées `DureesLisibles`.
-
-### Notes techniques
-
-- Protocole v3 : égalité EXACTE exigée au handshake (inchangé) — un orchestrateur v2
-  refusera de parler à une app v3 avec un message clair, jamais de décodage raté en
-  pleine session ; app et orchestrateur sont livrés ensemble (JAR redéployé au SHA-256).
-- `SyncHandler` hoiste la connexion AVANT les modèles (sa propre phase, la plus longue
-  d'une première sync) ; son échec sec publie « connexion Gradle impossible : … » au lieu
-  de deux « modèles non résolus » qui ne disent pas la cause.
-- Tests : protocole (catalogue 28 + dorés v3), `ProgressBridgeTest` (durée/sauté),
-  intégration serveur (phases de sync entre `SyncStarted` et `SyncResult`, tâches
-  traversantes), client (dispatch réparé, étapes jamais conflattées, arguments),
-  `GradleServiceTest` (mise à jour en place, filtrage du réglage, avertissement apaisé),
-  `ToolingEditorViewModelTest` (câblage des nouveaux flux), `ConfigToolingViewModelTest`,
-  layout Robolectric de l'écran de configuration ; kover ≥ 80 % vert sur les modules à
-  seuil. ADR 0065.
