@@ -8,8 +8,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.InterruptedIOException
 import java.nio.charset.StandardCharsets
 import kotlin.coroutines.coroutineContext
 
@@ -51,15 +53,45 @@ internal class ProcessusGere(
         }
     }
 
-    /** Lit un tuyau ligne à ligne dans le dispatcheur d'E/S. */
+    /**
+     * Lit un tuyau ligne à ligne dans le dispatcheur d'E/S.
+     *
+     * Tolérance au DÉMONTAGE du tuyau (ADR 0063) : sur Android, la mort du
+     * process (arrêt forcé du health check, fin de tentative) referme les
+     * descripteurs depuis un AUTRE fil — libcore réveille la lecture
+     * bloquée par `InterruptedIOException` (« read interrupted by close()
+     * on another thread », journal de terrain v0.35.2 : plantage de
+     * EditorActivity 56 ms après « orchestrateur muet — arrêt forcé »).
+     * Cette fermeture est DÉCidée par notre supervision : la fin du flux
+     * est NORMALE, pas un échec — remonter l'exception faisait planter
+     * l'app entière pour un diagnostic de tuyau. Une [IOException] alors
+     * que le process est déjà mort reçoit le même traitement (bruit de
+     * démontage) ; pendant qu'il vit, elle reste une VRAIE erreur de
+     * lecture et remonte telle quelle.
+     *
+     * Exemption ciblée (SwallowedException) : la fermeture interrompue EST
+     * l'information de fin (démontage délibéré du superviseur) — la fin
+     * silencieuse du flux est le comportement documenté au port, même
+     * approche que le EOF de SessionSocketAndroid.
+     */
+    @Suppress("SwallowedException")
     private fun lignes(flux: InputStream): Flow<String> =
         flow {
-            BufferedReader(InputStreamReader(flux, StandardCharsets.UTF_8)).use { lecteur ->
-                var ligne = lecteur.readLine()
-                while (ligne != null) {
-                    emit(ligne)
-                    ligne = lecteur.readLine()
+            try {
+                BufferedReader(InputStreamReader(flux, StandardCharsets.UTF_8)).use { lecteur ->
+                    var ligne = lecteur.readLine()
+                    while (ligne != null) {
+                        emit(ligne)
+                        ligne = lecteur.readLine()
+                    }
                 }
+            } catch (interrompue: InterruptedIOException) {
+                // readLine() bloqué réveillé par la fermeture du flux
+                // depuis un autre fil (arrêt forcé) : fin normale.
+            } catch (fermee: IOException) {
+                // Process déjà mort : bruit de démontage du tuyau, fin
+                // normale — vivant, c'est une vraie erreur de lecture.
+                if (processus.isAlive) throw fermee
             }
         }.flowOn(io)
 

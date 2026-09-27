@@ -39,6 +39,24 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/tags/' }}
 
+      # Keystore debug STABLE entre les runs (ADR 0063) : le runner est
+      # éphémère — sans ce cache, AGP régénère ~/.android/debug.keystore à
+      # CHAQUE run, chaque APK porte une signature différente, et Android
+      # refuse la mise à jour par-dessus l'APK précédent (« conflit de
+      # package », désinstallation obligatoire avant chaque réinstallation,
+      # retour utilisateur v0.35.2). Le cache restaure TOUJOURS la même
+      # clé : les APK successifs se mettent à jour les uns sur les autres.
+      # Les keystores restent HORS du dépôt (règle .gitignore « jamais dans
+      # le dépôt ni dans les archives ») : seul le fichier local du runner
+      # est mis en cache. Première exécution : clé fraîche (une dernière
+      # réinstallation à prévoir), puis stable tant que le cache vit.
+      - name: Keystore debug stable entre les runs
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: codeide-keystore-debug-v1
+          enableCrossOsArchive: true
+
       # Les licences du SDK préinstallé du runner sont déjà acceptées ;
       # ce rite ne fait qu'assurer que sdkmanager peut auto-installer
       # une plateforme manquante (compileSdk 37.2) si besoin.

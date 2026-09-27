@@ -401,3 +401,42 @@ prochaine demande — le journal le confirme, l'orchestrateur démarre
 une fois les outils installés). Vérification (AGENTS.md) : spotless +
 detekt + tests du module touché (daemon : 22 tests dont bout-en-bout
 réel, 0 échec).
+
+**v0.35.3 (2026-09-27, retour utilisateur — rapport de plantage
+v0.35.2 « conflit de package » + `InterruptedIOException`, ADR
+0063)** : (1) **le démontage du tuyau n'est plus un plantage** : le
+correctif v0.35.2 a tenu (orchestrateur connecté, handshake accepté,
+connexion Tooling API ouverte) mais ~2 min plus tard, l'arrêt forcé
+du health check (« orchestrateur muet — aucun pong en 15000 ms »)
+réveillait le lecteur bloqué de `ProcessusGere.lignes` par
+`InterruptedIOException: read interrupted by close() on another
+thread` (mécanisme libcore : la mort du process referme les
+descripteurs depuis un autre fil) — 56 ms plus tard l'app plantait :
+le `SupervisorJob` isole les annulations, PAS les exceptions non
+interceptées, qui atteignaient le gestionnaire Android. Désormais
+l'interruption de fermeture et l'`IOException` sur process mort
+terminent le flux NORMALEMENT (la supervision a DÉCIDÉ de fermer) ;
+le process vivant remonte toujours ses vraies erreurs. Constat JVM de
+contraste : sur bureau, la fermeture par un autre fil ne réveille pas
+la lecture (blocage indéfini) — le mécanisme est propre à libcore,
+rejoué sur process factice dans `ProcessusGereTest` ; (2) **garde-fou
+anti-plantage** (`DaemonManager`) : un `CoroutineExceptionHandler`
+journalise tout échec non prévu des coroutines de supervision
+(lectures stdout/stderr, health check, boucle de vie) — un diagnostic
+de tuyau ne tuera plus jamais l'app ; testé par `DaemonManagerTest`
+(lecteur explosif journalisé, session survivante) ; (3) **keystore
+debug stable en CI** : pourquoi chaque APK GitHub exigeait une
+désinstallation préalable (« conflit de package ») — le runner est
+éphémère, AGP régénère `~/.android/debug.keystore` à chaque run, la
+signature changeait donc à CHAQUE APK. Le workflow met désormais le
+fichier en cache (clé fixe) : les APK successifs partagent la même
+signature et se mettent à jour les uns sur les autres ; première
+exécution à clé fraîche (une dernière réinstallation), puis stable.
+Les keystores restent hors du dépôt (règle .gitignore respectée).
+Diagnostic ouvert (v0.35.4+) : la MUETUDE elle-même — le pompe
+d'événements du client route tout par un seul collecteur dont le seul
+point suspendant est `pomperSortie.send` (canal 4096) : un collecteur
+UI mort pendant un build gèle le pompe, les pongs ne sont plus traités
+— la découpe santé/livraison mérite sa propre ADR (contrat de
+non-perte de `pomperFin` en jeu). Vérification (AGENTS.md) : spotless
++ detekt + tests des modules touchés (bootstrap, daemon).
