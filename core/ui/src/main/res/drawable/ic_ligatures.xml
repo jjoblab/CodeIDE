@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Deux lettres liées par un pont : ligature de la police à chasse fixe. -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M3,6h5v2H5v8h3v2H3zM16,6h5v12h-5v-2h3V8h-3zM9,10.5h6v1.6c0,1.9 -1.34,3.4 -3,3.4s-3,-1.5 -3,-3.4zM10.7,12.1c0,1.1 0.6,1.8 1.3,1.8s1.3,-0.7 1.3,-1.8z" />
+</vector>

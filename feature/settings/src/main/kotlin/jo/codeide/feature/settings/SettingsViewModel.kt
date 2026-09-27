@@ -19,7 +19,7 @@ import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
-import jo.codeide.core.model.TailleTabulation
+import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -104,32 +104,42 @@ sealed interface ActionParametres {
         val active: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : retour à la ligne automatique (ADR 0059). */
+    /** Éditeur : retour à la ligne automatique (`setWordWrap`). */
     data class ChangerRetourLigne(
         val actif: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : numéros de ligne dans la gouttière (ADR 0059). */
-    data class ChangerNumerosLigne(
+    /** Éditeur : thème de coloration (`setTheme`, v0.37.0). */
+    data class ChangerThemeEditeur(
+        val theme: ThemeEditeur,
+    ) : ActionParametres
+
+    /** Éditeur : bande minimap à droite (`setMinimapEnabled`). */
+    data class ChangerMinimap(
+        val activee: Boolean,
+    ) : ActionParametres
+
+    /** Éditeur : espaces, tabulations et fins de ligne visibles. */
+    data class ChangerCaracteresNonImprimables(
         val affiches: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : surlignage de la ligne actuelle (ADR 0059). */
-    data class ChangerSurlignageLigne(
-        val actif: Boolean,
+    /** Éditeur : ligatures de la police à chasse fixe. */
+    data class ChangerLigatures(
+        val activees: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : largeur des tabulations en espaces (ADR 0059). */
-    data class ChangerTailleTabulation(
-        val taille: TailleTabulation,
+    /** Éditeur : badges de diagnostic en fin de ligne. */
+    data class ChangerChipsDiagnostics(
+        val activees: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : sauvegarde automatique à la perte de focus (ADR 0059). */
+    /** Éditeur : sauvegarde automatique à la perte de focus. */
     data class ChangerSauvegardeAuto(
         val activee: Boolean,
     ) : ActionParametres
 
-    /** Éditeur : taille de police de l'éditeur (ADR 0059). */
+    /** Éditeur : taille de police de l'éditeur (`setFontScale`). */
     data class ChangerTaillePoliceEditeur(
         val taille: TaillePoliceEditeur,
     ) : ActionParametres
@@ -224,8 +234,11 @@ class SettingsViewModel
 
         /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
         fun onAction(action: ActionParametres) {
-            if (traiterReglageSection(action)) return
-            if (traiterReglageApparence(action)) return
+            if (traiterReglageEditeur(action) || traiterReglageSection(action) ||
+                traiterReglageApparence(action)
+            ) {
+                return
+            }
             when (action) {
                 is ActionParametres.ChangerLangue -> {
                     ecrireReglage("langue") { it.copy(languageTag = action.tag) }
@@ -266,8 +279,8 @@ class SettingsViewModel
                 }
 
                 // Réglages des sections ADR 0059 — déjà consommés par
-                // traiterReglageSection (retour vrai) : ce repli est
-                // structurel, jamais atteint.
+                // traiterReglageEditeur/Section/Apparence (retour vrai) : ce
+                // repli est structurel, jamais atteint.
                 else -> {
                     Unit
                 }
@@ -303,7 +316,57 @@ class SettingsViewModel
         }
 
         /**
-         * Réglages des sections créées par l'ADR 0059 (Éditeur, Terminal,
+         * Réglages de la section Éditeur (v0.37.0 — consommés au fil de
+         * l'eau par `OptionsEditeur`) : écritures directes, unifiées ici
+         * pour garder le dispatcheur `onAction` lisible.
+         *
+         * @return vrai si l'action a été consommée (réglage persisté).
+         */
+        private fun traiterReglageEditeur(action: ActionParametres): Boolean {
+            when (action) {
+                is ActionParametres.ChangerRetourLigne -> {
+                    ecrireReglage("retour à la ligne") { it.copy(editorRetourLigne = action.actif) }
+                }
+
+                is ActionParametres.ChangerThemeEditeur -> {
+                    ecrireReglage("thème de l'éditeur") { it.copy(editorThemeEditeur = action.theme) }
+                }
+
+                is ActionParametres.ChangerMinimap -> {
+                    ecrireReglage("minimap") { it.copy(editorMinimap = action.activee) }
+                }
+
+                is ActionParametres.ChangerCaracteresNonImprimables -> {
+                    ecrireReglage("caractères non imprimables") {
+                        it.copy(editorCaracteresNonImprimables = action.affiches)
+                    }
+                }
+
+                is ActionParametres.ChangerLigatures -> {
+                    ecrireReglage("ligatures") { it.copy(editorLigatures = action.activees) }
+                }
+
+                is ActionParametres.ChangerChipsDiagnostics -> {
+                    ecrireReglage("badges de diagnostic") { it.copy(editorChipsDiagnostics = action.activees) }
+                }
+
+                is ActionParametres.ChangerSauvegardeAuto -> {
+                    ecrireReglage("sauvegarde automatique") { it.copy(editorSauvegardeAuto = action.activee) }
+                }
+
+                is ActionParametres.ChangerTaillePoliceEditeur -> {
+                    ecrireReglage("taille de police éditeur") { it.copy(editorTaillePolice = action.taille) }
+                }
+
+                else -> {
+                    return false
+                }
+            }
+            return true
+        }
+
+        /**
+         * Réglages des sections créées par l'ADR 0059 (Terminal,
          * Notifications) : écritures directes, unifiées ici pour garder le
          * dispatcheur `onAction` lisible.
          *
@@ -321,30 +384,6 @@ class SettingsViewModel
 
                 is ActionParametres.ChangerSonNotifications -> {
                     ecrireReglage("son des notifications") { it.copy(sonNotifications = action.active) }
-                }
-
-                is ActionParametres.ChangerRetourLigne -> {
-                    ecrireReglage("retour à la ligne") { it.copy(editorRetourLigne = action.actif) }
-                }
-
-                is ActionParametres.ChangerNumerosLigne -> {
-                    ecrireReglage("numéros de ligne") { it.copy(editorNumerosLigne = action.affiches) }
-                }
-
-                is ActionParametres.ChangerSurlignageLigne -> {
-                    ecrireReglage("surlignage de ligne") { it.copy(editorSurlignerLigneActuelle = action.actif) }
-                }
-
-                is ActionParametres.ChangerTailleTabulation -> {
-                    ecrireReglage("taille de tabulation") { it.copy(editorTailleTabulation = action.taille) }
-                }
-
-                is ActionParametres.ChangerSauvegardeAuto -> {
-                    ecrireReglage("sauvegarde automatique") { it.copy(editorSauvegardeAuto = action.activee) }
-                }
-
-                is ActionParametres.ChangerTaillePoliceEditeur -> {
-                    ecrireReglage("taille de police éditeur") { it.copy(editorTaillePolice = action.taille) }
                 }
 
                 is ActionParametres.ChangerStyleCurseur -> {

@@ -166,6 +166,58 @@ class OngletsEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `l auto sauvegarde coupee laisse l onglet sale jusqu a l enregistrement manuel`() =
+        runTest {
+            val alpha = ajouterProjet("Alpha")
+            fichiers.seedDocument(
+                "$URI_DOCUMENT_PROJET/Main.kt",
+                FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "fun main()".toByteArray()),
+            )
+            // Réglage de l'éditeur (v0.37.0) : sauvegarde automatique
+            // désactivée — la collecte du détenteur doit l'avoir absorbée.
+            semerReglagesTooling { it.copy(editorSauvegardeAuto = false) }
+            advanceUntilIdle()
+            val viewModel = viewModel(alpha)
+            advanceUntilIdle()
+            val uriMain =
+                viewModel.etat.value.noeuds
+                    .first { it.nom == "Main.kt" }
+                    .uri
+            viewModel.onAction(ActionEditor.OuvrirFichier(uriMain))
+            advanceUntilIdle()
+
+            viewModel.sessionDe(uriMain)!!.replaceRange(0, 0, "// note\n")
+            assertTrue(
+                viewModel.etat.value.onglets
+                    .single()
+                    .isDirty,
+            )
+
+            // Bien après le délai d'inactivité : rien n'écrit — la garde
+            // tient, l'onglet reste sale.
+            advanceTimeBy(5_000)
+            assertFalse("rien malgré le délai", fichiers.readText(uriMain).getOrNull()!!.contains("note"))
+            assertTrue(
+                viewModel.etat.value.onglets
+                    .single()
+                    .isDirty,
+            )
+
+            // L'enregistrement manuel reste la porte de sortie.
+            viewModel.onAction(ActionEditor.Enregistrer)
+            advanceUntilIdle()
+            assertEquals(
+                "// note\nfun main()",
+                fichiers.readText(uriMain).getOrNull(),
+            )
+            assertFalse(
+                viewModel.etat.value.onglets
+                    .single()
+                    .isDirty,
+            )
+        }
+
+    @Test
     fun `la sauvegarde manuelle ecrit le texte courant`() =
         runTest {
             val alpha = ajouterProjet("Alpha")

@@ -11,7 +11,9 @@ import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
@@ -125,6 +127,14 @@ class SettingsViewModelTest {
             viewModel.onAction(ActionParametres.ChangerLangue("en"))
             viewModel.onAction(ActionParametres.ValiderNomAuteur("Ada Lovelace "))
             viewModel.onAction(ActionParametres.ChangerLicence(License.BSD_3_CLAUSE))
+            viewModel.onAction(ActionParametres.ChangerRetourLigne(false))
+            viewModel.onAction(ActionParametres.ChangerThemeEditeur(ThemeEditeur.MONOKAI))
+            viewModel.onAction(ActionParametres.ChangerMinimap(true))
+            viewModel.onAction(ActionParametres.ChangerCaracteresNonImprimables(true))
+            viewModel.onAction(ActionParametres.ChangerLigatures(true))
+            viewModel.onAction(ActionParametres.ChangerChipsDiagnostics(false))
+            viewModel.onAction(ActionParametres.ChangerSauvegardeAuto(false))
+            viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(TaillePoliceEditeur.GRANDE))
             advanceUntilIdle()
 
             val reglages = depot.reglages
@@ -134,6 +144,14 @@ class SettingsViewModelTest {
             assertEquals("en", reglages.languageTag)
             assertEquals("le nom d'auteur est rogné à la validation", "Ada Lovelace", reglages.authorName)
             assertEquals(License.BSD_3_CLAUSE, reglages.defaultLicense)
+            assertFalse(reglages.editorRetourLigne)
+            assertEquals(ThemeEditeur.MONOKAI, reglages.editorThemeEditeur)
+            assertTrue(reglages.editorMinimap)
+            assertTrue(reglages.editorCaracteresNonImprimables)
+            assertTrue(reglages.editorLigatures)
+            assertFalse(reglages.editorChipsDiagnostics)
+            assertFalse(reglages.editorSauvegardeAuto)
+            assertEquals(TaillePoliceEditeur.GRANDE, reglages.editorTaillePolice)
         }
 
     @Test

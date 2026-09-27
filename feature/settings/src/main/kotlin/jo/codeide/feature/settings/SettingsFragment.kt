@@ -10,7 +10,9 @@ import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StyleCurseurTerminal
+import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
+import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
@@ -210,7 +212,16 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                     jo.codeide.core.ui.R.drawable.ic_editer,
                     R.string.settings_maitre_editeur,
                     R.string.settings_cd_ligne_editeur,
-                ) { getString(R.string.settings_sous_editeur) },
+                ) { etat ->
+                    val theme = getString(libelleThemeEditeur(etat.reglage.editorThemeEditeur))
+                    val police =
+                        when (etat.reglage.editorTaillePolice) {
+                            TaillePoliceEditeur.PETITE -> getString(R.string.settings_police_petite)
+                            TaillePoliceEditeur.MOYENNE -> getString(R.string.settings_police_moyenne)
+                            TaillePoliceEditeur.GRANDE -> getString(R.string.settings_police_grande)
+                        }
+                    "$theme · $police"
+                },
                 ligne(
                     SectionParametres.TERMINAL,
                     jo.codeide.core.ui.R.drawable.ic_terminal,
@@ -316,3 +327,18 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
             PaletteCouleur.ROSE -> R.string.settings_palette_rose
         }
 }
+
+/** Libellé localisé d'un thème de l'éditeur (sous-titre du maître, v0.37.0). */
+private fun libelleThemeEditeur(theme: ThemeEditeur): Int =
+    when (theme) {
+        ThemeEditeur.AUTO -> R.string.settings_theme_auto
+        ThemeEditeur.VSCODE_SOMBRE -> R.string.settings_theme_vscode_sombre
+        ThemeEditeur.VSCODE_CLAIR -> R.string.settings_theme_vscode_clair
+        ThemeEditeur.DRACULA -> R.string.settings_theme_dracula
+        ThemeEditeur.ONE_DARK -> R.string.settings_theme_one_dark
+        ThemeEditeur.MONOKAI -> R.string.settings_theme_monokai
+        ThemeEditeur.SOLARIZED_SOMBRE -> R.string.settings_theme_solarized_sombre
+        ThemeEditeur.GITHUB_CLAIR -> R.string.settings_theme_github_clair
+        ThemeEditeur.GITHUB_SOMBRE -> R.string.settings_theme_github_sombre
+        ThemeEditeur.NORD -> R.string.settings_theme_nord
+    }

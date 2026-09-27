@@ -14,6 +14,8 @@ import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.TaillePoliceEditeur
+import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -102,6 +104,14 @@ class SettingsDataStoreTest {
                     authorName = "Jo",
                     defaultLicense = License.APACHE_2_0,
                     logLevel = LogVerbosity.DETAILED,
+                    editorRetourLigne = false,
+                    editorThemeEditeur = ThemeEditeur.DRACULA,
+                    editorMinimap = true,
+                    editorCaracteresNonImprimables = true,
+                    editorLigatures = true,
+                    editorChipsDiagnostics = false,
+                    editorSauvegardeAuto = false,
+                    editorTaillePolice = TaillePoliceEditeur.GRANDE,
                     toolingAfficherTaches = false,
                     toolingHorsLigne = true,
                     toolingArguments = "--stacktrace --info",
@@ -119,6 +129,14 @@ class SettingsDataStoreTest {
             assertEquals("Jo", relu.authorName)
             assertEquals(License.APACHE_2_0, relu.defaultLicense)
             assertEquals(LogVerbosity.DETAILED, relu.logLevel)
+            assertEquals(false, relu.editorRetourLigne)
+            assertEquals(ThemeEditeur.DRACULA, relu.editorThemeEditeur)
+            assertEquals(true, relu.editorMinimap)
+            assertEquals(true, relu.editorCaracteresNonImprimables)
+            assertEquals(true, relu.editorLigatures)
+            assertEquals(false, relu.editorChipsDiagnostics)
+            assertEquals(false, relu.editorSauvegardeAuto)
+            assertEquals(TaillePoliceEditeur.GRANDE, relu.editorTaillePolice)
             assertEquals(false, relu.toolingAfficherTaches)
             assertEquals(true, relu.toolingHorsLigne)
             assertEquals("--stacktrace --info", relu.toolingArguments)
@@ -176,6 +194,7 @@ class SettingsDataStoreTest {
                 it[SettingsDataStore.Cles.MODE_THEME] = "SOMBRE"
                 it[SettingsDataStore.Cles.LICENCE] = "Apache-2.0"
                 it[SettingsDataStore.Cles.VERBOSITE] = "BAVARD"
+                it[SettingsDataStore.Cles.EDITEUR_THEME] = "OCEAN"
             }
 
             val relu = source.current().succes()
@@ -183,6 +202,7 @@ class SettingsDataStoreTest {
             assertEquals(defauts.themeMode, relu.themeMode)
             assertEquals(defauts.defaultLicense, relu.defaultLicense)
             assertEquals(defauts.logLevel, relu.logLevel)
+            assertEquals(defauts.editorThemeEditeur, relu.editorThemeEditeur)
         }
 
     @Test

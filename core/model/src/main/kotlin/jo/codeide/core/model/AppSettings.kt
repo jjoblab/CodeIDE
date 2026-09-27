@@ -17,10 +17,14 @@ package jo.codeide.core.model
  * permission persistante. `null` signifie « non configuré » (onboarding
  * passable, bandeau « Configurer le dossier de travail » à l'accueil).
  *
- * Sections Éditeur et Terminal (ADR 0059) : les réglages sont **persistés
- * avant consommation** pour l'éditeur (le moteur embarqué expose la
- * typographie via cel-ui, l'abonnement viendra avec la coloration) ; le
- * terminal consomme déjà style du curseur et copie de sélection.
+ * Sections Éditeur et Terminal (ADR 0059 ; v0.37.0) : les réglages de
+ * l'éditeur sont **consommés au fil de l'eau** par `OptionsEditeur`
+ * (feature:editor) — chaque champ projette une API réelle de cel-ui
+ * (thème, zoom, retour à la ligne, minimap…). Les anciens réglages
+ * « persistés avant consommation » jamais honorés par la bibliothèque
+ * (numéros de ligne, surlignage de ligne, tabulation — toujours dessinés
+ * ou auto-détectés par cel-ui) ont été retirés ; le terminal consomme
+ * déjà style du curseur et copie de sélection.
  *
  * Section Tooling (v3 — écran de configuration de la console) : affichage
  * des tâches pendant le build, mode hors ligne et arguments Gradle libres
@@ -34,10 +38,18 @@ package jo.codeide.core.model
  * @property notificationsSync notifications du canal Synchronisation.
  * @property notificationsBuild notifications du canal Build.
  * @property sonNotifications son des notifications du tooling.
- * @property editorRetourLigne retour à la ligne automatique de l'éditeur.
- * @property editorNumerosLigne numéros de ligne dans la gouttière.
- * @property editorSurlignerLigneActuelle surlignage de la ligne active.
- * @property editorTailleTabulation largeur des tabulations (espaces).
+ * @property editorRetourLigne retour à la ligne automatique de l'éditeur
+ * (`EditorView.setWordWrap`).
+ * @property editorThemeEditeur thème de coloration de l'éditeur (les neuf
+ * thèmes embarqués de cel-ui, ou le suivi de l'application).
+ * @property editorMinimap bande minimap à droite de l'éditeur
+ * (`EditorView.setMinimapEnabled`).
+ * @property editorCaracteresNonImprimables affichage des espaces,
+ * tabulations et fins de ligne (`EditorView.setShowNonPrintable`).
+ * @property editorLigatures ligatures de la police à chasse fixe — coupe
+ * la coloration syntaxique (compromis documenté de cel-ui).
+ * @property editorChipsDiagnostics badges de diagnostic en fin de ligne
+ * (`EditorView.setDiagnosticChipsEnabled`).
  * @property editorSauvegardeAuto sauvegarde à chaque perte de focus.
  * @property editorTaillePolice taille de police de l'éditeur.
  * @property styleCurseurTerminal style du curseur de l'émulateur.
@@ -70,9 +82,11 @@ public data class AppSettings(
     public val notificationsBuild: Boolean = true,
     public val sonNotifications: Boolean = false,
     public val editorRetourLigne: Boolean = true,
-    public val editorNumerosLigne: Boolean = true,
-    public val editorSurlignerLigneActuelle: Boolean = false,
-    public val editorTailleTabulation: TailleTabulation = TailleTabulation.QUATRE,
+    public val editorThemeEditeur: ThemeEditeur = ThemeEditeur.AUTO,
+    public val editorMinimap: Boolean = false,
+    public val editorCaracteresNonImprimables: Boolean = false,
+    public val editorLigatures: Boolean = false,
+    public val editorChipsDiagnostics: Boolean = true,
     public val editorSauvegardeAuto: Boolean = true,
     public val editorTaillePolice: TaillePoliceEditeur = TaillePoliceEditeur.MOYENNE,
     public val styleCurseurTerminal: StyleCurseurTerminal = StyleCurseurTerminal.BLOC,

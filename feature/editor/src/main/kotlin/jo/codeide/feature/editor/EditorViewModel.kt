@@ -165,6 +165,7 @@ class EditorViewModel
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
         private val optionsTooling: OptionsTooling,
+        private val optionsEditeur: OptionsEditeur,
         private val copierArbre: CopierArbreUseCase,
         private val deplacerArbre: DeplacerArbreUseCase,
         private val lireArbre: LireArbreUseCase,
@@ -1398,7 +1399,8 @@ class EditorViewModel
             reconstruireNoeuds()
         }
 
-        /** Une modification rend l'onglet sale et (re)programme l'auto-sauvegarde. */
+        /** Une modification rend l'onglet sale et (re)programme l'auto-sauvegarde
+         *  — sauf si le réglage la coupe : l'onglet attend un enregistrement manuel. */
         private fun marquerModifie(uri: String) {
             sauvegardesAuto[uri]?.cancel()
             etatInterne.update { etat ->
@@ -1408,6 +1410,12 @@ class EditorViewModel
                             if (it.uri == uri && !it.isDirty) it.copy(isDirty = true) else it
                         },
                 )
+            }
+            // Réglage de l'éditeur (v0.37.0) : sauvegarde automatique
+            // désactivée — le fichier reste sale jusqu'à un enregistrement
+            // manuel (toolbar ou Ctrl+S).
+            if (!optionsEditeur.courants.editorSauvegardeAuto) {
+                return
             }
             sauvegardesAuto[uri] =
                 viewModelScope.launch {

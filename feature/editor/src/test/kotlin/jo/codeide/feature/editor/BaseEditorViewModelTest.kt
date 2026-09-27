@@ -1,14 +1,18 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.CopierArbreUseCase
+import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
+import jo.codeide.core.domain.LireArbreUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.RestaurerArbreUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.domain.templates.ListTemplatesUseCase
 import jo.codeide.core.domain.templates.TemplateEngine
@@ -68,7 +72,8 @@ abstract class BaseEditorViewModelTest {
     /** Faux du port tooling (G5) — pilotable par les tests de l'espace. */
     protected val tooling = FauxToolingEditor()
 
-    /** Réglages en mémoire — pilote [optionsTooling] (v3). */
+    /** Réglages en mémoire — pilote [optionsTooling] (v3) et
+     *  [optionsEditeur] (v0.37.0) : même dépôt, mêmes semailles. */
     protected val depotReglages = FakeSettingsRepository()
 
     /** Options tooling de l'espace (v3) : collecte sur le répartiteur de
@@ -76,6 +81,15 @@ abstract class BaseEditorViewModelTest {
      *  planificateur avancer (même déterminisme que les autres flux). */
     protected val optionsTooling =
         OptionsTooling(
+            observerReglages = ObserveSettingsUseCase(depotReglages),
+            dispatchers = TestDispatcherProvider(regleMain.dispatcher),
+        )
+
+    /** Options de l'éditeur (v0.37.0) : même dépôt de réglages que le
+     *  tooling — la sauvegarde automatique s'y sème aussi par
+     *  [semerReglagesTooling], le planificateur fait avancer la collecte. */
+    protected val optionsEditeur =
+        OptionsEditeur(
             observerReglages = ObserveSettingsUseCase(depotReglages),
             dispatchers = TestDispatcherProvider(regleMain.dispatcher),
         )
@@ -113,6 +127,18 @@ abstract class BaseEditorViewModelTest {
             arborescences = FakeArborescencesSaf(),
             repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
         )
+
+    /** Cas d'usage d'arbre purs (étape 17) — sans état, partagés par test. */
+    protected val copierArbre = CopierArbreUseCase()
+
+    /** Idem : déplacement d'arbre. */
+    protected val deplacerArbre = DeplacerArbreUseCase()
+
+    /** Idem : lecture d'arbre. */
+    protected val lireArbre = LireArbreUseCase()
+
+    /** Idem : restauration d'arbre. */
+    protected val restaurerArbre = RestaurerArbreUseCase()
 
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
     protected fun viewModel(id: ProjectId): EditorViewModel =
@@ -171,24 +197,17 @@ abstract class BaseEditorViewModelTest {
             annulerBuild =
                 jo.codeide.core.domain
                     .AnnulerBuildUseCase(tooling),
-            copierArbre =
-                jo.codeide.core.domain
-                    .CopierArbreUseCase(),
-            deplacerArbre =
-                jo.codeide.core.domain
-                    .DeplacerArbreUseCase(),
-            lireArbre =
-                jo.codeide.core.domain
-                    .LireArbreUseCase(),
-            restaurerArbre =
-                jo.codeide.core.domain
-                    .RestaurerArbreUseCase(),
+            copierArbre = copierArbre,
+            deplacerArbre = deplacerArbre,
+            lireArbre = lireArbre,
+            restaurerArbre = restaurerArbre,
             listerTachesProjet =
                 jo.codeide.core.domain.ListerTachesProjetUseCase(
                     tooling,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
             optionsTooling = optionsTooling,
+            optionsEditeur = optionsEditeur,
             serviceGradle = serviceGradleTest,
             savedStateHandle = sauvetage,
         )

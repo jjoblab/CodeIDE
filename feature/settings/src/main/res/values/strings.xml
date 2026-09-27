@@ -77,7 +77,6 @@
     <string name="settings_notif_partiel">Sync ou build activées</string>
     <string name="settings_notif_toutes_desactivees">Notifications désactivées</string>
     <string name="settings_maitre_editeur">Éditeur</string>
-    <string name="settings_sous_editeur">Retour à la ligne, numéros de ligne…</string>
     <string name="settings_maitre_terminal">Terminal</string>
     <string name="settings_maitre_ia">IA</string>
     <string name="settings_sous_ia">Assistant de code intégré</string>
@@ -130,14 +129,36 @@
     <string name="settings_notif_build_sous">Notifier à la fin d\'un build</string>
     <string name="settings_notif_son">Son</string>
 
-    <!-- Section Éditeur. -->
+    <!-- Section Éditeur (v0.37.0 — chaque réglage est consommé par cel-ui). -->
     <string name="settings_editeur_titre">Éditeur</string>
+    <string name="settings_editeur_apparence">Apparence de l’éditeur</string>
+    <string name="settings_editeur_affichage">Affichage</string>
+    <string name="settings_editeur_edition">Édition</string>
     <string name="settings_taille_police">Taille de police</string>
+    <string name="settings_theme_editeur">Thème de coloration</string>
+    <string name="settings_theme_editeur_dialogue">Thème de coloration</string>
+    <string name="settings_theme_auto">Automatique (suit l’application)</string>
+    <string name="settings_theme_vscode_sombre">VS Code Sombre</string>
+    <string name="settings_theme_vscode_clair">VS Code Clair</string>
+    <string name="settings_theme_dracula">Dracula</string>
+    <string name="settings_theme_one_dark">One Dark</string>
+    <string name="settings_theme_monokai">Monokai</string>
+    <string name="settings_theme_solarized_sombre">Solarized Sombre</string>
+    <string name="settings_theme_github_clair">GitHub Clair</string>
+    <string name="settings_theme_github_sombre">GitHub Sombre</string>
+    <string name="settings_theme_nord">Nord</string>
     <string name="settings_retour_ligne">Retour à la ligne</string>
-    <string name="settings_numeros_ligne">Numéros de ligne</string>
-    <string name="settings_surligner_ligne">Surligner la ligne actuelle</string>
-    <string name="settings_taille_tabulation">Taille de tabulation</string>
+    <string name="settings_retour_ligne_sous">Les longues lignes passent à la ligne suivante</string>
+    <string name="settings_ligatures">Ligatures de police</string>
+    <string name="settings_ligatures_sous">Désactive la coloration syntaxique (compromis de la police à chasse fixe)</string>
+    <string name="settings_minimap">Minimap</string>
+    <string name="settings_minimap_sous">Vue d’ensemble du fichier à droite de l’éditeur</string>
+    <string name="settings_caracteres_non_imprimables">Caractères non imprimables</string>
+    <string name="settings_caracteres_non_imprimables_sous">Espaces, tabulations et fins de ligne visibles</string>
+    <string name="settings_chips_diagnostics">Badges de diagnostic</string>
+    <string name="settings_chips_diagnostics_sous">Raccourci des diagnostics en fin de ligne</string>
     <string name="settings_sauvegarde_auto">Sauvegarde automatique</string>
+    <string name="settings_sauvegarde_auto_sous">Enregistre le fichier après une courte pause de saisie</string>
 
     <!-- Section Terminal. -->
     <string name="settings_terminal_titre">Terminal</string>
@@ -166,9 +187,5 @@
     <string name="settings_cd_ligne_securite">Sécurité et confidentialité — bientôt disponible</string>
     <string name="settings_cd_ligne_apropos">Ouvrir les informations de l\'application</string>
     <string name="settings_cd_ligne_avance">Ouvrir les réglages avancés</string>
-
-    <string name="settings_tab_deux">2</string>
-    <string name="settings_tab_quatre">4</string>
-    <string name="settings_tab_huit">8</string>
 
 </resources>

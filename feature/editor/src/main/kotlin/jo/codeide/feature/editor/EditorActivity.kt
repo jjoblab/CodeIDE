@@ -125,13 +125,15 @@ class EditorActivity :
     @Inject
     lateinit var fabriqueTerminalTiroir: FabriqueFragmentTerminalTiroir
 
+    /** Réglages de l'éditeur consommés au fil de l'eau (v0.37.0) : thème,
+     * zoom, retour à la ligne, minimap… — le détenteur process-wide y
+     * publie, l'activité applique à `EditorView` à chaque changement. */
+    @Inject
+    lateinit var optionsEditeur: OptionsEditeur
+
     private lateinit var liaison: ActivityEditorBinding
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
-
-    /** Thèmes cel mis en cache (clair/sombre, suivant l'application). */
-    private var themeClair: EditorTheme? = null
-    private var themeSombre: EditorTheme? = null
 
     /** Sélection programmatique d'onglet : ne pas la renvoyer au ViewModel. */
     private var selectionProgrammatique = false
@@ -234,6 +236,12 @@ class EditorActivity :
 
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
+
+        // Réglages de l'éditeur (v0.37.0) : chaque changement persisté
+        // s'applique à l'EditorView AU FIL DE L'EAU — thème de coloration,
+        // zoom, retour à la ligne, minimap, caractères non imprimables,
+        // ligatures, badges de diagnostic (cel-ui, ADR 0059).
+        optionsEditeur.reglages.collectWithLifecycle(this, Lifecycle.State.STARTED) { appliquerReglagesEditeur() }
 
         // Ligne tooling de l'en-tête (v0.32.5) : l'état Gradle — canaux,
         // activité en cours, chronos — rendu par l'HÔTE (le chrome lui
@@ -1243,17 +1251,28 @@ class EditorActivity :
         liaison.vueEditeur.setTheme(themeActuel())
     }
 
-    /** Thème cel correspondant au mode clair/sombre de l'application. */
+    /** Thème cel correspondant au réglage (v0.37.0) : automatique (suit le
+     *  mode clair/sombre de l'application — comportement historique) ou
+     *  l'un des neuf thèmes embarqués, choisis dans les Paramètres. */
     private fun themeActuel(): EditorTheme {
         val nuit =
             (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-        if (nuit) {
-            if (themeSombre == null) themeSombre = EditorTheme.dark()
-            return themeSombre!!
-        }
-        if (themeClair == null) themeClair = EditorTheme.light()
-        return themeClair!!
+        return optionsEditeur.themePour(nuit)
+    }
+
+    /** Applique les réglages de l'éditeur à la vue cel (v0.37.0) : chaque
+     *  setter projette une API publique d'EditorView ; idempotent, donc
+     *  rappelé sans coût à chaque émission du détenteur. */
+    private fun appliquerReglagesEditeur() {
+        val vue = liaison.vueEditeur
+        vue.setTheme(themeActuel())
+        vue.setFontScale(optionsEditeur.facteurPolice())
+        vue.setWordWrap(optionsEditeur.courants.editorRetourLigne)
+        vue.setMinimapEnabled(optionsEditeur.courants.editorMinimap)
+        vue.setShowNonPrintable(optionsEditeur.courants.editorCaracteresNonImprimables)
+        vue.setFontLigatures(optionsEditeur.courants.editorLigatures)
+        vue.setDiagnosticChipsEnabled(optionsEditeur.courants.editorChipsDiagnostics)
     }
 
     /**

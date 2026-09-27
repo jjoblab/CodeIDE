@@ -17,7 +17,7 @@ import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
-import jo.codeide.core.model.TailleTabulation
+import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -126,9 +126,13 @@ public class SettingsDataStore(
         internal val NOTIFICATIONS_BUILD: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_build")
         internal val SON_NOTIFICATIONS: Preferences.Key<Boolean> = booleanPreferencesKey("notifications_sound")
         internal val EDITEUR_RETOUR_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_word_wrap")
-        internal val EDITEUR_NUMEROS_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_line_numbers")
-        internal val EDITEUR_SURLIGNER_LIGNE: Preferences.Key<Boolean> = booleanPreferencesKey("editor_highlight_line")
-        internal val EDITEUR_TAILLE_TAB: Preferences.Key<String> = stringPreferencesKey("editor_tab_size")
+        internal val EDITEUR_THEME: Preferences.Key<String> = stringPreferencesKey("editor_theme")
+        internal val EDITEUR_MINIMAP: Preferences.Key<Boolean> = booleanPreferencesKey("editor_minimap")
+        internal val EDITEUR_CARACTERES_NON_IMPRIMABLES: Preferences.Key<Boolean> =
+            booleanPreferencesKey("editor_show_non_printable")
+        internal val EDITEUR_LIGATURES: Preferences.Key<Boolean> = booleanPreferencesKey("editor_font_ligatures")
+        internal val EDITEUR_CHIPS_DIAGNOSTIC: Preferences.Key<Boolean> =
+            booleanPreferencesKey("editor_diagnostic_chips")
         internal val EDITEUR_SAUVEGARDE_AUTO: Preferences.Key<Boolean> = booleanPreferencesKey("editor_autosave")
         internal val EDITEUR_TAILLE_POLICE: Preferences.Key<String> = stringPreferencesKey("editor_font_size")
         internal val STYLE_CURSEUR: Preferences.Key<String> = stringPreferencesKey("terminal_cursor_style")
@@ -175,12 +179,16 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
         notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
         sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
         editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
-        editorNumerosLigne = this[SettingsDataStore.Cles.EDITEUR_NUMEROS_LIGNE] ?: defaults.editorNumerosLigne,
-        editorSurlignerLigneActuelle =
-            this[SettingsDataStore.Cles.EDITEUR_SURLIGNER_LIGNE] ?: defaults.editorSurlignerLigneActuelle,
-        editorTailleTabulation =
-            TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TAB])
-                ?: defaults.editorTailleTabulation,
+        editorThemeEditeur =
+            ThemeEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_THEME])
+                ?: defaults.editorThemeEditeur,
+        editorMinimap = this[SettingsDataStore.Cles.EDITEUR_MINIMAP] ?: defaults.editorMinimap,
+        editorCaracteresNonImprimables =
+            this[SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES]
+                ?: defaults.editorCaracteresNonImprimables,
+        editorLigatures = this[SettingsDataStore.Cles.EDITEUR_LIGATURES] ?: defaults.editorLigatures,
+        editorChipsDiagnostics =
+            this[SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC] ?: defaults.editorChipsDiagnostics,
         editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
         editorTaillePolice =
             TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
@@ -231,9 +239,11 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.NOTIFICATIONS_BUILD, reglage.notificationsBuild)
     set(SettingsDataStore.Cles.SON_NOTIFICATIONS, reglage.sonNotifications)
     set(SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE, reglage.editorRetourLigne)
-    set(SettingsDataStore.Cles.EDITEUR_NUMEROS_LIGNE, reglage.editorNumerosLigne)
-    set(SettingsDataStore.Cles.EDITEUR_SURLIGNER_LIGNE, reglage.editorSurlignerLigneActuelle)
-    set(SettingsDataStore.Cles.EDITEUR_TAILLE_TAB, reglage.editorTailleTabulation.name)
+    set(SettingsDataStore.Cles.EDITEUR_THEME, reglage.editorThemeEditeur.name)
+    set(SettingsDataStore.Cles.EDITEUR_MINIMAP, reglage.editorMinimap)
+    set(SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES, reglage.editorCaracteresNonImprimables)
+    set(SettingsDataStore.Cles.EDITEUR_LIGATURES, reglage.editorLigatures)
+    set(SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC, reglage.editorChipsDiagnostics)
     set(SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO, reglage.editorSauvegardeAuto)
     set(SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE, reglage.editorTaillePolice.name)
     set(SettingsDataStore.Cles.STYLE_CURSEUR, reglage.styleCurseurTerminal.name)

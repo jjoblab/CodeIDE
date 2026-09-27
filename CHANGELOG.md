@@ -4,6 +4,72 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.0] – 2026-09-27
+
+### Ajouté (section Éditeur des Paramètres consommée — ADR 0066)
+
+- **Thème de coloration de l'éditeur** : sélecteur (dialogue à choix unique)
+  parmi les neuf thèmes embarqués de cel-ui — VS Code Sombre, VS Code Clair,
+  Dracula, One Dark, Monokai, Solarized Sombre, GitHub Clair, GitHub Sombre,
+  Nord — plus « Automatique » (suit le mode clair/sombre de l'application,
+  comportement historique, défaut). Nouvel enum `ThemeEditeur` (core:model),
+  persisté dans `editor_theme`, appliqué au fil de l'eau par
+  `OptionsEditeur.themePour()` (thèmes cel mis en cache — une instance par
+  valeur, `EditorTheme.dark()` & co allouant à chaque appel).
+- **Minimap** (`setMinimapEnabled`), **caractères non imprimables**
+  (`setShowNonPrintable`), **ligatures de police** (`setFontLigatures`, avec
+  l'avertissement visible « désactive la coloration syntaxique » — compromis
+  documenté de la bibliothèque) et **badges de diagnostic**
+  (`setDiagnosticChipsEnabled`) : nouveaux interrupteurs, tous réellement
+  branchés sur des API publiques d'`EditorView`.
+- **`OptionsEditeur`** (feature:editor) : détenteur process-wide des réglages
+  de l'éditeur, même patron que `OptionsTooling` (ADR 0059/0057) — une seule
+  collecte des paramètres en tâche de fond, `StateFlow` observable par
+  l'activité, lecture ponctuelle pour le ViewModel. `EditorActivity` y
+  applique chaque changement À L'ÉDITEUR OUVERT en direct (collecte
+  `Lifecycle.State.STARTED`, setters idempotents) : taille de police
+  (`setFontScale` : 0,85 / 1,0 / 1,2 sur la base 14 sp de la bibliothèque),
+  retour à la ligne (`setWordWrap`), et les quatre bascules ci-dessus.
+- **Sauvegarde automatique honnête** : `EditorViewModel.marquerModifie` lit
+  la garde `editorSauvegardeAuto` — coupée, l'onglet reste sale jusqu'à un
+  enregistrement manuel (toolbar / Ctrl+S) au lieu d'écrire quand même après
+  le délai d'inactivité.
+
+### Modifié
+
+- **L'écran Éditeur est refait en trois cartes à libellé de section**
+  (Apparence de l'éditeur / Affichage / Édition — même langage que le maître
+  des Paramètres) : rangée cliquable « Thème de coloration » avec la valeur
+  courante en sous-titre, trio de boutons pour la taille de police,
+  interrupteurs avec légendes explicatives.
+- **Les réglages fantômes sont retirés** : numéros de ligne, surlignage de la
+  ligne actuelle et taille de tabulation étaient « persistés avant
+  consommation » (ADR 0059) sans consommateur possible — cel-ui dessine
+  TOUJOURS la gouttière et le bandeau de ligne courante, et l'indentation est
+  auto-détectée par fichier (`IndentDetection`). Champs, actions, clés
+  DataStore, chaînes et l'enum `TailleTabulation` supprimés ; les clés
+  orphelines sur disque sont simplement ignorées (projection tolérante).
+  À réintroduire quand la bibliothèque exposera les setters correspondants.
+- **Sous-titre dynamique de la rangée maître Éditeur** (pattern Terminal) :
+  « {thème} · {taille de police} » au lieu du libellé statique.
+- Trois nouvelles icônes vectorielles maison (core/ui) : `ic_minimap`,
+  `ic_non_imprimables`, `ic_ligatures`.
+
+### Tests
+
+- `OptionsEditeurTest` (feature:editor, JUnit pur) : collecte des changements,
+  facteur de police par taille, thème automatique clair/sombre (comparaison
+  des couleurs publiques — `EditorTheme` n'implémente pas `equals`), thème
+  forcé insensible au mode + cache d'instance.
+- `OngletsEditorViewModelTest` : l'auto-sauvegarde coupée laisse l'onglet
+  sale jusqu'à l'enregistrement manuel.
+- `SettingsViewModelTest` : chaque nouveau réglage éditeur se persiste
+  immédiatement (thème, minimap, non-imprimables, ligatures, badges,
+  sauvegarde, taille de police).
+- `SettingsDataStoreTest` : aller-retour exact des six nouveaux champs +
+  valeur de thème inconnue retombant sur le défaut.
+- Tests manuels E78-E80 dans `docs/TESTS_MANUELS.md`.
+
 ## [0.36.4] – 2026-09-27
 
 ### Modifié (correctif C5 du prompt Terminal — avertissement du daemon Gradle)

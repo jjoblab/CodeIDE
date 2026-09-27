@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Section Éditeur — section dédiée des Paramètres (ADR 0059) : sa propre
-  toolbar (flèche retour + titre), le même SettingsViewModel que le
-  maître — seule la présentation change.
+  Section Éditeur (v0.37.0) : les réglages deviennent **consommés** par
+  cel-ui — chaque contrôle projette une API réelle de la bibliothèque
+  (thème, zoom, word wrap, minimap, caractères non imprimables,
+  ligatures, badges de diagnostic, sauvegarde automatique). Trois cartes
+  à libellé de section, comme le maître des Paramètres (ADR 0059) :
+  Apparence de l'éditeur / Affichage / Édition.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -30,29 +33,289 @@
         android:layout_height="match_parent"
         android:fillViewport="true">
 
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/spacing_md"
-            android:layout_marginVertical="@dimen/spacing_sm"
-            app:cardBackgroundColor="?attr/colorSurface"
-            app:contentPadding="@dimen/spacing_md"
-            app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            android:orientation="vertical">
 
-            <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
-            <LinearLayout
+            <!-- Carte « Apparence de l'éditeur » : thème de coloration,
+                 taille de police, ligatures. -->
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:contentPadding="@dimen/spacing_sm"
+                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
+                     conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingVertical="@dimen/spacing_xs">
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:text="@string/settings_editeur_apparence"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Thème de coloration : rangée cliquable, ouvre le
+                         sélecteur (choix unique) — la valeur courante sert
+                         de sous-titre, comme la licence par défaut. -->
+                    <LinearLayout
+                        android:id="@+id/rangee_theme_editeur"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_contraste"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_md"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_theme_editeur"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/valeur_theme_editeur"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                tools:text="VS Code Sombre" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_chevron_droite"
+                            app:tint="?attr/colorOutline" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="@dimen/spacing_sm"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <!-- Taille de police : en-tête de groupe + trio de boutons
+                         (miroir du terminal). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:minHeight="@dimen/touch_target_min"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_taille_police"
+                                app:tint="?attr/colorOnSurfaceVariant" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/spacing_md"
+                                android:text="@string/settings_taille_police"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_police_editeur"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_editeur_1"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_petite" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_editeur_2"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_moyenne" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_editeur_3"
+                                style="?attr/materialButtonOutlinedStyle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_grande" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="@dimen/spacing_sm"
+                        android:background="?attr/colorOutlineVariant" />
+
+                    <!-- Ligatures : l'avertissement compte — activer coupe la
+                         coloration syntaxique (compromis documenté de cel-ui). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_ligatures"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_md"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_ligatures"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_ligatures_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_ligatures"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Carte « Affichage » : retour à la ligne, minimap,
+                 caractères non imprimables, badges de diagnostic. -->
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:contentPadding="@dimen/spacing_sm"
+                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:text="@string/settings_editeur_affichage"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_retour_ligne"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_md"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_retour_ligne"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_retour_ligne_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_retour_ligne"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="@dimen/spacing_sm"
+                        android:background="?attr/colorOutlineVariant" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -65,177 +328,42 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
-                            android:src="@drawable/ic_taille_police"
+                            android:src="@drawable/ic_minimap"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="@dimen/spacing_md"
-                            android:text="@string/settings_taille_police"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_minimap"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_minimap_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_minimap"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButtonToggleGroup
-                        android:id="@+id/groupe_police_editeur"
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        app:selectionRequired="true"
-                        app:singleSelection="true">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_police_editeur_1"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_police_petite" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_police_editeur_2"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_police_moyenne" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_police_editeur_3"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_police_grande" />
-                    </com.google.android.material.button.MaterialButtonToggleGroup>
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/retour_ligne"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_retour_ligne"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_retour_ligne"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_retour_ligne"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/numeros_ligne"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_numeros_ligne"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_numeros_ligne"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_numeros_ligne"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/surligner_ligne"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_surligner"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_surligner_ligne"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_surligner_ligne"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingVertical="@dimen/spacing_xs">
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="@dimen/spacing_sm"
+                        android:background="?attr/colorOutlineVariant" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -248,90 +376,157 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
-                            android:src="@drawable/ic_tabulation"
+                            android:src="@drawable/ic_non_imprimables"
                             app:tint="?attr/colorOnSurfaceVariant" />
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="@dimen/spacing_md"
-                            android:text="@string/settings_taille_tabulation"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_caracteres_non_imprimables"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_caracteres_non_imprimables_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_caracteres_non_imprimables"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
                     </LinearLayout>
 
-                    <com.google.android.material.button.MaterialButtonToggleGroup
-                        android:id="@+id/groupe_tabulation"
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        app:selectionRequired="true"
-                        app:singleSelection="true">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_tabulation_1"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_tab_deux" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_tabulation_2"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_tab_quatre" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/bouton_tabulation_3"
-                            style="?attr/materialButtonOutlinedStyle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/settings_tab_huit" />
-                    </com.google.android.material.button.MaterialButtonToggleGroup>
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/sauvegarde_auto"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_enregistrer"
-                        app:tint="?attr/colorOnSurfaceVariant" />
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="@dimen/spacing_sm"
+                        android:background="?attr/colorOutlineVariant" />
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_legende"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_sauvegarde_auto"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
+                            android:layout_marginStart="@dimen/spacing_md"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_sauvegarde_auto"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_chips_diagnostics"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_chips_diagnostics_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_chips_diagnostics"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Carte « Édition » : sauvegarde automatique. -->
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:contentPadding="@dimen/spacing_sm"
+                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:text="@string/settings_editeur_edition"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:gravity="center_vertical"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_enregistrer"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_md"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/settings_sauvegarde_auto"
+                                android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/settings_sauvegarde_auto_sous"
+                                android:textAppearance="?attr/textAppearanceBodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/interrupteur_sauvegarde_auto"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
     </ScrollView>
 </LinearLayout>
