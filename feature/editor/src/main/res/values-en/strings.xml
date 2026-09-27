@@ -110,6 +110,43 @@
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>
     <string name="editor_outil_deconnecte">Gradle tools not connected</string>
 
+    <!-- Task lines of the console (v3 — one line per task, updated in
+         place when it finishes, like Android Studio's Build view) and
+         synchronization steps (end of the black box). -->
+    <string name="editor_console_tache">&gt; Task %1$s</string>
+    <string name="editor_console_tache_en_cours">&gt; Task %1$s…</string>
+    <string name="editor_console_tache_duree">&gt; Task %1$s (%2$s)</string>
+    <string name="editor_console_tache_sautee">&gt; Task %1$s — skipped</string>
+    <string name="editor_console_tache_echouee">&gt; Task %1$s — FAILED</string>
+    <string name="editor_console_etape_connexion">Connecting to the Gradle daemon…</string>
+    <string name="editor_console_etape_modele_gradle">Resolving the GradleProject model…</string>
+    <string name="editor_console_etape_modele_idea">Resolving the IdeaProject model…</string>
+    <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
+
+    <!-- Tooling configuration (v3) — reachable from the Output tab: task
+         display, offline mode, free Gradle arguments and live orchestrator
+         state. -->
+    <string name="editor_config_tooling_titre">Gradle tooling</string>
+    <string name="editor_config_fermer_cd">Close tooling configuration</string>
+    <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
+    <string name="editor_config_affichage">Console display</string>
+    <string name="editor_config_afficher_taches">Show tasks while building</string>
+    <string name="editor_config_afficher_taches_desc">One line per task, updated in place — like Android Studio\'s Build view.</string>
+    <string name="editor_config_execution">Execution</string>
+    <string name="editor_config_hors_ligne">Offline mode</string>
+    <string name="editor_config_hors_ligne_desc">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>
+    <string name="editor_config_arguments">Extra Gradle arguments</string>
+    <string name="editor_config_arguments_aide">Space-separated — e.g. --stacktrace --info</string>
+    <string name="editor_config_etat">Orchestrator</string>
+    <string name="editor_config_etat_connexion">Connection</string>
+    <string name="editor_config_connexion_connecte">Connected</string>
+    <string name="editor_config_connexion_demarrage">Starting…</string>
+    <string name="editor_config_connexion_deconnecte">Not connected</string>
+    <string name="editor_config_connexion_echoue">Failed</string>
+    <string name="editor_config_etat_tas">Orchestrator memory</string>
+    <string name="editor_config_tas_format">%1$d MB used of %2$d MB</string>
+    <string name="editor_config_note_console">Gradle output is always forced to plain text (--console=plain): no ANSI sequence will corrupt the console.</string>
+
     <!-- Tooling notification service (step 32, ADR 0057): same tokens as
          the terminal service — channel title, notification title, texts
          per activity and per result. -->

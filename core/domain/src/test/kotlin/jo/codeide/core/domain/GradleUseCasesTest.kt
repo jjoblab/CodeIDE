@@ -109,10 +109,14 @@ class GradleUseCasesTest {
         var dossierConstruit: File? = null
         var dossierTaches: File? = null
         var tachesDemandees: List<String> = emptyList()
+        var argumentsDemandes: List<String> = emptyList()
         var buildAnnule: String? = null
 
         override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> =
             MutableStateFlow(LigneSortieBuild(buildId, FluxSortieBuild.STDOUT, "", 0))
+
+        override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> =
+            MutableStateFlow(EtatTacheBuild(buildId, "", StatutTache.EN_COURS))
 
         override fun observeBuildState(buildId: String): Flow<EtatBuild> =
             MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS))
@@ -133,9 +137,11 @@ class GradleUseCasesTest {
         override suspend fun build(
             projectDir: File,
             tasks: List<String>,
+            arguments: List<String>,
         ): String {
             dossierConstruit = projectDir
             tachesDemandees = tasks
+            argumentsDemandes = arguments
             return prochainBuildId
         }
 
@@ -148,6 +154,9 @@ class GradleUseCasesTest {
         override fun observeConnectionState(): Flow<EtatConnexion> = MutableStateFlow(EtatConnexion.DECONNECTEE)
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
+
+        override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
+            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
 
         override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = MutableStateFlow(emptyList())
     }

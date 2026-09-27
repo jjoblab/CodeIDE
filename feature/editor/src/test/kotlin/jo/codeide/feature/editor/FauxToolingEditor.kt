@@ -2,9 +2,12 @@ package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.ClasspathProjet
 import jo.codeide.core.domain.DiagnosticBuild
+import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.EtatSyncTooling
+import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.InfoTache
@@ -13,6 +16,7 @@ import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.channels.Channel
@@ -57,6 +61,9 @@ class FauxToolingEditor : GradleToolingRepository {
     /** Tâches du dernier build demandé. */
     var tachesDemandees: List<String> = emptyList()
 
+    /** Arguments Gradle du dernier build demandé (v3 — réglages tooling). */
+    var argumentsDemandes: List<String> = emptyList()
+
     /** Identifiant du dernier build annulé. */
     var buildAnnule: String? = null
 
@@ -69,10 +76,18 @@ class FauxToolingEditor : GradleToolingRepository {
     /** Sorties par build — canal borné comme l'implémentation réelle. */
     private val sorties = HashMap<String, Channel<LigneSortieBuild>>()
 
+    /** Tâches par build (v3) — même sémantique que les sorties. */
+    private val taches = HashMap<String, Channel<EtatTacheBuild>>()
+
     /** États par build. */
     private val etats = HashMap<String, MutableStateFlow<EtatBuild>>()
 
+    /** Étapes de sync (v3) — pilotables par le test. */
+    val etapesSyncInterne = Channel<EtapeSyncTooling>(Channel.UNLIMITED)
+
     override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> = canal(buildId).receiveAsFlow()
+
+    override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> = canalTaches(buildId).receiveAsFlow()
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 
@@ -96,9 +111,11 @@ class FauxToolingEditor : GradleToolingRepository {
     override suspend fun build(
         projectDir: File,
         tasks: List<String>,
+        arguments: List<String>,
     ): String {
         dossierRecu = projectDir
         tachesDemandees = tasks
+        argumentsDemandes = arguments
         etat(prochainBuildId)
         return prochainBuildId
     }
@@ -107,7 +124,10 @@ class FauxToolingEditor : GradleToolingRepository {
         buildAnnule = buildId
     }
 
-    override fun observeHeap(): Flow<InstantaneTas> = MutableStateFlow(InstantaneTas(0, 0))
+    /** Tas observable (pilotable par le test — v3 : écran de configuration). */
+    val tasInterne = MutableStateFlow(InstantaneTas(0, 0))
+
+    override fun observeHeap(): Flow<InstantaneTas> = tasInterne
 
     override fun observeConnectionState(): Flow<EtatConnexion> = connexionInterne
 
@@ -115,6 +135,8 @@ class FauxToolingEditor : GradleToolingRepository {
     val syncInterne = MutableStateFlow(EtatSyncTooling())
 
     override fun observeSyncState(): Flow<EtatSyncTooling> = syncInterne
+
+    override fun observeSyncProgress(): Flow<EtapeSyncTooling> = etapesSyncInterne.receiveAsFlow()
 
     override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = diagnosticsInterne
 
@@ -129,7 +151,30 @@ class FauxToolingEditor : GradleToolingRepository {
         )
     }
 
-    /** Simule la fin d'un build (état final + fermeture du canal). */
+    /** Simule une tâche du build [buildId] (v3 — affichage console). */
+    fun emettreTache(
+        buildId: String,
+        chemin: String,
+        statut: StatutTache,
+        dureeMs: Long? = null,
+    ) {
+        canalTaches(buildId).trySend(
+            EtatTacheBuild(buildId = buildId, chemin = chemin, statut = statut, dureeMs = dureeMs),
+        )
+    }
+
+    /** Simule une étape de sync annoncée par l'orchestrateur (v3). */
+    fun emettreEtapeSync(
+        etape: EtapeSync,
+        terminee: Boolean = false,
+        dureeMs: Long = 0,
+    ) {
+        etapesSyncInterne.trySend(
+            EtapeSyncTooling(etape = etape, terminee = terminee, dureeMs = dureeMs),
+        )
+    }
+
+    /** Simule la fin d'un build (état final + fermeture des canaux). */
     fun terminerBuild(
         buildId: String,
         statut: StatutBuild,
@@ -137,10 +182,14 @@ class FauxToolingEditor : GradleToolingRepository {
     ) {
         etat(buildId).value = EtatBuild(buildId = buildId, statut = statut, messageEchec = messageEchec)
         canal(buildId).close()
+        canalTaches(buildId).close()
     }
 
     private fun canal(buildId: String): Channel<LigneSortieBuild> =
         sorties.getOrPut(buildId) { Channel(Channel.UNLIMITED) }
+
+    private fun canalTaches(buildId: String): Channel<EtatTacheBuild> =
+        taches.getOrPut(buildId) { Channel(Channel.UNLIMITED) }
 
     private fun etat(buildId: String): MutableStateFlow<EtatBuild> =
         etats.getOrPut(buildId) { MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS)) }

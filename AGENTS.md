@@ -627,7 +627,21 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       d'onglet prend son propre écouteur de clic
       (`brancherInteractionsOnglet`, même architecture que Termux) ;
       ADR 0051]
-- Prochaine : étape 31 (= Système de plugins — cf. docs/ROADMAP.md ;
+- v0.36.0 : **G8 — affichage des tâches, fin de la boîte noire de sync,
+      écran de configuration du tooling** (retour utilisateur : les
+      événements `TaskStarted`/`TaskFinished` étaient JETÉS par
+      `GradleApiImpl.pomper` ; la sync n'avait aucune étape intermédiaire ;
+      aucun `--console=plain`) : protocole **v3** (`SyncProgress` par phase
+      CONNEXION/MODELE_GRADLE/MODELE_IDEA, `TaskFinished.durationMs`/
+      `skipped`, dorés régénérés), `observeTachesBuild`/`observeSyncProgress`
+      côté client, console à lignes TYPIÉES (`LigneConsole` scellée — une
+      ligne par tâche mise à jour EN PLACE, étapes de sync conclues avec
+      leur durée, avertissement bénin du daemon apaisé), `--console=plain`
+      forcé en dernier argument, écran de configuration plein écran ouvert
+      par l'engrenage de l'onglet Sortie (affichage des tâches, hors ligne,
+      arguments libres, état vivant — DataStore, `OptionsTooling`) ;
+      ADR 0065, journal détaillé dans docs/ROADMAP.md.
+- Prochaine : étape 33 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.

@@ -102,6 +102,9 @@ class SettingsDataStoreTest {
                     authorName = "Jo",
                     defaultLicense = License.APACHE_2_0,
                     logLevel = LogVerbosity.DETAILED,
+                    toolingAfficherTaches = false,
+                    toolingHorsLigne = true,
+                    toolingArguments = "--stacktrace --info",
                     isSetupCompleted = true,
                 )
             }
@@ -116,6 +119,9 @@ class SettingsDataStoreTest {
             assertEquals("Jo", relu.authorName)
             assertEquals(License.APACHE_2_0, relu.defaultLicense)
             assertEquals(LogVerbosity.DETAILED, relu.logLevel)
+            assertEquals(false, relu.toolingAfficherTaches)
+            assertEquals(true, relu.toolingHorsLigne)
+            assertEquals("--stacktrace --info", relu.toolingArguments)
             assertEquals(true, relu.isSetupCompleted)
         }
 

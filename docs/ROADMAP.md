@@ -88,7 +88,7 @@ ici). Les étapes de tooling initialement en tête reculent d'autant.
 | 32 | Tooling G7 — tooling professionnel à la Android Studio | 0.33.0 | **Terminé** | Sync à l'OUVERTURE du projet (comme un IDE : dès la première connaissance du projet, sans geste — résolution `GradleProject` + `IdeaProject` qui force dépendances et classpaths, socle des LSP à venir ; garde JDK ADR 0048 d'abord), nouvel événement **`SyncStarted`** diffusé PAR le serveur avant la résolution (25e message du protocole, fichier doré inclus — symétrique du `BuildStarted`, l'en-tête et la notification se posent sur un fait du serveur ; client : `observeSyncState` sur le port, marquage idempotent, perte de session = état au repos), **canal Taches** (`CanalTooling.TACHES` violet : indicateur de vol du listage, le sélecteur est le résultat), **`GradleService` process-wide** (`@Singleton`, `attacher()` par espace, `rattacherBuildEnVol()` — un build parti avant fermeture reste suivi), **service de notification** (`ToolingService` foreground `specialUse` + port `DemarreurServiceTooling` piloté aux transitions, décision pure `decisionNotificationTooling` : en cours pendant l'activité, notification finale au résultat, stopSelf au repos) ; vérification légère complète (5 modules verts, 112 tests d'espace, spotless + detekt globaux) + situation RÉELLE par harnais contre le VRAI jar (sync ~1,1 s, 32 tâches, build avec sortie, ping/pong, sortie propre code 0) ; ADR 0057 |
 | 33 | Système de plugins | 0.34.0 | — | Contrat de plugin (API `core:domain` + UI d'extension), découverte embarquée (assets signés, pas de réseau), sandbox des permissions, activation/désactivation par projet ; réutiliser le multibinding `@IntoSet` éprouvé par les modèles |
 | 34 | Services d'arrière-plan | 0.35.0 | — | Compilation/exécution hors écran avec `foregroundServiceType` déclarée et notification honnête, observation des modifications du dossier (SAF `takePersistableUriPermission` + re-scan à l'activation), reprise après mort du processus ; jamais de tâche en fond sans notification visible |
-| 35 | Autres langages et modèles | 0.36.0 | — | Modèles Python et Web (manifestes déclaratifs — le harnais `:tools:generateur` et `verify-templates.sh` s'étendent tels quels), coloration/lint par extension via les ancres `IconesFichiers`/langages de la bibliothèque ; Android natif et C++ évalués ensuite |
+| 35 | Autres langages et modèles | 0.37.0 | — | Modèles Python et Web (manifestes déclaratifs — le harnais `:tools:generateur` et `verify-templates.sh` s'étendent tels quels), coloration/lint par extension via les ancres `IconesFichiers`/langages de la bibliothèque ; Android natif et C++ évalués ensuite |
 
 **Ordre révisé le 2026-09-25 (soir) à la demande de l'utilisateur** :
 la refonte de l'explorateur de fichiers devient l'étape 31 — preview HTML
@@ -464,3 +464,39 @@ PRÉSENCE des vues, jamais leurs positions : un gonflage sans pose ne
 superpose rien. Échec avéré sur les sept layouts avant correctif,
 succès après. Vérification (AGENTS.md) : spotless + detekt + tests
 du module touché (settings).
+
+**v0.36.0 (2026-09-27, retour utilisateur — « aucune ligne "Tâche :app:xxx"
+n'apparaît jamais » / sync boîte noire / aucun --console=plain / écran de
+configuration du tooling, ADR 0065)** : les événements `TaskStarted`/
+`TaskFinished` traversaient le protocole jusqu'au client et étaient JETÉS
+silencieusement par `GradleApiImpl.pomper` (« G5 affine s'il expose les
+tâches à l'UI » — jamais fait). Réparation complète : protocole **v3**
+(nouveau `SyncProgress` par phase `CONNEXION`/`MODELE_GRADLE`/`MODELE_IDEA`
+annoncé au départ puis à la fin avec sa durée — la sync déroule ses étapes
+au lieu d'un « en cours » muet, la connexion est hoistée avant les modèles
+car sa première occurrence télécharge la distribution et démarre le daemon ;
+`TaskFinished` enrichi de `durationMs` MESURÉE par l'opération Gradle et
+`skipped` ; champs à défauts compatibles v2, 28 fichiers dorés régénérés) ;
+côté client `observeTachesBuild` (canal borné par build, fermé à la fin —
+même sémantique que la sortie) et `observeSyncProgress` (jamais conflaté) ;
+console à lignes TYPIÉES (`LigneConsole` scellée avec identité stable : une
+ligne par tâche, mise à jour EN PLACE à sa fin — durée, sautée grisée,
+échec rouge, comme la vue Build d'Android Studio ; étapes de sync conclues
+en place ; avertissement bénin du daemon Gradle rendu en style informatif) ;
+`--console=plain` FORCÉ en dernier argument de tout build (l'occurrence
+finale d'une option Gradle gagne) ; **écran de configuration du tooling**
+(dialogue plein écran `Theme.CodeIDE.PleinEcran`, ouvert par l'engrenage de
+l'onglet Sortie — on ne quitte pas l'espace de travail) : affichage des
+tâches (filtrage en vol relu à chaque événement), mode hors ligne, arguments
+Gradle libres persistés à la fin de saisie, état vivant de l'orchestrateur
+(connexion + tas) — trois réglages DataStore (`toolingAfficherTaches`,
+`toolingHorsLigne`, `toolingArguments`), consommés par `OptionsTooling`
+(patron PorteurStyleCurseur). Tests : protocole (28 + dorés v3),
+`ProgressBridgeTest` durée/sauté, intégration serveur (phases entre
+`SyncStarted` et `SyncResult`, tâches traversantes), client (dispatch
+réparé, étapes non conflattées, arguments), `GradleServiceTest` (mise à
+jour en place, filtrage, apaisement C5), `ToolingEditorViewModelTest`,
+`ConfigToolingViewModelTest`, layout Robolectric de l'écran — kover ≥ 80 %
+vert. Vérification (AGENTS.md) : spotless + detekt + tests des modules
+touchés + assembleDebug. La step 35 planifiée (Autres langages) recule à
+0.37.0.

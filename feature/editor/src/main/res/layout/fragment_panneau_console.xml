@@ -41,6 +41,14 @@
             tools:text="Build en cours" />
 
         <ImageButton
+            android:id="@+id/bouton_config_tooling"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/editor_config_tooling_cd"
+            android:src="@drawable/ic_outils" />
+
+        <ImageButton
             android:id="@+id/bouton_annuler_build"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="40dp"

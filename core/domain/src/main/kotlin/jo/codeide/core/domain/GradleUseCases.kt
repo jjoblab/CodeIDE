@@ -37,10 +37,15 @@ public class SynchroniserProjetUseCase
  * Cas d'usage « exécuter des tâches Gradle » (Tooling G5, §6) : lance le
  * build et retourne l'identifiant à observer via
  * [GradleToolingRepository.observeBuildOutput] /
- * [GradleToolingRepository.observeBuildState].
+ * [GradleToolingRepository.observeBuildState] /
+ * [GradleToolingRepository.observeTachesBuild] (v3).
  *
  * Le lancement est feu-and-forget côté orchestrateur : l'échec éventuel se
  * lit dans l'état du build (jamais d'exception jusqu'à l'UI, §1.6).
+ *
+ * v3 : les ARGUMENTS Gradle supplémentaires (réglages du tooling — hors
+ * ligne, pile d'appels, options libres) voyagent avec la demande ;
+ * l'orchestrateur garde la main sur `--console=plain`.
  *
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
@@ -52,17 +57,21 @@ public class ExecuterTachesUseCase
         private val dispatchers: DispatcherProvider,
     ) {
         /**
-         * Lance les [taches] sur le dossier [dossier].
+         * Lance les [taches] sur le dossier [dossier], avec les
+         * [arguments] Gradle supplémentaires (aucun par défaut).
          *
          * @return identifiant du build à observer.
          */
         public suspend operator fun invoke(
             dossier: File,
             taches: List<String>,
+            arguments: List<String> = emptyList(),
         ): String =
             withContext(dispatchers.io) {
-                journal.i(TAG) { "build demandé (${taches.size} tâche(s))" }
-                tooling.build(dossier, taches)
+                journal.i(TAG) {
+                    "build demandé (${taches.size} tâche(s), ${arguments.size} argument(s))"
+                }
+                tooling.build(dossier, taches, arguments)
             }
     }
 

@@ -188,6 +188,9 @@ class ClasspathLspUseCasesTest {
         override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> =
             MutableStateFlow(LigneSortieBuild(buildId, FluxSortieBuild.STDOUT, "", 0))
 
+        override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> =
+            MutableStateFlow(EtatTacheBuild(buildId, "", StatutTache.EN_COURS))
+
         override fun observeBuildState(buildId: String): Flow<EtatBuild> =
             MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS))
 
@@ -195,6 +198,9 @@ class ClasspathLspUseCasesTest {
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
+
+        override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
+            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
 
         override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
@@ -207,6 +213,7 @@ class ClasspathLspUseCasesTest {
         override suspend fun build(
             projectDir: File,
             tasks: List<String>,
+            arguments: List<String>,
         ): String = "b-faux"
 
         override fun cancel(buildId: String) = Unit

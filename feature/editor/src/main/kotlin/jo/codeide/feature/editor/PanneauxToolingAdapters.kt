@@ -6,11 +6,13 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import jo.codeide.core.domain.FluxSortieBuild
+import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
 import jo.codeide.feature.editor.databinding.LigneSortieBinding
+import java.util.Locale
 
 /**
  * Rang aplati de l'onglet Problèmes (G5) : soit l'en-tête d'un groupe
@@ -152,33 +154,172 @@ internal class ProblemesAdapter(
 }
 
 /**
- * Adaptateur de l'onglet Sortie (G5, §6 ; v0.32.5 : lignes CANALISÉES,
- * ADR 0056 décision 5) : étiquette de canal en tête de ligne — couleur
- * signature Sync/Build — puis texte monospace, stderr distincte par la
- * couleur d'erreur. Chaque ligne porte sa provenance, comme la colonne
- * de tag de logcat.
+ * Durée lisible pour l'affichage (s au-delà d'une seconde, ms en dessous) —
+ * partagée par l'en-tête du panneau (chrono du build) et les lignes de
+ * tâches/étapes de la console (v3).
  */
-internal class SortieAdapter : ListAdapter<LigneSortieAffichee, SortieAdapter.Holder>(DiffLignes) {
-    /** Une ligne : étiquette de canal + texte monospace, couleur du
-     *  flux sur le texte, couleur du canal sur l'étiquette. */
+internal object DureesLisibles {
+    /** Formate [dureeMs] : « 4,2s » au-delà de la seconde, « 350ms » en dessous. */
+    fun formater(dureeMs: Long): String =
+        if (dureeMs >= SEUIL_SECONDE_MS) {
+            String.format(Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
+        } else {
+            String.format(Locale.ROOT, "%dms", dureeMs)
+        }
+
+    /** Une durée vaut-elle l'affichage (les tâches éclair restent nues,
+     *  comme la vue Build d'Android Studio) ? */
+    fun digne(dureeMs: Long?): Boolean = dureeMs != null && dureeMs >= SEUIL_SECONDE_MS
+
+    private const val SEUIL_SECONDE_MS = 1_000L
+
+    private const val SECONDE_MS = 1_000.0
+}
+
+/**
+ * Adaptateur de l'onglet Sortie (G5, §6 ; v0.32.5 : lignes CANALISÉES,
+ * ADR 0056 décision 5 ; v3 : lignes TYPIÉES) : étiquette de canal en tête
+ * de ligne — couleur signature Sync/Build — puis texte monospace. Le genre
+ * de la ligne pilote le texte et la couleur : sortie brute (stderr distincte
+ * par la couleur d'erreur, avertissement bénin apaisé — C5), tâche au fil
+ * du build (en cours : couleur du canal ; fin : durée, sautée grisée, échec
+ * rouge — mise à jour EN PLACE, une ligne par tâche comme la vue Build
+ * d'Android Studio), étape de sync conclue avec sa durée.
+ */
+internal class SortieAdapter : ListAdapter<LigneConsole, SortieAdapter.Holder>(DiffLignes) {
+    private companion object {
+        /** Alpha d'une tâche sautée (atténuée vers le fond). */
+        private const val ALPHA_ATTENUE = 128
+    }
+
+    /** Une ligne : étiquette de canal + texte monospace, couleur selon le
+     *  genre de la ligne, couleur du canal sur l'étiquette. */
     inner class Holder(
         private val liaison: LigneSortieBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
-        fun lier(ligne: LigneSortieAffichee) {
-            liaison.texteSortie.text = ligne.texte
-            liaison.texteSortie.setTextColor(couleur(ligne.flux))
+        fun lier(ligne: LigneConsole) {
+            liaison.texteSortie.text = texte(ligne)
+            liaison.texteSortie.setTextColor(couleur(ligne))
             liaison.canalSortie.text = liaison.root.context.getString(ligne.canal.libelle)
             liaison.canalSortie.setTextColor(
                 ThemeHarmonizer.harmoniserAvecPrimaire(liaison.root.context, ligne.canal.couleur),
             )
         }
 
-        private fun couleur(flux: FluxSortieBuild): Int =
-            if (flux == FluxSortieBuild.STDERR) {
-                ContextCompat.getColor(liaison.root.context, jo.codeide.core.ui.R.color.codeide_stderr)
-            } else {
-                ContextCompat.getColor(liaison.root.context, jo.codeide.core.ui.R.color.codeide_stdout)
+        /** Texte affiché : brut pour une sortie, LOCALISÉ pour une tâche
+         *  ou une étape (l'état reste pur — la chaîne est construite ICI). */
+        private fun texte(ligne: LigneConsole): String =
+            when (ligne) {
+                is LigneConsole.Sortie -> ligne.texte
+                is LigneConsole.Tache -> texteTache(ligne.etat)
+                is LigneConsole.Etape -> texteEtape(ligne.etat)
             }
+
+        /** Libellé d'une tâche selon son statut (durée au-delà d'une seconde,
+         *  comme la vue Build d'Android Studio). */
+        private fun texteTache(etat: EtatTacheAffichee): String {
+            val contexte = liaison.root.context
+            return when (etat.statut) {
+                StatutTache.EN_COURS -> {
+                    contexte.getString(R.string.editor_console_tache_en_cours, etat.chemin)
+                }
+
+                StatutTache.REUSSIE -> {
+                    if (DureesLisibles.digne(etat.dureeMs)) {
+                        contexte.getString(
+                            R.string.editor_console_tache_duree,
+                            etat.chemin,
+                            DureesLisibles.formater(etat.dureeMs ?: 0),
+                        )
+                    } else {
+                        contexte.getString(R.string.editor_console_tache, etat.chemin)
+                    }
+                }
+
+                StatutTache.SAUTEE -> {
+                    contexte.getString(R.string.editor_console_tache_sautee, etat.chemin)
+                }
+
+                StatutTache.ECHOUEE -> {
+                    contexte.getString(R.string.editor_console_tache_echouee, etat.chemin)
+                }
+            }
+        }
+
+        /** Libellé d'une étape de sync — conclue avec sa durée. */
+        private fun texteEtape(etat: EtapeSyncAffichee): String {
+            val contexte = liaison.root.context
+            val libelle = contexte.getString(libelleEtape(etat.etape))
+            return if (etat.terminee) {
+                contexte.getString(
+                    R.string.editor_console_etape_terminee,
+                    libelle,
+                    DureesLisibles.formater(etat.dureeMs),
+                )
+            } else {
+                libelle
+            }
+        }
+
+        /** Ressource du libellé d'une phase de sync. */
+        private fun libelleEtape(etape: EtapeSync): Int =
+            when (etape) {
+                EtapeSync.CONNEXION -> R.string.editor_console_etape_connexion
+                EtapeSync.MODELE_GRADLE -> R.string.editor_console_etape_modele_gradle
+                EtapeSync.MODELE_IDEA -> R.string.editor_console_etape_modele_idea
+            }
+
+        /** Couleur du texte selon le genre : la tâche en cours porte la
+         *  couleur de SON canal (le « qui parle » en direct), l'échec reste
+         *  rouge, le sauté et l'étape conclue se reposent en arrière-plan. */
+        private fun couleur(ligne: LigneConsole): Int {
+            val contexte = liaison.root.context
+            return when (ligne) {
+                is LigneConsole.Sortie -> {
+                    if (ligne.apaisee || ligne.flux == jo.codeide.core.domain.FluxSortieBuild.STDOUT) {
+                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
+                    } else {
+                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stderr)
+                    }
+                }
+
+                is LigneConsole.Tache -> {
+                    when (ligne.etat.statut) {
+                        StatutTache.EN_COURS -> {
+                            ThemeHarmonizer.harmoniserAvecPrimaire(contexte, ligne.canal.couleur)
+                        }
+
+                        StatutTache.REUSSIE -> {
+                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
+                        }
+
+                        StatutTache.SAUTEE -> {
+                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout).apaiser()
+                        }
+
+                        StatutTache.ECHOUEE -> {
+                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stderr)
+                        }
+                    }
+                }
+
+                is LigneConsole.Etape -> {
+                    if (ligne.etat.terminee) {
+                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
+                    } else {
+                        ThemeHarmonizer.harmoniserAvecPrimaire(contexte, ligne.canal.couleur)
+                    }
+                }
+            }
+        }
+
+        /** Atténue une couleur vers le fond (tâche sautée : de l'information,
+         *  pas du bruit). */
+        private fun Int.apaiser(): Int =
+            androidx.core.graphics.ColorUtils.setAlphaComponent(
+                this,
+                ALPHA_ATTENUE,
+            )
     }
 
     override fun onCreateViewHolder(
@@ -193,18 +334,15 @@ internal class SortieAdapter : ListAdapter<LigneSortieAffichee, SortieAdapter.Ho
         holder.lier(getItem(position))
     }
 
-    private object DiffLignes : DiffUtil.ItemCallback<LigneSortieAffichee>() {
+    private object DiffLignes : DiffUtil.ItemCallback<LigneConsole>() {
         override fun areItemsTheSame(
-            ancienne: LigneSortieAffichee,
-            nouvelle: LigneSortieAffichee,
-        ): Boolean =
-            ancienne.texte == nouvelle.texte &&
-                ancienne.flux == nouvelle.flux &&
-                ancienne.canal == nouvelle.canal
+            ancienne: LigneConsole,
+            nouvelle: LigneConsole,
+        ): Boolean = ancienne.id == nouvelle.id
 
         override fun areContentsTheSame(
-            ancienne: LigneSortieAffichee,
-            nouvelle: LigneSortieAffichee,
+            ancienne: LigneConsole,
+            nouvelle: LigneConsole,
         ): Boolean = ancienne == nouvelle
     }
 }

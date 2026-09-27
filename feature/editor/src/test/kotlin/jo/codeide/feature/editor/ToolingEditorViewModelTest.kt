@@ -1,7 +1,9 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeFileSystem
 import kotlinx.coroutines.test.runTest
@@ -114,6 +116,7 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
                     "rejouable côté client) mais la sortie CONTINUE d arriver au build rattache",
                 listOf("etape 2"),
                 rouvert.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Sortie>()
                     .map { ligne -> ligne.texte },
             )
         }
@@ -210,9 +213,92 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             assertEquals(
                 listOf("Bonjour"),
                 viewModel.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Sortie>()
                     .map { ligne -> ligne.texte },
             )
             assertEquals(StatutBuild.REUSSI, viewModel.etatGradle.value.statutBuild)
+        }
+
+    // ------------------------------------------------------------------
+    // v3 — tâches au fil du build, étapes de sync, réglages tooling.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `les taches du build alimentent la console - une ligne remplacee en place`() =
+        runTest {
+            val id = ajouterProjet("projet-taches")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.observerBuild("b-taches")
+            avancer()
+
+            tooling.emettreTache("b-taches", ":app:compileKotlin", StatutTache.EN_COURS)
+            avancer()
+            assertEquals(
+                listOf(":app:compileKotlin"),
+                viewModel.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Tache>()
+                    .map { it.etat.chemin },
+            )
+
+            tooling.emettreTache(
+                "b-taches",
+                ":app:compileKotlin",
+                StatutTache.REUSSIE,
+                dureeMs = 1_800,
+            )
+            avancer()
+
+            val taches =
+                viewModel.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Tache>()
+            assertEquals("une ligne par tâche (fin = remplacement en place)", 1, taches.size)
+            assertEquals(StatutTache.REUSSIE, taches.single().etat.statut)
+            assertEquals(1_800L, taches.single().etat.dureeMs)
+        }
+
+    @Test
+    fun `le reglage cacher les taches filtre la console en vol`() =
+        runTest {
+            semerReglagesTooling { it.copy(toolingAfficherTaches = false) }
+            avancer()
+            val id = ajouterProjet("projet-cache")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.observerBuild("b-cache")
+            avancer()
+
+            tooling.emettreTache("b-cache", ":app:compileKotlin", StatutTache.EN_COURS)
+            avancer()
+
+            assertTrue(
+                "réglage fermé : aucune ligne de tâche (l état du build reste suivi)",
+                viewModel.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Tache>()
+                    .isEmpty(),
+            )
+            assertEquals(StatutBuild.EN_COURS, viewModel.etatGradle.value.statutBuild)
+        }
+
+    @Test
+    fun `les etapes de sync annoncees par le serveur alimentent la console`() =
+        runTest {
+            val id = ajouterProjet("projet-etapes")
+            val viewModel = viewModel(id)
+            avancer()
+
+            tooling.emettreEtapeSync(EtapeSync.CONNEXION)
+            tooling.emettreEtapeSync(EtapeSync.CONNEXION, terminee = true, dureeMs = 900)
+            avancer()
+
+            val etapes =
+                viewModel.etatGradle.value.lignes
+                    .filterIsInstance<LigneConsole.Etape>()
+            assertEquals(1, etapes.size)
+            assertTrue(etapes.single().etat.terminee)
+            assertEquals(CanalTooling.SYNC, etapes.single().canal)
         }
 
     @Test

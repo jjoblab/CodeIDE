@@ -118,6 +118,44 @@
     <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>
     <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
 
+    <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
+         jour en place à sa fin, comme la vue Build d'Android Studio) et
+         étapes de synchronisation (fin de la boîte noire « en cours /
+         terminée »). -->
+    <string name="editor_console_tache">&gt; Tâche %1$s</string>
+    <string name="editor_console_tache_en_cours">&gt; Tâche %1$s…</string>
+    <string name="editor_console_tache_duree">&gt; Tâche %1$s (%2$s)</string>
+    <string name="editor_console_tache_sautee">&gt; Tâche %1$s — sautée</string>
+    <string name="editor_console_tache_echouee">&gt; Tâche %1$s — ÉCHEC</string>
+    <string name="editor_console_etape_connexion">Connexion au daemon Gradle…</string>
+    <string name="editor_console_etape_modele_gradle">Résolution du modèle GradleProject…</string>
+    <string name="editor_console_etape_modele_idea">Résolution du modèle IdeaProject…</string>
+    <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
+
+    <!-- Configuration du tooling (v3) — accessible depuis l'onglet Sortie :
+         affichage des tâches, mode hors ligne, arguments Gradle libres et
+         état vivant de l'orchestrateur. -->
+    <string name="editor_config_tooling_titre">Tooling Gradle</string>
+    <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
+    <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
+    <string name="editor_config_affichage">Affichage de la console</string>
+    <string name="editor_config_afficher_taches">Afficher les tâches pendant le build</string>
+    <string name="editor_config_afficher_taches_desc">Une ligne par tâche, mise à jour en place — comme la vue Build d\'Android Studio.</string>
+    <string name="editor_config_execution">Exécution</string>
+    <string name="editor_config_hors_ligne">Mode hors ligne</string>
+    <string name="editor_config_hors_ligne_desc">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>
+    <string name="editor_config_arguments">Arguments Gradle supplémentaires</string>
+    <string name="editor_config_arguments_aide">Séparés par des espaces — ex. --stacktrace --info</string>
+    <string name="editor_config_etat">Orchestrateur</string>
+    <string name="editor_config_etat_connexion">Connexion</string>
+    <string name="editor_config_connexion_connecte">Connecté</string>
+    <string name="editor_config_connexion_demarrage">Démarrage…</string>
+    <string name="editor_config_connexion_deconnecte">Non connecté</string>
+    <string name="editor_config_connexion_echoue">Échec</string>
+    <string name="editor_config_etat_tas">Mémoire de l\'orchestrateur</string>
+    <string name="editor_config_tas_format">%1$d Mo utilisés sur %2$d Mo</string>
+    <string name="editor_config_note_console">La sortie Gradle est toujours forcée en mode texte (--console=plain) : aucune séquence ANSI n\'abîmera la console.</string>
+
     <!-- Service de notification du tooling (étape 32, ADR 0057) : mêmes
          jetons que le service du terminal — titre de canal, titre de
          notification, textes par activité et par résultat. -->

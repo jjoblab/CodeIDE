@@ -106,4 +106,14 @@
         <item name="postSplashScreenTheme">@style/Theme.CodeIDE</item>
     </style>
 
+    <!--
+      Thème des dialogues PLEIN ÉCRAN au-dessus de l'espace de travail
+      (v3 — configuration du tooling depuis l'onglet Sortie) : fenêtre non
+      flottante sur le thème de l'app (surfaces, couleurs, toolbar), le
+      contenu couvre tout et l'éditeur reste dessous à la fermeture.
+    -->
+    <style name="Theme.CodeIDE.PleinEcran" parent="Theme.CodeIDE">
+        <item name="android:windowIsFloating">false</item>
+    </style>
+
 </resources>

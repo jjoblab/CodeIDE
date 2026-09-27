@@ -21,9 +21,10 @@ import java.io.File
  * restent muets, jamais de blocage silencieux (§7.5).
  *
  * Exemption detekt ciblée (règle 16) : TooManyFunctions — chaque pub
- * est un CANAL d'information distinct du tooling (build, sync, classpath
- * LSP, tâches, tas, connexion, diagnostics), le contrat complet d'un
- * orchestrateur IDE ; même justification que `GradleApiImpl` côté client.
+ * est un CANAL d'information distinct du tooling (build, sortie, tâches du
+ * build, sync et ses étapes, classpath LSP, tâches du projet, tas,
+ * connexion, diagnostics), le contrat complet d'un orchestrateur IDE ;
+ * même justification que `GradleApiImpl` côté client.
  */
 @Suppress("TooManyFunctions")
 public interface GradleToolingRepository {
@@ -63,6 +64,15 @@ public interface GradleToolingRepository {
     public fun observeSyncState(): Flow<EtatSyncTooling>
 
     /**
+     * Étapes de synchronisation annoncées PAR L'ORCHESTRATEUR (v3 — fin de
+     * la boîte noire) : chaque phase (connexion au daemon Gradle,
+     * résolution de chaque modèle) est annoncée au départ puis à la fin
+     * avec sa durée, entre le départ et le résultat. Jamais conflaté :
+     * une étape sautée par la vue serait un mensonge d'affichage.
+     */
+    public fun observeSyncProgress(): Flow<EtapeSyncTooling>
+
+    /**
      * Liste les tâches d'un projet (sélecteur « Exécuter »), arbre des
      * sous-projets compris.
      *
@@ -83,16 +93,35 @@ public interface GradleToolingRepository {
     public suspend fun classpath(projectDir: File): AppResult<ClasspathProjet>
 
     /**
+     * Tâches d'un build au fil de leur exécution (v3 — affichage à la
+     * console d'Android Studio) : démarrage, puis fin avec statut et durée
+     * MESURÉE par l'orchestrateur. Jamais conflaté, ordre d'exécution
+     * préservé — une tâche qui démarre pendant que la console se colle
+     * arrive quand même.
+     *
+     * Le canal vit le temps du build : il se ferme à son terme (un
+     * collecteur tardif draine puis complète).
+     *
+     * @param buildId identifiant du build (celui renvoyé par [build]).
+     */
+    public fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild>
+
+    /**
      * Lance un build de tâches données.
      *
      * @param projectDir répertoire racine du projet Gradle.
      * @param tasks tâches Gradle à exécuter (chemins qualifiés acceptés).
+     * @param arguments arguments Gradle supplémentaires (ex. `--offline`,
+     *        `--stacktrace`) — l'orchestrateur ajoute TOUJOURS
+     *        `--console=plain` en dernier (v3 : la sortie reste du texte,
+     *        l'occurrence finale d'une option gagne).
      * @return l'identifiant du build lancé (pour [observeBuildOutput],
-     * [observeBuildState] et [cancel]).
+     * [observeBuildState], [observeTachesBuild] et [cancel]).
      */
     public suspend fun build(
         projectDir: File,
         tasks: List<String>,
+        arguments: List<String> = emptyList(),
     ): String
 
     /** Annule le build [buildId] (sans effet s'il est déjà terminé). */
@@ -201,6 +230,73 @@ public data class EtatSyncTooling(
     public val enCours: Boolean = false,
     public val projectDir: String? = null,
 )
+
+/**
+ * Une étape de synchronisation annoncée par l'orchestrateur (v3) — miroir
+ * domaine du `SyncProgress` du protocole : la structure voyage, les
+ * libellés appartiennent à l'UI.
+ *
+ * @property projectDir dossier annoncé par l'orchestrateur.
+ * @property etape phase en cours d'annonce.
+ * @property terminee `true` pour l'annonce de FIN de phase (durée à la
+ *           clé), `false` pour celle de départ.
+ * @property dureeMs durée de la phase à sa fin.
+ */
+public data class EtapeSyncTooling(
+    public val projectDir: String? = null,
+    public val etape: EtapeSync,
+    public val terminee: Boolean = false,
+    public val dureeMs: Long = 0,
+)
+
+/**
+ * Phase énumérée d'une synchronisation (v3) — l'UI choisit ses libellés,
+ * l'état reste pur (aucune chaîne localisée du côté du domaine).
+ */
+public enum class EtapeSync {
+    /** Ouverture de la connexion Tooling API (première fois : distribution
+     *  Gradle téléchargée, daemon démarré — la phase la plus longue). */
+    CONNEXION,
+
+    /** Résolution du modèle `GradleProject` (tâches du projet). */
+    MODELE_GRADLE,
+
+    /** Résolution du modèle `IdeaProject` (structure IDE, dépendances). */
+    MODELE_IDEA,
+}
+
+/**
+ * Cycle de vie d'une tâche de build vue du client (v3 — affichage à la
+ * console d'Android Studio : une ligne par tâche, mise à jour en place à
+ * sa fin).
+ *
+ * @property buildId identifiant du build émetteur.
+ * @property chemin chemin Gradle complet de la tâche (ex. `:app:compileKotlin`).
+ * @property statut statut courant de la tâche.
+ * @property dureeMs durée MESURÉE par l'orchestrateur à la fin, sinon `null`.
+ */
+public data class EtatTacheBuild(
+    public val buildId: String,
+    public val chemin: String,
+    public val statut: StatutTache,
+    public val dureeMs: Long? = null,
+)
+
+/** Statut d'une tâche de build (v3) — une tâche SAUTÉE n'est ni un échec
+ *  ni un travail réel : la console se doit de la distinguer. */
+public enum class StatutTache {
+    /** La tâche est en cours d'exécution. */
+    EN_COURS,
+
+    /** La tâche s'est terminée avec succès. */
+    REUSSIE,
+
+    /** La tâche a échoué (le build échouera). */
+    ECHOUEE,
+
+    /** La tâche a été sautée (à jour, désactivée, exclue). */
+    SAUTEE,
+}
 
 /**
  * Tâche d'un projet, prête à afficher dans un sélecteur « Exécuter ».

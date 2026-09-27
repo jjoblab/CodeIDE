@@ -1,12 +1,16 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.DiagnosticBuild
+import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
+import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -18,9 +22,11 @@ import org.junit.Test
 
 /**
  * Tests du [GradleService] (G5 ; étape 32 : canaux Taches, transitions de
- * notification, rattachement process-wide) : fenêtre de sortie bornée,
- * lignes du seul build suivi, groupement des diagnostics par fichier,
- * états de synchronisation, pilotage du service Android.
+ * notification, rattachement process-wide ; v3 : lignes TYPIÉES — tâches
+ * mises à jour en place, étapes de sync, avertissement bénin apaisé) :
+ * fenêtre de sortie bornée, lignes du seul build suivi, groupement des
+ * diagnostics par fichier, états de synchronisation, pilotage du service
+ * Android.
  */
 class GradleServiceTest {
     /** Horloge pilotable : les instants de départ (v0.32.5) avancent
@@ -34,6 +40,12 @@ class GradleServiceTest {
 
     private val service = GradleService(horloge = TimeProvider { instant }, demarreur = demarreur)
 
+    /** Les lignes de SORTIE de l'état courant (les tâches/étapes ont leur
+     *  propre genre — v3). */
+    private fun sorties() =
+        service.etat.value.lignes
+            .filterIsInstance<LigneConsole.Sortie>()
+
     @Test
     fun `les lignes du build suivi s accumulent dans l ordre et portent le canal BUILD`() {
         service.suivreBuild("b-1")
@@ -42,19 +54,16 @@ class GradleServiceTest {
 
         assertEquals(
             listOf("a", "b"),
-            service.etat.value.lignes
-                .map { it.texte },
+            sorties().map { it.texte },
         )
         assertEquals(
             listOf(FluxSortieBuild.STDOUT, FluxSortieBuild.STDERR),
-            service.etat.value.lignes
-                .map { it.flux },
+            sorties().map { it.flux },
         )
         assertEquals(
             "chaque ligne du build porte le canal BUILD (v0.32.5, ADR 0056)",
             listOf(CanalTooling.BUILD, CanalTooling.BUILD),
-            service.etat.value.lignes
-                .map { it.canal },
+            sorties().map { it.canal },
         )
     }
 
@@ -106,15 +115,151 @@ class GradleServiceTest {
         assertEquals(2_000, service.etat.value.lignes.size)
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 1}",
-            service.etat.value.lignes
-                .last()
-                .texte,
+            sorties().last().texte,
         )
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 2_000}",
+            sorties().first().texte,
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // v3 — lignes de tâche (mise à jour en place, une par tâche).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `une tache demarree ajoute SA ligne puis sa fin la remplace en place`() {
+        service.suivreBuild("b-1")
+        service.ajouterTache(EtatTacheBuild("b-1", ":app:compileKotlin", StatutTache.EN_COURS))
+        service.ajouterTache(EtatTacheBuild("b-1", ":app:test", StatutTache.EN_COURS))
+
+        val apresDemarrages = service.etat.value.lignes
+        assertEquals(
+            listOf(":app:compileKotlin", ":app:test"),
+            apresDemarrages.filterIsInstance<LigneConsole.Tache>().map { it.etat.chemin },
+        )
+
+        // La fin de :app:compileKotlin remplace SA ligne (même identité),
+        // pas celle de :app:test — une ligne par tâche, comme la vue
+        // Build d'Android Studio.
+        service.ajouterTache(
+            EtatTacheBuild("b-1", ":app:compileKotlin", StatutTache.REUSSIE, dureeMs = 2_345),
+        )
+
+        val taches =
             service.etat.value.lignes
-                .first()
-                .texte,
+                .filterIsInstance<LigneConsole.Tache>()
+        assertEquals(2, taches.size)
+        assertEquals(
+            LigneConsole.Tache(
+                id = apresDemarrages.first().id,
+                canal = CanalTooling.BUILD,
+                etat = EtatTacheAffichee(":app:compileKotlin", StatutTache.REUSSIE, 2_345),
+            ),
+            taches.first(),
+        )
+        assertEquals(StatutTache.EN_COURS, taches.last().etat.statut)
+    }
+
+    @Test
+    fun `une fin de tache sans depart connu s affiche quand meme`() {
+        service.suivreBuild("b-1")
+        service.ajouterTache(EtatTacheBuild("b-1", ":app:jar", StatutTache.SAUTEE))
+
+        val taches =
+            service.etat.value.lignes
+                .filterIsInstance<LigneConsole.Tache>()
+        assertEquals(1, taches.size)
+        assertEquals(StatutTache.SAUTEE, taches.single().etat.statut)
+    }
+
+    @Test
+    fun `les taches d un autre build sont ignorees`() {
+        service.suivreBuild("b-1")
+        service.ajouterTache(EtatTacheBuild("b-autre", ":app:compileKotlin", StatutTache.EN_COURS))
+
+        assertTrue(
+            service.etat.value.lignes
+                .isEmpty(),
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // v3 — étapes de synchronisation (fin de la boîte noire).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `une etape de sync s affiche au depart puis se conclut en place avec sa duree`() {
+        service.marquerSyncEnCours()
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+        service.ajouterEtapeSync(
+            EtapeSyncTooling(etape = EtapeSync.CONNEXION, terminee = true, dureeMs = 4_200),
+        )
+
+        val etapes =
+            service.etat.value.lignes
+                .filterIsInstance<LigneConsole.Etape>()
+        assertEquals("une seule ligne par étape (remplacée en place)", 1, etapes.size)
+        assertEquals(EtapeSync.CONNEXION, etapes.single().etat.etape)
+        assertTrue(etapes.single().etat.terminee)
+        assertEquals(4_200L, etapes.single().etat.dureeMs)
+        assertEquals("l'étape de sync porte le canal SYNC", CanalTooling.SYNC, etapes.single().canal)
+    }
+
+    @Test
+    fun `une nouvelle sync reannonce ses etapes en lignes nouvelles`() {
+        service.marquerSyncEnCours()
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+        service.ajouterEtapeSync(
+            EtapeSyncTooling(etape = EtapeSync.CONNEXION, terminee = true, dureeMs = 100),
+        )
+        service.publierResultatSync(
+            AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 500)),
+        )
+
+        // Deuxième sync : la phase CONNEXION repart — une NOUVELLE ligne,
+        // l'historique de la première reste (chaque ligne est datée par sa
+        // position, comme une vraie console).
+        service.marquerSyncEnCours()
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+
+        val etapes =
+            service.etat.value.lignes
+                .filterIsInstance<LigneConsole.Etape>()
+        assertEquals(2, etapes.size)
+        assertTrue(etapes.first().etat.terminee)
+        assertFalse(etapes.last().etat.terminee)
+    }
+
+    // ------------------------------------------------------------------
+    // v3 — correctif C5 : l'avertissement bénin du daemon voyage apaisé.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `l avertissement bénin du daemon Gradle est apaise - pas le reste de stderr`() {
+        service.suivreBuild("b-1")
+        service.ajouterLigne(
+            LigneSortieBuild(
+                "b-1",
+                FluxSortieBuild.STDERR,
+                "Unable to set daemon's environment variables to match the client because:",
+                0,
+            ),
+        )
+        service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDERR, "échec de compilation", 1))
+        service.ajouterLigne(
+            LigneSortieBuild(
+                "b-1",
+                FluxSortieBuild.STDOUT,
+                "Unable to set daemon's environment variables (écho stdout, non apaisé)",
+                2,
+            ),
+        )
+
+        assertEquals(
+            "seule la ligne stderr CONNUE est apaisée (C5)",
+            listOf(true, false, false),
+            sorties().map { it.apaisee },
         )
     }
 

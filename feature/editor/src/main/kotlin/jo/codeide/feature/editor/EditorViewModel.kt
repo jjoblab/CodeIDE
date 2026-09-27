@@ -164,6 +164,7 @@ class EditorViewModel
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
+        private val optionsTooling: OptionsTooling,
         private val copierArbre: CopierArbreUseCase,
         private val deplacerArbre: DeplacerArbreUseCase,
         private val lireArbre: LireArbreUseCase,
@@ -348,6 +349,13 @@ class EditorViewModel
                         serviceGradle.marquerSyncEnCours()
                     }
                 }.launchIn(viewModelScope)
+            // Étapes de sync annoncées PAR le serveur (v3 — fin de la boîte
+            // noire) : chaque phase devient une ligne du canal Sync, conclue
+            // en place avec sa durée.
+            tooling
+                .observeSyncProgress()
+                .onEach { etape -> serviceGradle.ajouterEtapeSync(etape) }
+                .launchIn(viewModelScope)
             viewModelScope.launch {
                 // La première connaissance du projet résout son dossier réel
                 // (SAF → FUSE, même traduction que le terminal) — les
@@ -720,7 +728,10 @@ class EditorViewModel
                     return@launch
                 }
                 val dossier = dossierProjetOuEchec() ?: return@launch
-                val buildId = executerTachesUseCase(dossier, taches)
+                // Arguments des réglages tooling (v3) : hors ligne + libres,
+                // voyagent avec la demande — l'orchestrateur ajoute
+                // TOUJOURS --console=plain en dernier.
+                val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
                 observerBuild(buildId, taches)
                 selectionnerOngletPanneau(OngletPanneau.CONSOLE)
                 journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
@@ -763,6 +774,17 @@ class EditorViewModel
             }
             viewModelScope.launch {
                 tooling.observeBuildState(buildId).collect { etat -> serviceGradle.publierEtatBuild(etat) }
+            }
+            // Tâches au fil du build (v3 — console d'Android Studio) : une
+            // ligne par tâche, mise à jour en place à sa fin ; le réglage
+            // « afficher les tâches » se relit à CHAQUE événement — une
+            // bascule en plein build prend effet immédiatement.
+            viewModelScope.launch {
+                tooling.observeTachesBuild(buildId).collect { tache ->
+                    if (optionsTooling.afficherTaches) {
+                        serviceGradle.ajouterTache(tache)
+                    }
+                }
             }
         }
 

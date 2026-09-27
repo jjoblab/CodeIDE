@@ -176,6 +176,29 @@ class ActivityEditorLayoutTest {
             "annulation du build (v0.32.4)",
             console.findViewById<View>(R.id.bouton_annuler_build),
         )
+        assertNotNull(
+            "engrenage de configuration du tooling — accessible DEPUIS la console (v3)",
+            console.findViewById<View>(R.id.bouton_config_tooling),
+        )
+
+        // Écran de configuration du tooling (v3) : toolbar plein écran, trois
+        // cartes (affichage, exécution, orchestrateur) et la note console.
+        val config = gonfler(R.layout.fragment_config_tooling)
+        assertNotNull(
+            "toolbar de l'écran de configuration (v3)",
+            config.findViewById<View>(R.id.toolbar_config_tooling),
+        )
+        assertNotNull(
+            "interrupteur d'affichage des tâches (v3)",
+            config.findViewById<View>(R.id.interrupteur_afficher_taches),
+        )
+        assertNotNull(
+            "interrupteur du mode hors ligne (v3)",
+            config.findViewById<View>(R.id.interrupteur_hors_ligne),
+        )
+        assertNotNull("champ des arguments libres (v3)", config.findViewById<View>(R.id.champ_arguments))
+        assertNotNull("valeur de connexion vivante (v3)", config.findViewById<View>(R.id.valeur_connexion))
+        assertNotNull("valeur du tas de l'orchestrateur (v3)", config.findViewById<View>(R.id.valeur_tas))
 
         // Ligne de console canalise (v0.32.5) : étiquette + texte.
         val ligne = gonfler(R.layout.ligne_sortie)

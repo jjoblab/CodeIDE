@@ -141,6 +141,12 @@ public class SettingsDataStore(
         internal val VERBOSITE: Preferences.Key<String> = stringPreferencesKey("log_verbosity")
         internal val TAILLE_POLICE_TERMINAL: Preferences.Key<String> =
             stringPreferencesKey("terminal_font_size")
+        internal val TOOLING_AFFICHER_TACHES: Preferences.Key<Boolean> =
+            booleanPreferencesKey("tooling_show_tasks")
+        internal val TOOLING_HORS_LIGNE: Preferences.Key<Boolean> =
+            booleanPreferencesKey("tooling_offline")
+        internal val TOOLING_ARGUMENTS: Preferences.Key<String> =
+            stringPreferencesKey("tooling_extra_args")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
     }
 }
@@ -149,7 +155,7 @@ public class SettingsDataStore(
  * Projette les préférences vers [AppSettings], en retombant sur [defaults].
  *
  * Exemption detekt ciblée (règle 16 du prompt maître) :
- * CyclomaticComplexMethod — une branche par champ persisté (21 réglages,
+ * CyclomaticComplexMethod — une branche par champ persisté (24 réglages,
  * ADR 0059), chacune retombant sur son défaut : c'est une projection
  * plate, l'éclater en sous-fonctions déplacerait le problème sans rien
  * clarifier.
@@ -195,6 +201,9 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
         taillePoliceTerminal =
             TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
                 ?: defaults.taillePoliceTerminal,
+        toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
+        toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
+        toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
     )
 
@@ -233,6 +242,9 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.LICENCE, reglage.defaultLicense.name)
     set(SettingsDataStore.Cles.VERBOSITE, reglage.logLevel.name)
     set(SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL, reglage.taillePoliceTerminal.name)
+    set(SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES, reglage.toolingAfficherTaches)
+    set(SettingsDataStore.Cles.TOOLING_HORS_LIGNE, reglage.toolingHorsLigne)
+    set(SettingsDataStore.Cles.TOOLING_ARGUMENTS, reglage.toolingArguments)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
 
     val dossier = reglage.workspace

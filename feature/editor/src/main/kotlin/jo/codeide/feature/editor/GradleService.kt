@@ -4,18 +4,23 @@ import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jo.codeide.core.domain.DiagnosticBuild
+import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
+import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -71,17 +76,86 @@ enum class CanalTooling {
 
 /**
  * Une ligne de la console du panneau Sortie (G5 ; v0.32.5 : ligne
- * CANALISÉE) — le canal (Sync/Build) identifie la provenance, le flux
- * (stdout/stderr) pilote la couleur du texte, le texte est la ligne brute.
+ * CANALISÉE ; v3 : ligne TYPIÉE) — la provenance (canal) identifie
+ * l'information au premier regard, le genre distingue la sortie brute
+ * (stdout/stderr) de la ligne de TÂCHE (mise à jour en place à sa fin,
+ * comme la vue Build d'Android Studio) et de l'ÉTAPE de sync (fin de la
+ * boîte noire « en cours / terminée »).
  *
- * @property canal provenance de l'information (canal unique).
- * @property flux provenance du flux technique.
- * @property texte contenu brut de la ligne.
+ * Les libellés des tâches et étapes sont LOCALISÉS par le rendu : l'état
+ * reste pur, aucune chaîne n'y est construite.
  */
-data class LigneSortieAffichee(
-    val canal: CanalTooling,
-    val flux: FluxSortieBuild,
-    val texte: String,
+sealed interface LigneConsole {
+    /** Identité stable de la ligne (v3) : la mise à jour EN PLACE conserve
+     *  l'id de la ligne remplacée — le DiffUtil rebinde la rangée, sans
+     *  scintillement ni défilement. */
+    val id: Long
+
+    /** Canal de provenance (étiquette de la ligne). */
+    val canal: CanalTooling
+
+    /**
+     * Sortie brute du build (stdout/stderr).
+     *
+     * @property flux provenance du flux technique.
+     * @property texte contenu brut de la ligne.
+     * @property apaisee `true` pour un avertissement CONNU et bénin (v3 —
+     *           correctif C5 : le diagnostic natif du daemon Gradle) rendu
+     *           en style informatif au lieu du rouge d'erreur.
+     */
+    data class Sortie(
+        override val id: Long,
+        override val canal: CanalTooling,
+        val flux: FluxSortieBuild,
+        val texte: String,
+        val apaisee: Boolean = false,
+    ) : LigneConsole
+
+    /**
+     * Une tâche du build (v3) : affichée à son départ, mise à jour EN PLACE
+     * à sa fin (statut + durée) — une ligne par tâche, comme la console
+     * d'Android Studio.
+     */
+    data class Tache(
+        override val id: Long,
+        override val canal: CanalTooling,
+        val etat: EtatTacheAffichee,
+    ) : LigneConsole
+
+    /** Une étape de synchronisation (v3) : annoncée à son départ, conclue
+     *  en place avec sa durée. */
+    data class Etape(
+        override val id: Long,
+        override val canal: CanalTooling,
+        val etat: EtapeSyncAffichee,
+    ) : LigneConsole
+}
+
+/**
+ * Tâche affichée dans la console (v3) — l'état domaine sans l'identifiant
+ * de build (la console est déjà rattachée au build suivi).
+ *
+ * @property chemin chemin Gradle complet (ex. `:app:compileDebugKotlin`).
+ * @property statut statut courant.
+ * @property dureeMs durée MESURÉE par l'orchestrateur à la fin, sinon `null`.
+ */
+data class EtatTacheAffichee(
+    val chemin: String,
+    val statut: StatutTache,
+    val dureeMs: Long? = null,
+)
+
+/**
+ * Étape de sync affichée dans la console (v3).
+ *
+ * @property etape phase annoncée.
+ * @property terminee `true` à la fin (durée à la clé).
+ * @property dureeMs durée de la phase à sa fin.
+ */
+data class EtapeSyncAffichee(
+    val etape: EtapeSync,
+    val terminee: Boolean = false,
+    val dureeMs: Long = 0,
 )
 
 /**
@@ -112,8 +186,9 @@ data class GroupeProblemes(
  *           l'en-tête — millisecondes de l'horloge injectée).
  * @property dureeBuildMs durée du build terminé.
  * @property messageEchecBuild message d'échec du build (si échoué).
- * @property lignes fenêtre de sortie CANALISÉE du tooling (bornée,
- *           [NB_LIGNES_MAX]) — Sync et Build balisés chacun.
+ * @property lignes fenêtre de sortie TYPIÉE du tooling (bornée,
+ *           [NB_LIGNES_MAX]) — sorties, tâches (v3) et étapes de sync,
+ *           balisées chacune de leur canal.
  * @property problemesTotal nombre total de diagnostics (badge).
  * @property synchronisationEnCours une synchronisation est en vol.
  * @property debutSyncMs instant de départ de la synchronisation (chrono).
@@ -130,7 +205,7 @@ data class EtatGradle(
     val debutBuildMs: Long? = null,
     val dureeBuildMs: Long? = null,
     val messageEchecBuild: String? = null,
-    val lignes: List<LigneSortieAffichee> = emptyList(),
+    val lignes: List<LigneConsole> = emptyList(),
     val groupesProblemes: List<GroupeProblemes> = emptyList(),
     val synchronisationEnCours: Boolean = false,
     val debutSyncMs: Long? = null,
@@ -215,6 +290,9 @@ class GradleService
         private val demarreur: DemarreurServiceTooling,
     ) {
         private val etatInterne = MutableStateFlow(EtatGradle())
+
+        /** Identités séquentielles des lignes de console (v3). */
+        private val sequenceLignes = AtomicLong()
 
         /** État observable du tooling. */
         val etat: StateFlow<EtatGradle> = etatInterne.asStateFlow()
@@ -330,17 +408,123 @@ class GradleService
             }
         }
 
-        /** Ajoute une ligne du build suivi (fenêtre bornée, CANAL Build). */
+        /** Ajoute une ligne du build suivi (fenêtre bornée, CANAL Build) —
+         *  un avertissement CONNU et bénin (C5 : le diagnostic natif du
+         *  daemon Gradle, documenté dans docs/TOOLING.md) voyage apaisé :
+         *  le rendu l'affiche en style informatif, pas en rouge d'erreur. */
         fun ajouterLigne(ligne: LigneSortieBuild) {
             maj { courant ->
                 if (ligne.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) {
                     courant
                 } else {
-                    val fenetre = (courant.lignes + LigneSortieAffichee(CanalTooling.BUILD, ligne.flux, ligne.ligne))
-                    fenetre.takeLast(NB_LIGNES_MAX).let { nouvelle -> courant.copy(lignes = nouvelle) }
+                    ajouterALaFenetre(
+                        LigneConsole.Sortie(
+                            id = nouvelleIdentiteLigne(),
+                            canal = CanalTooling.BUILD,
+                            flux = ligne.flux,
+                            texte = ligne.ligne,
+                            apaisee = ligne.apaisee(),
+                        ),
+                        courant,
+                    )
                 }
             }
         }
+
+        /**
+         * Publie une tâche du build suivi (v3 — affichage à la console
+         * d'Android Studio) : au départ une ligne apparaît, à la fin elle
+         * est REMPLACÉE EN PLACE (statut + durée, même identité) — une ligne
+         * par tâche, jamais de défilé bavard.
+         */
+        fun ajouterTache(tache: EtatTacheBuild) {
+            maj { courant ->
+                if (tache.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) {
+                    courant
+                } else {
+                    majEnPlace(
+                        courant = courant,
+                        correspond = { ligne ->
+                            ligne is LigneConsole.Tache &&
+                                ligne.etat.chemin == tache.chemin &&
+                                ligne.etat.statut == StatutTache.EN_COURS
+                        },
+                        remplacement = { identite ->
+                            LigneConsole.Tache(
+                                id = identite,
+                                canal = CanalTooling.BUILD,
+                                etat = EtatTacheAffichee(tache.chemin, tache.statut, tache.dureeMs),
+                            )
+                        },
+                    )
+                }
+            }
+        }
+
+        /**
+         * Publie une étape de synchronisation (v3 — fin de la boîte noire)
+         * : au départ une ligne apparaît, à la fin elle est conclue EN
+         * PLACE avec sa durée — canal Sync.
+         */
+        fun ajouterEtapeSync(etape: EtapeSyncTooling) {
+            maj { courant ->
+                majEnPlace(
+                    courant = courant,
+                    correspond = { ligne ->
+                        ligne is LigneConsole.Etape &&
+                            ligne.etat.etape == etape.etape &&
+                            !ligne.etat.terminee
+                    },
+                    remplacement = { identite ->
+                        LigneConsole.Etape(
+                            id = identite,
+                            canal = CanalTooling.SYNC,
+                            etat = EtapeSyncAffichee(etape.etape, etape.terminee, etape.dureeMs),
+                        )
+                    },
+                )
+            }
+        }
+
+        /** Ajoute une ligne en fin de fenêtre bornée (tête tronquée). */
+        private fun ajouterALaFenetre(
+            ligne: LigneConsole,
+            courant: EtatGradle,
+        ): EtatGradle = courant.copy(lignes = (courant.lignes + ligne).takeLast(NB_LIGNES_MAX))
+
+        /**
+         * Remplace la DERNIÈRE ligne qui correspond (en conservant SON
+         * identité — rebind en place), ou l'ajoute si aucune ne correspond
+         * (v3 : la fenêtre ne défile qu'à l'apparition d'une NOUVELLE
+         * tâche/étape, comme la vue Build d'Android Studio).
+         */
+        private fun majEnPlace(
+            courant: EtatGradle,
+            correspond: (LigneConsole) -> Boolean,
+            remplacement: (Long) -> LigneConsole,
+        ): EtatGradle {
+            val index = courant.lignes.indexOfLast(correspond)
+            return if (index >= 0) {
+                val identite = courant.lignes[index].id
+                courant.copy(
+                    lignes = courant.lignes.toMutableList().also { it[index] = remplacement(identite) },
+                )
+            } else {
+                ajouterALaFenetre(remplacement(nouvelleIdentiteLigne()), courant)
+            }
+        }
+
+        /** Identité séquentielle d'une nouvelle ligne de console (v3). */
+        private fun nouvelleIdentiteLigne(): Long = sequenceLignes.incrementAndGet()
+
+        /**
+         * Avertissement Gradle CONNU et bénin sur cette ligne stderr (C5) :
+         * la bibliothèque `native-platform` n'a pas de binding pour
+         * Android/bionic — le build continue avec l'environnement du daemon
+         * (déjà complet depuis le premier lancement, voir docs/TOOLING.md).
+         */
+        private fun LigneSortieBuild.apaisee(): Boolean =
+            flux == FluxSortieBuild.STDERR && ligne.startsWith(AVERTISSEMENT_DAEMON_BENIN)
 
         /** Publie les diagnostics courants, groupés par fichier. */
         fun publierDiagnostics(diagnostics: List<DiagnosticBuild>) {
@@ -381,6 +565,11 @@ class GradleService
         private companion object {
             /** Fenêtre de sortie affichée (tête tronquée au-delà). */
             const val NB_LIGNES_MAX = 2_000
+
+            /** Début de l'avertissement bénin du daemon Gradle (C5) — la
+             *  forme longue continue (« ...to match the client because:
+             *  There is no native integration... »), le préfixe suffit. */
+            const val AVERTISSEMENT_DAEMON_BENIN = "Unable to set daemon's environment variables"
         }
     }
 

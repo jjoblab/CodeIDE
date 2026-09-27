@@ -6,6 +6,7 @@ import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
@@ -18,6 +19,7 @@ import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeProjectRepository
+import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.FakeTemplateAssetsSource
 import jo.codeide.core.testing.FakeTerminalSessionRepository
 import jo.codeide.core.testing.FakeToolchainLocator
@@ -65,6 +67,25 @@ abstract class BaseEditorViewModelTest {
 
     /** Faux du port tooling (G5) — pilotable par les tests de l'espace. */
     protected val tooling = FauxToolingEditor()
+
+    /** Réglages en mémoire — pilote [optionsTooling] (v3). */
+    protected val depotReglages = FakeSettingsRepository()
+
+    /** Options tooling de l'espace (v3) : collecte sur le répartiteur de
+     *  test — les tests sèment via [semerReglagesTooling] puis laissent le
+     *  planificateur avancer (même déterminisme que les autres flux). */
+    protected val optionsTooling =
+        OptionsTooling(
+            observerReglages = ObserveSettingsUseCase(depotReglages),
+            dispatchers = TestDispatcherProvider(regleMain.dispatcher),
+        )
+
+    /** Sème un réglage tooling (v3) — à faire avancer par le planificateur. */
+    protected suspend fun semerReglagesTooling(
+        transformation: (jo.codeide.core.model.AppSettings) -> jo.codeide.core.model.AppSettings,
+    ) {
+        depotReglages.updateSettings(transformation)
+    }
 
     /** Journal de l'espace (partagé, pour les use cases tooling). */
     protected val journalEspace = FakeAppLogger()
@@ -167,6 +188,7 @@ abstract class BaseEditorViewModelTest {
                     tooling,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
+            optionsTooling = optionsTooling,
             serviceGradle = serviceGradleTest,
             savedStateHandle = sauvetage,
         )

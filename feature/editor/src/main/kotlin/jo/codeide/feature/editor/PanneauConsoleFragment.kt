@@ -13,13 +13,14 @@ import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
-import java.util.Locale
 
 /**
- * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055) : état de
- * synchronisation/build (annulation visible en vol), console du build
+ * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v3 :
+ * tâches au fil du build, étapes de sync, bouton de configuration) : état
+ * de synchronisation/build (annulation visible en vol), console du build
  * avec auto-défilement (le suivi s'arrête quand la liste cesse de
- * grandir — un build fini ne défile plus).
+ * grandir — un build fini ne défile plus), accès à l'écran de
+ * configuration du tooling.
  *
  * Le contenu migrent du layout empilé de l'activité (v0.32.3) vers ce
  * fragment ; l'activité ne collecte plus l'état tooling — chaque
@@ -56,6 +57,12 @@ class PanneauConsoleFragment : Fragment() {
         liaison.listeSortie.adapter = adaptateur
         liaison.boutonAnnulerBuild.setOnClickListener {
             viewModel.onAction(ActionEditor.AnnulerBuild)
+        }
+        // Configuration du tooling (v3) : l'engrenage de l'onglet Sortie
+        // ouvre l'écran dédié — réglages persistés à l'instant + état vivant
+        // de l'orchestrateur, sans quitter l'espace de travail.
+        liaison.boutonConfigTooling.setOnClickListener {
+            DialogueConfigToolingFragment().show(childFragmentManager, ETIQUETTE_DIALOGUE)
         }
 
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
@@ -148,19 +155,12 @@ class PanneauConsoleFragment : Fragment() {
             }
         }
 
-    /** Durée lisible (s, ou ms sous la seconde). */
-    private fun dureeLisible(dureeMs: Long): String =
-        if (dureeMs >= SEUIL_SECONDE_MS) {
-            String.format(Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
-        } else {
-            String.format(Locale.ROOT, "%dms", dureeMs)
-        }
+    /** Durée lisible (déléguée au formateur partagé — v3 : tâches et
+     *  étapes l'utilisent aussi). */
+    private fun dureeLisible(dureeMs: Long): String = DureesLisibles.formater(dureeMs)
 
     private companion object {
-        /** Seuil d'affichage en secondes (sous une seconde : ms). */
-        const val SEUIL_SECONDE_MS = 1_000L
-
-        /** Seconde en millisecondes (Double : division flottante, %.1fs). */
-        const val SECONDE_MS = 1_000.0
+        /** Étiquette du dialogue de configuration du tooling (anti-doublon). */
+        const val ETIQUETTE_DIALOGUE = "config-tooling"
     }
 }

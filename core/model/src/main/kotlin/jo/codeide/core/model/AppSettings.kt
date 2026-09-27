@@ -22,6 +22,10 @@ package jo.codeide.core.model
  * typographie via cel-ui, l'abonnement viendra avec la coloration) ; le
  * terminal consomme déjà style du curseur et copie de sélection.
  *
+ * Section Tooling (v3 — écran de configuration de la console) : affichage
+ * des tâches pendant le build, mode hors ligne et arguments Gradle libres
+ * — consultables depuis l'onglet Sortie de l'espace de travail.
+ *
  * @property themeMode mode de thème (système, clair, sombre).
  * @property useDynamicColor couleurs Material You (Android 12+, ADR 0008).
  * @property paletteCouleur palette statique quand les couleurs dynamiques
@@ -47,6 +51,13 @@ package jo.codeide.core.model
  * moteur au démarrage du processus principal.
  * @property taillePoliceTerminal taille de la police à chasse fixe du
  * terminal intégré (Terminal T5) — section Terminal des Paramètres.
+ * @property toolingAfficherTaches afficher les tâches dans la console au
+ * fil du build (v3 — une ligne par tâche, comme la vue Build d'Android
+ * Studio) ; le résumé de fin reste affiché même désactivé.
+ * @property toolingHorsLigne lancer les builds avec `--offline` (aucun
+ * accès réseau au dépôt — les dépendances doivent déjà être en cache).
+ * @property toolingArguments arguments Gradle libres (séparés par des
+ * espaces, ex. `--stacktrace --info`), vidés par défaut.
  * @property isSetupCompleted l'assistant de premier lancement est terminé.
  */
 @Suppress("LongParameterList") // Groupe de réglages cohérent, pas un objet métier à découper.
@@ -71,6 +82,9 @@ public data class AppSettings(
     public val defaultLicense: License = License.MIT,
     public val logLevel: LogVerbosity = LogVerbosity.NORMAL,
     public val taillePoliceTerminal: TaillePoliceTerminal = TaillePoliceTerminal.MOYENNE,
+    public val toolingAfficherTaches: Boolean = true,
+    public val toolingHorsLigne: Boolean = false,
+    public val toolingArguments: String = "",
     public val isSetupCompleted: Boolean = false,
 ) {
     public companion object {
