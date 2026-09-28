@@ -1,6 +1,6 @@
 package jo.codeide.feature.editor
 
-import jo.codeeditor.view.EditorTheme
+import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.model.AppSettings

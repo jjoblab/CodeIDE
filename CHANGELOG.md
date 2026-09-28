@@ -4,6 +4,39 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.5] – 2026-09-29
+
+### Corrigé (compilation `:feature:editor` cassée par le déménagement de package de la v3.38.0)
+
+- **`EditorTheme` et `SymbolBarView` introuvables** après la montée
+  `code-editor` 3.37.0 → 3.38.0 (v0.37.4). La v3.38.0 de la bibliothèque
+  `jjoblab/code-editor` réorganise ses packages : `EditorTheme`,
+  `SymbolBarView` et `BreadcrumbBar` quittent `jo.codeeditor.view` pour
+  `jo.codeeditor.view.chrome` (les claviers, popups, préviews et
+  peintres suivent en `input`, `popup`, `preview`, `render`). CodeIDE
+  n'importe que `EditorTheme` et `SymbolBarView` — les 5 références
+  (deux imports dans `EditorActivity.kt`, un import dans
+  `OptionsEditeur.kt`, un import dans `OptionsEditeurTest.kt`, une
+  référence qualifiée dans `ActivityEditorLayoutTest.kt`) sont migrées
+  vers `jo.codeeditor.view.chrome.*`. `EditorView` reste dans
+  `jo.codeeditor.view` — aucun changement. Aucune autre cassure pour
+  CodeIDE : les symboles LSP déplacés (`jo.codeeditor.lang.*` →
+  `jo.codeeditor.lang.model.*`) et les fournisseurs de connexion LSP
+  (`jo.codeeditor.lsp.*` → `jo.codeeditor.lsp.connection.*`) ne sont
+  pas importés.
+- **API publique `SymbolBarView` inchangée** : l'interface
+  `OnSymbolTap` (`onSymbol(String)`, `onAction(String)`) et la méthode
+  `setOnSymbolTap(OnSymbolTap)` sont restées identiques — seul le
+  package change. Idem pour `EditorTheme` : les fabriques statiques
+  `dark()`, `light()`, `dracula()`, `oneDark()`, `monokai()`,
+  `solarizedDark()`, `gitHubLight()`, `gitHubDark()`, `nord()` et le
+  champ public `editorBg` n'ont pas bougé.
+- **Vérification du JAR publié** : l'AAR `cel-ui-3.38.0` récupéré depuis
+  JitPack contient bien `jo/codeeditor/view/chrome/EditorTheme.class` et
+  `jo/codeeditor/view/chrome/SymbolBarView.class` (et toujours
+  `jo/codeeditor/view/EditorView.class`) — les imports migrés pointent
+  sur des classes réellement présentes dans l'artefact livré.
+
 ## [0.37.4] – 2026-09-29
 
 ### Corrigé (CI : tests de régression alignés sur la v0.37.3, montée code-editor 3.38.0)

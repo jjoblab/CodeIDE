@@ -36,9 +36,9 @@ import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeeditor.document.Selection
 import jo.codeeditor.session.EditorSession
-import jo.codeeditor.view.EditorTheme
 import jo.codeeditor.view.EditorView
-import jo.codeeditor.view.SymbolBarView
+import jo.codeeditor.view.chrome.EditorTheme
+import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.model.ProjectAccessState

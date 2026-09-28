@@ -70,7 +70,7 @@ class ActivityEditorLayoutTest {
         val barre = racine.findViewById<View>(R.id.barre_symboles)
         assertEquals(
             "la barre de symboles est la SymbolBarView de la bibliothèque (v0.32.4)",
-            jo.codeeditor.view.SymbolBarView::class.java,
+            jo.codeeditor.view.chrome.SymbolBarView::class.java,
             barre.javaClass,
         )
         assertEquals("barre de symboles masquée par défaut (v0.32.3)", View.GONE, barre.visibility)
