@@ -4,6 +4,42 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.4] – 2026-09-29
+
+### Corrigé (CI : tests de régression alignés sur la v0.37.3, montée code-editor 3.38.0)
+
+- **`EcrivainProfilShellTest.le profil pose le PS1 codeide la branche git et la bienvenue`**
+  échouait sur le runner GitHub : deux assertions étaient restées calées
+  sur l'ancien profil pré-v0.37.3 (`contenu.contains("ANDROID_HOME:-non installé")`
+  et `contenu.contains("command -v gradle")`). Or la v0.37.3 (ADR 0068) a
+  **explicitement remplacé** ces littéraux par les fonctions dynamiques
+  `__codeide_android_info()` et `__codeide_gradle_info()` (vrais chemins du
+  SDK et de la distribution Gradle — fin du script de découverte trompeur
+  `$PREFIX/bin/gradle`). Les assertions vérifient désormais que les deux
+  fonctions sont **définies** ET **appelées** dans le `case $- in *i*)` de
+  bienvenue — même couverture sémantique que les assertions historiques, sans
+  régresser sur le correctif v0.37.3.
+- **`ObservateurOutilsTerminalTest.transition de l installateur - rescan immediate sans attendre le ballotage`**
+  échouait : le test déposait `usr/bin/sh` + `.codeide-installation-terminee`
+  **avant** la souscription, puis assertait que le premier scan renvoyait
+  `EtatOutilsTerminal()` (bootstrap absent). Cela contredisait l'implémentation
+  v0.37.3 : `combine(installateur.etat, horlogeBallotage())` appelle
+  `scanner()` dès la première émission — le disque portait déjà le bootstrap,
+  la première émission était donc `EtatOutilsTerminal(bootstrapInstalle = true)`,
+  et `distinctUntilChanged` étouffait ensuite la transition de l'installateur.
+  Le scénario corrigé dépose les marqueurs **après** le premier scan (bootstrap
+  absent au départ), puis bascule `installateur.etat` vers `Terminee` — le
+  re-scan immédiat voit le bootstrap, sans attendre le ballotage de 2 s.
+  Le contrat testé (« la transition déclenche un rescan immédiat ») est
+  préservé, l'assertion finale `listOf(EtatOutilsTerminal(), EtatOutilsTerminal(bootstrapInstalle = true))`
+  tient.
+- **Montée de la bibliothèque d'édition `code-editor` 3.37.0 → 3.38.0** (tag
+  stable vérifié sur github.com/jjoblab/code-editor le 2026-09-29, artefact
+  `cel-ui` publié sur JitPack : aar + pom + gradle-metadata, résolution OK).
+  La coordonnée `com.github.jjoblab.code-editor:cel-ui:3.38.0` est alignée
+  sur la dernière amont — le `version.ref` du catalogue porte la mise à jour,
+  aucun autre module à toucher.
+
 ## [0.37.3] – 2026-09-28
 
 ### Corrigé (vrais chemins Gradle/SDK, scripts versionnés, connexion orchestrateur, UI du tooling — ADR 0068)

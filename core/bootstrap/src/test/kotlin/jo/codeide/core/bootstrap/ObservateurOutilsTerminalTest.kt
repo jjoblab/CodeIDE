@@ -100,11 +100,6 @@ class ObservateurOutilsTerminalTest {
     @Test
     fun `transition de l installateur - rescan immediate sans attendre le ballotage`() =
         runTest {
-            // Le disque porte déjà le bootstrap (posé « pendant » que
-            // personne ne collectait) : la transition de l'installateur
-            // déclenche le re-scan qui le voit — SANS avancer de 2 s.
-            deposerBinaire("usr", "bin", "sh")
-            deposerFichier("usr", ".codeide-installation-terminee")
             val installateur = FauxInstallateur()
             val observateur =
                 ObservateurOutilsTerminal(
@@ -121,6 +116,12 @@ class ObservateurOutilsTerminalTest {
             runCurrent()
             assertEquals(EtatOutilsTerminal(), etats.single())
 
+            // Le disque porte désormais le bootstrap (posé « pendant » que
+            // personne ne collectait le ballotage) : la transition de
+            // l'installateur déclenche le re-scan qui le voit — SANS avancer
+            // de 2 s.
+            deposerBinaire("usr", "bin", "sh")
+            deposerFichier("usr", ".codeide-installation-terminee")
             installateur.etatInterne.value = Terminee(emptyList())
             runCurrent()
 

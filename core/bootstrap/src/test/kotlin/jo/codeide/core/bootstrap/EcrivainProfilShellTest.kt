@@ -56,12 +56,20 @@ class EcrivainProfilShellTest {
                 contenu.contains("JAVA_HOME:-non installé"),
             )
             assertTrue(
-                "la bienvenue devait afficher l'état du SDK Android (C2)",
-                contenu.contains("ANDROID_HOME:-non installé"),
+                "la bienvenue devait afficher l'état du SDK Android (C2 — v0.37.3)",
+                contenu.contains("$(__codeide_android_info)"),
             )
             assertTrue(
-                "la bienvenue devait parler de Gradle (C2)",
-                contenu.contains("command -v gradle"),
+                "la fonction __codeide_android_info devait être définie (C2 — v0.37.3)",
+                contenu.contains("__codeide_android_info()"),
+            )
+            assertTrue(
+                "la bienvenue devait parler de Gradle (C2 — v0.37.3)",
+                contenu.contains("$(__codeide_gradle_info)"),
+            )
+            assertTrue(
+                "la fonction __codeide_gradle_info devait être définie (C2 — v0.37.3)",
+                contenu.contains("__codeide_gradle_info()"),
             )
             assertTrue(
                 "la bienvenue devait être gardée par l'interactivité (C2)",
