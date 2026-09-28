@@ -4,6 +4,44 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.6] – 2026-09-29
+
+### Corrigé (layout XML — ViewBinding pointait toujours sur l'ancien FQN `jo.codeeditor.view.SymbolBarView`)
+
+- **`Cannot access class 'SymbolBarView'` persistait** malgré la
+  migration des imports Kotlin vers `jo.codeeditor.view.chrome.*`
+  (v0.37.5). Cause racine : le layout XML
+  `feature/editor/src/main/res/layout/activity_editor.xml` (ligne 219)
+  référençait encore la classe par son **FQN pré-v3.38.0**
+  `<jo.codeeditor.view.SymbolBarView>` — or, en Android, **le générateur
+  ViewBinding dérive le type des champs de binding depuis l'attribut
+  `android:class` (ou le tag racine) du XML**. Tant que le XML portait
+  l'ancien FQN, `liaison.barreSymboles` était typée
+  `jo.codeeditor.view.SymbolBarView` (classe introuvable depuis la
+  3.38.0) — Kotlin ne pouvait ni résoudre `setOnSymbolTap` ni appliquer
+  l'extension `View.isVisible` : « None of the following candidates is
+  applicable because of a receiver type mismatch ».
+
+- **Fix** : la balise du layout est migrée vers
+  `<jo.codeeditor.view.chrome.SymbolBarView>`. Une fois ViewBinding
+  régénéré, `liaison.barreSymboles` est typée
+  `jo.codeeditor.view.chrome.SymbolBarView` (classe bien présente dans
+  l'AAR `cel-ui-3.38.0`) — `setOnSymbolTap(OnSymbolTap)` et
+  `View.isVisible` redeviennent applicables. Aucun autre layout ne
+  référence de classe déplacée (vérification
+  `find . -name "*.xml" -path "*/res/*" -exec grep -l jo\.codeeditor`)
+  — `<jo.codeeditor.view.EditorView>` (ligne 56 du même fichier) est
+  resté valide car `EditorView` n'a pas bougé.
+
+- **Leçon** : le déménagement de package d'une bibliothèque de vues
+  personnalisées Android casse DEUX sources — les imports Kotlin
+  **ET** les FQN dans les layouts XML. Vérifier les deux :
+
+  ```bash
+  grep -rn "jo\.codeeditor\.view\.\(SymbolBarView\|EditorTheme\|BreadcrumbBar\)" \
+    --include="*.kt" --include="*.xml"
+  ```
+
 ## [0.37.5] – 2026-09-29
 
 ### Corrigé (compilation `:feature:editor` cassée par le déménagement de package de la v3.38.0)

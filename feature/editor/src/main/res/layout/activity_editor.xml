@@ -216,7 +216,7 @@
                  posée juste au-dessus des touches : « collée ».
                  Masquée sinon (et le panneau réapparaît). La VRAIE
                  SymbolBarView de la bibliothèque code-editor. -->
-            <jo.codeeditor.view.SymbolBarView
+            <jo.codeeditor.view.chrome.SymbolBarView
                 android:id="@+id/barre_symboles"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
