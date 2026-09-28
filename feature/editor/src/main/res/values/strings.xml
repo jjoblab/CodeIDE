@@ -2,7 +2,7 @@
 <!--
   Chaînes de l'espace de travail (étapes 13-14) — français (défaut).
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="editor_title">Éditeur</string>
     <string name="editor_ouvrir_tiroir_cd">Ouvrir le tiroir de navigation</string>
     <string name="editor_vide_titre">Aucun fichier ouvert</string>
@@ -134,7 +134,10 @@
 
     <!-- Configuration du tooling (v3) — accessible depuis l'onglet Sortie :
          affichage des tâches, mode hors ligne, arguments Gradle libres et
-         état vivant de l'orchestrateur. -->
+         état vivant de l'orchestrateur. Les drapeaux Gradle cités dans les
+         textes ci-dessous sont LITTÉRAUX : TypographyDashes est ignoré sur
+         les trois chaînes concernées (même patron que Typos dans
+         feature:home, correctif lint CI v0.37.1). -->
     <string name="editor_config_tooling_titre">Tooling Gradle</string>
     <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
     <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
@@ -143,9 +146,9 @@
     <string name="editor_config_afficher_taches_desc">Une ligne par tâche, mise à jour en place — comme la vue Build d\'Android Studio.</string>
     <string name="editor_config_execution">Exécution</string>
     <string name="editor_config_hors_ligne">Mode hors ligne</string>
-    <string name="editor_config_hors_ligne_desc">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>
+    <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>
     <string name="editor_config_arguments">Arguments Gradle supplémentaires</string>
-    <string name="editor_config_arguments_aide">Séparés par des espaces — ex. --stacktrace --info</string>
+    <string name="editor_config_arguments_aide" tools:ignore="TypographyDashes">Séparés par des espaces — ex. --stacktrace --info</string>
     <string name="editor_config_etat">Orchestrateur</string>
     <string name="editor_config_etat_connexion">Connexion</string>
     <string name="editor_config_connexion_connecte">Connecté</string>
@@ -154,7 +157,7 @@
     <string name="editor_config_connexion_echoue">Échec</string>
     <string name="editor_config_etat_tas">Mémoire de l\'orchestrateur</string>
     <string name="editor_config_tas_format">%1$d Mo utilisés sur %2$d Mo</string>
-    <string name="editor_config_note_console">La sortie Gradle est toujours forcée en mode texte (--console=plain) : aucune séquence ANSI n\'abîmera la console.</string>
+    <string name="editor_config_note_console" tools:ignore="TypographyDashes">La sortie Gradle est toujours forcée en mode texte (--console=plain) : aucune séquence ANSI n\'abîmera la console.</string>
 
     <!-- Service de notification du tooling (étape 32, ADR 0057) : mêmes
          jetons que le service du terminal — titre de canal, titre de

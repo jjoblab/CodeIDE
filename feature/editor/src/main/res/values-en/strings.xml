@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- English strings for the workspace (étapes 13-14). -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="editor_title">Editor</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
@@ -125,7 +125,9 @@
 
     <!-- Tooling configuration (v3) — reachable from the Output tab: task
          display, offline mode, free Gradle arguments and live orchestrator
-         state. -->
+         state. Gradle flags quoted in the texts below are LITERAL:
+         TypographyDashes is ignored on the three strings carrying them
+         (same pattern as Typos in feature:home, CI lint fix v0.37.1). -->
     <string name="editor_config_tooling_titre">Gradle tooling</string>
     <string name="editor_config_fermer_cd">Close tooling configuration</string>
     <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
@@ -134,9 +136,9 @@
     <string name="editor_config_afficher_taches_desc">One line per task, updated in place — like Android Studio\'s Build view.</string>
     <string name="editor_config_execution">Execution</string>
     <string name="editor_config_hors_ligne">Offline mode</string>
-    <string name="editor_config_hors_ligne_desc">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>
+    <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>
     <string name="editor_config_arguments">Extra Gradle arguments</string>
-    <string name="editor_config_arguments_aide">Space-separated — e.g. --stacktrace --info</string>
+    <string name="editor_config_arguments_aide" tools:ignore="TypographyDashes">Space-separated — e.g. --stacktrace --info</string>
     <string name="editor_config_etat">Orchestrator</string>
     <string name="editor_config_etat_connexion">Connection</string>
     <string name="editor_config_connexion_connecte">Connected</string>
@@ -145,7 +147,7 @@
     <string name="editor_config_connexion_echoue">Failed</string>
     <string name="editor_config_etat_tas">Orchestrator memory</string>
     <string name="editor_config_tas_format">%1$d MB used of %2$d MB</string>
-    <string name="editor_config_note_console">Gradle output is always forced to plain text (--console=plain): no ANSI sequence will corrupt the console.</string>
+    <string name="editor_config_note_console" tools:ignore="TypographyDashes">Gradle output is always forced to plain text (--console=plain): no ANSI sequence will corrupt the console.</string>
 
     <!-- Tooling notification service (step 32, ADR 0057): same tokens as
          the terminal service — channel title, notification title, texts

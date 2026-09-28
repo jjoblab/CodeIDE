@@ -4,6 +4,30 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.1] – 2026-09-28
+
+### Corrigé (lint CI : TypographyDashes sur les drapeaux Gradle)
+
+- **Le CI GitHub échouait sur `:feature:editor:lintDebug`** : le check
+  `TypographyDashes`, promu en erreur par `warningsAsErrors = true` du
+  build-logic, demandait de remplacer par des tirets cadratins les doubles
+  tirets des drapeaux Gradle cités dans six chaînes FR/EN de la
+  configuration du tooling — `--offline` (mode hors ligne), `--stacktrace`
+  et `--info` (aide aux arguments), `--console=plain` (note console).
+  Appliquer la suggestion aurait rendu les textes faux : ces drapeaux sont
+  littéraux et doivent s'afficher à l'utilisateur exactement comme ils se
+  tapent.
+- **Correction** : `tools:ignore="TypographyDashes"` sur les six chaînes
+  (`editor_config_hors_ligne_desc`, `editor_config_arguments_aide`,
+  `editor_config_note_console` — chacune en FR et EN), `xmlns:tools` ajouté
+  aux deux `<resources>` de feature:editor et le choix documenté dans les
+  commentaires de section — même patron que `tools:ignore="Typos"` de
+  feature:home pour les faux positifs volontaires du lint.
+- **Vérification** : `lintDebug` complet exécuté localement sur ce code
+  pour la première fois (le lint est délégué au CI par le canon de
+  vérification du 2026-09-25) : BUILD SUCCESSFUL — app, core:\*, feature:\*
+  et tooling:\* tous verts. Aucun texte affiché ne change ; manuels E81-E82.
+
 ## [0.37.0] – 2026-09-27
 
 ### Ajouté (section Éditeur des Paramètres consommée — ADR 0066)
@@ -3331,3 +3355,9 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   la détection de tests de Gradle 9 sur un module sans test. Elles seront
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
+
+## [Non publié]
+
+### Ajouté
+
+- (à compléter)

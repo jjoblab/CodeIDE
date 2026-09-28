@@ -426,6 +426,17 @@ changer, revenir à l'éditeur sans le fermer — voir ADR 0066).
 | E79 | **Ligatures et avertissement** : activer « Ligatures de police » dans la section, ouvrir un fichier Kotlin avec des comparaisons (`!=`, `->`) | La légende « Désactive la coloration syntaxique » reste visible sous l'interrupteur ; une fois activée, la coloration disparaît effectivement (compromis de la bibliothèque) — l'utilisateur n'est pas surpris |
 | E80 | **Sauvegarde automatique coupée** : désactiver « Sauvegarde automatique », éditer un fichier, attendre plus de 2 secondes | L'onglet garde son point de modification (sale) et le fichier N'EST PAS écrit ; l'enregistrement manuel (icône enregistrer de la toolbar) écrit le fichier et repasse l'onglet propre |
 
+## Correctif lint CI — drapeaux Gradle et TypographyDashes (v0.37.1)
+
+Préambule : dépôt poussé sur GitHub (main + tag v0.37.1), APK debug
+v0.37.1+. Le correctif n'ajoute que des attributs `tools:ignore` (lint) sur
+les chaînes de la configuration du tooling — aucun texte affiché ne change.
+
+| # | Action | Attendu |
+|---|---|---|
+| E81 | **CI vert après push** : pousser main + tag v0.37.1 sur GitHub, ouvrir l'onglet Actions du dépôt et suivre le run « Compilation et vérification complète » | La tâche `:feature:editor:lintDebug` passe (plus aucune erreur TypographyDashes) ; le run arrive au vert jusqu'à `assembleDebug` et publie l'artefact APK |
+| E82 | **Textes inchangés à l'écran** : dans l'espace de travail, ouvrir la configuration du tooling (onglet Sortie → engrenage) | Les textes du mode hors ligne (« Passe --offline aux builds… »), de l'aide aux arguments (« Séparés par des espaces — ex. --stacktrace --info ») et de la note console (« forcée en mode texte (--console=plain)… ») s'affichent avec leurs drapeaux Gradle intacts, doubles tirets compris |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
