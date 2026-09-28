@@ -6,7 +6,11 @@
 # 0037). Les réglages mémoire séquentiels de gradle.properties sont
 # conservés tels quels : le workflow ne dérègle rien côté machine.
 #
-# Les artefacts (APK debug) sont téléchargeables depuis la page du run.
+# Les artefacts (APK debug, nommé avec la version) sont téléchargeables
+# depuis la page du run. L'APK est signé par le keystore debug PUBLIC
+# versionné (ADR 0067) et la signature est VÉRIFIÉE à chaque run :
+# les APK successifs se mettent à jour les uns sur les autres, sans
+# « conflit de package ».
 name: CI
 
 on:
@@ -39,23 +43,17 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/tags/' }}
 
-      # Keystore debug STABLE entre les runs (ADR 0063) : le runner est
-      # éphémère — sans ce cache, AGP régénère ~/.android/debug.keystore à
-      # CHAQUE run, chaque APK porte une signature différente, et Android
-      # refuse la mise à jour par-dessus l'APK précédent (« conflit de
-      # package », désinstallation obligatoire avant chaque réinstallation,
-      # retour utilisateur v0.35.2). Le cache restaure TOUJOURS la même
-      # clé : les APK successifs se mettent à jour les uns sur les autres.
-      # Les keystores restent HORS du dépôt (règle .gitignore « jamais dans
-      # le dépôt ni dans les archives ») : seul le fichier local du runner
-      # est mis en cache. Première exécution : clé fraîche (une dernière
-      # réinstallation à prévoir), puis stable tant que le cache vit.
-      - name: Keystore debug stable entre les runs
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: codeide-keystore-debug-v1
-          enableCrossOsArchive: true
+      # Signature debug STABLE — keystore public VERSIONNÉ dans
+      # config/signature/ (ADR 0067) : le runner GitHub n'embarque aucun
+      # ~/.android/debug.keystore et les caches actions/cache sont scopés
+      # par ref (les runs de tags poussés ensemble ne se voient pas) et
+      # évictables (7 jours d'inactivité) — chaque APK CI portait une
+      # signature différente et Android refusait la mise à jour (« conflit
+      # de package », retours v0.35.2 puis v0.37.1). La clé debug n'est pas
+      # un secret (identifiants publics, patrons AOSP/CodeAssist) : la
+      # versionner fixe l'identité pour la CI, les contributeurs et toute
+      # machine locale. Aucun cache nécessaire : la clé voyage avec les
+      # sources.
 
       # Les licences du SDK préinstallé du runner sont déjà acceptées ;
       # ce rite ne fait qu'assurer que sdkmanager peut auto-installer
@@ -66,11 +64,32 @@ jobs:
       - name: Vérification complète (sans clean — caches Gradle)
         run: ./gradlew spotlessCheck detekt checkModuleDependencies lintDebug testDebugUnitTest koverVerify assembleDebug --stacktrace
 
+      - name: Version du projet
+        id: version
+        run: echo "nom=$(sed -n 's/^VERSION_NAME=//p' version.properties | head -1)" >> "$GITHUB_OUTPUT"
+
+      # L'APK sort en app-debug.apk : le renommer avec la version rend les
+      # téléchargements successifs distinguables sans ouvrir l'archive
+      # (v0.37.0 contre v0.37.1, etc.).
+      - name: Renommer l'APK avec la version
+        run: |
+          version="${{ steps.version.outputs.nom }}"
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             "app/build/outputs/apk/debug/CodeIDE-v${version}-debug.apk"
+
+      # Verrou ADR 0067 : le run échoue si l'APK n'est pas signé par le
+      # keystore versionné — le « conflit de package » ne peut plus
+      # revenir silencieusement.
+      - name: Signature = keystore versionné (ADR 0067)
+        run: |
+          scripts/verify-signature.sh \
+            "app/build/outputs/apk/debug/CodeIDE-v${{ steps.version.outputs.nom }}-debug.apk"
+
       - name: Publier l'APK debug
         uses: actions/upload-artifact@v4
         with:
-          name: CodeIDE-debug-${{ github.sha }}
-          path: app/build/outputs/apk/debug/*.apk
+          name: CodeIDE-v${{ steps.version.outputs.nom }}-debug
+          path: app/build/outputs/apk/debug/CodeIDE-v${{ steps.version.outputs.nom }}-debug.apk
           if-no-files-found: error
 
       - name: Publier les rapports en cas d'échec

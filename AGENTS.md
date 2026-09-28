@@ -74,6 +74,13 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
 6. Erreurs attendues modélisées (`AppResult`/`AppError`), jamais des
    exceptions jusqu'à l'UI ; `CancellationException` toujours relancée.
 7. Aucun secret ni `local.properties` dans le dépôt ni dans l'archive.
+   Exception unique (ADR 0067) : l'identité debug PUBLIQUE
+   `config/signature/debug.keystore` est versionnée — identifiants de
+   convention Android, pas un secret, patrons AOSP/CodeAssist — pour que
+   tous les APK debug (CI, contributeurs, machines locales) partagent la
+   même signature. Les clés RELEASE restent interdites au dépôt
+   (échelle hors dépôt : `keystore.properties` gitignoré → `-PRELEASE_*`
+   → env `RELEASE_*`).
 8. Aucune vérification désactivée pour faire passer le build (exceptions
    ciblées, minimales et **commentées** uniquement).
 9. Dépendances justifiées ; versions uniquement via `gradle/libs.versions.toml`.

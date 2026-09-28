@@ -4,6 +4,73 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.2] – 2026-09-28
+
+### Corrigé (signature des APK : fin des « conflits de package » — ADR 0067)
+
+- **Installer la nouvelle version par-dessus la précédente échouait**
+  (« conflit de package », désinstallation obligatoire) sur les APK du CI
+  GitHub — p.ex. v0.37.1 par-dessus v0.37.0. Cause racine : le runner
+  GitHub n'embarque AUCUN `~/.android/debug.keystore` stable (vérifié
+  sur le manifeste de l'image runner) et l'atténuation par cache de
+  l'ADR 0063 ne tient pas — les caches `actions/cache` sont scopés par
+  ref (les runs des tags poussés ensemble ne voient pas la même entrée)
+  et évictables (7 jours d'inactivité, pression des caches Gradle) :
+  chaque APK repartait d'une clé aléatoire. D'où la référence étudiée :
+  **CodeAssist (tyron12233)** versionne son `debug.keystore` dans le
+  dépôt et résout la clé de release par une échelle hors dépôt
+  (`keystore.properties` gitignoré → propriété Gradle → variable
+  d'environnement).
+- **Identité debug publique versionnée** : `config/signature/debug.keystore`
+  (identifiants publics par convention Android — magasin et clé
+  `android`, alias `androiddebugkey`, sujet `CN=Android Debug,O=Android,C=US`,
+  RSA 2048, validité 10 000 jours, PKCS12 legacy comme le
+  `DebugKeystore` de CodeAssist) est commis dans le dépôt et câblé comme
+  signature de la variante debug par le convention plugin
+  `codeide.android.application`. Une clé debug n'est pas un secret —
+  c'est le patron des clés de test d'AOSP, publiques par design : la
+  versionner fixe l'identité pour la CI, les contributeurs et toute
+  machine locale. Les APK successifs (CI ou locaux) se mettent à jour
+  les uns sur les autres, partout. La règle « keystores jamais dans le
+  dépôt » est amendée (AGENTS.md règle 7, .gitignore, ADR 0067) : seule
+  l'identité debug publique fait exception ; les clés RELEASE restent
+  interdites au dépôt.
+- **Échelle de signature release hors dépôt** (patron CodeAssist) :
+  `config/signature/keystore.properties` (gitignoré, modèle
+  `keystore.properties.example`) → propriété Gradle `-PRELEASE_*` →
+  variable d'environnement `RELEASE_*`. Sans keystore résolu, la
+  variante release reste non signée — comportement inchangé.
+- **Verrou CI** : nouvelle étape « Signature = keystore versionné » —
+  `scripts/verify-signature.sh` compare l'empreinte SHA-256 du
+  certificat signataire de l'APK produit à celle du keystore versionné
+  et fait échouer le run en cas d'écart : le conflit de package ne peut
+  plus revenir silencieusement. L'artefact APK est désormais nommé avec
+  la version (`CodeIDE-v0.37.2-debug`) — les téléchargements successifs
+  se distinguent sans ouvrir l'archive. Le cache keystore de l'ADR 0063
+  est retiré du workflow : la clé voyage avec les sources.
+- **`verify-archive.sh`** : l'identité debug versionnée devient du
+  contenu OBLIGATOIRE de l'archive (le build autonome la consomme pour
+  signer) — tous les autres keystores restent interdits.
+- **Dernière transition** : les APK v0.37.0/v0.37.1 déjà installés
+  portent des signatures historiques aléatoires — UNE dernière
+  désinstallation est requise avant d'installer v0.37.2 ; à partir de
+  là, toutes les versions suivantes s'installent par-dessus sans conflit.
+
+### Corrigé (outils de version)
+
+- **`bump-version.sh` : le marqueur « [Non publié] » n'était jamais
+  renommé** — dans un motif sed, `[Non publié]` est une classe de
+  caractères, donc `s|^## [Non publié]|…|` ne matchait jamais (bug
+  préexistant documenté, contourné manuellement à chaque livraison). Les
+  crochets du motif sont désormais échappés. Corrigé dans la foulée :
+  l'entrée était AJOUTÉE en fin de fichier (position la plus ancienne
+  d'un journal antéchronologique) — elle est désormais insérée avant la
+  première version journalisée, et le cas « marqueur déjà ouvert » est
+  daté en place. Testé sur les trois cas (insertion, marqueur, journal
+  vierge).
+- `version.properties` : 0.37.1 → 0.37.2 (VERSION_CODE 3701 → 3702,
+  strictement croissant). Manuels E83-E84.
+
 ## [0.37.1] – 2026-09-28
 
 ### Corrigé (lint CI : TypographyDashes sur les drapeaux Gradle)
@@ -3355,9 +3422,3 @@ les vrais modèles Kotlin/Java (étape 9) — section 11 du prompt maître.
   la détection de tests de Gradle 9 sur un module sans test. Elles seront
   appliquées dès que le contenu fonctionnel (étapes 1 et suivantes) les
   justifiera.
-
-## [Non publié]
-
-### Ajouté
-
-- (à compléter)

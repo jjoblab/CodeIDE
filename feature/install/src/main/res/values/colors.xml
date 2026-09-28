@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Checklist des étapes d'installation (v0.31.2) : vert lisible sur
+         thèmes clair et sombre pour les étapes réalisées, gris neutre
+         pour les étapes en attente. -->
+    <color name="vert_etape_faite">#2E7D32</color>
+    <color name="gris_etape_attente">#8A8A8A</color>
+</resources>
