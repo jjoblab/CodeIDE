@@ -437,6 +437,19 @@ les chaînes de la configuration du tooling — aucun texte affiché ne change.
 | E81 | **CI vert après push** : pousser main + tag v0.37.1 sur GitHub, ouvrir l'onglet Actions du dépôt et suivre le run « Compilation et vérification complète » | La tâche `:feature:editor:lintDebug` passe (plus aucune erreur TypographyDashes) ; le run arrive au vert jusqu'à `assembleDebug` et publie l'artefact APK |
 | E82 | **Textes inchangés à l'écran** : dans l'espace de travail, ouvrir la configuration du tooling (onglet Sortie → engrenage) | Les textes du mode hors ligne (« Passe --offline aux builds… »), de l'aide aux arguments (« Séparés par des espaces — ex. --stacktrace --info ») et de la note console (« forcée en mode texte (--console=plain)… ») s'affichent avec leurs drapeaux Gradle intacts, doubles tirets compris |
 
+## Signature des APK — fin des conflits de package (v0.37.2)
+
+Préambule : correctif ADR 0067 — l'identité debug (publique) est versionnée
+dans `config/signature/debug.keystore`, câblée par le convention plugin et
+verrouillée en CI par `scripts/verify-signature.sh`. Les APK v0.37.0/v0.37.1
+déjà installés portent des signatures historiques aléatoires : une dernière
+désinstallation est requise, une seule fois.
+
+| # | Action | Attendu |
+|---|---|---|
+| E83 | **Transition unique** : avec la v0.37.1 installée, tenter d'installer l'APK v0.37.2 (CI ou portail), constater le refus, désinstaller CodeIDE, installer v0.37.2 | Le refus initial est ATTENDU (signature historique ≠ identité versionnée) ; après désinstallation + installation, v0.37.2 fonctionne ; les données Termux/bootstrap du préfixe doivent être exportées avant désinstallation si elles comptent (la désinstallation efface les données applicatives) |
+| E84 | **Mises à jour sans conflit, pour toujours** : à la livraison suivante (v0.37.3+), télécharger l'APK CI (artefact `CodeIDE-vX.Y.Z-debug`) et l'installer PAR-DESSUS la version installée, sans désinstallation | L'installation procède comme une mise à jour normale : les données et réglages sont conservés, aucun « conflit de package » ; l'étape CI « Signature = keystore versionné (ADR 0067) » est verte sur le run concerné |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

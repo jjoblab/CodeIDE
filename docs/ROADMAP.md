@@ -428,11 +428,13 @@ de tuyau ne tuera plus jamais l'app ; testé par `DaemonManagerTest`
 debug stable en CI** : pourquoi chaque APK GitHub exigeait une
 désinstallation préalable (« conflit de package ») — le runner est
 éphémère, AGP régénère `~/.android/debug.keystore` à chaque run, la
-signature changeait donc à CHAQUE APK. Le workflow met désormais le
-fichier en cache (clé fixe) : les APK successifs partagent la même
-signature et se mettent à jour les uns sur les autres ; première
-exécution à clé fraîche (une dernière réinstallation), puis stable.
-Les keystores restent hors du dépôt (règle .gitignore respectée).
+signature changeait donc à CHAQUE APK. **Résolu définitivement en
+v0.37.2 (ADR 0067)** : l'atténuation par cache (décision initiale) n'a
+pas tenu — caches scopés par ref (runs des tags poussés ensemble) et
+évictables — l'identité debug est désormais un keystore PUBLIC VERSIONNÉ
+(`config/signature/debug.keystore`, patrons AOSP/CodeAssist), verrouillé
+à chaque run CI par `scripts/verify-signature.sh` ; une dernière
+désinstallation avant d'installer v0.37.2, puis plus jamais.
 Diagnostic ouvert (v0.35.4+) : la MUETUDE elle-même — le pompe
 d'événements du client route tout par un seul collecteur dont le seul
 point suspendant est `pomperSortie.send` (canal 4096) : un collecteur
