@@ -50,14 +50,17 @@ class EcrivainGradleCliTest {
         File(dossier, "gradlew").setExecutable(true)
     }
 
-    /** Une fausse distribution du wrapper (mise en cache par l'app). */
+    /** Une fausse distribution du wrapper (mise en cache par l'app) —
+     *  disposition RÉELLE à TROIS niveaux (v0.37.3, retour d'appareil
+     *  réel) : `dists/<nom>/<empreinte>/gradle-<version>/`. */
     private fun poserDistribution(
         racine: File,
         nom: String,
         ageMs: Long,
     ): File {
+        val version = nom.removePrefix("gradle-").removeSuffix("-bin")
         val dist =
-            File(racine, "home/.gradle/wrapper/dists/$nom/cle/").apply {
+            File(racine, "home/.gradle/wrapper/dists/$nom/cle/gradle-$version/").apply {
                 mkdirs()
             }
         File(dist, "bin").mkdirs()
@@ -86,7 +89,10 @@ class EcrivainGradleCliTest {
                 "la découverte devait tenter ./gradlew d'abord",
                 contenu.contains("""if [ -x "./gradlew" ]; then"""),
             )
-            assertTrue("la découverte devait sonder les dists du wrapper", contenu.contains("/wrapper/dists/*/*/"))
+            assertTrue(
+                "la découverte devait sonder les dists du wrapper à TROIS niveaux",
+                contenu.contains("/wrapper/dists/*/*/gradle-*/"),
+            )
             assertTrue("l'échec devait sortir en 127 (commande introuvable)", contenu.contains("exit 127"))
 
             // Idempotent : second passage, contenu identique, pas d'erreur.

@@ -4,6 +4,61 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.37.3] – 2026-09-28
+
+### Corrigé (vrais chemins Gradle/SDK, scripts versionnés, connexion orchestrateur, UI du tooling — ADR 0068)
+
+- **Gradle enfin trouvé à sa vraie maison** (retour d'appareil réel : « ce
+  n'est pas le vrai chemin de gradle ») : le tooling télécharge SA
+  distribution dans `files/home/.gradle/wrapper/dists/gradle-9.7.1/<empreinte>/gradle-9.7.1/`
+  — or `LocalisationOutils.trouverGradleHome` ne scannait que
+  `$PREFIX/opt/gradle*` et le symlink `bin/gradle` : `gradleHome()` nul,
+  `isGradleInstalled()` faux, bannière trompeuse. Le scan balaye désormais le
+  cache wrapper du HOME (même code que le wrapper), et la commande `gradle`
+  du terminal corrige son glob à TROIS niveaux (l'ancien `dists/*/*/`
+  s'arrêtait au niveau de l'empreinte : la découverte échouait TOUJOURS).
+- **SDK Android installable depuis le terminal** (demande explicite) :
+  nouvelle commande `$PREFIX/bin/android-sdk` — cmdline-tools officiels
+  téléchargés sous le HOME du shell, `sdkmanager` piloté (plateforme,
+  platform-tools, build-tools, licences acceptées), sous-commandes
+  `statut`/`installer`/`desinstaller` ; la bannière d'ouverture du profil
+  affiche l'état réel (`__codeide_android_info`), et `trouverAndroidHome`
+  connaît les candidats du HOME (`home/android-sdk`, `.android-sdk`, `sdk`).
+- **Scripts du terminal VERSIONNÉS** (demande : « ne pas être obligé de
+  réinstaller l'application ») : un marqueur `$PREFIX/etc/codeide-scripts.version`
+  retient la version posée ; `BootstrapInstaller.refreshTerminalScripts()`
+  (câblé au démarrage de l'app) réécrit profil + `gradle` + `android-sdk`
+  SEULEMENT en cas d'écart avec la version embarquée — une montée de version
+  applique les corrections de scripts sans toucher au reste du bootstrap.
+- **« Connexion avec l'orchestrateur perdue » en plein build éliminée**
+  (deux moitiés, ADR 0068) : côté serveur, le `PongMessage` était publié dans
+  le bus borné (8192) DERRIÈRE les `BuildOutput` — sous contre-pression d'un
+  build bavard, le pong arrivait en retard, le bilan de santé (15 s) tuait
+  l'orchestrateur : le pong est désormais écrit DIRECTEMENT sur le socket
+  (frame atomique `@Synchronized`, jamais ensevelie). Côté client, la vidange
+  des canaux de sortie vivait dans le `viewModelScope` de l'éditeur — fermer
+  l'éditeur en plein build remplissait le canal (4096), bloquait la lecture du
+  socket et faisait échouer le même bilan : la nouvelle pompe process-wide
+  `PompeBuildTooling` vide les canaux dans une portée de singleton — le build
+  quitté continue d'alimenter l'état process-wide (notification honnête,
+  console rejouée au ré-attachement).
+- **Les points d'UI du tooling se mettent enfin à jour** (retour : « la
+  plupart ne se mettent pas à jour correctement ») : nouveau port observable
+  `ObserveToolchainStateUseCase` (`EtatOutilsTerminal` : bootstrap, JDK,
+  Gradle, SDK, aapt2), implémenté par `ObservateurOutilsTerminal` — les
+  transitions de l'installateur déclenchent un re-scan immédiat, un ballotage
+  léger (2 s, quelques stat de fichiers) couvre les outils posés HORS
+  installateur (distribution Gradle de l'orchestrateur, SDK depuis le
+  terminal, `aapt2` déployé). Les quatre consommateurs passent du pull figé à
+  l'état poussé : carte terminal du tiroir, bandeau/bouton terminal de
+  l'accueil, page terminal de l'onboarding, carte terminal de l'éditeur — et
+  la garde JDK de l'éditeur lit le cache poussé (plus de scan disque sur le
+  thread principal à chaque build, installation visible en pleine session).
+- Tests de régression pour chaque famille : observation du tiroir/accueil/
+  onboarding/éditeur sur transition poussée (sans recréer le ViewModel),
+  garde JDK ouverte en pleine session, observateur réel (Robolectric,
+  horloge virtuelle), localisation des nouveaux chemins.
+
 ## [0.37.2] – 2026-09-28
 
 ### Corrigé (signature des APK : fin des « conflits de package » — ADR 0067)

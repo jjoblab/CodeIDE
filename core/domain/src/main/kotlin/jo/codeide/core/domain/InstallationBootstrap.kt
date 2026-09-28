@@ -95,6 +95,27 @@ public interface BootstrapInstaller {
      * `Terminee` avec les outils déjà traités (phase d'outils).
      */
     public fun annuler()
+
+    /**
+     * Re-pose les **scripts versionnés du terminal** (v0.37.3 : profil
+     * `etc/codeide.sh`, commandes `bin/gradle` et `bin/android-sdk`) quand
+     * le contenu embarqué par l'application est plus récent que la version
+     * posée sur l'appareil.
+     *
+     * Retour d'appareil réel : ces scripts n'étaient écrits qu'à
+     * l'installation de base — toute correction exigeait une
+     * réinstallation complète du bootstrap. Désormais un marqueur de
+     * version vit sous le préfixe : l'application le compare au démarrage
+     * et réécrit les scripts SEULEMENT en cas d'écart (idempotent, hors
+     * installation en cours — un bootstrap absent ou en cours de pose
+     * recevra les scripts par son propre pipeline).
+     *
+     * Asynchrone et sans échec observable : une écriture impossible est
+     * journalisée par l'implémentation, jamais remontée à l'appelant —
+     * le terminal garde ses scripts actuels, la prochaine tentative
+     * repartira du même marqueur.
+     */
+    public fun refreshTerminalScripts()
 }
 
 /**

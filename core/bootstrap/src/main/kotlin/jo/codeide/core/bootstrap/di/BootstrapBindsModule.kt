@@ -13,12 +13,14 @@ import jo.codeide.core.bootstrap.EspaceDisqueSonde
 import jo.codeide.core.bootstrap.EspaceDisqueStatFs
 import jo.codeide.core.bootstrap.InstallateurBootstrap
 import jo.codeide.core.bootstrap.LanceurProcessusNatifs
+import jo.codeide.core.bootstrap.ObservateurOutilsTerminal
 import jo.codeide.core.bootstrap.OperationsSysteme
 import jo.codeide.core.bootstrap.OperationsSystemeAndroid
 import jo.codeide.core.bootstrap.ToolchainBootstrap
 import jo.codeide.core.domain.BootstrapAssetsSource
 import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.NativeProcessLauncher
+import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.ProcessEnvironmentProvider
 import jo.codeide.core.domain.ToolchainLocator
 import javax.inject.Singleton
@@ -57,6 +59,12 @@ internal abstract class BootstrapBindsModule {
     @Binds
     @Singleton
     abstract fun bindBootstrapInstaller(impl: InstallateurBootstrap): BootstrapInstaller
+
+    /** Le port ObserveToolchainStateUseCase est servi par l'observateur
+     *  (v0.37.3 : états poussés aux points d'UI du tooling). */
+    @Binds
+    @Singleton
+    abstract fun bindObserveToolchainState(impl: ObservateurOutilsTerminal): ObserveToolchainStateUseCase
 
     /** Opérations système natives (chmod, symlink) — implémentation Android. */
     @Binds

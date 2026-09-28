@@ -25,6 +25,16 @@ import java.io.File
  * - **Le JDK du dépôt APT** s'installe en `usr/lib/jvm/java-17-openjdk`
  *   (constaté sur le contenu réel des paquets `codeide-packages`) ; les
  *   autres candidats couvrent les évolutions du dépôt.
+ * - **Gradle vit dans le HOME du shell** (retour d'appareil réel après
+ *   v0.37.2 : « ce n'est pas le vrai chemin de gradle ») : l'orchestrateur du
+ *   tooling (Tooling API 9.7.1) télécharge SA distribution dans
+ *   `home/.gradle/wrapper/dists/gradle-9.7.1/<empreinte>/gradle-9.7.1/`
+ *   — le scan `opt/gradle*`/symlink seul rendait `gradleHome()` nul alors
+ *   qu'une distribution complète existait, et la bannière du profil
+ *   affichait le script de découverte `$PREFIX/bin/gradle` comme chemin.
+ * - **Le SDK Android vit aussi sous le HOME** (`home/android-sdk`, posé par
+ *   la commande `$PREFIX/bin/android-sdk`) : les candidats historiques du
+ *   préfixe restent balayés en premier.
  */
 internal object LocalisationOutils {
     /**
@@ -65,10 +75,13 @@ internal object LocalisationOutils {
     /**
      * Racine de la distribution Gradle valide la plus récente.
      *
-     * Candidats : les répertoires `opt/gradle*` (distribution décompressée)
-     * et la cible d'un éventuel **vrai** symlink `$PREFIX/bin/gradle` —
-     * jamais un `bin/gradle` régulier (script d'enrobage apt, sans
-     * information d'emplacement).
+     * Candidats : les répertoires `opt/gradle*` (distribution décompressée),
+     * la cible d'un éventuel **vrai** symlink `$PREFIX/bin/gradle` — jamais
+     * un `bin/gradle` régulier (script d'enrobage apt, sans information
+     * d'emplacement) — et la **distribution du wrapper en cache** sous
+     * `home/.gradle/wrapper/dists` (v0.37.3 : c'est LÀ que vit le Gradle
+     * réellement utilisé — posé par l'orchestrateur du tooling et par les
+     * builds des projets, jamais dans `opt/`).
      */
     internal fun trouverGradleHome(racine: File): File? {
         val prefix = DispositionsBootstrap.prefix(racine)
@@ -85,6 +98,12 @@ internal object LocalisationOutils {
 
         remonterSymlinkGradle(File(prefix, "bin/gradle"))?.let { candidats.add(it) }
 
+        // Vraie maison de Gradle (retour d'appareil réel v0.37.3) : la
+        // distribution téléchargée par le tooling dans le HOME du shell.
+        CachesGradle
+            .trouverDistribution(DispositionsBootstrap.gradleUserHome(racine), version = null)
+            ?.let { candidats.add(it) }
+
         return candidats
             .filter(MarqueursOutils::estDistributionGradleValide)
             .maxWithOrNull(MarqueursOutils.comparateurVersions)
@@ -93,12 +112,24 @@ internal object LocalisationOutils {
     /**
      * Racine du SDK Android parmi les candidats valides.
      * Marqueur : au moins une plateforme (un `android.jar` sous `platforms`).
+     *
+     * v0.37.3 (retour d'appareil réel) : le SDK vit sous le HOME du shell
+     * (`home/android-sdk`, posé par la commande `$PREFIX/bin/android-sdk`) —
+     * les candidats du préfixe restent balayés en premier (priorité à un
+     * éventuel paquet futur du dépôt APT).
      */
     internal fun trouverAndroidHome(racine: File): File? {
         val prefix = DispositionsBootstrap.prefix(racine)
+        val home = DispositionsBootstrap.home(racine)
         val candidats =
-            listOf("opt/android-sdk", "lib/android-sdk", "opt/android-sdk-home")
-                .map { relatif -> File(prefix, relatif) }
+            listOf(
+                File(prefix, "opt/android-sdk"),
+                File(prefix, "lib/android-sdk"),
+                File(prefix, "opt/android-sdk-home"),
+                File(home, "android-sdk"),
+                File(home, ".android-sdk"),
+                File(home, "sdk"),
+            )
         return candidats.firstOrNull(MarqueursOutils::estSdkAndroidValide)
     }
 

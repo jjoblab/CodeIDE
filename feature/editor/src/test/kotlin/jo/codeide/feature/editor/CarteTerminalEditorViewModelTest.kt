@@ -1,5 +1,6 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.TerminalSessionSummary
 import jo.codeide.core.model.ProjectId
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -38,7 +39,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `aucune session - carte vide et compteur zero`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             advanceUntilIdle()
 
@@ -52,7 +53,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `une session vivante active est montree en direct`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             advanceUntilIdle()
 
@@ -71,7 +72,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `plusieurs sessions - compteur distinct de la liste et active choisie`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             advanceUntilIdle()
 
@@ -94,7 +95,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `session terminee reste visible avec son etat`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             advanceUntilIdle()
 
@@ -158,7 +159,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `nouvelle session avec bootstrap mais dossier introuvable n en cree pas`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             val effets = mutableListOf<EffetEditor>()
             collecterEffets(modele, effets)
@@ -193,7 +194,7 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
     @Test
     fun `creer session avec bootstrap mais dossier introuvable ne navigue pas`() =
         runTest {
-            localisateurOutils.bootstrapInstalle = true
+            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
             val modele = viewModel(ajouterProjet("Alpha"))
             val effets = mutableListOf<EffetEditor>()
             collecterEffets(modele, effets)

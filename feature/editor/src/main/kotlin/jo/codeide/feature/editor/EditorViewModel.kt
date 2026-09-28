@@ -14,6 +14,7 @@ import jo.codeide.core.domain.CopierArbreUseCase
 import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
+import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.ExecuterTachesUseCase
 import jo.codeide.core.domain.FileStat
@@ -25,6 +26,7 @@ import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.ListerTachesProjetUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.PreparerClasspathLspUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
@@ -35,7 +37,6 @@ import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
-import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.domain.mimeFichierTexte
@@ -157,7 +158,7 @@ class EditorViewModel
         private val listerModeles: ListTemplatesUseCase,
         private val sessionsTerminal: TerminalSessionRepository,
         private val resoudreRepertoireProjet: ResoudreRepertoireProjet,
-        private val localisateurOutils: ToolchainLocator,
+        private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
         private val preparerClasspathLsp: PreparerClasspathLspUseCase,
@@ -171,6 +172,7 @@ class EditorViewModel
         private val lireArbre: LireArbreUseCase,
         private val restaurerArbre: RestaurerArbreUseCase,
         private val serviceGradle: GradleService,
+        private val pompeBuilds: PompeBuildTooling,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -201,6 +203,16 @@ class EditorViewModel
 
         /** État de la carte d'aperçu du terminal du tiroir (T6, section 8). */
         val etatTerminal: StateFlow<EtatTerminalTiroir> = etatTerminalInterne.asStateFlow()
+
+        /** Cache des outils du terminal (v0.37.3) : état POUSSÉ par
+         *  l'observateur — remplace les pulls disque figés de la carte
+         *  terminal ET de la garde JDK (plus d'I/S sur le thread principal
+         *  à chaque build, et une installation finie pendant que l'espace
+         *  est ouvert devient visible aussitôt). */
+        private val etatOutilsTerminalInterne = MutableStateFlow(EtatOutilsTerminal())
+
+        /** État observable des outils du terminal, poussé par le domaine. */
+        private val etatOutilsTerminal: StateFlow<EtatOutilsTerminal> = etatOutilsTerminalInterne.asStateFlow()
 
         /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
          *  détenteur process-wide y publie, l'activité ET le service de
@@ -303,6 +315,7 @@ class EditorViewModel
             restaurerOnglets()
             observerJournal(observerJournaux)
             observerSessionsTerminal()
+            observerOutilsTerminal()
             observerTooling()
 
             // Étape 32 (ADR 0057) : l'état tooling est process-wide —
@@ -416,17 +429,31 @@ class EditorViewModel
         private var cheminProjet: String? = null
 
         /**
+         * Outils du terminal (v0.37.3) : le flot poussé du domaine alimente
+         * le cache local — la carte terminal et la garde JDK lisent l'état
+         * courant, jamais le disque.
+         */
+        private fun observerOutilsTerminal() {
+            observerEtatOutils()
+                .onEach { outils -> etatOutilsTerminalInterne.value = outils }
+                .launchIn(viewModelScope)
+        }
+
+        /**
          * Carte d'aperçu (T6, section 8) : le registre global des sessions
          * alimente la carte **en direct** — même liste que l'écran plein
          * écran, quel que soit le point d'entrée qui a créé les sessions.
+         * Le statut bootstrap vient du flot POUSSÉ (v0.37.3) : une base
+         * installée pendant que l'espace est ouvert y apparaît enfin.
          */
         private fun observerSessionsTerminal() {
             combine(
                 sessionsTerminal.observeSessions(),
                 sessionsTerminal.observeActiveSessionId(),
-            ) { sessions, activeId ->
+                etatOutilsTerminal,
+            ) { sessions, activeId, outils ->
                 EtatTerminalTiroir(
-                    bootstrapInstalle = localisateurOutils.isBootstrapInstalled(),
+                    bootstrapInstalle = outils.bootstrapInstalle,
                     nbSessions = sessions.size,
                     sessionsVivantes = sessions.count { it.isAlive },
                     sessionActive = sessions.firstOrNull { it.id == activeId } ?: sessions.lastOrNull { it.isAlive },
@@ -743,8 +770,12 @@ class EditorViewModel
          * Le JDK de compilation est-il absent ? (Outils optionnels,
          * ADR 0048 — l'installation différée se propose à l'écran
          * d'installation, pas au milieu d'un build.)
+         *
+         * V0.37.3 : lit le cache POUSSÉ (au plus une période de ballottage
+         * de retard) — l'ancien pull interrogeait le disque sur le thread
+         * principal à CHAQUE build et restait figé pour l'affichage.
          */
-        private fun jdkAbsent(): Boolean = !localisateurOutils.isJdkInstalled()
+        private fun jdkAbsent(): Boolean = !etatOutilsTerminal.value.jdkInstalle
 
         /**
          * Refus typé d'une demande de tooling sans JDK : message
@@ -761,32 +792,23 @@ class EditorViewModel
         }
 
         /**
-         * Branche l'observation d'un build (sortie + état) — couture de
-         * test : le câblage des flux se éprouve sans résolution de dossier
-         * (introuvable en JVM, même garde que T6).
+         * Branche l'observation d'un build (sortie + état + tâches) —
+         * couture de test : le câblage des flux se éprouve sans résolution
+         * de dossier (introuvable en JVM, même garde que T6).
+         *
+         * v0.37.3 : la vidange vit dans la pompe **process-wide**
+         * ([PompeBuildTooling]) — fermer l'espace EN PLEIN BUILD n'annule
+         * plus les collecteurs : le canal du client se vide toujours, les
+         * pongs remontent, la connexion survit (correctif « connexion
+         * avec l'orchestrateur perdue », moitié cliente), et le build
+         * quitté continue d'alimenter l'état process-wide (notification
+         * honnête, console rejouée au ré-attachement).
          */
         internal fun observerBuild(
             buildId: String,
             taches: List<String> = emptyList(),
         ) {
-            serviceGradle.suivreBuild(buildId, taches)
-            viewModelScope.launch {
-                tooling.observeBuildOutput(buildId).collect { ligne -> serviceGradle.ajouterLigne(ligne) }
-            }
-            viewModelScope.launch {
-                tooling.observeBuildState(buildId).collect { etat -> serviceGradle.publierEtatBuild(etat) }
-            }
-            // Tâches au fil du build (v3 — console d'Android Studio) : une
-            // ligne par tâche, mise à jour en place à sa fin ; le réglage
-            // « afficher les tâches » se relit à CHAQUE événement — une
-            // bascule en plein build prend effet immédiatement.
-            viewModelScope.launch {
-                tooling.observeTachesBuild(buildId).collect { tache ->
-                    if (optionsTooling.afficherTaches) {
-                        serviceGradle.ajouterTache(tache)
-                    }
-                }
-            }
+            pompeBuilds.pomper(buildId, taches)
         }
 
         /**

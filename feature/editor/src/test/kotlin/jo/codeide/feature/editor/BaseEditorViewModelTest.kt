@@ -22,11 +22,11 @@ import jo.codeide.core.model.TemplateId
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.FakeObserveToolchainState
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.FakeTemplateAssetsSource
 import jo.codeide.core.testing.FakeTerminalSessionRepository
-import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.InMemoryLogRepository
 import jo.codeide.core.testing.MainDispatcherRule
 import jo.codeide.core.testing.TestDispatcherProvider
@@ -66,8 +66,9 @@ abstract class BaseEditorViewModelTest {
      * aucune dépendance Termux nécessaire (critère d'acceptation section 10). */
     protected val sessionsTerminal = FakeTerminalSessionRepository()
 
-    /** Localisateur d'outils factice (T6) : bootstrap non installé par défaut. */
-    protected val localisateurOutils = FakeToolchainLocator()
+    /** Observateur d'état des outils (v0.37.3) : faux poussé — les
+     *  tests sèment bootstrap/JDK par transitions, comme le domaine. */
+    protected val observerOutils = FakeObserveToolchainState()
 
     /** Faux du port tooling (G5) — pilotable par les tests de l'espace. */
     protected val tooling = FauxToolingEditor()
@@ -121,6 +122,18 @@ abstract class BaseEditorViewModelTest {
      *  saignent jamais vers le suivant. */
     protected val serviceGradleTest = GradleService(horloge = horlogeOutil, demarreur = demarreurServiceOutil)
 
+    /** Pompe process-wide des canaux de build (v0.37.3) : construite sur
+     *  les MÊMES faux que l'espace — tooling, état et réglages partagent
+     *  leurs instances, la vidange survit au ViewModel comme en
+     *  production (correctif « connexion perdue » en plein build). */
+    protected val pompeBuildsTest =
+        PompeBuildTooling(
+            tooling = tooling,
+            serviceGradle = serviceGradleTest,
+            optionsTooling = optionsTooling,
+            dispatchers = TestDispatcherProvider(regleMain.dispatcher),
+        )
+
     /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
     protected val resoudreRepertoire =
         ResoudreRepertoireProjet(
@@ -173,7 +186,7 @@ abstract class BaseEditorViewModelTest {
             listerModeles = listerModeles,
             sessionsTerminal = sessionsTerminal,
             resoudreRepertoireProjet = resoudreRepertoire,
-            localisateurOutils = localisateurOutils,
+            observerEtatOutils = observerOutils,
             tooling = tooling,
             synchroniserProjet =
                 jo.codeide.core.domain.SynchroniserProjetUseCase(
@@ -209,6 +222,7 @@ abstract class BaseEditorViewModelTest {
             optionsTooling = optionsTooling,
             optionsEditeur = optionsEditeur,
             serviceGradle = serviceGradleTest,
+            pompeBuilds = pompeBuildsTest,
             savedStateHandle = sauvetage,
         )
 

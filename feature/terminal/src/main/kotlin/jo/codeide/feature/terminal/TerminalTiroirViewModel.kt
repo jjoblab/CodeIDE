@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
 import jo.codeide.core.domain.TerminalSessionSummary
-import jo.codeide.core.domain.ToolchainLocator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -90,7 +90,7 @@ class TerminalTiroirViewModel
     @Inject
     constructor(
         registre: TerminalSessionRepository,
-        localisateur: ToolchainLocator,
+        observerOutils: ObserveToolchainStateUseCase,
         observeReglages: ObserveSettingsUseCase,
     ) : ViewModel() {
         /** Mode courant (cœur local — les sessions viennent du registre). */
@@ -101,11 +101,12 @@ class TerminalTiroirViewModel
             combine(
                 registre.observeSessions(),
                 modeInterne,
+                observerOutils(),
                 observeReglages(),
-            ) { sessions, mode, reglages ->
+            ) { sessions, mode, outils, reglages ->
                 EtatTerminalTiroir(
                     sessions = sessions,
-                    bootstrapInstalle = localisateur.isBootstrapInstalled(),
+                    bootstrapInstalle = outils.bootstrapInstalle,
                     mode = mode.aplatirSiSessionPerdue(sessions),
                     copieSelectionAuto = reglages.copieSelectionAuto,
                 )

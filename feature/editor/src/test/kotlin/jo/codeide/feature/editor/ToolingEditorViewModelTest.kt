@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
@@ -27,7 +28,7 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             // JDK semé : la garde passe, la résolution du dossier échoue en
             // JVM (même garde que T6) — l'ÉCHEC PUBLIÉ SANS GESTE prouve que
             // la sync d'ouverture a bien tenté de partir.
-            localisateurOutils.jdk = java.io.File("/outils/jdk")
+            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
             val id = ajouterProjet("projet-ouverture")
             val viewModel = viewModel(id)
             avancer()
@@ -57,7 +58,7 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             // résout pas, la sync échoue AVANT l'orchestrateur — la
             // préparation du classpath LSP ne part jamais quand la sync
             // n'a rien résolu (elle suit une sync UTILE, jamais un échec).
-            localisateurOutils.jdk = java.io.File("/outils/jdk")
+            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
             val id = ajouterProjet("projet-classpath")
             val viewModel = viewModel(id)
             avancer()
@@ -174,6 +175,40 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             assertTrue(
                 viewModel.etatGradle.value.messageEchecSync
                     ?.contains("JDK absent") == true,
+            )
+        }
+
+    @Test
+    fun `le JDK installe en pleine session ouvre la garde du build - v0 37 3`() =
+        runTest {
+            // v0.37.3 (retour d'appareil réel) : la garde JDK lisait le
+            // disque en pull — les refus restaient corrects à l'action
+            // mais l'affichage des outils restait FIGÉ, et chaque build
+            // payait un scan multi-emplacements sur le thread principal.
+            // Le cache POUSSÉ suit l'installation : la MÊME session
+            // d'espace accepte le build dès que le JDK apparaît.
+            val id = ajouterProjet("projet-jdk-tardif")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.onAction(ActionEditor.ExecuterTaches(listOf("saluer")))
+            avancer()
+            assertTrue(
+                "premier refus : garde JDK fermée",
+                viewModel.etatGradle.value.messageEchecSync
+                    ?.contains("JDK absent") == true,
+            )
+
+            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+            avancer()
+
+            viewModel.onAction(ActionEditor.ExecuterTaches(listOf("saluer")))
+            avancer()
+
+            assertTrue(
+                "garde ouverte : l'échec éventuel n'est PLUS le refus JDK",
+                viewModel.etatGradle.value.messageEchecSync
+                    ?.contains("JDK absent") != true,
             )
         }
 

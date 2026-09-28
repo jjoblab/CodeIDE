@@ -19,7 +19,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * [BootstrapInstaller](jo.codeide.core.domain.BootstrapInstaller) en
  * mémoire pour les tests de ViewModel : le test pilote l'état partagé
  * (aucune installation réelle) et observe les ordres reçus.
+ *
+ * Exemption ciblée (TooManyFunctions) : miroir fidèle de l'interface
+ * (quatre ordres, dont `refreshTerminalScripts` depuis la v0.37.3) plus
+ * les semeurs d'états — éclater le fake en deux classes obscurcirait
+ * l'écriture des tests.
  */
+@Suppress("TooManyFunctions")
 public class FakeBootstrapInstaller : BootstrapInstaller {
     private val _etat = MutableStateFlow<EtatInstallationBootstrap>(NonDemarree)
     override val etat: StateFlow<EtatInstallationBootstrap> = _etat.asStateFlow()
@@ -46,6 +52,10 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
     public var annulations: Int = 0
         private set
 
+    /** Ordres `refreshTerminalScripts()` reçus (v0.37.3). */
+    public var rafraichissementsScripts: Int = 0
+        private set
+
     public override fun demarrer() {
         demarrages++
     }
@@ -56,6 +66,10 @@ public class FakeBootstrapInstaller : BootstrapInstaller {
 
     public override fun annuler() {
         annulations++
+    }
+
+    public override fun refreshTerminalScripts() {
+        rafraichissementsScripts++
     }
 
     /** Fait passer l'état partagé à `EnCours` de l'étape indiquée. */

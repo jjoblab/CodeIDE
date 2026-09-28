@@ -12,13 +12,13 @@ import jo.codeide.core.domain.ImportExistingFolderUseCase
 import jo.codeide.core.domain.MarkProjectOpenedUseCase
 import jo.codeide.core.domain.ObserveProjectsUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.RelocalisationProjet
 import jo.codeide.core.domain.RelocalizeProjectUseCase
 import jo.codeide.core.domain.RemoveProjectUseCase
 import jo.codeide.core.domain.RenameProjectUseCase
 import jo.codeide.core.domain.SetProjectPinnedUseCase
 import jo.codeide.core.domain.TimeProvider
-import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -77,7 +77,7 @@ class HomeViewModel
     constructor(
         private val observerParametres: ObserveSettingsUseCase,
         private val observerProjets: ObserveProjectsUseCase,
-        private val localisateurOutils: ToolchainLocator,
+        private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val installateur: BootstrapInstaller,
         private val verifierAcces: VerifyProjectAccessUseCase,
         private val renommerProjet: RenameProjectUseCase,
@@ -122,29 +122,35 @@ class HomeViewModel
         init {
             viewModelScope.launch {
                 // Bandeaux : le dossier (étape 5) suit les paramètres seuls ;
-                // le terminal (T3) combine paramètres **et état partagé de
-                // l'installation** — la fin d'une installation lancée depuis
-                // l'écran dédié fait disparaître le bandeau sans retour sur
-                // l'accueil, et une installation en cours le masque (le
-                // bouton rouvrirait le même écran de progression partagé).
-                combine(observerParametres(), installateur.etat) { reglages, installation ->
-                    reglages to installation
-                }.collect { (reglages, installation) ->
+                // le terminal (T3) combine paramètres, état partagé de
+                // l'installation **et état POUSSÉ des outils** (v0.37.3) —
+                // la fin d'une installation lancée depuis l'écran dédié
+                // fait disparaître le bandeau sans retour sur l'accueil,
+                // et une installation en cours le masque (le bouton
+                // rouvrirait le même écran de progression partagé).
+                combine(
+                    observerParametres(),
+                    installateur.etat,
+                    observerEtatOutils(),
+                ) { reglages, installation, outils ->
+                    Triple(reglages, installation, outils)
+                }.collect { (reglages, installation, outils) ->
                     etatInterne.update {
                         it.copy(
                             montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
                             libelleDossier = reglages.workspace?.displayPath,
                             montrerBandeauTerminal =
                                 reglages.isSetupCompleted &&
-                                    !localisateurOutils.isBootstrapInstalled() &&
+                                    !outils.bootstrapInstalle &&
                                     installation !is EtatInstallationBootstrap.Terminee &&
                                     installation !is EtatInstallationBootstrap.EnCours,
-                            // T6 : une installation terminée rend le terminal
-                            // ouvrable sans attendre un nouveau passage du
-                            // localisateur (le marqueur disque suit de peu).
+                            // T6 + v0.37.3 : une installation terminée rend le
+                            // terminal ouvrable SANS attendre un nouveau passage
+                            // — l'état poussé remplace le pull figé (le marqueur
+                            // disque suivait de peu, le pull ne se rejouait pas).
                             bootstrapInstalle =
                                 installation is EtatInstallationBootstrap.Terminee ||
-                                    localisateurOutils.isBootstrapInstalled(),
+                                    outils.bootstrapInstalle,
                         )
                     }
                 }

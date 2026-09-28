@@ -9,7 +9,8 @@ import java.io.IOException
 /**
  * Écrivain de la commande `gradle` du terminal (correctif C4 du prompt
  * Terminal — retour utilisateur : « gradle: command not found » malgré un
- * projet déjà construit).
+ * projet déjà construit ; v0.37.3 : retour d'appareil réel « ce n'est pas
+ * le vrai chemin de gradle »).
  *
  * Le bootstrap n'installe JAMAIS de paquet `gradle` : chaque projet peut
  * exiger une version différente (c'est l'intérêt du wrapper) et une version
@@ -19,10 +20,16 @@ import java.io.IOException
  * 1. `./gradlew` du répertoire courant, s'il est exécutable (le projet
  *    décide de SA version) ;
  * 2. sinon la distribution du wrapper la plus récemment utilisée dans
- *    `$GRADLE_USER_HOME/wrapper/dists` (posée par un build ou une sync
- *    lancés depuis l'app — `ls -dt` ordonne par date, cohérent avec un
- *    utilisateur qui travaille sur un projet à la fois) ;
- * 3. sinon un message qui EXPLIQUE quoi faire (jamais un « command not
+ *    `$GRADLE_USER_HOME/wrapper/dists` — **v0.37.3 : la disposition RÉELLE
+ *    du wrapper est `dists/gradle-<version>-bin/<empreinte>/gradle-<version>/`
+ *    (TROIS niveaux)** : l'ancien glob `dists/<version>/<empreinte>/`
+ *    s'arrêtait au niveau de
+ *    l'empreinte, où `bin/gradle` n'existe pas — la découverte échouait
+ *    TOUJOURS et tombait dans le message d'explication (retour d'appareil
+ *    réel : le tooling télécharge Gradle 9.7.1 exactement à cette
+ *    disposition, il faut le trouver du premier coup) ;
+ * 3. sinon une éventuelle distribution décompressée sous `$PREFIX/opt` ;
+ * 4. sinon un message qui EXPLIQUE quoi faire (jamais un « command not
  *    found » sec), code de sortie 127 (commande introuvable, convention
  *    shell).
  *
@@ -86,8 +93,9 @@ internal class EcrivainGradleCli(
         return """
             $shebang
             # Commande gradle de CodeIDE — découverte, jamais de version figée
-            # (correctif C4 du prompt Terminal ; régénérée à chaque
-            # installation de base : ne pas éditer).
+            # (correctif C4 du prompt Terminal ; v0.37.3 : glob à TROIS niveaux
+            # = disposition réelle du wrapper ; script VERSIONNÉ — l'app le
+            # régénère quand son contenu évolue, ne pas éditer).
 
             # 1. Le wrapper DU projet courant décide de sa version.
             if [ -x "./gradlew" ]; then
@@ -95,13 +103,22 @@ internal class EcrivainGradleCli(
             fi
 
             # 2. Sinon, la distribution la plus récemment utilisée par le
-            #    wrapper (posée par un build/sync lancés depuis l'app).
-            dist=$(ls -dt "${dollar}GRADLE_USER_HOME"/wrapper/dists/*/*/ 2>/dev/null | head -n1)
+            #    wrapper (posée par un build/sync lancés depuis l'app) :
+            #    dists/gradle-<version>-bin/<empreinte>/gradle-<version>/ —
+            #    TROIS niveaux sous dists, jamais deux.
+            dist=$(ls -dt "${dollar}GRADLE_USER_HOME"/wrapper/dists/*/*/gradle-*/ 2>/dev/null | head -n1)
             if [ -n "${dollar}dist" ] && [ -x "$dollar{dist}bin/gradle" ]; then
               exec "$dollar{dist}bin/gradle" "$dollar@"
             fi
 
-            # 3. Rien trouvé : expliquer quoi faire (jamais un échec muet).
+            # 3. Sinon, une distribution décompressée sous le préfixe
+            #    (installée manuellement, p.ex. opt/gradle/gradle-9.7.1).
+            dist=$(ls -dt "${dollar}PREFIX"/opt/gradle/*/ "${dollar}PREFIX"/opt/gradle-*/ 2>/dev/null | head -n1)
+            if [ -n "${dollar}dist" ] && [ -x "$dollar{dist}bin/gradle" ]; then
+              exec "$dollar{dist}bin/gradle" "$dollar@"
+            fi
+
+            # 4. Rien trouvé : expliquer quoi faire (jamais un échec muet).
             echo "gradle: aucune distribution trouvée." >&2
             echo "" >&2
             echo "  1. Place-toi dans un projet avec ./gradlew et relance : ./gradlew $dollar*" >&2

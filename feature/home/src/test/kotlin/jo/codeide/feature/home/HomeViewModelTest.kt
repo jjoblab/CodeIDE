@@ -22,9 +22,9 @@ import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeBootstrapInstaller
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.FakeObserveToolchainState
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
-import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -58,7 +58,7 @@ class HomeViewModelTest {
     private val arborescences = FakeArborescencesSaf()
     private val horloge = TimeProvider { 10_000L }
     private val journal = FakeAppLogger()
-    private val localisateur = FakeToolchainLocator()
+    private val observerOutils = FakeObserveToolchainState()
     private val installateur = FakeBootstrapInstaller()
 
     private lateinit var viewModel: HomeViewModel
@@ -70,7 +70,7 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
-                localisateur,
+                observerOutils,
                 installateur,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
@@ -564,7 +564,7 @@ class HomeViewModelTest {
             HomeViewModel(
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
-                localisateur,
+                observerOutils,
                 installateur,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
@@ -584,7 +584,7 @@ class HomeViewModelTest {
         HomeViewModel(
             ObserveSettingsUseCase(parametres),
             ObserveProjectsUseCase(depot),
-            localisateur,
+            observerOutils,
             installateur,
             VerifyProjectAccessUseCase(depot, fichiers),
             RenameProjectUseCase(depot),
@@ -619,7 +619,7 @@ class HomeViewModelTest {
     @Test
     fun `action terminal avec bootstrap ouvre l ecran plein ecran`() =
         runTest {
-            localisateur.bootstrapInstalle = true
+            observerOutils.toutInstaller()
             collecterEffets()
             advanceUntilIdle()
 
@@ -645,6 +645,31 @@ class HomeViewModelTest {
             advanceUntilIdle()
 
             assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
+            arreterCollecteEffets()
+        }
+
+    @Test
+    fun `bootstrap pose pendant que l accueil est ouvert - le bandeau disparait`() =
+        runTest {
+            // v0.37.3 (retour d'appareil réel) : l'accueil lisait le
+            // localisateur en pull FIGÉ — un bootstrap posé ailleurs
+            // (onboarding, écran d'installation) ne faisait jamais
+            // disparaître le bandeau « terminal non installé ». L'état
+            // POUSSÉ le retire dès la transition, SANS retour sur
+            // l'accueil ni re-passage du localisateur.
+            collecterEffets()
+            advanceUntilIdle()
+            assertTrue(viewModel.etat.value.montrerBandeauTerminal)
+            assertFalse(viewModel.etat.value.bootstrapInstalle)
+
+            observerOutils.semer(
+                jo.codeide.core.domain
+                    .EtatOutilsTerminal(bootstrapInstalle = true),
+            )
+            advanceUntilIdle()
+
+            assertFalse(viewModel.etat.value.montrerBandeauTerminal)
+            assertTrue(viewModel.etat.value.bootstrapInstalle)
             arreterCollecteEffets()
         }
 }

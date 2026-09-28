@@ -216,6 +216,74 @@ class LocalisationOutilsTest {
     }
 
     // -------------------------------------------------------------------------
+    // Gradle — distribution du wrapper en cache sous le HOME (v0.37.3 :
+    // retour d'appareil réel « ce n'est pas le vrai chemin de gradle »)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `gradleHome trouve la distribution du wrapper téléchargée par le tooling sous le HOME`() {
+        // Disposition réelle constatée sur l'appareil :
+        // home/.gradle/wrapper/dists/gradle-9.7.1/<empreinte>/gradle-9.7.1/
+        // — posée par l'orchestrateur (Tooling API alignée sur le wrapper).
+        val racine = racineFactice()
+        deposerFichier(
+            racine,
+            "home",
+            ".gradle",
+            "wrapper",
+            "dists",
+            "gradle-9.7.1-bin",
+            "abc123",
+            "gradle-9.7.1",
+            "lib",
+            "gradle-launcher-9.7.1.jar",
+        )
+
+        val trouve = LocalisationOutils.trouverGradleHome(racine)
+
+        assertTrue(trouve?.absolutePath?.endsWith("gradle-9.7.1") == true)
+        assertTrue(
+            trouve?.absolutePath?.contains("home/.gradle/wrapper/dists/gradle-9.7.1-bin/abc123") == true,
+        )
+    }
+
+    @Test
+    fun `gradleHome préfère la plus haute version entre opt et le cache du wrapper`() {
+        val racine = racineFactice()
+        deposerFichier(racine, "usr", "opt", "gradle", "gradle-8.9", "lib", "gradle-launcher-8.9.jar")
+        deposerFichier(
+            racine,
+            "home",
+            ".gradle",
+            "wrapper",
+            "dists",
+            "gradle-9.7.1-bin",
+            "abc123",
+            "gradle-9.7.1",
+            "lib",
+            "gradle-launcher-9.7.1.jar",
+        )
+
+        val trouve = LocalisationOutils.trouverGradleHome(racine)
+
+        assertTrue(trouve?.absolutePath?.endsWith("gradle-9.7.1") == true)
+    }
+
+    @Test
+    fun `gradleHome ignore un cache du wrapper incomplet (téléchargement interrompu)`() {
+        // Le marqueur de distribution complète doit aussi s'appliquer au
+        // cache du wrapper : un répertoire gradle-X sans lib/ est un
+        // téléchargement interrompu, pas une distribution utilisable.
+        val racine = racineFactice()
+        File(
+            racine,
+            "home/.gradle/wrapper/dists/gradle-9.7.1-bin/abc123/gradle-9.7.1/bin",
+        ).mkdirs()
+
+        assertNull(LocalisationOutils.trouverGradleHome(racine))
+    }
+
+    // -------------------------------------------------------------------------
     // SDK Android
     // -------------------------------------------------------------------------
 
@@ -235,6 +303,32 @@ class LocalisationOutilsTest {
         File(racine, "usr/opt/android-sdk").mkdirs()
 
         assertNull(LocalisationOutils.trouverAndroidHome(racine))
+    }
+
+    @Test
+    fun `androidHome trouve le SDK posé sous le HOME par la commande android-sdk`() {
+        // v0.37.3 (retour d'appareil réel) : le SDK vit sous le HOME du
+        // shell — home/android-sdk, disposition de la commande
+        // $PREFIX/bin/android-sdk.
+        val racine = racineFactice()
+        deposerFichier(racine, "home", "android-sdk", "platforms", "android-34", "android.jar")
+
+        val trouve = LocalisationOutils.trouverAndroidHome(racine)
+
+        assertEquals(File(racine, "home/android-sdk").absolutePath, trouve?.absolutePath)
+    }
+
+    @Test
+    fun `androidHome privilégie un SDK du préfixe sur celui du HOME`() {
+        // Priorité aux candidats du préfixe : un éventuel paquet futur du
+        // dépôt APT (opt/android-sdk) primerait sur le HOME.
+        val racine = racineFactice()
+        deposerFichier(racine, "usr", "opt", "android-sdk", "platforms", "android-34", "android.jar")
+        deposerFichier(racine, "home", "android-sdk", "platforms", "android-34", "android.jar")
+
+        val trouve = LocalisationOutils.trouverAndroidHome(racine)
+
+        assertEquals(File(racine, "usr/opt/android-sdk").absolutePath, trouve?.absolutePath)
     }
 
     @Test

@@ -61,7 +61,14 @@ import kotlin.reflect.KClass
  *    et état des outils visibles à l'ouverture de chaque session ;
  * 7 ter. commande `$PREFIX/bin/gradle` (correctif C4) : découverte du
  *    wrapper du projet, sinon de la distribution du wrapper en cache,
- *    sinon un message qui explique — jamais « command not found » sec.
+ *    sinon un message qui explique — jamais « command not found » sec ;
+ * 7 quater. commande `$PREFIX/bin/android-sdk` (v0.37.3) : installation
+ *    et pilotage du SDK Android (cmdline-tools + sdkmanager) sous le
+ *    HOME du shell ;
+ * 7 quinquies. **marqueur de version des scripts** (v0.37.3,
+ *    `$PREFIX/etc/codeide-scripts.version`) : [refreshTerminalScripts]
+ *    compare ce marqueur à la version embarquée au démarrage de l'app —
+ *    une évolution de script prend effet SANS réinstaller le bootstrap.
  *
  * Les paquets d'outils (`openjdk`, `git`…) ne font PLUS partie de la
  * première configuration (v0.31.4) : [installerOutils] les installe
@@ -81,8 +88,13 @@ import kotlin.reflect.KClass
  * Exemption ciblée (LongParameterList) : constructeur d'injection Hilt,
  * collaborateurs imposés par le périmètre exact du prompt Terminal-1
  * (section 3.4) — précédent ToolchainBootstrap à l'étape T1.
+ *
+ * Exemption ciblée (TooManyFunctions) : quatre méthodes d'interface
+ * ([BootstrapInstaller] a gagné `refreshTerminalScripts` en v0.37.3)
+ * autour d'un pipeline privé découpé par étapes — fusionner les étapes
+ * sacrifierait leur lisibilité.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 @Singleton
 internal class InstallateurBootstrap
     @Inject
@@ -102,6 +114,7 @@ internal class InstallateurBootstrap
         private val configurateur = ConfigurateurApt(lanceur, dispatchers)
         private val ecrivainProfil = EcrivainProfilShell(journalApp)
         private val ecrivainGradle = EcrivainGradleCli(operations, journalApp)
+        private val ecrivainSdkAndroid = EcrivainSdkAndroidCli(operations, journalApp)
 
         /**
          * État initial : `Terminee` (outils non tentés) quand le marqueur
@@ -158,6 +171,44 @@ internal class InstallateurBootstrap
             }
         }
 
+        /**
+         * Re-pose les scripts versionnés du terminal (v0.37.3) quand le
+         * marqueur pose une version différente de l'embarquée — voir
+         * [BootstrapInstaller.refreshTerminalScripts] (contrat complet).
+         *
+         * Hors installation en cours : un bootstrap absent n'a rien à
+         * rafraîchir (son pipeline posera les scripts), un pipeline
+         * `EnCours` posera le marqueur à SA fin — les deux cas sortent
+         * SANS écriture, la course est impossible.
+         */
+        override fun refreshTerminalScripts() {
+            synchronized(verrou) {
+                if (_etat.value is EnCours) return
+            }
+            portee.launch {
+                if (!LocalisationOutils.bootstrapInstalle(racine)) return@launch
+                if (VersionneurScriptsTerminal.dejaAJour(racine)) return@launch
+                runCatching {
+                    ecrivainProfil.ecrire(racine)
+                    ecrivainGradle.ecrire(racine)
+                    ecrivainSdkAndroid.ecrire(racine)
+                    VersionneurScriptsTerminal.deposerMarqueur(racine)
+                }.onSuccess {
+                    consignerAuJournal("scripts du terminal mis à jour (v${VersionneurScriptsTerminal.VERSION})")
+                    journalApp.i(TAG) {
+                        "scripts du terminal re-posés (v${VersionneurScriptsTerminal.VERSION})"
+                    }
+                }.onFailure { echec ->
+                    // Journalisé, jamais remonté (contrat du port) : le
+                    // terminal garde ses scripts actuels, la prochaine
+                    // tentative repartira du même marqueur.
+                    journalApp.w(TAG) {
+                        "scripts du terminal non re-posés (${echec::class.simpleName})"
+                    }
+                }
+            }
+        }
+
         /** Exécute le pipeline de base et traduit l'issue en état partagé. */
         private suspend fun executer() {
             // Nouvelle tentative : le journal repart à plat (celui de la
@@ -207,6 +258,16 @@ internal class InstallateurBootstrap
                 // explication.
                 ecrivainGradle.ecrire(racine)
                 consignerAuJournal("commande gradle posée (découverte wrapper/dists)")
+
+                // Commande android-sdk (v0.37.3) : installation et pilotage
+                // du SDK Android (cmdline-tools) sous le HOME du shell.
+                ecrivainSdkAndroid.ecrire(racine)
+                consignerAuJournal("commande android-sdk posée (cmdline-tools + sdkmanager)")
+
+                // Marqueur de version des scripts (v0.37.3) : la base est
+                // posée À JOUR — refreshTerminalScripts ne réécrira rien
+                // au prochain démarrage.
+                VersionneurScriptsTerminal.deposerMarqueur(racine)
 
                 nettoyerStaging()
                 deposerMarqueurInstallation(racine)

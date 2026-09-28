@@ -14,6 +14,7 @@ import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.FakeObserveToolchainState
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.MainDispatcherRule
@@ -56,6 +57,7 @@ class OnboardingViewModelTest {
     private lateinit var fichiers: FakeFileSystem
     private lateinit var horloge: TimeProvider
     private val localisateurOutils = FakeToolchainLocator()
+    private val observerOutils = FakeObserveToolchainState()
 
     @Before
     fun preparer() {
@@ -82,6 +84,7 @@ class OnboardingViewModelTest {
             validerDossier = ValidateWorkspaceUseCase(fichiers, FakeArborescencesSaf(), horloge),
             fichiers = fichiers,
             localisateurOutils = localisateurOutils,
+            observerEtatOutils = observerOutils,
             logger = FakeAppLogger(),
             savedStateHandle = sauvetage,
         )
@@ -488,6 +491,28 @@ class OnboardingViewModelTest {
 
             localisateurOutils.bootstrapInstalle = true
             viewModel.onAction(ActionOnboarding.VerifierTerminal)
+
+            assertTrue(viewModel.etat.value.terminalInstalle)
+        }
+
+    @Test
+    fun `bootstrap pose pendant que l assistant est ouvert - la page se decoche d elle meme`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            // v0.37.3 (retour d'appareil réel) : l'assistant lisait un
+            // instantané pull au seul geste « Vérifier » — un bootstrap
+            // posé pendant que l'assistant restait ouvert (retour de
+            // l'écran d'installation, installation finie ailleurs) n'y
+            // apparaissait JAMAIS. Le flot POUSSÉ décoche la page sans
+            // geste ni re-création.
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.terminalInstalle)
+
+            observerOutils.semer(
+                jo.codeide.core.domain
+                    .EtatOutilsTerminal(bootstrapInstalle = true),
+            )
+            advanceUntilIdle()
 
             assertTrue(viewModel.etat.value.terminalInstalle)
         }

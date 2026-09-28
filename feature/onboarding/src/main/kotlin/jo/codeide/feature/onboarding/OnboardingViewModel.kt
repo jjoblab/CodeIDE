@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.SetWorkspaceUseCase
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.UpdateSettingsUseCase
@@ -227,6 +228,7 @@ class OnboardingViewModel
         private val validerDossier: ValidateWorkspaceUseCase,
         private val fichiers: FileSystem,
         private val localisateurOutils: ToolchainLocator,
+        private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val logger: AppLogger,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -243,9 +245,16 @@ class OnboardingViewModel
 
         init {
             amorcerDepuisParametres()
-            // Interrogation synchrone et pure (marqueur de fichier) : aucune
-            // coroutine nécessaire, l'état est immédiatement disponible.
-            etatInterne.update { it.copy(terminalInstalle = localisateurOutils.isBootstrapInstalled()) }
+            // État POUSSÉ des outils (v0.37.3) : la page terminal suivait
+            // un instantané pull — une installation terminée pendant que
+            // l'assistant restait ouvert n'y était jamais visible. Le flot
+            // réémets à chaque transition observable (installation finie
+            // ailleurs, marqueur posé), la page se décoche d'elle-même.
+            viewModelScope.launch {
+                observerEtatOutils().collect { outils ->
+                    etatInterne.update { it.copy(terminalInstalle = outils.bootstrapInstalle) }
+                }
+            }
         }
 
         /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
@@ -386,7 +395,12 @@ class OnboardingViewModel
             }
         }
 
-        /** Revérifie la présence des outils du terminal (retour d'écran). */
+        /** Revérifie la présence des outils du terminal (retour d'écran) :
+         *  garde explicite du geste « Vérifier » — le localisateur interroge
+         *  le disque à l'instant exact, le flot observable couvre le reste
+         *  (v0.37.3 : les deux chemins convergent, l'un n'exclut pas
+         *  l'autre).
+         */
         private fun verifierTerminal() {
             etatInterne.update { it.copy(terminalInstalle = localisateurOutils.isBootstrapInstalled()) }
         }

@@ -216,6 +216,15 @@ class CodeIdeApplication : Application() {
                 }
             }
         }
+
+        // Scripts du terminal VERSIONNÉS (v0.37.3 — retour d'appareil réel :
+        // « ne pas être obligé de réinstaller l'application pour que les
+        // changements fassent effet ») : au démarrage, le marqueur posé est
+        // comparé à la version embarquée — un écart réécrit profil
+        // `codeide.sh`, commandes `gradle` et `android-sdk` SANS toucher au
+        // reste du bootstrap. Idempotent : rien à faire quand tout est à
+        // jour, aucun effet sans bootstrap installé.
+        installateurBootstrap.refreshTerminalScripts()
     }
 
     /**
