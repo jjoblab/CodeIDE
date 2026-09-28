@@ -24,7 +24,14 @@ import jo.codeide.feature.editor.databinding.FragmentPanneauJournalBinding
  */
 class PanneauJournalFragment : Fragment() {
     private var liaisonAmorce: FragmentPanneauJournalBinding? = null
-    private val liaison get() = liaisonAmorce!!
+
+    /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
+     *  après destruction de la vue échoue avec un diagnostic lisible). */
+    private val liaison
+        get() =
+            checkNotNull(liaisonAmorce) {
+                "liaison du panneau Journal indisponible — vue détruite ?"
+            }
 
     /** ViewModel de l'espace de travail (porté par l'activité). */
     private val viewModel: EditorViewModel by activityViewModels()

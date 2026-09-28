@@ -43,7 +43,14 @@ abstract class ApercuSimpleFragment(
     private val libelleBouton: Int? = null,
 ) : Fragment() {
     private var liaisonAmorce: FragmentApercuSimpleBinding? = null
-    private val liaison get() = liaisonAmorce!!
+
+    /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
+     *  après destruction de la vue échoue avec un diagnostic lisible). */
+    private val liaison
+        get() =
+            checkNotNull(liaisonAmorce) {
+                "liaison de l'aperçu indisponible — vue détruite ?"
+            }
 
     override fun onCreateView(
         inflateur: LayoutInflater,

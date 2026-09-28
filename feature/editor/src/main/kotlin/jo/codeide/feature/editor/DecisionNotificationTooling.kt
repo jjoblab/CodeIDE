@@ -94,11 +94,14 @@ private fun resultatSync(etat: EtatGradle): DecisionNotificationTooling =
         }
 
         etat.synchronisationReussie != null -> {
+            // Correctif n°9 : valeur locale — le smart-cast remplace les
+            // trois `!!` (l'échec a déjà été traité par la branche ci-dessus).
+            val resultat = etat.synchronisationReussie
             DecisionNotificationTooling.Resultat(
                 canal = CanalTooling.SYNC,
-                reussi = etat.synchronisationReussie!!.reussie,
-                dureeMs = etat.synchronisationReussie!!.dureeMs,
-                messageEchec = etat.synchronisationReussie!!.messageEchec,
+                reussi = resultat.reussie,
+                dureeMs = resultat.dureeMs,
+                messageEchec = resultat.messageEchec,
             )
         }
 

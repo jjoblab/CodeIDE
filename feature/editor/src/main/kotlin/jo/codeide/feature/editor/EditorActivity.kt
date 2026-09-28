@@ -28,6 +28,7 @@ import androidx.core.view.updatePadding
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -41,6 +42,7 @@ import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
@@ -61,6 +63,7 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
@@ -117,6 +120,12 @@ class EditorActivity :
     /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
     @Inject
     lateinit var navigateur: AppNavigator
+
+    /** Horloge injectée (correctif n°12 du tooling pro : le chrono de
+     *  l'en-tête ne lit plus `System.currentTimeMillis()` directement —
+     *  les tests pilotent le temps, comme le reste du dépôt). */
+    @Inject
+    lateinit var horloge: TimeProvider
 
     /** Fabrique du fragment Terminal du tiroir (v0.32.2, ADR 0053) :
      * le rendu réel des sessions vit dans `feature:terminal` — la
@@ -1398,7 +1407,8 @@ class EditorActivity :
             liaison.iconeCanalTooling.setColorFilter(
                 ThemeHarmonizer.harmoniserAvecPrimaire(this, canal.couleur),
             )
-            liaison.activiteTooling.text = libelleActiviteTooling(etat, canal)
+            liaison.activiteTooling.text =
+                PresentationTooling.libelleActivite(etat, canal).resoudre(this)
         }
         liaison.progressionTooling.isVisible = etat.activiteEnCours
         liaison.boutonArreterTooling.isVisible = etat.canalActif == CanalTooling.BUILD
@@ -1426,9 +1436,9 @@ class EditorActivity :
             null -> {
                 liaison.minuteurTooling.text =
                     if (canal == CanalTooling.SYNC) {
-                        dureeLisible(etat.synchronisationReussie?.dureeMs ?: 0L)
+                        DureesLisibles.formater(etat.synchronisationReussie?.dureeMs ?: 0L)
                     } else if (canal == CanalTooling.BUILD) {
-                        dureeLisible(etat.dureeBuildMs ?: 0L)
+                        DureesLisibles.formater(etat.dureeBuildMs ?: 0L)
                     } else {
                         ""
                     }
@@ -1442,86 +1452,29 @@ class EditorActivity :
         majPeekPanneau()
     }
 
-    /** Libellé de l'activité tooling (v0.32.5 ; étape 32 : canal Taches) :
-     *  la tâche en cours sur son canal — tâches du build, synchronisation,
-     *  listage, ou le résultat du dernier canal actif. */
-    private fun libelleActiviteTooling(
-        etat: EtatGradle,
-        canal: CanalTooling,
-    ): String =
-        when (canal) {
-            CanalTooling.SYNC -> {
-                when {
-                    etat.synchronisationEnCours -> {
-                        getString(R.string.editor_tooling_sync_en_cours)
-                    }
-
-                    etat.messageEchecSync != null -> {
-                        etat.messageEchecSync!!
-                    }
-
-                    etat.synchronisationReussie != null -> {
-                        getString(
-                            R.string.editor_sortie_sync_reussie,
-                            dureeLisible(etat.synchronisationReussie!!.dureeMs),
-                        )
-                    }
-
-                    else -> {
-                        getString(R.string.editor_tooling_sync_en_cours)
-                    }
-                }
-            }
-
-            CanalTooling.BUILD -> {
-                when {
-                    etat.statutBuild == StatutBuild.EN_COURS -> {
-                        if (etat.taches.isEmpty()) {
-                            getString(R.string.editor_tooling_build_en_cours)
-                        } else {
-                            getString(R.string.editor_tooling_build_taches, etat.taches.joinToString(", "))
-                        }
-                    }
-
-                    etat.statutBuild == StatutBuild.REUSSI -> {
-                        getString(R.string.editor_sortie_build_reussi, dureeLisible(etat.dureeBuildMs ?: 0L))
-                    }
-
-                    etat.statutBuild == StatutBuild.ECHOUE -> {
-                        etat.messageEchecBuild ?: getString(R.string.editor_sortie_build_echoue)
-                    }
-
-                    etat.statutBuild == StatutBuild.ANNULE -> {
-                        getString(R.string.editor_sortie_build_annule)
-                    }
-
-                    else -> {
-                        getString(R.string.editor_sortie_vide)
-                    }
-                }
-            }
-
-            CanalTooling.TACHES -> {
-                // Indicateur de vol : le sélecteur est le résultat du canal.
-                getString(R.string.editor_tooling_taches_en_cours)
-            }
-        }
-
     /** Ticker du chrono en vol (500 ms — le centième de seconde est du
-     *  bruit sur un build). Annulé par le prochain rendu. */
+     *  bruit sur un build). Correctif n°12 du tooling pro : le ticker ne
+     *  tourne QUE STARTED (`repeatOnLifecycle` — plus de `while (true)`
+     *  en arrière-plan) et lit l'HORLOGE INJECTÉE. Annulé par le prochain
+     *  rendu. */
     private fun lancerMinuteur(texte: () -> Unit): Job? =
         lifecycleScope.launch {
-            while (true) {
-                texte()
-                delay(PERIODE_MINUTEUR_MS)
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    texte()
+                    delay(PERIODE_MINUTEUR_MS)
+                }
             }
         }
 
-    /** Texte du chrono : temps écoulé depuis [debut] (ms de l'horloge
+    /** Texte du chrono : temps écoulé depuis [depart] (ms de l'horloge
      *  injectée — wall-clock du TimeProvider de production). */
     private fun majTexteMinuteur(depart: Long?) {
-        val maintenant = System.currentTimeMillis()
-        liaison.minuteurTooling.text = dureeLisible(depart?.let { (maintenant - it).coerceAtLeast(0L) } ?: 0L)
+        val maintenant = horloge.nowMillis()
+        liaison.minuteurTooling.text =
+            DureesLisibles.formater(
+                depart?.let { (maintenant - it).coerceAtLeast(0L) } ?: 0L,
+            )
     }
 
     /** Peek du panneau : en-tête seul, + ligne tooling (et progression)
@@ -1538,15 +1491,6 @@ class EditorActivity :
         }
         comportementPanneau.peekHeight = peek
     }
-
-    /** Durée lisible (s, ou ms sous la seconde) — même format que la
-     *  console (PanneauConsoleFragment). */
-    private fun dureeLisible(dureeMs: Long): String =
-        if (dureeMs >= SEUIL_SECONDE_MS) {
-            String.format(java.util.Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
-        } else {
-            String.format(java.util.Locale.ROOT, "%dms", dureeMs)
-        }
 
     /** Fragments du panneau inférieur, par tag. */
     private fun fragmentsPanneau(): List<androidx.fragment.app.Fragment> =
@@ -1818,12 +1762,6 @@ class EditorActivity :
 
         /** Période du chrono de la ligne tooling (500 ms). */
         const val PERIODE_MINUTEUR_MS = 500L
-
-        /** Seuil d'affichage en secondes (sous une seconde : ms). */
-        const val SEUIL_SECONDE_MS = 1_000L
-
-        /** Seconde en millisecondes (Double : division flottante, %.1fs). */
-        const val SECONDE_MS = 1_000.0
 
         /** Hauteur de la bande de progression tooling (dp). */
         const val HAUTEUR_PROGRESSION_TOOLING_DP = 4

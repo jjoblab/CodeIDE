@@ -8,7 +8,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
@@ -28,7 +27,14 @@ import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
  */
 class PanneauConsoleFragment : Fragment() {
     private var liaisonAmorce: FragmentPanneauConsoleBinding? = null
-    private val liaison get() = liaisonAmorce!!
+
+    /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
+     *  après destruction de la vue échoue avec un diagnostic lisible). */
+    private val liaison
+        get() =
+            checkNotNull(liaisonAmorce) {
+                "liaison du panneau Console indisponible — vue détruite ?"
+            }
 
     /** ViewModel de l'espace de travail (porté par l'activité). */
     private val viewModel: EditorViewModel by activityViewModels()
@@ -76,7 +82,8 @@ class PanneauConsoleFragment : Fragment() {
     /** Rend le statut (balisé de SON canal — v0.32.5), l'annulation, la
      *  console (fenêtre bornée) et l'état vide. */
     private fun rendre(etat: EtatGradle) {
-        liaison.statutSortie.text = libelleStatutTooling(etat)
+        liaison.statutSortie.text =
+            PresentationTooling.libelleStatut(etat).resoudre(requireContext())
         baliserCanalStatut(etat)
         liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
@@ -114,50 +121,6 @@ class PanneauConsoleFragment : Fragment() {
             )
         }
     }
-
-    /** Libellé du statut tooling : synchronisation, puis build, puis repli. */
-    private fun libelleStatutTooling(etat: EtatGradle): String =
-        when {
-            etat.synchronisationEnCours -> {
-                getString(R.string.editor_sortie_sync_en_cours)
-            }
-
-            etat.synchronisationReussie != null -> {
-                getString(R.string.editor_sortie_sync_reussie, dureeLisible(etat.synchronisationReussie.dureeMs))
-            }
-
-            etat.messageEchecSync != null -> {
-                etat.messageEchecSync
-            }
-
-            etat.statutBuild == StatutBuild.EN_COURS -> {
-                getString(R.string.editor_sortie_build_en_cours)
-            }
-
-            etat.statutBuild == StatutBuild.REUSSI -> {
-                getString(R.string.editor_sortie_build_reussi, dureeLisible(etat.dureeBuildMs ?: 0L))
-            }
-
-            etat.statutBuild == StatutBuild.ECHOUE -> {
-                etat.messageEchecBuild ?: getString(R.string.editor_sortie_build_echoue)
-            }
-
-            etat.statutBuild == StatutBuild.ANNULE -> {
-                getString(R.string.editor_sortie_build_annule)
-            }
-
-            etat.connexion == EtatConnexion.ECHOUEE -> {
-                getString(R.string.editor_outil_deconnecte)
-            }
-
-            else -> {
-                getString(R.string.editor_sortie_vide)
-            }
-        }
-
-    /** Durée lisible (déléguée au formateur partagé — v3 : tâches et
-     *  étapes l'utilisent aussi). */
-    private fun dureeLisible(dureeMs: Long): String = DureesLisibles.formater(dureeMs)
 
     private companion object {
         /** Étiquette du dialogue de configuration du tooling (anti-doublon). */

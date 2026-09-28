@@ -34,17 +34,26 @@ import jo.codeide.feature.editor.databinding.FragmentConfigToolingBinding
 @AndroidEntryPoint
 class DialogueConfigToolingFragment : DialogFragment() {
     private var liaisonAmorce: FragmentConfigToolingBinding? = null
-    private val liaison get() = liaisonAmorce!!
+
+    /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
+     *  après destruction de la vue échoue avec un diagnostic lisible). */
+    private val liaison
+        get() =
+            checkNotNull(liaisonAmorce) {
+                "liaison de la configuration tooling indisponible — vue détruite ?"
+            }
 
     /** ViewModel scopé au dialogue (son propre ViewModelStore). */
     private val viewModel: ConfigToolingViewModel by viewModels()
 
     /** Anti-fausses actions : le rendu programme les interrupteurs sans
-     *  déclencher leurs écouteurs. */
+     *  déclencher leurs écouteurs, et signale ses `setText` du champ
+     *  d'arguments à [saisieArguments] (correctif n°10). */
     private var renduEnCours = false
 
-    /** La saisie d'arguments est-elle EN COURS (le rendu ne l'écrase pas) ? */
-    private var saisieArgumentsEnCours = false
+    /** Saisie du champ d'arguments (correctif n°10 : rendu et frappe se
+     *  distinguent — plus jamais de drapeau armé par le rendu). */
+    private val saisieArguments = SaisieArguments()
 
     override fun onCreate(etat: Bundle?) {
         // Plein écran au-dessus de l'espace de travail : fenêtre non
@@ -77,9 +86,11 @@ class DialogueConfigToolingFragment : DialogFragment() {
         }
 
         val saisie = liaison.saisieArguments as TextInputEditText
-        saisie.doAfterTextChanged { texte ->
-            // Écrit au repos (focus perdu / « Terminé »), jamais par frappe.
-            saisieArgumentsEnCours = true
+        saisie.doAfterTextChanged { _ ->
+            // Écrit au repos (focus perdu / « Terminé »), jamais par frappe :
+            // seule la saisie de l'utilisateur arme la validation (correctif
+            // n°10 — un `setText` de rendu déclenche AUSSI ce rappel).
+            saisieArguments.surChangementTexte(pendantRendu = renduEnCours)
         }
         saisie.setOnFocusChangeListener { _, aLeFocus ->
             if (!aLeFocus) validerSaisie(saisie)
@@ -97,17 +108,23 @@ class DialogueConfigToolingFragment : DialogFragment() {
         viewModel.etatVivant.collectWithLifecycle(viewLifecycleOwner) { rendreEtatVivant(it) }
     }
 
-    /** Rendu idempotent des réglages (le DataStore est la seule vérité). */
+    /** Rendu idempotent des réglages (le DataStore est la seule vérité).
+     *  Correctif n°10 : le `setText` vit DANS la fenêtre [renduEnCours] —
+     *  son rappel `doAfterTextChanged` reconnaît une écriture de rendu et
+     *  n'arme pas la validation. */
     private fun rendreReglages(reglages: AppSettings) {
         renduEnCours = true
-        liaison.interrupteurAfficherTaches.isChecked = reglages.toolingAfficherTaches
-        liaison.interrupteurHorsLigne.isChecked = reglages.toolingHorsLigne
-        renduEnCours = false
+        try {
+            liaison.interrupteurAfficherTaches.isChecked = reglages.toolingAfficherTaches
+            liaison.interrupteurHorsLigne.isChecked = reglages.toolingHorsLigne
 
-        // Le champ ne se réécrit QUE hors saisie : effacer le texte d'un
-        // utilisateur en train de taper serait le pire des rendus.
-        if (!saisieArgumentsEnCours) {
-            liaison.saisieArguments.setText(reglages.toolingArguments)
+            // Le champ ne se réécrit QUE hors saisie : effacer le texte d'un
+            // utilisateur en train de taper serait le pire des rendus.
+            if (saisieArguments.renduPeutReecrire()) {
+                liaison.saisieArguments.setText(reglages.toolingArguments)
+            }
+        } finally {
+            renduEnCours = false
         }
     }
 
@@ -126,9 +143,9 @@ class DialogueConfigToolingFragment : DialogFragment() {
 
     /** Persiste la saisie d'arguments (à la perte de focus / « Terminé »). */
     private fun validerSaisie(saisie: TextInputEditText) {
-        if (!saisieArgumentsEnCours) return
-        saisieArgumentsEnCours = false
-        viewModel.definirArguments(saisie.text?.toString().orEmpty())
+        if (saisieArguments.consommerPourValidation()) {
+            viewModel.definirArguments(saisie.text?.toString().orEmpty())
+        }
     }
 
     /** Libellé localisé de l'état de connexion. */

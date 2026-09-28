@@ -56,7 +56,14 @@ import jo.codeide.core.ui.R as RUi
 @AndroidEntryPoint
 class ExplorateurFragment : Fragment() {
     private var liaisonAmorce: FragmentExplorateurBinding? = null
-    private val liaison get() = liaisonAmorce!!
+
+    /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
+     *  après destruction de la vue échoue avec un diagnostic lisible). */
+    private val liaison
+        get() =
+            checkNotNull(liaisonAmorce) {
+                "liaison de l'explorateur indisponible — vue détruite ?"
+            }
 
     /** ViewModel de l'espace de travail (porté par l'activité). */
     private val viewModel: EditorViewModel by activityViewModels()
