@@ -220,7 +220,7 @@ internal class EcrivainSdkAndroidCli(
               [ -n "${dollar}paquets" ] || paquets="${dollar}PAQUETS_DEFAUT"
               if ! resoudre_java; then
                 echo "android-sdk: Java est requis (sdkmanager est un programme Java)." >&2
-                echo "  Installe d\'abord les outils du terminal : écran Installation de l\'app," >&2
+                echo "  Installe d'abord les outils du terminal : écran Installation de l'app," >&2
                 echo "  puis rouvre une session et relance : android-sdk installer" >&2
                 exit 1
               fi
@@ -272,7 +272,7 @@ internal class EcrivainSdkAndroidCli(
 
               echo "→ Acceptation des licences…"
               yes 2>/dev/null | "${dollar}SDKMANAGER" --licenses >/dev/null 2>&1 || \
-                echo "  (licences : avertissement — l\'installation dira si l\'une manque)" >&2
+                echo "  (licences : avertissement — l'installation dira si l'une manque)" >&2
 
               echo "→ Installation des paquets : ${dollar}paquets"
               # shellcheck disable=SC2086

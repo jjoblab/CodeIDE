@@ -125,7 +125,7 @@ internal class EcrivainProfilShell(
             }
 
             # Gradle réellement présent (v0.37.3 — fin du faux chemin
-            # $PREFIX/bin/gradle) : wrapper du projet, sinon distribution du
+            # ${dollar}PREFIX/bin/gradle) : wrapper du projet, sinon distribution du
             # cache wrapper/dists (TROIS niveaux : nom/empreinte/gradle-X),
             # sinon une distribution opt/ — jamais le script de découverte.
             __codeide_gradle_info() {

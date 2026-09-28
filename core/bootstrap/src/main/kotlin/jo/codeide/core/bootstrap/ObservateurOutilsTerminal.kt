@@ -55,7 +55,7 @@ internal class ObservateurOutilsTerminal
     @Inject
     constructor(
         @ApplicationContext contexte: Context,
-        installateur: BootstrapInstaller,
+        private val installateur: BootstrapInstaller,
         private val dispatchers: DispatcherProvider,
     ) : ObserveToolchainStateUseCase {
         private val racine: File = contexte.filesDir
