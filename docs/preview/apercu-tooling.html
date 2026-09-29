@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CodeIDE — Aperçu du tooling</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#F9F9FF;--sf:#F7F9FC;--s2:#EEF0F6;--tx:#1A1B21;--mu:#46464F;--ol:#C6C5D0;--pr:#43559E;--op:#fff;--pc:#DCE1FF;--opc:#001159;--er:#BA1A1A;--ok:#2E7D32;--sy:#0E7490;--bu:#1E6EC8;--tk:#7C3AED;--sc:rgba(0,0,0,.4)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111318;--sf:#1A1E25;--s2:#252A33;--tx:#E2E1E9;--mu:#C6C5D0;--ol:#46464F;--pr:#BAC4FF;--op:#0C2264;--pc:#293D8F;--opc:#DCE1FF;--er:#FFB4AB;--ok:#81C995;--sy:#5AC8DE;--bu:#7AB8F5;--tk:#A78BFA;--sc:rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--bg:#111318;--sf:#1A1E25;--s2:#252A33;--tx:#E2E1E9;--mu:#C6C5D0;--ol:#46464F;--pr:#BAC4FF;--op:#0C2264;--pc:#293D8F;--opc:#DCE1FF;--er:#FFB4AB;--ok:#81C995;--sy:#5AC8DE;--bu:#7AB8F5;--tk:#A78BFA;--sc:rgba(0,0,0,.6)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px}
+h1{font-size:16px;margin:0 0 2px}p.s{margin:0 0 10px;color:var(--mu);font-size:12px}
+.pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px}
+.pills button{border:1px solid var(--ol);background:var(--sf);color:var(--tx);border-radius:16px;padding:6px 12px;font:inherit;font-size:12px;white-space:nowrap}
+.pills button.on{background:var(--pr);color:var(--op);border-color:var(--pr)}
+.phone{max-width:400px;height:660px;margin:0 auto;position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--ol);background:var(--bg)}
+.ed{padding:14px;font:11px/1.7 monospace;color:var(--mu);opacity:.6}.ed i{display:block;height:7px;border-radius:4px;background:var(--ol);margin:9px 0}
+.pn{position:absolute;left:0;right:0;bottom:0;height:80%;background:var(--sf);border-radius:20px 20px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transition:height .25s}
+.pn.c{height:86px}.pn.c .tb,.pn.c .bd{display:none}
+.hg{width:32px;height:4px;border-radius:2px;background:var(--ol);margin:8px auto 4px}
+.hd{display:flex;align-items:center;gap:10px;padding:2px 14px 8px}
+.ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-size:16px;flex:none}
+.ic.sp::after{content:"";width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:r 1s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+.tt{flex:1;min-width:0}.tt b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tt span{display:block;font-size:11px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm{font:12px monospace;color:var(--mu)}
+.sb{border:0;background:var(--s2);color:var(--er);width:32px;height:32px;border-radius:50%;font-size:13px}
+.pg{height:3px;background:var(--s2);overflow:hidden;position:relative}.pg>div{height:100%;background:var(--c);transition:width .15s}
+.pg.ind>div{width:35%!important;position:absolute;animation:m 1.2s ease-in-out infinite}@keyframes m{from{left:-35%}to{left:100%}}
+.tb{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--ol)}
+.tb .t{font-size:12px;padding:5px 10px;border-radius:14px;color:var(--mu)}.tb .t.on{background:var(--pc);color:var(--opc);font-weight:600}
+.bd{flex:1;overflow:auto;padding:10px 12px}
+.ch{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+.chip{font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid var(--ol);color:var(--mu)}.chip.on{border-color:var(--c);color:var(--c);font-weight:600}
+.ib{border:0;background:var(--s2);color:var(--tx);width:34px;height:34px;border-radius:10px;font-size:15px;margin-left:auto}.ib+.ib{margin-left:0}.ib:disabled{opacity:.35}
+.row{display:flex;align-items:center;gap:8px;padding:6px 4px;font:12px/1.3 monospace;border-radius:8px}
+.row.act{background:var(--s2)}.row .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .d{color:var(--mu);font-size:11px}
+.row.skip .l{color:var(--mu)}.row.fail .l{color:var(--er)}
+.st{width:16px;height:16px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff}
+.st.ok{background:var(--ok)}.st.pe{border:1.5px solid var(--ol)}.st.ru{border:2px solid var(--ol);border-top-color:var(--c);animation:r 1s linear infinite}.st.sk{background:var(--ol)}
+.sub{margin:0 0 4px 28px;font:11px monospace;color:var(--mu)}
+.bar{height:6px;border-radius:3px;background:var(--ol);margin:4px 0;overflow:hidden}.bar>div{height:100%;background:var(--c)}
+.ft{display:flex;gap:8px;margin-top:10px;padding:10px;border-radius:12px;background:var(--s2);font-size:12px}
+.pgh{display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:8px}.pgh button{border:0;background:none;color:var(--tx);font-size:22px;padding:0 6px}
+.cd{background:var(--s2);border-radius:14px;padding:4px 12px;margin-bottom:10px}
+.cd h4{margin:8px 0 2px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)}
+.sw{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--ol)}.sw:last-child{border:0}
+.sw div{flex:1}.sw b{display:block;font-size:13px}.sw span{font-size:11px;color:var(--mu)}
+.sw input{appearance:none;width:42px;height:24px;border-radius:12px;background:var(--ol);position:relative;flex:none;margin:0}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.sw input:checked{background:var(--pr)}.sw input:checked::after{left:21px}
+.in{width:100%;border:1px solid var(--ol);background:var(--sf);color:var(--tx);border-radius:10px;padding:9px;font:12px monospace;margin:6px 0 8px}
+.ok2{color:var(--ok);font-weight:600}
+.scr{position:absolute;inset:0;background:var(--sc);display:none}.scr.on{display:block}
+.sh{position:absolute;left:0;right:0;bottom:0;height:72%;background:var(--sf);border-radius:20px 20px 0 0;display:none;flex-direction:column;padding:0 14px 10px}.sh.on{display:flex}
+.sh h3{margin:2px 0 8px;font-size:15px}.gp{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:10px 0 2px}
+.tk{display:flex;align-items:center;gap:10px;padding:9px 6px;border-radius:10px;font:12px monospace}.tk:active{background:var(--s2)}.tk b{font-weight:600}.tk span{margin-left:auto;color:var(--tk);font-size:14px}
+.ls{flex:1;overflow:auto}
+.tst{position:absolute;left:14px;right:14px;bottom:16px;background:var(--tx);color:var(--sf);padding:10px 12px;border-radius:12px;font-size:12px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:5}.tst.on{opacity:1;transform:none}
+.cmd{font:11px/1.5 monospace;background:var(--s2);border-radius:12px;padding:10px;word-break:break-all;grid-column:1/-1;margin-bottom:10px}.cmd b{color:var(--pr)}.cmd small{display:block;font:10px system-ui;color:var(--mu);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+span.tag{font-size:10px;padding:2px 7px;border-radius:8px;background:var(--pc);color:var(--opc);margin-left:6px;white-space:nowrap;display:inline}
+.seg{display:flex;border:1px solid var(--ol);border-radius:10px;overflow:hidden;margin:6px 0 2px}.seg button{flex:1;border:0;background:none;color:var(--tx);padding:7px 0;font:inherit;font-size:12px}.seg button.on{background:var(--pc);color:var(--opc);font-weight:600}
+.rg{width:100%;accent-color:var(--pr);margin-top:4px}.bt{border:1px solid var(--ol);background:none;color:var(--pr);border-radius:18px;padding:7px 12px;font:inherit;font-size:12px;margin:4px 6px 4px 0}.bt.d{color:var(--er)}
+.pills .dot{width:24px;height:24px;padding:0;border-radius:50%;flex:none;border:2px solid transparent}.pills .dot.on{border-color:var(--tx)}
+.phone.wide{max-width:780px;height:600px}.wide .cg{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;align-items:start}
+.chip.on{background:color-mix(in srgb,var(--c) 12%,transparent)}
+</style>
+</head>
+<body>
+<h1>CodeIDE — Tooling façon Android Studio</h1>
+<p class="s">Aperçu interactif. Choisis une scène, touche l'en-tête du panneau pour le replier.</p>
+<div class="pills" id="pills"></div>
+<div class="pills" id="thm"></div>
+<div class="phone">
+  <div class="ed"><i style="width:60%"></i><i style="width:80%"></i><i style="width:45%"></i><i style="width:70%"></i><i style="width:55%"></i><i style="width:35%"></i></div>
+  <div class="pn" id="pn"></div>
+  <div class="scr" id="scr"></div>
+  <div class="sh" id="sh"></div>
+  <div class="tst" id="tst"></div>
+</div>
+<script>
+var S1=[["Vérification des outils","JDK 17 · Gradle CLI",0,.8,"out"],["Distribution Gradle 9.7.1","téléchargement",.8,9,"dist"],["Démarrage du daemon Gradle","",9.8,3,"dmn"],["Configuration du projet","3 modules",12.8,3,"cfg"],["Modèle des tâches","48 tâches",15.8,1.5,"tsk"],["Dépendances et modèle IDE","",17.3,5,"dep"],["Classpaths et sources (LSP)","3 modules",22.3,1.7,"cp"]],
+S2=[["Configuration du projet","3 modules",0,1.6,"cfg"],["Modèle des tâches","48 tâches",1.6,.8,"tsk"],["Modèle IDE et dépendances","",2.4,1.4,"dep"],["Classpaths et sources (LSP)","3 modules",3.8,.9,"cp"]],
+S3=[["Distribution Gradle 9.8.0","téléchargement",0,6,"dist"],["Démarrage du daemon Gradle","",6,2.5,"dmn"],["Configuration du projet","3 modules",8.5,1.6,"cfg"],["Modèle des tâches","48 tâches",10.1,.8,"tsk"],["Modèle IDE et dépendances","",10.9,1.4,"dep"],["Classpaths et sources (LSP)","3 modules",12.3,.9,"cp"]],
+S=S1,END1=24,END=24,CP=[":app · 312 jars · 4 sources · variante debug",":core:domain · 41 jars · 2 sources",":feature:editor · 188 jars · 3 sources"],DL=[["gradle-9.7.1-bin.zip"],["kotlin-stdlib-2.2.10.jar"],["core-ktx-1.15.0.aar"],["material-1.13.0.aar"]];
+var B=[[":app:preBuild","UP-TO-DATE","skip"],[":app:generateDebugResources","0,4 s","ok"],[":app:compileDebugKotlin","6,1 s","ok"],[":app:mergeDebugResources","2,3 s","ok"],[":app:dexBuilderDebug","",'ru']];
+var T=[["build",[["assembleDebug","app"],["assemble","app"],["clean","app"]]],["verification",[["testDebugUnitTest","app"],["lintDebug","app"],["detekt","racine"]]],["install",[["installDebug","app"]]]];
+var P={"indigo":[["#F9F9FF","#1A1B21","#E2E1EC","#46464F","#C6C5D0","#43559E","#FFFFFF","#DCE1FF","#001159"],["#111318","#E2E1E9","#46464F","#C6C5D0","#46464F","#BAC4FF","#0C2264","#293D8F","#DCE1FF"]],"bleu":[["#FDFBFF","#1A1C1E","#E0E2EC","#43474E","#C4C6CF","#005EB3","#FFFFFF","#D5E3FF","#001B3C"],["#1A1C1E","#E3E2E6","#43474E","#C4C6CF","#43474E","#A8C8FF","#003061","#004689","#D5E3FF"]],"turquoise":[["#FAFDFB","#191C1B","#DAE5E1","#3F4946","#BEC9C5","#006B5F","#FFFFFF","#74F8E4","#00201C"],["#191C1B","#E0E3E1","#3F4946","#BEC9C5","#3F4946","#54DBC8","#003731","#005048","#74F8E4"]],"vert":[["#FCFDF6","#1A1C19","#DEE5D8","#424940","#C2C9BD","#1B6D24","#FFFFFF","#A3F69C","#002204"],["#1A1C19","#E2E3DD","#424940","#C2C9BD","#424940","#88D982","#003909","#005312","#A3F69C"]],"ambre":[["#FFFBFF","#201B16","#F2DFD0","#50453A","#D5C3B5","#8A5100","#FFFFFF","#FFDCBD","#2C1600"],["#201B16","#EBE0D9","#50453A","#D5C3B5","#50453A","#FFB86E","#492900","#693C00","#FFDCBD"]],"rouge":[["#FFFBFF","#201A19","#F5DDDA","#534341","#D8C2BF","#B32822","#FFFFFF","#FFDAD5","#410001"],["#201A19","#EDE0DE","#534341","#D8C2BF","#534341","#FFB4AA","#690004","#910A0C","#FFDAD5"]],"violet":[["#FFFBFF","#1D1B1E","#E7E0EB","#49454E","#CBC4CF","#732EE4","#FFFFFF","#EADDFF","#25005A"],["#1D1B1E","#E6E1E6","#49454E","#CBC4CF","#49454E","#D2BBFF","#3F008E","#5A00C6","#EADDFF"]],"rose":[["#FFFBFF","#201A1B","#F3DDE1","#514346","#D6C2C5","#B41B5C","#FFFFFF","#FFD9E1","#3F001A"],["#201A1B","#ECE0E1","#514346","#D6C2C5","#514346","#FFB1C5","#65002F","#8F0045","#FFD9E1"]]},SEM={ok:["#2E7D32","#81C995"],sy:["#0E7490","#5AC8DE"],bu:["#1E6EC8","#7AB8F5"],tk:["#7C3AED","#A78BFA"]},FOND=["#F7F9FC","#1A1E25"],ER=["#BA1A1A","#FFB4AB"];
+var th={p:"indigo",m:matchMedia("(prefers-color-scheme:dark)").matches?1:0},PN={indigo:"Indigo",bleu:"Bleu",turquoise:"Turquoise",vert:"Vert",ambre:"Ambre",rouge:"Rouge",violet:"Violet",rose:"Rose"};
+function mix(a,b,n){return"color-mix(in srgb,"+a+" "+n+"%,"+b+")"}
+function theme(){var i=th.m,c=P[th.p][i],s=document.documentElement.style,v={"--bg":c[0],"--sf":FOND[i],"--s2":mix(c[2],FOND[i],45),"--tx":c[1],"--mu":c[3],"--ol":c[4],"--pr":c[5],"--op":c[6],"--pc":c[7],"--opc":c[8],"--er":ER[i],"--sc":"rgba(0,0,0,"+(i?.6:.4)+")"};
+ for(var k in SEM)v["--"+k]=mix(SEM[k][i],c[5],80);for(k in v)s.setProperty(k,v[k]);document.documentElement.dataset.theme=i?"dark":"light";document.body.style.background=c[0]}
+function themeUI(){var h="";for(var k in P)h+='<button class="dot'+(th.p==k?" on":"")+'" style="background:'+P[k][0][5]+'" aria-label="'+PN[k]+'" onclick="th.p=\''+k+'\';theme();themeUI();render()"></button>';
+ $("thm").innerHTML=h+'<button onclick="th.m=1-th.m;theme();themeUI();render()">'+(th.m?"Clair":"Sombre")+'</button><button onclick="document.querySelector(\'.phone\').classList.toggle(\'wide\');render()">Tablette</button>'}
+var V={taches:1,skip:0,dl:1,ts:0,wrap:1,auto:1,watch:1,refresh:0,offline:0,par:1,cache:1,cc:0,cont:0,log:1,trace:0,wk:2,heap:1024,args:""},U={heap:"Mo",wk:""},TG={i:"immédiat",b:"prochain build",s:"prochaine sync",d:"prochain daemon"};
+var CF=[["#","Affichage"],["taches","Afficher les tâches","Une ligne par tâche, mise à jour en place","t","i"],["skip","Masquer les tâches à jour","Cache UP-TO-DATE et SKIPPED","t","i"],["dl","Afficher les téléchargements","Dépendances et distribution, avec taille","t","i"],["ts","Horodater les lignes","Heure devant chaque ligne","t","i"],["wrap","Retour à la ligne","Sinon défilement horizontal","t","i"],
+["#","Synchronisation"],["auto","Sync à l'ouverture du projet","Comme Android Studio","t","s"],["watch","Proposer une sync si build.gradle change","Bandeau « Synchroniser maintenant »","t","i"],["refresh","Actualiser les dépendances","--refresh-dependencies","t","s"],
+["#","Exécution"],["offline","Mode hors ligne","--offline : tout doit être en cache","t","b"],["par","Build parallèle","--parallel","t","b"],["cache","Build cache","--build-cache","t","b"],["cc","Configuration cache","--configuration-cache","t","b"],["cont","Continuer après une erreur","--continue","t","b"],
+["log","Niveau de journal","Quiet, Normal, Info, Debug","g","b",["Quiet","Normal","Info","Debug"]],["trace","Traces d'erreur","Détail des exceptions","g","b",["Aucune","--stacktrace","--full"]],["wk","Tâches en parallèle","--max-workers","r","b",1,4,1],["heap","Mémoire du daemon Gradle","-Xmx du daemon","r","d",512,2048,256],["args","Arguments supplémentaires","Séparés par des espaces","i","b"]];
+function cmd(){var a=["./gradlew","assembleDebug"],L=["-q","","-i","-d"][V.log],T=["","--stacktrace","--full-stacktrace"][V.trace];V.offline&&a.push("--offline");V.par&&a.push("--parallel");V.cache&&a.push("--build-cache");V.cc&&a.push("--configuration-cache");V.cont&&a.push("--continue");L&&a.push(L);T&&a.push(T);a.push("--max-workers="+V.wk);V.args&&a.push(V.args);a.push("<b>--console=plain</b>");return a.join(" ")}
+function row(c){var k=c[0],t=c[3],x='<b>'+c[1]+'<span class="tag">'+TG[c[4]]+'</span></b><span class="dsc">'+c[2]+'</span>';
+ if(t=="t")return'<label class="sw"><div>'+x+'</div><input type="checkbox" '+(V[k]?"checked":"")+' onchange="set(\''+k+'\',this.checked)"></label>';
+ if(t=="g")return'<div class="sw" style="display:block">'+x+'<div class="seg">'+c[5].map(function(l,i){return'<button class="'+(V[k]==i?"on":"")+'" onclick="set(\''+k+'\','+i+')">'+l+'</button>'}).join("")+'</div></div>';
+ if(t=="i")return'<div class="sw" style="display:block">'+x+'<input class="in" value="'+V[k]+'" placeholder="--info --refresh" aria-label="Arguments" oninput="set(\''+k+'\',this.value,1)"></div>';
+ return'<div class="sw" style="display:block">'+x+'<input class="rg" type="range" min="'+c[5]+'" max="'+c[6]+'" step="'+c[7]+'" value="'+V[k]+'" aria-label="'+c[1]+'" oninput="set(\''+k+'\',+this.value,1)"><span id="v_'+k+'">'+V[k]+' '+U[k]+'</span></div>'}
+function cfgList(){var q=($("cq").value||"").toLowerCase(),h='<div class="cmd"><small>Commande effective</small><span id="cm">'+cmd()+'</span></div>',sec="",n=0,buf="";
+ function fin(){if(n)h+='<div class="cd"><h4>'+sec+'</h4>'+buf+'</div>'}
+ CF.forEach(function(c){if(c[0]=="#"){fin();sec=c[1];buf="";n=0;return}if(!q||(c[1]+c[2]).toLowerCase().indexOf(q)>=0){buf+=row(c);n++}});fin();
+ if(!q||/gradle|jdk|cache|orchestrateur|mémoire|daemon/.test(q))h+='<div class="cd"><h4>Environnement</h4><div class="sw"><div><b>Gradle</b><span>Wrapper du projet</span></div><span>9.7.1</span></div><div class="sw"><div><b>JDK</b><span>Installé par CodeIDE</span></div><span>OpenJDK 17</span></div><div class="sw"><div><b>Cache Gradle</b><span>Dépendances et distributions</span></div><button class="bt d" onclick="tst(\'Cache vidé : 412 Mo libérés\')">Vider 412 Mo</button></div></div><div class="cd"><h4>Orchestrateur</h4><div class="sw"><div><b>Connexion</b></div><span style="color:var(--ok);font-weight:600">● Connecté</span></div><div style="padding:8px 0"><div class="bar" style="--c:var(--pr)"><div style="width:42%"></div></div><span class="dsc">108 Mo utilisés sur 256 Mo</span><button class="bt" onclick="tst(\'Orchestrateur redémarré\')">Redémarrer</button><button class="bt" onclick="tst(\'Daemons Gradle arrêtés\')">Arrêter les daemons</button><button class="bt" onclick="tst(\'Diagnostic copié\')">Copier le diagnostic</button></div></div>';
+ $("cl").className="cg";$("cl").innerHTML=h}
+function set(k,v,soft){V[k]=v;if($("cm"))$("cm").innerHTML=cmd();if($("v_"+k))$("v_"+k).textContent=v+" "+U[k];if(!soft){tst("Enregistré · "+TG[CF.filter(function(c){return c[0]==k})[0][4]]);cfgList()}}
+function tst(m){var e=$("tst");e.textContent=m;e.className="tst on";clearTimeout(tst.t);tst.t=setTimeout(function(){e.className="tst"},1700)}
+var st={sc:"sync",t:0,col:false},$=function(i){return document.getElementById(i)};
+function f(s){return s.toFixed(1).replace(".",",")+" s"}
+function head(){var t=st.t,done=t>=END;
+ if(st.sc=="build")return{c:"var(--bu)",i:"▶",sp:1,ti:"Build — assembleDebug",su:"↓ 3/8 dépendances · compileDebugKotlin",tm:"14,2 s",p:.16,stop:1};
+ if(!done&&st.sc=="sync"){var k=0;S.forEach(function(s,i){if(t>=s[2])k=i});var s=S[k],sub=s[1];
+  if(s[4]=="dist")sub="Téléchargement · "+Math.min(130,Math.round((t-s[2])/s[3]*130))+" / 130 Mo";
+  if(s[4]=="dep"&&st.warm==0)sub="Dépendances "+Math.min(37,Math.round((t-s[2])/s[3]*37))+" / 37";
+  return{c:"var(--sy)",i:"↻",sp:1,ti:"Synchronisation Gradle · étape "+(k+1)+"/"+S.length,su:s[0]+(sub?" — "+sub:""),tm:f(t),p:t/END,stop:1}}
+ return{c:"var(--ok)",i:"✓",ti:"Synchronisé en "+f(END),su:st.warm==1?"3 modules · 48 tâches · aucun téléchargement":"3 modules · 48 tâches · classpaths prêts",tm:"",p:1}}
+function syncBody(){var t=st.t,h="";
+ S.forEach(function(s,i){var a=t>=s[2]&&t<s[2]+s[3],d=t>=s[2]+s[3],c=d?"ok":a?"ru":"pe",id=s[4];
+  h+='<div class="row'+(a?" act":"")+'"><span class="st '+c+'" style="--c:var(--sy)">'+(d?"✓":"")+'</span><span class="l">'+s[0]+'</span><span class="d">'+(d?f(s[3]):a?f(t-s[2]):"")+'</span></div>';
+  if(a&&id=="dist"){var p=(t-s[2])/s[3];h+='<div class="sub"><div class="bar" style="--c:var(--sy)"><div style="width:'+p*100+'%"></div></div>services.gradle.org · '+(p*14.5).toFixed(1).replace(".",",")+' Mo/s</div>'}
+  if(a&&id=="dep"&&st.warm==0){var n=Math.min(3,Math.floor((t-s[2])/1.2));for(var j=0;j<=n;j++)h+='<div class="sub">↓ '+DL[j][0]+'</div>'}
+  if(id=="cp")CP.forEach(function(m,j){if(d||(a&&t>=s[2]+.2+j*.25))h+='<div class="sub">'+m+'</div>'})});
+ if(t>=END)h+='<div class="ft"><span class="ok2">✓</span><span>'+(st.warm==2?"Nouvelle version de Gradle installée. ":st.warm==1?"Projet à jour, rien à télécharger. ":"Synchronisation terminée. ")+'Les tâches sont disponibles (☰).</span></div>';
+ return h}
+function buildBody(){var h="",ts=V.ts?'<span class="d">12:04:31</span>':"";
+ if(V.dl)h+='<div class="row act"><span class="st ru" style="--c:var(--bu)"></span><span class="l">Téléchargement des dépendances</span><span class="d">3 / 8</span></div><div class="sub">↓ okio-jvm-3.9.0.jar · 1,2 Mo</div><div class="sub">↓ coroutines-android-1.9.0.aar · 340 Ko</div>';
+ if(!V.taches)return h+'<p class="s">Affichage des tâches désactivé (⚙).</p>';
+ B.forEach(function(b){if(V.skip&&b[2]=="skip")return;h+='<div class="row '+b[2]+(b[2]=="ru"?" act":"")+'"><span class="st '+(b[2]=="ok"?"ok":b[2]=="skip"?"sk":"ru")+'" style="--c:var(--bu)">'+(b[2]=="ok"?"✓":"")+'</span><span class="l">'+b[0]+'</span>'+ts+'<span class="d">'+b[1]+'</span></div>'});return h}
+function cfgBody(){return'<div class="pgh"><button onclick="go(st.prev||\'sync\')">‹</button>Configuration Gradle</div><input class="in" id="cq" placeholder="Rechercher un réglage…" oninput="cfgList()" aria-label="Rechercher un réglage"><div id="cl"></div>'}
+function render(){var h=head(),c=st.sc=="build"?"var(--bu)":"var(--sy)",done=st.t>=END||st.sc!="sync",cfg=st.sc=="cfg",bd;
+ if(cfg)bd=cfgBody();else{bd='<div class="ch" style="--c:'+c+'"><span class="chip on">'+(st.sc=="build"?"Build":"Sync")+'</span><button class="ib" '+(done?"":"disabled")+' onclick="go(\'tasks\')" aria-label="Tâches">☰</button><button class="ib" onclick="go(\'cfg\')" aria-label="Configuration">⚙</button></div>'+(st.sc=="build"?buildBody():syncBody())}
+ var ti=h.ti||"Build réussi",p=h.p;
+ $("pn").className="pn"+(st.col?" c":"");
+ $("pn").innerHTML='<div class="hg"></div><div class="hd" onclick="st.col=!st.col;render()"><div class="ic'+(h.sp?" sp":"")+'" style="background:'+h.c+'">'+(h.sp?"":h.i)+'</div><div class="tt"><b>'+ti+'</b><span>'+h.su+'</span></div>'+(h.tm?'<span class="tm">'+h.tm+'</span>':"")+(h.stop?'<button class="sb" aria-label="Arrêter" onclick="event.stopPropagation()">■</button>':"")+'</div><div class="pg'+(p<0?" ind":"")+'" style="--c:'+h.c+'"><div style="width:'+p*100+'%"></div></div><div class="tb"><span class="t on">Sortie</span><span class="t">Problèmes</span><span class="t">Journal</span></div><div class="bd">'+bd+'</div>';
+ if(cfg)cfgList();var tk=st.sc=="tasks";$("scr").className="scr"+(tk?" on":"");$("sh").className="sh"+(tk?" on":"");
+ if(tk&&!$("sh").innerHTML)sheet()}
+function sheet(){var h='<div class="hg"></div><h3>Exécuter une tâche</h3><input class="in" id="q" placeholder="Rechercher une tâche…" aria-label="Rechercher"><div class="ls" id="ls"></div>';$("sh").innerHTML=h;
+ $("q").oninput=list;list();$("scr").onclick=function(){go("sync")}}
+function list(){var q=$("q").value.toLowerCase(),h="";T.forEach(function(g){var r=g[1].filter(function(x){return x[0].toLowerCase().indexOf(q)>=0});if(!r.length)return;h+='<div class="gp">'+g[0]+'</div>';r.forEach(function(x){h+='<div class="tk"><b>'+x[0]+'</b><small style="color:var(--mu)">:'+x[1]+'</small><span>▶</span></div>'})});$("ls").innerHTML=h||'<p class="s">Aucune tâche.</p>'}
+function go(s){if(s=="cfg")st.prev=st.sc;st.sc=s;if(s=="sync"&&st.t<END&&!st.play)st.t=END;if(s=="build"||s=="cfg"||s=="tasks")st.t=END;st.col=false;if(s!="tasks")$("sh").innerHTML="";render();pills()}
+function pills(){var L=[["sync","Sync 1er lancement",0],["sync","Sync suivante",1],["sync","Gradle modifié",2],["build","Build"],["cfg","Config"],["tasks","Tâches"]],h="";L.forEach(function(x){var sy=x[0]=="sync",on=sy?st.sc=="sync"&&st.warm==x[2]:st.sc==x[0];h+='<button class="'+(on?"on":"")+'" onclick="'+(sy?"replay("+x[2]+")":"go(\'"+x[0]+"\')")+'">'+x[1]+'</button>'});$("pills").innerHTML=h}
+var tm;function replay(w){clearInterval(tm);st.warm=w;S=[S1,S2,S3][w];END=[24,4.7,13.2][w];st.sc="sync";st.t=0;st.play=1;st.col=false;$("sh").innerHTML="";pills();render();tm=setInterval(function(){st.t+=.2;if(st.t>=END){st.t=END;st.play=0;clearInterval(tm)}if(st.sc=="sync")render()},100)}
+theme();themeUI();replay(0);
+</script>
+</body>
+</html>
