@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Anneau tournant pour le marqueur d'étape EN COURS d'une sync (v0.40.1,
+     correctif n°5 du prompt de suivi) : un drawable vectoriel de 16 dp,
+     un seul trait de 2 dp sur un fond transparent. La rotation est pilotée
+     par un `ObjectAnimator` unique partagé entre tous les holders visibles
+     (cf. AnneauTournant), pas par un `CircularProgressIndicator` Material
+     dont l'inset et l'épaisseur par défaut (4 dp) sont écrasés à 16 dp —
+     le bug constaté dans la 0.40.0 était un anneau rogné/écrasé et un
+     redémarrage d'animation à chaque `lier()` du ViewHolder.
+
+     Couleur du trait : `colorCanalSync` harmonisé (resolu par l'appelant
+     via `backgroundTintList` — cf. EtapeArbreHolder.lier). Piste absente :
+     le `trackColor` transparente du CircularProgressIndicator Material est
+     imité en ne dessinant QUE l'arc.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <!-- Arc d'environ 270° (3/4 du cercle) — l'animation `rotate` du
+         `ObjectAnimator` complète la rotation visuelle. Pas de piste
+         (anneau de fond) : la couleur de l'arc est portée par le
+         `backgroundTintList` de la View hôte. -->
+    <path
+        android:pathData="M 8 2 A 6 6 0 1 1 2 8"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+</vector>

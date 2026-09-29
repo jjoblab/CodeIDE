@@ -107,6 +107,19 @@ class PanneauConsoleFragment : Fragment() {
         adaptateur = ConsoleToolingAdapter()
         liaison.listeSortie.layoutManager = LinearLayoutManager(requireContext())
         liaison.listeSortie.adapter = adaptateur
+        // v0.40.1 (correctif n°5 du prompt de suivi) : pas d'animation de
+        // changement sur les rangées de la console — un tick de durée qui
+        // modifie le texte d'une étape ou d'une tâche ne doit pas clignoter.
+        // `DefaultItemAnimator.supportsChangeAnimations = false` désactive
+        // l'animation sans casser le DiffUtil (les payloads font la mise à
+        // jour en place via `onBindViewHolder(holder, position, payloads)`).
+        (liaison.listeSortie.itemAnimator as? androidx.recyclerview.widget.DefaultItemAnimator)?.apply {
+            supportsChangeAnimations = false
+            // Les animations d'ajout (rangée qui apparaît) restent utiles
+            // pour le défilement en bas — on ne désactive QUE les
+            // changements (qui clignotaient à chaque tick de durée).
+            changeDuration = 0
+        }
         liaison.boutonAnnulerBuild.setOnClickListener {
             viewModel.onAction(ActionEditor.AnnulerBuild)
         }

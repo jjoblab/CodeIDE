@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rangée d'ÉTAPE de l'arbre de sync (v4, §3.3 ; v5 — plan de l'aperçu) :
-     marqueur d'état (✓ terminée / spinner en cours / ○ en attente / point
-     « en cache » sautée), libellé de l'étape, durée MESURÉE à droite
-     (jamais devinée — l'étape en cours n'en montre pas ; une sautée porte
-     « En cache » : aucun travail n'a eu lieu). Marqueurs décoratifs : le
-     libellé porte le sens (TalkBack lit « étape — durée »). -->
+<!-- Rangée d'ÉTAPE de l'arbre de sync (v4, §3.3 ; v5 — plan de l'aperçu ;
+     v0.40.1 — correctif n°5 du prompt de suivi : le marqueur d'état en
+     cours est désormais un `AnneauTournant` dédié — un drawable
+     vectoriel de 16 dp tourné par UN `ObjectAnimator` partagé, pas un
+     `CircularProgressIndicator` Material dont l'inset et l'épaisseur
+     par défaut (4 dp) sont écrasés à 16 dp (anneau rogné + clignotement
+     à chaque rebind du ViewHolder, cf. ADR 0072). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -15,7 +16,10 @@
     android:orientation="horizontal"
     android:paddingHorizontal="@dimen/spacing_xs">
 
-    <!-- Marqueur d'état : un seul des quatre fils visible au rendu. -->
+    <!-- Marqueur d'état : un seul des trois fils visible au rendu
+         (v0.40.1 — le marqueur « sautée » est supprimé avec le concept
+         « En cache » du prompt de suivi §2 ; un seul animateur partagé
+         via AnneauTournantState). -->
     <FrameLayout
         android:layout_width="@dimen/editor_marqueur_etape_taille"
         android:layout_height="@dimen/editor_marqueur_etape_taille"
@@ -32,16 +36,19 @@
             app:srcCompat="@drawable/ic_fait"
             tools:visibility="visible" />
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
+        <!-- Anneau tournant de l'étape en cours (v0.40.1, correctif n°5) :
+             un drawable vectoriel 16 dp / trait 2 dp, tourné par un
+             ObjectAnimator UNIQUE partagé (AnneauTournantState). Pas
+             d'inset Material, pas d'épaisseur par défaut écrasée. La
+             couleur du trait est posée par backgroundTintList au rendu
+             (couleur de canal harmonisée). -->
+        <jo.codeide.feature.editor.AnneauTournant
             android:id="@+id/marqueur_etape_en_cours"
-            style="@style/Widget.Material3.CircularProgressIndicator"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@null"
-            android:indeterminate="true"
+            android:importantForAccessibility="no"
             android:visibility="gone"
-            app:indicatorSize="@dimen/editor_marqueur_etape_taille"
-            app:trackColor="@android:color/transparent"
             tools:visibility="visible" />
 
         <View
@@ -49,14 +56,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/cercle_attente_etape"
-            android:visibility="gone"
-            tools:visibility="visible" />
-
-        <View
-            android:id="@+id/marqueur_etape_sautee"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/point_etape_sautee"
             android:visibility="gone"
             tools:visibility="visible" />
     </FrameLayout>

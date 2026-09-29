@@ -1,5 +1,7 @@
 package jo.codeide.feature.editor
 
+import android.content.Context
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -311,10 +313,64 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         }
     }
 
-    // ---- Étape d'arbre (§3.3 ; v5 — plan de l'aperçu) ---------------------
+    /**
+     * Variante à payloads (v0.40.1, correctif n°5 du prompt de suivi) :
+     * seuls les champs qui ont changé sont rebondis — pas de rebind
+     * complet, pas d'animation de changement (clignotement). Pour une
+     * étape d'arbre : mise à jour du `marqueur` (✓ / anneau / ○) et de
+     * la durée. Pour une tâche : mise à jour du statut et de la durée.
+     *
+     * Si la liste de payloads est VIDE (cas DiffUtil), on retombe sur le
+     * `onBindViewHolder` complet — c'est le contrat Android.
+     */
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: MutableList<Any>,
+    ) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
+        when (val rangee = getItem(position)) {
+            is RangeeConsole.EtapeArbre -> {
+                val nouvelEtat = payloads.firstOrNull() as? EtatEtapeArbre
+                if (nouvelEtat != null) {
+                    (holder as EtapeArbreHolder).lierMajEtat(rangee, nouvelEtat)
+                } else {
+                    (holder as EtapeArbreHolder).lier(rangee)
+                }
+            }
 
-    /** Étape : marqueur d'état (✓ / spinner / ○ / point « en cache »),
-     *  libellé (atténué pour une sautée), durée ou « En cache ». */
+            is RangeeConsole.Tache -> {
+                val nouvelEtat = payloads.firstOrNull() as? EtatTacheAffichee
+                if (nouvelEtat != null) {
+                    (holder as TacheHolder).lierMajEtat(nouvelEtat)
+                } else {
+                    (holder as TacheHolder).lier(rangee.ligne)
+                }
+            }
+
+            else -> {
+                onBindViewHolder(holder, position)
+            }
+        }
+    }
+
+    // ---- Étape d'arbre (§3.3 ; v5 — plan de l'aperçu ; v0.40.1 — correctif
+    //      n°5 du prompt de suivi : le marqueur en cours est un
+    //      `AnneauTournant` (drawable vectoriel + ObjectAnimator partagé)
+    //      au lieu d'un `CircularProgressIndicator` Material) -----------
+
+    /** Étape : marqueur d'état (✓ / anneau tournant / ○ / point « en
+     *  cache »), libellé (atténué pour une sautée), durée ou « En cache ».
+     *  v0.40.1 : l'anneau en cours est un `AnneauTournant` — un seul
+     *  animateur partagé entre les holders visibles, plus de
+     *  redémarrage d'animation à chaque `lier()`.
+     *  v0.40.1 intermédiaire : le marqueur « sautée » est retiré du
+     *  layout (il sera retiré du code à l'étape C du prompt de suivi
+     *  §2). Le code de l'état « sautée » reste en attendant pour ne pas
+     *  casser les tests `RangeesConsoleTest` qui couvrent `sautee`. */
     private class EtapeArbreHolder(
         private val liaison: LigneArbreEtapeBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
@@ -322,27 +378,67 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             val contexte = liaison.root.context
             liaison.libelleEtapeArbre.text = contexte.getString(LibellesEtapesSync.libelle(rangee.etape))
             val etat = rangee.etat
+            majMarqueur(etat, contexte)
+            majDuree(etat, contexte)
+        }
+
+        /**
+         * Mise à jour EN PLACE (v0.40.1, correctif n°5) : seuls le
+         * marqueur et la durée changent entre deux versions d'une même
+         * étape d'arbre — le libellé ne change pas. Pas de rebind complet,
+         * pas d'animation de changement (clignotement), pas de
+         * redémarrage de l'anneau tournant (il reste attaché à la fenêtre).
+         *
+         * @param rangee la rangée courante (non utilisisée — seul le
+         *        nouvel état est appliqué ; le paramètre est conservé
+         *        pour la signature explicite du contrat `payloads`).
+         * @param nouvelEtat l'état consolidé de l'étape (statut/durée).
+         */
+        @Suppress("UnusedParameter")
+        fun lierMajEtat(
+            rangee: RangeeConsole.EtapeArbre,
+            nouvelEtat: EtatEtapeArbre?,
+        ) {
+            val contexte = liaison.root.context
+            majMarqueur(nouvelEtat, contexte)
+            majDuree(nouvelEtat, contexte)
+        }
+
+        /** Met à jour le marqueur d'état (✓ / anneau / ○) selon [etat]. */
+        private fun majMarqueur(
+            etat: EtatEtapeArbre?,
+            contexte: Context,
+        ) {
             val sautee = etat?.sautee == true
             val terminee = etat?.terminee == true
-            liaison.marqueurEtapeSautee.isVisible = sautee
             liaison.marqueurEtapeTerminee.isVisible = terminee && !sautee
             liaison.marqueurEtapeEnCours.isVisible = etat != null && !terminee && !sautee
-            liaison.marqueurEtapeAttente.isVisible = etat == null
+            liaison.marqueurEtapeAttente.isVisible = etat == null || sautee
             if (liaison.marqueurEtapeEnCours.isVisible) {
-                liaison.marqueurEtapeEnCours.setIndicatorColor(
-                    ThemeHarmonizer.harmoniserAvecPrimaire(
-                        contexte,
-                        CanalTooling.SYNC.couleur,
-                    ),
-                )
+                // v0.40.1 : `backgroundTintList` teinte le drawable vectoriel
+                // de l'anneau — un seul `ObjectAnimator` partagé tourne
+                // toutes les `AnneauTournant` visibles, le `lier()` ne
+                // redémarre plus l'animation à chaque tick de durée.
+                liaison.marqueurEtapeEnCours.backgroundTintList =
+                    ColorStateList.valueOf(
+                        ThemeHarmonizer.harmoniserAvecPrimaire(
+                            contexte,
+                            CanalTooling.SYNC.couleur,
+                        ),
+                    )
             }
             // Libellé atténué d'une sautée (« en cache ») : de
             // l'information, pas du bruit.
             liaison.libelleEtapeArbre.alpha =
                 if (sautee) ALPHA_LIBELLE_SAUTEE else ALPHA_PLEIN
-            // Durée : MESURÉE à la fin de la phase, jamais devinée en
-            // cours (l'étape active ne montre rien — règle 9). Une sautée
-            // porte « En cache » : aucun travail n'a eu lieu.
+        }
+
+        /** Met à jour la durée (MESURÉE à la fin, jamais devinée en cours). */
+        private fun majDuree(
+            etat: EtatEtapeArbre?,
+            contexte: Context,
+        ) {
+            val sautee = etat?.sautee == true
             liaison.dureeEtapeArbre.text =
                 when {
                     sautee -> contexte.getString(R.string.editor_console_etape_en_cache)
@@ -589,6 +685,28 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             liaison.texteTache.setTextColor(couleur(ligne))
         }
 
+        /**
+         * Mise à jour EN PLACE (v0.40.1, correctif n°5) : seul le texte de
+         * la tâche (statut + durée) change — pas de rebind complet, pas
+         * d'animation de changement. L'identité de la tâche (chemin) ne
+         * change jamais après création de la rangée.
+         */
+        fun lierMajEtat(nouvelEtat: EtatTacheAffichee) {
+            liaison.texteTache.text = texte(nouvelEtat)
+            // La couleur suit le statut — on la recalcule depuis un faux
+            // `LigneConsole.Tache` portant le nouvel état (les champs
+            // `id` et `canal` ne servent pas à `couleur()`).
+            liaison.texteTache.setTextColor(
+                couleur(
+                    LigneConsole.Tache(
+                        id = 0L,
+                        canal = CanalTooling.BUILD,
+                        etat = nouvelEtat,
+                    ),
+                ),
+            )
+        }
+
         /** Libellé d'une tâche selon son statut (durée au-delà d'une seconde,
          *  comme la vue Build d'Android Studio) — l'état reste pur, la
          *  chaîne est construite ICI. */
@@ -664,5 +782,40 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             ancienne: RangeeConsole,
             nouvelle: RangeeConsole,
         ): Boolean = ancienne == nouvelle
+
+        /**
+         * Payloads granulaires (v0.40.1, correctif n°5 du prompt de suivi)
+         * : seuls les champs qui CHANGENT entre deux versions d'une même
+         * rangée sont renvoyés à `onBindViewHolder(holder, position,
+         * payloads)` — le `RecyclerView` ne fait plus d'animation de
+         * changement (clignotement) sur un simple tick de durée.
+         *
+         * Pour une étape d'arbre : `etat` (statut/durée). Pour une tâche :
+         * `ligne.etat` (statut/durée). Pour les autres rangées (détail de
+         * téléchargement, synthèse, pied), aucun payload — la rangée est
+         * entièrement rebine.
+         */
+        override fun getChangePayload(
+            ancienne: RangeeConsole,
+            nouvelle: RangeeConsole,
+        ): Any? {
+            // Seules les rangées qui peuvent muter EN PLACE sans
+            // déclencher d'animation de changement portent un payload.
+            return when (nouvelle) {
+                is RangeeConsole.EtapeArbre -> {
+                    val ancienEtat = (ancienne as? RangeeConsole.EtapeArbre)?.etat
+                    if (ancienEtat == nouvelle.etat) null else nouvelle.etat
+                }
+
+                is RangeeConsole.Tache -> {
+                    val ancienEtat = (ancienne as? RangeeConsole.Tache)?.ligne?.etat
+                    if (ancienEtat == nouvelle.ligne.etat) null else nouvelle.ligne.etat
+                }
+
+                else -> {
+                    null
+                }
+            }
+        }
     }
 }
