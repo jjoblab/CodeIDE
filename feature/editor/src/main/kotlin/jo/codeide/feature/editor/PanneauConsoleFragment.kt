@@ -9,7 +9,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.chip.Chip
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
@@ -24,19 +23,24 @@ import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
  * en liste plate — n'est plus un écran) — bouton Tâches armé par le cache
  * de la sync, BANDEAU d'échec avec « Voir les problèmes » et « Réessayer »,
  * annulation visible en vol, auto-défilement (le suivi s'arrête quand la
- * liste cesse de grandir — un build fini ne défile plus).
+ * liste cesse de grandir — un build fini ne défile plus) ; **v0.40.1
+ * (prompt de suivi §3) : UN SEUL chip d'action reflète l'action Gradle
+ * courante (Sync / Build / Tâches / Classpaths…), NON cliquable — plus
+ * de bascule utilisateur. La console montre toujours l'action courante
+ * (ou la dernière exécutée). Aucun chip s'il n'y a eu aucune action.**
  *
  * Le contenu migre du layout empilé de l'activité (v0.32.3) vers ce
  * fragment ; l'activité ne collecte plus l'état tooling — chaque fragment
  * collecte ce qu'il rend.
  *
- * Le filtre de canal (chips) vit dans le fragment : un état de VUE, pas un
- * état d'application — le ViewModel reste celui du tooling. Il survit à la
- * rotation par l'état d'instance.
+ * L'action courante (v0.40.1) vit dans le [EditorViewModel] — un build
+ * démarre bascule vers BUILD automatiquement, une sync démarre bascule
+ * vers SYNC. Plus de `BasculerFiltreConsole` — le chip est en lecture
+ * seule. Le fragment LIT l'action depuis l'état et publie le chip.
  *
  * Exemption detekt ciblée (même précédent que `TerminalTiroirFragment` et
  * `InstallFragment`) : TooManyFunctions — un fragment de panneau est un
- * CONTRAT de câblage (cycle de vie + filtre + bandeau + configuration
+ * CONTRAT de câblage (cycle de vie + chip + bandeau + configuration
  * intégrée), chaque fonction a son écouteur ou son rappel.
  */
 @Suppress("TooManyFunctions")
@@ -54,25 +58,19 @@ class PanneauConsoleFragment : Fragment() {
     /** ViewModel de l'espace de travail (porté par l'activité). */
     private val viewModel: EditorViewModel by activityViewModels()
 
-    /** Console du tooling (arbre / lignes / synthèse selon le filtre). */
+    /** Console du tooling (arbre / lignes / synthèse selon l'action). */
     private lateinit var adaptateur: ConsoleToolingAdapter
 
     /**
-     * Filtre de canal courant (§3.3 ; v5 — Sync par défaut, comme
-     * l'aperçu) — v0.39.1 : la vérité vit dans l'[EtatEditor] (persistée
-     * par rotation, pilotée par le ViewModel — un build démarre bascule
-     * vers BUILD automatiquement). Le fragment ne fait que LIRE l'état
-     * et émettre l'action [ActionEditor.BasculerFiltreConsole] au clic.
-     * La sauvegarde locale [CLE_FILTRE_CANAL] reste pour la continuité
+     * Action courante (v0.40.1, prompt de suivi §3) : la vérité vit dans
+     * [EditorViewModel] via `EtatEditor.filtreConsole` — le fragment ne
+     * fait que LIRE l'état pour publier le chip et la vue correspondante.
+     * Plus de bascule utilisateur — le chip est NON cliquable. La
+     * sauvegarde locale [CLE_ACTION_COURANTE] reste pour la continuité
      * de cycle entre l'instance du fragment et le ViewModel (re-création
      * du ViewModel avant le onCreateView).
      */
-    private var filtre: FiltreCanalConsole = FiltreCanalConsole.SYNC
-
-    /** Anti-réentrance : le rendu programme les chips sans déclencher
-     *  leurs écouteurs (même garde-fou que le rendu idempotent de la
-     *  configuration). */
-    private var renduChipsEnCours = false
+    private var action: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
     /** Taille de la dernière fenêtre rendue (auto-défilement). */
     private var tailleDerniereFenetre = 0
@@ -87,14 +85,13 @@ class PanneauConsoleFragment : Fragment() {
         etat: Bundle?,
     ): View {
         liaisonAmorce = FragmentPanneauConsoleBinding.inflate(inflateur, conteneur, false)
-        // v0.39.1 : on AMORCE avec la sauvegarde locale du fragment (survit
+        // v0.40.1 : on AMORCE avec la sauvegarde locale du fragment (survit
         // à la rotation du fragment sans ViewModel), l'observation de
         // `viewModel.etat` ré-appliquera la vérité du ViewModel juste
-        // après (l'ouverture d'un build depuis le sélecteur bascule vers
-        // BUILD sans attendre un clic de l'utilisateur).
-        filtre =
+        // après.
+        action =
             etat
-                ?.getString(CLE_FILTRE_CANAL)
+                ?.getString(CLE_ACTION_COURANTE)
                 ?.let { nom -> FiltreCanalConsole.entries.firstOrNull { it.name == nom } }
                 ?: viewModel.etat.value.filtreConsole
         return liaison.root
@@ -123,7 +120,6 @@ class PanneauConsoleFragment : Fragment() {
         liaison.boutonAnnulerBuild.setOnClickListener {
             viewModel.onAction(ActionEditor.AnnulerBuild)
         }
-        brancherChips()
         brancherActionsEchec()
         // Sélecteur de tâches (§3.3) : armé par le cache de la sync (aucun
         // aller-retour), le bouton reste honnête tant qu'il est éteint
@@ -150,15 +146,15 @@ class PanneauConsoleFragment : Fragment() {
             retourConfiguration,
         )
 
-        rendreChips()
-        // v0.39.1 : l'état du filtre vit dans le ViewModel — on l'observe
-        // pour que les chips se mettent à jour quand un build démarre (la
-        // bascule est poussée par `executerTachesGradle`).
+        // v0.40.1 : l'action courante vit dans le ViewModel — on l'observe
+        // pour que le chip se mette à jour quand un build ou une sync
+        // démarre (la bascule est poussée par `executerTachesGradle` /
+        // `synchroniserProjetGradle`). Plus de bascule utilisateur — le
+        // chip est NON cliquable.
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
-            if (filtre != etat.filtreConsole) {
-                filtre = etat.filtreConsole
+            if (action != etat.filtreConsole) {
+                action = etat.filtreConsole
                 tailleDerniereFenetre = 0
-                rendreChips()
                 rendre(viewModel.etatGradle.value)
             }
         }
@@ -167,36 +163,12 @@ class PanneauConsoleFragment : Fragment() {
 
     override fun onSaveInstanceState(etat: Bundle) {
         super.onSaveInstanceState(etat)
-        etat.putString(CLE_FILTRE_CANAL, filtre.name)
+        etat.putString(CLE_ACTION_COURANTE, action.name)
     }
 
     override fun onDestroyView() {
         liaisonAmorce = null
         super.onDestroyView()
-    }
-
-    /** Chips Sync/Build (§3.3 ; v5 — aperçu) : vues EXCLUSIVES, l'une des
-     *  deux TOUJOURS active (ChipGroup à sélection unique exigée) —
-     * Sync = l'arbre des étapes, Build = les tâches ; il n'y a plus de
-     * retour à une chronologie brute. */
-    private fun brancherChips() {
-        liaison.groupeFiltresConsole.setOnCheckedStateChangeListener { _, ids ->
-            if (!renduChipsEnCours) {
-                val cible =
-                    if (R.id.chip_filtre_build in ids) {
-                        FiltreCanalConsole.BUILD
-                    } else {
-                        FiltreCanalConsole.SYNC
-                    }
-                // v0.39.1 : la vérité vit dans le ViewModel — l'action
-                // y remonte, l'observation de `etat` ré-appliquera les
-                // chips et rendra la console. Un build démarreur profite
-                // du même chemin (bascule automatique vers BUILD).
-                if (cible != filtre) {
-                    viewModel.onAction(ActionEditor.BasculerFiltreConsole(cible))
-                }
-            }
-        }
     }
 
     /** Bandeau d'échec (§3.3) : « Voir les problèmes » (onglet dédié) et
@@ -213,24 +185,11 @@ class PanneauConsoleFragment : Fragment() {
         }
     }
 
-    /** Pose l'état visuel des chips depuis [filtre] sans déclencher les
-     *  écouteurs (rendu idempotent — la sélection unique du ChipGroup
-     *  décoche l'autre chip toute seule). */
-    private fun rendreChips() {
-        renduChipsEnCours = true
-        try {
-            liaison.chipFiltreSync.isChecked = filtre == FiltreCanalConsole.SYNC
-            liaison.chipFiltreBuild.isChecked = filtre == FiltreCanalConsole.BUILD
-        } finally {
-            renduChipsEnCours = false
-        }
-    }
-
     /** Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le
      *  bouton Tâches, le bandeau d'échec (message du serveur sinon
      *  libellé générique, « Réessayer » seulement si des tâches existent),
-     *  la console filtrée (fenêtre bornée, arbre en vue Sync) et l'état
-     *  vide. */
+     *  le chip d'action courante (v0.40.1 §3), la console filtrée (fenêtre
+     *  bornée, arbre en vue Sync) et l'état vide. */
     private fun rendre(etat: EtatGradle) {
         liaison.statutSortie.text =
             PresentationTooling.libelleStatut(etat).resoudre(requireContext())
@@ -253,7 +212,11 @@ class PanneauConsoleFragment : Fragment() {
             liaison.boutonReessayerBuild.isVisible = etat.taches.isNotEmpty()
         }
 
-        val rangees = construireRangeesConsole(etat, filtre)
+        // v0.40.1 (§3) : chip d'action UNIQUE reflétant l'action courante.
+        // Aucun chip s'il n'y a eu aucune action Gradle (état vierge).
+        rendreChipAction(etat)
+
+        val rangees = construireRangeesConsole(etat, action)
         adaptateur.submitList(rangees)
         val enVol = etat.statutBuild == StatutBuild.EN_COURS || etat.synchronisationEnCours
         if (enVol && rangees.size > tailleDerniereFenetre && rangees.isNotEmpty()) {
@@ -261,6 +224,52 @@ class PanneauConsoleFragment : Fragment() {
         }
         tailleDerniereFenetre = rangees.size
         liaison.texteSortieVide.isVisible = rangees.isEmpty()
+    }
+
+    /**
+     * Publie le chip d'action UNIQUE (v0.40.1, prompt de suivi §3) —
+     * reflète l'action Gradle courante (Sync / Build / Tâches / Classpaths…).
+     * NON cliquable. Aucun chip s'il n'y a eu aucune action (état vierge :
+     * aucune sync annoncée, aucun build, aucune tâche).
+     *
+     * Couleur de canal harmonisée (cf. aperçu v3 §6 : bordure et texte
+     * en couleur de canal harmonisée, fond teinté 12 %). Le chip n'a
+     * PAS d'icône — l'icône vit dans l'en-tête du panneau (pastille de
+     * canal, cf. PanneauToolingController).
+     */
+    private fun rendreChipAction(etat: EtatGradle) {
+        val canal =
+            when {
+                etat.synchronisationEnCours || etat.synchronisationReussie != null ||
+                    etat.messageEchecSync != null -> CanalTooling.SYNC
+
+                etat.statutBuild != null -> CanalTooling.BUILD
+
+                else -> null
+            }
+        if (canal == null) {
+            // Aucune action Gradle n'a eu lieu — pas de chip.
+            liaison.chipActionCourante.isVisible = false
+            return
+        }
+        val libelle =
+            when (canal) {
+                CanalTooling.SYNC -> R.string.editor_tooling_canal_sync
+                CanalTooling.BUILD -> R.string.editor_tooling_canal_build
+                CanalTooling.TACHES -> R.string.editor_tooling_canal_taches
+            }
+        liaison.chipActionCourante.text = getString(libelle)
+        val couleurHarmonisee = ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur)
+        liaison.chipActionCourante.chipBackgroundColor =
+            android.content.res.ColorStateList.valueOf(
+                androidx.core.graphics.ColorUtils
+                    .setAlphaComponent(couleurHarmonisee, ALPHA_FOND_TINTE_CHIP),
+            )
+        liaison.chipActionCourante.chipStrokeColor =
+            android.content.res.ColorStateList
+                .valueOf(couleurHarmonisee)
+        liaison.chipActionCourante.setTextColor(couleurHarmonisee)
+        liaison.chipActionCourante.isVisible = true
     }
 
     /** Canal du statut (v0.32.5, ADR 0056 décision 5) : l'icône signature
@@ -324,7 +333,14 @@ class PanneauConsoleFragment : Fragment() {
         /** Étiquette de la page de configuration (anti-doublon). */
         const val ETIQUETTE_CONFIG = "config-tooling"
 
-        /** Clé du filtre de canal dans l'état d'instance. */
-        const val CLE_FILTRE_CANAL = "filtre-canal-console"
+        /** Clé de l'action courante dans l'état d'instance (v0.40.1). */
+        const val CLE_ACTION_COURANTE = "action-courante-console"
+
+        /**
+         * Alpha du fond teinté du chip d'action (v0.40.1, prompt de suivi
+         * §6 — `color-mix(in srgb, var(--c) 12%, transparent)` dans l'aperçu
+         * v3). 12 % de 255 ≈ 31.
+         */
+        const val ALPHA_FOND_TINTE_CHIP = 31
     }
 }

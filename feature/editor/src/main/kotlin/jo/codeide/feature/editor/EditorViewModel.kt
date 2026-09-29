@@ -731,7 +731,6 @@ class EditorViewModel
                 is ActionEditor.ChangerEtatPanneau -> changerEtatPanneau(action.etat)
                 is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
                 is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
-                is ActionEditor.BasculerFiltreConsole -> basculerFiltreConsole(action.filtre)
                 ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
                 else -> Unit // Routage exhaustif par les trois branches.
             }
@@ -2619,17 +2618,11 @@ class EditorViewModel
         }
 
         /**
-         * Bascule le filtre de canal de la console (v0.39.1, correctif n°3) :
-         * persisté pour la rotation — un build qui démarre appelle
-         * `selectionnerFiltreConsole(BUILD)` depuis `executerTachesGradle`,
-         * l'utilisateur peut revenir à SYNC via les chips (action
-         * `BasculerFiltreConsole`).
+         * Persiste et publie l'action courante (v0.40.1, prompt de suivi §3).
+         * Le chip d'action unique est NON cliquable — plus de `Basculer
+         * FiltreConsole`. La bascule est poussée par `synchroniserProjet
+         * Gradle` (vers SYNC) et `executerTachesGradle` (vers BUILD).
          */
-        private fun basculerFiltreConsole(filtre: FiltreCanalConsole) {
-            selectionnerFiltreConsole(filtre)
-        }
-
-        /** Persiste et publie le filtre de canal courant (v0.39.1). */
         private fun selectionnerFiltreConsole(filtre: FiltreCanalConsole) {
             if (etatInterne.value.filtreConsole == filtre) return
             sauvetage[ClesEditor.CLE_FILTRE_CONSOLE] = filtre.name
