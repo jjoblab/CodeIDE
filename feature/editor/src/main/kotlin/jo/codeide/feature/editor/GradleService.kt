@@ -149,13 +149,11 @@ data class EtatTacheAffichee(
 /**
  * Étape de sync affichée dans la console (v3 ; v4 : phases réelles +
  * DÉTAILS de progression — octets reçus, élément courant, compteur n/N ;
- * v5 : [sautee] pour une phase satisfaite d'avance).
+ * v6 — prompt de suivi §2 : suppression du champ `sautee`, une phase qui
+ * n'a pas lieu n'est plus émise du tout par le serveur).
  *
  * @property etape phase annoncée.
  * @property terminee `true` à la fin (durée à la clé).
- * @property sautee `true` pour une phase SATISFAITE D'AVANCE (v5 —
- *           distribution déjà en cache) : aucun travail n'a eu lieu, la
- *           rangée de l'arbre porte « en cache » et jamais une durée.
  * @property dureeMs durée de la phase à sa fin.
  * @property octetsRecus octets reçus cumulés (téléchargements) — 0 si sans objet.
  * @property octetsTotal octets totaux si connus — `null` sinon.
@@ -166,7 +164,6 @@ data class EtatTacheAffichee(
 data class EtapeSyncAffichee(
     val etape: EtapeSync,
     val terminee: Boolean = false,
-    val sautee: Boolean = false,
     val dureeMs: Long = 0,
     val octetsRecus: Long = 0,
     val octetsTotal: Long? = null,
@@ -176,17 +173,17 @@ data class EtapeSyncAffichee(
 )
 
 /**
- * Statut d'affichage d'une étape de sync (v4, §3.2) : l'arbre de la
- * console marque ✓ (terminée), spinner (en cours), ○ (en attente) — et
- * point gris (v5 : SAUTÉE, satisfaite d'avance « en cache ») — l'état
- * reste pur, les symboles appartiennent au rendu.
+ * Statut d'affichage d'une étape de sync (v4, §3.2 ; v6 — prompt de suivi
+ * §2 : suppression du concept « sautée / En cache ») : l'arbre de la
+ * console marque ✓ (terminée), anneau tournant (en cours), ○ (en attente) —
+ * l'état reste pur, les symboles appartiennent au rendu. Une étape qui n'a
+ * pas lieu n'est plus affichée du tout (plus de `SAUTEE`).
  */
 enum class StatutEtapeSync {
     EN_ATTENTE,
     EN_COURS,
     TERMINEE,
     ECHOUEE,
-    SAUTEE,
 }
 
 /**
@@ -580,7 +577,6 @@ class GradleService
                                 EtapeSyncAffichee(
                                     etape = etape.etape,
                                     terminee = etape.terminee,
-                                    sautee = etape.sautee,
                                     dureeMs = etape.dureeMs,
                                     octetsRecus = etape.octetsRecus,
                                     octetsTotal = etape.octetsTotal,

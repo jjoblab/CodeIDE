@@ -69,31 +69,10 @@ class RangeesConsoleTest {
         assertTrue("aucun arbre sans annonce — l'état vide parle (v5)", rangees.isEmpty())
     }
 
-    @Test
-    fun `la distribution en cache est SAUTEE - point en cache, jamais de duree`() {
-        val etat =
-            EtatGradle(
-                synchronisationEnCours = true,
-                lignes =
-                    listOf(
-                        ligneEtape(id = 1, EtapeSyncAffichee(etape = EtapeSync.OUTILS, terminee = true, dureeMs = 300)),
-                        ligneEtape(
-                            id = 2,
-                            EtapeSyncAffichee(etape = EtapeSync.DISTRIBUTION, terminee = true, sautee = true),
-                        ),
-                    ),
-            )
-
-        val distribution =
-            construireRangeesConsole(etat, FiltreCanalConsole.SYNC)
-                .filterIsInstance<RangeeConsole.EtapeArbre>()
-                .first { it.etape == EtapeConsoleSync.DISTRIBUTION }
-
-        val etatConsolide = distribution.etat
-        assertTrue("sautée (en cache) — v5", etatConsolide?.sautee == true)
-        assertTrue("terminée sans travail", etatConsolide?.terminee == true)
-        assertEquals("aucune durée : aucun travail n'a eu lieu", 0L, etatConsolide?.dureeMs)
-    }
+    // v6 (prompt de suivi §2) : le test `la distribution en cache est
+    // SAUTEE - point en cache, jamais de duree` est SUPPRIMÉ — le drapeau
+    // `sautee` n'existe plus. Une distribution en cache n'est pas émise
+    // par le serveur, donc pas présente dans l'arbre du client.
 
     @Test
     fun `la fusion dependances et modele IDE conclut sans telechargement annonce`() {
@@ -200,7 +179,6 @@ class RangeesConsoleTest {
                 EtapeConsoleSync.DEPENDANCES_MODELE,
                 EtatEtapeArbre(
                     terminee = false,
-                    sautee = false,
                     dureeMs = 0L,
                     octetsRecus = 44_040_192L,
                     octetsTotal = 136_314_880L,
@@ -253,11 +231,11 @@ class RangeesConsoleTest {
                 lignes = etapes.mapIndexed { index, etat -> ligneEtape(index.toLong() + 1L, etat) },
             )
 
-        // Sync chaude : distribution sautée, aucun octet reçu.
+        // v6 : la distribution en cache n'est pas émise — aucune étape
+        // DISTRIBUTION dans les lignes, aucun octet reçu → pied « à jour ».
         val aJour =
             construireRangeesConsole(
                 etatAvec(
-                    EtapeSyncAffichee(etape = EtapeSync.DISTRIBUTION, terminee = true, sautee = true),
                     EtapeSyncAffichee(etape = EtapeSync.CLASSPATHS, terminee = true, compteur = 3),
                 ),
                 FiltreCanalConsole.SYNC,

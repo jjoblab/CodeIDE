@@ -141,15 +141,13 @@ internal sealed interface RangeeConsole {
 }
 
 /**
- * État CONSOLIDÉ d'une rangée de l'arbre (v5) : fusionne les phases
- * sous-jacentes de l'étape affichée.
+ * État CONSOLIDÉ d'une rangée de l'arbre (v5 ; v6 — prompt de suivi §2 :
+ * suppression du champ `sautee`) : fusionne les phases sous-jacentes de
+ * l'étape affichée.
  *
  * @property terminee `true` quand TOUTES les phases annoncées sont
  *           terminées (la fusion « Dépendances et modèle IDE » attend les
  *           deux — une phase jamais annoncée n'attend rien).
- * @property sautee `true` pour une phase satisfaite d'AVANCE (v5 —
- *           distribution en cache) : la rangée porte « en cache », aucun
- *           travail n'a eu lieu.
  * @property dureeMs cumul des durées des phases terminées (la fusion peut
  *           CHEVAUCHER ses phases : le cumul est un temps de travail, pas
  *           une fenêtre calendaire — KDoc de l'aperçu).
@@ -161,7 +159,6 @@ internal sealed interface RangeeConsole {
  */
 internal data class EtatEtapeArbre(
     val terminee: Boolean,
-    val sautee: Boolean,
     val dureeMs: Long,
     val octetsRecus: Long = 0,
     val octetsTotal: Long? = null,
@@ -228,7 +225,9 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
 }
 
 /** Consolide l'état d'une rangée depuis ses phases annoncées — `null`
- *  quand aucune n'a été annoncée (rangée en attente ○). */
+ *  quand aucune n'a été annoncée (rangée en attente ○). v6 (prompt de
+ *  suivi §2) : plus de `sautee` — une phase qui n'a pas lieu n'est pas
+ *  annoncée du tout, donc pas présente dans [annoncees]. */
 private fun consolider(
     etape: EtapeConsoleSync,
     annoncees: Map<EtapeSync, EtapeSyncAffichee>,
@@ -244,7 +243,6 @@ private fun consolider(
             ?: sousJacentes.last()
     return EtatEtapeArbre(
         terminee = sousJacentes.all { it.terminee },
-        sautee = sousJacentes.all { it.sautee },
         dureeMs = sousJacentes.filter { it.terminee }.sumOf { it.dureeMs },
         octetsRecus = porteuse.octetsRecus,
         octetsTotal = porteuse.octetsTotal,

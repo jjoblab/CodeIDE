@@ -282,9 +282,6 @@ public data class EtatSyncTooling(
  *           personnelle.
  * @property compteur éléments terminés de la phase (n).
  * @property total éléments totaux de la phase (N) si connu.
- * @property sautee `true` pour une phase satisfaite d'avance (v5 —
- *           distribution déjà en cache) : aucun travail n'a eu lieu, la
- *           durée reste 0 et l'arbre du client affiche « en cache ».
  */
 public data class EtapeSyncTooling(
     public val projectDir: String? = null,
@@ -296,7 +293,6 @@ public data class EtapeSyncTooling(
     public val element: String? = null,
     public val compteur: Int? = null,
     public val total: Int? = null,
-    public val sautee: Boolean = false,
 )
 
 /**
