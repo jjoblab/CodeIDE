@@ -57,8 +57,16 @@ class PanneauConsoleFragment : Fragment() {
     /** Console du tooling (arbre / lignes / synthèse selon le filtre). */
     private lateinit var adaptateur: ConsoleToolingAdapter
 
-    /** Filtre de canal courant (§3.3 ; v5 — Sync par défaut, comme
-     *  l'aperçu) — survit à la rotation. */
+    /**
+     * Filtre de canal courant (§3.3 ; v5 — Sync par défaut, comme
+     * l'aperçu) — v0.39.1 : la vérité vit dans l'[EtatEditor] (persistée
+     * par rotation, pilotée par le ViewModel — un build démarre bascule
+     * vers BUILD automatiquement). Le fragment ne fait que LIRE l'état
+     * et émettre l'action [ActionEditor.BasculerFiltreConsole] au clic.
+     * La sauvegarde locale [CLE_FILTRE_CANAL] reste pour la continuité
+     * de cycle entre l'instance du fragment et le ViewModel (re-création
+     * du ViewModel avant le onCreateView).
+     */
     private var filtre: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
     /** Anti-réentrance : le rendu programme les chips sans déclencher
@@ -79,11 +87,16 @@ class PanneauConsoleFragment : Fragment() {
         etat: Bundle?,
     ): View {
         liaisonAmorce = FragmentPanneauConsoleBinding.inflate(inflateur, conteneur, false)
+        // v0.39.1 : on AMORCE avec la sauvegarde locale du fragment (survit
+        // à la rotation du fragment sans ViewModel), l'observation de
+        // `viewModel.etat` ré-appliquera la vérité du ViewModel juste
+        // après (l'ouverture d'un build depuis le sélecteur bascule vers
+        // BUILD sans attendre un clic de l'utilisateur).
         filtre =
             etat
                 ?.getString(CLE_FILTRE_CANAL)
                 ?.let { nom -> FiltreCanalConsole.entries.firstOrNull { it.name == nom } }
-                ?: FiltreCanalConsole.SYNC
+                ?: viewModel.etat.value.filtreConsole
         return liaison.root
     }
 
@@ -125,6 +138,17 @@ class PanneauConsoleFragment : Fragment() {
         )
 
         rendreChips()
+        // v0.39.1 : l'état du filtre vit dans le ViewModel — on l'observe
+        // pour que les chips se mettent à jour quand un build démarre (la
+        // bascule est poussée par `executerTachesGradle`).
+        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
+            if (filtre != etat.filtreConsole) {
+                filtre = etat.filtreConsole
+                tailleDerniereFenetre = 0
+                rendreChips()
+                rendre(viewModel.etatGradle.value)
+            }
+        }
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
     }
 
@@ -145,14 +169,19 @@ class PanneauConsoleFragment : Fragment() {
     private fun brancherChips() {
         liaison.groupeFiltresConsole.setOnCheckedStateChangeListener { _, ids ->
             if (!renduChipsEnCours) {
-                filtre =
+                val cible =
                     if (R.id.chip_filtre_build in ids) {
                         FiltreCanalConsole.BUILD
                     } else {
                         FiltreCanalConsole.SYNC
                     }
-                tailleDerniereFenetre = 0
-                rendre(viewModel.etatGradle.value)
+                // v0.39.1 : la vérité vit dans le ViewModel — l'action
+                // y remonte, l'observation de `etat` ré-appliquera les
+                // chips et rendra la console. Un build démarreur profite
+                // du même chemin (bascule automatique vers BUILD).
+                if (cible != filtre) {
+                    viewModel.onAction(ActionEditor.BasculerFiltreConsole(cible))
+                }
             }
         }
     }
@@ -195,9 +224,12 @@ class PanneauConsoleFragment : Fragment() {
         baliserCanalStatut(etat)
         liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
-        // Tâches : armé dès que la sync a rempli le cache — l'action
-        // ouvre le sélecteur SANS aller-retour serveur (v4).
-        liaison.boutonTachesSortie.isEnabled = etat.tachesDisponibles?.isNotEmpty() == true
+        // Tâches : armé dès que la sync a REMPLI le cache (v4) — v0.39.1
+        // (correctif n°2) : `tachesDisponibles` vaut désormais `emptyList()`
+        // après une sync réussie dont le listage a échoué (au lieu de
+        // `null` silencieux) — le bouton s'active quand même, le clic
+        // retente le listage via l'orchestrateur (cf. `ouvrirSelecteurTaches`).
+        liaison.boutonTachesSortie.isEnabled = etat.tachesDisponibles != null
 
         val echoue = etat.statutBuild == StatutBuild.ECHOUE
         liaison.bandeauEchecBuild.isVisible = echoue

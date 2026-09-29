@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Synthèse FINALE du build (v4, §3.3) : verdict (coche de succès, croix
-     d'échec, trait d'annulation), durée MESURÉE, message d'échec — la
-     dernière ligne de la vue Build, comme la synthèse d'Android Studio. -->
+<!-- Synthèse FINALE du build (v4, §3.3 ; v0.39.1 correctif n°4 — style
+     Android Studio) : verdict (coche de succès, croix d'échec, trait
+     d'annulation), durée MESURÉE, message d'échec, ET compte des tâches
+     actionnables (« N actionable tasks: M executed[, K up-to-date] »)
+     sous le verdict — la dernière ligne de la vue Build, comme la
+     synthèse d'Android Studio. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -22,15 +25,41 @@
         app:tint="?attr/colorSucces"
         tools:srcCompat="@drawable/ic_fait" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/texte_synthese_build"
+    <!-- Conteneur vertical : verdict (Build réussi en X) au-dessus,
+         compte des tâches (« N actionable tasks: M executed[, K up-to-date] »)
+         en-dessous — les deux lignes dans la même rangée de synthèse. -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_sm"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textStyle="bold"
-        tools:text="Build réussi en 12,4s" />
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_synthese_build"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textStyle="bold"
+            tools:text="Build réussi en 12,4s" />
+
+        <!-- Compte des tâches actionnables (v0.39.1, correctif n°4) —
+             masqué tant que la synthèse de Gradle n'est pas arrivée
+             (build échoué avant la fin, sortie non détectable). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_synthese_taches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="37 actionable tasks: 2 executed, 35 up-to-date"
+            tools:visibility="visible" />
+    </LinearLayout>
 </LinearLayout>

@@ -4,6 +4,70 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [Non publié] – 2026-09-29
+
+### Corrigé (tooling Gradle professionnel — comme Android Studio)
+
+- **Faux négatif JDK à l'ouverture d'un projet** (correctif n°1, race
+  condition) : la sync d'ouverture partait DÈS la première connaissance du
+  projet, AVANT que l'observateur d'outils (`ObservateurOutilsTerminal`)
+  n'ait émis son premier état réel. La garde JDK lisait alors la valeur
+  PAR DÉFAUT (`EtatOutilsTerminal()` — tout `false`) et refusait la sync
+  avec « JDK absent — les outils du terminal ne sont pas installés. »
+  alors que le JDK ÉTAIT installé. Nouveau drapeau `EtatOutilsTerminal.
+  initialise` (passé à `true` dès le premier scan réel) ; la sync
+  d'ouverture attend désormais le premier état initialisé (garde bornée
+  à 5 s — un appareil lent ne bloque pas) avant de démarrer. Plus de
+  refus JDK mensonger.
+- **Bouton « Tâches » resté grisé après une sync réussie** (correctif n°2)
+  : après une sync utile, un second `TasksRequest` partait vers le
+  serveur pour remplir `tachesDisponibles`. En cas d'échec silencieux de
+  ce second appel (connexion passagère, timeout), `tachesDisponibles`
+  restait `null` et le bouton restait grisé — l'utilisateur voyait «
+  Synchronisé en X s » dans l'en-tête mais ne pouvait pas ouvrir le
+  sélecteur. Désormais, la sync réussie publie `tachesDisponibles =
+  emptyList()` en cas d'échec du listage différé — le bouton s'active
+  quand même, le clic retombe sur `listerTachesProjet` côté orchestrateur
+  (avec son indicateur de vol) au lieu d'ouvrir un sélecteur vide qui ment.
+- **Lignes `> Task :app:xxx` non affichées pendant un build** (correctif
+  n°3) : la console basculait sur l'onglet Sortie mais PAS sur la vue
+  BUILD — l'utilisateur restait sur la vue SYNC (l'arbre des étapes) et
+  ne voyait pas les tâches. Nouvel état `EtatEditor.filtreConsole`
+  (persisté pour la rotation), piloté par le ViewModel : `executerTaches
+  Gradle` bascule vers BUILD automatiquement, `synchroniserProjetGradle`
+  bascule vers SYNC. L'utilisateur peut revenir à SYNC à la main via les
+  chips (nouvelle action `ActionEditor.BasculerFiltreConsole`). Le
+  fragment lit la vérité du ViewModel au lieu de porter l'état.
+- **Synthèse `BUILD SUCCESSFUL in Xs + N actionable tasks: M executed
+  (K up-to-date)` manquante** (correctif n°4) : la dernière ligne stdout
+  de Gradle (« N actionable tasks: M executed[, K up-to-date] ») était
+  capturée mais pas affichée — seule la synthèse « Build réussi en X »
+  s'affichait. Nouveau `ParseurSyntheseBuild` côté serveur extrait les
+  comptes au fil de l'eau ; nouveaux champs `BuildFinished.
+  actionableTasks/executedTasks/upToDateTasks` voyagent dans le
+  protocole ; `EtatBuild` les propage ; `RangeeConsole.SyntheseBuild`
+  les porte ; `ligne_synthese_build.xml` gagne une seconde ligne
+  monospace pour les compter (« 37 tâches actionnables : 2 exécutées,
+  35 à jour »), comme la console d'Android Studio. Fichiers dorés
+  régénérés.
+- **En-tête du BottomSheet non mis à jour pendant/après un build** et
+  confusion « annulé » vs « échoué » (correctif n°5) : un build ANNULÉ
+  était affiché en rouge `ECHOUE` (le serveur était muet sur la cause —
+  toujours `succeeded=false` avec le message « annulé »). Nouveau champ
+  `BuildFinished.cancelled` distingue l'annulation de l'échec ;
+  `pomperFin` (client) et `versEtatBuild` (api) mappent à
+  `StatutBuild.ANNULE` quand `cancelled=true`. `PanneauToolingController.
+  rendre` ré-initialise proprement l'en-tête (pastille, titre, sous-titre,
+  minuteur) quand `canal` est `null` — plus de résidu visuel d'un build
+  précédent à la ré-ouverture d'un espace dont l'état a été nettoyé.
+- **État des outils (JDK/Gradle/SDK) non exposé à l'UI** (correctif n°6) :
+  `EditorViewModel.etatOutilsTerminal` devient public (était `private`
+  par oubli) — la carte terminal du tiroir n'exposait que
+  `bootstrapInstalle`, laissant l'UI incapable de distinguer « JDK
+  absent » de « sync refusée par cache non peuplé ». Tout écran de
+  diagnostic ou bandeau futur peut désormais s'abonner à l'état réel
+  des outils.
+
 ## [0.40.0] – 2026-09-29
 
 ### Modifié (correspondance avec l'aperçu du tooling — retour utilisateur

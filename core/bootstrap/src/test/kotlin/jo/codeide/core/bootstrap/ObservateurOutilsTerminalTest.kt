@@ -88,12 +88,15 @@ class ObservateurOutilsTerminalTest {
                 }
 
             runCurrent()
-            assertEquals(listOf(EtatOutilsTerminal()), etats)
+            // v0.39.1 : la première émission porte `initialise = true` —
+            // le disque a été lu au moins une fois. Le reste reste `false`
+            // (aucun outil détecté sur disque vide).
+            assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
 
             // Un ballotage SANS changement de disque ne réémet rien.
             advanceTimeBy(2_000)
             runCurrent()
-            assertEquals(listOf(EtatOutilsTerminal()), etats)
+            assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
             collecte.cancel()
         }
 
@@ -114,7 +117,7 @@ class ObservateurOutilsTerminalTest {
                 }
 
             runCurrent()
-            assertEquals(EtatOutilsTerminal(), etats.single())
+            assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
 
             // Le disque porte désormais le bootstrap (posé « pendant » que
             // personne ne collectait le ballotage) : la transition de
@@ -127,7 +130,10 @@ class ObservateurOutilsTerminalTest {
 
             assertEquals(
                 "la fin d'installation est visible immédiatement",
-                listOf(EtatOutilsTerminal(), EtatOutilsTerminal(bootstrapInstalle = true)),
+                listOf(
+                    EtatOutilsTerminal(initialise = true),
+                    EtatOutilsTerminal(bootstrapInstalle = true, initialise = true),
+                ),
                 etats,
             )
             collecte.cancel()
@@ -154,7 +160,7 @@ class ObservateurOutilsTerminalTest {
                 }
 
             runCurrent()
-            assertEquals(EtatOutilsTerminal(), etats.single())
+            assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
 
             // Le tooling télécharge SA distribution dans le HOME du shell.
             deposerFichier(
@@ -173,8 +179,8 @@ class ObservateurOutilsTerminalTest {
 
             assertEquals(
                 listOf(
-                    EtatOutilsTerminal(),
-                    EtatOutilsTerminal(gradleInstalle = true),
+                    EtatOutilsTerminal(initialise = true),
+                    EtatOutilsTerminal(gradleInstalle = true, initialise = true),
                 ),
                 etats,
             )

@@ -14,8 +14,15 @@ import jo.codeide.core.domain.StatutBuild
  * un écran, comme l'aperçu ne la montre pas — les sorties brutes ne
  * mélangent plus l'arbre ni les tâches (les diagnostics vivent dans
  * l'onglet Problèmes, le journal applicatif dans l'onglet Journal).
+ *
+ * v0.39.1 (correctif n°3) : la visibilité passe de `internal` à `public`
+ * — l'état du filtre est désormais piloté par le [EditorViewModel] (un
+ * build qui démarre bascule vers BUILD automatiquement) et exposé dans
+ * [EtatEditor.filtreConsole] pour que la rotation et les actions
+ * utilisateur le traversent. L'`internal` était un oubli de la v5 (le
+ * filtre vivait dans le fragment, sans traversal d'état).
  */
-internal enum class FiltreCanalConsole {
+enum class FiltreCanalConsole {
     /** Arbre des étapes de sync (§3.3) + détail de téléchargement + pied. */
     SYNC,
 
@@ -101,11 +108,22 @@ internal sealed interface RangeeConsole {
             get() = "tache-${ligne.id}"
     }
 
-    /** Synthèse finale du build (§3.3) : verdict, durée, message. */
+    /** Synthèse finale du build (§3.3 ; v0.39.1 — correctif n°4 : style
+     *  Android Studio) : verdict + durée + compte des tâches actionnables
+     *  (« N actionable tasks: M executed[, K up-to-date] »), message
+     *  d'échec le cas échéant — la dernière ligne de la vue Build, comme
+     *  la synthèse d'Android Studio. */
     data class SyntheseBuild(
         val statut: StatutBuild,
         val dureeMs: Long?,
         val message: String?,
+        /** Total des tâches actionnables — `null` si non observé. */
+        val tachesActionnables: Int? = null,
+        /** Tâches réellement exécutées — `null` si non observé. */
+        val tachesExecutees: Int? = null,
+        /** Tâches à jour (incrémental) — `null` si Gradle ne l'imprime
+         *  pas (build sans cache, premier lancement). */
+        val tachesAJour: Int? = null,
     ) : RangeeConsole {
         override val idCle: String
             get() = "synthese-build"
@@ -252,7 +270,11 @@ private fun piedSync(etat: EtatGradle): List<RangeeConsole.SyntheseSync> {
     }
 }
 
-/** Synthèse de fin de build : absente en vol, présente une fois terminé. */
+/** Synthèse de fin de build : absente en vol, présente une fois terminé.
+ *  v0.39.1 (correctif n°4) : la synthèse porte AUSSI les comptes de
+ *  tâches actionnables/exécutées/à jour extraits côté serveur de la
+ *  dernière ligne stdout de Gradle — la console les affiche sous le
+ *  verdict comme Android Studio. */
 private fun syntheseBuild(etat: EtatGradle): List<RangeeConsole.SyntheseBuild> =
     when (etat.statutBuild) {
         StatutBuild.REUSSI,
@@ -264,6 +286,9 @@ private fun syntheseBuild(etat: EtatGradle): List<RangeeConsole.SyntheseBuild> =
                     statut = etat.statutBuild,
                     dureeMs = etat.dureeBuildMs,
                     message = etat.messageEchecBuild,
+                    tachesActionnables = etat.tachesActionnablesBuild,
+                    tachesExecutees = etat.tachesExecuteesBuild,
+                    tachesAJour = etat.tachesAJourBuild,
                 ),
             )
         }

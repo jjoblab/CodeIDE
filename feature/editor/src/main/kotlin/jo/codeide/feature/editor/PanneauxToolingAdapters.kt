@@ -441,7 +441,9 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
 
     // ---- Synthèse finale (§3.3) ------------------------------------------
 
-    /** Synthèse de fin de build : verdict + durée (ou message d'échec). */
+    /** Synthèse de fin de build : verdict + durée (ou message d'échec) +
+     *  compte des tâches actionnables (v0.39.1, correctif n°4 — style
+     *  Android Studio : « N actionable tasks: M executed[, K up-to-date] »). */
     private class SyntheseHolder(
         private val liaison: LigneSyntheseBuildBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
@@ -495,6 +497,47 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                     liaison.texteSyntheseBuild.text = ""
                 }
             }
+            // v0.39.1 (correctif n°4) : compte des tâches actionnables,
+            // restitué sous le verdict comme la console d'Android Studio.
+            // Masqué tant que la synthèse de Gradle n'est pas arrivée
+            // (build échoué avant la fin, sortie non détectable, build
+            // annulé). Les comptes viennent du serveur (extraction regex
+            // de la dernière ligne stdout) — pas de re-parse côté UI.
+            rendreCompteTaches(rangee)
+        }
+
+        /**
+         * Affiche la ligne « N actionable tasks: M executed[, K up-to-date] »
+         * sous le verdict (v0.39.1, correctif n°4) — masquée tant que les
+         * comptes sont absents. Distinction incrémental vs non-incrémental
+         * via la présence du compte « up-to-date ».
+         */
+        private fun rendreCompteTaches(rangee: RangeeConsole.SyntheseBuild) {
+            val contexte = liaison.root.context
+            val actionable = rangee.tachesActionnables
+            val executees = rangee.tachesExecutees
+            val aJour = rangee.tachesAJour
+            if (actionable == null || executees == null) {
+                liaison.texteSyntheseTaches.isVisible = false
+                liaison.texteSyntheseTaches.text = ""
+                return
+            }
+            liaison.texteSyntheseTaches.text =
+                if (aJour != null) {
+                    contexte.getString(
+                        R.string.editor_console_synthese_taches_ajour,
+                        actionable,
+                        executees,
+                        aJour,
+                    )
+                } else {
+                    contexte.getString(
+                        R.string.editor_console_synthese_taches_executees,
+                        actionable,
+                        executees,
+                    )
+                }
+            liaison.texteSyntheseTaches.isVisible = true
         }
 
         /** Pied de conclusion de la sync (v5, aperçu) : coche verte +
@@ -517,6 +560,12 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             liaison.texteSyntheseBuild.setTextColor(
                 ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_succes),
             )
+            // v0.39.1 : la synthèse de sync n'a pas de compte de tâches —
+            // on masque la ligne secondaire (sinon la dernière valeur d'un
+            // build précédent resterait affichée par ré-utilisation du
+            // ViewHolder par DiffUtil).
+            liaison.texteSyntheseTaches.isVisible = false
+            liaison.texteSyntheseTaches.text = ""
         }
 
         /** Atténue une couleur vers le fond. */

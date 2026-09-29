@@ -92,6 +92,12 @@ internal class ObservateurOutilsTerminal
                 gradleInstalle = LocalisationOutils.trouverGradleHome(racine) != null,
                 sdkAndroidInstalle = LocalisationOutils.trouverAndroidHome(racine) != null,
                 aapt2Installe = LocalisationOutils.trouverAapt2(racine) != null,
+                // v0.39.1 : le drapeau `initialise` signale aux consommateurs
+                // (sync d'ouverture) que le disque a été lu au moins une fois —
+                // la valeur par défaut `false` ne peut plus être confondue avec
+                // « JDK absent » alors que le scan n'a simplement pas encore
+                // eu lieu. Toutes les émissions suivantes portent `true`.
+                initialise = true,
             )
 
         private companion object {
