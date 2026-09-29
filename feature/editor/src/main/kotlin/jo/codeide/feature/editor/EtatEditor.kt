@@ -366,16 +366,11 @@ sealed interface ActionEditor {
         val niveau: LogLevel,
     ) : ActionEditor
 
-    /**
-     * Bascule le filtre de canal de la console (v0.39.1, correctif n°3) :
-     * chip Sync ou Build — la console commute sa vue. Le ViewModel garde
-     * l'état (persisté pour la rotation) — un build qui démarre bascule
-     * vers BUILD automatiquement, l'utilisateur peut revenir à SYNC à la
-     * main.
-     */
-    data class BasculerFiltreConsole(
-        val filtre: FiltreCanalConsole,
-    ) : ActionEditor
+    // v0.40.1 (prompt de suivi §3) : l'action `BasculerFiltreConsole` est
+    // SUPPRIMÉE — le chip d'action est NON cliquable. La console montre
+    // toujours l'action courante (Sync / Build / Tâches / Classpaths…),
+    // basculée automatiquement par le ViewModel quand un build ou une
+    // sync démarre. Plus de bascule utilisateur.
 
     /** Ouvre l'écran Diagnostic complet depuis le journal compact. */
     data object OuvrirJournalComplet : ActionEditor

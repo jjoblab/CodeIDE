@@ -229,19 +229,16 @@ class ActivityEditorLayoutTest {
     fun `la console enrichie porte ses chips son bouton taches et son bandeau d echec`() {
         val console = gonfler(R.layout.fragment_panneau_console)
 
-        // Barre d'outils enrichie (v4, §3.3 ; v5 — aperçu) : chips de filtre
-        // EXCLUSIVES (ChipGroup à sélection unique exigée — l'une des deux
-        // toujours active), bouton Tâches, bandeau d'échec avec actions.
-        val groupe = console.findViewById<com.google.android.material.chip.ChipGroup>(R.id.groupe_filtres_console)
-        assertNotNull("groupe exclusif des chips Sync/Build (v5)", groupe)
-        assertTrue("sélection unique exigée (v5)", groupe.isSingleSelection)
-        assertTrue("sélection obligatoire — toujours une vue active (v5)", groupe.isSelectionRequired)
-        assertTrue(
-            "chip Sync cochée par défaut — la vue arbre ouvre l'écran (v5)",
-            console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_filtre_sync).isChecked,
+        // v0.40.1 (prompt de suivi §3) : UN SEUL chip d'action reflète
+        // l'action Gradle courante, NON cliquable — plus de ChipGroup à
+        // deux chips Sync/Build. La bascule est automatique (Sync vers
+        // Build quand un build démarre), pilotée par le ViewModel.
+        val chipAction = console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_action_courante)
+        assertNotNull("chip d'action unique (v0.40.1 §3)", chipAction)
+        assertFalse(
+            "chip d'action NON cliquable — pas de bascule utilisateur (v0.40.1 §3)",
+            chipAction.isClickable,
         )
-        assertNotNull("chip de filtre Sync (§3.3)", console.findViewById<View>(R.id.chip_filtre_sync))
-        assertNotNull("chip de filtre Build (§3.3)", console.findViewById<View>(R.id.chip_filtre_build))
         val boutonTaches = console.findViewById<View>(R.id.bouton_taches_sortie)
         assertNotNull("bouton Tâches de la barre d'outils (§3.3)", boutonTaches)
         assertFalse(
