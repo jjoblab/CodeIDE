@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.textview.MaterialTextView
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -214,8 +215,85 @@ class ActivityEditorLayoutTest {
             console.findViewById<View>(R.id.bouton_config_tooling),
         )
 
-        // Écran de configuration du tooling (v3) : toolbar plein écran, trois
-        // cartes (affichage, exécution, orchestrateur) et la note console.
+        // Ligne de console canalisée (v0.32.5) : étiquette + texte.
+        val ligne = gonfler(R.layout.ligne_sortie)
+        assertNotNull("étiquette de canal en tête de ligne (v0.32.5)", ligne.findViewById<View>(R.id.canal_sortie))
+        assertNotNull("texte de la ligne (v0.32.5)", ligne.findViewById<View>(R.id.texte_sortie))
+
+        val problemes = gonfler(R.layout.fragment_panneau_problemes)
+        assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))
+        assertNotNull("vide des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.texte_problemes_vide))
+    }
+
+    @Test
+    fun `la console enrichie porte ses chips son bouton taches et son bandeau d echec`() {
+        val console = gonfler(R.layout.fragment_panneau_console)
+
+        // Barre d'outils enrichie (v4, §3.3) : chips de filtre de canal
+        // exclusives, bouton Tâches, bandeau d'échec avec actions.
+        assertNotNull("chip de filtre Sync (§3.3)", console.findViewById<View>(R.id.chip_filtre_sync))
+        assertNotNull("chip de filtre Build (§3.3)", console.findViewById<View>(R.id.chip_filtre_build))
+        val boutonTaches = console.findViewById<View>(R.id.bouton_taches_sortie)
+        assertNotNull("bouton Tâches de la barre d'outils (§3.3)", boutonTaches)
+        assertFalse(
+            "bouton Tâches éteint par défaut — le cache de la sync est vide (§3.3)",
+            (boutonTaches as android.widget.Button).isEnabled,
+        )
+        val bandeau = console.findViewById<View>(R.id.bandeau_echec_build)
+        assertNotNull("bandeau d'échec du build (§3.3)", bandeau)
+        assertEquals("bandeau d'échec masqué par défaut (§3.3)", View.GONE, bandeau.visibility)
+        assertNotNull(
+            "action « Voir les problèmes » du bandeau (§3.3)",
+            console.findViewById<View>(R.id.bouton_voir_problemes),
+        )
+        assertNotNull(
+            "action « Réessayer » du bandeau (§3.3)",
+            console.findViewById<View>(R.id.bouton_reessayer_build),
+        )
+    }
+
+    @Test
+    fun `les rangees d arbre et de synthese se gonflent avec leurs marqueurs`() {
+        val etapeArbre = gonfler(R.layout.ligne_arbre_etape)
+        assertNotNull(
+            "marqueur d'étape terminée (§3.3)",
+            etapeArbre.findViewById<View>(R.id.marqueur_etape_terminee),
+        )
+        assertNotNull(
+            "marqueur spinner d'étape en cours (§3.3)",
+            etapeArbre.findViewById<View>(R.id.marqueur_etape_en_cours),
+        )
+        assertNotNull(
+            "marqueur d'étape en attente (§3.3)",
+            etapeArbre.findViewById<View>(R.id.marqueur_etape_attente),
+        )
+        assertNotNull("libellé de l'étape (§3.3)", etapeArbre.findViewById<View>(R.id.libelle_etape_arbre))
+
+        val detailTelechargement = gonfler(R.layout.ligne_detail_telechargement)
+        assertNotNull(
+            "barre de téléchargement sous l'étape active (§3.3)",
+            detailTelechargement.findViewById<View>(R.id.barre_telechargement_etape),
+        )
+        assertNotNull(
+            "détail textuel du téléchargement (§3.3)",
+            detailTelechargement.findViewById<View>(R.id.detail_telechargement_etape),
+        )
+        assertNotNull(
+            "artefact courant du téléchargement (§3.3)",
+            detailTelechargement.findViewById<View>(R.id.element_telechargement_etape),
+        )
+
+        val synthese = gonfler(R.layout.ligne_synthese_build)
+        assertNotNull(
+            "texte de la synthèse de build (§3.3)",
+            synthese.findViewById<View>(R.id.texte_synthese_build),
+        )
+    }
+
+    @Test
+    fun `l ecran de configuration du tooling se gonfle avec ses vues completes`() {
+        // Écran de configuration du tooling (v3) : toolbar plein écran,
+        // interrupteurs, arguments et état vivant de l'orchestrateur.
         val config = gonfler(R.layout.fragment_config_tooling)
         assertNotNull(
             "toolbar de l'écran de configuration (v3)",
@@ -232,15 +310,6 @@ class ActivityEditorLayoutTest {
         assertNotNull("champ des arguments libres (v3)", config.findViewById<View>(R.id.champ_arguments))
         assertNotNull("valeur de connexion vivante (v3)", config.findViewById<View>(R.id.valeur_connexion))
         assertNotNull("valeur du tas de l'orchestrateur (v3)", config.findViewById<View>(R.id.valeur_tas))
-
-        // Ligne de console canalise (v0.32.5) : étiquette + texte.
-        val ligne = gonfler(R.layout.ligne_sortie)
-        assertNotNull("étiquette de canal en tête de ligne (v0.32.5)", ligne.findViewById<View>(R.id.canal_sortie))
-        assertNotNull("texte de la ligne (v0.32.5)", ligne.findViewById<View>(R.id.texte_sortie))
-
-        val problemes = gonfler(R.layout.fragment_panneau_problemes)
-        assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))
-        assertNotNull("vide des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.texte_problemes_vide))
     }
 
     @Test

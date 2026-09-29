@@ -17,6 +17,13 @@
     <dimen name="editor_pastille_canal_taille">34dp</dimen>
     <dimen name="editor_icone_canal_taille">20dp</dimen>
 
+    <!-- Arbre d'étapes de la console (§3.3) : marqueurs ✓/spinner/○ des
+         rangées d'étape, retrait d'indentation des détails de
+         téléchargement sous l'étape active. -->
+    <dimen name="editor_marqueur_etape_taille">16dp</dimen>
+    <dimen name="editor_marqueur_etape_bordure">2dp</dimen>
+    <dimen name="editor_retrait_detail_etape">28dp</dimen>
+
     <!-- Lignes de nœuds (§ 6.1). -->
     <dimen name="editor_ligne_hauteur">34dp</dimen>
     <dimen name="editor_ligne_racine_hauteur">38dp</dimen>

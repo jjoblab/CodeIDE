@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rangée d'ÉTAPE de l'arbre de sync (v4, §3.3) : marqueur d'état
+     (✓ terminée / spinner en cours / ○ en attente), libellé de la phase,
+     durée MESURÉE à droite (jamais devinée — l'étape en cours n'en montre
+     pas). Marqueurs décoratifs : le libellé porte le sens (TalkBack lit
+     « étape — durée »). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/editor_ligne_hauteur"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_xs">
+
+    <!-- Marqueur d'état : un seul des trois fils visible au rendu. -->
+    <FrameLayout
+        android:layout_width="@dimen/editor_marqueur_etape_taille"
+        android:layout_height="@dimen/editor_marqueur_etape_taille"
+        android:importantForAccessibility="no">
+
+        <ImageView
+            android:id="@+id/marqueur_etape_terminee"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:visibility="gone"
+            app:tint="?attr/colorSucces"
+            app:srcCompat="@drawable/ic_fait"
+            tools:visibility="visible" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/marqueur_etape_en_cours"
+            style="@style/Widget.Material3.CircularProgressIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorSize="@dimen/editor_marqueur_etape_taille"
+            app:trackColor="@android:color/transparent"
+            tools:visibility="visible" />
+
+        <View
+            android:id="@+id/marqueur_etape_attente"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/cercle_attente_etape"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_etape_arbre"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="monospace"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textSize="12sp"
+        tools:text="Téléchargement des dépendances…" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/duree_etape_arbre"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="6,1s" />
+</LinearLayout>

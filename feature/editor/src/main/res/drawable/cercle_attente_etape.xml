@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marqueur d'attente (○) d'une étape non atteinte de l'arbre de sync
+     (v4, §3.3) : cercle évidé à la bordure du thème — jamais de couleur
+     dure, le jeton vit dans les attributs du thème. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@android:color/transparent" />
+    <stroke
+        android:width="@dimen/editor_marqueur_etape_bordure"
+        android:color="?attr/colorOutline" />
+</shape>

@@ -143,6 +143,17 @@
     <string name="editor_console_etape_classpaths">Préparation des classpaths…</string>
     <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
 
+    <!-- Console du tooling enrichie (v4, §3.3) : filtre de canal, bouton
+         Tâches, bandeau d\'échec, détails de téléchargement. -->
+    <string name="editor_console_taches_indisponible">Tâches — disponible après la synchronisation</string>
+    <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
+    <string name="editor_console_echec_reessayer">Réessayer</string>
+    <string name="editor_console_echec_defaut">Échec du build</string>
+    <string name="editor_console_detail_octets">%1$s / %2$s</string>
+    <string name="editor_console_detail_compteur">%1$d / %2$d</string>
+    <string name="editor_console_detail_element">↓ %1$s</string>
+    <string name="editor_console_synthese_annule">Build annulé</string>
+
     <!-- Configuration du tooling (v3) — accessible depuis l'onglet Sortie :
          affichage des tâches, mode hors ligne, arguments Gradle libres et
          état vivant de l'orchestrateur. Les drapeaux Gradle cités dans les

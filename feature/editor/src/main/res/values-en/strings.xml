@@ -134,6 +134,17 @@
     <string name="editor_console_etape_classpaths">Preparing the classpaths…</string>
     <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
 
+    <!-- Enriched tooling console (v4, §3.3): channel filter, Tasks
+         button, failure banner, download details. -->
+    <string name="editor_console_taches_indisponible">Tasks — available after synchronization</string>
+    <string name="editor_console_echec_voir_problemes">See problems</string>
+    <string name="editor_console_echec_reessayer">Retry</string>
+    <string name="editor_console_echec_defaut">Build failed</string>
+    <string name="editor_console_detail_octets">%1$s / %2$s</string>
+    <string name="editor_console_detail_compteur">%1$d / %2$d</string>
+    <string name="editor_console_detail_element">↓ %1$s</string>
+    <string name="editor_console_synthese_annule">Build cancelled</string>
+
     <!-- Tooling configuration (v3) — reachable from the Output tab: task
          display, offline mode, free Gradle arguments and live orchestrator
          state. Gradle flags quoted in the texts below are LITERAL:

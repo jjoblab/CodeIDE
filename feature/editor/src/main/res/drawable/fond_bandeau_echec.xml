@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond arrondi du bandeau d'échec du build (v4, §3.3) : conteneur
+     d'erreur Material 3 (contraste AA avec le texte colorOnErrorContainer),
+     rayon du jeton core:ui — aucune couleur dure. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorErrorContainer" />
+    <corners android:radius="@dimen/corner_radius_medium" />
+</shape>

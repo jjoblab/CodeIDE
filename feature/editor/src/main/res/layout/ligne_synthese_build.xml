@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthèse FINALE du build (v4, §3.3) : verdict (coche de succès, croix
+     d'échec, trait d'annulation), durée MESURÉE, message d'échec — la
+     dernière ligne de la vue Build, comme la synthèse d'Android Studio. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_xs"
+    android:paddingVertical="@dimen/spacing_sm">
+
+    <ImageView
+        android:id="@+id/marqueur_synthese"
+        android:layout_width="@dimen/editor_marqueur_etape_taille"
+        android:layout_height="@dimen/editor_marqueur_etape_taille"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        app:srcCompat="@drawable/ic_fait"
+        app:tint="?attr/colorSucces"
+        tools:srcCompat="@drawable/ic_fait" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_synthese_build"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textStyle="bold"
+        tools:text="Build réussi en 12,4s" />
+</LinearLayout>

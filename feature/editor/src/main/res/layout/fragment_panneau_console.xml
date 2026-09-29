@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055) : état
-     de synchronisation/build, annulation, console du build (fenêtre
-     bornée, auto-défilement). Fragment PanneauConsoleFragment — le
-     chrome (en-tête, onglets) reste à l'hôte (activity_editor.xml). -->
+<!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4 §3.3
+     étape 5 : barre d'outils avec chips Sync/Build (filtre de canal), bouton
+     Tâches (désactivé tant que la sync n'a pas rempli son cache), bandeau
+     d'échec avec actions, console (arbre en vue Sync, tâches en vue Build),
+     auto-défilement. Fragment PanneauConsoleFragment — le chrome (en-tête,
+     onglets) reste à l'hôte (activity_editor.xml). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <!-- Barre d'outils (§3.3) : chips de filtre de canal + actions. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,10 +21,79 @@
         android:paddingHorizontal="@dimen/spacing_xs"
         android:paddingVertical="@dimen/spacing_xs">
 
-        <!-- Canal du statut (v0.32.5) : l'icône signature de la
-             provenance (Sync teal / Build bleu) — l'information affichée
-             ici porte TOUJOURS son canal, comme chaque ligne et chaque
-             entrée d'en-tête. -->
+        <!-- Filtre de canal : chips exclusives (Sync active = vue arbre,
+             Build active = vue tâches, aucune = chronologie complète). -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filtre_sync"
+            style="@style/Widget.Material3.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/editor_tooling_canal_sync" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filtre_build"
+            style="@style/Widget.Material3.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:checkable="true"
+            android:text="@string/editor_tooling_canal_build" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Tâches : actif dès que la sync a rempli le cache (aucun
+             aller-retour) ; l'info-bulle + le contentDescription disent
+             POURQUOI il est éteint avant la sync. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_taches_sortie"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/editor_console_taches_indisponible"
+            android:enabled="false"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/editor_tooling_canal_taches"
+            android:tooltipText="@string/editor_console_taches_indisponible"
+            app:icon="@drawable/ic_liste_taches" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_config_tooling"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/editor_config_tooling_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            app:icon="@drawable/ic_outils" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_annuler_build"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/editor_sortie_annuler_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            android:visibility="gone"
+            app:icon="@drawable/ic_arreter_build"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Canal du statut (v0.32.5) : l'icône signature de la provenance
+         (Sync teal / Build bleu) — l'information affichée ici porte
+         TOUJOURS son canal, comme chaque ligne et chaque entrée d'en-tête. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_xs">
+
         <ImageView
             android:id="@+id/icone_canal_sortie"
             android:layout_width="16dp"
@@ -35,28 +108,78 @@
             android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:ellipsize="end"
+            android:paddingBottom="@dimen/spacing_xs"
             android:singleLine="true"
             android:textAppearance="?attr/textAppearanceLabelMedium"
             android:textColor="?attr/colorOnSurfaceVariant"
             tools:text="Build en cours" />
+    </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/bouton_config_tooling"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:contentDescription="@string/editor_config_tooling_cd"
-            android:src="@drawable/ic_outils" />
+    <!-- Bandeau d'échec du build (§3.3) : message + actions « Voir les
+         problèmes » (onglet Problèmes) et « Réessayer » (relance les
+         mêmes tâches) — plus d'échec muet. -->
+    <LinearLayout
+        android:id="@+id/bandeau_echec_build"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_xs"
+        android:layout_marginBottom="@dimen/spacing_xs"
+        android:background="@drawable/fond_bandeau_echec"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_sm"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-        <ImageButton
-            android:id="@+id/bouton_annuler_build"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:contentDescription="@string/editor_sortie_annuler_cd"
-            android:src="@drawable/ic_arreter_build"
-            android:visibility="gone"
-            tools:visibility="visible" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/icone_echec_build"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                app:srcCompat="@drawable/ic_avertissement"
+                app:tint="?attr/colorOnErrorContainer" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/message_echec_build"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnErrorContainer"
+                tools:text="Échec du build — tâche compileDebugKotlin échouée" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_voir_problemes"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/editor_console_echec_voir_problemes" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_reessayer_build"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/editor_console_echec_reessayer" />
+        </LinearLayout>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
