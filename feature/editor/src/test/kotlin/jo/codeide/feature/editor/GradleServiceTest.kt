@@ -208,6 +208,26 @@ class GradleServiceTest {
     }
 
     @Test
+    fun `une etape SAUTEE en cache s affiche conclue sans duree - v5`() {
+        service.marquerSyncEnCours()
+        service.ajouterEtapeSync(
+            EtapeSyncTooling(
+                etape = EtapeSync.DISTRIBUTION,
+                terminee = true,
+                sautee = true,
+                element = "gradle-9.7.1-bin.zip",
+            ),
+        )
+
+        val etat = service.etat.value
+        val sautee = etat.etapesAffichees.single()
+        assertTrue("sautée (distribution déjà en cache)", sautee.sautee)
+        assertTrue("conclue sans travail", sautee.terminee)
+        assertEquals("aucune durée", 0L, sautee.dureeMs)
+        assertEquals("gradle-9.7.1-bin.zip", sautee.element)
+    }
+
+    @Test
     fun `une nouvelle sync reannonce ses etapes en lignes nouvelles`() {
         service.marquerSyncEnCours()
         service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
@@ -486,9 +506,10 @@ internal class FauxDemarreurServiceTooling : DemarreurServiceTooling {
         assertEquals(12L, etat.etapesAffichees[0].dureeMs)
         assertEquals(EtapeSync.DEPENDANCES, etat.etapeCourante?.etape)
         assertEquals("kotlin-stdlib.jar", etat.etapeCourante?.element)
-        // Compteur de l'en-tête : position dans le déroulé fixe de 8.
-        assertEquals(EtapeSync.entries.indexOf(EtapeSync.DEPENDANCES) + 1, etat.numeroEtape)
-        assertEquals(EtapeSync.entries.size, etat.totalEtapes)
+        // Compteur de l'en-tête : position dans le plan d'AFFICHAGE v5 —
+        // DEPENDANCES partage la rangée « Dépendances et modèle IDE » (6/7).
+        assertEquals(6, etat.numeroEtape)
+        assertEquals(EtapeConsoleSync.entries.size, etat.totalEtapes)
     }
 
     @Test

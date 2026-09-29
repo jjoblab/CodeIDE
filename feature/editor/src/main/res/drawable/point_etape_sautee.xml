@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Point plein d'une étape SAUTÉE (v5, aperçu — « en cache ») de l'arbre
+     de sync : un travail qui n'a pas eu lieu n'obtient ni coche ni durée —
+     le point gris (bordure du thème) dit « déjà satisfait », le libellé
+     atténué et le détail « En cache » portent le reste. Jamais de couleur
+     dure : le jeton vit dans les attributs du thème. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="?attr/colorOutline" />
+</shape>

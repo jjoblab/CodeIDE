@@ -385,7 +385,7 @@
                         android:ellipsize="end"
                         android:singleLine="true"
                         android:textAppearance="?attr/textAppearanceTitleSmall"
-                        tools:text="Synchronisation Gradle · étape 2/8" />
+                        tools:text="Synchronisation Gradle · étape 2/7" />
 
                     <!-- Étape courante + détail : annoncé à TalkBack à
                          chaque changement (§3.3 — l'utilisateur « voit »

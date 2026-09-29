@@ -118,33 +118,40 @@
     <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>
     <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
 
-    <!-- En-tête tooling enrichi (v4, §3.3) : titre numéroté par étape et
-         sous-titre = étape courante + détail. -->
+    <!-- En-tête tooling enrichi (v4, §3.3 ; v5 — aperçu) : titre numéroté
+         par étape (plan d'affichage à 7) et sous-titre = étape courante +
+         détail ; succès détaillé « modules · tâches · … ». -->
     <string name="editor_tooling_entete_sync_etape">Synchronisation Gradle · étape %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
     <string name="editor_tooling_entete_succes_taches">Tâches disponibles : %1$s</string>
+    <!-- v0.39.x (CI lint PluralsCandidate) : ligne d'état compacte à DEUX
+         quantités (comme la vue Build d'Android Studio), pas une phrase —
+         même exemption documentée que wizard_indicateur_etape. -->
+    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$d modules · %2$d tâches · aucun téléchargement</string>
+    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$d modules · %2$d tâches · classpaths prêts</string>
 
     <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
          jour en place à sa fin, comme la vue Build d'Android Studio) et
-         étapes de synchronisation (fin de la boîte noire « en cours /
-         terminée »). -->
+         étapes de l'arbre de sync (v5 — plan de l'aperçu, 7 étapes :
+         « Dépendances et modèle IDE » fusionne les deux phases d'une même
+         résolution ; libellés au nominatif, le marqueur porte l'état). -->
     <string name="editor_console_tache">&gt; Tâche %1$s</string>
     <string name="editor_console_tache_en_cours">&gt; Tâche %1$s…</string>
     <string name="editor_console_tache_duree">&gt; Tâche %1$s (%2$s)</string>
     <string name="editor_console_tache_sautee">&gt; Tâche %1$s — sautée</string>
     <string name="editor_console_tache_echouee">&gt; Tâche %1$s — ÉCHEC</string>
-    <string name="editor_console_etape_outils">Vérification des outils…</string>
-    <string name="editor_console_etape_distribution">Téléchargement de la distribution Gradle…</string>
-    <string name="editor_console_etape_daemon">Démarrage du daemon Gradle…</string>
-    <string name="editor_console_etape_configuration">Configuration du projet…</string>
-    <string name="editor_console_etape_modele_taches">Résolution des tâches…</string>
-    <string name="editor_console_etape_modele_idee">Résolution du modèle IDE…</string>
-    <string name="editor_console_etape_dependances">Téléchargement des dépendances…</string>
-    <string name="editor_console_etape_classpaths">Préparation des classpaths…</string>
-    <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
+    <string name="editor_console_etape_outils">Vérification des outils</string>
+    <string name="editor_console_etape_distribution">Distribution Gradle</string>
+    <string name="editor_console_etape_daemon">Démarrage du daemon Gradle</string>
+    <string name="editor_console_etape_configuration">Configuration du projet</string>
+    <string name="editor_console_etape_modele_taches">Modèle des tâches</string>
+    <string name="editor_console_etape_dependances_modele">Dépendances et modèle IDE</string>
+    <string name="editor_console_etape_classpaths">Classpaths et sources (LSP)</string>
+    <string name="editor_console_etape_en_cache">En cache</string>
 
-    <!-- Console du tooling enrichie (v4, §3.3) : filtre de canal, bouton
-         Tâches, bandeau d\'échec, détails de téléchargement. -->
+    <!-- Console du tooling enrichie (v4, §3.3 ; v5 — aperçu) : filtre de
+         canal, bouton Tâches, bandeau d\'échec, détails de téléchargement,
+         pied de conclusion de la sync. -->
     <string name="editor_console_taches_indisponible">Tâches — disponible après la synchronisation</string>
     <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
     <string name="editor_console_echec_reessayer">Réessayer</string>
@@ -153,6 +160,8 @@
     <string name="editor_console_detail_compteur">%1$d / %2$d</string>
     <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build annulé</string>
+    <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
+    <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>
 
     <!-- Feuille de sélection des tâches (v4, §3.3) : recherche, récentes,
          groupes par module, états vides honnêtes. -->

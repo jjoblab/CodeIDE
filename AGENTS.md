@@ -691,6 +691,27 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       script). RESTE à livrer : l'écran de configuration enrichi §7
       (commande effective, recherche de réglages, conflits d'arguments,
       2 colonnes) et la règle lint « aucun #RRGGBB dans feature:editor ».
+- v0.39.1 : **correctif CI** — `lintDebug` `UselessParent`
+      (activity_editor.xml fusionné, une vue de moins) + couverture kover
+      de `tooling:server` sous le seuil (16 tests : ConteurPhasesSync,
+      CacheSync, EtatsDistribution — 83,4 %).
+- v0.40.0 : **G11 — correspondance avec l'APERÇU du tooling** (retour
+      utilisateur sur la 0.39.0, ADR 0071, protocole v5) : la console n'a
+      plus que DEUX écrans EXCLUSIFS (ChipGroup `selectionRequired`,
+      Sync par défaut — la chronologie BRUTE et les sorties brutes
+      mélangées disparaissent, la vue Build ne montre que les tâches) ;
+      `SyncProgress.sautee` — la distribution Gradle déjà en cache se
+      publie SAUTÉE (point gris, « En cache », durée 0 : plus de « ✓ 0 s »
+      mensonger), le téléchargement ne se déroule que si elle MANQUE ;
+      plan d'AFFICHAGE à 7 étapes (`EtapeConsoleSync` — « Dépendances et
+      modèle IDE » fusionnées : plus de rangée ○ à vie sur une sync
+      chaude), compteur « étape n/7 » ; pied de sync (« Synchronisation
+      terminée… » / « Projet à jour, rien à télécharger… ») ; sous-titre
+      de succès « N modules · N tâches · … ». Dorés v5 régénérés (28).
+      RESTE à livrer (CHANGELOG honnête) : « Daemon réutilisé » (aucun
+      signal honnête dans la Tooling API — durée mesurée conservée), les
+      téléchargements DANS la vue Build (§6) et l'écran de config enrichi
+      §7.
 - Prochaine : étape 33 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 

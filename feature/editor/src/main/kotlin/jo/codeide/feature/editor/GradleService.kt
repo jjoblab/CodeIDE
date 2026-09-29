@@ -148,10 +148,14 @@ data class EtatTacheAffichee(
 
 /**
  * Étape de sync affichée dans la console (v3 ; v4 : phases réelles +
- * DÉTAILS de progression — octets reçus, élément courant, compteur n/N).
+ * DÉTAILS de progression — octets reçus, élément courant, compteur n/N ;
+ * v5 : [sautee] pour une phase satisfaite d'avance).
  *
  * @property etape phase annoncée.
  * @property terminee `true` à la fin (durée à la clé).
+ * @property sautee `true` pour une phase SATISFAITE D'AVANCE (v5 —
+ *           distribution déjà en cache) : aucun travail n'a eu lieu, la
+ *           rangée de l'arbre porte « en cache » et jamais une durée.
  * @property dureeMs durée de la phase à sa fin.
  * @property octetsRecus octets reçus cumulés (téléchargements) — 0 si sans objet.
  * @property octetsTotal octets totaux si connus — `null` sinon.
@@ -162,6 +166,7 @@ data class EtatTacheAffichee(
 data class EtapeSyncAffichee(
     val etape: EtapeSync,
     val terminee: Boolean = false,
+    val sautee: Boolean = false,
     val dureeMs: Long = 0,
     val octetsRecus: Long = 0,
     val octetsTotal: Long? = null,
@@ -172,14 +177,16 @@ data class EtapeSyncAffichee(
 
 /**
  * Statut d'affichage d'une étape de sync (v4, §3.2) : l'arbre de la
- * console marque ✓ (terminée), spinner (en cours), ○ (en attente) —
- * l'état reste pur, les symboles appartiennent au rendu.
+ * console marque ✓ (terminée), spinner (en cours), ○ (en attente) — et
+ * point gris (v5 : SAUTÉE, satisfaite d'avance « en cache ») — l'état
+ * reste pur, les symboles appartiennent au rendu.
  */
 enum class StatutEtapeSync {
     EN_ATTENTE,
     EN_COURS,
     TERMINEE,
     ECHOUEE,
+    SAUTEE,
 }
 
 /**
@@ -287,13 +294,20 @@ data class EtatGradle(
     val etapeCourante: EtapeSyncAffichee?
         get() = etapesAffichees.lastOrNull { !it.terminee } ?: etapesAffichees.lastOrNull()
 
-    /** Position de l'étape courante dans le déroulé fixe (1-based, v4). */
-    val numeroEtape: Int
-        get() = etapeCourante?.etape?.let { EtapeSync.entries.indexOf(it) + 1 } ?: 0
+    /** Étape d'AFFICHAGE courante (v5 — le plan de l'aperçu fusionne
+     *  « Dépendances et modèle IDE » : le compteur de l'en-tête suit le
+     *  plan AFFICHÉ, pas les phases du câble — interne, concept UI de la
+     *  feature). */
+    internal val etapeConsoleCourante: EtapeConsoleSync?
+        get() = etapeCourante?.let { EtapeConsoleSync.dePhase(it.etape) }
 
-    /** Total du déroulé (les 8 phases réelles v4). */
+    /** Position de l'étape courante dans le plan d'affichage (1-based, v5). */
+    val numeroEtape: Int
+        get() = etapeConsoleCourante?.let { EtapeConsoleSync.entries.indexOf(it) + 1 } ?: 0
+
+    /** Total du plan d'affichage (les 7 étapes de l'aperçu, v5). */
     val totalEtapes: Int
-        get() = EtapeSync.entries.size
+        get() = EtapeConsoleSync.entries.size
 }
 
 /**
@@ -544,6 +558,7 @@ class GradleService
                                 EtapeSyncAffichee(
                                     etape = etape.etape,
                                     terminee = etape.terminee,
+                                    sautee = etape.sautee,
                                     dureeMs = etape.dureeMs,
                                     octetsRecus = etape.octetsRecus,
                                     octetsTotal = etape.octetsTotal,

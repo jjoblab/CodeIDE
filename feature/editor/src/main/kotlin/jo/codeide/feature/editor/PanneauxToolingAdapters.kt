@@ -7,7 +7,6 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.ui.ThemeHarmonizer
@@ -15,8 +14,8 @@ import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneArbreEtapeBinding
 import jo.codeide.feature.editor.databinding.LigneDetailTelechargementBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
-import jo.codeide.feature.editor.databinding.LigneSortieBinding
 import jo.codeide.feature.editor.databinding.LigneSyntheseBuildBinding
+import jo.codeide.feature.editor.databinding.LigneTacheConsoleBinding
 import java.util.Locale
 
 /**
@@ -233,24 +232,32 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         /** Alpha d'une tâche sautée (atténuée vers le fond). */
         private const val ALPHA_ATTENUE = 128
 
+        /** Alpha PLEIN du libellé d'une étape de l'arbre. */
+        private const val ALPHA_PLEIN = 1f
+
+        /** Alpha d'un libellé d'étape SAUTÉE (« en cache » — atténué). */
+        private const val ALPHA_LIBELLE_SAUTEE = 0.55f
+
         /** Progression maximale en pourcentage (détail de téléchargement). */
         private const val POURCENT_MAX = 100f
     }
 
-    /** Fabrique des rangées (arbre / détail / ligne / synthèse). */
+    /** Fabrique des rangées (arbre / détail / tâche / synthèses). */
     private enum class Type {
         ETAPE_ARBRE,
         DETAIL_TELECHARGEMENT,
-        LIGNE,
-        SYNTHESE,
+        TACHE,
+        SYNTHESE_BUILD,
+        SYNTHESE_SYNC,
     }
 
     override fun getItemViewType(position: Int): Int =
         when (getItem(position)) {
             is RangeeConsole.EtapeArbre -> Type.ETAPE_ARBRE
             is RangeeConsole.DetailTelechargement -> Type.DETAIL_TELECHARGEMENT
-            is RangeeConsole.Ligne -> Type.LIGNE
-            is RangeeConsole.SyntheseBuild -> Type.SYNTHESE
+            is RangeeConsole.Tache -> Type.TACHE
+            is RangeeConsole.SyntheseBuild -> Type.SYNTHESE_BUILD
+            is RangeeConsole.SyntheseSync -> Type.SYNTHESE_SYNC
         }.ordinal
 
     override fun onCreateViewHolder(
@@ -271,15 +278,21 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                 )
             }
 
-            Type.SYNTHESE.ordinal -> {
+            Type.SYNTHESE_BUILD.ordinal -> {
+                SyntheseHolder(
+                    LigneSyntheseBuildBinding.inflate(inflateur, parent, false),
+                )
+            }
+
+            Type.SYNTHESE_SYNC.ordinal -> {
                 SyntheseHolder(
                     LigneSyntheseBuildBinding.inflate(inflateur, parent, false),
                 )
             }
 
             else -> {
-                LigneHolder(
-                    LigneSortieBinding.inflate(inflateur, parent, false),
+                TacheHolder(
+                    LigneTacheConsoleBinding.inflate(inflateur, parent, false),
                 )
             }
         }
@@ -292,25 +305,29 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         when (val rangee = getItem(position)) {
             is RangeeConsole.EtapeArbre -> (holder as EtapeArbreHolder).lier(rangee)
             is RangeeConsole.DetailTelechargement -> (holder as DetailTelechargementHolder).lier(rangee)
-            is RangeeConsole.Ligne -> (holder as LigneHolder).lier(rangee.ligne)
+            is RangeeConsole.Tache -> (holder as TacheHolder).lier(rangee.ligne)
             is RangeeConsole.SyntheseBuild -> (holder as SyntheseHolder).lier(rangee)
+            is RangeeConsole.SyntheseSync -> (holder as SyntheseHolder).lier(rangee)
         }
     }
 
-    // ---- Étape d'arbre (§3.3) -------------------------------------------
+    // ---- Étape d'arbre (§3.3 ; v5 — plan de l'aperçu) ---------------------
 
-    /** Étape : marqueur d'état (✓ / spinner / ○), libellé, durée. */
+    /** Étape : marqueur d'état (✓ / spinner / ○ / point « en cache »),
+     *  libellé (atténué pour une sautée), durée ou « En cache ». */
     private class EtapeArbreHolder(
         private val liaison: LigneArbreEtapeBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
         fun lier(rangee: RangeeConsole.EtapeArbre) {
             val contexte = liaison.root.context
-            liaison.libelleEtapeArbre.text = contexte.getString(LibellesEtapesSync.libelle(rangee.phase))
-            val annoncee = rangee.annoncee
-            val terminee = annoncee?.terminee == true
-            liaison.marqueurEtapeTerminee.isVisible = terminee
-            liaison.marqueurEtapeEnCours.isVisible = annoncee != null && !terminee
-            liaison.marqueurEtapeAttente.isVisible = annoncee == null
+            liaison.libelleEtapeArbre.text = contexte.getString(LibellesEtapesSync.libelle(rangee.etape))
+            val etat = rangee.etat
+            val sautee = etat?.sautee == true
+            val terminee = etat?.terminee == true
+            liaison.marqueurEtapeSautee.isVisible = sautee
+            liaison.marqueurEtapeTerminee.isVisible = terminee && !sautee
+            liaison.marqueurEtapeEnCours.isVisible = etat != null && !terminee && !sautee
+            liaison.marqueurEtapeAttente.isVisible = etat == null
             if (liaison.marqueurEtapeEnCours.isVisible) {
                 liaison.marqueurEtapeEnCours.setIndicatorColor(
                     ThemeHarmonizer.harmoniserAvecPrimaire(
@@ -319,13 +336,19 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                     ),
                 )
             }
+            // Libellé atténué d'une sautée (« en cache ») : de
+            // l'information, pas du bruit.
+            liaison.libelleEtapeArbre.alpha =
+                if (sautee) ALPHA_LIBELLE_SAUTEE else ALPHA_PLEIN
             // Durée : MESURÉE à la fin de la phase, jamais devinée en
-            // cours (l'étape active ne montre rien — règle 9).
+            // cours (l'étape active ne montre rien — règle 9). Une sautée
+            // porte « En cache » : aucun travail n'a eu lieu.
             liaison.dureeEtapeArbre.text =
-                annoncee
-                    ?.takeIf { it.terminee }
-                    ?.let { DureesLisibles.formater(it.dureeMs) }
-                    ?: ""
+                when {
+                    sautee -> contexte.getString(R.string.editor_console_etape_en_cache)
+                    etat?.terminee == true -> DureesLisibles.formater(etat.dureeMs)
+                    else -> ""
+                }
         }
     }
 
@@ -474,6 +497,28 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             }
         }
 
+        /** Pied de conclusion de la sync (v5, aperçu) : coche verte +
+         *  « Synchronisation terminée » ou « Projet à jour, rien à
+         *  télécharger — les tâches sont disponibles ». */
+        fun lier(rangee: RangeeConsole.SyntheseSync) {
+            val contexte = liaison.root.context
+            liaison.marqueurSynthese.setImageResource(jo.codeide.core.ui.R.drawable.ic_fait)
+            liaison.marqueurSynthese.setColorFilter(
+                ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_succes),
+            )
+            liaison.texteSyntheseBuild.text =
+                contexte.getString(
+                    if (rangee.aJour) {
+                        R.string.editor_console_synthese_sync_a_jour
+                    } else {
+                        R.string.editor_console_synthese_sync_terminee
+                    },
+                )
+            liaison.texteSyntheseBuild.setTextColor(
+                ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_succes),
+            )
+        }
+
         /** Atténue une couleur vers le fond. */
         private fun Int.apaiser(): Int =
             androidx.core.graphics.ColorUtils.setAlphaComponent(
@@ -482,34 +527,23 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             )
     }
 
-    // ---- Ligne chronologique (v3) ----------------------------------------
+    // ---- Tâche du build (v3 ; v5 — SEULE ligne de la vue Build) ---------
 
-    /** Une ligne : étiquette de canal + texte monospace, couleur selon le
-     *  genre de la ligne, couleur du canal sur l'étiquette. */
-    private class LigneHolder(
-        private val liaison: LigneSortieBinding,
+    /** Une tâche : texte LOCALISÉ selon son statut (durée au terme), la
+     *  couleur suit le statut — l'étiquette de canal a disparu avec la
+     *  chronologie brute (v5, aperçu : le chip Build dit déjà qui parle). */
+    private class TacheHolder(
+        private val liaison: LigneTacheConsoleBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
-        fun lier(ligne: LigneConsole) {
-            liaison.texteSortie.text = texte(ligne)
-            liaison.texteSortie.setTextColor(couleur(ligne))
-            liaison.canalSortie.text = liaison.root.context.getString(ligne.canal.libelle)
-            liaison.canalSortie.setTextColor(
-                ThemeHarmonizer.harmoniserAvecPrimaire(liaison.root.context, ligne.canal.couleur),
-            )
+        fun lier(ligne: LigneConsole.Tache) {
+            liaison.texteTache.text = texte(ligne.etat)
+            liaison.texteTache.setTextColor(couleur(ligne))
         }
 
-        /** Texte affiché : brut pour une sortie, LOCALISÉ pour une tâche
-         *  ou une étape (l'état reste pur — la chaîne est construite ICI). */
-        private fun texte(ligne: LigneConsole): String =
-            when (ligne) {
-                is LigneConsole.Sortie -> ligne.texte
-                is LigneConsole.Tache -> texteTache(ligne.etat)
-                is LigneConsole.Etape -> texteEtape(ligne.etat)
-            }
-
         /** Libellé d'une tâche selon son statut (durée au-delà d'une seconde,
-         *  comme la vue Build d'Android Studio). */
-        private fun texteTache(etat: EtatTacheAffichee): String {
+         *  comme la vue Build d'Android Studio) — l'état reste pur, la
+         *  chaîne est construite ICI. */
+        private fun texte(etat: EtatTacheAffichee): String {
             val contexte = liaison.root.context
             return when (etat.statut) {
                 StatutTache.EN_COURS -> {
@@ -538,61 +572,26 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             }
         }
 
-        /** Libellé d'une étape de sync — conclue avec sa durée. */
-        private fun texteEtape(etat: EtapeSyncAffichee): String {
+        /** Couleur du texte : la tâche en cours porte la couleur de SON
+         *  canal (le « qui parle » en direct), l'échec reste rouge, le
+         *  sauté se repose en arrière-plan. */
+        private fun couleur(ligne: LigneConsole.Tache): Int {
             val contexte = liaison.root.context
-            val libelle = contexte.getString(LibellesEtapesSync.libelle(etat.etape))
-            return if (etat.terminee) {
-                contexte.getString(
-                    R.string.editor_console_etape_terminee,
-                    libelle,
-                    DureesLisibles.formater(etat.dureeMs),
-                )
-            } else {
-                libelle
-            }
-        }
-
-        /** Couleur du texte selon le genre : la tâche en cours porte la
-         *  couleur de SON canal (le « qui parle » en direct), l'échec reste
-         *  rouge, le sauté et l'étape conclue se reposent en arrière-plan. */
-        private fun couleur(ligne: LigneConsole): Int {
-            val contexte = liaison.root.context
-            return when (ligne) {
-                is LigneConsole.Sortie -> {
-                    if (ligne.apaisee || ligne.flux == jo.codeide.core.domain.FluxSortieBuild.STDOUT) {
-                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
-                    } else {
-                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stderr)
-                    }
+            return when (ligne.etat.statut) {
+                StatutTache.EN_COURS -> {
+                    ThemeHarmonizer.harmoniserAvecPrimaire(contexte, CanalTooling.BUILD.couleur)
                 }
 
-                is LigneConsole.Tache -> {
-                    when (ligne.etat.statut) {
-                        StatutTache.EN_COURS -> {
-                            ThemeHarmonizer.harmoniserAvecPrimaire(contexte, ligne.canal.couleur)
-                        }
-
-                        StatutTache.REUSSIE -> {
-                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
-                        }
-
-                        StatutTache.SAUTEE -> {
-                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout).apaiser()
-                        }
-
-                        StatutTache.ECHOUEE -> {
-                            ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stderr)
-                        }
-                    }
+                StatutTache.REUSSIE -> {
+                    ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
                 }
 
-                is LigneConsole.Etape -> {
-                    if (ligne.etat.terminee) {
-                        ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout)
-                    } else {
-                        ThemeHarmonizer.harmoniserAvecPrimaire(contexte, ligne.canal.couleur)
-                    }
+                StatutTache.SAUTEE -> {
+                    ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stdout).apaiser()
+                }
+
+                StatutTache.ECHOUEE -> {
+                    ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_stderr)
                 }
             }
         }

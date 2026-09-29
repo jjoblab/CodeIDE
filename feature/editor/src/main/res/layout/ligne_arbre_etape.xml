@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rangée d'ÉTAPE de l'arbre de sync (v4, §3.3) : marqueur d'état
-     (✓ terminée / spinner en cours / ○ en attente), libellé de la phase,
-     durée MESURÉE à droite (jamais devinée — l'étape en cours n'en montre
-     pas). Marqueurs décoratifs : le libellé porte le sens (TalkBack lit
-     « étape — durée »). -->
+<!-- Rangée d'ÉTAPE de l'arbre de sync (v4, §3.3 ; v5 — plan de l'aperçu) :
+     marqueur d'état (✓ terminée / spinner en cours / ○ en attente / point
+     « en cache » sautée), libellé de l'étape, durée MESURÉE à droite
+     (jamais devinée — l'étape en cours n'en montre pas ; une sautée porte
+     « En cache » : aucun travail n'a eu lieu). Marqueurs décoratifs : le
+     libellé porte le sens (TalkBack lit « étape — durée »). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -14,7 +15,7 @@
     android:orientation="horizontal"
     android:paddingHorizontal="@dimen/spacing_xs">
 
-    <!-- Marqueur d'état : un seul des trois fils visible au rendu. -->
+    <!-- Marqueur d'état : un seul des quatre fils visible au rendu. -->
     <FrameLayout
         android:layout_width="@dimen/editor_marqueur_etape_taille"
         android:layout_height="@dimen/editor_marqueur_etape_taille"
@@ -50,6 +51,14 @@
             android:background="@drawable/cercle_attente_etape"
             android:visibility="gone"
             tools:visibility="visible" />
+
+        <View
+            android:id="@+id/marqueur_etape_sautee"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/point_etape_sautee"
+            android:visibility="gone"
+            tools:visibility="visible" />
     </FrameLayout>
 
     <com.google.android.material.textview.MaterialTextView
@@ -63,7 +72,7 @@
         android:singleLine="true"
         android:textAppearance="?attr/textAppearanceBodySmall"
         android:textSize="12sp"
-        tools:text="Téléchargement des dépendances…" />
+        tools:text="Dépendances et modèle IDE" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/duree_etape_arbre"

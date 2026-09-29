@@ -110,29 +110,36 @@
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>
     <string name="editor_outil_deconnecte">Gradle tools not connected</string>
 
-    <!-- Enriched tooling header (v4, §3.3): step-numbered title and
-         subtitle = current step + detail. -->
+    <!-- Enriched tooling header (v4, §3.3; v5 — preview): step-numbered
+         title (7-step display plan) and subtitle = current step + detail;
+         detailed success "modules · tasks · …". -->
     <string name="editor_tooling_entete_sync_etape">Gradle synchronization · step %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
     <string name="editor_tooling_entete_succes_taches">Tasks available: %1$s</string>
+    <!-- v0.39.x (CI lint PluralsCandidate): compact status line with TWO
+         quantities (like Android Studio's Build view), not a sentence —
+         same documented exemption as wizard_indicateur_etape. -->
+    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$d modules · %2$d tasks · no downloads</string>
+    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$d modules · %2$d tasks · classpaths ready</string>
 
     <!-- Task lines of the console (v3 — one line per task, updated in
          place when it finishes, like Android Studio's Build view) and
-         synchronization steps (end of the black box). -->
+         sync tree steps (v5 — preview plan, 7 steps: "Dependencies and
+         IDE model" merges both phases of the same resolution; noun
+         labels, the marker carries the state). -->
     <string name="editor_console_tache">&gt; Task %1$s</string>
     <string name="editor_console_tache_en_cours">&gt; Task %1$s…</string>
     <string name="editor_console_tache_duree">&gt; Task %1$s (%2$s)</string>
     <string name="editor_console_tache_sautee">&gt; Task %1$s — skipped</string>
     <string name="editor_console_tache_echouee">&gt; Task %1$s — FAILED</string>
-    <string name="editor_console_etape_outils">Checking the tools…</string>
-    <string name="editor_console_etape_distribution">Downloading the Gradle distribution…</string>
-    <string name="editor_console_etape_daemon">Starting the Gradle daemon…</string>
-    <string name="editor_console_etape_configuration">Configuring the project…</string>
-    <string name="editor_console_etape_modele_taches">Resolving the tasks…</string>
-    <string name="editor_console_etape_modele_idee">Resolving the IDE model…</string>
-    <string name="editor_console_etape_dependances">Downloading the dependencies…</string>
-    <string name="editor_console_etape_classpaths">Preparing the classpaths…</string>
-    <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
+    <string name="editor_console_etape_outils">Checking the tools</string>
+    <string name="editor_console_etape_distribution">Gradle distribution</string>
+    <string name="editor_console_etape_daemon">Starting the Gradle daemon</string>
+    <string name="editor_console_etape_configuration">Configuring the project</string>
+    <string name="editor_console_etape_modele_taches">Task model</string>
+    <string name="editor_console_etape_dependances_modele">Dependencies and IDE model</string>
+    <string name="editor_console_etape_classpaths">Classpaths and sources (LSP)</string>
+    <string name="editor_console_etape_en_cache">Cached</string>
 
     <!-- Enriched tooling console (v4, §3.3): channel filter, Tasks
          button, failure banner, download details. -->
@@ -144,6 +151,8 @@
     <string name="editor_console_detail_compteur">%1$d / %2$d</string>
     <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build cancelled</string>
+    <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
+    <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>
 
     <!-- Task picker sheet (v4, §3.3): search, recent, groups by module,
          honest empty states. -->

@@ -4,6 +4,71 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.40.0] – 2026-09-29
+
+### Modifié (correspondance avec l'aperçu du tooling — retour utilisateur
+sur la 0.39.0)
+
+- **Les anciens écrans de la console disparaissent** (retour : « tu n'as pas
+  enlevé les anciennes écrans du console ») : le filtre de canal devient un
+  choix EXCLUSIF à deux états — les chips Sync/Build vivent dans un
+  `ChipGroup` à sélection unique EXIGÉE (`singleSelection` +
+  `selectionRequired`), l'une des deux est toujours active, Sync par défaut
+  comme l'aperçu. La CHRONOLOGIE BRUTE (mode « aucune chip » : sorties
+  stdout/stderr en liste plate, étapes en lignes de texte) n'est plus un
+  écran ; la vue Sync ne mélange plus les sorties brutes sous l'arbre ; la
+  vue Build ne montre plus QUE les tâches et leur synthèse (les diagnostics
+  restent dans l'onglet Problèmes, le journal applicatif dans l'onglet
+  Journal). La rangée de tâche perd son étiquette de canal par ligne (le
+  chip dit déjà qui parle) — `ligne_sortie.xml` devient
+  `ligne_tache_console.xml`.
+- **Le téléchargement de la distribution ne s'affiche que s'il a LIEU**
+  (protocole v5, `PROTOCOL_VERSION` 5) : nouvelle phase SAUTÉE
+  (`SyncProgress.sautee`) — quand la distribution Gradle est déjà en cache
+  (marqueur `.ok` sondé par `EtatsDistribution`), le serveur publie la phase
+  DISTRIBUTION comme SAUTÉE (conclue, durée 0, aucun travail) au lieu d'un
+  « ✓ 0 s » mensonger d'un téléchargement qui n'a pas eu lieu ; la rangée de
+  l'arbre porte un point gris plein, un libellé atténué et « En cache » à la
+  place de la durée. La phase ouverte et sondée (barre, octets, artefact)
+  n'apparaît que si la distribution MANQUE. Fichiers dorés régénérés.
+- **Plan d'affichage à 7 étapes comme l'aperçu** (l'aperçu déroule 7
+  rangées) : `MODELE_IDE` et `DEPENDANCES` se produisent pendant la MÊME
+  résolution (les téléchargements alimentent le modèle) et l'ancienne
+  rangée DEPENDANCES restait « ○ à vie » sur une sync sans téléchargement —
+  les deux phases partagent désormais la rangée « Dépendances et modèle
+  IDE » (état consolidé, durée cumulée, compteur des dépendances conservé à
+  la fin) ; le compteur de l'en-tête suit le plan AFFICHÉ (« étape n/7 »).
+  Les libellés passent au nominatif (« Distribution Gradle », « Modèle des
+  tâches »…) — le marqueur porte l'état, le libellé ne le répète plus.
+- **Pied de conclusion de la sync** (l'aperçu clôt le déroulé) : «
+  Synchronisation terminée — les tâches sont disponibles. » ou, honnête
+  quand AUCUN octet n'a été reçu (distribution en cache, dépendances en
+  cache) : « Projet à jour, rien à télécharger — les tâches sont
+  disponibles. »
+- **Sous-titre de succès détaillé** : « N modules · N tâches · aucun
+  téléchargement / classpaths prêts » (le compte des modules vient du
+  compteur final de CLASSPATHS) — repli sur « Tâches disponibles : N »
+  si le compte manque.
+
+### Ajouté
+
+- Marqueur « sautée » de l'arbre (`point_etape_sautee.xml`, jeton
+  `?attr/colorOutline` — jamais de couleur dure) et chaînes FR/EN des sept
+  étapes, « En cache » et les pieds de sync.
+
+### Non livré
+
+- « Daemon réutilisé » en rangée sautée (l'aperçu chaud montre « réutilisé ») :
+  la Tooling API n'expose AUCUN signal honnête de réutilisation du daemon —
+  la durée MESURÉE de la phase DAEMON reste affichée plutôt qu'un statut
+  deviné.
+- Les téléchargements visibles DANS la vue Build (rangée « Téléchargement
+  des dépendances n/N » + artefacts, addendum §6) : le canal
+  `observeTelechargementsBuild` existe côté domaine mais n'est pas encore
+  consommé par la console — inchangé depuis 0.39.0.
+- Écran de configuration enrichi §7 (commande effective, recherche,
+  conflits, 2 colonnes) — toujours différé depuis 0.39.0.
+
 ## [0.39.1] – 2026-09-29
 
 ### Corrigé

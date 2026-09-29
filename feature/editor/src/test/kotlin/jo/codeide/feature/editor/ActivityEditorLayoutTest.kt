@@ -215,10 +215,10 @@ class ActivityEditorLayoutTest {
             console.findViewById<View>(R.id.bouton_config_tooling),
         )
 
-        // Ligne de console canalisée (v0.32.5) : étiquette + texte.
-        val ligne = gonfler(R.layout.ligne_sortie)
-        assertNotNull("étiquette de canal en tête de ligne (v0.32.5)", ligne.findViewById<View>(R.id.canal_sortie))
-        assertNotNull("texte de la ligne (v0.32.5)", ligne.findViewById<View>(R.id.texte_sortie))
+        // Rangée de TÂCHE (v5 — seule ligne de la vue Build, l'étiquette
+        // de canal a disparu avec la chronologie brute).
+        val tache = gonfler(R.layout.ligne_tache_console)
+        assertNotNull("texte de la tâche (v3 ; v5)", tache.findViewById<View>(R.id.texte_tache))
 
         val problemes = gonfler(R.layout.fragment_panneau_problemes)
         assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))
@@ -229,8 +229,17 @@ class ActivityEditorLayoutTest {
     fun `la console enrichie porte ses chips son bouton taches et son bandeau d echec`() {
         val console = gonfler(R.layout.fragment_panneau_console)
 
-        // Barre d'outils enrichie (v4, §3.3) : chips de filtre de canal
-        // exclusives, bouton Tâches, bandeau d'échec avec actions.
+        // Barre d'outils enrichie (v4, §3.3 ; v5 — aperçu) : chips de filtre
+        // EXCLUSIVES (ChipGroup à sélection unique exigée — l'une des deux
+        // toujours active), bouton Tâches, bandeau d'échec avec actions.
+        val groupe = console.findViewById<com.google.android.material.chip.ChipGroup>(R.id.groupe_filtres_console)
+        assertNotNull("groupe exclusif des chips Sync/Build (v5)", groupe)
+        assertTrue("sélection unique exigée (v5)", groupe.isSingleSelection)
+        assertTrue("sélection obligatoire — toujours une vue active (v5)", groupe.isSelectionRequired)
+        assertTrue(
+            "chip Sync cochée par défaut — la vue arbre ouvre l'écran (v5)",
+            console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_filtre_sync).isChecked,
+        )
         assertNotNull("chip de filtre Sync (§3.3)", console.findViewById<View>(R.id.chip_filtre_sync))
         assertNotNull("chip de filtre Build (§3.3)", console.findViewById<View>(R.id.chip_filtre_build))
         val boutonTaches = console.findViewById<View>(R.id.bouton_taches_sortie)
@@ -266,6 +275,10 @@ class ActivityEditorLayoutTest {
         assertNotNull(
             "marqueur d'étape en attente (§3.3)",
             etapeArbre.findViewById<View>(R.id.marqueur_etape_attente),
+        )
+        assertNotNull(
+            "marqueur d'étape sautée « en cache » (v5)",
+            etapeArbre.findViewById<View>(R.id.marqueur_etape_sautee),
         )
         assertNotNull("libellé de l'étape (§3.3)", etapeArbre.findViewById<View>(R.id.libelle_etape_arbre))
 

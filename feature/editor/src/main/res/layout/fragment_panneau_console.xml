@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4 §3.3
-     étape 5 : barre d'outils avec chips Sync/Build (filtre de canal), bouton
-     Tâches (désactivé tant que la sync n'a pas rempli son cache), bandeau
-     d'échec avec actions, console (arbre en vue Sync, tâches en vue Build),
-     auto-défilement. Fragment PanneauConsoleFragment — le chrome (en-tête,
-     onglets) reste à l'hôte (activity_editor.xml). -->
+     étape 5 ; v5 — aperçu : chips Sync/Build EXCLUSIVES (l'une toujours
+     active — arbre des étapes en vue Sync, tâches en vue Build ; la
+     chronologie brute n'est plus un écran), bouton Tâches (désactivé tant
+     que la sync n'a pas rempli son cache), bandeau d'échec avec actions,
+     console, auto-défilement. Fragment PanneauConsoleFragment — le chrome
+     (en-tête, onglets) reste à l'hôte (activity_editor.xml). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -27,24 +28,35 @@
         android:paddingHorizontal="@dimen/spacing_xs"
         android:paddingVertical="@dimen/spacing_xs">
 
-        <!-- Filtre de canal : chips exclusives (Sync active = vue arbre,
-             Build active = vue tâches, aucune = chronologie complète). -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filtre_sync"
-            style="@style/Widget.Material3.Chip.Filter"
+        <!-- Filtre de canal (v5, aperçu) : vues EXCLUSIVES — l'une des
+             deux est TOUJOURS active (Sync = vue arbre, Build = vue
+             tâches ; l'ancienne chronologie brute n'est plus un écran). -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/groupe_filtres_console"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checkable="true"
-            android:text="@string/editor_tooling_canal_sync" />
+            app:chipSpacingHorizontal="@dimen/spacing_xs"
+            app:selectionRequired="true"
+            app:singleLine="true"
+            app:singleSelection="true">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filtre_build"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_xs"
-            android:checkable="true"
-            android:text="@string/editor_tooling_canal_build" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filtre_sync"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:checked="true"
+                android:text="@string/editor_tooling_canal_sync" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_filtre_build"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:text="@string/editor_tooling_canal_build" />
+        </com.google.android.material.chip.ChipGroup>
 
         <Space
             android:layout_width="0dp"

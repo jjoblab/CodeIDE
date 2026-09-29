@@ -119,14 +119,14 @@ class PresentationToolingLocalisationFrTest {
         val entete = PresentationTooling.etatEntete(etat)
 
         assertEquals(
-            "Synchronisation Gradle · étape 7/8",
+            "Synchronisation Gradle · étape 6/7",
             entete.titre.resoudre(contexte),
         )
         val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
-        assertEquals("Téléchargement des dépendances…", libelleEtape)
+        assertEquals("Dépendances et modèle IDE", libelleEtape)
         assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
         assertEquals(
-            "Téléchargement des dépendances… — 42 Mo · 3 élément(s)",
+            "Dépendances et modèle IDE — 42 Mo · 3 élément(s)",
             libelleEtape?.let { libelle ->
                 entete.sousTitre?.let { detail ->
                     contexte.getString(
@@ -260,14 +260,14 @@ class PresentationToolingLocalisationEnTest {
         val entete = PresentationTooling.etatEntete(etat)
 
         assertEquals(
-            "Gradle synchronization · step 7/8",
+            "Gradle synchronization · step 6/7",
             entete.titre.resoudre(contexte),
         )
         val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
-        assertEquals("Downloading the dependencies…", libelleEtape)
+        assertEquals("Dependencies and IDE model", libelleEtape)
         assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
         assertEquals(
-            "Downloading the dependencies… — 42 Mo · 3 élément(s)",
+            "Dependencies and IDE model — 42 Mo · 3 élément(s)",
             libelleEtape?.let { libelle ->
                 entete.sousTitre?.let { detail ->
                     contexte.getString(

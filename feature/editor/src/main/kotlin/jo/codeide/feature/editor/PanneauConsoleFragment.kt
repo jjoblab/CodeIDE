@@ -18,11 +18,13 @@ import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
 /**
  * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v3 :
  * tâches au fil du build, étapes de sync, bouton de configuration ; v4,
- * §3.3 : barre d'outils avec CHIPS Sync/Build — l'arbre d'étapes en vue
- * Sync, les tâches et leur synthèse en vue Build — bouton Tâches armé par
- * le cache de la sync, BANDEAU d'échec avec « Voir les problèmes » et
- * « Réessayer », annulation visible en vol, auto-défilement (le suivi
- * s'arrête quand la liste cesse de grandir — un build fini ne défile plus).
+ * §3.3 : CHIPS Sync/Build — l'arbre d'étapes en vue Sync, les tâches et
+ * leur synthèse en vue Build ; v5, aperçu : les deux vues sont EXCLUSIVES
+ * et l'une est TOUJOURS active (la chronologie brute — sorties stdout/stderr
+ * en liste plate — n'est plus un écran) — bouton Tâches armé par le cache
+ * de la sync, BANDEAU d'échec avec « Voir les problèmes » et « Réessayer »,
+ * annulation visible en vol, auto-défilement (le suivi s'arrête quand la
+ * liste cesse de grandir — un build fini ne défile plus).
  *
  * Le contenu migre du layout empilé de l'activité (v0.32.3) vers ce
  * fragment ; l'activité ne collecte plus l'état tooling — chaque fragment
@@ -55,8 +57,9 @@ class PanneauConsoleFragment : Fragment() {
     /** Console du tooling (arbre / lignes / synthèse selon le filtre). */
     private lateinit var adaptateur: ConsoleToolingAdapter
 
-    /** Filtre de canal courant (§3.3) — survit à la rotation. */
-    private var filtre: FiltreCanalConsole = FiltreCanalConsole.TOUS
+    /** Filtre de canal courant (§3.3 ; v5 — Sync par défaut, comme
+     *  l'aperçu) — survit à la rotation. */
+    private var filtre: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
     /** Anti-réentrance : le rendu programme les chips sans déclencher
      *  leurs écouteurs (même garde-fou que le rendu idempotent de la
@@ -80,7 +83,7 @@ class PanneauConsoleFragment : Fragment() {
             etat
                 ?.getString(CLE_FILTRE_CANAL)
                 ?.let { nom -> FiltreCanalConsole.entries.firstOrNull { it.name == nom } }
-                ?: FiltreCanalConsole.TOUS
+                ?: FiltreCanalConsole.SYNC
         return liaison.root
     }
 
@@ -135,23 +138,21 @@ class PanneauConsoleFragment : Fragment() {
         super.onDestroyView()
     }
 
-    /** Chips Sync/Build (§3.3) : filtres EXCLUSIFS — activer l'une couvre
-     *  l'autre, les désactiver toutes les deux revient à la chronologie. */
+    /** Chips Sync/Build (§3.3 ; v5 — aperçu) : vues EXCLUSIVES, l'une des
+     *  deux TOUJOURS active (ChipGroup à sélection unique exigée) —
+     * Sync = l'arbre des étapes, Build = les tâches ; il n'y a plus de
+     * retour à une chronologie brute. */
     private fun brancherChips() {
-        liaison.chipFiltreSync.setOnCheckedChangeListener { _, coche ->
+        liaison.groupeFiltresConsole.setOnCheckedStateChangeListener { _, ids ->
             if (!renduChipsEnCours) {
-                if (coche) {
-                    liaison.chipFiltreBuild.isChecked = false
-                }
-                majFiltre()
-            }
-        }
-        liaison.chipFiltreBuild.setOnCheckedChangeListener { _, coche ->
-            if (!renduChipsEnCours) {
-                if (coche) {
-                    liaison.chipFiltreSync.isChecked = false
-                }
-                majFiltre()
+                filtre =
+                    if (R.id.chip_filtre_build in ids) {
+                        FiltreCanalConsole.BUILD
+                    } else {
+                        FiltreCanalConsole.SYNC
+                    }
+                tailleDerniereFenetre = 0
+                rendre(viewModel.etatGradle.value)
             }
         }
     }
@@ -170,20 +171,9 @@ class PanneauConsoleFragment : Fragment() {
         }
     }
 
-    /** Reçoit le filtre des chips (chips = vérité visuelle de l'état). */
-    private fun majFiltre() {
-        filtre =
-            when {
-                liaison.chipFiltreSync.isChecked -> FiltreCanalConsole.SYNC
-                liaison.chipFiltreBuild.isChecked -> FiltreCanalConsole.BUILD
-                else -> FiltreCanalConsole.TOUS
-            }
-        tailleDerniereFenetre = 0
-        rendre(viewModel.etatGradle.value)
-    }
-
     /** Pose l'état visuel des chips depuis [filtre] sans déclencher les
-     *  écouteurs (rendu idempotent). */
+     *  écouteurs (rendu idempotent — la sélection unique du ChipGroup
+     *  décoche l'autre chip toute seule). */
     private fun rendreChips() {
         renduChipsEnCours = true
         try {

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rangée de TÂCHE du build (v3 ; v5, aperçu — SEULE ligne de la vue
+     Build) : un texte monospace par tâche, mis à jour EN PLACE à sa fin
+     (statut + durée). L'étiquette de canal a disparu avec la chronologie
+     brute : le chip Build de la barre d'outils dit déjà qui parle, la
+     couleur du texte suit le statut (en cours = canal, échec = rouge,
+     sautée = atténuée). -->
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/texte_tache"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ellipsize="none"
+    android:fontFamily="monospace"
+    android:minHeight="@dimen/editor_ligne_hauteur"
+    android:paddingHorizontal="@dimen/spacing_xs"
+    android:paddingVertical="1dp"
+    android:gravity="center_vertical"
+    android:textAppearance="?attr/textAppearanceBodySmall"
+    android:textColor="?attr/colorStdout"
+    android:textSize="12sp"
+    tools:text="> Tâche :app:compileDebugKotlin (6,1 s)" />

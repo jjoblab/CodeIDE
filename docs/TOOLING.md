@@ -103,11 +103,13 @@ suppositions du prompt corrigées par les faits :
 | octets de téléchargement en continu | FAUX — `FileDownloadResult.getBytesDownloaded()` n'existe qu'à la FIN ; le descripteur ne porte que l'URI |
 | `setStreamedValueListener` chaînable | FAUX — retourne `void` (le compilateur le liait à `kotlin.run` : diagnostic par fichier témoin) |
 
-**Le déroulé ne ment plus** (§3.1) : `SyncHandler` annonce OUTILS
+**Le déroulé ne ment plus** (§3.1 ; v5 : la distribution en cache ne se
+déroule PAS) : `SyncHandler` annonce OUTILS
 (vérifications locales : dossier, wrapper, distribution en cache par le
 marqueur `wrapper/dists/<nom>/<hash>/*.zip.ok` — layout vérifié sur un
 `GRADLE_USER_HOME` réel) → DISTRIBUTION (sa PROPRE phase : installée =
-conclue aussitôt ; à résoudre = sondée toutes les 500 ms par la taille des
+SAUTÉE « en cache » v5, aucun travail annoncé ; à résoudre = ouverte puis
+sondée toutes les 500 ms par la taille des
 fichiers `.part` — la Tooling API ne donne AUCUN octet pour la
 distribution, le sondeur est la seule vérité) → DAEMON (conclu au premier
 événement `PROJECT_CONFIGURATION`) → CONFIGURATION / DEPENDANCES
@@ -165,6 +167,26 @@ alimentée par le CACHE de la sync — `ouvrirSelecteurTaches` répond depuis
 `tachesDisponibles` sans aller-retour, l'échec de listage remonte par
 effet (snackbar + « Réessayer »). Constructeurs de rangées PURS testés
 (`construireRangeesConsole`, `construireRangeesTaches`).
+
+### v5 — UI de l'APERÇU (0.40.0 — retour utilisateur, ADR 0071)
+
+La console correspond à l'aperçu interactif du prompt : **deux écrans
+EXCLUSIFS** (chips Sync/Build dans un `ChipGroup` à sélection unique
+EXIGÉE, Sync par défaut — la chronologie brute n'est plus un écran, la vue
+Sync ne mélange plus de sorties brutes, la vue Build ne montre QUE les
+tâches et leur synthèse) ; **le plan d'affichage compte 7 étapes**
+(`EtapeConsoleSync`, UI seulement — les 8 phases du câble restent
+réelles) : « Dépendances et modèle IDE » fusionne MODELE_IDE et
+DEPENDANCES (état consolidé, durée cumulée, plus de rangée « ○ à vie »
+sur une sync sans téléchargement), le compteur d'en-tête suit le plan
+affiché (« étape n/7 ») ; **la distribution en cache est SAUTÉE**
+(`SyncProgress.sautee`, protocole v5) : point gris plein, libellé
+atténué, « En cache » à la place de la durée — le téléchargement (barre,
+octets, artefact) n'apparaît que si elle MANQUE ; **pied de conclusion**
+(« Synchronisation terminée… » ou « Projet à jour, rien à télécharger… »
+quand aucun octet n'a été reçu) et sous-titre de succès « N modules ·
+N tâches · aucun téléchargement / classpaths prêts ». Libellés au
+nominatif — le marqueur porte l'état.
 
 ## Avertissement bénin du daemon Gradle (correctif C5 — comportement CONNU, pas un bug)
 
@@ -230,8 +252,8 @@ réel (§7.4) et chaos (§7.5) inclus. La vérification locale graduée
 | G7 | Tooling professionnel à la Android Studio | 0.33.0 | **Terminé** | Sync à l'ouverture du projet (sans geste, garde JDK d'abord — résolution `GradleProject` + `IdeaProject` : dépendances et classpaths), `SyncStarted` diffusé PAR le serveur avant la résolution (symétrique du `BuildStarted`, marquage client idempotent, perte de session = état au repos), canal Taches (indicateur de vol du listage), `GradleService` process-wide (`@Singleton`, `attacher` par espace, `rattacherBuildEnVol`), service de notification `ToolingService` (foreground `specialUse`, port `DemarreurServiceTooling` piloté aux transitions, décision pure `decisionNotificationTooling`, stopSelf au repos) ; vérification légère complète + situation réelle par harnais contre le VRAI jar. ADR 0057. |
 | G8 | Affichage des tâches, étapes de sync, configuration | 0.36.0 | **Terminé** |
 | G9 | Tooling professionnel v4 : phases réelles, action unique, téléchargements visibles, inactivité, cache | 0.38.0 | **Terminé** (l'UI complète §3.3 livrée en G10/0.39.0 ; l'écran de config enrichi §7 reste différé) | **Le trou est réparé** : `TaskStarted`/`TaskFinished` ne sont plus jetés par `GradleApiImpl.pomper` — `observeTachesBuild` (canal borné par build, fermé à la fin, même sémantique que la sortie) alimente la console : une ligne par tâche (`> Tâche :app:xxx…`), mise à jour EN PLACE à sa fin (statut + durée MESURÉE côté serveur, sautée grisée, échec rouge — vue Build d'Android Studio). **Fin de la boîte noire de sync** : protocole v3, `SyncProgress` par phase (`CONNEXION`/`MODELE_GRADLE`/`MODELE_IDEA`, départ puis durée — la connexion est hoistée avant les modèles, sa phase la plus longue est enfin visible), lignes du canal Sync conclues en place. **`--console=plain` forcé** en dernier argument de tout build (l'occurrence finale gagne). **Écran de configuration du tooling** (engrenage de l'onglet Sortie, dialogue plein écran `Theme.CodeIDE.PleinEcran`) : affichage des tâches (filtrage en vol), mode hors ligne, arguments Gradle libres, état vivant de l'orchestrateur — réglages persistés à l'instant (DataStore, ADR 0059), consommation via `OptionsTooling`. L'avertissement bénin du daemon Gradle voyage apaisé (style informatif, correctif C5 du prompt Terminal). Fichiers dorés v3 (28). ADR 0065. |
-
 | G10 | Tooling professionnel v4 — UI complète (§3.3) : en-tête enrichi, arbre de console avec chips, configuration intégrée, feuille des tâches | 0.39.0 | **Terminé** (§7 enrichi différé, documenté au CHANGELOG) | En-tête enrichi (pastille de canal avec spinner/coche/croix, titre « étape n/8 », sous-titre d'étape + détail annoncé à TalkBack, progression déterminée) ; console en ARBRE APLATI filtrable (chips Sync/Build exclusives, 8 phases toujours visibles, détail de téléchargement indenté, synthèse de build, bandeau d'échec avec actions) ; configuration intégrée AU CONTENEUR de la console (retour système LIFO, bouton libellé) ; feuille des tâches M3 (recherche, récentes, groupes) alimentée par le CACHE sans aller-retour, échec de listage affiché + « Réessayer » (correctif n°6). Constructeurs de rangées purs testés. ADR 0070. |
+| G11 | v5 (aperçu) — correspondance visuelle demandée par l'utilisateur : fin des anciens écrans de console, distribution « en cache » sautée, plan d'affichage à 7 étapes | 0.40.0 | **Terminé** (« Daemon réutilisé » non détectable honnêtement, téléchargements dans la vue Build et config §7 toujours différés — CHANGELOG) | Les deux écrans deviennent EXCLUSIFS (ChipGroup `selectionRequired`, Sync par défaut) : plus de chronologie brute ni de sorties brutes mélangées (vue Build = tâches seules, rangée sans étiquette de canal). Protocole v5 : `SyncProgress.sautee` — la distribution installée se publie SAUTÉE (durée 0, « En cache », point gris `?attr/colorOutline`) au lieu d'un « ✓ 0 s » mensonger. `EtapeConsoleSync` : plan d'affichage à 7 étapes (« Dépendances et modèle IDE » fusionnée, durée cumulée, compteur conservé), compteur « étape n/7 ». Pied de sync (« Synchronisation terminée… » / « Projet à jour, rien à télécharger… ») et sous-titre de succès « modules · tâches · … ». Dorés régénérés (28). ADR 0071. |
 
 > Ordre révisé le 2026-09-24 à la demande de l'utilisateur : le tooling
 > démarre après T6 (le prompt exigeait « Terminal terminé » ; T7 est un

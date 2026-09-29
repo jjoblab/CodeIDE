@@ -4,16 +4,19 @@ import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.StatutBuild
 
 /**
- * Filtre de canal de la console du tooling (v4, §3.3) : les chips Sync /
- * Build de la barre d'outils filtrent la vue — TOUS (aucune chip active)
- * garde la chronologie brute, SYNC montre l'ARBRE des étapes, BUILD les
- * tâches et leur synthèse.
+ * Filtre de canal de la console du tooling (v4, §3.3 ; v5 — aperçu) : les
+ * chips Sync / Build de la barre d'outils filtrent la vue — SYNC montre
+ * l'ARBRE des étapes et son pied de conclusion, BUILD les tâches et leur
+ * synthèse.
+ *
+ * Les deux états sont EXCLUSIFS et l'un des deux est TOUJOURS actif : la
+ * chronologie brute (v4 — sortie stdout/stderr en liste plate) n'est plus
+ * un écran, comme l'aperçu ne la montre pas — les sorties brutes ne
+ * mélangent plus l'arbre ni les tâches (les diagnostics vivent dans
+ * l'onglet Problèmes, le journal applicatif dans l'onglet Journal).
  */
 internal enum class FiltreCanalConsole {
-    /** Chronologie brute : chaque ligne se lit dans son ordre d'arrivée. */
-    TOUS,
-
-    /** Arbre des étapes de sync (§3.3) + sorties brutes de la sync. */
+    /** Arbre des étapes de sync (§3.3) + détail de téléchargement + pied. */
     SYNC,
 
     /** Tâches du build (mise à jour en place) + synthèse finale. */
@@ -21,10 +24,38 @@ internal enum class FiltreCanalConsole {
 }
 
 /**
- * Une rangée de la console du tooling (v4, §3.3) : l'arbre des étapes de
- * sync (✓ / spinner / ○ avec durée), les détails de téléchargement sous
- * l'étape active, les lignes existantes (sortie brute, tâche, étape
- * annoncée) et la synthèse de fin de build — UN modèle aplati pour un
+ * Étape AFFICHÉE dans l'arbre de sync (v5 — le plan de l'APERÇU, sept
+ * rangées) : le déroulé des PHASES (protocole v4, huit) reste réel, seules
+ * deux d'entre elles partagent ici une rangée — MODELE_IDE et DEPENDANCES
+ * se produisent pendant la MÊME résolution (les téléchargements alimentent
+ * le modèle), et l'ancienne rangée DEPENDANCES restait « ○ à vie » sur une
+ * sync sans téléchargement : la rangée fusionnée « Dépendances et modèle
+ * IDE » conclut honnêtement dans les deux cas.
+ */
+internal enum class EtapeConsoleSync(
+    /** Phases du déroulé réel rendues par cette rangée. */
+    val phases: List<EtapeSync>,
+) {
+    OUTILS(listOf(EtapeSync.OUTILS)),
+    DISTRIBUTION(listOf(EtapeSync.DISTRIBUTION)),
+    DAEMON(listOf(EtapeSync.DAEMON)),
+    CONFIGURATION(listOf(EtapeSync.CONFIGURATION)),
+    MODELE_TACHES(listOf(EtapeSync.MODELE_TACHES)),
+    DEPENDANCES_MODELE(listOf(EtapeSync.MODELE_IDE, EtapeSync.DEPENDANCES)),
+    CLASSPATHS(listOf(EtapeSync.CLASSPATHS)),
+    ;
+
+    companion object {
+        /** Rangée d'affichage d'une phase du déroulé réel. */
+        fun dePhase(phase: EtapeSync): EtapeConsoleSync = entries.first { phase in it.phases }
+    }
+}
+
+/**
+ * Une rangée de la console du tooling (v4, §3.3 ; v5 — aperçu) : l'arbre
+ * des étapes de sync (✓ / spinner / ○ / point « en cache », durée), le
+ * détail de téléchargement sous l'étape active, les TÂCHES du build et la
+ * synthèse de fin de build ou de sync — UN modèle aplati pour un
  * RecyclerView, l'indentation visuelle porte la hiérarchie.
  */
 internal sealed interface RangeeConsole {
@@ -32,21 +63,22 @@ internal sealed interface RangeeConsole {
     val idCle: String
 
     /**
-     * Étape du DÉROULÉ de sync (§3.3) : la phase du plan v4, avec son
-     * état annoncé ([annoncee] — `null` = pas encore atteinte : ○ en
-     * attente, jamais de durée devinée).
+     * Étape du DÉROULÉ AFFICHÉ de sync (§3.3 ; v5 — plan de l'aperçu) :
+     * [etat] consolide les phases sous-jacentes — `null` = jamais
+     * atteinte (○ en attente, jamais de durée devinée).
      */
     data class EtapeArbre(
-        val phase: EtapeSync,
-        val annoncee: EtapeSyncAffichee?,
+        val etape: EtapeConsoleSync,
+        val etat: EtatEtapeArbre?,
     ) : RangeeConsole {
         override val idCle: String
-            get() = "etape-${phase.name}"
+            get() = "etape-${etape.name}"
     }
 
     /**
      * Détail de téléchargement SOUS l'étape active (§3.3) : barre de
      * progression (octets reçus/total), compteur n/N, artefact courant.
+     * La phase (câble) reste sa clé : seule l'étape ACTIVE en porte une.
      */
     data class DetailTelechargement(
         val phase: EtapeSync,
@@ -60,12 +92,13 @@ internal sealed interface RangeeConsole {
             get() = "detail-${phase.name}"
     }
 
-    /** Ligne existante (sortie brute, tâche, étape annoncée) — chronologie. */
-    data class Ligne(
-        val ligne: LigneConsole,
+    /** Tâche du build (v3 ; v5 — SEULE ligne de la vue Build, les sorties
+     *  brutes ne mélangent plus l'écran) : mise à jour en place à sa fin. */
+    data class Tache(
+        val ligne: LigneConsole.Tache,
     ) : RangeeConsole {
         override val idCle: String
-            get() = "ligne-${ligne.id}"
+            get() = "tache-${ligne.id}"
     }
 
     /** Synthèse finale du build (§3.3) : verdict, durée, message. */
@@ -77,61 +110,146 @@ internal sealed interface RangeeConsole {
         override val idCle: String
             get() = "synthese-build"
     }
+
+    /** Pied de conclusion de la sync (v5, aperçu) : « Synchronisation
+     *  terminée » ou « Projet à jour, rien à télécharger » + disponibilité
+     *  des tâches — présent SEULEMENT une fois la sync réussie terminée. */
+    data class SyntheseSync(
+        val aJour: Boolean,
+    ) : RangeeConsole {
+        override val idCle: String
+            get() = "synthese-sync"
+    }
 }
 
 /**
- * Construit les rangées de la console selon le filtre (§3.3) : FONCTION
- * PURE — même discipline de test que le présentateur, aucune chaîne n'y
- * est construite (les libellés se résolvent au rendu).
+ * État CONSOLIDÉ d'une rangée de l'arbre (v5) : fusionne les phases
+ * sous-jacentes de l'étape affichée.
+ *
+ * @property terminee `true` quand TOUTES les phases annoncées sont
+ *           terminées (la fusion « Dépendances et modèle IDE » attend les
+ *           deux — une phase jamais annoncée n'attend rien).
+ * @property sautee `true` pour une phase satisfaite d'AVANCE (v5 —
+ *           distribution en cache) : la rangée porte « en cache », aucun
+ *           travail n'a eu lieu.
+ * @property dureeMs cumul des durées des phases terminées (la fusion peut
+ *           CHEVAUCHER ses phases : le cumul est un temps de travail, pas
+ *           une fenêtre calendaire — KDoc de l'aperçu).
+ * @property octetsRecus octets reçus cumulés de la phase porteuse.
+ * @property octetsTotal octets totaux si connus — `null` sinon.
+ * @property element élément courant (artefact, projet).
+ * @property compteur éléments terminés de la phase porteuse (n).
+ * @property total éléments totaux de la phase porteuse (N).
+ */
+internal data class EtatEtapeArbre(
+    val terminee: Boolean,
+    val sautee: Boolean,
+    val dureeMs: Long,
+    val octetsRecus: Long = 0,
+    val octetsTotal: Long? = null,
+    val element: String? = null,
+    val compteur: Int? = null,
+    val total: Int? = null,
+)
+
+/**
+ * Construit les rangées de la console selon le filtre (§3.3 ; v5 —
+ * aperçu) : FONCTION PURE — même discipline de test que le présentateur,
+ * aucune chaîne n'y est construite (les libellés se résolvent au rendu).
+ *
+ * - SYNC : l'arbre des sept étapes affichées + le pied de conclusion —
+ *   RIEN d'autre (l'ancienne chronologie brute ne se mélange plus) ;
+ *   l'arbre reste ABSENT tant qu'aucune sync n'a été annoncée (l'état
+ *   vide de la console parle à sa place) ;
+ * - BUILD : les tâches (une ligne par tâche) + la synthèse — les sorties
+ *   brutes du build ne mélangent plus l'écran.
  */
 internal fun construireRangeesConsole(
     etat: EtatGradle,
     filtre: FiltreCanalConsole,
 ): List<RangeeConsole> =
     when (filtre) {
-        FiltreCanalConsole.TOUS -> {
-            etat.lignes.map { RangeeConsole.Ligne(it) }
-        }
-
         FiltreCanalConsole.SYNC -> {
-            arbreEtapesSync(etat) +
-                etat.lignes
-                    .filter { it.canal == CanalTooling.SYNC && it is LigneConsole.Sortie }
-                    .map { RangeeConsole.Ligne(it) }
+            arbreEtapesSync(etat) + piedSync(etat)
         }
 
         FiltreCanalConsole.BUILD -> {
             etat.lignes
-                .filter { it.canal == CanalTooling.BUILD }
-                .map { RangeeConsole.Ligne(it) } + syntheseBuild(etat)
+                .filterIsInstance<LigneConsole.Tache>()
+                .map { RangeeConsole.Tache(it) } + syntheseBuild(etat)
         }
     }
 
 /**
- * L'arbre des étapes (§3.3) : les 8 phases du plan v4 dans l'ordre, chacune
- * avec son état annoncé — ○ pour les non atteintes, jamais supprimées
- * (l'utilisateur voit le CHEMIN complet, comme la vue Build d'Android
- * Studio). Le détail de téléchargement s'insère sous l'étape ACTIVE.
+ * L'arbre des étapes (§3.3 ; v5 — plan de l'aperçu) : les SEPT étapes
+ * affichées dans l'ordre, chacune avec son état consolidé — ○ pour les
+ * non atteintes, jamais supprimées (l'utilisateur voit le CHEMIN complet,
+ * comme la vue Build d'Android Studio). Le détail de téléchargement
+ * s'insère sous l'étape ACTIVE.
  */
 private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     val annoncees = etat.etapesAffichees.associateBy { it.etape }
-    val active = etat.etapeCourante?.takeIf { etat.synchronisationEnCours && !it.terminee }
+    if (annoncees.isEmpty()) return emptyList()
+    val phaseActive = etat.etapeCourante?.takeIf { etat.synchronisationEnCours && !it.terminee }
     val rangees = mutableListOf<RangeeConsole>()
-    for (phase in EtapeSync.entries) {
-        rangees += RangeeConsole.EtapeArbre(phase, annoncees[phase])
-        if (active?.etape == phase) {
+    for (etape in EtapeConsoleSync.entries) {
+        rangees += RangeeConsole.EtapeArbre(etape, consolider(etape, annoncees))
+        if (phaseActive != null && EtapeConsoleSync.dePhase(phaseActive.etape) == etape) {
             rangees +=
                 RangeeConsole.DetailTelechargement(
-                    phase = phase,
-                    octetsRecus = active.octetsRecus,
-                    octetsTotal = active.octetsTotal,
-                    compteur = active.compteur,
-                    total = active.total,
-                    element = active.element,
+                    phase = phaseActive.etape,
+                    octetsRecus = phaseActive.octetsRecus,
+                    octetsTotal = phaseActive.octetsTotal,
+                    compteur = phaseActive.compteur,
+                    total = phaseActive.total,
+                    element = phaseActive.element,
                 )
         }
     }
     return rangees
+}
+
+/** Consolide l'état d'une rangée depuis ses phases annoncées — `null`
+ *  quand aucune n'a été annoncée (rangée en attente ○). */
+private fun consolider(
+    etape: EtapeConsoleSync,
+    annoncees: Map<EtapeSync, EtapeSyncAffichee>,
+): EtatEtapeArbre? {
+    val sousJacentes = etape.phases.mapNotNull { annoncees[it] }
+    if (sousJacentes.isEmpty()) return null
+    // Phase PORTEUSE des détails : la VIVANTE d'abord (le téléchargement
+    // en cours), sinon la dernière phase qui en portait (le compteur
+    // final des dépendances reste lisible une fois conclue).
+    val porteuse =
+        sousJacentes.lastOrNull { !it.terminee }
+            ?: sousJacentes.lastOrNull { it.octetsRecus > 0 || it.compteur != null }
+            ?: sousJacentes.last()
+    return EtatEtapeArbre(
+        terminee = sousJacentes.all { it.terminee },
+        sautee = sousJacentes.all { it.sautee },
+        dureeMs = sousJacentes.filter { it.terminee }.sumOf { it.dureeMs },
+        octetsRecus = porteuse.octetsRecus,
+        octetsTotal = porteuse.octetsTotal,
+        element = porteuse.element,
+        compteur = porteuse.compteur,
+        total = porteuse.total,
+    )
+}
+
+/** Pied de conclusion de la sync (v5, aperçu) : absent en vol, à l'échec
+ *  ou sans résultat ; « Projet à jour, rien à télécharger » honnête quand
+ *  AUCUN octet n'a été reçu (distribution sautée, dépendances en cache). */
+private fun piedSync(etat: EtatGradle): List<RangeeConsole.SyntheseSync> {
+    val reussie = etat.synchronisationReussie
+    return if (reussie?.reussie == true && !etat.synchronisationEnCours) {
+        listOf(
+            RangeeConsole.SyntheseSync(
+                aJour = etat.etapesAffichees.none { it.octetsRecus > 0 },
+            ),
+        )
+    } else {
+        emptyList()
+    }
 }
 
 /** Synthèse de fin de build : absente en vol, présente une fois terminé. */

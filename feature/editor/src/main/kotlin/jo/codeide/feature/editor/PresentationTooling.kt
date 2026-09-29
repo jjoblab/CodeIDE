@@ -68,23 +68,24 @@ internal enum class StatutEntete {
 }
 
 /**
- * Libellé localisé d'une phase de sync (v4) — partagé par le SOUS-TITRE
- * de l'en-tête (§3.3) et l'arbre de la console : une seule table de
- * correspondance phase → ressource (l'état reste pur, la chaîne se
- * résout au rendu).
+ * Libellé localisé d'une étape AFFICHÉE de sync (v4 ; v5 — le plan de
+ * l'APERÇU, sept étapes : la fusion « Dépendances et modèle IDE » rend
+ * compte des deux phases qui se produisent pendant la même résolution) —
+ * partagé par le SOUS-TITRE de l'en-tête (§3.3) et l'arbre de la console :
+ * une seule table de correspondance étape → ressource (l'état reste pur,
+ * la chaîne se résout au rendu).
  */
 internal object LibellesEtapesSync {
-    /** Ressource du libellé de la phase [etape]. */
-    fun libelle(etape: EtapeSync): Int =
+    /** Ressource du libellé de l'étape affichée [etape]. */
+    fun libelle(etape: EtapeConsoleSync): Int =
         when (etape) {
-            EtapeSync.OUTILS -> R.string.editor_console_etape_outils
-            EtapeSync.DISTRIBUTION -> R.string.editor_console_etape_distribution
-            EtapeSync.DAEMON -> R.string.editor_console_etape_daemon
-            EtapeSync.CONFIGURATION -> R.string.editor_console_etape_configuration
-            EtapeSync.MODELE_TACHES -> R.string.editor_console_etape_modele_taches
-            EtapeSync.MODELE_IDE -> R.string.editor_console_etape_modele_idee
-            EtapeSync.DEPENDANCES -> R.string.editor_console_etape_dependances
-            EtapeSync.CLASSPATHS -> R.string.editor_console_etape_classpaths
+            EtapeConsoleSync.OUTILS -> R.string.editor_console_etape_outils
+            EtapeConsoleSync.DISTRIBUTION -> R.string.editor_console_etape_distribution
+            EtapeConsoleSync.DAEMON -> R.string.editor_console_etape_daemon
+            EtapeConsoleSync.CONFIGURATION -> R.string.editor_console_etape_configuration
+            EtapeConsoleSync.MODELE_TACHES -> R.string.editor_console_etape_modele_taches
+            EtapeConsoleSync.DEPENDANCES_MODELE -> R.string.editor_console_etape_dependances_modele
+            EtapeConsoleSync.CLASSPATHS -> R.string.editor_console_etape_classpaths
         }
 }
 
@@ -129,11 +130,13 @@ internal data class EtatEnteteTooling(
  * part, pur, la même discipline de test que le présentateur.
  */
 internal object DetailsEtapesSync {
-    /** Libellé de la phase courante (sous-titre de l'en-tête). */
+    /** Libellé de l'étape courante (sous-titre de l'en-tête) — la phase
+     *  câble se projette sur le plan d'AFFICHAGE (v5 : la fusion « Dépendances
+     *  et modèle IDE » porte le libellé des deux phases). */
     fun libelleEtape(etat: EtatGradle): Int? =
         etat.etapeCourante
             ?.takeIf { etat.synchronisationEnCours && !it.terminee }
-            ?.let { LibellesEtapesSync.libelle(it.etape) }
+            ?.let { LibellesEtapesSync.libelle(EtapeConsoleSync.dePhase(it.etape)) }
 
     /** Sous-titre : détail brut de l'étape courante (« 42 Mo · 3 · artefact »). */
     fun sousTitre(etat: EtatGradle): TexteTooling? =
@@ -289,8 +292,10 @@ internal object PresentationTooling {
             }
         }
 
-    /** Sous-titre (§3.3) : détail de l'étape courante en vol de sync,
-     *  compte des tâches disponibles au succès — `null` sinon. */
+    /** Sous-titre (§3.3 ; v5 — aperçu) : détail de l'étape courante en vol
+     *  de sync, compte « modules · tâches · … » au succès (le compte des
+     *  modules vient du compteur CLASSPATHS, l'honnêteté du détail distingue
+     *  une sync qui n'a rien téléchargé) — `null` sinon. */
     private fun sousTitre(etat: EtatGradle): TexteTooling? {
         if (etat.synchronisationEnCours) {
             return DetailsEtapesSync.sousTitre(etat)
@@ -303,15 +308,40 @@ internal object PresentationTooling {
             }
 
             reussie?.reussie == true && taches?.isNotEmpty() == true -> {
-                ressource(
-                    R.string.editor_tooling_entete_succes_taches,
-                    "${taches.size}",
-                )
+                sousTitreSucces(etat, taches.size)
             }
 
             else -> {
                 null
             }
+        }
+    }
+
+    /** Sous-titre de succès (v5, aperçu) : « modules · tâches · … » quand
+     *  le compte des modules est connu (compteur final de CLASSPATHS),
+     *  sinon le compte des tâches seul — repli défensif, la sync réussie
+     *  conclut toujours CLASSPATHS avec son compteur. */
+    private fun sousTitreSucces(
+        etat: EtatGradle,
+        nbTaches: Int,
+    ): TexteTooling {
+        val modules =
+            etat.etapesAffichees
+                .firstOrNull { it.etape == EtapeSync.CLASSPATHS }
+                ?.compteur
+        return if (modules != null) {
+            val sansTelechargement = etat.etapesAffichees.none { it.octetsRecus > 0 }
+            ressource(
+                if (sansTelechargement) {
+                    R.string.editor_tooling_entete_succes_detail_a_jour
+                } else {
+                    R.string.editor_tooling_entete_succes_detail_classpaths
+                },
+                "$modules",
+                "$nbTaches",
+            )
+        } else {
+            ressource(R.string.editor_tooling_entete_succes_taches, "$nbTaches")
         }
     }
 

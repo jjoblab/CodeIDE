@@ -342,7 +342,29 @@ class PresentationToolingTest {
             TexteTooling.Brut("42 Mo · 3 élément(s) · kotlin-stdlib.jar"),
             entete.sousTitre,
         )
-        assertEquals(R.string.editor_console_etape_dependances, entete.libelleEtape)
+        assertEquals(R.string.editor_console_etape_dependances_modele, entete.libelleEtape)
+    }
+
+    @Test
+    fun `la phase modele IDE se projette sur l etape fusionnee du plan d affichage`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                debutSyncMs = 0L,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat = EtapeSyncAffichee(etape = EtapeSync.MODELE_IDE),
+                        ),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(R.string.editor_console_etape_dependances_modele, entete.libelleEtape)
+        assertEquals(6, etat.numeroEtape)
     }
 
     @Test
@@ -371,6 +393,7 @@ class PresentationToolingTest {
             entete.titre,
         )
         assertEquals(3, etat.numeroEtape)
+        assertEquals(7, etat.totalEtapes)
         assertEquals(R.string.editor_console_etape_daemon, entete.libelleEtape)
     }
 
@@ -414,6 +437,73 @@ class PresentationToolingTest {
         )
         assertEquals(1f, entete.progression)
         assertEquals(null, entete.libelleEtape)
+    }
+
+    @Test
+    fun `le sous-titre de succes detaille modules et taches - v5, aperçu`() {
+        fun etatSucces(vararg etapes: EtapeSyncAffichee): EtatGradle =
+            EtatGradle(
+                synchronisationReussie =
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
+                tachesDisponibles =
+                    listOf(
+                        jo.codeide.core.domain
+                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                    ),
+                lignes =
+                    etapes.mapIndexed { index, etat ->
+                        LigneConsole.Etape(
+                            id = index.toLong() + 1L,
+                            canal = CanalTooling.SYNC,
+                            etat = etat,
+                        )
+                    },
+            )
+
+        // Sync chaude : distribution « en cache » (sautée), AUCUN octet reçu
+        // — le détail honnête dit « aucun téléchargement ».
+        val aJour =
+            etatSucces(
+                EtapeSyncAffichee(
+                    etape = EtapeSync.DISTRIBUTION,
+                    terminee = true,
+                    sautee = true,
+                ),
+                EtapeSyncAffichee(
+                    etape = EtapeSync.CLASSPATHS,
+                    terminee = true,
+                    compteur = 3,
+                ),
+            )
+        assertEquals(
+            TexteTooling.Ressource(
+                R.string.editor_tooling_entete_succes_detail_a_jour,
+                listOf("3", "1"),
+            ),
+            PresentationTooling.etatEntete(aJour).sousTitre,
+        )
+
+        // Sync froide : des octets ont été reçus — « classpaths prêts ».
+        val froide =
+            etatSucces(
+                EtapeSyncAffichee(
+                    etape = EtapeSync.DEPENDANCES,
+                    terminee = true,
+                    octetsRecus = 44_040_192L,
+                ),
+                EtapeSyncAffichee(
+                    etape = EtapeSync.CLASSPATHS,
+                    terminee = true,
+                    compteur = 3,
+                ),
+            )
+        assertEquals(
+            TexteTooling.Ressource(
+                R.string.editor_tooling_entete_succes_detail_classpaths,
+                listOf("3", "1"),
+            ),
+            PresentationTooling.etatEntete(froide).sousTitre,
+        )
     }
 
     @Test
