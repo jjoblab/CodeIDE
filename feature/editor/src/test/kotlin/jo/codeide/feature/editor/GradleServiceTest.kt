@@ -6,6 +6,7 @@ import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
+import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
@@ -463,5 +464,49 @@ internal class FauxDemarreurServiceTooling : DemarreurServiceTooling {
 
     override fun demarrer() {
         lancements++
+    }
+
+    @Test
+    fun `les etapes derivees des lignes portent leur statut et leur detail - v4`() {
+        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling())
+
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.OUTILS, terminee = true, dureeMs = 12))
+        service.ajouterEtapeSync(
+            EtapeSyncTooling(
+                etape = EtapeSync.DEPENDANCES,
+                octetsRecus = 44_040_192L,
+                element = "kotlin-stdlib.jar",
+                compteur = 3,
+            ),
+        )
+
+        val etat = service.etat.value
+        assertEquals(2, etat.etapesAffichees.size)
+        assertEquals(EtapeSync.OUTILS, etat.etapesAffichees[0].etape)
+        assertEquals(12L, etat.etapesAffichees[0].dureeMs)
+        assertEquals(EtapeSync.DEPENDANCES, etat.etapeCourante?.etape)
+        assertEquals("kotlin-stdlib.jar", etat.etapeCourante?.element)
+        // Compteur de l'en-tête : position dans le déroulé fixe de 8.
+        assertEquals(EtapeSync.entries.indexOf(EtapeSync.DEPENDANCES) + 1, etat.numeroEtape)
+        assertEquals(EtapeSync.entries.size, etat.totalEtapes)
+    }
+
+    @Test
+    fun `les taches disponibles se publient puis s invalident a la sync suivante - v4`() {
+        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling())
+
+        service.publierTachesDisponibles(listOf(InfoTache(chemin = ":app:build", nomAffiche = "build")))
+        assertEquals(
+            1,
+            service.etat.value.tachesDisponibles
+                ?.size,
+        )
+
+        service.marquerSyncEnCours()
+        assertEquals(
+            "une nouvelle sync invalide les tâches connues (§3.2)",
+            null,
+            service.etat.value.tachesDisponibles,
+        )
     }
 }

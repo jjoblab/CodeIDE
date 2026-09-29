@@ -48,6 +48,71 @@ internal fun TexteTooling.resoudre(contexte: Context): String =
     }
 
 /**
+ * État de rendu de l'EN-TÊTE du panneau tooling (v4, §3.2) — sorti du
+ * présentateur pur : un seul code décide du titre, du sous-titre (étape
+ * courante + détail), de la progression déterminée (0..1) ou indéterminée,
+ * de la couleur de canal, du chrono (en vol ou figé) et du bouton Arrêt.
+ * L'activité n'est plus que de la colle.
+ *
+ * @property titre titre principal (l'activité courante ou le résultat).
+ * @property sousTitre détail de l'étape courante (v4) — texte libre déjà
+ *           formulé, `null` si sans objet.
+ * @property progression 0..1 quand une progression DÉTERMINÉE existe
+ *           (octets reçus/total), `null` pour l'indéterminé.
+ * @property couleur couleur de canal (ressource core:ui).
+ * @property chronoMs départ du chrono en vol (ms horloge) — `null` sinon.
+ * @property dureeFigeeMs durée du dernier résultat quand le chrono est figé.
+ * @property arret le bouton Arrêter se montre-t-il (build en vol) ?
+ */
+internal data class EtatEnteteTooling(
+    val titre: TexteTooling,
+    val sousTitre: String? = null,
+    val progression: Float? = null,
+    val couleur: Int,
+    val chronoMs: Long? = null,
+    val dureeFigeeMs: Long? = null,
+    val arret: Boolean = false,
+)
+
+/**
+ * Détails de progression d'une étape de sync (v4, §3.2 — alimentation du
+ * SOUS-TITRE de l'en-tête et de la progression déterminée) : un objet à
+ * part, pur, la même discipline de test que le présentateur.
+ */
+internal object DetailsEtapesSync {
+    /** Sous-titre : détail de l'étape courante (« 42 Mo · 3 · artefact »). */
+    fun sousTitre(etat: EtatGradle): String? =
+        etat.etapeCourante
+            ?.takeIf { etat.synchronisationEnCours && !it.terminee }
+            ?.let(::detail)
+
+    /** Progression déterminée : octets reçus / total quand les deux sont connus. */
+    fun progression(etat: EtatGradle): Float? =
+        etat.etapeCourante
+            ?.takeIf { etat.synchronisationEnCours }
+            ?.takeIf { courante -> courante.octetsRecus > 0 && (courante.octetsTotal ?: 0L) > 0 }
+            ?.let { courante -> courante.octetsRecus.toFloat() / courante.octetsTotal!! }
+            ?.coerceIn(0f, 1f)
+
+    /** Détail lisible d'une étape : octets reçus (Mo), compteur, élément. */
+    private fun detail(etape: EtapeSyncAffichee): String? {
+        val parties = mutableListOf<String>()
+        if (etape.octetsRecus > 0) {
+            parties += "${etape.octetsRecus / OCTETS_PAR_MO} Mo"
+        }
+        if (etape.compteur != null && etape.compteur > 0) {
+            parties += "${etape.compteur} élément(s)"
+        }
+        etape.element?.take(TAILLE_ELEMENT_MAX)?.let { element -> parties += element }
+        return if (parties.isEmpty()) null else parties.joinToString(" · ")
+    }
+
+    private const val OCTETS_PAR_MO = 1_024L * 1_024L
+
+    private const val TAILLE_ELEMENT_MAX = 28
+}
+
+/**
  * Présentateur UNIQUE du tooling (correctif n°11 du prompt « tooling Gradle
  * professionnel ») : deux cascades dupliquées traduisaient [EtatGradle] en
  * libellés — [EditorActivity.libelleActiviteTooling] pour l'en-tête du
@@ -68,7 +133,45 @@ internal fun TexteTooling.resoudre(contexte: Context): String =
  * Les durées passent par [DureesLisibles] (correctif n°11 : la copie
  * privée de `EditorActivity` est supprimée — un seul formateur).
  */
+
 internal object PresentationTooling {
+    /**
+     * État d'en-tête complet (v4, §3.2) : le présentateur décide, l'activité
+     * rend — titre par canal, sous-titre = étape courante avec son détail
+     * (octets, compteur), progression déterminée quand les octets totaux
+     * sont connus, chrono en vol ou durée figée du dernier résultat.
+     */
+    fun etatEntete(etat: EtatGradle): EtatEnteteTooling {
+        val canal = etat.canalActif ?: etat.canalDernierResultat
+        val titre = canal?.let { libelleActivite(etat, it) } ?: TexteTooling.Ressource(R.string.editor_sortie_vide)
+        return EtatEnteteTooling(
+            titre = titre,
+            sousTitre = DetailsEtapesSync.sousTitre(etat),
+            progression = DetailsEtapesSync.progression(etat),
+            couleur = canal?.couleur ?: jo.codeide.core.ui.R.color.codeide_canal_sync,
+            chronoMs =
+                when (etat.canalActif) {
+                    CanalTooling.SYNC -> etat.debutSyncMs
+                    CanalTooling.BUILD -> etat.debutBuildMs
+                    CanalTooling.TACHES -> etat.debutTachesMs
+                    null -> null
+                },
+            dureeFigeeMs = dureeFigee(etat, canal),
+            arret = etat.canalActif == CanalTooling.BUILD,
+        )
+    }
+
+    /** Durée figée du dernier résultat (chrono arrêté). */
+    private fun dureeFigee(
+        etat: EtatGradle,
+        canal: CanalTooling?,
+    ): Long? =
+        when (canal) {
+            CanalTooling.SYNC -> etat.synchronisationReussie?.dureeMs
+            CanalTooling.BUILD -> etat.dureeBuildMs
+            else -> null
+        }
+
     /** Activité courante de l'en-tête, sur SON canal. */
     fun libelleActivite(
         etat: EtatGradle,
@@ -85,7 +188,7 @@ internal object PresentationTooling {
 
             CanalTooling.TACHES -> {
                 // Indicateur de vol : le sélecteur est le résultat du canal.
-                ressource(R.string.editor_tooling_taches_en_cours)
+                TexteTooling.Ressource(R.string.editor_tooling_taches_en_cours)
             }
         }
 
@@ -93,7 +196,7 @@ internal object PresentationTooling {
     fun libelleStatut(etat: EtatGradle): TexteTooling =
         when {
             etat.synchronisationEnCours -> {
-                ressource(R.string.editor_sortie_sync_en_cours)
+                TexteTooling.Ressource(R.string.editor_sortie_sync_en_cours)
             }
 
             etat.synchronisationReussie != null -> {
@@ -105,7 +208,7 @@ internal object PresentationTooling {
             }
 
             etat.statutBuild == StatutBuild.EN_COURS -> {
-                ressource(R.string.editor_sortie_build_en_cours)
+                TexteTooling.Ressource(R.string.editor_sortie_build_en_cours)
             }
 
             etat.statutBuild == StatutBuild.REUSSI -> {
@@ -117,15 +220,15 @@ internal object PresentationTooling {
             }
 
             etat.statutBuild == StatutBuild.ANNULE -> {
-                ressource(R.string.editor_sortie_build_annule)
+                TexteTooling.Ressource(R.string.editor_sortie_build_annule)
             }
 
             etat.connexion == EtatConnexion.ECHOUEE -> {
-                ressource(R.string.editor_outil_deconnecte)
+                TexteTooling.Ressource(R.string.editor_outil_deconnecte)
             }
 
             else -> {
-                ressource(R.string.editor_sortie_vide)
+                TexteTooling.Ressource(R.string.editor_sortie_vide)
             }
         }
 
@@ -134,7 +237,7 @@ internal object PresentationTooling {
     private fun libelleCanalSyncEntete(etat: EtatGradle): TexteTooling =
         when {
             etat.synchronisationEnCours -> {
-                ressource(R.string.editor_tooling_sync_en_cours)
+                TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours)
             }
 
             etat.messageEchecSync != null -> {
@@ -146,7 +249,7 @@ internal object PresentationTooling {
             }
 
             else -> {
-                ressource(R.string.editor_tooling_sync_en_cours)
+                TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours)
             }
         }
 
@@ -154,7 +257,7 @@ internal object PresentationTooling {
         when {
             etat.statutBuild == StatutBuild.EN_COURS -> {
                 if (etat.taches.isEmpty()) {
-                    ressource(R.string.editor_tooling_build_en_cours)
+                    TexteTooling.Ressource(R.string.editor_tooling_build_en_cours)
                 } else {
                     ressource(
                         R.string.editor_tooling_build_taches,
@@ -172,11 +275,11 @@ internal object PresentationTooling {
             }
 
             etat.statutBuild == StatutBuild.ANNULE -> {
-                ressource(R.string.editor_sortie_build_annule)
+                TexteTooling.Ressource(R.string.editor_sortie_build_annule)
             }
 
             else -> {
-                ressource(R.string.editor_sortie_vide)
+                TexteTooling.Ressource(R.string.editor_sortie_vide)
             }
         }
 
@@ -199,10 +302,7 @@ internal object PresentationTooling {
     /** Échec de build : le message du serveur, sinon le libellé générique. */
     private fun echoueBuild(etat: EtatGradle): TexteTooling =
         etat.messageEchecBuild?.let { TexteTooling.Brut(it) }
-            ?: ressource(R.string.editor_sortie_build_echoue)
-
-    /** Ressource sans arguments. */
-    private fun ressource(id: Int): TexteTooling = TexteTooling.Ressource(id)
+            ?: TexteTooling.Ressource(R.string.editor_sortie_build_echoue)
 
     /** Ressource avec arguments de format (chaînes). */
     private fun ressource(

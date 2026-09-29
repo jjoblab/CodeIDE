@@ -704,7 +704,33 @@ class EditorViewModel
                 val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
                 serviceGradle.publierResultatSync(resultat)
                 preparerClasspathLspSiSyncUtile(dossier, resultat)
+                publierTachesDisponiblesSiSyncUtile(dossier, resultat)
                 journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
+            }
+        }
+
+        /**
+         * Remplit les tâches disponibles après une sync utile (v4, §3.2) :
+         * le cache serveur rend le listage INSTANTANÉ (aucune seconde
+         * d'attente — le sélecteur s'ouvrira sans latence, le bouton
+         * Tâches s'active sur un fait). Échec : le journal seul le dit,
+         * jamais bloquant.
+         */
+        private suspend fun publierTachesDisponiblesSiSyncUtile(
+            dossier: File,
+            resultat: AppResult<ResultatSynchronisation>,
+        ) {
+            val resultatSync = (resultat as? AppResult.Success)?.value ?: return
+            if (!resultatSync.reussie && !resultatSync.partielle) return
+            when (val taches = listerTachesProjet(dossier)) {
+                is AppResult.Success -> {
+                    serviceGradle.publierTachesDisponibles(taches.value)
+                    journal.i(TAG) { "tâches disponibles (${taches.value.size}, projet ${identifiantSuivi()})" }
+                }
+
+                is AppResult.Failure -> {
+                    journal.w(TAG) { "tâches non listées après sync (projet ${identifiantSuivi()})" }
+                }
             }
         }
 

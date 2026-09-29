@@ -1,9 +1,12 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -267,5 +270,123 @@ class PresentationToolingTest {
             TexteTooling.Ressource(R.string.editor_sortie_sync_reussie, listOf("350ms")),
             libelle,
         )
+    }
+
+    // ---- État d'en-tête complet (v4, §3.2) -------------------------------
+
+    @Test
+    fun `l entete en vol porte son canal sa couleur et son chrono`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                debutSyncMs = 1_000L,
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours), entete.titre)
+        assertEquals(jo.codeide.core.ui.R.color.codeide_canal_sync, entete.couleur)
+        assertEquals(1_000L, entete.chronoMs)
+        assertEquals(null, entete.dureeFigeeMs)
+        assertEquals(false, entete.arret)
+    }
+
+    @Test
+    fun `l entete d un build porte le bouton arret et son chrono`() {
+        val etat =
+            EtatGradle(
+                statutBuild = StatutBuild.EN_COURS,
+                taches = listOf(":app:build"),
+                debutBuildMs = 2_000L,
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertTrue(entete.arret)
+        assertEquals(2_000L, entete.chronoMs)
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_tooling_build_taches, listOf(":app:build")),
+            entete.titre,
+        )
+    }
+
+    @Test
+    fun `le sous-titre detaille l etape courante de sync - octets et compteur`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                debutSyncMs = 0L,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat =
+                                EtapeSyncAffichee(
+                                    etape = EtapeSync.DEPENDANCES,
+                                    octetsRecus = 44_040_192L,
+                                    compteur = 3,
+                                    element = "kotlin-stdlib.jar",
+                                ),
+                        ),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals("42 Mo · 3 élément(s) · kotlin-stdlib.jar", entete.sousTitre)
+    }
+
+    @Test
+    fun `la progression est determinee quand les octets totaux sont connus`() {
+        fun etatAvec(
+            recus: Long,
+            total: Long?,
+        ): EtatGradle =
+            EtatGradle(
+                synchronisationEnCours = true,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat =
+                                EtapeSyncAffichee(
+                                    etape = EtapeSync.DISTRIBUTION,
+                                    octetsRecus = recus,
+                                    octetsTotal = total,
+                                ),
+                        ),
+                    ),
+            )
+
+        assertEquals(0.5f, PresentationTooling.etatEntete(etatAvec(50L, 100L)).progression)
+        assertEquals(null, PresentationTooling.etatEntete(etatAvec(50L, null)).progression)
+        assertEquals(null, PresentationTooling.etatEntete(etatAvec(0L, 100L)).progression)
+    }
+
+    @Test
+    fun `le chrono se fige sur la duree du dernier resultat`() {
+        val etat =
+            EtatGradle(
+                synchronisationReussie =
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 3_100),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(null, entete.chronoMs)
+        assertEquals(3_100L, entete.dureeFigeeMs)
+        assertEquals(null, entete.sousTitre)
+    }
+
+    @Test
+    fun `l etat vierge reste neutre sans canal`() {
+        val entete = PresentationTooling.etatEntete(EtatGradle())
+
+        assertEquals(TexteTooling.Ressource(R.string.editor_sortie_vide), entete.titre)
+        assertEquals(null, entete.sousTitre)
+        assertEquals(null, entete.chronoMs)
+        assertEquals(false, entete.arret)
     }
 }

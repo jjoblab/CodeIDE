@@ -189,10 +189,7 @@ class EditorActivity :
     /** La ligne tooling de l'en-tête est-elle active (un canal a quelque
      *  chose à montrer) — combinée au fondu de l'en-tête pour la
      *  visibilité effective (v0.32.5). */
-    private var ligneToolingActivee = false
-
-    /** Ticker du chrono de la ligne tooling (annulé à chaque rendu). */
-    private var travailMinuteur: Job? = null
+    private var controleurTooling: PanneauToolingController? = null
 
     /** Des onglets sont-ils sales (pilote le retour système) ? */
     private var ongletsSales = false
@@ -252,10 +249,12 @@ class EditorActivity :
         // ligatures, badges de diagnostic (cel-ui, ADR 0059).
         optionsEditeur.reglages.collectWithLifecycle(this, Lifecycle.State.STARTED) { appliquerReglagesEditeur() }
 
-        // Ligne tooling de l'en-tête (v0.32.5) : l'état Gradle — canaux,
-        // activité en cours, chronos — rendu par l'HÔTE (le chrome lui
-        // appartient ; les fragments rendent le contenu des onglets).
-        viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendreToolingEntete(etat) }
+        // Ligne tooling de l'en-tête (v0.32.5 ; v4 correctif n°13) : l'état
+        // Gradle — canaux, activité, chronos — rendu par le CONTRÔLEUR
+        // (PanneauToolingController) ; l'hôte ne garde que la collecte.
+        viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
+            controleurTooling?.rendre(etat)
+        }
     }
 
     /**
@@ -809,6 +808,17 @@ class EditorActivity :
      */
     private fun brancherPanneauInferieur() {
         comportementPanneau = BottomSheetBehavior.from(liaison.panneauInferieur)
+        // Contrôleur du rendu tooling (v4, correctif n°13) : le rendu de
+        // l'en-tête quitte l'activité — horloge injectée, annulation
+        // relayée au ViewModel, présentateur pur pour la décision.
+        controleurTooling =
+            PanneauToolingController(
+                activite = this,
+                liaison = liaison,
+                comportementPanneau = comportementPanneau,
+                horloge = horloge,
+                surArret = { viewModel.onAction(ActionEditor.AnnulerBuild) },
+            )
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         comportementPanneau.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
@@ -881,11 +891,8 @@ class EditorActivity :
         }
 
         // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de la
-        // ligne d'activité — visible seulement pendant un build (la
-        // synchronisation ne s'annule pas).
-        liaison.boutonArreterTooling.setOnClickListener {
-            viewModel.onAction(ActionEditor.AnnulerBuild)
-        }
+        // ligne d'activité — câblé par le PanneauToolingController (v4,
+        // correctif n°13).
 
         // Fragments du contenu (v0.32.4, ADR 0055) : ajoutés UNE fois
         // au conteneur — la réconciliation d'onglet les montre/cache (le
@@ -1382,114 +1389,7 @@ class EditorActivity :
         liaison.ligneTooling.alpha = alpha
         val visible = alpha > SEUIL_FONDU_VISIBLE
         liaison.entetePanneau.isVisible = visible
-        liaison.ligneTooling.isVisible = visible && ligneToolingActivee
-    }
-
-    /**
-     * Ligne tooling de l'en-tête (v0.32.5, ADR 0056 décision 5) : chaque
-     * information a SON canal — icône et couleur signature du canal
-     * (Sync teal, Build bleu), libellé de l'activité en cours (tâches
-     * du build, résultat de la sync), chrono en vol (demi-seconde),
-     * bouton Arrêter pendant un build, progression indéterminée. Le
-     * peek s'élargit pour accueillir la ligne — l'activité se voit
-     * MÊME panneau repli (façon barre de build d'Android Studio).
-     */
-    private fun rendreToolingEntete(etat: EtatGradle) {
-        val canal = etat.canalActif ?: etat.canalDernierResultat
-        ligneToolingActivee = canal != null
-        if (canal == null) {
-            travailMinuteur?.cancel()
-            travailMinuteur = null
-        } else {
-            liaison.iconeCanalTooling.setImageResource(canal.icone)
-            // Couleur de marque du canal : harmonisée avec le primaire du
-            // thème courant (ADR 0059).
-            liaison.iconeCanalTooling.setColorFilter(
-                ThemeHarmonizer.harmoniserAvecPrimaire(this, canal.couleur),
-            )
-            liaison.activiteTooling.text =
-                PresentationTooling.libelleActivite(etat, canal).resoudre(this)
-        }
-        liaison.progressionTooling.isVisible = etat.activiteEnCours
-        liaison.boutonArreterTooling.isVisible = etat.canalActif == CanalTooling.BUILD
-
-        // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
-        // durée du résultat — jamais de temps figé qui ment.
-        travailMinuteur?.cancel()
-        travailMinuteur = null
-        when (val actif = etat.canalActif) {
-            CanalTooling.SYNC -> {
-                val depart = etat.debutSyncMs
-                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
-            }
-
-            CanalTooling.BUILD -> {
-                val depart = etat.debutBuildMs
-                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
-            }
-
-            CanalTooling.TACHES -> {
-                val depart = etat.debutTachesMs
-                travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
-            }
-
-            null -> {
-                liaison.minuteurTooling.text =
-                    if (canal == CanalTooling.SYNC) {
-                        DureesLisibles.formater(etat.synchronisationReussie?.dureeMs ?: 0L)
-                    } else if (canal == CanalTooling.BUILD) {
-                        DureesLisibles.formater(etat.dureeBuildMs ?: 0L)
-                    } else {
-                        ""
-                    }
-            }
-        }
-
-        // Le peek suit la présence de la ligne (visible = état courant du
-        // fondu conservé — un panneau étendu n'a pas d'en-tête de toute
-        // façon).
-        liaison.ligneTooling.isVisible = ligneToolingActivee && liaison.entetePanneau.isVisible
-        majPeekPanneau()
-    }
-
-    /** Ticker du chrono en vol (500 ms — le centième de seconde est du
-     *  bruit sur un build). Correctif n°12 du tooling pro : le ticker ne
-     *  tourne QUE STARTED (`repeatOnLifecycle` — plus de `while (true)`
-     *  en arrière-plan) et lit l'HORLOGE INJECTÉE. Annulé par le prochain
-     *  rendu. */
-    private fun lancerMinuteur(texte: () -> Unit): Job? =
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (isActive) {
-                    texte()
-                    delay(PERIODE_MINUTEUR_MS)
-                }
-            }
-        }
-
-    /** Texte du chrono : temps écoulé depuis [depart] (ms de l'horloge
-     *  injectée — wall-clock du TimeProvider de production). */
-    private fun majTexteMinuteur(depart: Long?) {
-        val maintenant = horloge.nowMillis()
-        liaison.minuteurTooling.text =
-            DureesLisibles.formater(
-                depart?.let { (maintenant - it).coerceAtLeast(0L) } ?: 0L,
-            )
-    }
-
-    /** Peek du panneau : en-tête seul, + ligne tooling (et progression)
-     *  quand une activité s'y affiche — l'activité tooling reste
-     *  visible même repli (v0.32.5). */
-    private fun majPeekPanneau() {
-        val peekReposPx = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
-        var peek = peekReposPx
-        if (ligneToolingActivee) {
-            peek += resources.getDimensionPixelSize(R.dimen.editor_ligne_tooling_hauteur)
-            if (liaison.progressionTooling.isVisible) {
-                peek += (HAUTEUR_PROGRESSION_TOOLING_DP * resources.displayMetrics.density).toInt()
-            }
-        }
-        comportementPanneau.peekHeight = peek
+        controleurTooling?.appliquerFondu(alpha)
     }
 
     /** Fragments du panneau inférieur, par tag. */
@@ -1759,12 +1659,6 @@ class EditorActivity :
         /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
          *  fantômes cessent sans saut de hauteur). */
         const val SEUIL_FONDU_VISIBLE = 0.02f
-
-        /** Période du chrono de la ligne tooling (500 ms). */
-        const val PERIODE_MINUTEUR_MS = 500L
-
-        /** Hauteur de la bande de progression tooling (dp). */
-        const val HAUTEUR_PROGRESSION_TOOLING_DP = 4
 
         /** Actions des touches épinglées de la barre de symboles. */
         const val ACTION_TAB = "tab"

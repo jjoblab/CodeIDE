@@ -10,6 +10,7 @@ import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
+import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
@@ -146,17 +147,40 @@ data class EtatTacheAffichee(
 )
 
 /**
- * Étape de sync affichée dans la console (v3).
+ * Étape de sync affichée dans la console (v3 ; v4 : phases réelles +
+ * DÉTAILS de progression — octets reçus, élément courant, compteur n/N).
  *
  * @property etape phase annoncée.
  * @property terminee `true` à la fin (durée à la clé).
  * @property dureeMs durée de la phase à sa fin.
+ * @property octetsRecus octets reçus cumulés (téléchargements) — 0 si sans objet.
+ * @property octetsTotal octets totaux si connus — `null` sinon.
+ * @property element élément courant (artefact, projet) SANS donnée personnelle.
+ * @property compteur éléments terminés de la phase (n) — `null` si sans objet.
+ * @property total éléments totaux de la phase (N) si connu.
  */
 data class EtapeSyncAffichee(
     val etape: EtapeSync,
     val terminee: Boolean = false,
     val dureeMs: Long = 0,
+    val octetsRecus: Long = 0,
+    val octetsTotal: Long? = null,
+    val element: String? = null,
+    val compteur: Int? = null,
+    val total: Int? = null,
 )
+
+/**
+ * Statut d'affichage d'une étape de sync (v4, §3.2) : l'arbre de la
+ * console marque ✓ (terminée), spinner (en cours), ○ (en attente) —
+ * l'état reste pur, les symboles appartiennent au rendu.
+ */
+enum class StatutEtapeSync {
+    EN_ATTENTE,
+    EN_COURS,
+    TERMINEE,
+    ECHOUEE,
+}
 
 /**
  * Problèmes d'un même fichier (G5) — l'onglet Problèmes groupe les
@@ -213,6 +237,9 @@ data class EtatGradle(
     val messageEchecSync: String? = null,
     val tachesEnCours: Boolean = false,
     val debutTachesMs: Long? = null,
+    /** Tâches du projet connues sans aller-retour (v4, §3.2 — remplies à
+     *  la fin d'une sync : le sélecteur s'ouvre sans latence). */
+    val tachesDisponibles: List<InfoTache>? = null,
 ) {
     /** Nombre total de diagnostics (badge de l'onglet Problèmes). */
     val problemesTotal: Int
@@ -246,6 +273,27 @@ data class EtatGradle(
                 statutBuild != null -> CanalTooling.BUILD
                 else -> null
             }
+
+    /**
+     * Étapes de sync ordonnées, dérivées des lignes (v4, §3.2) : l'arbre
+     * de la console EST l'état — la liste porte chaque phase annoncée
+     * avec ses détails de progression, sans duplication de source de
+     * vérité.
+     */
+    val etapesAffichees: List<EtapeSyncAffichee>
+        get() = lignes.filterIsInstance<LigneConsole.Etape>().map { it.etat }
+
+    /** Étape COURANTE de sync (v4 : compteur de l'en-tête « étape n/N »). */
+    val etapeCourante: EtapeSyncAffichee?
+        get() = etapesAffichees.lastOrNull { !it.terminee } ?: etapesAffichees.lastOrNull()
+
+    /** Position de l'étape courante dans le déroulé fixe (1-based, v4). */
+    val numeroEtape: Int
+        get() = etapeCourante?.etape?.let { EtapeSync.entries.indexOf(it) + 1 } ?: 0
+
+    /** Total du déroulé (les 8 phases réelles v4). */
+    val totalEtapes: Int
+        get() = EtapeSync.entries.size
 }
 
 /**
@@ -329,6 +377,9 @@ class GradleService
                         synchronisationEnCours = true,
                         debutSyncMs = horloge.nowMillis(),
                         messageEchecSync = null,
+                        // v4 (§3.2) : une nouvelle sync invalide les tâches
+                        // connues — elles seront remplies à la fin.
+                        tachesDisponibles = null,
                     )
                 }
             }
@@ -370,6 +421,16 @@ class GradleService
         /** Conclut le listage des tâches (le sélecteur prend le relais). */
         fun tachesTerminees() {
             maj { it.copy(tachesEnCours = false) }
+        }
+
+        /**
+         * Publie les tâches du projet connues SANS aller-retour (v4, §3.2) :
+         * remplies à la fin d'une sync utile (le cache serveur rend le
+         * listage instantané) — le sélecteur s'ouvre sans latence et le
+         * bouton Tâches s'active sur un FAIT, pas sur une présomption.
+         */
+        fun publierTachesDisponibles(taches: List<InfoTache>) {
+            maj { it.copy(tachesDisponibles = taches) }
         }
 
         /** Réinitialise la console et publie le build suivi — les tâches
@@ -479,7 +540,17 @@ class GradleService
                         LigneConsole.Etape(
                             id = identite,
                             canal = CanalTooling.SYNC,
-                            etat = EtapeSyncAffichee(etape.etape, etape.terminee, etape.dureeMs),
+                            etat =
+                                EtapeSyncAffichee(
+                                    etape = etape.etape,
+                                    terminee = etape.terminee,
+                                    dureeMs = etape.dureeMs,
+                                    octetsRecus = etape.octetsRecus,
+                                    octetsTotal = etape.octetsTotal,
+                                    element = etape.element,
+                                    compteur = etape.compteur,
+                                    total = etape.total,
+                                ),
                         )
                     },
                 )
