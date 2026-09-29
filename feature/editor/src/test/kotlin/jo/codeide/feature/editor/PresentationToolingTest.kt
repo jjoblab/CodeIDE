@@ -460,15 +460,11 @@ class PresentationToolingTest {
                     },
             )
 
-        // Sync chaude : distribution « en cache » (sautée), AUCUN octet reçu
-        // — le détail honnête dit « aucun téléchargement ».
+        // v6 : la distribution en cache n'est pas émise — aucune étape
+        // DISTRIBUTION dans les lignes, AUCUN octet reçu — le détail
+        // honnête dit « aucun téléchargement ».
         val aJour =
             etatSucces(
-                EtapeSyncAffichee(
-                    etape = EtapeSync.DISTRIBUTION,
-                    terminee = true,
-                    sautee = true,
-                ),
                 EtapeSyncAffichee(
                     etape = EtapeSync.CLASSPATHS,
                     terminee = true,

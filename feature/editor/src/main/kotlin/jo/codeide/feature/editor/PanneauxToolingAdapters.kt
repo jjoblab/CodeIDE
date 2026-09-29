@@ -234,12 +234,6 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         /** Alpha d'une tâche sautée (atténuée vers le fond). */
         private const val ALPHA_ATTENUE = 128
 
-        /** Alpha PLEIN du libellé d'une étape de l'arbre. */
-        private const val ALPHA_PLEIN = 1f
-
-        /** Alpha d'un libellé d'étape SAUTÉE (« en cache » — atténué). */
-        private const val ALPHA_LIBELLE_SAUTEE = 0.55f
-
         /** Progression maximale en pourcentage (détail de téléchargement). */
         private const val POURCENT_MAX = 100f
     }
@@ -360,17 +354,17 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
     // ---- Étape d'arbre (§3.3 ; v5 — plan de l'aperçu ; v0.40.1 — correctif
     //      n°5 du prompt de suivi : le marqueur en cours est un
     //      `AnneauTournant` (drawable vectoriel + ObjectAnimator partagé)
-    //      au lieu d'un `CircularProgressIndicator` Material) -----------
+    //      au lieu d'un `CircularProgressIndicator` Material ; v6 — prompt
+    //      de suivi §2 : suppression du concept « sautée / En cache »,
+    //      une étape qui n'a pas lieu n'est plus affichée du tout) ---------
 
-    /** Étape : marqueur d'état (✓ / anneau tournant / ○ / point « en
-     *  cache »), libellé (atténué pour une sautée), durée ou « En cache ».
+    /** Étape : marqueur d'état (✓ / anneau tournant / ○), libellé, durée
+     *  MESURÉE à droite (jamais devinée — l'étape en cours n'en montre pas).
      *  v0.40.1 : l'anneau en cours est un `AnneauTournant` — un seul
      *  animateur partagé entre les holders visibles, plus de
      *  redémarrage d'animation à chaque `lier()`.
-     *  v0.40.1 intermédiaire : le marqueur « sautée » est retiré du
-     *  layout (il sera retiré du code à l'étape C du prompt de suivi
-     *  §2). Le code de l'état « sautée » reste en attendant pour ne pas
-     *  casser les tests `RangeesConsoleTest` qui couvrent `sautee`. */
+     *  v6 : plus de marqueur « sautée » ni de libellé « En cache » — une
+     *  étape non concernée n'apparaît pas dans la liste. */
     private class EtapeArbreHolder(
         private val liaison: LigneArbreEtapeBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
@@ -379,7 +373,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             liaison.libelleEtapeArbre.text = contexte.getString(LibellesEtapesSync.libelle(rangee.etape))
             val etat = rangee.etat
             majMarqueur(etat, contexte)
-            majDuree(etat, contexte)
+            majDuree(etat)
         }
 
         /**
@@ -401,19 +395,19 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         ) {
             val contexte = liaison.root.context
             majMarqueur(nouvelEtat, contexte)
-            majDuree(nouvelEtat, contexte)
+            majDuree(nouvelEtat)
         }
 
-        /** Met à jour le marqueur d'état (✓ / anneau / ○) selon [etat]. */
+        /** Met à jour le marqueur d'état (✓ / anneau / ○) selon [etat].
+         *  v6 : plus de marqueur « sautée » — trois états seulement. */
         private fun majMarqueur(
             etat: EtatEtapeArbre?,
             contexte: Context,
         ) {
-            val sautee = etat?.sautee == true
             val terminee = etat?.terminee == true
-            liaison.marqueurEtapeTerminee.isVisible = terminee && !sautee
-            liaison.marqueurEtapeEnCours.isVisible = etat != null && !terminee && !sautee
-            liaison.marqueurEtapeAttente.isVisible = etat == null || sautee
+            liaison.marqueurEtapeTerminee.isVisible = terminee
+            liaison.marqueurEtapeEnCours.isVisible = etat != null && !terminee
+            liaison.marqueurEtapeAttente.isVisible = etat == null
             if (liaison.marqueurEtapeEnCours.isVisible) {
                 // v0.40.1 : `backgroundTintList` teinte le drawable vectoriel
                 // de l'anneau — un seul `ObjectAnimator` partagé tourne
@@ -427,24 +421,14 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                         ),
                     )
             }
-            // Libellé atténué d'une sautée (« en cache ») : de
-            // l'information, pas du bruit.
-            liaison.libelleEtapeArbre.alpha =
-                if (sautee) ALPHA_LIBELLE_SAUTEE else ALPHA_PLEIN
         }
 
-        /** Met à jour la durée (MESURÉE à la fin, jamais devinée en cours). */
-        private fun majDuree(
-            etat: EtatEtapeArbre?,
-            contexte: Context,
-        ) {
-            val sautee = etat?.sautee == true
+        /** Met à jour la durée (MESURÉE à la fin, jamais devinée en cours).
+         *  v6 : plus de texte « En cache » — une étape sans travail n'est
+         *  simplement pas affichée. */
+        private fun majDuree(etat: EtatEtapeArbre?) {
             liaison.dureeEtapeArbre.text =
-                when {
-                    sautee -> contexte.getString(R.string.editor_console_etape_en_cache)
-                    etat?.terminee == true -> DureesLisibles.formater(etat.dureeMs)
-                    else -> ""
-                }
+                if (etat?.terminee == true) DureesLisibles.formater(etat.dureeMs) else ""
         }
     }
 

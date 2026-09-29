@@ -139,7 +139,10 @@
     <string name="editor_console_etape_modele_taches">Task model</string>
     <string name="editor_console_etape_dependances_modele">Dependencies and IDE model</string>
     <string name="editor_console_etape_classpaths">Classpaths and sources (LSP)</string>
-    <string name="editor_console_etape_en_cache">Cached</string>
+
+    <!-- v6 (prompt de suivi §2): the `editor_console_etape_en_cache` string
+         is REMOVED — a step that doesn\'t happen is no longer displayed at
+         all, no more « cached » marker nor attenuated label. -->
 
     <!-- Enriched tooling console (v4, §3.3): channel filter, Tasks
          button, failure banner, download details. -->

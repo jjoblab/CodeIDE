@@ -207,25 +207,10 @@ class GradleServiceTest {
         assertEquals("l'étape de sync porte le canal SYNC", CanalTooling.SYNC, etapes.single().canal)
     }
 
-    @Test
-    fun `une etape SAUTEE en cache s affiche conclue sans duree - v5`() {
-        service.marquerSyncEnCours()
-        service.ajouterEtapeSync(
-            EtapeSyncTooling(
-                etape = EtapeSync.DISTRIBUTION,
-                terminee = true,
-                sautee = true,
-                element = "gradle-9.7.1-bin.zip",
-            ),
-        )
-
-        val etat = service.etat.value
-        val sautee = etat.etapesAffichees.single()
-        assertTrue("sautée (distribution déjà en cache)", sautee.sautee)
-        assertTrue("conclue sans travail", sautee.terminee)
-        assertEquals("aucune durée", 0L, sautee.dureeMs)
-        assertEquals("gradle-9.7.1-bin.zip", sautee.element)
-    }
+    // v6 (prompt de suivi §2) : le test `une etape SAUTEE en cache s affiche
+    // conclue sans duree` est SUPPRIMÉ — le drapeau `sautee` n'existe plus.
+    // Une distribution en cache n'est pas émise par le serveur, le client
+    // ne la reçoit pas et ne l'affiche pas.
 
     @Test
     fun `une nouvelle sync reannonce ses etapes en lignes nouvelles`() {

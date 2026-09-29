@@ -147,7 +147,10 @@
     <string name="editor_console_etape_modele_taches">Modèle des tâches</string>
     <string name="editor_console_etape_dependances_modele">Dépendances et modèle IDE</string>
     <string name="editor_console_etape_classpaths">Classpaths et sources (LSP)</string>
-    <string name="editor_console_etape_en_cache">En cache</string>
+
+    <!-- v6 (prompt de suivi §2) : la chaîne `editor_console_etape_en_cache`
+         est SUPPRIMÉE — une étape qui n'a pas lieu n'est plus affichée
+         du tout, plus de marqueur « en cache » ni de libellé atténué. -->
 
     <!-- Console du tooling enrichie (v4, §3.3 ; v5 — aperçu) : filtre de
          canal, bouton Tâches, bandeau d\'échec, détails de téléchargement,
