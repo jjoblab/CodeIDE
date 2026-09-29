@@ -249,7 +249,7 @@ internal class SortieAdapter : ListAdapter<LigneConsole, SortieAdapter.Holder>(D
         /** Libellé d'une étape de sync — conclue avec sa durée. */
         private fun texteEtape(etat: EtapeSyncAffichee): String {
             val contexte = liaison.root.context
-            val libelle = contexte.getString(libelleEtape(etat.etape))
+            val libelle = contexte.getString(LibellesEtapesSync.libelle(etat.etape))
             return if (etat.terminee) {
                 contexte.getString(
                     R.string.editor_console_etape_terminee,
@@ -260,19 +260,6 @@ internal class SortieAdapter : ListAdapter<LigneConsole, SortieAdapter.Holder>(D
                 libelle
             }
         }
-
-        /** Ressource du libellé d'une phase de sync (v4 : phases réelles). */
-        private fun libelleEtape(etape: EtapeSync): Int =
-            when (etape) {
-                EtapeSync.OUTILS -> R.string.editor_console_etape_outils
-                EtapeSync.DISTRIBUTION -> R.string.editor_console_etape_distribution
-                EtapeSync.DAEMON -> R.string.editor_console_etape_daemon
-                EtapeSync.CONFIGURATION -> R.string.editor_console_etape_configuration
-                EtapeSync.MODELE_TACHES -> R.string.editor_console_etape_modele_taches
-                EtapeSync.MODELE_IDE -> R.string.editor_console_etape_modele_idee
-                EtapeSync.DEPENDANCES -> R.string.editor_console_etape_dependances
-                EtapeSync.CLASSPATHS -> R.string.editor_console_etape_classpaths
-            }
 
         /** Couleur du texte selon le genre : la tâche en cours porte la
          *  couleur de SON canal (le « qui parle » en direct), l'échec reste

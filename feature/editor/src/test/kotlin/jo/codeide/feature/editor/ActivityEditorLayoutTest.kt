@@ -155,6 +155,39 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
+    fun `l en tete tooling enrichi porte pastille titre sous-titre chrono et arret`() {
+        val racine = gonfler(R.layout.activity_editor)
+        val ligneTooling = racine.findViewById<View>(R.id.ligne_tooling)
+
+        // En-tête tooling ENRICHI (v4, §3.3) : pastille de canal (fond
+        // teinté + icône + spinner en vol), titre, sous-titre d'étape,
+        // chrono monospace, bouton Arrêter.
+        val vuesEntete =
+            mapOf(
+                "pastille de canal" to R.id.pastille_canal_tooling,
+                "icône de canal" to R.id.icone_canal_tooling,
+                "spinner en vol" to R.id.spinner_canal_tooling,
+                "titre d'activité" to R.id.activite_tooling,
+                "sous-titre d'étape" to R.id.sous_titre_tooling,
+                "chrono monospace" to R.id.minuteur_tooling,
+                "bouton Arrêter" to R.id.bouton_arreter_tooling,
+            )
+        vuesEntete.forEach { (nom, idVue) ->
+            assertNotNull("vue de l'en-tête tooling enrichi (§3.3) : $nom", ligneTooling.findViewById<View>(idVue))
+        }
+        assertEquals(
+            "spinner masqué par défaut (aucune activité en vol, §3.3)",
+            View.GONE,
+            racine.findViewById<View>(R.id.spinner_canal_tooling).visibility,
+        )
+        assertEquals(
+            "sous-titre masqué par défaut (aucune étape courante, §3.3)",
+            View.GONE,
+            racine.findViewById<View>(R.id.sous_titre_tooling).visibility,
+        )
+    }
+
+    @Test
     fun `les fragments du panneau se gonflent avec leurs vues completes`() {
         val journal = gonfler(R.layout.fragment_panneau_journal)
         assertNotNull("filtres du journal (v0.32.4)", journal.findViewById<View>(R.id.filtres_journal))

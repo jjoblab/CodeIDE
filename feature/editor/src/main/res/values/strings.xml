@@ -118,6 +118,12 @@
     <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>
     <string name="editor_outil_deconnecte">Outils Gradle non connectés</string>
 
+    <!-- En-tête tooling enrichi (v4, §3.3) : titre numéroté par étape et
+         sous-titre = étape courante + détail. -->
+    <string name="editor_tooling_entete_sync_etape">Synchronisation Gradle · étape %1$s/%2$s</string>
+    <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
+    <string name="editor_tooling_entete_succes_taches">Tâches disponibles : %1$s</string>
+
     <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
          jour en place à sa fin, comme la vue Build d'Android Studio) et
          étapes de synchronisation (fin de la boîte noire « en cours /

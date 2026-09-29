@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import androidx.test.core.app.ApplicationProvider
+import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
@@ -94,6 +95,67 @@ class PresentationToolingLocalisationFrTest {
             PresentationTooling.libelleStatut(EtatGradle()).resoudre(contexte),
         )
     }
+
+    @Test
+    fun `l en tete enrichi se resout en francais - titre numerote et sous-titre d etape`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat =
+                                EtapeSyncAffichee(
+                                    etape = EtapeSync.DEPENDANCES,
+                                    octetsRecus = 44_040_192L,
+                                    compteur = 3,
+                                ),
+                        ),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(
+            "Synchronisation Gradle · étape 7/8",
+            entete.titre.resoudre(contexte),
+        )
+        val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
+        assertEquals("Téléchargement des dépendances…", libelleEtape)
+        assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
+        assertEquals(
+            "Téléchargement des dépendances… — 42 Mo · 3 élément(s)",
+            libelleEtape?.let { libelle ->
+                entete.sousTitre?.let { detail ->
+                    contexte.getString(
+                        R.string.editor_tooling_entete_sous_titre,
+                        libelle,
+                        detail.resoudre(contexte),
+                    )
+                }
+            },
+        )
+    }
+
+    @Test
+    fun `le sous-titre de succes se resout en francais`() {
+        val entete =
+            PresentationTooling.etatEntete(
+                EtatGradle(
+                    synchronisationReussie =
+                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
+                    tachesDisponibles =
+                        listOf(
+                            jo.codeide.core.domain
+                                .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                        ),
+                ),
+            )
+
+        assertEquals("Tâches disponibles : 1", entete.sousTitre?.resoudre(contexte))
+    }
 }
 
 /** Miroir anglais de [PresentationToolingLocalisationFrTest]. */
@@ -173,5 +235,66 @@ class PresentationToolingLocalisationEnTest {
             "Build output will appear here.",
             PresentationTooling.libelleStatut(EtatGradle()).resoudre(contexte),
         )
+    }
+
+    @Test
+    fun `l en tete enrichi se resout en anglais - titre numerote et sous-titre d etape`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat =
+                                EtapeSyncAffichee(
+                                    etape = EtapeSync.DEPENDANCES,
+                                    octetsRecus = 44_040_192L,
+                                    compteur = 3,
+                                ),
+                        ),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(
+            "Gradle synchronization · step 7/8",
+            entete.titre.resoudre(contexte),
+        )
+        val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
+        assertEquals("Downloading the dependencies…", libelleEtape)
+        assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
+        assertEquals(
+            "Downloading the dependencies… — 42 Mo · 3 élément(s)",
+            libelleEtape?.let { libelle ->
+                entete.sousTitre?.let { detail ->
+                    contexte.getString(
+                        R.string.editor_tooling_entete_sous_titre,
+                        libelle,
+                        detail.resoudre(contexte),
+                    )
+                }
+            },
+        )
+    }
+
+    @Test
+    fun `le sous-titre de succes se resout en anglais`() {
+        val entete =
+            PresentationTooling.etatEntete(
+                EtatGradle(
+                    synchronisationReussie =
+                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
+                    tachesDisponibles =
+                        listOf(
+                            jo.codeide.core.domain
+                                .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                        ),
+                ),
+            )
+
+        assertEquals("Tasks available: 1", entete.sousTitre?.resoudre(contexte))
     }
 }

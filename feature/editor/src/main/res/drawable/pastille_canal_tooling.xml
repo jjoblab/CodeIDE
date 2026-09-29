@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille du canal de l'en-tête tooling (v4, §3.3) : carré arrondi
+     (rayon = jeton core:ui) teinté AU RENDU par le PanneauToolingController
+     — couleur de canal harmonisée en vol, vert de succès, rouge d'échec.
+     Aucune couleur dure : le blanc n'est qu'un masque pour la teinte. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/white" />
+    <corners android:radius="@dimen/corner_radius_medium" />
+</shape>

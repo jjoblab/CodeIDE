@@ -6,10 +6,16 @@
     <!-- Hauteur du panneau inférieur replié : seul l'en-tête est visible. -->
     <dimen name="editor_panneau_replie">48dp</dimen>
 
-    <!-- Ligne tooling de l'en-tête du panneau (v0.32.5, ADR 0056) :
-         hauteur fixe — le peek s'élargit exactement de cette valeur
-         quand une activité tooling s'affiche. -->
-    <dimen name="editor_ligne_tooling_hauteur">34dp</dimen>
+    <!-- En-tête tooling enrichi du panneau inférieur (v4, §3.3) : hauteur
+         fixe de la ligne (pastille + titre + sous-titre + chrono + arrêt) —
+         le peek s'élargit exactement de cette valeur quand une activité
+         tooling s'affiche. -->
+    <dimen name="editor_entete_tooling_hauteur">52dp</dimen>
+
+    <!-- Pastille du canal de l'en-tête tooling (§3.3) : carré arrondi
+         coloré par canal, icône blanche / spinner en vol. -->
+    <dimen name="editor_pastille_canal_taille">34dp</dimen>
+    <dimen name="editor_icone_canal_taille">20dp</dimen>
 
     <!-- Lignes de nœuds (§ 6.1). -->
     <dimen name="editor_ligne_hauteur">34dp</dimen>

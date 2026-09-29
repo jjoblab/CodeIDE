@@ -286,9 +286,12 @@ class PresentationToolingTest {
 
         assertEquals(TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours), entete.titre)
         assertEquals(jo.codeide.core.ui.R.color.codeide_canal_sync, entete.couleur)
+        assertEquals(StatutEntete.EN_VOL, entete.statut)
         assertEquals(1_000L, entete.chronoMs)
         assertEquals(null, entete.dureeFigeeMs)
         assertEquals(false, entete.arret)
+        assertEquals(null, entete.libelleEtape)
+        assertEquals(null, entete.sousTitre)
     }
 
     @Test
@@ -304,6 +307,7 @@ class PresentationToolingTest {
 
         assertTrue(entete.arret)
         assertEquals(2_000L, entete.chronoMs)
+        assertEquals(StatutEntete.EN_VOL, entete.statut)
         assertEquals(
             TexteTooling.Ressource(R.string.editor_tooling_build_taches, listOf(":app:build")),
             entete.titre,
@@ -334,7 +338,82 @@ class PresentationToolingTest {
 
         val entete = PresentationTooling.etatEntete(etat)
 
-        assertEquals("42 Mo · 3 élément(s) · kotlin-stdlib.jar", entete.sousTitre)
+        assertEquals(
+            TexteTooling.Brut("42 Mo · 3 élément(s) · kotlin-stdlib.jar"),
+            entete.sousTitre,
+        )
+        assertEquals(R.string.editor_console_etape_dependances, entete.libelleEtape)
+    }
+
+    @Test
+    fun `le titre est numerote par etape pendant la sync`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                debutSyncMs = 0L,
+                lignes =
+                    listOf(
+                        LigneConsole.Etape(
+                            id = 1L,
+                            canal = CanalTooling.SYNC,
+                            etat = EtapeSyncAffichee(etape = EtapeSync.DAEMON),
+                        ),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(
+            TexteTooling.Ressource(
+                R.string.editor_tooling_entete_sync_etape,
+                listOf("${etat.numeroEtape}", "${etat.totalEtapes}"),
+            ),
+            entete.titre,
+        )
+        assertEquals(3, etat.numeroEtape)
+        assertEquals(R.string.editor_console_etape_daemon, entete.libelleEtape)
+    }
+
+    @Test
+    fun `le statut visuel suit le verdict du dernier resultat du canal`() {
+        val reussie =
+            EtatGradle(
+                synchronisationReussie =
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 900),
+            )
+        val echoueeSync = EtatGradle(messageEchecSync = "réseau coupé")
+        val buildReussi = EtatGradle(statutBuild = StatutBuild.REUSSI)
+        val buildEchoue = EtatGradle(statutBuild = StatutBuild.ECHOUE)
+
+        assertEquals(StatutEntete.SUCCES, PresentationTooling.etatEntete(reussie).statut)
+        assertEquals(StatutEntete.ECHOUE, PresentationTooling.etatEntete(echoueeSync).statut)
+        assertEquals(StatutEntete.SUCCES, PresentationTooling.etatEntete(buildReussi).statut)
+        assertEquals(StatutEntete.ECHOUE, PresentationTooling.etatEntete(buildEchoue).statut)
+    }
+
+    @Test
+    fun `la sync reussie avec taches montre le compte et une progression pleine`() {
+        val etat =
+            EtatGradle(
+                synchronisationReussie =
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
+                tachesDisponibles =
+                    listOf(
+                        jo.codeide.core.domain
+                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                        jo.codeide.core.domain
+                            .InfoTache(chemin = ":app:test", nomAffiche = "test"),
+                    ),
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_tooling_entete_succes_taches, listOf("2")),
+            entete.sousTitre,
+        )
+        assertEquals(1f, entete.progression)
+        assertEquals(null, entete.libelleEtape)
     }
 
     @Test
@@ -385,6 +464,8 @@ class PresentationToolingTest {
         val entete = PresentationTooling.etatEntete(EtatGradle())
 
         assertEquals(TexteTooling.Ressource(R.string.editor_sortie_vide), entete.titre)
+        assertEquals(StatutEntete.NEUTRE, entete.statut)
+        assertEquals(null, entete.libelleEtape)
         assertEquals(null, entete.sousTitre)
         assertEquals(null, entete.chronoMs)
         assertEquals(false, entete.arret)

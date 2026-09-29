@@ -110,6 +110,12 @@
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>
     <string name="editor_outil_deconnecte">Gradle tools not connected</string>
 
+    <!-- Enriched tooling header (v4, §3.3): step-numbered title and
+         subtitle = current step + detail. -->
+    <string name="editor_tooling_entete_sync_etape">Gradle synchronization · step %1$s/%2$s</string>
+    <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
+    <string name="editor_tooling_entete_succes_taches">Tasks available: %1$s</string>
+
     <!-- Task lines of the console (v3 — one line per task, updated in
          place when it finishes, like Android Studio's Build view) and
          synchronization steps (end of the black box). -->

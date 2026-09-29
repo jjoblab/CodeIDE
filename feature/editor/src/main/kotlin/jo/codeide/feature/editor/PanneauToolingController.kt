@@ -1,11 +1,13 @@
 package jo.codeide.feature.editor
 
+import android.content.res.ColorStateList
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
@@ -13,18 +15,22 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Contrôleur du rendu tooling de l'en-tête du panneau inférieur (v4,
- * correctif n°13 du prompt « tooling professionnel ») : ce rendu vivait
- * DANS [EditorActivity] (1 800+ lignes) — il vit désormais ici, l'activité
- * ne garde que le cycle de vie et la collecte.
+ * correctif n°13 du prompt « tooling professionnel » ; §3.3 étape 5 :
+ * en-tête ENRICHI) : ce rendu vivait DANS [EditorActivity] (1 800+
+ * lignes) — il vit désormais ici, l'activité ne garde que le cycle de vie
+ * et la collecte.
  *
  * Le rendu est piloté par [PresentationTooling.etatEntete] (présentateur
- * pur, §3.2) : titre par canal, sous-titre d'étape (v4), chrono en vol
- * (ticker démarré/arrêté par le contrôleur) ou durée figée, progression
- * indéterminée (la forme DÉTERMINÉE attend l'étape UI 5), bouton Arrêter
- * pendant un build, peek élargi pour la ligne.
+ * pur, §3.2) : pastille de canal colorée avec spinner animé en vol / coche
+ * verte de succès / croix rouge d'échec, titre numéroté « étape n/N » en
+ * vol de sync, sous-titre = étape courante + détail (octets, compteur),
+ * chrono monospace en vol ou durée figée, bouton Arrêter pendant un
+ * build, progression DÉTERMINÉE quand les octets totaux sont connus
+ * (indéterminée sinon, pleine au succès), peek élargi pour l'en-tête.
  *
  * @param activite hôte (contexte de rendu + portée de cycle de vie).
  * @param liaison liaison de l'espace de travail (vues de l'en-tête).
@@ -41,38 +47,34 @@ internal class PanneauToolingController(
     private val horloge: TimeProvider,
     private val surArret: () -> Unit,
 ) {
-    /** La ligne tooling a-t-elle quelque chose à montrer ? */
+    /** L'en-tête tooling a-t-il quelque chose à montrer ? */
     private var ligneActivee = false
 
     /** Ticker du chrono en vol (annulé au prochain rendre ou à la destruction). */
     private var travailMinuteur: Job? = null
 
     init {
-        // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de la
-        // ligne d'activité — visible seulement pendant un build (la
+        // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de
+        // l'en-tête — visible seulement pendant un build (la
         // synchronisation ne s'annule pas).
         liaison.boutonArreterTooling.setOnClickListener { surArret() }
     }
 
     /**
-     * Rend l'état tooling : canal, activité, chrono (en vol ou figé),
-     * arrêt, progression — le peek suit la présence de la ligne.
+     * Rend l'état tooling : pastille de canal, titre numéroté, sous-titre
+     * d'étape, chrono (en vol ou figé), arrêt, progression déterminée ou
+     * indéterminée — le peek suit la présence de l'en-tête.
      */
     fun rendre(etat: EtatGradle) {
         val entete = PresentationTooling.etatEntete(etat)
-        ligneActivee = etat.canalActif ?: etat.canalDernierResultat != null
-        if (ligneActivee) {
-            liaison.iconeCanalTooling.setImageResource(
-                (etat.canalActif ?: etat.canalDernierResultat)!!.icone,
-            )
-            // Couleur de marque du canal : harmonisée avec le primaire du
-            // thème courant (ADR 0059).
-            liaison.iconeCanalTooling.setColorFilter(
-                ThemeHarmonizer.harmoniserAvecPrimaire(activite, entete.couleur),
-            )
+        val canal = etat.canalActif ?: etat.canalDernierResultat
+        ligneActivee = canal != null
+        if (canal != null) {
+            rendrePastille(entete, canal)
             liaison.activiteTooling.text = entete.titre.resoudre(activite)
+            rendreSousTitre(entete)
         }
-        liaison.progressionTooling.isVisible = etat.activiteEnCours
+        rendreProgression(entete, etat)
         liaison.boutonArreterTooling.isVisible = entete.arret
 
         // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
@@ -80,13 +82,12 @@ internal class PanneauToolingController(
         travailMinuteur?.cancel()
         travailMinuteur = null
         val depart = entete.chronoMs
-        if (depart != null) {
-            travailMinuteur = lancerMinuteur { majTexteMinuteur(depart) }
-        } else {
+        travailMinuteur = depart?.let(::lancerMinuteur)
+        if (depart == null) {
             liaison.minuteurTooling.text = entete.dureeFigeeMs?.let(DureesLisibles::formater) ?: ""
         }
 
-        // Le peek suit la présence de la ligne (visible = état courant du
+        // Le peek suit la présence de l'en-tête (visible = état courant du
         // fondu conservé — un panneau étendu n'a pas d'en-tête de toute
         // façon).
         liaison.ligneTooling.isVisible = ligneActivee && liaison.entetePanneau.isVisible
@@ -104,36 +105,126 @@ internal class PanneauToolingController(
         travailMinuteur = null
     }
 
+    // ---- Pastille de canal (§3.3) ---------------------------------------
+
+    /** Pastille : fond teinté (canal harmonisé / succès / échec), icône
+     *  blanche en repos (coche de succès, croix d'échec, glyphe du canal),
+     *  SPINNER animé en vol. */
+    private fun rendrePastille(
+        entete: EtatEnteteTooling,
+        canal: CanalTooling,
+    ) {
+        liaison.pastilleCanalTooling.backgroundTintList =
+            ColorStateList.valueOf(couleurStatut(entete.statut, entete.couleur))
+        val enVol = entete.statut == StatutEntete.EN_VOL
+        liaison.spinnerCanalTooling.isVisible = enVol
+        liaison.iconeCanalTooling.isVisible = !enVol
+        if (!enVol) {
+            val icone =
+                when (entete.statut) {
+                    StatutEntete.SUCCES -> jo.codeide.core.ui.R.drawable.ic_fait
+                    StatutEntete.ECHOUE -> jo.codeide.core.ui.R.drawable.ic_fermer_onglet
+                    StatutEntete.EN_VOL, StatutEntete.NEUTRE -> canal.icone
+                }
+            liaison.iconeCanalTooling.setImageResource(icone)
+        }
+    }
+
+    /** Couleur de la pastille selon le statut visuel : canal harmonisé en
+     *  vol/au repos, vert de succès, rouge d'échec (rôles sémantiques
+     *  ADR 0059 — suivent les 8 palettes et la nuit). */
+    private fun couleurStatut(
+        statut: StatutEntete,
+        couleurCanal: Int,
+    ): Int =
+        when (statut) {
+            StatutEntete.SUCCES -> {
+                MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorSucces)
+            }
+
+            StatutEntete.ECHOUE -> {
+                MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorError)
+            }
+
+            StatutEntete.EN_VOL, StatutEntete.NEUTRE -> {
+                ThemeHarmonizer.harmoniserAvecPrimaire(activite, couleurCanal)
+            }
+        }
+
+    /** Sous-titre (§3.3) : libellé de la phase courante combiné à son
+     *  détail (« Phase — 42 Mo · 3 éléments »), ou le texte du repos
+     *  (succès : « 48 tâches disponibles »). */
+    private fun rendreSousTitre(entete: EtatEnteteTooling) {
+        val texte =
+            entete.libelleEtape?.let { libelle ->
+                val phase = activite.getString(libelle)
+                entete.sousTitre?.let { detail ->
+                    activite.getString(
+                        R.string.editor_tooling_entete_sous_titre,
+                        phase,
+                        detail.resoudre(activite),
+                    )
+                } ?: phase
+            } ?: entete.sousTitre?.resoudre(activite)
+        liaison.sousTitreTooling.isVisible = texte != null
+        if (texte != null) {
+            liaison.sousTitreTooling.text = texte
+        }
+    }
+
+    // ---- Progression (§3.3) ---------------------------------------------
+
+    /** Progression : DÉTERMINÉE (octets reçus/total, pleine au succès)
+     *  quand elle existe, indéterminée pendant une activité en vol —
+     *  couleur de canal harmonisée, vert au succès. Material exige de
+     *  MASQUER l'indicateur pour basculer de mode. */
+    private fun rendreProgression(
+        entete: EtatEnteteTooling,
+        etat: EtatGradle,
+    ) {
+        val indicateur = liaison.progressionTooling
+        val visible = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
+        val couleurBarre = couleurStatut(entete.statut, entete.couleur)
+        indicateur.isVisible = false
+        val progression = entete.progression
+        if (progression != null) {
+            if (indicateur.isIndeterminate) {
+                indicateur.isIndeterminate = false
+            }
+            indicateur.setProgressCompat((progression.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
+        } else {
+            indicateur.isIndeterminate = true
+        }
+        indicateur.setIndicatorColor(couleurBarre)
+        indicateur.isVisible = visible
+    }
+
+    // ---- Chrono ----------------------------------------------------------
+
     /**
      * Ticker du chrono en vol (500 ms — le centième de seconde est du
      * bruit sur un build). Correctif n°12 : le ticker ne tourne QUE
      * STARTED (`repeatOnLifecycle`) et lit l'HORLOGE INJECTÉE.
      */
-    private fun lancerMinuteur(texte: () -> Unit): Job? =
+    private fun lancerMinuteur(depart: Long): Job? =
         activite.lifecycleScope.launch {
             activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
-                    texte()
+                    val ecoule = (horloge.nowMillis() - depart).coerceAtLeast(0L)
+                    liaison.minuteurTooling.text = DureesLisibles.formater(ecoule)
                     delay(PERIODE_MINUTEUR_MS)
                 }
             }
         }
 
-    /** Texte du chrono : temps écoulé depuis [depart] (ms de l'horloge injectée). */
-    private fun majTexteMinuteur(depart: Long) {
-        val maintenant = horloge.nowMillis()
-        liaison.minuteurTooling.text =
-            DureesLisibles.formater((maintenant - depart).coerceAtLeast(0L))
-    }
-
-    /** Peek du panneau : en-tête seul, + ligne tooling (et progression)
-     *  quand une activité s'y affiche — l'activité tooling reste
-     *  visible même repli (v0.32.5). */
+    /** Peek du panneau : en-tête seul, + en-tête tooling enrichi (et
+     *  progression) quand une activité s'y affiche — l'activité tooling
+     *  reste visible même replié (v0.32.5). */
     private fun majPeekPanneau() {
         val peekReposPx = activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
         var peek = peekReposPx
         if (ligneActivee) {
-            peek += activite.resources.getDimensionPixelSize(R.dimen.editor_ligne_tooling_hauteur)
+            peek += activite.resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
             if (liaison.progressionTooling.isVisible) {
                 peek += (HAUTEUR_PROGRESSION_TOOLING_DP * activite.resources.displayMetrics.density).toInt()
             }
@@ -142,7 +233,7 @@ internal class PanneauToolingController(
     }
 
     private companion object {
-        /** Période du chrono de la ligne tooling (500 ms). */
+        /** Période du chrono de l'en-tête tooling (500 ms). */
         const val PERIODE_MINUTEUR_MS = 500L
 
         /** Hauteur de la bande de progression tooling (dp). */
@@ -150,5 +241,8 @@ internal class PanneauToolingController(
 
         /** Alpha sous lequel l'en-tête fondu passe INVISIBLE. */
         const val SEUIL_FONDU_VISIBLE = 0.02f
+
+        /** Progression maximale en pourcentage (determinée 0..1 → 0..100). */
+        const val POURCENT_MAX = 100f
     }
 }

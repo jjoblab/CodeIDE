@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import android.content.Context
+import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.StatutBuild
 
@@ -48,27 +49,75 @@ internal fun TexteTooling.resoudre(contexte: Context): String =
     }
 
 /**
- * État de rendu de l'EN-TÊTE du panneau tooling (v4, §3.2) — sorti du
- * présentateur pur : un seul code décide du titre, du sous-titre (étape
- * courante + détail), de la progression déterminée (0..1) ou indéterminée,
- * de la couleur de canal, du chrono (en vol ou figé) et du bouton Arrêt.
- * L'activité n'est plus que de la colle.
+ * Statut VISUEL de l'en-tête tooling (v4, §3.3) : pilote la pastille —
+ * spinner sur couleur de canal en vol, coche verte de succès, croix
+ * rouge d'échec. L'état reste pur, la couleur se résout au rendu.
+ */
+internal enum class StatutEntete {
+    /** Activité en vol : couleur de canal + spinner. */
+    EN_VOL,
+
+    /** Dernier résultat réussi : vert + coche. */
+    SUCCES,
+
+    /** Dernier résultat échoué : rouge + croix. */
+    ECHOUE,
+
+    /** Aucun résultat tranchant : couleur de canal + icône de canal. */
+    NEUTRE,
+}
+
+/**
+ * Libellé localisé d'une phase de sync (v4) — partagé par le SOUS-TITRE
+ * de l'en-tête (§3.3) et l'arbre de la console : une seule table de
+ * correspondance phase → ressource (l'état reste pur, la chaîne se
+ * résout au rendu).
+ */
+internal object LibellesEtapesSync {
+    /** Ressource du libellé de la phase [etape]. */
+    fun libelle(etape: EtapeSync): Int =
+        when (etape) {
+            EtapeSync.OUTILS -> R.string.editor_console_etape_outils
+            EtapeSync.DISTRIBUTION -> R.string.editor_console_etape_distribution
+            EtapeSync.DAEMON -> R.string.editor_console_etape_daemon
+            EtapeSync.CONFIGURATION -> R.string.editor_console_etape_configuration
+            EtapeSync.MODELE_TACHES -> R.string.editor_console_etape_modele_taches
+            EtapeSync.MODELE_IDE -> R.string.editor_console_etape_modele_idee
+            EtapeSync.DEPENDANCES -> R.string.editor_console_etape_dependances
+            EtapeSync.CLASSPATHS -> R.string.editor_console_etape_classpaths
+        }
+}
+
+/**
+ * État de rendu de l'EN-TÊTE du panneau tooling (v4, §3.2/§3.3) — sorti du
+ * présentateur pur : un seul code décide du titre (numéroté par étape
+ * pendant la sync), du sous-titre (étape courante + détail), de la
+ * progression déterminée (0..1) ou indéterminée, de la couleur de canal,
+ * du statut visuel de la pastille, du chrono (en vol ou figé) et du bouton
+ * Arrêt. L'activité n'est plus que de la colle.
  *
- * @property titre titre principal (l'activité courante ou le résultat).
- * @property sousTitre détail de l'étape courante (v4) — texte libre déjà
- *           formulé, `null` si sans objet.
+ * @property titre titre principal (numéroté « étape n/N » en vol de sync,
+ *           sinon l'activité courante ou le résultat).
+ * @property libelleEtape ressource du libellé de la phase COURANTE (vol de
+n *           sync) — le sous-titre la combine au détail.
+ * @property sousTitre détail brut de l'étape courante (« 42 Mo · 3
+ *           éléments ») ou texte formulé au repos (succès) — `null` si
+ *           sans objet.
  * @property progression 0..1 quand une progression DÉTERMINÉE existe
- *           (octets reçus/total), `null` pour l'indéterminé.
+ *           (octets reçus/total), 1 au succès, `null` pour l'indéterminé.
  * @property couleur couleur de canal (ressource core:ui).
+ * @property statut statut visuel de la pastille (§3.3).
  * @property chronoMs départ du chrono en vol (ms horloge) — `null` sinon.
  * @property dureeFigeeMs durée du dernier résultat quand le chrono est figé.
  * @property arret le bouton Arrêter se montre-t-il (build en vol) ?
  */
 internal data class EtatEnteteTooling(
     val titre: TexteTooling,
-    val sousTitre: String? = null,
+    val libelleEtape: Int? = null,
+    val sousTitre: TexteTooling? = null,
     val progression: Float? = null,
     val couleur: Int,
+    val statut: StatutEntete = StatutEntete.NEUTRE,
     val chronoMs: Long? = null,
     val dureeFigeeMs: Long? = null,
     val arret: Boolean = false,
@@ -80,11 +129,18 @@ internal data class EtatEnteteTooling(
  * part, pur, la même discipline de test que le présentateur.
  */
 internal object DetailsEtapesSync {
-    /** Sous-titre : détail de l'étape courante (« 42 Mo · 3 · artefact »). */
-    fun sousTitre(etat: EtatGradle): String? =
+    /** Libellé de la phase courante (sous-titre de l'en-tête). */
+    fun libelleEtape(etat: EtatGradle): Int? =
+        etat.etapeCourante
+            ?.takeIf { etat.synchronisationEnCours && !it.terminee }
+            ?.let { LibellesEtapesSync.libelle(it.etape) }
+
+    /** Sous-titre : détail brut de l'étape courante (« 42 Mo · 3 · artefact »). */
+    fun sousTitre(etat: EtatGradle): TexteTooling? =
         etat.etapeCourante
             ?.takeIf { etat.synchronisationEnCours && !it.terminee }
             ?.let(::detail)
+            ?.let { TexteTooling.Brut(it) }
 
     /** Progression déterminée : octets reçus / total quand les deux sont connus. */
     fun progression(etat: EtatGradle): Float? =
@@ -132,23 +188,39 @@ internal object DetailsEtapesSync {
  *
  * Les durées passent par [DureesLisibles] (correctif n°11 : la copie
  * privée de `EditorActivity` est supprimée — un seul formateur).
+ *
+ * Exemption detekt ciblée (règle 16, même précédent que `GradleService`) :
+ * TooManyFunctions — les fonctions sont le CONTRAT de la vue (les deux
+ * cascades historiques en-tête/statut + la composition v4 de l'en-tête
+ * enrichi), chacune couverte par [PresentationToolingTest] et
+ * [PresentationToolingLocalisationTest].
  */
-
+@Suppress("TooManyFunctions")
 internal object PresentationTooling {
     /**
-     * État d'en-tête complet (v4, §3.2) : le présentateur décide, l'activité
-     * rend — titre par canal, sous-titre = étape courante avec son détail
-     * (octets, compteur), progression déterminée quand les octets totaux
-     * sont connus, chrono en vol ou durée figée du dernier résultat.
+     * État d'en-tête complet (v4, §3.2/§3.3) : le présentateur décide,
+     * l'activité rend — titre NUMÉROTÉ par étape pendant la sync,
+     * sous-titre = étape courante avec son détail (octets, compteur),
+     * progression déterminée quand les octets totaux sont connus (pleine
+     * au succès), statut visuel de la pastille, chrono en vol ou durée
+     * figée du dernier résultat.
      */
     fun etatEntete(etat: EtatGradle): EtatEnteteTooling {
         val canal = etat.canalActif ?: etat.canalDernierResultat
-        val titre = canal?.let { libelleActivite(etat, it) } ?: TexteTooling.Ressource(R.string.editor_sortie_vide)
+        val enVol = etat.canalActif != null
+        val statut = statutVisuel(enVol, canal, etat)
         return EtatEnteteTooling(
-            titre = titre,
-            sousTitre = DetailsEtapesSync.sousTitre(etat),
-            progression = DetailsEtapesSync.progression(etat),
+            titre = titreEntete(etat, canal),
+            libelleEtape = DetailsEtapesSync.libelleEtape(etat),
+            sousTitre = sousTitre(etat),
+            progression =
+                when {
+                    enVol -> DetailsEtapesSync.progression(etat)
+                    statut == StatutEntete.SUCCES -> 1f
+                    else -> null
+                },
             couleur = canal?.couleur ?: jo.codeide.core.ui.R.color.codeide_canal_sync,
+            statut = statut,
             chronoMs =
                 when (etat.canalActif) {
                     CanalTooling.SYNC -> etat.debutSyncMs
@@ -159,6 +231,88 @@ internal object PresentationTooling {
             dureeFigeeMs = dureeFigee(etat, canal),
             arret = etat.canalActif == CanalTooling.BUILD,
         )
+    }
+
+    /** Titre de l'en-tête (§3.3) : NUMÉROTÉ « étape n/N » pendant la sync
+     *  (dès qu'une étape est connue), sinon l'activité du canal ou le
+     *  libellé vide. */
+    private fun titreEntete(
+        etat: EtatGradle,
+        canal: CanalTooling?,
+    ): TexteTooling =
+        when {
+            etat.synchronisationEnCours && etat.numeroEtape > 0 -> {
+                ressource(
+                    R.string.editor_tooling_entete_sync_etape,
+                    "${etat.numeroEtape}",
+                    "${etat.totalEtapes}",
+                )
+            }
+
+            else -> {
+                canal?.let { libelleActivite(etat, it) }
+                    ?: TexteTooling.Ressource(R.string.editor_sortie_vide)
+            }
+        }
+
+    /** Statut visuel de la pastille (§3.3) : en vol, puis le verdict du
+     *  dernier résultat du canal — l'échec de sync prime le succès
+     *  PARTIEL (même cascade que le titre : l'en-tête ne mente jamais). */
+    private fun statutVisuel(
+        enVol: Boolean,
+        canal: CanalTooling?,
+        etat: EtatGradle,
+    ): StatutEntete =
+        when {
+            enVol -> {
+                StatutEntete.EN_VOL
+            }
+
+            canal == CanalTooling.SYNC -> {
+                when {
+                    etat.messageEchecSync != null -> StatutEntete.ECHOUE
+                    etat.synchronisationReussie?.reussie == true -> StatutEntete.SUCCES
+                    else -> StatutEntete.NEUTRE
+                }
+            }
+
+            canal == CanalTooling.BUILD -> {
+                when (etat.statutBuild) {
+                    StatutBuild.REUSSI -> StatutEntete.SUCCES
+                    StatutBuild.ECHOUE -> StatutEntete.ECHOUE
+                    else -> StatutEntete.NEUTRE
+                }
+            }
+
+            else -> {
+                StatutEntete.NEUTRE
+            }
+        }
+
+    /** Sous-titre (§3.3) : détail de l'étape courante en vol de sync,
+     *  compte des tâches disponibles au succès — `null` sinon. */
+    private fun sousTitre(etat: EtatGradle): TexteTooling? {
+        if (etat.synchronisationEnCours) {
+            return DetailsEtapesSync.sousTitre(etat)
+        }
+        val reussie = etat.synchronisationReussie
+        val taches = etat.tachesDisponibles
+        return when {
+            etat.messageEchecSync != null -> {
+                null
+            }
+
+            reussie?.reussie == true && taches?.isNotEmpty() == true -> {
+                ressource(
+                    R.string.editor_tooling_entete_succes_taches,
+                    "${taches.size}",
+                )
+            }
+
+            else -> {
+                null
+            }
+        }
     }
 
     /** Durée figée du dernier résultat (chrono arrêté). */
