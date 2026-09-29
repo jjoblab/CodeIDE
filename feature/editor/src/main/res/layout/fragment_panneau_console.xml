@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/spacing_xs"
+        android:paddingHorizontal="12dp"
         android:paddingVertical="@dimen/spacing_xs">
 
         <!-- Chip d'action unique (v0.40.1, prompt de suivi §3) : reflète
@@ -104,7 +104,8 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/spacing_xs">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="@dimen/spacing_xs">
 
         <ImageView
             android:id="@+id/icone_canal_sortie"
@@ -134,7 +135,7 @@
         android:id="@+id/bandeau_echec_build"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/spacing_xs"
+        android:layout_marginHorizontal="12dp"
         android:layout_marginBottom="@dimen/spacing_xs"
         android:background="@drawable/fond_bandeau_echec"
         android:orientation="vertical"
@@ -200,7 +201,8 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingBottom="@dimen/spacing_xs" />
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="10dp" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/texte_sortie_vide"
