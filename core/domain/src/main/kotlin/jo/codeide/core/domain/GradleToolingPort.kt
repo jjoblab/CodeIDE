@@ -392,6 +392,7 @@ public enum class StatutTache {
  * @property groupe groupe déclarant (ex. `build`), `null` si aucun.
  * @property nomAffiche nom lisible.
  */
+@Serializable
 public data class InfoTache(
     public val chemin: String,
     public val groupe: String? = null,
