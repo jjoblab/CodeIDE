@@ -366,6 +366,17 @@ sealed interface ActionEditor {
         val niveau: LogLevel,
     ) : ActionEditor
 
+    /**
+     * Bascule le filtre de canal de la console (v0.39.1, correctif n°3) :
+     * chip Sync ou Build — la console commute sa vue. Le ViewModel garde
+     * l'état (persisté pour la rotation) — un build qui démarre bascule
+     * vers BUILD automatiquement, l'utilisateur peut revenir à SYNC à la
+     * main.
+     */
+    data class BasculerFiltreConsole(
+        val filtre: FiltreCanalConsole,
+    ) : ActionEditor
+
     /** Ouvre l'écran Diagnostic complet depuis le journal compact. */
     data object OuvrirJournalComplet : ActionEditor
 
@@ -708,6 +719,15 @@ data class EtatEditor(
     val indexOngletActif: Int = -1,
     val etatPanneau: EtatPanneau = EtatPanneau.REPLIE,
     val ongletPanneau: OngletPanneau = OngletPanneau.JOURNAL,
+    /**
+     * Filtre de canal de la console du tooling (v0.39.1, correctif n°3) :
+     * SYNC par défaut (ouverture = sync d'ouverture d'abord), BUILD dès
+     * qu'un build démarre — la console ne montre PLUS la vue Sync
+     * pendant un build (l'utilisateur voit les `> Task :app:xxx` comme
+     * dans Android Studio, sans toucher aux chips). Survit à la
+     * rotation via [ClesEditor.CLE_FILTRE_CONSOLE].
+     */
+    val filtreConsole: FiltreCanalConsole = FiltreCanalConsole.SYNC,
     val entreesJournal: List<LogEntry> = emptyList(),
     val filtresJournal: Set<LogLevel> = emptySet(),
     val typeProjet: TypeProjetAffiche? = null,
@@ -742,4 +762,7 @@ object ClesEditor {
 
     /** Sauvetage : filtres de niveaux du journal compact, étape 16. */
     const val CLE_FILTRES_JOURNAL: String = "filtres_journal"
+
+    /** Sauvetage : filtre de canal de la console (v0.39.1, correctif n°3). */
+    const val CLE_FILTRE_CONSOLE: String = "filtre_console"
 }

@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -186,6 +187,7 @@ class EditorViewModel
                         sauvetage.get<String>(ClesEditor.CLE_ONGLET_PANNEAU)?.let(OngletPanneau::valueOf)
                             ?: OngletPanneau.JOURNAL,
                     filtresJournal = restaurerFiltresJournal(),
+                    filtreConsole = restaurerFiltreConsole(),
                 ),
             )
 
@@ -208,11 +210,20 @@ class EditorViewModel
          *  l'observateur — remplace les pulls disque figés de la carte
          *  terminal ET de la garde JDK (plus d'I/S sur le thread principal
          *  à chaque build, et une installation finie pendant que l'espace
-         *  est ouvert devient visible aussitôt). */
+         *  est ouvert devient visible aussitôt).
+         *
+         *  v0.39.1 (correctif n°6) : l'état devient OBSERVABLE par l'UI —
+         *  l'écran de configuration du tooling, un bandeau de diagnostic
+         *  futur ou un toast « JDK détecté » peuvent s'y abonner sans
+         *  scinder la source de vérité. Le `private` était un oubli : la
+         *  carte terminal du tiroir (`etatTerminal`) n'exposait que
+         *  `bootstrapInstalle`, laissant l'UI incapable de distinguer
+         *  « JDK absent » de « sync refusée par cache non peuplé ». */
         private val etatOutilsTerminalInterne = MutableStateFlow(EtatOutilsTerminal())
 
-        /** État observable des outils du terminal, poussé par le domaine. */
-        private val etatOutilsTerminal: StateFlow<EtatOutilsTerminal> = etatOutilsTerminalInterne.asStateFlow()
+        /** État observable des outils du terminal, poussé par le domaine
+         *  (v0.39.1 — correctif n°6 : exposition publique pour diagnostic UI). */
+        val etatOutilsTerminal: StateFlow<EtatOutilsTerminal> = etatOutilsTerminalInterne.asStateFlow()
 
         /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
          *  détenteur process-wide y publie, l'activité ET le service de
@@ -410,10 +421,28 @@ class EditorViewModel
          * structure, dépendances, classpaths) que les fonctionnalités à
          * venir (LSP) consommeront. Garde JDK d'abord (ADR 0048) : le
          * refus typé s'affiche dans le canal Sync s'il n'y a pas d'outils.
+         *
+         * Correctif race JDK (v0.39.1) : `observerOutilsTerminal()` peuple
+         * `etatOutilsTerminalInterne` DEPUIS un flot poussé (combine +
+         * `flowOn(io)`) — la première émission traverse l'IO dispatcher
+         * avant d'arriver au Main. Sans attendre ce premier emission,
+         * `synchroniserProjetGradle()` lit `jdkAbsent()` sur la valeur
+         * PAR DÉFAUT (`EtatOutilsTerminal()` — tout `false`) : faux négatif
+         * « JDK absent » alors que le JDK EST installé. La sync d'ouverture
+         * attend donc le premier état OUTILS réel (avec une garde de temps
+         * bornée — un appareil lent ne bloque pas l'ouverture non plus).
          */
         private fun lancerSyncOuverture() {
             viewModelScope.launch {
                 etatInterne.map { it.projet }.filterNotNull().first()
+                // Garde bornée : on attend le premier état OUTILS
+                // ISSU d'un scan réel (`initialise = true`) — sinon la
+                // garde JDK ment sur la valeur par défaut (`false`). Le
+                // délai est borné : un appareil très lent ou un
+                // observateur silencieux ne paralyse pas l'ouverture.
+                withTimeoutOrNull(DELAI_ATTENTE_OUTILS_MS) {
+                    etatOutilsTerminal.first { it.initialise }
+                }
                 if (!syncOuvertureLancee) {
                     syncOuvertureLancee = true
                     journal.i(TAG) { "sync d'ouverture lancee (projet ${identifiantSuivi()})" }
@@ -564,6 +593,7 @@ class EditorViewModel
                 is ActionEditor.ChangerEtatPanneau -> changerEtatPanneau(action.etat)
                 is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
                 is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
+                is ActionEditor.BasculerFiltreConsole -> basculerFiltreConsole(action.filtre)
                 ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
                 else -> Unit // Routage exhaustif par les trois branches.
             }
@@ -689,9 +719,14 @@ class EditorViewModel
          * Garde JDK (v0.31.4, ADR 0048) : les outils étant optionnels et
          * différés, un refus AVANT toute tentative remplace une connexion
          * perdue opaque — c'est la « demande ultérieure » des outils.
+         *
+         * v0.39.1 (correctif n°3) : la console bascule sur la vue SYNC
+         * pendant la sync — l'utilisateur suit les étapes en direct, comme
+         * dans Android Studio.
          */
         private fun synchroniserProjetGradle() {
             viewModelScope.launch {
+                selectionnerFiltreConsole(FiltreCanalConsole.SYNC)
                 serviceGradle.marquerSyncEnCours()
                 if (jdkAbsent()) {
                     refuserSansJdk()
@@ -713,8 +748,12 @@ class EditorViewModel
          * Remplit les tâches disponibles après une sync utile (v4, §3.2) :
          * le cache serveur rend le listage INSTANTANÉ (aucune seconde
          * d'attente — le sélecteur s'ouvrira sans latence, le bouton
-         * Tâches s'active sur un fait). Échec : le journal seul le dit,
-         * jamais bloquant.
+         * Tâches s'active sur un fait). Échec : le bouton Tâches reste
+         * ACTIVABLE — le sélecteur propose un listage à la demande (il
+         * retombe sur `listerTachesProjet` côté orchestrateur). v0.39.1
+         * (correctif n°2) : l'échec du listage NE bloque PLUS le bouton —
+         * la sync RÉUSSIE est le signal d'activation, pas un second
+         * aller-retour fragile.
          */
         private suspend fun publierTachesDisponiblesSiSyncUtile(
             dossier: File,
@@ -729,7 +768,19 @@ class EditorViewModel
                 }
 
                 is AppResult.Failure -> {
-                    journal.w(TAG) { "tâches non listées après sync (projet ${identifiantSuivi()})" }
+                    // v0.39.1 : la sync a RÉUSSI — le bouton Tâches
+                    // s'active quand même : le sélecteur retombera sur
+                    // `listerTachesProjet` côté orchestrateur au clic
+                    // (déjà géré par `ouvrirSelecteurTaches`). On publie
+                    // une liste VIDE plutôt que `null` : la condition
+                    // `tachesDisponibles != null` allume le bouton, le
+                    // clic déclenche le listage différé.
+                    serviceGradle.publierTachesDisponibles(emptyList())
+                    journal.w(
+                        TAG,
+                    ) {
+                        "tâches non listées après sync — bouton activé, listage différé (projet ${identifiantSuivi()})"
+                    }
                 }
             }
         }
@@ -776,6 +827,10 @@ class EditorViewModel
          * Même garde JDK que la synchronisation (v0.31.4) : le message
          * actionnable s'affiche dans la console au lieu d'un échec de
          * connexion sans indice.
+         *
+         * v0.39.1 (correctif n°3) : la console bascule sur la vue BUILD —
+         * l'utilisateur voit les `> Task :app:xxx` au fur et à mesure,
+         * comme dans Android Studio, sans toucher aux chips.
          */
         private fun executerTachesGradle(taches: List<String>) {
             viewModelScope.launch {
@@ -791,6 +846,7 @@ class EditorViewModel
                 val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
                 observerBuild(buildId, taches)
                 selectionnerOngletPanneau(OngletPanneau.CONSOLE)
+                selectionnerFiltreConsole(FiltreCanalConsole.BUILD)
                 journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
             }
         }
@@ -844,14 +900,24 @@ class EditorViewModel
          * Ouvre le sélecteur de tâches (liste via l'orchestrateur) — le
          * listage vit sur SON canal (étape 32, ADR 0057) : indicateur de
          * vol pendant la requête, le sélecteur est le résultat.
+         *
+         * v0.39.1 (correctif n°2) : la liste vide (`emptyList()`) publiée
+         * en cas d'échec du listage différé est DISTINGUÉE d'un projet
+         * SANS tâches — on retombe sur `listerTachesProjet` côté
+         * orchestrateur (avec son indicateur de vol) pour honnêtement
+         * re-tenter, au lieu d'ouvrir un sélecteur vide qui ment.
          */
         private fun ouvrirSelecteurTaches() {
             viewModelScope.launch {
                 // v4 (§3.1) : le cache de la sync répond D'ABORD — aucune
                 // latence, aucun aller-retour tant qu'une sync utile l'a
                 // rempli (correctif n°6 : plus de 30 s d'attente muette).
-                serviceGradle.etat.value.tachesDisponibles?.let { taches ->
-                    canalEffets.send(EffetEditor.OuvrirSelecteurTaches(taches))
+                // v0.39.1 : une liste vide signifie « listage différé en
+                // attente » (échec silencieux du second appel) — on ne
+                // l'ouvre pas vide, on retente via l'orchestrateur.
+                val tachesCachees = serviceGradle.etat.value.tachesDisponibles
+                if (tachesCachees != null && tachesCachees.isNotEmpty()) {
+                    canalEffets.send(EffetEditor.OuvrirSelecteurTaches(tachesCachees))
                     return@launch
                 }
                 serviceGradle.marquerTachesEnCours()
@@ -868,6 +934,10 @@ class EditorViewModel
                 when (val resultat = listerTachesProjet(dossier)) {
                     is AppResult.Success -> {
                         serviceGradle.tachesTerminees()
+                        // v0.39.1 : on persiste aussi le résultat — le
+                        // prochain clic évite l'aller-retour, le bouton
+                        // reste armé honnêtement.
+                        serviceGradle.publierTachesDisponibles(resultat.value)
                         canalEffets.send(EffetEditor.OuvrirSelecteurTaches(resultat.value))
                     }
 
@@ -2403,6 +2473,24 @@ class EditorViewModel
         }
 
         /**
+         * Bascule le filtre de canal de la console (v0.39.1, correctif n°3) :
+         * persisté pour la rotation — un build qui démarre appelle
+         * `selectionnerFiltreConsole(BUILD)` depuis `executerTachesGradle`,
+         * l'utilisateur peut revenir à SYNC via les chips (action
+         * `BasculerFiltreConsole`).
+         */
+        private fun basculerFiltreConsole(filtre: FiltreCanalConsole) {
+            selectionnerFiltreConsole(filtre)
+        }
+
+        /** Persiste et publie le filtre de canal courant (v0.39.1). */
+        private fun selectionnerFiltreConsole(filtre: FiltreCanalConsole) {
+            if (etatInterne.value.filtreConsole == filtre) return
+            sauvetage[ClesEditor.CLE_FILTRE_CONSOLE] = filtre.name
+            etatInterne.update { it.copy(filtreConsole = filtre) }
+        }
+
+        /**
          * Bascule un niveau du filtre du journal (vide = tous les niveaux,
          * même règle que l'écran Diagnostic) et recalcule la fenêtre.
          */
@@ -2453,9 +2541,24 @@ class EditorViewModel
             return noms.mapNotNull { nom -> LogLevel.entries.firstOrNull { it.name == nom } }.toSet()
         }
 
+        /** Restitue le filtre de canal de la console sauvegardé (v0.39.1). */
+        private fun restaurerFiltreConsole(): FiltreCanalConsole =
+            sauvetage
+                .get<String>(ClesEditor.CLE_FILTRE_CONSOLE)
+                ?.let { nom -> FiltreCanalConsole.entries.firstOrNull { it.name == nom } }
+                ?: FiltreCanalConsole.SYNC
+
         private companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /**
+             * Garde de temps pour attendre le premier état OUTILS avant la
+             * sync d'ouverture (v0.39.1 — correctif race JDK) : un cycle de
+             * ballotage de l'observateur prend ~2 s, on borne à 5 s pour
+             * couvrir un appareil lent sans paralyser un appareil rapide.
+             */
+            const val DELAI_ATTENTE_OUTILS_MS: Long = 5_000L
 
             /** Durée d'affichage du snackbar maison (§ 15 : 4 600 ms). */
             const val DELAI_NOTIFICATION_MS = 4_600L

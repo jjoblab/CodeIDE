@@ -64,6 +64,13 @@ internal class PanneauToolingController(
      * Rend l'état tooling : pastille de canal, titre numéroté, sous-titre
      * d'étape, chrono (en vol ou figé), arrêt, progression déterminée ou
      * indéterminée — le peek suit la présence de l'en-tête.
+     *
+     * v0.39.1 (correctif n°5) : quand `canal` est `null` (aucune activité
+     * tooling n'a jamais démarré OU l'état a été réinitialisé), on RE-
+     * REND un état REPOS propre (pastille masquée, titre et sous-titre
+     * effacés) au lieu de laisser le RENDU PRÉCÉDENT en place — évite
+     * qu'une pastille EN_VOL/SUCCES reste visible si l'état repasse à
+     * `null` puis re-devient non-null (ré-ouverture d'espace, etc.).
      */
     fun rendre(etat: EtatGradle) {
         val entete = PresentationTooling.etatEntete(etat)
@@ -73,6 +80,13 @@ internal class PanneauToolingController(
             rendrePastille(entete, canal)
             liaison.activiteTooling.text = entete.titre.resoudre(activite)
             rendreSousTitre(entete)
+        } else {
+            // v0.39.1 : pas d'état tooling — on RE-REND un en-tête VIDE
+            // (pastille masquée, titres effacés) pour qu'aucun résidu d'un
+            // build précédent ne reste affiché si la ligne redevient
+            // visible (par exemple, à la ré-ouverture d'un espace dont
+            // l'état a été nettoyé par `attacher()`).
+            reinitialiserEntete()
         }
         rendreProgression(entete, etat)
         liaison.boutonArreterTooling.isVisible = entete.arret
@@ -92,6 +106,21 @@ internal class PanneauToolingController(
         // façon).
         liaison.ligneTooling.isVisible = ligneActivee && liaison.entetePanneau.isVisible
         majPeekPanneau()
+    }
+
+    /**
+     * Réinitialise l'en-tête tooling à un état REPOS (v0.39.1, correctif
+     * n°5) — pastille masquée, titres effacés, sous-titre masqué. Évite
+     * les résidus visuels d'un build précédent quand le `canal` repasse
+     * à `null` puis re-devient non-null.
+     */
+    private fun reinitialiserEntete() {
+        liaison.spinnerCanalTooling.isVisible = false
+        liaison.iconeCanalTooling.isVisible = false
+        liaison.activiteTooling.text = ""
+        liaison.sousTitreTooling.isVisible = false
+        liaison.sousTitreTooling.text = ""
+        liaison.minuteurTooling.text = ""
     }
 
     /** Le fondu de l'en-tête réapplique la visibilité de la ligne. */

@@ -217,6 +217,12 @@ data class GroupeProblemes(
  *           l'en-tête — millisecondes de l'horloge injectée).
  * @property dureeBuildMs durée du build terminé.
  * @property messageEchecBuild message d'échec du build (si échoué).
+ * @property tachesActionnablesBuild total des tâches actionnables extrait
+ *           de la synthèse de fin de Gradle (v0.39.1, correctif n°4 —
+ *           « N actionable tasks ») ; `null` quand la synthèse n'a pas
+ *           été observée.
+ * @property tachesExecuteesBuild tâches réellement exécutées (v0.39.1).
+ * @property tachesAJourBuild tâches à jour (incrémental, v0.39.1).
  * @property lignes fenêtre de sortie TYPIÉE du tooling (bornée,
  *           [NB_LIGNES_MAX]) — sorties, tâches (v3) et étapes de sync,
  *           balisées chacune de leur canal.
@@ -236,6 +242,9 @@ data class EtatGradle(
     val debutBuildMs: Long? = null,
     val dureeBuildMs: Long? = null,
     val messageEchecBuild: String? = null,
+    val tachesActionnablesBuild: Int? = null,
+    val tachesExecuteesBuild: Int? = null,
+    val tachesAJourBuild: Int? = null,
     val lignes: List<LigneConsole> = emptyList(),
     val groupesProblemes: List<GroupeProblemes> = emptyList(),
     val synchronisationEnCours: Boolean = false,
@@ -461,6 +470,12 @@ class GradleService
                     debutBuildMs = horloge.nowMillis(),
                     dureeBuildMs = null,
                     messageEchecBuild = null,
+                    // v0.39.1 : reset de la synthèse précédente (un
+                    // nouveau build ne montre PAS les « N actionable
+                    // tasks » du précédent pendant qu'il tourne).
+                    tachesActionnablesBuild = null,
+                    tachesExecuteesBuild = null,
+                    tachesAJourBuild = null,
                     lignes = emptyList(),
                 )
             }
@@ -478,6 +493,13 @@ class GradleService
                         statutBuild = etat.statut,
                         dureeBuildMs = etat.dureeMs,
                         messageEchecBuild = etat.messageEchec,
+                        // v0.39.1 (correctif n°4) : la synthèse
+                        // « N actionable tasks: M executed[, K up-to-date] »
+                        // extraite côté serveur voyage à l'état — la
+                        // console la restituera sous le verdict.
+                        tachesActionnablesBuild = etat.tachesActionnables,
+                        tachesExecuteesBuild = etat.tachesExecutees,
+                        tachesAJourBuild = etat.tachesAJour,
                     )
                 }
             }

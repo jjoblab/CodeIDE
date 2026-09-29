@@ -34,6 +34,15 @@ public data class EtatOutilsTerminal(
     public val gradleInstalle: Boolean = false,
     public val sdkAndroidInstalle: Boolean = false,
     public val aapt2Installe: Boolean = false,
+    /**
+     * `true` dès qu'au moins UN scan du disque a eu lieu (v0.39.1 —
+     * correctif race JDK : la sync d'ouverture attend ce premier scan
+     * avant de lire `jdkInstalle`, sinon l'état par défaut `false` ment
+     * sur un JDK pourtant installé). Les transitions suivantes restent
+     * `true` ; seul l'état NON scanné (avant le premier cycle de
+     * l'horloge de ballotage) reste `false`.
+     */
+    public val initialise: Boolean = false,
 )
 
 /**

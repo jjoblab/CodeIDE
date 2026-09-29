@@ -154,6 +154,14 @@
     <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
     <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>
 
+    <!-- Build summary — task counts (v0.39.1, fix #4): same wording as
+         Android Studio\'s console, honest restitution of Gradle\'s last
+         stdout line. `tools:ignore` justified: Gradle ALWAYS prints
+         "N actionable tasks" (even for N=0 or N=1), the form is fixed by
+         Gradle\'s wire format — no singular to distinguish. -->
+    <string name="editor_console_synthese_taches_executees" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed</string>
+    <string name="editor_console_synthese_taches_ajour" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed, %3$d up-to-date</string>
+
     <!-- Task picker sheet (v4, §3.3): search, recent, groups by module,
          honest empty states. -->
     <string name="editor_taches_recherche_indice">Search a task…</string>

@@ -210,12 +210,24 @@ public enum class StatutBuild {
  * @property statut statut courant.
  * @property dureeMs durée effective si terminé, sinon `null`.
  * @property messageEchec message du premier échec si échec, sinon `null`.
+ * @property tachesActionnables total des tâches actionnables extrait de la
+ *           synthèse de fin de Gradle (v0.39.1, correctif n°4 —
+ *           « N actionable tasks ») ; `null` quand la synthèse n'a pas
+ *           été observée (build échoué avant la fin).
+ * @property tachesExecutees tâches réellement exécutées —
+ *           « M executed » dans la synthèse de Gradle (v0.39.1).
+ * @property tachesAJour tâches à jour (incrémental) —
+ *           « K up-to-date » dans la synthèse de Gradle (v0.39.1) ;
+ *           `null` quand la forme incrémentale n'a pas été imprimée.
  */
 public data class EtatBuild(
     public val buildId: String,
     public val statut: StatutBuild,
     public val dureeMs: Long? = null,
     public val messageEchec: String? = null,
+    public val tachesActionnables: Int? = null,
+    public val tachesExecutees: Int? = null,
+    public val tachesAJour: Int? = null,
 )
 
 /**

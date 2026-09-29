@@ -163,6 +163,14 @@
     <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>
 
+    <!-- Synthèse de fin de build — comptes des tâches (v0.39.1, correctif n°4) :
+         mêmes libellés que la console d'Android Studio, restitution honnête
+         de la dernière ligne stdout de Gradle. `tools:ignore` justifié :
+         Gradle imprime TOUJOURS « N actionable tasks » (même pour N=0 ou N=1),
+         la forme est figée par le câble Gradle — aucun singulier à distinguier. -->
+    <string name="editor_console_synthese_taches_executees" tools:ignore="PluralsCandidate">%1$d tâches actionnables : %2$d exécutées</string>
+    <string name="editor_console_synthese_taches_ajour" tools:ignore="PluralsCandidate">%1$d tâches actionnables : %2$d exécutées, %3$d à jour</string>
+
     <!-- Feuille de sélection des tâches (v4, §3.3) : recherche, récentes,
          groupes par module, états vides honnêtes. -->
     <string name="editor_taches_recherche_indice">Rechercher une tâche…</string>
