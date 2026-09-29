@@ -648,6 +648,28 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       par l'engrenage de l'onglet Sortie (affichage des tâches, hors ligne,
       arguments libres, état vivant — DataStore, `OptionsTooling`) ;
       ADR 0065, journal détaillé dans docs/ROADMAP.md.
+- v0.38.0 : **G9 — fondations du tooling professionnel v4** (prompt
+      « tooling Gradle professionnel », étapes 1-4/6, ADR 0069) : correctifs
+      9-12 (!! / bug de saisie d'arguments / présentateur UNIQUE
+      PresentationTooling+DetailsEtapesSync / chrono repeatOnLifecycle+Time
+      Provider) ; protocole **v4** (phases RÉELLES OUTILS→DISTRIBUTION→
+      DAEMON→CONFIGURATION→MODELE_TACHES/MODELE_IDE→DEPENDANCES→CLASSPATHS,
+      détails octets/élément/compteur, DetailTelechargement, arguments dans
+      sync+classpath, dorés régénérés par RegenerateurDoresTest
+      REGENERER_DORES=1) ; API TAPI 9.7.1 VÉRIFIÉE par javap (quatre pièges
+      corrigés : events.download, GENERIC, octets en fin seulement,
+      setStreamedValueListener void) ; ActionSyncModeles UNIQUE
+      (BuildController.send streamé, marqueurs sérialisables) ;
+      EcouteurProgressionCommun (sync ET build, 5 évts/s/élément, dernier
+      segment d'URI) ; EtatsDistribution (marqueur .ok, sondeur .part) ;
+      CacheSync serveur (taches/classpath instantanés après sync) ; délai
+      d'INACTIVITÉ client 90 s réarmable ; canal
+      observeTelechargementsBuild ; EtatGradle v4 (etapesAffichees
+      dérivées, numeroEtape, tachesDisponibles) ; EtatEnteteTooling ;
+      PanneauToolingController (le rendu quitte EditorActivity). 19
+      intégrations serveur RÉELLES vertes. RESTE à livrer : l'UI §3.3/§7
+      (en-tête enrichi, arbre+chips, config intégrée, bottom sheet des
+      tâches, écran de configuration §7) — les fondations y sont câblées.
 - Prochaine : étape 33 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 

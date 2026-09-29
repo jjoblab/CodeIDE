@@ -9,7 +9,7 @@ l'avancement des étapes G1-G6 (G8 : affichage des tâches, v3).
 
 | Composant | Version retenue | Vérification |
 |---|---|---|
-| Protocole client ↔ orchestrateur | **v3** (v0.36.0) | `GradleProtocol.PROTOCOL_VERSION` — égalité EXACTE exigée au handshake ; la v3 ajoute `SyncProgress` (phases de sync énumérées) et enrichit `TaskFinished` (`durationMs`, `skipped`), champs à défauts compatibles v2 (`ignoreUnknownKeys`). Fichiers dorés régénérés (28). |
+| Protocole client ↔ orchestrateur | **v4** (v0.38.0) | `GradleProtocol.PROTOCOL_VERSION` — égalité EXACTE exigée au handshake ; la v4 remplace les phases de sync par les phases RÉELLES (OUTILS/DISTRIBUTION/DAEMON/CONFIGURATION/MODELE_TACHES/MODELE_IDE/DEPENDANCES/CLASSPATHS — l'ancienne CONNEXION mentait : `connect()` ne télécharge rien), enrichit `SyncProgress` de détails (octets reçus/total, élément, compteur — défauts compatibles), fait porter `DetailTelechargement` par `ProgressEvent` (téléchargements visibles pour TOUTE action, §6) et embarque les arguments dans `SyncRequest`/`ClasspathRequest`. Fichiers dorés régénérés (28) via `RegenerateurDoresTest` (`REGENERER_DORES=1`). |
 | `org.gradle:gradle-tooling-api` | **9.7.1** | `repo.gradle.org/gradle/libs-releases` — dernière stable (9.8.0 encore en RC), **exactement alignée** sur le Gradle du wrapper du projet (9.7.1). Attention : les métadonnées Maven Central de cette coordonnée sont périmées (dernière « release » affichée : 7.3-snapshot de 2021) — le dépôt de référence est celui de Gradle. |
 | Dépôt à ajouter (G2) | `https://repo.gradle.org/gradle/libs-releases/` | `dependencyResolutionManagement` de `settings.gradle.kts` — Maven Central ne suffit pas. |
 | JDK minimal du **daemon Gradle réel** | **Java 17** (Gradle 9.x) | Le bootstrap installe `openjdk-17` : compatible sans changement. L'orchestrateur (`tooling:server`) sera compilé jvmTarget 17. |
@@ -90,6 +90,63 @@ l'expérience de la version antérieure)
 | **Orchestrateur muet** (vivant mais bloqué) | health check ping/pong : muet 15 s → kill forcé → relance bornée | `DaemonManagerTest` |
 | **Épuisement des relances** (5) | `ECHOUEE` — échec définitif jusqu'à un nouveau `demarrer` (jamais de boucle infinie) | `DaemonManagerTest` |
 
+
+## v4 — tooling professionnel : phases réelles, action unique, téléchargements visibles (2026-09-29)
+
+**API Tooling 9.7.1 vérifiée par `javap` AVANT tout code (règle 9)** — quatre
+suppositions du prompt corrigées par les faits :
+
+| Supposition | Vérification sur le JAR |
+|---|---|
+| `events.file.FileDownload*` | FAUX — le paquet est `org.gradle.tooling.events.download.*` |
+| `OperationType.GENERIC_PROGRESS` | FAUX — la valeur est `GENERIC` |
+| octets de téléchargement en continu | FAUX — `FileDownloadResult.getBytesDownloaded()` n'existe qu'à la FIN ; le descripteur ne porte que l'URI |
+| `setStreamedValueListener` chaînable | FAUX — retourne `void` (le compilateur le liait à `kotlin.run` : diagnostic par fichier témoin) |
+
+**Le déroulé ne ment plus** (§3.1) : `SyncHandler` annonce OUTILS
+(vérifications locales : dossier, wrapper, distribution en cache par le
+marqueur `wrapper/dists/<nom>/<hash>/*.zip.ok` — layout vérifié sur un
+`GRADLE_USER_HOME` réel) → DISTRIBUTION (sa PROPRE phase : installée =
+conclue aussitôt ; à résoudre = sondée toutes les 500 ms par la taille des
+fichiers `.part` — la Tooling API ne donne AUCUN octet pour la
+distribution, le sondeur est la seule vérité) → DAEMON (conclu au premier
+événement `PROJECT_CONFIGURATION`) → CONFIGURATION / DEPENDANCES
+(OPPORTUNISTES et honnêtes : ouvertes seulement si Gradle émet — une sync
+en cache ne reconfigure pas, une sync hors ligne ne télécharge pas) →
+MODELE_TACHES puis MODELE_IDE dans l'action UNIQUE → CLASSPATHS publiée
+AVANT le `SyncResult` (« Synchronisé » ne s'affiche qu'après).
+
+**L'action unique** (`ActionSyncModeles`) : une SEULE requête résout
+`GradleProject` puis `IdeaProject` (`BuildAction`/`BuildController`) —
+l'ancienne double suite de `model().get()` configurait le build DEUX fois.
+Les transitions de phases streament par `BuildController.send()` vers le
+`StreamedValueListener` (vérifié : le marqueur est un `MarqueurPhaseModele`
+java-sérialisable, jamais un lambda — l'action s'exécute DANS le daemon).
+Le résultat (DTO sérialisables, `serialVersionUID`) alimente le **CacheSync**
+serveur : `taches()` et `classpath()` répondent ensuite SANS re-résolution
+(mesuré : quelques ms contre plusieurs secondes).
+
+**Les téléchargements se voient pour TOUTE action** (§6) :
+`EcouteurProgressionCommun` (FILE_DOWNLOAD + PROJECT_CONFIGURATION, débit
+borné à 5 événements/s par élément, nom d'artefact = dernier segment d'URI,
+règle 15) alimente la sync (phases DEPENDANCES/CONFIGURATION) ET le build
+(`ProgressEvent` structuré, canal `observeTelechargementsBuild` côté client).
+L'écouteur HISTORIQUE de statut (`org.gradle.tooling.ProgressListener.statusChanged`)
+forward les descriptions textuelles de la distribution, borné pareil.
+
+**La sync reste vivante tant qu'elle progresse** (§3.1) : le client n'attend
+plus 5 minutes en TOTAL mais 90 s SANS ÉVÉNEMENT (`echangerAvecInactivite`
+— la fenêtre se réarme à chaque `SyncStarted`/`SyncProgress`) ; seul le
+silence tue, un réseau mobile lent qui télécharge n'est plus un échec.
+
+**Les arguments réglés s'appliquent à la sync et au classpath** : la chaîne
+`AppSettings` → `OptionsTooling.argumentsBuild()` → use cases →
+`SyncRequest`/`ClasspathRequest` → `withArguments` est complète (l'UI de
+configuration enrichie §7 reste à livrer — voir ROADMAP).
+
+**Délais de garde v4** : client sync = 90 s d'INACTIVITÉ (réarmable) ;
+les autres délais inchangés (table §7.5 ci-dessus).
+
 ## Avertissement bénin du daemon Gradle (correctif C5 — comportement CONNU, pas un bug)
 
 Pendant l'exécution de tâches Gradle, cette ligne peut apparaître sur
@@ -152,7 +209,8 @@ réel (§7.4) et chaos (§7.5) inclus. La vérification locale graduée
 | G5 | `GradleService` + intégration éditeur | 0.30.0 | **Terminé** | Producteur serveur : `ParseurDiagnostics` extrait les positions des lignes stderr (javac `f:l[:c]: error:` / kotlinc `e: file://f:l:c`), publiées en événements `Diagnostic` (observateur de `StreamingOutputStream`, branché par `BuildHandler` — une ligne sans position complète est ignorée). Domaine : use cases Synchroniser/Exécuter/Annuler/Lister (port existant, dossier résolu par l'appelant). Éditeur : `GradleService` (détenteur d'état pur, fenêtre de sortie bornée 2 000 lignes — la sortie complète reste dans le canal rejouable du client), onglets Sortie (auto-défilement, annulation) et Problèmes (groupes par fichier, saut à la ligne), diagnostics inline `session.setDiagnostics` (suffixe de chemin relatif), actions toolbar + sélecteur de tâches. 23 tests + intégration serveur étendue (16 — diagnostics émis sur la fixture d'erreur de compilation). ADR 0043. |
 | G6 | Robustesse et audit | 0.31.0 | **Terminé** | **Chaos réel §7.5** (`ChaosToolingTest` : process `kill -9` en plein build → builds EN COURS conclus `ECHOUE` « connexion perdue » + canaux fermés, correctif `GradleApiImpl.rompreBuildsEnCours()` ; socket perdu côté app → le process sort SEUL code 0, aucun orphelin ; le daemon relance borné et la connexion remonte) ; version incompatible et JDK introuvable déjà prouvés (`HandshakeAppTest`, `DaemonManagerTest`) ; délais de garde vérifiés partout (table dédiée ci-dessus : client sync 5 min/tâches 30 s, serveur build 30 min/sync 5 min/tâches 30 s/dépendances 30 s/modèle 5 min, health check 5 s/15 s) ; `docs/TOOLING.md` **final** (architecture livrée, délais, chaos, journalisation, CI) ; audit sans TODO ni code mort (detekt strict vert) ; les points T7 exigeant l'appareil (ADR targetSdk, revue mémoire LeakCanary) restent explicitement différés à l'appareil réel. ADR 0044. |
 | G7 | Tooling professionnel à la Android Studio | 0.33.0 | **Terminé** | Sync à l'ouverture du projet (sans geste, garde JDK d'abord — résolution `GradleProject` + `IdeaProject` : dépendances et classpaths), `SyncStarted` diffusé PAR le serveur avant la résolution (symétrique du `BuildStarted`, marquage client idempotent, perte de session = état au repos), canal Taches (indicateur de vol du listage), `GradleService` process-wide (`@Singleton`, `attacher` par espace, `rattacherBuildEnVol`), service de notification `ToolingService` (foreground `specialUse`, port `DemarreurServiceTooling` piloté aux transitions, décision pure `decisionNotificationTooling`, stopSelf au repos) ; vérification légère complète + situation réelle par harnais contre le VRAI jar. ADR 0057. |
-| G8 | Affichage des tâches, étapes de sync, configuration | 0.36.0 | **Terminé** | **Le trou est réparé** : `TaskStarted`/`TaskFinished` ne sont plus jetés par `GradleApiImpl.pomper` — `observeTachesBuild` (canal borné par build, fermé à la fin, même sémantique que la sortie) alimente la console : une ligne par tâche (`> Tâche :app:xxx…`), mise à jour EN PLACE à sa fin (statut + durée MESURÉE côté serveur, sautée grisée, échec rouge — vue Build d'Android Studio). **Fin de la boîte noire de sync** : protocole v3, `SyncProgress` par phase (`CONNEXION`/`MODELE_GRADLE`/`MODELE_IDEA`, départ puis durée — la connexion est hoistée avant les modèles, sa phase la plus longue est enfin visible), lignes du canal Sync conclues en place. **`--console=plain` forcé** en dernier argument de tout build (l'occurrence finale gagne). **Écran de configuration du tooling** (engrenage de l'onglet Sortie, dialogue plein écran `Theme.CodeIDE.PleinEcran`) : affichage des tâches (filtrage en vol), mode hors ligne, arguments Gradle libres, état vivant de l'orchestrateur — réglages persistés à l'instant (DataStore, ADR 0059), consommation via `OptionsTooling`. L'avertissement bénin du daemon Gradle voyage apaisé (style informatif, correctif C5 du prompt Terminal). Fichiers dorés v3 (28). ADR 0065. |
+| G8 | Affichage des tâches, étapes de sync, configuration | 0.36.0 | **Terminé** |
+| G9 | Tooling professionnel v4 : phases réelles, action unique, téléchargements visibles, inactivité, cache | 0.38.0 | **Partiellement livré** — fondations protocol/serveur/client/état complètes et testées (19 intégrations réelles) ; l'UI complète (§3.3, §7 : arbre, chips, config intégrée, bottom sheet des tâches) reste à livrer | **Le trou est réparé** : `TaskStarted`/`TaskFinished` ne sont plus jetés par `GradleApiImpl.pomper` — `observeTachesBuild` (canal borné par build, fermé à la fin, même sémantique que la sortie) alimente la console : une ligne par tâche (`> Tâche :app:xxx…`), mise à jour EN PLACE à sa fin (statut + durée MESURÉE côté serveur, sautée grisée, échec rouge — vue Build d'Android Studio). **Fin de la boîte noire de sync** : protocole v3, `SyncProgress` par phase (`CONNEXION`/`MODELE_GRADLE`/`MODELE_IDEA`, départ puis durée — la connexion est hoistée avant les modèles, sa phase la plus longue est enfin visible), lignes du canal Sync conclues en place. **`--console=plain` forcé** en dernier argument de tout build (l'occurrence finale gagne). **Écran de configuration du tooling** (engrenage de l'onglet Sortie, dialogue plein écran `Theme.CodeIDE.PleinEcran`) : affichage des tâches (filtrage en vol), mode hors ligne, arguments Gradle libres, état vivant de l'orchestrateur — réglages persistés à l'instant (DataStore, ADR 0059), consommation via `OptionsTooling`. L'avertissement bénin du daemon Gradle voyage apaisé (style informatif, correctif C5 du prompt Terminal). Fichiers dorés v3 (28). ADR 0065. |
 
 > Ordre révisé le 2026-09-24 à la demande de l'utilisateur : le tooling
 > démarre après T6 (le prompt exigeait « Terminal terminé » ; T7 est un

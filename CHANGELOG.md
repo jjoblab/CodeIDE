@@ -4,6 +4,100 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.38.0] – 2026-09-29
+
+### Ajouté (tooling professionnel v4 — fondations, prompt « tooling Gradle
+professionnel » étapes 1-4/6)
+
+- **Protocole v4** : phases de sync RÉELLES (`OUTILS`, `DISTRIBUTION`,
+  `DAEMON`, `CONFIGURATION`, `MODELE_TACHES`, `MODELE_IDE`, `DEPENDANCES`,
+  `CLASSPATHS` — l'ancienne `CONNEXION` mentait : `connect()` ne télécharge
+  rien), `SyncProgress` enrichi de détails (octets reçus/total, élément,
+  compteur — champs à défaut, compatibles), `ProgressEvent` porteur d'un
+  `DetailTelechargement` structuré, arguments (`--offline`, libres)
+  embarqués dans `SyncRequest`/`ClasspathRequest`. Dorés régénérés (28) par
+  le nouveau `RegenerateurDoresTest` (`REGENERER_DORES=1` — régénération
+  VOLONTAIRE, relue en diff, jamais en CI). ADR 0069.
+- **API Tooling 9.7.1 vérifiée par `javap` avant tout code** (règle 9) :
+  quatre suppositions corrigées par les faits (paquet `events.download` et
+  non `events.file` ; `GENERIC` et non `GENERIC_PROGRESS` ; octets d'un
+  téléchargement connus seulement à SA FIN ; `setStreamedValueListener`
+  retourne `void` — le liait à `kotlin.run`, trouvé par fichier témoin).
+- **Action unique de sync** (`ActionSyncModeles`) : une SEULE requête
+  résout `GradleProject` puis `IdeaProject` (l'ancienne double suite de
+  `model().get()` configurait le build DEUX fois) — les transitions de
+  phases streament par `BuildController.send()` vers le
+  `StreamedValueListener` (marqueur java-sérialisable : l'action s'exécute
+  DANS le daemon, jamais de lambda capturé).
+- **Téléchargements visibles pour TOUTE action Gradle** (addendum §6) :
+  `EcouteurProgressionCommun` (FILE_DOWNLOAD + PROJECT_CONFIGURATION)
+  alimente la sync (phases DEPENDANCES/CONFIGURATION) ET le build
+  (`ProgressEvent` structuré, canal `observeTelechargementsBuild` du
+  domaine) — débit borné (5 événements/s par élément), nom d'artefact
+  réduit au dernier segment d'URI (règle 15). Écouteur HISTORIQUE de
+  statut pour les descriptions textuelles de la distribution.
+- **Sondes honnêtes de la distribution** : installée = marqueur
+  `wrapper/dists/<nom>/<hash>/*.zip.ok` (layout vérifié sur un
+  `GRADLE_USER_HOME` réel) ; en cours = taille des fichiers `.part`
+  sondée toutes les 500 ms (la Tooling API ne donne AUCUN octet pour la
+  distribution) ; phases opportunistes ouvertes SEULEMENT si Gradle émet.
+- **Cache serveur** (`CacheSync`) : `taches()` et `classpath()` répondent
+  sans re-résolution après une sync (mesuré en intégration : quelques ms).
+- **Délai d'inactivité de la sync** : 90 s SANS événement (fenêtre RÉARMÉE
+  à chaque signe de vie — `SyncStarted`, `SyncProgress`) au lieu de
+  5 minutes de total : un premier lancement sur réseau mobile qui
+  télécharge lentement ne meurt plus, seul le silence tue.
+- **État client v4** : `etapesAffichees` DÉRIVÉES des lignes de console
+  (l'arbre EST l'état), `etapeCourante`/`numeroEtape`/`totalEtapes`
+  (compteur d'en-tête), `tachesDisponibles` remplies à la fin d'une sync
+  utile (listage instantané) et invalidées à la suivante ;
+  `EtatEnteteTooling` (titre, sous-titre d'étape, progression déterminée,
+  couleur, chrono, arrêt) sorti du présentateur pur `PresentationTooling`
+  + `DetailsEtapesSync`.
+
+### Changé
+
+- **`PanneauToolingController`** : le rendu tooling de l'en-tête du panneau
+  inférieur quitte `EditorActivity` (107 lignes) — l'activité ne garde que
+  la collecte et le cycle de vie ; le contrôleur porte le ticker
+  `repeatOnLifecycle(STARTED)` et l'horloge injectée (correctif n°12),
+  le fondu et le peek.
+- **Les arguments réglés s'appliquent à la sync et au classpath** : la
+  chaîne `AppSettings` → `OptionsTooling.argumentsBuild()` → use cases →
+  requêtes → `withArguments` est complète.
+
+### Corrigé
+
+- **Correctif n°9** : plus aucun `!!` dans `feature:editor` — les six
+  fragments passent à `checkNotNull(liaisonAmorce)` à diagnostic lisible,
+  `DecisionNotificationTooling` au smart-cast de branche.
+- **Correctif n°10** : le `doAfterTextChanged` du champ d'arguments de la
+  configuration tooling s'armait AUSSI sur le `setText` programmatique du
+  rendu (champ figé sur une valeur périmée, ré-écriture au prochain flou).
+  La décision vit dans `SaisieArguments` (pur, 5 tests) ; le rendu signale
+  ses écritures par le même drapeau `renduEnCours` que les interrupteurs.
+- **Correctif n°11** : `PresentationTooling` (pur, 23 tests FR/EN)
+  remplace les DEUX cascades dupliquées `EditorActivity
+  .libelleActiviteTooling` et `PanneauConsoleFragment
+  .libelleStatutTooling` ; `EditorActivity.dureeLisible` disparaît au
+  profit du formateur partagé `DureesLisibles`.
+- **Correctif n°12** : le chrono de l'en-tête ne tourne plus en
+  arrière-plan (`repeatOnLifecycle(STARTED)` au lieu du `while (true)`
+  nu) et lit l'horloge INJECTÉE `TimeProvider` au lieu de
+  `System.currentTimeMillis()`.
+
+### Non livré dans cette version (resté à l'étape UI 5)
+
+- L'UI complète du prompt §3.3/§7 : en-tête enrichi (sous-titre et
+  progression déterminée affichés), arbre de console avec chips
+  Sync/Build, configuration intégrée AU CONTENEUR de la console (le
+  dialogue plein écran existe toujours), sélecteur de tâches en bottom
+  sheet (recherche, groupes, récentes), écran de configuration enrichi
+  (§7 : affichage, exécution, environnement, orchestrateur, commande
+  effective, recherche de réglages). Les fondations (état, présentateur,
+  contrôleur, `tachesDisponibles`, canaux) sont posées et testées — le
+  branchement visuel est le travail de l'étape suivante.
+
 ## [0.37.6] – 2026-09-29
 
 ### Corrigé (layout XML — ViewBinding pointait toujours sur l'ancien FQN `jo.codeeditor.view.SymbolBarView`)
