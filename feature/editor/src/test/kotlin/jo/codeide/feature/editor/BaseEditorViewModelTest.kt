@@ -167,7 +167,13 @@ abstract class BaseEditorViewModelTest {
      * processus : le `SavedStateHandle` survit, un nouveau ViewModel le
      * rejoue (étape 15), y compris au-delà d'une écriture d'état d'espace
      * (étape 17).
+     *
+     * Exemption detekt ciblée (règle 16) : LongMethod — la construction
+     * d'un ViewModel de 30+ dépendances est longue par construction ; on
+     * garde la lisibilité d'un constructeur explicite plutôt que de
+     * dégager une factory qui masquerait les dépendances réelles.
      */
+    @Suppress("LongMethod")
     protected fun viewModel(
         id: ProjectId,
         sauvetage: SavedStateHandle,
@@ -221,6 +227,24 @@ abstract class BaseEditorViewModelTest {
                 ),
             optionsTooling = optionsTooling,
             optionsEditeur = optionsEditeur,
+            // v0.40.1 (prompt de suivi §2 — sync suivante immédiate) : trois
+            // cas d'usage de l'état de sync persisté. Les tests ne couvrent
+            // pas encore ce flux (sync-state.json non créé en test) —
+            // `restaurerEtatSyncSiEmpreinteIdentique()` retourne `false`
+            // (pas de state), la sync manuelle reste le chemin par défaut.
+            calculerEmpreinteGradle =
+                jo.codeide.core.domain.CalculerEmpreinteGradleUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            lireSyncState =
+                jo.codeide.core.domain
+                    .LireSyncStateUseCase(fichiers),
+            ecrireSyncState =
+                jo.codeide.core.domain.EcrireSyncStateUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ),
             serviceGradle = serviceGradleTest,
             pompeBuilds = pompeBuildsTest,
             savedStateHandle = sauvetage,

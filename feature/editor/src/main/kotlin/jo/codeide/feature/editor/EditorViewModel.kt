@@ -10,11 +10,14 @@ import jo.codeeditor.shift.DiagnosticShift
 import jo.codeide.core.domain.AnnulerBuildUseCase
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.ArbreMemoire
+import jo.codeide.core.domain.CalculerEmpreinteGradleUseCase
 import jo.codeide.core.domain.CopierArbreUseCase
 import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
+import jo.codeide.core.domain.EcrireSyncStateUseCase
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EtatOutilsTerminal
+import jo.codeide.core.domain.EtatSyncLocal
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.ExecuterTachesUseCase
 import jo.codeide.core.domain.FileStat
@@ -23,6 +26,7 @@ import jo.codeide.core.domain.FileSystemPrive
 import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.LireArbreUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
+import jo.codeide.core.domain.LireSyncStateUseCase
 import jo.codeide.core.domain.ListerTachesProjetUseCase
 import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
@@ -172,6 +176,14 @@ class EditorViewModel
         private val deplacerArbre: DeplacerArbreUseCase,
         private val lireArbre: LireArbreUseCase,
         private val restaurerArbre: RestaurerArbreUseCase,
+        // v0.40.1 (prompt de suivi §2 — sync suivante immédiate) : trois
+        // cas d'usage pour détecter qu'un projet n'a pas changé depuis
+        // la dernière sync, restituer immédiatement l'état « Synchronisé
+        // · il y a X » et les tâches, puis revalider en arrière-plan sans
+        // bruit.
+        private val calculerEmpreinteGradle: CalculerEmpreinteGradleUseCase,
+        private val lireSyncState: LireSyncStateUseCase,
+        private val ecrireSyncState: EcrireSyncStateUseCase,
         private val serviceGradle: GradleService,
         private val pompeBuilds: PompeBuildTooling,
         savedStateHandle: SavedStateHandle,
@@ -431,6 +443,14 @@ class EditorViewModel
          * « JDK absent » alors que le JDK EST installé. La sync d'ouverture
          * attend donc le premier état OUTILS réel (avec une garde de temps
          * bornée — un appareil lent ne bloque pas l'ouverture non plus).
+         *
+         * v0.40.1 (prompt de suivi §2 — sync suivante immédiate) : avant
+         * la sync réelle, on tente de restituer un état `sync-state.json`
+         * persisté si l'empreinte SHA-256 des fichiers Gradle n'a pas
+         * changé depuis la dernière sync réussie. L'UI affiche alors
+         * immédiatement « Synchronisé · il y a X » + les tâches, et la
+         * revalidation se fait en arrière-plan sans bruit (silencieuse :
+         * pas de déroulé visible, pas de `marquerSyncEnCours`).
          */
         private fun lancerSyncOuverture() {
             viewModelScope.launch {
@@ -446,7 +466,125 @@ class EditorViewModel
                 if (!syncOuvertureLancee) {
                     syncOuvertureLancee = true
                     journal.i(TAG) { "sync d'ouverture lancee (projet ${identifiantSuivi()})" }
-                    synchroniserProjetGradle()
+                    // v0.40.1 : tentative de restitution immédiate depuis
+                    // sync-state.json. Si l'empreinte courante est
+                    // identique à celle du state, on publie immédiatement
+                    // l'état « Synchronisé · il y a X » + les tâches, et
+                    // on lance la revalidation silencieuse en arrière-plan.
+                    // Sinon, sync manuelle (déroulé complet).
+                    if (!restaurerEtatSyncSiEmpreinteIdentique()) {
+                        synchroniserProjetGradle()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Restitue immédiatement l'état de sync depuis `sync-state.json`
+         * si l'empreinte SHA-256 des fichiers Gradle n'a pas changé depuis
+         * la dernière sync réussie (v0.40.1, prompt de suivi §2).
+         *
+         * @return `true` si l'état a été restitué (la revalidation
+         *         silencieuse est lancée en arrière-plan), `false` sinon
+         *         (l'appelant doit lancer une sync manuelle).
+         */
+        private suspend fun restaurerEtatSyncSiEmpreinteIdentique(): Boolean {
+            val projet = etatInterne.value.projet ?: return false
+            val uriRacine = projet.location.grantUri ?: return false
+            val state = lireSyncState(uriRacine) ?: return false
+            val empreinteCourante = calculerEmpreinteGradle(uriRacine)
+            // Une empreinte vide (racine illisible) ne permet pas de
+            // restituer : on préfère sync manuelle.
+            if (empreinteCourante.isEmpty() || empreinteCourante != state.empreinte) {
+                journal.i(TAG) { "empreinte différente — sync manuelle requise (projet ${identifiantSuivi()})" }
+                return false
+            }
+            // Empreinte identique : on publie immédiatement l'état « Synchronisé »
+            // et les tâches, puis on lance la revalidation silencieuse.
+            journal.i(TAG) { "empreinte identique — état sync restitué (projet ${identifiantSuivi()})" }
+            serviceGradle.publierResultatSync(
+                AppResult.Success(
+                    ResultatSynchronisation(
+                        projectDir = cheminProjet ?: "",
+                        reussie = true,
+                        dureeMs = state.dureeMs,
+                    ),
+                ),
+            )
+            if (state.taches.isNotEmpty()) {
+                serviceGradle.publierTachesDisponibles(state.taches)
+            }
+            // Revalidation silencieuse : on relance la sync sans déroulé
+            // visible — on garde l'état restitué affiché pendant la
+            // revalidation. Si elle échoue, on ne met PAS l'état à rouge :
+            // on conserve l'état « Synchronisé » (potentiellement obsolète)
+            // — l'utilisateur peut appuyer sur « Sync » manuellement.
+            viewModelScope.launch { revaliderSyncSilencieusement() }
+            return true
+        }
+
+        /**
+         * Revalidation silencieuse (v0.40.1) : relance la sync Gradle sans
+         * publier le déroulé des étapes visibles — l'utilisateur garde
+         * l'état restitué pendant que la revalidation tourne. En cas
+         * d'échec, l'état « Synchronisé » est CONSERVÉ (pas de rouge) :
+         * l'utilisateur peut appuyer sur « Sync » manuellement pour
+         * voir le déroulé complet et l'erreur.
+         */
+        private suspend fun revaliderSyncSilencieusement() {
+            if (jdkAbsent()) return
+            val dossier = dossierProjetOuEchec() ?: return
+            val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
+            // En cas de succès, on met à jour l'état ET le sync-state.json
+            // (l'empreinte ne change pas — la sync n'a rien modifié —
+            // mais l'instant de la dernière sync est rafraîchi).
+            if (resultat is AppResult.Success && resultat.value.reussie) {
+                publierTachesDisponiblesSiSyncUtile(dossier, resultat)
+                persisterSyncState(resultat)
+            }
+            // En cas d'échec, on ne publie PAS le résultat à l'UI : on
+            // conserve l'état « Synchronisé » restitué, l'utilisateur peut
+            // relancer manuellement pour voir l'erreur.
+            journal.i(TAG) { "revalidation silencieuse terminée (projet ${identifiantSuivi()})" }
+        }
+
+        /**
+         * Persiste l'état de sync sous `.codeide/local/sync-state.json`
+         * après une sync réussie (v0.40.1) — l'état sera restitué au
+         * retour du projet si l'empreinte n'a pas changé.
+         *
+         * @param resultat le résultat de la sync (succès ou partiel) —
+         *        l'échec sec n'est pas persisté (le state précédent
+         *        reste valide pour le retour).
+         */
+        private suspend fun persisterSyncState(resultat: AppResult<ResultatSynchronisation>) {
+            val projet = etatInterne.value.projet ?: return
+            val uriRacine = projet.location.grantUri ?: return
+            val resultatSync = (resultat as? AppResult.Success)?.value ?: return
+            if (!resultatSync.reussie && !resultatSync.partielle) return
+            val empreinte = calculerEmpreinteGradle(uriRacine)
+            val taches = serviceGradle.etat.value.tachesDisponibles ?: emptyList()
+            val etat =
+                EtatSyncLocal(
+                    empreinte = empreinte,
+                    taches = taches,
+                    dureeMs = resultatSync.dureeMs,
+                    instantMs = System.currentTimeMillis(),
+                    tachesActionnables = serviceGradle.etat.value.tachesActionnablesBuild,
+                    tachesExecutees = serviceGradle.etat.value.tachesExecuteesBuild,
+                    tachesAJour = serviceGradle.etat.value.tachesAJourBuild,
+                )
+            when (ecrireSyncState(uriRacine, etat)) {
+                is AppResult.Success -> {
+                    journal.i(TAG) {
+                        "sync-state.json persisté (projet ${identifiantSuivi()})"
+                    }
+                }
+
+                is AppResult.Failure -> {
+                    journal.w(TAG) {
+                        "sync-state.json non persisté (projet ${identifiantSuivi()})"
+                    }
                 }
             }
         }
@@ -740,6 +878,14 @@ class EditorViewModel
                 serviceGradle.publierResultatSync(resultat)
                 preparerClasspathLspSiSyncUtile(dossier, resultat)
                 publierTachesDisponiblesSiSyncUtile(dossier, resultat)
+                // v0.40.1 (prompt de suivi §2) : on persiste l'état sous
+                // `.codeide/local/sync-state.json` pour restituer au retour
+                // si l'empreinte n'a pas changé. En cas d'échec, on NE
+                // persiste pas — le state précédent (s'il existe) reste
+                // valide pour le retour ; les tâches/classpath précédents
+                // sont CONSERVÉS (marqueur `tachesDisponibles != null` vu
+                // au correctif n°2 du commit 38d7933).
+                persisterSyncState(resultat)
                 journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
             }
         }
