@@ -99,6 +99,24 @@ internal sealed interface RangeeConsole {
             get() = "detail-${phase.name}"
     }
 
+    /**
+     * Détail classpath par module SOUS l'étape CLASSPATHS (v0.40.1, prompt
+     * de suivi §4) : une sous-ligne par module affichant « :app · 312
+     * jars · 4 sources · variante debug ». La clé est le nom du module
+     * pour DiffUtil (mise à jour en place si les stats changent).
+     */
+    data class DetailClasspath(
+        val nomModule: String,
+        val nbJars: Int?,
+        val nbAars: Int?,
+        val nbSources: Int?,
+        val varianteAndroid: String?,
+        val nbDependancesProjet: Int?,
+    ) : RangeeConsole {
+        override val idCle: String
+            get() = "classpath-$nomModule"
+    }
+
     /** Tâche du build (v3 ; v5 — SEULE ligne de la vue Build, les sorties
      *  brutes ne mélangent plus l'écran) : mise à jour en place à sa fin. */
     data class Tache(
@@ -229,6 +247,23 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
                     total = phaseActive.total,
                     element = phaseActive.element,
                 )
+        }
+        // v0.40.1 (prompt de suivi §4) : sous-lignes classpath par module
+        // sous l'étape CLASSPATHS — affichées après la conclusion de
+        // l'étape (sync réussie) ou pendant (sync en cours si les stats
+        // sont déjà disponibles via l'état restitué).
+        if (etape == EtapeConsoleSync.CLASSPATHS && etat.statsClasspath != null) {
+            rangees +=
+                etat.statsClasspath.map { module ->
+                    RangeeConsole.DetailClasspath(
+                        nomModule = module.nom,
+                        nbJars = module.nbJars,
+                        nbAars = module.nbAars,
+                        nbSources = module.nbSources,
+                        varianteAndroid = module.varianteAndroid,
+                        nbDependancesProjet = module.nbDependancesProjet,
+                    )
+                }
         }
     }
     return rangees

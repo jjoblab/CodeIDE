@@ -14,6 +14,7 @@ import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneArbreEtapeBinding
+import jo.codeide.feature.editor.databinding.LigneClasspathModuleBinding
 import jo.codeide.feature.editor.databinding.LigneDetailTelechargementBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
 import jo.codeide.feature.editor.databinding.LigneSyntheseBuildBinding
@@ -238,10 +239,11 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         private const val POURCENT_MAX = 100f
     }
 
-    /** Fabrique des rangées (arbre / détail / tâche / synthèses). */
+    /** Fabrique des rangées (arbre / détail / classpath / tâche / synthèses). */
     private enum class Type {
         ETAPE_ARBRE,
         DETAIL_TELECHARGEMENT,
+        DETAIL_CLASSPATH,
         TACHE,
         SYNTHESE_BUILD,
         SYNTHESE_SYNC,
@@ -251,6 +253,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         when (getItem(position)) {
             is RangeeConsole.EtapeArbre -> Type.ETAPE_ARBRE
             is RangeeConsole.DetailTelechargement -> Type.DETAIL_TELECHARGEMENT
+            is RangeeConsole.DetailClasspath -> Type.DETAIL_CLASSPATH
             is RangeeConsole.Tache -> Type.TACHE
             is RangeeConsole.SyntheseBuild -> Type.SYNTHESE_BUILD
             is RangeeConsole.SyntheseSync -> Type.SYNTHESE_SYNC
@@ -271,6 +274,12 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             Type.DETAIL_TELECHARGEMENT.ordinal -> {
                 DetailTelechargementHolder(
                     LigneDetailTelechargementBinding.inflate(inflateur, parent, false),
+                )
+            }
+
+            Type.DETAIL_CLASSPATH.ordinal -> {
+                ClasspathModuleHolder(
+                    LigneClasspathModuleBinding.inflate(inflateur, parent, false),
                 )
             }
 
@@ -301,6 +310,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         when (val rangee = getItem(position)) {
             is RangeeConsole.EtapeArbre -> (holder as EtapeArbreHolder).lier(rangee)
             is RangeeConsole.DetailTelechargement -> (holder as DetailTelechargementHolder).lier(rangee)
+            is RangeeConsole.DetailClasspath -> (holder as ClasspathModuleHolder).lier(rangee)
             is RangeeConsole.Tache -> (holder as TacheHolder).lier(rangee.ligne)
             is RangeeConsole.SyntheseBuild -> (holder as SyntheseHolder).lier(rangee)
             is RangeeConsole.SyntheseSync -> (holder as SyntheseHolder).lier(rangee)
@@ -685,6 +695,24 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                 this,
                 ALPHA_ATTENUE,
             )
+    }
+
+    // ---- Détail classpath par module (v0.40.1 §4) -----------------------
+
+    /** Sous-ligne classpath d'un module : « :app · 312 jars · 4 sources ·
+     *  variante debug » en monospace atténué, indenté à 28 dp. */
+    private class ClasspathModuleHolder(
+        private val liaison: LigneClasspathModuleBinding,
+    ) : RecyclerView.ViewHolder(liaison.root) {
+        fun lier(rangee: RangeeConsole.DetailClasspath) {
+            val parties = mutableListOf(rangee.nomModule)
+            rangee.nbJars?.let { if (it > 0) parties += "$it jars" }
+            rangee.nbAars?.let { if (it > 0) parties += "$it AARs" }
+            rangee.nbSources?.let { if (it > 0) parties += "$it sources" }
+            rangee.varianteAndroid?.let { parties += "variante $it" }
+            rangee.nbDependancesProjet?.let { if (it > 0) parties += "$it deps" }
+            liaison.texteClasspathModule.text = parties.joinToString(" · ")
+        }
     }
 
     // ---- Tâche du build (v3 ; v5 — SEULE ligne de la vue Build) ---------
