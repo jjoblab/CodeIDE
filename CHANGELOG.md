@@ -4,6 +4,20 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.39.1] – 2026-09-29
+
+### Corrigé
+
+- **Échec CI (`lintDebug`)** : `UselessParent` dans
+  `activity_editor.xml` — `ligne_tooling` (vertical) ne contenait qu'un
+  seul enfant, la rangée horizontale de l'en-tête enrichi (introduite en
+  0.39.0, étape 5a). Les deux `LinearLayout` sont fusionnés en une seule
+  rangée horizontale portant l'id `ligne_tooling` : même position dans le
+  panneau, mêmes vues enfants (pastille, titre, sous-titre, chrono,
+  Arrêter), même visibilité par défaut — hiérarchie plus plate, un vue
+  de moins. Aucun changement fonctionnel ; le test de layout
+  (`ActivityEditorLayoutTest`) reste vert sans modification.
+
 ## [0.39.0] – 2026-09-29
 
 ### Ajouté (tooling professionnel v4 — UI complète, prompt « tooling Gradle

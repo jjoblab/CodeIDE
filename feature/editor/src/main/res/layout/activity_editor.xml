@@ -329,108 +329,102 @@
             <LinearLayout
                 android:id="@+id/ligne_tooling"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:layout_height="@dimen/editor_entete_tooling_hauteur"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/spacing_md"
                 android:visibility="gone"
                 tools:visibility="visible">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/editor_entete_tooling_hauteur"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/spacing_md">
+                <!-- Pastille du canal : fond arrondi teinté au rendu
+                     (couleur de canal harmonisée, succès vert, échec
+                     rouge) — icône blanche en repos, spinner en vol. -->
+                <FrameLayout
+                    android:id="@+id/pastille_canal_tooling"
+                    android:layout_width="@dimen/editor_pastille_canal_taille"
+                    android:layout_height="@dimen/editor_pastille_canal_taille"
+                    android:background="@drawable/pastille_canal_tooling">
 
-                    <!-- Pastille du canal : fond arrondi teinté au rendu
-                         (couleur de canal harmonisée, succès vert, échec
-                         rouge) — icône blanche en repos, spinner en vol. -->
-                    <FrameLayout
-                        android:id="@+id/pastille_canal_tooling"
-                        android:layout_width="@dimen/editor_pastille_canal_taille"
-                        android:layout_height="@dimen/editor_pastille_canal_taille"
-                        android:background="@drawable/pastille_canal_tooling">
+                    <ImageView
+                        android:id="@+id/icone_canal_tooling"
+                        android:layout_width="@dimen/editor_icone_canal_taille"
+                        android:layout_height="@dimen/editor_icone_canal_taille"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        app:tint="?attr/colorOnPrimary"
+                        tools:src="@drawable/ic_synchroniser" />
 
-                        <ImageView
-                            android:id="@+id/icone_canal_tooling"
-                            android:layout_width="@dimen/editor_icone_canal_taille"
-                            android:layout_height="@dimen/editor_icone_canal_taille"
-                            android:layout_gravity="center"
-                            android:contentDescription="@null"
-                            android:importantForAccessibility="no"
-                            app:tint="?attr/colorOnPrimary"
-                            tools:src="@drawable/ic_synchroniser" />
-
-                        <com.google.android.material.progressindicator.CircularProgressIndicator
-                            android:id="@+id/spinner_canal_tooling"
-                            style="@style/Widget.Material3.CircularProgressIndicator"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:contentDescription="@null"
-                            android:importantForAccessibility="no"
-                            android:indeterminate="true"
-                            android:visibility="gone"
-                            app:indicatorSize="@dimen/editor_icone_canal_taille"
-                            app:indicatorColor="?attr/colorOnPrimary"
-                            app:trackColor="@android:color/transparent"
-                            tools:visibility="visible" />
-                    </FrameLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/spinner_canal_tooling"
+                        style="@style/Widget.Material3.CircularProgressIndicator"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_sm"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:indicatorSize="@dimen/editor_icone_canal_taille"
+                        app:indicatorColor="?attr/colorOnPrimary"
+                        app:trackColor="@android:color/transparent"
+                        tools:visibility="visible" />
+                </FrameLayout>
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/activite_tooling"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceTitleSmall"
-                            tools:text="Synchronisation Gradle · étape 2/8" />
-
-                        <!-- Étape courante + détail : annoncé à TalkBack à
-                             chaque changement (§3.3 — l'utilisateur « voit »
-                             toujours ce qui se passe, même hors écran). -->
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/sous_titre_tooling"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:accessibilityLiveRegion="polite"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:visibility="gone"
-                            tools:text="Téléchargement des dépendances — 42 Mo · 3 éléments"
-                            tools:visibility="visible" />
-                    </LinearLayout>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/minuteur_tooling"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/activite_tooling"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_sm"
-                        android:fontFamily="monospace"
-                        android:textAppearance="?attr/textAppearanceLabelMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="12,3 s" />
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        tools:text="Synchronisation Gradle · étape 2/8" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_arreter_tooling"
-                        style="@style/Widget.CodeIDE.Button.Icon"
-                        android:layout_width="wrap_content"
+                    <!-- Étape courante + détail : annoncé à TalkBack à
+                         chaque changement (§3.3 — l'utilisateur « voit »
+                         toujours ce qui se passe, même hors écran). -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/sous_titre_tooling"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:contentDescription="@string/editor_tooling_arreter_cd"
-                        android:minWidth="@dimen/touch_target_min"
-                        android:minHeight="@dimen/touch_target_min"
+                        android:accessibilityLiveRegion="polite"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:visibility="gone"
-                        app:icon="@drawable/ic_arreter_build"
+                        tools:text="Téléchargement des dépendances — 42 Mo · 3 éléments"
                         tools:visibility="visible" />
                 </LinearLayout>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/minuteur_tooling"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:fontFamily="monospace"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="12,3 s" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_arreter_tooling"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/editor_tooling_arreter_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:visibility="gone"
+                    app:icon="@drawable/ic_arreter_build"
+                    tools:visibility="visible" />
             </LinearLayout>
 
             <!-- Progression du canal actif (v4, §3.3) : DÉTERMINÉE quand
