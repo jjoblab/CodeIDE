@@ -276,10 +276,12 @@ class ActivityEditorLayoutTest {
             "marqueur d'étape en attente (§3.3)",
             etapeArbre.findViewById<View>(R.id.marqueur_etape_attente),
         )
-        assertNotNull(
-            "marqueur d'étape sautée « en cache » (v5)",
-            etapeArbre.findViewById<View>(R.id.marqueur_etape_sautee),
-        )
+        // v0.40.1 (correctif n°5 du prompt de suivi) : le marqueur
+        // « sautée » est retiré du layout (l'étape C supprimera le
+        // concept « En cache » entièrement). Le marqueur d'étape en
+        // cours est désormais un `AnneauTournant` (drawable vectoriel
+        // 16 dp + ObjectAnimator partagé) — déjà vérifié ci-dessus
+        // comme « marqueur spinner d'étape en cours ».
         assertNotNull("libellé de l'étape (§3.3)", etapeArbre.findViewById<View>(R.id.libelle_etape_arbre))
 
         val detailTelechargement = gonfler(R.layout.ligne_detail_telechargement)
