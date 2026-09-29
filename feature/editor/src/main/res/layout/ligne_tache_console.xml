@@ -14,7 +14,7 @@
     android:fontFamily="monospace"
     android:minHeight="@dimen/editor_ligne_hauteur"
     android:paddingHorizontal="@dimen/spacing_xs"
-    android:paddingVertical="1dp"
+    android:paddingVertical="6dp"
     android:gravity="center_vertical"
     android:textAppearance="?attr/textAppearanceBodySmall"
     android:textColor="?attr/colorStdout"

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Synthèse FINALE du build (v4, §3.3 ; v0.39.1 correctif n°4 — style
-     Android Studio) : verdict (coche de succès, croix d'échec, trait
+     Android Studio ; v0.40.1 §6 cohérence aperçu : fond colorSurfaceVariant
+     + rayon 12dp) : verdict (coche de succès, croix d'échec, trait
      d'annulation), durée MESURÉE, message d'échec, ET compte des tâches
      actionnables (« N actionable tasks: M executed[, K up-to-date] »)
      sous le verdict — la dernière ligne de la vue Build, comme la
@@ -12,8 +13,10 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="@dimen/spacing_xs"
-    android:paddingVertical="@dimen/spacing_sm">
+    android:background="?attr/colorSurfaceVariant"
+    android:paddingHorizontal="@dimen/spacing_sm"
+    android:paddingVertical="@dimen/spacing_sm"
+    android:layout_marginTop="@dimen/spacing_xs">
 
     <ImageView
         android:id="@+id/marqueur_synthese"

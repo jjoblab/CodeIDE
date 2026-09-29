@@ -14,7 +14,8 @@
     android:gravity="center_vertical"
     android:minHeight="@dimen/editor_ligne_hauteur"
     android:orientation="horizontal"
-    android:paddingHorizontal="@dimen/spacing_xs">
+    android:paddingHorizontal="@dimen/spacing_xs"
+    android:paddingVertical="6dp">
 
     <!-- Marqueur d'état : un seul des trois fils visible au rendu
          (v0.40.1 — le marqueur « sautée » est supprimé avec le concept
