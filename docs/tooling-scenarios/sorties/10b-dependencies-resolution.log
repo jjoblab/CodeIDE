@@ -1,0 +1,74 @@
+Initialized native services in: /home/z/.gradle/native
+Initialized jansi services in: /home/z/.gradle/native
+Found daemon DaemonInfo{pid=5775, address=[786ba25f-3bc1-4eb7-a2a6-41f5860b8b6e port:38021, addresses:[/127.0.0.1]], state=Idle, lastBusy=1790702938624, context=DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64 (no Daemon JVM specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 13913). The daemon log file: /home/z/.gradle/daemon/9.7.1/daemon-13913.out.log
+Starting 11th build in daemon [uptime: 1 mins 59.655 secs, performance: 96%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 50% of 384 MiB]
+Using 2 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/10b-resolved.9Vfu since the file system is not supported
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/10b-resolved.9Vfu/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/10b-resolved.9Vfu/build.gradle.kts'.
+Included projects: [root project 'deps-non-cachees']
+
+> Configure project :
+Evaluating root project 'deps-non-cachees' using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/10b-resolved.9Vfu/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.0.21']
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+All projects evaluated.
+Task name matched 'dependencies'
+Selected primary task 'dependencies' from project :
+Tasks to be executed: [task ':dependencies']
+Tasks that were excluded: []
+Resolve mutations for :dependencies (Thread[#244,included builds,5,main]) started.
+:dependencies (Thread[#244,included builds,5,main]) started.
+
+> Task :dependencies
+Caching disabled for task ':dependencies' because:
+  Build cache is disabled
+Task ':dependencies' is not up-to-date because:
+  Task is untracked because: Uses the whole project state as an input
+
+------------------------------------------------------------
+Root project 'deps-non-cachees'
+------------------------------------------------------------
+
+runtimeClasspath - Runtime classpath of 'main'.
+Starting process 'command '/usr/lib/jvm/java-21-openjdk-amd64/bin/java''. Working directory: /home/z/.gradle/.tmp/tmp-jvm9460324195658142491probe Command: /usr/lib/jvm/java-21-openjdk-amd64/bin/java -Xmx32m -Xms32m -cp . JavaProbe
+Successfully started process 'command '/usr/lib/jvm/java-21-openjdk-amd64/bin/java''
+Received JVM installation metadata from '/usr/lib/jvm/java-21-openjdk-amd64': {JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64, JAVA_VERSION=21.0.12.1, JAVA_VENDOR=Debian, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.12.1+1-1-deb13u1-Debian, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.12.1+1-1-deb13u1-Debian, VM_VENDOR=Debian, OS_ARCH=amd64}
+Downloading https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-datetime/0.6.1/kotlinx-datetime-0.6.1.pom to /home/z/.gradle/.tmp/gradle_download13621405179627391742bin
+Downloading https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-datetime/0.6.1/kotlinx-datetime-0.6.1.module to /home/z/.gradle/.tmp/gradle_download3205714896650397265bin
+Downloading https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-datetime-jvm/0.6.1/kotlinx-datetime-jvm-0.6.1.pom to /home/z/.gradle/.tmp/gradle_download14830400574762072430bin
+Downloading https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-datetime-jvm/0.6.1/kotlinx-datetime-jvm-0.6.1.module to /home/z/.gradle/.tmp/gradle_download9281706573133841717bin
++--- org.jetbrains.kotlin:kotlin-stdlib:2.0.21
+|    \--- org.jetbrains:annotations:13.0
+\--- org.jetbrains.kotlinx:kotlinx-datetime:0.6.1
+     \--- org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.6.1
+          \--- org.jetbrains.kotlin:kotlin-stdlib:1.9.21 -> 2.0.21 (*)
+
+(*) - Indicates repeated occurrences of a transitive dependency subtree. Gradle expands transitive dependency subtrees only once per project; repeat occurrences only display the root of the subtree, followed by this annotation.
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+[Incubating] Problems report is available at: file:///home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/10b-resolved.9Vfu/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1s
+1 actionable task: 1 executed
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html

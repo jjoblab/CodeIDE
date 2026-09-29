@@ -1,0 +1,536 @@
+Initialized native services in: /home/z/.gradle/native
+Initialized jansi services in: /home/z/.gradle/native
+Found daemon DaemonInfo{pid=5775, address=[786ba25f-3bc1-4eb7-a2a6-41f5860b8b6e port:38021, addresses:[/127.0.0.1]], state=Idle, lastBusy=1790702938624, context=DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64 (no Daemon JVM specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+Removing 1 daemon stop events from registry
+Starting a Gradle Daemon, 1 busy and 1 incompatible Daemons could not be reused, use --status for details
+Starting process 'Gradle build daemon'. Working directory: /home/z/.gradle/daemon/9.7.1 Command: /home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64/bin/java --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.xml/javax.xml.namespace=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED -XX:MaxMetaspaceSize=384m -XX:+HeapDumpOnOutOfMemoryError -Xms256m -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -cp /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-daemon-main-9.7.1.jar -javaagent:/home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/agents/gradle-instrumentation-agent-9.7.1.jar org.gradle.launcher.daemon.bootstrap.GradleDaemon 9.7.1
+Successfully started process 'Gradle build daemon'
+An attempt to start the daemon took 1.133 secs.
+The client will now receive all logging from the daemon (pid: 13913). The daemon log file: /home/z/.gradle/daemon/9.7.1/daemon-13913.out.log
+Starting build in new daemon [memory: 512 MiB]
+Using 2 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Received JVM installation metadata from '/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64': {JAVA_HOME=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64, JAVA_VERSION=21.0.12.1, JAVA_VENDOR=Debian, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.12.1+1-1-deb13u1-Debian, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.12.1+1-1-deb13u1-Debian, VM_VENDOR=Debian, OS_ARCH=amd64}
+Watching the file system is configured to be enabled if available
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/01-kotlin-jvm-pur-daemon-froid.iNuq since the file system is not supported
+File system watching is active
+Starting Build
+Caching disabled for Kotlin DSL script compilation (Settings/TopLevel/stage1) because:
+  Build cache is disabled
+Settings evaluated using settings file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/01-kotlin-jvm-pur-daemon-froid.iNuq/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/01-kotlin-jvm-pur-daemon-froid.iNuq/build.gradle.kts'.
+Included projects: [root project 'kotlin-jvm-pur']
+
+> Configure project :
+Evaluating root project 'kotlin-jvm-pur' using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/01-kotlin-jvm-pur-daemon-froid.iNuq/build.gradle.kts'.
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage1) because:
+  Build cache is disabled
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/jvm/org.jetbrains.kotlin.jvm.gradle.plugin/2.0.21/org.jetbrains.kotlin.jvm.gradle.plugin-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download12013383255199558279bin
+Resource missing. [HTTP HEAD: https://plugins.gradle.org/m2/org/jetbrains/kotlin/jvm/org.jetbrains.kotlin.jvm.gradle.plugin/2.0.21/org.jetbrains.kotlin.jvm.gradle.plugin-2.0.21.jar]
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.0.21']
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.0.21/kotlin-gradle-plugin-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download14480200222100254704bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugins-bom/2.0.21/kotlin-gradle-plugins-bom-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download15446757814796678585bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugins-bom/2.0.21/kotlin-gradle-plugins-bom-2.0.21.module to /home/z/.gradle/.tmp/gradle_download13208155187960793539bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.0.21/kotlin-gradle-plugin-2.0.21.module to /home/z/.gradle/.tmp/gradle_download14933055658183132620bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-idea/2.0.21/kotlin-gradle-plugin-idea-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download13429890477601982703bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-klib-commonizer-api/2.0.21/kotlin-klib-commonizer-api-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download9449020798967143341bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-util-klib/2.0.21/kotlin-util-klib-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download6682224812867456071bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-model/2.0.21/kotlin-gradle-plugin-model-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download11774722385028371862bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-compiler-runner/2.0.21/kotlin-compiler-runner-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download7395133524931519961bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-api/2.0.21/kotlin-gradle-plugin-api-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download1700045967508254875bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-idea-proto/2.0.21/kotlin-gradle-plugin-idea-proto-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download16355706812661796045bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-idea/2.0.21/kotlin-gradle-plugin-idea-2.0.21.module to /home/z/.gradle/.tmp/gradle_download312158123855090235bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-model/2.0.21/kotlin-gradle-plugin-model-2.0.21.module to /home/z/.gradle/.tmp/gradle_download5179959246861279688bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-api/2.0.21/kotlin-gradle-plugin-api-2.0.21.module to /home/z/.gradle/.tmp/gradle_download15907157135772408834bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/kotlin-compiler-embeddable-2.0.21.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/9512dbadfdeffb95bbfc1456caac2118d8def75d/kotlin-compiler-embeddable-2.0.21.pom]
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-build-tools-api/2.0.21/kotlin-build-tools-api-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download11030688585910903853bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-build-statistics/2.0.21/kotlin-build-statistics-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download6326487937635990696bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-annotations/2.0.21/kotlin-gradle-plugin-annotations-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download6777139534118397175bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-native-utils/2.0.21/kotlin-native-utils-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download11936394203668978927bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-tooling-core/2.0.21/kotlin-tooling-core-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download10394306006253009128bin
+Downloading https://plugins.gradle.org/m2/com/google/code/gson/gson/2.8.9/gson-2.8.9.pom to /home/z/.gradle/.tmp/gradle_download11740099111943032018bin
+Downloading https://plugins.gradle.org/m2/com/google/code/gson/gson-parent/2.8.9/gson-parent-2.8.9.pom to /home/z/.gradle/.tmp/gradle_download6738289690942605845bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.sonatype.oss/oss-parent/7/46b8a785b60a2767095b8611613b58577e96d4c9/oss-parent-7.pom]
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.4/kotlinx-coroutines-core-jvm-1.6.4.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/b7c09a7e50e8d075a6f93bd0ef876cee77f5b158/kotlinx-coroutines-core-jvm-1.6.4.pom]
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-daemon-client/2.0.21/kotlin-daemon-client-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download7016782873357815337bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlinx/kotlinx-coroutines-bom/1.6.4/kotlinx-coroutines-bom-1.6.4.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-bom/1.6.4/88f782b09538e0bda7fa5ee6926f102564009bb6/kotlinx-coroutines-bom-1.6.4.pom]
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.4/kotlinx-coroutines-core-jvm-1.6.4.module, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/ba90650d460262c3a1cf001e55b10317a394b174/kotlinx-coroutines-core-jvm-1.6.4.module]
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-util-io/2.0.21/kotlin-util-io-2.0.21.pom to /home/z/.gradle/.tmp/gradle_download14572288069210342723bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/kotlin-daemon-embeddable-2.0.21.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.0.21/33b79d49b61b78a8718bd27095f7d522a4fc0086/kotlin-daemon-embeddable-2.0.21.pom]
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/intellij/deps/trove4j/1.0.20200330/trove4j-1.0.20200330.pom, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.intellij.deps/trove4j/1.0.20200330/c1f38f72d4dfc6efd773b0448a7aae08f8d5025f/trove4j-1.0.20200330.pom]
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-model/2.0.21/kotlin-gradle-plugin-model-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download7753353406988279449bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-api/2.0.21/kotlin-gradle-plugin-api-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download2979808072631561970bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin/2.0.21/kotlin-gradle-plugin-2.0.21-gradle85.jar to /home/z/.gradle/.tmp/gradle_download10339932880631088716bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-idea-proto/2.0.21/kotlin-gradle-plugin-idea-proto-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download13122822623255730381bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-idea/2.0.21/kotlin-gradle-plugin-idea-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download9786584167107438687bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-klib-commonizer-api/2.0.21/kotlin-klib-commonizer-api-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download12524930733146614334bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-build-statistics/2.0.21/kotlin-build-statistics-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download7681047272650389875bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-build-tools-api/2.0.21/kotlin-build-tools-api-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download508881130571374897bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-compiler-runner/2.0.21/kotlin-compiler-runner-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download7989366414300078308bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-native-utils/2.0.21/kotlin-native-utils-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download7044446129384988318bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-util-klib/2.0.21/kotlin-util-klib-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download15483513943863745563bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-gradle-plugin-annotations/2.0.21/kotlin-gradle-plugin-annotations-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download13211447516325636818bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-tooling-core/2.0.21/kotlin-tooling-core-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download8403982861201103871bin
+Downloading https://plugins.gradle.org/m2/com/google/code/gson/gson/2.8.9/gson-2.8.9.jar to /home/z/.gradle/.tmp/gradle_download9786327805646679396bin
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-daemon-client/2.0.21/kotlin-daemon-client-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download15598495800139884341bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.4/kotlinx-coroutines-core-jvm-1.6.4.jar, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/2c997cd1c0ef33f3e751d3831929aeff1390cb30/kotlinx-coroutines-core-jvm-1.6.4.jar]
+Downloading https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-util-io/2.0.21/kotlin-util-io-2.0.21.jar to /home/z/.gradle/.tmp/gradle_download624484596329881160bin
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-daemon-embeddable/2.0.21/kotlin-daemon-embeddable-2.0.21.jar, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.0.21/c9e933b23287de9b5a17e2116b4657bb91aea72c/kotlin-daemon-embeddable-2.0.21.jar]
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/intellij/deps/trove4j/1.0.20200330/trove4j-1.0.20200330.jar, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.intellij.deps/trove4j/1.0.20200330/3afb14d5f9ceb459d724e907a21145e8ff394f02/trove4j-1.0.20200330.jar]
+Found locally available resource with matching checksum: [https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-compiler-embeddable/2.0.21/kotlin-compiler-embeddable-2.0.21.jar, /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/79346ed53db48b18312a472602eb5c057070c54d/kotlin-compiler-embeddable-2.0.21.jar]
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-model/2.0.21/3672a6bafb29cdb53c10ca1e13f6c8c75af0f8eb/kotlin-gradle-plugin-model-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-api/2.0.21/2fe6828d39788b439f1a44576c4fd2d98862e77b/kotlin-gradle-plugin-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin/2.0.21/ea69d8de091115a98ce7f3901994b2fb3432480b/kotlin-gradle-plugin-2.0.21-gradle85.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea-proto/2.0.21/7ee6324747edb846bb869955000c513797eaf6d7/kotlin-gradle-plugin-idea-proto-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea/2.0.21/dc54973fe68b0bb9b816bd04ef39648ca29526a6/kotlin-gradle-plugin-idea-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-klib-commonizer-api/2.0.21/499b6b114eda7ed8002ce438458f5baf273c5fa/kotlin-klib-commonizer-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-statistics/2.0.21/b5d6b9bf90684ba3aa5fdd524761bfa51c9cddc8/kotlin-build-statistics-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.0.21/612804301136399c0cc5c93f2366ef33fd0afdc3/kotlin-build-tools-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-runner/2.0.21/ea7301e9ee0a6cf310b67619709d578dd57896dc/kotlin-compiler-runner-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-native-utils/2.0.21/ccdbc49a5d23f7ab782fbdff20c9426cf074f2d7/kotlin-native-utils-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-klib/2.0.21/cc042c4a50a1ee46695a8f2f928c196223bdd7dc/kotlin-util-klib-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/79346ed53db48b18312a472602eb5c057070c54d/kotlin-compiler-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-annotations/2.0.21/585ea547101485df5165acbffc51b760b0bf2728/kotlin-gradle-plugin-annotations-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/2.0.21/952179e9b7f114e78274ca73cea6df8fce3c8b3b/kotlin-tooling-core-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.8.9/8a432c1d6825781e21a02db2e2c33c5fde2833b9/gson-2.8.9.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-client/2.0.21/10cbd364d0703452050d9c4925fd24a6fec7e8d9/kotlin-daemon-client-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/2c997cd1c0ef33f3e751d3831929aeff1390cb30/kotlinx-coroutines-core-jvm-1.6.4.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-io/2.0.21/4467ad395771e3d12ca864fd9949e1404920f558/kotlin-util-io-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.0.21/c9e933b23287de9b5a17e2116b4657bb91aea72c/kotlin-daemon-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for InstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.intellij.deps/trove4j/1.0.20200330/3afb14d5f9ceb459d724e907a21145e8ff394f02/trove4j-1.0.20200330.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/34e99316f1d7043b3a55c2b20939c635/transformed/.gradle-instrumented-classpath.marker because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/34e99316f1d7043b3a55c2b20939c635/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/eebc1ba0bbc112274186207e6d26c6fe/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/eebc1ba0bbc112274186207e6d26c6fe/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/34e99316f1d7043b3a55c2b20939c635/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-model/2.0.21/3672a6bafb29cdb53c10ca1e13f6c8c75af0f8eb/kotlin-gradle-plugin-model-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-api/2.0.21/2fe6828d39788b439f1a44576c4fd2d98862e77b/kotlin-gradle-plugin-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/8dbad23961abe01563c9fdabc8b533ed/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/1af87784ba92a5f7de8031da54059049/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-model/2.0.21/3672a6bafb29cdb53c10ca1e13f6c8c75af0f8eb/kotlin-gradle-plugin-model-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/2e2292a0be37695bbf6075e416aa1693/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/2e2292a0be37695bbf6075e416aa1693/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin/2.0.21/ea69d8de091115a98ce7f3901994b2fb3432480b/kotlin-gradle-plugin-2.0.21-gradle85.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/57150947c4dd7de66e6675058bdb1a61/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-api/2.0.21/2fe6828d39788b439f1a44576c4fd2d98862e77b/kotlin-gradle-plugin-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/8a5e13d8d04ab7dc360d57f39dd9259a/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/8a5e13d8d04ab7dc360d57f39dd9259a/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea-proto/2.0.21/7ee6324747edb846bb869955000c513797eaf6d7/kotlin-gradle-plugin-idea-proto-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/ca3fe3348ec2a6e1a3810f5e9ffdfc6c/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea-proto/2.0.21/7ee6324747edb846bb869955000c513797eaf6d7/kotlin-gradle-plugin-idea-proto-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/61a05d7a924f9dd96f3859fcdd95a92e/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/61a05d7a924f9dd96f3859fcdd95a92e/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea/2.0.21/dc54973fe68b0bb9b816bd04ef39648ca29526a6/kotlin-gradle-plugin-idea-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/b6e964bc8dce8ff95ac80cfc4e43345c/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-idea/2.0.21/dc54973fe68b0bb9b816bd04ef39648ca29526a6/kotlin-gradle-plugin-idea-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/bc627a1dd2d4a682d997f3f43c986308/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/bc627a1dd2d4a682d997f3f43c986308/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-klib-commonizer-api/2.0.21/499b6b114eda7ed8002ce438458f5baf273c5fa/kotlin-klib-commonizer-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/10c56709c5790e33d51f0fc6b1c60543/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-klib-commonizer-api/2.0.21/499b6b114eda7ed8002ce438458f5baf273c5fa/kotlin-klib-commonizer-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/f47e34f6c5b8134ca02e2930e78e6694/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/f47e34f6c5b8134ca02e2930e78e6694/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-statistics/2.0.21/b5d6b9bf90684ba3aa5fdd524761bfa51c9cddc8/kotlin-build-statistics-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/7194339961630d42b64acd50a030a2f1/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-statistics/2.0.21/b5d6b9bf90684ba3aa5fdd524761bfa51c9cddc8/kotlin-build-statistics-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/25a1f6d5d59bbcf4d294a29b57d3d385/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/25a1f6d5d59bbcf4d294a29b57d3d385/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.0.21/612804301136399c0cc5c93f2366ef33fd0afdc3/kotlin-build-tools-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/56cb0abff8d6dfd6543ecbc2bba0aab1/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.0.21/612804301136399c0cc5c93f2366ef33fd0afdc3/kotlin-build-tools-api-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0c97de6c337faaa6b9c3eae541363537/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0c97de6c337faaa6b9c3eae541363537/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-runner/2.0.21/ea7301e9ee0a6cf310b67619709d578dd57896dc/kotlin-compiler-runner-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/e6134f1bf49e04a98e5b4aadcc1ac510/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-runner/2.0.21/ea7301e9ee0a6cf310b67619709d578dd57896dc/kotlin-compiler-runner-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0812e3960bcf87347422a41402931a87/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0812e3960bcf87347422a41402931a87/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-native-utils/2.0.21/ccdbc49a5d23f7ab782fbdff20c9426cf074f2d7/kotlin-native-utils-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/10d1c74980e0905f1b168f6d5ef0e9af/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-native-utils/2.0.21/ccdbc49a5d23f7ab782fbdff20c9426cf074f2d7/kotlin-native-utils-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/79042984e39b37f2e3687d834b4d009c/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/79042984e39b37f2e3687d834b4d009c/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-klib/2.0.21/cc042c4a50a1ee46695a8f2f928c196223bdd7dc/kotlin-util-klib-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/27c767c3f42896951e55bab363cecd44/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-klib/2.0.21/cc042c4a50a1ee46695a8f2f928c196223bdd7dc/kotlin-util-klib-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/d044e69f779aeb5729d74b45afa869d3/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/d044e69f779aeb5729d74b45afa869d3/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/79346ed53db48b18312a472602eb5c057070c54d/kotlin-compiler-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/4d0fc3322a9a9bd64f0e4f8e4f605ee0/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin/2.0.21/ea69d8de091115a98ce7f3901994b2fb3432480b/kotlin-gradle-plugin-2.0.21-gradle85.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/e2482f2521152edf76826b8c4ac2f9df/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-annotations/2.0.21/585ea547101485df5165acbffc51b760b0bf2728/kotlin-gradle-plugin-annotations-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/a68386e21fd28684365fe27f15702140/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-annotations/2.0.21/585ea547101485df5165acbffc51b760b0bf2728/kotlin-gradle-plugin-annotations-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0140e31df08f6a99d46631caffa7920d/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/0140e31df08f6a99d46631caffa7920d/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/2.0.21/952179e9b7f114e78274ca73cea6df8fce3c8b3b/kotlin-tooling-core-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/06bbe1c288eeb241d7ed9111fe05310a/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/2.0.21/952179e9b7f114e78274ca73cea6df8fce3c8b3b/kotlin-tooling-core-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/53d2ea5f8a39da884e8ca2eeb3892451/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/53d2ea5f8a39da884e8ca2eeb3892451/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.8.9/8a432c1d6825781e21a02db2e2c33c5fde2833b9/gson-2.8.9.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/455679d5f81e88e0a86a3001a0bea84b/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.8.9/8a432c1d6825781e21a02db2e2c33c5fde2833b9/gson-2.8.9.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/164dde63202a2ad1d0559715999df118/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/164dde63202a2ad1d0559715999df118/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-client/2.0.21/10cbd364d0703452050d9c4925fd24a6fec7e8d9/kotlin-daemon-client-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/fbc897741dabd4eb278274094f07e128/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-client/2.0.21/10cbd364d0703452050d9c4925fd24a6fec7e8d9/kotlin-daemon-client-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/70004a510b8fcb1b5514c9aeb9dcc514/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/70004a510b8fcb1b5514c9aeb9dcc514/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/2c997cd1c0ef33f3e751d3831929aeff1390cb30/kotlinx-coroutines-core-jvm-1.6.4.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/da55021b0f923fcc082ce7c2660d5f50/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.6.4/2c997cd1c0ef33f3e751d3831929aeff1390cb30/kotlinx-coroutines-core-jvm-1.6.4.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/3e957c40773f5a97bf25fd8af9c8ba1f/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/3e957c40773f5a97bf25fd8af9c8ba1f/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-io/2.0.21/4467ad395771e3d12ca864fd9949e1404920f558/kotlin-util-io-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/15ef8bbc7ee07abb533538d2da1b9ac4/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-util-io/2.0.21/4467ad395771e3d12ca864fd9949e1404920f558/kotlin-util-io-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/a2cdee37d53c11f9534df7e565b1e42d/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/a2cdee37d53c11f9534df7e565b1e42d/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.0.21/c9e933b23287de9b5a17e2116b4657bb91aea72c/kotlin-daemon-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/37c8e4f62b96d82a20a21a309865af7f/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.0.21/c9e933b23287de9b5a17e2116b4657bb91aea72c/kotlin-daemon-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/ca2ff168849ea9341f88d44d1dc7d667/transformed/analysis/instrumentation-hierarchy.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/9.7.1/transforms/ca2ff168849ea9341f88d44d1dc7d667/transformed/analysis/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for MergeInstrumentationAnalysisTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.intellij.deps/trove4j/1.0.20200330/3afb14d5f9ceb459d724e907a21145e8ff394f02/trove4j-1.0.20200330.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/9.7.1/transforms/8f0de748c4897962d670ed1dfb3f3224/transformed/merge/instrumentation-dependencies.bin because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.intellij.deps/trove4j/1.0.20200330/3afb14d5f9ceb459d724e907a21145e8ff394f02/trove4j-1.0.20200330.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Caching disabled for ExternalDependencyInstrumentingArtifactTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/79346ed53db48b18312a472602eb5c057070c54d/kotlin-compiler-embeddable-2.0.21.jar because:
+  Build cache is disabled
+  Caching not enabled.
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Caching disabled for Kotlin DSL accessors for root project 'kotlin-jvm-pur' because:
+  Build cache is disabled
+  Build caching of Kotlin script accessor generation disabled by property
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage2) because:
+  Build cache is disabled
+All projects evaluated.
+Task name matched 'tasks'
+Selected primary task 'tasks' from project :
+Tasks to be executed: [task ':tasks']
+Tasks that were excluded: []
+Resolve mutations for :tasks (Thread[#67,included builds,5,main]) started.
+:tasks (Thread[#68,Execution worker,5,main]) started.
+
+> Task :tasks
+Caching disabled for task ':tasks' because:
+  Build cache is disabled
+Task ':tasks' is not up-to-date because:
+  Task is untracked because: Uses the whole project state as an input
+
+------------------------------------------------------------
+Tasks runnable from root project 'kotlin-jvm-pur'
+------------------------------------------------------------
+
+Build tasks
+-----------
+assemble - Assembles the outputs of this project.
+build - Assembles and tests this project.
+buildDependents - Assembles and tests this project and all projects that depend on it.
+buildKotlinToolingMetadata - Build metadata json file containing information about the used Kotlin tooling
+buildNeeded - Assembles and tests this project and all projects it depends on.
+classes - Assembles main classes.
+clean - Deletes the build directory.
+jar - Assembles a jar archive containing the classes of the 'main' feature.
+kotlinSourcesJar - Assembles a jar archive containing the sources of target 'kotlin'.
+testClasses - Assembles test classes.
+
+Build Setup tasks
+-----------------
+init - Initializes a new Gradle build.
+updateDaemonJvm - Generates or updates the Gradle Daemon JVM criteria.
+wrapper - Generates Gradle wrapper files.
+
+Documentation tasks
+-------------------
+javadoc - Generates Javadoc API documentation for the 'main' feature.
+
+Help tasks
+----------
+artifactTransforms - Displays the Artifact Transforms that can be executed in root project 'kotlin-jvm-pur'.
+buildEnvironment - Displays all buildscript dependencies declared in root project 'kotlin-jvm-pur'.
+dependencies - Displays all dependencies declared in root project 'kotlin-jvm-pur'.
+dependencyInsight - Displays the insight into a specific dependency in root project 'kotlin-jvm-pur'.
+help - Displays a help message.
+javaToolchains - Displays the detected java toolchains.
+kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions.
+outgoingVariants - Displays the outgoing variants of root project 'kotlin-jvm-pur'.
+projects - Displays the sub-projects of root project 'kotlin-jvm-pur'.
+properties - Displays the properties of root project 'kotlin-jvm-pur'.
+resolvableConfigurations - Displays the configurations that can be resolved in root project 'kotlin-jvm-pur'.
+tasks - Displays the tasks runnable from root project 'kotlin-jvm-pur'.
+
+Verification tasks
+------------------
+check - Runs all checks.
+checkKotlinGradlePluginConfigurationErrors - Checks that Kotlin Gradle Plugin hasn't reported project configuration errors, failing otherwise. This task always runs before compileKotlin* or similar tasks.
+test - Runs the test suite.
+
+Rules
+-----
+Pattern: clean<TaskName>: Cleans the output files of a task.
+Pattern: build<ConfigurationName>: Assembles the artifacts of a configuration.
+
+To see all tasks and more detail, run gradle tasks --all
+
+To see more detail about a task, run gradle help --task <task>
+
+[Incubating] Problems report is available at: file:///home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/01-kotlin-jvm-pur-daemon-froid.iNuq/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 42s
+1 actionable task: 1 executed
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html

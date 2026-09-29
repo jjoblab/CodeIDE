@@ -1,0 +1,49 @@
+Initialized native services in: /home/z/.gradle/native
+Initialized jansi services in: /home/z/.gradle/native
+Found daemon DaemonInfo{pid=5775, address=[786ba25f-3bc1-4eb7-a2a6-41f5860b8b6e port:38021, addresses:[/127.0.0.1]], state=Idle, lastBusy=1790702938624, context=DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64 (no Daemon JVM specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 13913). The daemon log file: /home/z/.gradle/daemon/9.7.1/daemon-13913.out.log
+Starting 8th build in daemon [uptime: 1 mins 14.754 secs, performance: 96%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 47% of 384 MiB]
+Using 2 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU since the file system is not supported
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Caching disabled for Kotlin DSL script compilation (Settings/TopLevel/stage1) because:
+  Build cache is disabled
+Settings evaluated using settings file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU/build.gradle.kts'.
+Included projects: [root project 'erreur-config']
+
+> Configure project :
+Evaluating root project 'erreur-config' using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU/build.gradle.kts'.
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage1) because:
+  Build cache is disabled
+e: file:///home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU/build.gradle.kts:2:8: Unexpected tokens (use ';' to separate expressions on the same line)
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/08-erreur-config.xGgU/build.gradle.kts' line: 2
+
+* What went wrong:
+Script compilation error:
+
+  Line 2:     id "plugin.inexistant.et.bidon" version "1.0.0"
+                 ^ Unexpected tokens (use ';' to separate expressions on the same line)
+
+1 error
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
