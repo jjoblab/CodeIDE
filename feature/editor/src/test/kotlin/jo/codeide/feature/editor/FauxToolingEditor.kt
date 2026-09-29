@@ -17,6 +17,7 @@ import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
+import jo.codeide.core.domain.TelechargementBuild
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.channels.Channel
@@ -89,6 +90,9 @@ class FauxToolingEditor : GradleToolingRepository {
     override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> = canal(buildId).receiveAsFlow()
 
     override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> = canalTaches(buildId).receiveAsFlow()
+
+    override fun observeTelechargementsBuild(buildId: String): Flow<TelechargementBuild> =
+        kotlinx.coroutines.flow.emptyFlow()
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 

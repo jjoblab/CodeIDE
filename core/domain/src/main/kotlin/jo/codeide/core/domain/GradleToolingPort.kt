@@ -118,6 +118,16 @@ public interface GradleToolingRepository {
     public fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild>
 
     /**
+     * Téléchargements d'un build au fil de l'eau (v4, addendum §6) : un
+     * canal par build, comme les tâches — artefact courant, octets reçus,
+     * compteur d'éléments terminés. Jamais conflaté ; se ferme à la fin du
+     * build (les téléchargements se voient pour TOUTE action Gradle).
+     *
+     * @param buildId identifiant du build (celui renvoyé par [build]).
+     */
+    public fun observeTelechargementsBuild(buildId: String): Flow<TelechargementBuild>
+
+    /**
      * Lance un build de tâches données.
      *
      * @param projectDir répertoire racine du projet Gradle.
@@ -321,6 +331,30 @@ public data class EtatTacheBuild(
     public val chemin: String,
     public val statut: StatutTache,
     public val dureeMs: Long? = null,
+)
+
+/**
+ * Un téléchargement observé pendant une action Gradle (v4, addendum §6) :
+ * les téléchargements se voient pour TOUTE action — sync, build, classpath,
+ * listage.
+ *
+ * @property buildId identifiant du build émetteur.
+ * @property element nom d'artefact (dernier segment d'URI — SANS donnée
+ *           personnelle, jamais une URL complète).
+ * @property octetsRecus octets reçus pour l'élément (à sa fin) ou cumulés.
+ * @property octetsTotal octets totaux si connus — `null` sinon.
+ * @property termine `true` quand l'élément est terminé (réussi OU échoué).
+ * @property dureeMs durée du téléchargement à sa fin.
+ * @property compteur éléments terminés de l'action (n).
+ */
+public data class TelechargementBuild(
+    public val buildId: String,
+    public val element: String,
+    public val octetsRecus: Long = 0,
+    public val octetsTotal: Long? = null,
+    public val termine: Boolean = false,
+    public val dureeMs: Long = 0,
+    public val compteur: Int? = null,
 )
 
 /** Statut d'une tâche de build (v3) — une tâche SAUTÉE n'est ni un échec

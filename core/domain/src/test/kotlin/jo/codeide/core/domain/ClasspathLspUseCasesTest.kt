@@ -192,6 +192,9 @@ class ClasspathLspUseCasesTest {
         override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> =
             MutableStateFlow(EtatTacheBuild(buildId, "", StatutTache.EN_COURS))
 
+        override fun observeTelechargementsBuild(buildId: String): Flow<TelechargementBuild> =
+            kotlinx.coroutines.flow.emptyFlow()
+
         override fun observeBuildState(buildId: String): Flow<EtatBuild> =
             MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS))
 
