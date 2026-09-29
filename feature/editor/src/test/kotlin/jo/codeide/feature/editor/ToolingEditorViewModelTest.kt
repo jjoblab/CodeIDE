@@ -370,6 +370,30 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `le selecteur repond depuis le cache de la sync sans aller-retour`() =
+        runTest {
+            val id = ajouterProjet("projet-g5")
+            val recus = mutableListOf<EffetEditor>()
+            val viewModel = viewModel(id)
+            collecterEffets(viewModel, recus)
+            avancer()
+
+            // Cache rempli par une sync utile (v4, §3.1) : le sélecteur
+            // répond SANS toucher le port — aucune latence, aucun
+            // aller-retour (correctif n°6).
+            serviceGradleTest.publierTachesDisponibles(
+                listOf(InfoTache(chemin = ":app:assembleDebug", groupe = "build", nomAffiche = "assembleDebug")),
+            )
+
+            viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+            avancer()
+
+            val effet = recus.filterIsInstance<EffetEditor.OuvrirSelecteurTaches>().single()
+            assertEquals(":app:assembleDebug", effet.taches.single().chemin)
+            assertNull(tooling.dossierRecu)
+        }
+
+    @Test
     fun `les diagnostics arrivent dans l etat et en inline sur l onglet ouvert`() =
         runTest {
             val id = ajouterProjet("Alpha")

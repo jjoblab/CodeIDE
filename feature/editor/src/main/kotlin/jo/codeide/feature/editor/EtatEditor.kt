@@ -597,6 +597,12 @@ sealed interface EffetEditor {
     data object OuvrirInstallationTerminal : EffetEditor
 
     /**
+     * Le listage des tâches a échoué (v4, correctif n°6) : l'échec n'est
+     * plus avalé — un snackbar avec « Réessayer » le montre.
+     */
+    data object ErreurListageTaches : EffetEditor
+
+    /**
      * Ouvrir le sélecteur de tâches Gradle (G5, §6) : l'appui sur une
      * entrée lance `ExecuterTaches`.
      *

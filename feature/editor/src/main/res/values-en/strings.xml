@@ -145,6 +145,16 @@
     <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build cancelled</string>
 
+    <!-- Task picker sheet (v4, §3.3): search, recent, groups by module,
+         honest empty states. -->
+    <string name="editor_taches_recherche_indice">Search a task…</string>
+    <string name="editor_taches_recentes">Recent</string>
+    <string name="editor_taches_vide">No matching task.</string>
+    <string name="editor_taches_sync_en_cours">Synchronization in progress — tasks will appear when it completes.</string>
+    <string name="editor_taches_groupe_autres">other</string>
+    <string name="editor_taches_module_racine">root</string>
+    <string name="editor_taches_erreur">Task listing failed</string>
+
     <!-- Tooling configuration (v3) — reachable from the Output tab: task
          display, offline mode, free Gradle arguments and live orchestrator
          state. Gradle flags quoted in the texts below are LITERAL:

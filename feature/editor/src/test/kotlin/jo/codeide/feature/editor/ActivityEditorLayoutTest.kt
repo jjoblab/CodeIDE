@@ -342,6 +342,59 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
+    fun `la feuille des taches porte recherche recentes groupes et lancement`() {
+        // Feuille de sélection des tâches (v4, §3.3) : recherche, récentes
+        // en chips, liste groupée, état vide.
+        val feuille = gonfler(R.layout.feuille_taches)
+        assertNotNull(
+            "champ de recherche (§3.3)",
+            feuille.findViewById<View>(R.id.champ_recherche_taches),
+        )
+        assertNotNull(
+            "libellé des tâches récentes (§3.3)",
+            feuille.findViewById<View>(R.id.libelle_recentes_taches),
+        )
+        assertEquals(
+            "section des récentes masquée par défaut (aucune exécution, §3.3)",
+            View.GONE,
+            feuille.findViewById<View>(R.id.libelle_recentes_taches).visibility,
+        )
+        assertEquals(
+            "défilement des récentes masqué par défaut (§3.3)",
+            View.GONE,
+            feuille.findViewById<View>(R.id.defilement_recentes_taches).visibility,
+        )
+        assertNotNull(
+            "groupe de chips des récentes (§3.3)",
+            feuille.findViewById<View>(R.id.groupe_recentes_taches),
+        )
+        assertNotNull(
+            "liste des tâches groupées (§3.3)",
+            feuille.findViewById<View>(R.id.liste_taches_feuille),
+        )
+        assertEquals(
+            "état vide masqué par défaut (§3.3)",
+            View.GONE,
+            feuille.findViewById<View>(R.id.texte_taches_vides).visibility,
+        )
+
+        val ligneTache = gonfler(R.layout.ligne_tache_feuille)
+        assertNotNull(
+            "nom de la tâche (§3.3)",
+            ligneTache.findViewById<View>(R.id.nom_tache_feuille),
+        )
+        assertNotNull(
+            "module d'origine de la tâche (§3.3)",
+            ligneTache.findViewById<View>(R.id.module_tache_feuille),
+        )
+        val ligneGroupe = gonfler(R.layout.ligne_groupe_taches)
+        assertNotNull(
+            "libellé de groupe (§3.3)",
+            ligneGroupe.findViewById<View>(R.id.libelle_groupe_taches),
+        )
+    }
+
+    @Test
     fun `le fragment explorateur porte entete bascule et barre presse-papiers`() {
         val fragment = gonfler(R.layout.fragment_explorateur)
         assertNotNull("entête du fragment (§ 4)", fragment.findViewById<View>(R.id.entete_explorateur))

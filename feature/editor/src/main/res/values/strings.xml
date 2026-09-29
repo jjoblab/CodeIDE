@@ -154,6 +154,16 @@
     <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build annulé</string>
 
+    <!-- Feuille de sélection des tâches (v4, §3.3) : recherche, récentes,
+         groupes par module, états vides honnêtes. -->
+    <string name="editor_taches_recherche_indice">Rechercher une tâche…</string>
+    <string name="editor_taches_recentes">Récentes</string>
+    <string name="editor_taches_vide">Aucune tâche ne correspond.</string>
+    <string name="editor_taches_sync_en_cours">Synchronisation en cours — les tâches arrivent à sa fin.</string>
+    <string name="editor_taches_groupe_autres">autres</string>
+    <string name="editor_taches_module_racine">racine</string>
+    <string name="editor_taches_erreur">Listage des tâches impossible</string>
+
     <!-- Configuration du tooling (v3) — accessible depuis l'onglet Sortie :
          affichage des tâches, mode hors ligne, arguments Gradle libres et
          état vivant de l'orchestrateur. Les drapeaux Gradle cités dans les

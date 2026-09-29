@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feuille de sélection des tâches Gradle (v4, §3.3) : BottomSheetDialog
+     Material 3 — champ de recherche, tâches récentes en chips, groupes
+     (build, verification, install…) avec lancement au clic. Alimentée
+     depuis tachesDisponibles : aucune latence. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/spacing_sm">
+
+    <!-- Poignée de la feuille. -->
+    <View
+        android:layout_width="24dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginVertical="@dimen/spacing_sm"
+        android:background="?attr/colorOutline" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/spacing_md"
+        android:paddingBottom="@dimen/spacing_sm"
+        android:text="@string/editor_executer_titre"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+    <!-- Recherche (filtre en direct). -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_md"
+        android:hint="@string/editor_taches_recherche_indice"
+        style="?attr/textInputOutlinedStyle">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/champ_recherche_taches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionSearch|flagNoFullscreen"
+            android:inputType="text"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Tâches récentes (chips cliquables) : la dernière exécution. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_recentes_taches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:paddingHorizontal="@dimen/spacing_md"
+        android:text="@string/editor_taches_recentes"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <HorizontalScrollView
+        android:id="@+id/defilement_recentes_taches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:scrollbars="none"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/groupe_recentes_taches"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="@dimen/spacing_md"
+            app:singleLine="true" />
+    </HorizontalScrollView>
+
+    <!-- Liste : en-têtes de groupe + tâches (hauteur bornée, la feuille
+         reste modeste sur un grand projet). -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_taches_feuille"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:maxHeight="360dp"
+        android:overScrollMode="ifContentScrolls" />
+
+    <!-- État vide : rien ne correspond à la recherche (ou sync en cours). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_taches_vides"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="@dimen/spacing_md"
+        android:text="@string/editor_taches_vide"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+</LinearLayout>

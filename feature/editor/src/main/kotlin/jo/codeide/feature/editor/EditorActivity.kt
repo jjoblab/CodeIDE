@@ -1414,17 +1414,26 @@ class EditorActivity :
         }
 
     /**
-     * Sélecteur de tâches (G5, §6) : l'appui lance l'exécution de la tâche
-     * choisie — le dialogue se ferme, la sortie arrive dans l'onglet Sortie.
+     * Sélecteur de tâches (v4, §3.3) : feuille Material 3 (recherche,
+     * récentes, groupes) alimentée par le CACHE de la sync — remplace la
+     * liste plate du MaterialAlertDialog ; les récentes = la dernière
+     * exécution suivie.
      */
-    private fun dialogueSelecteurTaches(taches: List<InfoTache>) {
-        val libelles = taches.map { tache -> tache.nomAffiche }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.editor_executer_titre)
-            .setItems(libelles) { _, indice ->
-                viewModel.onAction(ActionEditor.ExecuterTaches(listOf(taches[indice].chemin)))
-            }.setNegativeButton(R.string.editor_fermeture_annuler, null)
-            .show()
+    private fun ouvrirFeuilleTaches(taches: List<InfoTache>) {
+        val recents = viewModel.etatGradle.value.taches
+        FeuilleTachesFragment
+            .creer(taches, recents)
+            .show(supportFragmentManager, ETIQUETTE_FEUILLE_TACHES)
+    }
+
+    /** Snackbar d'échec de listage (correctif n°6) : l'échec n'est plus
+     *  avalé — message + action « Réessayer ». */
+    private fun montrerErreurListageTaches() {
+        Snackbar
+            .make(liaison.racineEditeur, R.string.editor_taches_erreur, Snackbar.LENGTH_LONG)
+            .setAction(R.string.editor_console_echec_reessayer) {
+                viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+            }.show()
     }
 
     /**
@@ -1516,7 +1525,11 @@ class EditorActivity :
             }
 
             is EffetEditor.OuvrirSelecteurTaches -> {
-                dialogueSelecteurTaches(effet.taches)
+                ouvrirFeuilleTaches(effet.taches)
+            }
+
+            EffetEditor.ErreurListageTaches -> {
+                montrerErreurListageTaches()
             }
 
             EffetEditor.ErreurActionFichier -> {
@@ -1655,6 +1668,9 @@ class EditorActivity :
         /** Fraction de glissement correspondant à mi-hauteur (le fondu de
          *  l'en-tête démarre AU-DESSUS — v0.32.5, ADR 0056 décision 3). */
         const val FRACTION_MI_HAUTEUR = 0.5f
+
+        /** Étiquette de la feuille de sélection des tâches (anti-doublon). */
+        const val ETIQUETTE_FEUILLE_TACHES = "feuille-taches"
 
         /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
          *  fantômes cessent sans saut de hauteur). */

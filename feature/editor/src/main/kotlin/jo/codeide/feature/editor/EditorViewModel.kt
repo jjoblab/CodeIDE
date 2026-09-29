@@ -847,6 +847,13 @@ class EditorViewModel
          */
         private fun ouvrirSelecteurTaches() {
             viewModelScope.launch {
+                // v4 (§3.1) : le cache de la sync répond D'ABORD — aucune
+                // latence, aucun aller-retour tant qu'une sync utile l'a
+                // rempli (correctif n°6 : plus de 30 s d'attente muette).
+                serviceGradle.etat.value.tachesDisponibles?.let { taches ->
+                    canalEffets.send(EffetEditor.OuvrirSelecteurTaches(taches))
+                    return@launch
+                }
                 serviceGradle.marquerTachesEnCours()
                 if (jdkAbsent()) {
                     serviceGradle.tachesTerminees()
@@ -867,6 +874,9 @@ class EditorViewModel
                     is AppResult.Failure -> {
                         serviceGradle.tachesTerminees()
                         journal.w(TAG) { "listage des tâches impossible (projet ${identifiantSuivi()})" }
+                        // Correctif n°6 : l'échec n'est plus AVALÉ — l'UI
+                        // le montre avec une action « Réessayer ».
+                        canalEffets.send(EffetEditor.ErreurListageTaches)
                     }
                 }
             }

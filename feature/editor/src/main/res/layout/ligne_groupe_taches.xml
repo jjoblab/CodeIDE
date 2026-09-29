@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- En-tête de GROUPE de la feuille des tâches (v4, §3.3) : « build »,
+     « verification », « install »… petit capitulé espacé. -->
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/libelle_groupe_taches"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingVertical="@dimen/spacing_xs"
+    android:textAppearance="?attr/textAppearanceLabelMedium"
+    android:textColor="?attr/colorOnSurfaceVariant"
+    android:textSize="11sp"
+    tools:text="build" />
