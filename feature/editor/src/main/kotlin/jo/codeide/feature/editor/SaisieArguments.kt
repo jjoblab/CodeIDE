@@ -5,7 +5,7 @@ package jo.codeide.feature.editor
  * « tooling Gradle professionnel ») : décide quand le rendu peut réécrire
  * le champ et quand la saisie doit être persistée.
  *
- * **Bug corrigé** : l'ancien `DialogueConfigToolingFragment` armait son
+ * **Bug corrigé** : l'ancien dialogue de configuration armait son
  * drapeau `saisieArgumentsEnCours` à CHAQUE `doAfterTextChanged` — y compris
  * ceux déclenchés par le `setText` programmatique du rendu. Le champ n'était
  * alors plus jamais resynchronisé sur le DataStore, et une valeur périmée

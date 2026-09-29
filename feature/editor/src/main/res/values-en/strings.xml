@@ -151,6 +151,7 @@
          TypographyDashes is ignored on the three strings carrying them
          (same pattern as Typos in feature:home, CI lint fix v0.37.1). -->
     <string name="editor_config_tooling_titre">Gradle tooling</string>
+    <string name="editor_config_tooling_libelle">Settings</string>
     <string name="editor_config_fermer_cd">Close tooling configuration</string>
     <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
     <string name="editor_config_affichage">Console display</string>

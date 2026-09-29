@@ -5,12 +5,18 @@
      d'échec avec actions, console (arbre en vue Sync, tâches en vue Build),
      auto-défilement. Fragment PanneauConsoleFragment — le chrome (en-tête,
      onglets) reste à l'hôte (activity_editor.xml). -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
+
+    <!-- Contenu de la console (masqué quand la configuration s'affiche). -->
+    <LinearLayout
+        android:id="@+id/contenu_console"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
     <!-- Barre d'outils (§3.3) : chips de filtre de canal + actions. -->
     <LinearLayout
@@ -61,6 +67,9 @@
             android:tooltipText="@string/editor_console_taches_indisponible"
             app:icon="@drawable/ic_liste_taches" />
 
+        <!-- Configuration (§3.3) : accès LIBELLÉ depuis la barre d'outils —
+             la page s'affiche DANS le conteneur de la console, plus de
+             dialogue plein écran au-dessus de l'éditeur. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_config_tooling"
             style="@style/Widget.Material3.Button.TextButton"
@@ -69,6 +78,7 @@
             android:contentDescription="@string/editor_config_tooling_cd"
             android:minWidth="@dimen/touch_target_min"
             android:minHeight="@dimen/touch_target_min"
+            android:text="@string/editor_config_tooling_libelle"
             app:icon="@drawable/ic_outils" />
 
         <com.google.android.material.button.MaterialButton
@@ -190,14 +200,23 @@
         android:clipToPadding="false"
         android:paddingBottom="@dimen/spacing_xs" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/texte_sortie_vide"
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_sortie_vide"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="@dimen/state_padding"
+            android:text="@string/editor_sortie_vide"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Page de configuration (v4, §3.3) : vit DANS le conteneur de la
+         console (fragment enfant), flèche retour en tête — remplacé le
+         dialogue plein écran. -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/conteneur_config_tooling"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:padding="@dimen/state_padding"
-        android:text="@string/editor_sortie_vide"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
-</LinearLayout>
+        android:layout_height="match_parent" />
+</FrameLayout>

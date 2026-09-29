@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
-import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
@@ -16,10 +16,11 @@ import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentConfigToolingBinding
 
 /**
- * Écran de configuration du tooling Gradle (v3) — plein écran AU-DESSUS de
- * l'espace de travail, ouvert par l'engrenage de l'onglet Sortie
- * (on reste dans le contexte du build, contrairement à une navigation vers
- * les Paramètres qui quitterait l'éditeur).
+ * Écran de configuration du tooling Gradle (v3 ; v4, §3.3 : INTÉGRÉ au
+ * conteneur de la console — plus de dialogue plein écran au-dessus de
+ * l'éditeur), enfant de [PanneauConsoleFragment] : la configuration vit
+ * DANS le panneau inférieur, flèche retour en tête — on ne quitte jamais
+ * le contexte du build.
  *
  * Mêmes garde-fous que les sections des Paramètres (ADR 0059/0064) :
  * rendu IDEMPOTENT piloté par le DataStore (un interrupteur ne se
@@ -32,7 +33,7 @@ import jo.codeide.feature.editor.databinding.FragmentConfigToolingBinding
  * « Terminé ») : pas d'écriture DataStore par frappe.
  */
 @AndroidEntryPoint
-class DialogueConfigToolingFragment : DialogFragment() {
+class PanneauConfigToolingFragment : Fragment() {
     private var liaisonAmorce: FragmentConfigToolingBinding? = null
 
     /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
@@ -43,8 +44,12 @@ class DialogueConfigToolingFragment : DialogFragment() {
                 "liaison de la configuration tooling indisponible — vue détruite ?"
             }
 
-    /** ViewModel scopé au dialogue (son propre ViewModelStore). */
+    /** ViewModel scopé au fragment (son propre ViewModelStore). */
     private val viewModel: ConfigToolingViewModel by viewModels()
+
+    /** Demande de fermeture à l'hôte (retour à la console) — posée par
+     *  [PanneauConsoleFragment] au moment de l'ajout. */
+    var surFermeture: (() -> Unit)? = null
 
     /** Anti-fausses actions : le rendu programme les interrupteurs sans
      *  déclencher leurs écouteurs, et signale ses `setText` du champ
@@ -54,14 +59,6 @@ class DialogueConfigToolingFragment : DialogFragment() {
     /** Saisie du champ d'arguments (correctif n°10 : rendu et frappe se
      *  distinguent — plus jamais de drapeau armé par le rendu). */
     private val saisieArguments = SaisieArguments()
-
-    override fun onCreate(etat: Bundle?) {
-        // Plein écran au-dessus de l'espace de travail : fenêtre non
-        // flottante sur le thème de l'app — l'éditeur reste dessous à la
-        // fermeture, on ne quitte JAMAIS le contexte du build.
-        super.onCreate(etat)
-        setStyle(STYLE_NORMAL, jo.codeide.core.ui.R.style.Theme_CodeIDE_PleinEcran)
-    }
 
     override fun onCreateView(
         inflateur: LayoutInflater,
@@ -76,7 +73,8 @@ class DialogueConfigToolingFragment : DialogFragment() {
         vue: View,
         etat: Bundle?,
     ) {
-        liaison.toolbarConfigTooling.setNavigationOnClickListener { dismiss() }
+        // Retour en tête (§3.3) : la flèche ramène à la console du panneau.
+        liaison.toolbarConfigTooling.setNavigationOnClickListener { surFermeture?.invoke() }
 
         liaison.interrupteurAfficherTaches.setOnCheckedChangeListener { _, coche ->
             if (!renduEnCours) viewModel.definirAfficherTaches(coche)
@@ -106,6 +104,11 @@ class DialogueConfigToolingFragment : DialogFragment() {
 
         viewModel.reglages.collectWithLifecycle(viewLifecycleOwner) { rendreReglages(it) }
         viewModel.etatVivant.collectWithLifecycle(viewLifecycleOwner) { rendreEtatVivant(it) }
+    }
+
+    override fun onDestroyView() {
+        liaisonAmorce = null
+        super.onDestroyView()
     }
 
     /** Rendu idempotent des réglages (le DataStore est la seule vérité).
@@ -156,9 +159,4 @@ class DialogueConfigToolingFragment : DialogFragment() {
             EtatConnexion.DECONNECTEE -> getString(R.string.editor_config_connexion_deconnecte)
             EtatConnexion.ECHOUEE -> getString(R.string.editor_config_connexion_echoue)
         }
-
-    override fun onDestroyView() {
-        liaisonAmorce = null
-        super.onDestroyView()
-    }
 }

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -30,7 +31,13 @@ import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
  * Le filtre de canal (chips) vit dans le fragment : un état de VUE, pas un
  * état d'application — le ViewModel reste celui du tooling. Il survit à la
  * rotation par l'état d'instance.
+ *
+ * Exemption detekt ciblée (même précédent que `TerminalTiroirFragment` et
+ * `InstallFragment`) : TooManyFunctions — un fragment de panneau est un
+ * CONTRAT de câblage (cycle de vie + filtre + bandeau + configuration
+ * intégrée), chaque fonction a son écouteur ou son rappel.
  */
+@Suppress("TooManyFunctions")
 class PanneauConsoleFragment : Fragment() {
     private var liaisonAmorce: FragmentPanneauConsoleBinding? = null
 
@@ -58,6 +65,10 @@ class PanneauConsoleFragment : Fragment() {
 
     /** Taille de la dernière fenêtre rendue (auto-défilement). */
     private var tailleDerniereFenetre = 0
+
+    /** Retour système pendant l'affichage de la configuration (§3.3) : la
+     *  referme avant de remonter au retour de l'espace. */
+    private lateinit var retourConfiguration: OnBackPressedCallback
 
     override fun onCreateView(
         inflateur: LayoutInflater,
@@ -91,12 +102,24 @@ class PanneauConsoleFragment : Fragment() {
         liaison.boutonTachesSortie.setOnClickListener {
             viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
         }
-        // Configuration du tooling (v3) : l'engrenage de l'onglet Sortie
-        // ouvre l'écran dédié — réglages persistés à l'instant + état vivant
-        // de l'orchestrateur, sans quitter l'espace de travail.
-        liaison.boutonConfigTooling.setOnClickListener {
-            DialogueConfigToolingFragment().show(childFragmentManager, ETIQUETTE_DIALOGUE)
-        }
+        // Configuration du tooling (v4, §3.3) : la page s'affiche DANS le
+        // conteneur de la console (fragment enfant, flèche retour) —
+        // réglages persistés à l'instant + état vivant de l'orchestrateur,
+        // sans quitter l'espace de travail.
+        liaison.boutonConfigTooling.setOnClickListener { ouvrirConfiguration() }
+
+        // Retour système : referme la configuration AVANT de remonter à
+        // l'espace (priorité LIFO sur le retour de l'activité).
+        retourConfiguration =
+            object : OnBackPressedCallback(false) {
+                override fun handleOnBackPressed() {
+                    fermerConfiguration()
+                }
+            }
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            retourConfiguration,
+        )
 
         rendreChips()
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
@@ -231,9 +254,40 @@ class PanneauConsoleFragment : Fragment() {
         }
     }
 
+    // ---- Configuration intégrée (§3.3) ----------------------------------
+
+    /** Ouvre la page de configuration DANS le conteneur de la console
+     *  (fragment enfant ajouté une fois, montré/caché ensuite — l'état de
+     *  la page survit aux allers-retours, le DataStore reste la vérité). */
+    private fun ouvrirConfiguration() {
+        val gestionnaire = childFragmentManager
+        val page =
+            gestionnaire.findFragmentByTag(ETIQUETTE_CONFIG)
+                ?: PanneauConfigToolingFragment().also { page ->
+                    page.surFermeture = { fermerConfiguration() }
+                    gestionnaire
+                        .beginTransaction()
+                        .add(R.id.conteneur_config_tooling, page, ETIQUETTE_CONFIG)
+                        .commit()
+                }
+        gestionnaire.beginTransaction().show(page).commit()
+        liaison.contenuConsole.isVisible = false
+        retourConfiguration.isEnabled = true
+    }
+
+    /** Referme la configuration et rend la console (retour en tête ou
+     *  retour système). */
+    private fun fermerConfiguration() {
+        childFragmentManager.findFragmentByTag(ETIQUETTE_CONFIG)?.let { page ->
+            childFragmentManager.beginTransaction().hide(page).commit()
+        }
+        liaison.contenuConsole.isVisible = true
+        retourConfiguration.isEnabled = false
+    }
+
     private companion object {
-        /** Étiquette du dialogue de configuration du tooling (anti-doublon). */
-        const val ETIQUETTE_DIALOGUE = "config-tooling"
+        /** Étiquette de la page de configuration (anti-doublon). */
+        const val ETIQUETTE_CONFIG = "config-tooling"
 
         /** Clé du filtre de canal dans l'état d'instance. */
         const val CLE_FILTRE_CANAL = "filtre-canal-console"

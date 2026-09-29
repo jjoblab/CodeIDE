@@ -292,7 +292,8 @@ class ActivityEditorLayoutTest {
 
     @Test
     fun `l ecran de configuration du tooling se gonfle avec ses vues completes`() {
-        // Écran de configuration du tooling (v3) : toolbar plein écran,
+        // Écran de configuration du tooling (v3 ; v4 §3.3 : intégré au
+        // conteneur de la console) : toolbar avec flèche retour,
         // interrupteurs, arguments et état vivant de l'orchestrateur.
         val config = gonfler(R.layout.fragment_config_tooling)
         assertNotNull(
@@ -310,6 +311,34 @@ class ActivityEditorLayoutTest {
         assertNotNull("champ des arguments libres (v3)", config.findViewById<View>(R.id.champ_arguments))
         assertNotNull("valeur de connexion vivante (v3)", config.findViewById<View>(R.id.valeur_connexion))
         assertNotNull("valeur du tas de l'orchestrateur (v3)", config.findViewById<View>(R.id.valeur_tas))
+    }
+
+    @Test
+    fun `la console embarque le conteneur de la configuration integree`() {
+        val console = gonfler(R.layout.fragment_panneau_console)
+
+        // Configuration intégrée (v4, §3.3) : le contenu de la console et
+        // le conteneur de la page vivent dans le même FrameLayout — le
+        // dialogue plein écran a disparu.
+        assertNotNull(
+            "contenu de la console (masqué quand la config s'affiche, §3.3)",
+            console.findViewById<View>(R.id.contenu_console),
+        )
+        assertNotNull(
+            "conteneur de la page de configuration DANS la console (§3.3)",
+            console.findViewById<View>(R.id.conteneur_config_tooling),
+        )
+        val bouton = console.findViewById<android.widget.Button>(R.id.bouton_config_tooling)
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(
+            "bouton d'accès à la configuration LIBELLÉ (§3.3)",
+            base.getString(R.string.editor_config_tooling_libelle),
+            bouton.text.toString(),
+        )
+        assertFalse(
+            "le texte du bouton n'est pas vide — c'est un libellé, pas une icône muette",
+            bouton.text.toString().isEmpty(),
+        )
     }
 
     @Test

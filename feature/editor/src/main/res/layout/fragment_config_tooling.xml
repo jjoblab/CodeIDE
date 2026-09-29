@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-  Écran de configuration du tooling Gradle (v3) — DialogueConfigToolingFragment,
-  ouvert par l'engrenage de l'onglet Sortie : plein écran au-dessus de
-  l'espace de travail (on reste dans le contexte du build), même patron que
+  Écran de configuration du tooling Gradle (v3 ; v4, §3.3 : INTÉGRÉ au
+  conteneur de la console) — PanneauConfigToolingFragment, enfant du
+  PanneauConsoleFragment : flèche retour en tête, vit DANS le panneau
+  inférieur (plus de dialogue au-dessus de l'éditeur). Même patron que
   les sections des Paramètres (cartes ADR 0064 : conteneur vertical unique
   par carte, rangées icône + texte + interrupteur, séparateurs 1dp).
+  Fond = jeton du panneau inférieur (§8) — la page en fait partie.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@color/codeide_panneau_inferieur_fond"
     android:orientation="vertical"
     tools:ignore="Overdraw">
 

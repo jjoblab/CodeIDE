@@ -161,6 +161,7 @@
          les trois chaînes concernées (même patron que Typos dans
          feature:home, correctif lint CI v0.37.1). -->
     <string name="editor_config_tooling_titre">Tooling Gradle</string>
+    <string name="editor_config_tooling_libelle">Configuration</string>
     <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
     <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
     <string name="editor_config_affichage">Affichage de la console</string>
