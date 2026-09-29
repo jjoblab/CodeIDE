@@ -667,9 +667,30 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       observeTelechargementsBuild ; EtatGradle v4 (etapesAffichees
       dérivées, numeroEtape, tachesDisponibles) ; EtatEnteteTooling ;
       PanneauToolingController (le rendu quitte EditorActivity). 19
-      intégrations serveur RÉELLES vertes. RESTE à livrer : l'UI §3.3/§7
-      (en-tête enrichi, arbre+chips, config intégrée, bottom sheet des
-      tâches, écran de configuration §7) — les fondations y sont câblées.
+      intégrations serveur RÉELLES vertes. L'UI §3.3 est livrée en 0.39.0
+      (ci-dessous) ; seul l'écran de configuration ENRICHI §7 reste différé.
+- v0.39.0 : **G10 — UI complète du tooling v4** (prompt « tooling Gradle
+      professionnel », étape 5 §3.3, ADR 0070) : en-tête ENRICHI (pastille
+      de canal colorée avec spinner en vol / coche de succès / croix
+      d'échec, titre « Synchronisation Gradle · étape n/8 », sous-titre =
+      étape courante + détail annoncé à TalkBack, progression DÉTERMINÉE
+      octets recus/total, pleine au succès) ; console en ARBRE APLATI
+      filtrable par chips Sync/Build exclusives (8 phases du plan toujours
+      visibles ✓/spinner/○, durée MESURÉE seulement, détail de
+      téléchargement indenté sous l'étape active, synthèse de build,
+      bandeau d'échec « Voir les problèmes » / « Réessayer ») ;
+      configuration INTÉGRÉE au conteneur de la console
+      (PanneauConfigToolingFragment remplace le dialogue plein écran,
+      retour système LIFO, bouton d'accès libellé) ; feuille des tâches
+      Material 3 (recherche en direct, récentes en chips, groupes)
+      alimentée par le CACHE de la sync — ouvrirSelecteurTaches répond
+      sans aller-retour, échec de listage AFFICHÉ + « Réessayer »
+      (correctif n°6) ; constructeurs de rangées PURS testés
+      (construireRangeesConsole, construireRangeesTaches) ; correctif
+      bump-version.sh (grep ancré — la prose du journal détournait le
+      script). RESTE à livrer : l'écran de configuration enrichi §7
+      (commande effective, recherche de réglages, conflits d'arguments,
+      2 colonnes) et la règle lint « aucun #RRGGBB dans feature:editor ».
 - Prochaine : étape 33 (= Système de plugins — cf. docs/ROADMAP.md ;
       les prompts compagnons LSP et formatage suivront).
 

@@ -4,6 +4,86 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.39.0] – 2026-09-29
+
+### Ajouté (tooling professionnel v4 — UI complète, prompt « tooling Gradle
+professionnel » étape 5, §3.3)
+
+- **En-tête enrichi du panneau** (étape 5a) : pastille de canal colorée
+  (teal Sync / bleu Build / violet Tâches harmonisées au primaire — ADR
+  0059) avec SPINNER animé en vol, coche verte de succès, croix rouge
+  d'échec (`colorSucces`/`colorError` suivent les 8 palettes et la nuit) ;
+  titre « Synchronisation Gradle · étape n/N » pendant la sync ; sous-titre
+  = étape courante + détail (« 42 Mo · 3 éléments — kotlin-stdlib.jar »)
+  annoncé à TalkBack (`accessibilityLiveRegion`) ; progression
+  DÉTERMINÉE quand les octets totaux sont connus (recus/total), pleine au
+  succès, indéterminée sinon ; peek du sheet élargi. Le présentateur pur
+  s'étend (`StatutEntete`, `libelleEtape`, sous-titre structuré) —
+  `EtatEnteteTooling` reste testé sans cadre Android.
+- **Console en arbre d'étapes avec chips Sync/Build** (étape 5b) : barre
+  d'outils à chips de filtre EXCLUSIVES (vue Sync = ARBRE, vue Build =
+  tâches + synthèse, aucune chip = chronologie brute — l'état survit à la
+  rotation) ; l'arbre montre les 8 phases du plan v4 avec marqueurs
+  ✓/spinner/○ (les non-annoncées restent visibles : le chemin complet se
+  lit, durée MESURÉE seulement — jamais devinée, règle 9) ; détail de
+  téléchargement indenté sous l'étape active (barre déterminée,
+  « 42 Mo / 130 Mo · 3 / 37 », artefact courant) ; synthèse de fin de
+  build (réussi/échoué/annulé) ; BANDEAU d'échec avec « Voir les
+  problèmes » (onglet dédié) et « Réessayer » (relance des mêmes tâches) —
+  plus d'échec muet. Bouton Tâches armé par le cache de la sync,
+  info-bulle honnête tant qu'il est éteint. Constructeur de rangées PUR
+  (`construireRangeesConsole`) testé ; adaptateur réécrit
+  (`ConsoleToolingAdapter`, 4 genres de rangées).
+- **Configuration intégrée au conteneur de la console** (étape 5c) : le
+  `DialogueConfigToolingFragment` plein écran disparaît — la page vit DANS
+  le panneau inférieur (`PanneauConfigToolingFragment`, fragment enfant
+  ajouté une fois puis montré/caché), flèche retour en tête, retour
+  système referme la configuration avant l'espace (LIFO) ; bouton d'accès
+  LIBELLÉ dans la barre d'outils ; fond = jeton du panneau (§8) ; même
+  contrat de réglages (rendu idempotent DataStore, persisté à l'instant,
+  correctif n°10).
+- **Feuille Material 3 de sélection des tâches** (étape 5d) : BottomSheet
+  avec champ de RECHERCHE (filtre en direct, insensible à la casse, nom ou
+  chemin), tâches RÉCENTES en chips (la dernière exécution suivie),
+  GROUPES Gradle dans l'ordre d'apparition (« autres » pour les sans
+  groupe), module d'origine par tâche, lancement au clic — remplace la
+  liste plate du `MaterialAlertDialog`. **`ouvrirSelecteurTaches` répond
+  d'abord depuis le cache de la sync (`tachesDisponibles`) : aucun
+  aller-retour, aucune latence** (correctif n°6 — plus de 30 s d'attente).
+  Tâches dans les ARGUMENTS : la feuille survit à la mort du processus.
+  L'échec de listage n'est plus AVALÉ : `EffetEditor.ErreurListageTaches`
+  → snackbar + action « Réessayer » (correctif n°6). États vides distincts
+  (« synchronisation en cours » vs « aucune correspondance »).
+- **Mappeur de libellés de phases partagé** (`LibellesEtapesSync`) : fin de
+  la duplication présentateur/console ; `OctetsLisibles` formate les
+  tailles (« 1,2 Mo », « 340 Ko »).
+
+### Corrigé
+
+- **`scripts/bump-version.sh`** : un `grep -qF` non ancré matchait la
+  PROSE du journal (le CHANGELOG documente le correctif v0.37.1 et cite
+  le marqueur `s|^## [Non publié]|…|`) — le script prenait la branche
+  « marqueur ouvert » sans rien insérer, avec un message de succès
+  mensonger. Le grep est désormais ancré (`^`), découvert à la livraison
+  de cette version même.
+
+### Non livré dans cette version (différé, documenté)
+
+- L'écran de configuration ENRICHI du §7 (affichage complet : masquer
+  UP-TO-DATE, horodatage, retour à la ligne, taille de police ; sync à
+  l'ouverture, bandeau de changement de `build.gradle*`,
+  `--refresh-dependencies` ; exécution `--parallel/--build-cache/
+  --configuration-cache/--continue`, niveaux de journal, traces,
+  `--max-workers`, `-Xmx`, conflits détectés ; bloc « Commande effective »
+  recalculé en direct ; recherche de réglages ; 2 colonnes dès sw600dp) et
+  le `ConstructeurArgumentsGradle` unique — l'écran INTÉGRÉ livré ici
+  garde les réglages v3 (affichage des tâches, hors ligne, arguments
+  libres, orchestrateur vivant).
+- La règle lint « aucun `#RRGGBB` dans feature:editor » (§8) : les
+  nouveaux layouts/drawables n'introduisent AUCUNE couleur dure (jetons
+  du thème uniquement), la rétro-vérification des fichiers historiques
+  reste à poser.
+
 ## [0.38.0] – 2026-09-29
 
 ### Ajouté (tooling professionnel v4 — fondations, prompt « tooling Gradle
