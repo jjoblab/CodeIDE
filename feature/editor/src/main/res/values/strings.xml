@@ -127,8 +127,8 @@
     <!-- v0.39.x (CI lint PluralsCandidate) : ligne d'état compacte à DEUX
          quantités (comme la vue Build d'Android Studio), pas une phrase —
          même exemption documentée que wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$d modules · %2$d tâches · aucun téléchargement</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$d modules · %2$d tâches · classpaths prêts</string>
+    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · aucun téléchargement</string>
+    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · classpaths prêts</string>
 
     <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
          jour en place à sa fin, comme la vue Build d'Android Studio) et

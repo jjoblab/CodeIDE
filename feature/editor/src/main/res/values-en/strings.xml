@@ -119,8 +119,8 @@
     <!-- v0.39.x (CI lint PluralsCandidate): compact status line with TWO
          quantities (like Android Studio's Build view), not a sentence —
          same documented exemption as wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$d modules · %2$d tasks · no downloads</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$d modules · %2$d tasks · classpaths ready</string>
+    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · no downloads</string>
+    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · classpaths ready</string>
 
     <!-- Task lines of the console (v3 — one line per task, updated in
          place when it finishes, like Android Studio's Build view) and
