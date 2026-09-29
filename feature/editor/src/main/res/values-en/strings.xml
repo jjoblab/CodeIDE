@@ -165,6 +165,13 @@
     <string name="editor_console_synthese_taches_executees" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed</string>
     <string name="editor_console_synthese_taches_ajour" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed, %3$d up-to-date</string>
 
+    <!-- Classpath summary (v0.40.1, prompt de suivi §4) : short labels for
+         the sync footer — "3 modules · 312 jars · 4 sources · 12 AARs". -->
+    <string name="editor_console_stats_modules">modules</string>
+    <string name="editor_console_stats_jars">jars</string>
+    <string name="editor_console_stats_aars">AARs</string>
+    <string name="editor_console_stats_sources">sources</string>
+
     <!-- Task picker sheet (v4, §3.3): search, recent, groups by module,
          honest empty states. -->
     <string name="editor_taches_recherche_indice">Search a task…</string>

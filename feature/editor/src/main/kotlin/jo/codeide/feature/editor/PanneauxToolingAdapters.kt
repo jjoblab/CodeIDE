@@ -640,12 +640,43 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             liaison.texteSyntheseBuild.setTextColor(
                 ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_succes),
             )
-            // v0.39.1 : la synthèse de sync n'a pas de compte de tâches —
-            // on masque la ligne secondaire (sinon la dernière valeur d'un
-            // build précédent resterait affichée par ré-utilisation du
-            // ViewHolder par DiffUtil).
-            liaison.texteSyntheseTaches.isVisible = false
-            liaison.texteSyntheseTaches.text = ""
+            // v0.40.1 (prompt de suivi §4) : récapitulatif classpath en
+            // sous-ligne. Affiché SEULEMENT si les stats sont disponibles
+            // (sync réussie avec classpath résolu). Sinon masqué.
+            val stats = formatRecapClasspath(contexte, rangee)
+            if (stats == null) {
+                liaison.texteSyntheseTaches.isVisible = false
+                liaison.texteSyntheseTaches.text = ""
+            } else {
+                liaison.texteSyntheseTaches.text = stats
+                liaison.texteSyntheseTaches.setTextColor(
+                    ContextCompat.getColor(contexte, jo.codeide.core.ui.R.color.codeide_succes),
+                )
+                liaison.texteSyntheseTaches.isVisible = true
+            }
+        }
+
+        /**
+         * Formate le récapitulatif classpath (v0.40.1, prompt de suivi §4)
+         * — « 3 modules · 312 jars · 4 sources · 12 AARs ». `null` si les
+         * stats ne sont pas disponibles (classpath non résolu).
+         */
+        private fun formatRecapClasspath(
+            contexte: Context,
+            rangee: RangeeConsole.SyntheseSync,
+        ): String? {
+            val nbModules = rangee.nbModules ?: return null
+            val parties = mutableListOf("$nbModules ${contexte.getString(R.string.editor_console_stats_modules)}")
+            rangee.nbJars?.let {
+                if (it > 0) parties += "$it ${contexte.getString(R.string.editor_console_stats_jars)}"
+            }
+            rangee.nbAars?.let {
+                if (it > 0) parties += "$it ${contexte.getString(R.string.editor_console_stats_aars)}"
+            }
+            rangee.nbSources?.let {
+                if (it > 0) parties += "$it ${contexte.getString(R.string.editor_console_stats_sources)}"
+            }
+            return parties.joinToString(" · ")
         }
 
         /** Atténue une couleur vers le fond. */
