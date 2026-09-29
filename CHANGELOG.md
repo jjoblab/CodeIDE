@@ -4,7 +4,59 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
-## [Non publié] – 2026-09-29
+## [0.41.0] – 2026-09-29
+
+### Ajouté (tooling Gradle — étapes dynamiques, sync suivante immédiate, chip d'action, stats classpath — prompt de suivi)
+
+- **Phase 0 — Scénarios de sync réels** (étape A) : 10 scénarios Gradle
+  réels exécutés (Kotlin/JVM pur, avec deps, multi-modules, Groovy, buildSrc,
+  échec config, offline, deps non cachées + résolution forcée). Sorties
+  brutes dans `docs/tooling-scenarios/sorties/`, RAPPORT.md (368 lignes)
+  analyse les signaux Tooling API observés, invalide 3 hypothèses (DAEMON
+  non détectable via Tooling API, DISTRIBUTION à chaque changement de
+  wrapper, plugins téléchargés même sans dépendances runtime) et propose
+  le catalogue d'étapes dynamique. Script `scripts/scenarios-tooling.sh`
+  rejouable.
+- **Correctif du progress circulaire des étapes** (étape B, ADR 0072) :
+  remplacement du `CircularProgressIndicator` Material (écrasé/rogné à 16 dp
+  + clignotement à chaque rebind) par un `AnneauTournant` dédié (drawable
+  vectoriel 16 dp / trait 2 dp + `ObjectAnimator` global UNIQUE partagé via
+  `AnneauTournantState` — zéro fuite d'animateur). `DiffUtil.getChangePayload`
+  granulaire + `DefaultItemAnimator.supportsChangeAnimations = false` —
+  plus de clignotement sur tick de durée. 6 tests Robolectric.
+- **Suppression du concept « sautée / En cache »** (étape C1, ADR 0073) :
+  `SyncProgress.sautee` supprimé du protocole ; `ConteurPhasesSync.sauter()`
+  supprimé ; la distribution en cache n'est plus émise du tout par le
+  serveur — le client ne l'affiche pas. `StatutEtapeSync.SAUTEE`,
+  `EtapeSyncAffichee.sautee`, `EtatEtapeArbre.sautee`, `R.string.editor_
+  console_etape_en_cache`, `point_etape_sautee.xml` supprimés. Une étape
+  non concernée n'existe plus dans la liste.
+- **Sync suivante immédiate** (étape C2, ADR 0073) : nouveau fichier
+  `.codeide/local/sync-state.json` (comme `lsp-classpath.json`) stocke
+  empreinte SHA-256 des fichiers Gradle + tâches + durées + stats. Au
+  retour d'un projet dont l'empreinte n'a pas changé, l'UI affiche
+  immédiatement « Synchronisé · il y a X » + les tâches. Revalidation
+  silencieuse en arrière-plan (pas de déroulé visible). En cas d'échec,
+  l'état est conservé (pas de rouge). En cas d'échec de sync manuelle,
+  le state précédent reste valide pour le retour.
+- **Chip d'action unique** (étape D, ADR 0073) : un UNIQUE chip reflète
+  l'action Gradle courante (Sync / Build / Tâches / Classpaths…), NON
+  cliquable — plus de bascule. La console montre toujours l'action courante
+  (ou la dernière). Aucun chip s'il n'y a eu aucune action.
+  `ActionEditor.BasculerFiltreConsole` supprimée. Layout
+  `fragment_panneau_console.xml` : `ChipGroup` Sync/Build remplacé par un
+  seul `Chip` non cliquable.
+- **Stats classpath par module** (étape E, ADR 0073) : `ClasspathModule`
+  (protocole) et `ModuleClasspath` (domaine) étendus avec 10 champs
+  optionnels (nbJars, nbAars, nbSources, varianteAndroid, nbDependancesProjet,
+  fichiersGeneres, androidJar, ignore, raisonIgnore, avertissements).
+  `ClasspathHandler` calcule les stats côté serveur. Le pied de sync
+  affiche un récapitulatif (« 3 modules · 312 jars · 4 sources · 12 AARs »).
+- **Aperçu v3 versionné** (étape F) : `docs/preview/apercu-tooling.html`
+  (24 Ko, 153 lignes) — source de vérité visuelle du tooling (§6 du prompt
+  de suivi). 8 palettes (Indigo, Bleu, Turquoise, Vert, Ambre, Rouge,
+  Violet, Rose) × clair/sombre, 6 scènes (sync 1er lancement / suivante /
+  Gradle modifié / build / config / tâches), mode tablette.
 
 ### Corrigé (tooling Gradle professionnel — comme Android Studio)
 
