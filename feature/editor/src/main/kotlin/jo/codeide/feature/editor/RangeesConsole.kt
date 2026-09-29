@@ -129,11 +129,21 @@ internal sealed interface RangeeConsole {
             get() = "synthese-build"
     }
 
-    /** Pied de conclusion de la sync (v5, aperçu) : « Synchronisation
-     *  terminée » ou « Projet à jour, rien à télécharger » + disponibilité
-     *  des tâches — présent SEULEMENT une fois la sync réussie terminée. */
+    /** Pied de conclusion de la sync (v5, aperçu ; v0.40.1 prompt de suivi
+     *  §4 — récapitulatif classpath) : « Synchronisation terminée » ou
+     *  « Projet à jour, rien à télécharger » + disponibilité des tâches
+     *  + récapitulatif classpath (total modules / jars / sources / AARs).
+     *  Présent SEULEMENT une fois la sync réussie terminée. */
     data class SyntheseSync(
         val aJour: Boolean,
+        /** Total modules du projet (v0.40.1 §4) — `null` si non résolu. */
+        val nbModules: Int? = null,
+        /** Total JARs résolus tous modules confondus (v0.40.1 §4). */
+        val nbJars: Int? = null,
+        /** Total AARs résolus tous modules confondus (v0.40.1 §4). */
+        val nbAars: Int? = null,
+        /** Total répertoires sources tous modules confondus (v0.40.1 §4). */
+        val nbSources: Int? = null,
     ) : RangeeConsole {
         override val idCle: String
             get() = "synthese-sync"
@@ -252,15 +262,27 @@ private fun consolider(
     )
 }
 
-/** Pied de conclusion de la sync (v5, aperçu) : absent en vol, à l'échec
- *  ou sans résultat ; « Projet à jour, rien à télécharger » honnête quand
- *  AUCUN octet n'a été reçu (distribution sautée, dépendances en cache). */
+/** Pied de conclusion de la sync (v5, aperçu ; v0.40.1 §4 — récapitulatif
+ *  classpath) : absent en vol, à l'échec ou sans résultat ; « Projet à
+ *  jour, rien à télécharger » honnête quand AUCUN octet n'a été reçu +
+ *  récapitulatif classpath (total modules / jars / sources / AARs). */
 private fun piedSync(etat: EtatGradle): List<RangeeConsole.SyntheseSync> {
     val reussie = etat.synchronisationReussie
     return if (reussie?.reussie == true && !etat.synchronisationEnCours) {
+        // v0.40.1 (prompt de suivi §4) : récapitulatif classpath —
+        // agrégation des stats par module en totaux.
+        val stats = etat.statsClasspath
+        val nbModules = stats?.size
+        val nbJars = stats?.sumOf { it.nbJars ?: 0 }
+        val nbAars = stats?.sumOf { it.nbAars ?: 0 }
+        val nbSources = stats?.sumOf { it.nbSources ?: 0 }
         listOf(
             RangeeConsole.SyntheseSync(
                 aJour = etat.etapesAffichees.none { it.octetsRecus > 0 },
+                nbModules = nbModules,
+                nbJars = nbJars,
+                nbAars = nbAars,
+                nbSources = nbSources,
             ),
         )
     } else {

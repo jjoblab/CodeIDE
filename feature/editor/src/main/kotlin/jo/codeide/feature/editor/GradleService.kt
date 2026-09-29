@@ -253,6 +253,10 @@ data class EtatGradle(
     /** Tâches du projet connues sans aller-retour (v4, §3.2 — remplies à
      *  la fin d'une sync : le sélecteur s'ouvre sans latence). */
     val tachesDisponibles: List<InfoTache>? = null,
+    /** Stats classpath par module (v0.40.1, prompt de suivi §4) —
+     *  remplies à la fin d'une sync réussie, restituées au retour du
+     *  projet si l'empreinte n'a pas changé. `null` si non résolu. */
+    val statsClasspath: List<jo.codeide.core.domain.ModuleClasspath>? = null,
 ) {
     /** Nombre total de diagnostics (badge de l'onglet Problèmes). */
     val problemesTotal: Int
@@ -451,6 +455,17 @@ class GradleService
          */
         fun publierTachesDisponibles(taches: List<InfoTache>) {
             maj { it.copy(tachesDisponibles = taches) }
+        }
+
+        /**
+         * Publie les statistiques classpath par module (v0.40.1, prompt de
+         * suivi §4) — remplies à la fin d'une sync réussie via
+         * `PreparerClasspathLspUseCase`. Le pied de conclusion de la sync
+         * les restitue en récapitulatif (total modules / jars / sources /
+         * avertissements).
+         */
+        fun publierStatsClasspath(modules: List<jo.codeide.core.domain.ModuleClasspath>) {
+            maj { it.copy(statsClasspath = modules) }
         }
 
         /** Réinitialise la console et publie le build suivi — les tâches

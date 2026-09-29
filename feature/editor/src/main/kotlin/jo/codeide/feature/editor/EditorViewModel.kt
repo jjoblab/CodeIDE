@@ -956,6 +956,10 @@ class EditorViewModel
                         "classpath LSP préparé (${preparation.value.modules.size} module(s), " +
                             "projet ${identifiantSuivi()})"
                     }
+                    // v0.40.1 (prompt de suivi §4) : publie les stats
+                    // classpath par module — le pied de sync les restituera
+                    // en récapitulatif (total modules / jars / sources).
+                    serviceGradle.publierStatsClasspath(preparation.value.modules)
                 }
 
                 is AppResult.Failure -> {

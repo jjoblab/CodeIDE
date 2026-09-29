@@ -440,15 +440,40 @@ public data class EntreeClasspath(
  * Classpath d'UN module (ADR 0058) : répertoires sources (le module
  * et ses tests) et entrées compilées.
  *
+ * v0.40.1 (prompt de suivi §4) : statistiques pré-calculées par module
+ * pour l'affichage des sous-lignes « :app · 312 jars · 4 sources ·
+ * variante debug ». Champs optionnels — un serveur ancien ne les envoie
+ * pas (compatibilité ascendante).
+ *
  * @property nom nom du module Gradle (ex. `:app`).
  * @property dossiersSources répertoires sources absolus.
  * @property entrees entrées du classpath compilé.
+ * @property nbJars nombre de JARs résolus (v0.40.1 §4).
+ * @property nbAars nombre d'AARs résolus (v0.40.1 §4).
+ * @property nbSources nombre de répertoires sources (v0.40.1 §4).
+ * @property varianteAndroid variante Android retenue (ex. `debug`).
+ * @property nbDependancesProjet nombre de dépendances vers modules frères.
+ * @property fichiersGeneres fichiers générés trouvés (R, BuildConfig, KSP).
+ * @property androidJar chemin vers `android.jar` (compileSdk).
+ * @property ignore `true` si le module est ignoré par CodeIDE.
+ * @property raisonIgnore raison de l'ignorance.
+ * @property avertissements avertissements sur ce module.
  */
 @Serializable
 public data class ModuleClasspath(
     public val nom: String,
     public val dossiersSources: List<String> = emptyList(),
     public val entrees: List<EntreeClasspath> = emptyList(),
+    public val nbJars: Int? = null,
+    public val nbAars: Int? = null,
+    public val nbSources: Int? = null,
+    public val varianteAndroid: String? = null,
+    public val nbDependancesProjet: Int? = null,
+    public val fichiersGeneres: List<String>? = null,
+    public val androidJar: String? = null,
+    public val ignore: Boolean = false,
+    public val raisonIgnore: String? = null,
+    public val avertissements: List<String>? = null,
 )
 
 /**
