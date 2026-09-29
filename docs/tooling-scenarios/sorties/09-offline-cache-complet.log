@@ -1,0 +1,109 @@
+Initialized native services in: /home/z/.gradle/native
+Initialized jansi services in: /home/z/.gradle/native
+Found daemon DaemonInfo{pid=5775, address=[786ba25f-3bc1-4eb7-a2a6-41f5860b8b6e port:38021, addresses:[/127.0.0.1]], state=Idle, lastBusy=1790702938624, context=DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64 (no Daemon JVM specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 13913). The daemon log file: /home/z/.gradle/daemon/9.7.1/daemon-13913.out.log
+Starting 9th build in daemon [uptime: 1 mins 16.344 secs, performance: 96%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 47% of 384 MiB]
+Using 2 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/09-offline-cache-complet.mktI since the file system is not supported
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/09-offline-cache-complet.mktI/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/09-offline-cache-complet.mktI/build.gradle.kts'.
+Included projects: [root project 'kotlin-jvm-avec-deps']
+
+> Configure project :
+Evaluating root project 'kotlin-jvm-avec-deps' using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/09-offline-cache-complet.mktI/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.0.21']
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+All projects evaluated.
+Task name matched 'tasks'
+Selected primary task 'tasks' from project :
+Tasks to be executed: [task ':tasks']
+Tasks that were excluded: []
+Resolve mutations for :tasks (Thread[#210,included builds,5,main]) started.
+:tasks (Thread[#210,included builds,5,main]) started.
+
+> Task :tasks
+Caching disabled for task ':tasks' because:
+  Build cache is disabled
+Task ':tasks' is not up-to-date because:
+  Task is untracked because: Uses the whole project state as an input
+
+------------------------------------------------------------
+Tasks runnable from root project 'kotlin-jvm-avec-deps'
+------------------------------------------------------------
+
+Build tasks
+-----------
+assemble - Assembles the outputs of this project.
+build - Assembles and tests this project.
+buildDependents - Assembles and tests this project and all projects that depend on it.
+buildKotlinToolingMetadata - Build metadata json file containing information about the used Kotlin tooling
+buildNeeded - Assembles and tests this project and all projects it depends on.
+classes - Assembles main classes.
+clean - Deletes the build directory.
+jar - Assembles a jar archive containing the classes of the 'main' feature.
+kotlinSourcesJar - Assembles a jar archive containing the sources of target 'kotlin'.
+testClasses - Assembles test classes.
+
+Build Setup tasks
+-----------------
+init - Initializes a new Gradle build.
+updateDaemonJvm - Generates or updates the Gradle Daemon JVM criteria.
+wrapper - Generates Gradle wrapper files.
+
+Documentation tasks
+-------------------
+javadoc - Generates Javadoc API documentation for the 'main' feature.
+
+Help tasks
+----------
+artifactTransforms - Displays the Artifact Transforms that can be executed in root project 'kotlin-jvm-avec-deps'.
+buildEnvironment - Displays all buildscript dependencies declared in root project 'kotlin-jvm-avec-deps'.
+dependencies - Displays all dependencies declared in root project 'kotlin-jvm-avec-deps'.
+dependencyInsight - Displays the insight into a specific dependency in root project 'kotlin-jvm-avec-deps'.
+help - Displays a help message.
+javaToolchains - Displays the detected java toolchains.
+kotlinDslAccessorsReport - Prints the Kotlin code for accessing the currently available project extensions.
+outgoingVariants - Displays the outgoing variants of root project 'kotlin-jvm-avec-deps'.
+projects - Displays the sub-projects of root project 'kotlin-jvm-avec-deps'.
+properties - Displays the properties of root project 'kotlin-jvm-avec-deps'.
+resolvableConfigurations - Displays the configurations that can be resolved in root project 'kotlin-jvm-avec-deps'.
+tasks - Displays the tasks runnable from root project 'kotlin-jvm-avec-deps'.
+
+Verification tasks
+------------------
+check - Runs all checks.
+checkKotlinGradlePluginConfigurationErrors - Checks that Kotlin Gradle Plugin hasn't reported project configuration errors, failing otherwise. This task always runs before compileKotlin* or similar tasks.
+test - Runs the test suite.
+
+Rules
+-----
+Pattern: clean<TaskName>: Cleans the output files of a task.
+Pattern: build<ConfigurationName>: Assembles the artifacts of a configuration.
+
+To see all tasks and more detail, run gradle tasks --all
+
+To see more detail about a task, run gradle help --task <task>
+
+[Incubating] Problems report is available at: file:///home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/09-offline-cache-complet.mktI/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1s
+1 actionable task: 1 executed
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html

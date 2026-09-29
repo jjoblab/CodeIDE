@@ -1,0 +1,6 @@
+# CodeIDE — scénarios de sync Phase 0.
+# Les fixtures temporaires (suffixe .XXXX par mktemp) sont créées à chaque
+# exécution du script scripts/scenarios-tooling.sh et ne sont JAMAIS
+# committées — seules les fixtures sources le sont.
+# Ne pas supprimer ce fichier : il empêche les temporaires d'être ajoutés.
+*/

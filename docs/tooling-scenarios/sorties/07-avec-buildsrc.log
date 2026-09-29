@@ -1,0 +1,176 @@
+Initialized native services in: /home/z/.gradle/native
+Initialized jansi services in: /home/z/.gradle/native
+Found daemon DaemonInfo{pid=5775, address=[786ba25f-3bc1-4eb7-a2a6-41f5860b8b6e port:38021, addresses:[/127.0.0.1]], state=Idle, lastBusy=1790702938624, context=DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64 (no Daemon JVM specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=69f0fd3c-6636-41ae-a0f8-0d3bbb8c085e,javaHome=/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64,javaVersion=21,javaVendor=Debian,daemonRegistryDir=/home/z/.gradle/daemon,pid=5775,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 13913). The daemon log file: /home/z/.gradle/daemon/9.7.1/daemon-13913.out.log
+Starting 7th build in daemon [uptime: 52.415 secs, performance: 96%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 38% of 384 MiB]
+Using 2 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI since the file system is not supported
+Not watching /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc since the file system is not supported
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Caching disabled for Kotlin DSL script compilation (Settings/TopLevel/stage1) because:
+  Build cache is disabled
+Settings evaluated using settings file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/build.gradle.kts'.
+Included projects: [root project 'avec-buildsrc']
+
+> Configure project :buildSrc
+Evaluating project ':buildSrc' using build file '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build.gradle.kts'.
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage1) because:
+  Build cache is disabled
+Resolved plugin [id: 'org.gradle.kotlin.kotlin-dsl', version: '6.7.3']
+Build 1f530782-a564-4619-8b77-1cad5ba0a944 is started
+Using Kotlin Gradle Plugin gradle813 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+file or directory '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/src/main/java', not found
+Caching disabled for Kotlin DSL accessors for project ':buildSrc' because:
+  Build cache is disabled
+  Build caching of Kotlin script accessor generation disabled by property
+Caching disabled for Kotlin DSL script compilation (Project/TopLevel/stage2) because:
+  Build cache is disabled
+Resolve mutations for :buildSrc:checkKotlinGradlePluginConfigurationErrors (Thread[#172,included builds,5,main]) started.
+:buildSrc:checkKotlinGradlePluginConfigurationErrors (Thread[#172,included builds,5,main]) started.
+
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':buildSrc:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :buildSrc:generateExternalPluginSpecBuilders (Thread[#173,Execution worker,5,main]) started.
+:buildSrc:generateExternalPluginSpecBuilders (Thread[#172,included builds,5,main]) started.
+
+> Task :buildSrc:generateExternalPluginSpecBuilders
+Caching disabled for task ':buildSrc:generateExternalPluginSpecBuilders' because:
+  Build cache is disabled
+Task ':buildSrc:generateExternalPluginSpecBuilders' is not up-to-date because:
+  No history is available.
+Resolve mutations for :buildSrc:extractPrecompiledScriptPluginPlugins (Thread[#173,Execution worker,5,main]) started.
+:buildSrc:extractPrecompiledScriptPluginPlugins (Thread[#173,Execution worker,5,main]) started.
+
+> Task :buildSrc:extractPrecompiledScriptPluginPlugins
+Caching disabled for task ':buildSrc:extractPrecompiledScriptPluginPlugins' because:
+  Build cache is disabled
+Task ':buildSrc:extractPrecompiledScriptPluginPlugins' is not up-to-date because:
+  No history is available.
+Resolve mutations for :buildSrc:compilePluginsBlocks (Thread[#172,included builds,5,main]) started.
+:buildSrc:compilePluginsBlocks (Thread[#172,included builds,5,main]) started.
+
+> Task :buildSrc:compilePluginsBlocks
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/caches/9.7.1/generated-gradle-jars/gradle-api-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-ant-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-astbuilder-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-datetime-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-dateutil-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-groovydoc-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-json-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-nio-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-templates-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/groovy-xml-4.0.32.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/javaparser-core-3.27.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/kotlin-reflect-2.4.0.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/kotlin-stdlib-2.4.0.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-installation-beacon-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-kotlin-dsl-extensions-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-kotlin-dsl-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-kotlin-dsl-shared-runtime-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/lib/gradle-kotlin-dsl-tooling-models-9.7.1.jar because:
+  Build cache is disabled
+Caching disabled for ClasspathEntrySnapshotTransform: /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar because:
+  Build cache is disabled
+Custom actions are attached to task ':buildSrc:compilePluginsBlocks'.
+Caching disabled for task ':buildSrc:compilePluginsBlocks' because:
+  Build cache is disabled
+Task ':buildSrc:compilePluginsBlocks' is not up-to-date because:
+  No history is available.
+The input changes require a full rebuild for incremental task ':buildSrc:compilePluginsBlocks'.
+Kotlin source files: /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/generated-sources/kotlin-dsl-external-plugin-spec-builders/kotlin/gradle/kotlin/dsl/plugins/_4144c30c61a5c3537966624afd03284f/PluginSpecBuilders.kt, /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/kotlin-dsl/plugins-blocks/extracted/monplugin.gradle.kts
+Java source files: 
+Script source files: 
+Script file extensions: 
+Using Kotlin/JVM incremental compilation
+[KOTLIN] Kotlin compilation 'jdkHome' argument: /home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64
+
+Resolve mutations for :buildSrc:generateScriptPluginAdapters (Thread[#173,Execution worker,5,main]) started.
+:buildSrc:generateScriptPluginAdapters (Thread[#173,Execution worker,5,main]) started.
+
+> Task :buildSrc:generateScriptPluginAdapters
+Caching disabled for task ':buildSrc:generateScriptPluginAdapters' because:
+  Build cache is disabled
+Task ':buildSrc:generateScriptPluginAdapters' is not up-to-date because:
+  No history is available.
+Resolve mutations for :buildSrc:pluginDescriptors (Thread[#173,Execution worker,5,main]) started.
+:buildSrc:pluginDescriptors (Thread[#173,Execution worker,5,main]) started.
+
+> Task :buildSrc:pluginDescriptors
+Caching disabled for task ':buildSrc:pluginDescriptors' because:
+  Build cache is disabled
+  Not worth caching
+Task ':buildSrc:pluginDescriptors' is not up-to-date because:
+  No history is available.
+Resolve mutations for :buildSrc:processResources (Thread[#173,Execution worker,5,main]) started.
+:buildSrc:processResources (Thread[#173,Execution worker,5,main]) started.
+
+> Task :buildSrc:processResources
+Caching disabled for task ':buildSrc:processResources' because:
+  Build cache is disabled
+  Not worth caching
+Task ':buildSrc:processResources' is not up-to-date because:
+  No history is available.
+file or directory '/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/src/main/resources', not found
+
+> Task :buildSrc:compilePluginsBlocks
+i: starting the daemon as: /home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64/bin/java -cp /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-compat/2.4.0/209372718c8759fbcb47402dc130d45f00c3f81/kotlin-build-tools-compat-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-impl/2.4.0/3dde5b4075cd7963afd0b0b2835627f40abc1149/kotlin-build-tools-impl-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/2.4.0/75970f5a2a9cb4d25557965bbec0a7ccd55bfbcf/kotlin-tooling-core-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-cri-impl/2.4.0/7fdfe4b4de70b7e6d81c054572e862121aa1603a/kotlin-build-tools-cri-impl-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-runner/2.4.0/d2b2336d493d2d3a8047c826cb27606f67029da8/kotlin-compiler-runner-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.4.0/f1a24af8bd111a83950236b1aec7a6d72a97e92c/kotlin-compiler-embeddable-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.4.0/46429d5887df2d02f33fe11a0c8444c5be5fd8da/kotlin-build-tools-api-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-client/2.4.0/e9080614f98d07554367b7e5810529963e9f43e2/kotlin-daemon-client-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.0/4e9f4b531dce5c7dee58ed2de9a8b9a763c8dc6c/kotlin-stdlib-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-script-runtime/2.4.0/1de03f0ef3e208ab5f97ee6a587e9b8480447df6/kotlin-script-runtime-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.6.10/1cbe9c92c12a94eea200d23c2bbaedaf3daf5132/kotlin-reflect-1.6.10.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.4.0/1ecabef3a8ba6a8e25654573d54edb7e4136e903/kotlin-daemon-embeddable-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.8.0/ac1dc37a30a93150b704022f8d895ee1bd3a36b3/kotlinx-coroutines-core-jvm-1.8.0.jar -Djava.awt.headless=true -Djava.rmi.server.hostname=127.0.0.1 -Xmx512m -XX:MaxMetaspaceSize=384m -XX:ReservedCodeCacheSize=320m -Dkotlin.environment.keepalive -ea -Dkotlin.daemon.custom.run.files.path.for.tests=/home/z/.local/share/kotlin/daemon -XX:+UseCodeCacheFlushing -XX:+UseParallelGC -Dkotlin.daemon.initiator.marker.file=/tmp/kotlin-compiler-client-317225055468696029-is-running --add-exports java.base/sun.nio.ch=ALL-UNNAMED org.jetbrains.kotlin.daemon.KotlinCompileDaemon --daemon-logsPath /tmp --daemon-logsFileSizeLimit=1048576 --daemon-logsFileCountLimit=3 --daemon-runFilesPath /home/z/.local/share/kotlin/daemon --daemon-autoshutdownIdleSeconds=7200 --daemon-compilerClasspath /home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-compat/2.4.0/209372718c8759fbcb47402dc130d45f00c3f81/kotlin-build-tools-compat-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-impl/2.4.0/3dde5b4075cd7963afd0b0b2835627f40abc1149/kotlin-build-tools-impl-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/2.4.0/75970f5a2a9cb4d25557965bbec0a7ccd55bfbcf/kotlin-tooling-core-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-cri-impl/2.4.0/7fdfe4b4de70b7e6d81c054572e862121aa1603a/kotlin-build-tools-cri-impl-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-runner/2.4.0/d2b2336d493d2d3a8047c826cb27606f67029da8/kotlin-compiler-runner-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.4.0/f1a24af8bd111a83950236b1aec7a6d72a97e92c/kotlin-compiler-embeddable-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.4.0/46429d5887df2d02f33fe11a0c8444c5be5fd8da/kotlin-build-tools-api-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-client/2.4.0/e9080614f98d07554367b7e5810529963e9f43e2/kotlin-daemon-client-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.0/4e9f4b531dce5c7dee58ed2de9a8b9a763c8dc6c/kotlin-stdlib-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-script-runtime/2.4.0/1de03f0ef3e208ab5f97ee6a587e9b8480447df6/kotlin-script-runtime-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.6.10/1cbe9c92c12a94eea200d23c2bbaedaf3daf5132/kotlin-reflect-1.6.10.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.4.0/1ecabef3a8ba6a8e25654573d54edb7e4136e903/kotlin-daemon-embeddable-2.4.0.jar:/home/z/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.8.0/ac1dc37a30a93150b704022f8d895ee1bd3a36b3/kotlinx-coroutines-core-jvm-1.8.0.jar
+i: #1 retrying connecting to the daemon 
+i: Options for KOTLIN DAEMON: IncrementalCompilationOptions(super=CompilationOptions(compilerMode=INCREMENTAL_COMPILER, targetPlatform=JVM, reportCategories=[0], reportSeverity=2, requestedCompilationResults=[0], kotlinScriptExtensions=[], generateCompilerRefIndex=false), sourceChanges=org.jetbrains.kotlin.buildtools.api.SourcesChanges$Unknown@28142ebb, classpathChanges=NotAvailableDueToMissingClasspathSnapshot, workingDir=/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/kotlin/compilePluginsBlocks/cacheable, multiModuleICSettings=null, icFeatures=IncrementalCompilationFeatures(usePreciseJavaTracking=true, withAbiSnapshot=false, preciseCompilationResultsBackup=true, keepIncrementalCompilationCachesInMemory=true, enableUnsafeIncrementalCompilationForMultiplatform=false, enableMonotonousIncrementalCompileSetExpansion=true), outputFiles=[/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/kotlin-dsl/plugins-blocks/compiled, /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/kotlin/compilePluginsBlocks/cacheable, /home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/build/kotlin/compilePluginsBlocks/local-state])
+i: Finished executing kotlin compiler using DAEMON strategy
+Resolve mutations for :buildSrc:generatePrecompiledScriptPluginAccessors (Thread[#172,included builds,5,main]) started.
+:buildSrc:generatePrecompiledScriptPluginAccessors (Thread[#172,included builds,5,main]) started.
+
+> Task :buildSrc:generatePrecompiledScriptPluginAccessors FAILED
+Caching disabled for task ':buildSrc:generatePrecompiledScriptPluginAccessors' because:
+  Build cache is disabled
+Task ':buildSrc:generatePrecompiledScriptPluginAccessors' is not up-to-date because:
+  No history is available.
+Build 1f530782-a564-4619-8b77-1cad5ba0a944 is closed
+
+FAILURE: Build failed with an exception.
+
+* Where:
+/home/z/my-project/CodeIDE/docs/tooling-scenarios/fixtures/07-avec-buildsrc.HFBI/buildSrc/src/main/kotlin/monplugin.gradle.kts line: 1
+
+* What went wrong:
+Invalid plugin request [id: 'org.gradle.kotlin.kotlin-dsl', version: '6.7.3']. Plugin requests from precompiled scripts must not include a version number. If you have been using the `kotlin-dsl` helper function, then simply replace it by 'id("org.gradle.kotlin.kotlin-dsl")'. Make sure the module containing the requested plugin 'org.gradle.kotlin.kotlin-dsl' is an implementation dependency of project ':buildSrc'.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 22s
+7 actionable tasks: 7 executed
+Some of the file system contents retained in the virtual file system are on file systems that Gradle doesn't support watching. The relevant state was discarded to ensure changes to these locations are properly detected. You can override this by explicitly enabling file system watching.
