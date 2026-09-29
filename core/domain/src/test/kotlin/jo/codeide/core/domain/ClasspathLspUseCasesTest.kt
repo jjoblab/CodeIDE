@@ -184,6 +184,7 @@ class ClasspathLspUseCasesTest {
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         var dossierClasspath: File? = null
+        var argumentsClasspath: List<String> = emptyList()
 
         override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> =
             MutableStateFlow(LigneSortieBuild(buildId, FluxSortieBuild.STDOUT, "", 0))
@@ -194,19 +195,26 @@ class ClasspathLspUseCasesTest {
         override fun observeBuildState(buildId: String): Flow<EtatBuild> =
             MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS))
 
-        override suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation> =
+        override suspend fun synchroniser(
+            projectDir: File,
+            arguments: List<String>,
+        ): AppResult<ResultatSynchronisation> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
         override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
-            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.DAEMON))
 
         override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
-        override suspend fun classpath(projectDir: File): AppResult<ClasspathProjet> {
+        override suspend fun classpath(
+            projectDir: File,
+            arguments: List<String>,
+        ): AppResult<ClasspathProjet> {
             dossierClasspath = projectDir
+            argumentsClasspath = arguments
             return prochainClasspath
         }
 

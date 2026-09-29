@@ -324,8 +324,8 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             val viewModel = viewModel(id)
             avancer()
 
-            tooling.emettreEtapeSync(EtapeSync.CONNEXION)
-            tooling.emettreEtapeSync(EtapeSync.CONNEXION, terminee = true, dureeMs = 900)
+            tooling.emettreEtapeSync(EtapeSync.DAEMON)
+            tooling.emettreEtapeSync(EtapeSync.DAEMON, terminee = true, dureeMs = 900)
             avancer()
 
             val etapes =

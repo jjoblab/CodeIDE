@@ -68,16 +68,19 @@ public class PreparerClasspathLspUseCase
          *
          * @param dossier répertoire racine du projet (FUSE, celui de la sync).
          * @param uriRacine URI de document SAF du dossier racine du projet.
+         * @param arguments arguments Gradle de la résolution (v4 : `--offline`
+         *        et arguments réglés s'appliquent AUSSI au classpath).
          * @return le classpath résolu, ou l'échec typé (journalisé par
          *   l'appelant, jamais bloquant pour l'édition).
          */
         public suspend operator fun invoke(
             dossier: File,
             uriRacine: String,
+            arguments: List<String> = emptyList(),
         ): AppResult<ClasspathProjet> =
             withContext(dispatchers.io) {
                 journal.i(TAG) { "préparation du classpath LSP demandée" }
-                when (val resolu = tooling.classpath(dossier)) {
+                when (val resolu = tooling.classpath(dossier, arguments)) {
                     is AppResult.Failure -> {
                         resolu
                     }

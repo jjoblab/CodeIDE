@@ -127,9 +127,14 @@
     <string name="editor_console_tache_duree">&gt; Tâche %1$s (%2$s)</string>
     <string name="editor_console_tache_sautee">&gt; Tâche %1$s — sautée</string>
     <string name="editor_console_tache_echouee">&gt; Tâche %1$s — ÉCHEC</string>
-    <string name="editor_console_etape_connexion">Connexion au daemon Gradle…</string>
-    <string name="editor_console_etape_modele_gradle">Résolution du modèle GradleProject…</string>
-    <string name="editor_console_etape_modele_idea">Résolution du modèle IdeaProject…</string>
+    <string name="editor_console_etape_outils">Vérification des outils…</string>
+    <string name="editor_console_etape_distribution">Téléchargement de la distribution Gradle…</string>
+    <string name="editor_console_etape_daemon">Démarrage du daemon Gradle…</string>
+    <string name="editor_console_etape_configuration">Configuration du projet…</string>
+    <string name="editor_console_etape_modele_taches">Résolution des tâches…</string>
+    <string name="editor_console_etape_modele_idee">Résolution du modèle IDE…</string>
+    <string name="editor_console_etape_dependances">Téléchargement des dépendances…</string>
+    <string name="editor_console_etape_classpaths">Préparation des classpaths…</string>
     <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
 
     <!-- Configuration du tooling (v3) — accessible depuis l'onglet Sortie :

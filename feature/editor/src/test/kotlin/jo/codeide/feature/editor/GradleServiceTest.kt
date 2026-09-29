@@ -191,16 +191,16 @@ class GradleServiceTest {
     @Test
     fun `une etape de sync s affiche au depart puis se conclut en place avec sa duree`() {
         service.marquerSyncEnCours()
-        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
         service.ajouterEtapeSync(
-            EtapeSyncTooling(etape = EtapeSync.CONNEXION, terminee = true, dureeMs = 4_200),
+            EtapeSyncTooling(etape = EtapeSync.DAEMON, terminee = true, dureeMs = 4_200),
         )
 
         val etapes =
             service.etat.value.lignes
                 .filterIsInstance<LigneConsole.Etape>()
         assertEquals("une seule ligne par étape (remplacée en place)", 1, etapes.size)
-        assertEquals(EtapeSync.CONNEXION, etapes.single().etat.etape)
+        assertEquals(EtapeSync.DAEMON, etapes.single().etat.etape)
         assertTrue(etapes.single().etat.terminee)
         assertEquals(4_200L, etapes.single().etat.dureeMs)
         assertEquals("l'étape de sync porte le canal SYNC", CanalTooling.SYNC, etapes.single().canal)
@@ -209,9 +209,9 @@ class GradleServiceTest {
     @Test
     fun `une nouvelle sync reannonce ses etapes en lignes nouvelles`() {
         service.marquerSyncEnCours()
-        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
         service.ajouterEtapeSync(
-            EtapeSyncTooling(etape = EtapeSync.CONNEXION, terminee = true, dureeMs = 100),
+            EtapeSyncTooling(etape = EtapeSync.DAEMON, terminee = true, dureeMs = 100),
         )
         service.publierResultatSync(
             AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 500)),
@@ -221,7 +221,7 @@ class GradleServiceTest {
         // l'historique de la première reste (chaque ligne est datée par sa
         // position, comme une vraie console).
         service.marquerSyncEnCours()
-        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
 
         val etapes =
             service.etat.value.lignes

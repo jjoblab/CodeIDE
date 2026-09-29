@@ -50,10 +50,16 @@ public interface GradleToolingRepository {
      * sans exécution de tâche).
      *
      * @param projectDir répertoire racine du projet Gradle.
+     * @param arguments arguments Gradle de la synchronisation (v4 : les
+     *        réglages tooling `--offline` et arguments libres s'appliquent
+     *        À la configuration du build — la sync ne les ignorait pas).
      * @return le résultat de la synchronisation (réussie, partielle ou
      * échouée — jamais une exception pour un échec attendu).
      */
-    public suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation>
+    public suspend fun synchroniser(
+        projectDir: File,
+        arguments: List<String> = emptyList(),
+    ): AppResult<ResultatSynchronisation>
 
     /**
      * État de synchronisation annoncé PAR L'ORCHESTRATEUR (étape 32,
@@ -89,8 +95,13 @@ public interface GradleToolingRepository {
      * moment venu, sans re-résolution.
      *
      * @param projectDir répertoire racine du projet Gradle.
+     * @param arguments arguments Gradle de la résolution (v4 : `--offline`
+     *        et arguments réglés s'appliquent AUSSI au classpath).
      */
-    public suspend fun classpath(projectDir: File): AppResult<ClasspathProjet>
+    public suspend fun classpath(
+        projectDir: File,
+        arguments: List<String> = emptyList(),
+    ): AppResult<ClasspathProjet>
 
     /**
      * Tâches d'un build au fil de leur exécution (v3 — affichage à la
@@ -232,37 +243,67 @@ public data class EtatSyncTooling(
 )
 
 /**
- * Une étape de synchronisation annoncée par l'orchestrateur (v3) — miroir
- * domaine du `SyncProgress` du protocole : la structure voyage, les
- * libellés appartiennent à l'UI.
+ * Une étape de synchronisation annoncée par l'orchestrateur (v3 ; v4 :
+ * phases RÉELLES + détails de progression) — miroir domaine du
+ * `SyncProgress` du protocole : la structure voyage, les libellés
+ * appartiennent à l'UI.
  *
  * @property projectDir dossier annoncé par l'orchestrateur.
  * @property etape phase en cours d'annonce.
  * @property terminee `true` pour l'annonce de FIN de phase (durée à la
  *           clé), `false` pour celle de départ.
  * @property dureeMs durée de la phase à sa fin.
+ * @property octetsRecus octets reçus cumulés (téléchargements) — 0 si sans
+ *           objet : alimente le sous-titre « 42 / 130 Mo ».
+ * @property octetsTotal octets totaux si connus — `null` sinon.
+ * @property element élément courant (artefact, projet) SANS donnée
+ *           personnelle.
+ * @property compteur éléments terminés de la phase (n).
+ * @property total éléments totaux de la phase (N) si connu.
  */
 public data class EtapeSyncTooling(
     public val projectDir: String? = null,
     public val etape: EtapeSync,
     public val terminee: Boolean = false,
     public val dureeMs: Long = 0,
+    public val octetsRecus: Long = 0,
+    public val octetsTotal: Long? = null,
+    public val element: String? = null,
+    public val compteur: Int? = null,
+    public val total: Int? = null,
 )
 
 /**
- * Phase énumérée d'une synchronisation (v3) — l'UI choisit ses libellés,
- * l'état reste pur (aucune chaîne localisée du côté du domaine).
+ * Phase énumérée d'une synchronisation (v4 — RÉELLES, l'ordre du déroulé) —
+ * l'UI choisit ses libellés, l'état reste pur (aucune chaîne localisée du
+ * côté du domaine). L'ancienne v3 mentait (CONNEXION ne télécharge rien,
+ * deux requêtes de modèles = deux configurations du build).
  */
 public enum class EtapeSync {
-    /** Ouverture de la connexion Tooling API (première fois : distribution
-     *  Gradle téléchargée, daemon démarré — la phase la plus longue). */
-    CONNEXION,
+    /** Vérifications locales AVANT toute requête (dossier, wrapper, JDK,
+     *  distribution en cache). */
+    OUTILS,
 
-    /** Résolution du modèle `GradleProject` (tâches du projet). */
-    MODELE_GRADLE,
+    /** Résolution de la distribution Gradle (téléchargement, décompression). */
+    DISTRIBUTION,
 
-    /** Résolution du modèle `IdeaProject` (structure IDE, dépendances). */
-    MODELE_IDEA,
+    /** Démarrage du daemon Gradle (daemon froid). */
+    DAEMON,
+
+    /** Configuration des projets du build (événements PROJECT_CONFIGURATION). */
+    CONFIGURATION,
+
+    /** Modèle `GradleProject` (tâches) — dans l'action UNIQUE v4. */
+    MODELE_TACHES,
+
+    /** Modèle `IdeaProject` (structure IDE) — dans la MÊME action. */
+    MODELE_IDE,
+
+    /** Téléchargement des dépendances (événements FILE_DOWNLOAD). */
+    DEPENDANCES,
+
+    /** Classpaths LSP depuis `IdeaProject` — avant le résultat de sync. */
+    CLASSPATHS,
 }
 
 /**

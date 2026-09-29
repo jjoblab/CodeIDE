@@ -261,12 +261,17 @@ internal class SortieAdapter : ListAdapter<LigneConsole, SortieAdapter.Holder>(D
             }
         }
 
-        /** Ressource du libellé d'une phase de sync. */
+        /** Ressource du libellé d'une phase de sync (v4 : phases réelles). */
         private fun libelleEtape(etape: EtapeSync): Int =
             when (etape) {
-                EtapeSync.CONNEXION -> R.string.editor_console_etape_connexion
-                EtapeSync.MODELE_GRADLE -> R.string.editor_console_etape_modele_gradle
-                EtapeSync.MODELE_IDEA -> R.string.editor_console_etape_modele_idea
+                EtapeSync.OUTILS -> R.string.editor_console_etape_outils
+                EtapeSync.DISTRIBUTION -> R.string.editor_console_etape_distribution
+                EtapeSync.DAEMON -> R.string.editor_console_etape_daemon
+                EtapeSync.CONFIGURATION -> R.string.editor_console_etape_configuration
+                EtapeSync.MODELE_TACHES -> R.string.editor_console_etape_modele_taches
+                EtapeSync.MODELE_IDE -> R.string.editor_console_etape_modele_idee
+                EtapeSync.DEPENDANCES -> R.string.editor_console_etape_dependances
+                EtapeSync.CLASSPATHS -> R.string.editor_console_etape_classpaths
             }
 
         /** Couleur du texte selon le genre : la tâche en cours porte la

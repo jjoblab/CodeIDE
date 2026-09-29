@@ -106,6 +106,7 @@ class GradleUseCasesTest {
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         var dossierSynchronise: File? = null
+        var argumentsSynchronisation: List<String> = emptyList()
         var dossierConstruit: File? = null
         var dossierTaches: File? = null
         var tachesDemandees: List<String> = emptyList()
@@ -121,8 +122,12 @@ class GradleUseCasesTest {
         override fun observeBuildState(buildId: String): Flow<EtatBuild> =
             MutableStateFlow(EtatBuild(buildId = buildId, statut = StatutBuild.EN_COURS))
 
-        override suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation> {
+        override suspend fun synchroniser(
+            projectDir: File,
+            arguments: List<String>,
+        ): AppResult<ResultatSynchronisation> {
             dossierSynchronise = projectDir
+            argumentsSynchronisation = arguments
             return prochaineSynchronisation
         }
 
@@ -131,7 +136,10 @@ class GradleUseCasesTest {
             return prochainesTaches
         }
 
-        override suspend fun classpath(projectDir: File): AppResult<ClasspathProjet> =
+        override suspend fun classpath(
+            projectDir: File,
+            arguments: List<String>,
+        ): AppResult<ClasspathProjet> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         override suspend fun build(
@@ -156,7 +164,7 @@ class GradleUseCasesTest {
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
         override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
-            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.CONNEXION))
+            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.DAEMON))
 
         override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = MutableStateFlow(emptyList())
     }

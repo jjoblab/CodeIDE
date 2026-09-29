@@ -698,7 +698,10 @@ class EditorViewModel
                     return@launch
                 }
                 val dossier = dossierProjetOuEchec() ?: return@launch
-                val resultat = synchroniserProjet(dossier)
+                // v4 (§3.1) : les arguments réglés (`--offline`, arguments
+                // libres) s'appliquent À la sync — mêmes règles que le build
+                // (l'orchestrateur garde la main sur `--console=plain`).
+                val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
                 serviceGradle.publierResultatSync(resultat)
                 preparerClasspathLspSiSyncUtile(dossier, resultat)
                 journal.i(TAG) { "synchronisation traitée (projet ${identifiantSuivi()})" }
@@ -725,7 +728,7 @@ class EditorViewModel
                 etatInterne.value.projet
                     ?.location
                     ?.grantUri ?: return
-            when (val preparation = preparerClasspathLsp(dossier, uriRacine)) {
+            when (val preparation = preparerClasspathLsp(dossier, uriRacine, optionsTooling.argumentsBuild())) {
                 is AppResult.Success -> {
                     journal.i(TAG) {
                         "classpath LSP préparé (${preparation.value.modules.size} module(s), " +

@@ -25,11 +25,18 @@ public class SynchroniserProjetUseCase
         private val journal: AppLogger,
         private val dispatchers: DispatcherProvider,
     ) {
-        /** Synchronise le dossier [dossier] (modèles IDE-like, §5.3). */
-        public suspend operator fun invoke(dossier: File): AppResult<ResultatSynchronisation> =
+        /**
+         * Synchronise le dossier [dossier] (modèles IDE-like, §5.3) avec les
+         * [arguments] Gradle réglés (v4 : `--offline` et arguments libres
+         * s'appliquent À la configuration du build).
+         */
+        public suspend operator fun invoke(
+            dossier: File,
+            arguments: List<String> = emptyList(),
+        ): AppResult<ResultatSynchronisation> =
             withContext(dispatchers.io) {
                 journal.i(TAG) { "synchronisation demandée" }
-                tooling.synchroniser(dossier)
+                tooling.synchroniser(dossier, arguments)
             }
     }
 

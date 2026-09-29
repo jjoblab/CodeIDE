@@ -118,9 +118,14 @@
     <string name="editor_console_tache_duree">&gt; Task %1$s (%2$s)</string>
     <string name="editor_console_tache_sautee">&gt; Task %1$s — skipped</string>
     <string name="editor_console_tache_echouee">&gt; Task %1$s — FAILED</string>
-    <string name="editor_console_etape_connexion">Connecting to the Gradle daemon…</string>
-    <string name="editor_console_etape_modele_gradle">Resolving the GradleProject model…</string>
-    <string name="editor_console_etape_modele_idea">Resolving the IdeaProject model…</string>
+    <string name="editor_console_etape_outils">Checking the tools…</string>
+    <string name="editor_console_etape_distribution">Downloading the Gradle distribution…</string>
+    <string name="editor_console_etape_daemon">Starting the Gradle daemon…</string>
+    <string name="editor_console_etape_configuration">Configuring the project…</string>
+    <string name="editor_console_etape_modele_taches">Resolving the tasks…</string>
+    <string name="editor_console_etape_modele_idee">Resolving the IDE model…</string>
+    <string name="editor_console_etape_dependances">Downloading the dependencies…</string>
+    <string name="editor_console_etape_classpaths">Preparing the classpaths…</string>
     <string name="editor_console_etape_terminee">%1$s (%2$s)</string>
 
     <!-- Tooling configuration (v3) — reachable from the Output tab: task

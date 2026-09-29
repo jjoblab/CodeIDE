@@ -50,6 +50,7 @@ class FauxToolingEditor : GradleToolingRepository {
 
     /** Dossier passé à chaque opération (assertions). */
     var dossierRecu: File? = null
+    var argumentsRecus: List<String> = emptyList()
 
     /** Nombre de synchronisations demandées (assertion de la sync
      *  d'ouverture, étape 32). */
@@ -91,8 +92,12 @@ class FauxToolingEditor : GradleToolingRepository {
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 
-    override suspend fun synchroniser(projectDir: File): AppResult<ResultatSynchronisation> {
+    override suspend fun synchroniser(
+        projectDir: File,
+        arguments: List<String>,
+    ): AppResult<ResultatSynchronisation> {
         dossierRecu = projectDir
+        argumentsRecus = arguments
         nbSynchronisations++
         return prochaineSynchronisation
     }
@@ -102,7 +107,10 @@ class FauxToolingEditor : GradleToolingRepository {
         return prochainesTaches
     }
 
-    override suspend fun classpath(projectDir: File): AppResult<ClasspathProjet> {
+    override suspend fun classpath(
+        projectDir: File,
+        arguments: List<String>,
+    ): AppResult<ClasspathProjet> {
         dossierRecu = projectDir
         nbClasspaths++
         return prochainClasspath
