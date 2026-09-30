@@ -136,6 +136,13 @@ class FauxToolingEditor : GradleToolingRepository {
         buildAnnule = buildId
     }
 
+    override fun envoyerEntree(
+        buildId: String,
+        texte: String,
+    ) {
+        // v0.41.1 : no-op — le faux ne gère pas stdin.
+    }
+
     /** Tas observable (pilotable par le test — v3 : écran de configuration). */
     val tasInterne = MutableStateFlow(InstantaneTas(0, 0))
 

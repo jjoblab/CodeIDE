@@ -842,6 +842,12 @@ class EditorViewModel
                         ?.let { identifiant -> annulerBuild(identifiant) }
                 }
 
+                is ActionEditor.EnvoyerEntreeConsole -> {
+                    // v0.41.1 : envoyer l'entrée stdin au build en cours.
+                    serviceGradle.etat.value.buildId
+                        ?.let { identifiant -> tooling.envoyerEntree(identifiant, action.texte) }
+                }
+
                 else -> {
                     Unit
                 }

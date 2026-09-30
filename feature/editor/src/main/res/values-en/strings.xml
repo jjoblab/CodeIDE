@@ -90,6 +90,7 @@
     <string name="editor_executer">Run…</string>
     <string name="editor_executer_titre">Run a Gradle task</string>
     <string name="editor_sortie_vide">Build output will appear here.</string>
+    <string name="editor_console_entree_hint">Enter input…</string>
     <string name="editor_sortie_annuler_cd">Stop the running build</string>
     <string name="editor_problemes_vide">No problems so far.</string>
     <string name="editor_sortie_sync_en_cours">Syncing…</string>

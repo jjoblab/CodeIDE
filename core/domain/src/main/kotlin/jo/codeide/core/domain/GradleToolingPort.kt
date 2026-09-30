@@ -148,6 +148,17 @@ public interface GradleToolingRepository {
     /** Annule le build [buildId] (sans effet s'il est déjà terminé). */
     public fun cancel(buildId: String)
 
+    /**
+     * Écrit sur l'entrée standard du build [buildId] en cours (v0.41.1) —
+     * permet à `readln()`, `Scanner(System.in)`, etc. de lire les entrées
+     * de l'utilisateur depuis la console de l'app. Sans effet si le build
+     * est déjà terminé.
+     */
+    public fun envoyerEntree(
+        buildId: String,
+        texte: String,
+    )
+
     /** Instantanés périodiques du tas de l'orchestrateur (§4.6). */
     public fun observeHeap(): Flow<InstantaneTas>
 

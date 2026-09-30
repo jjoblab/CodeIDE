@@ -95,6 +95,7 @@
     <string name="editor_executer">Exécuter…</string>
     <string name="editor_executer_titre">Exécuter une tâche Gradle</string>
     <string name="editor_sortie_vide">La sortie du build apparaîtra ici.</string>
+    <string name="editor_console_entree_hint">Saisir une entrée…</string>
     <string name="editor_sortie_annuler_cd">Arrêter le build en cours</string>
     <string name="editor_problemes_vide">Aucun problème pour le moment.</string>
     <string name="editor_sortie_sync_en_cours">Synchronisation en cours…</string>
