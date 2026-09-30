@@ -16,6 +16,7 @@ import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneArbreEtapeBinding
 import jo.codeide.feature.editor.databinding.LigneClasspathModuleBinding
 import jo.codeide.feature.editor.databinding.LigneDetailTelechargementBinding
+import jo.codeide.feature.editor.databinding.LigneGradleBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
 import jo.codeide.feature.editor.databinding.LigneSyntheseBuildBinding
 import jo.codeide.feature.editor.databinding.LigneTacheConsoleBinding
@@ -235,15 +236,19 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         /** Alpha d'une tâche sautée (atténuée vers le fond). */
         private const val ALPHA_ATTENUE = 128
 
+        /** Alpha d'une ligne Gradle apaisée (avertissement bénin — atténuée). */
+        private const val ALPHA_LIGNE_APAISEE = 0.55f
+
         /** Progression maximale en pourcentage (détail de téléchargement). */
         private const val POURCENT_MAX = 100f
     }
 
-    /** Fabrique des rangées (arbre / détail / classpath / tâche / synthèses). */
+    /** Fabrique des rangées (arbre / détail / classpath / ligne gradle / tâche / synthèses). */
     private enum class Type {
         ETAPE_ARBRE,
         DETAIL_TELECHARGEMENT,
         DETAIL_CLASSPATH,
+        LIGNE_GRADLE,
         TACHE,
         SYNTHESE_BUILD,
         SYNTHESE_SYNC,
@@ -254,6 +259,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             is RangeeConsole.EtapeArbre -> Type.ETAPE_ARBRE
             is RangeeConsole.DetailTelechargement -> Type.DETAIL_TELECHARGEMENT
             is RangeeConsole.DetailClasspath -> Type.DETAIL_CLASSPATH
+            is RangeeConsole.LigneGradle -> Type.LIGNE_GRADLE
             is RangeeConsole.Tache -> Type.TACHE
             is RangeeConsole.SyntheseBuild -> Type.SYNTHESE_BUILD
             is RangeeConsole.SyntheseSync -> Type.SYNTHESE_SYNC
@@ -280,6 +286,12 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             Type.DETAIL_CLASSPATH.ordinal -> {
                 ClasspathModuleHolder(
                     LigneClasspathModuleBinding.inflate(inflateur, parent, false),
+                )
+            }
+
+            Type.LIGNE_GRADLE.ordinal -> {
+                LigneGradleHolder(
+                    LigneGradleBinding.inflate(inflateur, parent, false),
                 )
             }
 
@@ -311,6 +323,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             is RangeeConsole.EtapeArbre -> (holder as EtapeArbreHolder).lier(rangee)
             is RangeeConsole.DetailTelechargement -> (holder as DetailTelechargementHolder).lier(rangee)
             is RangeeConsole.DetailClasspath -> (holder as ClasspathModuleHolder).lier(rangee)
+            is RangeeConsole.LigneGradle -> (holder as LigneGradleHolder).lier(rangee)
             is RangeeConsole.Tache -> (holder as TacheHolder).lier(rangee.ligne)
             is RangeeConsole.SyntheseBuild -> (holder as SyntheseHolder).lier(rangee)
             is RangeeConsole.SyntheseSync -> (holder as SyntheseHolder).lier(rangee)
@@ -695,6 +708,47 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                 this,
                 ALPHA_ATTENUE,
             )
+    }
+
+    // ---- Ligne stdout/stderr brute de Gradle (v0.41.1) -------------------
+
+    /** Ligne brute de Gradle : monospace 11sp atténué, indenté 28dp.
+     *  Les lignes apaisées (avertissement bénin du daemon) sont en style
+     *  informatif. Les lignes stderr sont en rouge d'erreur. */
+    private class LigneGradleHolder(
+        private val liaison: LigneGradleBinding,
+    ) : RecyclerView.ViewHolder(liaison.root) {
+        fun lier(rangee: RangeeConsole.LigneGradle) {
+            val ligne = rangee.ligne
+            liaison.texteLigneGradle.text = ligne.texte
+            // Les lignes apaisées (avertissement bénin) : style informatif.
+            // Les lignes stderr : rouge d'erreur (sauf apaisées).
+            liaison.texteLigneGradle.alpha = if (ligne.apaisee) ALPHA_LIGNE_APAISEE else 1f
+            liaison.texteLigneGradle.setTextColor(
+                when {
+                    ligne.apaisee -> {
+                        ContextCompat.getColor(
+                            liaison.root.context,
+                            jo.codeide.core.ui.R.color.codeide_stdout,
+                        )
+                    }
+
+                    ligne.flux == jo.codeide.core.domain.FluxSortieBuild.STDERR -> {
+                        ContextCompat.getColor(
+                            liaison.root.context,
+                            jo.codeide.core.ui.R.color.codeide_stderr,
+                        )
+                    }
+
+                    else -> {
+                        ContextCompat.getColor(
+                            liaison.root.context,
+                            jo.codeide.core.ui.R.color.codeide_stdout,
+                        )
+                    }
+                },
+            )
+        }
     }
 
     // ---- Détail classpath par module (v0.40.1 §4) -----------------------

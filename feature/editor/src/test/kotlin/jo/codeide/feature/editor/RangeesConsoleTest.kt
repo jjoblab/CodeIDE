@@ -37,7 +37,7 @@ class RangeesConsoleTest {
     // ---- Vue SYNC : l'arbre des sept étapes ------------------------------
 
     @Test
-    fun `la vue SYNC montre les sept etapes du plan meme non annoncees`() {
+    fun `la vue SYNC montre les etapes announcees progressivement - v0_41_1`() {
         val etat =
             EtatGradle(
                 synchronisationEnCours = true,
@@ -50,17 +50,15 @@ class RangeesConsoleTest {
 
         val rangees = construireRangeesConsole(etat, FiltreCanalConsole.SYNC)
 
-        // L'arbre couvre les SEPT étapes du plan d'affichage (les
-        // non-annoncées restent en attente ○ — le chemin complet reste
-        // visible, §3.3 ; MODELE_IDE et DEPENDANCES partagent une rangée).
+        // v0.41.1 : étapes PROGRESSIVES — seules les étapes ANNONCÉES
+        // apparaissent. OUTILS (annoncée, terminée) + DISTRIBUTION
+        // (annoncée, en cours) = 2 étapes, pas 7.
         val etapes = rangees.filterIsInstance<RangeeConsole.EtapeArbre>()
-        assertEquals(EtapeConsoleSync.entries.size, etapes.size)
-        assertEquals(
-            EtapeConsoleSync.entries.map { it.name },
-            etapes.map { it.etape.name },
-        )
-        assertTrue(etapes.first { it.etape == EtapeConsoleSync.OUTILS }.etat?.terminee == true)
-        assertNull(etapes.first { it.etape == EtapeConsoleSync.DAEMON }.etat)
+        assertEquals(2, etapes.size)
+        assertEquals(EtapeConsoleSync.OUTILS, etapes[0].etape)
+        assertEquals(EtapeConsoleSync.DISTRIBUTION, etapes[1].etape)
+        assertTrue(etapes[0].etat?.terminee == true)
+        assertTrue(etapes[1].etat?.terminee == false)
     }
 
     @Test
@@ -308,12 +306,15 @@ class RangeesConsoleTest {
 
         val rangees = construireRangeesConsole(etat, FiltreCanalConsole.BUILD)
 
-        // Une rangée par TÂCHE — la sortie brute du build ne mélange plus
-        // l'écran (v5 — l'aperçu ne montre que les tâches et la synthèse).
-        assertEquals(2, rangees.size)
+        // v0.41.1 : les lignes stdout/stderr brutes de Gradle
+        // s'intercalent entre les tâches — la sortie stderr "build err"
+        // apparaît entre la tâche et la synthèse.
+        assertEquals(3, rangees.size)
         val tache = rangees[0] as RangeeConsole.Tache
         assertEquals(":app:compileKotlin", tache.ligne.etat.chemin)
         assertEquals(6_100L, tache.ligne.etat.dureeMs)
+        val ligneGradle = rangees[1] as RangeeConsole.LigneGradle
+        assertEquals("build err", ligneGradle.ligne.texte)
         val synthese = rangees.last() as RangeeConsole.SyntheseBuild
         assertEquals(StatutBuild.REUSSI, synthese.statut)
         assertEquals(12_400L, synthese.dureeMs)
@@ -368,15 +369,12 @@ class RangeesConsoleTest {
             )
 
         val rangeesSync = construireRangeesConsole(etat, FiltreCanalConsole.SYNC)
+        // v0.41.1 : étapes PROGRESSIVES — seule l'étape DAEMON a été
+        // annoncée (les autres non). L'arbre ne montre que les étapes
+        // annoncées + le pied de sync.
         assertEquals(
             listOf(
-                "etape-OUTILS",
-                "etape-DISTRIBUTION",
                 "etape-DAEMON",
-                "etape-CONFIGURATION",
-                "etape-MODELE_TACHES",
-                "etape-DEPENDANCES_MODELE",
-                "etape-CLASSPATHS",
                 "synthese-sync",
             ),
             rangeesSync.map { it.idCle },

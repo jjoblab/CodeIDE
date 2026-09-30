@@ -117,6 +117,20 @@ internal sealed interface RangeeConsole {
             get() = "classpath-$nomModule"
     }
 
+    /**
+     * Ligne stdout/stderr brute de Gradle SOUS l'étape active (v0.41.1) :
+     * les informations que Gradle fournit (Downloading..., > Configure
+     * project..., Starting process..., warnings, erreurs) en sous-lignes
+     * monospace atténuées. La clé est l'identifiant de la ligne pour
+     * DiffUtil (mise à jour en place si le texte change).
+     */
+    data class LigneGradle(
+        val ligne: LigneConsole.Sortie,
+    ) : RangeeConsole {
+        override val idCle: String
+            get() = "gradle-${ligne.id}"
+    }
+
     /** Tâche du build (v3 ; v5 — SEULE ligne de la vue Build, les sorties
      *  brutes ne mélangent plus l'écran) : mise à jour en place à sa fin. */
     data class Tache(
@@ -217,18 +231,29 @@ internal fun construireRangeesConsole(
         }
 
         FiltreCanalConsole.BUILD -> {
+            // v0.41.1 : les lignes stdout/stderr brutes de Gradle
+            // s'intercalent entre les tâches structurées — l'utilisateur
+            // voit CE que Gradle fait, comme Android Studio.
             etat.lignes
-                .filterIsInstance<LigneConsole.Tache>()
-                .map { RangeeConsole.Tache(it) } + syntheseBuild(etat)
+                .filter { it is LigneConsole.Tache || (it is LigneConsole.Sortie && it.canal == CanalTooling.BUILD) }
+                .map { ligne ->
+                    when (ligne) {
+                        is LigneConsole.Tache -> RangeeConsole.Tache(ligne)
+                        is LigneConsole.Sortie -> RangeeConsole.LigneGradle(ligne)
+                        else -> null
+                    }
+                }.filterNotNull() + syntheseBuild(etat)
         }
     }
 
 /**
- * L'arbre des étapes (§3.3 ; v5 — plan de l'aperçu) : les SEPT étapes
- * affichées dans l'ordre, chacune avec son état consolidé — ○ pour les
- * non atteintes, jamais supprimées (l'utilisateur voit le CHEMIN complet,
- * comme la vue Build d'Android Studio). Le détail de téléchargement
- * s'insère sous l'étape ACTIVE.
+ * L'arbre des étapes (§3.3 ; v5 — aperçu ; v0.41.1 — étapes PROGRESSIVES :
+ * une étape n'apparaît que quand Gradle l'atteint, pas tout l'arbre d'un
+ * coup. Les étapes terminées restent visibles (l'utilisateur voit le
+ * chemin parcouru), les étapes non encore atteintes n'existent pas dans
+ * la liste). Le détail de téléchargement s'insère sous l'étape ACTIVE,
+ * les lignes stdout/stderr brutes de Gradle s'insèrent sous l'étape
+ * active ou terminée (comme Android Studio).
  */
 private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     val annoncees = etat.etapesAffichees.associateBy { it.etape }
@@ -236,7 +261,14 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     val phaseActive = etat.etapeCourante?.takeIf { etat.synchronisationEnCours && !it.terminee }
     val rangees = mutableListOf<RangeeConsole>()
     for (etape in EtapeConsoleSync.entries) {
-        rangees += RangeeConsole.EtapeArbre(etape, consolider(etape, annoncees))
+        // v0.41.1 : étapes PROGRESSIVES — ne montrer QUE les étapes qui
+        // ont été annoncées par le serveur. Les étapes non encore
+        // atteintes (état `null`) n'apparaissent pas — l'arbre grandit
+        // au fur et à mesure, comme Android Studio.
+        val etatConsolide = consolider(etape, annoncees) ?: continue
+        rangees += RangeeConsole.EtapeArbre(etape, etatConsolide)
+
+        // Détail de téléchargement SOUS l'étape active.
         if (phaseActive != null && EtapeConsoleSync.dePhase(phaseActive.etape) == etape) {
             rangees +=
                 RangeeConsole.DetailTelechargement(
@@ -248,10 +280,38 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
                     element = phaseActive.element,
                 )
         }
+
+        // v0.41.1 : lignes stdout/stderr brutes de Gradle SOUS l'étape
+        // active ou terminée — les informations que Gradle fournit
+        // (Downloading..., > Configure project..., Starting process...,
+        // warnings, erreurs) apparaissent en sous-lignes monospace
+        // atténuées, comme Android Studio.
+        val lignesGradle =
+            etat.lignes
+                .filterIsInstance<LigneConsole.Sortie>()
+                .filter { ligne ->
+                    // On ne peut pas associer une ligne stdout à une
+                    // phase précise (le protocole ne porte pas le
+                    // numéro de phase). On utilise une heuristique :
+                    // pendant la sync, toutes les lignes stdout/stderr
+                    // sont du canal Sync (les builds ont leur propre
+                    // buildId). On les affiche sous l'étape ACTIVE si
+                    // la sync est en cours, ou sous la DERNIÈRE étape
+                    // terminée si la sync est finie.
+                    ligne.canal == CanalTooling.SYNC
+                }
+        if (lignesGradle.isNotEmpty() && phaseActive != null &&
+            EtapeConsoleSync.dePhase(phaseActive.etape) == etape
+        ) {
+            // Pendant la sync : afficher les lignes sous l'étape active.
+            rangees +=
+                lignesGradle.takeLast(NB_LIGNES_GRADLE_SOUS_ETAPE).map {
+                    RangeeConsole.LigneGradle(it)
+                }
+        }
+
         // v0.40.1 (prompt de suivi §4) : sous-lignes classpath par module
-        // sous l'étape CLASSPATHS — affichées après la conclusion de
-        // l'étape (sync réussie) ou pendant (sync en cours si les stats
-        // sont déjà disponibles via l'état restitué).
+        // sous l'étape CLASSPATHS.
         if (etape == EtapeConsoleSync.CLASSPATHS && etat.statsClasspath != null) {
             rangees +=
                 etat.statsClasspath.map { module ->
@@ -268,6 +328,9 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     }
     return rangees
 }
+
+/** Nombre maximum de lignes stdout/stderr affichées sous une étape (v0.41.1). */
+private const val NB_LIGNES_GRADLE_SOUS_ETAPE = 8
 
 /** Consolide l'état d'une rangée depuis ses phases annoncées — `null`
  *  quand aucune n'a été annoncée (rangée en attente ○). v6 (prompt de
