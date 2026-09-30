@@ -158,6 +158,21 @@ class PanneauConsoleFragment : Fragment() {
                 rendre(viewModel.etatGradle.value)
             }
         }
+        // v0.41.1 : champ de saisie stdin — visible pendant un build
+        // EN_COURS. L'utilisateur tape, appuie sur Entrée, le texte est
+        // envoyé au serveur via BuildInput (readln, Scanner(System.in)).
+        liaison.champEntreeConsole.setEndIconOnClickListener {
+            envoyerEntreeConsole()
+        }
+        liaison.editEntreeConsole.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
+                envoyerEntreeConsole()
+                true
+            } else {
+                false
+            }
+        }
+
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
     }
 
@@ -169,6 +184,14 @@ class PanneauConsoleFragment : Fragment() {
     override fun onDestroyView() {
         liaisonAmorce = null
         super.onDestroyView()
+    }
+
+    /** v0.41.1 : envoie le texte du champ de saisie au build en cours (stdin). */
+    private fun envoyerEntreeConsole() {
+        val texte = liaison.editEntreeConsole.text?.toString() ?: return
+        if (texte.isBlank()) return
+        viewModel.onAction(ActionEditor.EnvoyerEntreeConsole(texte))
+        liaison.editEntreeConsole.text?.clear()
     }
 
     /** Bandeau d'échec (§3.3) : « Voir les problèmes » (onglet dédié) et
@@ -215,6 +238,9 @@ class PanneauConsoleFragment : Fragment() {
         // v0.40.1 (§3) : chip d'action UNIQUE reflétant l'action courante.
         // Aucun chip s'il n'y a eu aucune action Gradle (état vierge).
         rendreChipAction(etat)
+
+        // v0.41.1 : champ de saisie stdin visible pendant un build EN_COURS.
+        liaison.champEntreeConsole.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
         val rangees = construireRangeesConsole(etat, action)
         adaptateur.submitList(rangees)

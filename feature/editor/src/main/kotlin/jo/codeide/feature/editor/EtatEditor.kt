@@ -541,6 +541,11 @@ sealed interface ActionEditor {
 
     /** Annule le build en cours (G5, §6 — bouton de l'onglet Sortie). */
     data object AnnulerBuild : ActionEditor
+
+    /** v0.41.1 : envoie une entrée stdin au build en cours (readln). */
+    data class EnvoyerEntreeConsole(
+        val texte: String,
+    ) : ActionEditor
 }
 
 /**

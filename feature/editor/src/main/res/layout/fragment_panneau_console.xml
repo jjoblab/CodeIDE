@@ -214,6 +214,33 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:visibility="gone" />
+
+        <!-- v0.41.1 : champ de saisie stdin pour readln()/Scanner(System.in).
+             Visible seulement pendant un build EN_COURS (le programme peut
+             attendre une entrée). L'utilisateur tape, appuie sur Entrée,
+             le texte est envoyé au serveur via BuildInput. -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/champ_entree_console"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginVertical="@dimen/spacing_xs"
+            android:hint="@string/editor_console_entree_hint"
+            android:visibility="gone"
+            app:endIconMode="custom"
+            app:endIconDrawable="@drawable/ic_executer"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_entree_console"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:imeOptions="actionSend"
+                android:inputType="text"
+                android:textSize="12sp" />
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
     <!-- Page de configuration (v4, §3.3) : vit DANS le conteneur de la
