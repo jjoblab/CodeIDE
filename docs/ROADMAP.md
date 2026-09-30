@@ -1,12 +1,13 @@
-# CodeIDE — Roadmap v0.42.0+
+# CodeIDE — Roadmap v0.43.0+
 
 > Dernière mise à jour : 2026-09-30
-> Version courante : 0.41.0
+> Version courante : 0.42.0
 
-## État actuel (v0.41.0)
+## État actuel (v0.42.0)
 
 ### Fonctionnel ✅
-- **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp), lignes stdout/stderr visibles
+- **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp)
+- **Console hybride** (v0.42.0, ADR 0074) : zone structurée (RecyclerView : étapes, tâches, synthèse) + zone texte (lignes brutes par append O(1), loties par trame, tampon borné 2 000) — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
 - **Templates** : kotlin-jvm, java, android-app, spring-boot, kotlin-multiplatform
 - **Éditeur** : code-editor 3.40.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
@@ -14,7 +15,6 @@
 - **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
 
 ### Problèmes connus ❌
-- **Console lente** — un build de 725ms prend 2 minutes à s'afficher (cause : RecyclerView + DiffUtil + StateFlow par ligne = O(n²))
 - **Templates trop simples** — un seul fichier Main + Greeter, pas de strings.xml/colors.xml/themes.xml pour Android
 - **Clés i18n manquantes** — gitattributes.entete dans KMP/spring-boot/android-app
 - **Package name** — `packageFromNameAndAuthor` produit un package non standard (devrait être `com.example.<name>`)
@@ -22,38 +22,28 @@
 
 ---
 
-## Phase 1 — Performance console (CRITIQUE)
+## Phase 1 — Performance console (CRITIQUE) ✅ v0.42.0
 
-> Objectif : un build de 725ms s'affiche en < 1s, pas 2 min.
+> Objectif : un build de 725 ms s'affiche en < 1s, pas 2 min.
+> **Livré (ADR 0074)** : architecture hybride + toutes les optimisations ci-dessous.
 
-### 1.1 Architecture hybride (comme Android Studio)
+### 1.1 Architecture hybride (comme Android Studio) ✅
 
 Séparer la console en deux zones :
-- **Zone structurée** (RecyclerView) : étapes de sync + tâches de build + synthèse — mise à jour en place via DiffUtil (peu de rangées, O(1) par mise à jour)
-- **Zone texte** (TextView monospace scrollable) : lignes stdout/stderr brutes de Gradle — append direct, **pas de DiffUtil, pas de StateFlow par ligne**
-
-```
-┌─────────────────────────────────┐
-│ > Task :app:compileDebugKotlin 6,1s │  ← RecyclerView (structuré)
-│ > Task :app:mergeDebugResources 2,3s│
-│   e: file:///.../Main.kt:12:3 error │  ← TextView (texte brut)
-│   Downloading kotlin-stdlib...      │  ← TextView
-│ ✓ Build réussi en 12,4s             │  ← RecyclerView (structuré)
-│ 37 actionable tasks: 2 executed     │  ← TextView (texte brut)
-└─────────────────────────────────┘
-```
+- **Zone structurée** (RecyclerView) : étapes de sync + tâches de build + synthèse — mise à jour en place via DiffUtil (peu de rangées, O(1) par mise à jour) ✅
+- **Zone texte** (TextView monospace scrollable) : lignes stdout/stderr brutes de Gradle — append direct, **pas de DiffUtil, pas de StateFlow par ligne** ✅
 
 **Implémentation** :
-- `PanneauConsoleFragment` : un `RecyclerView` (rangées structurées) + un `TextView` (texte brut) empilés verticalement
-- `GradleService` : les `LigneConsole.Sortie` vont dans un buffer texte (`StringBuilder` borné à 2000 lignes), pas dans `etat.lignes`
-- `LigneConsole.Tache` et `LigneConsole.Etape` restent dans `etat.lignes` (peu de rangées, DiffUtil OK)
-- Le `TextView` est mis à jour par `append()` direct — O(1) par ligne
+- `PanneauConsoleFragment` : un `RecyclerView` (rangées structurées) + un `TextView` (texte brut) empilés verticalement ✅
+- `GradleService` : les lignes brutes vont dans un flux dédié `lignesBrutes` (`SharedFlow` borné à 2 000 événements — le rejeu EST le tampon), pas dans `etat.lignes` ✅
+- `LigneConsole.Tache` et `LigneConsole.Etape` restent dans `etat.lignes` (peu de rangées, DiffUtil OK) ✅
+- Le `TextView` est mis à jour par `append()` direct — O(1) par ligne, LOTI par trame (un seul append et une seule passe de layout par trame) ✅
 
-### 1.2 Optimisations supplémentaires
+### 1.2 Optimisations supplémentaires ✅
 
-- **Borner le TextView** à 2000 lignes (tête tronquée, comme `NB_LIGNES_MAX`)
-- **Auto-scroll** : le TextView scroll automatiquement vers le bas pendant un build en cours
-- **Pas de filtrage** : tout s'affiche, comme Android Studio
+- **Borner le TextView** à 2000 lignes (tête tronquée, comme `NB_LIGNES_MAX`) ✅ (le rejeu du SharedFlow est borné par construction)
+- **Auto-scroll** : le TextView scroll automatiquement vers le bas pendant un build en cours (tant que l'utilisateur y est resté — jamais rabattu) ✅
+- **Pas de filtrage** : tout s'affiche, comme Android Studio ✅
 
 ---
 
@@ -183,8 +173,8 @@ Créer un template `android-app-java` ou ajouter un paramètre `language` (kotli
 
 | Phase | Priorité | Effort | Impact utilisateur |
 |---|---|---|---|
-| 1 — Console perf | **CRITIQUE** | Moyen | Très haut — l'app devient utilisable |
-| 2 — Fix templates | Haute | Faible | Haut — les templates marchent |
+| 1 — Console perf | **CRITIQUE** ✅ livré v0.42.0 (ADR 0074) | Moyen | Très haut — l'app devient utilisable |
+| 2 — Fix templates | **Haute (prochaine)** | Faible | Haut — les templates marchent |
 | 3 — Templates avancés | Moyenne | Moyen | Moyen — plus de choix |
 | 4 — Wizard | Moyenne | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse | Très haut | Très haut — transforme en IDE |

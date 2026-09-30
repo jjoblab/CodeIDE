@@ -16,7 +16,6 @@ import jo.codeide.feature.editor.databinding.GroupeProblemesBinding
 import jo.codeide.feature.editor.databinding.LigneArbreEtapeBinding
 import jo.codeide.feature.editor.databinding.LigneClasspathModuleBinding
 import jo.codeide.feature.editor.databinding.LigneDetailTelechargementBinding
-import jo.codeide.feature.editor.databinding.LigneGradleBinding
 import jo.codeide.feature.editor.databinding.LigneProblemeBinding
 import jo.codeide.feature.editor.databinding.LigneSyntheseBuildBinding
 import jo.codeide.feature.editor.databinding.LigneTacheConsoleBinding
@@ -213,19 +212,21 @@ internal object OctetsLisibles {
 /**
  * Adaptateur de l'onglet Sortie (G5, §6 ; v0.32.5 : lignes CANALISÉES,
  * ADR 0056 décision 5 ; v3 : lignes TYPIÉES ; v4, §3.3 : ARBRE d'étapes
- * et filtre de canal) — quatre genres de rangées :
+ * et filtre de canal ; v0.42.0 — phase 1 : console hybride, la zone
+ * STRUCTURÉE seule vit ici) — quatre genres de rangées :
  *
  * - **étape d'arbre** (vue Sync) : marqueur ✓ / spinner / ○ + libellé de
  *   la phase + durée MESURÉE (jamais devinée) ;
  * - **détail de téléchargement** sous l'étape active : barre de
  *   progression (octets reçus/total), compteur n/N, artefact courant ;
- * - **ligne existante** (chronologie, vue TOUS et Build) : étiquette de
- *   canal + texte monospace, sortie brute (stderr distincte par la couleur
- *   d'erreur, avertissement bénin apaisé — C5), tâche au fil du build
- *   (en cours : couleur du canal ; fin : durée, sautée grisée, échec
- *   rouge — mise à jour EN PLACE, une ligne par tâche comme la vue Build
- *   d'Android Studio) ;
+ * - **tâche au fil du build** (vue Build) : en cours : couleur du canal ;
+ *   fin : durée, sautée grisée, échec rouge — mise à jour EN PLACE, une
+ *   ligne par tâche comme la vue Build d'Android Studio ;
  * - **synthèse finale du build** (vue Build) : verdict + durée.
+ *
+ * Les lignes stdout/stderr brutes ne passent PLUS par cet adaptateur : la
+ * zone TEXTE annexée du fragment les reçoit par append direct (O(1) par
+ * ligne, phase 1 du roadmap — performance console).
  *
  * Les libellés des tâches, étapes et synthèses sont LOCALISÉS ici : les
  * rangées restent pures (construites par [construireRangeesConsole]),
@@ -236,19 +237,15 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         /** Alpha d'une tâche sautée (atténuée vers le fond). */
         private const val ALPHA_ATTENUE = 128
 
-        /** Alpha d'une ligne Gradle apaisée (avertissement bénin — atténuée). */
-        private const val ALPHA_LIGNE_APAISEE = 0.55f
-
         /** Progression maximale en pourcentage (détail de téléchargement). */
         private const val POURCENT_MAX = 100f
     }
 
-    /** Fabrique des rangées (arbre / détail / classpath / ligne gradle / tâche / synthèses). */
+    /** Fabrique des rangées (arbre / détail / classpath / tâche / synthèses). */
     private enum class Type {
         ETAPE_ARBRE,
         DETAIL_TELECHARGEMENT,
         DETAIL_CLASSPATH,
-        LIGNE_GRADLE,
         TACHE,
         SYNTHESE_BUILD,
         SYNTHESE_SYNC,
@@ -259,7 +256,6 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             is RangeeConsole.EtapeArbre -> Type.ETAPE_ARBRE
             is RangeeConsole.DetailTelechargement -> Type.DETAIL_TELECHARGEMENT
             is RangeeConsole.DetailClasspath -> Type.DETAIL_CLASSPATH
-            is RangeeConsole.LigneGradle -> Type.LIGNE_GRADLE
             is RangeeConsole.Tache -> Type.TACHE
             is RangeeConsole.SyntheseBuild -> Type.SYNTHESE_BUILD
             is RangeeConsole.SyntheseSync -> Type.SYNTHESE_SYNC
@@ -286,12 +282,6 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             Type.DETAIL_CLASSPATH.ordinal -> {
                 ClasspathModuleHolder(
                     LigneClasspathModuleBinding.inflate(inflateur, parent, false),
-                )
-            }
-
-            Type.LIGNE_GRADLE.ordinal -> {
-                LigneGradleHolder(
-                    LigneGradleBinding.inflate(inflateur, parent, false),
                 )
             }
 
@@ -323,7 +313,6 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             is RangeeConsole.EtapeArbre -> (holder as EtapeArbreHolder).lier(rangee)
             is RangeeConsole.DetailTelechargement -> (holder as DetailTelechargementHolder).lier(rangee)
             is RangeeConsole.DetailClasspath -> (holder as ClasspathModuleHolder).lier(rangee)
-            is RangeeConsole.LigneGradle -> (holder as LigneGradleHolder).lier(rangee)
             is RangeeConsole.Tache -> (holder as TacheHolder).lier(rangee.ligne)
             is RangeeConsole.SyntheseBuild -> (holder as SyntheseHolder).lier(rangee)
             is RangeeConsole.SyntheseSync -> (holder as SyntheseHolder).lier(rangee)
@@ -708,47 +697,6 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
                 this,
                 ALPHA_ATTENUE,
             )
-    }
-
-    // ---- Ligne stdout/stderr brute de Gradle (v0.41.1) -------------------
-
-    /** Ligne brute de Gradle : monospace 11sp atténué, indenté 28dp.
-     *  Les lignes apaisées (avertissement bénin du daemon) sont en style
-     *  informatif. Les lignes stderr sont en rouge d'erreur. */
-    private class LigneGradleHolder(
-        private val liaison: LigneGradleBinding,
-    ) : RecyclerView.ViewHolder(liaison.root) {
-        fun lier(rangee: RangeeConsole.LigneGradle) {
-            val ligne = rangee.ligne
-            liaison.texteLigneGradle.text = ligne.texte
-            // Les lignes apaisées (avertissement bénin) : style informatif.
-            // Les lignes stderr : rouge d'erreur (sauf apaisées).
-            liaison.texteLigneGradle.alpha = if (ligne.apaisee) ALPHA_LIGNE_APAISEE else 1f
-            liaison.texteLigneGradle.setTextColor(
-                when {
-                    ligne.apaisee -> {
-                        ContextCompat.getColor(
-                            liaison.root.context,
-                            jo.codeide.core.ui.R.color.codeide_stdout,
-                        )
-                    }
-
-                    ligne.flux == jo.codeide.core.domain.FluxSortieBuild.STDERR -> {
-                        ContextCompat.getColor(
-                            liaison.root.context,
-                            jo.codeide.core.ui.R.color.codeide_stderr,
-                        )
-                    }
-
-                    else -> {
-                        ContextCompat.getColor(
-                            liaison.root.context,
-                            jo.codeide.core.ui.R.color.codeide_stdout,
-                        )
-                    }
-                },
-            )
-        }
     }
 
     // ---- Détail classpath par module (v0.40.1 §4) -----------------------

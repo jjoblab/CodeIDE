@@ -17,7 +17,10 @@ import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppResult
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -96,23 +99,6 @@ sealed interface LigneConsole {
     val canal: CanalTooling
 
     /**
-     * Sortie brute du build (stdout/stderr).
-     *
-     * @property flux provenance du flux technique.
-     * @property texte contenu brut de la ligne.
-     * @property apaisee `true` pour un avertissement CONNU et bénin (v3 —
-     *           correctif C5 : le diagnostic natif du daemon Gradle) rendu
-     *           en style informatif au lieu du rouge d'erreur.
-     */
-    data class Sortie(
-        override val id: Long,
-        override val canal: CanalTooling,
-        val flux: FluxSortieBuild,
-        val texte: String,
-        val apaisee: Boolean = false,
-    ) : LigneConsole
-
-    /**
      * Une tâche du build (v3) : affichée à son départ, mise à jour EN PLACE
      * à sa fin (statut + durée) — une ligne par tâche, comme la console
      * d'Android Studio.
@@ -130,6 +116,47 @@ sealed interface LigneConsole {
         override val canal: CanalTooling,
         val etat: EtapeSyncAffichee,
     ) : LigneConsole
+}
+
+/**
+ * Événement de la ZONE TEXTE de la console (v0.42.0, phase 1 du roadmap —
+ * performance console) : les lignes stdout/stderr brutes de Gradle quittent
+ * [EtatGradle.lignes] (émis par LIGNE d'état, DiffUtil O(N) par ligne — un
+ * build de 725 ms mettait 2 minutes à s'afficher) pour un flux DÉDIÉ que la
+ * vue applique par `append()` direct, O(1) par ligne.
+ *
+ * Le tampon borné ([GradleService.NB_LIGNES_MAX], tête tronquée) EST le
+ * cache de rejeu du `SharedFlow` : chaque ligne publiée y est conservée
+ * (les plus anciennes tombent de la tête) — une vue qui se (re)abonne
+ * rejoue l'historique puis suit le direct, sans instantané séparé ni course
+ * entre les deux. La reconstitution est CORRECTE par construction : le
+ * rejeu est une fenêtre TÊTE-tronquée, or un `Vider` tombé de la fenêtre
+ * emporte avec lui tout ce qui le précédait — une ligne d'avant le dernier
+ * `Vider` conservé ne peut donc jamais rester seule en scène.
+ *
+ * @property Ligne une ligne brute (voir [EvenementConsoleTexte.Ligne]).
+ * @property Vider la console texte repart vierge : nouveau build suivi ou
+ *           rattachement d'un espace (même cycle de vie que
+ *           [EtatGradle.lignes]).
+ */
+sealed interface EvenementConsoleTexte {
+    /**
+     * Ligne stdout/stderr brute du build suivi.
+     *
+     * @property flux provenance du flux technique.
+     * @property texte contenu brut de la ligne.
+     * @property apaisee `true` pour un avertissement CONNU et bénin (v3 —
+     *           correctif C5 : le diagnostic natif du daemon Gradle) rendu
+     *           en style informatif au lieu du rouge d'erreur.
+     */
+    data class Ligne(
+        val flux: FluxSortieBuild,
+        val texte: String,
+        val apaisee: Boolean = false,
+    ) : EvenementConsoleTexte
+
+    /** La zone texte repart vierge (nouveau build, nouvel espace). */
+    data object Vider : EvenementConsoleTexte
 }
 
 /**
@@ -220,9 +247,12 @@ data class GroupeProblemes(
  *           été observée.
  * @property tachesExecuteesBuild tâches réellement exécutées (v0.39.1).
  * @property tachesAJourBuild tâches à jour (incrémental, v0.39.1).
- * @property lignes fenêtre de sortie TYPIÉE du tooling (bornée,
- *           [NB_LIGNES_MAX]) — sorties, tâches (v3) et étapes de sync,
- *           balisées chacune de leur canal.
+ * @property lignes fenêtre TYPIÉE du tooling — tâches (v3) et étapes de sync
+ *           uniquement, balisées chacune de leur canal, mises à jour EN
+ *           PLACE (peu de rangées, DiffUtil O(1) par mise à jour). Les
+ *           sorties stdout/stderr brutes vivent sur [lignesBrutes] depuis
+ *           la v0.42.0 (phase 1 du roadmap : plus d'émission d'état par
+ *           ligne — la cause du O(N²) historique).
  * @property problemesTotal nombre total de diagnostics (badge).
  * @property synchronisationEnCours une synchronisation est en vol.
  * @property debutSyncMs instant de départ de la synchronisation (chrono).
@@ -348,6 +378,15 @@ data class EtatGradle(
  * 0041), la console n'est qu'une vue — un build bavard ne doit pas
  * manger la mémoire de l'appareil.
  *
+ * **v0.42.0 (phase 1 du roadmap — performance console)** : les lignes
+ * stdout/stderr brutes ne traversent PLUS l'état — chaque émission d'état
+ * déclenchait la reconstruction complète des rangées et un DiffUtil O(N)
+ * par ligne (O(N²) cumulé : un build de 725 ms mettait 2 minutes à
+ * s'afficher). Elles vivent désormais sur [lignesBrutes], un flux dédié
+ * au tampon borné : la vue les applique par `append()` direct, O(1) par
+ * ligne. [etat] ne s'émet plus qu'aux transitions structurées (tâches,
+ * étapes, statuts) — peu de rangées, DiffUtil O(1) par mise à jour.
+ *
  * @param horloge lecture de l'instant courant (ms) — epochs ou monotone,
  *        seules les DIFFÉRENCES comptent.
  * @param demarreur lance le service Android de notification au premier
@@ -370,6 +409,32 @@ class GradleService
         val etat: StateFlow<EtatGradle> = etatInterne.asStateFlow()
 
         /**
+         * Zone TEXTE de la console (v0.42.0, phase 1) : les lignes
+         * stdout/stderr brutes du build suivi et les vidages, sur un flux
+         * DÉDIÉ — jamais dans l'état (plus d'émission par ligne, la cause
+         * du O(N²) historique).
+         *
+         * Le cache de rejeu EST le tampon borné : `replay = NB_LIGNES_MAX`
+         * conserve les derniers événements (tête tronquée), un (ré)abonné
+         * rejoue l'historique puis suit le direct — la reconstitution est
+         * correcte par construction (cf. [EvenementConsoleTexte]).
+         * `DROP_OLDEST` : un abonné lent de plus de la capacité ne bloque
+         * JAMAIS la pompe (le thread de vidange du client doit pouvoir
+         * vider les canaux sous pression — ADR 0057) ; les lignes tombées
+         * de sa fenêtre seront restituées au prochain réabonnement (le
+         * rejeu est la vérité).
+         */
+        private val zoneTexteInterne =
+            MutableSharedFlow<EvenementConsoleTexte>(
+                replay = NB_LIGNES_MAX,
+                extraBufferCapacity = CAPACITE_TAMPON_DIRECT,
+                onBufferOverflow = BufferOverflow.DROP_OLDEST,
+            )
+
+        /** Zone texte de la console, observable (rejeu = historique borné). */
+        val lignesBrutes: SharedFlow<EvenementConsoleTexte> = zoneTexteInterne
+
+        /**
          * Rattache un espace de travail à l'état process-wide (étape 32) :
          * la console et les problèmes repartent vierges (ce sont des vues
          * de CET espace), les activités en vol (build, sync, listage) et
@@ -380,6 +445,7 @@ class GradleService
             etatInterne.update { courant ->
                 courant.copy(lignes = emptyList(), groupesProblemes = emptyList())
             }
+            viderZoneTexte()
         }
 
         /** Publie l'état de connexion (daemon G4). */
@@ -469,7 +535,10 @@ class GradleService
         }
 
         /** Réinitialise la console et publie le build suivi — les tâches
-         *  demandées voyagent avec (libellé d'activité de l'en-tête). */
+         *  demandées voyagent avec (libellé d'activité de l'en-tête).
+         *  v0.42.0 : la zone TEXTE se vide AUSSI (même cycle de vie que
+         *  `lignes`) — un nouveau build ne montre pas la sortie du
+         *  précédent. */
         fun suivreBuild(
             buildId: String,
             taches: List<String> = emptyList(),
@@ -491,6 +560,7 @@ class GradleService
                     lignes = emptyList(),
                 )
             }
+            viderZoneTexte()
         }
 
         /** Publie l'état du build suivi (les autres builds sont ignorés). */
@@ -517,27 +587,24 @@ class GradleService
             }
         }
 
-        /** Ajoute une ligne du build suivi (fenêtre bornée, CANAL Build) —
-         *  un avertissement CONNU et bénin (C5 : le diagnostic natif du
-         *  daemon Gradle, documenté dans docs/TOOLING.md) voyage apaisé :
-         *  le rendu l'affiche en style informatif, pas en rouge d'erreur. */
+        /** Publie une ligne du build suivi SUR LE FLUX DÉDIÉ de la zone
+         *  texte (v0.42.0, phase 1 : fenêtre bornée = rejeu, PLUS D'ÉMISSION
+         *  D'ÉTAT — la vue applique par `append()` direct, O(1) par ligne).
+         *  Les lignes d'un autre build et celles après annulation restent
+         *  ignorées (garde historique). Un avertissement CONNU et bénin (C5 :
+         *  le diagnostic natif du daemon Gradle, documenté dans
+         *  docs/TOOLING.md) voyage apaisé : le rendu l'affiche en style
+         *  informatif, pas en rouge d'erreur. */
         fun ajouterLigne(ligne: LigneSortieBuild) {
-            maj { courant ->
-                if (ligne.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) {
-                    courant
-                } else {
-                    ajouterALaFenetre(
-                        LigneConsole.Sortie(
-                            id = nouvelleIdentiteLigne(),
-                            canal = CanalTooling.BUILD,
-                            flux = ligne.flux,
-                            texte = ligne.ligne,
-                            apaisee = ligne.apaisee(),
-                        ),
-                        courant,
-                    )
-                }
-            }
+            val courant = etatInterne.value
+            if (ligne.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) return
+            zoneTexteInterne.tryEmit(
+                EvenementConsoleTexte.Ligne(
+                    flux = ligne.flux,
+                    texte = ligne.ligne,
+                    apaisee = ligne.apaisee(),
+                ),
+            )
         }
 
         /**
@@ -605,11 +672,22 @@ class GradleService
             }
         }
 
-        /** Ajoute une ligne en fin de fenêtre bornée (tête tronquée). */
+        /** Ajoute une ligne en fin de fenêtre bornée (tête tronquée) —
+         *  v0.42.0 : seules les lignes TYPIÉES (tâches, étapes) y vivent,
+         *  peu nombreuses par construction. */
         private fun ajouterALaFenetre(
             ligne: LigneConsole,
             courant: EtatGradle,
         ): EtatGradle = courant.copy(lignes = (courant.lignes + ligne).takeLast(NB_LIGNES_MAX))
+
+        /** Publie le VIDAGE de la zone texte sur le flux dédié (v0.42.0) —
+         *  même cycle de vie que la fenêtre `lignes` : nouveau build suivi
+         *  ou rattachement d'un espace. L'événement survit dans le rejeu :
+         *  une vue qui se ré-abonne plus tard ne reconstruit QUE ce qui
+         *  suit le dernier vidage. */
+        private fun viderZoneTexte() {
+            zoneTexteInterne.tryEmit(EvenementConsoleTexte.Vider)
+        }
 
         /**
          * Remplace la DERNIÈRE ligne qui correspond (en conservant SON
@@ -682,8 +760,15 @@ class GradleService
                 ?: "échec du tooling"
 
         private companion object {
-            /** Fenêtre de sortie affichée (tête tronquée au-delà). */
+            /** Fenêtre de sortie affichée (tête tronquée au-delà) — v0.42.0 :
+             *  taille du REJEU de la zone texte (une place est prise par
+             *  chaque `Vider`, la fenêtre reste de l'ordre de la constante). */
             const val NB_LIGNES_MAX = 2_000
+
+            /** Tampon DIRECT au-delà du rejeu (v0.42.0) : absorbateur de
+             *  rafales pour un abonné vivant — la vue lotit ses ajouts par
+             *  trame, un build bavard ne la rattrape jamais. */
+            const val CAPACITE_TAMPON_DIRECT = 2_048
 
             /** Début de l'avertissement bénin du daemon Gradle (C5) — la
              *  forme longue continue (« ...to match the client because:
