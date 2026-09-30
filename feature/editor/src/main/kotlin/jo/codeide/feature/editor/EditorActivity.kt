@@ -611,6 +611,11 @@ class EditorActivity :
         liaison.toolbarEditeur.inflateMenu(R.menu.menu_editeur)
         liaison.toolbarEditeur.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.action_run -> {
+                    viewModel.onAction(ActionEditor.ExecuterMain)
+                    true
+                }
+
                 R.id.action_enregistrer -> {
                     viewModel.onAction(ActionEditor.Enregistrer)
                     true
@@ -946,8 +951,19 @@ class EditorActivity :
         rendreOnglets(etat)
         rendreEditeur(etat)
         rendrePanneau(etat)
+        rendreBoutonRun(etat)
         rendreSnackbarArbre(etat.notification)
         majRetourSysteme(ongletsSales = etat.onglets.any { it.isDirty })
+    }
+
+    /**
+     * v0.41.1 : bouton Run — visible seulement si l'onglet actif contient
+     * `fun main(`. Lance `gradle run` au clic via [ActionEditor.ExecuterMain].
+     */
+    private fun rendreBoutonRun(etat: EtatEditor) {
+        val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
+        val menu = liaison.toolbarEditeur.menu
+        menu.findItem(R.id.action_run)?.isVisible = onglet?.aFunMain == true
     }
 
     /**

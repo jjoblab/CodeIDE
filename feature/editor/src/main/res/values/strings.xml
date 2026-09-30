@@ -92,6 +92,7 @@
     <string name="editor_journal_vide">Aucune entrée pour ces filtres.</string>
     <string name="editor_journal_complet">Ouvrir le journal complet</string>
     <string name="editor_synchroniser">Synchroniser</string>
+    <string name="editor_run">Run</string>
     <string name="editor_executer">Exécuter…</string>
     <string name="editor_executer_titre">Exécuter une tâche Gradle</string>
     <string name="editor_sortie_vide">La sortie du build apparaîtra ici.</string>
