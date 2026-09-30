@@ -229,7 +229,10 @@ class ClasspathLspUseCasesTest {
 
         override fun cancel(buildId: String) = Unit
 
-        override fun envoyerEntree(buildId: String, texte: String) = Unit
+        override fun envoyerEntree(
+            buildId: String,
+            texte: String,
+        ) = Unit
 
         override fun observeHeap(): Flow<InstantaneTas> = MutableStateFlow(InstantaneTas(0, 0))
 
