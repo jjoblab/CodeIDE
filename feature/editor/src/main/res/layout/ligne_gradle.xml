@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne stdout/stderr brute de Gradle sous une étape de sync ou entre
+     les tâches de build (v0.41.1) : monospace 11sp atténué, indenté 28dp
+     pour les sous-lignes d'étape, couleur colorOnSurfaceVariant. Les
+     lignes apaisées (avertissement bénin du daemon) sont en style
+     informatif. -->
+<com.google.android.material.textview.MaterialTextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/texte_ligne_gradle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="28dp"
+    android:ellipsize="end"
+    android:fontFamily="monospace"
+    android:singleLine="true"
+    android:textAppearance="?attr/textAppearanceLabelSmall"
+    android:textColor="?attr/colorOnSurfaceVariant"
+    android:textSize="11sp"
+    tools:text="Downloading https://repo1.maven.org/.../kotlin-stdlib-2.2.10.jar" />
