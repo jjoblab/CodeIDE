@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "spring-boot",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "jvm",
+  "iconKey": "template.icon",
+  "tags": ["Kotlin", "Spring Boot", "Gradle"],
+  "parameters": [
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.packageName.label",
+      "helpKey": "param.packageName.help",
+      "defaultFrom": "packageFromNameAndAuthor",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "groupId",
+      "type": "TEXT",
+      "labelKey": "param.groupId.label",
+      "helpKey": "param.groupId.help",
+      "defaultFrom": "parentPackage",
+      "section": "INFORMATION",
+      "persist": true,
+      "validator": "package-name"
+    },
+    {
+      "id": "artifactId",
+      "type": "TEXT",
+      "labelKey": "param.artifactId.label",
+      "helpKey": "param.artifactId.help",
+      "defaultFrom": "slug",
+      "validator": "regex:^[a-z0-9][a-z0-9._-]*$",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "version",
+      "type": "TEXT",
+      "labelKey": "param.version.label",
+      "helpKey": "param.version.help",
+      "default": "0.1.0",
+      "validator": "semver",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "includeTests",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeTests.label",
+      "helpKey": "param.includeTests.help",
+      "default": "true",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeWrapper",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeWrapper.label",
+      "helpKey": "param.includeWrapper.help",
+      "default": "true",
+      "section": "CONFIGURATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    {"name": "gradle", "expression": "true"},
+    {"name": "avecTests", "expression": "includeTests"},
+    {"name": "avecWrapper", "expression": "includeWrapper"}
+  ],
+  "files": [
+    {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
+    {"path": ".gitignore", "source": "files/gitignore.tpl"},
+    {"path": ".editorconfig", "source": "files/editorconfig.tpl"},
+    {"path": "README.md", "source": "files/readme.md.tpl"},
+    {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
+    {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
+    {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
+    {"path": "gradle.properties", "source": "files/gradle.properties.tpl"},
+    {"path": "gradle/wrapper/gradle-wrapper.properties", "source": "files/wrapper.properties.tpl", "when": "avecWrapper"},
+    {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
+    {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
+    {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
+    {"path": "src/main/kotlin/jo/codeide/template/Application.kt", "source": "files/Application.kt.tpl"},
+    {"path": "src/main/kotlin/jo/codeide/template/GreeterController.kt", "source": "files/GreeterController.kt.tpl"},
+    {"path": "src/main/kotlin/jo/codeide/template/GreeterService.kt", "source": "files/GreeterService.kt"},
+    {"path": "src/test/kotlin/jo/codeide/template/GreeterServiceTest.kt", "source": "files/GreeterServiceTest.kt.tpl", "when": "avecTests"},
+    {"path": "src/main/resources/application.properties", "source": "files/application.properties.tpl"}
+  ]
+}

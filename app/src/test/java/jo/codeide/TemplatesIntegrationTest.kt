@@ -27,8 +27,8 @@ import javax.inject.Inject
  *
  * Les licences de référence sont lues en vrai depuis `assets/licenses/`
  * (textes officiels SPDX) ; depuis l'étape 9, le catalogue embarque les
- * modèles `kotlin-jvm` et `java` — les tests exhaustifs de génération vivent
- * dans `jo.codeide.templates.ModelesEmbarquesTest`.
+ * modèles `android-app`, `kotlin-jvm` et `java` — les tests exhaustifs de
+ * génération vivent dans `jo.codeide.templates.ModelesEmbarquesTest`.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -115,16 +115,19 @@ class TemplatesIntegrationTest {
     }
 
     @Test
-    fun `le catalogue embarque les modeles kotlin-jvm et java`() {
+    fun `le catalogue embarque les modeles android-app kotlin-jvm java spring-boot kotlin-multiplatform`() {
         val repertoires = runBlocking { assets.listTemplateDirectories().getOrNull() }
 
-        // Étape 9 : les deux modèles embarqués sont servis par le port
-        // d'assets réels — triés, complets, sans répertoire parasite.
-        assertEquals(listOf("java", "kotlin-jvm"), repertoires?.sorted())
-        val catalogue = runBlocking { fournisseurEmbarque.provide().getOrNull() }
-        assertEquals(2, catalogue?.size)
+        // v0.41.1 : 6 modèles embarqués (android-app, java, kotlin-jvm,
+        // kotlin-multiplatform, spring-boot) — triés, complets.
         assertEquals(
-            setOf("kotlin-jvm", "java"),
+            listOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
+            repertoires?.sorted(),
+        )
+        val catalogue = runBlocking { fournisseurEmbarque.provide().getOrNull() }
+        assertEquals(5, catalogue?.size)
+        assertEquals(
+            setOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
             catalogue!!.map { it.template.id.value }.toSet(),
         )
     }

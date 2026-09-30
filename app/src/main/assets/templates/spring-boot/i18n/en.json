@@ -1,0 +1,20 @@
+{
+  "template.name": "Spring Boot",
+  "template.description": "Spring Boot web application in Kotlin with Gradle.",
+  "template.icon": "spring",
+  "param.packageName.label": "Package name",
+  "param.packageName.help": "Application package",
+  "param.groupId.label": "Group ID",
+  "param.groupId.help": "Publisher coordinates",
+  "param.artifactId.label": "Artifact ID",
+  "param.artifactId.help": "Project identifier",
+  "param.version.label": "Version",
+  "param.version.help": "Semantic versioning",
+  "param.includeTests.label": "Tests",
+  "param.includeTests.help": "Adds a test for GreeterService",
+  "param.includeWrapper.label": "Gradle Wrapper",
+  "param.includeWrapper.help": "Includes gradlew",
+  "main.kdoc": "Spring Boot entry point.",
+  "controller.kdoc": "REST controller: /greet endpoint.",
+  "service.kdoc": "Greeting service — testable core."
+}
