@@ -277,6 +277,9 @@ data class EditorTabState(
     val langage: String?,
     val isDirty: Boolean = false,
     val sauvegardeEnCours: Boolean = false,
+    /** v0.41.1 : `true` si ce fichier contient `fun main(` — active le
+     *  bouton Run dans la toolbar. */
+    val aFunMain: Boolean = false,
 )
 
 /**
@@ -541,6 +544,9 @@ sealed interface ActionEditor {
 
     /** Annule le build en cours (G5, §6 — bouton de l'onglet Sortie). */
     data object AnnulerBuild : ActionEditor
+
+    /** v0.41.1 : exécute `gradle run` pour lancer le programme (fun main). */
+    data object ExecuterMain : ActionEditor
 
     /** v0.41.1 : envoie une entrée stdin au build en cours (readln). */
     data class EnvoyerEntreeConsole(

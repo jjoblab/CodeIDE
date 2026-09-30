@@ -660,6 +660,8 @@ class EditorViewModel
                 is ActionEditor.ExecuterTaches,
                 ActionEditor.OuvrirSelecteurTaches,
                 ActionEditor.AnnulerBuild,
+                ActionEditor.ExecuterMain,
+                is ActionEditor.EnvoyerEntreeConsole,
                 -> {
                     onActionTooling(action)
                 }
@@ -840,6 +842,11 @@ class EditorViewModel
                 ActionEditor.AnnulerBuild -> {
                     serviceGradle.etat.value.buildId
                         ?.let { identifiant -> annulerBuild(identifiant) }
+                }
+
+                ActionEditor.ExecuterMain -> {
+                    // v0.41.1 : lance `gradle run` pour exécuter fun main().
+                    executerTachesGradle(listOf("run"))
                 }
 
                 is ActionEditor.EnvoyerEntreeConsole -> {
@@ -1168,6 +1175,14 @@ class EditorViewModel
 
         /** Identifiant du projet suivi pour le journal (générique, règle 15). */
         private fun identifiantSuivi(): String = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
+
+        /**
+         * v0.41.1 : détecte `fun main(` dans un texte — heuristique simple
+         * (regex) qui matche `fun main(` avec ou sans `args: Array<String>`.
+         * Active le bouton Run dans la toolbar quand le fichier courant
+         * contient un point d'entrée exécutable.
+         */
+        private fun detecterFunMain(texte: String): Boolean = MOTIF_FUN_MAIN.containsMatchIn(texte)
 
         // ------------------------------------------------------------------
         // Suivi du projet et explorateur (étape 14)
@@ -1666,6 +1681,8 @@ class EditorViewModel
             FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
             sessions[uri] = session
+            // v0.41.1 : détecter `fun main(` pour activer le bouton Run.
+            val aFunMain = detecterFunMain(texte)
 
             etatInterne.update { etat ->
                 etat.copy(
@@ -1676,6 +1693,7 @@ class EditorViewModel
                                 cheminRelatif = chemin,
                                 nom = nom,
                                 langage = FichiersOuverture.langage(nom),
+                                aFunMain = aFunMain,
                             ),
                     indexOngletActif = etat.onglets.size,
                 )
@@ -2748,5 +2766,8 @@ class EditorViewModel
 
             /** Étiquette de journal (identifiant, règle 15). */
             const val TAG = "Editor"
+
+            /** v0.41.1 : motif regex pour détecter `fun main(` (bouton Run). */
+            val MOTIF_FUN_MAIN = Regex("""\bfun\s+main\s*\(""")
         }
     }

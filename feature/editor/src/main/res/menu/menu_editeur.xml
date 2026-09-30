@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Actions de la toolbar de l'espace de travail (étape 15). -->
+<!-- Actions de la toolbar de l'espace de travail (étape 15 ; v0.41.1 :
+     bouton Run dédié pour fun main()). -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_run"
+        android:icon="@drawable/ic_executer"
+        android:title="@string/editor_run"
+        android:visible="false"
+        app:iconTint="@color/codeide_canal_build"
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_synchroniser"

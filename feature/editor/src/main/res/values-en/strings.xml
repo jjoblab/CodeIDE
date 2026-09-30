@@ -87,6 +87,7 @@
     <string name="editor_journal_vide">No entries for these filters.</string>
     <string name="editor_journal_complet">Open the full log</string>
     <string name="editor_synchroniser">Sync</string>
+    <string name="editor_run">Run</string>
     <string name="editor_executer">Run…</string>
     <string name="editor_executer_titre">Run a Gradle task</string>
     <string name="editor_sortie_vide">Build output will appear here.</string>
