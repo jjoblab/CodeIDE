@@ -4,6 +4,67 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.42.0] – 2026-09-30
+
+### Modifié (phase 1 du roadmap — performance console : architecture hybride)
+
+- **Console hybride comme Android Studio** (ADR 0074) : le corps de l'onglet
+  Sortie se scinde en deux zones empilées. La zone STRUCTURÉE (RecyclerView :
+  arbre d'étapes de sync, tâches de build, synthèse) garde DiffUtil sur peu
+  de rangées ; la zone TEXTE (TextView monospace scrollable dans un
+  ScrollView, séparée par un filet, visible en vue Build) reçoit les lignes
+  stdout/stderr brutes de Gradle par `append()` direct — O(1) par ligne.
+  Objectif du roadmap atteint : un build de 725 ms s'affiche en moins d'une
+  seconde (2 minutes avant — cause : chaque ligne émettait l'état complet,
+  reconstruisait toutes les rangées et passait DiffUtil, O(N²) cumulé).
+- **`GradleService` : plus d'émission d'état par ligne.** `ajouterLigne`
+  publie sur un flux dédié `lignesBrutes` (`SharedFlow` avec rejeu 2 000 =
+  le tampon borné, tête tronquée, `DROP_OLDEST` : la pompe n'est jamais
+  bloquée par un abonné lent). `EvenementConsoleTexte` (genre `Ligne` /
+  `Vider`) remplace `LigneConsole.Sortie`, supprimé : `EtatGradle.lignes`
+  ne porte plus que les genres typés (tâches, étapes). Les gardes
+  historiques (buildId, annulation) et l'avertissement bénin apaisé (C5)
+  sont conservés. `Vider` suit le même cycle de vie que la fenêtre : nouveau
+  build suivi (`suivreBuild`) et rattachement d'un espace (`attacher`).
+- **Lotissement par trame dans `PanneauConsoleFragment`** : les lignes
+  arrivées dans la même passe de la boucle de messages partent en UN seul
+  `append` (une notification, une passe de layout par trame — la
+  reconstruction après rotation rejoue jusqu'à 2 000 lignes en un lot). Le
+  tampon du `TextView` est un `Editable` : l'ajout est en place et les spans
+  de couleurs (stderr rouge, apaisé atténué) voyagent avec les lignes.
+- **Auto-défilement honnête de la zone texte** : le bas est suivi tant que
+  l'utilisateur y est resté (intention capturée AVANT l'ajout) — un lecteur
+  remonté dans l'historique n'est jamais rabattu en bas ; un build fini ne
+  défile plus (rien ne le déclenche). Défilements dédupliqués (un post
+  vivant au plus).
+- **Collecte du flux sur le `viewLifecycleOwner`** : elle survit à un
+  `onStop` (le retour d'un onglet du panneau ne rejoue PAS l'historique —
+  pas de doublement) et meurt avec la vue (une rotation se ré-abonne et
+  reconstruit exactement depuis le rejeu : un `Vider` tombé de la fenêtre
+  emporte tout ce qui le précédait, une ligne d'avant le dernier vidage ne
+  peut jamais rester seule en scène).
+- **Suppressions** : `RangeeConsole.LigneGradle` et `LigneGradleHolder`
+  (les rangées brutes n'ont plus de raison d'être dans le RecyclerView),
+  `layout/ligne_gradle.xml`, `NB_LIGNES_GRADLE_SOUS_ETAPE` et le bloc mort
+  des sorties SYNC dans `arbreEtapesSync` (aucune pompe de sortie de sync
+  n'existait en production — seul le build alimente la zone texte).
+- **`EditorViewModel.lignesBrutesConsole`** : exposition du flux dédié à
+  côté de `etatGradle` (le fragment ne parle qu'au ViewModel).
+
+### Tests
+
+- `GradleServiceTest` : les lignes brutes se vérifient désormais sur le
+  rejeu (`replayCache`) — accumulation ordonnée, bornage 2 000 (tête
+  tronquée), gardes buildId/annulation, apaisement C5, `Vider` à
+  `suivreBuild` et `attacher`, et PLUS AUCUNE ligne brute dans
+  `etat.value.lignes`. Nouveau test de garde annulation.
+- `RangeesConsoleTest` : la vue Build garde les tâches + la synthèse seules
+  (une étape résiduelle ne fuit pas) ; la vue Sync ne mélange ni tâches ni
+  lignes brutes.
+- `ToolingEditorViewModelTest` : le câblage sortie/état vérifie le rejeu
+  APRÈS le dernier `Vider` (helper `lignesZoneTexteApresDernierVider`) —
+  rattachement d'un build en vol compris.
+
 ## [0.41.0] – 2026-09-29
 
 ### Ajouté (tooling Gradle — étapes dynamiques, sync suivante immédiate, chip d'action, stats classpath — prompt de suivi)

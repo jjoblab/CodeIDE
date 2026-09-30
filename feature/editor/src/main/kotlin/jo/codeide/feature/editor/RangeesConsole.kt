@@ -59,11 +59,18 @@ internal enum class EtapeConsoleSync(
 }
 
 /**
- * Une rangée de la console du tooling (v4, §3.3 ; v5 — aperçu) : l'arbre
- * des étapes de sync (✓ / spinner / ○ / point « en cache », durée), le
- * détail de téléchargement sous l'étape active, les TÂCHES du build et la
- * synthèse de fin de build ou de sync — UN modèle aplati pour un
- * RecyclerView, l'indentation visuelle porte la hiérarchie.
+ * Une rangée de la console STRUCTURÉE (v4, §3.3 ; v5 — aperçu ; v0.42.0,
+ * phase 1 du roadmap : console hybride) : l'arbre des étapes de sync
+ * (✓ / spinner / ○, durée), le détail de téléchargement sous l'étape
+ * active, les TÂCHES du build et la synthèse de fin de build ou de sync —
+ * UN modèle aplati pour un `RecyclerView`, l'indentation visuelle porte
+ * la hiérarchie.
+ *
+ * Les lignes stdout/stderr BRUTES ne vivent plus ici : depuis la v0.42.0
+ * elles s'affichent dans la zone TEXTE annexée (TextView monospace, append
+ * direct O(1) par ligne) alimentée par [EvenementConsoleTexte] — les
+ * mélanger dans le `RecyclerView` reconstruisait toutes les rangées à
+ * chaque ligne (O(N²) : un build de 725 ms mettait 2 minutes à s'afficher).
  */
 internal sealed interface RangeeConsole {
     /** Identité stable de la rangée (DiffUtil — mise à jour en place). */
@@ -117,22 +124,10 @@ internal sealed interface RangeeConsole {
             get() = "classpath-$nomModule"
     }
 
-    /**
-     * Ligne stdout/stderr brute de Gradle SOUS l'étape active (v0.41.1) :
-     * les informations que Gradle fournit (Downloading..., > Configure
-     * project..., Starting process..., warnings, erreurs) en sous-lignes
-     * monospace atténuées. La clé est l'identifiant de la ligne pour
-     * DiffUtil (mise à jour en place si le texte change).
-     */
-    data class LigneGradle(
-        val ligne: LigneConsole.Sortie,
-    ) : RangeeConsole {
-        override val idCle: String
-            get() = "gradle-${ligne.id}"
-    }
-
     /** Tâche du build (v3 ; v5 — SEULE ligne de la vue Build, les sorties
-     *  brutes ne mélangent plus l'écran) : mise à jour en place à sa fin. */
+     *  brutes ne mélangent plus l'écran ; v0.42.0 — phase 1 : les lignes
+     *  brutes vivent dans la zone TEXTE annexée) : mise à jour en place à
+     *  sa fin. */
     data class Tache(
         val ligne: LigneConsole.Tache,
     ) : RangeeConsole {
@@ -210,16 +205,18 @@ internal data class EtatEtapeArbre(
 )
 
 /**
- * Construit les rangées de la console selon le filtre (§3.3 ; v5 —
- * aperçu) : FONCTION PURE — même discipline de test que le présentateur,
- * aucune chaîne n'y est construite (les libellés se résolvent au rendu).
+ * Construit les rangées STRUCTURÉES de la console selon le filtre (§3.3 ;
+ * v5 — aperçu ; v0.42.0 — phase 1 : les sorties brutes vivent dans la zone
+ * texte annexée) : FONCTION PURE — même discipline de test que le
+ * présentateur, aucune chaîne n'y est construite (les libellés se
+ * résolvent au rendu).
  *
- * - SYNC : l'arbre des sept étapes affichées + le pied de conclusion —
- *   RIEN d'autre (l'ancienne chronologie brute ne se mélange plus) ;
- *   l'arbre reste ABSENT tant qu'aucune sync n'a été annoncée (l'état
- *   vide de la console parle à sa place) ;
+ * - SYNC : l'arbre des étapes affichées + le pied de conclusion — RIEN
+ *   d'autre (l'ancienne chronologie brute ne se mélange plus) ; l'arbre
+ *   reste ABSENT tant qu'aucune sync n'a été annoncée (l'état vide de la
+ *   console parle à sa place) ;
  * - BUILD : les tâches (une ligne par tâche) + la synthèse — les sorties
- *   brutes du build ne mélangent plus l'écran.
+ *   brutes du build s'affichent dans la zone TEXTE annexée, pas ici.
  */
 internal fun construireRangeesConsole(
     etat: EtatGradle,
@@ -231,18 +228,14 @@ internal fun construireRangeesConsole(
         }
 
         FiltreCanalConsole.BUILD -> {
-            // v0.41.1 : les lignes stdout/stderr brutes de Gradle
-            // s'intercalent entre les tâches structurées — l'utilisateur
-            // voit CE que Gradle fait, comme Android Studio.
+            // v0.42.0 (phase 1 du roadmap) : les lignes stdout/stderr
+            // brutes ne traversent PLUS le RecyclerView — la zone TEXTE
+            // annexée les reçoit par append direct (O(1) par ligne). La
+            // vue Build ne garde que les tâches structurées et la
+            // synthèse, comme la vue Build d'Android Studio.
             etat.lignes
-                .filter { it is LigneConsole.Tache || (it is LigneConsole.Sortie && it.canal == CanalTooling.BUILD) }
-                .map { ligne ->
-                    when (ligne) {
-                        is LigneConsole.Tache -> RangeeConsole.Tache(ligne)
-                        is LigneConsole.Sortie -> RangeeConsole.LigneGradle(ligne)
-                        else -> null
-                    }
-                }.filterNotNull() + syntheseBuild(etat)
+                .filterIsInstance<LigneConsole.Tache>()
+                .map { ligne -> RangeeConsole.Tache(ligne) } + syntheseBuild(etat)
         }
     }
 
@@ -251,9 +244,10 @@ internal fun construireRangeesConsole(
  * une étape n'apparaît que quand Gradle l'atteint, pas tout l'arbre d'un
  * coup. Les étapes terminées restent visibles (l'utilisateur voit le
  * chemin parcouru), les étapes non encore atteintes n'existent pas dans
- * la liste). Le détail de téléchargement s'insère sous l'étape ACTIVE,
- * les lignes stdout/stderr brutes de Gradle s'insèrent sous l'étape
- * active ou terminée (comme Android Studio).
+ * la liste). Le détail de téléchargement s'insère sous l'étape ACTIVE.
+ * v0.42.0 (phase 1) : plus de lignes brutes sous les étapes — elles vivent
+ * dans la zone TEXTE annexée (la pompe du canal Sync n'existe pas, seul
+ * le build alimente la zone texte).
  */
 private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     val annoncees = etat.etapesAffichees.associateBy { it.etape }
@@ -281,35 +275,6 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
                 )
         }
 
-        // v0.41.1 : lignes stdout/stderr brutes de Gradle SOUS l'étape
-        // active ou terminée — les informations que Gradle fournit
-        // (Downloading..., > Configure project..., Starting process...,
-        // warnings, erreurs) apparaissent en sous-lignes monospace
-        // atténuées, comme Android Studio.
-        val lignesGradle =
-            etat.lignes
-                .filterIsInstance<LigneConsole.Sortie>()
-                .filter { ligne ->
-                    // On ne peut pas associer une ligne stdout à une
-                    // phase précise (le protocole ne porte pas le
-                    // numéro de phase). On utilise une heuristique :
-                    // pendant la sync, toutes les lignes stdout/stderr
-                    // sont du canal Sync (les builds ont leur propre
-                    // buildId). On les affiche sous l'étape ACTIVE si
-                    // la sync est en cours, ou sous la DERNIÈRE étape
-                    // terminée si la sync est finie.
-                    ligne.canal == CanalTooling.SYNC
-                }
-        if (lignesGradle.isNotEmpty() && phaseActive != null &&
-            EtapeConsoleSync.dePhase(phaseActive.etape) == etape
-        ) {
-            // Pendant la sync : afficher les lignes sous l'étape active.
-            rangees +=
-                lignesGradle.takeLast(NB_LIGNES_GRADLE_SOUS_ETAPE).map {
-                    RangeeConsole.LigneGradle(it)
-                }
-        }
-
         // v0.40.1 (prompt de suivi §4) : sous-lignes classpath par module
         // sous l'étape CLASSPATHS.
         if (etape == EtapeConsoleSync.CLASSPATHS && etat.statsClasspath != null) {
@@ -328,9 +293,6 @@ private fun arbreEtapesSync(etat: EtatGradle): List<RangeeConsole> {
     }
     return rangees
 }
-
-/** Nombre maximum de lignes stdout/stderr affichées sous une étape (v0.41.1). */
-private const val NB_LIGNES_GRADLE_SOUS_ETAPE = 8
 
 /** Consolide l'état d'une rangée depuis ses phases annoncées — `null`
  *  quand aucune n'a été annoncée (rangée en attente ○). v6 (prompt de

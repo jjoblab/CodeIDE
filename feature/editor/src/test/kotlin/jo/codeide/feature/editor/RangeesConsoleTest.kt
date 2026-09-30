@@ -190,18 +190,15 @@ class RangeesConsoleTest {
     }
 
     @Test
-    fun `la vue SYNC ne melange plus les sorties brutes`() {
+    fun `la vue SYNC ne melange ni les taches ni les lignes brutes`() {
+        // v0.42.0 (phase 1) : les lignes brutes ne vivent plus dans
+        // `etat.lignes` (flux dédié de la zone texte) — la vue Sync ne
+        // montre que l'arbre + son pied, jamais les tâches d'un build.
         val etat =
             EtatGradle(
                 synchronisationEnCours = true,
                 lignes =
                     listOf(
-                        LigneConsole.Sortie(
-                            id = 1,
-                            canal = CanalTooling.SYNC,
-                            flux = jo.codeide.core.domain.FluxSortieBuild.STDOUT,
-                            texte = "sync out",
-                        ),
                         LigneConsole.Tache(
                             id = 2,
                             canal = CanalTooling.BUILD,
@@ -214,7 +211,7 @@ class RangeesConsoleTest {
         val rangees = construireRangeesConsole(etat, FiltreCanalConsole.SYNC)
 
         assertTrue(
-            "aucune ligne brute dans la vue Sync (v5 — l'aperçu ne les montre pas)",
+            "aucune tâche dans la vue Sync (v5 — l'arbre et son pied seuls)",
             rangees.none { it is RangeeConsole.Tache },
         )
     }
@@ -290,12 +287,9 @@ class RangeesConsoleTest {
                             dureeMs = 6_100,
                         ),
                 ),
-                LigneConsole.Sortie(
-                    id = 2,
-                    canal = CanalTooling.BUILD,
-                    flux = jo.codeide.core.domain.FluxSortieBuild.STDERR,
-                    texte = "build err",
-                ),
+                // Une étape de sync résiduelle dans la fenêtre ne fuit pas
+                // dans la vue Build — chaque vue reste sur SON genre.
+                ligneEtape(id = 2, EtapeSyncAffichee(etape = EtapeSync.DAEMON, terminee = true, dureeMs = 800)),
             )
         val etat =
             EtatGradle(
@@ -306,15 +300,14 @@ class RangeesConsoleTest {
 
         val rangees = construireRangeesConsole(etat, FiltreCanalConsole.BUILD)
 
-        // v0.41.1 : les lignes stdout/stderr brutes de Gradle
-        // s'intercalent entre les tâches — la sortie stderr "build err"
-        // apparaît entre la tâche et la synthèse.
-        assertEquals(3, rangees.size)
+        // v0.42.0 (phase 1 du roadmap) : les lignes stdout/stderr brutes
+        // ne traversent PLUS le RecyclerView — la vue Build garde les
+        // tâches structurées seules + la synthèse, les brutes vivent dans
+        // la zone TEXTE annexée (append direct O(1) par ligne).
+        assertEquals(2, rangees.size)
         val tache = rangees[0] as RangeeConsole.Tache
         assertEquals(":app:compileKotlin", tache.ligne.etat.chemin)
         assertEquals(6_100L, tache.ligne.etat.dureeMs)
-        val ligneGradle = rangees[1] as RangeeConsole.LigneGradle
-        assertEquals("build err", ligneGradle.ligne.texte)
         val synthese = rangees.last() as RangeeConsole.SyntheseBuild
         assertEquals(StatutBuild.REUSSI, synthese.statut)
         assertEquals(12_400L, synthese.dureeMs)

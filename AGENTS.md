@@ -712,8 +712,45 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       signal honnête dans la Tooling API — durée mesurée conservée), les
       téléchargements DANS la vue Build (§6) et l'écran de config enrichi
       §7.
-- Prochaine : étape 33 (= Système de plugins — cf. docs/ROADMAP.md ;
-      les prompts compagnons LSP et formatage suivront).
+- v0.42.0 : **phase 1 du roadmap — PERFORMANCE CONSOLE (critique)** : un
+      build de 725 ms s'affichait en 2 minutes (chaque ligne stdout
+      émettait l'état, reconstruisait toutes les rangées et passait
+      DiffUtil — O(N²)) → **console HYBRIDE comme Android Studio**
+      [corps de l'onglet Sortie scindé : zone STRUCTURÉE (RecyclerView :
+      arbre d'étapes, tâches, synthèse — DiffUtil O(1) par mise à jour) +
+      zone TEXTE annexée (TextView monospace 11sp dans un ScrollView,
+      filet `colorOutlineVariant`, visible en vue Build SEULEMENT — la
+      vue Sync reste l'arbre seul de l'aperçu v5)] ; `GradleService` :
+      `lignesBrutes` `SharedFlow` DÉDIÉ [rejeu 2 000 = le tampon borné
+      TÊTE-tronquée, `extraBufferCapacity` 2 048, `DROP_OLDEST` — la
+      pompe n'est JAMAIS bloquée par un abonné lent, leçon ADR 0057] ;
+      `EvenementConsoleTexte` (`Ligne` flux/texte/apaisee + `Vider`) ;
+      `ajouterLigne` sans émission d'état [gardes buildId/annulation et
+      apaisement C5 conservés] ; `Vider` émis à `suivreBuild`/`attacher`
+      [même cycle de vie que la fenêtre `lignes`] ; `LigneConsole.Sortie`
+      SUPPRIMÉ — `etat.lignes` ne porte que les genres typés ;
+      `RangeeConsole.LigneGradle`/`LigneGradleHolder`/`ligne_gradle.xml`
+      SUPPRIMÉS [bloc mort SYNC-Sortie emporté : aucune pompe de sortie
+      de sync n'existe] ; `PanneauConsoleFragment` : collecte sur
+      `viewLifecycleOwner.lifecycleScope` [survit à onStop — un onglet du
+      panneau ne REJOUE PAS à son retour (doublement) ; meurt avec la
+      vue — une rotation reconstruit depuis le rejeu : un `Vider` tombé
+      de la fenêtre emporte tout ce qui le précédait, reconstitution
+      correcte PAR CONSTRUCTION] ; vidage LOTI par trame [un post
+      dédupliqué, UN seul `append` par trame, tampon `Editable` posé
+      vierge, spans de couleurs `SpannableString`+`ForegroundColorSpan`
+      — stderr rouge, apaisé alpha 140] ; auto-défilement honnête
+      [intention capturée AVANT l'ajout, tolérance 16 dp, jamais rabattu,
+      défilements dédupliqués] ; `EditorViewModel.lignesBrutesConsole`
+      exposé ; état vide honnête [rangées vides ET zone texte vide] ;
+      tests : GradleServiceTest sur le `replayCache` [bornage, gardes,
+      Vider, « plus aucune ligne brute dans l'état », garde annulation
+      nouvelle], RangeesConsoleTest [Build = tâches+synthèse seules],
+      ToolingEditorViewModelTest [helper `lignesZoneTexteApresDernierVider`]
+      — ADR 0074]
+- Prochaine : phase 2 du roadmap — Fix templates (clés i18n manquantes,
+      package name, enrichissement android-app/spring-boot/KMP ; cf.
+      docs/ROADMAP.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

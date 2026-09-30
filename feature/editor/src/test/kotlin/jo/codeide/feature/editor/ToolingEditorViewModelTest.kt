@@ -113,12 +113,11 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
 
             assertEquals(StatutBuild.REUSSI, rouvert.etatGradle.value.statutBuild)
             assertEquals(
-                "la vue console repart vierge à l attache (l historique complet reste " +
-                    "rejouable côté client) mais la sortie CONTINUE d arriver au build rattache",
+                "la zone texte repart VIERGE à l attache (le Vider) puis la sortie " +
+                    "CONTINUE d arriver au build rattache — v0.42.0 : le rejeu du flux " +
+                    "dédié porte les lignes d APRÈS le dernier vidage",
                 listOf("etape 2"),
-                rouvert.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Sortie>()
-                    .map { ligne -> ligne.texte },
+                lignesZoneTexteApresDernierVider(),
             )
         }
 
@@ -246,10 +245,17 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             avancer()
 
             assertEquals(
+                "v0.42.0 : la sortie traverse le flux DÉDIÉ de la zone texte " +
+                    "(rejeu après le Vider du suivi de build), pas l état",
                 listOf("Bonjour"),
-                viewModel.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Sortie>()
-                    .map { ligne -> ligne.texte },
+                lignesZoneTexteApresDernierVider(),
+            )
+            assertTrue(
+                "l état ne porte plus les lignes brutes (phase 1) — la fenêtre " +
+                    "ne contient que des genres typés (tâches, étapes)",
+                viewModel.etatGradle.value.lignes.all {
+                    it is LigneConsole.Tache || it is LigneConsole.Etape
+                },
             )
             assertEquals(StatutBuild.REUSSI, viewModel.etatGradle.value.statutBuild)
         }
@@ -435,5 +441,20 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
     /** Avance le temps virtuel et laisse tourner les collectes. */
     private fun avancer() {
         regleMain.dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    /** Lignes brutes de la zone texte APRÈS le dernier vidage (v0.42.0,
+     *  phase 1) — ce qu'une vue abonnée reconstruirait : le rejeu du flux
+     *  dédié est la vérité, le `Vider` de l'attache/d'un nouveau build
+     *  borne la reconstruction. */
+    private fun lignesZoneTexteApresDernierVider(): List<String> {
+        val evenements =
+            serviceGradleTest.lignesBrutes.replayCache
+                .filterIsInstance<EvenementConsoleTexte>()
+        val dernierVider = evenements.indexOfLast { it is EvenementConsoleTexte.Vider }
+        return evenements
+            .drop(if (dernierVider >= 0) dernierVider + 1 else 0)
+            .filterIsInstance<EvenementConsoleTexte.Ligne>()
+            .map { it.texte }
     }
 }

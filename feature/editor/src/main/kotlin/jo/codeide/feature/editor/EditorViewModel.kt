@@ -60,6 +60,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -239,8 +240,17 @@ class EditorViewModel
 
         /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
          *  détenteur process-wide y publie, l'activité ET le service de
-         *  notification l'observent — ADR 0057). */
+         *  notification l'observent — ADR 0057). v0.42.0 (phase 1) : il ne
+         *  porte PLUS les lignes brutes — seules les transitions
+         *  structurées l'émettent (tâches, étapes, statuts). */
         val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
+
+        /** Zone TEXTE de la console (v0.42.0, phase 1 du roadmap) : lignes
+         *  stdout/stderr brutes du build suivi et vidages, sur le flux
+         *  dédié du détenteur process-wide — le fragment de la console
+         *  applique chaque événement par append direct (O(1) par ligne) ;
+         *  l'abonnement rejoue l'historique borné puis suit le direct. */
+        val lignesBrutesConsole: SharedFlow<EvenementConsoleTexte> = serviceGradle.lignesBrutes
 
         /** Cache, plis et connaissances d'UN arbre (projet ou privé) — la
          * structure intime de l'arborescence paresseuse ADR 0027, dupliquée

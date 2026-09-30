@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4 §3.3
-     étape 5 ; v5 — aperçu ; v0.40.1 (prompt de suivi §3) : UN SEUL chip
-     d'action reflète l'action Gradle courante (Sync / Build / Tâches /
-     Classpaths…), NON cliquable — plus de bascule. La console montre
-     toujours l'action courante (ou la dernière). Aucun chip s'il n'y a eu
-     aucune action. Boutons Tâches et Configuration inchangés à droite. -->
+     étape 5 ; v5 — aperçu ; v0.40.1 : UN SEUL chip d'action reflète
+     l'action Gradle courante, NON cliquable ; v0.42.0 — phase 1 du
+     roadmap : console HYBRIDE — zone structurée (RecyclerView) + zone
+     texte (lignes brutes par append direct O(1), jamais dans le
+     StateFlow). Boutons Tâches et Configuration inchangés à droite. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -195,15 +195,76 @@
         </LinearLayout>
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/liste_sortie"
+    <!-- Corps de la console (v0.42.0, phase 1 du roadmap — console HYBRIDE
+         comme Android Studio) : deux zones empilées verticalement —
+         la zone STRUCTURÉE (RecyclerView : étapes de sync, tâches de
+         build, synthèse — DiffUtil, peu de rangées) au-dessus, la zone
+         TEXTE (lignes stdout/stderr brutes de Gradle, append direct O(1)
+         par ligne, JAMAIS dans le StateFlow) en dessous, séparées par un
+         filet. La zone texte n'est visible qu'en vue BUILD (la vue Sync
+         reste l'arbre seul, comme l'aperçu v5). L'état vide recouvre le
+         corps entier (centré). -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="10dp" />
+        android:layout_weight="1">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- Zone structurée : étapes / tâches / synthèse (mises à jour
+                 en place via DiffUtil — peu de rangées). -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/liste_sortie"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingHorizontal="12dp"
+                android:paddingBottom="10dp" />
+
+            <!-- Filet entre les deux zones (visible avec la zone texte). -->
+            <View
+                android:id="@+id/separateur_console"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginHorizontal="12dp"
+                android:background="?attr/colorOutlineVariant"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Zone texte : stdout/stderr bruts de Gradle, monospace
+                 scrollable. Le texte est posé comme Editable par le
+                 fragment (append O(1) par ligne, borné à 2 000 lignes
+                 côté service), l'auto-défilement suit le bas pendant
+                 l'écoulement tant que l'utilisateur y est resté. -->
+            <ScrollView
+                android:id="@+id/zone_texte_defilement"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_brut_console"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="11sp"
+                    tools:text="e: file:///…/Main.kt:12:3 erreur de compilation" />
+            </ScrollView>
+        </LinearLayout>
+
+        <!-- État vide de la console (aucune rangée structurée, aucune
+             ligne brute) — recouvre le corps, centré. -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/texte_sortie_vide"
             android:layout_width="match_parent"
@@ -214,6 +275,7 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:visibility="gone" />
+    </FrameLayout>
 
         <!-- v0.41.1 : champ de saisie stdin pour readln()/Scanner(System.in).
              Visible seulement pendant un build EN_COURS (le programme peut

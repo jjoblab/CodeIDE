@@ -24,10 +24,11 @@ import org.junit.Test
 /**
  * Tests du [GradleService] (G5 ; étape 32 : canaux Taches, transitions de
  * notification, rattachement process-wide ; v3 : lignes TYPIÉES — tâches
- * mises à jour en place, étapes de sync, avertissement bénin apaisé) :
- * fenêtre de sortie bornée, lignes du seul build suivi, groupement des
- * diagnostics par fichier, états de synchronisation, pilotage du service
- * Android.
+ * mises à jour en place, étapes de sync, avertissement bénin apaisé ;
+ * v0.42.0 — phase 1 : les lignes BRUTES vivent sur le flux dédié de la
+ * zone texte, le rejeu est le tampon borné) : lignes du seul build suivi,
+ * vidages au cycle de vie, fenêtre bornée, groupement des diagnostics par
+ * fichier, états de synchronisation, pilotage du service Android.
  */
 class GradleServiceTest {
     /** Horloge pilotable : les instants de départ (v0.32.5) avancent
@@ -41,30 +42,40 @@ class GradleServiceTest {
 
     private val service = GradleService(horloge = TimeProvider { instant }, demarreur = demarreur)
 
-    /** Les lignes de SORTIE de l'état courant (les tâches/étapes ont leur
-     *  propre genre — v3). */
-    private fun sorties() =
-        service.etat.value.lignes
-            .filterIsInstance<LigneConsole.Sortie>()
+    /** Événements de la zone texte conservés par le rejeu (v0.42.0 — le
+     *  rejeu EST le tampon borné : la liste reflète ce qu'une vue qui
+     *  s'abonne reconstruirait). */
+    private fun evenementsTexte(): List<EvenementConsoleTexte> =
+        service.lignesBrutes.replayCache.filterIsInstance<EvenementConsoleTexte>()
+
+    /** Lignes BRUTES du tampon (le genre seul — les vidages ont leur
+     *  propre genre). */
+    private fun lignesBrutes(): List<EvenementConsoleTexte.Ligne> =
+        evenementsTexte().filterIsInstance<EvenementConsoleTexte.Ligne>()
+
+    // ------------------------------------------------------------------
+    // v0.42.0 — phase 1 : zone texte (flux dédié, tampon = rejeu).
+    // ------------------------------------------------------------------
 
     @Test
-    fun `les lignes du build suivi s accumulent dans l ordre et portent le canal BUILD`() {
+    fun `les lignes brutes s accumulent dans l ordre sur le flux dedie - jamais dans l etat`() {
         service.suivreBuild("b-1")
         service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "a", 0))
         service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDERR, "b", 1))
 
         assertEquals(
             listOf("a", "b"),
-            sorties().map { it.texte },
+            lignesBrutes().map { it.texte },
         )
         assertEquals(
             listOf(FluxSortieBuild.STDOUT, FluxSortieBuild.STDERR),
-            sorties().map { it.flux },
+            lignesBrutes().map { it.flux },
         )
-        assertEquals(
-            "chaque ligne du build porte le canal BUILD (v0.32.5, ADR 0056)",
-            listOf(CanalTooling.BUILD, CanalTooling.BUILD),
-            sorties().map { it.canal },
+        assertTrue(
+            "v0.42.0 : plus AUCUNE ligne brute dans l état — aucune émission d état par ligne, " +
+                "la cause du O(N²) historique (phase 1 du roadmap)",
+            service.etat.value.lignes
+                .isEmpty(),
         )
     }
 
@@ -74,8 +85,21 @@ class GradleServiceTest {
         service.ajouterLigne(LigneSortieBuild("b-autre", FluxSortieBuild.STDOUT, "ailleurs", 0))
 
         assertTrue(
-            service.etat.value.lignes
-                .isEmpty(),
+            "la garde buildId s applique au flux dédié comme à l ancienne fenêtre",
+            lignesBrutes().isEmpty(),
+        )
+    }
+
+    @Test
+    fun `les lignes d un build annule sont ignorees`() {
+        service.suivreBuild("b-1")
+        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.ANNULE))
+
+        service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "trop tard", 0))
+
+        assertTrue(
+            "la garde annulation s applique au flux dédié",
+            lignesBrutes().isEmpty(),
         )
     }
 
@@ -92,6 +116,12 @@ class GradleServiceTest {
             service.etat.value.lignes
                 .isEmpty(),
         )
+        assertEquals(
+            "le Vider conclut l ancienne console : une vue qui s abonne reconstruit " +
+                "VIERGE puis suit le nouveau build (même cycle de vie que lignes)",
+            EvenementConsoleTexte.Vider,
+            evenementsTexte().last(),
+        )
         assertEquals(StatutBuild.EN_COURS, service.etat.value.statutBuild)
         assertNull(service.etat.value.dureeBuildMs)
         assertEquals(
@@ -107,20 +137,25 @@ class GradleServiceTest {
     }
 
     @Test
-    fun `la fenetre de sortie est bornee`() {
+    fun `la fenetre de sortie est bornee - tete tronquee`() {
         service.suivreBuild("b-1")
         repeat(GradleServiceTest.NB_LIGNES_GRAND) { indice ->
             service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "ligne $indice", indice.toLong()))
         }
 
-        assertEquals(2_000, service.etat.value.lignes.size)
+        assertEquals(
+            "le rejeu EST le tampon borné : 2 000 événements au plus (le Vider du " +
+                "suivi est tombé de la tête avec les 500 premières lignes)",
+            2_000,
+            evenementsTexte().size,
+        )
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 1}",
-            sorties().last().texte,
+            lignesBrutes().last().texte,
         )
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 2_000}",
-            sorties().first().texte,
+            lignesBrutes().first().texte,
         )
     }
 
@@ -265,7 +300,7 @@ class GradleServiceTest {
         assertEquals(
             "seule la ligne stderr CONNUE est apaisée (C5)",
             listOf(true, false, false),
-            sorties().map { it.apaisee },
+            lignesBrutes().map { it.apaisee },
         )
     }
 
@@ -426,6 +461,12 @@ class GradleServiceTest {
         assertTrue(
             service.etat.value.groupesProblemes
                 .isEmpty(),
+        )
+        assertEquals(
+            "v0.42.0 : la zone texte repart vierge AUSSI — le Vider conclu l ancienne " +
+                "console, une vue qui s abonne reconstruit depuis ce vidage",
+            EvenementConsoleTexte.Vider,
+            evenementsTexte().last(),
         )
         assertEquals(
             "le build en vol survit au changement d écran (étape 32)",
