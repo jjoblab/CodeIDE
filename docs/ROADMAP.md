@@ -1,571 +1,191 @@
-# Feuille de route
+# CodeIDE — Roadmap v0.42.0+
 
-## Phase 1 — Fondations, configuration, création de projet (terminée — v0.19.0)
+> Dernière mise à jour : 2026-09-30
+> Version courante : 0.41.0
 
-Chaque étape se termine par la procédure de livraison (section 9.2 du prompt
-maître) et l'attente de validation. La version de l'étape N est `0.(N+1).0`.
+## État actuel (v0.41.0)
 
-| # | Étape | Version | État | Contenu |
-|---|---|---|---|---|
-| 0 | Environnement, squelette Gradle, outillage de livraison | 0.1.0 | **Terminé** | 18 modules compilables, convention plugins, `checkModuleDependencies`, qualité verte (detekt/spotless/lint/kover), scripts de version/livraison/vérification, ADR 0001-0007, application minimale testée |
-| 1 | Fondations transverses | 0.2.0 | **Terminé** | `core:model` (AppResult, AppError, identifiants typés, StorageLocation — couverture 100 %), `core:domain` (DispatcherProvider, convention des use cases), `core:testing` (MainDispatcherRule, TestDispatcherProvider), `core:ui` (thème M3 complet en tokens, BaseFragment, composants d'état, insets, AppNavigator), `app` (CodeIdeApplication Hilt + StrictMode/LeakCanary, SplashScreen, NavHost, navigation Home ↔ Settings testée), ADR 0008 |
-| 2 | Journalisation de l'application | 0.3.0 | **Terminé** | Section 5.7 : AppLogger, LogRedactor, sinks Logcat/fichier JSONL, rotation, écriture asynchrone, breadcrumbs, export zip, FileProvider |
-| 3 | Gestion des plantages | 0.4.0 | **Terminé** | Section 5.8 : CrashHandler (1re ligne d'onCreate, chaînage, budget ≤ 2 s), rapports JSON atomiques (256 Ko, 20 max, témoin consulté), boucle de plantages (3/60 s), ApplicationExitInfo (ANR/natifs, dédoublonnés), CrashActivity processus `:crash` (LIVE/VIEW, copier/partager/enregistrer/vider le cache), dialogue rapport non consulté, menu debug ; ADR 0010 |
-| 4 | Couche données | 0.5.0 | **Terminé** | Contrats du domaine (`FileSystem` 13 opérations typées, `ProjectRepository`, `SettingsRepository`, `ForbiddenFolders`, use cases du registre/des paramètres/`VerifyProjectAccess`), modèle (`Project`, `ProjectAccessState`, `AppSettings`, `ThemeMode`, `LogVerbosity`, `License`), `core:database` (Room v1, index unique `document_uri`, schéma exporté), `core:datastore` (SettingsDataStore tolérant, corruption → défauts), `core:storage` (SafFileSystem : requêtes groupées, contrôle du nom retourné, permissions), `core:data` (repositories + journalisation identifiants), fakes de test, branchement du niveau de journalisation persisté (ADR 0011-0012) |
-| 5 | Assistant de premier lancement | 0.6.0 | **Terminé** | `feature:onboarding` : pager non swipable 5 pages (bienvenue, dossier SAF avec test d'écriture et dossiers refusés Android 11+, apparence à aperçu immédiat — thème/dynamique/langue ADR 0013, profil, terminé), état `SavedStateHandle` (rotation + mort de processus), routage `isSetupCompleted` sous splash, bandeau « dossier de travail » à l'accueil, ADR 0013 |
-| 6 | Écran Paramètres | 0.7.0 | **Terminé** | `feature:settings` personnalisé M3 (ViewModel + DataStore) : apparence, langue, projets (dossier changer/effacer avec **libération de l'ancienne permission seulement si aucun projet n'en dépend**), à propos (version/build/licences), avancé (réinitialisation confirmée ADR 0014, relancer l'assistant) ; use cases du domaine Validate/Change/Clear/Reset + port ArborescencesSaf |
-| 7 | Accueil : liste des projets | 0.8.0 | **Terminé** | `feature:home` : `ListAdapter`+DiffUtil (nom, description, emplacement lisible, date relative, épingle, pastille type), tri Récents/Nom (épingles en tête), **recherche avec délai 250 ms** (casse/accents), états chargement/vide/sans résultat/erreur/bandeau, **statuts d'accès** Introuvable/Permission perdue avec actions de résolution (Relocaliser/Retirer) et tirer-relâcher, actions par projet (ouvrir, renommer, épingler, retirer, supprimer du disque avec rappel du nom), FAB étendu « Nouveau projet » (placeholder wizard) + « Ouvrir un dossier existant » (ADR 0015-0016), adaptatif sw600dp 2 colonnes |
-| 8 | Moteur de templates | 0.9.0 | **Terminé** | Manifestes déclaratifs (parseur + validation complète, `docs/TEMPLATES.md`), mini-langage d'expressions **parseur maison borné** (ADR 0018), substitution + 10 filtres (échappements hostile-proof), sécurité des chemins (garde après substitution, noms réservés Windows, doublons), plan figé dry-run = écriture (ADR 0017), `CreateProjectUseCase` avec rollback `NonCancellable`, `.codeide/project.json` sans donnée personnelle, `ProjectTemplateProvider` multibinding Hilt + port `TemplateAssetsSource` (impl. Android dans `app`), licences SPDX officielles dans `assets/licenses/`, 317 tests (moteur éprouvé sur fixture hostile) |
-| 9 | Modèles de projet Kotlin et Java | 0.10.0 | **Terminé** | Modèles `kotlin-jvm` et `java` **complets et propres** (Greeter/Main/GreeterTest zéro avertissement, README dynamique, wrapper sommé, licences dans pom/publication), paramètres partagés (type/build/JDK 17-21/tests/wrapper/package/group/artifact/version), **`scripts/verify-templates.sh`** : 18 combinaisons générées sur disque (harnais JVM dédié `:tools:generateur`, ADR 0019) puis compilées, testées, exécutées et publiées avec les vrais Gradle/Maven/javac — tableau tout vert ; versions figées vérifiées sur les dépôts officiels (Kotlin 2.2.21, JUnit 5.14.4, Gradle 9.7.1 sommé) ; tests exhaustifs de génération dans `app` (192 combinaisons structurelles + options communes + golden + hostiles) |
-| 10 | Wizard de création, partie 1 | 0.11.0 | **Terminé** | Cadre complet (ADR 0020 : hôte + indicateur + barre d'actions + `WizardViewModel` scopé à l'hôte, `SavedStateHandle` — rotation et mort du processus), rendu **dynamique** des paramètres depuis le moteur (ADR 0021 : registre de composants — tuiles segmentées, cartes radio, liste déroulante, interrupteurs, champs dérivés resynchronisables — et raisons de validation typées → ressources localisées), étapes 1 Modèle (grille de cartes + recherche prête sous 4), 2 Configuration (puces récapitulatives en direct), 3 Informations et emplacement (ADR 0022 : dossier éphémère par création, permission relâchée à l'abandon, vérifications asynchrones avec délai) ; Suivant gardé par validité, abandon confirmé |
-| 11 | Wizard de création, partie 2 | 0.12.0 | **Terminé** | Étape 4 Fichiers (interrupteurs README/.gitignore/.editorconfig, licence pré-remplie auteur+année des Paramètres, langue du contenu FR/EN par boutons segmentés), étape 5 Récapitulatif (résumé par section avec bouton « Modifier » — retour arrière direct — et **arborescence prévue repliable** issue du dry-run, nombre de fichiers), **écran de création** hors numérotation (ADR 0023 : progression temps réel, annulation = rollback domaine `NonCancellable`, succès [ouvrir/marquer ouvert, accueil, créer un autre], échec typé + Réessayer + Copier les détails expurgés + nettoyage signalé), bouton principal « Créer le projet » gardé par revalidation globale, **mise en évidence du projet créé à l'accueil** (ADR 0024 : contour primaire + défilement, identifiant via la pile de retour) ; ADR 0023-0024 |
-| 12 | Diagnostic | 0.13.0 | **Terminé** | `feature:diagnostics` (ADR 0025) : écran à deux onglets accessible depuis Paramètres › Avancé › Diagnostic — **Journaux** (fenêtre initiale des 500 dernières, plus anciennes révélées au défilement, filtres par niveau, recherche à délai insensible aux accents, suivi en direct, taille occupée, Partager/Enregistrer/_effacer_ confirmé, réglage Normal/Détaillé persisté **puis** appliqué au moteur) ; **Plantages** (liste vivante date/type/exception/pastille non consulté, ouverture en mode VIEW via AppNavigator, suppression unitaire et globale, export en archive) ; section Informations (version, appareil non identifiant, session) ; menu debug déplacé de l'accueil vers cet écran (build debug uniquement) |
-| 13 | Fondations de l'espace de travail | 0.14.0 | **Terminé** | `EditorActivity` et ses trois zones **sans logique** (ADR 0026) : tiroir gauche (en-tête nom/chemin/« Fermer le projet », **permanent verrouillé ouvert sur sw600dp+** — façon IDE de bureau), zone centrale (toolbar + onglets vides + états vides/introuvable), panneau inférieur replié à trois onglets vides (Console · Problèmes · Journal, en-tête cliquable replié ↔ mi-hauteur) ; retour système ferme le tiroir sinon quitte ; dépendance `cel-ui` 3.37.0 via **JitPack** (coordonnées réelles `com.github.jjoblab.code-editor:cel-ui` vérifiées, règles ProGuard ajoutées) ; navigation `AppNavigator.openEditor` par-dessus la pile depuis « Ouvrir » (accueil) et « Ouvrir le projet » (succès du wizard), `lastOpenedAt` marqué avant ; `EditorViewModel` suit le projet au registre (identifiant par `SavedStateHandle`) |
-| 14 | Explorateur de fichiers | 0.15.0 | **Terminé** | Arborescence **paresseuse** via `FileSystem` (énumération au dépliement, cache ViewModel — ADR 0027), tri dossiers puis fichiers puis alphabétique, icônes par extension (`core:ui` `IconesFichiers`, badges vectoriels maison : Kotlin/Java/Gradle/XML/Markdown/JSON/dossier/générique), gestion des erreurs d'accès (`ProjectAccessState`, bandeau de résolution dans le tiroir, nœud défaillant réessayable), bouton Actualiser de l'en-tête (revérifie l'accès puis recharge), barre de navigation basse du tiroir — Explorateur active, Recherche et Git visibles mais désactivées (« Bientôt disponible ») ; **correctifs d'appareil réel** : test d'écriture SAF (le témoin porte l'extension canonique du type, tolérance de complétion dans `SafFileSystem` — le dossier de travail redevient vérifiable) et finalisation de l'assistant (l'action « Terminer » n'était jamais émise, `isSetupCompleted` restait faux — `PageSuivante` finalise sur la dernière page, garde anti double-appui, échec signalé à l'écran) |
-| 15 | Intégration de l'éditeur et onglets de fichiers | 0.16.0 | **Terminé** | Ouverture tiroir → onglet (`readText`, binaires → « Ouvrir avec » [ACTION_VIEW + FLAG_GRANT_READ], langage déduit de l'extension avec repli neutre), `EditorDocument`/`EditorSession` **au ViewModel** avec `setLanguage`, `TabLayout` dynamique (ajout, fermeture, menu contextuel [Fermer/Autres/Tout, Déplacer à gauche/droite, Copier le chemin], point de modification remplaçant la fermeture tant que sale), **un seul `EditorView` rebranché** sur la session active, thème clair/sombre, sauvegarde automatique (debounce 1,5 s, suspendue sous confirmation) + manuelle via `FileSystem.writeText` avec **verrou par fichier**, dialogue de fermeture avec modifications non enregistrées (agrégé), `session.dispose()` systématique (enveloppe suivie testée + LeakCanary sur appareil), onglets rouverts après mort du processus (`SavedStateHandle` chemins, contenu relu) — ADR 0028 |
-| 16 | Panneau inférieur | 0.17.0 | **Terminé** | `BottomSheetBehavior` trois états (replié/mi-hauteur/étendu, retour système réduit l'étendu) avec en-tête (poignée, titre suivant l'onglet actif, badge de compte, agrandir/réduire), onglet **Journal applicatif** fonctionnel (fenêtre mémoire 200 entrées via `ObserveLogsUseCase`, mise à jour en direct, filtres par niveau persistés comme l'écran Diagnostic, lien « Ouvrir le journal complet » vers Diagnostic), onglets **Sortie** et **Problèmes** en stub explicite (point d'ancrage `session.setDiagnostics` documenté, non câblé), persistance de l'état et de l'onglet actif (rotation) ; ADR 0029 |
-| 17 | Actions du tiroir et finitions de l'espace de travail | 0.18.0 | **Terminé** | Menu contextuel de l'explorateur [nouveau fichier/dossier dans le dossier visé, renommer, supprimer avec confirmation, actualiser] + création à la racine par bouton dédié [fichier créé ouvert en onglet] ; validation de nom **partagée** avec le wizard [validateur `file-name`, `EvaluerNomFichierUseCase`, raison typée localisée dans le dialogue] ; `FileSystem.rename` [14ᵉ opération, nouvelle URI retournée, fake déplace le sous-arbre] ; onglet qui **suit** le renommage [session/verrou/auto-sauvegarde migrés] et fermeture à la suppression ; reprise des onglets à la réouverture (`.codeide/local/workspace-state.json` non synchronisé, créé au besoin, lecture tolérante — gitignore des modèles déjà en place) ; accessibilité des onglets (contentDescription nom + état) et procédure TalkBack E32-E39 ; ADR 0030 |
-| 18 | Audit final de Phase 1 | 0.19.0 | **Terminé** | Reconnaissance du type de projet à l'ouverture (`.codeide/project.json` lu par `ReconnaitreTypeProjetUseCase` tolérant, nom i18n du catalogue avec repli identifiant, distinction importé/non reconnu, ADR 0031) ; **correctif du plantage d'ouverture de l'espace** (menu inline du tiroir → `res/menu/menu_tiroir.xml` + `app:menu`, régression Robolectric gonflant le vrai layout, rapport 8b5b73f1) ; `assembleRelease` R8 **vert avec les règles ProGuard de cel-ui** (parcours complet vérifié sur APK minifié, E44) ; Dokka sur `core:model`/`core:domain` ; audit des dépendances (six entrées du catalogue non consommées retirées), TODO (aucun), code mort (detekt strict vert), données personnelles (LogRedactor actif, aucune fuite) ; `verify-templates.sh` vert ; plan détaillé de la Phase 2 ci-dessous ; archive finale vérifiée |
+### Fonctionnel ✅
+- **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp), lignes stdout/stderr visibles
+- **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
+- **Templates** : kotlin-jvm, java, android-app, spring-boot, kotlin-multiplatform
+- **Éditeur** : code-editor 3.40.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
+- **Terminal** : Termux, sessions shell, pty, pont SAF/FUSE
+- **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
 
-Étapes 13 à 18 : détail, critères d'acceptation et spécification complète de
-l'espace de travail (trois zones, `EditorActivity`, bibliothèque `code-editor`)
-définis par le **prompt compagnon** « EditorActivity, GitHub et bibliothèque
-d'édition » (addendum du prompt maître, fusionné le 2026-09-23). La procédure
-de livraison y ajoute la **publication GitHub** à chaque étape restante
-(`git push origin main --follow-tags` vers `jjoblab/CodeIDE`), en plus de
-l'archive autonome.
+### Problèmes connus ❌
+- **Console lente** — un build de 725ms prend 2 minutes à s'afficher (cause : RecyclerView + DiffUtil + StateFlow par ligne = O(n²))
+- **Templates trop simples** — un seul fichier Main + Greeter, pas de strings.xml/colors.xml/themes.xml pour Android
+- **Clés i18n manquantes** — gitattributes.entete dans KMP/spring-boot/android-app
+- **Package name** — `packageFromNameAndAuthor` produit un package non standard (devrait être `com.example.<name>`)
+- **Wizard** — ne montre pas correctement les nouveaux paramètres (minSdk, appName, projectType)
 
-## Hors périmètre de la Phase 1
+---
 
-Autres modèles de projet (Python, Web, C++, Android…), options de
-bibliothèques dans les modèles, frameworks (Spring, Ktor…), analyse statique
-et CI dans les projets générés, projets générés multi-modules, Docker,
-terminal intégré, tooling (compilation, exécution, LSP, formatage), système
-de plugins, services d'arrière-plan, autocomplétion et intelligence de code
-(l'édition et la coloration arrivent en Phase 1 via la bibliothèque
-`code-editor` — prompt compagnon), intégration Git, synchronisation cloud,
-réseau (`INTERNET`) et envoi automatique des rapports (Crashlytics, Sentry…),
-notifications.
+## Phase 1 — Performance console (CRITIQUE)
 
-**Points d'ancrage prévus** pour ne pas rendre tout cela impossible :
-`ProjectTemplateProvider` (multibinding) et manifestes déclaratifs,
-`WizardStep` configurable, `FileSystem` abstrait, `EditorActivity` séparée,
-modules `feature:*` isolés, `.codeide/project.json`, `AppLogger` injectable.
+> Objectif : un build de 725ms s'affiche en < 1s, pas 2 min.
 
-## Phase 2 — Tooling, terminal, intelligence de code (plan détaillé — sans implémentation)
+### 1.1 Architecture hybride (comme Android Studio)
 
-Rédigé à l'étape 18 (prompt compagnon, section 6) : ordre, contenu et
-critères d'acceptation de chaque étape. La discipline de la Phase 1
-s'applique telle quelle — une étape à la fois, livraison validée (« GO
-étape N+1 »), SemVer `0.N.0`, ADR par décision structurelle, vérification
-complète verte. Chaque étape recevra au besoin un **prompt compagnon**
-dédié (le terminal a déjà le sien : « Terminal-1 »).
+Séparer la console en deux zones :
+- **Zone structurée** (RecyclerView) : étapes de sync + tâches de build + synthèse — mise à jour en place via DiffUtil (peu de rangées, O(1) par mise à jour)
+- **Zone texte** (TextView monospace scrollable) : lignes stdout/stderr brutes de Gradle — append direct, **pas de DiffUtil, pas de StateFlow par ligne**
 
-**Ordre révisé le 2026-09-23 à la demande de l'utilisateur** : la Phase 2 ouvre par le **terminal intégré** (T1-T7). **Nouvel ordre le 2026-09-24 à la demande de l'utilisateur** : le prompt Tooling démarre après T6 — T7 (audit finitions) est absorbé par l'audit G6, dont les points ouverts (ADR targetSdk, revue mémoire) exigent l'appareil. Les anciennes étapes génériques 26-29 (diagnostics, exécution, LSP, formatage) sont couvertes par G5 (diagnostics/Sortie) et G2-G4 (exécution) ; LSP et formatage garderont leurs prompts compagnons dédiés après le tooling Gradle.
+```
+┌─────────────────────────────────┐
+│ > Task :app:compileDebugKotlin 6,1s │  ← RecyclerView (structuré)
+│ > Task :app:mergeDebugResources 2,3s│
+│   e: file:///.../Main.kt:12:3 error │  ← TextView (texte brut)
+│   Downloading kotlin-stdlib...      │  ← TextView
+│ ✓ Build réussi en 12,4s             │  ← RecyclerView (structuré)
+│ 37 actionable tasks: 2 executed     │  ← TextView (texte brut)
+└─────────────────────────────────┘
+```
 
-**Ordre initial révisé le 2026-09-23** : la Phase 2
-ouvre par le **terminal intégré** (prompt Terminal-1, étapes 19 à 25 =
-T1 à T7) — ce qui aligne d'ailleurs le plan sur la consigne du prompt
-Terminal-1 lui-même (« à exécuter avant le prompt Tooling », dont les
-étapes de diagnostic/exécution dépendent du JDK/Gradle/SDK installés
-ici). Les étapes de tooling initialement en tête reculent d'autant.
+**Implémentation** :
+- `PanneauConsoleFragment` : un `RecyclerView` (rangées structurées) + un `TextView` (texte brut) empilés verticalement
+- `GradleService` : les `LigneConsole.Sortie` vont dans un buffer texte (`StringBuilder` borné à 2000 lignes), pas dans `etat.lignes`
+- `LigneConsole.Tache` et `LigneConsole.Etape` restent dans `etat.lignes` (peu de rangées, DiffUtil OK)
+- Le `TextView` est mis à jour par `append()` direct — O(1) par ligne
 
-| # | Étape | Version | État | Contenu prévu |
-|---|---|---|---|---|
-| 19 | Terminal T1 — `core:bootstrap` : localisation et environnement | 0.20.0 | **Terminé** | Sections 3.1/3.2 du prompt Terminal-1 : disposition type Termux (`filesDir/usr`), scan multi-emplacements avec marqueurs de validité (JDK `usr/lib/jvm/…` du dépôt APT, distribution Gradle complète, SDK Android, `aapt2`, shell), cache du wrapper Gradle, ports `ToolchainLocator`/`ProcessEnvironmentProvider` du domaine, environnement de sous-processus (retrait `CLASSPATH`/`LD_PRELOAD`, `GRADLE_USER_HOME` explicite — bug `getpwuid`) ; heuristiques pures testées en JVM (bugs historiques rejoués) ; ADR 0032 |
-| 20 | Terminal T2 — `NativeProcessLauncher` et `BootstrapInstaller` | 0.21.0 | **Terminé** | Sections 3.3/3.4/3.5 : lanceur de sous-processus non interactifs (`ProcessBuilder`, flux `Flow`), installateur du bootstrap en coroutines (téléchargement avec empreinte SHA-256, extraction + `SYMLINKS.txt` + permissions, second stage, `sources.list` avec `[trusted=yes]` corrigé, `apt update` + paquets un à un), `Aapt2Deployeur` ; 49 tests avec faux serveur HTTP/fausse archive réelle/annulation ; ADR 0033 |
-| 21 | Terminal T3 — Écran d'installation + onboarding | 0.22.0 | **Terminé** | Écran d'installation autonome (feature:install, état partagé du port) **et** étape « Terminal » insérée dans l'assistant (jamais bloquante, « Plus tard », revérification au retour), bandeau d'invitation à l'accueil piloté par l'état d'installation ; INTERNET + ADR 0034, branchement app de core:bootstrap (AssetsBootstrapSource) ; navigation openBootstrapInstall |
-| 22 | Terminal T4 — `core:terminal-runtime` | 0.23.0 | **Terminé** | Registre global `RegistreSessionsTermux` (singleton Hilt) servant les deux ports (`TerminalSessionRepository` du domaine + `TerminalRuntime.sessionFor` hors domaine), sessions réelles via constructeur Termux (environnement canonique + `TERM`), traduction throttlée vers `TerminalSessionSummary` (250 ms / 160 caractères), `TerminalService` foreground `specialUse` à décision pure testée, coquilles scriptées pour les tests (aucun pty réel) ; ADR 0035, `FakeTerminalSessionRepository` dans `core:testing` |
-| 23 | Terminal T5 — `feature:terminal` : écran plein écran | 0.24.0 | **Terminé** | Section 5 du prompt : toolbar, onglets de sessions (pastille d'état, fermeture, « + », appui long renommer/dupliquer/fermer avec heuristique « au prompt »), `TerminalView` **unique** rebranché, clavier étendu **interne** (termux-shared refusé — Ctrl/Alt bascules via `readControlKey`/`readAltKey`, mécanisme Termux), thèmes clair/sombre (couleurs de l'émulateur, indices 256/257/258), réglage dédié de police (`TaillePoliceTerminal` dans les Paramètres), `AppNavigator.openTerminal` ; ADR 0036, 11 tests ViewModel |
-| 24 | Terminal T6 — Intégration accueil et tiroir | 0.25.0 | **Terminé** | Sections 7 et 8 : action « Terminal » dans la toolbar de l'accueil (écran d'installation si bootstrap absent — jamais un terminal non fonctionnel), carte d'aperçu dans le tiroir (quatrième destination active : compteur de sessions actives, libellé + dernière sortie + pastille de la session active, mise à jour en direct, état vide « Nouvelle session dans ce projet » qui crée puis ouvre) ; **aucune dépendance Termux ajoutée à `feature:editor`** ; pont SAF → FUSE `ResoudreRepertoireProjet` (core:domain, durci anti-traversée, garde répertoire fantôme — réutilisable par le tooling) ; correctif plantage `InstallFragment` (rapport 30e81ee0, `@AndroidEntryPoint` manquant + test de régression) ; CI GitHub Actions (ADR 0037/0038, procédure locale sans `clean`) |
-| 25 | Tooling G1 — `tooling:protocol` + `tooling:testing` | 0.26.0 | **Terminé** | Section 3/9.1 du prompt Tooling : framing (garde DoS 16 Mo avant allocation, troncature typée, EOF propre distinguée), catalogue des 24 messages (ErrorCode typé), `ProtocolJson` compatibilité ascendante, **24 fichiers dorés figeant le format câble**, constantes ; 4 fixtures Gradle réelles copiées en temporaire (jamais construites en place) ; 21 tests bloquants au vert avant server/client ; règles de dépendance tooling gelées ; versions vérifiées dans `docs/TOOLING.md` (Tooling API 9.7.1, daemon Java 17, shadow 9.6.1) ; ADR 0039 |
-| 26 | Tooling G2 — `tooling:server` (JVM) | 0.27.0 | **Terminé** | Sections 4 et 7.2 : orchestrateur (UDS JDK 16+, `MessageDispatcher` dispatcher borné, pont `suspendCancellableCoroutine` → Tooling API avec annulation propagée, `GradleConnectorPool`, `HeapMonitor`), tests d'intégration réels contre les fixtures en JVM pur, fat jar `com.gradleup.shadow`, dépôt `repo.gradle.org` |
-| 27 | Tooling G3 — `tooling:client` | 0.28.0 | **Terminé** | Sections 5.1-5.3 : `GradleSocketServer` (écoute avant lancement, namespace FICHIER — ADR 0041, secret de handshake §4.4 validé AVANT tout handler), façade `GradleToolingRepository` (core:domain, zéro type tooling — règle §2.2), diffusion **non conflatante** (canaux bornés 4096 par build à envoi suspendant, tampon pré-abonnement + rejouable après fin), Resilient Sync ; écho d'identifiant des réponses corrigé côté serveur (corrélation §3.2) ; `AppError.Tooling` typé jusqu'à l'UI ; 19 tests dont non-conflation 12 000 lignes (§7.3) |
-| 28 | Tooling G4 — `tooling:daemon` | 0.29.0 | **Terminé** | Section 5.4 : `DaemonManager` sur `NativeProcessLauncher` (jamais redéfini), `JarDeployer` à marqueur de version SHA-256, health check ping/pong (5 s / 15 s) avec redémarrage borné (5 tentatives, repli exponentiel), stderr du process → journal `gradle-server`, JDK absent = état sans boucle de relance, secret frais par tentative, démarrage au processus principal + re-déclenchement à l'installation du bootstrap, **premier bout-en-bout réel (§7.4)** : le daemon lance le VRAI orchestrateur en sous-processus `java` sur vrai socket Unix et exécute un VRAI build Gradle (13 tests) ; ADR 0042 |
-| 29 | Tooling G5 — `GradleService` + intégration éditeur | 0.30.0 | **Terminé** | Section 6 : onglet **Sortie** fonctionnel (lignes en direct, fenêtre bornée 2 000 lignes — la sortie complète reste dans le canal rejouable du client, auto-défilement qui cesse un build fini, statut/durée en en-tête, bouton Arrêter en vol), onglet **Problèmes** (diagnostics groupés par fichier repliés, pastilles sévérité, saut à la ligne + curseur), **diagnostics inline** `session.setDiagnostics` (point d'ancrage ADR 0029, appariement par suffixe de chemin relatif, sévérités cel-ui, offsets bornés), producteur serveur `ParseurDiagnostics` (positions javac/kotlinc extraites de stderr ligne à ligne, événements `Diagnostic` du protocole G1), use cases domaine (Synchroniser/Exécuter/Annuler/Lister — délégations pures au port), actions Synchroniser/Exécuter + sélecteur de tâches dans la toolbar, journal unifié tag `gradle-server` (couvert par le daemon G4) ; 23 tests + intégration serveur étendue (16) ; ADR 0043 |
-| 30 | Tooling G6 — Robustesse et audit | 0.31.0 | **Terminé** | Section 7.5 : **chaos réel** (`ChaosToolingTest` sur le harnais du bout-en-bout : process `kill -9` en plein build → builds EN COURS conclus `ECHOUE` « connexion perdue » et canaux fermés — correctif `GradleApiImpl.rompreBuildsEnCours()`, le trou a été trouvé PAR le chaos ; socket perdue côté app → process sort SEUL code 0, aucun orphelin ; version incompatible et JDK introuvable déjà prouvés), délais de garde inventoriés partout (client sync 5 min/tâches 30 s/connexion 10 s, serveur build 30 min/sync 5 min/tâches 30 s/dépendances 30 s/modèle 5 min, health check 5 s/15 s), `docs/TOOLING.md` **final** (architecture, délais, chaos, journalisation, CI), audit (aucun TODO, detekt strict vert, `ServerVersion` inchangée 0.30.0 — pas de redélivraison orchestrateur) ; points T7 appareil différés — **targetSdk tranché depuis : v0.31.1 (retour d'appareil réel, ADR 0045, targetSdk 28)**, revue mémoire LeakCanary toujours ouverte ; ADR 0044 |
-| 31 | Explorateur de fichiers v2 — tiroir à fragments | 0.32.0 | **Terminé** | Reproduction **à l'identique** de la preview HTML validée (`docs/preview/explorateur-v2.html`, spécification `docs/EXPLORATEUR_V2.md`) : tiroir en **fragments** (Explorateur fonctionnel + aperçus Recherche/Git + carte Terminal migrée, entête propre par fragment, plus d'entête commun — ADR 0052), poignée ⋮ de redimensionnement (bornes 45-98 %, aimants 55/69/85/98 %, pastille de taille, largeur mémorisée par session), arbre treeview (guides fins dessinés par `VueGuides`, chevrons de dépliage, points d'état à 4 états par `VuePointEtat` pilotés par les onglets), vraies icônes par type (13 nouvelles marques + 4 d'action), bascule **Projet/Privé** exclusive (qualifier Hilt `@FileSystemPrive`, adaptateur `prive:///` de `filesDir/cacheDir/codeCacheDir/databases/shared_prefs`), popover maison ancré au doigt avec flèche/retournement/chemin contextuel (jamais de menu système), mutations **par nœud** (éditeur inline, presse-papiers d'arbre avec suffixe « (copie N) », annulation de suppression avec restauration et réouverture d'onglets, déplacement par chemin à validation locale), snackbar maison annulable 4 600 ms, port `FileSystem` étendu `readBytes`/`writeBytes` ; 91 tests (use cases purs + ViewModel + layouts Robolectric) ; ADR 0052 |
-| 32 | Tooling G7 — tooling professionnel à la Android Studio | 0.33.0 | **Terminé** | Sync à l'OUVERTURE du projet (comme un IDE : dès la première connaissance du projet, sans geste — résolution `GradleProject` + `IdeaProject` qui force dépendances et classpaths, socle des LSP à venir ; garde JDK ADR 0048 d'abord), nouvel événement **`SyncStarted`** diffusé PAR le serveur avant la résolution (25e message du protocole, fichier doré inclus — symétrique du `BuildStarted`, l'en-tête et la notification se posent sur un fait du serveur ; client : `observeSyncState` sur le port, marquage idempotent, perte de session = état au repos), **canal Taches** (`CanalTooling.TACHES` violet : indicateur de vol du listage, le sélecteur est le résultat), **`GradleService` process-wide** (`@Singleton`, `attacher()` par espace, `rattacherBuildEnVol()` — un build parti avant fermeture reste suivi), **service de notification** (`ToolingService` foreground `specialUse` + port `DemarreurServiceTooling` piloté aux transitions, décision pure `decisionNotificationTooling` : en cours pendant l'activité, notification finale au résultat, stopSelf au repos) ; vérification légère complète (5 modules verts, 112 tests d'espace, spotless + detekt globaux) + situation RÉELLE par harnais contre le VRAI jar (sync ~1,1 s, 32 tâches, build avec sortie, ping/pong, sortie propre code 0) ; ADR 0057 |
-| 33 | Système de plugins | 0.34.0 | — | Contrat de plugin (API `core:domain` + UI d'extension), découverte embarquée (assets signés, pas de réseau), sandbox des permissions, activation/désactivation par projet ; réutiliser le multibinding `@IntoSet` éprouvé par les modèles |
-| 34 | Services d'arrière-plan | 0.35.0 | — | Compilation/exécution hors écran avec `foregroundServiceType` déclarée et notification honnête, observation des modifications du dossier (SAF `takePersistableUriPermission` + re-scan à l'activation), reprise après mort du processus ; jamais de tâche en fond sans notification visible |
-| 35 | Autres langages et modèles | 0.37.0 | — | Modèles Python et Web (manifestes déclaratifs — le harnais `:tools:generateur` et `verify-templates.sh` s'étendent tels quels), coloration/lint par extension via les ancres `IconesFichiers`/langages de la bibliothèque ; Android natif et C++ évalués ensuite |
+### 1.2 Optimisations supplémentaires
 
-**Ordre révisé le 2026-09-25 (soir) à la demande de l'utilisateur** :
-la refonte de l'explorateur de fichiers devient l'étape 31 — preview HTML
-interactive validée le même jour (treeview sans crochets, chevrons,
-bascule Projet/Privé **exclusive**, popover ancré au doigt, mutations par
-nœud) et spécification de reproduction à l'identique
-`docs/EXPLORATEUR_V2.md` ; plugins, services d'arrière-plan et autres
-langages reculent d'un rang (32 → 0.33.0, 33 → 0.34.0,
-34 → 0.35.0). La numérotation des correctifs déjà publiés (jusqu'à
-v0.31.7) reste inchangée.
+- **Borner le TextView** à 2000 lignes (tête tronquée, comme `NB_LIGNES_MAX`)
+- **Auto-scroll** : le TextView scroll automatiquement vers le bas pendant un build en cours
+- **Pas de filtrage** : tout s'affiche, comme Android Studio
 
-**Correctif v0.31.1 (2026-09-25, après retour d'appareil réel — rapport
-7842f130, moto g06 / Android 15)** : plantage de l'écran Terminal (ordre
-d'initialisation Kotlin dans `ClavierEtenduView`, test de régression de
-layout), « erreur inattendue » du bootstrap après extraction (W^X :
-`targetSdk` 28, ADR 0045 — le point T7 différé est tranché), marqueur
-d'installation terminée honnête (`bootstrapInstalle` exige le pipeline
-allé au bout), erreurs de création de projet réelles (plus de fausse
-collision « un dossier porte déjà ce nom ») et directive utilisateur :
-vérification standard = légère + `assembleDebug` (AGENTS.md,
-CONVENTIONS.md). La numérotation des étapes suit son cours (31 =
-plugins, v0.32.0).
+---
 
-**Correctif v0.31.2 (2026-09-25, après retour d'appareil réel — rapport
-511e1c7f, moto g06 / Android 15)** : plantage de l'écran Terminal à la
-première session (`TerminalSession` de Termux exige le thread principal —
-son `MainThreadHandler` est un `Handler` sans Looper ; création basculée
-sur `dispatchers.main`, `kotlinx-coroutines-android` dans
-`core:terminal-runtime`, ADR 0046), écran d'installation refondu —
-checklist des neuf étapes, compteurs et **journal en direct de la sortie
-des sous-processus** (stdout/stderr du second stage et d'apt, conservés à
-l'échec avec détails techniques dépliables — « la configuration des
-paquets a échoué » ne sera plus jamais muette) — et page
-« Notifications et stockage » dans l'assistant (demande
-`POST_NOTIFICATIONS` + explication : aucune permission de stockage
-nécessaire, SAF et stockage privé suffisent, ADR 0046).
+## Phase 2 — Fix templates
 
-**Correctif v0.31.3 (2026-09-25, après retour d'appareil réel — `apt
-update` code 100, `mkstemp $PREFIX/tmp ENOENT`)** : le répertoire `tmp`
-du préfixe est désormais garanti en deux couches (créé à l'extraction —
-l'archive publiée par `codeide-packages` n'embarque pas l'entrée `tmp/`
-contrairement au bootstrap officiel Termux — et recréé à chaque
-environnement de sous-processus, couvrant `rm -rf $PREFIX/tmp` documenté
-par la FAQ Termux) ; la cause n'était PAS une permission (errno 2 =
-ENOENT, pas EACCES — le stockage privé de l'application ne demande
-rien) ; stockage partagé OPT-IN pour le terminal (trio READ/WRITE +
-`MANAGE_EXTERNAL_STORAGE`, section facultative de la page
-Notifications, jamais exigé — modèle Termux, ADR 0047) ; CI réparée
-(`ExpiredTargetSdkVersion`, l'issue ERREUR distincte du warning
-`ExpiringTargetSdkVersion` désactivé en v0.31.1, ADR 0047).
+### 2.1 Corriger les clés i18n manquantes
 
-**Correctif v0.31.4 (2026-09-25, après retour d'appareil réel — rapport
-`f2699ac5` : plantage au retour depuis le terminal, écran
-d'installation qui « ne se met pas à jour correctement », demande
-« apt update obligatoire, outils optionnels »)** : navigateur robuste
-hors graphe (`@ActivityScoped` injecté par une activité pleine écran
-sans conteneur plantait à chaque retour — `goBack()` referme l'écran,
-les navigations vers le graphe relaient `MainActivity` devenue
-`singleTop` via un routage `EXTRA_ECRAN_CIBLE` sans recréation, ADR
-0048) ; écran d'installation réparé et refondu (journal **combiné** à
-l'état dans un seul flux — il s'effaçait à chaque étape ; boutons
-terminaux enfin rendus ; deux sections : base / outils, ADR 0048) ;
-**première configuration resserrée sur l'environnement de base**
-(shell, apt, dépôt à jour — `apt update` obligatoire), les paquets
-d'outils (`openjdk-17`, `git`) devenant **optionnels et différés**
-(`installerOutils()` à la demande, échec des outils distinct de celui
-de la base, garde JDK dans l'éditeur avant sync/build avec message
-actionnable, ADR 0048).
+- Ajouter `gitattributes.entete` dans `i18n/fr.json` et `en.json` de :
+  - `kotlin-multiplatform`
+  - `spring-boot`
+  - `android-app`
 
-**Correctif v0.31.5 (2026-09-25, après retour d'appareil réel —
-terminal « pas à jour immédiatement » / pinch-zoom inerte / onglets
-inopérants, création de projet « un dossier porte déjà ce nom »,
-CI lint rouge sur `feature:install`)** : terminal vivant (signal de
-repeint **immédiat** `TerminalRuntime.observeSorties()` collecté par
-l'activité — dans l'architecture Termux c'est le client de session de
-l'ACTIVITÉ qui repeint la vue, personne ne le faisait ; zoom pincé
-appliqué par le client selon le vrai contrat du bytecode v0.118.3 —
-bornes 10–30 dp, facteur consommé ; onglets resynchronisés **par
-diff** — la reconstruction complète toutes les 250 ms détruisait les
-vues sous le doigt, les taps n'atterrissaient jamais ; une session
-créée devient toujours active, ADR 0049) ; création de projet honnête
-jusqu'au bout (**pré-vol** à l'appui sur « Créer » — la cible est
-re-vérifiée avant toute écriture, l'état « Valide » de l'étape
-Informations pouvant être périmé ; erreur **réelle** de l'insertion
-en base relayée au lieu d'un `Io` générique ; normalisation
-fournisseur des espaces/points finaux tolérée par `SafFileSystem` ;
-détails techniques **visibles** à l'écran d'échec et bouton
-« Changer de nom ou d'emplacement » — sortie du piège « Réessayer »
-en boucle, ADR 0049) ; lint réparé à la source (`NestedScrollView`
-du journal, `<plurals>` de l'extraction, indice « n/total » du
-paquet, `toUri()` dans l'onboarding — la vérification locale étend
-son `lintDebug` à TOUS les modules touchés, ADR 0049).
+### 2.2 Corriger le package name
 
-**Correctif v0.31.6 (2026-09-25, après retour d'appareil réel 4a4526aa —
-création de projet « le dossier créé a été supprimé, .gitattributes »
-persistant malgré le pré-vol, plantage `NullPointerException :
-bouton_fermer_session` de l'écran Terminal à la première session)** :
-le point INITIAL d'un fichier caché n'est pas une extension — ni pour
-le fournisseur SAF (qui complète « .gitattributes » + `text/plain` en
-« .gitattributes.txt »), ni pour nos contrôles (`contains('.')` voyait
-une extension) : le premier fichier du plan des modèles JVM déclenchait
-un « renommage hostile » de pure invention → fichier fraîchement créé
-supprimé, `AlreadyExists` (« un dossier porte déjà ce nom », AUCUN nom
-ne pouvait marcher), rollback complet sous les yeux de l'utilisateur.
-Règle partagée `mimeFichierTexte`/`sansExtensionReelle` (`core:domain`)
-: tout nom sans extension réelle part en type privé `text/x-codeide`
-(sans complétion, nom préservé exactement), le filet
-`estAchevementExtension` tolère désormais la complétion d'un caché,
-l'éditeur suit la même règle (ADR 0050) ; terminal : la décision
-« border la vue existante » du diff d'onglets exclut explicitement le
-« + » (sa vue est un `ImageView` sans `bouton_fermer_session` — quand
-la liste grandit, la position visée est occupée par le « + », cas
-minimal : zéro session → première création → plantage 60 ms plus
-tard) via le helper testable `vueOngletSessionBordable`, régressions
-verrouillées sur le vrai `TabLayout` (ADR 0050).
+- Android : `com.example.<appName>` par défaut (pas `packageFromNameAndAuthor`)
+- Spring Boot : `com.example.<artifactId>` par défaut
+- KMP : `com.example.<artifactId>` par défaut
+- Kotlin JVM : garder `packageFromNameAndAuthor` (c'est un projet JVM, pas de convention Android)
 
-**Correctif v0.31.7 (2026-09-25, après retour d'appareil réel — suite du
-rapport 4a4526aa : `Storage(AlreadyExists, details=README.md)` après
-installation de v0.31.6, et « j'appuie sur le tab layout l'onglet pour
-changer de session, rien ne se passe »)** : preuve que le correctif
-v0.31.6 a fonctionné (l'échec a PROGRESSÉ au fichier suivant — le
-premier caché `.gitattributes` passe désormais) et que la complétion
-d'extension SAF frappe AUSSI les noms AVEC extension : la table
-système (`MimeTypeMap`, variable par version et par OEM) ne connaît
-pas `md`, `kts`, `kt`, `properties`, `pro`… — `README.md` +
-`text/plain` était créé `README.md.txt`, lu comme renommage hostile →
-nettoyage + `AlreadyExists` + rollback. `mimeFichierTexte` répond
-désormais le type privé `text/x-codeide` pour TOUT fichier texte (le
-nom ne décide plus : un type sans extension canonique n'est jamais
-complété) ; la tolérance de complétion reste bornée aux noms sans
-extension réelle (jamais de corruption silencieuse du plan —
-`build.gradle.kts.txt` casserait Gradle) ; l'éditeur suit
-automatiquement (ADR 0051). Terminal : la racine d'onglet portait un
-écouteur d'appui long seul — une vue `longClickable` CONSOMME les taps
-simples (le `TabView` parent ne voyait jamais le geste : aucune
-sélection, « rien ne se passe ») : elle prend son propre écouteur de
-clic via le helper testable `brancherInteractionsOnglet` (même
-architecture que Termux), appui long et fermeture inchangés (ADR 0051).
+### 2.3 Enrichir le template Android app
 
-**Correctif v0.32.3 (2026-09-26, après retour d'appareil réel —
-onglets de l'éditeur, ouverture depuis l'explorateur, état vide, fil
-d'Ariane et touches virtuelles)** : (1) le tap sur un onglet de fichier
-ne changeait RIEN — la leçon ADR 0051 (vue à appui long seul = taps
-consommés sans action) n'avait été fixée que pour le terminal : la
-racine d'onglet de l'éditeur agit désormais sur son propre tap
-(sélection) ; (2) ouvrir un fichier depuis l'explorateur referme le
-tiroir — effet `FichierOuvert` (grand écran ancré excepté) ; (3) état
-vide enrichi (illustration `</>`, actions « Parcourir les fichiers » /
-« Terminal », astuces de découverte) ; (4) **fil d'Ariane de l'éditeur**
-et **barre de symboles au-dessus du clavier**, transposés de la
-bibliothèque code-editor (`BreadcrumbBar`, `SymbolBarView`) — ADR 0054.
-Vérification légère (AGENTS.md) : spotless + detekt + tests
-feature:editor + lintDebug + assembleDebug.
+Fichiers à ajouter :
+- `app/src/main/res/values/strings.xml` — `<resources><string name="app_name">{{appName}}</string></resources>`
+- `app/src/main/res/values/colors.xml` — couleurs de base
+- `app/src/main/res/values/themes.xml` — `Theme.Material3.DayNight` avec `parent`
+- `app/proguard-rules.pro` — règles ProGuard de base
+- `app/src/test/java/.../ExampleUnitTest.kt` — test unitaire simple
+- `.gitignore` — complet (local.properties, .gradle, build, *.apk, *.aab)
 
-**Correctif v0.33.1 (2026-09-26, retour utilisateur après la v0.33.0 —
-classpaths LSP + traductions manquantes)** : (1) l'étape 32 résolvait
-`IdeaProject` à la sync d'ouverture mais JETAIT le résultat — comme
-Android Studio prépare l'index du projet, les **classpaths, sources et
-AARs** sont désormais résolus par requête dédiée (`ClasspathRequest`,
-26e/27e messages du protocole, fichiers dorés inclus) puis PERSISTÉS
-sous `.codeide/local/lsp-classpath.json` (schéma versionné, écriture
-tolérante) pour que les LSP à venir s'en servent à n'importe quel
-moment, sans re-résolution — `PreparerClasspathLspUseCase` suit chaque
-sync utile (ouverture ou geste, réussie comme partielle), silencieusement
-(journal seul, jamais dans le canal Sync) ; ADR 0058 ; (2) les 15 chaînes
-tooling de l'étape 32 absentes de `values-en` cassaient `lintDebug` en
-CI (`MissingTranslation`) — parité FR/EN rétablie sur les 13 modules de
-ressources. Vérification légère (AGENTS.md) : spotless + tests des
-modules touchés + lintDebug.
+### 2.4 Enrichir le template Spring Boot
 
-### Principes et contraintes reconduits
+Fichiers à ajouter :
+- `src/main/resources/application.yml` — configuration YAML (port, profile)
+- `src/main/kotlin/.../GreeterRepository.kt` — repository pattern
+- `src/test/kotlin/.../ApplicationTests.kt` — test de contexte Spring
 
-- **Aucun `File` direct** : tout passe par le port `FileSystem` (SAF) ; les
-  artéfacts de compilation vivent sous `.codeide/` (non synchronisé).
-- **Pas de réseau en Phase 2 sans décision explicite** : la permission
-  `INTERNET` reste absente tant qu'un cas d'usage ne la justifie pas
-  publiquement (ADR dédiée le cas échéant) ; plugins et serveurs de langage
-  sont embarqués.
-- **Les stubs deviennent des contrats** : « Sortie », « Problèmes » et
-  `session.setDiagnostics` sont les points d'ancrage des étapes 19-20 ;
-  les trois destinations du tiroir (Explorateur/Recherche/Git) fixent
-  l'objectif de couverture de la navigation basse — « Git » reste le plus
-  lointain (estimation à refaire à l'étape 22).
-- **Robustesse d'abord** : compilation/exécution annulables, mémoire bornée
-  (les limites `LoggingLimits`/`CrashLimits` inspirent des bornes tooling),
-  échecs typés `AppResult`, aucune donnée personnelle dans les journaux.
-- La reconnaissance du type (étape 18, ADR 0031) identifie déjà le langage
-  déclaré d'un projet importé — le tooling s'y appuie au lieu de le deviner.
+### 2.5 Enrichir le template KMP
 
-**v0.34.0 (2026-09-26, retour utilisateur — cohérence Material You +
-refonte des Paramètres)** : quatre chantiers (ADR 0059) : (1) les
-couleurs dynamiques s'appliquent au niveau **Application** dans chaque
-processus (principal et `:crash`) via un miroir synchrone
-SharedPreferences de `useDynamicColor`/`themeMode` (aucun `runBlocking`,
-aucune dépendance Hilt au démarrage — `CodeIdeApplication` décide avant
-`super.onCreate()`), réécrit à chaque persistance et à chaque émission
-observée ; `MainActivity` ne garde que le changement à chaud
-(`recreate()` à la désactivation) ; (2) 21 **rôles de couleur étendus**
-(journal, stdout/stderr, succès/info, canaux Sync/Build/Taches, statuts
-Git, accents par langage) exposés comme attrs de thème jour/nuit dans
-core:ui, les couleurs de marque s'harmonisant avec le `colorPrimary`
-courant via `ThemeHarmonizer` (`MaterialColors.harmonize`) ; (3)
-**migration complète** des ~170 littéraux hex des cinq features vers
-core:ui (les jetons `tiroir_terminal_*` dupliqués de l'explorateur
-depuis l'ADR 0053 sont unifiés ; la coloration du niveau de journal de
-l'écran Diagnostic, prévue mais jamais branchée, est appliquée) ;
-(4) **écran Paramètres à deux niveaux** : maître en cartes M3
-(Général/Modules/Environnement/Application, sous-titres d'état,
-navigation `SectionParametres`), un fragment par section, `AppSettings`
-étendu (Éditeur persisté-avant-consommation, Terminal avec curseur
-BLOC/LIGNE/BARRE consommé par l'émulateur Termux + copie automatique de
-sélection, Notifications Sync/Build/Son filtrant réellement
-`ToolingService`), IA/Outils/Sécurité en état « Bientôt disponible »
-générique (aucune logique inventée, en attente de confirmation du
-contenu). Vérification légère (AGENTS.md) : spotless + detekt + tests
-des modules touchés + lintDebug + assembleDebug.
+Fichiers à ajouter :
+- `src/jvmMain/kotlin/.../Greeter.jvm.kt` — implémentation `actual` du Greeter
+- Tests `commonTest` plus complets
 
-**Correctif v0.34.1 (2026-09-26, échec CI après la v0.34.0 — lint
-`UseKtx`)** : l'écriture du miroir d'apparence (chantier 1 de la
-v0.34.0) utilisait l'enchaînement Java `edit().putString().apply()` —
-`lintDebug` de core:data (non couvert par la vérification légère de la
-v0.34.0, qui n'avait linté que les features) refusait le build en CI :
-l'unique erreur `UseKtx` du projet. Corrigé par l'extension KTX
-`SharedPreferences.edit { … }` (comportement identique — `apply()`
-asynchrone disque) avec ajout de la dépendance `core-ktx` à core:data,
-jusque-là présente seulement transitivement. Vérification légère :
-spotless global + detekt core:data + lintDebug core:data (rapport
-« No issues found ») + 15 tests core:data verts.
+---
 
-**Correctif v0.34.2 (2026-09-27, identité git unifiée sous le
-propriétaire du dépôt)** : l'historique **complet** a été réécrit —
-les 165 commits (auteurs et committers) et les 48 tags annotés
-(taggers) portent désormais exclusivement `jjoblab
-<olson12jb@gmail.com>`, effaçant les identités d'agent qui s'étaient
-glissées (« Agent CodeIDE », « Z User » du sandbox) et les adresses
-noreply GitHub ; dates d'auteurs, de committers et de tags
-préservées. Une section permanente « Identité Git » est ajoutée à
-AGENTS.md (vérification `git config` avant tout commit + contrôles de
-fin de session), et la configuration du sandbox est corrigée.
-Conséquence : **tous les SHA ont changé** — le push vers GitHub
-nécessite `git push --force origin main --tags` (la CI rejouera par
-tag). Aucun changement applicatif (version 0.34.2/3402).
+## Phase 3 — Templates avancés
 
-**v0.35.0 (2026-09-27, retour utilisateur — « le thème et les
-paramètres pas à 100 % » : palettes + tiroir M3, ADR 0060)** :
-(1) **correctif couleurs dynamiques désactivées** : le callback
-Material appliquait l'overlay du fond d'écran à toute activité créée
-en ne testant que la capacité de l'appareil — après désactivation,
-l'éditeur et l'écran Diagnostic gardaient le fond d'écran ; il est
-remplacé par `AppliquerApparence` (core:ui), callback maison appliquant
-dynamique OU palette selon le réglage courant, dans chaque processus,
-avec recréation des activités vivantes au changement ;
-(2) **huit palettes statiques** (Indigo par défaut, Bleu, Turquoise,
-Vert, Ambre, Rouge, Violet, Rose) : schémas Material 3 complets
-jour/nuit générés par le moteur HCT de la bibliothèque Material —
-sélecteur dans la section Apparence (désactivé tant que les couleurs
-dynamiques sont actives), persisté dans DataStore et le miroir
-synchrone ; (3) **tiroir de l'explorateur citoyen M3** : les ~90
-références aux gris-bleu dessinés à la main migrent vers les rôles
-Material 3 (surfaces, textes, accents, bordures) — le tiroir suit
-enfin le mode clair/sombre, les couleurs dynamiques ET la palette ;
-les teintes fonctionnelles (statuts Git, pastilles d'état) restent
-fixes jour/nuit ; (4) **sections des Paramètres** : racines opaques
-(?attr/colorSurface) et argument « bientôt » redevenu string —
-retour d'empilement de vues traité par conception, régression couverte
-par NavigationSectionsTest. Vérification (AGENTS.md) : spotless +
-detekt + tests des modules touchés (model, datastore, data, ui,
-app, settings, editor) + lintDebug + assembleDebug.
+### 3.1 Types de projet Android
 
-**v0.35.1 (2026-09-27, retour utilisateur — « orchestrateur non
-connecté » à l'ouverture d'un projet, ADR 0061)** : le daemon du
-tooling gelait en silence : (1) le `accept()` d'`android.net.
-LocalServerSocket` n'est pas interruptible, le délai de connexion de
-l'écoute ne se déclenchait donc JAMAIS — la coroutine du daemon
-restait suspendue indéfiniment, sans relance ni état `ECHOUEE`
-(les tests bout-en-bout utilisaient un hôte JVM à canal NIO
-interruptible, insensible au défaut) ; l'accept vit désormais dans
-un job détaché réveillé par un client factice (le noyau complète la
-connexion dans le backlog : `accept(2)` rend la main) et l'échec
-typé remonte au daemon qui relance borné ; (2) les sorties du
-process orchestrateur n'étaient lues qu'APRÈS la connexion : une
-JVM qui meurt avant de se connecter (reproduction JVM du chemin
-`java -jar` : validé sain, mais stderr explicite sur échec) était
-muette — stderr/stdout sont journalisés dès le lancement, tag
-`gradle-server` ; (3) fenêtre de connexion dédiée de 30 s côté app
-(`FENETRE_CONNEXION_MS` — démarrage à froid de la JVM compris, le
-délai protocole de 10 s reste pour le connect seul). Chemin de
-production `java -jar` validé au harnais JVM (connexion + handshake
-complets). Vérification (AGENTS.md) : spotless + detekt + tests
-des modules touchés (client, daemon, protocol, server) + lintDebug.
+Ajouter un paramètre `projectType` au template Android :
+- `empty-activity` — Activity + layout (actuel)
+- `no-activity` — juste le projet Android sans Activity
+- `basic-activity` — Activity + Fragment + navigation drawer
 
-**v0.35.2 (2026-09-27, retour utilisateur — journal de terrain « Too
-small maximum heap », ADR 0062)** : la VM de l'orchestrateur ne
-démarrant pas, le tag `gradle-server` (branché dès le lancement,
-ADR 0061) a livré la cause racine au premier journal : la commande
-de production passait `-Xmx256` — un nombre NU, lu en OCTETS (256 o <
-minimum de la VM) — là où la spécification (ADR 0042, TOOLING.md)
-et les tests écrivaient à la main `-Xmx256m`. Reproduction desktop
-immédiate (`java -Xmx256 -version` → exit 1, mêmes deux lignes ;
-`-Xmx256m` → exit 0). Correctif : (1) suffixe d'unité OBLIGATOIRE
-dans `commandeParDefaut` (`-Xmx${TAS_MO}m`), discipline portée par
-le contrat de `TAS_MO` ; (2) `BoutEnBoutTest`/`ChaosToolingTest`
-référencent la MÊME constante (plus de citation en dur) ; (3) test de
-régression qui fait exécuter le `-Xmx` de la VRAIE commande
-production par la VRAIE JVM des tests (`-version`, code 0 attendu) :
-une taille invalide est désormais refusée en CI, jamais sur l'appareil.
-Les warnings « JDK introuvable » du journal sont l'état conçu pendant
-l'installation du bootstrap (ADR 0042 : le daemon re-teste à la
-prochaine demande — le journal le confirme, l'orchestrateur démarre
-une fois les outils installés). Vérification (AGENTS.md) : spotless +
-detekt + tests du module touché (daemon : 22 tests dont bout-en-bout
-réel, 0 échec).
+### 3.2 Support Java pour Android
 
-**v0.35.3 (2026-09-27, retour utilisateur — rapport de plantage
-v0.35.2 « conflit de package » + `InterruptedIOException`, ADR
-0063)** : (1) **le démontage du tuyau n'est plus un plantage** : le
-correctif v0.35.2 a tenu (orchestrateur connecté, handshake accepté,
-connexion Tooling API ouverte) mais ~2 min plus tard, l'arrêt forcé
-du health check (« orchestrateur muet — aucun pong en 15000 ms »)
-réveillait le lecteur bloqué de `ProcessusGere.lignes` par
-`InterruptedIOException: read interrupted by close() on another
-thread` (mécanisme libcore : la mort du process referme les
-descripteurs depuis un autre fil) — 56 ms plus tard l'app plantait :
-le `SupervisorJob` isole les annulations, PAS les exceptions non
-interceptées, qui atteignaient le gestionnaire Android. Désormais
-l'interruption de fermeture et l'`IOException` sur process mort
-terminent le flux NORMALEMENT (la supervision a DÉCIDÉ de fermer) ;
-le process vivant remonte toujours ses vraies erreurs. Constat JVM de
-contraste : sur bureau, la fermeture par un autre fil ne réveille pas
-la lecture (blocage indéfini) — le mécanisme est propre à libcore,
-rejoué sur process factice dans `ProcessusGereTest` ; (2) **garde-fou
-anti-plantage** (`DaemonManager`) : un `CoroutineExceptionHandler`
-journalise tout échec non prévu des coroutines de supervision
-(lectures stdout/stderr, health check, boucle de vie) — un diagnostic
-de tuyau ne tuera plus jamais l'app ; testé par `DaemonManagerTest`
-(lecteur explosif journalisé, session survivante) ; (3) **keystore
-debug stable en CI** : pourquoi chaque APK GitHub exigeait une
-désinstallation préalable (« conflit de package ») — le runner est
-éphémère, AGP régénère `~/.android/debug.keystore` à chaque run, la
-signature changeait donc à CHAQUE APK. **Résolu définitivement en
-v0.37.2 (ADR 0067)** : l'atténuation par cache (décision initiale) n'a
-pas tenu — caches scopés par ref (runs des tags poussés ensemble) et
-évictables — l'identité debug est désormais un keystore PUBLIC VERSIONNÉ
-(`config/signature/debug.keystore`, patrons AOSP/CodeAssist), verrouillé
-à chaque run CI par `scripts/verify-signature.sh` ; une dernière
-désinstallation avant d'installer v0.37.2, puis plus jamais.
-Diagnostic ouvert (v0.35.4+) : la MUETUDE elle-même — le pompe
-d'événements du client route tout par un seul collecteur dont le seul
-point suspendant est `pomperSortie.send` (canal 4096) : un collecteur
-UI mort pendant un build gèle le pompe, les pongs ne sont plus traités
-— la découpe santé/livraison mérite sa propre ADR (contrat de
-non-perte de `pomperFin` en jeu). Vérification (AGENTS.md) : spotless
-+ detekt + tests des modules touchés (bootstrap, daemon).
+Créer un template `android-app-java` ou ajouter un paramètre `language` (kotlin/java) au template Android existant.
 
-**v0.35.4 (2026-09-27, retour utilisateur — « les vues sont empilées »
-dans les sections des Paramètres, ADR 0064)** : les sept sections
-dédiées de l'écran à deux niveaux (Apparence, À propos, Avancé,
-Éditeur, Notifications, Projets, Terminal — ADR 0059/0060)
-affichaient leurs rangées superposées au coin haut-gauche de la carte.
-Le `ScrollView` était sain (un seul enfant, la carte) — la faute était
-à la carte elle-même : `MaterialCardView` étend `FrameLayout`, et le
-`LinearLayout` vertical de contenu fermait trop tôt ou n'existait pas,
-si bien que toutes les rangées suivantes (séparateurs, interrupteurs,
-sélecteurs, champ de saisie) devenaient des enfants DIRECTS de la
-carte, posés au même coin. Chaque carte porte désormais un unique
-`LinearLayout` vertical sans id — la structure du maître, appliquée
-aux sections : aucun code Kotlin n'a bougé, les id et les bindings
-sont intacts. Régression (`SectionsParametresLayoutTest`) : chaque
-layout est gonflé sous le thème réel PUIS mesuré et posé à taille
-d'écran, et le test vérifie la structure (un unique conteneur
-vertical par carte, les quatre cartes du maître comprises) ET le
-symptôme exact (aucune rangée visible ne chevauche celle du dessus,
-vues `gone` exclues) — les tests existants ne regardaient que la
-PRÉSENCE des vues, jamais leurs positions : un gonflage sans pose ne
-superpose rien. Échec avéré sur les sept layouts avant correctif,
-succès après. Vérification (AGENTS.md) : spotless + detekt + tests
-du module touché (settings).
+### 3.3 Templates supplémentaires
 
-**v0.36.0 (2026-09-27, retour utilisateur — « aucune ligne "Tâche :app:xxx"
-n'apparaît jamais » / sync boîte noire / aucun --console=plain / écran de
-configuration du tooling, ADR 0065)** : les événements `TaskStarted`/
-`TaskFinished` traversaient le protocole jusqu'au client et étaient JETÉS
-silencieusement par `GradleApiImpl.pomper` (« G5 affine s'il expose les
-tâches à l'UI » — jamais fait). Réparation complète : protocole **v3**
-(nouveau `SyncProgress` par phase `CONNEXION`/`MODELE_GRADLE`/`MODELE_IDEA`
-annoncé au départ puis à la fin avec sa durée — la sync déroule ses étapes
-au lieu d'un « en cours » muet, la connexion est hoistée avant les modèles
-car sa première occurrence télécharge la distribution et démarre le daemon ;
-`TaskFinished` enrichi de `durationMs` MESURÉE par l'opération Gradle et
-`skipped` ; champs à défauts compatibles v2, 28 fichiers dorés régénérés) ;
-côté client `observeTachesBuild` (canal borné par build, fermé à la fin —
-même sémantique que la sortie) et `observeSyncProgress` (jamais conflaté) ;
-console à lignes TYPIÉES (`LigneConsole` scellée avec identité stable : une
-ligne par tâche, mise à jour EN PLACE à sa fin — durée, sautée grisée,
-échec rouge, comme la vue Build d'Android Studio ; étapes de sync conclues
-en place ; avertissement bénin du daemon Gradle rendu en style informatif) ;
-`--console=plain` FORCÉ en dernier argument de tout build (l'occurrence
-finale d'une option Gradle gagne) ; **écran de configuration du tooling**
-(dialogue plein écran `Theme.CodeIDE.PleinEcran`, ouvert par l'engrenage de
-l'onglet Sortie — on ne quitte pas l'espace de travail) : affichage des
-tâches (filtrage en vol relu à chaque événement), mode hors ligne, arguments
-Gradle libres persistés à la fin de saisie, état vivant de l'orchestrateur
-(connexion + tas) — trois réglages DataStore (`toolingAfficherTaches`,
-`toolingHorsLigne`, `toolingArguments`), consommés par `OptionsTooling`
-(patron PorteurStyleCurseur). Tests : protocole (28 + dorés v3),
-`ProgressBridgeTest` durée/sauté, intégration serveur (phases entre
-`SyncStarted` et `SyncResult`, tâches traversantes), client (dispatch
-réparé, étapes non conflattées, arguments), `GradleServiceTest` (mise à
-jour en place, filtrage, apaisement C5), `ToolingEditorViewModelTest`,
-`ConfigToolingViewModelTest`, layout Robolectric de l'écran — kover ≥ 80 %
-vert. Vérification (AGENTS.md) : spotless + detekt + tests des modules
-touchés + assembleDebug. La step 35 planifiée (Autres langages) recule à
-0.37.0.
+- `compose-app` — Jetpack Compose (quand CodeIDE supportera Compose — ADR 0002 interdit Compose pour l'instant)
+- `gradle-plugin` — développement de plugin Gradle
+- `library` — bibliothèque Android (.aar)
 
-**v0.36.1 (2026-09-27, correctifs C1/C2 du prompt Terminal — « aucune
-invite personnalisée, les chemins ne sont visibles nulle part »)** :
-`core:bootstrap` ne générait AUCUN profil shell — chaque session affichait
-l'invite par défaut (`$`) et l'état des outils restait invisible alors que
-`JAVA_HOME`/`ANDROID_HOME` sont injectés depuis toujours. Nouvel
-`EcrivainProfilShell`, posé à l'installation de BASE (avant tout paquet
-optionnel) : `$PREFIX/etc/codeide.sh` régénéré en entier (idempotent,
-atomique) — PS1 personnalisé `codeide:<répertoire> (<branche Git>)$` (C1,
-branche silencieuse hors dépôt) et message de bienvenue avec l'état RÉEL du
-JDK/SDK Android/Gradle (C2) ; la ligne d'inclusion du `.bashrc` n'est
-ajoutée QUE si absente (jamais dupliquée). Écart au plan initial : la garde
-de la bienvenue est `case $- in *i*)` (POSIX) et non `[ -n "$PS1" ]` — le
-profil pose PS1 juste avant, cette garde aurait TOUJOURS affiché la
-bannière, y compris aux shells non interactifs du tooling. Aucun changement
-côté terminal-runtime : tout passe par les fichiers shell. Tests
-`ProfilShellTest` (contenu, idempotence, .bashrc préservé, syntaxe et
-sourcing par le VRAI bash) + manuels E69-E72. Vérification (AGENTS.md) :
-spotless + detekt + tests du module touché (bootstrap) + assembleDebug.
+---
 
-**v0.36.2 (2026-09-27, correctif C3 du prompt Terminal — « copier la
-sélection ne fait rien »)** : `ClientTermux.onCopyTextToClipboard` était un
-no-op appuyé par un commentaire faux (« l'écran les traitera via
-TerminalView » — `TerminalViewClient` ne déclare PAS cette méthode : elle
-n'appartient qu'à `TerminalSessionClient`, et c'est le chemin exact de
-l'action « Copier » de la barre native après sélection, confirmé par
-l'ancien projet qui écrivait au presse-papiers à cet endroit). Nouveau port
-`CopieurPressePapiers` + implémentation Android (`ClipboardManager`, garde
-texte vide/nul, Toast seulement sous l'API 33 — le système confirme
-lui-même au-delà), injecté dans `FabriqueCoquillesTermux` et transmis à
-`ClientTermux` par lambda (patron style de curseur). Copie automatique ADR
-0059 intacte : les deux coexistent. Tests Robolectric
-(`CopieurPressePapiersAndroidTest` : normal/vide/nul, remplacement, Toast
-par API) + manuel E73. Vérification (AGENTS.md) : spotless + detekt +
-tests du module touché (terminal-runtime) + assembleDebug.
+## Phase 4 — Wizard enrichi
 
-**v0.36.3 (2026-09-27, correctif C4 du prompt Terminal — « gradle: command
-not found » malgré un projet déjà construit)** : la liste de paquets du
-bootstrap ne contenait que `openjdk-17` et `git` — aucune commande `gradle`,
-et la distribution téléchargée par le wrapper (builds lancés depuis l'app)
-restait invisible du terminal. Plutôt qu'un paquet apt figé (mauvaise
-version selon les projets — l'ancien projet l'avait déjà écarté), un script
-de DÉCOUVERTE `$PREFIX/bin/gradle` (EcrivainGradleCli, posé à
-l'installation de base, 0755, shebang absolu vers le sh du bootstrap) :
-`./gradlew` du répertoire courant d'abord, sinon la distribution du wrapper
-la plus récemment utilisée dans `$GRADLE_USER_HOME/wrapper/dists` (`ls -dt`),
-sinon un message qui EXPLIQUE et sortie 127 — jamais d'échec muet. Tests
-avec EXÉCUTION RÉELLE des trois scénarios (EcrivainGradleCliTest) +
-manuels E74-E76. Vérification (AGENTS.md) : spotless + detekt + tests du
-module touché (bootstrap) + assembleDebug.
+### 4.1 Adapter aux nouveaux paramètres
 
-**v0.36.4 (2026-09-27, correctif C5 du prompt Terminal — avertissement du
-daemon Gradle sur l'environnement natif)** : « Unable to set daemon's
-environment variables to match the client because: There is no native
-integration with this operating environment. » n'est PAS un bug —
-diagnostic littéral de Gradle (native-platform sans binding Android/bionic,
-daemon gardant l'environnement de son premier démarrage). Réduction
-d'impact : (1) section dédiée dans docs/TOOLING.md expliquant le
-comportement, pourquoi il est sans conséquence (l'environnement complet et
-canonique est fourni au PREMIER lancement de l'orchestrateur par
-LanceurProcessusNatifs.launch — baseEnvironment() à chaque lancement,
-couvert par LanceurProcessusNatifsTest — et c'est le seul moment qui
-compte) ; (2) test manuel E77 ; (3) l'affichage apaisé en style informatif
-était déjà en place depuis v0.36.0 (GradleService,
-AVERTISSEMENT_DAEMON_BENIN, testé). Aucun test automatisé requis
-(comportement de Gradle, pas du projet). Vérification (AGENTS.md) :
-documentation + assembleDebug.
+- Le wizard lit déjà les paramètres depuis `template.json` dynamiquement
+- Vérifier que `visibleWhen`, `defaultFrom`, `validator` fonctionnent pour les nouveaux paramètres
+- Ajouter des sections spécifiques à Android (minSdk, targetSdk, applicationId)
+
+### 4.2 Aperçu de structure
+
+- Afficher l'arbre des fichiers qui seront générés avant la création
+- Permettre de modifier le nom de fichiers/dossiers
+
+### 4.3 Choix de dépendances
+
+- Checkboxes pour ajouter des dépendances communes :
+  - Android : Retrofit, Room, Coroutines, Navigation, Hilt
+  - Spring Boot : JPA, Security, Actuator, Validation
+  - KMP : Serialization, Coroutines, DateTime
+
+---
+
+## Phase 5 — LSP (long terme)
+
+### 5.1 LSP Kotlin
+
+- Utiliser le classpath préparé (`.codeide/local/lsp-classpath.json`)
+- Intégrer un LSP Kotlin (ex. kotlin-language-server) via le tooling serveur
+- Autocomplétion, hover, go-to-definition, diagnostics en temps réel
+
+### 5.2 LSP Java
+
+- jdtls (Eclipse JDT Language Server) ou java-language-server
+- Même architecture que le LSP Kotlin
+
+---
+
+## Phase 6 — Fonctionnalités IDE
+
+### 6.1 Recherche globale
+- Recherche de texte dans tous les fichiers du projet
+- Remplacement multi-fichiers
+
+### 6.2 Git intégré
+- Statut des fichiers (modifié/ajouté/supprimé)
+- Diff visuel
+- Commit/Push depuis l'app
+
+### 6.3 Refactoring
+- Renommer (symbole → toutes les références)
+- Extraire (méthode, variable)
+- Importer automatiquement
+
+### 6.4 Build variants (Android)
+- Sélection debug/release
+- Product flavors
+- Build types
+
+---
+
+## Priorisation
+
+| Phase | Priorité | Effort | Impact utilisateur |
+|---|---|---|---|
+| 1 — Console perf | **CRITIQUE** | Moyen | Très haut — l'app devient utilisable |
+| 2 — Fix templates | Haute | Faible | Haut — les templates marchent |
+| 3 — Templates avancés | Moyenne | Moyen | Moyen — plus de choix |
+| 4 — Wizard | Moyenne | Moyen | Moyen — meilleure UX |
+| 5 — LSP | Basse | Très haut | Très haut — transforme en IDE |
+| 6 — Fonctionnalités IDE | Basse | Très haut | Très haut — fonctionnalités pro |
