@@ -45,7 +45,7 @@ import java.time.Instant
 import javax.inject.Inject
 
 /**
- * Tests exhaustifs des modèles embarqués `kotlin-jvm` et `java` (étape 9 —
+ * Tests exhaustifs des modèles embarqués `android-app`, `kotlin-jvm` et `java` (étape 9 —
  * section 11, validation *génération*) : catalogue, paramètres, dérivations,
  * validateurs, **toutes les combinaisons structurelles** (langage × type ×
  * build × JDK × tests × wrapper × langue de contenu) avec listes de fichiers
@@ -90,19 +90,30 @@ class ModelesEmbarquesTest {
     // ------------------------------------------------------------ catalogue
 
     @Test
-    fun le_catalogue_embarque_exactement_kotlin_jvm_et_java() =
+    fun le_catalogue_embarque_exactement_5_modeles() =
         runTest {
             val resumes = (ListTemplatesUseCase(setOf(fournisseurEmbarque), moteur)("fr") as AppResult.Success).value
 
-            assertEquals(listOf("java", "kotlin-jvm"), resumes.map { it.id.value })
+            // v0.41.1 : 5 modèles embarqués (android-app, java, kotlin-jvm,
+            // kotlin-multiplatform, spring-boot).
+            assertEquals(
+                listOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
+                resumes.map { it.id.value }.sorted(),
+            )
+            val android = resumes.first { it.id.value == "android-app" }
             val kotlin = resumes.first { it.id.value == "kotlin-jvm" }
             val java = resumes.first { it.id.value == "java" }
+            // v0.41.1 : les noms viennent des i18n des templates.
+            assertEquals("Android · App", android.nom)
             assertEquals("Kotlin · JVM", kotlin.nom)
             assertEquals("Java", java.nom)
+            assertEquals("android", android.category)
             assertEquals("jvm", kotlin.category)
             assertEquals("jvm", java.category)
-            assertEquals("template.icon résolu en monogramme maison", "kt", kotlin.iconKey)
+            assertEquals("android", android.iconKey)
+            assertEquals("kt", kotlin.iconKey)
             assertEquals("jv", java.iconKey)
+            assertTrue(android.tags.contains("Android"))
             assertTrue(kotlin.tags.contains("Kotlin · JVM"))
             assertTrue(java.tags.contains("Gradle"))
         }
