@@ -33,13 +33,25 @@
     <string name="wizard_choix_sources">Sources uniquement</string>
     <string name="wizard_choix_jdk17">JDK 17</string>
     <string name="wizard_choix_jdk21">JDK 21</string>
+    <string name="wizard_choix_activite_vide">Activité unique</string>
+    <string name="wizard_choix_sans_activite">Sans activité</string>
+    <string name="wizard_choix_activite_tiroir">Activité + tiroir</string>
+    <string name="wizard_choix_kotlin">Kotlin</string>
+    <string name="wizard_choix_java">Java</string>
     <string name="wizard_sous_titre_application">Programme avec point d\'entrée</string>
     <string name="wizard_sous_titre_bibliotheque">Réutilisable par d\'autres projets</string>
+    <string name="wizard_sous_titre_kotlin">Concis, null-sûr, idiomatique</string>
+    <string name="wizard_sous_titre_java">L\'écosystème classique, sans runtime Kotlin</string>
     <string name="wizard_icone_application">&gt;_</string>
     <string name="wizard_icone_bibliotheque">▦</string>
+    <string name="wizard_icone_kotlin">Kt</string>
+    <string name="wizard_icone_java">Jv</string>
     <string name="wizard_explication_gradle">Recommandé — scripts Kotlin, wrapper sommé</string>
     <string name="wizard_explication_maven">Fichier pom.xml classique de l\'écosystème Java</string>
     <string name="wizard_explication_sources">Ni build, ni dépendances : juste les sources</string>
+    <string name="wizard_explication_activite_vide">Une activité, un écran — le point de départ classique</string>
+    <string name="wizard_explication_sans_activite">Fondations Android sans écran : services, données, fondations de bibliothèque</string>
+    <string name="wizard_explication_activite_tiroir">Activité, fragment et tiroir de navigation Material 3</string>
     <string name="wizard_aide_sans_build">Sans système de build, seules les sources sont générées.</string>
 
     <!-- Étape 3 — Informations et emplacement (section 12.3). -->

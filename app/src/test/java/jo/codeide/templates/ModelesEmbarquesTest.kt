@@ -90,14 +90,22 @@ class ModelesEmbarquesTest {
     // ------------------------------------------------------------ catalogue
 
     @Test
-    fun le_catalogue_embarque_exactement_5_modeles() =
+    fun le_catalogue_embarque_exactement_7_modeles() =
         runTest {
             val resumes = (ListTemplatesUseCase(setOf(fournisseurEmbarque), moteur)("fr") as AppResult.Success).value
 
-            // v0.41.1 : 5 modèles embarqués (android-app, java, kotlin-jvm,
-            // kotlin-multiplatform, spring-boot).
+            // v0.44.0 : 7 modèles embarqués (phase 3 — android-library et
+            // gradle-plugin s'ajoutent aux cinq historiques).
             assertEquals(
-                listOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
+                listOf(
+                    "android-app",
+                    "android-library",
+                    "gradle-plugin",
+                    "java",
+                    "kotlin-jvm",
+                    "kotlin-multiplatform",
+                    "spring-boot",
+                ),
                 resumes.map { it.id.value }.sorted(),
             )
             val android = resumes.first { it.id.value == "android-app" }

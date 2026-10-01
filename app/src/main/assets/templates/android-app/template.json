@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "id": "android-app",
-  "templateVersion": "1.1.0",
+  "templateVersion": "1.2.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "android",
   "iconKey": "template.icon",
-  "tags": ["Android", "Kotlin", "Gradle", "Material 3"],
+  "tags": ["Android", "Kotlin", "Java", "Gradle", "Material 3"],
   "parameters": [
     {
       "id": "appName",
@@ -25,6 +25,26 @@
       "defaultFrom": "packageFromAppName",
       "validator": "package-name",
       "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "projectType",
+      "type": "CHOICE",
+      "labelKey": "param.projectType.label",
+      "helpKey": "param.projectType.help",
+      "choices": ["empty-activity", "no-activity", "basic-activity"],
+      "default": "empty-activity",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "language",
+      "type": "CHOICE",
+      "labelKey": "param.language.label",
+      "helpKey": "param.language.help",
+      "choices": ["kotlin", "java"],
+      "default": "kotlin",
+      "section": "CONFIGURATION",
       "persist": true
     },
     {
@@ -58,6 +78,10 @@
   ],
   "computed": [
     {"name": "gradle", "expression": "true"},
+    {"name": "langageKotlin", "expression": "language == \"kotlin\""},
+    {"name": "estActiviteVide", "expression": "projectType == \"empty-activity\""},
+    {"name": "estSansActivite", "expression": "projectType == \"no-activity\""},
+    {"name": "estActiviteTiroir", "expression": "projectType == \"basic-activity\""},
     {"name": "avecTests", "expression": "includeTests"},
     {"name": "avecWrapper", "expression": "includeWrapper"}
   ],
@@ -81,10 +105,21 @@
     {"path": "app/src/main/res/values/strings.xml", "source": "files/app/strings.xml.tpl"},
     {"path": "app/src/main/res/values/colors.xml", "source": "files/app/colors.xml.tpl"},
     {"path": "app/src/main/res/values/themes.xml", "source": "files/app/themes.xml.tpl"},
-    {"path": "app/src/main/res/layout/activity_main.xml", "source": "files/app/activity_main.xml.tpl"},
-    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt", "source": "files/app/MainActivity.kt.tpl"},
-    {"path": "app/src/main/java/{{packageName|packagePath}}/Greeter.kt", "source": "files/greeter.kt.tpl"},
-    {"path": "app/src/test/java/{{packageName|packagePath}}/ExampleUnitTest.kt", "source": "files/ExampleUnitTest.kt.tpl", "when": "avecTests"},
-    {"path": "app/src/test/java/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/GreeterTest.kt.tpl", "when": "avecTests"}
+    {"path": "app/src/main/res/layout/activity_main.xml", "source": "files/app/activity_main.xml.tpl", "when": "estActiviteVide"},
+    {"path": "app/src/main/res/layout/activity_main_tiroir.xml", "source": "files/app/activity_main_tiroir.xml.tpl", "when": "estActiviteTiroir"},
+    {"path": "app/src/main/res/layout/fragment_accueil.xml", "source": "files/app/fragment_accueil.xml.tpl", "when": "estActiviteTiroir"},
+    {"path": "app/src/main/res/menu/tiroir.xml", "source": "files/app/tiroir.xml.tpl", "when": "estActiviteTiroir"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt", "source": "files/app/MainActivity.kt.tpl", "when": "langageKotlin && estActiviteVide"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt", "source": "files/app/MainActivityTiroir.kt.tpl", "when": "langageKotlin && estActiviteTiroir"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.java", "source": "files/app/MainActivity.java.tpl", "when": "!langageKotlin && estActiviteVide"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.java", "source": "files/app/MainActivityTiroir.java.tpl", "when": "!langageKotlin && estActiviteTiroir"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/FragmentAccueil.kt", "source": "files/app/FragmentAccueil.kt.tpl", "when": "langageKotlin && estActiviteTiroir"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/FragmentAccueil.java", "source": "files/app/FragmentAccueil.java.tpl", "when": "!langageKotlin && estActiviteTiroir"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/Greeter.kt", "source": "files/greeter.kt.tpl", "when": "langageKotlin"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/Greeter.java", "source": "files/Greeter.java.tpl", "when": "!langageKotlin"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/ExampleUnitTest.kt", "source": "files/ExampleUnitTest.kt.tpl", "when": "avecTests && langageKotlin"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/ExampleUnitTest.java", "source": "files/ExampleUnitTest.java.tpl", "when": "avecTests && !langageKotlin"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/GreeterTest.kt.tpl", "when": "avecTests && langageKotlin"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/GreeterTest.java", "source": "files/GreeterTest.java.tpl", "when": "avecTests && !langageKotlin"}
   ]
 }

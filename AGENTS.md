@@ -789,9 +789,35 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       Android `assembleDebug`+`testDebugUnitTest`+APK via
       `CODEIDE_ANDROID_SDK`) ; tests ModelesEmbarquesTest 15 → 22 —
       ADR 0075]
-- Prochaine : phase 3 du roadmap — Templates avancés (projectType Android,
-      support Java pour Android, modèles supplémentaires ; cf.
-      docs/ROADMAP.md).
+- v0.44.0 : **phase 3 du roadmap — TEMPLATES AVANCÉS** : le modèle
+      `android-app` passe en v1.2.0 avec **variantes par paramètres**
+      [`projectType` CHOICE : `empty-activity` (défaut) / `no-activity`
+      (manifeste `{{#if}}` sans `<activity>`, aucune classe d'écran) /
+      `basic-activity` (tiroir Material 3 : `ActionBarDrawerToggle` +
+      `MaterialToolbar` + `FragmentAccueil` à arguments + `menu/tiroir.xml`
+      + thème `NoActionBar` conditionnel + `drawerlayout` 1.2.0) ;
+      `language` CHOICE kotlin/java : sources miroir `.java` (ViewBinding
+      par champs publics, `import static`), bloc `kotlin{}` retiré en Java
+      pur — chemins statiques uniques, chemins TEMPLATISÉS autorisés en
+      doublon à `when` exclusifs] ; **nouveaux modèles** [`android-library`
+      (.aar : module `:library`, `consumer-rules.pro`, `com.example.<nom>`)
+      ; `gradle-plugin` : `kotlin-dsl` OBLIGATOIRE (Gradle 9.7.1 embarque
+      Kotlin 2.4.0 — un KGP externe 2.2.21 échoue sur les métadonnées du
+      `gradleApi()`), `@DisableCachingByDefault` exigée par
+      `validatePlugins`, `maven-publish` explicite + artifactId de
+      publication = `{{artifactId}}` (nom de projet à espaces invalide en
+      Maven), Kotlin 2.4 convertit `Action<T>` en lambda À RÉCEPTEUR,
+      `pluginId` dérive de `packageFromArtifactId` réutilisée] ; **wizard**
+      [rendu adaptatif : > 2 choix → cartes radio empilées (projectType
+      Android), `language` en tuiles ; libellés bilingues] ; **compose-app
+      différé** (ADR 0002) ; **vérification** :
+      `scripts/verify-templates.sh` 24 → 32 combinaisons (APK par variante,
+      AAR de release, `validatePlugins` + testkit, publication maven locale
+      + marqueur, E2E consommateur `./gradlew greet`) ; tests
+      ModelesPhase3Test (9), catalogues ancrés à 7 modèles, 1415 tests /
+      0 échec — ADR 0076]
+- Prochaine : phase 4 du roadmap — Wizard enrichi (aperçu de structure,
+      validation immédiate ; cf. docs/ROADMAP.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "android-library",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "android",
+  "iconKey": "template.icon",
+  "tags": ["Android", "Bibliothèque", "AAR", "Kotlin", "Gradle"],
+  "parameters": [
+    {
+      "id": "appName",
+      "type": "TEXT",
+      "labelKey": "param.appName.label",
+      "helpKey": "param.appName.help",
+      "default": "MaBibliotheque",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.packageName.label",
+      "helpKey": "param.packageName.help",
+      "defaultFrom": "packageFromAppName",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "minSdk",
+      "type": "CHOICE",
+      "labelKey": "param.minSdk.label",
+      "helpKey": "param.minSdk.help",
+      "choices": ["26"],
+      "default": "26",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeTests",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeTests.label",
+      "helpKey": "param.includeTests.help",
+      "default": "true",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeWrapper",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeWrapper.label",
+      "helpKey": "param.includeWrapper.help",
+      "default": "true",
+      "section": "CONFIGURATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    {"name": "gradle", "expression": "true"},
+    {"name": "avecTests", "expression": "includeTests"},
+    {"name": "avecWrapper", "expression": "includeWrapper"}
+  ],
+  "files": [
+    {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
+    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
+    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
+    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
+    {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
+    {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
+    {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
+    {"path": "gradle.properties", "source": "files/gradle.properties.tpl"},
+    {"path": "gradle/wrapper/gradle-wrapper.properties", "source": "files/wrapper.properties.tpl", "when": "avecWrapper"},
+    {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
+    {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
+    {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
+    {"path": "library/.gitignore", "source": "files/library/gitignore.tpl", "when": "includeGitignore"},
+    {"path": "library/build.gradle.kts", "source": "files/library/build.gradle.kts.tpl"},
+    {"path": "library/consumer-rules.pro", "source": "files/library/consumer-rules.pro.tpl"},
+    {"path": "library/src/main/AndroidManifest.xml", "source": "files/library/AndroidManifest.xml.tpl"},
+    {"path": "library/src/main/res/values/strings.xml", "source": "files/library/strings.xml.tpl"},
+    {"path": "library/src/main/java/{{packageName|packagePath}}/Greeter.kt", "source": "files/greeter.kt.tpl"},
+    {"path": "library/src/test/java/{{packageName|packagePath}}/ExampleUnitTest.kt", "source": "files/ExampleUnitTest.kt.tpl", "when": "avecTests"},
+    {"path": "library/src/test/java/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/GreeterTest.kt.tpl", "when": "avecTests"}
+  ]
+}
