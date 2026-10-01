@@ -23,6 +23,19 @@ internal object UrisDocuments {
     fun idArbre(arbre: Uri): String = DocumentsContract.getTreeDocumentId(arbre)
 
     /**
+     * Identifiant de document porté par une URI de **document** complète
+     * (`…/tree/<racine>/document/<id>`) — décodage officiel de
+     * `DocumentsContract.getDocumentId`, qui EXIGE le segment `document`
+     * (une URI d'arborescence pure lève `IllegalArgumentException` :
+     * l'avalissement en `null` incombe au port [SafArborescences], pas
+     * ici).
+     *
+     * @param document URI de document.
+     * @return l'identifiant du document visé.
+     */
+    fun idDocument(document: Uri): String = DocumentsContract.getDocumentId(document)
+
+    /**
      * URI du document identifié par [idDocument] dans l'arborescence
      * portée par [arbreOuDocument] (URI d'arborescence **ou** URI de
      * document — `DocumentsContract` n'extrait que le segment `tree`).

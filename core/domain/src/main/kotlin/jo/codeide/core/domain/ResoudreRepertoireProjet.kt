@@ -69,6 +69,18 @@ internal val RACINES_FUSE_PAR_DEFAUT: Map<String, String> =
  * résout le dossier du projet courant en chemin utilisable par un shell
  * du bootstrap, ou `null` si ce n'est pas possible.
  *
+ * V0.43.0 (correctif « résolution du projet dans le dossier parent ») :
+ * l'entrée est l'URI de **document** du projet
+ * (`StorageLocation.documentUri`), et NON PLUS l'URI d'arborescence de
+ * sa permission (`grantUri`). Pour un projet créé dans le dossier de
+ * travail, l'arbre porteur de la permission est le PARENT — résoudre
+ * depuis `grantUri` rendait `/storage/emulated/0/CodeIDEProjects` au
+ * lieu de `…/CodeIDEProjects/MonApp` (terminal « ouvrir dans ce
+ * projet », sync Gradle et build touchés). Un projet importé À PROPRE
+ * PERMISSION gardait par hasard le bon dossier (son arbre EST le
+ * projet) — d'où un bug invisible sur la seule configuration qui
+ * servait de repère.
+ *
  * Pourquoi ce pont existe alors que le stockage applicatif est SAF
  * (ADR 0003) : une session de terminal est un **processus fils** de
  * l'app — même UID, même vue FUSE. Un `cd /storage/emulated/0/…` y
@@ -98,12 +110,18 @@ public class ResoudreRepertoireProjet
         private val repartiteurs: DispatcherProvider,
     ) {
         /**
-         * Résout le chemin FUSE du dossier désigné par l'URI d'arborescence
-         * [grantUri], s'il existe réellement sur le volume monté.
+         * Résout le chemin FUSE du dossier désigné par l'URI de **document**
+         * [documentUri] (`StorageLocation.documentUri` — le dossier du
+         * projet lui-même), s'il existe réellement sur le volume monté.
+         *
+         * Une URI d'arborescence pure (`…/tree/<id>`, sans segment
+         * `document`) est REJETÉE (`null`) : elle désigne l'arbre porteur
+         * de la permission, pas le projet.
          */
-        public suspend operator fun invoke(grantUri: String): String? =
+        public suspend operator fun invoke(documentUri: String): String? =
             withContext(repartiteurs.io) {
-                val idDocument = arborescences.idDocument(grantUri) ?: return@withContext null
+                val idDocument =
+                    arborescences.idDocumentDeUriDocument(documentUri) ?: return@withContext null
                 cheminFuseDepuisIdDocument(idDocument, RACINES_FUSE_PAR_DEFAUT)
                     ?.let { chemin -> chemin.takeIf { File(chemin).isDirectory() } }
             }

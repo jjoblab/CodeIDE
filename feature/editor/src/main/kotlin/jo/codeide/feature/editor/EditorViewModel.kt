@@ -500,7 +500,13 @@ class EditorViewModel
          */
         private suspend fun restaurerEtatSyncSiEmpreinteIdentique(): Boolean {
             val projet = etatInterne.value.projet ?: return false
-            val uriRacine = projet.location.grantUri ?: return false
+            // v0.43.0 : l'état de sync vit sous le DOSSIER DU PROJET — son
+            // URI racine est `documentUri` (les use cases attendent une URI
+            // de document, et `fichiers.list` REJETTE une URI d'arbre).
+            // L'ancien `grantUri` pointait l'arbre parent pour un projet
+            // créé : lecture impossible → restitution JAMAIS trouvée → sync
+            // manuelle à chaque ouverture.
+            val uriRacine = projet.location.documentUri
             val state = lireSyncState(uriRacine) ?: return false
             val empreinteCourante = calculerEmpreinteGradle(uriRacine)
             // Une empreinte vide (racine illisible) ne permet pas de
@@ -569,7 +575,10 @@ class EditorViewModel
          */
         private suspend fun persisterSyncState(resultat: AppResult<ResultatSynchronisation>) {
             val projet = etatInterne.value.projet ?: return
-            val uriRacine = projet.location.grantUri ?: return
+            // v0.43.0 : même correctif que la lecture — persister sous
+            // `documentUri`, sinon le fichier atterrissait (en échec) sur
+            // l'arbre parent et aucune restitution n'était possible.
+            val uriRacine = projet.location.documentUri
             val resultatSync = (resultat as? AppResult.Success)?.value ?: return
             if (!resultatSync.reussie && !resultatSync.partielle) return
             val empreinte = calculerEmpreinteGradle(uriRacine)
@@ -827,7 +836,13 @@ class EditorViewModel
         private suspend fun resoudreCheminProjet(): String? =
             etatInterne.value.projet
                 ?.location
-                ?.grantUri
+                // v0.43.0 (correctif « résolution dans le dossier parent ») :
+                // résoudre depuis l'URI de DOCUMENT du projet, pas depuis
+                // l'URI d'arbre de sa permission — pour un projet créé dans
+                // le dossier de travail, l'arbre est le PARENT. Même correctif
+                // que le terminal « ouvrir dans ce projet » (partage ce
+                // résolveur), l'empreinte Gradle et le sync-state.
+                ?.documentUri
                 ?.let { resoudreRepertoireProjet(it) }
 
         // ------------------------------------------------------------------
@@ -969,10 +984,12 @@ class EditorViewModel
         ) {
             val resultatSync = (resultat as? AppResult.Success)?.value ?: return
             if (!resultatSync.reussie && !resultatSync.partielle) return
+            // v0.43.0 : le classpath persiste sous le dossier du projet
+            // (`documentUri`) — même correctif que sync-state/empreinte.
             val uriRacine =
                 etatInterne.value.projet
                     ?.location
-                    ?.grantUri ?: return
+                    ?.documentUri ?: return
             when (val preparation = preparerClasspathLsp(dossier, uriRacine, optionsTooling.argumentsBuild())) {
                 is AppResult.Success -> {
                     journal.i(TAG) {
