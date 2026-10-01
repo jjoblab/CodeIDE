@@ -18,6 +18,12 @@ import org.junit.Test
  * discipline que `core:bootstrap` (T1) : chaque cas de la cartographie
  * `ExternalStorageProvider` et du durcissement anti-traversée est
  * éprouvé isolément.
+ *
+ * V0.43.0 : le cas d'usage reçoit l'URI de **document** du projet
+ * (`StorageLocation.documentUri`) — les tests du niveau cas d'usage
+ * suivent, avec la régression centrale du bug : une URI d'ARBRE (sans
+ * segment `document`) doit être rejetée, pas résolue vers la racine de
+ * l'arbre (le dossier PARENT d'un projet créé dans le dossier de travail).
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ResoudreRepertoireProjetTest {
@@ -121,19 +127,75 @@ class ResoudreRepertoireProjetTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `URI d arborescence illisible donne null`() =
+    fun `URI de document illisible donne null`() =
         runTest {
             assertNull(casUsage("content://provider.inconnu/autre/segment"))
         }
 
     @Test
-    fun `volume inconnu donne null même via le cas d usage`() =
+    fun `regression v0 43 0 - une URI d arbre sans segment document est rejetee`() =
         runTest {
-            assertNull(casUsage("content://com.android.externalstorage.documents/tree/foo%3Abar"))
+            // LE bug : l'ancien contrat résolvait l'URI d'ARBRE de la
+            // permission — pour un projet créé dans le dossier de travail,
+            // l'arbre est le PARENT, et le terminal/build s'ouvraient dans
+            // `/storage/emulated/0/CodeIDEProjects` au lieu du projet.
+            // Désormais : null (jamais de racine d'arbre substituée).
+            assertNull(
+                casUsage(
+                    "content://com.android.externalstorage.documents/tree/" +
+                        "primary%3ACodeIDEProjects",
+                ),
+            )
         }
 
     @Test
-    fun `chemin résolu mais absent du système de fichiers donne null`() =
+    fun `regression v0 43 0 - le faux refuse aussi l arbre pur`() {
+        assertNull(
+            arborescences.idDocumentDeUriDocument(
+                "content://com.android.externalstorage.documents/tree/primary%3ACodeIDEProjects",
+            ),
+        )
+    }
+
+    @Test
+    fun `une URI de document imbriquee rend l identifiant complet du projet`() {
+        // Projet créé dans le dossier de travail : documentUri imbriqué
+        // dans l'arbre parent — l'identifiant couvre TOUT le chemin.
+        assertEquals(
+            "primary:CodeIDEProjects/MonApp",
+            arborescences.idDocumentDeUriDocument(
+                "content://com.android.externalstorage.documents/tree/" +
+                    "primary%3ACodeIDEProjects/document/primary%3ACodeIDEProjects%2FMonApp",
+            ),
+        )
+    }
+
+    @Test
+    fun `l identifiant de document alimente la resolution complete`() {
+        assertEquals(
+            "/storage/emulated/0/CodeIDEProjects/MonApp",
+            cheminFuseDepuisIdDocument(
+                arborescences.idDocumentDeUriDocument(
+                    "content://com.android.externalstorage.documents/tree/" +
+                        "primary%3ACodeIDEProjects/document/primary%3ACodeIDEProjects%2FMonApp",
+                )!!,
+                RACINES_FUSE_PAR_DEFAUT,
+            ),
+        )
+    }
+
+    @Test
+    fun `volume inconnu donne null meme via le cas d usage`() =
+        runTest {
+            assertNull(
+                casUsage(
+                    "content://com.android.externalstorage.documents/tree/foo%3Abar/document/foo%3Abar",
+                ),
+            )
+        }
+
+    @Test
+    fun `chemin resolu mais absent du systeme de fichiers donne null`() =
         runTest {
             // Le garde « répertoire fantôme » : jamais de session ouverte
             // dans un dossier qui n'existe pas (volume démonté). En JVM,
@@ -141,7 +203,7 @@ class ResoudreRepertoireProjetTest {
             assertNull(
                 casUsage(
                     "content://com.android.externalstorage.documents/tree/" +
-                        "primary%3ACodeIDE%2FDossierFantome",
+                        "primary%3ACodeIDE/document/primary%3ACodeIDE%2FDossierFantome",
                 ),
             )
         }

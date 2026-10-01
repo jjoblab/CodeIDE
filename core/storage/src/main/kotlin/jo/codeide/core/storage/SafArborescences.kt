@@ -20,6 +20,11 @@ internal class SafArborescences
                 UrisDocuments.idArbre(grantUri.toUri())
             }.getOrNull()
 
+        override fun idDocumentDeUriDocument(documentUri: String): String? =
+            runCatching {
+                UrisDocuments.idDocument(documentUri.toUri())
+            }.getOrNull()
+
         override fun uriDocument(grantUri: String): String? =
             runCatching {
                 val arbre = grantUri.toUri()

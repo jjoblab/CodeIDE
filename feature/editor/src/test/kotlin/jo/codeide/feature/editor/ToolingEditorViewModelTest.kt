@@ -2,11 +2,13 @@ package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtatOutilsTerminal
+import jo.codeide.core.domain.EtatSyncLocal
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -137,6 +139,86 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             assertTrue(etat.synchronisationEnCours.not())
             assertTrue(etat.messageEchecSync != null)
             assertNull(tooling.dossierRecu)
+        }
+
+    @Test
+    fun `regression v0 43 0 - le sync-state se restitue via documentUri quand grantUri est l arbre parent`() =
+        runTest {
+            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true, initialise = true))
+
+            // Projet « créé dans le dossier de travail » (CreateProjectUseCase) :
+            // grantUri = arbre PARENT, documentUri = document IMBRIQUÉ.
+            val grantParent = "content://autorite/tree/dossier-travail"
+            val documentProjet = "$grantParent/document/dossier-travail%2FMonApp"
+            fichiers.grantPermission(grantParent)
+            fichiers.seedDocument(
+                grantParent,
+                FakeFileSystem.Document(name = "dossier-travail", isDirectory = true),
+            )
+            fichiers.seedDocument(
+                documentProjet,
+                FakeFileSystem.Document(name = "MonApp", isDirectory = true),
+            )
+            fichiers.seedDocument(
+                "$documentProjet/build.gradle.kts",
+                FakeFileSystem.Document(
+                    name = "build.gradle.kts",
+                    isDirectory = false,
+                    bytes = "plugins { }".toByteArray(),
+                ),
+            )
+
+            // Sync-state persisté SOUS LE DOCUMENT (là où les use cases le
+            // cherchent) : empreinte calculée par le VRAI cas d'usage sur le
+            // MÊME faux, écriture par le VRAI cas d'usage.
+            val empreinte =
+                jo.codeide.core.domain.CalculerEmpreinteGradleUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ).invoke(documentProjet)
+            assertTrue("l'empreinte des fichiers Gradle semés est non vide", empreinte.isNotEmpty())
+            val tachesRestituees = listOf(InfoTache(chemin = ":app:build", nomAffiche = "build"))
+            val ecriture =
+                jo.codeide.core.domain.EcrireSyncStateUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ).invoke(
+                    documentProjet,
+                    EtatSyncLocal(empreinte = empreinte, taches = tachesRestituees, dureeMs = 4_321L),
+                )
+            assertTrue("le sync-state s'écrit sous le document du projet", ecriture is AppResult.Success)
+
+            val ajout =
+                depot.addProject(
+                    "MonApp",
+                    "",
+                    jo.codeide.core.model.StorageLocation(
+                        grantUri = grantParent,
+                        documentUri = documentProjet,
+                        displayPath = "dossier-travail/MonApp",
+                    ),
+                    jo.codeide.core.model.TemplateId.IMPORTED,
+                )
+            val id = (ajout as AppResult.Success).value.id
+            val viewModel = viewModel(id)
+            avancer()
+
+            // L'ancien code lisait sous grantUri (l'arbre PARENT) : state
+            // introuvable → sync manuelle → échec. Le nouveau lit sous
+            // documentUri : état « Synchronisé » restitué immédiatement,
+            // durée et tâches comprises, et AUCUNE sync manuelle lancée.
+            val etat = viewModel.etatGradle.value
+            assertEquals("aucune sync manuelle : la restitution a suffi", 0, tooling.nbSynchronisations)
+            assertTrue(
+                "l'état restitué est publié via documentUri (v0.43.0)",
+                etat.synchronisationReussie?.reussie == true,
+            )
+            assertEquals(4_321L, etat.synchronisationReussie?.dureeMs)
+            assertEquals(
+                "les tâches du state sont restituées au retour du projet",
+                tachesRestituees,
+                etat.tachesDisponibles,
+            )
         }
 
     @Test
