@@ -3,6 +3,8 @@ package jo.codeide.feature.editor
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jo.codeide.core.domain.AccumulateurLatence
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtapeSyncTooling
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -148,11 +151,16 @@ sealed interface EvenementConsoleTexte {
      * @property apaisee `true` pour un avertissement CONNU et bénin (v3 —
      *           correctif C5 : le diagnostic natif du daemon Gradle) rendu
      *           en style informatif au lieu du rouge d'erreur.
+     * @property horodatageMs instant d'émission côté orchestrateur
+     *           (`BuildOutput.timestampMs`, v0.43.0 — mesure de latence : la
+     *           vue peut comparer à l'instant du rendu pour situer un
+     *           éventuel goulot d'affichage).
      */
     data class Ligne(
         val flux: FluxSortieBuild,
         val texte: String,
         val apaisee: Boolean = false,
+        val horodatageMs: Long = 0,
     ) : EvenementConsoleTexte
 
     /** La zone texte repart vierge (nouveau build, nouvel espace). */
@@ -399,11 +407,22 @@ class GradleService
     constructor(
         private val horloge: TimeProvider,
         private val demarreur: DemarreurServiceTooling,
+        private val journal: AppLogger,
     ) {
         private val etatInterne = MutableStateFlow(EtatGradle())
 
         /** Identités séquentielles des lignes de console (v3). */
         private val sequenceLignes = AtomicLong()
+
+        /**
+         * Latence de PUBLICATION des lignes, par build (v0.43.0 — mesure
+         * de la console lente) : écart entre l'émission côté orchestrateur
+         * (`LigneSortieBuild.horodatageMs`) et l’arrivée dans la zone
+         * texte. Miroir CLIENT du résumé de TRANSPORT de GradleApiImpl —
+         * la DIFFÉRENCE des maxima localise la moitié cliente. Nettoyé au
+         * terme du build suivi.
+         */
+        private val latencesPublication = ConcurrentHashMap<String, AccumulateurLatence>()
 
         /** État observable du tooling. */
         val etat: StateFlow<EtatGradle> = etatInterne.asStateFlow()
@@ -543,6 +562,10 @@ class GradleService
             buildId: String,
             taches: List<String> = emptyList(),
         ) {
+            // v0.43.0 : l'espace ne construit qu'UN build à la fois — un
+            // accumulateur de latence restant est celui d'un build orphelin
+            // (état terminal jamais reçu, session perdue) : purgé ici.
+            latencesPublication.clear()
             maj {
                 it.copy(
                     buildId = buildId,
@@ -565,6 +588,20 @@ class GradleService
 
         /** Publie l'état du build suivi (les autres builds sont ignorés). */
         fun publierEtatBuild(etat: EtatBuild) {
+            // v0.43.0 (mesure console lente) : au terme du build SUIVI, le
+            // résumé de latence de PUBLICATION (émission serveur → zone
+            // texte) rejoint le journal — à lire avec le résumé de TRANSPORT
+            // de GradleApiImpl : différence des maxima = moitié cliente
+            // (canaux, pompe, zone texte), maximum de transport = moitié
+            // serveur+socket (file de l'EventBus, contre-pression).
+            if (etat.statut != StatutBuild.EN_COURS && etat.buildId == etatInterne.value.buildId) {
+                latencesPublication.remove(etat.buildId)?.let { latence ->
+                    journal.i(TAG) {
+                        "zone texte du build ${etat.buildId} alimentée : ${latence.description()} " +
+                            "(émission orchestrateur → publication console)"
+                    }
+                }
+            }
             maj { courant ->
                 if (etat.buildId !=
                     courant.buildId
@@ -598,11 +635,17 @@ class GradleService
         fun ajouterLigne(ligne: LigneSortieBuild) {
             val courant = etatInterne.value
             if (ligne.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) return
+            // v0.43.0 (mesure console lente) : écart émission serveur →
+            // publication zone texte (transport + moitié cliente inclus).
+            latencesPublication
+                .computeIfAbsent(ligne.buildId) { AccumulateurLatence() }
+                .enregistrer(horloge.nowMillis() - ligne.horodatageMs)
             zoneTexteInterne.tryEmit(
                 EvenementConsoleTexte.Ligne(
                     flux = ligne.flux,
                     texte = ligne.ligne,
                     apaisee = ligne.apaisee(),
+                    horodatageMs = ligne.horodatageMs,
                 ),
             )
         }
@@ -774,6 +817,9 @@ class GradleService
              *  forme longue continue (« ...to match the client because:
              *  There is no native integration... »), le préfixe suffit. */
             const val AVERTISSEMENT_DAEMON_BENIN = "Unable to set daemon's environment variables"
+
+            /** Étiquette des résumés de latence (mesure console, v0.43.0). */
+            const val TAG = "ConsoleLatence"
         }
     }
 

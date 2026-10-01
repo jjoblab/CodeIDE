@@ -120,7 +120,8 @@ abstract class BaseEditorViewModelTest {
     /** Détenteur d'état tooling process-wide (étape 32) — le socle en
      *  construit UN par test : les activités en vol d'un test ne
      *  saignent jamais vers le suivant. */
-    protected val serviceGradleTest = GradleService(horloge = horlogeOutil, demarreur = demarreurServiceOutil)
+    protected val serviceGradleTest =
+        GradleService(horloge = horlogeOutil, demarreur = demarreurServiceOutil, journal = FakeAppLogger())
 
     /** Pompe process-wide des canaux de build (v0.37.3) : construite sur
      *  les MÊMES faux que l'espace — tooling, état et réglages partagent

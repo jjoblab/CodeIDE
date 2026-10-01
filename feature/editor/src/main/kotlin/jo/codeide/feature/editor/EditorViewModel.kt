@@ -1020,23 +1020,45 @@ class EditorViewModel
          * v0.39.1 (correctif n°3) : la console bascule sur la vue BUILD —
          * l'utilisateur voit les `> Task :app:xxx` au fur et à mesure,
          * comme dans Android Studio, sans toucher aux chips.
+         *
+         * v0.43.0 (mesure console lente) : l'onglet et le filtre sont
+         * sélectionnés AVANT toute préparation (garde JDK, résolution du
+         * dossier, lancement) — la zone texte est prête à recevoir les
+         * premières lignes AU MOMENT où elles arrivent, et le retour
+         * visuel est immédiat au lieu d'attendre la fin de la chaîne
+         * amont. Le chrono couvre désormais TOUTE la préparation
+         * (résolution + lancement), pas le seul `debut` du serveur : le
+         * journal dit où les millisecondes partent avant même que Gradle
+         * ne commence.
          */
         private fun executerTachesGradle(taches: List<String>) {
             viewModelScope.launch {
+                // D'ABORD la console : retour visuel immédiat, zone texte
+                // visible dès les premières lignes (idempotent — la garde
+                // JDK ci-dessous repasse par les mêmes sélecteurs).
+                selectionnerOngletPanneau(OngletPanneau.CONSOLE)
+                selectionnerFiltreConsole(FiltreCanalConsole.BUILD)
+                val debutPreparationMs = System.currentTimeMillis()
                 if (jdkAbsent()) {
-                    selectionnerOngletPanneau(OngletPanneau.CONSOLE)
                     refuserSansJdk()
                     return@launch
                 }
+                val debutResolutionMs = System.currentTimeMillis()
                 val dossier = dossierProjetOuEchec() ?: return@launch
+                val finResolutionMs = System.currentTimeMillis()
                 // Arguments des réglages tooling (v3) : hors ligne + libres,
                 // voyagent avec la demande — l'orchestrateur ajoute
                 // TOUJOURS --console=plain en dernier.
                 val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
+                val finLancementMs = System.currentTimeMillis()
                 observerBuild(buildId, taches)
-                selectionnerOngletPanneau(OngletPanneau.CONSOLE)
-                selectionnerFiltreConsole(FiltreCanalConsole.BUILD)
-                journal.i(TAG) { "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()})" }
+                journal.i(TAG) {
+                    "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()}) — " +
+                        "préparation ${finLancementMs - debutPreparationMs} ms " +
+                        "(garde JDK ${debutResolutionMs - debutPreparationMs} ms, " +
+                        "résolution dossier ${finResolutionMs - debutResolutionMs} ms, " +
+                        "lancement ${finLancementMs - finResolutionMs} ms)"
+                }
             }
         }
 
