@@ -13,6 +13,7 @@ import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import org.junit.Assert.assertEquals
@@ -40,7 +41,7 @@ class GradleServiceTest {
      *  construit ici. */
     private val demarreur = FauxDemarreurServiceTooling()
 
-    private val service = GradleService(horloge = TimeProvider { instant }, demarreur = demarreur)
+    private val service = GradleService(horloge = TimeProvider { instant }, demarreur = demarreur, journal = FakeAppLogger())
 
     /** Événements de la zone texte conservés par le rejeu (v0.42.0 — le
      *  rejeu EST le tampon borné : la liste reflète ce qu'une vue qui
@@ -514,7 +515,7 @@ internal class FauxDemarreurServiceTooling : DemarreurServiceTooling {
 
     @Test
     fun `les etapes derivees des lignes portent leur statut et leur detail - v4`() {
-        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling())
+        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling(), FakeAppLogger())
 
         service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.OUTILS, terminee = true, dureeMs = 12))
         service.ajouterEtapeSync(
@@ -540,7 +541,7 @@ internal class FauxDemarreurServiceTooling : DemarreurServiceTooling {
 
     @Test
     fun `les taches disponibles se publient puis s invalident a la sync suivante - v4`() {
-        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling())
+        val service = GradleService(TimeProvider { 0L }, FauxDemarreurServiceTooling(), FakeAppLogger())
 
         service.publierTachesDisponibles(listOf(InfoTache(chemin = ":app:build", nomAffiche = "build")))
         assertEquals(
