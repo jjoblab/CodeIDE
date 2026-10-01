@@ -2,6 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
+{{#if avecSerialization}}
+    alias(libs.plugins.kotlin.serialization)
+{{/if}}
 }
 
 group = "{{groupId}}"
@@ -18,6 +21,15 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(kotlin("stdlib"))
+{{#if avecSerialization}}
+                implementation(libs.kotlinx.serialization.json)
+{{/if}}
+{{#if avecCoroutines}}
+                implementation(libs.kotlinx.coroutines.core)
+{{/if}}
+{{#if avecDatetime}}
+                implementation(libs.kotlinx.datetime)
+{{/if}}
             }
         }
         {{#if avecTests}}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dialogue de renommage d'un nœud de l'arborescence prévue (ADR 0077) :
+  un seul segment, validation locale immédiate (vide, séparateur, doublon).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/spacing_lg"
+    android:paddingTop="@dimen/spacing_md"
+    android:paddingEnd="@dimen/spacing_lg"
+    android:paddingBottom="@dimen/spacing_sm">
+
+    <TextView
+        android:id="@+id/texte_aide_renommage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/spacing_md"
+        android:text="@string/wizard_renommer_aide"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        tools:text="Les fichiers concernés suivront le nouveau nom." />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/champ_renommage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/wizard_renommer_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/saisie_renommage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:importantForAutofill="no"
+            android:inputType="textNoSuggestions"
+            android:maxLines="1"
+            tools:text="MainActivity.kt" />
+    </com.google.android.material.textfield.TextInputLayout>
+</LinearLayout>

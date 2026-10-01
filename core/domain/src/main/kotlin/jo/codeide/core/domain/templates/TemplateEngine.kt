@@ -23,6 +23,10 @@ import javax.inject.Inject
  * Requête interne de génération : entrées complètes d'un plan ou d'une
  * création, déjà assemblées par les cas d'usage (nom, auteur des paramètres,
  * année de l'horloge injectée, version du générateur).
+ *
+ * @property renommages renommages de l'aperçu (phase 4, ADR 0077) : clé =
+ * chemin original du nœud (fichier exact ou préfixe de dossier), valeur =
+ * nouveau nom **du segment** — jamais un chemin complet.
  */
 internal data class RequeteGeneration(
     val nom: String,
@@ -33,6 +37,7 @@ internal data class RequeteGeneration(
     val auteur: String,
     val annee: String,
     val versionGenerateur: String,
+    val renommages: Map<String, String> = emptyMap(),
 )
 
 /** Résultat interne de l'évaluation des paramètres. */
@@ -169,6 +174,10 @@ public class TemplateEngine
                     AppError.Validation("langue de contenu inconnue « ${requete.options.contentLanguage} »"),
                 )
             }
+            val problemeRenommage = validerRenommages(requete.renommages)
+            if (problemeRenommage != null) {
+                return AppResult.Failure(AppError.Validation(problemeRenommage))
+            }
 
             val evaluation =
                 evaluerParametres(
@@ -200,7 +209,7 @@ public class TemplateEngine
                         }
                     if (!incluse) continue
                 }
-                val cheminRendu =
+                val cheminOriginal =
                     try {
                         TemplateRenderer.rendreFichier(fichier.chemin, contexte, dictionnaire, fichier.chemin)
                     } catch (erreur: TemplateRenderException) {
@@ -208,6 +217,7 @@ public class TemplateEngine
                             AppError.Template("chemin « ${fichier.chemin} » : ${erreur.message}"),
                         )
                     }
+                val cheminRendu = renommerChemin(cheminOriginal, requete.renommages)
                 val problemeChemin = TemplatePathGuard.valider(cheminRendu)
                 if (problemeChemin != null) {
                     return AppResult.Failure(AppError.Template(problemeChemin))
@@ -243,7 +253,13 @@ public class TemplateEngine
                             }
                         PlannedContent.Texte(normaliserFinsDeLigne(cheminRendu, rendu))
                     }
-                planifies += PlannedFile(cheminRendu, fichier.group, contenu)
+                planifies +=
+                    PlannedFile(
+                        chemin = cheminRendu,
+                        group = fichier.group,
+                        contenu = contenu,
+                        cheminOriginal = cheminOriginal.takeIf { it != cheminRendu },
+                    )
             }
 
             // Licence : injectée par le moteur pour tout modèle (option commune).
@@ -253,11 +269,20 @@ public class TemplateEngine
                 val texte =
                     texteLicence.getOrNull()
                         ?: return AppResult.Failure(AppError.Template("licence $fichierLicence illisible"))
+                val cheminLicence = renommerChemin(CHEMIN_LICENCE, requete.renommages)
+                val problemeLicence = TemplatePathGuard.valider(cheminLicence)
+                if (problemeLicence != null) {
+                    return AppResult.Failure(AppError.Template(problemeLicence))
+                }
                 planifies +=
                     PlannedFile(
-                        CHEMIN_LICENCE,
-                        TemplateFileGroup.LICENSE,
-                        PlannedContent.Texte(normaliserFinsDeLigne(CHEMIN_LICENCE, texte)),
+                        chemin = cheminLicence,
+                        group = TemplateFileGroup.LICENSE,
+                        contenu =
+                            PlannedContent.Texte(
+                                normaliserFinsDeLigne(cheminLicence, texte),
+                            ),
+                        cheminOriginal = CHEMIN_LICENCE.takeIf { it != cheminLicence },
                     )
             }
 
@@ -289,6 +314,61 @@ public class TemplateEngine
                 return AppResult.Failure(AppError.Template(doublon))
             }
             return AppResult.Success(TemplatePlan(planifies.toList()))
+        }
+
+        /**
+         * Contrôle la carte des renommages AVANT tout calcul (phase 4,
+         * ADR 0077) : un nouveau nom est un **segment** (jamais vide, jamais
+         * séparateur, jamais parent), et les métadonnées `.codeide/` sont
+         * intouchables — le fichier de suivi du projet ne doit jamais
+         * disparaître sous un autre nom.
+         *
+         * Les clés sans correspondance dans le plan final sont licites et
+         * ignorées : l'arborescence a pu changer entre-temps (retour en
+         * arrière, autre variante), exactement comme les valeurs de
+         * paramètres obsolètes.
+         */
+        @Suppress("ReturnCount") // Une clause de garde par famille d'erreur (règle 16).
+        private fun validerRenommages(renommages: Map<String, String>): String? {
+            for ((ancien, nom) in renommages) {
+                if (ancien.isBlank()) {
+                    return "renommage : clé vide"
+                }
+                if (ancien == CHEMIN_DOSSIER_METADATA || ancien.startsWith("$CHEMIN_DOSSIER_METADATA/")) {
+                    return "renommage interdit : « $ancien » fait partie des métadonnées du projet"
+                }
+                if (nom.isBlank()) {
+                    return "renommage de « $ancien » : le nouveau nom est vide"
+                }
+                if (SEPARATEUR_CHEMIN in nom || SEPARATEUR_WINDOWS in nom) {
+                    return "renommage de « $ancien » : le nouveau nom doit être un simple segment (sans séparateur)"
+                }
+                if (nom == "." || nom == "..") {
+                    return "renommage de « $ancien » : « $nom » n'est pas un nom valide"
+                }
+            }
+            return null
+        }
+
+        /**
+         * Applique les renommages au chemin rendu : substitution **simultanée**
+         * de chaque segment dont le préfixe (chemin du nœud, du fichier à
+         * l'ancêtre) est une clé — les préfixes sont lus sur les segments
+         * **originaux**, les renommages d'un dossier et de son fichier se
+         * composent donc, et aucune itération ne peut boucler.
+         */
+        private fun renommerChemin(
+            chemin: String,
+            renommages: Map<String, String>,
+        ): String {
+            if (renommages.isEmpty()) return chemin
+            val originaux = chemin.split(SEPARATEUR_CHEMIN)
+            val resultats = originaux.toMutableList()
+            for (index in originaux.indices) {
+                val prefixe = originaux.subList(0, index + 1).joinToString(SEPARATEUR_CHEMIN)
+                renommages[prefixe]?.let { resultats[index] = it }
+            }
+            return resultats.joinToString(SEPARATEUR_CHEMIN)
         }
 
         /**
@@ -619,6 +699,15 @@ public class TemplateEngine
 
             /** Nom conventionnel du paramètre de package (variable `packagePath`). */
             private const val NOM_PARAMETRE_PACKAGE = "packageName"
+
+            /** Dossier des métadonnées du projet — intouchable au renommage. */
+            private const val CHEMIN_DOSSIER_METADATA = ".codeide"
+
+            /** Séparateur de chemin des plans (relatifs, style Unix). */
+            private const val SEPARATEUR_CHEMIN = "/"
+
+            /** Séparateur Windows — refusé dans un nouveau nom de segment. */
+            private const val SEPARATEUR_WINDOWS = "\\"
 
             private val JsonMetadata =
                 Json {

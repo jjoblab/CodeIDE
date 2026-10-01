@@ -39,5 +39,19 @@
   "catalogue.entete": "Pinned toolchain versions — see the template documentation.",
   "gitignore.gradle": "Gradle",
   "gitignore.commun": "IDE and system files",
-  "gitattributes.entete": "Deterministic line endings (see .editorconfig)"
+  "gitattributes.entete": "Deterministic line endings (see .editorconfig)",
+  "param.includeJpa.label": "Spring Data JPA",
+  "param.includeJpa.help": "Adds spring-boot-starter-data-jpa and an in-memory H2 database",
+  "param.includeSecurity.label": "Spring Security",
+  "param.includeSecurity.help": "Adds spring-boot-starter-security (endpoints require authentication)",
+  "param.includeActuator.label": "Actuator",
+  "param.includeActuator.help": "Adds spring-boot-starter-actuator (/actuator/health)",
+  "param.includeValidation.label": "Validation",
+  "param.includeValidation.help": "Adds spring-boot-starter-validation (Bean Validation)",
+  "readme.dependances": "Dependencies",
+  "readme.dep.jpa": "Spring Data JPA — relational persistence with in-memory H2",
+  "readme.dep.security": "Spring Security — authentication (user « user », password logged at startup)",
+  "readme.dep.actuator": "Actuator — application monitoring",
+  "readme.dep.validation": "Validation — Bean Validation constraints on parameters",
+  "readme.securite": "Spring Security is active: endpoints answer 401 without credentials (user « user », generated password shown at startup)."
 }

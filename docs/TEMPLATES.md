@@ -62,7 +62,7 @@ valeurs) :
 | `type` | `TEXT`, `BOOLEAN` ou `CHOICE` |
 | `labelKey`, `helpKey` | clés i18n affichées par le wizard |
 | `choices`, `default` | pour `CHOICE` (défaut parmi les valeurs) ; `BOOLEAN` accepte `true`/`false` |
-| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId` ; le modèle `gradle-plugin` réutilise `packageFromArtifactId` pour son `pluginId` (ADR 0076) |
+| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`), `applicationIdFromPackageName` (suit le paramètre `packageName`, repli `com.example.app` — chaîne `appName → packageName → applicationId`, ADR 0077) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId`/`applicationId` ; le modèle `gradle-plugin` réutilise `packageFromArtifactId` pour son `pluginId` (ADR 0076) |
 | `validator` | `project-name`, `package-name`, `identifier`, `semver` ou `regex:<motif>` (correspondance complète) |
 | `visibleWhen` | expression du mini-langage ; absent = toujours visible |
 | `section` | `CONFIGURATION` ou `INFORMATION` (étapes du wizard) |
@@ -151,6 +151,21 @@ final, noms réservés Windows (`CON`, `COM1`…), chemins > 240 caractères,
 segments > 120, doublons (insensible à la casse). Jamais d'écrasement d'un
 fichier existant.
 
+### Renommage depuis l'aperçu (phase 4, ADR 0077)
+
+L'utilisateur peut renommer un nœud de l'arborescence prévue **avant**
+création : la demande entre dans la requête (clé = chemin original du
+nœud — fichier exact ou préfixe de dossier —, valeur = **nouveau nom du
+segment**, jamais un chemin complet), le moteur substitue chaque segment
+concerné puis rejoue **toutes** les gardes ci-dessus (un renommage qui
+créerait un doublon ou un chemin interdit échoue explicitement — jamais
+de `{{…}}` résiduel, jamais de silence). Les clés obsolètes (arborescence
+changée entre-temps) sont ignorées, comme les paramètres périmés ; le
+dossier `.codeide/` est intouchable. La licence suit les renommages comme
+n'importe quel fichier. Un concepteur de modèle n'a **rien à déclarer** :
+le renommage s'applique à l'arborescence rendue, en aval des `when` et
+des chemins templatisés.
+
 ## Extension — `ProjectTemplateProvider`
 
 Les fournisseurs s'enregistrent en **multibinding Hilt** (`@IntoSet`).
@@ -173,20 +188,40 @@ identifiant entre fournisseurs aussi.
   d'options d'un modèle embarqué est générée **puis réellement compilée,
   testée, exécutée et publiée** avec les vrais outils.
 
-## Les modèles embarqués (étapes 9, phases 2-3 du roadmap)
+## Les modèles embarqués (étapes 9, phases 2-4 du roadmap)
 
 Sept modèles vivent sous `assets/templates/`, tous vérifiés par build réel
-via `scripts/verify-templates.sh` (32 combinaisons) :
+via `scripts/verify-templates.sh` (**37 combinaisons**) :
 
 | Modèle | Ce qu'il génère | Détails |
 |---|---|---|
 | `kotlin-jvm` | projet JVM Kotlin (app/biblio, Gradle/Maven/none, JDK 17/21) | étape 9 — Greeter + Main + GreeterTest, `-Werror` |
 | `java` | projet JVM Java (mêmes axes) | étape 9 — `-Xlint:all -Werror` |
-| `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-3 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), package `com.example.<appName>`, ViewBinding |
-| `spring-boot` | service REST Boot 4.1.1 (Kotlin 2.2.21) | phase 2 — repository, tests de contexte, `application.yml` |
-| `kotlin-multiplatform` | bibliothèque KMP (Kotlin 2.2.21) | phase 2 — `expect`/`actual` câblé, `jvmTest`, tâche `run` |
-| `android-library` | bibliothèque Android (.aar) | phase 3 — module `:library`, `consumer-rules.pro`, package `com.example.<nom>` |
+| `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-4 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), `minSdk` 24-34, `targetSdk` 34-37, `applicationId` dérivé, package `com.example.<appName>`, ViewBinding, 5 dépendances au choix (Coroutines, Retrofit, Navigation, Room, Hilt) |
+| `spring-boot` | service REST Boot 4.1.1 (Kotlin 2.2.21) | phases 2+4 — repository, tests de contexte, `application.yml`, 4 dépendances au choix (JPA+H2, Security, Actuator, Validation) |
+| `kotlin-multiplatform` | bibliothèque KMP (Kotlin 2.2.21) | phases 2+4 — `expect`/`actual` câblé, `jvmTest`, tâche `run`, 3 dépendances au choix (serialization, coroutines, datetime) |
+| `android-library` | bibliothèque Android (.aar) | phases 3+4 — module `:library`, `consumer-rules.pro`, package `com.example.<nom>`, `minSdk` 24-34 |
 | `gradle-plugin` | plugin Gradle en Kotlin | phase 3 — `kotlin-dsl` (compilateur **embarqué** dans la distribution : Gradle 9.7.1 livre Kotlin 2.4.0, incompatible avec un KGP externe 2.2.21 sur `gradleApi()`), `pluginId`/`packageName` dérivés de l'`artifactId`, testkit ProjectBuilder (ADR 0076) |
+
+### Dépendances au choix (phase 4, ADR 0077)
+
+Chaque dépendance est un interrupteur `BOOLEAN` (défaut faux) : le
+catalogue `libs.versions.toml` du projet généré n'embarque **que** les
+versions des dépendances cochées, le build ne déclare que les plugins
+requis (KSP n'apparaît que si Room ou Hilt est coché). Versions
+vérifiées par build réel :
+
+| Dépendance | Version | Modèle |
+|---|---|---|
+| `kotlinx-coroutines` (android/core) | 1.11.0 | `android-app`, `kotlin-multiplatform` |
+| Retrofit + converter-gson | 3.0.0 | `android-app` |
+| AndroidX Navigation | 2.10.2 | `android-app` (plancher minSdk 24) |
+| Room (runtime/ktx/compiler) | 2.8.5 | `android-app` — via KSP |
+| Hilt (android/compiler) | 2.59.2 | `android-app` — via KSP |
+| **KSP** | **2.3.12** | `android-app` — accepte le Kotlin intégré d'AGP 9.4.1 (les 2.2.x le refusent ; un KGP externe est inapplicable, `BaseExtension` n'existe plus) |
+| kotlinx-serialization-json + plugin | 1.11.0 + Kotlin 2.2.21 | `kotlin-multiplatform` |
+| kotlinx-datetime | 0.8.0 | `kotlin-multiplatform` (`Instant` ponté vers kotlin.time, `@OptIn` dans l'exemple) |
+| starters Spring Boot + H2 | gérés par la BOM 4.1.1 | `spring-boot` (alias de catalogue **sans version**) |
 
 `kotlin-jvm` et `java` partagent la même logique de paramètres (section 11
 du prompt maître) : `projectType` (application/bibliothèque), `buildSystem`

@@ -97,6 +97,10 @@ val ETAPES_WIZARD: List<WizardStep> =
  * @property plan plan de création du récapitulatif (dry-run, section 12.3).
  * @property chargementPlan plan en cours de calcul.
  * @property erreurPlan le plan a échoué (message + bouton Réessayer).
+ * @property renommages renommages demandés depuis l'aperçu (ADR 0077) :
+ * clé = chemin original du nœud, valeur = nouveau nom du segment — l'aperçu
+ * se recalcule après chaque renommage, ce qui est planifié reste ce qui
+ * est écrit.
  * @property etatCreation écran de création (hors numérotation, section 12.2).
  */
 data class EtatWizard(
@@ -122,6 +126,7 @@ data class EtatWizard(
     val plan: TemplatePlan? = null,
     val chargementPlan: Boolean = false,
     val erreurPlan: Boolean = false,
+    val renommages: Map<String, String> = emptyMap(),
     val etatCreation: EtatCreation = EtatCreation.Inactif,
 ) {
     /** L'index de l'étape courante dans [ETAPES_WIZARD] (0 par défaut). */
@@ -189,6 +194,7 @@ data class EtatWizard(
                 nomProjet.isNotBlank() ||
                 description.isNotBlank() ||
                 valeursParametres.isNotEmpty() ||
+                renommages.isNotEmpty() ||
                 options != TemplateOptions()
 
     /** Les paramètres visibles d'une section, dans l'ordre du manifeste. */
@@ -285,6 +291,16 @@ sealed interface ActionWizard {
 
     /** Recalcule le plan du récapitulatif après un échec (dry-run). */
     data object ReessayerPlan : ActionWizard
+
+    /**
+     * Renomme un nœud de l'aperçu (ADR 0077) : [ancien] est le chemin
+     * original du nœud (identité stable), [nouveauNom] un simple segment
+     * déjà validé par le dialogue — le domaine revalide tout.
+     */
+    data class RenommerChemin(
+        val ancien: String,
+        val nouveauNom: String,
+    ) : ActionWizard
 
     /** Annule la création en cours (rollback puis retour au récapitulatif). */
     data object AnnulerCreation : ActionWizard

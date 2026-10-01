@@ -17,6 +17,26 @@
 
 {{t:readme.apk}}
 
+{{#if avecCoroutines || avecRetrofit || avecNavigation || avecRoom || avecHilt}}
+## {{t:readme.dependances}}
+
+{{#if avecCoroutines}}
+- {{t:readme.dep.coroutines}}
+{{/if}}
+{{#if avecRetrofit}}
+- {{t:readme.dep.retrofit}}
+{{/if}}
+{{#if avecNavigation}}
+- {{t:readme.dep.navigation}}
+{{/if}}
+{{#if avecRoom}}
+- {{t:readme.dep.room}}
+{{/if}}
+{{#if avecHilt}}
+- {{t:readme.dep.hilt}}
+{{/if}}
+
+{{/if}}
 ## {{t:readme.structure}}
 
 {{#if estActiviteTiroir}}
@@ -59,6 +79,20 @@
 {{/if}}
 {{#else}}
 │       │   └── java/{{packageName|packagePath}}/
+{{#if avecHilt}}
+{{#if langageKotlin}}
+│       │       ├── {{appName|resourceName}}Application.kt
+{{#else}}
+│       │       ├── {{appName|resourceName}}Application.java
+{{/if}}
+{{/if}}
+{{#if avecRoom}}
+{{#if langageKotlin}}
+│       │       ├── BddLocale.kt
+{{#else}}
+│       │       ├── BddLocale.java
+{{/if}}
+{{/if}}
 {{#if langageKotlin}}
 {{#if estActiviteTiroir}}
 │       │       ├── FragmentAccueil.kt

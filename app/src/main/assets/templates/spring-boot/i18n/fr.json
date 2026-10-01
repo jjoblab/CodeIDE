@@ -39,5 +39,19 @@
   "catalogue.entete": "Versions figées de la chaîne d'outils — voir la documentation du modèle.",
   "gitignore.gradle": "Gradle",
   "gitignore.commun": "IDE et fichiers système",
-  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)"
+  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)",
+  "param.includeJpa.label": "Spring Data JPA",
+  "param.includeJpa.help": "Ajoute spring-boot-starter-data-jpa et une base H2 en mémoire",
+  "param.includeSecurity.label": "Spring Security",
+  "param.includeSecurity.help": "Ajoute spring-boot-starter-security (les endpoints exigent une authentification)",
+  "param.includeActuator.label": "Actuator",
+  "param.includeActuator.help": "Ajoute spring-boot-starter-actuator (/actuator/health)",
+  "param.includeValidation.label": "Validation",
+  "param.includeValidation.help": "Ajoute spring-boot-starter-validation (Bean Validation)",
+  "readme.dependances": "Dépendances",
+  "readme.dep.jpa": "Spring Data JPA — persistance relationnelle avec H2 en mémoire",
+  "readme.dep.security": "Spring Security — authentification (compte « user », mot de passe dans les journaux au démarrage)",
+  "readme.dep.actuator": "Actuator — supervision de l'application",
+  "readme.dep.validation": "Validation — contraintes Bean Validation sur les paramètres",
+  "readme.securite": "Spring Security est actif : les endpoints répondent 401 sans identifiants (utilisateur « user », mot de passe généré affiché au démarrage)."
 }

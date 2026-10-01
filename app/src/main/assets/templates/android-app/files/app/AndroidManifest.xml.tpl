@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+{{#if avecHilt}}
+        android:name=".{{appName|resourceName}}Application"
+{{/if}}
         android:allowBackup="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
