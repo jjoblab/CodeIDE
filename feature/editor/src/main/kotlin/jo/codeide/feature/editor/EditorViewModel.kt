@@ -398,11 +398,11 @@ class EditorViewModel
                 }.launchIn(viewModelScope)
             // Étapes de sync annoncées PAR le serveur (v3 — fin de la boîte
             // noire) : chaque phase devient une ligne du canal Sync, conclue
-            // en place avec sa durée.
-            tooling
-                .observeSyncProgress()
-                .onEach { etape -> serviceGradle.ajouterEtapeSync(etape) }
-                .launchIn(viewModelScope)
+            // en place avec sa durée. v0.45.1 : la vidange vit dans la pompe
+            // PROCESS-WIDE (elle vivait dans ce viewModelScope — un écran
+            // fermé en pleine sync remplissait le canal borné du client puis
+            // bloquait sa pompe unique : sorties, pongs, tout gelait).
+            pompeBuilds.pomperSync()
             viewModelScope.launch {
                 // La première connaissance du projet résout son dossier réel
                 // (SAF → FUSE, même traduction que le terminal) — les

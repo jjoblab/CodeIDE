@@ -254,10 +254,19 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
     override fun getItemViewType(position: Int): Int =
         when (getItem(position)) {
             is RangeeConsole.EtapeArbre -> Type.ETAPE_ARBRE
+
             is RangeeConsole.DetailTelechargement -> Type.DETAIL_TELECHARGEMENT
+
+            // v0.45.1 : la barre des téléchargements du build partage le
+            // gabarit du détail de téléchargement de l'arbre Sync.
+            is RangeeConsole.TelechargementsBuild -> Type.DETAIL_TELECHARGEMENT
+
             is RangeeConsole.DetailClasspath -> Type.DETAIL_CLASSPATH
+
             is RangeeConsole.Tache -> Type.TACHE
+
             is RangeeConsole.SyntheseBuild -> Type.SYNTHESE_BUILD
+
             is RangeeConsole.SyntheseSync -> Type.SYNTHESE_SYNC
         }.ordinal
 
@@ -312,6 +321,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
         when (val rangee = getItem(position)) {
             is RangeeConsole.EtapeArbre -> (holder as EtapeArbreHolder).lier(rangee)
             is RangeeConsole.DetailTelechargement -> (holder as DetailTelechargementHolder).lier(rangee)
+            is RangeeConsole.TelechargementsBuild -> (holder as DetailTelechargementHolder).lier(rangee)
             is RangeeConsole.DetailClasspath -> (holder as ClasspathModuleHolder).lier(rangee)
             is RangeeConsole.Tache -> (holder as TacheHolder).lier(rangee.ligne)
             is RangeeConsole.SyntheseBuild -> (holder as SyntheseHolder).lier(rangee)
@@ -446,46 +456,93 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
 
     // ---- Détail de téléchargement (§3.3) ---------------------------------
 
+    /** Projection commune des deux rangées de téléchargement (v0.45.1) :
+     *  ce que le gabarit sait afficher — volume, compteur, artefact et le
+     *  canal qui donne la couleur. Construite depuis la rangée SYNC (totaux
+     *  connus) comme depuis la rangée BUILD (barre indéterminée, volume
+     *  cumulé seul) — un seul objet traverse [DetailTelechargementHolder]. */
+    private data class AffichageTelechargement(
+        val octetsRecus: Long,
+        val octetsTotal: Long?,
+        val compteur: Int?,
+        val total: Int?,
+        val element: String?,
+        val canal: CanalTooling,
+    )
+
     /** Détail sous l'étape active : barre + « reçus / total · n/N » +
      *  artefact courant. */
     private class DetailTelechargementHolder(
         private val liaison: LigneDetailTelechargementBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
-        fun lier(rangee: RangeeConsole.DetailTelechargement) {
-            if (!lierBarre(rangee)) {
+        fun lier(rangee: RangeeConsole.DetailTelechargement) =
+            lierCommun(
+                AffichageTelechargement(
+                    octetsRecus = rangee.octetsRecus,
+                    octetsTotal = rangee.octetsTotal,
+                    compteur = rangee.compteur,
+                    total = rangee.total,
+                    element = rangee.element,
+                    canal = CanalTooling.SYNC,
+                ),
+            )
+
+        /** v0.45.1 : téléchargements du BUILD — même gabarit, couleur du
+         *  canal BUILD, compteur SANS total (le nombre d'artefacts à venir
+         *  n'est pas connu d'avance : barre indéterminée + volume cumulé). */
+        fun lier(rangee: RangeeConsole.TelechargementsBuild) =
+            lierCommun(
+                AffichageTelechargement(
+                    octetsRecus = rangee.etat.octetsRecus,
+                    octetsTotal = null,
+                    compteur = rangee.etat.compteur,
+                    total = null,
+                    element = rangee.etat.element,
+                    canal = CanalTooling.BUILD,
+                ),
+            )
+
+        /**
+         * Cœur commun des deux rangées de téléchargement : barre
+         * (déterminée si le total est connu, indéterminée sinon), volume
+         * « 42 Mo », compteur « n / N » quand le total existe, artefact
+         * courant. Rien à montrer → le détail entier se tait.
+         */
+        private fun lierCommun(affichage: AffichageTelechargement) {
+            if (!lierBarre(affichage)) {
                 // Aucune progression à montrer : le détail entier se tait
                 // (l'étape reste seule en scène).
                 liaison.detailTelechargementEtape.isVisible = false
                 liaison.elementTelechargementEtape.isVisible = false
                 return
             }
-            lierTexte(rangee)
-            liaison.elementTelechargementEtape.isVisible = rangee.element != null
-            rangee.element?.let { element ->
+            lierTexte(affichage)
+            liaison.elementTelechargementEtape.isVisible = affichage.element != null
+            affichage.element?.let { nom ->
                 liaison.elementTelechargementEtape.text =
-                    liaison.root.context.getString(R.string.editor_console_detail_element, element)
+                    liaison.root.context.getString(R.string.editor_console_detail_element, nom)
             }
         }
 
         /** Barre : déterminée quand le total est connu, indéterminée sinon
          *  (Material exige de masquer pour basculer de mode) — `false`
          *  quand il n'y a RIEN à montrer. */
-        private fun lierBarre(rangee: RangeeConsole.DetailTelechargement): Boolean {
+        private fun lierBarre(affichage: AffichageTelechargement): Boolean {
             val barre = liaison.barreTelechargementEtape
             barre.isVisible = false
-            val total = rangee.octetsTotal
+            val total = affichage.octetsTotal
             when {
-                total != null && total > 0 && rangee.octetsRecus > 0 -> {
+                total != null && total > 0 && affichage.octetsRecus > 0 -> {
                     if (barre.isIndeterminate) {
                         barre.isIndeterminate = false
                     }
                     barre.setProgressCompat(
-                        (rangee.octetsRecus.toFloat() / total * POURCENT_MAX).toInt(),
+                        (affichage.octetsRecus.toFloat() / total * POURCENT_MAX).toInt(),
                         true,
                     )
                 }
 
-                rangee.octetsRecus > 0 || rangee.compteur != null -> {
+                affichage.octetsRecus > 0 || affichage.compteur != null -> {
                     barre.isIndeterminate = true
                 }
 
@@ -496,7 +553,7 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
             barre.setIndicatorColor(
                 ThemeHarmonizer.harmoniserAvecPrimaire(
                     liaison.root.context,
-                    CanalTooling.SYNC.couleur,
+                    affichage.canal.couleur,
                 ),
             )
             barre.isVisible = true
@@ -505,23 +562,23 @@ internal class ConsoleToolingAdapter : ListAdapter<RangeeConsole, RecyclerView.V
 
         /** Texte de détail : « 42 Mo / 130 Mo », « 3 / 37 » (les deux
          *  ensemble le cas échéant, séparés par « · »). */
-        private fun lierTexte(rangee: RangeeConsole.DetailTelechargement) {
+        private fun lierTexte(affichage: AffichageTelechargement) {
             val contexte = liaison.root.context
             val parties = mutableListOf<String>()
-            if (rangee.octetsRecus > 0) {
+            if (affichage.octetsRecus > 0) {
                 parties +=
                     contexte.getString(
                         R.string.editor_console_detail_octets,
-                        OctetsLisibles.formater(rangee.octetsRecus),
-                        OctetsLisibles.formater(rangee.octetsTotal ?: rangee.octetsRecus),
+                        OctetsLisibles.formater(affichage.octetsRecus),
+                        OctetsLisibles.formater(affichage.octetsTotal ?: affichage.octetsRecus),
                     )
             }
-            if (rangee.compteur != null && (rangee.total ?: 0) > 0) {
+            if (affichage.compteur != null && (affichage.total ?: 0) > 0) {
                 parties +=
                     contexte.getString(
                         R.string.editor_console_detail_compteur,
-                        rangee.compteur,
-                        rangee.total ?: rangee.compteur,
+                        affichage.compteur,
+                        affichage.total ?: affichage.compteur,
                     )
             }
             liaison.detailTelechargementEtape.isVisible = parties.isNotEmpty()

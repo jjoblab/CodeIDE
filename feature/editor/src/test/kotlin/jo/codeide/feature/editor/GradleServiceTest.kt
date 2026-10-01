@@ -13,9 +13,9 @@ import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
-import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.testing.FakeAppLogger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -41,7 +41,8 @@ class GradleServiceTest {
      *  construit ici. */
     private val demarreur = FauxDemarreurServiceTooling()
 
-    private val service = GradleService(horloge = TimeProvider { instant }, demarreur = demarreur, journal = FakeAppLogger())
+    private val service =
+        GradleService(horloge = TimeProvider { instant }, demarreur = demarreur, journal = FakeAppLogger())
 
     /** Événements de la zone texte conservés par le rejeu (v0.42.0 — le
      *  rejeu EST le tampon borné : la liste reflète ce qu'une vue qui
@@ -218,6 +219,114 @@ class GradleServiceTest {
         assertTrue(
             service.etat.value.lignes
                 .isEmpty(),
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // v0.45.1 — téléchargements du build (affichage immédiat, parité
+    // Android Studio : barre de progression en place de la vue Build).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `les telechargements du build s accumulent en etat pendant le vol`() {
+        service.suivreBuild("b-1")
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "kotlin-stdlib.jar",
+                octetsRecus = 1_769_000,
+                termine = true,
+                compteur = 1,
+            ),
+        )
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "gradle-9.7.1-all.zip",
+                octetsRecus = 130_000_000,
+                termine = true,
+                compteur = 2,
+            ),
+        )
+
+        val telechargements = service.etat.value.telechargementsBuild
+        assertEquals(
+            "le volume CUMULE des artefacts terminés avance au fil de l'eau",
+            131_769_000L,
+            telechargements?.octetsRecus,
+        )
+        assertEquals(2, telechargements?.compteur)
+        assertEquals("gradle-9.7.1-all.zip", telechargements?.element)
+    }
+
+    @Test
+    fun `les telechargements d un autre build ou hors vol sont ignores`() {
+        service.suivreBuild("b-1")
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-autre",
+                element = "ailleurs.jar",
+                octetsRecus = 10,
+                termine = true,
+                compteur = 1,
+            ),
+        )
+        assertNull("la garde buildId s applique", service.etat.value.telechargementsBuild)
+
+        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 5))
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "trop-tard.jar",
+                octetsRecus = 10,
+                termine = true,
+                compteur = 1,
+            ),
+        )
+        assertNull(
+            "la progression vit SEULEMENT pendant le build — la synthèse conclut",
+            service.etat.value.telechargementsBuild,
+        )
+    }
+
+    @Test
+    fun `un nouveau build repart vierge et le statut terminal efface la barre`() {
+        service.suivreBuild("b-1")
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "a.jar",
+                octetsRecus = 100,
+                termine = true,
+                compteur = 1,
+            ),
+        )
+
+        service.suivreBuild("b-2")
+        assertNull(
+            "un nouveau build ne montre PAS les téléchargements du précédent",
+            service.etat.value.telechargementsBuild,
+        )
+    }
+
+    @Test
+    fun `le statut terminal du build efface la progression des telechargements`() {
+        service.suivreBuild("b-1")
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "a.jar",
+                octetsRecus = 100,
+                termine = true,
+                compteur = 1,
+            ),
+        )
+
+        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 725))
+
+        assertNull(
+            "la rangée des téléchargements disparaît au terme — la synthèse prend la place",
+            service.etat.value.telechargementsBuild,
         )
     }
 

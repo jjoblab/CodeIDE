@@ -4,6 +4,64 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.45.1] – 2026-10-02
+
+### Corrigé (retour utilisateur : chemin de projet + console en retard)
+
+- **Chemin de projet (`grantUri` vs `documentUri`)** : les projets « créés
+  dans le dossier de travail » portent un `grantUri` d'arbre PARENT et un
+  `documentUri` de document imbriqué — `ResoudreRepertoireProjet` résolvait
+  depuis `grantUri` (dossier parent au lieu du projet) et les use cases
+  SAF (`LireSyncState`/`EcrireSyncState`/`CalculerEmpreinteGradle`/
+  `PreparerClasspathLsp`) recevaient une URI d'arbre pure que
+  `DocumentsContract.getDocumentId` rejette : sync-state jamais lu ni
+  écrit, classpath LSP jamais persisté. Le contrat passe à `documentUri`
+  (nouvelle méthode de port `ArborescencesSaf.idDocumentDeUriDocument`,
+  l'URI d'arbre pure renvoie `null`), les quatre usages de
+  `EditorViewModel` suivent — l'état « Synchronisé » se restitue au
+  retour du projet sans sync manuelle.
+- **Console en retard (analyse du trajet des outputs)** : le trajet BRUT
+  stdout/stderr était déjà direct (ligne à ligne, append par trame) — le
+  retard venait de TROUS DE ROUTAGE, corrigés pour la parité Android
+  Studio (« le serveur publie, le client affiche ») :
+  - les `ProgressEvent` TEXTUELS du build (« Configuration :app… »)
+    étaient publiés par le serveur puis JETÉS à la réception (`?: return`
+    sur le détail de téléchargement) : ils deviennent des lignes de
+    console immédiates. La fenêtre pré-tâches (connexion au daemon —
+    30 s à 2 min à froid sur mobile, configuration) porte enfin un état
+    visible : « Exécution des tâches : … », « connexion au daemon
+    Gradle… », « daemon Gradle connecté (X ms) » ;
+  - le canal des téléchargements du build n'avait AUCUN consommateur en
+    production : au-delà de 4096 événements la pompe unique du client se
+    serait bloquée sur `send`. La `PompeBuildTooling` (process-wide) le
+    draine désormais vers une rangée de progression EN PLACE en tête de
+    la vue Build (barre + volume cumulé + artefact courant), effacée au
+    terme du build ;
+  - la capture stdout/stderr de la SYNC (v0.41.1) publiait des lignes
+    avec l'identifiant de REQUÊTE SYNC comme `buildId` — le client n'ouvre
+    un canal de sortie QUE pour les builds : publication morte, jamais
+    affichée depuis la refonte console v0.42.0. La capture est retirée
+    (l'arbre des phases réelles reste l'état affichable de la sync) ;
+  - la vidange de la progression sync vivait dans le `viewModelScope` de
+    l'espace : écran fermé en pleine sync, le canal borné (256) se
+    remplissait puis bloquait la même pompe. Elle devient process-wide et
+    idempotente (`PompeBuildTooling.pomperSync`) ;
+  - extraction `PublicateurProgressionBuild` (statuts textuels, écouteur
+    téléchargements/configuration, diagnostics stderr) et
+    `ConversionsDomaine` (traductions protocole → domaine) quand les
+    limites de complexité ont été atteintes.
+
+### Ajouté
+
+- **Sondes de latence console** (mesure, pas correction à l'aveugle) :
+  `AccumulateurLatence` (min/moy/max thread-safe) ; latence de TRANSPORT
+  par build résumée à la fin dans `GradleApiImpl` (tag `ConsoleLatence`),
+  latence de PUBLICATION dans `GradleService.ajouterLigne`, verdict serveur
+  « build \<id\> conclu : X ms (file=N) » avec profondeur de file
+  `EventBus.taille()` ; l'onglet CONSOLE et le filtre BUILD sont posés
+  AVANT la préparation du build (la console est déjà là quand les lignes
+  arrivent) ; `EvenementConsoleTexte.Ligne` porte un horodatage.
+
 ## [0.45.0] – 2026-10-01
 
 ### Ajouté (phase 4 du roadmap — wizard enrichi, ADR 0077)

@@ -81,6 +81,9 @@ class FauxToolingEditor : GradleToolingRepository {
     /** Tâches par build (v3) — même sémantique que les sorties. */
     private val taches = HashMap<String, Channel<EtatTacheBuild>>()
 
+    /** Téléchargements par build (v0.45.1) — même sémantique que les sorties. */
+    private val telechargements = HashMap<String, Channel<TelechargementBuild>>()
+
     /** États par build. */
     private val etats = HashMap<String, MutableStateFlow<EtatBuild>>()
 
@@ -92,7 +95,14 @@ class FauxToolingEditor : GradleToolingRepository {
     override fun observeTachesBuild(buildId: String): Flow<EtatTacheBuild> = canalTaches(buildId).receiveAsFlow()
 
     override fun observeTelechargementsBuild(buildId: String): Flow<TelechargementBuild> =
-        kotlinx.coroutines.flow.emptyFlow()
+        canalTelechargements(buildId).receiveAsFlow()
+
+    /** Canal des téléchargements du build (v0.45.1 — non borné côté faux :
+     *  le test pousse, la pompe draine, jamais de contre-pression fictive). */
+    private fun canalTelechargements(buildId: String): Channel<TelechargementBuild> =
+        synchronized(telechargements) {
+            telechargements.getOrPut(buildId) { Channel(Channel.UNLIMITED) }
+        }
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 
@@ -182,6 +192,26 @@ class FauxToolingEditor : GradleToolingRepository {
         )
     }
 
+    /** Simule un téléchargement du build [buildId] (v0.45.1 — barre de
+     *  progression de la vue Build, consommé par la pompe process-wide). */
+    fun emettreTelechargement(
+        buildId: String,
+        element: String,
+        octetsRecus: Long,
+        compteur: Int? = null,
+    ) {
+        canalTelechargements(buildId).trySend(
+            TelechargementBuild(
+                buildId = buildId,
+                element = element,
+                octetsRecus = octetsRecus,
+                octetsTotal = octetsRecus,
+                termine = true,
+                compteur = compteur,
+            ),
+        )
+    }
+
     /** Simule une étape de sync annoncée par l'orchestrateur (v3). */
     fun emettreEtapeSync(
         etape: EtapeSync,
@@ -202,6 +232,7 @@ class FauxToolingEditor : GradleToolingRepository {
         etat(buildId).value = EtatBuild(buildId = buildId, statut = statut, messageEchec = messageEchec)
         canal(buildId).close()
         canalTaches(buildId).close()
+        canalTelechargements(buildId).close()
     }
 
     private fun canal(buildId: String): Channel<LigneSortieBuild> =

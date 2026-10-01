@@ -237,6 +237,24 @@ data class GroupeProblemes(
 )
 
 /**
+ * Téléchargements du build SUIVI (v0.45.1 — affichage immédiat, parité
+ * Android Studio) : état CONFLATÉ de la progression des artefacts — le
+ * compteur n et le volume cumulé avancent au fil des événements, la rangée
+ * de la vue Build se met à jour EN PLACE (barre + « n Mo · élément »),
+ * comme la barre de progression de la fenêtre Build d'Android Studio.
+ * Disparaît au terme du build (la synthèse prend la place).
+ *
+ * @property octetsRecus cumul des octets des artefacts TERMINÉS.
+ * @property compteur nombre d'artefacts terminés (n).
+ * @property element dernier artefact reçu (dernier segment d'URI).
+ */
+data class EtatTelechargementBuild(
+    val octetsRecus: Long = 0,
+    val compteur: Int? = null,
+    val element: String? = null,
+)
+
+/**
  * État observable du tooling Gradle pour l'espace de travail (G5 ;
  * v0.32.5 : canaux, tâches et instants de départ — ADR 0056 décision 5 ;
  * étape 32 : canal Taches, ADR 0057).
@@ -295,6 +313,9 @@ data class EtatGradle(
      *  remplies à la fin d'une sync réussie, restituées au retour du
      *  projet si l'empreinte n'a pas changé. `null` si non résolu. */
     val statsClasspath: List<jo.codeide.core.domain.ModuleClasspath>? = null,
+    /** Téléchargements du build suivi (v0.45.1) — conflation légitime
+     *  d'un état de progression ; `null` hors build en cours. */
+    val telechargementsBuild: EtatTelechargementBuild? = null,
 ) {
     /** Nombre total de diagnostics (badge de l'onglet Problèmes). */
     val problemesTotal: Int
@@ -581,6 +602,9 @@ class GradleService
                     tachesExecuteesBuild = null,
                     tachesAJourBuild = null,
                     lignes = emptyList(),
+                    // v0.45.1 : les téléchargements repartent vierges
+                    // (rangée de progression de la vue Build).
+                    telechargementsBuild = null,
                 )
             }
             viderZoneTexte()
@@ -619,6 +643,11 @@ class GradleService
                         tachesActionnablesBuild = etat.tachesActionnables,
                         tachesExecuteesBuild = etat.tachesExecutees,
                         tachesAJourBuild = etat.tachesAJour,
+                        // v0.45.1 : la rangée des téléchargements disparaît
+                        // au terme du build — la synthèse prend la place,
+                        // comme la barre de progression d'Android Studio
+                        // s'efface quand la fenêtre Build conclut.
+                        telechargementsBuild = null,
                     )
                 }
             }
@@ -648,6 +677,38 @@ class GradleService
                     horodatageMs = ligne.horodatageMs,
                 ),
             )
+        }
+
+        /**
+         * Publie un téléchargement du build suivi (v0.45.1 — affichage
+         * immédiat, parité Android Studio) : la progression des artefacts
+         * du build devient une rangée EN PLACE de la vue Build (barre +
+         * volume cumulé + artefact courant) — le canal téléchargements du
+         * client avait bien un consommateur nulle part jusqu'ici : ces
+         * événements existaient, la console les ignorait. Les lignes d'un
+         * autre build sont ignorées (garde historique) et l'état vit
+         * SEULEMENT pendant le build (conflation légitime d'un état de
+         * progression, effacé au statut terminal).
+         */
+        fun ajouterTelechargement(telechargement: jo.codeide.core.domain.TelechargementBuild) {
+            maj { courant ->
+                if (telechargement.buildId != courant.buildId ||
+                    courant.statutBuild != StatutBuild.EN_COURS
+                ) {
+                    courant
+                } else {
+                    courant.copy(
+                        telechargementsBuild =
+                            EtatTelechargementBuild(
+                                octetsRecus =
+                                    (courant.telechargementsBuild?.octetsRecus ?: 0) +
+                                        telechargement.octetsRecus,
+                                compteur = telechargement.compteur,
+                                element = telechargement.element,
+                            ),
+                    )
+                }
+            }
         }
 
         /**
