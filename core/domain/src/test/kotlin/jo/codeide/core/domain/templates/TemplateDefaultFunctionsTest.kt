@@ -9,9 +9,10 @@ import org.junit.Test
  * Tests des fonctions de valeurs dérivées `defaultFrom` (étape 8 —
  * section 11 : `slug`, `parentPackage`, `packageFromNameAndAuthor` ;
  * phase 2 du roadmap, ADR 0075 : `packageFromAppName`,
- * `packageFromArtifactId`).
+ * `packageFromArtifactId` ; phase 4 du roadmap, ADR 0077 :
+ * `applicationIdFromPackageName`).
  *
- * Le moteur n'évalue **aucun code** du manifeste : seules ces cinq
+ * Le moteur n'évalue **aucun code** du manifeste : seules ces six
  * implémentations nommées existent, toute autre est un échec explicite.
  */
 class TemplateDefaultFunctionsTest {
@@ -147,10 +148,36 @@ class TemplateDefaultFunctionsTest {
     }
 
     @Test
-    fun `exactement cinq fonctions sont enregistrées`() {
+    fun `exactement six fonctions sont enregistrées`() {
         assertEquals(
-            setOf("slug", "parentPackage", "packageFromNameAndAuthor", "packageFromAppName", "packageFromArtifactId"),
+            setOf(
+                "slug",
+                "parentPackage",
+                "packageFromNameAndAuthor",
+                "packageFromAppName",
+                "packageFromArtifactId",
+                "applicationIdFromPackageName",
+            ),
             TemplateDefaultFunctions.NOMS,
+        )
+    }
+
+    @Test
+    fun `applicationIdFromPackageName suit la valeur du paramètre packageName`() {
+        assertEquals(
+            "io.exemple.monapp",
+            TemplateDefaultFunctions.appliquer(
+                "applicationIdFromPackageName",
+                sources.copy(valeursParametres = sources.valeursParametres + ("packageName" to "io.exemple.monapp")),
+            ),
+        )
+    }
+
+    @Test
+    fun `applicationIdFromPackageName retombe sur la convention sans source`() {
+        assertEquals(
+            "com.example.app",
+            TemplateDefaultFunctions.appliquer("applicationIdFromPackageName", sources),
         )
     }
 }

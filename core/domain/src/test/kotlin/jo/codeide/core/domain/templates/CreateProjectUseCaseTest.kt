@@ -59,12 +59,14 @@ class CreateProjectUseCaseTest {
         fun requete(
             nom: String = "Demo",
             description: String = "Une démo",
+            renommages: Map<String, String> = emptyMap(),
         ): CreateProjectRequest =
             CreateProjectRequest(
                 templateId = TemplateId("fixture"),
                 name = nom,
                 description = description,
                 parentLocation = parent,
+                cheminsRenommes = renommages,
             )
     }
 
@@ -137,6 +139,49 @@ class CreateProjectUseCaseTest {
                     .map { it.name }
                     .sorted()
             assertEquals(plan.fichiers.map { it.chemin.substringAfterLast('/') }.sorted(), fichiersEcrites)
+        }
+
+    @Test
+    fun `les renommages de l aperçu sont écrits sur le disque`() =
+        runTest {
+            val e = Ecosysteme()
+            // Renomme la racine src et le README (composition dossier + fichier).
+            val requete =
+                e.requete(
+                    renommages =
+                        mapOf(
+                            "src" to "source",
+                            "README.md" to "NOTES.md",
+                        ),
+                )
+
+            val plan = PlanProjectCreationUseCase(e.planificateur)(requete).getOrNull()!!
+            assertTrue(plan.fichiers.any { it.chemin == "source/jeanne/demo/Main.txt" })
+            val evenements = creer(e, requete)
+            assertTrue((evenements.last() as CreationProgress.Termine).result is AppResult.Success)
+
+            // Le disque suit les chemins RENOMMÉS — l'aperçu ne ment jamais.
+            assertTrue(
+                e.fichiers.arborescence.value
+                    .containsKey("work:/Demo/source/jeanne/demo/Main.txt"),
+            )
+            assertTrue(
+                e.fichiers.arborescence.value
+                    .containsKey("work:/Demo/NOTES.md"),
+            )
+            assertTrue(
+                !e.fichiers.arborescence.value
+                    .containsKey("work:/Demo/src"),
+            )
+            assertTrue(
+                !e.fichiers.arborescence.value
+                    .containsKey("work:/Demo/README.md"),
+            )
+            // Les métadonnées restent à leur place canonique.
+            assertTrue(
+                e.fichiers.arborescence.value
+                    .containsKey("work:/Demo/.codeide/project.json"),
+            )
         }
 
     @Test

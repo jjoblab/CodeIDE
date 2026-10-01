@@ -155,6 +155,7 @@ class WizardViewModel
                 ActionWizard.Creer -> creer()
                 ActionWizard.ReessayerCreation -> creer()
                 ActionWizard.ReessayerPlan -> planifier()
+                is ActionWizard.RenommerChemin -> renommerChemin(action.ancien, action.nouveauNom)
                 ActionWizard.AnnulerCreation -> annulerCreation()
                 ActionWizard.RetourRecapitulatif -> retourRecapitulatif()
                 ActionWizard.OuvrirProjetCree -> ouvrirProjetCree()
@@ -545,6 +546,67 @@ class WizardViewModel
             }
         }
 
+        /**
+         * Renomme un nœud de l'aperçu (ADR 0077) : la carte des renommages
+         * grossit, le plan se recalcule **avec** la carte — l'arbre affiché
+         * reflète les nouveaux chemins, chaque nœud gardant son identité
+         * originale pour les renommages suivants.
+         *
+         * Échec du plan (collision détectée par le domaine, cas exotique non
+         * couvert par la validation du dialogue) : le renommage est **annulé**
+         * et l'erreur du plan s'affiche — « Réessayer » replanifie alors avec
+         * l'ancienne carte et l'arbre revient intact. Jamais d'impasse.
+         */
+        @Suppress("ReturnCount") // Clauses de garde du renommage (règle 16).
+        private fun renommerChemin(
+            ancien: String,
+            nouveauNom: String,
+        ) {
+            val etat = etatInterne.value
+            if (!etat.estRecapitulatif || ancien.isBlank()) return
+            if (ancien == DOSSIER_METADATA || ancien.startsWith("$DOSSIER_METADATA/")) return
+            val nom = nouveauNom.trim()
+            if (nom.isEmpty()) return
+            val candidats = etat.renommages + (ancien to nom)
+            persisterRenommages(candidats)
+            etatInterne.update { it.copy(renommages = candidats, chargementPlan = true, erreurPlan = false) }
+            viewModelScope.launch {
+                when (val resultat = planifierCreation(requeteDeLEtat(renommages = candidats))) {
+                    is AppResult.Success -> {
+                        etatInterne.update {
+                            it.copy(plan = resultat.value, chargementPlan = false, erreurPlan = false)
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) { "renommage rejeté par le plan : $ancien → $nom" }
+                        etatInterne.update { it.copy(renommages = etat.renommages) }
+                        persisterRenommages(etat.renommages)
+                        replanifierApresEchecRenommage()
+                    }
+                }
+            }
+        }
+
+        /**
+         * Rétablit le plan après un renommage rejeté : replanifie avec
+         * l'ancienne carte ; l'erreur reste affichée tant que le plan n'est
+         * pas revenu (règle « jamais d'impasse »).
+         */
+        private suspend fun replanifierApresEchecRenommage() {
+            when (val retour = planifierCreation(requeteDeLEtat())) {
+                is AppResult.Success -> {
+                    etatInterne.update {
+                        it.copy(plan = retour.value, chargementPlan = false, erreurPlan = true)
+                    }
+                }
+
+                is AppResult.Failure -> {
+                    etatInterne.update { it.copy(plan = null, chargementPlan = false, erreurPlan = true) }
+                }
+            }
+        }
+
         /** Annule la création en cours : rollback domaine puis récapitulatif. */
         private fun annulerCreation() {
             creationJob?.cancel()
@@ -591,6 +653,8 @@ class WizardViewModel
                 savedState[CLE_PARAM_CLES] = ArrayList<String>()
                 savedState[CLE_PARAM_VALEURS] = ArrayList<String>()
                 savedState[CLE_PARAM_MANUELS] = ArrayList<String>()
+                savedState[CLE_RENOM_CLES] = ArrayList<String>()
+                savedState[CLE_RENOM_VALEURS] = ArrayList<String>()
                 savedState[CLE_OVERRIDE_GRANT] = null
                 savedState[CLE_OVERRIDE_DOCUMENT] = null
                 savedState[CLE_OVERRIDE_LIBELLE] = null
@@ -604,6 +668,7 @@ class WizardViewModel
                         raisonNom = evaluerNom(""),
                         valeursParametres = emptyMap(),
                         modifiesManuellement = emptySet(),
+                        renommages = emptyMap(),
                         emplacementOverride = null,
                         erreurEmplacement = null,
                         verificationCible = null,
@@ -621,7 +686,7 @@ class WizardViewModel
         }
 
         /** Demande complète adressée au domaine (sections 12.3 et 12.4). */
-        private fun requeteDeLEtat(): CreateProjectRequest {
+        private fun requeteDeLEtat(renommages: Map<String, String>? = null): CreateProjectRequest {
             val etat = etatInterne.value
             return CreateProjectRequest(
                 templateId = requireNotNull(etat.templateId) { "Un modèle est requis pour planifier." },
@@ -630,6 +695,7 @@ class WizardViewModel
                 parentLocation = requireNotNull(etat.emplacement) { "Un emplacement parent est requis." },
                 parameterValues = etat.valeursParametres,
                 manuallySetParameters = etat.modifiesManuellement,
+                cheminsRenommes = renommages ?: etat.renommages,
                 options = etat.options,
             )
         }
@@ -718,6 +784,9 @@ class WizardViewModel
             val valeurs = savedState.get<ArrayList<String>>(CLE_PARAM_VALEURS).orEmpty()
             val parametres = cles.zip(valeurs).toMap()
             val manuels = savedState.get<ArrayList<String>>(CLE_PARAM_MANUELS).orEmpty().toSet()
+            val clesRenommages = savedState.get<ArrayList<String>>(CLE_RENOM_CLES).orEmpty()
+            val valeursRenommages = savedState.get<ArrayList<String>>(CLE_RENOM_VALEURS).orEmpty()
+            val renommages = clesRenommages.zip(valeursRenommages).toMap()
             val override = restaurerOverride()
             etatInterne.value =
                 EtatWizard(
@@ -728,6 +797,7 @@ class WizardViewModel
                     raisonNom = evaluerNom(nom.trim()),
                     valeursParametres = parametres,
                     modifiesManuellement = manuels,
+                    renommages = renommages,
                     emplacementOverride = override,
                     emplacement = override,
                     options = restaurerOptions(),
@@ -751,6 +821,12 @@ class WizardViewModel
             savedState[CLE_PARAM_CLES] = ArrayList(valeurs.keys)
             savedState[CLE_PARAM_VALEURS] = ArrayList(valeurs.values)
             savedState[CLE_PARAM_MANUELS] = ArrayList(manuels)
+        }
+
+        /** Persiste la carte des renommages (listes parallèles, ordre stable). */
+        private fun persisterRenommages(renommages: Map<String, String>) {
+            savedState[CLE_RENOM_CLES] = ArrayList(renommages.keys)
+            savedState[CLE_RENOM_VALEURS] = ArrayList(renommages.values)
         }
 
         private fun persisterOverride(emplacement: StorageLocation?) {
@@ -782,6 +858,9 @@ class WizardViewModel
              * dans les détails copiables de l'écran d'échec. */
             const val PRE_VOL_COLLISION = "pré-vol : un enfant du dossier parent porte déjà ce nom"
 
+            /** Dossier des métadonnées du projet — jamais renommable (ADR 0077). */
+            const val DOSSIER_METADATA = ".codeide"
+
             const val CLE_ETAPE = "wizard.etape"
             const val CLE_TEMPLATE = "wizard.template"
             const val CLE_NOM = "wizard.nom"
@@ -789,6 +868,8 @@ class WizardViewModel
             const val CLE_PARAM_CLES = "wizard.parametres.cles"
             const val CLE_PARAM_VALEURS = "wizard.parametres.valeurs"
             const val CLE_PARAM_MANUELS = "wizard.parametres.manuels"
+            const val CLE_RENOM_CLES = "wizard.renommages.cles"
+            const val CLE_RENOM_VALEURS = "wizard.renommages.valeurs"
             const val CLE_OVERRIDE_GRANT = "wizard.emplacement.grant"
             const val CLE_OVERRIDE_DOCUMENT = "wizard.emplacement.document"
             const val CLE_OVERRIDE_LIBELLE = "wizard.emplacement.libelle"

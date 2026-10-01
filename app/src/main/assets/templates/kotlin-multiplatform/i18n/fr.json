@@ -36,5 +36,18 @@
   "catalogue.entete": "Versions figées de la chaîne d'outils — voir la documentation du modèle.",
   "gitignore.gradle": "Gradle",
   "gitignore.commun": "IDE et fichiers système",
-  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)"
+  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)",
+  "param.includeSerialization.label": "kotlinx.serialization",
+  "param.includeSerialization.help": "Ajoute kotlinx-serialization-json et le plugin Kotlin serialization",
+  "param.includeCoroutines.label": "Coroutines",
+  "param.includeCoroutines.help": "Ajoute kotlinx-coroutines-core (code commun asynchrone)",
+  "param.includeDatetime.label": "kotlinx-datetime",
+  "param.includeDatetime.help": "Ajoute kotlinx-datetime pour les dates multiplateformes",
+  "readme.dependances": "Dépendances",
+  "readme.dep.serialization": "kotlinx.serialization — sérialisation JSON (voir `ConfigurationSalutation`)",
+  "readme.dep.coroutines": "Coroutines — code asynchrone commun (voir `DelaisSalutation`)",
+  "readme.dep.datetime": "kotlinx-datetime — dates et instants multiplateformes (voir `HorodatageSalutation`)",
+  "configuration.kdoc": "Configuration sérialisable : exemple de data class @Serializable commune.",
+  "delai.kdoc": "Salue après un délai : exemple de fonction suspendue commune.",
+  "horodatage.kdoc": "Analyse un instant ISO-8601 : exemple multiplateforme (API kotlin.time expérimentale)."
 }

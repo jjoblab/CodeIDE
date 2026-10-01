@@ -14,6 +14,9 @@ import kotlinx.serialization.Serializable
  * @property modifiesManuellement paramètres figés après saisie manuelle —
  * indispensables pour qu'une valeur fournie de `packageName`, `groupId` ou
  * `artifactId` ne soit pas recalculée par dérivation.
+ * @property renommages renommages de l'aperçu (phase 4, ADR 0077) : clé =
+ * chemin original du nœud, valeur = nouveau nom du segment — éprouve le
+ * moteur sur disque comme depuis le wizard.
  * @property options options communes du moteur.
  */
 @Serializable
@@ -24,6 +27,7 @@ public data class Combinaison(
     public val description: String = "",
     public val parametres: Map<String, String> = emptyMap(),
     public val modifiesManuellement: Set<String> = emptySet(),
+    public val renommages: Map<String, String> = emptyMap(),
     public val options: OptionsCombinaison = OptionsCombinaison(),
 )
 

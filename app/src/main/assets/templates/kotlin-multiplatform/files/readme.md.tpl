@@ -20,6 +20,20 @@
 ./gradlew build
 ```
 
+{{#if avecSerialization || avecCoroutines || avecDatetime}}
+## {{t:readme.dependances}}
+
+{{#if avecSerialization}}
+- {{t:readme.dep.serialization}}
+{{/if}}
+{{#if avecCoroutines}}
+- {{t:readme.dep.coroutines}}
+{{/if}}
+{{#if avecDatetime}}
+- {{t:readme.dep.datetime}}
+{{/if}}
+
+{{/if}}
 ## {{t:readme.structure}}
 
 ```
@@ -27,7 +41,16 @@
 ├── src/
 │   ├── commonMain/kotlin/{{packageName|packagePath}}/
 │   │   ├── Greeter.kt
-│   │   └── Platform.kt
+│   │   ├── Platform.kt
+{{#if avecSerialization}}
+│   │   ├── ConfigurationSalutation.kt
+{{/if}}
+{{#if avecCoroutines}}
+│   │   ├── DelaisSalutation.kt
+{{/if}}
+{{#if avecDatetime}}
+│   │   ├── HorodatageSalutation.kt
+{{/if}}
 │   ├── commonTest/kotlin/{{packageName|packagePath}}/
 │   │   └── GreeterTest.kt
 │   └── jvmMain/kotlin/{{packageName|packagePath}}/

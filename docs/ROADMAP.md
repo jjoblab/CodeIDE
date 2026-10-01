@@ -1,21 +1,22 @@
-# CodeIDE — Roadmap v0.45.0+
+# CodeIDE — Roadmap v0.46.0+
 
 > Dernière mise à jour : 2026-10-01
-> Version courante : 0.44.0
+> Version courante : 0.45.0
 
-## État actuel (v0.44.0)
+## État actuel (v0.45.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp)
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée (RecyclerView : étapes, tâches, synthèse) + zone texte (lignes brutes par append O(1), loties par trame, tampon borné 2 000) — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
-- **Templates** (v0.44.0, ADR 0076) : kotlin-jvm, java, android-app (variantes `projectType` empty/no/basic-activity + `language` kotlin/java), android-library (.aar), spring-boot, kotlin-multiplatform, gradle-plugin — tous vérifiés par `scripts/verify-templates.sh` (32 combinaisons, build réel, tests, exécution, APK, AAR, publication + consommation E2E du plugin) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests, tiroir Material 3), Spring Boot 4.1.1, KMP (actual câblé), plugin Gradle `kotlin-dsl` (compilateur embarqué, testkit ProjectBuilder)
+- **Templates** (v0.45.0, ADR 0076/0077) : kotlin-jvm, java, android-app (variantes `projectType` empty/no/basic-activity + `language` kotlin/java + sections `minSdk`/`targetSdk`/`applicationId` + 5 dépendances au choix), android-library (.aar), spring-boot (4 dépendances au choix), kotlin-multiplatform (3 dépendances au choix), gradle-plugin — tous vérifiés par `scripts/verify-templates.sh` (**37 combinaisons**, build réel, tests, exécution, APK, AAR, publication + consommation E2E du plugin, renommage de l'aperçu) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests, tiroir Material 3, KSP 2.3.12 + Room + Hilt avec le Kotlin intégré AGP), Spring Boot 4.1.1, KMP (actual câblé), plugin Gradle `kotlin-dsl` (compilateur embarqué, testkit ProjectBuilder)
 - **Éditeur** : code-editor 3.40.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
 - **Terminal** : Termux, sessions shell, pty, pont SAF/FUSE
 - **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
+- **Wizard enrichi** (v0.45.0, ADR 0077) : rendu 100 % dynamique depuis les manifestes (visibleWhen, defaultFrom, validator), sections Android (`minSdk`/`targetSdk`/`applicationId`), interrupteurs de dépendances, **aperçu de l'arborescence renommable** avant création (dry-run = écriture, renommages par identité originale, survie à la mort du processus)
 
 ### Problèmes connus ❌
-- **Wizard — aperçu de structure** : la vignette « aperçu de l'arborescence » viendra avec la phase 4 ; le rendu dynamique couvre déjà tous les paramètres actuels, y compris les tuiles/cartes des nouveaux `projectType` et `language`
+- (aucun ouvert — le renommage de l'aperçu livré en phase 4 clôt le dernier point connu)
 
 ---
 
@@ -155,25 +156,31 @@ Fichiers livrés :
 
 ---
 
-## Phase 4 — Wizard enrichi
+## Phase 4 — Wizard enrichi ✅ v0.45.0
 
-### 4.1 Adapter aux nouveaux paramètres
+> Objectif : le wizard suit la croissance des modèles — sections Android,
+> aperçu **renommable** et dépendances cochables.
+> **Livré (ADR 0077)** : tout ce qui suit, éprouvé par 37 combinaisons de
+> `scripts/verify-templates.sh` (build réel) et 1445 tests unitaires.
 
-- Le wizard lit déjà les paramètres depuis `template.json` dynamiquement
-- Vérifier que `visibleWhen`, `defaultFrom`, `validator` fonctionnent pour les nouveaux paramètres
+### 4.1 Adapter aux nouveaux paramètres ✅
+
+- Le wizard lit les paramètres depuis `template.json` dynamiquement
+- `visibleWhen`, `defaultFrom`, `validator` vérifiés pour les nouveaux paramètres (`ModelesPhase4Test`)
 - Ajouter des sections spécifiques à Android (minSdk, targetSdk, applicationId)
+- (livré au-delà : `applicationIdFromPackageName` — sixième fonction `defaultFrom`, chaîne `appName → packageName → applicationId` ; minSdk 24–34, plancher Navigation 2.10.2 ; targetSdk 34–37, défaut 37)
 
-### 4.2 Aperçu de structure
+### 4.2 Aperçu de structure ✅
 
-- Afficher l'arbre des fichiers qui seront générés avant la création
-- Permettre de modifier le nom de fichiers/dossiers
+- Afficher l'arbre des fichiers qui seront générés avant la création (livré dès l'étape 11, ADR 0017)
+- Permettre de modifier le nom de fichiers/dossiers (crayon par ligne, renommages par identité originale, création emportée, harnais couvert par `kt-app-renoms`)
 
-### 4.3 Choix de dépendances
+### 4.3 Choix de dépendances ✅
 
 - Checkboxes pour ajouter des dépendances communes :
-  - Android : Retrofit, Room, Coroutines, Navigation, Hilt
-  - Spring Boot : JPA, Security, Actuator, Validation
-  - KMP : Serialization, Coroutines, DateTime
+  - Android : Retrofit, Room, Coroutines, Navigation, Hilt (Room/Hilt via **KSP 2.3.12**, Kotlin intégré AGP — miroirs Java en trois fichiers)
+  - Spring Boot : JPA, Security, Actuator, Validation (H2 en mémoire, BOM sans version)
+  - KMP : Serialization, Coroutines, DateTime (fichiers d'usage par dépendance)
 
 ---
 
@@ -221,7 +228,7 @@ Fichiers livrés :
 |---|---|---|---|
 | 1 — Console perf | **CRITIQUE** ✅ livré v0.42.0 (ADR 0074) | Moyen | Très haut — l'app devient utilisable |
 | 2 — Fix templates | **Haute** ✅ livré v0.43.0 (ADR 0075) | Faible | Haut — les templates marchent |
-| 3 — Templates avancés | **Haute (prochaine)** | Moyen | Moyen — plus de choix |
-| 4 — Wizard | Moyenne | Moyen | Moyen — meilleure UX |
+| 3 — Templates avancés | **Haute** ✅ livré v0.44.0 (ADR 0076) | Moyen | Moyen — plus de choix |
+| 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse | Très haut | Très haut — transforme en IDE |
 | 6 — Fonctionnalités IDE | Basse | Très haut | Très haut — fonctionnalités pro |

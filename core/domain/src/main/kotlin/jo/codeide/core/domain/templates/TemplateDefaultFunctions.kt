@@ -14,7 +14,9 @@ package jo.codeide.core.domain.templates
  * `packageFromAppName` (de la valeur du paramètre `appName`, convention
  * Android `com.example.<app>`), `packageFromArtifactId` (de la valeur du
  * paramètre `artifactId`, convention `com.example.<artefact>` — phase 2 du
- * roadmap, ADR 0075).
+ * roadmap, ADR 0075), `applicationIdFromPackageName` (de la valeur du
+ * paramètre `packageName` — l'identifiant Android suit le package, phase 4
+ * du roadmap, ADR 0077).
  */
 internal object TemplateDefaultFunctions {
     /** Noms de fonctions enregistrées. */
@@ -25,6 +27,7 @@ internal object TemplateDefaultFunctions {
             "packageFromNameAndAuthor",
             "packageFromAppName",
             "packageFromArtifactId",
+            "applicationIdFromPackageName",
         )
 
     /** Identifiant conventionnel du paramètre « nom de l'application » (Android). */
@@ -32,6 +35,9 @@ internal object TemplateDefaultFunctions {
 
     /** Identifiant conventionnel du paramètre « artifactId ». */
     private const val PARAMETRE_ARTIFACT_ID = "artifactId"
+
+    /** Identifiant conventionnel du paramètre « nom de package ». */
+    private const val PARAMETRE_PACKAGE_NAME = "packageName"
 
     /** Préfixe de package de convention pour les projets générés (ADR 0075). */
     private const val PREFIXE_EXAMPLE = "com.example"
@@ -65,13 +71,44 @@ internal object TemplateDefaultFunctions {
         ligne: Int = 0,
     ): String =
         when (nom) {
-            "slug" -> TemplateFilters.slug(sources.nomProjet)
-            "parentPackage" -> parentPackage(sources.nomPackage)
-            "packageFromNameAndAuthor" -> packageDepuisNomEtAuteur(sources.nomProjet, sources.auteur)
-            "packageFromAppName" -> packageDepuisValeur(sources.valeursParametres[PARAMETRE_APP_NAME])
-            "packageFromArtifactId" -> packageDepuisValeur(sources.valeursParametres[PARAMETRE_ARTIFACT_ID])
-            else -> throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
+            "slug" -> {
+                TemplateFilters.slug(sources.nomProjet)
+            }
+
+            "parentPackage" -> {
+                parentPackage(sources.nomPackage)
+            }
+
+            "packageFromNameAndAuthor" -> {
+                packageDepuisNomEtAuteur(sources.nomProjet, sources.auteur)
+            }
+
+            "packageFromAppName" -> {
+                packageDepuisValeur(sources.valeursParametres[PARAMETRE_APP_NAME])
+            }
+
+            "packageFromArtifactId" -> {
+                packageDepuisValeur(sources.valeursParametres[PARAMETRE_ARTIFACT_ID])
+            }
+
+            "applicationIdFromPackageName" -> {
+                applicationIdDepuisPackage(sources.valeursParametres[PARAMETRE_PACKAGE_NAME])
+            }
+
+            else -> {
+                throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
+            }
         }
+
+    /**
+     * Identifiant d'application Android (phase 4, ADR 0077) : **suit le nom
+     * de package** saisi juste au-dessus — chaîne `appName → packageName →
+     * applicationId` — et retombe sur la convention `com.example.app` tant
+     * que la source est muette. La validation reste portée par le
+     * paramètre (`package-name`), jamais par la dérivation.
+     */
+    private fun applicationIdDepuisPackage(packageName: String?): String =
+        packageName?.takeIf { it.isNotBlank() } ?: packageDepuisValeur(null)
 
     /**
      * Package parent : retire le dernier segment ; un package à un seul

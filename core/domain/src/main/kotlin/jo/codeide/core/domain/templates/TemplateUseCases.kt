@@ -237,6 +237,7 @@ public class TemplateProjectPlanner
                     auteur = reglages.authorName,
                     annee = anneeCourante(),
                     versionGenerateur = generateur.value,
+                    renommages = requete.cheminsRenommes,
                 )
             return moteur.planifier(charge, requeteGeneration)
         }

@@ -23,15 +23,22 @@ public data class TemplatePlan(
 /**
  * Fichier planifié, prêt à écrire (chemin final + contenu rendu).
  *
- * @property chemin chemin relatif à la racine du projet, déjà substitué et
- * contrôlé par la garde de sécurité des chemins.
+ * @property chemin chemin relatif à la racine du projet, déjà substitué,
+ * éventuellement renommé (phase 4 du roadmap, ADR 0077) et contrôlé par
+ * la garde de sécurité des chemins.
  * @property group groupe fonctionnel du fichier.
  * @property contenu contenu final (texte rendu ou octets binaires).
+ * @property cheminOriginal chemin rendu **avant** renommage — renseigné
+ * uniquement quand un renommage s'applique (`null` = identique à
+ * [chemin]). C'est l'identité stable d'un nœud de l'arborescence du
+ * récapitulatif : renommer un nœud une seconde fois cible toujours son
+ * chemin original, les renommages se composent alors naturellement.
  */
 public data class PlannedFile(
     public val chemin: String,
     public val group: TemplateFileGroup,
     public val contenu: PlannedContent,
+    public val cheminOriginal: String? = null,
 )
 
 /**

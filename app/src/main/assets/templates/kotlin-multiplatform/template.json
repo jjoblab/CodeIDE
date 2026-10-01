@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "kotlin-multiplatform",
-  "templateVersion": "1.1.0",
+  "templateVersion": "1.2.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "jvm",
   "iconKey": "template.icon",
-  "tags": ["Kotlin", "Multiplatform", "Gradle"],
+  "tags": [
+    "Kotlin",
+    "Multiplatform",
+    "Gradle"
+  ],
   "parameters": [
     {
       "id": "artifactId",
@@ -49,6 +53,33 @@
       "persist": true
     },
     {
+      "id": "includeSerialization",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeSerialization.label",
+      "helpKey": "param.includeSerialization.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
+      "id": "includeCoroutines",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeCoroutines.label",
+      "helpKey": "param.includeCoroutines.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
+      "id": "includeDatetime",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeDatetime.label",
+      "helpKey": "param.includeDatetime.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
       "id": "includeTests",
       "type": "BOOLEAN",
       "labelKey": "param.includeTests.label",
@@ -68,28 +99,127 @@
     }
   ],
   "computed": [
-    {"name": "gradle", "expression": "true"},
-    {"name": "avecTests", "expression": "includeTests"},
-    {"name": "avecWrapper", "expression": "includeWrapper"}
+    {
+      "name": "gradle",
+      "expression": "true"
+    },
+    {
+      "name": "avecTests",
+      "expression": "includeTests"
+    },
+    {
+      "name": "avecWrapper",
+      "expression": "includeWrapper"
+    },
+    {
+      "name": "avecSerialization",
+      "expression": "includeSerialization"
+    },
+    {
+      "name": "avecCoroutines",
+      "expression": "includeCoroutines"
+    },
+    {
+      "name": "avecDatetime",
+      "expression": "includeDatetime"
+    }
   ],
   "files": [
-    {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
-    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
-    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
-    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
-    {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
-    {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
-    {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
-    {"path": "gradle.properties", "source": "files/gradle.properties.tpl"},
-    {"path": "gradle/wrapper/gradle-wrapper.properties", "source": "files/wrapper.properties.tpl", "when": "avecWrapper"},
-    {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
-    {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
-    {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
-    {"path": "src/commonMain/kotlin/{{packageName|packagePath}}/Greeter.kt", "source": "files/src/commonMain/Greeter.kt.tpl"},
-    {"path": "src/commonMain/kotlin/{{packageName|packagePath}}/Platform.kt", "source": "files/src/commonMain/Platform.kt.tpl"},
-    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Main.kt", "source": "files/src/jvmMain/Main.kt.tpl"},
-    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Platform.jvm.kt", "source": "files/src/jvmMain/Platform.jvm.kt.tpl"},
-    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Greeter.jvm.kt", "source": "files/src/jvmMain/Greeter.jvm.kt.tpl"},
-    {"path": "src/commonTest/kotlin/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/src/commonTest/GreeterTest.kt.tpl", "when": "avecTests"}
+    {
+      "path": ".gitattributes",
+      "source": "files/gitattributes.tpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "files/gitignore.tpl",
+      "when": "includeGitignore"
+    },
+    {
+      "path": ".editorconfig",
+      "source": "files/editorconfig.tpl",
+      "when": "includeEditorconfig"
+    },
+    {
+      "path": "README.md",
+      "source": "files/readme.md.tpl",
+      "when": "includeReadme"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "source": "files/settings.gradle.kts.tpl"
+    },
+    {
+      "path": "build.gradle.kts",
+      "source": "files/build.gradle.kts.tpl"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "source": "files/libs.versions.toml.tpl"
+    },
+    {
+      "path": "gradle.properties",
+      "source": "files/gradle.properties.tpl"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "source": "files/wrapper.properties.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew",
+      "source": "files/gradlew.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew.bat",
+      "source": "files/gradlew.bat.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "source": "files/gradle/wrapper/gradle-wrapper.jar",
+      "when": "avecWrapper",
+      "binary": true
+    },
+    {
+      "path": "src/commonMain/kotlin/{{packageName|packagePath}}/Greeter.kt",
+      "source": "files/src/commonMain/Greeter.kt.tpl"
+    },
+    {
+      "path": "src/commonMain/kotlin/{{packageName|packagePath}}/ConfigurationSalutation.kt",
+      "source": "files/src/commonMain/ConfigurationSalutation.kt.tpl",
+      "when": "avecSerialization"
+    },
+    {
+      "path": "src/commonMain/kotlin/{{packageName|packagePath}}/DelaisSalutation.kt",
+      "source": "files/src/commonMain/DelaisSalutation.kt.tpl",
+      "when": "avecCoroutines"
+    },
+    {
+      "path": "src/commonMain/kotlin/{{packageName|packagePath}}/HorodatageSalutation.kt",
+      "source": "files/src/commonMain/HorodatageSalutation.kt.tpl",
+      "when": "avecDatetime"
+    },
+    {
+      "path": "src/commonMain/kotlin/{{packageName|packagePath}}/Platform.kt",
+      "source": "files/src/commonMain/Platform.kt.tpl"
+    },
+    {
+      "path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Main.kt",
+      "source": "files/src/jvmMain/Main.kt.tpl"
+    },
+    {
+      "path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Platform.jvm.kt",
+      "source": "files/src/jvmMain/Platform.jvm.kt.tpl"
+    },
+    {
+      "path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Greeter.jvm.kt",
+      "source": "files/src/jvmMain/Greeter.jvm.kt.tpl"
+    },
+    {
+      "path": "src/commonTest/kotlin/{{packageName|packagePath}}/GreeterTest.kt",
+      "source": "files/src/commonTest/GreeterTest.kt.tpl",
+      "when": "avecTests"
+    }
   ]
 }

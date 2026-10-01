@@ -7,7 +7,7 @@
   "param.packageName.label": "Package name",
   "param.packageName.help": "Package of the library, follows its name (e.g. com.example.mylibrary)",
   "param.minSdk.label": "Min SDK",
-  "param.minSdk.help": "Minimum Android version (API 26 = Android 8.0)",
+  "param.minSdk.help": "Minimum Android version (API 24 = Android 7.0, floor of recent libraries)",
   "param.includeTests.label": "Unit tests",
   "param.includeTests.help": "Adds a GreeterTest and an ExampleUnitTest",
   "param.includeWrapper.label": "Gradle Wrapper",

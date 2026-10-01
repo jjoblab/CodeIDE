@@ -36,5 +36,18 @@
   "catalogue.entete": "Pinned toolchain versions — see the template documentation.",
   "gitignore.gradle": "Gradle",
   "gitignore.commun": "IDE and system files",
-  "gitattributes.entete": "Deterministic line endings (see .editorconfig)"
+  "gitattributes.entete": "Deterministic line endings (see .editorconfig)",
+  "param.includeSerialization.label": "kotlinx.serialization",
+  "param.includeSerialization.help": "Adds kotlinx-serialization-json and the Kotlin serialization plugin",
+  "param.includeCoroutines.label": "Coroutines",
+  "param.includeCoroutines.help": "Adds kotlinx-coroutines-core (shared async code)",
+  "param.includeDatetime.label": "kotlinx-datetime",
+  "param.includeDatetime.help": "Adds kotlinx-datetime for multiplatform dates",
+  "readme.dependances": "Dependencies",
+  "readme.dep.serialization": "kotlinx.serialization — JSON serialization (see `ConfigurationSalutation`)",
+  "readme.dep.coroutines": "Coroutines — shared async code (see `DelaisSalutation`)",
+  "readme.dep.datetime": "kotlinx-datetime — multiplatform dates and instants (see `HorodatageSalutation`)",
+  "configuration.kdoc": "Serializable configuration: sample shared @Serializable data class.",
+  "delai.kdoc": "Greets after a delay: sample shared suspend function.",
+  "horodatage.kdoc": "Parses an ISO-8601 instant: multiplatform sample (experimental kotlin.time API)."
 }

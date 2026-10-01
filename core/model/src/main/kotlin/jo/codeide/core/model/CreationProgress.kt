@@ -60,6 +60,11 @@ public sealed interface CreationProgress {
  * @property parameterValues valeurs saisies des paramètres du modèle.
  * @property manuallySetParameters identifiants des paramètres modifiés à la
  * main par l'utilisateur (les autres suivent leurs sources, section 12.2).
+ * @property cheminsRenommes renommages demandés depuis l'aperçu de
+ * l'arborescence (phase 4 du roadmap, ADR 0077) : clé = chemin original du
+ * nœud (fichier ou dossier, préfixe), valeur = **nouveau nom** du segment.
+ * Les clés absentes du plan final sont ignorées (l'arborescence a changé
+ * entre-temps, comme les valeurs de paramètres obsolètes).
  * @property options options communes du moteur (fichiers, licence, langue).
  */
 public data class CreateProjectRequest(
@@ -69,5 +74,6 @@ public data class CreateProjectRequest(
     public val parentLocation: StorageLocation,
     public val parameterValues: Map<String, String> = emptyMap(),
     public val manuallySetParameters: Set<String> = emptySet(),
+    public val cheminsRenommes: Map<String, String> = emptyMap(),
     public val options: TemplateOptions = TemplateOptions(),
 )

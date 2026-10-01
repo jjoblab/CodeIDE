@@ -51,6 +51,7 @@ class TemplateEngineTest {
         manuelles: Set<String> = emptySet(),
         options: TemplateOptions = TemplateOptions(),
         auteur: String = "Jeanne",
+        renommages: Map<String, String> = emptyMap(),
     ): RequeteGeneration =
         RequeteGeneration(
             nom = nom,
@@ -61,6 +62,7 @@ class TemplateEngineTest {
             auteur = auteur,
             annee = "2026",
             versionGenerateur = "CodeIDE 0.9.0-test",
+            renommages = renommages,
         )
 
     /** Extrait le plan ou échoue avec le message d'erreur. */
@@ -537,5 +539,149 @@ class TemplateEngineTest {
             val plan = planOuErreur(TemplateEngine(source).planifier(charge, requete()))
 
             assertEquals("a\nb\nc\n", texte(plan, "crlf.txt"))
+        }
+
+    // ------------------------------------------------ renommages (ADR 0077)
+
+    @Test
+    fun `un renommage de fichier déplace le chemin et garde l'identité`() =
+        runTest {
+            val options = TemplateOptions(includeReadme = true)
+            val plan =
+                planOuErreur(
+                    moteur().planifier(
+                        FixtureModele.charge(),
+                        requete(options = options, renommages = mapOf("README.md" to "NOTES.md")),
+                    ),
+                )
+
+            val fichier = plan.fichiers.first { it.chemin == "NOTES.md" }
+            assertEquals("README.md", fichier.cheminOriginal)
+            assertTrue(plan.fichiers.none { it.chemin == "README.md" })
+        }
+
+    @Test
+    fun `un renommage de dossier déplace toute la descendance`() =
+        runTest {
+            val plan =
+                planOuErreur(
+                    moteur().planifier(
+                        FixtureModele.charge(),
+                        requete(renommages = mapOf("src" to "source")),
+                    ),
+                )
+
+            assertTrue(plan.fichiers.any { it.chemin == "source/jeanne/demoeclair/Main.txt" })
+            assertTrue(plan.fichiers.none { it.chemin.startsWith("src/") })
+            assertEquals(
+                "src/jeanne/demoeclair/Main.txt",
+                plan.fichiers.first { it.chemin == "source/jeanne/demoeclair/Main.txt" }.cheminOriginal,
+            )
+        }
+
+    @Test
+    fun `les renommages de dossier et de fichier se composent`() =
+        runTest {
+            val plan =
+                planOuErreur(
+                    moteur().planifier(
+                        FixtureModele.charge(),
+                        requete(
+                            renommages =
+                                mapOf(
+                                    "src" to "source",
+                                    "src/jeanne/demoeclair/Main.txt" to "Point d'entrée.txt",
+                                ),
+                        ),
+                    ),
+                )
+
+            assertTrue(plan.fichiers.any { it.chemin == "source/jeanne/demoeclair/Point d'entrée.txt" })
+        }
+
+    @Test
+    fun `les métadonnées du projet ne se renomment jamais`() =
+        runTest {
+            val charge = FixtureModele.charge()
+            listOf(".codeide", ".codeide/project.json").forEach { cible ->
+                val resultat =
+                    moteur().planifier(charge, requete(renommages = mapOf(cible to "suivi")))
+                assertTrue(resultat is AppResult.Failure)
+                assertTrue(
+                    ((resultat as AppResult.Failure).error as AppError.Validation)
+                        .details
+                        .contains("métadonnées"),
+                )
+            }
+        }
+
+    @Test
+    fun `un nouveau nom de plusieurs segments est rejeté`() =
+        runTest {
+            listOf("a/b", "\\\\suivant", "..", "").forEach { nom ->
+                val resultat =
+                    moteur().planifier(
+                        FixtureModele.charge(),
+                        requete(renommages = mapOf("hostile.txt" to nom)),
+                    )
+                assertTrue(resultat is AppResult.Failure)
+            }
+        }
+
+    @Test
+    fun `un renommage créant un doublon échoue`() =
+        runTest {
+            val resultat =
+                moteur().planifier(
+                    FixtureModele.charge(),
+                    requete(
+                        valeurs = mapOf("withExtras" to "true"),
+                        manuelles = setOf("withExtras"),
+                        renommages = mapOf("EXTRA.txt" to "hostile.txt"),
+                    ),
+                )
+
+            assertTrue(resultat is AppResult.Failure)
+            assertTrue(((resultat as AppResult.Failure).error as AppError.Template).details.contains("en double"))
+        }
+
+    @Test
+    fun `les clés de renommage absentes du plan sont ignorées`() =
+        runTest {
+            val plan =
+                planOuErreur(
+                    moteur().planifier(
+                        FixtureModele.charge(),
+                        requete(renommages = mapOf("inexistant.txt" to "Ailleurs.txt")),
+                    ),
+                )
+
+            assertTrue(plan.fichiers.none { it.chemin == "Ailleurs.txt" })
+        }
+
+    @Test
+    fun `la licence suit les renommages`() =
+        runTest {
+            val moteur =
+                moteur(
+                    mapOf(
+                        "mit.txt" to "MIT {{year}} {{author}}",
+                    ),
+                )
+            val plan =
+                planOuErreur(
+                    moteur.planifier(
+                        FixtureModele.charge(),
+                        requete(
+                            options = TemplateOptions(license = License.MIT),
+                            renommages = mapOf("LICENSE" to "LICENCE.txt"),
+                        ),
+                    ),
+                )
+
+            assertEquals(".codeide/project.json", plan.fichiers.last().chemin)
+            val licence = plan.fichiers.first { it.chemin == "LICENCE.txt" }
+            assertEquals("LICENSE", licence.cheminOriginal)
+            assertTrue((licence.contenu as PlannedContent.Texte).texte.contains("2026"))
         }
 }

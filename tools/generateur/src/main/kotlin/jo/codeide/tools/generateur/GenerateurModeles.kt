@@ -134,6 +134,7 @@ public class GenerateurModeles {
             parentLocation = EMPLACEMENT,
             parameterValues = combinaison.parametres,
             manuallySetParameters = combinaison.modifiesManuellement,
+            cheminsRenommes = combinaison.renommages,
             options =
                 TemplateOptions(
                     includeReadme = combinaison.options.includeReadme,

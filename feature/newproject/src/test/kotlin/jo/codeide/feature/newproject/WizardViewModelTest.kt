@@ -23,6 +23,8 @@ import jo.codeide.core.model.License
 import jo.codeide.core.model.ProjectTemplate
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.TemplateFile
+import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.TemplateParameter
@@ -87,6 +89,13 @@ class WizardViewModelTest {
     private val arborescences = FakeArborescencesSaf()
     private val horloge = TimeProvider { 10_000L }
     private val journal = FakeAppLogger()
+
+    /** Sources de modèles partagées : le modèle de test embarque deux fichiers. */
+    private val sourceAssets =
+        FakeTemplateAssetsSource().apply {
+            semerFichierTemplate("kotlin-jvm", "files/readme.tpl", "# {{projectName}}\n")
+            semerFichierTemplate("kotlin-jvm", "files/build.gradle.tpl", "// {{projectName}}\n")
+        }
 
     private lateinit var viewModel: WizardViewModel
 
@@ -167,7 +176,19 @@ class WizardViewModelTest {
                                     ),
                                 ),
                             computedVariables = emptyList(),
-                            fichiers = emptyList(),
+                            fichiers =
+                                listOf(
+                                    TemplateFile(
+                                        chemin = "README.md",
+                                        source = "files/readme.tpl",
+                                        whenExpression = "includeReadme",
+                                        group = TemplateFileGroup.README,
+                                    ),
+                                    TemplateFile(
+                                        chemin = "build.gradle.kts",
+                                        source = "files/build.gradle.tpl",
+                                    ),
+                                ),
                         ),
                     dictionaries =
                         mapOf(
@@ -190,7 +211,7 @@ class WizardViewModelTest {
 
     @Before
     fun preparer() {
-        val moteur = TemplateEngine(FakeTemplateAssetsSource())
+        val moteur = TemplateEngine(sourceAssets)
         val fournisseur = FauxFournisseur()
         val planificateur =
             TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
@@ -204,7 +225,7 @@ class WizardViewModelTest {
         sauvegarde: SavedStateHandle,
     ): WizardViewModel =
         WizardViewModel(
-            listerModeles = ListTemplatesUseCase(setOf(fournisseur), TemplateEngine(FakeTemplateAssetsSource())),
+            listerModeles = ListTemplatesUseCase(setOf(fournisseur), TemplateEngine(sourceAssets)),
             evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
             evaluerNom = EvaluerNomProjetUseCase(),
             resoudreEmplacement =
@@ -711,6 +732,121 @@ class WizardViewModelTest {
             assertNotNull(relance.etat.value.plan)
         }
 
+    // -------------------------------- renommages (ADR 0077)
+
+    @Test
+    fun `un renommage recalcule le plan et l arbre suit`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            assertTrue(
+                viewModel.etat.value.plan!!
+                    .fichiers
+                    .any { it.chemin == "README.md" },
+            )
+
+            viewModel.action(ActionWizard.RenommerChemin("README.md", "NOTES.md"))
+            advanceUntilIdle()
+
+            val etat = viewModel.etat.value
+            val plan = etat.plan!!
+            assertEquals(mapOf("README.md" to "NOTES.md"), etat.renommages)
+            assertFalse(etat.erreurPlan)
+            // L'aperçu reflète le renommage, l'identité originale est conservée.
+            val notes = plan.fichiers.first { it.chemin == "NOTES.md" }
+            assertEquals("README.md", notes.cheminOriginal)
+            assertTrue(plan.fichiers.none { it.chemin == "README.md" })
+            // Un second renommage cible toujours l'identité d'origine.
+            viewModel.action(ActionWizard.RenommerChemin("README.md", "LISEZMOI.md"))
+            advanceUntilIdle()
+            val plan2 = viewModel.etat.value.plan!!
+            assertTrue(plan2.fichiers.any { it.chemin == "LISEZMOI.md" })
+            assertTrue(plan2.fichiers.none { it.chemin == "NOTES.md" })
+        }
+
+    @Test
+    fun `un renommage des métadonnées est ignoré`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+
+            viewModel.action(ActionWizard.RenommerChemin(".codeide", "suivi"))
+            advanceUntilIdle()
+
+            assertTrue(
+                viewModel.etat.value.renommages
+                    .isEmpty(),
+            )
+            assertTrue(
+                viewModel.etat.value.plan!!
+                    .fichiers
+                    .any { it.chemin == ".codeide/project.json" },
+            )
+        }
+
+    @Test
+    fun `un renommage rejeté par le domaine est annulé et redevient réessayable`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+
+            // Collision avec un frère existant : le plan échoue (doublon),
+            // le renommage est annulé, l'arbre revient intact.
+            viewModel.action(ActionWizard.RenommerChemin("README.md", "build.gradle.kts"))
+            advanceUntilIdle()
+
+            val etat = viewModel.etat.value
+            assertTrue(etat.renommages.isEmpty())
+            assertTrue(etat.erreurPlan)
+            assertTrue(etat.plan!!.fichiers.any { it.chemin == "README.md" })
+            assertTrue(etat.plan.fichiers.any { it.chemin == "build.gradle.kts" })
+
+            viewModel.action(ActionWizard.ReessayerPlan)
+            advanceUntilIdle()
+            assertFalse(viewModel.etat.value.erreurPlan)
+            assertNotNull(viewModel.etat.value.plan)
+        }
+
+    @Test
+    fun `les renommages survivent à la mort du processus`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            viewModel.action(ActionWizard.RenommerChemin("README.md", "NOTES.md"))
+            advanceUntilIdle()
+
+            val relance = relancerDepuisSauvegarde()
+            advanceUntilIdle()
+
+            assertEquals(mapOf("README.md" to "NOTES.md"), relance.etat.value.renommages)
+            assertTrue(
+                relance.etat.value.plan!!
+                    .fichiers
+                    .any { it.chemin == "NOTES.md" },
+            )
+        }
+
+    @Test
+    fun `la création emporte les renommages sur le disque`() =
+        runTest {
+            preparerEmplacementEtModele()
+            avancerJusquaRecapitulatif()
+            viewModel.action(ActionWizard.RenommerChemin("README.md", "NOTES.md"))
+            advanceUntilIdle()
+
+            viewModel.action(ActionWizard.Creer)
+            advanceUntilIdle()
+
+            assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Succes)
+            val uriRacine =
+                depot.projets
+                    .single()
+                    .location.documentUri
+            assertTrue(fichiers.arborescence.value.containsKey("$uriRacine/NOTES.md"))
+            assertTrue(!fichiers.arborescence.value.containsKey("$uriRacine/README.md"))
+            assertTrue(fichiers.arborescence.value.containsKey("$uriRacine/build.gradle.kts"))
+        }
+
     // ------------------------------------------- création (étape 11)
 
     @Test
@@ -756,7 +892,7 @@ class WizardViewModelTest {
                         return fichiers.createDirectory(parentDirectoryUri, name)
                     }
                 }
-            val moteur = TemplateEngine(FakeTemplateAssetsSource())
+            val moteur = TemplateEngine(sourceAssets)
             val fournisseur = FauxFournisseur()
             val planificateur =
                 TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
@@ -835,7 +971,7 @@ class WizardViewModelTest {
                         return fichiers.createDirectory(parentDirectoryUri, name)
                     }
                 }
-            val moteur = TemplateEngine(FakeTemplateAssetsSource())
+            val moteur = TemplateEngine(sourceAssets)
             val fournisseur = FauxFournisseur()
             val planificateur =
                 TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
@@ -989,7 +1125,7 @@ class WizardViewModelTest {
 
     /** Reconstruit un ViewModel sur une sauvegarde de mort de processus. */
     private fun relancerDepuisSauvegarde(): WizardViewModel {
-        val moteur = TemplateEngine(FakeTemplateAssetsSource())
+        val moteur = TemplateEngine(sourceAssets)
         val fournisseur = FauxFournisseur()
         val planificateur =
             TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())

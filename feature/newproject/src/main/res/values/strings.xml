@@ -124,6 +124,16 @@
     <string name="wizard_recap_plan_reessayer">Réessayer</string>
     <string name="wizard_arbre_replier">Replier « %1$s »</string>
     <string name="wizard_arbre_deplier">Déplier « %1$s »</string>
+    <string name="wizard_arbre_renommer">Renommer « %1$s »</string>
+    <string name="wizard_renommer_titre">Renommer « %1$s »</string>
+    <string name="wizard_renommer_aide">Le nouveau nom s\'applique au dossier et à tout son contenu.</string>
+    <string name="wizard_renommer_hint">Nouveau nom</string>
+    <string name="wizard_renommer_bouton">Renommer</string>
+    <string name="wizard_renommer_annuler">Annuler</string>
+    <string name="wizard_renommer_erreur_vide">Le nom est vide</string>
+    <string name="wizard_renommer_erreur_separateur">Le nom ne doit contenir ni « / » ni « \\ »</string>
+    <string name="wizard_renommer_erreur_parent">Ce nom est réservé</string>
+    <string name="wizard_renommer_erreur_existe">Un élément voisin porte déjà ce nom</string>
     <string name="wizard_creation_titre">Création du projet…</string>
     <string name="wizard_creation_preparation">Préparation…</string>
     <string name="wizard_creation_dossier">Création du dossier « %1$s »…</string>

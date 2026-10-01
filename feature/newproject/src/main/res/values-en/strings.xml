@@ -123,6 +123,16 @@
     <string name="wizard_recap_plan_reessayer">Try again</string>
     <string name="wizard_arbre_replier">Collapse “%1$s”</string>
     <string name="wizard_arbre_deplier">Expand “%1$s”</string>
+    <string name="wizard_arbre_renommer">Rename “%1$s”</string>
+    <string name="wizard_renommer_titre">Rename “%1$s”</string>
+    <string name="wizard_renommer_aide">The new name applies to the folder and all its content.</string>
+    <string name="wizard_renommer_hint">New name</string>
+    <string name="wizard_renommer_bouton">Rename</string>
+    <string name="wizard_renommer_annuler">Cancel</string>
+    <string name="wizard_renommer_erreur_vide">The name is empty</string>
+    <string name="wizard_renommer_erreur_separateur">The name must not contain “/” or “\\”</string>
+    <string name="wizard_renommer_erreur_parent">This name is reserved</string>
+    <string name="wizard_renommer_erreur_existe">A neighbour already uses this name</string>
     <string name="wizard_creation_titre">Creating the project…</string>
     <string name="wizard_creation_preparation">Preparing…</string>
     <string name="wizard_creation_dossier">Creating folder “%1$s”…</string>

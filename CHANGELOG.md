@@ -4,6 +4,57 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.45.0] – 2026-10-01
+
+### Ajouté (phase 4 du roadmap — wizard enrichi, ADR 0077)
+
+- **`android-app` v1.3.0 — sections Android** : `minSdk` élargi (24, 26,
+  29, 34 — plancher imposé par Navigation 2.10.2), nouveau `targetSdk`
+  (34–37, défaut 37 = compileSdk) et nouveau `applicationId` dérivé du
+  nom de package par la sixième fonction `defaultFrom`
+  **`applicationIdFromPackageName`** (chaîne `appName → packageName →
+  applicationId`, libre après saisie manuelle, resynchronisable).
+  `android-library` v1.1.0 aligne son `minSdk`. Le `targetSdk` 37 des
+  projets générés est indépendant du 28 délibéré de CodeIDE (ADR 0045 —
+  W^X concerne l'app hôte, pas les projets des utilisateurs).
+- **Aperçu renommable** : chaque nœud de l'arborescence du
+  récapitulatif porte un crayon (masqué pour `.codeide/`) ouvrant un
+  dialogue à validation immédiate (vide, séparateur, parent, doublon de
+  frère). Le plan se recalcule **avec** la carte des renommages (clé =
+  chemin original du nœud, valeur = nouveau nom du segment) — l'invariant
+  de l'ADR 0017 tient : ce qui est planifié est ce qui est écrit. Les
+  renommages de dossier et de fichier se composent (`PlannedFile.
+  cheminOriginal` = identité stable), survivent à la mort du processus
+  et sont emportés par la création ; un renommage rejeté par le domaine
+  est annulé et l'arbre restauré — jamais d'impasse.
+- **Dépendances communes (interrupteurs)** — Android : Coroutines 1.11.0,
+  Retrofit 3.0.0 + Gson, Navigation 2.10.2, Room 2.8.5, Hilt 2.59.2 avec
+  les fichiers d'exemple (`BddLocale` entité/DAO/base, classe
+  `{{appName|resourceName}}Application` reliée au manifeste, miroirs
+  `.java` en trois fichiers) ; Spring Boot : JPA + H2, Security,
+  Actuator, Validation (alias sans version, BOM 4.1.1) ; KMP :
+  serialization 1.11.0 + plugin, coroutines 1.11.0, datetime 0.8.0 avec
+  un fichier d'usage par dépendance.
+- **KSP 2.3.12** : les lignes 2.2.x refusent le Kotlin intégré d'AGP 9.4.1
+  et le contournement officiel (KGP externe) est inapplicable
+  (`BaseExtension` supprimé) — la ligne 2.3.x accepte le Kotlin intégré ;
+  Room et Hilt fonctionnent en Kotlin **et** en Java (génération vérifiée
+  jusqu'au dex).
+- **Vérification étendue** : `scripts/verify-templates.sh` passe à
+  **37 combinaisons** (`andr-deps`, `andr-deps-java`, `sb-deps`,
+  `kmp-deps`, `kt-app-renoms` — renommage README → NOTES avec build et
+  exécution réels), contrôles structurels par dépendance et langage.
+
+### Modifié
+
+- `CreateProjectRequest` accepte `cheminsRenommes` (défaut vide —
+  compatible avec les appelants existants) ; `PlannedFile` porte
+  `cheminOriginal` (renseigné seulement quand un renommage s'applique).
+- La validation des renommages est en trois couches : dialogue (locale),
+  ViewModel (métadonnées `.codeide/`), moteur (échec explicite sur nom
+  multi-segments, doublon, métadonnées — les clés obsolètes sont ignorées
+  comme les paramètres périmés).
+
 ## [0.44.0] – 2026-10-01
 
 ### Ajouté (phase 3 du roadmap — modèles avancés, ADR 0076)

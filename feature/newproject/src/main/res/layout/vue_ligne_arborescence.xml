@@ -2,6 +2,8 @@
 <!--
   Une ligne de l'arborescence du récapitulatif (section 12.3) : dossier
   repliable (chevron d'état, indentation par profondeur) ou fichier feuille.
+  Phase 4 (ADR 0077) : bouton crayon — renomme le nœud avant création
+  (masqué pour les métadonnées .codeide).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -35,4 +37,16 @@
         android:singleLine="true"
         android:textAppearance="?attr/textAppearanceBodyMedium"
         tools:text="src/main/kotlin" />
+
+    <ImageButton
+        android:id="@+id/bouton_renommer"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/wizard_arbre_renommer"
+        android:minWidth="@dimen/touch_target_min"
+        android:minHeight="@dimen/touch_target_min"
+        android:padding="@dimen/spacing_sm"
+        android:src="@drawable/ic_renommer"
+        tools:contentDescription="Renommer src" />
 </LinearLayout>

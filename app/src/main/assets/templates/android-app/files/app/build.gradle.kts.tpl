@@ -1,5 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
+{{#if avecKsp}}
+    alias(libs.plugins.ksp)
+{{/if}}
+{{#if avecHilt}}
+    alias(libs.plugins.hilt)
+{{/if}}
 }
 
 android {
@@ -8,9 +14,9 @@ android {
     compileSdkMinor = 2
 
     defaultConfig {
-        applicationId = "{{packageName}}"
+        applicationId = "{{applicationId}}"
         minSdk = {{minSdk}}
-        targetSdk = 28
+        targetSdk = {{targetSdk}}
         versionCode = 1
         versionName = "0.1.0"
     }
@@ -49,6 +55,26 @@ dependencies {
     implementation(libs.material)
 {{#if estActiviteTiroir}}
     implementation(libs.androidx.drawerlayout)
+{{/if}}
+{{#if avecCoroutines}}
+    implementation(libs.kotlinx.coroutines.android)
+{{/if}}
+{{#if avecRetrofit}}
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+{{/if}}
+{{#if avecNavigation}}
+    implementation(libs.androidx.navigation.fragment)
+    implementation(libs.androidx.navigation.ui)
+{{/if}}
+{{#if avecRoom}}
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+{{/if}}
+{{#if avecHilt}}
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 {{/if}}
 
     {{#if avecTests}}

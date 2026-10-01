@@ -816,8 +816,41 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       + marqueur, E2E consommateur `./gradlew greet`) ; tests
       ModelesPhase3Test (9), catalogues ancrés à 7 modèles, 1415 tests /
       0 échec — ADR 0076]
-- Prochaine : phase 4 du roadmap — Wizard enrichi (aperçu de structure,
-      validation immédiate ; cf. docs/ROADMAP.md).
+- v0.45.0 : **phase 4 du roadmap — WIZARD ENRICHI** : sections Android
+      [`minSdk` 24–34 (plancher Navigation 2.10.2, merger manifeste) ;
+      `targetSdk` 34–37 DÉFAUT 37 (indépendant du 28 de l'app hôte, ADR
+      0045 = W^X bootstrap ; projets générés = Play Store) ;
+      `applicationId` dérivé par la sixième fonction `defaultFrom`
+      `applicationIdFromPackageName` — chaîne appName→packageName→
+      applicationId, libre après saisie] ; **aperçu RENOMMABLE** [crayon
+      par ligne, masqué `.codeide/` ; carte clé=chemin ORIGINAL (fichier
+      ou préfixe dossier) → valeur=NOM de segment ; le moteur substitue
+      chaque segment dont le préfixe (lu sur les segments ORIGINAUX) est
+      une clé → dossier+fichier se COMPOSENT ; `PlannedFile.
+      cheminOriginal` = identité stable ; 3 couches de garde (dialogue /
+      VM `.codeide` / moteur échec explicite) ; rejet domaine → annulation
+      + replan, jamais d'impasse ; clés obsolètes ignorées comme les
+      paramètres périmés ; SavedStateHandle + création emportée] ; **deps
+      en interrupteurs** [Android : coroutines 1.11.0, retrofit 3.0.0+gson,
+      navigation 2.10.2, room 2.8.5, hilt 2.59.2 — `BddLocale` +
+      `{{appName|resourceName}}Application` (manifeste), Java = 3 FICHIERS
+      (une classe publique par fichier, le code KSP généré expose les
+      types) ; Spring : JPA+H2 runtimeOnly, security, actuator,
+      validation — alias de catalogue SANS version (BOM 4.1.1) ; KMP :
+      serialization 1.11.0+plugin 2.2.21, coroutines 1.11.0, datetime
+      0.8.0 (Instant ponté kotlin.time EXPERIMENTAL → @OptIn, artefacts
+      -compat écartés), un fichier d'usage PAR dépendance] ; **KSP
+      2.3.12** : les 2.2.x REFUSENT le Kotlin intégré AGP ; le workaround
+      officiel (`builtInKotlin=false` + KGP externe) est mort sous AGP
+      9.4.1 (classpath sans version → `BaseExtension` ClassCastException)
+      — la ligne 2.3.x l'accepte, génération vérifiée jusqu'au dex, KT et
+      JAVA ; `avecKsp = avecRoom || avecHilt` (expression `||`) ; **verif
+      37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
+      kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
+      (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
+      Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
+      lsp-classpath.json` ; cf. docs/ROADMAP.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

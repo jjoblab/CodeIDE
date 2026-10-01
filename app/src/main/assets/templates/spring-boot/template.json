@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "spring-boot",
-  "templateVersion": "1.1.0",
+  "templateVersion": "1.2.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "jvm",
   "iconKey": "template.icon",
-  "tags": ["Kotlin", "Spring Boot", "Gradle"],
+  "tags": [
+    "Kotlin",
+    "Spring Boot",
+    "Gradle"
+  ],
   "parameters": [
     {
       "id": "artifactId",
@@ -49,6 +53,42 @@
       "persist": true
     },
     {
+      "id": "includeJpa",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeJpa.label",
+      "helpKey": "param.includeJpa.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
+      "id": "includeSecurity",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeSecurity.label",
+      "helpKey": "param.includeSecurity.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
+      "id": "includeActuator",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeActuator.label",
+      "helpKey": "param.includeActuator.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
+      "id": "includeValidation",
+      "type": "BOOLEAN",
+      "labelKey": "param.includeValidation.label",
+      "helpKey": "param.includeValidation.help",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": false
+    },
+    {
       "id": "includeTests",
       "type": "BOOLEAN",
       "labelKey": "param.includeTests.label",
@@ -68,29 +108,121 @@
     }
   ],
   "computed": [
-    {"name": "gradle", "expression": "true"},
-    {"name": "avecTests", "expression": "includeTests"},
-    {"name": "avecWrapper", "expression": "includeWrapper"}
+    {
+      "name": "gradle",
+      "expression": "true"
+    },
+    {
+      "name": "avecTests",
+      "expression": "includeTests"
+    },
+    {
+      "name": "avecWrapper",
+      "expression": "includeWrapper"
+    },
+    {
+      "name": "avecJpa",
+      "expression": "includeJpa"
+    },
+    {
+      "name": "avecSecurity",
+      "expression": "includeSecurity"
+    },
+    {
+      "name": "avecActuator",
+      "expression": "includeActuator"
+    },
+    {
+      "name": "avecValidation",
+      "expression": "includeValidation"
+    }
   ],
   "files": [
-    {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
-    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
-    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
-    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
-    {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
-    {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
-    {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
-    {"path": "gradle.properties", "source": "files/gradle.properties.tpl"},
-    {"path": "gradle/wrapper/gradle-wrapper.properties", "source": "files/wrapper.properties.tpl", "when": "avecWrapper"},
-    {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
-    {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
-    {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/Application.kt", "source": "files/Application.kt.tpl"},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/GreeterController.kt", "source": "files/GreeterController.kt.tpl"},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/GreeterService.kt", "source": "files/GreeterService.kt.tpl"},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/GreeterRepository.kt", "source": "files/GreeterRepository.kt.tpl"},
-    {"path": "src/main/resources/application.yml", "source": "files/application.yml.tpl"},
-    {"path": "src/test/kotlin/{{packageName|packagePath}}/ApplicationTests.kt", "source": "files/ApplicationTests.kt.tpl", "when": "avecTests"},
-    {"path": "src/test/kotlin/{{packageName|packagePath}}/GreeterServiceTest.kt", "source": "files/GreeterServiceTest.kt.tpl", "when": "avecTests"}
+    {
+      "path": ".gitattributes",
+      "source": "files/gitattributes.tpl"
+    },
+    {
+      "path": ".gitignore",
+      "source": "files/gitignore.tpl",
+      "when": "includeGitignore"
+    },
+    {
+      "path": ".editorconfig",
+      "source": "files/editorconfig.tpl",
+      "when": "includeEditorconfig"
+    },
+    {
+      "path": "README.md",
+      "source": "files/readme.md.tpl",
+      "when": "includeReadme"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "source": "files/settings.gradle.kts.tpl"
+    },
+    {
+      "path": "build.gradle.kts",
+      "source": "files/build.gradle.kts.tpl"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "source": "files/libs.versions.toml.tpl"
+    },
+    {
+      "path": "gradle.properties",
+      "source": "files/gradle.properties.tpl"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "source": "files/wrapper.properties.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew",
+      "source": "files/gradlew.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew.bat",
+      "source": "files/gradlew.bat.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "source": "files/gradle/wrapper/gradle-wrapper.jar",
+      "when": "avecWrapper",
+      "binary": true
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/Application.kt",
+      "source": "files/Application.kt.tpl"
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/GreeterController.kt",
+      "source": "files/GreeterController.kt.tpl"
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/GreeterService.kt",
+      "source": "files/GreeterService.kt.tpl"
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/GreeterRepository.kt",
+      "source": "files/GreeterRepository.kt.tpl"
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "source": "files/application.yml.tpl"
+    },
+    {
+      "path": "src/test/kotlin/{{packageName|packagePath}}/ApplicationTests.kt",
+      "source": "files/ApplicationTests.kt.tpl",
+      "when": "avecTests"
+    },
+    {
+      "path": "src/test/kotlin/{{packageName|packagePath}}/GreeterServiceTest.kt",
+      "source": "files/GreeterServiceTest.kt.tpl",
+      "when": "avecTests"
+    }
   ]
 }
