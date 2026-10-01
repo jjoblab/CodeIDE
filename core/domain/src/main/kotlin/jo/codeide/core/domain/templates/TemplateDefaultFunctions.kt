@@ -10,17 +10,46 @@ package jo.codeide.core.domain.templates
  * (section 12.2).
  *
  * Noms : `slug` (du nom du projet), `parentPackage` (du nom de package),
- * `packageFromNameAndAuthor` (du nom du projet et de l'auteur).
+ * `packageFromNameAndAuthor` (du nom du projet et de l'auteur),
+ * `packageFromAppName` (de la valeur du paramètre `appName`, convention
+ * Android `com.example.<app>`), `packageFromArtifactId` (de la valeur du
+ * paramètre `artifactId`, convention `com.example.<artefact>` — phase 2 du
+ * roadmap, ADR 0075).
  */
 internal object TemplateDefaultFunctions {
     /** Noms de fonctions enregistrées. */
-    val NOMS: Set<String> = setOf("slug", "parentPackage", "packageFromNameAndAuthor")
+    val NOMS: Set<String> =
+        setOf(
+            "slug",
+            "parentPackage",
+            "packageFromNameAndAuthor",
+            "packageFromAppName",
+            "packageFromArtifactId",
+        )
 
-    /** Sources nécessaires au calcul : nom du projet, auteur, package courant. */
+    /** Identifiant conventionnel du paramètre « nom de l'application » (Android). */
+    private const val PARAMETRE_APP_NAME = "appName"
+
+    /** Identifiant conventionnel du paramètre « artifactId ». */
+    private const val PARAMETRE_ARTIFACT_ID = "artifactId"
+
+    /** Préfixe de package de convention pour les projets générés (ADR 0075). */
+    private const val PREFIXE_EXAMPLE = "com.example"
+
+    /** Repli d'un segment vide dérivé du nom d'app ou de l'artefact. */
+    private const val REPLI_SEGMENT = "app"
+
+    /**
+     * Sources nécessaires au calcul : nom du projet, auteur, package courant
+     * et valeurs effectives des paramètres **déjà évalués** au moment de la
+     * dérivation (une dérivée doit être déclarée après sa source,
+     * docs/TEMPLATES.md).
+     */
     data class Sources(
         val nomProjet: String,
         val auteur: String,
         val nomPackage: String,
+        val valeursParametres: Map<String, String> = emptyMap(),
     )
 
     /**
@@ -39,6 +68,8 @@ internal object TemplateDefaultFunctions {
             "slug" -> TemplateFilters.slug(sources.nomProjet)
             "parentPackage" -> parentPackage(sources.nomPackage)
             "packageFromNameAndAuthor" -> packageDepuisNomEtAuteur(sources.nomProjet, sources.auteur)
+            "packageFromAppName" -> packageDepuisValeur(sources.valeursParametres[PARAMETRE_APP_NAME])
+            "packageFromArtifactId" -> packageDepuisValeur(sources.valeursParametres[PARAMETRE_ARTIFACT_ID])
             else -> throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
         }
 
@@ -49,6 +80,16 @@ internal object TemplateDefaultFunctions {
     private fun parentPackage(nomPackage: String): String {
         if (!nomPackage.contains('.')) return nomPackage
         return nomPackage.substringBeforeLast(".")
+    }
+
+    /**
+     * Package de convention depuis le nom d'app ou l'artefact (ADR 0075) :
+     * `com.example.` + segment nettoyé ; une valeur absente ou muette retombe
+     * sur `com.example.app` (package toujours valide).
+     */
+    private fun packageDepuisValeur(valeur: String?): String {
+        val segment = segment(TemplateFilters.slug(valeur ?: ""), repli = REPLI_SEGMENT)
+        return "$PREFIXE_EXAMPLE.$segment"
     }
 
     /**

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "{{appName}}"
+rootProject.name = "{{projectName|kotlinString}}"
 include(":app")

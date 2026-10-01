@@ -128,6 +128,33 @@ class TemplateFiltersTest {
     }
 
     @Test
+    fun `resourceName capitalise chaque mot et retire les séparateurs`() {
+        assertEquals("MyCoolApp", TemplateFilters.appliquer("resourceName", "my cool app", 1))
+        assertEquals("MyCoolApp", TemplateFilters.appliquer("resourceName", "MyCoolApp", 1))
+    }
+
+    @Test
+    fun `resourceName décompose les accents`() {
+        assertEquals("MonEclat", TemplateFilters.appliquer("resourceName", "mon éclat", 1))
+    }
+
+    @Test
+    fun `resourceName retombe sur une entrée muette`() {
+        assertEquals("App", TemplateFilters.appliquer("resourceName", "!!!", 1))
+        assertEquals("App", TemplateFilters.appliquer("resourceName", "", 1))
+    }
+
+    @Test
+    fun `resourceName préfixe un nom qui commence par un chiffre`() {
+        assertEquals("App2048Clone", TemplateFilters.appliquer("resourceName", "2048 clone", 1))
+    }
+
+    @Test
+    fun `resourceName ignore un emoji`() {
+        assertEquals("MonApp", TemplateFilters.appliquer("resourceName", "Mon 🚀 App", 1))
+    }
+
+    @Test
     fun `les emojis passent intacts à travers les filtres de texte`() {
         // `lower` abaisse la casse du texte mais ne corrompt jamais les
         // emojis (mappages Unicode sensibles à la locale).
@@ -146,7 +173,7 @@ class TemplateFiltersTest {
     }
 
     @Test
-    fun `les dix filtres enregistrés sont exacts`() {
+    fun `les onze filtres enregistrés sont exacts`() {
         assertEquals(
             setOf(
                 "kotlinString",
@@ -159,6 +186,7 @@ class TemplateFiltersTest {
                 "lower",
                 "upper",
                 "packagePath",
+                "resourceName",
             ),
             TemplateFilters.NOMS,
         )

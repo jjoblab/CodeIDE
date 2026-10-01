@@ -1,15 +1,19 @@
 [versions]
-agp = "8.7.3"
-kotlin = "2.0.21"
-core-ktx = "1.15.0"
-appcompat = "1.7.0"
-material = "1.12.0"
+agp = "9.4.1"
+core-ktx = "1.19.0"
+appcompat = "1.8.0"
+material = "1.14.0"
+{{#if avecTests}}
+junit4 = "4.13.2"
+{{/if}}
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+{{#if avecTests}}
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+{{/if}}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

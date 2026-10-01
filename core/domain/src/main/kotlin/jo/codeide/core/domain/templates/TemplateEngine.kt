@@ -365,6 +365,10 @@ public class TemplateEngine
                             nomProjet = nomProjet,
                             auteur = auteur,
                             nomPackage = effectives[NOM_PARAMETRE_PACKAGE] ?: "",
+                            // Copie figée : les fonctions dérivées lisent les
+                            // valeurs effectives déjà calculées (leur source
+                            // doit être déclarée avant elles, docs/TEMPLATES.md).
+                            valeursParametres = effectives.toMap(),
                         )
                     effectives[parametre.id] = TemplateDefaultFunctions.appliquer(derivee, sources)
                 }

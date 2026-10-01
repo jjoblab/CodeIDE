@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "kotlin-multiplatform",
-  "templateVersion": "1.0.0",
+  "templateVersion": "1.1.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "jvm",
@@ -9,11 +9,21 @@
   "tags": ["Kotlin", "Multiplatform", "Gradle"],
   "parameters": [
     {
+      "id": "artifactId",
+      "type": "TEXT",
+      "labelKey": "param.artifactId.label",
+      "helpKey": "param.artifactId.help",
+      "defaultFrom": "slug",
+      "validator": "regex:^[a-z0-9][a-z0-9._-]*$",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
       "id": "packageName",
       "type": "TEXT",
       "labelKey": "param.packageName.label",
       "helpKey": "param.packageName.help",
-      "defaultFrom": "packageFromNameAndAuthor",
+      "defaultFrom": "packageFromArtifactId",
       "validator": "package-name",
       "section": "INFORMATION",
       "persist": true
@@ -27,16 +37,6 @@
       "section": "INFORMATION",
       "persist": true,
       "validator": "package-name"
-    },
-    {
-      "id": "artifactId",
-      "type": "TEXT",
-      "labelKey": "param.artifactId.label",
-      "helpKey": "param.artifactId.help",
-      "defaultFrom": "slug",
-      "validator": "regex:^[a-z0-9][a-z0-9._-]*$",
-      "section": "INFORMATION",
-      "persist": true
     },
     {
       "id": "version",
@@ -74,9 +74,9 @@
   ],
   "files": [
     {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
-    {"path": ".gitignore", "source": "files/gitignore.tpl"},
-    {"path": ".editorconfig", "source": "files/editorconfig.tpl"},
-    {"path": "README.md", "source": "files/readme.md.tpl"},
+    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
+    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
+    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
     {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
     {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
     {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
@@ -85,10 +85,11 @@
     {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
     {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
     {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
-    {"path": "src/commonMain/kotlin/jo/codeide/template/Greeter.kt", "source": "files/src/commonMain/Greeter.kt.tpl"},
-    {"path": "src/commonMain/kotlin/jo/codeide/template/Platform.kt", "source": "files/src/commonMain/Platform.kt.tpl"},
-    {"path": "src/jvmMain/kotlin/jo/codeide/template/Main.kt", "source": "files/src/jvmMain/Main.kt.tpl"},
-    {"path": "src/jvmMain/kotlin/jo/codeide/template/Platform.jvm.kt", "source": "files/src/jvmMain/Platform.jvm.kt.tpl"},
-    {"path": "src/commonTest/kotlin/jo/codeide/template/GreeterTest.kt", "source": "files/src/commonTest/GreeterTest.kt.tpl", "when": "avecTests"}
+    {"path": "src/commonMain/kotlin/{{packageName|packagePath}}/Greeter.kt", "source": "files/src/commonMain/Greeter.kt.tpl"},
+    {"path": "src/commonMain/kotlin/{{packageName|packagePath}}/Platform.kt", "source": "files/src/commonMain/Platform.kt.tpl"},
+    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Main.kt", "source": "files/src/jvmMain/Main.kt.tpl"},
+    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Platform.jvm.kt", "source": "files/src/jvmMain/Platform.jvm.kt.tpl"},
+    {"path": "src/jvmMain/kotlin/{{packageName|packagePath}}/Greeter.jvm.kt", "source": "files/src/jvmMain/Greeter.jvm.kt.tpl"},
+    {"path": "src/commonTest/kotlin/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/src/commonTest/GreeterTest.kt.tpl", "when": "avecTests"}
   ]
 }

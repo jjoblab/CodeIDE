@@ -4,6 +4,80 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.43.0] – 2026-09-30
+
+### Corrigé (phase 2 du roadmap — modèles : les trois nouveaux modèles
+### fonctionnent enfin)
+
+- **`android-app`, `spring-boot` et `kotlin-multiplatform` étaient cassés à
+  la génération** (ADR 0075) : la clé i18n `gitattributes.entete` manquait
+  dans leurs dictionnaires fr/en (le moteur échoue explicitement sur toute
+  clé inconnue — la génération renvoyait `ECHEC … clé i18n manquante
+  « gitattributes.entete »`),
+  leurs chemins de sources étaient codés en dur
+  (`src/…/jo/codeide/template/…` au lieu de `{{packageName|packagePath}}` :
+  la déclaration `package` ne correspondait jamais au répertoire), le
+  `Greeter.jvm.kt` KMP n'était pas câblé au manifeste (le `expect` restait
+  sans `actual`) et les options communes (README, .gitignore,
+  .editorconfig) étaient ignorées (aucune condition `when`).
+- **Conventions de package par modèle** : deux fonctions `defaultFrom`
+  nommées s'ajoutent au moteur — `packageFromAppName`
+  (`com.example.<appName>` pour Android) et `packageFromArtifactId`
+  (`com.example.<artifactId>` pour Spring Boot et KMP) ; `kotlin-jvm` et
+  `java` conservent `packageFromNameAndAuthor`. Les valeurs dérivées
+  peuvent lire les paramètres déclarés avant elles (la source précède sa
+  dérivée : `appName`/`artifactId` avant `packageName` dans les manifestes)
+  et suivent leurs sources à chaque frappe tant que l'utilisateur ne fige
+  pas le champ. Repli déterministe : `com.example.app`.
+- **Nouveau filtre `resourceName`** : normalise n'importe quelle saisie en
+  nom de ressource Android sûr (NFD, marques éliminées, mots capitalisés,
+  repli `App`, préfixe si chiffre en tête) — `« mon éclat & 2048 »` →
+  `MonEclat2048`. Alimente le nom du thème (`Theme.<Nom>` dans
+  `themes.xml` et le manifeste Android).
+- **Chaînes d'outils des projets générés, alignées sur le Gradle 9.7.1 du
+  wrapper** (versions vérifiées sur Maven Central / Google Maven) :
+  Android passe à AGP 9.4.1 avec Kotlin INTÉGRÉ (plus de plugin
+  `kotlin-android`, `kotlin { compilerOptions }`), `compileSdk 37.2`,
+  JUnit 4 pour les tests (le `kotlin("test")` nu ne résout pas
+  `kotlin.test.Test` sans KGP) ; Spring Boot passe à Boot 4.1.1 + Kotlin
+  2.2.21 + plugin `kotlin-spring` (CGLIB ne proxyfie pas les classes
+  finales) + BOM via `platform()` native ; KMP passe à Kotlin 2.2.21 avec
+  une tâche `run` JavaExec (le plugin `application` est incompatible KMP
+  sur Gradle 9).
+- **`scripts/verify-templates.sh` couvre désormais les 24 combinaisons** :
+  les 18 historiques + 6 nouvelles (Spring Boot fr/en, KMP fr/en avec
+  exécution réelle `run` et salutation contrôlée, Android fr/en avec
+  `assembleDebug` + `testDebugUnitTest` + APK contrôlé, SDK Android via
+  `CODEIDE_ANDROID_SDK`). Le harnais avait révélé que les trois modèles
+  n'avaient jamais été vérifiés faute d'y figurer.
+
+### Ajouté (enrichissements des trois modèles)
+
+- **Android** : `res/values/strings.xml` (`app_name`), `colors.xml`,
+  `themes.xml` (`Theme.Material3.DayNight` + couleurs primaires),
+  `proguard-rules.pro` (release minifiée), `ExampleUnitTest.kt`,
+  `app/.gitignore` ; le manifeste référence `@string/app_name` et
+  `@style/Theme.<Nom>`, gagne `allowBackup`/`supportsRtl` ;
+  `settings.gradle.kts` échappe le nom du projet (`kotlinString`).
+- **Spring Boot** : `GreeterRepository.kt` (patron repository),
+  `ApplicationTests.kt` (`@SpringBootTest` — le contexte démarre),
+  `application.yml` remplace `application.properties` (une seule source
+  de configuration) ; le contrôleur gagne `POST /salutations` et
+  `GET /salutations` ; le contenu est traduit fr/en comme les autres
+  modèles.
+- **KMP** : `commonTest` enrichi (ordre de `greetAll`, plateforme nommée).
+- **Les trois README sont i18n (fr/en)** avec arbre de structure aux
+  chemins réels (`{{packageName|packagePath}}`) ; les `.gitignore` et
+  catalogues de versions suivent la même convention de clés que
+  `kotlin-jvm`.
+
+### Modifié (moteur)
+
+- `TemplateDefaultFunctions.Sources` expose `valeursParametres` (copie
+  figée des valeurs effectives de la passe 2) ; cinq fonctions sont
+  enregistrées au lieu de trois ; `TemplateFilters` en compte onze
+  (`resourceName`).
+
 ## [0.42.0] – 2026-09-30
 
 ### Modifié (phase 1 du roadmap — performance console : architecture hybride)

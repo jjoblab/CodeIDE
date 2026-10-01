@@ -2,8 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:label="{{appName}}"
-        android:theme="@style/Theme.Material3.DayNight">
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.{{appName|resourceName}}">
 
         <activity
             android:name=".MainActivity"

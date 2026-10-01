@@ -1,11 +1,13 @@
-# {{appName}}
-
+# {{projectName|md}}
+{{#if description != ""}}
+{{description|md}}
+{{#else}}
 {{t:readme.description}}
-
+{{/if}}
 ## {{t:readme.prerequis}}
 
-- JDK 17+
-- Android SDK (compileSdk 37)
+- {{t:readme.jdk}} 17+
+- {{t:readme.sdk}}
 
 ## {{t:readme.build}}
 
@@ -13,20 +15,29 @@
 ./gradlew assembleDebug
 ```
 
+{{t:readme.apk}}
+
 ## {{t:readme.structure}}
 
 ```
-{{appName}}/
+{{projectName}}/
 ├── app/
 │   ├── build.gradle.kts
-│   ├── src/main/
-│   │   ├── AndroidManifest.xml
-│   │   ├── res/layout/activity_main.xml
-│   │   └── java/jo/codeide/template/
-│   │       ├── MainActivity.kt
-│   │       └── Greeter.kt
-│   └── src/test/
-│       └── java/jo/codeide/template/
+│   ├── proguard-rules.pro
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── res/
+│       │   │   ├── layout/activity_main.xml
+│       │   │   └── values/
+│       │   │       ├── colors.xml
+│       │   │       ├── strings.xml
+│       │   │       └── themes.xml
+│       │   └── java/{{packageName|packagePath}}/
+│       │       ├── Greeter.kt
+│       │       └── MainActivity.kt
+│       └── test/java/{{packageName|packagePath}}/
+│           ├── ExampleUnitTest.kt
 │           └── GreeterTest.kt
 ├── build.gradle.kts
 ├── settings.gradle.kts

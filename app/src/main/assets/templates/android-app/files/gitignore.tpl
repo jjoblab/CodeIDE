@@ -1,15 +1,18 @@
-# Gradle
+# {{t:gitignore.gradle}}
 .gradle/
 build/
 local.properties
 
-# Android
+# {{t:gitignore.android}}
 *.apk
 *.aab
 *.ap_
 *.dex
+captures/
+*.keystore
+!debug.keystore
 
-# IDE et fichiers système
+# {{t:gitignore.commun}}
 .idea/
 *.iml
 .DS_Store

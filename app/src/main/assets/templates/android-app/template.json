@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
   "id": "android-app",
-  "templateVersion": "1.0.0",
+  "templateVersion": "1.1.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "android",
   "iconKey": "template.icon",
-  "tags": ["Android", "Kotlin", "Gradle"],
+  "tags": ["Android", "Kotlin", "Gradle", "Material 3"],
   "parameters": [
-    {
-      "id": "packageName",
-      "type": "TEXT",
-      "labelKey": "param.packageName.label",
-      "helpKey": "param.packageName.help",
-      "defaultFrom": "packageFromNameAndAuthor",
-      "validator": "package-name",
-      "section": "INFORMATION",
-      "persist": true
-    },
     {
       "id": "appName",
       "type": "TEXT",
       "labelKey": "param.appName.label",
       "helpKey": "param.appName.help",
       "default": "MonApp",
+      "section": "INFORMATION",
+      "persist": true
+    },
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.packageName.label",
+      "helpKey": "param.packageName.help",
+      "defaultFrom": "packageFromAppName",
+      "validator": "package-name",
       "section": "INFORMATION",
       "persist": true
     },
@@ -63,9 +63,9 @@
   ],
   "files": [
     {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
-    {"path": ".gitignore", "source": "files/gitignore.tpl"},
-    {"path": ".editorconfig", "source": "files/editorconfig.tpl"},
-    {"path": "README.md", "source": "files/readme.md.tpl"},
+    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
+    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
+    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
     {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
     {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
     {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
@@ -74,11 +74,17 @@
     {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
     {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
     {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle/wrapper/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
+    {"path": "app/.gitignore", "source": "files/app/gitignore.tpl", "when": "includeGitignore"},
     {"path": "app/build.gradle.kts", "source": "files/app/build.gradle.kts.tpl"},
+    {"path": "app/proguard-rules.pro", "source": "files/app/proguard-rules.pro.tpl"},
     {"path": "app/src/main/AndroidManifest.xml", "source": "files/app/AndroidManifest.xml.tpl"},
+    {"path": "app/src/main/res/values/strings.xml", "source": "files/app/strings.xml.tpl"},
+    {"path": "app/src/main/res/values/colors.xml", "source": "files/app/colors.xml.tpl"},
+    {"path": "app/src/main/res/values/themes.xml", "source": "files/app/themes.xml.tpl"},
     {"path": "app/src/main/res/layout/activity_main.xml", "source": "files/app/activity_main.xml.tpl"},
-    {"path": "app/src/main/java/jo/codeide/template/MainActivity.kt", "source": "files/app/MainActivity.kt.tpl"},
-    {"path": "app/src/main/java/jo/codeide/template/Greeter.kt", "source": "files/greeter.kt.tpl"},
-    {"path": "app/src/test/java/jo/codeide/template/GreeterTest.kt", "source": "files/GreeterTest.kt.tpl", "when": "avecTests"}
+    {"path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt", "source": "files/app/MainActivity.kt.tpl"},
+    {"path": "app/src/main/java/{{packageName|packagePath}}/Greeter.kt", "source": "files/greeter.kt.tpl"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/ExampleUnitTest.kt", "source": "files/ExampleUnitTest.kt.tpl", "when": "avecTests"},
+    {"path": "app/src/test/java/{{packageName|packagePath}}/GreeterTest.kt", "source": "files/GreeterTest.kt.tpl", "when": "avecTests"}
   ]
 }
