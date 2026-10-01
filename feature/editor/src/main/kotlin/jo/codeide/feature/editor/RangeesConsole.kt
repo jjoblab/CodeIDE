@@ -135,6 +135,23 @@ internal sealed interface RangeeConsole {
             get() = "tache-${ligne.id}"
     }
 
+    /**
+     * Téléchargements du build (v0.45.1 — affichage immédiat, parité
+     * Android Studio) : la PREMIÈRE rangée de la vue Build pendant le vol —
+     * barre de progression + volume cumulé + artefact courant, mise à jour
+     * EN PLACE à chaque artefact terminé (conflation d'un état de
+     * progression, exactement la barre de la fenêtre Build d'Android
+     * Studio). Absente hors build en cours (l'état est effacé au statut
+     * terminal — la synthèse conclut). Rendu par le MÊME gabarit que le
+     * détail de téléchargement de l'arbre Sync, couleur du canal BUILD.
+     */
+    data class TelechargementsBuild(
+        val etat: EtatTelechargementBuild,
+    ) : RangeeConsole {
+        override val idCle: String
+            get() = "telechargements-build"
+    }
+
     /** Synthèse finale du build (§3.3 ; v0.39.1 — correctif n°4 : style
      *  Android Studio) : verdict + durée + compte des tâches actionnables
      *  (« N actionable tasks: M executed[, K up-to-date] »), message
@@ -231,11 +248,13 @@ internal fun construireRangeesConsole(
             // v0.42.0 (phase 1 du roadmap) : les lignes stdout/stderr
             // brutes ne traversent PLUS le RecyclerView — la zone TEXTE
             // annexée les reçoit par append direct (O(1) par ligne). La
-            // vue Build ne garde que les tâches structurées et la
-            // synthèse, comme la vue Build d'Android Studio.
-            etat.lignes
-                .filterIsInstance<LigneConsole.Tache>()
-                .map { ligne -> RangeeConsole.Tache(ligne) } + syntheseBuild(etat)
+            // vue Build garde les téléchargements (v0.45.1 : barre de
+            // progression en place — parité fenêtre Build d'Android Studio),
+            // les tâches structurées et la synthèse.
+            telechargementsBuild(etat) +
+                etat.lignes
+                    .filterIsInstance<LigneConsole.Tache>()
+                    .map { ligne -> RangeeConsole.Tache(ligne) } + syntheseBuild(etat)
         }
     }
 
@@ -345,6 +364,18 @@ private fun piedSync(etat: EtatGradle): List<RangeeConsole.SyntheseSync> {
                 nbSources = nbSources,
             ),
         )
+    } else {
+        emptyList()
+    }
+}
+
+/** Barre de progression des téléchargements du build (v0.45.1) : en tête
+ *  de la vue Build PENDANT le vol uniquement — l'état conflaté vit dans
+ *  [EtatGradle.telechargementsBuild], effacé au statut terminal. */
+private fun telechargementsBuild(etat: EtatGradle): List<RangeeConsole.TelechargementsBuild> {
+    val telechargements = etat.telechargementsBuild ?: return emptyList()
+    return if (etat.statutBuild == StatutBuild.EN_COURS) {
+        listOf(RangeeConsole.TelechargementsBuild(telechargements))
     } else {
         emptyList()
     }

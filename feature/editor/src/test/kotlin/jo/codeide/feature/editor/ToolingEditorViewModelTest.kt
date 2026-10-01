@@ -148,45 +148,12 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
 
             // Projet « créé dans le dossier de travail » (CreateProjectUseCase) :
             // grantUri = arbre PARENT, documentUri = document IMBRIQUÉ.
-            val grantParent = "content://autorite/tree/dossier-travail"
-            val documentProjet = "$grantParent/document/dossier-travail%2FMonApp"
-            fichiers.grantPermission(grantParent)
-            fichiers.seedDocument(
-                grantParent,
-                FakeFileSystem.Document(name = "dossier-travail", isDirectory = true),
-            )
-            fichiers.seedDocument(
-                documentProjet,
-                FakeFileSystem.Document(name = "MonApp", isDirectory = true),
-            )
-            fichiers.seedDocument(
-                "$documentProjet/build.gradle.kts",
-                FakeFileSystem.Document(
-                    name = "build.gradle.kts",
-                    isDirectory = false,
-                    bytes = "plugins { }".toByteArray(),
-                ),
-            )
+            val (grantParent, documentProjet) = semerProjetSousDocument()
 
             // Sync-state persisté SOUS LE DOCUMENT (là où les use cases le
-            // cherchent) : empreinte calculée par le VRAI cas d'usage sur le
-            // MÊME faux, écriture par le VRAI cas d'usage.
-            val empreinte =
-                jo.codeide.core.domain.CalculerEmpreinteGradleUseCase(
-                    fichiers,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ).invoke(documentProjet)
-            assertTrue("l'empreinte des fichiers Gradle semés est non vide", empreinte.isNotEmpty())
+            // cherchent), par les VRAIS use cases sur le MÊME faux.
             val tachesRestituees = listOf(InfoTache(chemin = ":app:build", nomAffiche = "build"))
-            val ecriture =
-                jo.codeide.core.domain.EcrireSyncStateUseCase(
-                    fichiers,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ).invoke(
-                    documentProjet,
-                    EtatSyncLocal(empreinte = empreinte, taches = tachesRestituees, dureeMs = 4_321L),
-                )
-            assertTrue("le sync-state s'écrit sous le document du projet", ecriture is AppResult.Success)
+            persisterSyncState(documentProjet, tachesRestituees, dureeMs = 4_321L)
 
             val ajout =
                 depot.addProject(
@@ -406,6 +373,46 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `les telechargements du build alimentent la barre de la vue build - v0_43_1`() =
+        runTest {
+            val id = ajouterProjet("projet-telechargements")
+            val viewModel = viewModel(id)
+            avancer()
+
+            viewModel.observerBuild("b-telechargements")
+            avancer()
+
+            tooling.emettreTelechargement(
+                "b-telechargements",
+                element = "kotlin-stdlib.jar",
+                octetsRecus = 1_769_000,
+                compteur = 1,
+            )
+            avancer()
+            tooling.emettreTelechargement(
+                "b-telechargements",
+                element = "gradle-9.7.1-all.zip",
+                octetsRecus = 130_000_000,
+                compteur = 2,
+            )
+            avancer()
+
+            val telechargements = viewModel.etatGradle.value.telechargementsBuild
+            assertEquals(
+                "la pompe process-wide draine le canal des téléchargements (aucun consommateur avant v0.45.1)",
+                131_769_000L,
+                telechargements?.octetsRecus,
+            )
+            assertEquals(2, telechargements?.compteur)
+            assertEquals("gradle-9.7.1-all.zip", telechargements?.element)
+
+            // Au terme du build, la barre disparaît (la synthèse conclut).
+            tooling.terminerBuild("b-telechargements", StatutBuild.REUSSI)
+            avancer()
+            assertNull(viewModel.etatGradle.value.telechargementsBuild)
+        }
+
+    @Test
     fun `les etapes de sync annoncees par le serveur alimentent la console`() =
         runTest {
             val id = ajouterProjet("projet-etapes")
@@ -523,6 +530,60 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
     /** Avance le temps virtuel et laisse tourner les collectes. */
     private fun avancer() {
         regleMain.dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    /** Sème le SAF du projet « créé dans le dossier de travail »
+     *  (CreateProjectUseCase) : grantUri = arbre PARENT accordé,
+     *  documentUri = document IMBRIQUÉ de MonApp portant son script
+     *  Gradle — la paire (grantUri, documentUri) du bug v0.43.0. */
+    private fun semerProjetSousDocument(): Pair<String, String> {
+        val grantParent = "content://autorite/tree/dossier-travail"
+        val documentProjet = "$grantParent/document/dossier-travail%2FMonApp"
+        fichiers.grantPermission(grantParent)
+        fichiers.seedDocument(
+            grantParent,
+            FakeFileSystem.Document(name = "dossier-travail", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            documentProjet,
+            FakeFileSystem.Document(name = "MonApp", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$documentProjet/build.gradle.kts",
+            FakeFileSystem.Document(
+                name = "build.gradle.kts",
+                isDirectory = false,
+                bytes = "plugins { }".toByteArray(),
+            ),
+        )
+        return grantParent to documentProjet
+    }
+
+    /** Persiste un sync-state VALIDE sous le document du projet par les
+     *  VRAIS use cases (empreinte calculée sur le même faux, écriture
+     *  réelle) : la restitution de l'espace doit le retrouver tel quel. */
+    private suspend fun persisterSyncState(
+        documentProjet: String,
+        taches: List<InfoTache>,
+        dureeMs: Long,
+    ) {
+        val empreinte =
+            jo.codeide.core.domain
+                .CalculerEmpreinteGradleUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ).invoke(documentProjet)
+        assertTrue("l'empreinte des fichiers Gradle semés est non vide", empreinte.isNotEmpty())
+        val ecriture =
+            jo.codeide.core.domain
+                .EcrireSyncStateUseCase(
+                    fichiers,
+                    TestDispatcherProvider(regleMain.dispatcher),
+                ).invoke(
+                    documentProjet,
+                    EtatSyncLocal(empreinte = empreinte, taches = taches, dureeMs = dureeMs),
+                )
+        assertTrue("le sync-state s'écrit sous le document du projet", ecriture is AppResult.Success)
     }
 
     /** Lignes brutes de la zone texte APRÈS le dernier vidage (v0.42.0,

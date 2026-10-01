@@ -7,6 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,7 +35,22 @@ import javax.inject.Singleton
  * canaux du client se ferment à la fin du build (ADR 0041/0065), la
  * vidange se conclut alors d'elle-même et sort du registre.
  *
- * @param tooling port du dépôt tooling (canaux de sortie, état, tâches).
+ * v0.45.1 (affichage immédiat, parité Android Studio) :
+ * - les TÉLÉCHARGEMENTS du build ont désormais leur vidange — le canal
+ *   `observeTelechargementsBuild` n'avait AUCUN consommateur : les
+ *   événements s'accumulaient dans un canal que personne ne lisait (et
+ *   au-delà de 4096, la pompe du client — coroutine UNIQUE — se serait
+ *   bloquée sur `send`, gelant sorties ET pongs). La progression des
+ *   artefacts alimente la rangée en place de la vue Build.
+ * - la PROGRESSION SYNC a sa vidange process-wide ([pomperSync]) —
+ *   elle vivait dans le `viewModelScope` de l'espace : écran fermé en
+ *   pleine sync, les 256 places du canal se remplissaient et la même
+ *   pompe se bloquait (famille exacte du bug corrigé ici pour les
+ *   builds). L'espace ne fait plus que DEMANDER la vidange ; l'état
+ *   des étapes reste porté par le service process-wide.
+ *
+ * @param tooling port du dépôt tooling (canaux de sortie, état, tâches,
+ *        téléchargements, progression sync).
  * @param serviceGradle détenteur process-wide de l'état affichable.
  * @param optionsTooling réglages tooling vivants (affichage des tâches
  *        relu à CHAQUE événement — une bascule en plein build prend
@@ -55,6 +71,9 @@ class PompeBuildTooling
 
         /** Vidanges vivantes, par identifiant de build. */
         private val vidanges = HashMap<String, Job>()
+
+        /** Vidange sync déjà lancée (UNE par process — idempotente). */
+        private val vidangeSyncLancee = AtomicBoolean(false)
 
         /**
          * Publie le build suivi (reset console + chrono, même sémantique
@@ -80,7 +99,7 @@ class PompeBuildTooling
         }
 
         /**
-         * Les trois collecteurs en fratrie supervisée : l'échec imprévu
+         * Les quatre collecteurs en fratrie supervisée : l'échec imprévu
          * de l'un n'arrête pas les autres (la fin de build est portée par
          * la COMPLÉTION des canaux, pas par une exception).
          */
@@ -106,5 +125,31 @@ class PompeBuildTooling
                         }
                     }
                 }
+                // v0.45.1 : la progression des artefacts du build alimente
+                // la rangée en place de la vue Build — SANS cette vidange,
+                // le canal ne se drainait jamais (aucun consommateur) et
+                // la pompe du client finissait par s'y bloquer.
+                launch {
+                    tooling.observeTelechargementsBuild(buildId).collect { telechargement ->
+                        serviceGradle.ajouterTelechargement(telechargement)
+                    }
+                }
             }
+
+        /**
+         * Vidange process-wide de la progression SYNC (v0.45.1) : les
+         * étapes annoncées par le serveur alimentent l'état process-wide
+         * — le collecteur vivait dans le `viewModelScope` de l'espace : un
+         * écran fermé en pleine sync laissait le canal (256) se remplir
+         * puis bloquait la pompe unique du client. Idempotente : appels
+         * rejoués sans effet, UNE vidange par process.
+         */
+        fun pomperSync() {
+            if (!vidangeSyncLancee.compareAndSet(false, true)) return
+            portee.launch {
+                tooling.observeSyncProgress().collect { etape ->
+                    serviceGradle.ajouterEtapeSync(etape)
+                }
+            }
+        }
     }

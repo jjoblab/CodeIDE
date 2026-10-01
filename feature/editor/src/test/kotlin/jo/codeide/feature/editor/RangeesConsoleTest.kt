@@ -346,6 +346,87 @@ class RangeesConsoleTest {
         assertEquals(StatutBuild.ECHOUE, synthese.statut)
     }
 
+    // ---- Vue BUILD : téléchargements (v0.45.1, parité Android Studio) ----
+
+    @Test
+    fun `la barre des telechargements ouvre la vue build pendant le vol`() {
+        val etat =
+            EtatGradle(
+                statutBuild = StatutBuild.EN_COURS,
+                lignes = listOf(ligneTache(id = 1, chemin = ":app:build", statut = StatutTache.EN_COURS)),
+                telechargementsBuild =
+                    EtatTelechargementBuild(
+                        octetsRecus = 131_769_000,
+                        compteur = 2,
+                        element = "gradle-9.7.1-all.zip",
+                    ),
+            )
+
+        val rangees = construireRangeesConsole(etat, FiltreCanalConsole.BUILD)
+
+        val barre = rangees[0] as RangeeConsole.TelechargementsBuild
+        assertEquals("la barre OUVRE la vue (avant les tâches)", 131_769_000L, barre.etat.octetsRecus)
+        assertEquals(2, barre.etat.compteur)
+        assertEquals("gradle-9.7.1-all.zip", barre.etat.element)
+        assertTrue(rangees[1] is RangeeConsole.Tache)
+    }
+
+    @Test
+    fun `la barre des telechargements est absente hors vol et terminee`() {
+        assertNull(
+            "sans état de téléchargement, rien n'apparaît",
+            construireRangeesConsole(
+                EtatGradle(statutBuild = StatutBuild.EN_COURS),
+                FiltreCanalConsole.BUILD,
+            ).firstOrNull { it is RangeeConsole.TelechargementsBuild },
+        )
+
+        // L'état résiduel NE s'affiche pas au terme du build (la synthèse
+        // conclut — même s'il restait un état non purgé, la vue honnête).
+        val etatTermine =
+            EtatGradle(
+                statutBuild = StatutBuild.REUSSI,
+                telechargementsBuild = EtatTelechargementBuild(octetsRecus = 10, compteur = 1),
+            )
+        assertNull(
+            construireRangeesConsole(etatTermine, FiltreCanalConsole.BUILD)
+                .firstOrNull { it is RangeeConsole.TelechargementsBuild },
+        )
+    }
+
+    @Test
+    fun `la barre des telechargements ne fuit pas dans la vue sync`() {
+        val etat =
+            EtatGradle(
+                synchronisationEnCours = true,
+                statutBuild = StatutBuild.EN_COURS,
+                telechargementsBuild = EtatTelechargementBuild(octetsRecus = 42, compteur = 1),
+            )
+
+        assertTrue(
+            "la vue Sync garde SON arbre — la barre du build vit en vue Build",
+            construireRangeesConsole(etat, FiltreCanalConsole.SYNC)
+                .none { it is RangeeConsole.TelechargementsBuild },
+        )
+    }
+
+    @Test
+    fun `la cle de la barre des telechargements est stable - mise a jour en place`() {
+        val etat =
+            EtatGradle(
+                statutBuild = StatutBuild.EN_COURS,
+                telechargementsBuild = EtatTelechargementBuild(octetsRecus = 1, compteur = 1),
+            )
+
+        assertEquals(
+            "telechargements-build",
+            construireRangeesConsole(etat, FiltreCanalConsole.BUILD)
+                .filterIsInstance<RangeeConsole.TelechargementsBuild>()
+                .single()
+                .idCle,
+        )
+    }
+
     // ---- Identités stables (mise à jour en place) ------------------------
 
     @Test
