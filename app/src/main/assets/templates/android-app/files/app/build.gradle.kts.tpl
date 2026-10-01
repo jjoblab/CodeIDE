@@ -1,11 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "{{packageName}}"
     compileSdk = 37
+    compileSdkMinor = 2
 
     defaultConfig {
         applicationId = "{{packageName}}"
@@ -19,13 +19,25 @@ android {
         viewBinding = true
     }
 
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
@@ -35,6 +47,6 @@ dependencies {
     implementation(libs.material)
 
     {{#if avecTests}}
-    testImplementation(kotlin("test"))
+    testImplementation(libs.junit4)
     {{/if}}
 }

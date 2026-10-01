@@ -748,8 +748,49 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       nouvelle], RangeesConsoleTest [Build = tâches+synthèse seules],
       ToolingEditorViewModelTest [helper `lignesZoneTexteApresDernierVider`]
       — ADR 0074]
-- Prochaine : phase 2 du roadmap — Fix templates (clés i18n manquantes,
-      package name, enrichissement android-app/spring-boot/KMP ; cf.
+- v0.43.0 : **phase 2 du roadmap — FIX TEMPLATES** : les trois modèles de la
+      v0.41.1 (android-app, spring-boot, kotlin-multiplatform) étaient CASSÉS
+      à la génération [clé i18n `gitattributes.entete` manquante →
+      `ECHEC … clé i18n manquante` ; chemins codés en dur
+      `src/…/jo/codeide/template/` au lieu de `{{packageName|packagePath}}` ;
+      `Greeter.jvm.kt` KMP présent dans les assets mais NON câblé (expect
+      sans actual) ; options communes ignorées ; versions Gradle 9.7.1 +
+      AGP 8.7.3/Kotlin 2.0.21/Boot 3.4.1 incompatibles] → **conventions de
+      package** [fonctions `packageFromAppName`
+      (`com.example.<appName>`, android-app) et `packageFromArtifactId`
+      (`com.example.<artifactId>`, spring-boot/KMP) ; `kotlin-jvm`/`java`
+      gardent `packageFromNameAndAuthor` ; `Sources.valeursParametres` : une
+      dérivée lit les paramètres déclarés AVANT elle — manifestes
+      réordonnés `appName`/`artifactId` avant `packageName` ; le wizard n'a
+      besoin d'AUCUNE modification, rendu dynamique] ; **filtre
+      `resourceName`** [nom de ressource Android sûr : NFD, mots
+      capitalisés, repli `App`, préfixe si chiffre — `« mon éclat & 2048 »`
+      → `MonEclat2048` ; alimente `Theme.{{appName|resourceName}}`] ;
+      **enrichissements** [android : strings/colors/themes.xml,
+      proguard-rules.pro + release minifiée, ExampleUnitTest, app/.gitignore,
+      manifeste `@string/app_name`+`@style/Theme.<Nom>`+allowBackup+
+      supportsRtl ; spring : GreeterRepository (patron repository),
+      ApplicationTests `@SpringBootTest`, `application.yml` REMPLACE
+      application.properties, `POST/GET /salutations` ; KMP : commonTest
+      enrichi (ordre, plateforme) ; les trois README/.gitignore/catalogues
+      i18n fr/en] ; **chaînes d'outils alignées sur le wrapper Gradle 9.7.1,
+      versions vérifiées une à une** [android : AGP 9.4.1 Kotlin INTÉGRÉ
+      (plus de plugin kotlin-android, `kotlin{compilerOptions}`),
+      compileSdk 37+minor 2, core-ktx 1.19.0, appcompat 1.8.0, material
+      1.14.0, tests JUnit 4 (kotlin-test nu ne résout pas `kotlin.test.Test`
+      sans KGP) ; spring : Boot 4.1.1 (exige Gradle 9), Kotlin 2.2.21,
+      plugin kotlin-spring (CGLIB ne proxyfie pas les classes finales), BOM
+      `platform()` native (dependency-management inutile) ; KMP : Kotlin
+      2.2.21, tâche `run` JavaExec CC-compatible branchée sur la sortie
+      jvmMain (plugin `application` INCOMPATIBLE KMP/Gradle 9 :
+      verrouillage `:apiElements`)] ; **vérification** :
+      `scripts/verify-templates.sh` 24 combinaisons (18 + 6 nouvelles
+      sb/kmp/andr — build réel, tests, `run` KMP avec salutation contrôlée,
+      Android `assembleDebug`+`testDebugUnitTest`+APK via
+      `CODEIDE_ANDROID_SDK`) ; tests ModelesEmbarquesTest 15 → 22 —
+      ADR 0075]
+- Prochaine : phase 3 du roadmap — Templates avancés (projectType Android,
+      support Java pour Android, modèles supplémentaires ; cf.
       docs/ROADMAP.md).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.

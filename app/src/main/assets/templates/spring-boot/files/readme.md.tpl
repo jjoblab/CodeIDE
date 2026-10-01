@@ -1,39 +1,49 @@
-# {{artifactId}}
+# {{projectName|md}}
+{{#if description != ""}}
+{{description|md}}
+{{#else}}
+{{t:readme.description}}
+{{/if}}
+## {{t:readme.prerequis}}
 
-Application Spring Boot en Kotlin générée par CodeIDE.
+- {{t:readme.jdk}} 17+
 
-## Prérequis
-
-- JDK 17+
-
-## Exécuter
+## {{t:readme.executer}}
 
 ```
-./gradlew run
+./gradlew bootRun
 ```
 
-L'application démarre sur http://localhost:8080.
+{{t:readme.demarrage}} http://localhost:8080
 
-## Endpoints
+## {{t:readme.endpoints}}
 
-- `GET /greet?name=Ada` → `{"message": "Hello, Ada!"}`
+- `GET /greet?name=Ada` → `{"message": "{{t:app.greeting}}, Ada!"}`
+- `POST /salutations?name=Ada` → `{"id": 1, "message": "{{t:app.greeting}}, Ada!"}`
+- `GET /salutations` → `[{"id": 1, "message": "{{t:app.greeting}}, Ada!"}]`
 
-## Compiler et tester
+## {{t:readme.build}}
 
 ```
 ./gradlew build
 ```
 
-## Structure du projet
+## {{t:readme.structure}}
 
 ```
-{{artifactId}}/
-├── src/main/kotlin/jo/codeide/template/
-│   ├── Application.kt
-│   ├── GreeterController.kt
-│   └── GreeterService.kt
-├── src/test/kotlin/jo/codeide/template/
-│   └── GreeterServiceTest.kt
+{{projectName}}/
+├── src/
+│   ├── main/
+│   │   ├── kotlin/{{packageName|packagePath}}/
+│   │   │   ├── Application.kt
+│   │   │   ├── GreeterController.kt
+│   │   │   ├── GreeterRepository.kt
+│   │   │   └── GreeterService.kt
+│   │   └── resources/
+│   │       └── application.yml
+│   └── test/kotlin/{{packageName|packagePath}}/
+│       ├── ApplicationTests.kt
+│       └── GreeterServiceTest.kt
 ├── build.gradle.kts
 └── settings.gradle.kts
 ```

@@ -1,8 +1,8 @@
-# Gradle
+# {{t:gitignore.gradle}}
 .gradle/
 build/
 
-# IDE et fichiers système
+# {{t:gitignore.commun}}
 .idea/
 *.iml
 .DS_Store

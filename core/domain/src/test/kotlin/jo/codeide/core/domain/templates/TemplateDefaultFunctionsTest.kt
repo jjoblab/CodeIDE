@@ -7,9 +7,11 @@ import org.junit.Test
 
 /**
  * Tests des fonctions de valeurs dérivées `defaultFrom` (étape 8 —
- * section 11 : `slug`, `parentPackage`, `packageFromNameAndAuthor`).
+ * section 11 : `slug`, `parentPackage`, `packageFromNameAndAuthor` ;
+ * phase 2 du roadmap, ADR 0075 : `packageFromAppName`,
+ * `packageFromArtifactId`).
  *
- * Le moteur n'évalue **aucun code** du manifeste : seules ces trois
+ * Le moteur n'évalue **aucun code** du manifeste : seules ces cinq
  * implémentations nommées existent, toute autre est un échec explicite.
  */
 class TemplateDefaultFunctionsTest {
@@ -18,6 +20,11 @@ class TemplateDefaultFunctionsTest {
             nomProjet = "Mon App Éclatante",
             auteur = "Jeanne Dupont",
             nomPackage = "jeanne.monapp",
+            valeursParametres =
+                mapOf(
+                    "appName" to "Mon App",
+                    "artifactId" to "demo-api",
+                ),
         )
 
     @Test
@@ -78,6 +85,58 @@ class TemplateDefaultFunctionsTest {
     }
 
     @Test
+    fun `packageFromAppName suit la convention com example`() {
+        assertEquals(
+            "com.example.monapp",
+            TemplateDefaultFunctions.appliquer("packageFromAppName", sources),
+        )
+    }
+
+    @Test
+    fun `packageFromAppName ignore un nom d app muet`() {
+        val muet = sources.copy(valeursParametres = mapOf("appName" to "!!!"))
+        assertEquals(
+            "com.example.app",
+            TemplateDefaultFunctions.appliquer("packageFromAppName", muet),
+        )
+    }
+
+    @Test
+    fun `packageFromAppName retombe sans parametre appName`() {
+        val absent = sources.copy(valeursParametres = emptyMap())
+        assertEquals(
+            "com.example.app",
+            TemplateDefaultFunctions.appliquer("packageFromAppName", absent),
+        )
+    }
+
+    @Test
+    fun `packageFromArtifactId suit la convention com example`() {
+        assertEquals(
+            "com.example.demoapi",
+            TemplateDefaultFunctions.appliquer("packageFromArtifactId", sources),
+        )
+    }
+
+    @Test
+    fun `packageFromArtifactId retombe sans parametre artifactId`() {
+        val absent = sources.copy(valeursParametres = emptyMap())
+        assertEquals(
+            "com.example.app",
+            TemplateDefaultFunctions.appliquer("packageFromArtifactId", absent),
+        )
+    }
+
+    @Test
+    fun `un nom d app numerique est prefixe`() {
+        val numerique = sources.copy(valeursParametres = mapOf("appName" to "2048"))
+        assertEquals(
+            "com.example.p2048",
+            TemplateDefaultFunctions.appliquer("packageFromAppName", numerique),
+        )
+    }
+
+    @Test
     fun `une fonction inconnue échoue explicitement`() {
         val erreur =
             assertThrows(TemplateRenderException::class.java) {
@@ -88,7 +147,10 @@ class TemplateDefaultFunctionsTest {
     }
 
     @Test
-    fun `exactement trois fonctions sont enregistrées`() {
-        assertEquals(setOf("slug", "parentPackage", "packageFromNameAndAuthor"), TemplateDefaultFunctions.NOMS)
+    fun `exactement cinq fonctions sont enregistrées`() {
+        assertEquals(
+            setOf("slug", "parentPackage", "packageFromNameAndAuthor", "packageFromAppName", "packageFromArtifactId"),
+            TemplateDefaultFunctions.NOMS,
+        )
     }
 }

@@ -1,24 +1,21 @@
-# CodeIDE — Roadmap v0.43.0+
+# CodeIDE — Roadmap v0.44.0+
 
 > Dernière mise à jour : 2026-09-30
-> Version courante : 0.42.0
+> Version courante : 0.43.0
 
-## État actuel (v0.42.0)
+## État actuel (v0.43.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp)
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée (RecyclerView : étapes, tâches, synthèse) + zone texte (lignes brutes par append O(1), loties par trame, tampon borné 2 000) — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
-- **Templates** : kotlin-jvm, java, android-app, spring-boot, kotlin-multiplatform
+- **Templates** (v0.43.0, ADR 0075) : kotlin-jvm, java, android-app, spring-boot, kotlin-multiplatform — tous vérifiés par `scripts/verify-templates.sh` (24 combinaisons, build réel, tests, exécution, APK) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests), Spring Boot 4.1.1 (repository, tests de contexte, application.yml), KMP (actual câblé, `run` JavaExec)
 - **Éditeur** : code-editor 3.40.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
 - **Terminal** : Termux, sessions shell, pty, pont SAF/FUSE
 - **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
 
 ### Problèmes connus ❌
-- **Templates trop simples** — un seul fichier Main + Greeter, pas de strings.xml/colors.xml/themes.xml pour Android
-- **Clés i18n manquantes** — gitattributes.entete dans KMP/spring-boot/android-app
-- **Package name** — `packageFromNameAndAuthor` produit un package non standard (devrait être `com.example.<name>`)
-- **Wizard** — ne montre pas correctement les nouveaux paramètres (minSdk, appName, projectType)
+- **Wizard — paramètres de phase 3/4** : `projectType` (types de projet Android) et aperçu de structure viendront avec les phases 3 et 4 ; les paramètres ACTUELS (appName, packageName, minSdk, interrupteurs) s'affichent déjà par rendu dynamique
 
 ---
 
@@ -47,44 +44,62 @@ Séparer la console en deux zones :
 
 ---
 
-## Phase 2 — Fix templates
+## Phase 2 — Fix templates ✅ v0.43.0
 
-### 2.1 Corriger les clés i18n manquantes
+> Objectif : les trois modèles de la v0.41.1 (android-app, spring-boot,
+> KMP) étaient cassés à la GÉNÉRATION (clé i18n manquante, chemins codés
+> en dur, actual KMP non câblé, versions incompatibles Gradle 9).
+> **Livré (ADR 0075)** : tout ce qui suit, plus la couverture complète de
+> `scripts/verify-templates.sh` (24 combinaisons, build réel).
+
+### 2.1 Corriger les clés i18n manquantes ✅
 
 - Ajouter `gitattributes.entete` dans `i18n/fr.json` et `en.json` de :
   - `kotlin-multiplatform`
   - `spring-boot`
   - `android-app`
+- (livré au-delà : README/.gitignore/catalogue des trois modèles
+  entièrement i18n fr/en, comme kotlin-jvm et java)
 
-### 2.2 Corriger le package name
+### 2.2 Corriger le package name ✅
 
-- Android : `com.example.<appName>` par défaut (pas `packageFromNameAndAuthor`)
-- Spring Boot : `com.example.<artifactId>` par défaut
-- KMP : `com.example.<artifactId>` par défaut
-- Kotlin JVM : garder `packageFromNameAndAuthor` (c'est un projet JVM, pas de convention Android)
+- Android : `com.example.<appName>` par défaut — fonction
+  `packageFromAppName` (pas `packageFromNameAndAuthor`)
+- Spring Boot : `com.example.<artifactId>` par défaut — fonction
+  `packageFromArtifactId`
+- KMP : `com.example.<artifactId>` par défaut — fonction
+  `packageFromArtifactId`
+- Kotlin JVM : `packageFromNameAndAuthor` conservé (projet JVM, pas de
+  convention Android)
+- (livré au-delà : chemins `{{packageName|packagePath}}`, options
+  communes câblées, filtre `resourceName` pour les noms de ressources)
 
-### 2.3 Enrichir le template Android app
+### 2.3 Enrichir le template Android app ✅
 
-Fichiers à ajouter :
+Fichiers livrés :
 - `app/src/main/res/values/strings.xml` — `<resources><string name="app_name">{{appName}}</string></resources>`
 - `app/src/main/res/values/colors.xml` — couleurs de base
-- `app/src/main/res/values/themes.xml` — `Theme.Material3.DayNight` avec `parent`
-- `app/proguard-rules.pro` — règles ProGuard de base
-- `app/src/test/java/.../ExampleUnitTest.kt` — test unitaire simple
-- `.gitignore` — complet (local.properties, .gradle, build, *.apk, *.aab)
+- `app/src/main/res/values/themes.xml` — `Theme.Material3.DayNight` avec `parent` (+ `colorPrimary`/`colorSecondary`)
+- `app/proguard-rules.pro` — règles ProGuard de base (+ `buildTypes.release` minifié)
+- `app/src/test/.../ExampleUnitTest.kt` — test unitaire simple
+- `.gitignore` — complet (local.properties, .gradle, build, *.apk, *.aab) + `app/.gitignore`
+- (livré au-delà : AGP 9.4.1 Kotlin intégré, `compileSdk 37.2`, JUnit 4,
+  manifeste `@string/app_name` + `@style/Theme.<Nom>`, allowBackup/supportsRtl)
 
-### 2.4 Enrichir le template Spring Boot
+### 2.4 Enrichir le template Spring Boot ✅
 
-Fichiers à ajouter :
-- `src/main/resources/application.yml` — configuration YAML (port, profile)
+Fichiers livrés :
+- `src/main/resources/application.yml` — configuration YAML (port, profil) — remplace `application.properties`
 - `src/main/kotlin/.../GreeterRepository.kt` — repository pattern
 - `src/test/kotlin/.../ApplicationTests.kt` — test de contexte Spring
+- (livré au-delà : Spring Boot 4.1.1, Kotlin 2.2.21, plugin
+  `kotlin-spring`, BOM `platform()`, `POST/GET /salutations`)
 
-### 2.5 Enrichir le template KMP
+### 2.5 Enrichir le template KMP ✅
 
-Fichiers à ajouter :
-- `src/jvmMain/kotlin/.../Greeter.jvm.kt` — implémentation `actual` du Greeter
-- Tests `commonTest` plus complets
+- `src/jvmMain/kotlin/.../Greeter.jvm.kt` — implémentation `actual` du Greeter (câblée au manifeste — le fichier existait mais n'y figurait pas)
+- Tests `commonTest` plus complets : ordre de `greetAll`, plateforme nommée
+- (livré au-delà : Kotlin 2.2.21, tâche `run` JavaExec exécutable et vérifiée)
 
 ---
 
@@ -174,8 +189,8 @@ Créer un template `android-app-java` ou ajouter un paramètre `language` (kotli
 | Phase | Priorité | Effort | Impact utilisateur |
 |---|---|---|---|
 | 1 — Console perf | **CRITIQUE** ✅ livré v0.42.0 (ADR 0074) | Moyen | Très haut — l'app devient utilisable |
-| 2 — Fix templates | **Haute (prochaine)** | Faible | Haut — les templates marchent |
-| 3 — Templates avancés | Moyenne | Moyen | Moyen — plus de choix |
+| 2 — Fix templates | **Haute** ✅ livré v0.43.0 (ADR 0075) | Faible | Haut — les templates marchent |
+| 3 — Templates avancés | **Haute (prochaine)** | Moyen | Moyen — plus de choix |
 | 4 — Wizard | Moyenne | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse | Très haut | Très haut — transforme en IDE |
 | 6 — Fonctionnalités IDE | Basse | Très haut | Très haut — fonctionnalités pro |

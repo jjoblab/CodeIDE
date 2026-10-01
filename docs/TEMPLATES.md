@@ -62,7 +62,7 @@ valeurs) :
 | `type` | `TEXT`, `BOOLEAN` ou `CHOICE` |
 | `labelKey`, `helpKey` | clés i18n affichées par le wizard |
 | `choices`, `default` | pour `CHOICE` (défaut parmi les valeurs) ; `BOOLEAN` accepte `true`/`false` |
-| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor` — jamais de code |
+| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId` |
 | `validator` | `project-name`, `package-name`, `identifier`, `semver` ou `regex:<motif>` (correspondance complète) |
 | `visibleWhen` | expression du mini-langage ; absent = toujours visible |
 | `section` | `CONFIGURATION` ou `INFORMATION` (étapes du wizard) |
@@ -110,7 +110,9 @@ Variables **automatiques** (ne peuvent pas être masquées par un paramètre) :
 
 Filtres : `kotlinString`, `javaString`, `xml`, `json`, `tomlString`, `md`
 (échappements — la saisie de l'utilisateur ne casse **jamais** le code
-généré) ; `slug`, `lower`, `upper`, `packagePath` (transformations).
+généré) ; `slug`, `lower`, `upper`, `packagePath`, `resourceName`
+(transformations — `resourceName` produit un nom de ressource Android
+sûr : `« mon éclat & 2048 »` → `MonEclat2048`, ADR 0075).
 
 **Échec explicite** (fichier + ligne, jamais de `{{…}}` résiduel) :
 variable inconnue, filtre inconnu, clé i18n manquante, balise mal formée.

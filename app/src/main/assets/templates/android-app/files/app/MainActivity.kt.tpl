@@ -14,6 +14,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(liaison.root)
 
         val greeter = Greeter("{{t:app.greeting}}")
-        liaison.texteBienvenue.text = greeter.greet("{{appName}}")
+        liaison.texteBienvenue.text = greeter.greet("{{appName|kotlinString}}")
     }
 }

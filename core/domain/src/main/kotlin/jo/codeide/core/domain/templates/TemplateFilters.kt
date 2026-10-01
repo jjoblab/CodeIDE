@@ -11,7 +11,7 @@ package jo.codeide.core.domain.templates
  *
  * Filtres d'échappement : `kotlinString`, `javaString`, `xml`, `json`,
  * `tomlString`, `md` ; filtres de transformation : `slug`, `lower`,
- * `upper`, `packagePath`.
+ * `upper`, `packagePath`, `resourceName`.
  *
  * Le filtre `md` échappe `\ ` ` * _ { } [ ] < > # + ! | ~` — les points,
  * tirets et parenthèses sont laissés intacts (inoffensifs en milieu de
@@ -31,6 +31,7 @@ internal object TemplateFilters {
             "lower",
             "upper",
             "packagePath",
+            "resourceName",
         )
 
     /** Point de sortie Unicode pour les contrôles (échappement `\uXXXX`). */
@@ -72,6 +73,7 @@ internal object TemplateFilters {
             "lower" -> entree.lowercase()
             "upper" -> entree.uppercase()
             "packagePath" -> entree.replace(".", "/")
+            "resourceName" -> nomRessource(entree)
             else -> throw TemplateRenderException(ligne, "filtre inconnu « $nom »")
         }
 
@@ -224,6 +226,40 @@ internal object TemplateFilters {
             }
         }
     }
+
+    /**
+     * Normalise un libellé en nom de ressource Android sûr (ADR 0075) :
+     * accents décomposés (NFD) puis éliminés, chaque mot capitalisé,
+     * séparateurs et caractères invalides retirés — les noms de ressources
+     * doivent commencer par une lettre et ne contenir que `[A-Za-z0-9._]`.
+     *
+     * `"mon éclat"` → `"MonEclat"` ; une entrée muette retombe sur
+     * `"App"` ; un nom qui commencerait par un chiffre est préfixé.
+     */
+    @Suppress("ReturnCount") // Normalisation : trois issues (règle 16).
+    private fun nomRessource(entree: String): String {
+        val decomposee =
+            java.text.Normalizer
+                .normalize(entree, java.text.Normalizer.Form.NFD)
+        val sansMarques =
+            decomposee.filter { caractere ->
+                Character.getType(caractere).toInt() !in MARQUES_COMBINANTES
+            }
+        val parties = sansMarques.split(MOTIF_NON_ALPHANUMERIQUE).filter { it.isNotEmpty() }
+        if (parties.isEmpty()) return REPLI_RESSOURCE
+        val nom = parties.joinToString("") { partie -> partie.replaceFirstChar { it.uppercaseChar() } }
+        if (nom[0].isDigit()) return "${PREFIXE_RESSOURCE}$nom"
+        return nom
+    }
+
+    /** Séparateurs d'un nom de ressource : tout caractère non alphanumérique ASCII. */
+    private val MOTIF_NON_ALPHANUMERIQUE = Regex("[^A-Za-z0-9]+")
+
+    /** Repli d'un nom de ressource muet. */
+    private const val REPLI_RESSOURCE = "App"
+
+    /** Préfixe d'un nom de ressource qui commencerait par un chiffre. */
+    private const val PREFIXE_RESSOURCE = "App"
 
     /**
      * Normalise un libellé en slug : minuscules sans accents, séparateurs

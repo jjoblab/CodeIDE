@@ -1,34 +1,37 @@
-# {{artifactId}}
+# {{projectName|md}}
+{{#if description != ""}}
+{{description|md}}
+{{#else}}
+{{t:readme.description}}
+{{/if}}
+## {{t:readme.prerequis}}
 
-Projet Kotlin Multiplatform généré par CodeIDE.
+- {{t:readme.jdk}} 17+
 
-## Prérequis
-
-- JDK 17+
-
-## Exécuter (JVM)
+## {{t:readme.executer}}
 
 ```
 ./gradlew run
 ```
 
-## Compiler et tester
+## {{t:readme.build}}
 
 ```
 ./gradlew build
 ```
 
-## Structure du projet
+## {{t:readme.structure}}
 
 ```
-{{artifactId}}/
+{{projectName}}/
 ├── src/
-│   ├── commonMain/kotlin/jo/codeide/template/
+│   ├── commonMain/kotlin/{{packageName|packagePath}}/
 │   │   ├── Greeter.kt
 │   │   └── Platform.kt
-│   ├── commonTest/kotlin/jo/codeide/template/
+│   ├── commonTest/kotlin/{{packageName|packagePath}}/
 │   │   └── GreeterTest.kt
-│   └── jvmMain/kotlin/jo/codeide/template/
+│   └── jvmMain/kotlin/{{packageName|packagePath}}/
+│       ├── Greeter.jvm.kt
 │       ├── Main.kt
 │       └── Platform.jvm.kt
 ├── build.gradle.kts
