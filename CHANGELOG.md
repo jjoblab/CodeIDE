@@ -4,6 +4,43 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.45.2] – 2026-10-02
+
+### Corrigé (retour utilisateur : « BUILD SUCCESSFUL in 10s » affiché au bout de 200-300 s)
+
+- **Fenêtre daemon du build rendue visible** : le signalement de terrain
+  (simple projet, `task:assemble` depuis la feuille des tâches, chrono à
+  200-300 s pour une console qui conclut « BUILD SUCCESSFUL in 10s ») a
+  été reproduit en expérience contrôlée (Gradle 9.7.1, daemon tué puis
+  relancé) : `ProjectConnection.connect()` rend un objet PARESSEUX en
+  ~300 ms — MÊME sans daemon vivant — et tout le démarrage du daemon
+  (60 s à 4 min sur téléphone) se produit DANS `newBuild().run()`, où le
+  serveur ne publiait RIEN. La Tooling API y émet pourtant des statuts
+  textuels (`Starting Gradle Daemon`, `Connecting to Gradle Daemon`)
+  qu'aucun écouteur ne captait :
+  - nouvel `EcouteurStatutDaemonBuild` (filtré sur les statuts du daemon,
+    dédupliqué, thread-safe) branché sur le lanceur : « Starting Gradle
+    Daemon » s'affiche PENDANT le spawn — la parité réelle avec la
+    ligne « Starting Gradle Daemon… » de la console d'Android Studio ;
+  - la ligne « daemon Gradle connecté (X ms) » de la v0.45.1 mesurait un
+    objet en cache (~0 ms en toutes circonstances — elle affirmait une
+    connexion inexistante) : elle est désormais publiée sur le FAIT
+    « Connecting to Gradle Daemon », X étant le délai RÉEL pour obtenir
+    un daemon (froid : spawn complet ; chaud : aller-retour) ;
+  - la SYNC suit le même traitement : les statuts du daemon alimentent
+    la phase DAEMON de l'arbre de sync (l'étape montre CE qu'elle
+    attend), la phase DISTRIBUTION reste ce qu'elle était.
+- **Décomposition honnête des durées en fin de build** : la durée
+  RAPPORTÉE PAR GRADLE (« BUILD SUCCESSFUL in 10s » — son horloge démarre
+  sur un daemon PRÊT, le démarrage est EXCLU) est désormais extraite du
+  stdout (`ParseurSyntheseBuild.analyserDureeMs` : `in 10s`, `in 800ms`,
+  `in 1m 30s`, `in 2m 3s 456ms`, `in 1h 2m`) et la console conclut sur
+  une ligne qui nomme l'écart constaté : « build Gradle : 10 s ·
+  démarrage du daemon : 235 s · total : 245 s » — sans durée observée
+  (échec précoce, sortie redirigée), le total seul reste honnête. Le
+  verdict serveur journalisé porte désormais les trois durées
+  (`gradle=… ms, file=…`).
+
 ## [0.45.1] – 2026-10-02
 
 ### Corrigé (retour utilisateur : chemin de projet + console en retard)
