@@ -33,13 +33,25 @@
     <string name="wizard_choix_sources">Sources only</string>
     <string name="wizard_choix_jdk17">JDK 17</string>
     <string name="wizard_choix_jdk21">JDK 21</string>
+    <string name="wizard_choix_activite_vide">Single activity</string>
+    <string name="wizard_choix_sans_activite">No activity</string>
+    <string name="wizard_choix_activite_tiroir">Activity + drawer</string>
+    <string name="wizard_choix_kotlin">Kotlin</string>
+    <string name="wizard_choix_java">Java</string>
     <string name="wizard_sous_titre_application">Program with an entry point</string>
     <string name="wizard_sous_titre_bibliotheque">Reusable by other projects</string>
+    <string name="wizard_sous_titre_kotlin">Concise, null-safe, idiomatic</string>
+    <string name="wizard_sous_titre_java">The classic ecosystem, without the Kotlin runtime</string>
     <string name="wizard_icone_application">&gt;_</string>
     <string name="wizard_icone_bibliotheque">▦</string>
+    <string name="wizard_icone_kotlin">Kt</string>
+    <string name="wizard_icone_java">Jv</string>
     <string name="wizard_explication_gradle">Recommended — Kotlin scripts, pinned wrapper</string>
     <string name="wizard_explication_maven">Classic pom.xml from the Java ecosystem</string>
     <string name="wizard_explication_sources">No build, no dependencies: just sources</string>
+    <string name="wizard_explication_activite_vide">One activity, one screen — the classic starting point</string>
+    <string name="wizard_explication_sans_activite">Android foundations without a screen: services, data, library roots</string>
+    <string name="wizard_explication_activite_tiroir">Activity, fragment and Material 3 navigation drawer</string>
     <string name="wizard_aide_sans_build">Without a build system, only sources are generated.</string>
 
     <!-- Step 3 — Information and location (section 12.3). -->

@@ -4,6 +4,58 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.44.0] – 2026-10-01
+
+### Ajouté (phase 3 du roadmap — modèles avancés, ADR 0076)
+
+- **`android-app` v1.2.0 — types de projet** : paramètre `projectType`
+  (`empty-activity` défaut, `no-activity`, `basic-activity`). La variante
+  tiroir livre `MainActivity` avec `ActionBarDrawerToggle` +
+  `MaterialToolbar`, `FragmentAccueil` à arguments, les layouts
+  `activity_main_tiroir.xml`/`fragment_accueil.xml`, `menu/tiroir.xml`,
+  un thème `Theme.Material3.DayNight.NoActionBar` (conditionnel) et la
+  dépendance `androidx.drawerlayout:drawerlayout:1.2.0` ; la variante
+  sans activité retire l'`<activity>` du manifeste (`{{#if}}`) et ne
+  génère aucune classe d'écran.
+- **`android-app` — langage Java** : paramètre `language`
+  (`kotlin` défaut, `java`). `MainActivity`, `FragmentAccueil`, `Greeter`
+  et les deux tests sont déclinés en `.java` (ViewBinding par champs
+  publics, `import static` des assertions JUnit) ; le bloc
+  `kotlin { compilerOptions }` disparaît du build en Java pur.
+- **Nouveau modèle `android-library`** : bibliothèque Android (.aar) —
+  module `:library` (`com.android.library`), `consumer-rules.pro`,
+  manifeste minimal, API publique `Greeter`, tests JUnit 4, README
+  d'intégration (`:library:assembleRelease` →
+  `library/build/outputs/aar/`), package `com.example.<nom>`.
+- **Nouveau modèle `gradle-plugin`** : plugin Gradle en Kotlin —
+  `kotlin-dsl` (compilateur **embarqué** dans la distribution : un KGP
+  externe 2.2.21 se heurte au `kotlin-reflect` 2.4.0 du `gradleApi()`),
+  `java-gradle-plugin` + `maven-publish` (artifactId de publication fixé
+  à l'`artifactId`, le nom de projet pouvant contenir des espaces),
+  extension `greeting` + tâche `greet` annotée `@DisableCachingByDefault`
+  (exigée par `validatePlugins`), tests ProjectBuilder (`gradleTestKit()`),
+  `pluginId` et `packageName` dérivés de l'`artifactId`
+  (`packageFromArtifactId` réutilisée), classe principale
+  `{{projectName|resourceName}}Plugin`.
+- **Wizard** : les paramètres à plus de deux valeurs (`projectType`
+  Android) passent des tuiles segmentées aux **cartes radio empilées**
+  (chaque valeur garde son explication) ; `language` rejoint les tuiles.
+  Libellés, sous-titres, icônes et explications bilingues fr/en.
+- **Vérification** : `scripts/verify-templates.sh` passe de 24 à **32
+  combinaisons** — 8 nouvelles (4 variantes Android avec APK + tests,
+  2 bibliothèques avec AAR de release, 2 plugins avec
+  `validatePlugins`/testkit) et deux contrôles E2E : publication maven
+  locale + marqueur de plugin, et application du plugin depuis un
+  projet consommateur jetable (`./gradlew greet` affiche le message
+  configuré). Contrôles structurels par variante (aucun `.kt` en Java,
+  aucun `MainActivity` sans activité, menu du tiroir présent).
+- **Tests** : `ModelesPhase3Test` (9 tests — variantes, dérivation
+  com.example, identifiants du plugin, i18n fr/en, noms hostiles) ;
+  catalogues de `ModelesEmbarquesTest` et `TemplatesIntegrationTest`
+  ancrent les 7 modèles ; 1415 tests au total, 0 échec.
+- **Différé** : `compose-app` (ADR 0002 — Compose interdit jusqu'à
+  réévaluation explicite).
+
 ## [0.43.0] – 2026-09-30
 
 ### Corrigé (phase 2 du roadmap — modèles : les trois nouveaux modèles

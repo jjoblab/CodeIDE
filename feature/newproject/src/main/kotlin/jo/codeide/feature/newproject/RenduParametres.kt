@@ -303,16 +303,27 @@ class RenduParametres(
 
     // ---------------------------------------------------- registres
 
-    /** Composant d'un paramètre : registre nommé puis repli par traits. */
-    private fun composantPour(parametre: TemplateParameterEvaluation): Composant =
-        COMPOSANTS_NOMMES[parametre.parameterId]
+    /** Composant d'un paramètre : registre nommé puis repli par traits.
+     *
+     * Tuiles segmentées : deux valeurs côte à côte — au-delà (phase 3,
+     * « projectType » Android et ses trois variantes), les cartes radio
+     * empilées prennent le relais : chaque valeur garde son explication.
+     */
+    private fun composantPour(parametre: TemplateParameterEvaluation): Composant {
+        val nomme = COMPOSANTS_NOMMES[parametre.parameterId]
+        if (nomme == Composant.TUILES_SEGMENTEES && parametre.choices.size > NB_TUILES) {
+            return Composant.CARTES_RADIO
+        }
+        return nomme
             ?: when (parametre.type) {
                 TemplateParameterType.BOOLEAN -> Composant.INTERRUPTEUR
                 TemplateParameterType.CHOICE -> Composant.LISTE_DEROULANTE
                 TemplateParameterType.TEXT -> Composant.CHAMP_TEXTE
             }
+    }
 
     /** Libellé affichable d'une valeur de choix (registre, repli brut). */
+    @Suppress("CyclomaticComplexMethod") // Un branch par valeur connue du wizard.
     private fun libelleChoix(valeur: String): String =
         when (valeur) {
             "application" -> conteneur.context.getString(R.string.wizard_choix_application)
@@ -322,6 +333,11 @@ class RenduParametres(
             "none" -> conteneur.context.getString(R.string.wizard_choix_sources)
             "17" -> conteneur.context.getString(R.string.wizard_choix_jdk17)
             "21" -> conteneur.context.getString(R.string.wizard_choix_jdk21)
+            "empty-activity" -> conteneur.context.getString(R.string.wizard_choix_activite_vide)
+            "no-activity" -> conteneur.context.getString(R.string.wizard_choix_sans_activite)
+            "basic-activity" -> conteneur.context.getString(R.string.wizard_choix_activite_tiroir)
+            "kotlin" -> conteneur.context.getString(R.string.wizard_choix_kotlin)
+            "java" -> conteneur.context.getString(R.string.wizard_choix_java)
             else -> valeur
         }
 
@@ -333,6 +349,8 @@ class RenduParametres(
         when (parametreId to valeur) {
             "projectType" to "application" -> conteneur.context.getString(R.string.wizard_sous_titre_application)
             "projectType" to "library" -> conteneur.context.getString(R.string.wizard_sous_titre_bibliotheque)
+            "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_sous_titre_kotlin)
+            "language" to "java" -> conteneur.context.getString(R.string.wizard_sous_titre_java)
             else -> ""
         }
 
@@ -344,6 +362,8 @@ class RenduParametres(
         when (parametreId to valeur) {
             "projectType" to "application" -> conteneur.context.getString(R.string.wizard_icone_application)
             "projectType" to "library" -> conteneur.context.getString(R.string.wizard_icone_bibliotheque)
+            "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_icone_kotlin)
+            "language" to "java" -> conteneur.context.getString(R.string.wizard_icone_java)
             else -> null
         }
 
@@ -353,10 +373,35 @@ class RenduParametres(
         valeur: String,
     ): String =
         when (parametreId to valeur) {
-            "buildSystem" to "gradle-kts" -> conteneur.context.getString(R.string.wizard_explication_gradle)
-            "buildSystem" to "maven" -> conteneur.context.getString(R.string.wizard_explication_maven)
-            "buildSystem" to "none" -> conteneur.context.getString(R.string.wizard_explication_sources)
-            else -> ""
+            "buildSystem" to "gradle-kts" -> {
+                conteneur.context.getString(R.string.wizard_explication_gradle)
+            }
+
+            "buildSystem" to "maven" -> {
+                conteneur.context.getString(R.string.wizard_explication_maven)
+            }
+
+            "buildSystem" to "none" -> {
+                conteneur.context.getString(R.string.wizard_explication_sources)
+            }
+
+            "projectType" to "empty-activity" -> {
+                conteneur.context.getString(R.string.wizard_explication_activite_vide)
+            }
+
+            "projectType" to "no-activity" -> {
+                conteneur.context.getString(R.string.wizard_explication_sans_activite)
+            }
+
+            "projectType" to "basic-activity" -> {
+                conteneur.context.getString(
+                    R.string.wizard_explication_activite_tiroir,
+                )
+            }
+
+            else -> {
+                ""
+            }
         }
 
     /** Ligne d'aide dynamique sous la sélection (spec 12.3). */
@@ -451,6 +496,7 @@ class RenduParametres(
             mapOf(
                 "projectType" to Composant.TUILES_SEGMENTEES,
                 "buildSystem" to Composant.CARTES_RADIO,
+                "language" to Composant.TUILES_SEGMENTEES,
             )
     }
 }

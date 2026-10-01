@@ -6,7 +6,9 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.{{appName|resourceName}}">
-
+{{#if estSansActivite}}
+    </application>
+{{#else}}
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -16,4 +18,5 @@
             </intent-filter>
         </activity>
     </application>
+{{/if}}
 </manifest>

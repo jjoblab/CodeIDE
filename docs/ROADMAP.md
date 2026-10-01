@@ -1,21 +1,21 @@
-# CodeIDE — Roadmap v0.44.0+
+# CodeIDE — Roadmap v0.45.0+
 
-> Dernière mise à jour : 2026-09-30
-> Version courante : 0.43.0
+> Dernière mise à jour : 2026-10-01
+> Version courante : 0.44.0
 
-## État actuel (v0.43.0)
+## État actuel (v0.44.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp)
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée (RecyclerView : étapes, tâches, synthèse) + zone texte (lignes brutes par append O(1), loties par trame, tampon borné 2 000) — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
-- **Templates** (v0.43.0, ADR 0075) : kotlin-jvm, java, android-app, spring-boot, kotlin-multiplatform — tous vérifiés par `scripts/verify-templates.sh` (24 combinaisons, build réel, tests, exécution, APK) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests), Spring Boot 4.1.1 (repository, tests de contexte, application.yml), KMP (actual câblé, `run` JavaExec)
+- **Templates** (v0.44.0, ADR 0076) : kotlin-jvm, java, android-app (variantes `projectType` empty/no/basic-activity + `language` kotlin/java), android-library (.aar), spring-boot, kotlin-multiplatform, gradle-plugin — tous vérifiés par `scripts/verify-templates.sh` (32 combinaisons, build réel, tests, exécution, APK, AAR, publication + consommation E2E du plugin) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests, tiroir Material 3), Spring Boot 4.1.1, KMP (actual câblé), plugin Gradle `kotlin-dsl` (compilateur embarqué, testkit ProjectBuilder)
 - **Éditeur** : code-editor 3.40.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
 - **Terminal** : Termux, sessions shell, pty, pont SAF/FUSE
 - **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
 
 ### Problèmes connus ❌
-- **Wizard — paramètres de phase 3/4** : `projectType` (types de projet Android) et aperçu de structure viendront avec les phases 3 et 4 ; les paramètres ACTUELS (appName, packageName, minSdk, interrupteurs) s'affichent déjà par rendu dynamique
+- **Wizard — aperçu de structure** : la vignette « aperçu de l'arborescence » viendra avec la phase 4 ; le rendu dynamique couvre déjà tous les paramètres actuels, y compris les tuiles/cartes des nouveaux `projectType` et `language`
 
 ---
 
@@ -103,24 +103,55 @@ Fichiers livrés :
 
 ---
 
-## Phase 3 — Templates avancés
+## Phase 3 — Templates avancés ✅ v0.44.0
 
-### 3.1 Types de projet Android
+> Objectif : le modèle Android grandit (types de projet, langage Java) et
+> deux modèles s'ajoutent (bibliothèque .aar, plugin Gradle).
+> **Livré (ADR 0076)** : tout ce qui suit, `projectType` rendu en cartes
+> radio (3 valeurs), `language` en tuiles segmentées, et
+> `scripts/verify-templates.sh` étendu à 32 combinaisons (builds réels,
+> APK, AAR, publication + consommation E2E du plugin).
 
-Ajouter un paramètre `projectType` au template Android :
-- `empty-activity` — Activity + layout (actuel)
-- `no-activity` — juste le projet Android sans Activity
-- `basic-activity` — Activity + Fragment + navigation drawer
+### 3.1 Types de projet Android ✅
 
-### 3.2 Support Java pour Android
+- Paramètre `projectType` (CHOICE) sur `android-app` :
+  - `empty-activity` — Activity + layout (inchangé, défaut)
+  - `no-activity` — projet Android sans Activity (manifeste `{{#if}}`,
+    aucune `MainActivity`, aucun layout — `Greeter` seul)
+  - `basic-activity` — Activity + Fragment + tiroir de navigation Material 3
+    (`MainActivity` avec `ActionBarDrawerToggle`, `FragmentAccueil` +
+    arguments, `activity_main_tiroir.xml`, `menu/tiroir.xml`, thème
+    `NoActionBar`, dépendance `drawerlayout`)
+- (livré au-delà : thème conditionnel, chaînes du tiroir i18n fr/en,
+  contrôles structurels par variante dans verify-templates.sh)
 
-Créer un template `android-app-java` ou ajouter un paramètre `language` (kotlin/java) au template Android existant.
+### 3.2 Support Java pour Android ✅
 
-### 3.3 Templates supplémentaires
+- Paramètre `language` (CHOICE kotlin/java) sur le modèle Android existant
+  (pas de modèle séparé) : `MainActivity`, `FragmentAccueil`, `Greeter`,
+  `ExampleUnitTest` et `GreeterTest` déclinés en `.java` — le bloc
+  `kotlin { compilerOptions }` disparaît du build en Java
+- (livre au-delà : ViewBinding par champs publics en Java, imports
+  `static` pour les assertions JUnit)
 
-- `compose-app` — Jetpack Compose (quand CodeIDE supportera Compose — ADR 0002 interdit Compose pour l'instant)
-- `gradle-plugin` — développement de plugin Gradle
-- `library` — bibliothèque Android (.aar)
+### 3.3 Templates supplémentaires ✅
+
+- `android-library` — bibliothèque Android (.aar) : module `:library`,
+  `com.android.library`, `consumer-rules.pro`, API publique `Greeter`,
+  tests, README d'intégration (`assembleRelease` → `library/build/outputs/aar/`)
+- `gradle-plugin` — plugin Gradle en Kotlin : `kotlin-dsl` (compilateur
+  **embarqué** dans Gradle — un KGP externe 2.2.21 se heurte au
+  `kotlin-reflect` 2.4.0 du `gradleApi()`), `java-gradle-plugin`,
+  `maven-publish` avec artifactId valide, extension `greeting` + tâche
+  `greet` (`@DisableCachingByDefault` pour `validatePlugins`), tests
+  ProjectBuilder (testkit), `pluginId`/`packageName` dérivés de
+  `artifactId` (`packageFromArtifactId` réutilisée), classe principale
+  `{{projectName|resourceName}}Plugin`
+- `compose-app` — **différé** (ADR 0002 interdit Compose jusqu'à
+  réévaluation explicite)
+- (livré au-delà : 32e combinaison E2E — publication maven locale du
+  plugin puis application + exécution `greet` depuis un projet
+  consommateur jetable)
 
 ---
 

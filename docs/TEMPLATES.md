@@ -62,7 +62,7 @@ valeurs) :
 | `type` | `TEXT`, `BOOLEAN` ou `CHOICE` |
 | `labelKey`, `helpKey` | clés i18n affichées par le wizard |
 | `choices`, `default` | pour `CHOICE` (défaut parmi les valeurs) ; `BOOLEAN` accepte `true`/`false` |
-| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId` |
+| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId` ; le modèle `gradle-plugin` réutilise `packageFromArtifactId` pour son `pluginId` (ADR 0076) |
 | `validator` | `project-name`, `package-name`, `identifier`, `semver` ou `regex:<motif>` (correspondance complète) |
 | `visibleWhen` | expression du mini-langage ; absent = toujours visible |
 | `section` | `CONFIGURATION` ou `INFORMATION` (étapes du wizard) |
@@ -173,32 +173,54 @@ identifiant entre fournisseurs aussi.
   d'options d'un modèle embarqué est générée **puis réellement compilée,
   testée, exécutée et publiée** avec les vrais outils.
 
-## Les modèles embarqués (étape 9)
+## Les modèles embarqués (étapes 9, phases 2-3 du roadmap)
 
-Deux modèles, `kotlin-jvm` et `java`, partagent la même logique de
-paramètres (section 11 du prompt maître) : `projectType`
-(application/bibliothèque), `buildSystem` (`gradle-kts`/`maven`/`none`),
-`jdkVersion` (17 ou 21 — **seules les LTS entièrement validées** sont
-proposées, voir ADR 0019 : Kotlin 2.2.21 ne supporte pas encore la cible
-JVM 25), `includeTests` (JUnit 5), `includeWrapper` (Gradle Wrapper avec
-`distributionSha256Sum`), puis `packageName`/`groupId`/`artifactId`/`version`
-(section Informations). L'exemple généré — `Greeter` (logique testable) +
-`Main` (point d'entrée fin) + `GreeterTest` — compile et passe ses tests
-**sans aucune modification, avec zéro avertissement** (Kotlin `-Werror`
-via `allWarningsAsErrors`, Java `-Xlint:all -Werror`, Maven équivalent,
+Sept modèles vivent sous `assets/templates/`, tous vérifiés par build réel
+via `scripts/verify-templates.sh` (32 combinaisons) :
+
+| Modèle | Ce qu'il génère | Détails |
+|---|---|---|
+| `kotlin-jvm` | projet JVM Kotlin (app/biblio, Gradle/Maven/none, JDK 17/21) | étape 9 — Greeter + Main + GreeterTest, `-Werror` |
+| `java` | projet JVM Java (mêmes axes) | étape 9 — `-Xlint:all -Werror` |
+| `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-3 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), package `com.example.<appName>`, ViewBinding |
+| `spring-boot` | service REST Boot 4.1.1 (Kotlin 2.2.21) | phase 2 — repository, tests de contexte, `application.yml` |
+| `kotlin-multiplatform` | bibliothèque KMP (Kotlin 2.2.21) | phase 2 — `expect`/`actual` câblé, `jvmTest`, tâche `run` |
+| `android-library` | bibliothèque Android (.aar) | phase 3 — module `:library`, `consumer-rules.pro`, package `com.example.<nom>` |
+| `gradle-plugin` | plugin Gradle en Kotlin | phase 3 — `kotlin-dsl` (compilateur **embarqué** dans la distribution : Gradle 9.7.1 livre Kotlin 2.4.0, incompatible avec un KGP externe 2.2.21 sur `gradleApi()`), `pluginId`/`packageName` dérivés de l'`artifactId`, testkit ProjectBuilder (ADR 0076) |
+
+`kotlin-jvm` et `java` partagent la même logique de paramètres (section 11
+du prompt maître) : `projectType` (application/bibliothèque), `buildSystem`
+(`gradle-kts`/`maven`/`none`), `jdkVersion` (17 ou 21 — **seules les LTS
+entièrement validées** sont proposées, voir ADR 0019 : Kotlin 2.2.21 ne
+supporte pas encore la cible JVM 25), `includeTests` (JUnit 5),
+`includeWrapper` (Gradle Wrapper avec `distributionSha256Sum`), puis
+`packageName`/`groupId`/`artifactId`/`version` (section Informations).
+L'exemple généré — `Greeter` (logique testable) + `Main` (point d'entrée
+fin) + `GreeterTest` — compile et passe ses tests **sans aucune
+modification, avec zéro avertissement** (Kotlin `-Werror` via
+`allWarningsAsErrors`, Java `-Xlint:all -Werror`, Maven équivalent,
 JUnit 5).
 
 ## Versions figées des projets générés
 
-Chaque version a été vérifiée sur son dépôt officiel le 2026-09-22, puis
-**validée par build réel** via `verify-templates.sh` :
+Chaque version a été vérifiée sur son dépôt officiel (2026-09-22 pour le
+socle JVM, 2026-09-30 pour la chaîne Android et Gradle 9 — ADR 0075/0076),
+puis **validée par build réel** via `verify-templates.sh` :
 
 | Élément | Version | Source |
 |---|---|---|
 | Distribution Gradle (wrapper) | 9.7.1 (+ SHA-256) | services.gradle.org |
 | Kotlin (plugin, stdlib, `kotlin-test`) | 2.2.21 | repo.maven.apache.org |
+| Kotlin du plugin `kotlin-dsl` | **embarqué** dans Gradle 9.7.1 (2.4.0) | distribution Gradle |
 | JUnit Jupiter (BOM) | 5.14.4 | repo.maven.apache.org |
 | junit-platform-launcher | 1.14.4 | repo.maven.apache.org |
+| AGP (application/bibliothèque Android) | 9.4.1 | dl.google.com/dl/android/maven2 |
+| androidx core-ktx | 1.19.0 | dl.google.com/dl/android/maven2 |
+| androidx appcompat | 1.8.0 | dl.google.com/dl/android/maven2 |
+| material | 1.14.0 | dl.google.com/dl/android/maven2 |
+| androidx drawerlayout | 1.2.0 | dl.google.com/dl/android/maven2 |
+| JUnit 4 (tests Android) | 4.13.2 | repo.maven.apache.org |
+| Spring Boot | 4.1.1 | repo.maven.apache.org |
 | foojay-resolver-convention | 1.0.0 | plugins.gradle.org |
 | Maven (vérification) | 3.9.16 | dlcdn.apache.org |
 | maven-surefire-plugin | 3.6.0 | repo.maven.apache.org |
@@ -235,10 +257,13 @@ et dans ce tableau. `docs/TEMPLATES.md` est la référence de traçabilité.
 1. Créer `app/src/main/assets/templates/<id>/` : `template.json`,
    `i18n/en.json` (requis) + `i18n/fr.json`, `files/…` (`.tpl` textuels ou
    binaires). Le contrat complet : ce document.
-2. Un **même chemin de sortie** ne peut apparaître qu'une fois dans le
-   manifeste (contrôle au chargement) : les variantes d'un même fichier
-   (`build.gradle.kts` app/bibliotheque, `.gitignore` par build) passent par
-   des blocs `{{#if}}` **à l'intérieur** du `.tpl`.
+2. Un **même chemin de sortie statique** ne peut apparaître qu'une fois
+   dans le manifeste (contrôle au chargement). Un chemin **templatisé**
+   (`…/java/{{packageName|packagePath}}/MainActivity.kt`) peut être visé
+   par plusieurs entrées **à condition que leurs `when` soient mutuellement
+   exclusifs** (variantes `projectType`/`language`, ADR 0076) ; les
+   variantes d'un fichier au chemin statique (`build.gradle.kts`,
+   `.gitignore`) restent des blocs `{{#if}}` **à l'intérieur** du `.tpl`.
 3. Les valeurs i18n insérées dans des littéraux de code (messages d'exemple)
    ne doivent contenir ni `"` ni `\` ni `$` : elles sont substituées brutes.
 4. Ajouter les tests de génération (combinaisons structurelles + golden)

@@ -115,19 +115,35 @@ class TemplatesIntegrationTest {
     }
 
     @Test
-    fun `le catalogue embarque les modeles android-app kotlin-jvm java spring-boot kotlin-multiplatform`() {
+    fun `le catalogue embarque les 7 modeles des etapes 9 a phase 3`() {
         val repertoires = runBlocking { assets.listTemplateDirectories().getOrNull() }
 
-        // v0.41.1 : 6 modèles embarqués (android-app, java, kotlin-jvm,
-        // kotlin-multiplatform, spring-boot) — triés, complets.
+        // v0.44.0 : 7 modèles embarqués (phase 3 — android-library et
+        // gradle-plugin) — triés, complets.
         assertEquals(
-            listOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
+            listOf(
+                "android-app",
+                "android-library",
+                "gradle-plugin",
+                "java",
+                "kotlin-jvm",
+                "kotlin-multiplatform",
+                "spring-boot",
+            ),
             repertoires?.sorted(),
         )
         val catalogue = runBlocking { fournisseurEmbarque.provide().getOrNull() }
-        assertEquals(5, catalogue?.size)
+        assertEquals(7, catalogue?.size)
         assertEquals(
-            setOf("android-app", "java", "kotlin-jvm", "kotlin-multiplatform", "spring-boot"),
+            setOf(
+                "android-app",
+                "android-library",
+                "gradle-plugin",
+                "java",
+                "kotlin-jvm",
+                "kotlin-multiplatform",
+                "spring-boot",
+            ),
             catalogue!!.map { it.template.id.value }.toSet(),
         )
     }

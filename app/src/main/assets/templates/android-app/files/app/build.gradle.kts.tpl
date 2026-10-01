@@ -35,16 +35,21 @@ android {
     }
 }
 
+{{#if langageKotlin}}
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
+{{/if}}
 
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+{{#if estActiviteTiroir}}
+    implementation(libs.androidx.drawerlayout)
+{{/if}}
 
     {{#if avecTests}}
     testImplementation(libs.junit4)
