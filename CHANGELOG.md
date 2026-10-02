@@ -4,6 +4,39 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.45.3] – 2026-10-02
+
+### Corrigé (échec CI intermittent : `DaemonManagerTest` sur runner à cœurs comptés)
+
+- **Le stderr de la fenêtre de connexion ne meurt plus en vol** : le test
+  `le stderr est journalisé pendant la fenêtre de connexion même sans
+  session` échouait par intermittence en CI (`AssertionError` après 5 s)
+  alors qu'il passait localement — diagnostic confirmé par un test de
+  régression déterministe qui échoue systématiquement sans correctif :
+  l'hôte de test échoue la connexion SANS la moindre suspension, et
+  l'annulation immédiate de la portée de la tentative
+  (`nettoyerApresConnexionManquee`) pouvait devancer la simple mise en
+  file du collecteur de stderr sur le dispatcheur — la ligne était
+  annulée EN VOL et n'atteignait jamais le journal, laissant l'échec de
+  connexion MUET (exactement le bug v0.35.0 qu'ADR 0061 devait fermer ;
+  sur l'appareil, un socket cassé qui échoue vite produisait la même
+  perte du diagnostic). Le correctif :
+  - `brancherSorties` rend ses collecteurs à la tentative ;
+  - `nettoyerApresConnexionManquee` les VIDANGE avant d'annuler la
+    portée — `withContext(NonCancellable) { withTimeoutOrNull(250 ms) {
+    joinAll() } }` : les lignes déjà émises rejoignent le journal à coup
+    sûr, un lecteur bloqué ne retarde jamais la relance au-delà, et
+    l'appel depuis une coroutine déjà annulée reste sûr (leçon T2) ;
+  - nouveau test de régression déterministe
+    (`une ligne de stderr en vol pendant la fenêtre survit à l'annulation
+    de la portée`, process dont le stderr n'émet qu'après 50 ms — le
+    délai écrase la microseconde du lancement à l'échec : sans vidange,
+    échec à tous les coups).
+- **Historique Git aligné sur l'identité du dépôt** : les quatre commits
+  de correctif portaient des identités de build locales — auteurs,
+  committers et taggers réécrits en `jjoblab <olson12jb@gmail.com>`
+  (dates et contenus inchangés), config du dépôt alignée.
+
 ## [0.45.2] – 2026-10-02
 
 ### Corrigé (retour utilisateur : « BUILD SUCCESSFUL in 10s » affiché au bout de 200-300 s)
