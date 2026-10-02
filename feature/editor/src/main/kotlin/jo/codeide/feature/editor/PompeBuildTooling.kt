@@ -49,12 +49,16 @@ import javax.inject.Singleton
  *   builds). L'espace ne fait plus que DEMANDER la vidange ; l'état
  *   des étapes reste porté par le service process-wide.
  *
+ * v0.46.0 (console flux brut, ADR 0078) : le canal des TÂCHES reste
+ * VIDÉ mais ne publie plus rien — Gradle écrit lui-même ses lignes
+ * « > Task :app:xxx » sur le flux stdout, la console les montre telles
+ * quelles (la leçon v0.45.1 reste : une pompe unique ne doit JAMAIS
+ * bloquer sur un canal sans consommateur). L'option « afficher les
+ * tâches » disparaît avec les rangées structurées.
+ *
  * @param tooling port du dépôt tooling (canaux de sortie, état, tâches,
  *        téléchargements, progression sync).
  * @param serviceGradle détenteur process-wide de l'état affichable.
- * @param optionsTooling réglages tooling vivants (affichage des tâches
- *        relu à CHAQUE événement — une bascule en plein build prend
- *        effet immédiatement, même contrat qu'avant).
  * @param dispatchers répartition des fils (règle 5 : injectés).
  */
 @Singleton
@@ -63,7 +67,6 @@ class PompeBuildTooling
     constructor(
         private val tooling: GradleToolingRepository,
         private val serviceGradle: GradleService,
-        private val optionsTooling: OptionsTooling,
         dispatchers: DispatcherProvider,
     ) {
         /** Portée interne : survit aux écrans, meurt avec le processus. */
@@ -116,14 +119,13 @@ class PompeBuildTooling
                     }
                 }
                 launch {
-                    tooling.observeTachesBuild(buildId).collect { tache ->
-                        // Réglage relu à CHAQUE événement (v3) : une bascule
-                        // « afficher les tâches » en plein build prend effet
-                        // immédiatement.
-                        if (optionsTooling.afficherTaches) {
-                            serviceGradle.ajouterTache(tache)
-                        }
-                    }
+                    // v0.46.0 : les événements de tâches ne produisent PLUS
+                    // de lignes (Gradle écrit les siennes sur stdout — les
+                    // afficher deux fois était le problème « deux endroits »)
+                    // mais le canal reste VIDÉ : la pompe unique du client
+                    // ne doit jamais bloquer sur un canal sans consommateur
+                    // (leçon v0.45.1).
+                    tooling.observeTachesBuild(buildId).collect { }
                 }
                 // v0.45.1 : la progression des artefacts du build alimente
                 // la rangée en place de la vue Build — SANS cette vidange,

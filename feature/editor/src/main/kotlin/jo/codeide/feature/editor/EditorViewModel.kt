@@ -249,8 +249,11 @@ class EditorViewModel
          *  stdout/stderr brutes du build suivi et vidages, sur le flux
          *  dédié du détenteur process-wide — le fragment de la console
          *  applique chaque événement par append direct (O(1) par ligne) ;
-         *  l'abonnement rejoue l'historique borné puis suit le direct. */
-        val lignesBrutesConsole: SharedFlow<EvenementConsoleTexte> = serviceGradle.lignesBrutes
+         *  l'abonnement rejoue l'historique borné puis suit le direct.
+         *  v0.46.0 : INTERNE — l'événement porte des types internes du
+         *  module (libellé, style), seuls le fragment et les tests y
+         *  touchent. */
+        internal val lignesBrutesConsole: SharedFlow<EvenementConsoleTexte> = serviceGradle.lignesBrutes
 
         /** Cache, plis et connaissances d'UN arbre (projet ou privé) — la
          * structure intime de l'arborescence paresseuse ADR 0027, dupliquée

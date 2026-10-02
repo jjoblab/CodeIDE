@@ -87,7 +87,17 @@ internal class EcrivainGradleCli(
         }
     }
 
-    /** Contenu canonique du script de découverte. */
+    /**
+     * Contenu canonique du script de découverte.
+     *
+     * Exemption ciblée (LongMethod) : littéral de script shell d'un seul
+     * tenant (même précédent que `EcrivainProfilShell` et
+     * `EcrivainSdkAndroidCli`) — la réécriture du sélecteur « task:FOO »
+     * (v3) et les trois scénarios de découverte se lisent DANS l'ordre où
+     * le shell les exécute, les découper en fragments déplacerait le
+     * problème sans rien gagner.
+     */
+    @Suppress("LongMethod")
     private fun script(shebang: String): String {
         val dollar = "$"
         return """
@@ -96,10 +106,35 @@ internal class EcrivainGradleCli(
             # (correctif C4 du prompt Terminal ; v0.37.3 : glob à TROIS niveaux
             # = disposition réelle du wrapper ; script VERSIONNÉ — l'app le
             # régénère quand son contenu évolue, ne pas éditer).
+            # v3 (v0.46.0) : le sélecteur « task:FOO » n'existe pas chez
+            # Gradle — la feuille de tâches de l'app lance « :module:tâche ».
+            # « gradle task:assembleDebug » échouait sur « project 'task' not
+            # found » : le préfixe est réécrit AVEC avertissement, le reste
+            # des arguments passe intact.
+
+            # Reconstruction des arguments : « task:FOO » devient « FOO ».
+            arguments=""
+            reecrit=0
+            for argument in "$dollar@"; do
+              case "$dollar{argument}" in
+                task:*)
+                  racourci=$dollar{argument#task:}
+                  echo "CodeIDE : « $dollar{argument} » réécrit en « $dollar{racourci} » (les tâches Gradle se lancent sans préfixe, p.ex. :app:assembleDebug)" >&2
+                  arguments="$dollar{arguments} $dollar{racourci}"
+                  reecrit=1
+                  ;;
+                *)
+                  arguments="$dollar{arguments} $dollar{argument}"
+                  ;;
+              esac
+            done
 
             # 1. Le wrapper DU projet courant décide de sa version.
             if [ -x "./gradlew" ]; then
-              exec ./gradlew "$dollar@"
+              if [ "$dollar{reecrit}" -eq 0 ]; then
+                exec ./gradlew "$dollar@"
+              fi
+              exec ./gradlew $dollar{arguments}
             fi
 
             # 2. Sinon, la distribution la plus récemment utilisée par le
@@ -108,14 +143,20 @@ internal class EcrivainGradleCli(
             #    TROIS niveaux sous dists, jamais deux.
             dist=$(ls -dt "${dollar}GRADLE_USER_HOME"/wrapper/dists/*/*/gradle-*/ 2>/dev/null | head -n1)
             if [ -n "${dollar}dist" ] && [ -x "$dollar{dist}bin/gradle" ]; then
-              exec "$dollar{dist}bin/gradle" "$dollar@"
+              if [ "$dollar{reecrit}" -eq 0 ]; then
+                exec "$dollar{dist}bin/gradle" "$dollar@"
+              fi
+              exec "$dollar{dist}bin/gradle" $dollar{arguments}
             fi
 
             # 3. Sinon, une distribution décompressée sous le préfixe
             #    (installée manuellement, p.ex. opt/gradle/gradle-9.7.1).
             dist=$(ls -dt "${dollar}PREFIX"/opt/gradle/*/ "${dollar}PREFIX"/opt/gradle-*/ 2>/dev/null | head -n1)
             if [ -n "${dollar}dist" ] && [ -x "$dollar{dist}bin/gradle" ]; then
-              exec "$dollar{dist}bin/gradle" "$dollar@"
+              if [ "$dollar{reecrit}" -eq 0 ]; then
+                exec "$dollar{dist}bin/gradle" "$dollar@"
+              fi
+              exec "$dollar{dist}bin/gradle" $dollar{arguments}
             fi
 
             # 4. Rien trouvé : expliquer quoi faire (jamais un échec muet).

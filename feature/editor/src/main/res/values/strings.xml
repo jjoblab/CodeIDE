@@ -137,11 +137,6 @@
          étapes de l'arbre de sync (v5 — plan de l'aperçu, 7 étapes :
          « Dépendances et modèle IDE » fusionne les deux phases d'une même
          résolution ; libellés au nominatif, le marqueur porte l'état). -->
-    <string name="editor_console_tache">&gt; Tâche %1$s</string>
-    <string name="editor_console_tache_en_cours">&gt; Tâche %1$s…</string>
-    <string name="editor_console_tache_duree">&gt; Tâche %1$s (%2$s)</string>
-    <string name="editor_console_tache_sautee">&gt; Tâche %1$s — sautée</string>
-    <string name="editor_console_tache_echouee">&gt; Tâche %1$s — ÉCHEC</string>
     <string name="editor_console_etape_outils">Vérification des outils</string>
     <string name="editor_console_etape_distribution">Distribution Gradle</string>
     <string name="editor_console_etape_daemon">Démarrage du daemon Gradle</string>
@@ -161,9 +156,6 @@
     <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
     <string name="editor_console_echec_reessayer">Réessayer</string>
     <string name="editor_console_echec_defaut">Échec du build</string>
-    <string name="editor_console_detail_octets">%1$s / %2$s</string>
-    <string name="editor_console_detail_compteur">%1$d / %2$d</string>
-    <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build annulé</string>
     <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>
@@ -173,16 +165,22 @@
          de la dernière ligne stdout de Gradle. `tools:ignore` justifié :
          Gradle imprime TOUJOURS « N actionable tasks » (même pour N=0 ou N=1),
          la forme est figée par le câble Gradle — aucun singulier à distinguier. -->
-    <string name="editor_console_synthese_taches_executees" tools:ignore="PluralsCandidate">%1$d tâches actionnables : %2$d exécutées</string>
-    <string name="editor_console_synthese_taches_ajour" tools:ignore="PluralsCandidate">%1$d tâches actionnables : %2$d exécutées, %3$d à jour</string>
 
     <!-- Récapitulatif classpath (v0.40.1, prompt de suivi §4) : libellés
          courts pour le pied de conclusion de la sync — « 3 modules · 312
          jars · 4 sources · 12 AARs ». -->
-    <string name="editor_console_stats_modules">modules</string>
-    <string name="editor_console_stats_jars">jars</string>
-    <string name="editor_console_stats_aars">AARs</string>
-    <string name="editor_console_stats_sources">sources</string>
+
+    <!-- Lignes de la console FLUX BRUT (v0.46.0, ADR 0078) : le flux
+         stdout/stderr de Gradle est l'affichage (ses propres « > Task »,
+         « BUILD SUCCESSFUL »), les étapes de sync et les téléchargements
+         s'y écrivent en lignes accumulées — suffixes composés au rendu. -->
+    <string name="editor_console_etape_suffixe_demarree">…</string>
+    <string name="editor_console_etape_suffixe_terminee"> ✓ %1$s</string>
+    <string name="editor_console_etape_suffixe_terminee_octets"> ✓ %1$s · %2$s reçus</string>
+    <string name="editor_console_etape_suffixe_terminee_compteur"> ✓ %1$s · %2$s artefacts</string>
+    <string name="editor_console_telecharge">Téléchargé : %1$s · %2$s reçus au total</string>
+    <string name="editor_console_synthese_sync_terminee_duree">Synchronisation terminée en %1$s — les tâches sont disponibles.</string>
+    <string name="editor_console_synthese_sync_a_jour_duree">Projet à jour, rien à télécharger en %1$s — les tâches sont disponibles.</string>
 
     <!-- Feuille de sélection des tâches (v4, §3.3) : recherche, récentes,
          groupes par module, états vides honnêtes. -->
@@ -205,8 +203,6 @@
     <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
     <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
     <string name="editor_config_affichage">Affichage de la console</string>
-    <string name="editor_config_afficher_taches">Afficher les tâches pendant le build</string>
-    <string name="editor_config_afficher_taches_desc">Une ligne par tâche, mise à jour en place — comme la vue Build d\'Android Studio.</string>
     <string name="editor_config_execution">Exécution</string>
     <string name="editor_config_hors_ligne">Mode hors ligne</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>

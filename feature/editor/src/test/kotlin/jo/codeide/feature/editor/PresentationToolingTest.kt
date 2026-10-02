@@ -320,18 +320,13 @@ class PresentationToolingTest {
             EtatGradle(
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat =
-                                EtapeSyncAffichee(
-                                    etape = EtapeSync.DEPENDANCES,
-                                    octetsRecus = 44_040_192L,
-                                    compteur = 3,
-                                    element = "kotlin-stdlib.jar",
-                                ),
+                        EtapeSyncAffichee(
+                            etape = EtapeSync.DEPENDANCES,
+                            octetsRecus = 44_040_192L,
+                            compteur = 3,
+                            element = "kotlin-stdlib.jar",
                         ),
                     ),
             )
@@ -351,13 +346,9 @@ class PresentationToolingTest {
             EtatGradle(
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat = EtapeSyncAffichee(etape = EtapeSync.MODELE_IDE),
-                        ),
+                        EtapeSyncAffichee(etape = EtapeSync.MODELE_IDE),
                     ),
             )
 
@@ -373,13 +364,9 @@ class PresentationToolingTest {
             EtatGradle(
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat = EtapeSyncAffichee(etape = EtapeSync.DAEMON),
-                        ),
+                        EtapeSyncAffichee(etape = EtapeSync.DAEMON),
                     ),
             )
 
@@ -450,14 +437,7 @@ class PresentationToolingTest {
                         jo.codeide.core.domain
                             .InfoTache(chemin = ":app:build", nomAffiche = "build"),
                     ),
-                lignes =
-                    etapes.mapIndexed { index, etat ->
-                        LigneConsole.Etape(
-                            id = index.toLong() + 1L,
-                            canal = CanalTooling.SYNC,
-                            etat = etat,
-                        )
-                    },
+                etapesSync = etapes.toList(),
             )
 
         // v6 : la distribution en cache n'est pas émise — aucune étape
@@ -510,17 +490,12 @@ class PresentationToolingTest {
         ): EtatGradle =
             EtatGradle(
                 synchronisationEnCours = true,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat =
-                                EtapeSyncAffichee(
-                                    etape = EtapeSync.DISTRIBUTION,
-                                    octetsRecus = recus,
-                                    octetsTotal = total,
-                                ),
+                        EtapeSyncAffichee(
+                            etape = EtapeSync.DISTRIBUTION,
+                            octetsRecus = recus,
+                            octetsTotal = total,
                         ),
                     ),
             )

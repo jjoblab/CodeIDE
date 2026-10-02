@@ -10,13 +10,11 @@ import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
-import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
-import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.channels.BufferOverflow
@@ -27,7 +25,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,104 +79,54 @@ enum class CanalTooling {
 }
 
 /**
- * Une ligne de la console du panneau Sortie (G5 ; v0.32.5 : ligne
- * CANALISÉE ; v3 : ligne TYPIÉE) — la provenance (canal) identifie
- * l'information au premier regard, le genre distingue la sortie brute
- * (stdout/stderr) de la ligne de TÂCHE (mise à jour en place à sa fin,
- * comme la vue Build d'Android Studio) et de l'ÉTAPE de sync (fin de la
- * boîte noire « en cours / terminée »).
- *
- * Les libellés des tâches et étapes sont LOCALISÉS par le rendu : l'état
- * reste pur, aucune chaîne n'y est construite.
- */
-sealed interface LigneConsole {
-    /** Identité stable de la ligne (v3) : la mise à jour EN PLACE conserve
-     *  l'id de la ligne remplacée — le DiffUtil rebinde la rangée, sans
-     *  scintillement ni défilement. */
-    val id: Long
-
-    /** Canal de provenance (étiquette de la ligne). */
-    val canal: CanalTooling
-
-    /**
-     * Une tâche du build (v3) : affichée à son départ, mise à jour EN PLACE
-     * à sa fin (statut + durée) — une ligne par tâche, comme la console
-     * d'Android Studio.
-     */
-    data class Tache(
-        override val id: Long,
-        override val canal: CanalTooling,
-        val etat: EtatTacheAffichee,
-    ) : LigneConsole
-
-    /** Une étape de synchronisation (v3) : annoncée à son départ, conclue
-     *  en place avec sa durée. */
-    data class Etape(
-        override val id: Long,
-        override val canal: CanalTooling,
-        val etat: EtapeSyncAffichee,
-    ) : LigneConsole
-}
-
-/**
- * Événement de la ZONE TEXTE de la console (v0.42.0, phase 1 du roadmap —
- * performance console) : les lignes stdout/stderr brutes de Gradle quittent
- * [EtatGradle.lignes] (émis par LIGNE d'état, DiffUtil O(N) par ligne — un
- * build de 725 ms mettait 2 minutes à s'afficher) pour un flux DÉDIÉ que la
- * vue applique par `append()` direct, O(1) par ligne.
+ * Événement de la CONSOLE FLUX BRUT UNIQUE (v0.42.0 : zone texte annexée —
+ * performance console ; v0.46.0 — refonte totale, voir ADR 0078 : le flux
+ * est devenu l'UNIQUE affichage, la zone structurée en RecyclerView a
+ * disparu — Gradle écrit lui-même ses lignes « > Task :app:xxx » et
+ * « BUILD SUCCESSFUL in 6s » sur stdout, les dupliquer en rangées était
+ * précisément le problème « outputs affichés en deux endroits »).
  *
  * Le tampon borné ([GradleService.NB_LIGNES_MAX], tête tronquée) EST le
  * cache de rejeu du `SharedFlow` : chaque ligne publiée y est conservée
  * (les plus anciennes tombent de la tête) — une vue qui se (re)abonne
  * rejoue l'historique puis suit le direct, sans instantané séparé ni course
- * entre les deux. La reconstitution est CORRECTE par construction : le
+ * entre les deux. La reconstitution est CORRECTE PAR CONSTRUCTION : le
  * rejeu est une fenêtre TÊTE-tronquée, or un `Vider` tombé de la fenêtre
  * emporte avec lui tout ce qui le précédait — une ligne d'avant le dernier
- * `Vider` conservé ne peut donc jamais rester seule en scène.
+ * `Vider` conservé ne peut donc jamais rester seule en scène. Le même
+ * raisonnement tient PAR CANAL : les lignes Sync et Build se partagent la
+ * fenêtre sans se mélanger, le fragment ne montre que SON canal.
  *
- * @property Ligne une ligne brute (voir [EvenementConsoleTexte.Ligne]).
- * @property Vider la console texte repart vierge : nouveau build suivi ou
- *           rattachement d'un espace (même cycle de vie que
- *           [EtatGradle.lignes]).
+ * @property Ligne une ligne de la console (canal, libellé, style).
+ * @property Vider la console du canal repart vierge.
  */
-sealed interface EvenementConsoleTexte {
+internal sealed interface EvenementConsoleTexte {
     /**
-     * Ligne stdout/stderr brute du build suivi.
+     * Une ligne de la console.
      *
-     * @property flux provenance du flux technique.
-     * @property texte contenu brut de la ligne.
-     * @property apaisee `true` pour un avertissement CONNU et bénin (v3 —
-     *           correctif C5 : le diagnostic natif du daemon Gradle) rendu
-     *           en style informatif au lieu du rouge d'erreur.
+     * @property canal provenance (Sync ou Build) — les DEUX canaux
+     *           s'accumulent, le fragment filtre ce qu'il montre.
+     * @property libelle contenu localisable (ressource, brut ou composé) —
+     *           résolu au rendu, l'événement reste pur.
+     * @property style style visuel (couleur) — résolu au rendu.
      * @property horodatageMs instant d'émission côté orchestrateur
      *           (`BuildOutput.timestampMs`, v0.43.0 — mesure de latence : la
      *           vue peut comparer à l'instant du rendu pour situer un
      *           éventuel goulot d'affichage).
      */
     data class Ligne(
-        val flux: FluxSortieBuild,
-        val texte: String,
-        val apaisee: Boolean = false,
+        val canal: CanalTooling,
+        val libelle: TexteTooling,
+        val style: StyleLigne = StyleLigne.SORTIE,
         val horodatageMs: Long = 0,
     ) : EvenementConsoleTexte
 
-    /** La zone texte repart vierge (nouveau build, nouvel espace). */
-    data object Vider : EvenementConsoleTexte
+    /** La console du canal repart vierge (nouveau build, nouvelle sync,
+     *  rattachement d'un espace). */
+    data class Vider(
+        val canal: CanalTooling,
+    ) : EvenementConsoleTexte
 }
-
-/**
- * Tâche affichée dans la console (v3) — l'état domaine sans l'identifiant
- * de build (la console est déjà rattachée au build suivi).
- *
- * @property chemin chemin Gradle complet (ex. `:app:compileDebugKotlin`).
- * @property statut statut courant.
- * @property dureeMs durée MESURÉE par l'orchestrateur à la fin, sinon `null`.
- */
-data class EtatTacheAffichee(
-    val chemin: String,
-    val statut: StatutTache,
-    val dureeMs: Long? = null,
-)
 
 /**
  * Étape de sync affichée dans la console (v3 ; v4 : phases réelles +
@@ -237,24 +184,6 @@ data class GroupeProblemes(
 )
 
 /**
- * Téléchargements du build SUIVI (v0.45.1 — affichage immédiat, parité
- * Android Studio) : état CONFLATÉ de la progression des artefacts — le
- * compteur n et le volume cumulé avancent au fil des événements, la rangée
- * de la vue Build se met à jour EN PLACE (barre + « n Mo · élément »),
- * comme la barre de progression de la fenêtre Build d'Android Studio.
- * Disparaît au terme du build (la synthèse prend la place).
- *
- * @property octetsRecus cumul des octets des artefacts TERMINÉS.
- * @property compteur nombre d'artefacts terminés (n).
- * @property element dernier artefact reçu (dernier segment d'URI).
- */
-data class EtatTelechargementBuild(
-    val octetsRecus: Long = 0,
-    val compteur: Int? = null,
-    val element: String? = null,
-)
-
-/**
  * État observable du tooling Gradle pour l'espace de travail (G5 ;
  * v0.32.5 : canaux, tâches et instants de départ — ADR 0056 décision 5 ;
  * étape 32 : canal Taches, ADR 0057).
@@ -273,12 +202,10 @@ data class EtatTelechargementBuild(
  *           été observée.
  * @property tachesExecuteesBuild tâches réellement exécutées (v0.39.1).
  * @property tachesAJourBuild tâches à jour (incrémental, v0.39.1).
- * @property lignes fenêtre TYPIÉE du tooling — tâches (v3) et étapes de sync
- *           uniquement, balisées chacune de leur canal, mises à jour EN
- *           PLACE (peu de rangées, DiffUtil O(1) par mise à jour). Les
- *           sorties stdout/stderr brutes vivent sur [lignesBrutes] depuis
- *           la v0.42.0 (phase 1 du roadmap : plus d'émission d'état par
- *           ligne — la cause du O(N²) historique).
+ * @property etapesSync étapes de sync annoncées (v0.46.0 : ne porte plus
+ *           de rangée de console — l'EN-TÊTE du panneau y lit son compteur
+ *           « étape n/N » et sa progression déterminée, la CONSOLE écrit
+ *           une ligne par transition sur [lignesBrutes]).
  * @property problemesTotal nombre total de diagnostics (badge).
  * @property synchronisationEnCours une synchronisation est en vol.
  * @property debutSyncMs instant de départ de la synchronisation (chrono).
@@ -298,7 +225,7 @@ data class EtatGradle(
     val tachesActionnablesBuild: Int? = null,
     val tachesExecuteesBuild: Int? = null,
     val tachesAJourBuild: Int? = null,
-    val lignes: List<LigneConsole> = emptyList(),
+    val etapesSync: List<EtapeSyncAffichee> = emptyList(),
     val groupesProblemes: List<GroupeProblemes> = emptyList(),
     val synchronisationEnCours: Boolean = false,
     val debutSyncMs: Long? = null,
@@ -313,9 +240,6 @@ data class EtatGradle(
      *  remplies à la fin d'une sync réussie, restituées au retour du
      *  projet si l'empreinte n'a pas changé. `null` si non résolu. */
     val statsClasspath: List<jo.codeide.core.domain.ModuleClasspath>? = null,
-    /** Téléchargements du build suivi (v0.45.1) — conflation légitime
-     *  d'un état de progression ; `null` hors build en cours. */
-    val telechargementsBuild: EtatTelechargementBuild? = null,
 ) {
     /** Nombre total de diagnostics (badge de l'onglet Problèmes). */
     val problemesTotal: Int
@@ -351,13 +275,13 @@ data class EtatGradle(
             }
 
     /**
-     * Étapes de sync ordonnées, dérivées des lignes (v4, §3.2) : l'arbre
-     * de la console EST l'état — la liste porte chaque phase annoncée
-     * avec ses détails de progression, sans duplication de source de
-     * vérité.
+     * Étapes de sync ordonnées (v4, §3.2 ; v0.46.0 : champ dédié, les
+     * lignes typées ont disparu avec la console à rangées) : chaque phase
+     * annoncée avec ses détails de progression, sans duplication de
+     * source de vérité.
      */
     val etapesAffichees: List<EtapeSyncAffichee>
-        get() = lignes.filterIsInstance<LigneConsole.Etape>().map { it.etat }
+        get() = etapesSync
 
     /** Étape COURANTE de sync (v4 : compteur de l'en-tête « étape n/N »). */
     val etapeCourante: EtapeSyncAffichee?
@@ -432,8 +356,15 @@ class GradleService
     ) {
         private val etatInterne = MutableStateFlow(EtatGradle())
 
-        /** Identités séquentielles des lignes de console (v3). */
-        private val sequenceLignes = AtomicLong()
+        /**
+         * Cumul des octets des artefacts du build courant (v0.46.0 —
+         * accumulateur privé : la console écrit UNE ligne par artefant
+         * terminé, le volume voyage dans la ligne).
+         */
+        private var telechargementsOctets = 0L
+
+        /** Dernier COMPTE d'artefacts terminés du build courant (v0.46.0). */
+        private var telechargementsCompteur = 0
 
         /**
          * Latence de PUBLICATION des lignes, par build (v0.43.0 — mesure
@@ -471,8 +402,8 @@ class GradleService
                 onBufferOverflow = BufferOverflow.DROP_OLDEST,
             )
 
-        /** Zone texte de la console, observable (rejeu = historique borné). */
-        val lignesBrutes: SharedFlow<EvenementConsoleTexte> = zoneTexteInterne
+        /** Console (flux brut), observable (rejeu = historique borné). */
+        internal val lignesBrutes: SharedFlow<EvenementConsoleTexte> = zoneTexteInterne
 
         /**
          * Rattache un espace de travail à l'état process-wide (étape 32) :
@@ -483,9 +414,10 @@ class GradleService
          */
         fun attacher() {
             etatInterne.update { courant ->
-                courant.copy(lignes = emptyList(), groupesProblemes = emptyList())
+                courant.copy(etapesSync = emptyList(), groupesProblemes = emptyList())
             }
-            viderZoneTexte()
+            viderZoneTexte(CanalTooling.BUILD)
+            viderZoneTexte(CanalTooling.SYNC)
         }
 
         /** Publie l'état de connexion (daemon G4). */
@@ -499,6 +431,14 @@ class GradleService
          *  marquage local (geste) et l'annonce du serveur (SyncStarted)
          *  ne remettent pas le chrono à zéro. */
         fun marquerSyncEnCours() {
+            // v0.46.0 : nouvelle sync = console Sync repart vierge (les
+            // étapes précédentes ne se mélangent pas au nouveau déroulé) et
+            // fenêtre d'étapes vidée. HORS de `maj` : l'émission d'événement
+            // est un effet de bord, la transformation d'état peut être
+            // rejouée par le CAS de `MutableStateFlow.update`.
+            if (!etatInterne.value.synchronisationEnCours) {
+                viderZoneTexte(CanalTooling.SYNC)
+            }
             maj { courant ->
                 if (courant.synchronisationEnCours) {
                     courant
@@ -510,13 +450,19 @@ class GradleService
                         // v4 (§3.2) : une nouvelle sync invalide les tâches
                         // connues — elles seront remplies à la fin.
                         tachesDisponibles = null,
+                        etapesSync = emptyList(),
                     )
                 }
             }
         }
 
         /** Publie le résultat d'une synchronisation — l'état porte le canal
-         *  Sync (résultat, message) ; le rendu localise et balise. */
+         *  Sync (résultat, message) ; le rendu localise et balise.
+         *  v0.46.0 : une sync RÉUSSIE conclut aussi la CONSOLE (canal Sync)
+         *  d'une ligne « Synchronisation terminée en Xs — les tâches sont
+         *  disponibles. » — l'échec reste porté par l'état (bandeau,
+         *  en-tête) : le serveur explique déjà l'échec dans ses statuts
+         *  textuels, une ligne générique n'ajouterait rien. */
         fun publierResultatSync(resultat: AppResult<ResultatSynchronisation>) {
             when (resultat) {
                 is AppResult.Success -> {
@@ -526,6 +472,14 @@ class GradleService
                             synchronisationReussie = resultat.value,
                             messageEchecSync = resultat.value.messageEchec,
                         )
+                    }
+                    if (resultat.value.reussie) {
+                        val etapes = etatInterne.value.etapesSync
+                        LignesConsoleTexte
+                            .conclusionSync(
+                                aJour = etapes.none { etape -> etape.octetsRecus > 0 },
+                                dureeMs = resultat.value.dureeMs,
+                            ).forEach { ligne -> zoneTexteInterne.tryEmit(ligne) }
                     }
                 }
 
@@ -576,8 +530,9 @@ class GradleService
 
         /** Réinitialise la console et publie le build suivi — les tâches
          *  demandées voyagent avec (libellé d'activité de l'en-tête).
-         *  v0.42.0 : la zone TEXTE se vide AUSSI (même cycle de vie que
-         *  `lignes`) — un nouveau build ne montre pas la sortie du
+         *  v0.46.0 : la console BUILD se vide (même cycle de vie que
+         *  l'ancienne zone texte) et l'accumulateur des téléchargements
+         *  repart à zéro — un nouveau build ne montre pas la sortie du
          *  précédent. */
         fun suivreBuild(
             buildId: String,
@@ -587,6 +542,8 @@ class GradleService
             // accumulateur de latence restant est celui d'un build orphelin
             // (état terminal jamais reçu, session perdue) : purgé ici.
             latencesPublication.clear()
+            telechargementsOctets = 0
+            telechargementsCompteur = 0
             maj {
                 it.copy(
                     buildId = buildId,
@@ -601,13 +558,9 @@ class GradleService
                     tachesActionnablesBuild = null,
                     tachesExecuteesBuild = null,
                     tachesAJourBuild = null,
-                    lignes = emptyList(),
-                    // v0.45.1 : les téléchargements repartent vierges
-                    // (rangée de progression de la vue Build).
-                    telechargementsBuild = null,
                 )
             }
-            viderZoneTexte()
+            viderZoneTexte(CanalTooling.BUILD)
         }
 
         /** Publie l'état du build suivi (les autres builds sont ignorés). */
@@ -627,196 +580,131 @@ class GradleService
                 }
             }
             maj { courant ->
-                if (etat.buildId !=
-                    courant.buildId
-                ) {
+                if (etat.buildId != courant.buildId) {
                     courant
                 } else {
+                    // v0.46.0 : l'ANNULATION reçoit une ligne de conclusion
+                    // — Gradle n'imprime rien de tel sur son flux après un
+                    // cancel en pleine configuration. Succès et échec
+                    // s'appuient sur les lignes de Gradle (« BUILD
+                    // SUCCESSFUL in 6s », rapport d'échec) : aucune
+                    // duplication, parité Android Studio.
+                    if (etat.statut == StatutBuild.ANNULE &&
+                        courant.statutBuild != StatutBuild.ANNULE
+                    ) {
+                        zoneTexteInterne.tryEmit(LignesConsoleTexte.buildAnnule())
+                    }
                     courant.copy(
                         statutBuild = etat.statut,
                         dureeBuildMs = etat.dureeMs,
                         messageEchecBuild = etat.messageEchec,
                         // v0.39.1 (correctif n°4) : la synthèse
                         // « N actionable tasks: M executed[, K up-to-date] »
-                        // extraite côté serveur voyage à l'état — la
-                        // console la restituera sous le verdict.
+                        // extraite côté serveur voyage à l'état — l'en-tête
+                        // du panneau la restitue.
                         tachesActionnablesBuild = etat.tachesActionnables,
                         tachesExecuteesBuild = etat.tachesExecutees,
                         tachesAJourBuild = etat.tachesAJour,
-                        // v0.45.1 : la rangée des téléchargements disparaît
-                        // au terme du build — la synthèse prend la place,
-                        // comme la barre de progression d'Android Studio
-                        // s'efface quand la fenêtre Build conclut.
-                        telechargementsBuild = null,
                     )
                 }
             }
         }
 
-        /** Publie une ligne du build suivi SUR LE FLUX DÉDIÉ de la zone
-         *  texte (v0.42.0, phase 1 : fenêtre bornée = rejeu, PLUS D'ÉMISSION
-         *  D'ÉTAT — la vue applique par `append()` direct, O(1) par ligne).
-         *  Les lignes d'un autre build et celles après annulation restent
-         *  ignorées (garde historique). Un avertissement CONNU et bénin (C5 :
-         *  le diagnostic natif du daemon Gradle, documenté dans
-         *  docs/TOOLING.md) voyage apaisé : le rendu l'affiche en style
-         *  informatif, pas en rouge d'erreur. */
+        /** Publie une ligne du build suivi SUR LE FLUX DE LA CONSOLE
+         *  (v0.42.0 : fenêtre bornée = rejeu, PLUS D'ÉMISSION D'ÉTAT — la
+         *  vue applique par `append()` direct, O(1) par ligne ; v0.46.0 :
+         *  la ligne porte son CANAL et son STYLE, le flux est l'unique
+         *  affichage). Les lignes d'un autre build et celles après
+         *  annulation restent ignorées (garde historique). Un
+         *  avertissement CONNU et bénin (C5 : le diagnostic natif du daemon
+         *  Gradle, documenté dans docs/TOOLING.md) voyage apaisé : le rendu
+         *  l'affiche en style informatif, pas en rouge d'erreur. */
         fun ajouterLigne(ligne: LigneSortieBuild) {
             val courant = etatInterne.value
             if (ligne.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) return
             // v0.43.0 (mesure console lente) : écart émission serveur →
-            // publication zone texte (transport + moitié cliente inclus).
+            // publication console (transport + moitié cliente incluse).
             latencesPublication
                 .computeIfAbsent(ligne.buildId) { AccumulateurLatence() }
                 .enregistrer(horloge.nowMillis() - ligne.horodatageMs)
+            val apaisee = ligne.apaisee()
             zoneTexteInterne.tryEmit(
                 EvenementConsoleTexte.Ligne(
-                    flux = ligne.flux,
-                    texte = ligne.ligne,
-                    apaisee = ligne.apaisee(),
+                    canal = CanalTooling.BUILD,
+                    libelle = TexteTooling.Brut(ligne.ligne),
+                    style =
+                        when {
+                            apaisee -> StyleLigne.APAISEE
+                            ligne.flux == FluxSortieBuild.STDERR -> StyleLigne.ERREUR
+                            else -> StyleLigne.SORTIE
+                        },
                     horodatageMs = ligne.horodatageMs,
                 ),
             )
         }
 
         /**
-         * Publie un téléchargement du build suivi (v0.45.1 — affichage
-         * immédiat, parité Android Studio) : la progression des artefacts
-         * du build devient une rangée EN PLACE de la vue Build (barre +
-         * volume cumulé + artefact courant) — le canal téléchargements du
-         * client avait bien un consommateur nulle part jusqu'ici : ces
-         * événements existaient, la console les ignorait. Les lignes d'un
-         * autre build sont ignorées (garde historique) et l'état vit
-         * SEULEMENT pendant le build (conflation légitime d'un état de
-         * progression, effacé au statut terminal).
+         * Publie un téléchargement du build suivi (v0.45.1 : le canal
+         * téléchargements du client avait AUCUN consommateur — ces
+         * événements existaient, la console les ignorait ; v0.46.0 : UNE
+         * LIGNE PAR ARTEFACT TERMINÉ sur le flux de la console, jamais par
+         * tick d'octets — le détail EN VOL vit dans l'en-tête du panneau,
+         * la console est l'historique). Les lignes d'un autre build sont
+         * ignorées (garde historique).
          */
         fun ajouterTelechargement(telechargement: jo.codeide.core.domain.TelechargementBuild) {
-            maj { courant ->
-                if (telechargement.buildId != courant.buildId ||
-                    courant.statutBuild != StatutBuild.EN_COURS
-                ) {
-                    courant
-                } else {
-                    courant.copy(
-                        telechargementsBuild =
-                            EtatTelechargementBuild(
-                                octetsRecus =
-                                    (courant.telechargementsBuild?.octetsRecus ?: 0) +
-                                        telechargement.octetsRecus,
-                                compteur = telechargement.compteur,
-                                element = telechargement.element,
-                            ),
-                    )
-                }
+            val courant = etatInterne.value
+            if (telechargement.buildId != courant.buildId ||
+                courant.statutBuild != StatutBuild.EN_COURS
+            ) {
+                return
+            }
+            telechargementsOctets += telechargement.octetsRecus
+            val compteur = telechargement.compteur ?: return
+            if (compteur > telechargementsCompteur) {
+                telechargementsCompteur = compteur
+                zoneTexteInterne.tryEmit(
+                    LignesConsoleTexte.telechargementBuild(
+                        element = telechargement.element,
+                        octetsCumules = telechargementsOctets,
+                    ),
+                )
             }
         }
 
         /**
-         * Publie une tâche du build suivi (v3 — affichage à la console
-         * d'Android Studio) : au départ une ligne apparaît, à la fin elle
-         * est REMPLACÉE EN PLACE (statut + durée, même identité) — une ligne
-         * par tâche, jamais de défilé bavard.
-         */
-        fun ajouterTache(tache: EtatTacheBuild) {
-            maj { courant ->
-                if (tache.buildId != courant.buildId || courant.statutBuild == StatutBuild.ANNULE) {
-                    courant
-                } else {
-                    majEnPlace(
-                        courant = courant,
-                        correspond = { ligne ->
-                            ligne is LigneConsole.Tache &&
-                                ligne.etat.chemin == tache.chemin &&
-                                ligne.etat.statut == StatutTache.EN_COURS
-                        },
-                        remplacement = { identite ->
-                            LigneConsole.Tache(
-                                id = identite,
-                                canal = CanalTooling.BUILD,
-                                etat = EtatTacheAffichee(tache.chemin, tache.statut, tache.dureeMs),
-                            )
-                        },
-                    )
-                }
-            }
-        }
-
-        /**
-         * Publie une étape de synchronisation (v3 — fin de la boîte noire)
-         * : au départ une ligne apparaît, à la fin elle est conclue EN
-         * PLACE avec sa durée — canal Sync.
+         * Publie une étape de synchronisation (v3 — fin de la boîte noire ;
+         * v0.46.0 — console flux brut) : la fenêtre [EtatGradle.etapesSync]
+         * garde l'état courant (l'en-tête du panneau y lit son compteur
+         * « étape n/N » et sa progression), la CONSOLE reçoit une ligne PAR
+         * TRANSITION — « Libellé… » à la première annonce, « Libellé ✓
+         * durée » à la conclusion. Les ticks de progression intermédiaires
+         * (octets en vol) n'écrivent RIEN : ils actualisent l'état, pas
+         * l'historique.
          */
         fun ajouterEtapeSync(etape: EtapeSyncTooling) {
+            val affichee = etape.versEtatAffiche()
+            val precedente = etatInterne.value.etapesSync.firstOrNull { it.etape == etape.etape }
             maj { courant ->
-                majEnPlace(
-                    courant = courant,
-                    correspond = { ligne ->
-                        ligne is LigneConsole.Etape &&
-                            ligne.etat.etape == etape.etape &&
-                            !ligne.etat.terminee
-                    },
-                    remplacement = { identite ->
-                        LigneConsole.Etape(
-                            id = identite,
-                            canal = CanalTooling.SYNC,
-                            etat =
-                                EtapeSyncAffichee(
-                                    etape = etape.etape,
-                                    terminee = etape.terminee,
-                                    dureeMs = etape.dureeMs,
-                                    octetsRecus = etape.octetsRecus,
-                                    octetsTotal = etape.octetsTotal,
-                                    element = etape.element,
-                                    compteur = etape.compteur,
-                                    total = etape.total,
-                                ),
-                        )
-                    },
+                courant.copy(
+                    etapesSync = courant.etapesSync.filterNot { it.etape == etape.etape } + affichee,
                 )
+            }
+            if (precedente == null && !affichee.terminee) {
+                zoneTexteInterne.tryEmit(LignesConsoleTexte.etapeSyncDemarree(etape.etape))
+            } else if (affichee.terminee && precedente?.terminee != true) {
+                zoneTexteInterne.tryEmit(LignesConsoleTexte.etapeSyncTerminee(affichee))
             }
         }
 
-        /** Ajoute une ligne en fin de fenêtre bornée (tête tronquée) —
-         *  v0.42.0 : seules les lignes TYPIÉES (tâches, étapes) y vivent,
-         *  peu nombreuses par construction. */
-        private fun ajouterALaFenetre(
-            ligne: LigneConsole,
-            courant: EtatGradle,
-        ): EtatGradle = courant.copy(lignes = (courant.lignes + ligne).takeLast(NB_LIGNES_MAX))
-
-        /** Publie le VIDAGE de la zone texte sur le flux dédié (v0.42.0) —
-         *  même cycle de vie que la fenêtre `lignes` : nouveau build suivi
-         *  ou rattachement d'un espace. L'événement survit dans le rejeu :
+        /** Publie le VIDAGE de la console d'un canal sur le flux (v0.42.0 ;
+         *  v0.46.0 : par CANAL — nouveau build, nouvelle sync,
+         *  rattachement d'un espace). L'événement survit dans le rejeu :
          *  une vue qui se ré-abonne plus tard ne reconstruit QUE ce qui
          *  suit le dernier vidage. */
-        private fun viderZoneTexte() {
-            zoneTexteInterne.tryEmit(EvenementConsoleTexte.Vider)
+        private fun viderZoneTexte(canal: CanalTooling) {
+            zoneTexteInterne.tryEmit(EvenementConsoleTexte.Vider(canal))
         }
-
-        /**
-         * Remplace la DERNIÈRE ligne qui correspond (en conservant SON
-         * identité — rebind en place), ou l'ajoute si aucune ne correspond
-         * (v3 : la fenêtre ne défile qu'à l'apparition d'une NOUVELLE
-         * tâche/étape, comme la vue Build d'Android Studio).
-         */
-        private fun majEnPlace(
-            courant: EtatGradle,
-            correspond: (LigneConsole) -> Boolean,
-            remplacement: (Long) -> LigneConsole,
-        ): EtatGradle {
-            val index = courant.lignes.indexOfLast(correspond)
-            return if (index >= 0) {
-                val identite = courant.lignes[index].id
-                courant.copy(
-                    lignes = courant.lignes.toMutableList().also { it[index] = remplacement(identite) },
-                )
-            } else {
-                ajouterALaFenetre(remplacement(nouvelleIdentiteLigne()), courant)
-            }
-        }
-
-        /** Identité séquentielle d'une nouvelle ligne de console (v3). */
-        private fun nouvelleIdentiteLigne(): Long = sequenceLignes.incrementAndGet()
 
         /**
          * Avertissement Gradle CONNU et bénin sur cette ligne stderr (C5) :

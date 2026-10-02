@@ -4,6 +4,69 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.46.0] – 2026-10-02
+
+### Refonte (console flux brut unique — parité Android Studio, ADR 0078)
+
+Retour utilisateur v0.45.3 : « dans le cas de build les outputs sont
+affichés dans deux endroits. Je veux utiliser un seul, peut-être que
+l'utilisation de RecyclerView contribue au problème que je rencontre, de
+même pour Sync. Je veux une refonte totale pour un affichage normal comme
+ce que fait Android Studio. »
+
+- **La console EST le flux de Gradle** : Gradle écrit lui-même ses lignes
+  « > Task :app:xxx », « BUILD SUCCESSFUL in 6s » et « N actionable
+  tasks: … » sur le flux stdout capturé (vérifié dans les sorties réelles
+  `docs/tooling-scenarios/sorties/`) — la console hybride v0.42.0
+  affichait des équivalents français CONSTRUITS des mêmes événements :
+  chaque tâche et chaque synthèse apparaissaient DEUX fois, dans deux
+  zones, deux styles, deux langues. La console montre désormais le flux
+  TEL QUEL, comme la fenêtre Build d'Android Studio : un `TextView`
+  monospace PAR CANAL (Sync et Build), le chip d'action choisit la
+  console visible, l'autre s'accumule en coulisses — basculer ne perd
+  rien, ne rejoue rien, ne reconstruit rien.
+- **Plus de RecyclerView dans la console** : `ConsoleToolingAdapter`,
+  `RangeeConsole`, `construireRangeesConsole` et les cinq layouts de
+  rangées sont supprimés (l'onglet Problèmes garde sa liste cliquable —
+  un cas légitime). Aucun DiffUtil, aucune soumission de liste, aucune
+  reconstruction : application lotie par trame (un append par console),
+  O(1) par ligne — la leçon de performance de l'ADR 0074 s'applique
+  désormais à TOUT l'affichage.
+- **Vue Sync en lignes** : une ligne par TRANSITION d'étape (« Libellé… »
+  puis « Libellé ✓ 34,1s · 129,4 Mo reçus ») et une conclusion
+  (« Synchronisation terminée en 8,4s — les tâches sont disponibles. ») ;
+  les ticks d'octets en vol restent dans l'en-tête du panneau (compteur
+  « étape n/N », progression), la console est l'historique.
+- **Téléchargements** : une ligne par artefact terminé (« Téléchargé :
+  kotlin-stdlib.jar · 34,2 Mo reçus au total »), jamais par tick
+  d'octets ; l'état conflaté `telechargementsBuild` disparaît.
+- **Ligne d'en-tête de build au format Android Studio** :
+  « Exécution des tâches : [:app:assembleDebug] dans le projet MonIP » —
+  le VRAI sélecteur Gradle se lit dans la console, celui que le terminal
+  attend (cf. ci-dessous).
+- **Annulation** : seule l'annulation reçoit une ligne de conclusion
+  propre (« Build annulé ») — Gradle conclut lui-même succès et échec
+  sur son flux, les dupliquer était le problème.
+- **Réglage retiré** : « Afficher les tâches pendant le build » disparaît
+  de la page de configuration du tooling (le champ DataStore reste
+  dormant pour la compatibilité des réglages persistés) — le flux de
+  Gradle porte ses lignes de tâches, il n'y a plus rien à filtrer.
+- **Canal Taches** : les événements de tâches ne publient plus ni ligne
+  ni état, mais le canal reste vidé (leçon v0.45.1 : la pompe unique du
+  client ne doit jamais bloquer sur un canal sans consommateur).
+
+### Corrigé (terminal : sélecteur de tâche incompris)
+
+- **« gradle task:assembleDebug » échouait** (« Cannot locate tasks that
+  match 'task:assembleDebug' as project 'task' not found ») alors que le
+  même lancement depuis la feuille des tâches réussissait : la feuille
+  passe le VRAI chemin (`:app:assembleDebug`), l'utilisateur tapait un
+  préfixe inventé. Le script `gradle` du terminal (v3, `VersionneurScripts`
+  2 → 3 — re-distribution automatique aux appareils installés) réécrit
+  désormais « task:FOO » en « FOO » avec un avertissement explicite, et
+  laisse les autres arguments INTACTS mot à mot ; la console affiche par
+  ailleurs le vrai sélecteur dans sa ligne d'en-tête.
+
 ## [0.45.3] – 2026-10-02
 
 ### Corrigé (échec CI intermittent : `DaemonManagerTest` sur runner à cœurs comptés)

@@ -131,7 +131,6 @@ abstract class BaseEditorViewModelTest {
         PompeBuildTooling(
             tooling = tooling,
             serviceGradle = serviceGradleTest,
-            optionsTooling = optionsTooling,
             dispatchers = TestDispatcherProvider(regleMain.dispatcher),
         )
 

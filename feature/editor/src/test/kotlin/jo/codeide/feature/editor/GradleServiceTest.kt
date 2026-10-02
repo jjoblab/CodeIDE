@@ -4,14 +4,12 @@ import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtapeSyncTooling
 import jo.codeide.core.domain.EtatBuild
-import jo.codeide.core.domain.EtatTacheBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
-import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -24,12 +22,12 @@ import org.junit.Test
 
 /**
  * Tests du [GradleService] (G5 ; étape 32 : canaux Taches, transitions de
- * notification, rattachement process-wide ; v3 : lignes TYPIÉES — tâches
- * mises à jour en place, étapes de sync, avertissement bénin apaisé ;
- * v0.42.0 — phase 1 : les lignes BRUTES vivent sur le flux dédié de la
- * zone texte, le rejeu est le tampon borné) : lignes du seul build suivi,
- * vidages au cycle de vie, fenêtre bornée, groupement des diagnostics par
- * fichier, états de synchronisation, pilotage du service Android.
+ * notification, rattachement process-wide ; v3 : lignes typées ; v0.42.0 :
+ * flux dédié de la zone texte ; **v0.46.0 — console FLUX BRUT (ADR 0078) :
+ * chaque ligne porte son CANAL et son STYLE, les étapes de sync et les
+ * téléchargements écrivent des LIGNES, plus aucune rangée dans l'état** —
+ * les tâches ne produisent plus rien : Gradle écrit les siennes sur
+ * stdout, les dupliquer était le problème « deux endroits »).
  */
 class GradleServiceTest {
     /** Horloge pilotable : les instants de départ (v0.32.5) avancent
@@ -44,19 +42,26 @@ class GradleServiceTest {
     private val service =
         GradleService(horloge = TimeProvider { instant }, demarreur = demarreur, journal = FakeAppLogger())
 
-    /** Événements de la zone texte conservés par le rejeu (v0.42.0 — le
+    /** Événements de la console conservés par le rejeu (v0.42.0 — le
      *  rejeu EST le tampon borné : la liste reflète ce qu'une vue qui
      *  s'abonne reconstruirait). */
     private fun evenementsTexte(): List<EvenementConsoleTexte> =
         service.lignesBrutes.replayCache.filterIsInstance<EvenementConsoleTexte>()
 
-    /** Lignes BRUTES du tampon (le genre seul — les vidages ont leur
-     *  propre genre). */
-    private fun lignesBrutes(): List<EvenementConsoleTexte.Ligne> =
+    /** Lignes de la console (le genre seul — les vidages ont leur propre
+     *  genre). */
+    private fun lignesConsole(): List<EvenementConsoleTexte.Ligne> =
         evenementsTexte().filterIsInstance<EvenementConsoleTexte.Ligne>()
 
+    /** Texte brut des lignes de la console (les lignes brutes de Gradle
+     *  voyagent en [TexteTooling.Brut] ; les lignes composées — étapes,
+     *  téléchargements, synthèses — deviennent vides ici : elles ont leurs
+     *  PROPRES assertions sur libelle/style). */
+    private fun textesConsole(): List<String> =
+        lignesConsole().map { (it.libelle as? TexteTooling.Brut)?.texte.orEmpty() }
+
     // ------------------------------------------------------------------
-    // v0.42.0 — phase 1 : zone texte (flux dédié, tampon = rejeu).
+    // v0.46.0 — console flux brut (canal, style, ordre).
     // ------------------------------------------------------------------
 
     @Test
@@ -67,16 +72,20 @@ class GradleServiceTest {
 
         assertEquals(
             listOf("a", "b"),
-            lignesBrutes().map { it.texte },
+            textesConsole(),
         )
         assertEquals(
-            listOf(FluxSortieBuild.STDOUT, FluxSortieBuild.STDERR),
-            lignesBrutes().map { it.flux },
+            listOf(StyleLigne.SORTIE, StyleLigne.ERREUR),
+            lignesConsole().map { it.style },
         )
         assertTrue(
-            "v0.42.0 : plus AUCUNE ligne brute dans l état — aucune émission d état par ligne, " +
+            "v0.46.0 : chaque ligne du build porte le canal BUILD (le filtre du fragment choisit sa console)",
+            lignesConsole().all { it.canal == CanalTooling.BUILD },
+        )
+        assertTrue(
+            "v0.42.0 : plus AUCUNE ligne de console dans l état — aucune émission d état par ligne, " +
                 "la cause du O(N²) historique (phase 1 du roadmap)",
-            service.etat.value.lignes
+            service.etat.value.etapesSync
                 .isEmpty(),
         )
     }
@@ -88,12 +97,12 @@ class GradleServiceTest {
 
         assertTrue(
             "la garde buildId s applique au flux dédié comme à l ancienne fenêtre",
-            lignesBrutes().isEmpty(),
+            lignesConsole().isEmpty(),
         )
     }
 
     @Test
-    fun `les lignes d un build annule sont ignorees`() {
+    fun `les lignes d un build annule sont ignorees - et l annulation conclut la console`() {
         service.suivreBuild("b-1")
         service.publierEtatBuild(EtatBuild("b-1", StatutBuild.ANNULE))
 
@@ -101,7 +110,27 @@ class GradleServiceTest {
 
         assertTrue(
             "la garde annulation s applique au flux dédié",
-            lignesBrutes().isEmpty(),
+            textesConsole().none { it == "trop tard" },
+        )
+        assertEquals(
+            "v0.46.0 : l annulation reçoit SA ligne de conclusion — Gradle n'imprime rien " +
+                "de tel sur son flux après un cancel en pleine configuration",
+            listOf(CanalTooling.BUILD to StyleLigne.SYNTHESE),
+            lignesConsole().map { it.canal to it.style },
+        )
+    }
+
+    @Test
+    fun `un build reussi ne produit AUCUNE ligne de conclusion - Gradle conclut lui meme`() {
+        service.suivreBuild("b-1")
+        service.ajouterLigne(LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "> Task :app:build", 0))
+        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 6))
+
+        assertEquals(
+            "v0.46.0 (parité Android Studio) : « BUILD SUCCESSFUL in 6s » et « N actionable " +
+                "tasks » sont des lignes DE GRADLE (stdout) — les dupliquer était le problème",
+            listOf("> Task :app:build"),
+            textesConsole(),
         )
     }
 
@@ -115,13 +144,13 @@ class GradleServiceTest {
         service.suivreBuild("b-2", listOf("assembleDebug"))
 
         assertTrue(
-            service.etat.value.lignes
+            service.etat.value.etapesSync
                 .isEmpty(),
         )
         assertEquals(
-            "le Vider conclut l ancienne console : une vue qui s abonne reconstruit " +
-                "VIERGE puis suit le nouveau build (même cycle de vie que lignes)",
-            EvenementConsoleTexte.Vider,
+            "le Vider conclut l ancienne console du canal BUILD : une vue qui s abonne " +
+                "reconstruit VIERGE puis suit le nouveau build",
+            EvenementConsoleTexte.Vider(CanalTooling.BUILD),
             evenementsTexte().last(),
         )
         assertEquals(StatutBuild.EN_COURS, service.etat.value.statutBuild)
@@ -153,110 +182,76 @@ class GradleServiceTest {
         )
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 1}",
-            lignesBrutes().last().texte,
+            textesConsole().last(),
         )
         assertEquals(
             "ligne ${NB_LIGNES_GRAND - 2_000}",
-            lignesBrutes().first().texte,
+            textesConsole().first(),
         )
     }
 
     // ------------------------------------------------------------------
-    // v3 — lignes de tâche (mise à jour en place, une par tâche).
+    // v0.46.0 — téléchargements du build (UNE LIGNE par artefact terminé).
     // ------------------------------------------------------------------
 
     @Test
-    fun `une tache demarree ajoute SA ligne puis sa fin la remplace en place`() {
+    fun `les telechargements du build ecrivent UNE ligne par artefact termine - jamais par tick`() {
         service.suivreBuild("b-1")
-        service.ajouterTache(EtatTacheBuild("b-1", ":app:compileKotlin", StatutTache.EN_COURS))
-        service.ajouterTache(EtatTacheBuild("b-1", ":app:test", StatutTache.EN_COURS))
-
-        val apresDemarrages = service.etat.value.lignes
-        assertEquals(
-            listOf(":app:compileKotlin", ":app:test"),
-            apresDemarrages.filterIsInstance<LigneConsole.Tache>().map { it.etat.chemin },
-        )
-
-        // La fin de :app:compileKotlin remplace SA ligne (même identité),
-        // pas celle de :app:test — une ligne par tâche, comme la vue
-        // Build d'Android Studio.
-        service.ajouterTache(
-            EtatTacheBuild("b-1", ":app:compileKotlin", StatutTache.REUSSIE, dureeMs = 2_345),
-        )
-
-        val taches =
-            service.etat.value.lignes
-                .filterIsInstance<LigneConsole.Tache>()
-        assertEquals(2, taches.size)
-        assertEquals(
-            LigneConsole.Tache(
-                id = apresDemarrages.first().id,
-                canal = CanalTooling.BUILD,
-                etat = EtatTacheAffichee(":app:compileKotlin", StatutTache.REUSSIE, 2_345),
-            ),
-            taches.first(),
-        )
-        assertEquals(StatutTache.EN_COURS, taches.last().etat.statut)
-    }
-
-    @Test
-    fun `une fin de tache sans depart connu s affiche quand meme`() {
-        service.suivreBuild("b-1")
-        service.ajouterTache(EtatTacheBuild("b-1", ":app:jar", StatutTache.SAUTEE))
-
-        val taches =
-            service.etat.value.lignes
-                .filterIsInstance<LigneConsole.Tache>()
-        assertEquals(1, taches.size)
-        assertEquals(StatutTache.SAUTEE, taches.single().etat.statut)
-    }
-
-    @Test
-    fun `les taches d un autre build sont ignorees`() {
-        service.suivreBuild("b-1")
-        service.ajouterTache(EtatTacheBuild("b-autre", ":app:compileKotlin", StatutTache.EN_COURS))
-
-        assertTrue(
-            service.etat.value.lignes
-                .isEmpty(),
-        )
-    }
-
-    // ------------------------------------------------------------------
-    // v0.45.1 — téléchargements du build (affichage immédiat, parité
-    // Android Studio : barre de progression en place de la vue Build).
-    // ------------------------------------------------------------------
-
-    @Test
-    fun `les telechargements du build s accumulent en etat pendant le vol`() {
-        service.suivreBuild("b-1")
+        // Tick d'octets intermédiaire (compteur inchangé) : RIEN.
         service.ajouterTelechargement(
             jo.codeide.core.domain.TelechargementBuild(
                 buildId = "b-1",
                 element = "kotlin-stdlib.jar",
-                octetsRecus = 1_769_000,
+                octetsRecus = 900_000,
+                termine = false,
+                compteur = 0,
+            ),
+        )
+        assertTrue(
+            "le détail d'octets EN VOL vit dans l'en-tête du panneau, pas dans la console",
+            lignesConsole().none { it.style == StyleLigne.TELECHARGEMENT },
+        )
+
+        // Premier artefact terminé (compteur 0 → 1) : SA ligne.
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "kotlin-stdlib.jar",
+                octetsRecus = 869_000,
                 termine = true,
                 compteur = 1,
             ),
         )
+        // Tick intermédiaire du deuxième artefact (compteur toujours 1) : RIEN.
         service.ajouterTelechargement(
             jo.codeide.core.domain.TelechargementBuild(
                 buildId = "b-1",
                 element = "gradle-9.7.1-all.zip",
-                octetsRecus = 130_000_000,
+                octetsRecus = 60_000_000,
+                termine = false,
+                compteur = 1,
+            ),
+        )
+        // Deuxième artefact terminé (1 → 2) : SA ligne, volume CUMULÉ.
+        service.ajouterTelechargement(
+            jo.codeide.core.domain.TelechargementBuild(
+                buildId = "b-1",
+                element = "gradle-9.7.1-all.zip",
+                octetsRecus = 70_000_000,
                 termine = true,
                 compteur = 2,
             ),
         )
 
-        val telechargements = service.etat.value.telechargementsBuild
+        val lignesTelechargement = lignesConsole().filter { it.style == StyleLigne.TELECHARGEMENT }
+        assertEquals("une ligne par artefact TERMINÉ, jamais par tick", 2, lignesTelechargement.size)
+        assertTrue(lignesTelechargement.all { it.canal == CanalTooling.BUILD })
+        val premiere = lignesTelechargement.first().libelle as TexteTooling.Ressource
         assertEquals(
-            "le volume CUMULE des artefacts terminés avance au fil de l'eau",
-            131_769_000L,
-            telechargements?.octetsRecus,
+            "le volume de la ligne est le CUMUL des artefacts terminés (900 Ko du tick + 869 Ko)",
+            listOf("kotlin-stdlib.jar", "1.7 Mo"),
+            premiere.args,
         )
-        assertEquals(2, telechargements?.compteur)
-        assertEquals("gradle-9.7.1-all.zip", telechargements?.element)
     }
 
     @Test
@@ -271,7 +266,10 @@ class GradleServiceTest {
                 compteur = 1,
             ),
         )
-        assertNull("la garde buildId s applique", service.etat.value.telechargementsBuild)
+        assertTrue(
+            "la garde buildId s applique",
+            lignesConsole().none { it.style == StyleLigne.TELECHARGEMENT },
+        )
 
         service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 5))
         service.ajouterTelechargement(
@@ -283,82 +281,48 @@ class GradleServiceTest {
                 compteur = 1,
             ),
         )
-        assertNull(
-            "la progression vit SEULEMENT pendant le build — la synthèse conclut",
-            service.etat.value.telechargementsBuild,
-        )
-    }
-
-    @Test
-    fun `un nouveau build repart vierge et le statut terminal efface la barre`() {
-        service.suivreBuild("b-1")
-        service.ajouterTelechargement(
-            jo.codeide.core.domain.TelechargementBuild(
-                buildId = "b-1",
-                element = "a.jar",
-                octetsRecus = 100,
-                termine = true,
-                compteur = 1,
-            ),
-        )
-
-        service.suivreBuild("b-2")
-        assertNull(
-            "un nouveau build ne montre PAS les téléchargements du précédent",
-            service.etat.value.telechargementsBuild,
-        )
-    }
-
-    @Test
-    fun `le statut terminal du build efface la progression des telechargements`() {
-        service.suivreBuild("b-1")
-        service.ajouterTelechargement(
-            jo.codeide.core.domain.TelechargementBuild(
-                buildId = "b-1",
-                element = "a.jar",
-                octetsRecus = 100,
-                termine = true,
-                compteur = 1,
-            ),
-        )
-
-        service.publierEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 725))
-
-        assertNull(
-            "la rangée des téléchargements disparaît au terme — la synthèse prend la place",
-            service.etat.value.telechargementsBuild,
+        assertTrue(
+            "les téléchargements ne s'écrivent QUE pendant le vol — le statut terminal conclut",
+            textesConsole().none { it.contains("trop-tard") },
         )
     }
 
     // ------------------------------------------------------------------
-    // v3 — étapes de synchronisation (fin de la boîte noire).
+    // v0.46.0 — étapes de synchronisation (lignes accumulées + état pour
+    // l'en-tête ; la nouvelle sync vide la console du canal SYNC).
     // ------------------------------------------------------------------
 
     @Test
-    fun `une etape de sync s affiche au depart puis se conclut en place avec sa duree`() {
+    fun `une etape de sync ecrit sa ligne de depart puis sa ligne de conclusion - l etat garde l affichage`() {
         service.marquerSyncEnCours()
         service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON, octetsRecus = 12))
         service.ajouterEtapeSync(
             EtapeSyncTooling(etape = EtapeSync.DAEMON, terminee = true, dureeMs = 4_200),
         )
 
-        val etapes =
-            service.etat.value.lignes
-                .filterIsInstance<LigneConsole.Etape>()
-        assertEquals("une seule ligne par étape (remplacée en place)", 1, etapes.size)
-        assertEquals(EtapeSync.DAEMON, etapes.single().etat.etape)
-        assertTrue(etapes.single().etat.terminee)
-        assertEquals(4_200L, etapes.single().etat.dureeMs)
-        assertEquals("l'étape de sync porte le canal SYNC", CanalTooling.SYNC, etapes.single().canal)
+        val etat = service.etat.value
+        assertEquals(
+            "l'état ne porte QU'UNE entrée par étape (l'en-tête y lit son compteur)",
+            1,
+            etat.etapesSync.size,
+        )
+        assertEquals(EtapeSync.DAEMON, etat.etapesSync.single().etape)
+        assertTrue(etat.etapesSync.single().terminee)
+        assertEquals(4_200L, etat.etapesSync.single().dureeMs)
+
+        val lignesSync = lignesConsole().filter { it.canal == CanalTooling.SYNC }
+        assertEquals(
+            "départ UNE fois (le tick intermédiaire n'écrit rien), conclusion UNE fois",
+            2,
+            lignesSync.size,
+        )
+        assertEquals(StyleLigne.ETAPE, lignesSync.first().style)
+        assertEquals(StyleLigne.ETAPE, lignesSync.last().style)
     }
 
-    // v6 (prompt de suivi §2) : le test `une etape SAUTEE en cache s affiche
-    // conclue sans duree` est SUPPRIMÉ — le drapeau `sautee` n'existe plus.
-    // Une distribution en cache n'est pas émise par le serveur, le client
-    // ne la reçoit pas et ne l'affiche pas.
-
     @Test
-    fun `une nouvelle sync reannonce ses etapes en lignes nouvelles`() {
+    fun `une nouvelle sync vide la console du canal SYNC et reannonce ses etapes`() {
         service.marquerSyncEnCours()
         service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
         service.ajouterEtapeSync(
@@ -368,19 +332,68 @@ class GradleServiceTest {
             AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 500)),
         )
 
-        // Deuxième sync : la phase CONNEXION repart — une NOUVELLE ligne,
-        // l'historique de la première reste (chaque ligne est datée par sa
-        // position, comme une vraie console).
+        // Deuxième sync : la console SYNC repart VIERGE (Vider), l'état des
+        // étapes aussi — la phase réannoncée écrit une ligne NEUVE.
         service.marquerSyncEnCours()
         service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
 
-        val etapes =
-            service.etat.value.lignes
-                .filterIsInstance<LigneConsole.Etape>()
-        assertEquals(2, etapes.size)
-        assertTrue(etapes.first().etat.terminee)
-        assertFalse(etapes.last().etat.terminee)
+        assertEquals(
+            "la fenêtre d'étapes repart vierge à chaque sync",
+            1,
+            service.etat.value.etapesSync.size,
+        )
+        assertFalse(
+            service.etat.value.etapesSync
+                .single()
+                .terminee,
+        )
+        val apresVider =
+            evenementsTexte()
+                .drop(
+                    evenementsTexte().indexOfLast {
+                        it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.SYNC
+                    } +
+                        1,
+                ).filterIsInstance<EvenementConsoleTexte.Ligne>()
+        assertEquals(
+            "le Vider du canal SYNC conclut l'ancienne console : la reconstruction " +
+                "après vidage ne contient QUE l'étape réannoncée",
+            listOf(StyleLigne.ETAPE),
+            apresVider.map { it.style },
+        )
     }
+
+    @Test
+    fun `la sync reussie conclut la console - la ligne porte la duree et le canal SYNC`() {
+        service.marquerSyncEnCours()
+        service.publierResultatSync(
+            AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 8_400)),
+        )
+
+        val conclusion = lignesConsole().single()
+        assertEquals(CanalTooling.SYNC, conclusion.canal)
+        assertEquals(StyleLigne.SYNTHESE, conclusion.style)
+    }
+
+    @Test
+    fun `la sync sans telechargement se dit a jour dans sa conclusion`() {
+        service.marquerSyncEnCours()
+        service.publierResultatSync(
+            AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 500)),
+        )
+
+        val conclusion = lignesConsole().single().libelle
+        assertTrue(
+            "aucune étape n'a reçu d'octet : la conclusion se dit « à jour »",
+            conclusion is TexteTooling.Ressource &&
+                conclusion.id == R.string.editor_console_synthese_sync_a_jour_duree,
+        )
+    }
+
+    // v6 (prompt de suivi §2) : le test `une etape SAUTEE en cache s affiche
+    // conclue sans duree` est SUPPRIMÉ — le drapeau `sautee` n'existe plus.
+    // Une distribution en cache n'est pas émise par le serveur, le client
+    // ne la reçoit pas et ne l'affiche pas.
 
     // ------------------------------------------------------------------
     // v3 — correctif C5 : l'avertissement bénin du daemon voyage apaisé.
@@ -409,8 +422,8 @@ class GradleServiceTest {
 
         assertEquals(
             "seule la ligne stderr CONNUE est apaisée (C5)",
-            listOf(true, false, false),
-            lignesBrutes().map { it.apaisee },
+            listOf(StyleLigne.APAISEE, StyleLigne.ERREUR, StyleLigne.SORTIE),
+            lignesConsole().map { it.style },
         )
     }
 
@@ -565,7 +578,7 @@ class GradleServiceTest {
 
         assertTrue(
             "la console repart vierge pour le nouvel espace (étape 32)",
-            service.etat.value.lignes
+            service.etat.value.etapesSync
                 .isEmpty(),
         )
         assertTrue(
@@ -573,9 +586,9 @@ class GradleServiceTest {
                 .isEmpty(),
         )
         assertEquals(
-            "v0.42.0 : la zone texte repart vierge AUSSI — le Vider conclu l ancienne " +
-                "console, une vue qui s abonne reconstruit depuis ce vidage",
-            EvenementConsoleTexte.Vider,
+            "v0.46.0 : les DEUX canaux sont vidés — le dernier Vider est celui du canal SYNC, " +
+                "une vue qui s abonne reconstruit depuis ces vidages",
+            EvenementConsoleTexte.Vider(CanalTooling.SYNC),
             evenementsTexte().last(),
         )
         assertEquals(

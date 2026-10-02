@@ -41,30 +41,17 @@ class ConfigToolingViewModelTest {
     @Test
     fun `les reglages observes reflètent le depot`() =
         runTest {
-            depotReglages.updateSettings { it.copy(toolingAfficherTaches = false, toolingHorsLigne = true) }
+            depotReglages.updateSettings { it.copy(toolingHorsLigne = true) }
             val viewModel = viewModel()
             advanceUntilIdle()
 
-            assertEquals(false, viewModel.reglages.value.toolingAfficherTaches)
             assertEquals(true, viewModel.reglages.value.toolingHorsLigne)
             assertEquals("", viewModel.reglages.value.toolingArguments)
         }
 
-    @Test
-    fun `definirAfficherTaches persiste a l instant`() =
-        runTest {
-            val viewModel = viewModel()
-
-            viewModel.definirAfficherTaches(false)
-            advanceUntilIdle()
-
-            assertEquals(false, depotReglages.reglages.toolingAfficherTaches)
-            assertEquals(
-                "le flux observé confirme le geste (rendu idempotent)",
-                false,
-                viewModel.reglages.value.toolingAfficherTaches,
-            )
-        }
+    // v0.46.0 : le test `definirAfficherTaches persiste a l instant` est
+    // SUPPRIMÉ — le réglage a disparu de la page avec les rangées
+    // structurées de la console (ADR 0078).
 
     @Test
     fun `definirHorsLigne et definirArguments persistent - la saisie est rognée`() =
@@ -106,10 +93,10 @@ class ConfigToolingViewModelTest {
             depotReglages.writeError = java.io.IOException("disque plein")
             val viewModel = viewModel()
 
-            viewModel.definirAfficherTaches(true)
+            viewModel.definirHorsLigne(true)
             advanceUntilIdle()
 
             // L'échec ne casse rien : le réglage courant reste celui du dépôt.
-            assertEquals(AppSettings().toolingAfficherTaches, depotReglages.reglages.toolingAfficherTaches)
+            assertEquals(AppSettings().toolingHorsLigne, depotReglages.reglages.toolingHorsLigne)
         }
 }

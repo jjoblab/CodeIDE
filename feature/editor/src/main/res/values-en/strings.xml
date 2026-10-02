@@ -129,11 +129,6 @@
          sync tree steps (v5 — preview plan, 7 steps: "Dependencies and
          IDE model" merges both phases of the same resolution; noun
          labels, the marker carries the state). -->
-    <string name="editor_console_tache">&gt; Task %1$s</string>
-    <string name="editor_console_tache_en_cours">&gt; Task %1$s…</string>
-    <string name="editor_console_tache_duree">&gt; Task %1$s (%2$s)</string>
-    <string name="editor_console_tache_sautee">&gt; Task %1$s — skipped</string>
-    <string name="editor_console_tache_echouee">&gt; Task %1$s — FAILED</string>
     <string name="editor_console_etape_outils">Checking the tools</string>
     <string name="editor_console_etape_distribution">Gradle distribution</string>
     <string name="editor_console_etape_daemon">Starting the Gradle daemon</string>
@@ -152,9 +147,6 @@
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
     <string name="editor_console_echec_defaut">Build failed</string>
-    <string name="editor_console_detail_octets">%1$s / %2$s</string>
-    <string name="editor_console_detail_compteur">%1$d / %2$d</string>
-    <string name="editor_console_detail_element">↓ %1$s</string>
     <string name="editor_console_synthese_annule">Build cancelled</string>
     <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
     <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>
@@ -164,15 +156,21 @@
          stdout line. `tools:ignore` justified: Gradle ALWAYS prints
          "N actionable tasks" (even for N=0 or N=1), the form is fixed by
          Gradle\'s wire format — no singular to distinguish. -->
-    <string name="editor_console_synthese_taches_executees" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed</string>
-    <string name="editor_console_synthese_taches_ajour" tools:ignore="PluralsCandidate">%1$d actionable tasks: %2$d executed, %3$d up-to-date</string>
 
     <!-- Classpath summary (v0.40.1, prompt de suivi §4) : short labels for
          the sync footer — "3 modules · 312 jars · 4 sources · 12 AARs". -->
-    <string name="editor_console_stats_modules">modules</string>
-    <string name="editor_console_stats_jars">jars</string>
-    <string name="editor_console_stats_aars">AARs</string>
-    <string name="editor_console_stats_sources">sources</string>
+
+    <!-- Raw-stream console lines (v0.46.0, ADR 0078): the Gradle
+         stdout/stderr stream IS the display (its own "> Task",
+         "BUILD SUCCESSFUL"), sync steps and downloads accumulate as
+         plain lines — suffixes composed at render time. -->
+    <string name="editor_console_etape_suffixe_demarree">…</string>
+    <string name="editor_console_etape_suffixe_terminee"> ✓ %1$s</string>
+    <string name="editor_console_etape_suffixe_terminee_octets"> ✓ %1$s · %2$s received</string>
+    <string name="editor_console_etape_suffixe_terminee_compteur"> ✓ %1$s · %2$s artifacts</string>
+    <string name="editor_console_telecharge">Downloaded: %1$s · %2$s received in total</string>
+    <string name="editor_console_synthese_sync_terminee_duree">Sync completed in %1$s — tasks are available.</string>
+    <string name="editor_console_synthese_sync_a_jour_duree">Project up to date, nothing to download in %1$s — tasks are available.</string>
 
     <!-- Task picker sheet (v4, §3.3): search, recent, groups by module,
          honest empty states. -->
@@ -194,8 +192,6 @@
     <string name="editor_config_fermer_cd">Close tooling configuration</string>
     <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
     <string name="editor_config_affichage">Console display</string>
-    <string name="editor_config_afficher_taches">Show tasks while building</string>
-    <string name="editor_config_afficher_taches_desc">One line per task, updated in place — like Android Studio\'s Build view.</string>
     <string name="editor_config_execution">Execution</string>
     <string name="editor_config_hors_ligne">Offline mode</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>

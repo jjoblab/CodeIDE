@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4 §3.3
      étape 5 ; v5 — aperçu ; v0.40.1 : UN SEUL chip d'action reflète
-     l'action Gradle courante, NON cliquable ; v0.42.0 — phase 1 du
-     roadmap : console HYBRIDE — zone structurée (RecyclerView) + zone
-     texte (lignes brutes par append direct O(1), jamais dans le
-     StateFlow). Boutons Tâches et Configuration inchangés à droite. -->
+     l'action Gradle courante, NON cliquable ; v0.46.0 — REFONTE TOTALE
+     (ADR 0078) : CONSOLE FLUX BRUT UNIQUE — un TextView monospace PAR
+     CANAL (Sync / Build), le flux stdout/stderr de Gradle reconstitué
+     comme la fenêtre Build d'Android Studio. Plus de RecyclerView, plus
+     de rangées structurées : le chip choisit la console VISIBLE, l'autre
+     s'accumule en coulisses. Boutons Tâches et Configuration inchangés. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -195,76 +197,65 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Corps de la console (v0.42.0, phase 1 du roadmap — console HYBRIDE
-         comme Android Studio) : deux zones empilées verticalement —
-         la zone STRUCTURÉE (RecyclerView : étapes de sync, tâches de
-         build, synthèse — DiffUtil, peu de rangées) au-dessus, la zone
-         TEXTE (lignes stdout/stderr brutes de Gradle, append direct O(1)
-         par ligne, JAMAIS dans le StateFlow) en dessous, séparées par un
-         filet. La zone texte n'est visible qu'en vue BUILD (la vue Sync
-         reste l'arbre seul, comme l'aperçu v5). L'état vide recouvre le
-         corps entier (centré). -->
+    <!-- Corps de la console (v0.46.0, ADR 0078 — console FLUX BRUT
+         UNIQUE) : DEUX consoles monospace, UNE PAR CANAL — Sync (étapes
+         de la synchronisation, conclusion) et Build (flux stdout/stderr
+         de Gradle : lignes « > Task », diagnostics, « BUILD SUCCESSFUL »,
+         plus les statuts de l'orchestrateur et les téléchargements). Le
+         chip d'action rend l'une VISIBLE, l'autre continue de
+         s'accumuler en coulisses (GONE : aucun layout). L'état vide
+         recouvre le corps (centré). -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <LinearLayout
+        <!-- Console du canal SYNC : étapes (une ligne par transition,
+             « Libellé… » puis « Libellé ✓ durée ») + conclusion. -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/defilement_console_sync"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:scrollbars="vertical">
 
-            <!-- Zone structurée : étapes / tâches / synthèse (mises à jour
-                 en place via DiffUtil — peu de rangées). -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/liste_sortie"
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_console_sync"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:clipToPadding="false"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:paddingHorizontal="12dp"
-                android:paddingBottom="10dp" />
+                android:paddingVertical="4dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp"
+                tools:text="Vérification des outils ✓ 120ms" />
+        </androidx.core.widget.NestedScrollView>
 
-            <!-- Filet entre les deux zones (visible avec la zone texte). -->
-            <View
-                android:id="@+id/separateur_console"
+        <!-- Console du canal BUILD : le flux brut de Gradle, ligne par
+             ligne, append direct O(1) (le tampon est un Editable posé
+             par le fragment, l'auto-défilement suit le bas pendant
+             l'écoulement tant que l'utilisateur y est resté). -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/defilement_console_build"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/texte_console_build"
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginHorizontal="12dp"
-                android:background="?attr/colorOutlineVariant"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp"
+                tools:text="&gt; Task :app:compileDebugKotlin" />
+        </androidx.core.widget.NestedScrollView>
 
-            <!-- Zone texte : stdout/stderr bruts de Gradle, monospace
-                 scrollable. Le texte est posé comme Editable par le
-                 fragment (append O(1) par ligne, borné à 2 000 lignes
-                 côté service), l'auto-défilement suit le bas pendant
-                 l'écoulement tant que l'utilisateur y est resté. -->
-            <ScrollView
-                android:id="@+id/zone_texte_defilement"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:scrollbars="vertical"
-                android:visibility="gone"
-                tools:visibility="visible">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/texte_brut_console"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:textAppearance="?attr/textAppearanceLabelSmall"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="11sp"
-                    tools:text="e: file:///…/Main.kt:12:3 erreur de compilation" />
-            </ScrollView>
-        </LinearLayout>
-
-        <!-- État vide de la console (aucune rangée structurée, aucune
-             ligne brute) — recouvre le corps, centré. -->
+        <!-- État vide de la console (la console du canal courant n'a
+             encore rien écrit) — recouvre le corps, centré. -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/texte_sortie_vide"
             android:layout_width="match_parent"

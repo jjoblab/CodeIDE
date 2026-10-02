@@ -63,11 +63,6 @@ class ConfigToolingViewModel
             }
         }
 
-        /** Affichage des tâches pendant le build (v3). */
-        fun definirAfficherTaches(afficher: Boolean) {
-            viewModelScope.launch { persister { it.copy(toolingAfficherTaches = afficher) } }
-        }
-
         /** Mode hors ligne (`--offline`) des builds. */
         fun definirHorsLigne(horsLigne: Boolean) {
             viewModelScope.launch { persister { it.copy(toolingHorsLigne = horsLigne) } }
