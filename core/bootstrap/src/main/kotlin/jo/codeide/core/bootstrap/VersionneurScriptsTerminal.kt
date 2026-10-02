@@ -30,9 +30,15 @@ internal object VersionneurScriptsTerminal {
      *   SANS marqueur (le marqueur manquant vaut « à réécrire ») ;
      * - 2 : v0.37.3 — profil à vrais chemins (Gradle du cache wrapper à
      *   trois niveaux, SDK du HOME), commande `gradle` corrigée (glob à
-     *   trois niveaux + candidats opt/), commande `android-sdk` (nouvelle).
+     *   trois niveaux + candidats opt/), commande `android-sdk` (nouvelle) ;
+     * - 3 : v0.46.0 — commande `gradle` : le sélecteur erroné
+     *   « task:FOO » (retour terrain : « Cannot locate tasks that match
+     *   'task:assembleDebug' as project 'task' not found ») est réécrit
+     *   en « FOO » avec un avertissement au lieu d'échouer — la feuille de
+     *   tâches de l'app lance `:module:tâche`, la console l'affiche, le
+     *   terminal l'accepte à son tour.
      */
-    internal const val VERSION = 2
+    internal const val VERSION = 3
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =

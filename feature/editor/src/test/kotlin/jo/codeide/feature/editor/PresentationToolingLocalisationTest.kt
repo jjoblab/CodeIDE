@@ -101,17 +101,12 @@ class PresentationToolingLocalisationFrTest {
         val etat =
             EtatGradle(
                 synchronisationEnCours = true,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat =
-                                EtapeSyncAffichee(
-                                    etape = EtapeSync.DEPENDANCES,
-                                    octetsRecus = 44_040_192L,
-                                    compteur = 3,
-                                ),
+                        EtapeSyncAffichee(
+                            etape = EtapeSync.DEPENDANCES,
+                            octetsRecus = 44_040_192L,
+                            compteur = 3,
                         ),
                     ),
             )
@@ -242,17 +237,12 @@ class PresentationToolingLocalisationEnTest {
         val etat =
             EtatGradle(
                 synchronisationEnCours = true,
-                lignes =
+                etapesSync =
                     listOf(
-                        LigneConsole.Etape(
-                            id = 1L,
-                            canal = CanalTooling.SYNC,
-                            etat =
-                                EtapeSyncAffichee(
-                                    etape = EtapeSync.DEPENDANCES,
-                                    octetsRecus = 44_040_192L,
-                                    compteur = 3,
-                                ),
+                        EtapeSyncAffichee(
+                            etape = EtapeSync.DEPENDANCES,
+                            octetsRecus = 44_040_192L,
+                            compteur = 3,
                         ),
                     ),
             )

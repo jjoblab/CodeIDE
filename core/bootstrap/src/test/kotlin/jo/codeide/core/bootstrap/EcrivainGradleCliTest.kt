@@ -123,6 +123,63 @@ class EcrivainGradleCliTest {
         }
 
     @Test
+    fun `le selecteur task deux points FOO est reecrit avec un avertissement - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            poserSh(racine)
+            ecrivain.ecrire(racine)
+
+            // v3 (v0.46.0) : retour terrain « Cannot locate tasks that match
+            // 'task:assembleDebug' as project 'task' not found » — la
+            // feuille de tâches de l'app lance « :module:tâche », le
+            // terminal réécrit le préfixe erroné AVANT d'exécuter.
+            val projet = dossierTemporaire.newFolder("projet-rewrite")
+            File(projet, "gradlew").writeText("#!/bin/sh\necho \"RECU: \$*\"\n")
+            File(projet, "gradlew").setExecutable(true)
+
+            val resultat = executer(File(racine, "usr/bin/gradle"), projet, "task:assembleDebug", "--console=plain")
+            assertEquals(
+                "la réécriture n'est pas un échec (sortie : ${resultat.sortie})",
+                0,
+                resultat.code,
+            )
+            assertTrue(
+                "l'avertissement de réécriture devait s'afficher (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("réécrit en « assembleDebug »"),
+            )
+            assertTrue(
+                "le préfixe task: devait disparaître des arguments reçus (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("RECU: assembleDebug --console=plain"),
+            )
+        }
+
+    @Test
+    fun `les arguments sans prefixe task passent INTACTS - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            poserSh(racine)
+            ecrivain.ecrire(racine)
+
+            // Sans « task: » dans les arguments, la commande passe le
+            // mots-à-mots intact (v3) : le chemin rapide ne reconstruit
+            // rien.
+            val projet = dossierTemporaire.newFolder("projet-intact")
+            File(projet, "gradlew").writeText("#!/bin/sh\necho \"RECU: \$*\"\n")
+            File(projet, "gradlew").setExecutable(true)
+
+            val resultat = executer(File(racine, "usr/bin/gradle"), projet, ":app:assembleDebug", "--info")
+            assertEquals(0, resultat.code)
+            assertFalse(
+                "aucun avertissement sans réécriture (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("réécrit"),
+            )
+            assertTrue(
+                "les arguments passent mot à mot (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("RECU: :app:assembleDebug --info"),
+            )
+        }
+
+    @Test
     fun `sans gradlew la distribution du wrapper en cache sert - la plus recente`() =
         runTest {
             val racine = racine()

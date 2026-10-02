@@ -119,7 +119,7 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
                     "CONTINUE d arriver au build rattache — v0.42.0 : le rejeu du flux " +
                     "dédié porte les lignes d APRÈS le dernier vidage",
                 listOf("etape 2"),
-                lignesZoneTexteApresDernierVider(),
+                lignesConsoleBuildApresDernierVider(),
             )
         }
 
@@ -294,17 +294,16 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             avancer()
 
             assertEquals(
-                "v0.42.0 : la sortie traverse le flux DÉDIÉ de la zone texte " +
+                "v0.46.0 : la sortie traverse le flux de la console BUILD " +
                     "(rejeu après le Vider du suivi de build), pas l état",
                 listOf("Bonjour"),
-                lignesZoneTexteApresDernierVider(),
+                lignesConsoleBuildApresDernierVider(),
             )
             assertTrue(
-                "l état ne porte plus les lignes brutes (phase 1) — la fenêtre " +
-                    "ne contient que des genres typés (tâches, étapes)",
-                viewModel.etatGradle.value.lignes.all {
-                    it is LigneConsole.Tache || it is LigneConsole.Etape
-                },
+                "l état ne porte plus AUCUNE ligne de console (v0.46.0) — " +
+                    "seules les étapes de sync y vivent pour l en-tête",
+                viewModel.etatGradle.value.etapesSync
+                    .isEmpty(),
             )
             assertEquals(StatutBuild.REUSSI, viewModel.etatGradle.value.statutBuild)
         }
@@ -314,7 +313,7 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
     // ------------------------------------------------------------------
 
     @Test
-    fun `les taches du build alimentent la console - une ligne remplacee en place`() =
+    fun `les taches du build n ecrivent plus RIEN - Gradle ecrit ses lignes sur le flux`() =
         runTest {
             val id = ajouterProjet("projet-taches")
             val viewModel = viewModel(id)
@@ -324,14 +323,6 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             avancer()
 
             tooling.emettreTache("b-taches", ":app:compileKotlin", StatutTache.EN_COURS)
-            avancer()
-            assertEquals(
-                listOf(":app:compileKotlin"),
-                viewModel.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Tache>()
-                    .map { it.etat.chemin },
-            )
-
             tooling.emettreTache(
                 "b-taches",
                 ":app:compileKotlin",
@@ -340,40 +331,26 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             )
             avancer()
 
-            val taches =
-                viewModel.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Tache>()
-            assertEquals("une ligne par tâche (fin = remplacement en place)", 1, taches.size)
-            assertEquals(StatutTache.REUSSIE, taches.single().etat.statut)
-            assertEquals(1_800L, taches.single().etat.dureeMs)
-        }
-
-    @Test
-    fun `le reglage cacher les taches filtre la console en vol`() =
-        runTest {
-            semerReglagesTooling { it.copy(toolingAfficherTaches = false) }
-            avancer()
-            val id = ajouterProjet("projet-cache")
-            val viewModel = viewModel(id)
-            avancer()
-
-            viewModel.observerBuild("b-cache")
-            avancer()
-
-            tooling.emettreTache("b-cache", ":app:compileKotlin", StatutTache.EN_COURS)
-            avancer()
-
             assertTrue(
-                "réglage fermé : aucune ligne de tâche (l état du build reste suivi)",
-                viewModel.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Tache>()
-                    .isEmpty(),
+                "v0.46.0 (ADR 0078) : les événements de tâche ne produisent NI ligne NI état — " +
+                    "Gradle écrit « > Task :app:compileKotlin » sur stdout, la console le montre " +
+                    "tel quel (les dupliquer était le problème « deux endroits »)",
+                lignesConsoleBuildApresDernierVider().isEmpty(),
             )
-            assertEquals(StatutBuild.EN_COURS, viewModel.etatGradle.value.statutBuild)
+            assertEquals(
+                "le build reste suivi (l'état du build ne dépend pas des lignes de tâche)",
+                StatutBuild.EN_COURS,
+                viewModel.etatGradle.value.statutBuild,
+            )
         }
 
+    // v0.46.0 : le test `le reglage cacher les taches filtre la console en
+    // vol` est SUPPRIMÉ — le réglage « afficher les tâches » a disparu avec
+    // les rangées structurées : le flux brut de Gradle porte ses propres
+    // lignes « > Task », il n'y a plus RIEN à filtrer.
+
     @Test
-    fun `les telechargements du build alimentent la barre de la vue build - v0_43_1`() =
+    fun `les telechargements du build ecrivent UNE ligne par artefait - v0_46_0`() =
         runTest {
             val id = ajouterProjet("projet-telechargements")
             val viewModel = viewModel(id)
@@ -397,19 +374,23 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             )
             avancer()
 
-            val telechargements = viewModel.etatGradle.value.telechargementsBuild
+            val lignes =
+                serviceGradleTest.lignesBrutes.replayCache
+                    .filterIsInstance<EvenementConsoleTexte.Ligne>()
+                    .filter { it.style == StyleLigne.TELECHARGEMENT }
             assertEquals(
-                "la pompe process-wide draine le canal des téléchargements (aucun consommateur avant v0.45.1)",
-                131_769_000L,
-                telechargements?.octetsRecus,
+                "la pompe process-wide draine le canal (aucun consommateur avant v0.45.1) " +
+                    "et chaque artefat terminé écrit SA ligne (v0.46.0)",
+                2,
+                lignes.size,
             )
-            assertEquals(2, telechargements?.compteur)
-            assertEquals("gradle-9.7.1-all.zip", telechargements?.element)
+            assertTrue(lignes.all { it.canal == CanalTooling.BUILD })
 
-            // Au terme du build, la barre disparaît (la synthèse conclut).
+            // Le terme du build n'efface pas l'historique (la conclusion de
+            // Gradle reste visible, comme la fenêtre Build d'Android Studio).
             tooling.terminerBuild("b-telechargements", StatutBuild.REUSSI)
             avancer()
-            assertNull(viewModel.etatGradle.value.telechargementsBuild)
+            assertEquals(StatutBuild.REUSSI, viewModel.etatGradle.value.statutBuild)
         }
 
     @Test
@@ -423,12 +404,10 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             tooling.emettreEtapeSync(EtapeSync.DAEMON, terminee = true, dureeMs = 900)
             avancer()
 
-            val etapes =
-                viewModel.etatGradle.value.lignes
-                    .filterIsInstance<LigneConsole.Etape>()
+            val etapes = viewModel.etatGradle.value.etapesSync
             assertEquals(1, etapes.size)
-            assertTrue(etapes.single().etat.terminee)
-            assertEquals(CanalTooling.SYNC, etapes.single().canal)
+            assertTrue(etapes.single().terminee)
+            assertEquals(EtapeSync.DAEMON, etapes.single().etape)
         }
 
     @Test
@@ -586,18 +565,22 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
         assertTrue("le sync-state s'écrit sous le document du projet", ecriture is AppResult.Success)
     }
 
-    /** Lignes brutes de la zone texte APRÈS le dernier vidage (v0.42.0,
-     *  phase 1) — ce qu'une vue abonnée reconstruirait : le rejeu du flux
-     *  dédié est la vérité, le `Vider` de l'attache/d'un nouveau build
-     *  borne la reconstruction. */
-    private fun lignesZoneTexteApresDernierVider(): List<String> {
+    /** Lignes BRUTES de la console du canal BUILD après le dernier vidage
+     *  de CE canal (v0.42.0 ; v0.46.0 : par canal) — ce qu'une vue abonnée
+     *  reconstruirait : le rejeu du flux est la vérité, le `Vider` de
+     *  l'attache/d'un nouveau build borne la reconstruction. */
+    private fun lignesConsoleBuildApresDernierVider(): List<String> {
         val evenements =
             serviceGradleTest.lignesBrutes.replayCache
                 .filterIsInstance<EvenementConsoleTexte>()
-        val dernierVider = evenements.indexOfLast { it is EvenementConsoleTexte.Vider }
+        val dernierVider =
+            evenements.indexOfLast {
+                it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.BUILD
+            }
         return evenements
             .drop(if (dernierVider >= 0) dernierVider + 1 else 0)
             .filterIsInstance<EvenementConsoleTexte.Ligne>()
-            .map { it.texte }
+            .filter { it.canal == CanalTooling.BUILD }
+            .map { (it.libelle as TexteTooling.Brut).texte }
     }
 }

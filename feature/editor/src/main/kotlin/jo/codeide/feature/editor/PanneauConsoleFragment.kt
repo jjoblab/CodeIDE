@@ -5,6 +5,7 @@ import android.text.Editable
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,8 +14,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
@@ -23,42 +22,29 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 /**
- * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v3 :
- * tâches au fil du build, étapes de sync, bouton de configuration ; v4,
- * §3.3 : CHIPS Sync/Build — l'arbre d'étapes en vue Sync, les tâches et
- * leur synthèse en vue Build ; v5, aperçu : les deux vues sont EXCLUSIVES
- * et l'une est TOUJOURS active (la chronologie brute — sorties stdout/stderr
- * en liste plate — n'est plus un écran) — bouton Tâches armé par le cache
- * de la sync, BANDEAU d'échec avec « Voir les problèmes » et « Réessayer »,
- * annulation visible en vol, auto-défilement (le suivi s'arrête quand la
- * liste cesse de grandir — un build fini ne défile plus) ; **v0.40.1
- * (prompt de suivi §3) : UN SEUL chip d'action reflète l'action Gradle
- * courante (Sync / Build / Tâches / Classpaths…), NON cliquable — plus
- * de bascule utilisateur. La console montre toujours l'action courante
- * (ou la dernière exécutée). Aucun chip s'il n'y a eu aucune action.**
+ * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4, §3.3 :
+ * CHIPS Sync/Build ; v5, aperçu ; v0.40.1 : UN SEUL chip d'action reflète
+ * l'action Gradle courante ; v0.42.0 : console HYBRIDE (zone structurée +
+ * zone texte) ; **v0.46.0 — REFONTE TOTALE (ADR 0078) : CONSOLE FLUX BRUT
+ * UNIQUE** — un `TextView` monospace PAR CANAL (Sync et Build), le flux
+ * stdout/stderr de Gradle ENTIÈREMENT reconstitué comme la fenêtre Build
+ * d'Android Studio : ses propres lignes « > Task :app:xxx », « BUILD
+ * SUCCESSFUL in 6s », les diagnostics de compilation, plus les statuts de
+ * l'orchestrateur (connexion au daemon, téléchargements, configuration) et
+ * les étapes de sync (vue Sync). PLUS AUCUN RecyclerView, plus de DiffUtil,
+ * plus de rangées structurées : l'information vit dans le flux ou dans
+ * l'en-tête du panneau — jamais aux deux.
  *
- * **v0.42.0 (phase 1 du roadmap — performance console) : console HYBRIDE
- * comme Android Studio.** Le corps se scinde en deux zones empilées : la
- * zone STRUCTURÉE (RecyclerView : arbre d'étapes, tâches, synthèse —
- * DiffUtil sur peu de rangées) et la zone TEXTE (TextView monospace
- * scrollable : lignes stdout/stderr brutes). Les lignes brutes arrivent
- * par [EditorViewModel.lignesBrutesConsole] — un flux dédié, JAMAIS dans
- * l'état — et s'appliquent par `append()` direct O(1) par ligne, LOTIES
- * par trame (un seul `append` et une seule passe de layout par trame).
- * L'abonnement rejoue l'historique borné du service puis suit le direct ;
- * il vit sur le `viewLifecycleOwner` (mourir avec la vue = se ré-abonner
- * = reconstruire depuis le rejeu ; survivre à un onStop = ne PAS rejouer
- * deux fois). Un build de 725 ms s'affiche en moins d'une seconde, plus
- * en 2 minutes.
+ * Deux `TextView` (un par canal) s'accumulent EN PARALLÈLE : le chip
+ * Sync/Build ne fait que choisir lequel est VISIBLE — basculer ne perd
+ * rien, ne rejoue rien, ne reconstruit rien. L'application des lignes est
+ * LOTIE PAR TRAME (un seul `append` par frame, O(1) par ligne — la leçon
+ * de l'ADR 0074 reste : jamais de reconstruction, jamais de DiffUtil).
  *
- * Le contenu migre du layout empilé de l'activité (v0.32.3) vers ce
- * fragment ; l'activité ne collecte plus l'état tooling — chaque fragment
- * collecte ce qu'il rend.
- *
- * L'action courante (v0.40.1) vit dans le [EditorViewModel] — un build
- * démarre bascule vers BUILD automatiquement, une sync démarre bascule
- * vers SYNC. Plus de `BasculerFiltreConsole` — le chip est en lecture
- * seule. Le fragment LIT l'action depuis l'état et publie le chip.
+ * Bouton Tâches armé par le cache de la sync, BANDEAU d'échec avec « Voir
+ * les problèmes » et « Réessayer », annulation visible en vol,
+ * auto-défilement honnête (le suivi s'arrête quand l'utilisateur remonte
+ * — un build fini ne défile plus).
  *
  * Exemption detekt ciblée (même précédent que `TerminalTiroirFragment` et
  * `InstallFragment`) : TooManyFunctions — un fragment de panneau est un
@@ -80,9 +66,6 @@ class PanneauConsoleFragment : Fragment() {
     /** ViewModel de l'espace de travail (porté par l'activité). */
     private val viewModel: EditorViewModel by activityViewModels()
 
-    /** Console du tooling (arbre / lignes / synthèse selon l'action). */
-    private lateinit var adaptateur: ConsoleToolingAdapter
-
     /**
      * Action courante (v0.40.1, prompt de suivi §3) : la vérité vit dans
      * [EditorViewModel] via `EtatEditor.filtreConsole` — le fragment ne
@@ -94,16 +77,10 @@ class PanneauConsoleFragment : Fragment() {
      */
     private var action: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
-    /** Taille de la dernière fenêtre rendue (auto-défilement). */
-    private var tailleDerniereFenetre = 0
+    // ---- Console flux brut (v0.46.0, ADR 0078) --------------------------
 
-    // ---- Zone texte (v0.42.0, phase 1 — lignes brutes par append) ------
-
-    /** Lignes stylées en attente du prochain vidage (LOTIES par trame). */
-    private val lignesEnAttente = mutableListOf<CharSequence>()
-
-    /** Un `Vider` est en attente — le vidage posera un tampon vierge. */
-    private var viderEnAttente = false
+    /** Événements en attente du prochain vidage (LOTIS par trame). */
+    private val evenementsEnAttente = mutableListOf<EvenementConsoleTexte>()
 
     /** Un vidage est déjà planifié (déduplication des posts). */
     private var vidagePlanifie = false
@@ -111,11 +88,8 @@ class PanneauConsoleFragment : Fragment() {
     /** Un défilement vers le bas est déjà planifié (déduplication). */
     private var defilementPlanifie = false
 
-    /** Tolérance « l'utilisateur est en bas » (une ligne ≈ 16 dp, en px). */
+    /** Tolérance « l'utilisateur est au bas » (une ligne ≈ 16 dp, en px). */
     private var toleranceBasPx = 0
-
-    /** Nombre de rangées structurées du dernier rendu (état vide honnête). */
-    private var nbRangeesDernierRendu = 0
 
     /** Retour système pendant l'affichage de la configuration (§3.3) : la
      *  referme avant de remonter au retour de l'espace. */
@@ -143,22 +117,6 @@ class PanneauConsoleFragment : Fragment() {
         vue: View,
         etat: Bundle?,
     ) {
-        adaptateur = ConsoleToolingAdapter()
-        liaison.listeSortie.layoutManager = LinearLayoutManager(requireContext())
-        liaison.listeSortie.adapter = adaptateur
-        // v0.40.1 (correctif n°5 du prompt de suivi) : pas d'animation de
-        // changement sur les rangées de la console — un tick de durée qui
-        // modifie le texte d'une étape ou d'une tâche ne doit pas clignoter.
-        // `DefaultItemAnimator.supportsChangeAnimations = false` désactive
-        // l'animation sans casser le DiffUtil (les payloads font la mise à
-        // jour en place via `onBindViewHolder(holder, position, payloads)`).
-        (liaison.listeSortie.itemAnimator as? androidx.recyclerview.widget.DefaultItemAnimator)?.apply {
-            supportsChangeAnimations = false
-            // Les animations d'ajout (rangée qui apparaît) restent utiles
-            // pour le défilement en bas — on ne désactive QUE les
-            // changements (qui clignotaient à chaque tick de durée).
-            changeDuration = 0
-        }
         liaison.boutonAnnulerBuild.setOnClickListener {
             viewModel.onAction(ActionEditor.AnnulerBuild)
         }
@@ -196,7 +154,6 @@ class PanneauConsoleFragment : Fragment() {
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             if (action != etat.filtreConsole) {
                 action = etat.filtreConsole
-                tailleDerniereFenetre = 0
                 rendre(viewModel.etatGradle.value)
             }
         }
@@ -215,16 +172,17 @@ class PanneauConsoleFragment : Fragment() {
             }
         }
 
-        // v0.42.0 (phase 1) : zone TEXTE — le flux dédié des lignes brutes.
-        // Le tampon est posé VIERGE puis l'abonnement rejoue l'historique
-        // borné du service (reconstruction exacte) avant de suivre le
-        // direct — chaque événement s'accumule, le vidage LOTI par trame
-        // applique. La collecte vit sur le `viewLifecycleOwner` : elle
-        // survit à un onStop (un onglet du panneau ne doit PAS rejouer
-        // l'historique à son retour — doublement) et meurt avec la vue
-        // (une rotation se ré-abonne et reconstruit depuis le rejeu).
+        // v0.46.0 (ADR 0078) : les DEUX consoles sont posées VIERGES puis
+        // l'abonnement rejoue l'historique borné du service (reconstruction
+        // exacte, canal par canal) avant de suivre le direct — chaque
+        // événement s'accumule, le vidage LOTI PAR TRAME applique. La
+        // collecte vit sur le `viewLifecycleOwner` : elle survit à un
+        // onStop (un onglet du panneau ne doit PAS rejouer l'historique à
+        // son retour — doublement) et meurt avec la vue (une rotation se
+        // ré-abonne et reconstruit depuis le rejeu).
         toleranceBasPx = (TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt()
-        poserTamponVierge()
+        poserTamponVierge(liaison.texteConsoleSync)
+        poserTamponVierge(liaison.texteConsoleBuild)
         viewModel.lignesBrutesConsole
             .onEach { evenement -> accumuler(evenement) }
             .launchIn(viewLifecycleOwner.lifecycleScope)
@@ -238,12 +196,11 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        // v0.42.0 : le lot en attente appartient à la vue morte — la
+        // v0.46.0 : le lot en attente appartient à la vue morte — la
         // reconstruction repassera par le rejeu, le garder doublerait.
-        viderEnAttente = false
         vidagePlanifie = false
         defilementPlanifie = false
-        lignesEnAttente.clear()
+        evenementsEnAttente.clear()
         liaisonAmorce = null
         super.onDestroyView()
     }
@@ -270,14 +227,14 @@ class PanneauConsoleFragment : Fragment() {
         }
     }
 
-    /** Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le
-     *  bouton Tâches, le bandeau d'échec (message du serveur sinon
-     *  libellé générique, « Réessayer » seulement si des tâches existent),
-     *  le chip d'action courante (v0.40.1 §3), la console structurée
-     *  (fenêtre bornée, arbre en vue Sync), la VISIBILITÉ de la zone
-     *  texte (v0.42.0 : vue Build uniquement — la vue Sync reste l'arbre
-     *  seul de l'aperçu v5) et l'état vide (aucune rangée ET aucune
-     *  ligne brute). */
+    /**
+     * Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le
+     * bouton Tâches, le bandeau d'échec (message du serveur sinon
+     * libellé générique, « Réessayer » seulement si des tâches existent),
+     * le chip d'action courante (v0.40.1 §3) et la VISIBILITÉ de la
+     * console du canal courant (v0.46.0 : deux `TextView`, le chip
+     * choisit — plus de RecyclerView, plus de rangées à reconstruire).
+     */
     private fun rendre(etat: EtatGradle) {
         liaison.statutSortie.text =
             PresentationTooling.libelleStatut(etat).resoudre(requireContext())
@@ -307,55 +264,50 @@ class PanneauConsoleFragment : Fragment() {
         // v0.41.1 : champ de saisie stdin visible pendant un build EN_COURS.
         liaison.champEntreeConsole.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
-        // v0.42.0 (phase 1) : la zone texte n'existe qu'en vue BUILD —
-        // la vue Sync reste l'arbre + son pied (aperçu v5), le plein
-        // écran pour le RecyclerView.
-        val zoneTexteVisible = action == FiltreCanalConsole.BUILD
-        liaison.zoneTexteDefilement.isVisible = zoneTexteVisible
-        liaison.separateurConsole.isVisible = zoneTexteVisible
+        // v0.46.0 : la console du canal courant est la SEULE visible —
+        // l'autre continue de s'accumuler en coulisses, basculer ne perd
+        // rien.
+        majVisibiliteConsoles()
+    }
 
-        val rangees = construireRangeesConsole(etat, action)
-        nbRangeesDernierRendu = rangees.size
-        adaptateur.submitList(rangees)
-        val enVol = etat.statutBuild == StatutBuild.EN_COURS || etat.synchronisationEnCours
-        if (enVol && rangees.size > tailleDerniereFenetre && rangees.isNotEmpty()) {
-            liaison.listeSortie.scrollToPosition(rangees.lastIndex)
-        }
-        tailleDerniereFenetre = rangees.size
+    /** Visibilité des deux consoles selon l'action courante + état vide. */
+    private fun majVisibiliteConsoles() {
+        val vueSync = action == FiltreCanalConsole.SYNC
+        liaison.defilementConsoleSync.isVisible = vueSync
+        liaison.defilementConsoleBuild.isVisible = !vueSync
         majEtatVide()
     }
 
-    /** État vide honnête (v0.42.0) : aucune rangée structurée, et — en
-     *  vue BUILD — aucune ligne brute dans la zone texte non plus ; la
-     *  vue Sync s'appuie sur ses seules rangées (l'arbre absent parle). */
+    /** État vide honnête (v0.46.0) : la console du canal COURANT n'a
+     *  encore rien écrit — ni flux, ni étapes. */
     private fun majEtatVide() {
-        val texteBrutPresent = !liaison.texteBrutConsole.text.isNullOrEmpty()
-        liaison.texteSortieVide.isVisible =
-            nbRangeesDernierRendu == 0 &&
-            (action == FiltreCanalConsole.SYNC || !texteBrutPresent)
+        val texteCourant =
+            if (action == FiltreCanalConsole.SYNC) {
+                liaison.texteConsoleSync.text
+            } else {
+                liaison.texteConsoleBuild.text
+            }
+        liaison.texteSortieVide.isVisible = texteCourant.isNullOrEmpty()
     }
 
-    // ---- Zone texte : accumulation, vidage loti, auto-défilement -------
+    // ---- Console : accumulation, vidage loti, auto-défilement ----------
 
     /**
-     * Accumule UN événement de la zone texte (v0.42.0, phase 1) : une
-     * ligne s'ajoute au lot en attente, un vidage arme le tampon vierge
-     * (et jette le lot en cours — ces lignes appartenaient à l'ancienne
-     * console). Le vidage est PLANIFIÉ : toutes les lignes arrivées dans
-     * la même passe de la boucle de messages partent en UN seul `append`
-     * — une seule notification de changement, une seule passe de layout
-     * par trame.
+     * Accumule UN événement de la console (v0.46.0) : la ligne rejoint le
+     * lot en attente, le vidage d'un canal arme son tampon vierge (et
+     * jette les lignes du lot qui lui appartiennent — elles appartenaient
+     * à l'ancienne console). Le vidage est PLANIFIÉ : tous les événements
+     * arrivés dans la même passe de la boucle de messages partent en UN
+     * seul lot — une seule notification de changement, une seule passe de
+     * layout par trame et par canal.
      */
     private fun accumuler(evenement: EvenementConsoleTexte) {
-        when (evenement) {
-            is EvenementConsoleTexte.Vider -> {
-                viderEnAttente = true
-                lignesEnAttente.clear()
-            }
-
-            is EvenementConsoleTexte.Ligne -> {
-                lignesEnAttente += ligneStylee(evenement)
-            }
+        if (evenement is EvenementConsoleTexte.Vider) {
+            evenementsEnAttente.removeAll { it is EvenementConsoleTexte.Vider && it.canal == evenement.canal }
+            evenementsEnAttente.removeAll { it is EvenementConsoleTexte.Ligne && it.canal == evenement.canal }
+            evenementsEnAttente += evenement
+        } else {
+            evenementsEnAttente += evenement
         }
         planifierVidage()
     }
@@ -374,92 +326,135 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     /**
-     * Applique le lot accumulé (v0.42.0) : tampon vierge si un vidage est
-     * armé, PUIS les lignes en un seul `append` (le `TextView` garde un
-     * `Editable` : l'ajout est en place, O(longueur de la ligne), les
-     * spans de couleurs voyagent avec). L'auto-défilement suit le bas si
-     * l'utilisateur y ÉTAIT (l'intention de lecture est capturée AVANT
-     * l'ajout) — un utilisateur remonté dans l'historique n'est jamais
-     * rabattu en bas.
+     * Applique le lot accumulé (v0.46.0) : chaque événement va à SA
+     * console (Sync ou Build — les deux s'accumulent, seule la visible se
+     * défile), tampon vierge si un vidage est armé, PUIS les lignes en un
+     * seul `append` par console (le `TextView` garde un `Editable` :
+     * l'ajout est en place, O(longueur de la ligne), les spans de couleurs
+     * voyagent avec). L'auto-défilement suit le bas si l'utilisateur y
+     * ÉTAIT (l'intention de lecture est capturée AVANT l'ajout) — un
+     * utilisateur remonté dans l'historique n'est jamais rabattu en bas.
      */
     private fun viderLot(vue: FragmentPanneauConsoleBinding) {
-        val suivreBas = estAuBas(vue)
-        if (viderEnAttente) {
-            viderEnAttente = false
-            poserTamponVierge()
+        if (evenementsEnAttente.isEmpty()) {
+            majEtatVide()
+            return
         }
-        if (lignesEnAttente.isNotEmpty()) {
-            val lot = SpannableStringBuilder()
-            lignesEnAttente.forEach { lot.append(it) }
-            lignesEnAttente.clear()
-            vue.texteBrutConsole.append(lot)
-            if (suivreBas) suivreLeBas(vue)
+        val suivreBasSync = action == FiltreCanalConsole.SYNC && estAuBas(vue.defilementConsoleSync)
+        val suivreBasBuild = action == FiltreCanalConsole.BUILD && estAuBas(vue.defilementConsoleBuild)
+        val vidageSync = evenementsEnAttente.any { it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.SYNC }
+        val vidageBuild =
+            evenementsEnAttente.any {
+                it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.BUILD
+            }
+        val lotSync = lotDuCanal(CanalTooling.SYNC)
+        val lotBuild = lotDuCanal(CanalTooling.BUILD)
+        evenementsEnAttente.clear()
+        if (vidageSync) poserTamponVierge(vue.texteConsoleSync)
+        if (vidageBuild) poserTamponVierge(vue.texteConsoleBuild)
+        if (lotSync.isNotEmpty()) {
+            vue.texteConsoleSync.append(lotSync)
+            if (suivreBasSync) suivreLeBas(vue.defilementConsoleSync)
+        }
+        if (lotBuild.isNotEmpty()) {
+            vue.texteConsoleBuild.append(lotBuild)
+            if (suivreBasBuild) suivreLeBas(vue.defilementConsoleBuild)
         }
         majEtatVide()
     }
 
-    /** Pose un tampon `Editable` VIERGE — `append()` modifie en place. */
-    private fun poserTamponVierge() {
-        liaison.texteBrutConsole.text = Editable.Factory.getInstance().newEditable("")
+    /** Stylise et accumule les LIGNES du lot en attente pour un canal. */
+    private fun lotDuCanal(canal: CanalTooling): SpannableStringBuilder {
+        val lot = SpannableStringBuilder()
+        evenementsEnAttente
+            .filterIsInstance<EvenementConsoleTexte.Ligne>()
+            .filter { ligne -> ligne.canal == canal }
+            .forEach { ligne -> lot.append(ligneStylee(ligne)) }
+        return lot
     }
 
-    /** L'utilisateur est-il au bas de la zone texte (tolérance : une ligne) ? */
-    private fun estAuBas(vue: FragmentPanneauConsoleBinding): Boolean {
-        val contenu = vue.zoneTexteDefilement.getChildAt(0) ?: return true
-        return vue.zoneTexteDefilement.scrollY >=
-            contenu.height - vue.zoneTexteDefilement.height - toleranceBasPx
+    /** Pose un tampon `Editable` VIERGE — `append()` modifie en place. */
+    private fun poserTamponVierge(vue: com.google.android.material.textview.MaterialTextView) {
+        vue.text = Editable.Factory.getInstance().newEditable("")
+    }
+
+    /** L'utilisateur est-il au bas de la console donnée (tolérance : une ligne) ? */
+    private fun estAuBas(defilement: androidx.core.widget.NestedScrollView): Boolean {
+        val contenu = defilement.getChildAt(0) ?: return true
+        return defilement.scrollY >= contenu.height - defilement.height - toleranceBasPx
     }
 
     /** Défile vers le bas (dédupliqué : un post vivant au plus). */
-    private fun suivreLeBas(vue: FragmentPanneauConsoleBinding) {
+    private fun suivreLeBas(defilement: androidx.core.widget.NestedScrollView) {
         if (defilementPlanifie) return
         defilementPlanifie = true
-        vue.zoneTexteDefilement.post {
+        defilement.post {
             defilementPlanifie = false
-            vue.zoneTexteDefilement.fullScroll(View.FOCUS_DOWN)
+            defilement.fullScroll(View.FOCUS_DOWN)
         }
     }
 
     /**
-     * Construit la ligne stylée (v0.42.0) : le texte porte sa couleur —
-     * stderr en rouge d'erreur, stdout (et l'avertissement bénin apaisé,
-     * C5) en couleur de sortie atténuée pour l'apaisé. Le retour à la
-     * ligne final fait qu'aucune ligne n'en chevauche une autre, et
-     * l'auto-défilement « plein bas » repose sur un dernier retour
-     * toujours présent.
+     * Construit la ligne stylée (v0.46.0) : le libellé se résout (une
+     * ressource, un brut ou une composition) et porte SA couleur — stderr
+     * en rouge d'erreur, stdout en couleur de sortie (l'avertissement
+     * bénin apaisé, C5), étapes et synthèses en couleur de surface. Le
+     * retour à la ligne final fait qu'aucune ligne n'en chevauche une
+     * autre, et l'auto-défilement « plein bas » repose sur un dernier
+     * retour toujours présent.
      */
     private fun ligneStylee(ligne: EvenementConsoleTexte.Ligne): CharSequence {
         val contexte = requireContext()
-        val couleurBrute =
-            when {
-                !ligne.apaisee && ligne.flux == FluxSortieBuild.STDERR -> {
+        val couleur =
+            when (ligne.style) {
+                StyleLigne.ERREUR -> {
                     androidx.core.content.ContextCompat.getColor(
                         contexte,
                         jo.codeide.core.ui.R.color.codeide_stderr,
                     )
                 }
 
-                else -> {
+                StyleLigne.APAISEE -> {
+                    androidx.core.graphics.ColorUtils.setAlphaComponent(
+                        androidx.core.content.ContextCompat.getColor(
+                            contexte,
+                            jo.codeide.core.ui.R.color.codeide_stdout,
+                        ),
+                        ALPHA_LIGNE_APAISEE,
+                    )
+                }
+
+                StyleLigne.SORTIE, StyleLigne.TELECHARGEMENT -> {
                     androidx.core.content.ContextCompat.getColor(
                         contexte,
                         jo.codeide.core.ui.R.color.codeide_stdout,
                     )
                 }
+
+                StyleLigne.ETAPE, StyleLigne.SYNTHESE -> {
+                    com.google.android.material.color.MaterialColors.getColor(
+                        liaison.root,
+                        com.google.android.material.R.attr.colorOnSurface,
+                    )
+                }
             }
-        val couleur =
-            if (ligne.apaisee) {
-                androidx.core.graphics.ColorUtils
-                    .setAlphaComponent(couleurBrute, ALPHA_LIGNE_APAISEE)
-            } else {
-                couleurBrute
-            }
-        val texte = SpannableString(ligne.texte + "\n")
+        val texte = SpannableString(ligne.libelle.resoudre(contexte) + "\n")
         texte.setSpan(
             ForegroundColorSpan(couleur),
             0,
             texte.length,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
         )
+        if (ligne.style == StyleLigne.SYNTHESE) {
+            // La conclusion de sync se détache du flux qui la précède —
+            // grasse, comme le verdict d'une fenêtre Build.
+            texte.setSpan(
+                StyleSpan(android.graphics.Typeface.BOLD),
+                0,
+                texte.length,
+                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        }
         return texte
     }
 
@@ -581,7 +576,7 @@ class PanneauConsoleFragment : Fragment() {
         const val ALPHA_LIGNE_APAISEE = 140
 
         /**
-         * Tolérance « l'utilisateur est au bas » de la zone texte (v0.42.0)
+         * Tolérance « l'utilisateur est au bas » de la console (v0.42.0)
          * : une LIGNE de marge en dp — un lecteur à une ligne du fond
          * reste considéré comme SUIVEUR du bas.
          */

@@ -76,9 +76,6 @@ class PanneauConfigToolingFragment : Fragment() {
         // Retour en tête (§3.3) : la flèche ramène à la console du panneau.
         liaison.toolbarConfigTooling.setNavigationOnClickListener { surFermeture?.invoke() }
 
-        liaison.interrupteurAfficherTaches.setOnCheckedChangeListener { _, coche ->
-            if (!renduEnCours) viewModel.definirAfficherTaches(coche)
-        }
         liaison.interrupteurHorsLigne.setOnCheckedChangeListener { _, coche ->
             if (!renduEnCours) viewModel.definirHorsLigne(coche)
         }
@@ -118,7 +115,6 @@ class PanneauConfigToolingFragment : Fragment() {
     private fun rendreReglages(reglages: AppSettings) {
         renduEnCours = true
         try {
-            liaison.interrupteurAfficherTaches.isChecked = reglages.toolingAfficherTaches
             liaison.interrupteurHorsLigne.isChecked = reglages.toolingHorsLigne
 
             // Le champ ne se réécrit QUE hors saisie : effacer le texte d'un

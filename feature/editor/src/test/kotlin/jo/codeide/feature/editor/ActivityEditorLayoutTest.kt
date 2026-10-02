@@ -205,7 +205,24 @@ class ActivityEditorLayoutTest {
             "canal du statut — l'information porte sa provenance (v0.32.5)",
             console.findViewById<View>(R.id.icone_canal_sortie),
         )
-        assertNotNull("liste de sortie (v0.32.4)", console.findViewById<View>(R.id.liste_sortie))
+        // v0.46.0 (ADR 0078) : console FLUX BRUT — DEUX TextView monospace
+        // (un PAR canal), le chip choisit la visible.
+        assertNotNull(
+            "console du canal BUILD (v0.46.0)",
+            console.findViewById<View>(R.id.texte_console_build),
+        )
+        assertNotNull(
+            "défilement du canal BUILD (v0.46.0)",
+            console.findViewById<View>(R.id.defilement_console_build),
+        )
+        assertNotNull(
+            "console du canal SYNC (v0.46.0)",
+            console.findViewById<View>(R.id.texte_console_sync),
+        )
+        assertNotNull(
+            "défilement du canal SYNC (v0.46.0)",
+            console.findViewById<View>(R.id.defilement_console_sync),
+        )
         assertNotNull(
             "annulation du build (v0.32.4)",
             console.findViewById<View>(R.id.bouton_annuler_build),
@@ -214,11 +231,6 @@ class ActivityEditorLayoutTest {
             "engrenage de configuration du tooling — accessible DEPUIS la console (v3)",
             console.findViewById<View>(R.id.bouton_config_tooling),
         )
-
-        // Rangée de TÂCHE (v5 — seule ligne de la vue Build, l'étiquette
-        // de canal a disparu avec la chronologie brute).
-        val tache = gonfler(R.layout.ligne_tache_console)
-        assertNotNull("texte de la tâche (v3 ; v5)", tache.findViewById<View>(R.id.texte_tache))
 
         val problemes = gonfler(R.layout.fragment_panneau_problemes)
         assertNotNull("liste des problèmes (v0.32.4)", problemes.findViewById<View>(R.id.liste_problemes))
@@ -258,49 +270,11 @@ class ActivityEditorLayoutTest {
         )
     }
 
-    @Test
-    fun `les rangees d arbre et de synthese se gonflent avec leurs marqueurs`() {
-        val etapeArbre = gonfler(R.layout.ligne_arbre_etape)
-        assertNotNull(
-            "marqueur d'étape terminée (§3.3)",
-            etapeArbre.findViewById<View>(R.id.marqueur_etape_terminee),
-        )
-        assertNotNull(
-            "marqueur spinner d'étape en cours (§3.3)",
-            etapeArbre.findViewById<View>(R.id.marqueur_etape_en_cours),
-        )
-        assertNotNull(
-            "marqueur d'étape en attente (§3.3)",
-            etapeArbre.findViewById<View>(R.id.marqueur_etape_attente),
-        )
-        // v0.40.1 (correctif n°5 du prompt de suivi) : le marqueur
-        // « sautée » est retiré du layout (l'étape C supprimera le
-        // concept « En cache » entièrement). Le marqueur d'étape en
-        // cours est désormais un `AnneauTournant` (drawable vectoriel
-        // 16 dp + ObjectAnimator partagé) — déjà vérifié ci-dessus
-        // comme « marqueur spinner d'étape en cours ».
-        assertNotNull("libellé de l'étape (§3.3)", etapeArbre.findViewById<View>(R.id.libelle_etape_arbre))
-
-        val detailTelechargement = gonfler(R.layout.ligne_detail_telechargement)
-        assertNotNull(
-            "barre de téléchargement sous l'étape active (§3.3)",
-            detailTelechargement.findViewById<View>(R.id.barre_telechargement_etape),
-        )
-        assertNotNull(
-            "détail textuel du téléchargement (§3.3)",
-            detailTelechargement.findViewById<View>(R.id.detail_telechargement_etape),
-        )
-        assertNotNull(
-            "artefact courant du téléchargement (§3.3)",
-            detailTelechargement.findViewById<View>(R.id.element_telechargement_etape),
-        )
-
-        val synthese = gonfler(R.layout.ligne_synthese_build)
-        assertNotNull(
-            "texte de la synthèse de build (§3.3)",
-            synthese.findViewById<View>(R.id.texte_synthese_build),
-        )
-    }
+    // v0.46.0 (ADR 0078) : le test `les rangees d arbre et de synthese se
+    // gonflent avec leurs marqueurs` est SUPPRIMÉ — les layouts de rangées
+    // (ligne_arbre_etape, ligne_detail_telechargement, ligne_synthese_build,
+    // ligne_tache_console, ligne_classpath_module) ont disparu avec la
+    // console à RecyclerView : le flux brut n'a plus de rangées à gonfler.
 
     @Test
     fun `l ecran de configuration du tooling se gonfle avec ses vues completes`() {
@@ -312,10 +286,9 @@ class ActivityEditorLayoutTest {
             "toolbar de l'écran de configuration (v3)",
             config.findViewById<View>(R.id.toolbar_config_tooling),
         )
-        assertNotNull(
-            "interrupteur d'affichage des tâches (v3)",
-            config.findViewById<View>(R.id.interrupteur_afficher_taches),
-        )
+        // v0.46.0 : l'interrupteur « afficher les tâches » a disparu avec
+        // les rangées structurées — le flux brut de Gradle porte ses
+        // propres lignes « > Task ».
         assertNotNull(
             "interrupteur du mode hors ligne (v3)",
             config.findViewById<View>(R.id.interrupteur_hors_ligne),

@@ -7,9 +7,11 @@ import jo.codeide.core.domain.StatutBuild
 
 /**
  * Libellé localisable produit par [PresentationTooling] : un identifiant de
- * ressource (avec ses arguments de format) ou un texte brut (message
- * d'échec du serveur). Le présentateur reste PUR — il ne touche ni `Context`
- * ni vue ; la résolution a lieu au dernier moment par l'appelant.
+ * ressource (avec ses arguments de format), un texte brut (message d'échec
+ * du serveur) ou une COMPOSITION de libellés (v0.46.0 — console flux brut :
+ * une ligne d'étape de sync est le libellé de l'étape suivi de son suffixe de
+ * conclusion). Le présentateur reste PUR — il ne touche ni `Context` ni
+ * vue ; la résolution a lieu au dernier moment par l'appelant.
  */
 internal sealed interface TexteTooling {
     /** Libellé d'une ressource de chaîne (identifiant + arguments). */
@@ -21,6 +23,11 @@ internal sealed interface TexteTooling {
     /** Libellé brut (message technique déjà formulé). */
     data class Brut(
         val texte: String,
+    ) : TexteTooling
+
+    /** Libellé composé : chaque partie résolue puis concaténée. */
+    data class Compose(
+        val parties: List<TexteTooling>,
     ) : TexteTooling
 }
 
@@ -45,6 +52,10 @@ internal fun TexteTooling.resoudre(contexte: Context): String =
 
         is TexteTooling.Brut -> {
             texte
+        }
+
+        is TexteTooling.Compose -> {
+            parties.joinToString(separator = "") { partie -> partie.resoudre(contexte) }
         }
     }
 

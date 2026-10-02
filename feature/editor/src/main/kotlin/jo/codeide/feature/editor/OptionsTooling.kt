@@ -15,10 +15,11 @@ import javax.inject.Singleton
  * collecte des paramètres applicatifs en tâche de fond, la dernière valeur
  * connue servie à la demande, sans coupler l'espace à un flux de réglages.
  *
- * La console y lit : l'affichage des tâches au fil du build ; l'exécution
- * y lit : les arguments Gradle du prochain build (`--offline` + arguments
- * libres — l'orchestrateur garde la main sur `--console=plain`, ajouté en
- * DERNIER côté serveur).
+ * L'exécution y lit : les arguments Gradle du prochain build (`--offline` +
+ * arguments libres — l'orchestrateur garde la main sur `--console=plain`,
+ * ajouté en DERNIER côté serveur). L'ancien réglage « afficher les tâches »
+ * a disparu avec la console à rangées (v0.46.0, ADR 0078) : le flux brut
+ * de Gradle porte ses propres lignes « > Task ».
  *
  * Classe pure testable : la collecte vit dans une portée interne bornée au
  * dispatcher injecté (règle 5), l'état exposé est un instantané immuable.
@@ -36,15 +37,11 @@ class OptionsTooling
         /**
          * Derniers réglages connus — @Volatile + mutable sans private set :
          * écrits par la collecte de production, lisibles à tout instant par
-         * la console (affichage des tâches) et l'exécution (arguments du
-         * prochain build) — un aperçu cohérent sans verrou.
+         * l'exécution (arguments du prochain build) — un aperçu cohérent
+         * sans verrou.
          */
         @Volatile
         internal var courants: AppSettings = AppSettings()
-
-        /** Les tâches du build s'affichent-elles dans la console ? */
-        internal val afficherTaches: Boolean
-            get() = courants.toolingAfficherTaches
 
         /** Arguments Gradle du prochain build (mode hors ligne + libres). */
         internal fun argumentsBuild(): List<String> {
