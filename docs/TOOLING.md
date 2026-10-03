@@ -87,7 +87,7 @@ l'expérience de la version antérieure)
 | **Socket perdu côté app** (app morte) | l'orchestrateur voit l'EOF et sort SEUL, code 0, avant même le health check — aucun orphelin | `ChaosToolingTest` (réel) |
 | **Version incompatible** | refus au handshake, AVANT tout handler : `PROTOCOL_VERSION_MISMATCH` clair puis fermeture — échec définitif sans relance | `HandshakeAppTest`, handshake G2 |
 | **JDK introuvable** | `DECONNECTEE` sans AUCUN lancement (jamais de boucle de relance vouée à l'échec) ; re-déclenchement quand le bootstrap s'installe | `DaemonManagerTest` |
-| **Orchestrateur muet** (vivant mais bloqué) | health check ping/pong : muet 15 s → kill forcé → relance bornée | `DaemonManagerTest` |
+| **Orchestrateur muet** (vivant mais bloqué) | health check ping/pong : muet 15 s → kill forcé → relance bornée. v0.49.0 (ADR 0080) : le verdict journalise les signes vitaux de la pompe (âge du pong, profondeur des voies) — le coupable se lit dans la ligne ; les deux mécanismes qui déclenchaient le kill à tort (pompe cliente gelée sur un canal plein, pong orchestrateur enseveli sous un verrou d'écriture) sont fermés par construction : lecteur sans suspension + voies ordonnées côté app, fil écrivain + file PRIORITAIRE pong côté orchestrateur | `DaemonManagerTest`, `ChaosToolingTest`, ADR 0080 |
 | **Épuisement des relances** (5) | `ECHOUEE` — échec définitif jusqu'à un nouveau `demarrer` (jamais de boucle infinie) | `DaemonManagerTest` |
 
 
