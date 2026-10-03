@@ -9,7 +9,9 @@ import java.io.IOException
 /**
  * Écrivain de la commande `android-sdk` du terminal (v0.37.3 — retour
  * utilisateur : « ajoute la section pour l'installation du SDK Android,
- * cmdline-tools, etc. »).
+ * cmdline-tools, etc. » ; v0.47.0 — correctif de la disposition sur
+ * première installation : le parent `cmdline-tools/` est créé avant le
+ * déplacement, le `mv` n'échoue plus après le téléchargement).
  *
  * Le dépôt APT `codeide-packages` ne fournit AUCUN paquet `android-sdk`
  * (ADR 0032) : l'installation passe par les **commandline-tools** officiels
@@ -44,7 +46,14 @@ import java.io.IOException
  *   est un format de jar — zéro dépendance supplémentaire) ;
  * - l'archive Google extrait un dossier racine `cmdline-tools/` : il est
  *   déplacé vers la disposition canonique `cmdline-tools/latest/` exigée
- *   par `sdkmanager` pour se localiser lui-même.
+ *   par `sdkmanager` pour se localiser lui-même — le répertoire PARENT
+ *   `cmdline-tools/` est créé AVANT le déplacement (v0.47.0, retour
+ *   d'appareil réel : « mv: cannot move
+ *   '…/.staging-cmdline-tools/cmdline-tools' to
+ *   '…/android-sdk/cmdline-tools/latest': No such file or directory » —
+ *   sur une PREMIÈRE installation le parent n'existe pas et le `mv`
+ *   échouait APRÈS le téléchargement de 172,6 Mio, un gaspillage réseau
+ *   que `mkdir -p` élimine pour toujours).
  *
  * Le script est VERSIONNÉ ([VersionneurScriptsTerminal]) : l'app le
  * régénère quand son contenu évolue — jamais de réinstallation du
@@ -261,6 +270,12 @@ internal class EcrivainSdkAndroidCli(
                 ) || { rm -rf "${dollar}provisoire" "${dollar}archive"; \
                        echo "android-sdk: extraction impossible (archive corrompue ?)" >&2; exit 1; }
                 rm -f "${dollar}archive"
+                # v0.47.0 (retour d'appareil réel) : le répertoire PARENT
+                # doit exister AVANT le déplacement — sur une première
+                # installation il n'a jamais été créé et le mv échouait
+                # d'un sec « No such file or directory » APRÈS le
+                # téléchargement de 172,6 Mio.
+                mkdir -p "${dollar}SDK_HOME/cmdline-tools"
                 rm -rf "${dollar}SDK_HOME/cmdline-tools/latest"
                 mv "${dollar}provisoire/cmdline-tools" "${dollar}SDK_HOME/cmdline-tools/latest" || {
                   rm -rf "${dollar}provisoire"

@@ -252,6 +252,11 @@ public data class EtatBuild(
  * @property modelesEchoues noms des modèles en échec.
  * @property dureeMs durée effective.
  * @property messageEchec message du premier échec si échec, sinon `null`.
+ * @property taches tâches du projet résolues PAR l'action de sync
+ * (v0.47.0 — le résultat de sync les PORTE : l'UI arme le bouton Tâches
+ * sur le fait, sans second aller-retour de listage). Vide si le serveur
+ * antérieur ne les envoie pas — l'appelant retombe alors sur
+ * [taches], servi par le cache déposé par la même sync.
  */
 public data class ResultatSynchronisation(
     public val projectDir: String,
@@ -261,6 +266,7 @@ public data class ResultatSynchronisation(
     public val modelesEchoues: List<String> = emptyList(),
     public val dureeMs: Long = 0,
     public val messageEchec: String? = null,
+    public val taches: List<InfoTache> = emptyList(),
 )
 
 /**

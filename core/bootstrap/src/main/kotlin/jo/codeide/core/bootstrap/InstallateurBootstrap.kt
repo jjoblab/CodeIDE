@@ -187,6 +187,19 @@ internal class InstallateurBootstrap
             }
             portee.launch {
                 if (!LocalisationOutils.bootstrapInstalle(racine)) return@launch
+                // v0.47.0 (guérison des répertoires APT) : AVANT le test de
+                // version des scripts — les préfixes installés par une
+                // version antérieure manquent `etc/apt/preferences.d/` et
+                // voisins, chaque `pkg install` y imprimait un warning. La
+                // création est idempotent et bon marché : elle se exécute à
+                // CHAQUE démarrage, indépendamment du marqueur de version.
+                runCatching {
+                    configurateur.assurerRepertoiresApt(DispositionsBootstrap.prefix(racine))
+                }.onFailure { echec ->
+                    journalApp.w(TAG) {
+                        "répertoires APT non guéris (${echec::class.simpleName})"
+                    }
+                }
                 if (VersionneurScriptsTerminal.dejaAJour(racine)) return@launch
                 runCatching {
                     ecrivainProfil.ecrire(racine)

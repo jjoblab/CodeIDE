@@ -527,6 +527,9 @@ class EditorViewModel
                         projectDir = cheminProjet ?: "",
                         reussie = true,
                         dureeMs = state.dureeMs,
+                        // v0.47.0 : les tâches restituées traversent AVEC le
+                        // résultat — même contrat que la sync en direct.
+                        taches = state.taches,
                     ),
                 ),
             )
@@ -916,8 +919,12 @@ class EditorViewModel
                 // (l'orchestrateur garde la main sur `--console=plain`).
                 val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
                 serviceGradle.publierResultatSync(resultat)
-                preparerClasspathLspSiSyncUtile(dossier, resultat)
+                // v0.47.0 : l'armement du bouton Tâches passe AVANT la
+                // préparation du classpath LSP — le résultat de sync PORTE
+                // les tâches, la publication est immédiate (même trame que
+                // « Synchronisé ») ; le classpath peut travailler derrière.
                 publierTachesDisponiblesSiSyncUtile(dossier, resultat)
+                preparerClasspathLspSiSyncUtile(dossier, resultat)
                 // v0.40.1 (prompt de suivi §2) : on persiste l'état sous
                 // `.codeide/local/sync-state.json` pour restituer au retour
                 // si l'empreinte n'a pas changé. En cas d'échec, on NE
@@ -932,11 +939,17 @@ class EditorViewModel
 
         /**
          * Remplit les tâches disponibles après une sync utile (v4, §3.2) :
-         * le cache serveur rend le listage INSTANTANÉ (aucune seconde
-         * d'attente — le sélecteur s'ouvrira sans latence, le bouton
-         * Tâches s'active sur un fait). Échec : le bouton Tâches reste
-         * ACTIVABLE — le sélecteur propose un listage à la demande (il
-         * retombe sur `listerTachesProjet` côté orchestrateur). v0.39.1
+         * v0.47.0 — le résultat de sync PORTE les tâches résolues par
+         * l'action (champ `taches`) : le bouton Tâches s'arme SUR LE
+         * RÉSULTAT, dans la MÊME trame main-thread que « Synchronisé » —
+         * zéro aller-retour, l'activation est immédiate (retour
+         * utilisateur : « une fois la sync terminée, le bouton devrait
+         * être immédiatement activé »). Le listage distant ne reste qu'un
+         * REPLI : serveur antérieur sans le champ (liste vide), ou sync
+         * restituée depuis `sync-state.json` (les tâches y sont publiées
+         * séparément). Échec : le bouton Tâches reste ACTIVABLE — le
+         * sélecteur propose un listage à la demande (il retombe sur
+         * `listerTachesProjet` côté orchestrateur). v0.39.1
          * (correctif n°2) : l'échec du listage NE bloque PLUS le bouton —
          * la sync RÉUSSIE est le signal d'activation, pas un second
          * aller-retour fragile.
@@ -947,6 +960,15 @@ class EditorViewModel
         ) {
             val resultatSync = (resultat as? AppResult.Success)?.value ?: return
             if (!resultatSync.reussie && !resultatSync.partielle) return
+            // v0.47.0 : chemin_direct — les tâches traversent AVEC le
+            // résultat de sync : publication immédiate, aucun IPC.
+            if (resultatSync.taches.isNotEmpty()) {
+                serviceGradle.publierTachesDisponibles(resultatSync.taches)
+                journal.i(TAG) {
+                    "tâches disponibles (${resultatSync.taches.size}, projet ${identifiantSuivi()})"
+                }
+                return
+            }
             when (val taches = listerTachesProjet(dossier)) {
                 is AppResult.Success -> {
                     serviceGradle.publierTachesDisponibles(taches.value)

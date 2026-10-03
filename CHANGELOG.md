@@ -4,6 +4,56 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.47.0] – 2026-10-03
+
+Retour utilisateur sur appareil réel : deux plaintes de terminal (un
+warning apt à CHAQUE `pkg install`, une installation SDK qui échouait
+APRÈS le téléchargement de 172,6 Mio) et une promesse d'UI non tenue
+(le bouton Tâches restait inerte un instant après « Synchronisé »).
+
+### Corrigé (terminal : le warning `preferences.d` à chaque commande)
+
+- **`pkg install` imprimait « W: Unable to read
+  …/etc/apt/preferences.d/ - DirectoryExists (2: No such file or
+  directory) » à CHAQUE commande** : l'archive du bootstrap Termux pose
+  `etc/apt/sources.list` mais pas TOUS les répertoires de configuration
+  qu'apt parcourt ensuite. [ConfigurateurApt] crée désormais les
+  répertoires APT standard (`preferences.d`, `apt.conf.d`,
+  `sources.list.d`, `trusted.gpg.d`) à la pose du `sources.list` ET à
+  chaque démarrage ([InstallateurBootstrap]) : idempotent (`mkdirs`),
+  les préfixes installés par une version antérieure sont guéris SANS
+  réinstallation.
+
+### Corrigé (terminal : `android-sdk` — la disposition cmdline-tools échouait après le téléchargement)
+
+- **« mv: cannot move '…/.staging-cmdline-tools/cmdline-tools' to
+  '…/android-sdk/cmdline-tools/latest': No such file or directory »
+  puis « android-sdk: disposition cmdline-tools/latest impossible. »** :
+  sur une PREMIÈRE installation le répertoire parent
+  `android-sdk/cmdline-tools/` n'existait pas au moment du
+  déplacement — le `mv` échouait APRÈS le téléchargement de 172,6 Mio,
+  un gaspillage réseau. Le script `android-sdk` fait désormais
+  `mkdir -p` du parent AVANT le déplacement (script versionné 3 → 4 —
+  re-distribution automatique aux appareils déjà installés, aucune
+  réinstallation du préfixe).
+
+### Corrigé (sync : le bouton Tâches s'active immédiatement)
+
+- **« Une fois la sync terminée, le bouton pour afficher le bottomsheet
+  liste des tâches devrait immédiatement être activé »** : l'UI armait
+  le bouton Tâches via un SECOND aller-retour (`TasksRequest` après le
+  `SyncResult`) — même servi par le cache serveur, cet IPC laissait le
+  bouton inerte le temps d'un échange après « Synchronisé », et
+  l'armement attendait AUSSI la préparation du classpath LSP. Le
+  [SyncResult] PORTE désormais les tâches résolues par l'action de sync
+  (champ `taches`, optionnel — un serveur antérieur ne l'envoie pas et
+  le client retombe sur l'aller-retour) : le client publie les tâches
+  sur le FAIT, dans la même trame main-thread que « Synchronisé », et
+  AVANT la préparation du classpath LSP qui peut travailler derrière.
+  Le fichier doré du protocole suit (nouveau champ au câble), et le
+  test d'intégration serveur vérifie que les tâches portées et le
+  listage par cache coïncident.
+
 ## [0.46.0] – 2026-10-02
 
 ### Refonte (console flux brut unique — parité Android Studio, ADR 0078)
