@@ -56,6 +56,21 @@ d'affluer. Décision : ADR 0081.
   l'ont prouvé : file=0/1 en fin de build) ; `ServerVersion` aligné sur
   0.50.0 pour la livraison.
 
+### Corrigé (échec CI : ordre des imports du test bout-en-bout)
+
+- **Le tag v0.50.0 échouait sur `spotlessKotlinCheck` avant tout le
+  reste** : `import kotlinx.coroutines.cancel` vivait APRÈS
+  `kotlinx.coroutines.channels.Channel` dans `BoutEnBoutTest` alors que
+  l'ordre ASCII d'ktlint 1.8.0 le veut AVANT — la vérification locale de
+  la livraison avait couvert `spotless` sur `:tooling:client` mais omis
+  `:tooling:daemon`, écart de couverture fermé depuis. Le correctif
+  remonte l'import d'une ligne, exactement le diff attendu par la CI :
+  tri d'imports dans un source de TEST uniquement, aucun changement de
+  comportement (l'APK déjà livré reste valable — les sources de test
+  n'entrent pas dans le paquet). Le tag est re-pointé sur le commit
+  corrigé : l'ancien pointage n'avait produit ni artefact ni release
+  (échec avant publication), rien n'en dépendait.
+
 ## [0.49.0] – 2026-10-03
 
 Retour utilisateur sur appareil réel : « voici les logs, peut-être que tu
