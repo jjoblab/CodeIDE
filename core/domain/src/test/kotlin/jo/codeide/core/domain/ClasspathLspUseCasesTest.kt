@@ -206,8 +206,10 @@ class ClasspathLspUseCasesTest {
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
-        override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
-            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.DAEMON))
+        override fun observeFluxSync(): Flow<EvenementSyncFlux> =
+            MutableStateFlow(
+                EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
+            )
 
         override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))

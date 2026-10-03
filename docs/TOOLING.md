@@ -144,6 +144,23 @@ plus 5 minutes en TOTAL mais 90 s SANS ÉVÉNEMENT (`echangerAvecInactivite`
 — la fenêtre se réarme à chaque `SyncStarted`/`SyncProgress`) ; seul le
 silence tue, un réseau mobile lent qui télécharge n'est plus un échec.
 
+**Le flux de sync est ORDONNÉ et porte son résultat (v0.48.0, ADR 0079)** :
+le stdout/stderr de l'action est capturé (`StreamingFluxSync` → message
+`SyncOutput`, `--console=plain` comme le build) et les statuts textuels
+CHANGÉS de la fenêtre daemon (« Starting Gradle Daemon ») sont republiés
+— la console Sync affiche le VRAI flux de Gradle comme la fenêtre Sync
+d'Android Studio (retour terrain v0.47.0 : « la plupart est affiché dans
+le header du bottomsheet »). Côté client, `observeFluxSync` expose
+`EvenementSyncFlux` — Debut → Ligne → Etape → **Terminal** — dans l'ordre
+EXACT du câble (les `send` séquentiels de la pompe) : le résultat voyage
+AVEC le flux, la vidange process-wide conclut TOUTE sync sur le fait du
+serveur (revalidation silencieuse, écran fermé, ErrorResponse, rupture de
+session) — plus d'en-tête « étape n/N » figé à jamais, et la conclusion
+n'arrive jamais AVANT les lignes qu'elle conclut. Un échec conclut aussi
+la console (« Synchronisation échouée » + message serveur, parité
+« SYNC FAILED »), les doubles conclusions éventuelles sont dédupliquées
+par contenu dans `GradleService`.
+
 **Les arguments réglés s'appliquent à la sync et au classpath** : la chaîne
 `AppSettings` → `OptionsTooling.argumentsBuild()` → use cases →
 `SyncRequest`/`ClasspathRequest` → `withArguments` est complète (l'UI de

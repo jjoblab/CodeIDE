@@ -4,6 +4,62 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.48.0] – 2026-10-03
+
+Retour utilisateur sur appareil réel : « lors d'un Sync la console manque
+toujours les outputs nécessaire, la plupart est affiché dans le header du
+bottomsheet et à la fin du sync l'ui n'est toujours pas à jour (la console
+et le header) » — plus l'installation du SDK Android qui échouait sur un
+binaire natif inexécutable. Décision : ADR 0079.
+
+### Corrigé (sync : la console montre le VRAI flux, l'UI se conclut — ADR 0079)
+
+- **La console Sync était réduite à ~7 lignes de transitions d'étapes**
+  pendant que tout le détail vivant nourrissait le sous-titre de
+  l'en-tête du panneau : la capture stdout/stderr de la sync avait été
+  retirée en v0.45.1 (elle publiait avec le buildId de la REQUÊTE sync —
+  un canal que le client n'ouvrait jamais, publication morte). Elle
+  REVIENT sur SON message : le protocole v6 ajoute `SyncOutput`, le
+  serveur branche `StreamingFluxSync` sur le stdout/stderr de l'action
+  (`--console=plain`, comme le build) et republie les statuts textuels
+  CHANGÉS de la fenêtre daemon (« Starting Gradle Daemon ») ; la console
+  Sync affiche le flux de Gradle comme la fenêtre Sync d'Android Studio.
+- **À la fin d'une sync, l'en-tête restait « étape n/N » avec chrono à
+  jamais, la console sans conclusion** : le résultat n'était publié que
+  par la coroutine LANÇANTE — la revalidation silencieuse (v0.40.1,
+  chaque ré-ouverture à empreinte identique) ne le publiait JAMAIS alors
+  que son `SyncStarted` avait armé « en cours ». Le résultat voyage
+  désormais DANS le flux ordonné (`EvenementSyncFlux` : Debut → Ligne →
+  Etape → Terminal) : la vidange process-wide conclut TOUTE sync sur le
+  fait du serveur, même écran fermé, même sync d'un autre écran ;
+  ErrorResponse répondant à une sync et rupture de session produisent
+  aussi un terminal. L'ordre du câble est l'ordre de la console : la
+  conclusion arrive APRÈS les lignes et étapes qu'elle conclut.
+- **Un échec de sync concluait silencieusement** (état seul, console
+  muette) : la console reçoit désormais « Synchronisation échouée en
+  Xs » + le message du serveur en rouge — parité « SYNC FAILED »
+  d'Android Studio. Une double conclusion éventuelle (terminal + échec
+  local) est dédupliquée par contenu.
+
+### Corrigé (terminal : `android-sdk` — le sdkmanager inexécutable sur aarch64)
+
+- **« /…/cmdline-tools/latest/bin/android: not executable: 64-bit ELF
+  file » puis « android-sdk: l'installation a échoué (code 1) »** : les
+  cmdline-tools RÉCENTS (rev 19+, ex. 16111833 — celui que la v0.47.0
+  téléchargeait) font de `sdkmanager` un relais vers un NOUVEAU binaire
+  natif `android`… que Google ne publie sous Linux qu'en x86_64 — sur un
+  appareil aarch64 le noyau refuse l'exécution (ENOEXEC). La commande
+  épingle désormais la rev **12.0** (11076708), dont le sdkmanager est
+  un script 100 % Java sans dépendance d'architecture (vérifiée de bout
+  en bout : platform-tools + android-37.2 + build-tools 37.0.0
+  s'installent) ; elle **GUÉRIT** les installations cassées (un
+  cmdline-tools portant `bin/android` ou dont `--version` échoue est
+  REMPLACÉ) et VÉRIFIE le sdkmanager après pose. AndroidIDE résout le
+  même piège en ne lançant jamais le sdkmanager de Google (composants
+  reconditionnés par architecture depuis leur manifeste `androidide-tools`)
+  — l'épinglage pure Java est l'équivalent sobre. Script versionné
+  4 → 5 (re-distribution automatique).
+
 ## [0.47.0] – 2026-10-03
 
 Retour utilisateur sur appareil réel : deux plaintes de terminal (un

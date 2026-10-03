@@ -13,6 +13,7 @@ import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
+import jo.codeide.core.domain.LigneSortieSync
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
@@ -367,6 +368,17 @@ class GradleService
         private var telechargementsCompteur = 0
 
         /**
+         * Clé de la dernière conclusion de sync ÉMISE en console (v0.48.0,
+         * ADR 0079) : le terminal du flux ordonné et les échecs LOCAUX de
+         * l'appelant (garde JDK, dossier, transport) peuvent conclure la
+         * même sync — une clé identique ne réécrit pas la ligne. Remise à
+         * null à chaque NOUVELLE cycle (départ de sync, attache d'un
+         * espace) : la console repartie vierge reçoit toujours SA
+         * conclusion.
+         */
+        private var cleConclusionSync: String? = null
+
+        /**
          * Latence de PUBLICATION des lignes, par build (v0.43.0 — mesure
          * de la console lente) : écart entre l'émission côté orchestrateur
          * (`LigneSortieBuild.horodatageMs`) et l’arrivée dans la zone
@@ -418,6 +430,9 @@ class GradleService
             }
             viderZoneTexte(CanalTooling.BUILD)
             viderZoneTexte(CanalTooling.SYNC)
+            // v0.48.0 : consoles reparties vierges = conclusions reparties
+            // à émettre (une attache pendant une sync en vol conclura).
+            cleConclusionSync = null
         }
 
         /** Publie l'état de connexion (daemon G4). */
@@ -436,8 +451,11 @@ class GradleService
             // fenêtre d'étapes vidée. HORS de `maj` : l'émission d'événement
             // est un effet de bord, la transformation d'état peut être
             // rejouée par le CAS de `MutableStateFlow.update`.
+            // v0.48.0 (ADR 0079) : nouvelle cycle = nouvelle conclusion —
+            // le mémo de déduplication repart à null.
             if (!etatInterne.value.synchronisationEnCours) {
                 viderZoneTexte(CanalTooling.SYNC)
+                cleConclusionSync = null
             }
             maj { courant ->
                 if (courant.synchronisationEnCours) {
@@ -460,9 +478,19 @@ class GradleService
          *  Sync (résultat, message) ; le rendu localise et balise.
          *  v0.46.0 : une sync RÉUSSIE conclut aussi la CONSOLE (canal Sync)
          *  d'une ligne « Synchronisation terminée en Xs — les tâches sont
-         *  disponibles. » — l'échec reste porté par l'état (bandeau,
-         *  en-tête) : le serveur explique déjà l'échec dans ses statuts
-         *  textuels, une ligne générique n'ajouterait rien. */
+         *  disponibles. »
+         *  v0.48.0 (ADR 0079) : un ÉCHEC conclut AUSSI la console —
+         *  « Synchronisation échouée en Xs — <message> » (parité « SYNC
+         *  FAILED » d'Android Studio ; retour terrain : « à la fin du sync
+         *  l'UI n'est toujours pas à jour — la console et l'en-tête » : une
+         *  console muette sur l'échec est une console pas à jour).
+         *  Le terminal du flux ordonné (vidange process-wide) et les échecs
+         *  locaux (garde JDK, dossier, transport) peuvent conclure la MÊME
+         *  sync (rupture + échec local de l'appelant) : la ligne de
+         *  conclusion est DÉDUPLIQUÉE par son CONTENU — un résultat
+         *  strictement identique ne réécrit rien, un verdict différent
+         *  (SyncResult tardif après un délai d'inactivité) s'écrit : la
+         *  chronologie reste honnête, le dernier verdict gagne. */
         fun publierResultatSync(resultat: AppResult<ResultatSynchronisation>) {
             when (resultat) {
                 is AppResult.Success -> {
@@ -473,20 +501,106 @@ class GradleService
                             messageEchecSync = resultat.value.messageEchec,
                         )
                     }
-                    if (resultat.value.reussie) {
-                        val etapes = etatInterne.value.etapesSync
-                        LignesConsoleTexte
-                            .conclusionSync(
-                                aJour = etapes.none { etape -> etape.octetsRecus > 0 },
-                                dureeMs = resultat.value.dureeMs,
-                            ).forEach { ligne -> zoneTexteInterne.tryEmit(ligne) }
-                    }
                 }
 
                 is AppResult.Failure -> {
                     maj { it.copy(synchronisationEnCours = false, messageEchecSync = messageDEchec(resultat)) }
                 }
             }
+            conclureConsoleSync(resultat)
+        }
+
+        /**
+         * Émet la conclusion de la console Sync (v0.48.0, ADR 0079) —
+         * DÉDUPLIQUÉE par son contenu : le terminal du flux ordonné et les
+         * échecs LOCAUX de l'appelant (garde JDK, dossier, transport)
+         * peuvent conclure la même sync (rupture + échec local) ; une clé
+         * identique ne réécrit rien, un verdict différent (SyncResult
+         * tardif après un délai d'inactivité) s'écrit — la chronologie
+         * reste honnête, le dernier verdict gagne.
+         */
+        private fun conclureConsoleSync(resultat: AppResult<ResultatSynchronisation>) {
+            val cle = cleConclusion(resultat)
+            if (cle == cleConclusionSync) return
+            cleConclusionSync = cle
+            lignesConclusionSync(resultat).forEach { ligne -> zoneTexteInterne.tryEmit(ligne) }
+        }
+
+        /** Lignes de conclusion d'une sync : réussie (durée à la clé) OU
+         *  échouée (verdict PUIS message du serveur en erreur — parité
+         *  « SYNC FAILED » d'Android Studio : une console muette sur
+         *  l'échec est une console pas à jour). */
+        private fun lignesConclusionSync(
+            resultat: AppResult<ResultatSynchronisation>,
+        ): List<EvenementConsoleTexte.Ligne> =
+            when {
+                resultat is AppResult.Success && resultat.value.reussie -> {
+                    val etapes = etatInterne.value.etapesSync
+                    LignesConsoleTexte.conclusionSync(
+                        aJour = etapes.none { etape -> etape.octetsRecus > 0 },
+                        dureeMs = resultat.value.dureeMs,
+                    )
+                }
+
+                resultat is AppResult.Success -> {
+                    LignesConsoleTexte.conclusionSyncEchouee(
+                        dureeMs = resultat.value.dureeMs,
+                        message = resultat.value.messageEchec,
+                    )
+                }
+
+                else -> {
+                    LignesConsoleTexte.conclusionSyncEchouee(
+                        dureeMs = null,
+                        message = messageDEchec(resultat as AppResult.Failure),
+                    )
+                }
+            }
+
+        /**
+         * Clé d'identité d'une conclusion (v0.48.0) : le résultat réussi
+         * entier (durée comprise — deux sync de durées différentes sont
+         * DEUX conclusions), sinon le message d'échec.
+         */
+        private fun cleConclusion(resultat: AppResult<ResultatSynchronisation>): String =
+            when (resultat) {
+                is AppResult.Success -> {
+                    if (resultat.value.reussie) {
+                        "ok:" + resultat.value.toString()
+                    } else {
+                        "ko:" + resultat.value.dureeMs + ":" + resultat.value.messageEchec
+                    }
+                }
+
+                is AppResult.Failure -> {
+                    "ko:-:" + messageDEchec(resultat)
+                }
+            }
+
+        /**
+         * Publie une ligne de sortie de la SYNCHRONISATION sur le flux de la
+         * console (v0.48.0, ADR 0079) : le VRAI flux de Gradle — ses
+         * avertissements de configuration, les `println` de build script,
+         * les statuts de la fenêtre daemon (« Starting Gradle Daemon ») —
+         * dans le canal Sync, comme la fenêtre Sync d'Android Studio. Pas
+         * de garde d'état : l'ordre du FLUX ordonné (début → lignes → étapes
+         * → terminal) garantit qu'une ligne n'arrive jamais hors d'une
+         * sync, la conclusion jamais AVANT les lignes qu'elle conclut.
+         */
+        fun ajouterLigneSync(ligne: LigneSortieSync) {
+            zoneTexteInterne.tryEmit(
+                EvenementConsoleTexte.Ligne(
+                    canal = CanalTooling.SYNC,
+                    libelle = TexteTooling.Brut(ligne.ligne),
+                    style =
+                        if (ligne.flux == FluxSortieBuild.STDERR) {
+                            StyleLigne.ERREUR
+                        } else {
+                            StyleLigne.SORTIE
+                        },
+                    horodatageMs = ligne.horodatageMs,
+                ),
+            )
         }
 
         /** Marque le début du listage des tâches (canal Taches, étape 32) :

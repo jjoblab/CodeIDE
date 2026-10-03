@@ -7,6 +7,7 @@ import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.LigneSortieBuild
+import jo.codeide.core.domain.LigneSortieSync
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
@@ -360,6 +361,93 @@ class GradleServiceTest {
                 "après vidage ne contient QUE l'étape réannoncée",
             listOf(StyleLigne.ETAPE),
             apresVider.map { it.style },
+        )
+    }
+
+    @Test
+    fun `les lignes de sync s ecrivent dans le canal SYNC avec leur style - v0_48_0`() {
+        service.marquerSyncEnCours()
+
+        service.ajouterLigneSync(LigneSortieSync("/p", FluxSortieBuild.STDOUT, "Starting Gradle Daemon", 12L))
+        service.ajouterLigneSync(LigneSortieSync("/p", FluxSortieBuild.STDERR, "warning: config", 13L))
+
+        val lignes = lignesConsole().filter { it.canal == CanalTooling.SYNC }
+        assertEquals(
+            "le VRAI flux de Gradle s'affiche dans le canal Sync (ADR 0079)",
+            listOf("Starting Gradle Daemon", "warning: config"),
+            lignes.map { (it.libelle as TexteTooling.Brut).texte },
+        )
+        assertEquals(
+            "stdout en style sortie, stderr en style erreur — même discipline que le canal Build",
+            listOf(StyleLigne.SORTIE, StyleLigne.ERREUR),
+            lignes.map { it.style },
+        )
+        assertEquals(
+            "l'horodatage du flux traverse (mesure de latence)",
+            listOf(12L, 13L),
+            lignes.map { it.horodatageMs },
+        )
+    }
+
+    @Test
+    fun `l echec de sync conclut la console du verdict ET du message - v0_48_0`() {
+        service.marquerSyncEnCours()
+        service.ajouterEtapeSync(EtapeSyncTooling(etape = EtapeSync.DAEMON))
+
+        service.publierResultatSync(
+            AppResult.Success(
+                ResultatSynchronisation(
+                    projectDir = "/p",
+                    reussie = false,
+                    dureeMs = 2_100,
+                    messageEchec = "répertoire introuvable : /p",
+                ),
+            ),
+        )
+
+        val conclusions = lignesConsole().filter { it.canal == CanalTooling.SYNC }.takeLast(2)
+        assertEquals(
+            "le verdict s'écrit en style synthèse (parité SYNC FAILED)",
+            StyleLigne.SYNTHESE,
+            conclusions.first().style,
+        )
+        assertEquals(
+            "le message du serveur suit en TEXTE BRUT, style erreur",
+            Pair("répertoire introuvable : /p", StyleLigne.ERREUR),
+            Pair((conclusions.last().libelle as TexteTooling.Brut).texte, conclusions.last().style),
+        )
+        assertEquals(
+            "l'état porte l'échec annoncé par le serveur",
+            "répertoire introuvable : /p",
+            service.etat.value.messageEchecSync,
+        )
+    }
+
+    @Test
+    fun `un meme resultat de sync ne conclut pas deux fois - v0_48_0`() {
+        service.marquerSyncEnCours()
+        val resultat =
+            AppResult.Success(ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 42))
+
+        service.publierResultatSync(resultat)
+        val apresPremiere = lignesConsole().filter { it.canal == CanalTooling.SYNC && it.style == StyleLigne.SYNTHESE }
+        service.publierResultatSync(resultat)
+        val apresSeconde = lignesConsole().filter { it.canal == CanalTooling.SYNC && it.style == StyleLigne.SYNTHESE }
+
+        assertEquals(
+            "le terminal du flux et un échec local peuvent conclure la MÊME sync — une seule ligne",
+            apresPremiere.size,
+            apresSeconde.size,
+        )
+
+        // Une NOUVELLE sync (nouveau cycle) re-conclut : le mémo repart à null.
+        service.marquerSyncEnCours()
+        service.publierResultatSync(resultat)
+        val apresNouvelle = lignesConsole().filter { it.canal == CanalTooling.SYNC && it.style == StyleLigne.SYNTHESE }
+        assertEquals(
+            "une nouvelle sync conclut de nouveau (le Vider l'exige)",
+            apresPremiere.size + 1,
+            apresNouvelle.size,
         )
     }
 

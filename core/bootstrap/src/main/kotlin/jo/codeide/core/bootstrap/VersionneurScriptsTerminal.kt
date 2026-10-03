@@ -42,8 +42,15 @@ internal object VersionneurScriptsTerminal {
      *   `cmdline-tools/latest` (retour d'appareil réel : sur une première
      *   installation le `mv` échouait d'un « No such file or directory »
      *   APRÈS le téléchargement de 172,6 Mio).
+     * - 5 : v0.48.0 — commande `android-sdk` : cmdline-tools rev **12.0**
+     *   ÉPINGLÉE (les rev 19+ délèguent `sdkmanager` à un binaire natif
+     *   `android` que Google ne publie Linux qu'en x86_64 — INEXÉCUTABLE
+     *   sur aarch64, retour d'appareil réel : « not executable: 64-bit
+     *   ELF file ») + GUÉRISON des installations cassées (un cmdline-tools
+     *   portant `bin/android` ou dont `--version` échoue est REMPLACÉ) +
+     *   vérification fonctionnelle après installation.
      */
-    internal const val VERSION = 4
+    internal const val VERSION = 5
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =
