@@ -383,28 +383,27 @@ class EditorViewModel
          * diagnostics et état de sync annoncé PAR le serveur suivis dès
          * l'ouverture — l'état de connexion oriente les actions, les
          * diagnostics alimentent l'onglet Problèmes ET les sessions
-         * ouvertes (diagnostics inline, point d'ancrage ADR 0029), le
-         * `SyncStarted` de l'orchestrateur confirme le départ (canal Sync
-         * posé sur un fait du serveur, pas sur la présomption du geste).
+         * ouvertes (diagnostics inline, point d'ancrage ADR 0029).
+         *
+         * v0.48.0 (ADR 0079) : le marquage « sync en cours » ne vit PLUS
+         * ici — il vivait dans un collecteur `observeSyncState` CONFLATÉ
+         * du viewModelScope : il entrait en COURSE avec la vidange du flux
+         * ordonné (Debut → lignes) et pouvait VIDER la console APRÈS les
+         * premières lignes (le Vider tardif emportait les outputs). Le
+         * Debut du flux ordonné arme l'état DANS L'ORDRE, avant toute
+         * ligne — la vidange process-wide est l'unique source.
          */
         private fun observerTooling() {
             tooling
                 .observeConnectionState()
                 .onEach { connexion -> serviceGradle.publierConnexion(connexion) }
                 .launchIn(viewModelScope)
-            tooling
-                .observeSyncState()
-                .onEach { etatSync ->
-                    if (etatSync.enCours) {
-                        serviceGradle.marquerSyncEnCours()
-                    }
-                }.launchIn(viewModelScope)
-            // Étapes de sync annoncées PAR le serveur (v3 — fin de la boîte
-            // noire) : chaque phase devient une ligne du canal Sync, conclue
-            // en place avec sa durée. v0.45.1 : la vidange vit dans la pompe
-            // PROCESS-WIDE (elle vivait dans ce viewModelScope — un écran
-            // fermé en pleine sync remplissait le canal borné du client puis
-            // bloquait sa pompe unique : sorties, pongs, tout gelait).
+            // Étapes, lignes et RÉSULTAT de sync : la vidange vit dans la
+            // pompe PROCESS-WIDE (v0.45.1 pour la survie aux écrans fermés ;
+            // v0.48.0, ADR 0079 pour le terminal qui conclut l'UI sur le
+            // FAIT du serveur — l'ancien collecteur viewModelScope laissait
+            // l'en-tête « en cours » POUR TOUJOURS quand la coroutine
+            // lancante mourait ou ne publiait pas, retour terrain v0.47.0).
             pompeBuilds.pomperSync()
             viewModelScope.launch {
                 // La première connaissance du projet résout son dossier réel
@@ -564,9 +563,16 @@ class EditorViewModel
                 publierTachesDisponiblesSiSyncUtile(dossier, resultat)
                 persisterSyncState(resultat)
             }
-            // En cas d'échec, on ne publie PAS le résultat à l'UI : on
-            // conserve l'état « Synchronisé » restitué, l'utilisateur peut
-            // relancer manuellement pour voir l'erreur.
+            // v0.48.0 (ADR 0079) : l'ÉTAT DE SYNC n'est plus publié ICI —
+            // le TERMINAL du flux ordonné (vidange process-wide) conclut la
+            // revalidation sur le FAIT du serveur. L'ancienne version ne
+            // publiait JAMAIS le résultat alors que son SyncStarted avait
+            // armé « synchronisation en cours » : l'en-tête restait « étape
+            // n/N » et le chrono couraient POUR TOUJOURS (retour terrain
+            // v0.47.0 : « à la fin du sync l'UI n'est toujours pas à jour —
+            // la console et l'en-tête »). Un échec LOCAL (pas de session,
+            // envoi impossible) n'arme jamais l'état : rien à conclure,
+            // l'état « Synchronisé » restitué est conservé (design v0.40.1).
             journal.i(TAG) { "revalidation silencieuse terminée (projet ${identifiantSuivi()})" }
         }
 
@@ -918,7 +924,18 @@ class EditorViewModel
                 // libres) s'appliquent À la sync — mêmes règles que le build
                 // (l'orchestrateur garde la main sur `--console=plain`).
                 val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
-                serviceGradle.publierResultatSync(resultat)
+                // v0.48.0 (ADR 0079) : le RÉSULTAT SERVEUR est publié par la
+                // vidange process-wide (terminal du flux ordonné) — dans
+                // l'ordre, APRÈS les dernières lignes et étapes, et même si
+                // CETTE coroutine meurt avant la réponse. L'appelant ne
+                // publie plus que les échecs LOCAUX (transport : aucun
+                // événement serveur ne conclura — la sync n'est jamais
+                // partie) : une double conclusion éventuelle (SyncResult
+                // tardif après un délai d'inactivité) est dédupliquée par le
+                // service, le dernier verdict gagne honnêtement.
+                if (resultat is AppResult.Failure) {
+                    serviceGradle.publierResultatSync(resultat)
+                }
                 // v0.47.0 : l'armement du bouton Tâches passe AVANT la
                 // préparation du classpath LSP — le résultat de sync PORTE
                 // les tâches, la publication est immédiate (même trame que

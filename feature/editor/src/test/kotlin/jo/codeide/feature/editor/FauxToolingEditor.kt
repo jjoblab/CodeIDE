@@ -8,11 +8,13 @@ import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.EtatSyncTooling
 import jo.codeide.core.domain.EtatTacheBuild
+import jo.codeide.core.domain.EvenementSyncFlux
 import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.InstantaneTas
 import jo.codeide.core.domain.LigneSortieBuild
+import jo.codeide.core.domain.LigneSortieSync
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
@@ -87,8 +89,9 @@ class FauxToolingEditor : GradleToolingRepository {
     /** États par build. */
     private val etats = HashMap<String, MutableStateFlow<EtatBuild>>()
 
-    /** Étapes de sync (v3) — pilotables par le test. */
-    val etapesSyncInterne = Channel<EtapeSyncTooling>(Channel.UNLIMITED)
+    /** Flux de sync ordonné (v0.48.0, ADR 0079) — pilotable par le test :
+     *  départ, lignes, étapes, terminal, dans l'ordre du câble. */
+    val fluxSyncInterne = Channel<EvenementSyncFlux>(Channel.UNLIMITED)
 
     override fun observeBuildOutput(buildId: String): Flow<LigneSortieBuild> = canal(buildId).receiveAsFlow()
 
@@ -113,6 +116,16 @@ class FauxToolingEditor : GradleToolingRepository {
         dossierRecu = projectDir
         argumentsRecus = arguments
         nbSynchronisations++
+        // v0.48.0 (ADR 0079) : le faux rejoue la CHORÉGRAPHIE du serveur
+        // réel — Debut PUIS Terminal sur le flux ordonné quand la réponse
+        // est un résultat serveur (succès OU échec déclaré) ; un échec de
+        // TRANSPORT (la valeur par défaut « non connecté ») n'émet RIEN,
+        // comme un client sans session. La vidange process-wide conclut
+        // donc l'UI exactement comme en production.
+        if (prochaineSynchronisation is AppResult.Success) {
+            fluxSyncInterne.trySend(EvenementSyncFlux.Debut(projectDir = projectDir.path))
+            fluxSyncInterne.trySend(EvenementSyncFlux.Terminal(prochaineSynchronisation))
+        }
         return prochaineSynchronisation
     }
 
@@ -165,7 +178,7 @@ class FauxToolingEditor : GradleToolingRepository {
 
     override fun observeSyncState(): Flow<EtatSyncTooling> = syncInterne
 
-    override fun observeSyncProgress(): Flow<EtapeSyncTooling> = etapesSyncInterne.receiveAsFlow()
+    override fun observeFluxSync(): Flow<EvenementSyncFlux> = fluxSyncInterne.receiveAsFlow()
 
     override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = diagnosticsInterne
 
@@ -218,9 +231,35 @@ class FauxToolingEditor : GradleToolingRepository {
         terminee: Boolean = false,
         dureeMs: Long = 0,
     ) {
-        etapesSyncInterne.trySend(
-            EtapeSyncTooling(etape = etape, terminee = terminee, dureeMs = dureeMs),
+        fluxSyncInterne.trySend(
+            EvenementSyncFlux.Etape(
+                EtapeSyncTooling(etape = etape, terminee = terminee, dureeMs = dureeMs),
+            ),
         )
+    }
+
+    /** Simule une ligne de sortie de sync (v0.48.0, ADR 0079) — le VRAI
+     *  flux de Gradle (avertissement, `println`, statut du daemon). */
+    fun emettreLigneSync(
+        ligne: String,
+        flux: FluxSortieBuild = FluxSortieBuild.STDOUT,
+    ) {
+        fluxSyncInterne.trySend(
+            EvenementSyncFlux.Ligne(
+                LigneSortieSync(flux = flux, ligne = ligne, horodatageMs = 0L),
+            ),
+        )
+    }
+
+    /** Simule le départ annoncé par le serveur (v0.48.0 — SyncStarted). */
+    fun emettreDebutSync() {
+        fluxSyncInterne.trySend(EvenementSyncFlux.Debut(projectDir = null))
+    }
+
+    /** Simule un terminal hors `synchroniser` (v0.48.0 — SyncResult tardif,
+     *  rupture de session). */
+    fun emettreTerminalSync(resultat: AppResult<ResultatSynchronisation>) {
+        fluxSyncInterne.trySend(EvenementSyncFlux.Terminal(resultat))
     }
 
     /** Simule la fin d'un build (état final + fermeture des canaux). */

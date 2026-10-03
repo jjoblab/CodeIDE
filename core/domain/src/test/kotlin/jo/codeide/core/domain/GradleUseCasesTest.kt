@@ -171,8 +171,10 @@ class GradleUseCasesTest {
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
-        override fun observeSyncProgress(): Flow<EtapeSyncTooling> =
-            MutableStateFlow(EtapeSyncTooling(etape = EtapeSync.DAEMON))
+        override fun observeFluxSync(): Flow<EvenementSyncFlux> =
+            MutableStateFlow(
+                EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
+            )
 
         override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = MutableStateFlow(emptyList())
     }

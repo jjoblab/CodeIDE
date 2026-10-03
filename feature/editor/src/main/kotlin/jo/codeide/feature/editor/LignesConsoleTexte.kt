@@ -148,6 +148,48 @@ internal object LignesConsoleTexte {
     }
 
     /**
+     * Lignes de conclusion d'une synchronisation ÉCHOUÉE (v0.48.0, ADR
+     * 0079) : « Synchronisation échouée » PUIS le message du serveur en
+     * ligne d'erreur — parité « SYNC FAILED » d'Android Studio, qui
+     * explique TOUJOURS pourquoi la sync a échoué dans sa fenêtre. Sans
+     * cette conclusion, la console Sync se terminait sur les dernières
+     * étapes sans verdict : « à la fin du sync l'UI n'est pas à jour »
+     * (retour terrain v0.47.0). La durée voyage quand le serveur l'a
+     * mesurée (échec de résolution) ; un échec LOCAL (garde JDK, dossier,
+     * transport) n'en a pas.
+     */
+    fun conclusionSyncEchouee(
+        dureeMs: Long?,
+        message: String?,
+    ): List<EvenementConsoleTexte.Ligne> {
+        val lignes =
+            mutableListOf(
+                EvenementConsoleTexte.Ligne(
+                    canal = CanalTooling.SYNC,
+                    libelle =
+                        if (dureeMs != null) {
+                            TexteTooling.Ressource(
+                                R.string.editor_console_synthese_sync_echouee_duree,
+                                listOf(DureesLisibles.formater(dureeMs)),
+                            )
+                        } else {
+                            TexteTooling.Ressource(R.string.editor_console_synthese_sync_echouee)
+                        },
+                    style = StyleLigne.SYNTHESE,
+                ),
+            )
+        message?.let { texte ->
+            lignes +=
+                EvenementConsoleTexte.Ligne(
+                    canal = CanalTooling.SYNC,
+                    libelle = TexteTooling.Brut(texte),
+                    style = StyleLigne.ERREUR,
+                )
+        }
+        return lignes
+    }
+
+    /**
      * Ligne de conclusion d'un build ANNULÉ : Gradle n'imprime rien de tel
      * sur son flux après une annulation en pleine configuration — la
      * console le dit elle-même. Les builds réussis ou échoués s'appuient

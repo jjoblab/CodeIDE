@@ -181,6 +181,10 @@
     <string name="editor_console_telecharge">Téléchargé : %1$s · %2$s reçus au total</string>
     <string name="editor_console_synthese_sync_terminee_duree">Synchronisation terminée en %1$s — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour_duree">Projet à jour, rien à télécharger en %1$s — les tâches sont disponibles.</string>
+    <!-- v0.48.0 (ADR 0079) : conclusion d'échec de sync — parité « SYNC FAILED »
+         d'Android Studio, le message du serveur suit en ligne d'erreur. -->
+    <string name="editor_console_synthese_sync_echouee">Synchronisation échouée.</string>
+    <string name="editor_console_synthese_sync_echouee_duree">Synchronisation échouée en %1$s.</string>
 
     <!-- Feuille de sélection des tâches (v4, §3.3) : recherche, récentes,
          groupes par module, états vides honnêtes. -->

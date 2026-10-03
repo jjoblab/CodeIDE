@@ -70,13 +70,28 @@ public interface GradleToolingRepository {
     public fun observeSyncState(): Flow<EtatSyncTooling>
 
     /**
-     * Étapes de synchronisation annoncées PAR L'ORCHESTRATEUR (v3 — fin de
-     * la boîte noire) : chaque phase (connexion au daemon Gradle,
-     * résolution de chaque modèle) est annoncée au départ puis à la fin
-     * avec sa durée, entre le départ et le résultat. Jamais conflaté :
-     * une étape sautée par la vue serait un mensonge d'affichage.
+     * Flux de synchronisation COMPLET et ORDONNÉ (v0.48.0, ADR 0079) :
+     * le départ annoncé par le serveur, les lignes de sortie stdout/stderr
+     * au fil de l'eau, chaque étape annoncée au départ puis à la fin avec
+     * sa durée, et le RÉSULTAT TERMINAL en DERNIER — tout sur UN flux dans
+     * l'ordre d'arrivée des événements du serveur.
+     *
+     * Pourquoi un flux unique ordonné (retour terrain v0.47.0 : « à la fin
+     * du sync l'UI n'est toujours pas à jour — la console et l'en-tête ») :
+     * le résultat ne vivait que dans la valeur de RETOUR de [synchroniser],
+     * publiée par la SEULE coroutine lancante — la revalidation silencieuse
+     * (v0.40.1) ne la publiait JAMAIS alors que son `SyncStarted` avait
+     * armé l'état « en cours » : l'en-tête restait sur « étape n/N » et le
+     * chrono couraient POUR TOUJOURS. Le terminal voyage désormais avec le
+     * flux, sur le FAIT du serveur — la vidange process-wide conclut TOUTE
+     * sync, lancée par qui que ce soit, survivante à la mort de l'écran.
+     *
+     * L'ordre du flux est celui du protocole : `SyncStarted` PUIS les
+     * `SyncOutput`/`SyncProgress` PUIS `SyncResult`/`PartialSyncResult` —
+     * la conclusion de la console arrive donc APRÈS les dernières lignes
+     * et étapes, jamais au milieu.
      */
-    public fun observeSyncProgress(): Flow<EtapeSyncTooling>
+    public fun observeFluxSync(): Flow<EvenementSyncFlux>
 
     /**
      * Liste les tâches d'un projet (sélecteur « Exécuter »), arbre des
@@ -280,6 +295,60 @@ public data class EtatSyncTooling(
     public val enCours: Boolean = false,
     public val projectDir: String? = null,
 )
+
+/**
+ * Une ligne de sortie (stdout/stderr) de la SYNCHRONISATION (v0.48.0,
+ * ADR 0079) — miroir domaine du `SyncOutput` du protocole : le VRAI flux
+ * de Gradle pendant la sync (avertissements de configuration, `println` de
+ * build script, statuts de la fenêtre daemon), comme la fenêtre Sync
+ * d'Android Studio.
+ *
+ * @property projectDir dossier annoncé par l'orchestrateur.
+ * @property flux flux d'origine.
+ * @property ligne contenu de la ligne, sans terminaison.
+ * @property horodatageMs horodatage d'émission.
+ */
+public data class LigneSortieSync(
+    public val projectDir: String? = null,
+    public val flux: FluxSortieBuild,
+    public val ligne: String,
+    public val horodatageMs: Long,
+)
+
+/**
+ * Événement du flux de synchronisation (v0.48.0, ADR 0079) : UN flux,
+ * UN ordre — [Debut], [Ligne], [Etape] au fil de l'eau, [Terminal] en
+ * DERNIER. La vidange process-wide y applique « console vidée → lignes
+ * et étapes → conclusion » sans course possible : le résultat arrive
+ * structurellement APRÈS tout ce qui le précède sur le câble.
+ *
+ * Le terminal porte un [AppResult] (et pas un simple booléen) : une sync
+ * peut échouer côté serveur (`SyncResult` à `succeeded=false` — échec
+ * HONNÊTE, affiché) OU côté transport (perte de session — la rupture
+ * envoie elle aussi un terminal, une UI « en cours » morte est le bug
+ * que ce type corrige).
+ */
+public sealed interface EvenementSyncFlux {
+    /** La synchronisation a commencé — annoncé PAR le serveur. */
+    public data class Debut(
+        public val projectDir: String?,
+    ) : EvenementSyncFlux
+
+    /** Une ligne de sortie stdout/stderr de la sync, au fil de l'eau. */
+    public data class Ligne(
+        public val sortie: LigneSortieSync,
+    ) : EvenementSyncFlux
+
+    /** Une étape annoncée (départ ou fin avec sa durée). */
+    public data class Etape(
+        public val etape: EtapeSyncTooling,
+    ) : EvenementSyncFlux
+
+    /** Le résultat terminal — toujours le DERNIER événement d'une sync. */
+    public data class Terminal(
+        public val resultat: AppResult<ResultatSynchronisation>,
+    ) : EvenementSyncFlux
+}
 
 /**
  * Une étape de synchronisation annoncée par l'orchestrateur (v3 ; v4 :

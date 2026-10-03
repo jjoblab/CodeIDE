@@ -3,7 +3,9 @@ package jo.codeide.feature.editor
 import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.EtatSyncLocal
+import jo.codeide.core.domain.FluxSortieBuild
 import jo.codeide.core.domain.InfoTache
+import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
 import jo.codeide.core.model.AppResult
@@ -11,6 +13,7 @@ import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -502,6 +505,100 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             assertEquals(1, suivie!!.session.diagnostics.size)
         }
 
+    @Test
+    fun `le terminal du flux sync conclut l UI meme sans coroutine lancante - regression v0_48_0`() =
+        runTest {
+            val id = ajouterProjet("projet-terminal")
+            val viewModel = viewModel(id)
+            avancer()
+
+            // La sync part — annoncée PAR le serveur (Debut du flux ordonné,
+            // v0.48.0) : l'état passe « en cours », la console Sync repart
+            // vierge. C'est le chemin de la revalidation silencieuse (v0.40.1)
+            // quand aucune coroutine lancante ne publiera le résultat.
+            tooling.emettreDebutSync()
+            avancer()
+            assertTrue(
+                "le Debut arme l'état en cours (le retour terrain voyait l'étape n/N figée)",
+                serviceGradleTest.etat.value.synchronisationEnCours,
+            )
+
+            // Le VRAI flux de Gradle s'affiche dans le canal Sync (ADR 0079).
+            tooling.emettreLigneSync("Starting Gradle Daemon")
+            tooling.emettreLigneSync("warning: configuration", flux = FluxSortieBuild.STDERR)
+            avancer()
+            assertEquals(
+                "les lignes réelles de la sync s'affichent dans la console",
+                listOf("Starting Gradle Daemon", "warning: configuration"),
+                lignesConsoleSyncApresDernierVider().map { (it.libelle as TexteTooling.Brut).texte },
+            )
+
+            // La coroutine lancante est MORTE (écran fermé — viewModelScope
+            // annulé, exactement le retour terrain « à la fin du sync l'UI
+            // n'est toujours pas à jour ») : PERSONNE n'appelle
+            // publierResultatSync. Seul le TERMINAL du flux peut conclure.
+            tooling.emettreTerminalSync(
+                AppResult.Success(
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 8_400),
+                ),
+            )
+            avancer()
+
+            val etat = serviceGradleTest.etat.value
+            assertFalse(
+                "le terminal déclare la sync terminée — l'en-tête ne reste pas « en cours » à jamais",
+                etat.synchronisationEnCours,
+            )
+            assertEquals(8_400L, etat.synchronisationReussie?.dureeMs)
+            val lignes = lignesConsoleSyncApresDernierVider()
+            assertEquals(
+                "les lignes réelles précèdent la conclusion (ordre du flux)",
+                listOf("Starting Gradle Daemon", "warning: configuration"),
+                lignes.dropLast(1).map { (it.libelle as TexteTooling.Brut).texte },
+            )
+            assertEquals(
+                "la conclusion arrive en DERNIER, en style synthèse",
+                StyleLigne.SYNTHESE,
+                lignes.last().style,
+            )
+        }
+
+    @Test
+    fun `l echec de sync conclut AUSSI la console avec son message - v0_48_0`() =
+        runTest {
+            val id = ajouterProjet("projet-echec-sync")
+            val viewModel = viewModel(id)
+            avancer()
+
+            tooling.emettreDebutSync()
+            tooling.emettreLigneSync("> Configure project :app")
+            tooling.emettreTerminalSync(
+                AppResult.Success(
+                    ResultatSynchronisation(
+                        projectDir = "/p",
+                        reussie = false,
+                        dureeMs = 2_100,
+                        messageEchec = "répertoire introuvable : /p",
+                    ),
+                ),
+            )
+            avancer()
+
+            val lignes = lignesConsoleSyncApresDernierVider()
+            assertEquals(
+                "le verdict d'échec s'écrit en style synthèse (parité SYNC FAILED), reçu : ${lignes.map { it.style }}",
+                StyleLigne.SYNTHESE,
+                lignes[lignes.size - 2].style,
+            )
+            val message = lignes.last()
+            assertEquals(
+                "le message du serveur suit en ligne d'erreur",
+                "répertoire introuvable : /p",
+                (message.libelle as TexteTooling.Brut).texte,
+            )
+            assertEquals(StyleLigne.ERREUR, message.style)
+        }
+
     // ------------------------------------------------------------------
     // Aides.
     // ------------------------------------------------------------------
@@ -582,5 +679,23 @@ class ToolingEditorViewModelTest : BaseEditorViewModelTest() {
             .filterIsInstance<EvenementConsoleTexte.Ligne>()
             .filter { it.canal == CanalTooling.BUILD }
             .map { (it.libelle as TexteTooling.Brut).texte }
+    }
+
+    /** Lignes de la console du canal SYNC après le dernier vidage de CE
+     *  canal (v0.48.0) — les ÉVÉNEMENTS typés (libellé + style) : les
+     *  conclusions LOCALISÉES s'assertent par leur STYLE, les lignes
+     *  réelles de Gradle par leur TEXTE BRUT. */
+    private fun lignesConsoleSyncApresDernierVider(): List<EvenementConsoleTexte.Ligne> {
+        val evenements =
+            serviceGradleTest.lignesBrutes.replayCache
+                .filterIsInstance<EvenementConsoleTexte>()
+        val dernierVider =
+            evenements.indexOfLast {
+                it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.SYNC
+            }
+        return evenements
+            .drop(if (dernierVider >= 0) dernierVider + 1 else 0)
+            .filterIsInstance<EvenementConsoleTexte.Ligne>()
+            .filter { it.canal == CanalTooling.SYNC }
     }
 }

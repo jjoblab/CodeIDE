@@ -13,6 +13,28 @@ import java.io.IOException
  * première installation : le parent `cmdline-tools/` est créé avant le
  * déplacement, le `mv` n'échoue plus après le téléchargement).
  *
+ * **v0.48.0 — le sdkmanager redevient exécutable sur aarch64** (retour
+ * d'appareil réel : « /…/cmdline-tools/latest/bin/android: not
+ * executable: 64-bit ELF file » puis « android-sdk: l'installation a
+ * échoué (code 1) ») : les cmdline-tools RÉCENTS (rev 19+, ex.
+ * 16111833) font de `sdkmanager` un simple relais vers un NOUVEAU
+ * binaire natif `android` — et Google ne publie ce binaire Linux qu'en
+ * **x86_64** : sur un appareil **aarch64** le noyau refuse l'exécution
+ * (ENOEXEC, le shell mksh rend « not executable: 64-bit ELF file »).
+ * La rev **12.0** (11076708) est ÉPINGLÉE : son `sdkmanager` est un
+ * script shell 100 % Java — aucune dépendance d'architecture, VÉRIFIÉ de
+ * bout en bout (platform-tools + platforms;android-37.2 +
+ * build-tools;37.0.0 s'y installent). La commande **GUÉRIT** les
+ * installations cassées : un cmdline-tools portant le binaire natif
+ * `bin/android` (ou dont `sdkmanager --version` échoue) est REMPLACÉ —
+ * l'appareil qui a déjà la rev 23.0 en place n'est pas condamné à son
+ * échec. C'est la lecture du projet AndroidIDE qui a nommé le piège :
+ * eux ne lancent JAMAIS le sdkmanager de Google — leur `idesetup.sh`
+ * télécharge des composants SDK RECONDITIONNÉS PAR ARCHITECTURE depuis
+ * leur manifeste `androidide-tools` (build-tools/platform-tools/cmdline-
+ * tools arm64) ; l'épinglage d'une rev pure Java est l'équivalent sobre
+ * pour un dépôt qui, lui, n'héberge pas ses propres paquets.
+ *
  * Le dépôt APT `codeide-packages` ne fournit AUCUN paquet `android-sdk`
  * (ADR 0032) : l'installation passe par les **commandline-tools** officiels
  * de Google (un zip pur Java — `sdkmanager` est un script shell qui pilote
@@ -148,14 +170,20 @@ internal class EcrivainSdkAndroidCli(
             #   android-sdk sdkmanager <args…>    relais direct vers sdkmanager
             #   android-sdk desinstaller          supprime le SDK
             #
-            # cmdline-tools rev 23.0 — URL vérifiée sur dl.google.com
-            # (repository2-3.xml, 2026-09-28).
+            # cmdline-tools rev 12.0 — URL vérifiée sur dl.google.com
+            # (repository2-3.xml) ; rev ÉPINGLÉE : voir URL_CMDLINE_TOOLS.
 
             PREFIX="$dollar{PREFIX:-$prefixeAbsolu}"
             ACCUEIL="$dollar{HOME:-$homeAbsolu}"
             SDK_HOME="${dollar}ACCUEIL/android-sdk"
             SDKMANAGER="${dollar}SDK_HOME/cmdline-tools/latest/bin/sdkmanager"
-            URL_CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip"
+            # v0.48.0 : rev 12.0 ÉPINGLÉE — les cmdline-tools récents (rev 19+)
+            # délèguent `sdkmanager` à un binaire natif `android` que Google
+            # ne pubside Linux qu'en x86_64 : INEXÉCUTABLE sur aarch64
+            # (ENOEXEC). La rev 12.0 est un script 100 % Java, éprouvé avec
+            # les paquets par défaut ci-dessous. Ne PAS passer au « latest »
+            # sans avoir vérifié `bin/android` sur l'archi cible.
+            URL_CMDLINE_TOOLS="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
             PAQUETS_DEFAUT="platform-tools platforms;android-37.2 build-tools;37.0.0"
             # ~1 Gio : cmdline-tools + plateforme + build-tools installés.
             ESPACE_REQUIS_KO=1048576
@@ -187,6 +215,18 @@ internal class EcrivainSdkAndroidCli(
             }
 
             sdk_installe() { [ -x "${dollar}SDKMANAGER" ]; }
+
+            # v0.48.0 : le sdkmanager installé est-il FONCTIONNEL sur CETTE
+            # architecture ? Un binaire `android` aux côtés du script = rev
+            # 19+ (son relais natif, x86_64 sous Linux → ENOEXEC sur aarch64)
+            # ; un `sdkmanager --version` qui échoue = installation cassée.
+            # Exige que `resoudre_java` ait déjà exporté JAVA_HOME (le script
+            # de Google le lit directement).
+            sdk_fonctionnel() {
+              sdk_installe || return 1
+              [ ! -x "${dollar}SDK_HOME/cmdline-tools/latest/bin/android" ] || return 1
+              "${dollar}SDKMANAGER" --version >/dev/null 2>&1
+            }
 
             cmd_statut() {
               printf '\033[36m╭──────────────────────────────────────────╮\033[0m\n'
@@ -243,8 +283,19 @@ internal class EcrivainSdkAndroidCli(
                    fi ;;
               esac
 
+              # v0.48.0 — GUÉRISON : un cmdline-tools déjà posé mais NON
+              # fonctionnel sur CETTE architecture (binaire natif x86_64 de
+              # la rev 23.0, ou sdkmanager cassé) est REMPLACÉ — l'appareil
+              # qui a déjà tenté l'installation ne reste pas condamné à son
+              # échec (« android-sdk: l'installation a échoué (code 1) »).
+              if sdk_installe && ! sdk_fonctionnel; then
+                echo "→ cmdline-tools installé mais NON FONCTIONNEL sur cette architecture"
+                echo "  (binaire natif x86_64 ou sdkmanager cassé) — remplacement par la rev 12.0…"
+                rm -rf "${dollar}SDK_HOME/cmdline-tools"
+              fi
+
               if ! sdk_installe; then
-                echo "→ Téléchargement des cmdline-tools (rev 23.0, ~130 Mio)…"
+                echo "→ Téléchargement des cmdline-tools (rev 12.0, ~130 Mio)…"
                 mkdir -p "${dollar}SDK_HOME"
                 archive="${dollar}SDK_HOME/cmdline-tools.zip"
                 if command -v curl >/dev/null 2>&1; then
@@ -283,6 +334,16 @@ internal class EcrivainSdkAndroidCli(
                 }
                 rm -rf "${dollar}provisoire"
                 chmod +x "${dollar}SDKMANAGER" 2>/dev/null
+                # v0.48.0 : vérification FONCTIONNELLE après installation —
+                # le téléchargement ne suffit pas, le sdkmanager doit
+                # DÉMARRER (JVM) avant d'engager les paquets : un échec
+                # s'explique ici AVANT les 172 Mio de paquets.
+                if ! sdk_fonctionnel; then
+                  echo "" >&2
+                  echo "android-sdk: sdkmanager non fonctionnel après installation." >&2
+                  echo "  (Java : ${dollar}JAVA_BIN ; détail : ${dollar}SDKMANAGER --version)" >&2
+                  exit 1
+                fi
               fi
 
               echo "→ Acceptation des licences…"

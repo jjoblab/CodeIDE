@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EvenementSyncFlux
 import jo.codeide.core.domain.GradleToolingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -55,6 +56,18 @@ import javax.inject.Singleton
  * quelles (la leçon v0.45.1 reste : une pompe unique ne doit JAMAIS
  * bloquer sur un canal sans consommateur). L'option « afficher les
  * tâches » disparaît avec les rangées structurées.
+ *
+ * v0.48.0 (ADR 0079) : la vidange SYNC draine le FLUX ORDONNÉ COMPLET
+ * ([EvenementSyncFlux] — départ, lignes stdout/stderr, étapes, TERMINAL)
+ * et PUBLIE ELLE-MÊME le résultat : la coroutine lancante ne concluait
+ * que son PROPRE lancement — la revalidation silencieuse (v0.40.1) ne
+ * publiait jamais le résultat alors que son SyncStarted avait armé
+ * l'état « en cours » : l'en-tête restait « étape n/N » et le chrono
+ * couraient POUR TOUJOURS (retour terrain v0.47.0 : « à la fin du sync
+ * l'UI n'est toujours pas à jour — la console et l'en-tête »). La
+ * vidange survit aux écrans, conclut TOUTE sync sur le FAIT du serveur,
+ * et l'ordre du canal garantit « console vidée → lignes et étapes →
+ * conclusion ».
  *
  * @param tooling port du dépôt tooling (canaux de sortie, état, tâches,
  *        téléchargements, progression sync).
@@ -139,18 +152,27 @@ class PompeBuildTooling
             }
 
         /**
-         * Vidange process-wide de la progression SYNC (v0.45.1) : les
-         * étapes annoncées par le serveur alimentent l'état process-wide
-         * — le collecteur vivait dans le `viewModelScope` de l'espace : un
-         * écran fermé en pleine sync laissait le canal (256) se remplir
-         * puis bloquait la pompe unique du client. Idempotente : appels
-         * rejoués sans effet, UNE vidange par process.
+         * Vidange process-wide du FLUX DE SYNC ORDONNÉ (v0.45.1 pour les
+         * étapes ; v0.48.0, ADR 0079 pour les lignes et le TERMINAL) : le
+         * départ annoncé PAR le serveur arme l'état (vidage de console +
+         * chrono), les lignes stdout/stderr et les étapes s'écrivent au fil
+         * de l'eau, le TERMINAL publie le RÉSULTAT — sur le fait du serveur,
+         * même si la coroutine lancante est morte, même pour une sync
+         * lancée par un autre écran. L'ordre du canal EST l'ordre du câble :
+         * la conclusion arrive après tout ce qu'elle conclut.
+         *
+         * Idempotente : appels rejoués sans effet, UNE vidange par process.
          */
         fun pomperSync() {
             if (!vidangeSyncLancee.compareAndSet(false, true)) return
             portee.launch {
-                tooling.observeSyncProgress().collect { etape ->
-                    serviceGradle.ajouterEtapeSync(etape)
+                tooling.observeFluxSync().collect { evenement ->
+                    when (evenement) {
+                        is EvenementSyncFlux.Debut -> serviceGradle.marquerSyncEnCours()
+                        is EvenementSyncFlux.Ligne -> serviceGradle.ajouterLigneSync(evenement.sortie)
+                        is EvenementSyncFlux.Etape -> serviceGradle.ajouterEtapeSync(evenement.etape)
+                        is EvenementSyncFlux.Terminal -> serviceGradle.publierResultatSync(evenement.resultat)
+                    }
                 }
             }
         }
