@@ -49,8 +49,15 @@ internal object VersionneurScriptsTerminal {
      *   ELF file ») + GUÉRISON des installations cassées (un cmdline-tools
      *   portant `bin/android` ou dont `--version` échoue est REMPLACÉ) +
      *   vérification fonctionnelle après installation.
+     * - 6 : v0.51.0 — commande `android-sdk` : build-tools et platform-tools
+     *   **binaires Android** depuis le manifeste du dépôt `codeide-tools`
+     *   (SHA-256 vérifiée, par architecture — fin des x86_64 du sdkmanager
+     *   Google, ADR 0082) ; cmdline-tools reconditionnés du manifeste le
+     *   cas échéant, repli rev 12.0 ; plateformes seules via sdkmanager.
+     *   Profil : pont `ide-environment.properties` (clés de `codeidesetup`
+     *   respectées, sans écraser l'injection de l'app).
      */
-    internal const val VERSION = 5
+    internal const val VERSION = 6
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =
