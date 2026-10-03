@@ -24,6 +24,13 @@ import java.io.IOException
  *   distribution du cache `wrapper/dists` (TROIS niveaux — posée par le
  *   tooling), sinon `opt/` ; la ligne Android montre `$ANDROID_HOME` ou le
  *   SDK du HOME (`android-sdk/`, posé par la commande `android-sdk`) ;
+ * - **v0.51.0 — pont `ide-environment.properties`** : le profil respecte
+ *   les clés posées par l'installeur autonome du dépôt `codeide-tools`
+ *   (`codeidesetup`, exécuté au terminal sans passer par l'app) — chaque
+ *   clé de la liste blanche (`JAVA_HOME`, `ANDROID_SDK_ROOT`,
+ *   `ANDROID_HOME`) ne passe QUE si absente de l'environnement : le
+ *   ballotage de l'app reste la source la plus fraîche, le fichier
+ *   comble les blancs (JDK d'un emplacement non scanné, par exemple) ;
  * - LA ligne d'inclusion dans le `.bashrc` du HOME du bootstrap, ajoutée
  *   SEULEMENT si absente (jamais dupliquée — comparaison ligne à ligne sur
  *   le texte rogné, pas un grep naïf) ;
@@ -160,6 +167,36 @@ internal class EcrivainProfilShell(
               fi
               printf '%s' "non installé — commande : android-sdk installer"
             }
+
+            # v0.51.0 — PONT avec l'installeur du dépôt codeide-tools : le
+            # script `codeidesetup` (curl … | bash, sans passer par l'app)
+            # écrit JAVA_HOME et ANDROID_SDK_ROOT dans
+            # ${dollar}PREFIX/etc/ide-environment.properties. Le profil respecte ce
+            # fichier SANS écraser ce que CodeIDE a déjà injecté dans la
+            # session (le ballotage de l'app est la source la plus fraîche) :
+            # chaque clé de la LISTE BLANCHE ne passe QUE si absente de
+            # l'environnement. Lecture ligne à ligne CLE=VALEUR — jamais de
+            # `.` sourcé (une valeur hostile ne serait pas évaluée) et
+            # commentaires (#) ignorés.
+            __codeide_environment_props() {
+              [ -f "${dollar}PREFIX/etc/ide-environment.properties" ] || return 0
+              while IFS='=' read -r cle valeur; do
+                case "${dollar}cle" in
+                  JAVA_HOME)
+                    [ -n "${dollar}JAVA_HOME" ] || export JAVA_HOME="${dollar}valeur"
+                    ;;
+                  ANDROID_SDK_ROOT)
+                    [ -n "${dollar}ANDROID_SDK_ROOT" ] || export ANDROID_SDK_ROOT="${dollar}valeur"
+                    ;;
+                  ANDROID_HOME)
+                    [ -n "${dollar}ANDROID_HOME" ] || export ANDROID_HOME="${dollar}valeur"
+                    ;;
+                esac
+              done < "${dollar}PREFIX/etc/ide-environment.properties"
+              return 0
+            }
+            __codeide_environment_props
+            unset __codeide_environment_props
 
             # Message de bienvenue : l'état RÉEL des outils du bootstrap —
             # JAVA_HOME et ANDROID_HOME sont injectés par CodeIDE dans

@@ -163,14 +163,114 @@ class EcrivainProfilShellTest {
             )
         }
 
-    /** Exécute une commande et capture code + sortie combinée. */
+    @Test
+    fun `le pont ide-environment properties respecte la liste blanche sans ecraser l app - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            ecrivain.ecrire(racine)
+            val profil = File(racine, "usr/etc/codeide.sh")
+            poserFichierEnvironnement(racine)
+
+            // 1. Session VIERGE (l'app n'a rien injecté — les variables du
+            //    daemon de test sont retirées, PREFIX pointe vers le
+            //    bootstrap factice) : les deux clés du fichier passent, la
+            //    clé hostile n'existe pas.
+            val sessionVierge =
+                processus(
+                    "/bin/bash",
+                    "--norc",
+                    "-c",
+                    ". '${profil.absolutePath}'; " +
+                        "printf 'J=%s A=%s P=%s' \"\${JAVA_HOME-}\" \"\${ANDROID_SDK_ROOT-}\" \"\${PATH-}\"",
+                    prefixe = File(racine, "usr"),
+                    environnementVierge = true,
+                )
+            assertEquals(
+                "le sourcing avec fichier devait réussir (sortie : ${sessionVierge.sortie})",
+                0,
+                sessionVierge.code,
+            )
+            assertTrue(
+                "JAVA_HOME du fichier devait passer (reçu : ${sessionVierge.sortie})",
+                sessionVierge.sortie.contains("J=/chemin/jdk-du-depot"),
+            )
+            assertTrue(
+                "ANDROID_SDK_ROOT du fichier devait passer (reçu : ${sessionVierge.sortie})",
+                sessionVierge.sortie.contains("A=/chemin/android-sdk"),
+            )
+            assertFalse(
+                "la clé hostile ne devait PAS être évaluée (reçu : ${sessionVierge.sortie})",
+                sessionVierge.sortie.contains("rm -rf"),
+            )
+
+            // 2. Session déjà pilotée par l'app : l'injection (la plus
+            //    fraîche) GAGNE — le fichier ne l'écrase pas.
+            val sessionPilotee =
+                processus(
+                    "/bin/bash",
+                    "--norc",
+                    "-c",
+                    "JAVA_HOME=/chemin/jdk-de-l-app; ANDROID_HOME=/sdk-de-l-app; " +
+                        ". '${profil.absolutePath}'; printf 'J=%s' \"\${JAVA_HOME-}\"",
+                    prefixe = File(racine, "usr"),
+                )
+            assertEquals(
+                "le sourcing piloté devait réussir (sortie : ${sessionPilotee.sortie})",
+                0,
+                sessionPilotee.code,
+            )
+            assertTrue(
+                "JAVA_HOME de l'app devait rester (reçu : ${sessionPilotee.sortie})",
+                sessionPilotee.sortie.contains("J=/chemin/jdk-de-l-app"),
+            )
+            assertFalse(
+                "JAVA_HOME du fichier ne devait PAS écraser celui de l'app",
+                sessionPilotee.sortie.contains("jdk-du-depot"),
+            )
+        }
+
+    /** Le fichier posé par codeidesetup (dépôt codeide-tools) : les deux
+     *  clés utiles, un commentaire, et une clé HORS liste blanche à la
+     *  valeur hostile — elle ne doit JAMAIS passer (lecture ligne à ligne,
+     *  pas de `.` sourcé : rien n'est évalué). */
+    private fun poserFichierEnvironnement(racine: File) {
+        File(racine, "usr/etc").apply { mkdirs() }
+        File(racine, "usr/etc/ide-environment.properties").writeText(
+            "# posé par codeidesetup\n" +
+                "JAVA_HOME=/chemin/jdk-du-depot\n" +
+                "ANDROID_SDK_ROOT=/chemin/android-sdk\n" +
+                "PATH=\$(rm -rf /ne-doit-pas-s-exécuter)\n",
+        )
+    }
+
+    /** Résultat d'exécution d'une commande : code de sortie + sortie combinée. */
     private data class Resultat(
         val code: Int,
         val sortie: String,
     )
 
-    private fun processus(vararg commande: String): Resultat {
-        val process = ProcessBuilder(*commande).redirectErrorStream(true).start()
+    /** Exécute une commande et capture code + sortie combinée.
+     *  [prefixe] impose PREFIX (les sessions du terminal CodeIDE l'ont
+     *  toujours — injecté par l'app) ; [environnementVierge] retire les
+     *  clés de la liste blanche héritées du daemon de test (le pont ne
+     *  passe une clé QUE si absente : un JAVA_HOME hérité le masquerait). */
+    private fun processus(
+        vararg commande: String,
+        prefixe: File? = null,
+        environnementVierge: Boolean = false,
+    ): Resultat {
+        val process =
+            ProcessBuilder(*commande)
+                .redirectErrorStream(true)
+                .apply {
+                    val env = environment()
+                    if (prefixe != null) env["PREFIX"] = prefixe.absolutePath
+                    if (environnementVierge) {
+                        env.remove("JAVA_HOME")
+                        env.remove("ANDROID_SDK_ROOT")
+                        env.remove("ANDROID_HOME")
+                    }
+                }.start()
         val sortie = process.inputStream.bufferedReader().readText()
         return Resultat(process.waitFor(), sortie.trim())
     }

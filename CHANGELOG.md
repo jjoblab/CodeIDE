@@ -4,6 +4,83 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.51.0] – 2026-10-04
+
+Régler DÉFINITIVEMENT le problème de l'Android SDK, comme AndroidIDE : le
+`sdkmanager` de Google installe des binaires Linux **x86_64**
+(`aapt`, `aapt2`, `aidl`, `zipalign`, `dexdump`, `adb`…) INEXÉCUTABLES sur
+un téléphone aarch64 — seule `aapt2` était contournée depuis les assets de
+l'app (ADR 0032), le reste des build-tools restait mort sur disque. La
+solution est le nouveau dépôt [`jjoblab/codeide-tools`](https://github.com/jjoblab/codeide-tools)
+(l'équivalent CodeIDE d'`androidide-tools`, volontairement séparé de
+`codeide-packages` : les paquets du bootstrap et les versions du SDK n'ont
+pas le même cycle de vie) : binaires **recompilés pour Android** par
+architecture (aarch64, arm, x86_64 — source `lzhiyong/android-sdk-tools`),
+publiés en releases GitHub avec un manifeste d'URLs et **sommes SHA-256**.
+Décision : ADR 0082.
+
+### Ajouté (la commande android-sdk installe de VRAIS binaires Android)
+
+- **Commande `android-sdk` (`core:bootstrap`)** : `android-sdk installer`
+  lit le manifeste du dépôt (`raw.githubusercontent.com/jjoblab/
+  codeide-tools/main/manifest.json` — surcharges `CODEIDE_TOOLS_REPO` /
+  `CODEIDE_TOOLS_MANIFEST`), résout la version la plus récente publiée
+  pour l'architecture de l'appareil (`uname -m`, surcharge `CODEIDE_ARCH`
+  pour les tests), télécharge `build-tools-X.Y.Z-<arch>.tar.xz` et
+  `platform-tools-X.Y.Z-<arch>.tar.xz` (~8 Mio au total — le parcours
+  équivalent par le sdkmanager en pesait ~172), **vérifie chaque SHA-256**
+  avant extraction sous `$HOME/android-sdk`, et reste idempotent (un
+  `aapt2` déjà en place saute le téléchargement). Les **plateformes**
+  (`android.jar`, pur Java) restent installées par le `sdkmanager` :
+  `platforms;android-37.2` par défaut — le dépôt Google reste LA source
+  des plateformes, il n'est plus celle des binaires natifs. Un manifeste
+  inaccessible ou sans version publiée rend un message ACTIONNABLE
+  (pointer le workflow de publication du dépôt), une somme non conforme
+  est REFUSÉE net — rien n'est extrait.
+- **cmdline-tools : voie reconditionnée + repli** : si le manifeste
+  publie des cmdline-tools reconditionnés (miroir GitHub + SHA-256 — la
+  fabrication côté dépôt REFUSE les rev 19+ au binaire natif x86_64),
+  `android-sdk installer` les préfère au zip de Google ; la vérification
+  fonctionnelle fait foi dans les deux cas et la GUÉRISON v0.48.0 est
+  conservée (un cmdline-tools portant `bin/android` ou dont `--version`
+  échoue est REMPLACÉ, l'appareil qui a déjà tenté la rev 23.0 n'est pas
+  condamné à son échec).
+- **Pont `ide-environment.properties` (profil shell)** : le profil
+  `$PREFIX/etc/codeide.sh` respecte désormais les clés posées par
+  l'installeur autonome du dépôt (`codeidesetup`, exécuté au terminal
+  sans passer par l'app — README de `codeide-tools`) : chaque clé de la
+  liste blanche (`JAVA_HOME`, `ANDROID_SDK_ROOT`, `ANDROID_HOME`) ne
+  passe QUE si absente de l'environnement de la session — le ballotage de
+  l'app reste la source la plus fraîche, le fichier comble les blancs.
+  Lecture ligne à ligne `CLE=VALEUR` (jamais de `.` sourcé : une valeur
+  hostile ne serait pas évaluée).
+- **Statut enrichi** : `android-sdk statut` affiche l'architecture et le
+  caractère exécutable du `aapt2` installé.
+- **Versionneur des scripts du terminal** : 5 → 6 — les appareils déjà
+  installés reçoivent la nouvelle commande et le nouveau profil au
+  démarrage suivante, SANS réinstallation du bootstrap.
+
+### Vérifié
+
+- Scripts du dépôt `codeide-tools` éprouvés en intégration LOCALE avec
+  les archives réelles de `lzhiyong/android-sdk-tools` v35.0.2 : les six
+  archives (3 architectures × 2 composants) sont fabriquées, les ELF
+  sont bien aarch64, `source.properties` et permissions conformes ;
+  `codeidesetup` testé de bout en bout (manifeste `file://`, `pkg`
+  factice : SHA-256, extraction, JAVA_HOME résolu dynamiquement — le
+  dépôt corrigé au passage : `JAVA_HOME` pointait vers `opt/openjdk`,
+  un chemin inexistant du bootstrap).
+- `EcrivainSdkAndroidCliTest` réécrit : le déroulé COMPLET de
+  `android-sdk installer` s'exécute pour de vrai (faux `curl` routant
+  selon l'URL — manifeste, archives de binaires, zip Google — avec de
+  vraies mini-archives tar.xz) : installation, idempotence, refus
+  SHA-256, manifeste sans version, guérison des cmdline-tools cassés,
+  voie reconditionnée, statut.
+- `EcrivainProfilShellTest` : le pont `ide-environment.properties` est
+  éprouvé pour de vrai par bash (clés qui passent en session vierge,
+  l'injection de l'app qui gagne en session pilotée, clé hostile hors
+  liste blanche jamais évaluée).
+
 ## [0.50.0] – 2026-10-04
 
 Retour utilisateur sur appareil réel (v0.49.0 installée) : « je constate
