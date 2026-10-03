@@ -4,6 +4,62 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.49.0] – 2026-10-03
+
+Retour utilisateur sur appareil réel : « voici les logs, peut-être que tu
+auras un indice clair pour régler DÉFINITIVEMENT mon problème de retard »
+— les sondes de latence v0.43 désignaient le transport (émission →
+réception : écarts de 19-24 s minimum, jusqu'à 28 minutes, rafales
+arrivées ~76 s APRÈS la fin du build), et la v0.48 ajoutait le verdict
+du watchdog : « orchestrateur muet (aucun pong en 15000 ms) — arrêt
+forcé » en pleine sync, kill 143, relance. Décision : ADR 0080.
+
+### Corrigé (le pong ne peut plus être retardé — des deux côtés du tuyau)
+
+- **Le diagnostic des sondes** : « zone texte alimentée : écart min 0 ms »
+  (la publication cliente est instantanée) contre un transport énorme :
+  TOUT le retard vivait dans le trajet socket/pompe. Deux fragilités
+  symétriques y convergeaient — la pompe cliente UNIQUE faisait ses
+  `send` suspendants DANS sa boucle de lecture (un canal de console plein
+  gelait la lecture du socket : plus de pongs lus, « muet », kill) ; et
+  côté orchestrateur le pong partageait le moniteur `@Synchronized` de
+  l'écriture d'événements (une écriture bloquée sur le tampon de
+  réception plein de l'app ensevelissait le pong quand même — le
+  correctif v0.37.3 l'avait sorti du bus, pas du verrou).
+- **Client (`tooling:client`)** : la pompe devient un LECTEUR qui ne
+  suspend JAMAIS hors de la lecture — le pong est mis à jour en CHEMIN
+  RAPIDE avant tout traitement, les familles build/sync partent chacune
+  dans SA voie ordonnée au consommateur dédié (les ErrorResponse qui
+  concluent une sync traversent la voie sync : le terminal ne peut pas
+  précéder les lignes qu'il conclut, ADR 0079 préservée), les événements
+  légers (réponses, tas, diagnostics) sont traités en ligne. La portée
+  vit sur une voie DÉDIÉE de fils (3 au plus) : la saturation du
+  dispatcheur par défaut par le travail CPU (classpath LSP, surlignage)
+  ne peut plus retarder la lecture du socket. Les pans non prévues sont
+  journalisées (tag `ToolingClient`) au lieu de tuer une voie en silence.
+- **Orchestrateur (`tooling:server`)** : fil écrivain UNIQUE — les frames
+  d'événements traversent une file FIFO bornée (contre-pression sans
+  perte conservée), le PONG dispose d'une file PRIORITAIRE distincte :
+  aucune rafale de sortie, aucune écriture bloquée ne peut plus le
+  retarder. La latence transport se mesure désormais à la réception
+  (lecteur), le retard restant se lit côté publication.
+- **Daemon (`tooling:daemon`)** : le verdict « orchestrateur muet »
+  embarque les SIGNES VITAUX de la pompe (âge du dernier pong,
+  profondeur des voies) : la ligne désigne le coupable — voies profondes
+  = console lente côté app (tuer l'orchestrateur ne réparait rien :
+  c'était le réflexe qui tuait un orchestrateur sain), voies vides + pong
+  vieux = orchestrateur réellement mort.
+- **Vidanges process-wide (`PompeBuildTooling`)** : chaque événement
+  traverse SANS PAN (journalisée, la vidange continue) et une vidange
+  morte est RELANCÉE (bornée) — sa mort silencieuse laissait le canal
+  aval se remplir à jamais, puis gelait la pompe amont (c'était la
+  boucle « muet → kill → relance »).
+- **Retard visible en se formant** : la file d'écriture socket de
+  l'orchestrateur ET les voies clientes avertissent (borné en débit,
+  5 s) quand leur profondeur dépasse le seuil — un rapport de terrain
+  qui contient « file d'écriture socket à N » désigne le mauvais côté
+  du tuyau sans instrumenter quoi que ce soit.
+
 ## [0.48.0] – 2026-10-03
 
 Retour utilisateur sur appareil réel : « lors d'un Sync la console manque

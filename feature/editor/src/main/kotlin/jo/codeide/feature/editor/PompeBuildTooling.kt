@@ -1,11 +1,14 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.EvenementSyncFlux
 import jo.codeide.core.domain.GradleToolingRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import java.util.concurrent.atomic.AtomicBoolean
@@ -69,9 +72,20 @@ import javax.inject.Singleton
  * et l'ordre du canal garantit « console vidée → lignes et étapes →
  * conclusion ».
  *
+ * v0.49.0 (ADR 0080) : une vidange qui MEURT d'une pan non prévue
+ * laissait le canal aval se remplir POUR TOUJOURS (SupervisorJob sans
+ * témoin : la mort était silencieuse) — en amont, la pompe unique du
+ * client finissait suspendue sur un `send` plein, le socket n'était
+ * plus lu, plus aucun pong : « orchestrateur muet » (retour terrain
+ * v0.48). Chaque événement traverse désormais SANS PAN (journalisée,
+ * la vidange continue au suivant) et la vidange elle-même est RELANCÉE
+ * bornée si elle meurt quand même.
+ *
  * @param tooling port du dépôt tooling (canaux de sortie, état, tâches,
  *        téléchargements, progression sync).
  * @param serviceGradle détenteur process-wide de l'état affichable.
+ * @param journal traces des pans de vidange (v0.49.0 : une mort
+ *        silencieuse est une panne invisible — elle se journalise).
  * @param dispatchers répartition des fils (règle 5 : injectés).
  */
 @Singleton
@@ -80,6 +94,7 @@ class PompeBuildTooling
     constructor(
         private val tooling: GradleToolingRepository,
         private val serviceGradle: GradleService,
+        private val journal: AppLogger,
         dispatchers: DispatcherProvider,
     ) {
         /** Portée interne : survit aux écrans, meurt avec le processus. */
@@ -117,36 +132,42 @@ class PompeBuildTooling
         /**
          * Les quatre collecteurs en fratrie supervisée : l'échec imprévu
          * de l'un n'arrête pas les autres (la fin de build est portée par
-         * la COMPLÉTION des canaux, pas par une exception).
+         * la COMPLÉTION des canaux, pas par une exception). v0.49.0 : un
+         * événement fautif est journalisé et PASSÉ — le collecteur continue
+         * de vider (une vidange morte, c'est un canal qui ne se vide plus,
+         * et l'amont qui finit par geler — cf. ADR 0080).
          */
         private suspend fun vider(buildId: String) =
             supervisorScope {
                 launch {
                     tooling.observeBuildOutput(buildId).collect { ligne ->
-                        serviceGradle.ajouterLigne(ligne)
+                        traiterSansPanne("sortie du build $buildId") { serviceGradle.ajouterLigne(ligne) }
                     }
                 }
                 launch {
                     tooling.observeBuildState(buildId).collect { etat ->
-                        serviceGradle.publierEtatBuild(etat)
+                        traiterSansPanne("état du build $buildId") { serviceGradle.publierEtatBuild(etat) }
                     }
                 }
                 launch {
                     // v0.46.0 : les événements de tâches ne produisent PLUS
                     // de lignes (Gradle écrit les siennes sur stdout — les
                     // afficher deux fois était le problème « deux endroits »)
-                    // mais le canal reste VIDÉ : la pompe unique du client
-                    // ne doit jamais bloquer sur un canal sans consommateur
-                    // (leçon v0.45.1).
+                    // mais le canal reste VIDÉ : la pompe du client ne doit
+                    // jamais bloquer sur un canal sans consommateur
+                    // (leçon v0.45.1). v0.49.0 : la vidange ne meurt plus
+                    // d'une pan non prévue non plus.
                     tooling.observeTachesBuild(buildId).collect { }
                 }
                 // v0.45.1 : la progression des artefacts du build alimente
                 // la rangée en place de la vue Build — SANS cette vidange,
                 // le canal ne se drainait jamais (aucun consommateur) et
-                // la pompe du client finissait par s'y bloquer.
+                // la pompe du client finirait par s'y bloquer.
                 launch {
                     tooling.observeTelechargementsBuild(buildId).collect { telechargement ->
-                        serviceGradle.ajouterTelechargement(telechargement)
+                        traiterSansPanne("téléchargement du build $buildId") {
+                            serviceGradle.ajouterTelechargement(telechargement)
+                        }
                     }
                 }
             }
@@ -161,19 +182,77 @@ class PompeBuildTooling
          * lancée par un autre écran. L'ordre du canal EST l'ordre du câble :
          * la conclusion arrive après tout ce qu'elle conclut.
          *
+         * v0.49.0 (ADR 0080) : événements traversés SANS PAN + relance
+         * bornée de la vidange entière — sa mort silencieuse laissait le
+         * canal 256 se remplir à jamais puis gelait la pompe du client
+         * (c'était la boucle « muet → kill → relance » de la v0.48).
+         *
          * Idempotente : appels rejoués sans effet, UNE vidange par process.
          */
         fun pomperSync() {
             if (!vidangeSyncLancee.compareAndSet(false, true)) return
             portee.launch {
-                tooling.observeFluxSync().collect { evenement ->
-                    when (evenement) {
-                        is EvenementSyncFlux.Debut -> serviceGradle.marquerSyncEnCours()
-                        is EvenementSyncFlux.Ligne -> serviceGradle.ajouterLigneSync(evenement.sortie)
-                        is EvenementSyncFlux.Etape -> serviceGradle.ajouterEtapeSync(evenement.etape)
-                        is EvenementSyncFlux.Terminal -> serviceGradle.publierResultatSync(evenement.resultat)
+                var relances = 0
+                while (true) {
+                    try {
+                        tooling.observeFluxSync().collect { evenement ->
+                            traiterSansPanne("flux sync") { publier(evenement) }
+                        }
+                        // Complétion normale : le canal ne se ferme qu'à la
+                        // fin du process — rien à relancer.
+                        return@launch
+                    } catch (annulation: CancellationException) {
+                        throw annulation
+                    } catch (t: Throwable) {
+                        relances++
+                        journal.e(
+                            TAG,
+                            t,
+                        ) { "la vidange sync est morte (${t.message}) — relance $relances/$MAX_RELANCES" }
+                        if (relances >= MAX_RELANCES) return@launch
+                        delay(DELAI_RELANC_E_MS)
                     }
                 }
             }
+        }
+
+        /** Publication d'un événement du flux sync (v0.48.0, ADR 0079). */
+        private fun publier(evenement: EvenementSyncFlux) {
+            when (evenement) {
+                is EvenementSyncFlux.Debut -> serviceGradle.marquerSyncEnCours()
+                is EvenementSyncFlux.Ligne -> serviceGradle.ajouterLigneSync(evenement.sortie)
+                is EvenementSyncFlux.Etape -> serviceGradle.ajouterEtapeSync(evenement.etape)
+                is EvenementSyncFlux.Terminal -> serviceGradle.publierResultatSync(evenement.resultat)
+            }
+        }
+
+        /**
+         * Exécute un traitement de vidange SANS le laisser tuer son
+         * collecteur : la pan est journalisée, l'événement suivant traverse
+         * — une vidange morte ne vide plus son canal, et c'est TOUTE la
+         * chaîne qui finit gelée (retour terrain v0.48, ADR 0080).
+         */
+        private suspend fun traiterSansPanne(
+            quoi: String,
+            traitement: suspend () -> Unit,
+        ) {
+            try {
+                traitement()
+            } catch (annulation: CancellationException) {
+                throw annulation
+            } catch (t: Throwable) {
+                journal.e(TAG, t) { "pan de vidange ($quoi) : ${t.message} — la vidange continue" }
+            }
+        }
+
+        private companion object {
+            /** Tag du journal des vidanges (v0.49.0). */
+            const val TAG = "PompeBuilds"
+
+            /** Bornage des relances d'une vidange morte (v0.49.0). */
+            const val MAX_RELANCES = 3
+
+            /** Attente avant de relancer une vidange morte (v0.49.0). */
+            const val DELAI_RELANC_E_MS = 1_000L
         }
     }
