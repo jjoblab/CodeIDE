@@ -4,6 +4,58 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.50.0] – 2026-10-04
+
+Retour utilisateur sur appareil réel (v0.49.0 installée) : « je constate
+une amélioration » — et les sondes le confirment : plus AUCUN
+« orchestrateur muet », aucun kill 143, aucune relance, file d'événements
+à 0-1, écarts de transport passés de 19-24 s minimum (jusqu'à 28 minutes)
+à 1-14 s maximum. Mais le transport garde 1 à 14 s (résumés reçus 2 s et
+19 s APRÈS la fin des builds), et le détail des sondes désigne un seul
+endroit : l'étendue des écarts d'un même build atteint 12 955 ms pour un
+build de 2 370 ms — les lignes s'égouttent FRAME PAR FRAME au lieu
+d'affluer. Décision : ADR 0081.
+
+### Corrigé (la lecture ne dépend plus du scheduler de coroutines)
+
+- **Le diagnostic** : la boucle de lecture v0.49.0 restait une COROUTINE
+  — `withContext(Dispatchers.IO)` pour lire la frame, re-dispatch vers la
+  voie de fils du collecteur pour l'émettre : DEUX changements de contexte
+  de scheduler PAR FRAME. `Dispatchers.IO.limitedParallelism(3)` est une
+  LIMITE de concurrence, pas une RÉSERVE de fils : les fils de la voie
+  viennent du pool partagé (64 au plus) — le même que le scanning
+  classpath LSP et les diagnostics post-sync de l'app. Pendant les
+  builds, ce travail CPU charge le scheduler : chaque hop coûte de 0,1 à
+  2 s, la sortie s'égoutte (16 lignes étalées sur 13-20 s), le retard se
+  lit au fil de l'eau au lieu d'arriver en rafale. Le pong, lui, ne
+  traversait qu'un à deux hops par cycle de 5 s : il passait toujours
+  sous les 15 s du watchdog — cohérent avec l'absence totale de « muet »
+  dans les logs. Côté orchestrateur, tout était déjà immédiat (file à
+  0-1, tampon UDS jamais rempli, aucun avertissement de profondeur).
+- **Client (`tooling:client`)** : la lecture du socket quitte le monde
+  des coroutines — la session réelle (`SessionSocketAndroid`) lit dans UN
+  FIL DÉDIÉ (« tooling-lecteur », priorité relevée d'un cran) : le
+  `read()` bloquant dort en appel système, le NOYAU le réveille à
+  l'arrivée des octets — zéro ordonnancement coroutine entre l'arrivée
+  d'une frame et son routage. Le router (non suspendant par
+  construction depuis v0.49.0 : `trySend` vers voies non bornées,
+  écritures atomiques, promesses complétées) s'exécute DANS le fil, au
+  vrai point de réception : le pong et la latence de transport sont
+  marqués AVANT toute file coroutine, et les voies build/sync se
+  remplissent au rythme du noyau. La collecte du flux d'événements ne
+  route plus — elle reste le signal de fin de flux et garde son ménage.
+- **Contrat de session (`SessionTooling.acheminerVia`)** : la session
+  réelle reçoit le chemin rapide et confirme qu'elle route elle-même
+  (`true`) ; les sessions factices des tests héritent du défaut (`false`)
+  — la collecte route comme avant, aucun test n'a changé de sémantique.
+  Le test bout-en-bout du daemon (`BoutEnBoutTest`) embranche le fil
+  dédié via son miroir JVM (`SessionSocketJvm`) : le ping/pong, la
+  sortie de build et l'arrêt sont validés sur le VRAI chemin de lecture.
+- **Orchestrateur (`tooling:server`)** : inchangé (le fil écrivain
+  v0.49.0 avait déjà tout écrit immédiatement — les sondes v0.49.0
+  l'ont prouvé : file=0/1 en fin de build) ; `ServerVersion` aligné sur
+  0.50.0 pour la livraison.
+
 ## [0.49.0] – 2026-10-03
 
 Retour utilisateur sur appareil réel : « voici les logs, peut-être que tu
