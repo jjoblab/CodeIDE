@@ -17,6 +17,12 @@ import java.io.IOException
  *   éventuelle URL antérieure incorrecte est corrigée automatiquement :
  *   le fichier est réécrit dès que son contenu diffère de la ligne
  *   canonique) ;
+ * - **création des répertoires APT standard** (`preferences.d`,
+ *   `apt.conf.d`, `sources.list.d`, `trusted.gpg.d` — v0.47.0, retour
+ *   d'appareil réel : l'archive du bootstrap ne les pose pas tous et
+ *   `pkg install` avertit « W: Unable to read
+ *   …/etc/apt/preferences.d/ - DirectoryExists (2: No such file or
+ *   directory) » à CHAQUE commande) ;
  * - `apt update` puis `apt install -y <paquet>`, un paquet à la fois
  *   (un paquet absent du dépôt est rapporté non installé sans faire
  *   échouer les autres) ;
@@ -32,6 +38,28 @@ internal class ConfigurateurApt(
     private val dispatchers: DispatcherProvider,
 ) {
     /**
+     * Crée les répertoires APT standard du préfixe (v0.47.0 — correctif du
+     * warning `preferences.d` en retour d'appareil réel).
+     *
+     * L'archive du bootstrap Termux pose `etc/apt/sources.list` mais PAS
+     * toujours les répertoires de configuration supplémentaires qu'apt
+     * parcourt à CHAQUE commande : sans `etc/apt/preferences.d/`, chaque
+     * `pkg install` imprime « W: Unable to read …/preferences.d/ -
+     * DirectoryExists (2: No such file or directory) ». Idempotent
+     * (`mkdirs`), sans danger sur un préfixe sain — appelé à la pose du
+     * `sources.list` ET à chaque démarrage par
+     * [InstallateurBootstrap.refreshTerminalScripts] : les préfixes déjà
+     * installés sont guéris SANS réinstallation.
+     */
+    suspend fun assurerRepertoiresApt(prefixe: File) {
+        withContext(dispatchers.io) {
+            REPERTOIRES_APT.forEach { relatif ->
+                File(prefixe, relatif).mkdirs()
+            }
+        }
+    }
+
+    /**
      * Écrit (ou corrige) le `sources.list` du préfixe.
      *
      * @param prefixe racine `$PREFIX` du bootstrap installé.
@@ -45,6 +73,11 @@ internal class ConfigurateurApt(
         ligneDepotApt: String,
     ): Boolean =
         withContext(dispatchers.io) {
+            // v0.47.0 : AVANT le test de conformité — un préfixe installé
+            // par une version antérieure peut être conforme sur le
+            // `sources.list` tout en manquant les répertoires standard :
+            // guérir à CHAQUE passage, même sans réécriture.
+            assurerRepertoiresApt(prefixe)
             val sourcesList = File(prefixe, "etc/apt/sources.list")
             val contenuAttendu = "$EN_TETE_SOURCES\n$ligneDepotApt\n"
             if (sourcesList.isFile && sourcesList.readText() == contenuAttendu) {
@@ -135,5 +168,17 @@ internal class ConfigurateurApt(
     private companion object {
         /** En-tête de commentaire du `sources.list` écrit. */
         private const val EN_TETE_SOURCES = "# CodeIDE main repository"
+
+        /** Répertoires APT standard du préfixe (v0.47.0 — le warning
+         *  `preferences.d` de retour d'appareil réel ; `sources.list.d`,
+         *  `apt.conf.d` et `trusted.gpg.d` suivent la même exIGENCE
+         *  d'apt, la guérison les pose ensemble). */
+        private val REPERTOIRES_APT =
+            listOf(
+                "etc/apt/preferences.d",
+                "etc/apt/apt.conf.d",
+                "etc/apt/sources.list.d",
+                "etc/apt/trusted.gpg.d",
+            )
     }
 }

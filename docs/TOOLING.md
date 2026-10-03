@@ -126,7 +126,10 @@ Les transitions de phases streament par `BuildController.send()` vers le
 java-sérialisable, jamais un lambda — l'action s'exécute DANS le daemon).
 Le résultat (DTO sérialisables, `serialVersionUID`) alimente le **CacheSync**
 serveur : `taches()` et `classpath()` répondent ensuite SANS re-résolution
-(mesuré : quelques ms contre plusieurs secondes).
+(mesuré : quelques ms contre plusieurs secondes). Depuis v0.47.0, le
+`SyncResult` PORTE aussi les tâches résolues (champ `taches`, optionnel —
+un serveur antérieur ne l'envoie pas) : le client arme le bouton Tâches
+SUR le résultat, sans second aller-retour de listage.
 
 **Les téléchargements se voient pour TOUTE action** (§6) :
 `EcouteurProgressionCommun` (FILE_DOWNLOAD + PROJECT_CONFIGURATION, débit

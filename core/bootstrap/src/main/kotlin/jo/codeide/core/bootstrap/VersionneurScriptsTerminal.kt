@@ -36,9 +36,14 @@ internal object VersionneurScriptsTerminal {
      *   'task:assembleDebug' as project 'task' not found ») est réécrit
      *   en « FOO » avec un avertissement au lieu d'échouer — la feuille de
      *   tâches de l'app lance `:module:tâche`, la console l'affiche, le
-     *   terminal l'accepte à son tour.
+     *   terminal l'accepte à son tour ;
+     * - 4 : v0.47.0 — commande `android-sdk` : `mkdir -p` du répertoire
+     *   parent `cmdline-tools/` AVANT le déplacement vers
+     *   `cmdline-tools/latest` (retour d'appareil réel : sur une première
+     *   installation le `mv` échouait d'un « No such file or directory »
+     *   APRÈS le téléchargement de 172,6 Mio).
      */
-    internal const val VERSION = 3
+    internal const val VERSION = 4
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =
