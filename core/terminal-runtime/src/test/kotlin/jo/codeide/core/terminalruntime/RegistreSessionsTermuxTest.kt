@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -45,6 +46,7 @@ class RegistreSessionsTermuxTest {
         var titreDeclenche: String? = null
         var terminee = false
         var ecouteur: EcouteurCoquille? = null
+        val textesRecus = mutableListOf<String>()
 
         override fun estVivante(): Boolean = vivante
 
@@ -55,6 +57,10 @@ class RegistreSessionsTermuxTest {
         override fun terminer() {
             terminee = true
             vivante = false
+        }
+
+        override fun envoyerTexte(texte: String) {
+            textesRecus += texte
         }
     }
 
@@ -133,6 +139,33 @@ class RegistreSessionsTermuxTest {
     private object EnvironnementFaux : ProcessEnvironmentProvider {
         override fun baseEnvironment(): Map<String, String> = mapOf("HOME" to "/home/faux", "PATH" to "/bin")
     }
+
+    @Test
+    fun `envoyer texte atteint l entree de la session visee`() =
+        runTest(ordonnanceur) {
+            val registre = registre()
+            val premiere = registre.createSession(File("/a"))
+            val seconde = registre.createSession(File("/b"))
+
+            registre.envoyerTexte(premiere, "codeide-env\r")
+
+            assertEquals(listOf("codeide-env\r"), coquilles[0].textesRecus)
+            assertEquals(emptyList<String>(), coquilles[1].textesRecus)
+            assertNotEquals(premiere, seconde)
+        }
+
+    @Test
+    fun `envoyer texte sur une session inconnue reste sans effet`() =
+        runTest(ordonnanceur) {
+            val registre = registre()
+            registre.createSession(File("/a"))
+
+            // Aucune exception : l'appelant pilote une session que
+            // l'utilisateur peut avoir refermée entre-temps.
+            registre.envoyerTexte("session-fantome", "exit\r")
+
+            assertEquals(emptyList<String>(), coquilles[0].textesRecus)
+        }
 
     @Test
     fun `creer publie une session vivante avec label automatique et repertoire`() =

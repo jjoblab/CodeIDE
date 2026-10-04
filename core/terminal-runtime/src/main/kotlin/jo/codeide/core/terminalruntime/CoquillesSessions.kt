@@ -31,6 +31,14 @@ internal interface CoquilleSession {
 
     /** Termine le shell (fermeture explicite de l'onglet). */
     fun terminer()
+
+    /**
+     * Envoie du texte à l'entrée du shell, comme si l'utilisateur le
+     * tapait (v0.52.0, ADR 0083) : voie du clavier logiciel réutilisée
+     * par l'application pour « taper » la commande `codeide-env` dans la
+     * session de configuration.
+     */
+    fun envoyerTexte(texte: String)
 }
 
 /**
@@ -215,6 +223,13 @@ internal class CoquilleTermux
 
         override fun terminer() {
             session.finishIfRunning()
+        }
+
+        // Voie clavier de Termux (`TerminalSession.write` → entrée du
+        // pseudo-terminal) : écho, historique readline et séquences de
+        // contrôle traités par le shell exactement comme une frappe.
+        override fun envoyerTexte(texte: String) {
+            session.write(texte)
         }
 
         private companion object {

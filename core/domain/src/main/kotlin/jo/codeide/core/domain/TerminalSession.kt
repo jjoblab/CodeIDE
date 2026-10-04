@@ -79,4 +79,28 @@ public interface TerminalSessionRepository {
      * masquée) et la retire de la liste.
      */
     public suspend fun closeSession(sessionId: String)
+
+    /**
+     * Envoie du texte à une session, **comme si l'utilisateur le tapait**
+     * (v0.52.0, ADR 0083) : le texte part vers l'entrée du pseudo-terminal
+     * — écho du shell, historique readline et séquences de contrôle
+     * comprises.
+     *
+     * C'est le mécanisme du clavier logiciel (`TerminalSession.write` de
+     * Termux) réutilisé par l'application : la commande
+     * `codeide-env` est « tapée » dans une session dédiée, sa sortie
+     * défile dans le TerminalView — le journal live de la configuration
+     * de l'environnement EST le terminal, sans doublon d'affichage.
+     *
+     * Session inconnue ou déjà fermée : sans effet, jamais d'exception —
+     * l'appelant pilote une session qu'il ne possède pas (elle peut
+     * être fermée par l'utilisateur entre-temps).
+     *
+     * @param sessionId identifiant de la session cible.
+     * @param texte texte à envoyer (`\r` vaut Entrée).
+     */
+    public fun envoyerTexte(
+        sessionId: String,
+        texte: String,
+    )
 }

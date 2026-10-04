@@ -4,13 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.BootstrapInstaller
+import jo.codeide.core.domain.ConfigurationEnvTerminal
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
 import jo.codeide.core.model.EtatInstallationBootstrap
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -28,12 +33,31 @@ sealed interface ActionInstallation {
 
     /** Referme l'écran (retour au point d'entrée). */
     data object Fermer : ActionInstallation
+
+    /**
+     * Ouvre (ou relance) la configuration automatique de l'environnement
+     * dans le terminal (v0.52.0, ADR 0083) : la session de configuration
+     * devient l'écran live.
+     */
+    data object ConfigurerEnvironnement : ActionInstallation
+}
+
+/**
+ * Effets ponctuels de navigation de l'écran d'installation (consommés une
+ * fois par le fragment — jamais rejoués à la rotation).
+ */
+sealed interface EffetInstallation {
+    /**
+     * La session de configuration de l'environnement est prête : ouvrir
+     * l'écran du terminal pour suivre le journal en direct (v0.52.0).
+     */
+    data object OuvrirTerminal : EffetInstallation
 }
 
 /**
  * État de rendu de l'écran d'installation — traduction pure de
  * [EtatInstallationBootstrap] (le port partage déjà l'état réel :
- * ouvrir l'écran pendant une installation lancée ailleurs y affiche
+ * ouvrir cet écran pendant une installation lancée ailleurs y affiche
  * la même progression).
  *
  * @property phase phase de rendu (invite, progression, résultat,
@@ -46,6 +70,9 @@ sealed interface ActionInstallation {
  * terminée et échec des outils) — `vide` = non encore demandés.
  * @property paquetsOutils paquets d'outils **proposés** (invite et
  * résultat) : l'utilisateur sait ce qu'il accepte avant de lancer.
+ * @property envComplet l'environnement complet (JDK + SDK Android) est-il
+ * déjà en place ? (v0.52.0 : le résultat célèbre la configuration prête
+ * au lieu de proposer des paquets).
  * @property journal lignes de sortie réelles des sous-processus
  * (v0.31.2 : « ce qui se fait vraiment » — v0.31.4 : le journal ne
  * s'efface PLUS à chaque changement d'étape, il est combiné à l'état
@@ -61,6 +88,7 @@ data class EtatInstallation(
     val erreur: AppError? = null,
     val outils: List<jo.codeide.core.model.OutilResume> = emptyList(),
     val paquetsOutils: List<String> = emptyList(),
+    val envComplet: Boolean = false,
     val journal: List<String> = emptyList(),
     val detailsEchec: String? = null,
 )
@@ -102,13 +130,33 @@ enum class PhaseInstallation {
  * chaque étape, le journal vivant ne s'effaçait plus entre les tics de
  * progression (téléchargement, extraction, paquets) et revenait par
  * à-coups. Le rendu est désormais continu.
+ *
+ * v0.52.0 (ADR 0083, comportement demandé : « une fois que le bootstrap
+ * installé et pkg update, la configuration de l'environnement avec
+ * l'installation de java, android sdk, etc. ») : la fin de l'installation
+ * de base **déclenche automatiquement** la configuration de
+ * l'environnement dans le terminal — la commande `codeide-env` est
+ * « tapée » dans une session dédiée ([ConfigurationEnvTerminal]) et
+ * l'effet [EffetInstallation.OuvrirTerminal] bascule l'écran vers le
+ * journal live du TerminalView. Le garde `lancementAutoConsomme` tient
+ * le déclenchement à UN par vie de l'écran ; la reprise manuelle passe
+ * par [ActionInstallation.ConfigurerEnvironnement] (une session de
+ * configuration vivante est RETROUVÉE, jamais doublée).
  */
 @HiltViewModel
 class InstallViewModel
     @Inject
     constructor(
         private val installateur: BootstrapInstaller,
+        private val configurationEnv: ConfigurationEnvTerminal,
     ) : ViewModel() {
+        /** Effets ponctuels (ouverture du terminal), consommés une fois. */
+        private val _effets = MutableSharedFlow<EffetInstallation>()
+        val effets: SharedFlow<EffetInstallation> = _effets.asSharedFlow()
+
+        /** Lancement automatique déjà consommé pour cette vie de l'écran. */
+        private var lancementAutoConsomme = false
+
         /** État de rendu observable (UDF) — état et journal combinés. */
         val etat: StateFlow<EtatInstallation> =
             combine(installateur.etat, installateur.journal) { partage, lignes ->
@@ -119,13 +167,56 @@ class InstallViewModel
                 initialValue = traduire(installateur.etat.value).copy(journal = installateur.journal.value),
             )
 
+        init {
+            // v0.52.0 : la fin de la base (l'état INITIAL compris — écran
+            // rouvert sur un bootstrap déjà installé mais un environnement
+            // incomplet) déclenche la configuration automatique. `etat`
+            // étant un StateFlow, la valeur courante rejoue le déclencheur
+            // à chaque abonnement : le garde anti-doublon le tient à un.
+            viewModelScope.launch {
+                etat.collect { rendu ->
+                    if (rendu.phase == PhaseInstallation.TERMINEE && !lancementAutoConsomme) {
+                        lancementAutoConsomme = true
+                        if (!configurationEnv.estComplet()) {
+                            configurationEnv.lancer()?.let {
+                                _effets.emit(EffetInstallation.OuvrirTerminal)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         /** Point d'entrée unique du fragment. */
         fun onAction(action: ActionInstallation) {
             when (action) {
-                ActionInstallation.Installer -> installateur.demarrer()
-                ActionInstallation.InstallerOutils -> installateur.installerOutils()
-                ActionInstallation.Annuler -> installateur.annuler()
-                ActionInstallation.Fermer -> Unit // navigation : fragment + effet système
+                ActionInstallation.Installer -> {
+                    installateur.demarrer()
+                }
+
+                ActionInstallation.InstallerOutils -> {
+                    installateur.installerOutils()
+                }
+
+                ActionInstallation.Annuler -> {
+                    installateur.annuler()
+                }
+
+                ActionInstallation.Fermer -> {
+                    Unit
+                }
+
+                // navigation : fragment + effet système
+                ActionInstallation.ConfigurerEnvironnement -> {
+                    viewModelScope.launch {
+                        // Relance volontaire : retrouve la session vivante
+                        // ou en crée une nouvelle (l'environnement reste
+                        // incomplet), puis bascule vers le journal live.
+                        configurationEnv.lancer()?.let {
+                            _effets.emit(EffetInstallation.OuvrirTerminal)
+                        }
+                    }
+                }
             }
         }
 
@@ -136,6 +227,7 @@ class InstallViewModel
                     EtatInstallation(
                         phase = PhaseInstallation.INVITE,
                         paquetsOutils = installateur.paquetsOutils,
+                        envComplet = configurationEnv.estComplet(),
                     )
                 }
 
@@ -161,6 +253,7 @@ class InstallViewModel
                         phase = PhaseInstallation.TERMINEE,
                         outils = partage.outils,
                         paquetsOutils = installateur.paquetsOutils,
+                        envComplet = configurationEnv.estComplet(),
                     )
                 }
 

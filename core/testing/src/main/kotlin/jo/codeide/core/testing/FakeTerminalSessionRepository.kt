@@ -11,7 +11,8 @@ import java.io.File
  * [TerminalSessionRepository](jo.codeide.core.domain.TerminalSessionRepository)
  * en mémoire pour les tests de ViewModel : le test pilote la liste publiée
  * (aucune session réelle — exigence du prompt Terminal-1, section 10) et
- * observe les ordres reçus (création, renommage, fermeture, session active).
+ * observe les ordres reçus (création, renommage, fermeture, session active,
+ * envoi de texte).
  */
 public class FakeTerminalSessionRepository : TerminalSessionRepository {
     // Noms sans préfixe « _ » : la règle ktlint backing-property-naming
@@ -36,6 +37,9 @@ public class FakeTerminalSessionRepository : TerminalSessionRepository {
 
     /** Identifiants transmis à [setActiveSession], dans l'ordre. */
     public val activations: MutableList<String> = mutableListOf()
+
+    /** Textes envoyés via [envoyerTexte] : identifiant et texte reçus. */
+    public val textesEnvoyes: MutableList<Pair<String, String>> = mutableListOf()
 
     /** Compteur des sessions synthétiques retournées par [createSession]. */
     private var compteur = 0
@@ -63,6 +67,13 @@ public class FakeTerminalSessionRepository : TerminalSessionRepository {
 
     override suspend fun closeSession(sessionId: String) {
         fermetures += sessionId
+    }
+
+    override fun envoyerTexte(
+        sessionId: String,
+        texte: String,
+    ) {
+        textesEnvoyes += sessionId to texte
     }
 
     /** Publie une liste de sessions (métadonnées entièrement pilotées). */

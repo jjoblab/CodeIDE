@@ -4,13 +4,13 @@
          ENVIRONMENT (shell + apt + updated repository); tool packages
          (JDK, git…) are optional and deferred. -->
     <string name="installation_titre">Install the terminal environment</string>
-    <string name="installation_invite_texte">The integrated terminal sets up a Linux environment inside the app\'s private storage: shell, package manager and updated repository — usable as soon as the install completes.</string>
-    <string name="installation_invite_poids">About 40 MB to download for the base environment. A network connection is required.</string>
+    <string name="installation_invite_texte">The integrated terminal sets up a Linux environment inside the app\'s private storage: shell, package manager and updated repository — the environment configuration (Java, Android SDK) then starts automatically in the terminal.</string>
+    <string name="installation_invite_poids">About 40 MB for the base environment, then Java and the Android SDK in the terminal (~400 MB overall). A network connection is required.</string>
     <string name="installation_section_base">Base environment</string>
     <string name="installation_invite_base">Linux shell, package manager and CodeIDE repository — installed mandatorily, the repository is updated (apt update) at the end.</string>
-    <string name="installation_section_outils">Development tools</string>
-    <string name="installation_invite_outils">JDK (openjdk-17), git… — optional for the first setup: installable right after the environment, or later when the features that need them prompt you.</string>
-    <string name="installation_outils_attente">Optional — offered after the base environment is installed.</string>
+    <string name="installation_section_outils">Development environment</string>
+    <string name="installation_invite_outils">Java (OpenJDK) and the Android SDK — installed automatically in the terminal right after the base environment: the progress streams there live, and every step resumes where it left off after an interruption.</string>
+    <string name="installation_outils_attente">Installed automatically in the terminal after the base environment.</string>
     <string name="installation_outil_statut_attente">not installed (optional)</string>
     <string name="installation_outil_statut_installe">installed</string>
     <string name="installation_outil_statut_absent">not installed (missing from the repository)</string>
@@ -36,9 +36,12 @@
     <string name="installation_journal_titre">Live log</string>
     <string name="installation_details_titre">Technical details</string>
     <string name="installation_terminee_base">Base environment installed</string>
-    <string name="installation_terminee_base_detail">The shell, the package manager and the updated repository are ready — the terminal is usable right away.</string>
-    <string name="installation_outils_requis_detail">Development tools (JDK, git) are required to sync and build Gradle projects.</string>
-    <string name="installation_installer_outils">Install the tools now</string>
+    <string name="installation_terminee_base_detail">The shell, the package manager and the updated repository are ready. The environment configuration (Java, Android SDK) starts automatically in the terminal.</string>
+    <string name="installation_outils_requis_detail">Java (OpenJDK) and the Android SDK install in the terminal: the progress streams there live, in the “Configuration” session. After an interruption, everything resumes where it left off (relaunch: codeide-env command).</string>
+    <!-- v0.52.0 (ADR 0083): open the live log of the automatic environment
+         configuration — the TerminalView is the progress screen. -->
+    <string name="installation_ouvrir_terminal">Open the terminal</string>
+    <string name="installation_installer_outils">Install Java (fallback)</string>
     <string name="installation_reessayer_outils">Retry installing the tools</string>
     <string name="installation_installer">Install now</string>
     <string name="installation_reessayer">Retry</string>
