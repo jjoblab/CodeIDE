@@ -4,6 +4,55 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.53.0] – 2026-10-05
+
+Retour d'appareil réel : « …146,4 Mio téléchargés (~3 min 36) →
+Extraction… → android-sdk: [erreur muette] » — l'installation du SDK
+échouait APRÈS le téléchargement sans dire pourquoi (diagnostic mené
+de bout en bout hors appareil : le zip rev 12.0 pèse exactement
+146,4 Mio — l'épinglage fonctionne ; `unzip` et le `jar` du JDK sont
+présents dans le bootstrap ; le sdkmanager rev 12.0 répond « 12.0 »
+sur JVM saine ; le miroir `codeide-tools` publié entre-temps est
+intègre). Restaient deux angles morts : la JVM n'était JAMAIS démarrée
+pour être validée, et le contrôle fonctionnel avalait sa sortie.
+
+### Corrigé (les erreurs réelles remontent, la JVM est vérifiée)
+
+- **`android-sdk` : `resoudre_java` DÉMARRE chaque JVM candidate**
+  (`java_demarre` — `java -version`) au lieu de ne vérifier que le bit
+  exécutable : un JDK à la bibliothèque manquante est ÉCARTÉ au profit
+  du candidat suivant (`JAVA_HOME`, puis `PATH`, puis `lib/jvm`/`opt/`
+  du préfixe) ; l'échec total affiche la sortie `-version` de CHAQUE
+  candidat trouvé (`diagnostiquer_java`) et propose
+  `pkg install --reinstall openjdk-17` — plus jamais
+  « sdkmanager non fonctionnel » sans indice.
+- **`android-sdk` : le contrôle `sdkmanager --version` garde sa sortie**
+  (`sdk_detail`) — l'erreur véritable (liaison dynamique cassée, JVM
+  muette) accompagne le message d'échec, y compris dans la voie de
+  guérison d'un cmdline-tools installé mais cassé.
+- **`android-sdk` : extraction résiliente** — l'espace disque est
+  revérifié AVANT l'extraction (~512 Mio : build-tools et archive ont
+  pu consommer la marge depuis le contrôle initial, message avec les
+  Kio libres) ; `unzip` accepte le code 1 d'Info-ZIP (AVERTISSEMENT —
+  extraction effectuée) et son stderr remonte sur échec réel (≥2) ;
+  `bsdtar` puis le `jar` du JDK servent de replis ; l'absence de
+  `cmdline-tools/` après extraction a son message propre (archive
+  inattendue).
+- **`codeide-env` : `java_fonctionnel`** — un JDK présent mais dont la
+  JVM ne démarre pas est RÉINSTALLÉ automatiquement
+  (`pkg install --reinstall openjdk-17`) au lieu d'être « conservé » ;
+  la complétude (`environnement_complet`) l'exige : relancer
+  `codeide-env` répare un environnement à JVM cassée, SDK complet ou
+  non.
+- **Banc d'essai élargi** : `un JAVA_HOME cassé est écarté au profit du
+  JDK du préfixe` et `aucun java fonctionnel rend un diagnostic
+  actionnable` (PATH sanitisé sans le java du poste, comme sur
+  appareil) côté `android-sdk` ; `un JDK présent mais cassé est
+  réinstallé automatiquement` côté `codeide-env`.
+- Scripts du terminal versionnés **7 → 8** : les appareils déjà
+  installés reçoivent les commandes corrigées au prochain démarrage de
+  l'app, sans réinstallation.
+
 ## [0.52.0] – 2026-10-05
 
 Comportement demandé par l'utilisateur : « une fois que le bootstrap

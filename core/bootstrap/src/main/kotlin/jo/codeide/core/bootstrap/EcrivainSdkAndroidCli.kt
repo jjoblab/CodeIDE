@@ -28,6 +28,25 @@ import java.io.IOException
  * `sdkmanager --version` échoue) est REMPLACÉ — l'appareil qui a déjà
  * tenté la rev 23.0 n'est pas condamné à son échec.
  *
+ * **v0.53.0 — diagnostic réel, java vérifié au démarrage, extraction
+ * résiliente** (retour d'appareil réel : « …146,4 Mio téléchargés →
+ * Extraction… → android-sdk: [erreur tronquée] » — l'échec venait
+ * APRÈS l'extraction et restait muet) :
+ * - `resoudre_java` DÉMARRE la JVM (`-version`) au lieu de ne vérifier
+ *   que le bit exécutable : un JDK à la bibliothèque manquante est
+ *   ÉCARTÉ au profit du candidat suivant, et l'échec total affiche la
+ *   sortie `-version` de CHAQUE candidat trouvé (plus jamais
+ *   « sdkmanager non fonctionnel » sans indice) ;
+ * - `sdkmanager --version` (le contrôle fonctionnel) garde sa sortie
+ *   pour le message d'échec — l'erreur RÉELLE (liaison dynamique,
+ *   JVM cassée) remonte au lieu d'être avalée par `>/dev/null` ;
+ * - l'espace disque est revérifié AVANT l'extraction (build-tools et
+ *   l'archive ont pu consommer la marge depuis le contrôle initial) ;
+ * - `unzip` accepte le code 1 d'Info-ZIP (AVERTISSEMENT — extraction
+ *   effectuée, attributs non posés), `bsdtar` et le `jar` du JDK
+ *   servent de replis, et l'absence de `cmdline-tools/` après
+ *   extraction a son message propre.
+ *
  * **v0.51.0 — fin du contournement x86_64 : les build-tools et
  * platform-tools viennent du dépôt `jjoblab/codeide-tools`** (ADR 0082).
  * Le `sdkmanager` de Google installe des binaires Linux **x86_64** —
@@ -193,24 +212,36 @@ internal class EcrivainSdkAndroidCli(
             PAQUETS_DEFAUT="platforms;android-37.2"
             # ~1 Gio : cmdline-tools + plateforme + binaires installés.
             ESPACE_REQUIS_KO="$dollar{CODEIDE_ESPACE_REQUIS_KO:-1048576}"
+            # v0.53.0 : espace revérifié juste avant l'extraction des
+            # cmdline-tools (~512 Mio) — le contrôle initial date du DÉBUT,
+            # build-tools et archive ont pu consommer la marge depuis.
+            ESPACE_EXTRACTION_KO="$dollar{CODEIDE_ESPACE_EXTRACTION_KO:-524288}"
 
             # Résout la JVM (sdkmanager est un programme Java) : JAVA_HOME de
             # la session d'abord, PATH ensuite, candidats du préfixe enfin.
             # Exporte JAVA_HOME : les scripts de Google le lisent directement.
+            # v0.53.0 : la JVM doit DÉMARRER, pas seulement exister — un JDK
+            # au bit exécutable posé mais à la bibliothèque manquante (retour
+            # d'appareil réel : « sdkmanager non fonctionnel » sans indice)
+            # est ÉCARTÉ au profit du candidat suivant.
+            java_demarre() { # chemin du binaire java -> 0 s'il démarre
+              "${dollar}1" -version >/dev/null 2>&1
+            }
+
             resoudre_java() {
-              if [ -n "${dollar}JAVA_HOME" ] && [ -x "${dollar}JAVA_HOME/bin/java" ]; then
+              if [ -n "${dollar}JAVA_HOME" ] && [ -x "${dollar}JAVA_HOME/bin/java" ] && java_demarre "${dollar}JAVA_HOME/bin/java"; then
                 JAVA_BIN="${dollar}JAVA_HOME/bin/java"
                 export JAVA_HOME
                 return 0
               fi
-              if command -v java >/dev/null 2>&1; then
+              if command -v java >/dev/null 2>&1 && java_demarre "$dollar(command -v java)"; then
                 JAVA_BIN="$dollar(command -v java)"
                 JAVA_HOME="$dollar(dirname "$dollar(dirname "${dollar}JAVA_BIN")")"
                 export JAVA_HOME
                 return 0
               fi
               for candidat in "${dollar}PREFIX"/lib/jvm/*/bin/java "${dollar}PREFIX"/opt/jdk*/bin/java "${dollar}PREFIX"/opt/openjdk*/bin/java; do
-                if [ -x "${dollar}candidat" ]; then
+                if [ -x "${dollar}candidat" ] && java_demarre "${dollar}candidat"; then
                   JAVA_BIN="${dollar}candidat"
                   JAVA_HOME="$dollar(dirname "$dollar(dirname "${dollar}candidat")")"
                   export JAVA_HOME
@@ -218,6 +249,28 @@ internal class EcrivainSdkAndroidCli(
                 fi
               done
               return 1
+            }
+
+            # v0.53.0 : diagnostic des JVM TROUVÉES mais non démarrées — la
+            # sortie réelle de chaque -version, en clair (l'échec de
+            # resoudre_java l'affiche ; l'absence totale de binaire aussi).
+            diagnostiquer_java() {
+              java_trouve=0
+              for candidat in \
+                "${dollar}JAVA_HOME/bin/java" \
+                "$dollar(command -v java 2>/dev/null)" \
+                "${dollar}PREFIX"/lib/jvm/*/bin/java \
+                "${dollar}PREFIX"/opt/jdk*/bin/java \
+                "${dollar}PREFIX"/opt/openjdk*/bin/java; do
+                [ -n "${dollar}candidat" ] || continue
+                [ -x "${dollar}candidat" ] || continue
+                java_trouve=1
+                echo "    ${dollar}candidat :" >&2
+                "${dollar}candidat" -version 2>&1 | head -n 2 | while IFS= read -r ligne; do
+                  echo "      $dollar{ligne}" >&2
+                done
+              done
+              [ "${dollar}java_trouve}" -eq 1 ] || echo "    (aucun binaire java trouvé — JDK non installé)" >&2
             }
 
             normaliser_archi() {
@@ -241,6 +294,14 @@ internal class EcrivainSdkAndroidCli(
               sdk_installe || return 1
               [ ! -x "${dollar}SDK_HOME/cmdline-tools/latest/bin/android" ] || return 1
               "${dollar}SDKMANAGER" --version >/dev/null 2>&1
+            }
+
+            # v0.53.0 : sortie RÉELLE de sdkmanager --version (stderr compris)
+            # — l'échec de sdk_fonctionnel l'affiche : l'erreur véritable
+            # (bibliothèque manquante, JVM cassée) remonte au lieu d'être
+            # avalée par le contrôle muet.
+            sdk_detail() {
+              "${dollar}SDKMANAGER" --version 2>&1 | head -n 5
             }
 
             # Téléchargement réseau : curl (présent dans le bootstrap), en
@@ -377,8 +438,9 @@ internal class EcrivainSdkAndroidCli(
             # foi dans les deux cas ; la GUÉRISON v0.48.0 est conservée.
             installer_cmdline_tools() {
               if sdk_installe && ! sdk_fonctionnel; then
-                echo "→ cmdline-tools installé mais NON FONCTIONNEL sur cette architecture"
-                echo "  (binaire natif x86_64 ou sdkmanager cassé) — remplacement par la rev 12.0…"
+                echo "→ cmdline-tools installé mais NON FONCTIONNEL — diagnostic :"
+                sdk_detail | while IFS= read -r ligne; do echo "    $dollar{ligne}"; done
+                echo "  (binaire natif x86_64, JVM cassée…) — remplacement…"
                 rm -rf "${dollar}SDK_HOME/cmdline-tools"
               fi
 
@@ -403,17 +465,47 @@ internal class EcrivainSdkAndroidCli(
                 }
 
                 echo "→ Extraction…"
-                provisoire="${dollar}PROVISOIRE/extraction-cmdline"
+                # v0.53.0 : l'espace est revérifié AVANT l'extraction — le
+                # contrôle de cmd_installer date du DÉBUT (build-tools et
+                # cette archive ont pu consommer la marge depuis).
+                libres=$(df -k "$dollar{ACCUEIL}" 2>/dev/null | awk 'NR==2 {print ${dollar}4}')
+                case "$dollar{libres}" in
+                  ''|*[!0-9]*) ;;
+                  *) if [ "$dollar{libres}" -lt "$dollar{ESPACE_EXTRACTION_KO}" ]; then
+                       rm -f "$dollar{archive}"
+                       echo "android-sdk: espace insuffisant pour extraire ($dollar{libres} Kio libres, ~$dollar{ESPACE_EXTRACTION_KO} Kio requis)." >&2
+                       return 1
+                     fi ;;
+                esac
+                provisoire="$dollar{PROVISOIRE}/extraction-cmdline"
                 rm -rf "$dollar{provisoire}"; mkdir -p "$dollar{provisoire}"
                 (
                   cd "$dollar{provisoire}" &&
                   if command -v unzip >/dev/null 2>&1; then
-                    unzip -q "$dollar{archive}"
+                    # Info-ZIP : 0 = succès, 1 = AVERTISSEMENT (extraction
+                    # faite, attributs/horodatages non posés) : accepté ;
+                    # 2+ = échec réel, le détail remonte.
+                    unzip -q "$dollar{archive}" 2>"$dollar{PROVISOIRE}/unzip.err"
+                    code_extraction="$dollar?"
+                    if [ "$dollar{code_extraction}" -ge 2 ]; then
+                      head -n 5 "$dollar{PROVISOIRE}/unzip.err" >&2
+                      exit "$dollar{code_extraction}"
+                    fi
+                  elif command -v bsdtar >/dev/null 2>&1; then
+                    bsdtar -xf "$dollar{archive}"
+                  elif [ -x "$dollar{JAVA_HOME}/bin/jar" ]; then
+                    "$dollar{JAVA_HOME}/bin/jar" -xf "$dollar{archive}"
                   else
-                    "${dollar}JAVA_HOME/bin/jar" -xf "$dollar{archive}"
+                    echo "  aucun extracteur disponible (unzip, bsdtar, jar du JDK)." >&2
+                    exit 3
                   fi
                 ) || { rm -rf "$dollar{provisoire}" "${dollar}archive"; \
-                       echo "android-sdk: extraction impossible (archive corrompue ?)" >&2; return 1; }
+                       echo "android-sdk: extraction impossible (archive corrompue ? — détail ci-dessus)." >&2; return 1; }
+                if [ ! -d "$dollar{provisoire}/cmdline-tools" ]; then
+                  rm -rf "$dollar{provisoire}"; rm -f "$dollar{archive}"
+                  echo "android-sdk: l'archive extraite ne contient pas cmdline-tools/ (archive inattendue)." >&2
+                  return 1
+                fi
                 rm -f "$dollar{archive}"
                 # v0.47.0 (retour d'appareil réel) : le répertoire PARENT
                 # doit exister AVANT le déplacement — sur une première
@@ -436,7 +528,9 @@ internal class EcrivainSdkAndroidCli(
                 if ! sdk_fonctionnel; then
                   echo "" >&2
                   echo "android-sdk: sdkmanager non fonctionnel après installation." >&2
-                  echo "  (Java : $dollar{JAVA_BIN} ; détail : $dollar{SDKMANAGER} --version)" >&2
+                  echo "  (Java : $dollar{JAVA_BIN:-aucun} ; sortie réelle de sdkmanager --version :)" >&2
+                  sdk_detail | while IFS= read -r ligne; do echo "    $dollar{ligne}" >&2; done
+                  echo "  JDK à réinstaller ? pkg install --reinstall openjdk-17" >&2
                   return 1
                 fi
               fi
@@ -491,9 +585,11 @@ internal class EcrivainSdkAndroidCli(
               paquets="$dollar*"
               [ -n "$dollar{paquets}" ] || paquets="$dollar{PAQUETS_DEFAUT}"
               if ! resoudre_java; then
-                echo "android-sdk: Java est requis (sdkmanager est un programme Java)." >&2
-                echo "  Installe d'abord les outils du terminal : écran Installation de l'app," >&2
-                echo "  puis rouvre une session et relance : android-sdk installer" >&2
+                echo "android-sdk: aucun Java fonctionnel (sdkmanager est un programme Java)." >&2
+                echo "  JVM trouvées mais incapables de démarrer :" >&2
+                diagnostiquer_java
+                echo "  Réinstalle le JDK : pkg install --reinstall openjdk-17" >&2
+                echo "  puis relance : android-sdk installer" >&2
                 exit 1
               fi
 

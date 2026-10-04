@@ -210,6 +210,47 @@ class EcrivainCodeideEnvCliTest {
             )
         }
 
+    @Test
+    fun `un JDK present mais casse est reinstallé automatiquement - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            poserSh(racine)
+            ecrivain.ecrire(racine)
+            val prefixe = File(racine, "usr")
+            val accueil = dossierTemporaire.newFolder("home-jdk-casse")
+            val binaire = preparerEnvironnementFactice(prefixe, accueil)
+
+            // Premier passage complet.
+            executer(File(prefixe, "bin/codeide-env"), prefixe, accueil, binaire, "")
+
+            // Le JDK se CORROMPT (bibliothèque manquante : la JVM ne
+            // démarre plus) — v0.53.0 : java_fonctionnel le détecte, le
+            // paquet est RÉINSTALLÉ (l'ancien java_present l'aurait
+            // « conservé » et sdkmanager aurait échoué plus loin, sans
+            // indice).
+            val javaCasse = File(prefixe, "lib/jvm/java-17-openjdk/bin/java")
+            javaCasse.writeText(
+                "#!/bin/sh\necho \"CANNOT LINK EXECUTABLE: library not found\" >&2\nexit 1\n",
+            )
+            javaCasse.setExecutable(true)
+
+            val reprise = executer(File(prefixe, "bin/codeide-env"), prefixe, accueil, binaire, "")
+
+            assertEquals("reprise : code de sortie inattendu\n${reprise.sortie}", 0, reprise.code)
+            assertTrue(
+                "le JDK cassé devait être RÉINSTALLÉ (--reinstall, reçu : ${reprise.sortie})",
+                binaire.resolve("appels-pkg.log").readText().contains("install -y --reinstall openjdk-17"),
+            )
+            assertTrue(
+                "l'avertissement devait être rendu (reçu : ${reprise.sortie})",
+                reprise.sortie.contains("ne démarre pas"),
+            )
+            assertTrue(
+                "le SDK complet devait être conservé (reçu : ${reprise.sortie})",
+                reprise.sortie.contains("déjà complet"),
+            )
+        }
+
     /**
      * Prépare l'environnement factice du fils :
      * - `bin/pkg` : enregistre ses appels et, sur `install`, pose un faux

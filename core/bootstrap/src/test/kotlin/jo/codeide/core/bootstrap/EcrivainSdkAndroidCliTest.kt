@@ -102,6 +102,18 @@ class EcrivainSdkAndroidCliTest {
                 "la guérison devait remplacer un cmdline-tools cassé",
                 contenu.contains("rm -rf \"\$SDK_HOME/cmdline-tools\""),
             )
+            assertTrue(
+                "la vérification de DÉMARRAGE de la JVM devait exister (v0.53.0)",
+                contenu.contains("java_demarre()"),
+            )
+            assertTrue(
+                "le diagnostic des JVM trouvées mais cassées devait exister (v0.53.0)",
+                contenu.contains("diagnostiquer_java()"),
+            )
+            assertTrue(
+                "le détail sdkmanager devait être conservé pour l'échec (v0.53.0)",
+                contenu.contains("sdk_detail()"),
+            )
 
             // Idempotent : second passage, contenu identique, pas d'erreur.
             ecrivain.ecrire(racine)
@@ -336,6 +348,100 @@ class EcrivainSdkAndroidCliTest {
             assertTrue(
                 "le sdkmanager fonctionnel devait être en place",
                 File(accueil, "android-sdk/cmdline-tools/latest/bin/sdkmanager").canExecute(),
+            )
+        }
+
+    @Test
+    fun `un JAVA_HOME casse est ecarte au profit du JDK du prefixe - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            poserSh(racine)
+            ecrivain.ecrire(racine)
+            val accueil = dossierTemporaire.newFolder("accueil-java-home-casse")
+
+            // Retour d'appareil réel v0.53.0 : JAVA_HOME pointe vers un JDK
+            // au bit exécutable posé mais dont la JVM ne DÉMARRE pas
+            // (bibliothèque manquante), et AUCUN java ne vit dans le PATH
+            // (sanitisé). Avant la v0.53.0, le seul test `-x` acceptait ce
+            // JDK fantôme — le candidat DU PRÉFIXE doit être retenu.
+            val jdkCasse = dossierTemporaire.newFolder("jdk-casse")
+            File(jdkCasse, "bin").mkdirs()
+            File(jdkCasse, "bin/java").apply {
+                writeText("#!/bin/sh\necho \"CANNOT LINK EXECUTABLE: library not found\" >&2\nexit 1\n")
+                setExecutable(true)
+            }
+            val prefixe = File(racine, "usr")
+            val jdkPrefixe = File(prefixe, "lib/jvm/java-17-openjdk/bin")
+            jdkPrefixe.mkdirs()
+            File(jdkPrefixe, "java").apply {
+                writeText("#!/bin/sh\nexit 0\n")
+                setExecutable(true)
+            }
+
+            val resultat =
+                executer(
+                    File(prefixe, "bin/android-sdk"),
+                    accueil,
+                    "installer",
+                    javaHome = jdkCasse.absolutePath,
+                    sanatiser = true,
+                )
+
+            assertEquals(
+                "l'installation devait réussir via le JDK du préfixe (sortie : ${resultat.sortie})",
+                0,
+                resultat.code,
+            )
+            assertTrue(
+                "la conclusion devait annoncer le SDK (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("SDK Android installé"),
+            )
+        }
+
+    @Test
+    fun `aucun java fonctionnel rend un diagnostic actionnable - execute pour de vrai`() =
+        runTest {
+            val racine = racine()
+            poserSh(racine)
+            ecrivain.ecrire(racine)
+            val accueil = dossierTemporaire.newFolder("accueil-sans-java")
+
+            // Même JDK cassé dans JAVA_HOME, AUCUN candidat ailleurs : la
+            // v0.53.0 doit refuser AVANT tout téléchargement et montrer la
+            // sortie RÉELLE de la JVM cassée (plus jamais d'erreur muette).
+            val jdkCasse = dossierTemporaire.newFolder("jdk-casse-seul")
+            File(jdkCasse, "bin").mkdirs()
+            File(jdkCasse, "bin/java").apply {
+                writeText("#!/bin/sh\necho \"CANNOT LINK EXECUTABLE: library not found\" >&2\nexit 1\n")
+                setExecutable(true)
+            }
+
+            val resultat =
+                executer(
+                    File(racine, "usr/bin/android-sdk"),
+                    accueil,
+                    "installer",
+                    javaHome = jdkCasse.absolutePath,
+                    sanatiser = true,
+                )
+
+            assertEquals(
+                "l'absence de java fonctionnel devait échouer proprement (sortie : ${resultat.sortie})",
+                1,
+                resultat.code,
+            )
+            assertTrue(
+                "le diagnostic devait montrer la sortie réelle du JDK cassé (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("aucun Java fonctionnel") &&
+                    resultat.sortie.contains("CANNOT LINK EXECUTABLE"),
+            )
+            assertTrue(
+                "la réinstallation devait être proposée (reçu : ${resultat.sortie})",
+                resultat.sortie.contains("pkg install --reinstall openjdk-17"),
+            )
+            assertFalse(
+                "RIEN ne devait être téléchargé (échec avant les binaires)",
+                File(accueil, "android-sdk").exists(),
             )
         }
 
@@ -607,6 +713,51 @@ class EcrivainSdkAndroidCliTest {
         File(bin, "sdkmanager").setExecutable(true)
     }
 
+    /** Outils POSIX dont le script a besoin — le PATH sanitisé les relie
+     *  sans JAMAIS exposer le java du poste hôte (v0.53.0 : la détection
+     *  doit passer par les candidats du script, comme sur appareil). */
+    private val OUTILS_REQUIS =
+        listOf(
+            "jq",
+            "sha256sum",
+            "tar",
+            "xz",
+            "df",
+            "awk",
+            "uname",
+            "mkdir",
+            "mv",
+            "rm",
+            "cp",
+            "chmod",
+            "cut",
+            "dirname",
+            "tr",
+            "sort",
+            "tail",
+            "head",
+            "ls",
+            "find",
+            "unzip",
+            "sed",
+            "yes",
+        )
+
+    /** Construit un PATH sanitisé : le faux curl PUIS les outils réels du
+     *  poste, JAMAIS java — pour les scénarios v0.53.0 de JVM cassée. */
+    private fun sanatiserChemin(binFactice: File): File {
+        val outils = dossierTemporaire.newFolder("chemin-sanitise-${compteurBinFactice++}")
+        for (outil in OUTILS_REQUIS) {
+            val chemin =
+                (System.getenv("PATH") ?: ":").split(":")
+                    .map { File(it, outil) }
+                    .firstOrNull { it.canExecute() } ?: continue
+            java.nio.file.Files.createSymbolicLink(outils.toPath().resolve(outil), chemin.toPath())
+        }
+        java.nio.file.Files.createSymbolicLink(outils.toPath().resolve("curl"), File(binFactice, "curl").toPath())
+        return outils
+    }
+
     /**
      * Exécute la commande dans [accueil] : HOME dédié (le SDK vit sous le
      * HOME du shell), JAVA_HOME du test (le script de Google le lit), un
@@ -615,6 +766,8 @@ class EcrivainSdkAndroidCliTest {
      * seuil d'espace disque abaissé pour ne pas dépendre du disque du
      * poste. [transformerManifest] altère le manifeste factice APRÈS sa
      * création (corruption de somme, aucune version publiée…).
+     * [javaHome] (défaut : la JVM du test) et [sanatiser] (PATH sans le
+     * java du poste) servent aux scénarios v0.53.0 de JVM cassée.
      */
     private fun executer(
         commande: File,
@@ -622,6 +775,8 @@ class EcrivainSdkAndroidCliTest {
         argument: String = "statut",
         cmdlineDansManifeste: Boolean = false,
         transformerManifest: (File) -> Unit = {},
+        javaHome: String? = null,
+        sanatiser: Boolean = false,
     ): Resultat {
         assumeTrue(
             "jq est requis sur le poste de test",
@@ -640,11 +795,16 @@ class EcrivainSdkAndroidCliTest {
                 .apply {
                     val env = environment()
                     env["HOME"] = accueil.absolutePath
-                    env["JAVA_HOME"] = System.getProperty("java.home")
+                    env["JAVA_HOME"] = javaHome ?: System.getProperty("java.home")
                     env["CODEIDE_ARCH"] = "aarch64"
                     env["CODEIDE_ESPACE_REQUIS_KO"] = "1000"
+                    env["CODEIDE_ESPACE_EXTRACTION_KO"] = "1000"
                     env["PATH"] =
-                        binFactice.absolutePath + File.pathSeparator + (env["PATH"] ?: "/usr/bin:/bin")
+                        if (sanatiser) {
+                            sanatiserChemin(binFactice).absolutePath
+                        } else {
+                            binFactice.absolutePath + File.pathSeparator + (env["PATH"] ?: "/usr/bin:/bin")
+                        }
                 }.redirectErrorStream(true)
                 .start()
         val sortie = processus.inputStream.bufferedReader().readText()
