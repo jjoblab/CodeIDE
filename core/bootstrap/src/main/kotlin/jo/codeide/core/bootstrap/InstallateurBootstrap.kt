@@ -65,7 +65,12 @@ import kotlin.reflect.KClass
  * 7 quater. commande `$PREFIX/bin/android-sdk` (v0.37.3) : installation
  *    et pilotage du SDK Android (cmdline-tools + sdkmanager) sous le
  *    HOME du shell ;
- * 7 quinquies. **marqueur de version des scripts** (v0.37.3,
+ * 7 quinquies. commande `$PREFIX/bin/codeide-env` (v0.52.0, ADR 0083) :
+ *    orchestrateur de la configuration automatique de l'environnement
+ *    (paquets, OpenJDK, SDK via android-sdk, pont de propriétés) —
+ *    l'application la « tape » dans une session de terminal dédiée
+ *    après la fin de la base, le journal défile dans le TerminalView ;
+ * 7 sexies. **marqueur de version des scripts** (v0.37.3,
  *    `$PREFIX/etc/codeide-scripts.version`) : [refreshTerminalScripts]
  *    compare ce marqueur à la version embarquée au démarrage de l'app —
  *    une évolution de script prend effet SANS réinstaller le bootstrap.
@@ -115,6 +120,7 @@ internal class InstallateurBootstrap
         private val ecrivainProfil = EcrivainProfilShell(journalApp)
         private val ecrivainGradle = EcrivainGradleCli(operations, journalApp)
         private val ecrivainSdkAndroid = EcrivainSdkAndroidCli(operations, journalApp)
+        private val ecrivainCodeideEnv = EcrivainCodeideEnvCli(operations, journalApp)
 
         /**
          * État initial : `Terminee` (outils non tentés) quand le marqueur
@@ -205,6 +211,7 @@ internal class InstallateurBootstrap
                     ecrivainProfil.ecrire(racine)
                     ecrivainGradle.ecrire(racine)
                     ecrivainSdkAndroid.ecrire(racine)
+                    ecrivainCodeideEnv.ecrire(racine)
                     VersionneurScriptsTerminal.deposerMarqueur(racine)
                 }.onSuccess {
                     consignerAuJournal("scripts du terminal mis à jour (v${VersionneurScriptsTerminal.VERSION})")
@@ -276,6 +283,12 @@ internal class InstallateurBootstrap
                 // du SDK Android (cmdline-tools) sous le HOME du shell.
                 ecrivainSdkAndroid.ecrire(racine)
                 consignerAuJournal("commande android-sdk posée (cmdline-tools + sdkmanager)")
+
+                // Commande codeide-env (v0.52.0, ADR 0083) : configuration
+                // automatique de l'environnement — l'application la lance
+                // dans une session de terminal dès la fin de cette base.
+                ecrivainCodeideEnv.ecrire(racine)
+                consignerAuJournal("commande codeide-env posée (configuration automatique)")
 
                 // Marqueur de version des scripts (v0.37.3) : la base est
                 // posée À JOUR — refreshTerminalScripts ne réécrira rien

@@ -251,6 +251,17 @@ internal class RegistreSessionsTermux
             return (coquille as? CoquilleTermux)?.session
         }
 
+        override fun envoyerTexte(
+            sessionId: String,
+            texte: String,
+        ) {
+            // Session inconnue ou fermée : sans effet (contrat du port) —
+            // l'appelant pilote une session que l'utilisateur peut avoir
+            // refermée entre-temps, jamais d'exception pour ça.
+            val coquille = synchronized(entrees) { entree(sessionId)?.coquille } ?: return
+            coquille.envoyerTexte(texte)
+        }
+
         // ------------------------------------------------------------------
         // Écoute des coquilles (callbacks Termux, thread du pty).
         // ------------------------------------------------------------------

@@ -56,8 +56,15 @@ internal object VersionneurScriptsTerminal {
      *   cas échéant, repli rev 12.0 ; plateformes seules via sdkmanager.
      *   Profil : pont `ide-environment.properties` (clés de `codeidesetup`
      *   respectées, sans écraser l'injection de l'app).
+     * - 7 : v0.52.0 — commande `codeide-env` (NOUVELLE, ADR 0083) :
+     *   orchestrateur de la configuration automatique de l'environnement
+     *   — mise à jour des paquets, OpenJDK, DÉLÉGATION à `android-sdk
+     *   installer`, pont `ide-environment.properties`, vérifications et
+     *   marqueur `$PREFIX/etc/codeide-env.terminee`. L'app « tape » cette
+     *   commande dans une session dédiée à la fin de la base ; git n'est
+     *   plus installé (retrait demandé, pas urgent).
      */
-    internal const val VERSION = 6
+    internal const val VERSION = 7
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =

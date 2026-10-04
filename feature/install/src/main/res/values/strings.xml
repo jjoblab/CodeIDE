@@ -4,13 +4,13 @@
          l'ENVIRONNEMENT DE BASE (shell + apt + dépôt à jour) ; les
          paquets d'outils (JDK, git…) sont optionnels et différés. -->
     <string name="installation_titre">Installer l\'environnement du terminal</string>
-    <string name="installation_invite_texte">Le terminal intégré installe un environnement Linux dans le stockage privé de l\'application : shell, gestionnaire de paquets et dépôt à jour — utilisable dès la fin de l\'installation.</string>
-    <string name="installation_invite_poids">Téléchargement d\'environ 40 Mo pour l\'environnement de base. Une connexion réseau est nécessaire.</string>
+    <string name="installation_invite_texte">Le terminal intégré installe un environnement Linux dans le stockage privé de l\'application : shell, gestionnaire de paquets et dépôt à jour — la configuration de l\'environnement (Java, SDK Android) démarre ensuite automatiquement dans le terminal.</string>
+    <string name="installation_invite_poids">Environ 40 Mo pour l\'environnement de base, puis Java et le SDK Android dans le terminal (~400 Mo au total). Une connexion réseau est nécessaire.</string>
     <string name="installation_section_base">Environnement de base</string>
     <string name="installation_invite_base">Shell Linux, gestionnaire de paquets et dépôt CodeIDE — installés obligatoirement, le dépôt est mis à jour (apt update) à la fin.</string>
-    <string name="installation_section_outils">Outils de développement</string>
-    <string name="installation_invite_outils">JDK (openjdk-17), git… — optionnels pour la première configuration : installables tout de suite après l\'environnement, ou plus tard quand les fonctionnalités qui les exigent vous les proposeront.</string>
-    <string name="installation_outils_attente">Optionnels — proposés après l\'installation de l\'environnement de base.</string>
+    <string name="installation_section_outils">Environnement de développement</string>
+    <string name="installation_invite_outils">Java (OpenJDK) et le SDK Android — installés automatiquement dans le terminal juste après l\'environnement de base : la progression s\'y affiche en direct, chaque étape reprend où elle en était en cas d\'interruption.</string>
+    <string name="installation_outils_attente">Installés automatiquement dans le terminal après l\'environnement de base.</string>
     <string name="installation_outil_statut_attente">non installé (optionnel)</string>
     <string name="installation_outil_statut_installe">installé</string>
     <string name="installation_outil_statut_absent">non installé (absent du dépôt)</string>
@@ -39,9 +39,12 @@
     <string name="installation_journal_titre">Journal en direct</string>
     <string name="installation_details_titre">Détails techniques</string>
     <string name="installation_terminee_base">Environnement de base installé</string>
-    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts — le terminal est utilisable dès maintenant.</string>
-    <string name="installation_outils_requis_detail">Les outils de développement (JDK, git) sont nécessaires pour synchroniser et compiler les projets Gradle.</string>
-    <string name="installation_installer_outils">Installer les outils maintenant</string>
+    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts. La configuration de l\'environnement (Java, SDK Android) démarre automatiquement dans le terminal.</string>
+    <string name="installation_outils_requis_detail">Java (OpenJDK) et le SDK Android s\'installent dans le terminal : la progression s\'y affiche en direct, dans la session « Configuration ». En cas d\'interruption, tout reprend où il en était (relance : commande codeide-env).</string>
+    <!-- v0.52.0 (ADR 0083) : ouverture du journal live de la configuration
+         automatique — le TerminalView est l\'écran de progression. -->
+    <string name="installation_ouvrir_terminal">Ouvrir le terminal</string>
+    <string name="installation_installer_outils">Installer Java (repli)</string>
     <string name="installation_reessayer_outils">Réessayer l\'installation des outils</string>
     <string name="installation_installer">Installer maintenant</string>
     <string name="installation_reessayer">Réessayer</string>

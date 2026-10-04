@@ -4,6 +4,79 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.52.0] – 2026-10-05
+
+Comportement demandé par l'utilisateur : « une fois que le bootstrap
+installé et `pkg update`, la configuration de l'environnement avec
+l'installation de java, android sdk, etc. » — la configuration démarre
+donc **automatiquement** à la fin de l'installation de base, et son
+journal live défile **dans le terminal** (TerminalView, pour un design
+cohérent). **Git n'est plus installé** (pas vraiment urgent). Décision :
+ADR 0083.
+
+### Ajouté (la configuration de l'environnement vit dans le terminal)
+
+- **Commande `codeide-env` (`core:bootstrap`, scripts versionnés 6 → 7)** :
+  orchestrateur de la configuration automatique — pré-vol (espace disque
+  ~1,5 Gio, sortie immédiate si l'environnement est complet),
+  `pkg update` (repli `apt`, non fatal), **OpenJDK 17** par le dépôt
+  `codeide-packages` (sauté si un `java` fonctionnel existe déjà,
+  résolution `JAVA_HOME` : `lib/jvm` APT puis `opt/openjdk*`), **SDK
+  Android par DÉLÉGATION à `android-sdk installer`** (ADR 0082 —
+  binaires `<archi>` du manifeste `codeide-tools`, cmdline-tools rev
+  12.0, plateformes via `sdkmanager` : source de vérité unique, aucune
+  duplication du shell d'installation), pont
+  `$PREFIX/etc/ide-environment.properties` (`JAVA_HOME`,
+  `ANDROID_SDK_ROOT` en upsert, les autres lignes conservées),
+  vérifications finales puis marqueur `codeide-env.terminee`.
+  Sous-commandes `statut` et `refaire` (supprime le SDK puis
+  reconfigure) ; POSIX sh strict (dash) ; chaque étape est idempotente
+  — une interruption (Ctrl+C) reprend où elle en était.
+- **`envoyerTexte` sur les sessions (`core:terminal-runtime`)** : le
+  port du domaine gagne l'envoi de texte « comme si l'utilisateur le
+  tapait » (`TerminalSession.write` de Termux — la voie du clavier
+  logiciel) ; session inconnue ou fermée : sans effet, jamais
+  d'exception.
+- **Port `ConfigurationEnvTerminal` (`core:domain`, implémentation
+  `core:terminal-runtime`)** : `estComplet()` lu sur le disque (une
+  installation manuelle compte autant qu'une installation pilotée) et
+  `lancer()` — crée une session étiquetée « Configuration », attend la
+  pose du shell, y tape `codeide-env`, et garantit **une seule session
+  de configuration à la fois** (une session vivante est retrouvée, une
+  session morte avec environnement incomplet relance une nouvelle
+  session : la reprise repart où elle en était).
+- **Déclenchement automatique (`feature:install`)** : la fin de la base
+  ouvre le terminal sur la session de configuration (effet
+  `OuvrirTerminal`) — le TerminalView EST le journal live (couleurs
+  ANSI, défilement, copie, Ctrl+C) ; l'état INITIAL « base installée,
+  environnement incomplet » déclenche aussi (reprise au retour sur
+  l'écran). Bouton « Ouvrir le terminal » en phase résultat ;
+  relance manuelle : `codeide-env` dans n'importe quelle session.
+
+### Modifié
+
+- **`PAQUETS_OUTILS` perd `git`** (`core:bootstrap`) : le repli par
+  paquets de l'écran Installation se réduit à `openjdk-17` — l'option
+  `-g` de `codeidesetup` (voie autonome du dépôt `codeide-tools`)
+  demeure, et `pkg install git` reste disponible à la demande.
+- L'écran Installation célèbre un environnement complet sans proposer
+  de paquets ; le journal de l'écran ne couvre plus que la phase de
+  base (qui précède l'existence du shell).
+
+### Vérifié
+
+- Banc d'essai dash réel (`EcrivainCodeideEnvCliTest`, 5 scénarios) :
+  installation depuis rien, idempotence (« rien à faire »), `statut`,
+  reprise après perte du seul JDK (« déjà complet — conservé » côté
+  SDK), `refaire` (désinstallation puis réinstallation) — `pkg` et
+  `android-sdk` factices, PATH sanitisé sans le java du poste hôte.
+- `ConfigurationEnvTermuxTest` : sans bootstrap ni environnement
+  complet rien ne se crée ; session étiquetée + `codeide-env\r` tapé ;
+  session vivante retrouvée sans doublon ; nouvelle session après mort
+  de la précédente. `InstallViewModelTest` : déclenchement à la fin de
+  la base, garde anti-doublon, environnement complet silencieux, échec
+  de lancement sans effet, ordre manuel.
+
 ## [0.51.0] – 2026-10-04
 
 Régler DÉFINITIVEMENT le problème de l'Android SDK, comme AndroidIDE : le

@@ -233,8 +233,9 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Résultat : environnement prêt, statuts des outils, proposition
-             d'installation immédiate ou différée. -->
+        <!-- Résultat : environnement prêt, configuration automatique de
+             l'environnement dans le terminal (v0.52.0, ADR 0083), repli
+             par paquets si la session n'a pas pu être créée. -->
         <LinearLayout
             android:id="@+id/resultat"
             android:layout_width="match_parent"
@@ -338,8 +339,20 @@
             android:layout_marginTop="@dimen/spacing_md"
             android:text="@string/installation_installer" />
 
-        <!-- Phase résultat : installe les outils optionnels maintenant
-             (sinon « Fermer » — les fonctionnalités les proposeront). -->
+        <!-- v0.52.0 (ADR 0083) : phase résultat — suivre la configuration
+             de l'environnement dans le terminal : le journal live défile
+             dans le TerminalView (session « Configuration »). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_ouvrir_terminal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/installation_ouvrir_terminal"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- Phase résultat : repli par paquets (OpenJDK seul, v0.52.0) si
+             la session de configuration n'a pas pu être créée. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_installer_outils"
             android:layout_width="match_parent"

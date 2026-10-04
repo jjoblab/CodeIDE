@@ -4,7 +4,9 @@ import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
 import jo.codeide.core.model.OutilResume
 import jo.codeide.core.testing.FakeBootstrapInstaller
+import jo.codeide.core.testing.FakeConfigurationEnvTerminal
 import jo.codeide.core.testing.MainDispatcherRule
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -20,7 +22,10 @@ import org.junit.Test
  *
  * La logique métier vit dans l'implémentation du port (testée à
  * l'étape T2) — ces tests éprouvent la **traduction** de l'état partagé
- * vers l'état de rendu et le relais des ordres.
+ * vers l'état de rendu et le relais des ordres. Depuis la v0.52.0
+ * (ADR 0083), ils couvrent aussi le **déclenchement automatique** de la
+ * configuration de l'environnement à la fin de la base (fake
+ * [FakeConfigurationEnvTerminal]) et l'effet d'ouverture du terminal.
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class InstallViewModelTest {
@@ -29,10 +34,12 @@ class InstallViewModelTest {
 
     private val installateur = FakeBootstrapInstaller()
 
+    private val configurationEnv = FakeConfigurationEnvTerminal()
+
     @Test
     fun `l invite s affiche quand aucune installation n a été lancée`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertEquals(PhaseInstallation.INVITE, viewModel.etat.value.phase)
@@ -43,7 +50,7 @@ class InstallViewModelTest {
     fun `une installation déjà en cours est affichée à l ouverture`() =
         runTest {
             installateur.simulerEnCours(EtapeInstallation.SecondStage)
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertEquals(PhaseInstallation.PROGRESSION, viewModel.etat.value.phase)
@@ -54,7 +61,7 @@ class InstallViewModelTest {
     fun `la progression du téléchargement devient une fraction bornée`() =
         runTest {
             installateur.simulerEnCours(EtapeInstallation.Telechargement(octetsRecus = 256, octetsTotaux = 1024))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertEquals(PhaseInstallation.PROGRESSION, viewModel.etat.value.phase)
@@ -65,7 +72,7 @@ class InstallViewModelTest {
     fun `un téléchargement sans taille annoncée reste indéterminé`() =
         runTest {
             installateur.simulerEnCours(EtapeInstallation.Telechargement(octetsRecus = 512, octetsTotaux = null))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertNull(viewModel.etat.value.progressionTelechargement)
@@ -75,7 +82,7 @@ class InstallViewModelTest {
     fun `les étapes hors téléchargement n exposent pas de progression`() =
         runTest {
             installateur.simulerEnCours(EtapeInstallation.Extraction(entreesTraitees = 12))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertNull(viewModel.etat.value.progressionTelechargement)
@@ -85,7 +92,7 @@ class InstallViewModelTest {
     @Test
     fun `l état partagé terminal est traduit en temps réel`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             installateur.simulerEnCours(EtapeInstallation.Telechargement(octetsRecus = 1, octetsTotaux = 2))
@@ -107,7 +114,7 @@ class InstallViewModelTest {
     @Test
     fun `l échec partagé devient une phase erreur avec l erreur typée`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             installateur.simulerEchouee(AppError.Bootstrap(AppError.BootstrapReason.ReseauIndisponible, "HTTP 503"))
@@ -121,7 +128,7 @@ class InstallViewModelTest {
     @Test
     fun `l annulation partagée ramène l invite`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
             installateur.simulerEnCours(EtapeInstallation.Extraction(3))
             advanceUntilIdle()
@@ -135,7 +142,7 @@ class InstallViewModelTest {
     @Test
     fun `les ordres du fragment sont relayés à l installateur`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             viewModel.onAction(ActionInstallation.Installer)
@@ -148,7 +155,7 @@ class InstallViewModelTest {
     @Test
     fun `l ordre d installation des outils est relayé - v0 31 4`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             viewModel.onAction(ActionInstallation.InstallerOutils)
@@ -159,7 +166,7 @@ class InstallViewModelTest {
     @Test
     fun `fermer ne sollicite pas l installateur`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             viewModel.onAction(ActionInstallation.Fermer)
@@ -173,7 +180,7 @@ class InstallViewModelTest {
     fun `la progression est bornée même si le serveur ment sur le total`() =
         runTest {
             installateur.simulerEnCours(EtapeInstallation.Telechargement(octetsRecus = 2048, octetsTotaux = 1024))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertNotNull(viewModel.etat.value.progressionTelechargement)
@@ -185,7 +192,7 @@ class InstallViewModelTest {
         runTest {
             // v0.31.2 : la sortie réelle des sous-processus doit rejoindre
             // l'état de rendu (affichage « ce qui se fait vraiment »).
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
             assertTrue(
                 viewModel.etat.value.journal
@@ -206,7 +213,7 @@ class InstallViewModelTest {
             // état SANS journal — le journal clignotait puis restait vide
             // jusqu'à la prochaine ligne. La combinaison état + journal
             // le rend persistant.
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             installateur.simulerJournal(listOf("Atteint :1 stable Release"))
@@ -221,7 +228,7 @@ class InstallViewModelTest {
     @Test
     fun `l échec des outils devient une phase dédiée - base conservée - v0 31 4`() =
         runTest {
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             installateur.simulerOutilsEchoues(
@@ -240,7 +247,7 @@ class InstallViewModelTest {
     fun `les paquets d outils proposés alimentent l état de rendu`() =
         runTest {
             installateur.semerPaquetsOutils(listOf("openjdk-17", "git"))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertEquals(listOf("openjdk-17", "git"), viewModel.etat.value.paquetsOutils)
@@ -252,7 +259,7 @@ class InstallViewModelTest {
             installateur.simulerEchouee(
                 AppError.Bootstrap(AppError.BootstrapReason.EchecApt, "apt update → code 100 — E: dépôt injoignable"),
             )
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertEquals(PhaseInstallation.ECHEC, viewModel.etat.value.phase)
@@ -263,9 +270,97 @@ class InstallViewModelTest {
     fun `une erreur sans détails n expose pas de section technique`() =
         runTest {
             installateur.simulerEchouee(AppError.Bootstrap(AppError.BootstrapReason.ReseauIndisponible, ""))
-            val viewModel = InstallViewModel(installateur)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
             advanceUntilIdle()
 
             assertNull(viewModel.etat.value.detailsEchec)
+        }
+
+    // ------------------------------------------------------------------
+    // v0.52.0 (ADR 0083) : déclenchement automatique de la configuration
+    // de l'environnement dans le terminal à la fin de la base.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `la fin de la base déclenche la configuration automatique et ouvre le terminal`() =
+        runTest {
+            val viewModel = InstallViewModel(installateur, configurationEnv)
+            val effets = mutableListOf<EffetInstallation>()
+            val collecteur = launch { viewModel.effets.collect { effets += it } }
+            advanceUntilIdle()
+
+            installateur.simulerTerminee(emptyList())
+            advanceUntilIdle()
+            collecteur.cancel()
+
+            assertEquals(PhaseInstallation.TERMINEE, viewModel.etat.value.phase)
+            assertEquals(1, configurationEnv.lancements)
+            assertEquals(listOf(EffetInstallation.OuvrirTerminal), effets)
+        }
+
+    @Test
+    fun `un environnement complet ne déclenche aucune configuration`() =
+        runTest {
+            configurationEnv.simulerComplet(true)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
+            advanceUntilIdle()
+
+            installateur.simulerTerminee(emptyList())
+            advanceUntilIdle()
+
+            assertEquals(PhaseInstallation.TERMINEE, viewModel.etat.value.phase)
+            assertEquals(0, configurationEnv.lancements)
+            assertTrue(viewModel.etat.value.envComplet)
+        }
+
+    @Test
+    fun `le déclenchement automatique n a lieu qu une fois par vie de l écran`() =
+        runTest {
+            val viewModel = InstallViewModel(installateur, configurationEnv)
+            advanceUntilIdle()
+
+            installateur.simulerTerminee(emptyList())
+            advanceUntilIdle()
+            // Une réémission de l'état terminal (reprise des outils, par
+            // exemple) ne re-déclenche PAS la configuration.
+            installateur.simulerTerminee(listOf(OutilResume("openjdk-17", true)))
+            advanceUntilIdle()
+
+            assertEquals(1, configurationEnv.lancements)
+        }
+
+    @Test
+    fun `un échec de lancement ne produit aucun effet de navigation`() =
+        runTest {
+            configurationEnv.sessionIdSimulation = null
+            val viewModel = InstallViewModel(installateur, configurationEnv)
+            val effets = mutableListOf<EffetInstallation>()
+            val collecteur = launch { viewModel.effets.collect { effets += it } }
+            advanceUntilIdle()
+
+            installateur.simulerTerminee(emptyList())
+            advanceUntilIdle()
+            collecteur.cancel()
+
+            // Le repli (bouton paquets) reste le seul recours : pas
+            // d'ouverture du terminal sans session.
+            assertTrue(effets.isEmpty())
+        }
+
+    @Test
+    fun `l ordre manuel relance la configuration et ouvre le terminal`() =
+        runTest {
+            configurationEnv.simulerComplet(true)
+            val viewModel = InstallViewModel(installateur, configurationEnv)
+            val effets = mutableListOf<EffetInstallation>()
+            val collecteur = launch { viewModel.effets.collect { effets += it } }
+            advanceUntilIdle()
+
+            viewModel.onAction(ActionInstallation.ConfigurerEnvironnement)
+            advanceUntilIdle()
+            collecteur.cancel()
+
+            assertEquals(1, configurationEnv.lancements)
+            assertEquals(listOf(EffetInstallation.OuvrirTerminal), effets)
         }
 }

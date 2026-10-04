@@ -17,7 +17,10 @@ package jo.codeide.core.bootstrap
  *   dans le dépôt ; **aucun paquet `gradle` ni `android-sdk` n'y figure
  *   à ce jour** — signalé côté `codeide-packages`, non contourné ici
  *   (chaque paquet est installé individuellement, un absent ne bloque
- *   pas les autres et est rapporté non installé).
+ *   pas les autres et est rapporté non installé). Depuis la v0.52.0
+ *   (ADR 0083), `git` n'est plus proposé : la configuration automatique
+ *   (`codeide-env`) installe OpenJDK et le SDK Android, git attendra une
+ *   demande explicite de l'utilisateur (`pkg install git`).
  *
  * Injectée (doublable en test) : l'installateur ne connaît jamais ces
  * constantes en dur ailleurs.
@@ -39,7 +42,10 @@ public data class ConfigurationBootstrap(
     public val seuilEspaceDisque: Long = Constantes.SEUIL_ESPACE_DISQUE,
 ) {
     private object Constantes {
-        val PAQUETS_OUTILS = listOf("openjdk-17", "git")
+        // v0.52.0 (ADR 0083) : git retiré — la configuration automatique
+        // (codeide-env) couvre OpenJDK + SDK Android ; ce repli ne sert
+        // que si la session de terminal ne peut pas être créée.
+        val PAQUETS_OUTILS = listOf("openjdk-17")
 
         /** 1 Gio — marge conservatrice pour JDK (200+ Mio) et dépendances. */
         const val SEUIL_ESPACE_DISQUE = 1024L * 1024 * 1024

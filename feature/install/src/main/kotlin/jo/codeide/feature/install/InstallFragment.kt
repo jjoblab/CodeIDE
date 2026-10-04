@@ -14,11 +14,13 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
+import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.install.databinding.FragmentInstallBinding
 import jo.codeide.feature.install.databinding.RangeeOutilInstallBinding
 import java.util.Locale
+import javax.inject.Inject
 import kotlin.math.roundToInt
 
 /**
@@ -46,6 +48,17 @@ import kotlin.math.roundToInt
  * - l'échec **des outils** est un état distinct : la base reste
  *   installée, seule la phase d'outils est reprise.
  *
+ * v0.52.0 (ADR 0083, comportement demandé : « une fois que le bootstrap
+ * installé et pkg update, la configuration de l'environnement avec
+ * l'installation de java, android sdk, etc. ») : la réussite de la base
+ * **déclenche la configuration automatique dans le terminal** — la
+ * commande `codeide-env` est « tapée » dans une session dédiée et
+ * l'effet [EffetInstallation.OuvrirTerminal] bascule vers l'écran du
+ * terminal : le TerminalView EST le journal live de la configuration.
+ * Le bouton « Ouvrir le terminal » y revient ; le repli par paquets
+ * (OpenJDK seul — git retiré) ne sert que si la session n'a pas pu
+ * être créée.
+ *
  * Le retour système referme l'écran sans jamais interrompre une
  * installation en cours : l'annulation est un choix explicite.
  *
@@ -57,6 +70,10 @@ import kotlin.math.roundToInt
 @Suppress("TooManyFunctions")
 class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private val viewModel: InstallViewModel by viewModels()
+
+    /** Navigation inter-écrans (ouverture du terminal, v0.52.0). */
+    @Inject
+    lateinit var navigator: AppNavigator
 
     /** Rangée de la checklist de base gonflée : ses trois vues pilotables. */
     private data class RangeeEtape(
@@ -126,6 +143,11 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
 
         binding.boutonInstaller.setOnClickListener { viewModel.onAction(ActionInstallation.Installer) }
         binding.boutonInstallerOutils.setOnClickListener { viewModel.onAction(ActionInstallation.InstallerOutils) }
+        binding.boutonOuvrirTerminal.setOnClickListener {
+            viewModel.onAction(
+                ActionInstallation.ConfigurerEnvironnement,
+            )
+        }
         binding.boutonAnnuler.setOnClickListener { viewModel.onAction(ActionInstallation.Annuler) }
         binding.boutonFermer.setOnClickListener { findNavController().popBackStack() }
         binding.boutonDetails.setOnClickListener {
@@ -136,6 +158,17 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         construireChecklist()
 
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
+
+        // v0.52.0 (ADR 0083) : la configuration automatique est lancée à
+        // la fin de la base — l'effet ouvre le terminal sur le journal
+        // live. Collecté avec le cycle de vue : jamais rejoué à la
+        // rotation (l'effet est déjà parti, la session vit dans le
+        // registre global).
+        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
+            when (effet) {
+                EffetInstallation.OuvrirTerminal -> navigator.openTerminal(null)
+            }
+        }
     }
 
     /** Rendu complet de l'état : une phase visible à la fois. */
@@ -174,6 +207,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private fun rendreProgression(etat: EtatInstallation) {
         binding.boutonInstaller.isVisible = false
         binding.boutonInstallerOutils.isVisible = false
+        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.boutonAnnuler.isVisible = true
         binding.texteEtape.setText(libelleEtape(etat.libelleEtape))
@@ -190,16 +224,26 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         rendreJournal(etat, defiler = true)
     }
 
-    /** Résultat : environnement prêt, proposition des outils, actions. */
+    /** Résultat : la configuration de l'environnement vit dans le
+     * terminal (v0.52.0, ADR 0083) — le bouton « Ouvrir le terminal » y
+     * mène ; le repli par paquets ne sert que si la session n'a pas pu
+     * être créée. */
     private fun rendreResultat(etat: EtatInstallation) {
         binding.boutonInstaller.isVisible = false
         binding.boutonAnnuler.isVisible = false
         binding.boutonFermer.isVisible = true
         binding.carteJournal.isVisible = false
-        val outilsManquants = etat.outils.isEmpty() || etat.outils.any { !it.installe }
-        binding.boutonInstallerOutils.isVisible = outilsManquants
-        binding.texteOutilsRequis.isVisible = outilsManquants
-        rendreResultatOutils(etat.outils, etat.paquetsOutils)
+        // Environnement complet : le résultat célèbre la configuration
+        // prête — ni repli, ni rangées de paquets.
+        val montrerRepli = !etat.envComplet && (etat.outils.isEmpty() || etat.outils.any { !it.installe })
+        binding.texteOutilsRequis.isVisible = !etat.envComplet
+        binding.conteneurResultatOutils.isVisible = montrerRepli
+        binding.boutonInstallerOutils.isVisible = montrerRepli
+        // Le terminal reste la porte du journal live, complet ou non.
+        binding.boutonOuvrirTerminal.isVisible = true
+        if (montrerRepli) {
+            rendreResultatOutils(etat.outils, etat.paquetsOutils)
+        }
     }
 
     /** Échec de la base : reprise complète proposée. */
@@ -207,6 +251,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         binding.boutonInstaller.isVisible = true
         binding.boutonInstaller.setText(R.string.installation_reessayer)
         binding.boutonInstallerOutils.isVisible = false
+        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.boutonAnnuler.isVisible = false
         binding.texteErreur.setText(messageErreur(etat.erreur))
@@ -241,6 +286,7 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
             if (annulee) R.string.installation_reessayer else R.string.installation_installer,
         )
         binding.boutonInstallerOutils.isVisible = false
+        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonAnnuler.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.carteJournal.isVisible = false

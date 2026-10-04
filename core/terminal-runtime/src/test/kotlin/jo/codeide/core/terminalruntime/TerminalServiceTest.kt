@@ -55,6 +55,10 @@ class TerminalServiceTest {
             terminee = true
             vivante = false
         }
+
+        // v0.52.0 (ADR 0083) : le service n'envoie jamais de texte —
+        // l'implémentation n'en fait rien, seul le contrat compte ici.
+        override fun envoyerTexte(texte: String) = Unit
     }
 
     private val fabrique =
