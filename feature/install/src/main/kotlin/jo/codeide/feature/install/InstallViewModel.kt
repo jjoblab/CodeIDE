@@ -8,11 +8,9 @@ import jo.codeide.core.domain.ConfigurationEnvTerminal
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
 import jo.codeide.core.model.EtatInstallationBootstrap
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,23 +33,12 @@ sealed interface ActionInstallation {
     data object Fermer : ActionInstallation
 
     /**
-     * Ouvre (ou relance) la configuration automatique de l'environnement
-     * dans le terminal (v0.52.0, ADR 0083) : la session de configuration
-     * devient l'écran live.
+     * Relance (ou retrouve) la configuration automatique de
+     * l'environnement (v0.52.0, ADR 0083) — v0.54.0 : la session rendue
+     * par le port alimente le mini TerminalView de l'écran, aucune
+     * navigation.
      */
     data object ConfigurerEnvironnement : ActionInstallation
-}
-
-/**
- * Effets ponctuels de navigation de l'écran d'installation (consommés une
- * fois par le fragment — jamais rejoués à la rotation).
- */
-sealed interface EffetInstallation {
-    /**
-     * La session de configuration de l'environnement est prête : ouvrir
-     * l'écran du terminal pour suivre le journal en direct (v0.52.0).
-     */
-    data object OuvrirTerminal : EffetInstallation
 }
 
 /**
@@ -76,7 +63,11 @@ sealed interface EffetInstallation {
  * @property journal lignes de sortie réelles des sous-processus
  * (v0.31.2 : « ce qui se fait vraiment » — v0.31.4 : le journal ne
  * s'efface PLUS à chaque changement d'étape, il est combiné à l'état
- * dans un seul flux).
+ * dans un seul flux) — phase de BASE uniquement : la configuration,
+ * elle, vit dans le mini terminal.
+ * @property sessionConfiguration identifiant de la session de
+ * configuration à rendre dans le mini TerminalView (v0.54.0), ou
+ * `null` — c'est lui qui remplace la bascule vers l'écran du terminal.
  * @property detailsEchec détails techniques de l'échec typé (code de
  * sortie + dernières lignes d'erreur), ou `null` — affichés sous
  * pli pour ne pas effrayer, présents pour diagnostiquer.
@@ -90,6 +81,7 @@ data class EtatInstallation(
     val paquetsOutils: List<String> = emptyList(),
     val envComplet: Boolean = false,
     val journal: List<String> = emptyList(),
+    val sessionConfiguration: String? = null,
     val detailsEchec: String? = null,
 )
 
@@ -135,13 +127,21 @@ enum class PhaseInstallation {
  * installé et pkg update, la configuration de l'environnement avec
  * l'installation de java, android sdk, etc. ») : la fin de l'installation
  * de base **déclenche automatiquement** la configuration de
- * l'environnement dans le terminal — la commande `codeide-env` est
- * « tapée » dans une session dédiée ([ConfigurationEnvTerminal]) et
- * l'effet [EffetInstallation.OuvrirTerminal] bascule l'écran vers le
- * journal live du TerminalView. Le garde `lancementAutoConsomme` tient
- * le déclenchement à UN par vie de l'écran ; la reprise manuelle passe
- * par [ActionInstallation.ConfigurerEnvironnement] (une session de
+ * l'environnement — la commande `codeide-env` est « tapée » dans une
+ * session dédiée ([ConfigurationEnvTerminal]). Le garde
+ * `lancementAutoConsomme` tient le déclenchement à UN par vie de
+ * l'écran ; la reprise manuelle passe par
+ * [ActionInstallation.ConfigurerEnvironnement] (une session de
  * configuration vivante est RETROUVÉE, jamais doublée).
+ *
+ * v0.54.0 (retour utilisateur : « pour le journal live, il fallait le
+ * remplacer complètement par un mini écran TerminalView et non créer une
+ * nouvelle session terminal ») : l'identifiant de session rendu par le
+ * port alimente [EtatInstallation.sessionConfiguration] — le fragment y
+ * branche le mini TerminalView INTÉGRÉ à l'écran. Plus d'effet de
+ * navigation, plus de bascule vers TerminalActivity : le pty reste le
+ * moteur (un TerminalView ne rend qu'une session vivante), mais
+ * l'expérience est un journal embarqué, interactif au toucher.
  */
 @HiltViewModel
 class InstallViewModel
@@ -150,21 +150,28 @@ class InstallViewModel
         private val installateur: BootstrapInstaller,
         private val configurationEnv: ConfigurationEnvTerminal,
     ) : ViewModel() {
-        /** Effets ponctuels (ouverture du terminal), consommés une fois. */
-        private val _effets = MutableSharedFlow<EffetInstallation>()
-        val effets: SharedFlow<EffetInstallation> = _effets.asSharedFlow()
+        /** Session de configuration à rendre (mini TerminalView), ou `null`. */
+        private val sessionConfigurationPubliee = MutableStateFlow<String?>(null)
 
         /** Lancement automatique déjà consommé pour cette vie de l'écran. */
         private var lancementAutoConsomme = false
 
-        /** État de rendu observable (UDF) — état et journal combinés. */
+        /** État de rendu observable (UDF) — état, journal et session combinés. */
         val etat: StateFlow<EtatInstallation> =
-            combine(installateur.etat, installateur.journal) { partage, lignes ->
-                traduire(partage).copy(journal = lignes)
+            combine(
+                installateur.etat,
+                installateur.journal,
+                sessionConfigurationPubliee,
+            ) { partage, lignes, session ->
+                traduire(partage).copy(journal = lignes, sessionConfiguration = session)
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Eagerly,
-                initialValue = traduire(installateur.etat.value).copy(journal = installateur.journal.value),
+                initialValue =
+                    traduire(installateur.etat.value).copy(
+                        journal = installateur.journal.value,
+                        sessionConfiguration = sessionConfigurationPubliee.value,
+                    ),
             )
 
         init {
@@ -173,14 +180,14 @@ class InstallViewModel
             // incomplet) déclenche la configuration automatique. `etat`
             // étant un StateFlow, la valeur courante rejoue le déclencheur
             // à chaque abonnement : le garde anti-doublon le tient à un.
+            // v0.54.0 : l'identifiant rendu ALIMENTE le mini TerminalView
+            // de l'écran — aucun effet de navigation.
             viewModelScope.launch {
                 etat.collect { rendu ->
                     if (rendu.phase == PhaseInstallation.TERMINEE && !lancementAutoConsomme) {
                         lancementAutoConsomme = true
                         if (!configurationEnv.estComplet()) {
-                            configurationEnv.lancer()?.let {
-                                _effets.emit(EffetInstallation.OuvrirTerminal)
-                            }
+                            sessionConfigurationPubliee.value = configurationEnv.lancer()
                         }
                     }
                 }
@@ -206,15 +213,12 @@ class InstallViewModel
                     Unit
                 }
 
-                // navigation : fragment + effet système
+                // v0.54.0 : relance volontaire — retrouve la session
+                // vivante ou en crée une nouvelle (l'environnement reste
+                // incomplet) ; l'identifiant alimente le mini TerminalView.
                 ActionInstallation.ConfigurerEnvironnement -> {
                     viewModelScope.launch {
-                        // Relance volontaire : retrouve la session vivante
-                        // ou en crée une nouvelle (l'environnement reste
-                        // incomplet), puis bascule vers le journal live.
-                        configurationEnv.lancer()?.let {
-                            _effets.emit(EffetInstallation.OuvrirTerminal)
-                        }
+                        sessionConfigurationPubliee.value = configurationEnv.lancer()
                     }
                 }
             }

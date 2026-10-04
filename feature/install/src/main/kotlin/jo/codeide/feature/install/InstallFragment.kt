@@ -2,11 +2,13 @@ package jo.codeide.feature.install
 
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -14,7 +16,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.EtapeInstallation
-import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.terminalruntime.TerminalRuntime
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.install.databinding.FragmentInstallBinding
@@ -51,13 +53,21 @@ import kotlin.math.roundToInt
  * v0.52.0 (ADR 0083, comportement demandé : « une fois que le bootstrap
  * installé et pkg update, la configuration de l'environnement avec
  * l'installation de java, android sdk, etc. ») : la réussite de la base
- * **déclenche la configuration automatique dans le terminal** — la
- * commande `codeide-env` est « tapée » dans une session dédiée et
- * l'effet [EffetInstallation.OuvrirTerminal] bascule vers l'écran du
- * terminal : le TerminalView EST le journal live de la configuration.
- * Le bouton « Ouvrir le terminal » y revient ; le repli par paquets
- * (OpenJDK seul — git retiré) ne sert que si la session n'a pas pu
- * être créée.
+ * **déclenche la configuration automatique** — la commande `codeide-env`
+ * est « tapée » dans une session dédiée ; le repli par paquets (OpenJDK
+ * seul — git retiré) ne sert que si la session n'a pas pu être créée.
+ *
+ * v0.54.0 (retour utilisateur : « pour le journal live, il fallait le
+ * remplacer complètement par un mini écran TerminalView et non créer
+ * une nouvelle session terminal ») : le journal live de la
+ * configuration est un **mini TerminalView intégré à cet écran** —
+ * [brancherTerminal] y attache la session (le pty reste le moteur : un
+ * TerminalView ne rend qu'une session vivante), le rendu suit les
+ * sorties au fil de l'eau et le toucher ouvre le clavier (la session
+ * est interactive). Plus de bascule vers TerminalActivity, plus de
+ * bouton « Ouvrir le terminal » : le journal TextView ne survit qu'à
+ * la phase de BASE (le shell n'existe pas avant l'extraction du
+ * bootstrap — aucun terminal n'y serait rendable).
  *
  * Le retour système referme l'écran sans jamais interrompre une
  * installation en cours : l'annulation est un choix explicite.
@@ -71,9 +81,20 @@ import kotlin.math.roundToInt
 class InstallFragment : BaseFragment<FragmentInstallBinding>() {
     private val viewModel: InstallViewModel by viewModels()
 
-    /** Navigation inter-écrans (ouverture du terminal, v0.52.0). */
+    /**
+     * API de rendu du terminal (v0.54.0) : la session réelle de la
+     * configuration, à brancher sur le mini TerminalView de l'écran.
+     */
     @Inject
-    lateinit var navigator: AppNavigator
+    lateinit var runtime: TerminalRuntime
+
+    /** Identifiant de la session déjà rendue par le mini terminal
+     * (anti-rebranchement — même garde que TerminalActivity). */
+    private var idSessionRendue: String? = null
+
+    /** Dernière taille de police réellement appliquée (évite les
+     * re-créations de fonte à chaque état). */
+    private var tailleRenduePx = AUCUNE_TAILLE
 
     /** Rangée de la checklist de base gonflée : ses trois vues pilotables. */
     private data class RangeeEtape(
@@ -113,6 +134,22 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         /** Opacité des étapes terminée et courante. */
         private const val ALPHA_ETAPE_ACTIVE = 1f
 
+        /** Police du mini TerminalView (dp) — lisible sans étouffer la
+         * carte (v0.54.0). */
+        private const val POLICE_MINI_DP = 13
+
+        /** Valeur sentinelle « aucune taille appliquée ». */
+        private const val AUCUNE_TAILLE = -1
+
+        /** Indices de la palette Termux (disposition jackpal, 259 entrées). */
+        private const val INDICE_PREMIER_PLAN = 256
+
+        /** Arrière-plan du rendu. */
+        private const val INDICE_ARRIERE_PLAN = 257
+
+        /** Couleur du curseur. */
+        private const val INDICE_CURSEUR = 258
+
         /** Modèles d'étapes de la base, dans l'ordre du pipeline (ADR 0048 :
          *  la checklist s'arrête à `apt update` — les outils vivent dans
          *  leur propre section). */
@@ -143,11 +180,6 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
 
         binding.boutonInstaller.setOnClickListener { viewModel.onAction(ActionInstallation.Installer) }
         binding.boutonInstallerOutils.setOnClickListener { viewModel.onAction(ActionInstallation.InstallerOutils) }
-        binding.boutonOuvrirTerminal.setOnClickListener {
-            viewModel.onAction(
-                ActionInstallation.ConfigurerEnvironnement,
-            )
-        }
         binding.boutonAnnuler.setOnClickListener { viewModel.onAction(ActionInstallation.Annuler) }
         binding.boutonFermer.setOnClickListener { findNavController().popBackStack() }
         binding.boutonDetails.setOnClickListener {
@@ -157,18 +189,17 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
 
         construireChecklist()
 
-        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
-
-        // v0.52.0 (ADR 0083) : la configuration automatique est lancée à
-        // la fin de la base — l'effet ouvre le terminal sur le journal
-        // live. Collecté avec le cycle de vue : jamais rejoué à la
-        // rotation (l'effet est déjà parti, la session vit dans le
-        // registre global).
-        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
-            when (effet) {
-                EffetInstallation.OuvrirTerminal -> navigator.openTerminal(null)
-            }
+        // v0.54.0 : le journal live de la configuration EST le mini
+        // TerminalView intégré — le toucher ouvre le clavier (la session
+        // est interactive), le rendu suit les sorties au fil de l'eau
+        // (même architecture que TerminalActivity : c'est l'écran qui
+        // repeint, signal sans throttle).
+        binding.vueTerminalMini.setTerminalViewClient(ClientTerminalMini(binding.vueTerminalMini))
+        runtime.observeSorties().collectWithLifecycle(viewLifecycleOwner) {
+            binding.vueTerminalMini.onScreenUpdated()
         }
+
+        viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
     }
 
     /** Rendu complet de l'état : une phase visible à la fois. */
@@ -201,13 +232,18 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                 rendreEchecOutils(etat)
             }
         }
+
+        // v0.54.0 : la session de configuration (le pty, moteur du
+        // journal live) se rend DANS l'écran — visible dès qu'elle existe,
+        // quel que soit le reste (une phase d'échec n'efface pas le
+        // terminal : sa sortie diagnostique).
+        brancherTerminal(etat.sessionConfiguration)
     }
 
     /** Progression (base ou outils) : en-tête d'étape, sections, journal. */
     private fun rendreProgression(etat: EtatInstallation) {
         binding.boutonInstaller.isVisible = false
         binding.boutonInstallerOutils.isVisible = false
-        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.boutonAnnuler.isVisible = true
         binding.texteEtape.setText(libelleEtape(etat.libelleEtape))
@@ -239,8 +275,9 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         binding.texteOutilsRequis.isVisible = !etat.envComplet
         binding.conteneurResultatOutils.isVisible = montrerRepli
         binding.boutonInstallerOutils.isVisible = montrerRepli
-        // Le terminal reste la porte du journal live, complet ou non.
-        binding.boutonOuvrirTerminal.isVisible = true
+        // v0.54.0 : plus de bouton « Ouvrir le terminal » — la session se
+        // rend dans le mini TerminalView (brancherTerminal, appelé par
+        // rendre quel que soit l'état).
         if (montrerRepli) {
             rendreResultatOutils(etat.outils, etat.paquetsOutils)
         }
@@ -251,7 +288,6 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
         binding.boutonInstaller.isVisible = true
         binding.boutonInstaller.setText(R.string.installation_reessayer)
         binding.boutonInstallerOutils.isVisible = false
-        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.boutonAnnuler.isVisible = false
         binding.texteErreur.setText(messageErreur(etat.erreur))
@@ -286,7 +322,6 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
             if (annulee) R.string.installation_reessayer else R.string.installation_installer,
         )
         binding.boutonInstallerOutils.isVisible = false
-        binding.boutonOuvrirTerminal.isVisible = false
         binding.boutonAnnuler.isVisible = false
         binding.boutonFermer.isVisible = false
         binding.carteJournal.isVisible = false
@@ -597,6 +632,61 @@ class InstallFragment : BaseFragment<FragmentInstallBinding>() {
                 binding.defilementJournal.fullScroll(View.FOCUS_DOWN)
             }
         }
+    }
+
+    /**
+     * Branche le mini TerminalView sur la session de configuration
+     * (v0.54.0) — le cœur du « journal live intégré » : sans changement
+     * d'identifiant, rien à faire (le signal de sorties repeint le
+     * transcript au fil de l'eau) ; la carte n'existe que lorsqu'une
+     * session existe. Même architecture que TerminalActivity.
+     */
+    @Suppress("ReturnCount") // Clauses de garde : une par cas non rendable (règle 16).
+    private fun brancherTerminal(idSession: String?) {
+        if (idSession == idSessionRendue && binding.carteTerminal.isVisible == (idSession != null)) {
+            return
+        }
+        idSessionRendue = idSession
+        binding.carteTerminal.isVisible = idSession != null
+        if (idSession == null) return
+        val session = runtime.sessionFor(idSession) ?: return
+        binding.vueTerminalMini.attachSession(session)
+        appliquerThemeTerminal()
+        appliquerPoliceMini()
+        // Le branchement doit s'afficher IMMÉDIATEMENT (même garantie que
+        // TerminalActivity) : attachSession passe par updateSize →
+        // invalidate, un repaint explicite garantit le contenu à CE frame.
+        binding.vueTerminalMini.onScreenUpdated()
+    }
+
+    /**
+     * Applique le thème de l'app au mini terminal — version compacte du
+     * `appliquerThemeRendu` de feature:terminal (interne à ce module) :
+     * indices 256/257/258 = premier plan/arrière-plan/curseur de la
+     * palette Termux (disposition jackpal).
+     */
+    private fun appliquerThemeTerminal() {
+        val fond = ContextCompat.getColor(requireContext(), jo.codeide.core.ui.R.color.codeide_terminal_fond)
+        val texte = ContextCompat.getColor(requireContext(), jo.codeide.core.ui.R.color.codeide_terminal_texte)
+        binding.vueTerminalMini.setBackgroundColor(fond)
+        val emulateur = binding.vueTerminalMini.mEmulator ?: return
+        val couleurs = emulateur.mColors.mCurrentColors
+        couleurs[INDICE_PREMIER_PLAN] = texte
+        couleurs[INDICE_ARRIERE_PLAN] = fond
+        couleurs[INDICE_CURSEUR] = texte
+    }
+
+    /** Police à chasse fixe du mini écran (une fois par vue). */
+    private fun appliquerPoliceMini() {
+        if (tailleRenduePx != AUCUNE_TAILLE) return
+        tailleRenduePx =
+            TypedValue
+                .applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    POLICE_MINI_DP.toFloat(),
+                    resources.displayMetrics,
+                ).toInt()
+        binding.vueTerminalMini.setTextSize(tailleRenduePx)
     }
 
     /** Pli des détails techniques. */

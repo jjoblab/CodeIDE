@@ -233,9 +233,10 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Résultat : environnement prêt, configuration automatique de
-             l'environnement dans le terminal (v0.52.0, ADR 0083), repli
-             par paquets si la session n'a pas pu être créée. -->
+        <!-- Résultat : environnement prêt, la configuration automatique de
+             l'environnement défile dans le MINI TerminalView ci-dessous
+             (v0.54.0), repli par paquets si la session n'a pas pu être
+             créée. -->
         <LinearLayout
             android:id="@+id/resultat"
             android:layout_width="match_parent"
@@ -339,17 +340,45 @@
             android:layout_marginTop="@dimen/spacing_md"
             android:text="@string/installation_installer" />
 
-        <!-- v0.52.0 (ADR 0083) : phase résultat — suivre la configuration
-             de l'environnement dans le terminal : le journal live défile
-             dans le TerminalView (session « Configuration »). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_ouvrir_terminal"
+        <!-- v0.54.0 (retour utilisateur : « le journal live devait être un
+             mini écran TerminalView, pas une nouvelle session dans
+             l'écran du terminal ») : la session « Configuration » est
+             rendue DANS l'écran d'installation — branchée au
+             TerminalView ci-dessous, interactive (clavier au toucher),
+             aucune bascule vers TerminalActivity. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/carte_terminal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_md"
-            android:text="@string/installation_ouvrir_terminal"
             android:visibility="gone"
-            tools:visibility="visible" />
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/installation_terminal_titre"
+                    android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+                <!-- La vue du terminal Termux — mêmes attributs que
+                     l'écran plein écran ; hauteur fixe, le transcript
+                     défile en son sein. -->
+                <com.termux.view.TerminalView
+                    android:id="@+id/vue_terminal_mini"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/hauteur_terminal_installation"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:importantForAccessibility="yes" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Phase résultat : repli par paquets (OpenJDK seul, v0.52.0) si
              la session de configuration n'a pas pu être créée. -->

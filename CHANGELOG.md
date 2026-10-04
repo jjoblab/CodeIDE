@@ -4,6 +4,44 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.54.0] – 2026-10-05
+
+Retour utilisateur : « pour le journal live, il fallait le remplacer
+complètement par un mini écran TerminalView et non créer une nouvelle
+session terminal (si possible) ». La v0.52.0 basculait vers l'écran du
+terminal complet — vécu comme une rupture de parcours. Le journal live
+est désormais **un mini écran TerminalView intégré à l'écran
+d'installation**. Décision : ADR 0083 (correctif v0.54.0).
+
+### Modifié (le journal live est un mini TerminalView intégré)
+
+- **`fragment_install.xml`** : le bouton « Ouvrir le terminal » disparaît,
+  remplacé par une carte `TerminalView` (hauteur fixe ~280 dp, police
+  13 dp, thème du terminal) — la session « Configuration » s'y rend
+  SUR PLACE, interactive (le toucher ouvre le clavier : relancer
+  `codeide-env`, Ctrl+C, répondre à une invite).
+- **`InstallViewModel`** : plus d'effet de navigation — l'identifiant de
+  session rendu par `ConfigurationEnvTerminal.lancer()` alimente
+  `EtatInstallation.sessionConfiguration` (flux combiné état + journal +
+  session) ; le déclenchement automatique de fin de base et l'ordre
+  manuel `ConfigurerEnvironnement` restent inchangés (une session
+  vivante est RETROUVÉE, jamais doublée).
+- **`InstallFragment`** : branchement du mini terminal (anti-rebranchement
+  par identifiant, thème aux indices 256/257/258, repaint au signal
+  `observeSorties` — même architecture que `TerminalActivity`) ; le
+  journal TextView ne survit qu'à la phase de BASE (le shell n'existe
+  pas avant l'extraction du bootstrap — aucun terminal n'y serait
+  rendable).
+- **`ClientTerminalMini` (NOUVEAU)** : client TerminalView minimal du
+  mini écran — tap → focus + clavier, journaux muets, ni zoom ni copie
+  auto (le plein écran de `feature:terminal` reste LA référence).
+- `feature:install` dépend de `terminal-view` + `core:terminal-runtime`
+  (mêmes artefacts que `feature:terminal`, exception lint Aligned16KB
+  documentée).
+- Chaînes : `installation_terminal_titre` (fr/en) ; le détail du
+  résultat et des outils requis parlent du mini-terminal ;
+  `installation_ouvrir_terminal` retirée.
+
 ## [0.53.0] – 2026-10-05
 
 Retour d'appareil réel : « …146,4 Mio téléchargés (~3 min 36) →

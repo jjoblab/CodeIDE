@@ -36,11 +36,11 @@
     <string name="installation_journal_titre">Live log</string>
     <string name="installation_details_titre">Technical details</string>
     <string name="installation_terminee_base">Base environment installed</string>
-    <string name="installation_terminee_base_detail">The shell, the package manager and the updated repository are ready. The environment configuration (Java, Android SDK) starts automatically in the terminal.</string>
-    <string name="installation_outils_requis_detail">Java (OpenJDK) and the Android SDK install in the terminal: the progress streams there live, in the “Configuration” session. After an interruption, everything resumes where it left off (relaunch: codeide-env command).</string>
-    <!-- v0.52.0 (ADR 0083): open the live log of the automatic environment
-         configuration — the TerminalView is the progress screen. -->
-    <string name="installation_ouvrir_terminal">Open the terminal</string>
+    <string name="installation_terminee_base_detail">The shell, the package manager and the updated repository are ready. The environment configuration (Java, Android SDK) starts automatically below.</string>
+    <string name="installation_outils_requis_detail">Java (OpenJDK) and the Android SDK install in the mini-terminal below: the output streams there live and stays interactive (tap for the keyboard). After an interruption, everything resumes where it left off (relaunch: codeide-env command).</string>
+    <!-- v0.54.0: the configuration live log IS a mini TerminalView embedded
+         in the screen — no switch to the terminal screen. -->
+    <string name="installation_terminal_titre">Environment configuration — live</string>
     <string name="installation_installer_outils">Install Java (fallback)</string>
     <string name="installation_reessayer_outils">Retry installing the tools</string>
     <string name="installation_installer">Install now</string>

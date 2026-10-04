@@ -39,11 +39,11 @@
     <string name="installation_journal_titre">Journal en direct</string>
     <string name="installation_details_titre">Détails techniques</string>
     <string name="installation_terminee_base">Environnement de base installé</string>
-    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts. La configuration de l\'environnement (Java, SDK Android) démarre automatiquement dans le terminal.</string>
-    <string name="installation_outils_requis_detail">Java (OpenJDK) et le SDK Android s\'installent dans le terminal : la progression s\'y affiche en direct, dans la session « Configuration ». En cas d\'interruption, tout reprend où il en était (relance : commande codeide-env).</string>
-    <!-- v0.52.0 (ADR 0083) : ouverture du journal live de la configuration
-         automatique — le TerminalView est l\'écran de progression. -->
-    <string name="installation_ouvrir_terminal">Ouvrir le terminal</string>
+    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts. La configuration de l\'environnement (Java, SDK Android) démarre automatiquement ci-dessous.</string>
+    <string name="installation_outils_requis_detail">Java (OpenJDK) et le SDK Android s\'installent dans le mini-terminal ci-dessous : la sortie défile en direct et reste interactive (clavier au toucher). En cas d\'interruption, tout reprend où il en était (relance : commande codeide-env).</string>
+    <!-- v0.54.0 : le journal live de la configuration EST un mini écran
+         TerminalView intégré à l\'écran — pas de bascule vers le terminal. -->
+    <string name="installation_terminal_titre">Configuration de l\'environnement — en direct</string>
     <string name="installation_installer_outils">Installer Java (repli)</string>
     <string name="installation_reessayer_outils">Réessayer l\'installation des outils</string>
     <string name="installation_installer">Installer maintenant</string>
