@@ -30,14 +30,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * API de rendu réservée à `feature:terminal` (prompt compagnon
- * Terminal-1, section 4.4) : expose le **vrai** objet Termux
- * `TerminalSession` d'un identifiant — nécessaire au branchement du
- * `TerminalView`.
+ * API de rendu réservée aux écrans qui branchent un `TerminalView`
+ * (prompt compagnon Terminal-1, section 4.4) : expose le **vrai** objet
+ * Termux `TerminalSession` d'un identifiant — nécessaire au branchement du
+ * `TerminalView`. Consommatrices : `feature:terminal` (plein écran) et,
+ * depuis la v0.54.0, `feature:install` (mini TerminalView du journal live
+ * de la configuration, ADR 0083).
  *
  * Vit ici et **pas dans `core:domain`** : le type exposé est une
- * bibliothèque Termux, seul `feature:terminal` (qui dépend déjà de
- * `terminal-view`) peut le consommer — la carte d'aperçu de l'éditeur,
+ * bibliothèque Termux, seules les features qui dépendent déjà de
+ * `terminal-view` peuvent le consommer — la carte d'aperçu de l'éditeur,
  * elle, n'a besoin que des métadonnées du domaine.
  */
 public interface TerminalRuntime {

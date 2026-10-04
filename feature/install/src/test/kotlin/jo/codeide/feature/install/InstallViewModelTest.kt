@@ -278,24 +278,27 @@ class InstallViewModelTest {
 
     // ------------------------------------------------------------------
     // v0.52.0 (ADR 0083) : déclenchement automatique de la configuration
-    // de l'environnement dans le terminal à la fin de la base.
+    // de l'environnement à la fin de la base — v0.54.0 : l'identifiant de
+    // session alimente le mini TerminalView de l'écran (aucun effet de
+    // navigation, la session se rend SUR PLACE).
     // ------------------------------------------------------------------
 
     @Test
-    fun `la fin de la base déclenche la configuration automatique et ouvre le terminal`() =
+    fun `la fin de la base déclenche la configuration et alimente le mini terminal`() =
         runTest {
             val viewModel = InstallViewModel(installateur, configurationEnv)
-            val effets = mutableListOf<EffetInstallation>()
-            val collecteur = launch { viewModel.effets.collect { effets += it } }
             advanceUntilIdle()
 
             installateur.simulerTerminee(emptyList())
             advanceUntilIdle()
-            collecteur.cancel()
 
             assertEquals(PhaseInstallation.TERMINEE, viewModel.etat.value.phase)
             assertEquals(1, configurationEnv.lancements)
-            assertEquals(listOf(EffetInstallation.OuvrirTerminal), effets)
+            assertEquals(
+                "l'identifiant de session devait alimenter le mini TerminalView",
+                "session-config",
+                viewModel.etat.value.sessionConfiguration,
+            )
         }
 
     @Test
@@ -330,37 +333,35 @@ class InstallViewModelTest {
         }
 
     @Test
-    fun `un échec de lancement ne produit aucun effet de navigation`() =
+    fun `un échec de lancement laisse le repli par paquets`() =
         runTest {
             configurationEnv.sessionIdSimulation = null
             val viewModel = InstallViewModel(installateur, configurationEnv)
-            val effets = mutableListOf<EffetInstallation>()
-            val collecteur = launch { viewModel.effets.collect { effets += it } }
             advanceUntilIdle()
 
             installateur.simulerTerminee(emptyList())
             advanceUntilIdle()
-            collecteur.cancel()
 
-            // Le repli (bouton paquets) reste le seul recours : pas
-            // d'ouverture du terminal sans session.
-            assertTrue(effets.isEmpty())
+            // Le repli (bouton paquets) reste le seul recours : pas de
+            // mini terminal sans session à y brancher.
+            assertNull(viewModel.etat.value.sessionConfiguration)
         }
 
     @Test
-    fun `l ordre manuel relance la configuration et ouvre le terminal`() =
+    fun `l ordre manuel relance la configuration et alimente le mini terminal`() =
         runTest {
             configurationEnv.simulerComplet(true)
             val viewModel = InstallViewModel(installateur, configurationEnv)
-            val effets = mutableListOf<EffetInstallation>()
-            val collecteur = launch { viewModel.effets.collect { effets += it } }
             advanceUntilIdle()
 
             viewModel.onAction(ActionInstallation.ConfigurerEnvironnement)
             advanceUntilIdle()
-            collecteur.cancel()
 
             assertEquals(1, configurationEnv.lancements)
-            assertEquals(listOf(EffetInstallation.OuvrirTerminal), effets)
+            assertEquals(
+                "l'identifiant de session devait alimenter le mini TerminalView",
+                "session-config",
+                viewModel.etat.value.sessionConfiguration,
+            )
         }
 }

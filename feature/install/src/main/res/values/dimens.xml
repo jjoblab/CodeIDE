@@ -3,4 +3,10 @@
     <!-- Hauteur de la fenêtre du journal en direct (v0.31.2) : assez pour
          quatre-cinq lignes de sortie sans étouffer la checklist au-dessus. -->
     <dimen name="hauteur_journal_installation">160dp</dimen>
+
+    <!-- Hauteur du mini TerminalView de la configuration (v0.54.0) : la
+         sortie de codeide-env défile en direct DANS l'écran d'installation
+         — assez grand pour lire les étapes, assez discret pour laisser la
+         checklist respirer ; la vue gère son propre défilement interne. -->
+    <dimen name="hauteur_terminal_installation">280dp</dimen>
 </resources>
