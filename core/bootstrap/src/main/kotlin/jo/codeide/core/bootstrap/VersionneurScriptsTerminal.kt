@@ -63,8 +63,22 @@ internal object VersionneurScriptsTerminal {
      *   marqueur `$PREFIX/etc/codeide-env.terminee`. L'app « tape » cette
      *   commande dans une session dédiée à la fin de la base ; git n'est
      *   plus installé (retrait demandé, pas urgent).
+     * - 8 : v0.53.0 — commande `android-sdk` : la JVM est vérifiée au
+     *   DÉMARRAGE (`java_demarre` — retour d'appareil réel : « sdkmanager
+     *   non fonctionnel » après 146 Mio téléchargés, sans indice) : un JDK
+     *   au bit exécutable posé mais à la bibliothèque manquante est ÉCARTÉ
+     *   au profit du candidat suivant, et `diagnostiquer_java` montre la
+     *   sortie réelle de chaque candidat à l'échec ; `sdk_detail` conserve
+     *   la sortie de `sdkmanager --version` pour le message d'échec ;
+     *   l'espace est revérifié avant l'extraction des cmdline-tools
+     *   (~512 Mio) ; `unzip` accepte le code 1 Info-ZIP (avertissement),
+     *   `bsdtar` et le `jar` du JDK servent de replis, l'absence de
+     *   `cmdline-tools/` après extraction a son message propre. Commande
+     *   `codeide-env` : `java_fonctionnel` — un JDK présent mais cassé est
+     *   RÉINSTALLÉ automatiquement (`pkg install --reinstall openjdk-17`),
+     *   la complétude l'exige (auto-guérison).
      */
-    internal const val VERSION = 7
+    internal const val VERSION = 8
 
     /** Marqueur de version des scripts, sous le préfixe. */
     internal fun marqueur(racine: File): File =

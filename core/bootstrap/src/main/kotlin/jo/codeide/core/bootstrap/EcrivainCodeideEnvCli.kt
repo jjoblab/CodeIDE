@@ -17,6 +17,14 @@ import java.io.IOException
  * s'exécute (l'application « tape » la commande dans une session dédiée,
  * voir `ConfigurationEnvTermux` dans `core:terminal-runtime`) :
  *
+ * **v0.53.0 — le JDK est vérifié au DÉMARRAGE** (retour d'appareil réel :
+ * l'installation tombait « sdkmanager non fonctionnel » sans indice) :
+ * `java_fonctionnel` exige que la JVM démarre réellement (`-version`) —
+ * un JDK présent mais cassé est **réinstallé automatiquement**, et
+ * l'échec final affiche la sortie `-version` de chaque candidat. La
+ * complétude (`environnement_complet`) exige un java fonctionnel : un
+ * environnement à JVM cassée se répare en relançant `codeide-env`.
+ *
  * 1. mise à jour des listes de paquets (`pkg update`, non fatal en échec) ;
  * 2. **OpenJDK 17** via le gestionnaire de paquets (dépôt `codeide-packages`)
  *    — sauté si un `java` fonctionnel existe déjà ; **git n'est PAS
@@ -186,6 +194,31 @@ internal class EcrivainCodeideEnvCli(
               return 1
             }
 
+            # v0.53.0 : présent ne suffit pas — la JVM doit DÉMARRER. Un JDK
+            # au bit exécutable posé mais à la bibliothèque manquante
+            # survivrait à toutes les vérifications puis ferait échouer
+            # sdkmanager bien plus tard, sans indice (retour d'appareil
+            # réel : « sdkmanager non fonctionnel » après 146 Mio
+            # téléchargés). Retient le binaire dans JAVA_BIN (consommé
+            # par les diagnostics d'échec).
+            java_fonctionnel() {
+              JAVA_BIN=""
+              if [ -n "$dollar{JAVA_HOME:-}" ] && [ -x "$dollar{JAVA_HOME}/bin/java" ]; then
+                JAVA_BIN="$dollar{JAVA_HOME}/bin/java"
+              else
+                for candidat in "$dollar{PREFIX}"/lib/jvm/*/bin/java "$dollar{PREFIX}"/opt/openjdk*/bin/java "$dollar{PREFIX}"/opt/jdk*/bin/java; do
+                  if [ -x "$dollar{candidat}" ]; then
+                    JAVA_BIN="$dollar{candidat}"
+                  fi
+                done
+                if [ -z "$dollar{JAVA_BIN}" ] && command -v java >/dev/null 2>&1; then
+                  JAVA_BIN="$dollar(command -v java)"
+                fi
+              fi
+              [ -n "$dollar{JAVA_BIN}" ] || return 1
+              "$dollar{JAVA_BIN}" -version >/dev/null 2>&1
+            }
+
             # Écho le répertoire du JDK résolu : JAVA_HOME de la session
             # d'abord (le plus frais), candidats du préfixe ensuite (lib/jvm
             # du dépôt APT, puis opt/openjdk* Termux — le DERNIER valide
@@ -238,7 +271,7 @@ internal class EcrivainCodeideEnvCli(
             }
 
             environnement_complet() {
-              java_present && sdk_complet
+              java_fonctionnel && sdk_complet
             }
 
             maj_paquets() {
@@ -252,18 +285,30 @@ internal class EcrivainCodeideEnvCli(
 
             installer_java() {
               etape 2 "OpenJDK (${dollar}PAQUET_JDK)"
-              if java_present; then
-                ok "déjà présent — conservé"
+              if java_fonctionnel; then
+                ok "déjà en place et fonctionnel — conservé"
                 return 0
               fi
-              echo "  Installation du paquet (~200 Mio installé)…"
-              if ! "${dollar}GESTIONNAIRE" install -y "${dollar}PAQUET_JDK"; then
-                echec "installation de ${dollar}PAQUET_JDK impossible — dépôt codeide-packages joignable ? Relance plus tard : codeide-env"
-              fi
               if java_present; then
-                ok "OpenJDK installé"
+                attention "JDK présent mais la JVM ne démarre pas — réinstallation"
+                if ! "${dollar}GESTIONNAIRE" install -y --reinstall "${dollar}PAQUET_JDK"; then
+                  echec "réinstallation de ${dollar}PAQUET_JDK impossible — dépôt codeide-packages joignable ? Relance plus tard : codeide-env"
+                fi
               else
-                echec "paquet installé mais java introuvable — installation interrompue (sdkmanager en a besoin)"
+                echo "  Installation du paquet (~200 Mio installé)…"
+                if ! "${dollar}GESTIONNAIRE" install -y "${dollar}PAQUET_JDK"; then
+                  echec "installation de ${dollar}PAQUET_JDK impossible — dépôt codeide-packages joignable ? Relance plus tard : codeide-env"
+                fi
+              fi
+              if java_fonctionnel; then
+                ok "OpenJDK installé et fonctionnel"
+              else
+                echec "la JVM ne démarre toujours pas — installation interrompue (sdkmanager en a besoin). Diagnostics :"
+                for candidat in "$dollar{PREFIX}"/lib/jvm/*/bin/java; do
+                  [ -x "$dollar{candidat}" ] || continue
+                  echo "    $dollar{candidat} :" >&2
+                  "$dollar{candidat}" -version 2>&1 | head -n 2 >&2
+                done
               fi
             }
 
