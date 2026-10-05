@@ -848,9 +848,29 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.55.0 : **E1 de la refonte du parcours d'installation** (prompt
+      « Refonte complète du parcours d'installation de l'environnement »,
+      ADR 0084/0085/0086) : cause racine du « SDK non fonctionnel »
+      ÉTABLIE par reproduction (JVM du préfixe incapable de démarrer →
+      code 127, stdout vide, diagnostic stderr jeté par
+      `sdk_fonctionnel` ; chaîne `java`→`libjli.so`→`libz.so.1`,
+      `libjvm.so`→`libandroid-shmem.so` constatée sur le `.deb` APT
+      réel ; truststore vérifié ne PAS casser `--version` → test TLS
+      en phase 3) ; modèle de domaine et ports posés dans `core:domain`
+      (`InstallPhase`/`PhaseState`/`EnvironmentSetupOrchestrator`,
+      `CommandRunner`/`DownloadManager`/`ArchiveExtractor`/
+      `ToolManifestClient`/`InstallStateStore`, `InstallPlanResolver`
+      pur — 20 tests), `AppError.EnvironmentSetup`+`CommandOutput` dans
+      `core:model`, `ToolchainCatalog` (build-tools 35.0.2 aarch64,
+      platform android-37.2, JDK 17, URL manifeste constante unique) ;
+      branche `EnvironmentSetup` ajoutée aux 4 traducteurs exhaustifs ;
+      étapes suivantes E2 (cadre commun + phases 1-2), E3 (Java+TLS),
+      E4 (manifeste v2 + licences + câblage Gradle/aapt2 + daemon),
+      E5 (maquettes + nouvelle UI), E6 (migration + suppression).
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
-      lsp-classpath.json` ; cf. docs/ROADMAP.md).
+      lsp-classpath.json` ; cf. docs/ROADMAP.md) — ET refonte E2
+      (cadre commun de l'orchestrateur, phases 1-2).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
