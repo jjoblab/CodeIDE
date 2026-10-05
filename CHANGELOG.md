@@ -4,6 +4,82 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.55.0] – 2026-10-05
+
+Première étape (E1) de la **refonte complète du parcours d'installation
+de l'environnement** : investigation de la cause racine du « SDK non
+fonctionnel » (sortie réelle capturée), décisions d'architecture,
+modèle de domaine et ports, catalogue de versions. Aucun comportement
+existant n'est modifié dans cette étape — les types et ports posés ici
+sont le socle des étapes E2 à E6. Décisions : ADR 0084, 0085, 0086.
+
+### Ajouté
+
+- **ADR 0084 — investigation « SDK non fonctionnel »** : reproductions
+  réelles sur Linux x86_64 (archive reconditionnée `codeide-tools` et
+  zip Google rev 12.0, scripts `sdkmanager` identiques octet pour octet)
+  ; mode muet établi avec preuves — une JVM présente mais incapable de
+  démarrer sort en **code 127, stdout vide, diagnostic sur stderr
+  uniquement** (`error while loading shared libraries: libjli.so`), et
+  `sdk_fonctionnel` jetait les deux tuyaux. Analyse statique du paquet
+  APT réel `openjdk-17_17.0.20_aarch64.deb` : chaîne `java` →
+  `libjli.so` → `libz.so.1`, `libjvm.so` → `libandroid-shmem.so`,
+  RUNPATH absolu codé en dur — toute dépendance APT absente déclenche le
+  mode muet. Truststore (`ca-certificates-java`, simple `Recommends`) :
+  vérifié ne PAS casser `sdkmanager --version` (code 0 sans `cacerts`) —
+  d'où le test TLS exigé en phase 3. Plan de vérification sur appareil
+  rédigé (points restants « non vérifiés » : pas d'appareil aarch64
+  dans l'environnement de travail).
+- **ADR 0085 — orchestrateur d'installation en quatre phases vérifiées**
+  (BOOTSTRAP, PACKAGE_TOOLS, JAVA, ANDROID_SDK) : machine d'états
+  `PhaseState` (`NotStarted`/`Running`/`Succeeded`/`Degraded`/`Failed`),
+  état persisté `install-state.json` à schéma versionné, journal en
+  lecture seule alimenté par le `CommandRunner` (le terminal n'est plus
+  le moteur), service de premier plan hôte, migration des installations
+  existantes par adoption vérifiée.
+- **ADR 0086 — catalogue de versions et manifeste v2** : exigences
+  (build-tools 35.0.2 — seule version reconditionnée publiée pour
+  Android aarch64 —, plateforme android-37.2 des templates, JDK 17,
+  outils de la phase 2, URL du manifeste en constante unique) ;
+  résolution du plan en fonction pure avec règles du contrat commun
+  § 12.2 (révision la plus haute, canal stable, exclusivité des
+  `installPath`, exigences à version exacte — jamais de repli).
+- **`core:model`** : `AppError.EnvironmentSetup` (raisons réseau, espace
+  disque, somme de contrôle, commande, JVM, permissions, annulation,
+  manifeste invalide) portant `CommandOutput` (commande, code de retour,
+  dernières lignes) — le contrat « aucune sortie jetée » : un échec de
+  commande transporte désormais sa sortie réelle.
+- **`core:domain`** : `EnvironmentSetup.kt` (`InstallPhase`, `Progress`,
+  `StepId`, `ComponentIssue`, `PhaseState`, `EnvironmentSetupState`,
+  `VerificationReport`, port `EnvironmentSetupOrchestrator` et ports
+  `InstallStep`/`StepContext`/`CommandRunner`/`DownloadManager`/
+  `ArchiveExtractor`/`ToolManifestClient`/`InstallStateStore`,
+  `PersistedInstallState` avec le quadruplet d'immutabilité
+  `InstalledComponent`) ; `ToolManifest.kt` (types du manifeste v2 à la
+  lettre du § 12.2 + `InstallPlanResolver`, fonction pure, 20 tests
+  couvrant chaque règle du contrat) ; `ToolchainCatalog.kt` (exigences
+  déclarées à un seul endroit, justifiées valeur par valeur).
+- **Traducteurs d'erreur** : branche `EnvironmentSetup` ajoutée aux
+  quatre `when` exhaustifs (accueil, diagnostic, wizard, installation) —
+  le compilateur l'a exigée, l'exhaustivité reste intentionnelle.
+
+### Non vérifié (règle 2 du cahier des charges)
+
+- Comportements **sur appareil aarch64** : exécutions réelles de la JVM
+  du préfixe, RUNPATH hors utilisateur 0, `pkg`/`apt` du bootstrap,
+  installation des `Depends` d'`openjdk-17` — plan de vérification en
+  cinq points à l'ADR 0084, à exécuter à la première fenêtre appareil
+  (E2/E4).
+
+### Questions au propriétaire
+
+- Licences (§ 12.5) : l'app écrira les fichiers `licenses/` après
+  acceptation explicite — défaut prudent à confirmer.
+- Divergence contrat (§ 12) : le manifeste v1 ne publie ni `platform`
+  ni `aapt2` ni build-tools 36.0.0 — le prompt 2 doit les publier en
+  v2 ; build-tools 35.0.2 exigé en attendant (seule version aarch64
+  existante).
+
 ## [0.54.0] – 2026-10-05
 
 Retour utilisateur : « pour le journal live, il fallait le remplacer

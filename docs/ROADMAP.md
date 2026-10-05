@@ -222,6 +222,33 @@ Fichiers livrés :
 
 ---
 
+## Phase R — Refonte du parcours d'installation (E1–E6)
+
+Prompt « Refonte complète du parcours d'installation de l'environnement »
+(dépôt `jjoblab/CodeIDE`), exécuté en parallèle de la refonte de
+`jjoblab/codeide-tools` (manifeste v2) — contrat commun § 12 des deux
+prompts. Motivation : ~1 400 lignes de shell générées non testables,
+double téléchargement cmdline-tools, « SDK non fonctionnel » muet
+(cause racine établie : ADR 0084), orchestration par frappe dans un pty.
+
+- **E1** ✅ livré v0.55.0 (ADR 0084/0085/0086) : investigation (sorties
+  réelles capturées), ADR d'architecture (4 phases vérifiées, ports,
+  état persisté), modèle de domaine + résolveur de plan pur (20 tests),
+  catalogue de versions (build-tools 35.0.2 aarch64, platform
+  android-37.2, JDK 17).
+- **E2** — cadre commun : orchestrateur, `CommandRunner`,
+  `DownloadManager`, état persisté, service de premier plan + phases 1
+  (Bootstrap) et 2 (PackageTools).
+- **E3** — phase 3 Java (openjdk-17, `java`/`javac` démarrent, test TLS).
+- **E4** — phase 4 Outils Android (manifeste v2, composants, licences
+  après acceptation, câblage Gradle/aapt2, relance du daemon).
+- **E5** — maquettes validées puis nouvelle interface (écran
+  d'installation stepper + écran Environnement des Paramètres).
+- **E6** — migration des installations existantes, suppression de
+  l'ancien code (`EcrivainSdkAndroidCli`, `EcrivainCodeideEnvCli`,
+  `ConfigurationEnvTermux`, `Aapt2Deployeur`…), ADR 0082/0083 marqués
+  remplacés, documentation.
+
 ## Priorisation
 
 | Phase | Priorité | Effort | Impact utilisateur |
