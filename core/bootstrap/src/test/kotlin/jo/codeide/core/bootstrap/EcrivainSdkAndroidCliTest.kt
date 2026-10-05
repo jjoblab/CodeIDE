@@ -716,7 +716,7 @@ class EcrivainSdkAndroidCliTest {
     /** Outils POSIX dont le script a besoin — le PATH sanitisé les relie
      *  sans JAMAIS exposer le java du poste hôte (v0.53.0 : la détection
      *  doit passer par les candidats du script, comme sur appareil). */
-    private val OUTILS_REQUIS =
+    private val outilsRequis =
         listOf(
             "jq",
             "sha256sum",
@@ -747,14 +747,17 @@ class EcrivainSdkAndroidCliTest {
      *  poste, JAMAIS java — pour les scénarios v0.53.0 de JVM cassée. */
     private fun sanatiserChemin(binFactice: File): File {
         val outils = dossierTemporaire.newFolder("chemin-sanitise-${compteurBinFactice++}")
-        for (outil in OUTILS_REQUIS) {
+        for (outil in outilsRequis) {
             val chemin =
-                (System.getenv("PATH") ?: ":").split(":")
+                (System.getenv("PATH") ?: ":")
+                    .split(":")
                     .map { File(it, outil) }
                     .firstOrNull { it.canExecute() } ?: continue
-            java.nio.file.Files.createSymbolicLink(outils.toPath().resolve(outil), chemin.toPath())
+            java.nio.file.Files
+                .createSymbolicLink(outils.toPath().resolve(outil), chemin.toPath())
         }
-        java.nio.file.Files.createSymbolicLink(outils.toPath().resolve("curl"), File(binFactice, "curl").toPath())
+        java.nio.file.Files
+            .createSymbolicLink(outils.toPath().resolve("curl"), File(binFactice, "curl").toPath())
         return outils
     }
 
