@@ -341,7 +341,8 @@ public interface CommandRunner {
  * @property environment variables additionnelles (l'environnement de base
  * vient de `ProcessEnvironmentProvider`, § 12.4).
  * @property timeoutMillis délai maximal d'exécution, ou `null` (aucun) —
- * au-delà, le processus est détruit et la commande échoue.
+ * au-delà, le processus est détruit et le résultat porte
+ * `timedOut = true` (ADR 0087).
  */
 public data class CommandSpec(
     public val program: String,
@@ -357,11 +358,15 @@ public data class CommandSpec(
  * @property exitCode code de retour du processus.
  * @property stdout lignes de la sortie standard, dans l'ordre.
  * @property stderr lignes de la sortie d'erreur, dans l'ordre.
+ * @property timedOut `true` si le délai maximal était dépassé et le
+ * processus détruit (ADR 0087 — distingué d'un échec banal par code non
+ * nul, la sortie partielle reste capturée).
  */
 public data class CommandResult(
     public val exitCode: Int,
     public val stdout: List<String>,
     public val stderr: List<String>,
+    public val timedOut: Boolean = false,
 ) {
     /** La commande a-t-elle réussi (code 0) ? */
     public val succeeded: Boolean get() = exitCode == 0
@@ -415,9 +420,13 @@ public data class DownloadRequest(
 )
 
 /**
- * Extraction d'archives `.tar.xz` par les outils du bootstrap (`tar`, `xz`)
- * — préserve bits d'exécution et liens symboliques relatifs, refuse toute
- * traversée (chemin absolu ou `..` hors cible, ADR 0085).
+ * Extraction d'une artefact d'installation — garde anti-traversée, bits
+ * d'exécution et liens symboliques préservés (ADR 0085).
+ *
+ * L'artefact dépend de la phase (ADR 0087) : l'archive **zip** du
+ * bootstrap en phase 1 (manifeste `SYMLINKS.txt`, séparateur « ← ») ;
+ * les archives `.tar.xz` du manifeste v2 en phase 4, extraites par les
+ * outils `tar`/`xz` du bootstrap (§ 12.3). L'interface est identique.
  */
 public interface ArchiveExtractor {
     /**

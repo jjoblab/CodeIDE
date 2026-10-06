@@ -1,9 +1,11 @@
 package jo.codeide.core.bootstrap.di
 
+import android.content.Context
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.bootstrap.CapaciteArchitecture
 import jo.codeide.core.bootstrap.CapaciteArchitectureBuild
@@ -17,13 +19,31 @@ import jo.codeide.core.bootstrap.ObservateurOutilsTerminal
 import jo.codeide.core.bootstrap.OperationsSysteme
 import jo.codeide.core.bootstrap.OperationsSystemeAndroid
 import jo.codeide.core.bootstrap.ToolchainBootstrap
+import jo.codeide.core.bootstrap.installation.ClientManifesteOutils
+import jo.codeide.core.bootstrap.installation.CommandRunnerProcessus
+import jo.codeide.core.bootstrap.installation.DemarreurServiceInstallation
+import jo.codeide.core.bootstrap.installation.DemarreurServiceInstallationAndroid
+import jo.codeide.core.bootstrap.installation.ExtracteurArchivesBootstrap
+import jo.codeide.core.bootstrap.installation.GestionnaireTelechargement
+import jo.codeide.core.bootstrap.installation.MagasinEtatInstallation
+import jo.codeide.core.bootstrap.installation.OrchestrateurInstallation
+import jo.codeide.core.domain.ArchiveExtractor
 import jo.codeide.core.domain.BootstrapAssetsSource
 import jo.codeide.core.domain.BootstrapInstaller
+import jo.codeide.core.domain.CommandRunner
+import jo.codeide.core.domain.DownloadManager
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
+import jo.codeide.core.domain.InstallStateStore
 import jo.codeide.core.domain.NativeProcessLauncher
 import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.ProcessEnvironmentProvider
+import jo.codeide.core.domain.ToolManifestClient
+import jo.codeide.core.domain.ToolchainCatalog
 import jo.codeide.core.domain.ToolchainLocator
 import javax.inject.Singleton
+
+// Module d'assemblage : une liaison par port du module, E2 y ajoute celles du
+// cadre commun — un module DI EST une collection de liaisons (règle 8).
 
 /**
  * Assemblage Hilt du module `core:bootstrap` (prompt compagnon
@@ -37,6 +57,7 @@ import javax.inject.Singleton
  * implémentation (`AssetManager`) vit dans `app`, qui référence ce
  * module lors du branchement de l'écran d'installation (étape T3).
  */
+@Suppress("TooManyFunctions")
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class BootstrapBindsModule {
@@ -78,10 +99,62 @@ internal abstract class BootstrapBindsModule {
     @Binds
     abstract fun bindCapaciteArchitecture(impl: CapaciteArchitectureBuild): CapaciteArchitecture
 
+    /** Le port EnvironmentSetupOrchestrator est servi par l'orchestrateur du nouveau cadre (E2, ADR 0087). */
+    @Binds
+    @Singleton
+    abstract fun bindEnvironmentSetupOrchestrator(impl: OrchestrateurInstallation): EnvironmentSetupOrchestrator
+
+    /** Le port CommandRunner est servi par l'enveloppe du lanceur de sous-processus. */
+    @Binds
+    @Singleton
+    abstract fun bindCommandRunner(impl: CommandRunnerProcessus): CommandRunner
+
+    /** Le port DownloadManager est servi par le gestionnaire à cache SHA-256. */
+    @Binds
+    @Singleton
+    abstract fun bindDownloadManager(impl: GestionnaireTelechargement): DownloadManager
+
+    /** Le port ArchiveExtractor est servi par l'extracteur d'artefacts du bootstrap. */
+    @Binds
+    @Singleton
+    abstract fun bindArchiveExtractor(impl: ExtracteurArchivesBootstrap): ArchiveExtractor
+
+    /** Le port InstallStateStore est servi par le magasin install-state.json. */
+    @Binds
+    @Singleton
+    abstract fun bindInstallStateStore(impl: MagasinEtatInstallation): InstallStateStore
+
+    /** Le port ToolManifestClient est servi par le client HTTP du manifeste v2. */
+    @Binds
+    @Singleton
+    abstract fun bindToolManifestClient(impl: ClientManifesteOutils): ToolManifestClient
+
+    /** Fabrique des phases livrées (E2 : BOOTSTRAP et PACKAGE_TOOLS, ADR 0087 § 1). */
+    @Binds
+    @Singleton
+    abstract fun bindFabriquePhasesInstallation(
+        impl: jo.codeide.core.bootstrap.installation.FabriquePhasesParDefaut,
+    ): jo.codeide.core.bootstrap.installation.FabriquePhasesInstallation
+
+    /** Démarrage du service foreground de l'installation (indirection testable). */
+    @Binds
+    @Singleton
+    abstract fun bindDemarreurServiceInstallation(
+        impl: DemarreurServiceInstallationAndroid,
+    ): DemarreurServiceInstallation
+
     companion object {
         /** Configuration de production de l'installation (URL, empreinte, paquets). */
         @Provides
         @Singleton
         fun fournirConfigurationBootstrap(): ConfigurationBootstrap = ConfigurationBootstrap.PAR_DEFAUT
+
+        /**
+         * Catalogue des exigences de la chaîne d'outils (ADR 0086) —
+         * injecté, jamais lu en dur ailleurs (URL du manifeste comprise).
+         */
+        @Provides
+        @Singleton
+        fun fournirToolchainCatalog(): ToolchainCatalog = ToolchainCatalog()
     }
 }
