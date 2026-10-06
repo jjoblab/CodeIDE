@@ -85,6 +85,9 @@ internal class AppNavigatorImpl
             )
         }
 
+        // Cartographie exhaustive enum → destination : une branche par section, la complexité
+        // vient du nombre de sections, pas d'imbrications (règle 8).
+        @Suppress("CyclomaticComplexMethod")
         override fun openSettingsSection(section: SectionParametres) {
             // Les sections ne s'ouvrent QUE depuis le maître des paramètres
             // (ADR 0059 : deux niveaux) — navigation directe par destination,
@@ -95,7 +98,7 @@ internal class AppNavigatorImpl
                 return
             }
             when (section) {
-                SectionParametres.IA, SectionParametres.OUTILS, SectionParametres.SECURITE -> {
+                SectionParametres.IA, SectionParametres.SECURITE -> {
                     logger.d(TAG) { "navigation paramètres -> section bientôt disponible" }
                     val arguments = Bundle()
                     arguments.putString(CLE_SECTION_BIENTOT, section.name)
@@ -117,6 +120,8 @@ internal class AppNavigatorImpl
 
                             SectionParametres.PROJETS -> R.id.settings_projets
 
+                            SectionParametres.ENVIRONNEMENT -> R.id.settings_environnement
+
                             SectionParametres.A_PROPOS -> R.id.settings_apropos
 
                             SectionParametres.AVANCE -> R.id.settings_avance
@@ -124,7 +129,6 @@ internal class AppNavigatorImpl
                             // Atteints seulement via la branche « bientôt »
                             // ci-dessus — branche conservée pour l'exhaustivité.
                             SectionParametres.IA,
-                            SectionParametres.OUTILS,
                             SectionParametres.SECURITE,
                             -> R.id.settings_bientot
                         }

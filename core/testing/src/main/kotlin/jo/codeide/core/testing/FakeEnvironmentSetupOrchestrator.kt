@@ -4,6 +4,7 @@ import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.VerificationReport
+import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.CopyOnWriteArrayList
@@ -15,6 +16,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * d'E5 : l'état est semable, les actions comptées.
  */
 public class FakeEnvironmentSetupOrchestrator : EnvironmentSetupOrchestrator {
+    /** Composants désinstallés par identifiant (assertions des tests UI). */
+    public val desinstalles: MutableList<String> = mutableListOf()
+
     private val etatInterne = MutableStateFlow(EnvironmentSetupState.initial())
 
     override val state: StateFlow<EnvironmentSetupState> = etatInterne
@@ -25,6 +29,9 @@ public class FakeEnvironmentSetupOrchestrator : EnvironmentSetupOrchestrator {
 
     /** Appels `run(from)` reçus. */
     public val lancements: MutableList<InstallPhase?> = CopyOnWriteArrayList()
+
+    /** Profondeurs des vérifications demandées, dans l'ordre. */
+    public val verifications: MutableList<Boolean> = CopyOnWriteArrayList()
 
     /** Nombre d'annulations demandées. */
     public val annulations: AtomicInteger = AtomicInteger(0)
@@ -53,8 +60,10 @@ public class FakeEnvironmentSetupOrchestrator : EnvironmentSetupOrchestrator {
         annulations.incrementAndGet()
     }
 
-    override suspend fun verify(deep: Boolean): VerificationReport =
-        rapport ?: VerificationReport(verifiedAtMillis = 0L, deep = deep, phases = emptyMap())
+    override suspend fun verify(deep: Boolean): VerificationReport {
+        verifications += deep
+        return rapport ?: VerificationReport(verifiedAtMillis = 0L, deep = deep, phases = emptyMap())
+    }
 
     override suspend fun repair(phase: InstallPhase) {
         lancements += phase
@@ -62,5 +71,10 @@ public class FakeEnvironmentSetupOrchestrator : EnvironmentSetupOrchestrator {
 
     override fun acceptSdkLicense() {
         acceptationsLicence.incrementAndGet()
+    }
+
+    override suspend fun uninstallComponent(id: String): AppResult<Unit> {
+        desinstalles += id
+        return AppResult.Success(Unit)
     }
 }

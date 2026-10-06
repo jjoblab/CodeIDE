@@ -256,8 +256,20 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   templates, matrice documentée), relance du daemon par empreinte,
   vérification approfondie (projet + vrai `assembleDebug`) ; 22 tests
   nouveaux, parcours complet exécutable de bout en bout.
-- **E5** — maquettes validées puis nouvelle interface (écran
-  d'installation stepper + écran Environnement des Paramètres).
+- **E5** ✅ livré v0.59.0 (ADR 0090) : maquettes statiques
+  (`docs/preview/installation-environnement.html`, six états) puis
+  nouvelle interface — écran d'installation à stepper de 4 cartes
+  (progression « étape N sur 4 », journal en direct repliable, vitesse et
+  temps restant **mesurés** du téléchargement courant, consentement
+  licence § 12.5 avant la phase 4, actions contextuelles masquées jamais
+  grisées, récapitulatif final + « Créer mon premier projet », tablette
+  sw600dp deux panneaux) et écran Environnement des Paramètres (tailles
+  réelles auditées par composant, rangée JDK « paquet APT », Vérifier
+  légère/approfondie, Réparer, Désinstaller avec confirmation via
+  `uninstallComponent`, diagnostic copiable partagé en codes neutres) ;
+  section maître « Outils (bientôt) » remplacée par la section réelle ;
+  26 tests nouveaux (divergence assumée : pas d'estimation globale de
+  temps restant — ADR 0090 § 3).
 - **E6** — migration des installations existantes, suppression de
   l'ancien code (`EcrivainSdkAndroidCli`, `EcrivainCodeideEnvCli`,
   `ConfigurationEnvTermux`, `Aapt2Deployeur`…), ADR 0082/0083 marqués
