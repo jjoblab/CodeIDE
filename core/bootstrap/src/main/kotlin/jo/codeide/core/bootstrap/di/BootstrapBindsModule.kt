@@ -13,7 +13,6 @@ import jo.codeide.core.bootstrap.ConfigurationBootstrap
 import jo.codeide.core.bootstrap.EnvironnementProcessusFournisseur
 import jo.codeide.core.bootstrap.EspaceDisqueSonde
 import jo.codeide.core.bootstrap.EspaceDisqueStatFs
-import jo.codeide.core.bootstrap.InstallateurBootstrap
 import jo.codeide.core.bootstrap.LanceurProcessusNatifs
 import jo.codeide.core.bootstrap.ObservateurOutilsTerminal
 import jo.codeide.core.bootstrap.OperationsSysteme
@@ -28,8 +27,6 @@ import jo.codeide.core.bootstrap.installation.GestionnaireTelechargement
 import jo.codeide.core.bootstrap.installation.MagasinEtatInstallation
 import jo.codeide.core.bootstrap.installation.OrchestrateurInstallation
 import jo.codeide.core.domain.ArchiveExtractor
-import jo.codeide.core.domain.BootstrapAssetsSource
-import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.CommandRunner
 import jo.codeide.core.domain.DownloadManager
 import jo.codeide.core.domain.EnvironmentSetupOrchestrator
@@ -49,13 +46,13 @@ import javax.inject.Singleton
  * Assemblage Hilt du module `core:bootstrap` (prompt compagnon
  * Terminal-1, sections 2.3 et 3) : le module fournit lui-même les
  * liaisons des ports [ToolchainLocator], [ProcessEnvironmentProvider],
- * [NativeProcessLauncher] et [BootstrapInstaller] vers ses
- * implémentations — le reste de l'application (terminal intégré, futur
+ * [NativeProcessLauncher] et [EnvironmentSetupOrchestrator] vers ses
+ * implémentations — le reste de l'application (terminal intégré,
  * tooling) n'injecte que les interfaces du domaine.
  *
- * [BootstrapAssetsSource] est volontairement **non lié ici** : son
- * implémentation (`AssetManager`) vit dans `app`, qui référence ce
- * module lors du branchement de l'écran d'installation (étape T3).
+ * E6 (ADR 0091) : l'ancien port `BootstrapInstaller` et son
+ * implémentation `InstallateurBootstrap` ont été retirés — le parcours
+ * d'installation (ADR 0085/0087) est l'unique source de vérité.
  */
 @Suppress("TooManyFunctions")
 @Module
@@ -75,11 +72,6 @@ internal abstract class BootstrapBindsModule {
     @Binds
     @Singleton
     abstract fun bindNativeProcessLauncher(impl: LanceurProcessusNatifs): NativeProcessLauncher
-
-    /** Le port BootstrapInstaller est servi par l'installateur (état partagé). */
-    @Binds
-    @Singleton
-    abstract fun bindBootstrapInstaller(impl: InstallateurBootstrap): BootstrapInstaller
 
     /** Le port ObserveToolchainStateUseCase est servi par l'observateur
      *  (v0.37.3 : états poussés aux points d'UI du tooling). */

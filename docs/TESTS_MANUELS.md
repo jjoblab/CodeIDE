@@ -467,6 +467,25 @@ développement ». Maquettes de référence : `docs/preview/`
 | E89 | **Tablette sw600dp + rotation** : ouvrir l'écran sur tablette (ou émulateur 600dp+), faire pivoter l'écran pendant l'exécution | Stepper à gauche, journal à droite toujours visible (bouton de bascule absent) ; la rotation ne coupe ni l'installation ni l'affichage (service de premier plan, ADR 0087) |
 | E90 | **Écran Environnement** : Paramètres → Environnement de développement, avec un SDK installé | Une rangée par composant : version, révision, taille réelle en Mio, état (« vérifié », JDK « vérifié (paquet APT) ») ; « Vérifier (légère) » rejoue les contrôles ; « Vérification approfondie » génère un projet et lance un vrai `assembleDebug` (ADR 0089) ; « Désinstaller » exige une confirmation puis retire la rangée du disque ; « Copier le diagnostic » place journal + récapitulatif dans le presse-papiers |
 
+## Refonte installation — migration des installations existantes E6 (v0.60.0)
+
+Préambule : APK debug v0.60.0+ sur appareil aarch64. **Prérequis côté
+dépôt** : le manifeste v2 (`manifest.v2.json`) doit être publié sur
+`jjoblab/codeide-tools` (prompt 2, R5) — sans lui, la phase 4 (nouvelle
+comme adoption) échoue en `Reseau`/`ManifesteInvalide` avec un message
+explicite. Les scénarios E91-E93 partent d'un appareil ayant vécu
+l'ancien parcours (≤ v0.54.0, bootstrap installé + `codeide-env` achevé
+ou commande `android-sdk` jouée) — c'est le scénario de migration de
+l'ADR 0091 § 1.
+
+| # | Action | Attendu |
+|---|---|---|
+| E91 | **Adoption appareil ancien complet** : installer v0.60.0 PAR-DESSUS la v0.54.0 (signature commune ADR 0067, données conservées), ouvrir l'écran d'installation, accepter la licence puis lancer | Phases 1-3 : étapes sautées (« déjà vérifiée — reprise ») SANS retélécharger l'archive du bootstrap ni les paquets (seul `pkg update` rafraîchit l'index) ; phase 4 : composants « présent sans quadruplet, vérifié par exécution — adopté » dans le journal, **zéro téléchargement d'archive de composant** ; les 4 phases finissent vérifiées ; Paramètres → Environnement affiche les quadruplets reconstruits (versions + révisions du plan) |
+| E92 | **Appareil neuf** : installation propre (données effacées), lancer le parcours complet | Comportement inchangé depuis E4 : 4 phases exécutées, composants téléchargés une seule fois, récapitulatif final et « Créer mon premier projet » |
+| E93 | **Appareil à moitié installé** : à partir d'un appareil ancien, supprimer UN composant (`home/android-sdk/platforms/android-37.2` par exemple, ou Désinstaller depuis l'écran Environnement), puis Réparer la phase Android | Seul le composant manquant est retéléchargé et réinstallé ; les autres sont adoptés sans téléchargement ; la phase finit vérifiée |
+| E94 | **Scripts anciens orphelins** : sur l'appareil migré E91, ouvrir le terminal intégré | `JAVA_HOME`/`ANDROID_HOME`/`PATH` corrects (injectés par session, `ProcessEnvironmentProvider`) ; les commandes `gradle`/`android-sdk`/`codeide-env` héritées, si présentes, répondent toujours mais ne sont plus mises à jour par l'application (rupture assumée, CHANGELOG 0.60.0) |
+| E95 | **Bandeau accueil et daemon** : après adoption E91, revenir à l'accueil, puis ouvrir un projet et lancer un build | Le bandeau « terminal non installé » est absent ; le daemon Gradle démarre avec le JDK adopté (empreinte E4) ; un `assembleDebug` compile avec les composants adoptés — la contre-vérification des `verify` du manifeste v2 sur les binaires du manifeste v1 (même layout, mêmes versions 35.0.2) est LE point à surveiller (ADR 0091 § 1, non vérifié en simulation) |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

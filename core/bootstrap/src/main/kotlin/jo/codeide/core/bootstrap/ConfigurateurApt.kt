@@ -47,8 +47,8 @@ internal class ConfigurateurApt(
      * `pkg install` imprime « W: Unable to read …/preferences.d/ -
      * DirectoryExists (2: No such file or directory) ». Idempotent
      * (`mkdirs`), sans danger sur un préfixe sain — appelé à la pose du
-     * `sources.list` ET à chaque démarrage par
-     * [InstallateurBootstrap.refreshTerminalScripts] : les préfixes déjà
+     * `sources.list` (étape `configuration-apt` de la phase 1 du parcours,
+     * rejouée à chaque reprise et réparation) : les préfixes déjà
      * installés sont guéris SANS réinstallation.
      */
     suspend fun assurerRepertoiresApt(prefixe: File) {

@@ -4,61 +4,12 @@
          l'ENVIRONNEMENT DE BASE (shell + apt + dépôt à jour) ; les
          paquets d'outils (JDK, git…) sont optionnels et différés. -->
     <string name="installation_titre">Installer l\'environnement du terminal</string>
-    <string name="installation_invite_texte">Le terminal intégré installe un environnement Linux dans le stockage privé de l\'application : shell, gestionnaire de paquets et dépôt à jour — la configuration de l\'environnement (Java, SDK Android) démarre ensuite automatiquement dans le terminal.</string>
-    <string name="installation_invite_poids">Environ 40 Mo pour l\'environnement de base, puis Java et le SDK Android dans le terminal (~400 Mo au total). Une connexion réseau est nécessaire.</string>
-    <string name="installation_section_base">Environnement de base</string>
-    <string name="installation_invite_base">Shell Linux, gestionnaire de paquets et dépôt CodeIDE — installés obligatoirement, le dépôt est mis à jour (apt update) à la fin.</string>
-    <string name="installation_section_outils">Environnement de développement</string>
-    <string name="installation_invite_outils">Java (OpenJDK) et le SDK Android — installés automatiquement dans le terminal juste après l\'environnement de base : la progression s\'y affiche en direct, chaque étape reprend où elle en était en cas d\'interruption.</string>
-    <string name="installation_outils_attente">Installés automatiquement dans le terminal après l\'environnement de base.</string>
-    <string name="installation_outil_statut_attente">non installé (optionnel)</string>
-    <string name="installation_outil_statut_installe">installé</string>
-    <string name="installation_outil_statut_absent">non installé (absent du dépôt)</string>
-    <string name="installation_outil_statut_encours">installation en cours…</string>
-    <string name="installation_annulee">Installation annulée. Vous pouvez la relancer à tout moment.</string>
-    <string name="installation_etape_verification">Vérification de l\'espace disponible…</string>
-    <string name="installation_etape_telechargement">Téléchargement de l\'archive…</string>
-    <string name="installation_etape_extraction">Extraction des fichiers…</string>
-    <string name="installation_etape_liens">Création des liens symboliques…</string>
-    <string name="installation_etape_bascule">Finalisation de l\'environnement…</string>
-    <string name="installation_etape_second_stage">Configuration des paquets de base…</string>
-    <string name="installation_etape_sources">Configuration du dépôt de paquets…</string>
-    <string name="installation_etape_apt">Mise à jour du dépôt…</string>
-    <string name="installation_etape_paquets">Installation des outils…</string>
     <!-- V0.31.5 (CI lint PluralsCandidate) : quantité réelle — pluriel
          propre, accord des langues (un/plusieurs). -->
-    <plurals name="installation_detail_extraction">
-        <item quantity="one">%d fichier extrait</item>
-        <item quantity="many">%d fichiers extraits</item>
-        <item quantity="other">%d fichiers extraits</item>
-    </plurals>
     <!-- V0.31.5 : indice « n/total », pas une quantité — le pluriel serait
          sémantiquement faux (lint PluralsCandidate : %d suivi de mots). -->
-    <string name="installation_detail_paquet">%1$s — paquet %2$d/%3$d</string>
-    <string name="installation_detail_telechargement">%1$s sur %2$s</string>
-    <string name="installation_journal_titre">Journal en direct</string>
-    <string name="installation_details_titre">Détails techniques</string>
-    <string name="installation_terminee_base">Environnement de base installé</string>
-    <string name="installation_terminee_base_detail">Le shell, le gestionnaire de paquets et le dépôt à jour sont prêts. La configuration de l\'environnement (Java, SDK Android) démarre automatiquement ci-dessous.</string>
-    <string name="installation_outils_requis_detail">Java (OpenJDK) et le SDK Android s\'installent dans le mini-terminal ci-dessous : la sortie défile en direct et reste interactive (clavier au toucher). En cas d\'interruption, tout reprend où il en était (relance : commande codeide-env).</string>
     <!-- v0.54.0 : le journal live de la configuration EST un mini écran
          TerminalView intégré à l\'écran — pas de bascule vers le terminal. -->
-    <string name="installation_terminal_titre">Configuration de l\'environnement — en direct</string>
-    <string name="installation_installer_outils">Installer Java (repli)</string>
-    <string name="installation_reessayer_outils">Réessayer l\'installation des outils</string>
-    <string name="installation_installer">Installer maintenant</string>
-    <string name="installation_reessayer">Réessayer</string>
-    <string name="installation_annuler">Annuler l\'installation</string>
-    <string name="installation_fermer">Fermer</string>
-    <string name="installation_erreur_reseau">Réseau indisponible. Vérifiez votre connexion, puis réessayez.</string>
-    <string name="installation_erreur_espace">Espace de stockage insuffisant (environ 1 Go libre requis). Libérez de l\'espace, puis réessayez.</string>
-    <string name="installation_erreur_archive">Archive téléchargée invalide. Réessayez — si le problème persiste, une nouvelle version du bootstrap sera publiée.</string>
-    <string name="installation_erreur_permission">Le stockage privé de l\'application a refusé une opération. Redémarrez l\'application, puis réessayez.</string>
-    <string name="installation_erreur_paquets">La configuration des paquets a échoué. Le journal ci-dessous montre la dernière sortie en échec — réessayez, l\'installation reprend depuis le début, sans dommage.</string>
-    <string name="installation_erreur_outils">L\'installation des outils a échoué. L\'environnement de base reste installé et le terminal reste utilisable — réessayez, le journal ci-dessous montre la dernière sortie en échec.</string>
-    <string name="installation_erreur_asset">Un binaire d\'outil embarqué manque dans l\'application. Une mise à jour de CodeIDE sera nécessaire.</string>
-    <string name="installation_erreur_architecture">L\'architecture de cet appareil n\'est pas encore prise en charge par le bootstrap (arm64 requis).</string>
-    <string name="installation_erreur_inconnue">Erreur inattendue pendant l\'installation. Réessayez.</string>
 
     <!-- E5 : nouvelle interface d'installation (ADR 0090) -->
     <string name="installation_titre_nouveau">Installation de l\'environnement</string>
