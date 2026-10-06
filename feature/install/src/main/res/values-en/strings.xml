@@ -4,58 +4,10 @@
          ENVIRONMENT (shell + apt + updated repository); tool packages
          (JDK, git…) are optional and deferred. -->
     <string name="installation_titre">Install the terminal environment</string>
-    <string name="installation_invite_texte">The integrated terminal sets up a Linux environment inside the app\'s private storage: shell, package manager and updated repository — the environment configuration (Java, Android SDK) then starts automatically in the terminal.</string>
-    <string name="installation_invite_poids">About 40 MB for the base environment, then Java and the Android SDK in the terminal (~400 MB overall). A network connection is required.</string>
-    <string name="installation_section_base">Base environment</string>
-    <string name="installation_invite_base">Linux shell, package manager and CodeIDE repository — installed mandatorily, the repository is updated (apt update) at the end.</string>
-    <string name="installation_section_outils">Development environment</string>
-    <string name="installation_invite_outils">Java (OpenJDK) and the Android SDK — installed automatically in the terminal right after the base environment: the progress streams there live, and every step resumes where it left off after an interruption.</string>
-    <string name="installation_outils_attente">Installed automatically in the terminal after the base environment.</string>
-    <string name="installation_outil_statut_attente">not installed (optional)</string>
-    <string name="installation_outil_statut_installe">installed</string>
-    <string name="installation_outil_statut_absent">not installed (missing from the repository)</string>
-    <string name="installation_outil_statut_encours">installing…</string>
-    <string name="installation_annulee">Installation cancelled. You can restart it at any time.</string>
-    <string name="installation_etape_verification">Checking available space…</string>
-    <string name="installation_etape_telechargement">Downloading the archive…</string>
-    <string name="installation_etape_extraction">Extracting files…</string>
-    <string name="installation_etape_liens">Creating symbolic links…</string>
-    <string name="installation_etape_bascule">Finalizing the environment…</string>
-    <string name="installation_etape_second_stage">Configuring base packages…</string>
-    <string name="installation_etape_sources">Configuring the package repository…</string>
-    <string name="installation_etape_apt">Updating the repository…</string>
-    <string name="installation_etape_paquets">Installing tools…</string>
     <!-- v0.31.5 (CI lint PluralsCandidate): real quantity — proper plural. -->
-    <plurals name="installation_detail_extraction">
-        <item quantity="one">%d file extracted</item>
-        <item quantity="other">%d files extracted</item>
-    </plurals>
     <!-- v0.31.5: "n/total" index, not a quantity — plural would be wrong. -->
-    <string name="installation_detail_paquet">%1$s — package %2$d/%3$d</string>
-    <string name="installation_detail_telechargement">%1$s of %2$s</string>
-    <string name="installation_journal_titre">Live log</string>
-    <string name="installation_details_titre">Technical details</string>
-    <string name="installation_terminee_base">Base environment installed</string>
-    <string name="installation_terminee_base_detail">The shell, the package manager and the updated repository are ready. The environment configuration (Java, Android SDK) starts automatically below.</string>
-    <string name="installation_outils_requis_detail">Java (OpenJDK) and the Android SDK install in the mini-terminal below: the output streams there live and stays interactive (tap for the keyboard). After an interruption, everything resumes where it left off (relaunch: codeide-env command).</string>
     <!-- v0.54.0: the configuration live log IS a mini TerminalView embedded
          in the screen — no switch to the terminal screen. -->
-    <string name="installation_terminal_titre">Environment configuration — live</string>
-    <string name="installation_installer_outils">Install Java (fallback)</string>
-    <string name="installation_reessayer_outils">Retry installing the tools</string>
-    <string name="installation_installer">Install now</string>
-    <string name="installation_reessayer">Retry</string>
-    <string name="installation_annuler">Cancel installation</string>
-    <string name="installation_fermer">Close</string>
-    <string name="installation_erreur_reseau">Network unavailable. Check your connection, then retry.</string>
-    <string name="installation_erreur_espace">Not enough storage space (about 1 GB free required). Free up space, then retry.</string>
-    <string name="installation_erreur_archive">Invalid downloaded archive. Retry — if it persists, a new bootstrap version will be published.</string>
-    <string name="installation_erreur_permission">The app\'s private storage refused an operation. Restart the app, then retry.</string>
-    <string name="installation_erreur_paquets">Package configuration failed. The log below shows the last failing output — retry, the installation restarts from scratch, harmlessly.</string>
-    <string name="installation_erreur_outils">Tool installation failed. The base environment remains installed and the terminal stays usable — retry, the log below shows the last failing output.</string>
-    <string name="installation_erreur_asset">An embedded tool binary is missing from the app. A CodeIDE update will be required.</string>
-    <string name="installation_erreur_architecture">This device\'s architecture is not supported by the bootstrap yet (arm64 required).</string>
-    <string name="installation_erreur_inconnue">Unexpected error during installation. Retry.</string>
 
     <!-- E5 : new installation UI (ADR 0090) -->
     <string name="installation_titre_nouveau">Environment setup</string>

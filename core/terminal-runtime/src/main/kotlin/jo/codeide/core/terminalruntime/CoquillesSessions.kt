@@ -34,9 +34,10 @@ internal interface CoquilleSession {
 
     /**
      * Envoie du texte à l'entrée du shell, comme si l'utilisateur le
-     * tapait (v0.52.0, ADR 0083) : voie du clavier logiciel réutilisée
-     * par l'application pour « taper » la commande `codeide-env` dans la
-     * session de configuration.
+     * tapait (v0.52.0, ADR 0083 — mécanisme conservé après le retrait
+     * du pilotage `codeide-env` en E6, ADR 0091) : voie du clavier
+     * logiciel réutilisable par l'application pour piloter une session
+     * dédiée depuis du code.
      */
     fun envoyerTexte(texte: String)
 }

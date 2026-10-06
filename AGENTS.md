@@ -848,6 +848,39 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.60.0 : **E6 de la refonte — dernière étape, fin de la phase R**
+  (ADR 0091) : **migration des installations existantes** — adoption par
+  l'EXÉCUTION au premier `run()`, jamais depuis les marqueurs de fichier
+  (`controleComposant` : composant présent SANS quadruplet = installation
+  antérieure au parcours → le `verify` du manifeste tranche (passe =
+  adopté, quadruplet du plan reconstruit en fin de phase, zéro
+  retéléchargement ; échoue = réparation de CE composant seul ; un
+  quadruplet ENREGISTRÉ divergent reste réparé seul, § 12.4 inchangé) ;
+  `EtapeTelechargement.verify` : préfixe déjà basculé = archive
+  dispensée — l'ancien flux n'écrivait pas le cache SHA-256) ; licence
+  SDK jamais migrée (consentement = acte d'utilisateur, § 12.5) ; 3
+  scénarios testés (ancien complet / neuf / à moitié installé — 5 tests
+  d'adoption) ; **suppression de l'ancien code** (~2 900 lignes :
+  `InstallateurBootstrap`, `TelechargeurBootstrap`, `EcrivainSdkAndroidCli`,
+  `EcrivainCodeideEnvCli`, `EcrivainGradleCli`, `EcrivainProfilShell`,
+  `Aapt2Deployeur`, `VersionneurScriptsTerminal`, ports
+  `BootstrapInstaller`/`BootstrapAssetsSource`/`ConfigurationEnvTerminal`,
+  modèles `EtatInstallationBootstrap`/`EtapeInstallation`/`OutilResume`,
+  `ConfigurationEnvTermux`, ancien écran `InstallFragment` + `ClientTerminalMini`
+  + layouts + 45 clés orphelines + deps terminal-view du module,
+  `AssetsBootstrapSource`/`BootstrapAssetsModule`) ; rebranchements :
+  bandeau accueil + observateur d'outils sur l'état du parcours, daemon
+  Gradle relancé par la SEULE empreinte E4 (l'empreinte change quand
+  `java`/`javac` existent sur disque) ; `refreshTerminalScripts()` retiré
+  (l'app ne pose plus `codeide.sh`/`bin/gradle`/`bin/android-sdk`/
+  `bin/codeide-env` — l'env vient de `ProcessEnvironmentProvider` ;
+  scripts anciens laissés en place, non maintenus — rupture assumée au
+  CHANGELOG) ; ADR 0082/0083 marquées **remplacées** ; `ExtracteurBootstrap.
+  extraire` redevenue `suspend fun` (le flux d'étapes n'avait plus de
+  consommateur). Leçons : l'adoption d'un composant sans quadruplet doit
+  tomber sur l'exécution, pas sur le disque (un marqueur ne prouve
+  rien — rapport 7842f130) ; une vérification « légère » qui exécute
+  `pkg update` (réseau) n'est JAMAIS une tâche de démarrage silencieuse.
 - v0.59.0 : **E5 de la refonte** (ADR 0090) : nouvelle interface —
   `InstallationFragment`/`InstallationViewModel` (feature:install ;
   projection pure de `EnvironmentSetupOrchestrator.state` : stepper 4
@@ -975,8 +1008,10 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       E5 (maquettes + nouvelle UI), E6 (migration + suppression).
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
-      lsp-classpath.json` ; cf. docs/ROADMAP.md) — ET refonte E3
-      (cadre commun de l'orchestrateur, phases 1-2).
+      lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours
+      d'installation (phase R, E1-E6) est TERMINÉE (v0.55.0 → v0.60.0) ;
+      en attente côté dépôt `codeide-tools` : la publication du manifeste
+      v2 (prompt 2, R5) exigée par la phase 4.
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 

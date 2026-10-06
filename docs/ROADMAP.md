@@ -270,10 +270,23 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   section maître « Outils (bientôt) » remplacée par la section réelle ;
   26 tests nouveaux (divergence assumée : pas d'estimation globale de
   temps restant — ADR 0090 § 3).
-- **E6** — migration des installations existantes, suppression de
-  l'ancien code (`EcrivainSdkAndroidCli`, `EcrivainCodeideEnvCli`,
-  `ConfigurationEnvTermux`, `Aapt2Deployeur`…), ADR 0082/0083 marqués
-  remplacés, documentation.
+- **E6** ✅ livré v0.60.0 (ADR 0091) : **migration des installations
+  existantes** — adoption par l'exécution au premier `run()` (composants
+  sans quadruplet vérifiés par le `verify` du manifeste → quadruplets du
+  plan reconstruits, **zéro retéléchargement** ; préfixe déjà basculé →
+  archive dispensée ; le fautif éventuel réparé seul), trois scénarios
+  testés (appareil ancien complet, appareil neuf, à moitié installé) ;
+  **suppression de l'ancien code** (`InstallateurBootstrap`,
+  `TelechargeurBootstrap`, `EcrivainSdkAndroidCli`,
+  `EcrivainCodeideEnvCli`, `EcrivainGradleCli`, `EcrivainProfilShell`,
+  `Aapt2Deployeur`, `VersionneurScriptsTerminal`, ports
+  `BootstrapInstaller`/`BootstrapAssetsSource`/`ConfigurationEnvTerminal`,
+  modèles `EtatInstallationBootstrap`/`EtapeInstallation`/`OutilResume`,
+  ancien écran `InstallFragment` + mini-terminal, ~2 900 lignes) ;
+  rebranchements (bandeau accueil, observateur d'outils, relance du
+  daemon Gradle par empreinte E4 seule) ; `refreshTerminalScripts` retiré
+  (environnement injecté par session, scripts anciens laissés en place) ;
+  ADR 0082/0083 marquées **remplacées** ; **fin de la phase R**.
 
 ## Priorisation
 

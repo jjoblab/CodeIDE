@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.onEach
  * — un build fini ne défile plus).
  *
  * Exemption detekt ciblée (même précédent que `TerminalTiroirFragment` et
- * `InstallFragment`) : TooManyFunctions — un fragment de panneau est un
+ * l'écran d'installation) : TooManyFunctions — un fragment de panneau est un
  * CONTRAT de câblage (cycle de vie + chip + bandeau + configuration
  * intégrée), chaque fonction a son écouteur ou son rappel.
  */

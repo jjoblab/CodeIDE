@@ -212,12 +212,67 @@ class PhaseAndroidSdkTest {
         val composant =
             composantsDuPlan.values.firstOrNull { relatif.startsWith(it.installPath) }
                 ?: return echec(127, "inconnu : $relatif")
-        return if (composantSurDisque(composant.id)) {
+        val surDisque = composantSurDisque(composant.id)
+        // E6 : un binaire de l'ancien parcours corrompu échoue à sa
+        // vérification par exécution — le monde simulé le distingue par
+        // son contenu (l'extraction saine écrit « simulé »).
+        val binaireSain = !fichierCorrompu(spec.program)
+        return if (surDisque && binaireSain) {
             reussite(listOf(SORTIES_DE_VERIFICATION.getValue(composant.id)))
         } else {
-            echec(127, "absent du disque : ${composant.id}")
+            echec(
+                127,
+                "composant ${composant.id} : " +
+                    if (!surDisque) "absent du disque" else "binaire corrompu de l'ancien parcours",
+            )
         }
     }
+
+    /** Un fichier du monde simulé portant « corrompu » échoue à son exécution (E6). */
+    private fun fichierCorrompu(programme: String): Boolean {
+        val fichier = File(programme)
+        return fichier.isFile && fichier.readText().contains("corrompu")
+    }
+
+    /**
+     * Sème un composant « ancien parcours » directement sur disque : la
+     * disposition d'installPath est celle de l'ancien flux (même racine
+     * `home/android-sdk`), AUCUN quadruplet n'est persisté.
+     */
+    private fun semerComposantAncien(
+        id: String,
+        casse: Boolean = false,
+    ) {
+        val composant = composantsDuPlan.getValue(id)
+        val dossier = File(racineSdk(racine), composant.installPath)
+        dossier.mkdirs()
+        File(dossier, "outil").writeText(
+            if (casse) "binaire corrompu de l'ancien parcours" else "binaire de l'ancien parcours",
+        )
+        when (id) {
+            "build-tools" -> {
+                File(dossier, "aapt2").writeText(
+                    if (casse) "binaire aapt2 corrompu" else "binaire aapt2 de l'ancien parcours",
+                )
+            }
+
+            "cmdline-tools" -> {
+                val bin = File(dossier, "bin")
+                bin.mkdirs()
+                File(bin, "sdkmanager").writeText("#!/bin/sh")
+            }
+
+            "platform" -> {
+                ecrireZipMinimal(File(dossier, "android.jar"))
+            }
+        }
+    }
+
+    /** Identifiants des composants téléchargés, dans l'ordre des demandes. */
+    private fun idsTelecharges(): List<String> =
+        telechargements.demandes
+            .map { it.sha256 }
+            .map { sha -> composantsDuPlan.values.first { it.sha256 == sha }.id }
 
     private fun estCommandeSousSdk(spec: CommandSpec): Boolean =
         spec.program.startsWith(racineSdk(racine).absolutePath + File.separator)
@@ -279,6 +334,69 @@ class PhaseAndroidSdkTest {
         // Invariant § 3.1 : un composant = une version résolue = UN téléchargement.
         assertEquals(composantsDuPlan.size, telechargements.demandes.size)
         assertTrue(orchestrateur.state.value.phases[InstallPhase.ANDROID_SDK] is PhaseState.Succeeded)
+    }
+
+    @Test
+    fun `une installation ancienne complète est adoptée sans aucun téléchargement (E6)`() {
+        // Appareil ayant vécu l'ancien parcours : composants posés sous
+        // `home/android-sdk` (même disposition d'installPath), licences
+        // écrites — mais AUCUN install-state.json (pas de quadruplets).
+        composantsDuPlan.keys.forEach { semerComposantAncien(it) }
+        runBlocking { LicencesSdk.ecrire(racineSdk(racine), dispatcheursReels) }
+        accepterLicence()
+
+        runBlocking { orchestrateur.run(from = InstallPhase.ANDROID_SDK) }
+
+        val reussie = orchestrateur.state.value.phases[InstallPhase.ANDROID_SDK]
+        assertTrue("état: $reussie", reussie is PhaseState.Succeeded)
+        // Invariant E6 (ADR 0085 § 6) : adoption SANS retéléchargement.
+        assertEquals(0, telechargements.demandes.size)
+        // Les quadruplets du plan sont reconstruits et persistés (fin de
+        // phase) — la réparation ciblée § 12.4 redevient opérationnelle.
+        val persiste = runBlocking { magasin.load() }
+        assertEquals(
+            listOf("build-tools", "platform-tools", "platform", "cmdline-tools"),
+            persiste?.installedComponents?.map { it.id },
+        )
+        assertTrue(
+            persiste?.installedComponents.orEmpty().all { it.sha256.length == 64 && it.installPath != null },
+        )
+        assertTrue(orchestrateur.journal.value.any { it.contains("adopté") })
+    }
+
+    @Test
+    fun `un appareil à moitié installé n adopte que les composants présents (E6)`() {
+        // Seul build-tools a survécu à l'ancien parcours — les trois
+        // autres composants sont installés normalement.
+        semerComposantAncien("build-tools")
+        accepterLicence()
+
+        runBlocking { orchestrateur.run(from = InstallPhase.ANDROID_SDK) }
+
+        assertTrue(orchestrateur.state.value.phases[InstallPhase.ANDROID_SDK] is PhaseState.Succeeded)
+        val telecharges = idsTelecharges()
+        assertEquals(listOf("platform-tools", "platform", "cmdline-tools"), telecharges)
+    }
+
+    @Test
+    fun `un composant ancien dont l exécution échoue est réparé seul, les autres adoptés (E6)`() {
+        // build-tools de l'ancien parcours est corrompu : sa vérification
+        // par exécution échoue → réinstallation de CE composant seul ;
+        // les trois autres, sains, sont adoptés sans téléchargement.
+        semerComposantAncien("build-tools", casse = true)
+        listOf("platform-tools", "platform", "cmdline-tools").forEach { semerComposantAncien(it) }
+        runBlocking { LicencesSdk.ecrire(racineSdk(racine), dispatcheursReels) }
+        accepterLicence()
+
+        runBlocking { orchestrateur.run(from = InstallPhase.ANDROID_SDK) }
+
+        val reussie = orchestrateur.state.value.phases[InstallPhase.ANDROID_SDK]
+        assertTrue("état: $reussie", reussie is PhaseState.Succeeded)
+        assertEquals(listOf("build-tools"), idsTelecharges())
+        // Le binaire corrompu a été remplacé par l'extraction saine.
+        assertTrue(
+            File(File(racineSdk(racine), "build-tools/35.0.2"), "aapt2").readText().contains("simulé"),
+        )
     }
 
     @Test

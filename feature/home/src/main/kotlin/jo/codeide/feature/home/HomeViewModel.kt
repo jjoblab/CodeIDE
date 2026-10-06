@@ -5,14 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
-import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DeleteProjectOnDiskUseCase
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.ImportDossier
 import jo.codeide.core.domain.ImportExistingFolderUseCase
+import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.MarkProjectOpenedUseCase
 import jo.codeide.core.domain.ObserveProjectsUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ObserveToolchainStateUseCase
+import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.RelocalisationProjet
 import jo.codeide.core.domain.RelocalizeProjectUseCase
 import jo.codeide.core.domain.RemoveProjectUseCase
@@ -22,7 +24,6 @@ import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
-import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
@@ -78,7 +79,7 @@ class HomeViewModel
         private val observerParametres: ObserveSettingsUseCase,
         private val observerProjets: ObserveProjectsUseCase,
         private val observerEtatOutils: ObserveToolchainStateUseCase,
-        private val installateur: BootstrapInstaller,
+        private val orchestrateurInstallation: EnvironmentSetupOrchestrator,
         private val verifierAcces: VerifyProjectAccessUseCase,
         private val renommerProjet: RenameProjectUseCase,
         private val epinglerProjet: SetProjectPinnedUseCase,
@@ -122,19 +123,23 @@ class HomeViewModel
         init {
             viewModelScope.launch {
                 // Bandeaux : le dossier (étape 5) suit les paramètres seuls ;
-                // le terminal (T3) combine paramètres, état partagé de
-                // l'installation **et état POUSSÉ des outils** (v0.37.3) —
-                // la fin d'une installation lancée depuis l'écran dédié
-                // fait disparaître le bandeau sans retour sur l'accueil,
-                // et une installation en cours le masque (le bouton
-                // rouvrirait le même écran de progression partagé).
+                // le terminal (T3) combine paramètres, état du parcours
+                // d'installation (E6 : l'orchestrateur remplace l'ancien
+                // `BootstrapInstaller`) **et état POUSSÉ des outils**
+                // (v0.37.3) — la fin d'une installation lancée depuis
+                // l'écran dédié fait disparaître le bandeau sans retour sur
+                // l'accueil, et une installation en cours le masque (le
+                // bouton rouvrirait le même écran de progression partagé).
                 combine(
                     observerParametres(),
-                    installateur.etat,
+                    orchestrateurInstallation.state,
                     observerEtatOutils(),
-                ) { reglages, installation, outils ->
-                    Triple(reglages, installation, outils)
-                }.collect { (reglages, installation, outils) ->
+                ) { reglages, parcours, outils ->
+                    Triple(reglages, parcours, outils)
+                }.collect { (reglages, parcours, outils) ->
+                    val bootstrapVerifie =
+                        parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Succeeded ||
+                            parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Degraded
                     etatInterne.update {
                         it.copy(
                             montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
@@ -142,15 +147,13 @@ class HomeViewModel
                             montrerBandeauTerminal =
                                 reglages.isSetupCompleted &&
                                     !outils.bootstrapInstalle &&
-                                    installation !is EtatInstallationBootstrap.Terminee &&
-                                    installation !is EtatInstallationBootstrap.EnCours,
+                                    !bootstrapVerifie &&
+                                    parcours.running == null,
                             // T6 + v0.37.3 : une installation terminée rend le
                             // terminal ouvrable SANS attendre un nouveau passage
                             // — l'état poussé remplace le pull figé (le marqueur
                             // disque suivait de peu, le pull ne se rejouait pas).
-                            bootstrapInstalle =
-                                installation is EtatInstallationBootstrap.Terminee ||
-                                    outils.bootstrapInstalle,
+                            bootstrapInstalle = outils.bootstrapInstalle || bootstrapVerifie,
                         )
                     }
                 }
