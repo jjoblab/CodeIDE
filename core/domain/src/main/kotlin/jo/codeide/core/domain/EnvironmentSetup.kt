@@ -289,8 +289,13 @@ public interface EnvironmentSetupOrchestrator {
     /**
      * Enregistre l'acceptation **explicite** de la licence du SDK Android
      * (§ 12.5) : conservée dans l'état persisté, exigée avant la phase 4.
+     *
+     * `suspend` (v0.60.1, ADR 0092) : l'acceptation est **persistée avant
+     * le retour** — un [run] appelé juste après ne peut pas la manquer ;
+     * le bouton « Installer le SDK » enregistre le consentement puis
+     * lance le parcours dans cet ordre, en une seule coroutine.
      */
-    public fun acceptSdkLicense()
+    public suspend fun acceptSdkLicense()
 
     /**
      * Désinstalle un composant du manifeste (§ 7 — écran Environnement) :

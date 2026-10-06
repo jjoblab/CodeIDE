@@ -58,7 +58,18 @@ class InstallationFragment : Fragment() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewCreated(view, savedInstanceState)
-        liaison.boutonDemarrer.setOnClickListener { viewModel.demarrer() }
+        liaison.boutonDemarrer.setOnClickListener {
+            // « Installer le SDK » : le consentement § 12.5 est enregistré
+            // AVANT le lancement, en une coroutine (v0.60.1, ADR 0092 — ce
+            // bouton appelait `demarrer()` seul : la phase ANDROID_SDK
+            // restait suspendue à chaque tentative, l'acceptation
+            // n'étant jamais propagée à l'orchestrateur).
+            if (liaison.carteLicence.isVisible && liaison.caseLicence.isChecked) {
+                viewModel.accepterEtDemarrer()
+            } else {
+                viewModel.demarrer()
+            }
+        }
         liaison.boutonAnnuler.setOnClickListener { viewModel.annuler() }
         liaison.boutonReessayer.setOnClickListener {
             viewModel.reessayer(
@@ -164,31 +175,55 @@ class InstallationFragment : Fragment() {
         liaison.sousEtape.isVisible = etat.running != null
     }
 
-    /**
-     * Consentement licence : carte visible AVANT la phase Android
-     * uniquement ; la case n'est réinitialisée qu'à l'APPARITION de la
-     * carte — jamais pendant qu'elle est affichée (l'utilisateur coche).
+    /** Consentement licence et bouton principal. La carte n'apparaît
+     * qu'avant la phase Android SANS acceptation enregistrée ; la case
+     * n'est réinitialisée qu'à l'APPARITION de la carte — jamais pendant
+     * qu'elle est affichée (l'utilisateur coche). Le moment du bouton
+     * principal est décidé par [momentDuBoutonPrincipal] (pur, niveau fichier).
      */
     private fun projeterLicence(
         etat: EnvironmentSetupState,
         terminees: Int,
     ) {
-        val avantAndroid =
-            etat.phase(InstallPhase.ANDROID_SDK) is PhaseState.NotStarted &&
-                etat.sdkLicenseAcceptedAtMillis == null &&
-                etat.phase(InstallPhase.JAVA) !is PhaseState.NotStarted
-        liaison.carteLicence.isVisible = avantAndroid
-        if (avantAndroid && !licenceVisible) {
+        val attenteConsentement = attenteConsentement(etat)
+        liaison.carteLicence.isVisible = attenteConsentement
+        if (attenteConsentement && !licenceVisible) {
             liaison.caseLicence.isChecked = false
             liaison.boutonDemarrer.isEnabled = false
-            liaison.boutonDemarrer.setText(R.string.installation_installer_sdk)
         }
-        licenceVisible = avantAndroid
-        liaison.boutonDemarrer.isVisible =
-            avantAndroid || (etat.running == null && terminees == 0)
-        if (!avantAndroid && terminees == 0 && etat.running == null) {
-            liaison.boutonDemarrer.isEnabled = true
-            liaison.boutonDemarrer.setText(R.string.installation_demarrer)
+        licenceVisible = attenteConsentement
+
+        when (momentDuBoutonPrincipal(etat, terminees, attenteConsentement)) {
+            MomentBouton.Consentement -> {
+                liaison.boutonDemarrer.isVisible = true
+                liaison.boutonDemarrer.setText(R.string.installation_installer_sdk)
+            }
+
+            MomentBouton.InstallationSdk -> {
+                // Licence déjà acceptée, phase SDK jamais exécutée :
+                // reprise après mort du processus, activée d'office (v0.60.1).
+                liaison.boutonDemarrer.isVisible = true
+                liaison.boutonDemarrer.isEnabled = true
+                liaison.boutonDemarrer.setText(R.string.installation_installer_sdk)
+            }
+
+            MomentBouton.Demarrage -> {
+                liaison.boutonDemarrer.isVisible = true
+                liaison.boutonDemarrer.isEnabled = true
+                liaison.boutonDemarrer.setText(R.string.installation_demarrer)
+            }
+
+            MomentBouton.Reprise -> {
+                // Mort du processus entre deux phases : le parcours reprend
+                // à la première phase non vérifiée (§ 3.5).
+                liaison.boutonDemarrer.isVisible = true
+                liaison.boutonDemarrer.isEnabled = true
+                liaison.boutonDemarrer.setText(R.string.installation_reprendre)
+            }
+
+            MomentBouton.Aucun -> {
+                liaison.boutonDemarrer.isVisible = false
+            }
         }
     }
 
@@ -299,5 +334,66 @@ class InstallationFragment : Fragment() {
         private const val SEUIL_MINUTES: Long = 60L
 
         private const val MIO: Long = 1024L * 1024
+    }
+}
+
+/** Consentement en attente : avant la phase Android, sans acceptation, Java entamée. */
+private fun attenteConsentement(etat: EnvironmentSetupState): Boolean =
+    etat.phase(InstallPhase.ANDROID_SDK) is PhaseState.NotStarted &&
+        etat.sdkLicenseAcceptedAtMillis == null &&
+        etat.phase(InstallPhase.JAVA) !is PhaseState.NotStarted
+
+/** Moment du bouton principal — décision pure sur l'état projeté. */
+private enum class MomentBouton {
+    /** Parcours vierge : « Démarrer l'installation ». */
+    Demarrage,
+
+    /** Phases déjà vérifiées mais Java pas encore : « Reprendre » (§ 3.5). */
+    Reprise,
+
+    /** Case licence à cocher : « Installer le SDK », activé par la case. */
+    Consentement,
+
+    /** Licence acceptée, SDK jamais exécuté : « Installer le SDK », activé. */
+    InstallationSdk,
+
+    /** Exécution en cours (Annuler), échec (Réessayer) ou parcours terminé. */
+    Aucun,
+}
+
+/**
+ * Décision du moment du bouton principal (ADR 0092) : consentement en
+ * attente d'abord (échec de Java compris — la case reste cochable),
+ * puis échec (Réessayer est L'action), puis reprise après acceptation,
+ * puis démarrage/reprise avant Java. Jamais deux actions concurrentes.
+ */
+private fun momentDuBoutonPrincipal(
+    etat: EnvironmentSetupState,
+    terminees: Int,
+    attenteConsentement: Boolean,
+): MomentBouton {
+    if (etat.running != null) return MomentBouton.Aucun
+    val echec = InstallPhase.entries.any { etat.phase(it) is PhaseState.Failed }
+    return when {
+        attenteConsentement -> {
+            MomentBouton.Consentement
+        }
+
+        echec -> {
+            MomentBouton.Aucun
+        }
+
+        etat.sdkLicenseAcceptedAtMillis != null &&
+            etat.phase(InstallPhase.ANDROID_SDK) is PhaseState.NotStarted -> {
+            MomentBouton.InstallationSdk
+        }
+
+        etat.phase(InstallPhase.JAVA) is PhaseState.NotStarted -> {
+            if (terminees == 0) MomentBouton.Demarrage else MomentBouton.Reprise
+        }
+
+        else -> {
+            MomentBouton.Aucun
+        }
     }
 }

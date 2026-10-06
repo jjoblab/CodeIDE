@@ -194,6 +194,33 @@ class PhaseJavaTest {
     }
 
     @Test
+    fun `un code d erreur apt après une installation réussie poursuit la phase (constat appareil v0 60 0)`() {
+        commandes.fabrique = { spec ->
+            if (estInstallationJdk(spec)) {
+                // Constat appareil réel v0.60.0 (ADR 0092) : paquets posés
+                // et configurés (« Setting up openjdk-17 ») mais code de
+                // sortie 100 (« E: Directory … missing », avertissement
+                // EIPP) — la sortie d'apt n'est pas un verdict, l'exécution
+                // réelle du JDK tranche.
+                poserJdk()
+                echec(100, "Setting up openjdk-17 (17.0.20) ...", "E: Directory '…/lists' missing")
+            } else {
+                mondeSimule(spec)
+            }
+        }
+
+        runBlocking { orchestrateur.run(from = InstallPhase.JAVA) }
+
+        assertTrue(
+            "état: ${orchestrateur.state.value.phases[InstallPhase.JAVA]}",
+            orchestrateur.state.value.phases[InstallPhase.JAVA] is PhaseState.Succeeded,
+        )
+        // Le parcours poursuit : la sonde TLS est atteinte et exécutée.
+        assertEquals(1, commandes.commandes.count { estSondeTls(it) })
+        assertTrue(orchestrateur.journal.value.any { it.contains("contrôle réel du JDK avant verdict") })
+    }
+
+    @Test
     fun `une JVM posée qui ne démarre pas échoue en Jvm avec la sortie capturée (R6, ADR 0084)`() {
         commandes.fabrique = { spec ->
             if (estInstallationJdk(spec)) {

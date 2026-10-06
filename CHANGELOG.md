@@ -1,5 +1,82 @@
 # Journal des modifications
 
+## [0.60.1] – 2026-10-06
+
+Correctifs des **premiers retours d'appareil réel** (v0.60.0 fusionnée,
+parcours complet exécuté sur Android aarch64) — deux blocages constatés,
+deux corrections, une même règle : **la sortie de `apt`/`pkg` n'est pas
+un verdict, l'exécution réelle tranche** (ADR 0092).
+
+1. **Phase `JAVA` échouée au premier passage alors que l'installation a
+   réussi** : le journal de l'appareil montre `Setting up openjdk-17
+   (17.0.20)` puis `Setting up openjdk-17-x` (115 Mio posés et
+   configurés), suivis de `W: … EIPP::OrderInstall` et `E: Directory …
+   missing` — et un **code de sortie 100**. `apt` du préfixe peut donc
+   renvoyer un code non nul APRÈS une opération réussie. Après un code
+   non nul de `pkg install`, la vérification par exécution tranche
+   désormais **avant tout échec** : l'outil répond → l'installation est
+   réputée réussie malgré le code (journal explicite, poursuite) ; il ne
+   répond pas → échec `Commande` inchangé, sortie apt à l'appui. Trois
+   sites : `PhaseJava.EtapePaquetJdk` (le constat exact), `PhaseOutilsPaquets.EtapePaquet`
+   (même défaut latent sur les 5 outils) et `EtapeMiseAJourPaquets`
+   (après l'échec des 4 stratégies, une sonde locale `apt-cache policy`
+   du paquet JDK prouve que les listes répondent — la mise à jour a
+   produit son effet). La tolérance est **limitée aux commandes de
+   paquets** : téléchargements, extraction et phase 4 gardent leur
+   verdict strict.
+2. **Phase `ANDROID_SDK` jamais démarrée** (« licence non acceptée » à
+   chaque tentative) : le bouton « Installer le SDK » appelait
+   `demarrer()` seul — **l'acceptation n'était jamais enregistrée** (la
+   case à cocher ne faisait qu'activer le bouton). Le port
+   `acceptSdkLicense()` devient **`suspend`** (acceptation persistée
+   AVANT le retour — la course avec le parcours disparaît, la garniture
+   de test qui pollait l'état jusqu'à 5 s aussi), et le bouton enregistre
+   le consentement puis lance le parcours **dans cet ordre, en une seule
+   coroutine** (`accepterEtDemarrer`).
+
+Trou voisin réparé dans la foulée : après une mort du processus, deux
+états n'offraient AUCUNE action sur l'écran d'installation — licence
+acceptée + SDK jamais exécuté (bouton « Installer le SDK » réapparaît,
+activé d'office : le consentement est déjà enregistré) et phases
+vérifiées + `JAVA` pas encore lancée (« Reprendre l'installation »,
+nouvelle chaîne fr/en). Un échec reste couvert par « Réessayer cette
+phase », jamais deux actions concurrentes.
+
+### Ajouté
+
+- **ADR 0092 — corrections du parcours après retours d'appareil réel** :
+  les deux constats (journaux d'appareil cités), la décision
+  « l'exécution tranche » étendue aux commandes d'installation, la
+  séquentialisation du consentement § 12.5, la limite assumée de la
+  tolérance (paquets uniquement), scénarios manuels E96-E98.
+- **Chaîne « Reprendre l'installation »** (fr/en) pour la reprise entre
+  phases après mort du processus (§ 3.5).
+
+### Modifié
+
+- **`core:bootstrap`** : `EtapePaquetJdk`, `EtapePaquet` et
+  `EtapeMiseAJourPaquets` vérifient par exécution après un code de
+  sortie non nul avant de déclarer l'échec (journal « contrôle réel
+  avant verdict » puis « poursuite ») ; `EtapePaquet.verify` factorisé
+  (`verifierOutil`).
+- **`core:domain`** : `EnvironmentSetupOrchestrator.acceptSdkLicense()`
+  devient `suspend` — l'acceptation est persistée avant le retour.
+- **`core:bootstrap` (orchestrateur)** : `acceptSdkLicense` synchronise
+  l'état et la persistance dans la coroutine appelante (plus de
+  lancement détaché).
+- **`feature:install`** : bouton principal câblé — case cochée + clic =
+  consentement puis lancement (`InstallationViewModel.accepterEtDemarrer`) ;
+  projection du bouton découpée en décision pure (`momentDuBoutonPrincipal`,
+  `MomentBouton`) couvrant les moments Démarrage / Reprendre /
+  Consentement / InstallationSdk / Aucun.
+
+### Non vérifié (règle 2 du prompt)
+
+- La reproduction exacte de l'anomalie apt (`EIPP::OrderInstall`,
+  « Directory missing ») est impossible hors préfixe Android : les tests
+  rejouent le **comportement observé** (code 100 + paquets posés), pas
+  la cause interne d'apt — scénarios E96-E98 pour l'appareil.
+
 ## [0.60.0] – 2026-10-06
 
 Sixième et dernière étape (E6) de la **refonte complète du parcours
