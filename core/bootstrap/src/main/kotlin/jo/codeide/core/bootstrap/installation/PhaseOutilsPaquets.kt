@@ -31,7 +31,10 @@ internal class PhaseOutilsPaquets(
 
     override fun etapes(): List<InstallStep> {
         val paquets = catalogue.packageTools
-        val etapes = mutableListOf<InstallStep>(EtapeMiseAJourPaquets(racine, delaisMiseAJour))
+        val etapes =
+            mutableListOf<InstallStep>(
+                EtapeMiseAJourPaquets(racine, catalogue.jdkPackage, delaisMiseAJour),
+            )
         paquets.forEachIndexed { index, paquet ->
             etapes += EtapePaquet(racine, paquet, index + 1, paquets.size, verificationDe(paquet))
         }
@@ -125,10 +128,15 @@ internal class PhaseOutilsPaquets(
 
 /**
  * Étape `mise-a-jour` : `pkg update` retenté à délai croissant, repli
- * journalisé `apt update` (§ 5.2) — échec persistant = échec de phase.
+ * journalisé `apt update` (§ 5.2) — échec persistant = échec de phase,
+ * SAUF si les listes apt répondent déjà : `apt` peut renvoyer un code
+ * non nul APRÈS une mise à jour efficace (même anomalie que l'installation,
+ * constat appareil v0.60.0, ADR 0092) — un candidat visible pour le
+ * paquet JDK du catalogue prouve que la mise à jour a produit son effet.
  */
 private class EtapeMiseAJourPaquets(
     private val racine: File,
+    private val paquetSonde: String,
     private val delais: List<Long> = DELAIS_CROISSANTS,
 ) : InstallStep {
     override val id: StepId = StepId(InstallPhase.PACKAGE_TOOLS, "mise-a-jour")
@@ -168,6 +176,17 @@ private class EtapeMiseAJourPaquets(
             context.journal("échec (code ${resultat.exitCode}) — voir le diagnostic de la phase")
         }
         val memoire = dernierEchec
+        // Dernier recours (§ 3.2 : l'exécution réelle tranche) : les listes
+        // répondent-elles malgré les codes d'échec ? Un candidat visible
+        // pour le paquet JDK du catalogue prouve que la mise à jour a
+        // produit son effet — la sortie d'apt n'est pas un verdict.
+        if (listesFonctionnelles(context)) {
+            context.journal(
+                "mise à jour jugée efficace malgré les codes d'échec — les listes apt " +
+                    "répondent (sortie apt non fiable) — poursuite",
+            )
+            return
+        }
         throw EchecEtapeInstallation(
             AppError.EnvironmentSetup(
                 reason = EnvironmentSetupReason.Reseau,
@@ -186,6 +205,30 @@ private class EtapeMiseAJourPaquets(
         )
     }
 
+    /**
+     * Les listes apt répondent-elles ? Le candidat du paquet JDK du
+     * catalogue est visible (pas `(none)`) — sonde locale `apt-cache`,
+     * sans réseau : les listes présentes suffisent aux installations.
+     */
+    private suspend fun listesFonctionnelles(context: StepContext): Boolean {
+        val prefixe = DispositionsBootstrap.prefix(racine)
+        val policy =
+            context.commands.run(
+                CommandSpec(
+                    program = File(prefixe, "bin/apt-cache").absolutePath,
+                    arguments = listOf("policy", paquetSonde),
+                    workingDir = prefixe,
+                    timeoutMillis = DELAI_VERIFICATION_LISTES,
+                ),
+            )
+        val candidat =
+            LIGNE_CANDIDAT
+                .find((policy.stdout + policy.stderr).joinToString("\n"))
+                ?.groupValues
+                ?.getOrNull(1)
+        return policy.succeeded && candidat != null && candidat != AUCUN_CANDIDAT
+    }
+
     /** Dernière tentative échouée, pour le diagnostic attaché à l'échec. */
     private data class CommandResultMemoire(
         val commande: String,
@@ -201,6 +244,15 @@ private class EtapeMiseAJourPaquets(
     private companion object {
         /** Bornage des sorties attachées aux échecs (§ 3.4). */
         private const val BORNE_SORTIE: Int = 200
+
+        /** Ligne « Candidate: <version> » de `apt-cache policy` (sortie C du préfixe). */
+        private val LIGNE_CANDIDAT: Regex = Regex("(?m)^\\s*Candidate:\\s*(\\S+)")
+
+        /** Candidat absent tel qu'affiché par `apt-cache policy`. */
+        private const val AUCUN_CANDIDAT: String = "(none)"
+
+        /** Sonde locale des listes (`apt-cache policy`) : rapide, sans réseau. */
+        private const val DELAI_VERIFICATION_LISTES: Long = 30_000L
 
         /** `pkg update` trois fois (délai croissant), puis repli `apt update` (§ 5.2). */
         private val STRATEGIES =
@@ -222,7 +274,10 @@ private class EtapeMiseAJourPaquets(
 /**
  * Étape d'installation d'UN paquet (§ 5.2 : un par un, état par paquet) :
  * `pkg install -y <paquet>` puis vérification par exécution réelle de
- * l'outil installé.
+ * l'outil installé. Le code de sortie de `pkg install` n'est pas un
+ * verdict (constat appareil v0.60.0, ADR 0092) : après un code non
+ * nul, la vérification par exécution tranche — l'outil répond,
+ * l'installation a réussi malgré le code (journalisé).
  */
 private class EtapePaquet(
     private val racine: File,
@@ -248,6 +303,18 @@ private class EtapePaquet(
                 ),
             )
         if (!resultat.succeeded) {
+            // Sortie apt non fiable : l'exécution réelle tranche (§ 3.2).
+            context.journal(
+                "pkg install a renvoyé le code ${resultat.exitCode} — contrôle réel de $paquet avant verdict",
+            )
+            if (verifierOutil(context)) {
+                context.journal(
+                    "$paquet vérifié par exécution malgré le code ${resultat.exitCode} " +
+                        "(anomalie apt connue : sortie non fiable) — poursuite",
+                )
+                context.reportProgress(Progress.Items(done = index, total = total))
+                return
+            }
             throw EchecEtapeInstallation(
                 ErreursInstallation.commande(
                     description = "installation du paquet $paquet impossible",
@@ -260,7 +327,10 @@ private class EtapePaquet(
     }
 
     /** L'outil est exécuté : code 0, et le motif attendu trouvé si spécifié. */
-    override suspend fun verify(context: StepContext): Boolean {
+    override suspend fun verify(context: StepContext): Boolean = verifierOutil(context)
+
+    /** Contrôle réel de l'outil : exécution, code 0, motif attendu présent si spécifié. */
+    private suspend fun verifierOutil(context: StepContext): Boolean {
         val prefixe = DispositionsBootstrap.prefix(racine)
         val resultat =
             context.commands.run(

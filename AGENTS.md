@@ -848,6 +848,36 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.60.1 : **correctifs du parcours — premiers retours d'appareil réel**
+  (ADR 0092) : (1) `pkg install` du préfixe peut renvoyer le code 100
+  APRÈS une installation réussie (constaté sur `openjdk-17` : paquets
+  posés et configurés, puis « `E: Directory … missing` » + avertissement
+  `EIPP::OrderInstall`) — la vérification PAR EXÉCUTION tranche désormais
+  avant tout échec dans `EtapePaquetJdk` (phase 3), `EtapePaquet` (phase
+  2, défaut latent) et `EtapeMiseAJourPaquets` (sonde locale
+  `apt-cache policy` du paquet JDK : un candidat visible = les listes
+  répondent, la mise à jour a produit son effet) ; l'outil répond =
+  poursuite journalisée, il ne répond pas = échec `Commande` inchangé ;
+  tolérance LIMITÉE aux commandes de paquets (téléchargements, extraction
+  et phase 4 gardent leur verdict strict). (2) Le bouton « Installer le
+  SDK » n'enregistrait JAMAIS l'acceptation § 12.5 (la case ne faisait
+  qu'activer le bouton — suspension à chaque tentative) : port
+  `acceptSdkLicense()` DEVIENT `suspend` (état persisté AVANT le retour —
+  la course disparaît, ainsi que le poll de 5 s de la garniture de test
+  qui en était le symptôme), bouton = consentement puis `run()` dans cet
+  ordre en une coroutine (`accepterEtDemarrer`) ; reprise après mort du
+  processus réparée : licence acceptée + SDK jamais exécuté → bouton
+  activé d'office, phases vérifiées + JAVA pas lancée → « Reprendre
+  l'installation » (fr/en) — projection par décision PURE
+  (`momentDuBoutonPrincipal`/`MomentBouton`, niveau fichier — TooManyFunctions
+  sur le fragment contourné). 5 tests nouveaux (code 100 + JDK posé
+  poursuit ; idem paquet ; mise à jour + listes fonctionnelles ;
+  acceptation visible dès le retour ; consentement + lancement relayés),
+  3 simplifiés, 1561 tests / 0 échec. Leçon : un code de sortie de
+  commande externe n'est JAMAIS un verdict — seul le comportement observé
+  de l'outil compte (extension directe d'ADR 0084/0085 aux commandes
+  d'installation elles-mêmes) ; un port dont l'effet doit précéder un
+  appel suivant est `suspend`, pas fire-and-forget.
 - v0.60.0 : **E6 de la refonte — dernière étape, fin de la phase R**
   (ADR 0091) : **migration des installations existantes** — adoption par
   l'EXÉCUTION au premier `run()`, jamais depuis les marqueurs de fichier

@@ -202,7 +202,66 @@ class PhaseOutilsPaquetsTest {
         assertEquals(0, commandes.commandes.count { spec -> spec.arguments.any { it.contains("install -y tar") } })
     }
 
+    @Test
+    fun `un code d erreur apt après installation réussie d un paquet poursuit la phase (constat appareil v0 60 0)`() {
+        commandes.fabrique = { spec ->
+            if (spec.arguments.any { it.contains("install -y curl") }) {
+                // Constat appareil réel v0.60.0 (ADR 0092) : paquet posé mais
+                // code 100 — l'exécution réelle de l'outil tranche.
+                outilsPresents += "curl"
+                echec(100, "Setting up curl ...", "E: Directory '…/lists' missing")
+            } else {
+                mondeSimule(spec)
+            }
+        }
+
+        runBlocking { orchestrateur.run(from = InstallPhase.PACKAGE_TOOLS) }
+
+        assertTrue(
+            "état: ${orchestrateur.state.value.phases[InstallPhase.PACKAGE_TOOLS]}",
+            orchestrateur.state.value.phases[InstallPhase.PACKAGE_TOOLS] is PhaseState.Succeeded,
+        )
+        // curl n'est pas réinstallé : l'installation a été jugée réussie.
+        assertEquals(1, commandes.commandes.count { it.arguments.any { a -> a.contains("install -y curl") } })
+        assertTrue(orchestrateur.journal.value.any { it.contains("contrôle réel de curl avant verdict") })
+    }
+
+    @Test
+    fun `un pkg update en échec apparent mais aux listes fonctionnelles poursuit la phase`() {
+        commandes.fabrique = { spec ->
+            when {
+                estMiseAJour(spec) -> {
+                    // Code 100 après une mise à jour efficace (anomalie apt,
+                    // ADR 0092) — les listes, elles, répondent.
+                    echec(100, "W: EIPP::OrderInstall", "E: Directory '…/lists' missing")
+                }
+
+                estPolitiqueSonde(spec) -> {
+                    reussite(listOf("openjdk-17:", "  Installed: (none)", "  Candidate: 17.0.20"))
+                }
+
+                else -> {
+                    mondeSimule(spec)
+                }
+            }
+        }
+
+        runBlocking { orchestrateur.run(from = InstallPhase.PACKAGE_TOOLS) }
+
+        assertTrue(
+            "état: ${orchestrateur.state.value.phases[InstallPhase.PACKAGE_TOOLS]}",
+            orchestrateur.state.value.phases[InstallPhase.PACKAGE_TOOLS] is PhaseState.Succeeded,
+        )
+        // Les installations ont suivi : la phase n'a pas été interrompue.
+        assertEquals(1, commandes.commandes.count { it.arguments.any { a -> a.contains("install -y curl") } })
+        assertTrue(orchestrateur.journal.value.any { it.contains("les listes apt répondent") })
+    }
+
     private fun estMiseAJour(spec: CommandSpec): Boolean = spec.arguments.contains("update")
+
+    /** Sonde des listes par l'étape mise-a-jour : `apt-cache policy <paquet JDK>`. */
+    private fun estPolitiqueSonde(spec: CommandSpec): Boolean =
+        spec.program.endsWith("apt-cache") && spec.arguments.firstOrNull() == "policy"
 
     private companion object {
         /** Binaire installé par chaque paquet du catalogue (§ 5.2). */

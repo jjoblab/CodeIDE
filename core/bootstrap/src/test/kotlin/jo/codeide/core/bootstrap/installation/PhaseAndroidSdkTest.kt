@@ -522,11 +522,9 @@ class PhaseAndroidSdkTest {
     // ------------------------------------------------------------------
 
     private fun accepterLicence() {
-        orchestrateur.acceptSdkLicense()
-        val fin = System.currentTimeMillis() + 5_000
-        while (orchestrateur.state.value.sdkLicenseAcceptedAtMillis == null && System.currentTimeMillis() < fin) {
-            Thread.sleep(10)
-        }
+        // `suspend` depuis v0.60.1 (ADR 0092) : l'acceptation est
+        // enregistrée avant le retour — plus d'attente active.
+        runBlocking { orchestrateur.acceptSdkLicense() }
         assertNotNull(
             "l'acceptation de licence doit être enregistrée",
             orchestrateur.state.value.sdkLicenseAcceptedAtMillis,

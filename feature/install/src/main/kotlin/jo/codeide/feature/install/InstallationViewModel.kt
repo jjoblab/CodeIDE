@@ -94,8 +94,19 @@ class InstallationViewModel
             viewModelScope.launch { orchestrateur.repair(phase) }
         }
 
-        /** Enregistre l'acceptation explicite de la licence du SDK (§ 12.5). */
-        fun accepterLicence() = orchestrateur.acceptSdkLicense()
+        /**
+         * Consentement explicite (§ 12.5) puis reprise immédiate du
+         * parcours — dans cet ordre, en une seule coroutine (v0.60.1,
+         * ADR 0092 : le bouton « Installer le SDK » appelait `demarrer()`
+         * seul, l'acceptation n'était jamais enregistrée et la phase
+         * `ANDROID_SDK` restait suspendue à chaque tentative).
+         */
+        fun accepterEtDemarrer() {
+            viewModelScope.launch {
+                orchestrateur.acceptSdkLicense()
+                orchestrateur.run()
+            }
+        }
 
         /** Déplie/replie le journal en direct. */
         fun basculerJournal() {

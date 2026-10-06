@@ -287,6 +287,18 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   daemon Gradle par empreinte E4 seule) ; `refreshTerminalScripts` retiré
   (environnement injecté par session, scripts anciens laissés en place) ;
   ADR 0082/0083 marquées **remplacées** ; **fin de la phase R**.
+- **Correctifs appareil réel** ✅ livrés v0.60.1 (ADR 0092) : premiers
+  retours d'exécution du parcours complet sur Android aarch64 — (1)
+  `pkg install` peut renvoyer le code 100 APRÈS une installation
+  réussie (constaté sur `openjdk-17` : paquets posés puis « `E:
+  Directory … missing` » / avertissement `EIPP`) : la vérification par
+  exécution tranche désormais avant tout échec (phases 2 et 3, sonde des
+  listes `apt-cache policy` pour la mise à jour) ; (2) le bouton
+  « Installer le SDK » n'enregistrait jamais l'acceptation de la licence
+  § 12.5 (la case ne faisait qu'activer le bouton) : port
+  `acceptSdkLicense()` `suspend` (persisté avant retour) + consentement
+  puis lancement en une coroutine ; reprise après mort du processus
+  (« Reprendre l'installation » / SDK activé d'office après acceptation).
 
 ## Priorisation
 
