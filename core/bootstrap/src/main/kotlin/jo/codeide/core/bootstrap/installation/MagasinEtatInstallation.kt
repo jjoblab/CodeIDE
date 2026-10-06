@@ -156,7 +156,15 @@ internal class MagasinEtatInstallation
                 val composants = mutableListOf<InstalledComponent>()
                 for (index in 0 until (composantsJson?.length() ?: 0)) {
                     val json = composantsJson?.optJSONObject(index) ?: continue
-                    val requis = listOf(CHAMP_ID, CHAMP_VERSION, CHAMP_REVISION, CHAMP_SHA256, CHAMP_INSTALLE_A)
+                    val requis =
+                        listOf(
+                            CHAMP_ID,
+                            CHAMP_VERSION,
+                            CHAMP_REVISION,
+                            CHAMP_SHA256,
+                            CHAMP_INSTALLE_A,
+                            CHAMP_INSTALL_PATH,
+                        )
                     if (requis.any { !json.has(it) }) return null
                     composants +=
                         InstalledComponent(
@@ -165,6 +173,7 @@ internal class MagasinEtatInstallation
                             revision = json.getString(CHAMP_REVISION),
                             sha256 = json.getString(CHAMP_SHA256),
                             installedAtMillis = json.getLong(CHAMP_INSTALLE_A),
+                            installPath = json.optString(CHAMP_INSTALL_PATH).takeIf { it.isNotBlank() },
                         )
                 }
                 return composants
@@ -187,7 +196,8 @@ internal class MagasinEtatInstallation
                             .put(CHAMP_VERSION, composant.version)
                             .put(CHAMP_REVISION, composant.revision)
                             .put(CHAMP_SHA256, composant.sha256)
-                            .put(CHAMP_INSTALLE_A, composant.installedAtMillis),
+                            .put(CHAMP_INSTALLE_A, composant.installedAtMillis)
+                            .put(CHAMP_INSTALL_PATH, composant.installPath ?: ""),
                     )
                 }
                 racine.put(CHAMP_COMPOSANTS, composants)
@@ -294,6 +304,7 @@ internal class MagasinEtatInstallation
             private const val CHAMP_REVISION = "revision"
             private const val CHAMP_SHA256 = "sha256"
             private const val CHAMP_INSTALLE_A = "installedAtMillis"
+            private const val CHAMP_INSTALL_PATH = "installPath"
             private const val CHAMP_COMPONENT_ID = "componentId"
             private const val CHAMP_DIAGNOSTIC = "diagnostic"
             private const val ETAT_REUSSIE = "Succeeded"

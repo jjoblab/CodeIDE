@@ -9,10 +9,15 @@ import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
 import jo.codeide.core.data.MiroirApparence
 import jo.codeide.core.domain.BootstrapInstaller
+import jo.codeide.core.domain.DetecteurChangementEmpreinte
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EmpreinteChaineOutils
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
+import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
 import jo.codeide.core.domain.SettingsRepository
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.logging.CodeIdeAppLogger
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
@@ -64,7 +69,8 @@ class CodeIdeApplication : Application() {
     @Inject
     lateinit var parametres: SettingsRepository
 
-    /** Point de bascule du niveau de journalisation — port du domaine, implémenté par core:logging (façade interne). */
+    /** Point de bascule du niveau de journalisation — port du domaine,
+     * implémenté par core:logging (façade interne). */
     @Inject
     lateinit var applierNiveau: LogVerbosityApplier
 
@@ -75,6 +81,17 @@ class CodeIdeApplication : Application() {
     /** Installateur du bootstrap — le daemon repart quand le JDK arrive. */
     @Inject
     lateinit var installateurBootstrap: BootstrapInstaller
+
+    /** Orchestrateur du nouveau parcours d'installation (E2-E4, ADR 0087/0089). */
+    @Inject
+    lateinit var orchestrateurInstallation: EnvironmentSetupOrchestrator
+
+    /** Localisateur de la chaîne d'outils — empreinte pour la relance du daemon (E4, § 6). */
+    @Inject
+    lateinit var localisateurOutils: ToolchainLocator
+
+    /** Détecteur de changement d'empreinte de la chaîne d'outils (E4, § 6). */
+    private val detecteurEmpreinte = DetecteurChangementEmpreinte()
 
     /**
      * Gestionnaire de plantages du processus principal — porté par
@@ -217,6 +234,22 @@ class CodeIdeApplication : Application() {
             }
         }
 
+        // E4 (§ 6, ADR 0089) : le daemon Gradle est RELANCÉ quand
+        // l'empreinte de la chaîne d'outils change (JAVA_HOME,
+        // ANDROID_HOME, chemin et version d'aapt2, versions installées)
+        // — un daemon démarré avec l'ancien environnement garderait ses
+        // variables figées et compilerait avec des outils périmés. La
+        // première observation n'est pas un changement : le daemon vient
+        // de démarrer avec l'environnement courant.
+        porteeDemarrage.launch {
+            orchestrateurInstallation.state.collect { etat ->
+                if (relancerSiEmpreinteChangee(etat)) {
+                    daemonTooling.arreter()
+                    daemonTooling.demarrer(porteeDemarrage)
+                }
+            }
+        }
+
         // Scripts du terminal VERSIONNÉS (v0.37.3 — retour d'appareil réel :
         // « ne pas être obligé de réinstaller l'application pour que les
         // changements fassent effet ») : au démarrage, le marqueur posé est
@@ -239,6 +272,33 @@ class CodeIdeApplication : Application() {
             buildType = if (BuildConfig.DEBUG) "debug" else "release",
             applicationId = BuildConfig.APPLICATION_ID,
         )
+
+    /**
+     * Empreinte courante de la chaîne d'outils, soumise au détecteur —
+     * `true` quand elle a changé depuis l'observation précédente (le
+     * daemon Gradle doit alors être relancé, § 6 / ADR 0089). Les
+     * versions viennent de l'état **vérifié** du parcours, les chemins
+     * du localisateur (lui-même alimenté par l'état persisté pour
+     * `aapt2`, § 12.4).
+     */
+    private fun relancerSiEmpreinteChangee(etat: EnvironmentSetupState): Boolean {
+        val versions =
+            etat.phases.values
+                .flatMap { phase ->
+                    when (phase) {
+                        is jo.codeide.core.domain.PhaseState.Succeeded -> phase.versions.entries
+                        else -> emptySet()
+                    }
+                }.associate { it.key to it.value }
+        val empreinte =
+            EmpreinteChaineOutils.calculer(
+                javaHome = localisateurOutils.javaHome(),
+                androidHome = localisateurOutils.androidHome(),
+                aapt2 = localisateurOutils.aapt2Binary(),
+                versions = versions,
+            )
+        return detecteurEmpreinte.traiter(empreinte)
+    }
 
     /**
      * Active StrictMode avec journalisation (jamais de crash en debug pour

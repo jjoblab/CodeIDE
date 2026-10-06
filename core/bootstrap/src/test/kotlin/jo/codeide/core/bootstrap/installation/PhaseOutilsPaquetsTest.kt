@@ -13,6 +13,7 @@ import jo.codeide.core.testing.FakeCommandRunner
 import jo.codeide.core.testing.FakeDownloadManager
 import jo.codeide.core.testing.FakeInstallStateStore
 import jo.codeide.core.testing.FakeToolManifestClient
+import jo.codeide.core.testing.FakeVerificationApprofondie
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -53,6 +54,8 @@ class PhaseOutilsPaquetsTest {
             override fun demarrer() = Unit
         }
 
+    private val verificationApprofondieFausse = FakeVerificationApprofondie()
+
     private val orchestrateur: OrchestrateurInstallation =
         OrchestrateurInstallation(
             dispatchers = dispatcheursReels,
@@ -64,6 +67,7 @@ class PhaseOutilsPaquetsTest {
             horloge = horlogeFausse,
             journalFichier = FakeAppLogger(),
             demarreurService = demarreurFaux,
+            verificationApprofondie = verificationApprofondieFausse,
             fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.PACKAGE_TOOLS to phase)),
         )
 

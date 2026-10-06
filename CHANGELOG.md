@@ -4,6 +4,85 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.58.0] – 2026-10-06
+
+Quatrième étape (E4) de la **refonte complète du parcours
+d'installation** : la phase 4 `ANDROID_SDK` — plan résolu depuis le
+manifeste v2 (une résolution par exécution), composants installés et
+**vérifiés par exécution** avec péremption par quadruplet (réparation du
+seul composant fautif), licences écrites après acceptation, câblage
+Gradle (`android.aapt2FromMavenOverride` dans un bloc géré idempotent,
+build-tools des templates alignés sur le catalogue), relance du daemon
+Gradle par empreinte de chaîne d'outils, et vérification approfondie
+(projet généré + vrai `assembleDebug`). Le parcours complet BOOTSTRAP →
+PACKAGE_TOOLS → JAVA → ANDROID_SDK est exécutable de bout en bout.
+Décisions : ADR 0089.
+
+### Ajouté
+
+- **ADR 0089 — phase 4 Outils Android** : cinq étapes (`resolution-plan`,
+  `composants`, `licences`, `cablage`, `verification-sdk`), plan partagé
+  par exécution, criticité (`cmdline-tools` non critique → `Degraded`),
+  schéma de persistance 2 (`installPath` des composants).
+- **`core:domain`** : `InstalledComponent.installPath` ;
+  `EmpreinteChaineOutils` (SHA-256 de JAVA_HOME/ANDROID_HOME/aapt2/
+  versions, clés triées) + `DetecteurChangementEmpreinte` ; port
+  `VerificationApprofondie`.
+- **`core:bootstrap`** :
+  - `PhaseAndroidSdk` + `EtapesAndroidSdk` : résolution § 12.2 avec
+    contrôle d'espace (plan × 2), péremption § 12.4 (quadruplet persisté
+    comparé au plan — écart → réparation de CE composant seul),
+    téléchargement unique (cache SHA-256), extraction `tar.xz` par les
+    outils du bootstrap avec **garde anti-traversée**, bascule atomique
+    de l'`installPath`, `verify` du manifeste exécuté sans shell ;
+  - `EcrivainConfigurationGradle` : bloc géré **en place** (idempotence
+    octet pour octet), lignes utilisateur conservées, override manuel
+    hors bloc neutralisé par commentaire ;
+  - `LicencesSdk` : fichiers `licenses/` écrits de façon atomique et
+    idempotente après acceptation (hachages historiques — non vérifiés
+    sur appareil, contre-vérification consignée) ;
+  - orchestrateur : `avertissements()` → `Degraded`,
+    `composantsInstalles()` persistés (ce qui est prouvé par exécution),
+    `verify(deep)` délégué au port `VerificationApprofondie` (échec →
+    la phase est marquée en échec dans le rapport, sortie jointe) ;
+  - `LocalisationOutils.trouverAapt2` : plan d'abord (analyse tolérante
+    d'`install-state.json` sans org.json — Kotlin JVM pur), scan du SDK
+    ensuite, binaire hérité `$PREFIX/bin` en dernier (retiré en E6) ;
+  - `MarqueursOutils.estSdkAndroidValide` : SDK cohérent dès qu'un
+    répertoire attendu existe — un SDK partiel n'est plus invisible,
+    `ANDROID_HOME` exporté sans attendre une plateforme.
+- **App** : `VerificationApprofondieProjets` (projet de contrôle généré
+  par le pipeline réel, `gradlew assembleDebug`, suppression quoi qu'il
+  arrive), `InstallationModule` (liaison du port), relance du daemon
+  Gradle par empreinte dans `CodeIdeApplication` (première observation
+  ≠ changement).
+- **Templates** : `buildToolsVersion = "35.0.2"` explicite dans
+  `android-app` et `android-library` (celle du catalogue — sans elle AGP
+  téléchargerait une build-tools x86_64) ; matrice AGP ↔ build-tools ↔
+  compileSdk documentée dans `docs/ENVIRONNEMENT.md`.
+- **Tests** (22 nouveaux) : `PhaseAndroidSdkTest` (10 — dont reprise
+  zéro retéléchargement, réparation ciblée par quadruplet, dégradé non
+  critique, `--list_installed` incohérent, `android.jar` illisible),
+  `EcrivainConfigurationGradleTest` (5), `EmpreinteChaineOutilsTest` (4),
+  `AlignementCatalogueTemplatesTest` (4), 4 tests du localisateur.
+
+### Modifié
+
+- `FakeDownloadManager` (core:testing) : archives semées **par somme
+  SHA-256** (plans multi-composants) ; nouveau
+  `FakeVerificationApprofondie`.
+- `install-state.json` : schéma **2** — un fichier de schéma 1 est
+  rejeté (reprise de zéro **sans retéléchargement**, verify-first
+  re-vérifie chaque composant par exécution).
+
+### Non vérifié (règle 2 du prompt)
+
+- Extraction réelle des archives `.tar.xz` aarch64, `sdkmanager` réel
+  (sortie de `--list_installed` supposée citer l'`installPath`),
+  hachages de licences contre un vrai `sdkmanager --licenses`,
+  `assembleDebug` sur appareil — scénarios complets consignés pour
+  `docs/TESTS_MANUELS.md` en E6.
+
 ## [0.57.0] – 2026-10-06
 
 Troisième étape (E3) de la **refonte complète du parcours

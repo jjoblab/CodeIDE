@@ -18,9 +18,11 @@ import jo.codeide.core.domain.Progress
 import jo.codeide.core.domain.StepId
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ToolManifestClient
+import jo.codeide.core.domain.VerificationApprofondie
 import jo.codeide.core.domain.VerificationReport
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppError.EnvironmentSetupReason
+import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -76,6 +78,7 @@ internal class OrchestrateurInstallation
         private val horloge: TimeProvider,
         private val journalFichier: AppLogger,
         private val demarreurService: DemarreurServiceInstallation,
+        private val verificationApprofondie: VerificationApprofondie,
         fabriquePhases: FabriquePhasesInstallation,
     ) : EnvironmentSetupOrchestrator {
         /** Phases livrées — E2 : phases 1 et 2 (ADR 0087 § 1) ; doublables en test (§ 10). */
@@ -148,19 +151,52 @@ internal class OrchestrateurInstallation
 
         override suspend fun verify(deep: Boolean): VerificationReport {
             chargerEtatSiNecessaire()
-            if (deep) {
-                journaliser(
-                    "vérification approfondie : le contrôle complet (projet généré + assembleDebug) " +
-                        "arrive avec la phase ANDROID_SDK (E4) — contrôles légers exécutés",
-                )
-            }
             val etats = mutableMapOf<InstallPhase, PhaseState>()
             etats.putAll(etatInterne.value.phases)
             for (phase in InstallPhase.entries) {
                 val impl = phases[phase] ?: continue
                 etats[phase] = verifierPhase(phase, impl)
             }
+            if (deep) {
+                verifierApprofondi(etats)
+            }
             return VerificationReport(verifiedAtMillis = horloge.nowMillis(), deep = deep, phases = etats)
+        }
+
+        /**
+         * Vérification approfondie (§ 5.4.5, E4 — ADR 0089) : projet généré
+         * depuis le template `android-app` et **vrai `assembleDebug`** — hors
+         * parcours par défaut, exige la phase `ANDROID_SDK` vérifiée.
+         */
+        private suspend fun verifierApprofondi(etats: MutableMap<InstallPhase, PhaseState>) {
+            val etatSdk = etats[InstallPhase.ANDROID_SDK]
+            if (!phases.containsKey(InstallPhase.ANDROID_SDK) ||
+                (etatSdk !is PhaseState.Succeeded && etatSdk !is PhaseState.Degraded)
+            ) {
+                journaliser("vérification approfondie ignorée : la phase ANDROID_SDK n'est pas vérifiée")
+                return
+            }
+            journaliser("vérification approfondie : génération d'un projet android-app et assembleDebug réel…")
+            when (val resultat = verificationApprofondie.executer()) {
+                is AppResult.Success -> {
+                    journaliser("vérification approfondie réussie (assembleDebug)")
+                }
+
+                is AppResult.Failure -> {
+                    journaliser("vérification approfondie échouée : ${resultat.error}")
+                    etats[InstallPhase.ANDROID_SDK] =
+                        PhaseState.Failed(
+                            error =
+                                AppError.EnvironmentSetup(
+                                    reason = EnvironmentSetupReason.Commande,
+                                    details =
+                                        "vérification approfondie échouée (projet généré + " +
+                                            "assembleDebug) : ${resultat.error}",
+                                ),
+                            logTail = journalInterne.value.takeLast(LIMITE_JOURNAL),
+                        )
+                }
+            }
         }
 
         /** Re-vérifie une phase : exécution réelle de chaque étape, sans muter l'état partagé. */
@@ -277,16 +313,45 @@ internal class OrchestrateurInstallation
             for (etape in impl.etapes()) {
                 if (!executerEtape(phase, etape, debut)) return false
             }
-            val versions = impl.recenserVersions(contexteDExecution(phase, StepId(phase, "recensement"), debut))
+            val contexte = contexteDExecution(phase, StepId(phase, "recensement"), debut)
+            val versions = impl.recenserVersions(contexte)
+            // E4 (ADR 0089) : les avertissements de composants non critiques
+            // font passer la phase en Degraded au lieu de Succeeded (§ 5.4).
+            val avertissements = impl.avertissements(contexte)
+            val etatFinal =
+                if (avertissements.isEmpty()) {
+                    PhaseState.Succeeded(horloge.nowMillis(), versions)
+                } else {
+                    PhaseState.Degraded(horloge.nowMillis(), avertissements)
+                }
             etatInterne.update { etat ->
                 etat.copy(
-                    phases = etat.phases + (phase to PhaseState.Succeeded(horloge.nowMillis(), versions)),
+                    phases = etat.phases + (phase to etatFinal),
                     running = null,
                 )
             }
-            journaliser("phase ${phase.name} vérifiée (${versions.keys.joinToString()})")
+            journaliser(
+                "phase ${phase.name} vérifiée (${versions.keys.joinToString()})" +
+                    if (avertissements.isEmpty()) {
+                        ""
+                    } else {
+                        " — DÉGRADÉE : ${avertissements.joinToString { it.componentId }}"
+                    },
+            )
+            journaliserComposants(impl.composantsInstalles(contexte))
             persisterEtat()
             return true
+        }
+
+        /** Journalise les composants du manifeste installés par la phase (quadruplets § 12.2.5, persistance). */
+        private fun journaliserComposants(composants: List<InstalledComponent>) {
+            if (composants.isEmpty()) return
+            composantsInstalles =
+                composantsInstalles.filter { existant -> composants.none { it.id == existant.id } } + composants
+            journaliser(
+                "composants installés : " +
+                    composants.joinToString { "${it.id}@${it.version}-${it.revision} (${it.installPath ?: "?"})" },
+            )
         }
 
         /** Exécute une étape (verify-first, exécution, vérification) — `false` = la phase échoue. */

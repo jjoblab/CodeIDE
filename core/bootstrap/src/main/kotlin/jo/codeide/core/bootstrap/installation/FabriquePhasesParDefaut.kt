@@ -7,6 +7,7 @@ import jo.codeide.core.bootstrap.ConfigurationBootstrap
 import jo.codeide.core.bootstrap.EspaceDisqueSonde
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.InstallPhase
+import jo.codeide.core.domain.InstallStateStore
 import jo.codeide.core.domain.NativeProcessLauncher
 import jo.codeide.core.domain.ToolchainCatalog
 import java.io.File
@@ -18,8 +19,8 @@ import javax.inject.Singleton
 
 /**
  * Assemblage de production des phases livrées (E2 : `BOOTSTRAP` et
- * `PACKAGE_TOOLS` ; E3 : `JAVA`, ADR 0087 § 1 / ADR 0088) — chaque phase
- * reçoit ses briques éprouvées du module, comme l'ancien
+ * `PACKAGE_TOOLS` ; E3 : `JAVA` ; E4 : `ANDROID_SDK`, ADR 0087/0088/0089)
+ * — chaque phase reçoit ses briques éprouvées du module, comme l'ancien
  * `InstallateurBootstrap` construisait ses collaborateurs internes.
  */
 @Suppress("LongParameterList")
@@ -36,6 +37,7 @@ internal class FabriquePhasesParDefaut
         private val sonde: EspaceDisqueSonde,
         private val architecture: CapaciteArchitecture,
         private val dispatchers: DispatcherProvider,
+        private val magasin: InstallStateStore,
     ) : FabriquePhasesInstallation {
         // Annotation sans `private val` (leçon T1) : champ dérivé ci-dessous.
         private val racine: File = contexte.filesDir
@@ -59,5 +61,15 @@ internal class FabriquePhasesParDefaut
                     ),
                 InstallPhase.PACKAGE_TOOLS to PhaseOutilsPaquets(racine = racine, catalogue = catalogue),
                 InstallPhase.JAVA to PhaseJava(racine = racine, catalogue = catalogue),
+                InstallPhase.ANDROID_SDK to
+                    PhaseAndroidSdk(
+                        racine = racine,
+                        catalogue = catalogue,
+                        magasin = magasin,
+                        architecture = architecture,
+                        sonde = sonde,
+                        ecrivainGradle = EcrivainConfigurationGradle.Fabrique(dispatchers).pourRacine(racine),
+                        dispatchers = dispatchers,
+                    ),
             )
     }

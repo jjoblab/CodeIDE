@@ -247,8 +247,15 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   majeure analysée, **sonde TLS** compilée et exécutée par le JDK
   (truststore cassé détecté ici, classé `Jvm` vs `Reseau`) ; 7 tests,
   dont la régression du mode muet R6 (ADR 0084).
-- **E4** — phase 4 Outils Android (manifeste v2, composants, licences
-  après acceptation, câblage Gradle/aapt2, relance du daemon).
+- **E4** ✅ livré v0.58.0 (ADR 0089) : phase 4 Outils Android complète —
+  plan résolu du manifeste v2 (une fois par exécution, contrôle d'espace),
+  composants installés/vérifiés par exécution avec péremption par
+  quadruplet (réparation du seul fautif), `cmdline-tools` non critique
+  (`Degraded`), licences après acceptation, câblage Gradle (override
+  `aapt2` bloc géré idempotent, `buildToolsVersion` explicite dans les
+  templates, matrice documentée), relance du daemon par empreinte,
+  vérification approfondie (projet + vrai `assembleDebug`) ; 22 tests
+  nouveaux, parcours complet exécutable de bout en bout.
 - **E5** — maquettes validées puis nouvelle interface (écran
   d'installation stepper + écran Environnement des Paramètres).
 - **E6** — migration des installations existantes, suppression de
