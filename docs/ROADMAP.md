@@ -236,9 +236,11 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   état persisté), modèle de domaine + résolveur de plan pur (20 tests),
   catalogue de versions (build-tools 35.0.2 aarch64, platform
   android-37.2, JDK 17).
-- **E2** — cadre commun : orchestrateur, `CommandRunner`,
-  `DownloadManager`, état persisté, service de premier plan + phases 1
-  (Bootstrap) et 2 (PackageTools).
+- **E2** ✅ livré v0.56.0 (ADR 0087) : cadre commun (orchestrateur
+  verify-first, `CommandRunner` capture intégrale, `DownloadManager`
+  cache SHA-256 + reprise `Range`, `install-state.json` atomique,
+  service de premier plan avec Annuler) + phases 1 et 2 complètes
+  (56 tests nouveaux, invariant de l'unique téléchargement testé).
 - **E3** — phase 3 Java (openjdk-17, `java`/`javac` démarrent, test TLS).
 - **E4** — phase 4 Outils Android (manifeste v2, composants, licences
   après acceptation, câblage Gradle/aapt2, relance du daemon).

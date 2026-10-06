@@ -848,6 +848,29 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.56.0 : **E2 de la refonte** (ADR 0087) : cadre commun livré dans
+      `core:bootstrap/installation/` — orchestrateur concret (reprise
+      « verify-first », annulation synchrone + persistance en coroutine
+      fraîche, licence exigée avant `ANDROID_SDK`), `CommandRunnerProcessus`
+      (capture intégrale, `timedOut`), `GestionnaireTelechargement`
+      (cache SHA-256, miroirs ordonnés, reprise `Range` — invariant
+      « un téléchargement par artefact » testé par compteur),
+      `MagasinEtatInstallation` (`install-state.json` org.json atomique,
+      `Running` normalisé), `ClientManifesteOutils` (transport v2, la
+      consommation arrive en E4), phases `Bootstrap` (8 étapes, logique
+      éprouvée portée) et `PackageTools` (retries croissants + repli
+      `apt`, un step par paquet vérifié par exécution),
+      `ServiceInstallationEnvironnement` (specialUse, action Annuler,
+      NON démarré en prod avant E5), `FabriquePhasesParDefaut` (la
+      carte de phases internal ne traverse jamais Hilt — un `Map`
+      générique y serait un multibinding : leçon E2), fakes
+      `core:testing` (CommandRunner/DownloadManager/ArchiveExtractor/
+      ToolManifestClient/InstallStateStore/EnvironmentSetupOrchestrator),
+      9ᵉ raison `ArchitectureNonSupportee` (traducteurs sur le TYPE,
+      ajout additif), `CommandResult.timedOut` ; 56 tests nouveaux
+      (module 190), gate complète verte ; étapes suivantes E3 (Java+TLS),
+      E4 (manifeste v2 + licences + câblage), E5 (maquettes + UI), E6
+      (migration + suppression).
 - v0.55.0 : **E1 de la refonte du parcours d'installation** (prompt
       « Refonte complète du parcours d'installation de l'environnement »,
       ADR 0084/0085/0086) : cause racine du « SDK non fonctionnel »
@@ -869,7 +892,7 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       E5 (maquettes + nouvelle UI), E6 (migration + suppression).
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
-      lsp-classpath.json` ; cf. docs/ROADMAP.md) — ET refonte E2
+      lsp-classpath.json` ; cf. docs/ROADMAP.md) — ET refonte E3
       (cadre commun de l'orchestrateur, phases 1-2).
 
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.

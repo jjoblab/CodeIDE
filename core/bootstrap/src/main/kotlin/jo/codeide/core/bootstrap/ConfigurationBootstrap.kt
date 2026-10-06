@@ -26,6 +26,8 @@ package jo.codeide.core.bootstrap
  * constantes en dur ailleurs.
  */
 public data class ConfigurationBootstrap(
+    /** Identifiant de la release consommée (récapitulatif de la phase 1, ADR 0087). */
+    public val versionRelease: String = ConstantesBootstrap.VERSION_RELEASE,
     /** URL complète de l'archive du bootstrap à télécharger. */
     public val urlArchive: String = ConstantesBootstrap.URL_ARCHIVE,
     /** Empreinte SHA-256 attendue de l'archive (hexadécimal minuscule). */
