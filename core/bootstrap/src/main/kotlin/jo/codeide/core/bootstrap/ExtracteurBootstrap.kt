@@ -2,10 +2,7 @@ package jo.codeide.core.bootstrap
 
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.model.AppError.BootstrapReason
-import jo.codeide.core.model.EtapeInstallation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
@@ -51,14 +48,14 @@ internal class ExtracteurBootstrap(
     private val operations: OperationsSysteme,
     private val dispatchers: DispatcherProvider,
 ) {
-    /** Extraction complète + préparation des liens, en flux d'étapes. */
-    fun extraire(
+    /** Extraction complète + préparation des liens (sur I/O — l'appelant journalise la fin). */
+    suspend fun extraire(
         archive: File,
         staging: File,
-    ): Flow<EtapeInstallation> =
-        flow {
+    ): Unit =
+        withContext(dispatchers.io) {
             try {
-                extraireDans(archive, staging) { etape -> emit(etape) }
+                extraireDans(archive, staging)
             } catch (e: java.util.concurrent.CancellationException) {
                 throw e
             } catch (e: EchecBootstrap) {
@@ -68,16 +65,14 @@ internal class ExtracteurBootstrap(
             } catch (e: IOException) {
                 throw traduire(e)
             }
-        }.flowOn(dispatchers.io)
+        }
 
     /** Cœur d'extraction — les échecs d'E/S sont traduits par [extraire]. */
     private suspend fun extraireDans(
         archive: File,
         staging: File,
-        surEtape: suspend (EtapeInstallation) -> Unit,
     ) {
         val liens = mutableListOf<Pair<String, String>>()
-        var entrees = 0
         ZipInputStream(FileInputStream(archive).buffered()).use { zip ->
             var entree: ZipEntry? = zip.nextEntry
             while (entree != null) {
@@ -98,8 +93,6 @@ internal class ExtracteurBootstrap(
                         // invalides et masquerait la vraie raison.
                         verifierCheminSur(nom)
                         extraireFichier(zip, nom, staging)
-                        entrees++
-                        surEtape(EtapeInstallation.Extraction(entrees))
                     }
                 }
                 entree = zip.nextEntry
@@ -115,7 +108,6 @@ internal class ExtracteurBootstrap(
         if (liens.isEmpty()) {
             throw EchecBootstrap(BootstrapReason.ArchiveCorrompue, "$FICHIER_SYMLINKS absent de l'archive")
         }
-        surEtape(EtapeInstallation.LiensSymboliques)
         for ((cible, chemin) in liens) {
             // Le manifeste des liens subit la même garde anti-traversée
             // que les entrées zip (un manifeste hostile ne sort pas du

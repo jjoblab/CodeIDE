@@ -51,7 +51,7 @@ internal class PhaseBootstrap(
     override fun etapes(): List<InstallStep> =
         listOf(
             EtapePrealables(sonde, architecture, catalogue, racine),
-            EtapeTelechargement(telechargements, configuration),
+            EtapeTelechargement(telechargements, configuration, racine),
             EtapeExtraction(extraction, telechargements, configuration, racine),
             EtapeBascule(extraction, racine),
             EtapeSecondStage(racine),
@@ -83,9 +83,10 @@ internal class PhaseBootstrap(
 
     internal companion object {
         /**
-         * Chemin du script de second stage dans le préfixe — dupliqué de
-         * l'ancien pipeline (le temps d'E6, qui unifiera) : les copies
-         * vivent dans `ExtracteurBootstrap`, `InstallateurBootstrap` et ici.
+         * Chemin du script de second stage dans le préfixe — dupliqué
+         * d'`ExtracteurBootstrap` (constaté dans l'archive réelle) : les
+         * deux copies vivent côte à côte (E6 : l'ancien pipeline a été
+         * retiré, il ne reste que ces deux-là).
          */
         internal const val CHEMIN_SECOND_STAGE: String =
             "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh"
@@ -142,6 +143,7 @@ private class EtapePrealables(
 private class EtapeTelechargement(
     private val telechargements: GestionnaireTelechargement,
     private val configuration: ConfigurationBootstrap,
+    private val racine: File,
 ) : InstallStep {
     override val id: StepId = StepId(InstallPhase.BOOTSTRAP, "telechargement")
 
@@ -161,9 +163,27 @@ private class EtapeTelechargement(
         }
     }
 
-    /** Contrôle de reprise passif : l'archive est déjà en cache — zéro requête réseau. */
+    /**
+     * Contrôle de reprise passif : l'archive est déjà en cache — zéro
+     * requête réseau. **Adoption (E6, ADR 0091)** : un préfixe déjà
+     * basculé (shell + second stage en place — installation ancienne
+     * antérieure au parcours, ou cache nettoyé après une installation
+     * réussie) dispense AUSSI du téléchargement : l'archive n'est qu'un
+     * moyen de créer le préfixe, jamais une fin. Sa réalité fonctionnelle
+     * est prouvée en aval par exécution réelle (second stage, `apt`,
+     * `pkg`) et le marqueur d'installation — jamais par la présence du
+     * seul fichier d'archive.
+     */
     override suspend fun verify(context: StepContext): Boolean =
-        telechargements.fichierEnCache(configuration.empreinteAttendue).isFile
+        telechargements.fichierEnCache(configuration.empreinteAttendue).isFile ||
+            prefixDejaBascule()
+
+    /** Le préfixe porte-t-il déjà shell et second stage (bascule faite) ? */
+    private fun prefixDejaBascule(): Boolean {
+        val prefixe = DispositionsBootstrap.prefix(racine)
+        return File(prefixe, "bin/sh").isFile &&
+            File(prefixe, PhaseBootstrap.CHEMIN_SECOND_STAGE).isFile
+    }
 
     private fun requete(): DownloadRequest =
         DownloadRequest(

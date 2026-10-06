@@ -22,7 +22,7 @@ et bootstrap natif » (Terminal-1), sections 1.4, 2.2 et 3.
   (`ToolchainBootstrap`, `EnvironnementProcessusFournisseur`) n'apportent
   que la racine `filesDir` et la délégation.
 
-## Étape T2 (v0.21.0) — lanceur et installateur
+## Étape T2 (v0.21.0) — lanceur (et ancien installateur, retiré en E6)
 
 - `NativeProcessLauncher` / `ManagedProcess` (ports `core:domain`) :
   sous-processus **non interactifs** (scripts d'installation, futur
@@ -30,30 +30,22 @@ et bootstrap natif » (Terminal-1), sections 1.4, 2.2 et 3.
   exactement issu de `ProcessEnvironmentProvider`, flux de lignes,
   attente annulable, terminaison explicite, `pid` par réflexion (repli
   `-1`).
-- `BootstrapInstaller` (port `core:domain`, ADR 0033) : pipeline
-  coroutine à `StateFlow` partagé — espace disque (≥ 1 Gio), architecture
-  (`aarch64` seul publié), téléchargement `HttpURLConnection` avec
-  progression et **empreinte SHA-256 vérifiée**, extraction vers
-  `usr-staging` (permissions `0700`, garde anti-traversée), liens du
-  manifeste `SYMLINKS.txt`, bascule atomique, **second stage** via le
-  lanceur, `sources.list` avec `[trusted=yes]` (correction de l'URL
-  antérieure), `apt update` puis paquets **un à un** (état par outil,
-  échec global seulement si aucun n'est installé). Annulation propre :
-  nettoyage **synchrone** du staging (un appel suspendu depuis une
-  coroutine annulée ne revient pas — voir les leçons d'AGENTS.md).
-- `Aapt2Deployeur` : binaire cross-compilé déployé depuis les assets
-  vers `$PREFIX/bin` — l'absence d'asset à ce jour est une erreur typée
-  (`AssetAbsent`), signalée côté `codeide-packages` (paquet `aapt` en
-  amont, non publié).
+- ~~`BootstrapInstaller`~~ (port retiré en E6, ADR 0091) : l'ancien
+  pipeline coroutine a vécu de v0.21.0 à v0.54.0 — remplacé par
+  `OrchestrateurInstallation` (ADR 0085/0087). L'historique complet vit
+  dans les ADR 0033/0046/0048 et le CHANGELOG.
+- ~~`Aapt2Deployeur`~~ (retiré en E6) : l'`aapt2` vient du plan du
+  manifeste v2 depuis E4 (§ 12.4) — jamais d'un asset.
 - Fakes fournis par `core:testing` : `FakeToolchainLocator`,
   `FakeProcessEnvironmentProvider`, `FakeNativeProcessLauncher`
-  (+ `ProcessusScripte`), `FakeBootstrapInstaller`.
+  (+ `ProcessusScripte`), `FakeEnvironmentSetupOrchestrator`.
 
-## À venir (étapes T3+)
+## À venir
 
-Branchement dans `app` (écran d'installation, onboarding, permission
-`INTERNET` avec ADR dédié), sessions shell interactives
-(`core:terminal-runtime`, T4).
+Branché depuis v0.22.0 (écran d'installation) puis E5 (nouvelle
+interface) ; sessions shell interactives dans `core:terminal-runtime`.
+La refonte du parcours d'installation est terminée (E6, v0.60.0) — suite
+du roadmap dans `docs/ROADMAP.md`.
 
 ## Dépendances
 
@@ -73,12 +65,36 @@ phases** — `BOOTSTRAP`, `PACKAGE_TOOLS`, `JAVA` (E3 : JDK vérifié par
 exécution, sonde TLS) et `ANDROID_SDK` (E4 : plan résolu du manifeste,
 péremption par quadruplet, licences, câblage Gradle idempotent,
 vérification `sdkmanager`) — et le service de premier plan (notification
-avec action Annuler). L'ancien parcours (`InstallateurBootstrap`, ADR
-0083) reste actif jusqu'à E6 — le nouveau cadre n'est déclenché par
-aucun écran avant E5. Les tests (85 nouveaux depuis E2) éprouvent la
-machine d'états contre des phases doublées, le gestionnaire contre un
-serveur HTTP local à compteur de requêtes (l'invariant « un composant =
-une version résolue = un téléchargement » est vérifié, cache compris),
-la phase Java contre le mode muet R6 de l'ADR 0084 et la phase SDK
-contre le monde simulé complet (réparation ciblée, dégradé non
-critique, licences, override Gradle).
+avec action Annuler). Les tests éprouvent la machine d'états contre des
+phases doublées, le gestionnaire contre un serveur HTTP local à compteur
+de requêtes (l'invariant « un composant = une version résolue = un
+téléchargement » est vérifié, cache compris), la phase Java contre le
+mode muet R6 de l'ADR 0084 et la phase SDK contre le monde simulé
+complet (réparation ciblée, dégradé non critique, licences, override
+Gradle).
+
+## Migration et unicité du parcours (E6, ADR 0091)
+
+L'ancien parcours a été **supprimé** (`InstallateurBootstrap`,
+`TelechargeurBootstrap`, `Ecrivain*Cli`, `Aapt2Deployeur`,
+`VersionneurScriptsTerminal` — l'orchestrateur du parcours est l'unique
+source de vérité ; les ports `BootstrapInstaller` et
+`BootstrapAssetsSource` ont disparu du domaine). Les briques partagées
+restent : `ExtracteurBootstrap` (algorithme d'extraction, `extraire`
+est une `suspend fun`), `ConfigurateurApt`, `EspaceDisque`,
+`CapaciteArchitecture`, `EchecBootstrap`/`AppError.Bootstrap` traduits
+à la frontière par `ErreursInstallation`, `LocalisationOutils` (son
+héritage `aapt2` de `$PREFIX/bin` documente les installations anciennes)
+et `ToolchainBootstrap`.
+
+**Adoption des installations existantes** (ADR 0085 § 6 → 0091 § 1) : au
+premier `run()` sur un appareil ayant vécu l'ancien parcours, un
+composant présent sous son `installPath` **sans quadruplet persisté**
+est vérifié **par exécution** (le `verify` du manifeste) — vérifié →
+adopté, quadruplet du plan reconstruit dans `install-state.json`, zéro
+retéléchargement ; en échec → réparation de ce composant seul ; un
+préfixe déjà basculé dispense de l'archive du bootstrap. La licence du
+SDK n'est jamais migrée (§ 12.5 : consentement explicite). Trois
+scénarios testés : appareil ancien complet (0 téléchargement), appareil
+neuf (parcours propre), à moitié installé (adoption partielle +
+réparation du fautif seul).

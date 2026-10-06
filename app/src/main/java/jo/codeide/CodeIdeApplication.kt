@@ -8,7 +8,6 @@ import jo.codeide.core.crash.AppProcess
 import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
 import jo.codeide.core.data.MiroirApparence
-import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DetecteurChangementEmpreinte
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.EmpreinteChaineOutils
@@ -21,7 +20,6 @@ import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.logging.CodeIdeAppLogger
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
-import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppliquerApparence
 import jo.codeide.tooling.daemon.DaemonManager
@@ -78,11 +76,8 @@ class CodeIdeApplication : Application() {
     @Inject
     lateinit var daemonTooling: DaemonManager
 
-    /** Installateur du bootstrap — le daemon repart quand le JDK arrive. */
-    @Inject
-    lateinit var installateurBootstrap: BootstrapInstaller
-
-    /** Orchestrateur du nouveau parcours d'installation (E2-E4, ADR 0087/0089). */
+    /** Orchestrateur du parcours d'installation (E2-E4, ADR 0087/0089) —
+     *  seule source de vérité sur l'environnement depuis E6 (ADR 0091). */
     @Inject
     lateinit var orchestrateurInstallation: EnvironmentSetupOrchestrator
 
@@ -223,16 +218,8 @@ class CodeIdeApplication : Application() {
         // avec le processus principal et vit tant que lui — la fermeture du
         // socket par la mort de l'app termine proprement l'orchestrateur
         // (EOF = fin de boucle, code de sortie 0). JDK absent au démarrage :
-        // aucun lancement, l'état reste DECONNECTEE — la collecte ci-dessous
-        // relance le daemon quand l'installation du bootstrap aboutit.
+        // aucun lancement, l'état reste DECONNECTEE.
         daemonTooling.demarrer(porteeDemarrage)
-        porteeDemarrage.launch {
-            installateurBootstrap.etat.collect { etat ->
-                if (etat is EtatInstallationBootstrap.Terminee) {
-                    daemonTooling.demarrer(porteeDemarrage)
-                }
-            }
-        }
 
         // E4 (§ 6, ADR 0089) : le daemon Gradle est RELANCÉ quand
         // l'empreinte de la chaîne d'outils change (JAVA_HOME,
@@ -240,7 +227,11 @@ class CodeIdeApplication : Application() {
         // — un daemon démarré avec l'ancien environnement garderait ses
         // variables figées et compilerait avec des outils périmés. La
         // première observation n'est pas un changement : le daemon vient
-        // de démarrer avec l'environnement courant.
+        // de démarrer avec l'environnement courant. Depuis E6 (ADR 0091),
+        // ce collecteur couvre AUSSI l'arrivée du JDK en cours de session
+        // (l'ancien observateur de `BootstrapInstaller` a été retiré) :
+        // le localisateur scanne le disque, l'empreinte change dès que
+        // `java`/`javac` existent, le daemon (re)part.
         porteeDemarrage.launch {
             orchestrateurInstallation.state.collect { etat ->
                 if (relancerSiEmpreinteChangee(etat)) {
@@ -249,15 +240,6 @@ class CodeIdeApplication : Application() {
                 }
             }
         }
-
-        // Scripts du terminal VERSIONNÉS (v0.37.3 — retour d'appareil réel :
-        // « ne pas être obligé de réinstaller l'application pour que les
-        // changements fassent effet ») : au démarrage, le marqueur posé est
-        // comparé à la version embarquée — un écart réécrit profil
-        // `codeide.sh`, commandes `gradle` et `android-sdk` SANS toucher au
-        // reste du bootstrap. Idempotent : rien à faire quand tout est à
-        // jour, aucun effet sans bootstrap installé.
-        installateurBootstrap.refreshTerminalScripts()
     }
 
     /**

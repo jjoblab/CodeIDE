@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import jo.codeide.core.bootstrap.CapaciteArchitecture
 import jo.codeide.core.bootstrap.ConfigurationBootstrap
+import jo.codeide.core.bootstrap.DispositionsBootstrap
 import jo.codeide.core.bootstrap.EspaceDisqueSonde
 import jo.codeide.core.bootstrap.OperationsSysteme
 import jo.codeide.core.bootstrap.OperationsSystemeNio
@@ -192,6 +193,41 @@ class PhaseBootstrapTest {
 
         assertTrue(reprise.state.value.phases[InstallPhase.BOOTSTRAP] is PhaseState.Succeeded)
         assertEquals(requetesApresEchec, requetesHttp.get())
+    }
+
+    @Test
+    fun `un appareil ancien complet est adopté sans retélécharger l archive (E6)`() {
+        // Appareil ayant vécu l'ancien parcours : préfixe complet
+        // (shell, second stage, apt) et marqueur d'installation posés —
+        // mais AUCUN cache du nouveau gestionnaire de téléchargement
+        // (l'ancien flux n'écrivait pas `cache/downloads/<sha256>`).
+        semerAncienPrefixe()
+        val orchestrateur = orchestrateur(phase())
+
+        runBlocking { orchestrateur.run() }
+
+        val reussie = orchestrateur.state.value.phases[InstallPhase.BOOTSTRAP]
+        assertTrue("état: $reussie", reussie is PhaseState.Succeeded)
+        // Invariant E6 (ADR 0085 § 6) : adoption SANS retéléchargement —
+        // le préfixe déjà basculé dispense de l'archive.
+        assertEquals(0, requetesHttp.get())
+        assertTrue(DispositionsBootstrap.marqueurInstallation(racine).isFile)
+    }
+
+    /**
+     * Sème le disque d'un appareil « ancien parcours » : préfixe basculé
+     * complet et marqueur d'installation — l'état des étapes aval
+     * (second stage, `apt`, `pkg`) est joué par le monde scripté.
+     */
+    private fun semerAncienPrefixe() {
+        val prefixe = DispositionsBootstrap.prefix(racine)
+        File(prefixe, "bin").mkdirs()
+        File(prefixe, "bin/sh").writeText("#!/system/bin/sh\necho ok\n")
+        File(prefixe, "bin/bash").writeText("#!/system/bin/sh\n")
+        val secondStage = File(prefixe, PhaseBootstrap.CHEMIN_SECOND_STAGE)
+        secondStage.parentFile?.mkdirs()
+        secondStage.writeText("#!/system/bin/sh\nexit 0\n")
+        DispositionsBootstrap.marqueurInstallation(racine).writeText("")
     }
 
     /** Archive zip de test : le contenu minimal que les étapes vérifient. */

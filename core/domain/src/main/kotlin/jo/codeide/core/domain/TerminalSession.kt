@@ -82,15 +82,14 @@ public interface TerminalSessionRepository {
 
     /**
      * Envoie du texte à une session, **comme si l'utilisateur le tapait**
-     * (v0.52.0, ADR 0083) : le texte part vers l'entrée du pseudo-terminal
-     * — écho du shell, historique readline et séquences de contrôle
-     * comprises.
+     * (v0.52.0, ADR 0083 — mécanisme conservé après le retrait du
+     * pilotage `codeide-env` en E6, ADR 0091) : le texte part vers
+     * l'entrée du pseudo-terminal — écho du shell, historique readline
+     * et séquences de contrôle comprises.
      *
      * C'est le mécanisme du clavier logiciel (`TerminalSession.write` de
-     * Termux) réutilisé par l'application : la commande
-     * `codeide-env` est « tapée » dans une session dédiée, sa sortie
-     * défile dans le TerminalView — le journal live de la configuration
-     * de l'environnement EST le terminal, sans doublon d'affichage.
+     * Termux) réutilisable par l'application pour piloter une session
+     * dédiée depuis du code.
      *
      * Session inconnue ou déjà fermée : sans effet, jamais d'exception —
      * l'appelant pilote une session qu'il ne possède pas (elle peut

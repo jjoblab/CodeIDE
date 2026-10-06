@@ -1,5 +1,109 @@
 # Journal des modifications
 
+## [0.60.0] – 2026-10-06
+
+Sixième et dernière étape (E6) de la **refonte complète du parcours
+d'installation** : la migration des installations existantes et la
+suppression de l'ancien code. Un appareil ayant vécu l'ancien parcours
+(≤ v0.54.0) est **adopté sans retéléchargement** au premier `run()` : un
+composant du SDK présent sans quadruplet persisté est vérifié **par
+exécution** (le `verify` du manifeste v2) — vérifié → adopté, quadruplet
+du plan reconstruit dans `install-state.json` ; en échec → réparation de
+ce composant seul ; un préfixe déjà basculé dispense de l'archive du
+bootstrap (l'ancien flux n'écrivait pas le cache SHA-256 du nouveau
+gestionnaire). La licence du SDK n'est jamais migrée : le consentement
+est un acte d'utilisateur (§ 12.5). L'ancien orchestrateur
+`InstallateurBootstrap` et tout son pipeline (écrivains de scripts CLI,
+`Aapt2Deployeur`, `VersionneurScriptsTerminal`, pilotage `codeide-env`
+du terminal, ancien écran + mini-terminal) sont supprimés — environ
+2 900 lignes —, les consommateurs (bandeau accueil, observateur d'outils,
+relance du daemon Gradle) sont rebranchés sur le parcours. Décisions :
+ADR 0091 ; ADR 0082/0083 marquées remplacées.
+
+### Ajouté
+
+- **ADR 0091 — migration des installations existantes et suppression de
+  l'ancien parcours** : adoption par l'exécution (jamais depuis les
+  marqueurs de fichier — un marqueur ne prouve rien), tableau des trois
+  scénarios d'ADR 0085 § 6, limite assumée de la réparation
+  superficielle, rebranchements documentés.
+- **Tests d'adoption** (5 nouveaux, monde simulé) :
+  - `PhaseBootstrapTest` : « un appareil ancien complet est adopté sans
+    retélécharger l'archive » (0 requête HTTP, marqueur intact) ;
+  - `PhaseAndroidSdkTest` : « une installation ancienne complète est
+    adoptée sans aucun téléchargement » (0 téléchargement, quadruplets
+    reconstruits, journal « adopté »), « un appareil à moitié installé
+    n'adopte que les composants présents » (3 téléchargements), « un
+    composant ancien dont l'exécution échoue est réparé seul, les autres
+    adoptés » (1 téléchargement, binaire corrompu remplacé).
+
+### Modifié
+
+- **`core:bootstrap`** : `controleComposant` — un composant présent sans
+  quadruplet n'est plus réparé d'office, son exécution tranche (adoption
+  ou réparation seule ; la divergence d'un quadruplet ENREGISTRÉ reste
+  réparée seule, § 12.4 inchangé) ; `EtapeTelechargement.verify` — un
+  préfixe déjà basculé (shell + second stage) dispense du téléchargement ;
+  `ExtracteurBootstrap.extraire` devient une simple `suspend fun` (le
+  flux d'étapes de l'ancien pipeline n'avait plus de consommateur) ;
+  `ObservateurOutilsTerminal` a pour stimulus l'état du parcours
+  (`EnvironmentSetupOrchestrator.state`).
+- **`feature:home`** : bandeau terminal et ouverture du terminal pilotés
+  par l'état du parcours (phase `BOOTSTRAP` vérifiée, `running`) en plus
+  du scan disque — l'ancien `BootstrapInstaller` n'existe plus.
+- **`app`** : `CodeIdeApplication` — la relance du daemon Gradle à
+  l'arrivée du JDK passe par le seul détecteur d'empreinte E4 (ADR 0089
+  § 6) ; `refreshTerminalScripts()` retiré (voir Supprimé).
+- **`feature:install`** : le module ne dépend plus de
+  `core:terminal-runtime` ni des artefacts Termux (l'autorisation
+  build-logic v0.54.0 devient inerte).
+
+### Supprimé
+
+- **`core:bootstrap`** : `InstallateurBootstrap` (ancien orchestrateur),
+  `TelechargeurBootstrap`, `EcrivainSdkAndroidCli`,
+  `EcrivainCodeideEnvCli`, `EcrivainGradleCli`, `EcrivainProfilShell`,
+  `Aapt2Deployeur`, `VersionneurScriptsTerminal` et leurs tests (~2 340
+  lignes de code seul).
+- **`core:domain`** : ports `BootstrapInstaller`, `BootstrapAssetsSource`
+  (l'`aapt2` vient du plan du manifeste depuis E4, § 12.4 — jamais d'un
+  asset) et `ConfigurationEnvTerminal`.
+- **`core:model`** : `EtatInstallationBootstrap`, `EtapeInstallation`,
+  `OutilResume` (l'état vit dans `core:domain` :
+  `EnvironmentSetupState`/`PhaseState`).
+- **`core:terminal-runtime`** : `ConfigurationEnvTermux` — le terminal
+  n'orchestre plus la configuration par frappe de pty (ADR 0083
+  remplacée) ; le mécanisme `envoyerTexte` reste (pilotage générique).
+- **`core:testing`** : `FakeBootstrapInstaller`,
+  `FakeConfigurationEnvTerminal`.
+- **`feature:install`** : ancien écran `InstallFragment` +
+  `InstallViewModel` + `ClientTerminalMini`, layouts `fragment_install`,
+  `rangee_etape_install`, `rangee_outil_install`, 45 clés de ressources
+  orphelines (fr + en).
+- **`app`** : `AssetsBootstrapSource` + `BootstrapAssetsModule` (le port
+  n'a plus de consommateur).
+- **`CodeIdeApplication.refreshTerminalScripts()`** (v0.37.3) : le
+  versionnage des scripts du terminal n'a plus d'objet — l'application
+  ne pose plus `etc/codeide.sh` ni les commandes `bin/gradle` /
+  `bin/android-sdk` / `bin/codeide-env` ; l'environnement des sessions
+  vient de `ProcessEnvironmentProvider` (JAVA_HOME, ANDROID_HOME, PATH,
+  GRADLE_USER_HOME injectés par processus). **Rupture assumée** : sur un
+  appareil ancien, ces scripts restent sur le disque et fonctionnent
+  tels quels, mais ne sont plus maintenus par l'application.
+
+### Non vérifié (appareil)
+
+- L'adoption réelle d'un appareil ≤ v0.54 (notamment : les `verify` du
+  manifeste v2 passent-ils sur les binaires posés par le manifeste v1 de
+  `codeide-tools` — même layout, mêmes versions publiées) — scénarios
+  E91–E95 ajoutés à `docs/TESTS_MANUELS.md` ; le manifeste v2 doit
+  d'abord être publié côté dépôt `codeide-tools` (prompt 2, R5).
+
+
+Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
+en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
+`0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
+
 ## [0.59.0] – 2026-10-06
 
 Cinquième étape (E5) de la **refonte complète du parcours
@@ -81,11 +185,6 @@ section réelle. Décisions : ADR 0090.
 - Estimation **globale** de temps restant volontairement absente (ADR
   0090 § 3 : extrapolation = devinette, interdit § 14) — la valider ou
   demander une moyenne mesurée par appareil.
-
-
-Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
-en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
-`0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
 ## [0.58.0] – 2026-10-06
 

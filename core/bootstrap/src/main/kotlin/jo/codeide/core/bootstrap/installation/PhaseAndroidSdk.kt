@@ -284,6 +284,17 @@ internal sealed interface VerdictComposant {
  * comparaison) puis vérification **par exécution réelle** de son
  * `verify` du manifeste (§ 12.2 : sans shell, répertoire courant =
  * racine du SDK, code de retour ET regex attendue).
+ *
+ * **Adoption des installations existantes** (E6, ADR 0085 § 6 / ADR
+ * 0091) : un composant présent sur disque **sans quadruplet persisté** —
+ * posé par l'ancien parcours, antérieur à `install-state.json` — n'est
+ * PAS réparé d'office : son exécution décide. Vérifié → **adopté**, le
+ * quadruplet du plan est reconstruit en fin de phase
+ * ([PhaseAndroidSdk.composantsInstalles]) sans aucun retéléchargement ;
+ * en échec → réparation de CE composant seul, comme un quadruplet
+ * divergent. Un quadruplet ENREGISTRÉ divergent reste réparé seul
+ * (§ 12.4, inchangé) — l'adoption ne concerne que l'absence de
+ * quadruplet, jamais la divergence.
  */
 @Suppress("ReturnCount")
 internal suspend fun controleComposant(
@@ -302,24 +313,38 @@ internal suspend fun controleComposant(
         }
         return VerdictComposant.Absent
     }
+    var adoption = false
     if (!execution.tente(composant.id)) {
-        // Installation pré-existante : le quadruplet doit correspondre au
-        // plan, sinon CE composant seul est réparé (§ 12.4).
+        // Installation pré-existante : le quadruplet ENREGISTRÉ doit
+        // correspondre au plan, sinon CE composant seul est réparé (§ 12.4).
         val enregistre = magasin.load()?.installedComponents?.firstOrNull { it.id == composant.id }
-        val divergent =
-            enregistre == null ||
+        if (enregistre == null) {
+            // E6 : pas de quadruplet = installation antérieure au parcours —
+            // l'exécution qui suit tranche entre adoption et réparation.
+            adoption = true
+        } else {
+            val divergent =
                 enregistre.version != composant.version ||
-                enregistre.revision != composant.revision ||
-                enregistre.sha256 != composant.sha256
-        if (divergent) {
-            contexte.journal(
-                "composant ${composant.id} : quadruplet divergent du plan " +
-                    "(péremption § 12.4) — réparation de ce composant seul",
-            )
-            return VerdictComposant.Absent
+                    enregistre.revision != composant.revision ||
+                    enregistre.sha256 != composant.sha256
+            if (divergent) {
+                contexte.journal(
+                    "composant ${composant.id} : quadruplet divergent du plan " +
+                        "(péremption § 12.4) — réparation de ce composant seul",
+                )
+                return VerdictComposant.Absent
+            }
         }
     }
-    if (verifierParSpecification(contexte, racineSdk, composant)) return VerdictComposant.Verifie
+    if (verifierParSpecification(contexte, racineSdk, composant)) {
+        if (adoption) {
+            contexte.journal(
+                "composant ${composant.id} : présent sans quadruplet, vérifié par exécution — " +
+                    "adopté (quadruplet reconstruit depuis le plan, E6)",
+            )
+        }
+        return VerdictComposant.Verifie
+    }
     return if (execution.tente(composant.id)) {
         VerdictComposant.Degrade("la vérification par exécution de « ${composant.id} » échoue après installation")
     } else {

@@ -6,7 +6,6 @@ import jo.codeide.core.bootstrap.OperationsSysteme
 import jo.codeide.core.domain.ArchiveExtractor
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.model.AppResult
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
@@ -36,10 +35,10 @@ internal class ExtracteurArchivesBootstrap
             targetDir: File,
         ): AppResult<Unit> =
             try {
-                // Le flux est consommé jusqu'au bout (l'extraction vit dans
-                // le flow) ; les étapes intermédiaires ne portent rien que
-                // le journal du parcours ne dise déjà.
-                extracteur.extraire(archive, targetDir).lastOrNull()
+                // Extraction directe (E6 : le flux d'étapes de l'ancien
+                // pipeline a été retiré — le journal du parcours couvre
+                // la granularité qui reste utile à l'écran).
+                extracteur.extraire(archive, targetDir)
                 AppResult.Success(Unit)
             } catch (e: EchecBootstrap) {
                 AppResult.Failure(ErreursInstallation.traduire(e))

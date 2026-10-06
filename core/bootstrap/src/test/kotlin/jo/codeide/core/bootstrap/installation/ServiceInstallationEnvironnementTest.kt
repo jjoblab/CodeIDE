@@ -55,7 +55,7 @@ class ServiceInstallationEnvironnementTest {
         // Démarré en avant-plan (startForeground appelé), puis la
         // décision Arreter a stoppé le service de lui-même — le
         // collecteur tourne sur un thread séparé : attente bornée
-        // (pattern InstallateurBootstrapTest, jamais de sleep nu).
+        // (pattern historique des tests de service, jamais de sleep nu).
         attendre { shadowOf(controleur.get()).isStoppedBySelf }
     }
 

@@ -2,9 +2,7 @@ package jo.codeide.core.bootstrap
 
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.model.AppError.BootstrapReason
-import jo.codeide.core.model.EtapeInstallation
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,7 +54,7 @@ class ExtracteurBootstrapTest {
     private fun octets(texte: String): ByteArray = texte.toByteArray(Charsets.UTF_8)
 
     @Test
-    fun `extrait les fichiers réguliers vers le staging et émet la progression`() =
+    fun `extrait les fichiers réguliers vers le staging`() =
         runBlocking {
             val archive =
                 ecrireArchive(
@@ -71,11 +69,8 @@ class ExtracteurBootstrapTest {
                 )
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            val etapes = extracteur.extraire(archive, staging).toList()
+            extracteur.extraire(archive, staging)
 
-            assertEquals(8, etapes.size)
-            assertTrue(etapes.dropLast(1).all { it is EtapeInstallation.Extraction })
-            assertTrue(etapes.last() is EtapeInstallation.LiensSymboliques)
             assertEquals(octets("#!/system/bin/sh").toList(), File(staging, "bin/sh").readBytes().toList())
             assertEquals(
                 octets("deb http://exemple.invalid stable main").toList(),
@@ -94,7 +89,7 @@ class ExtracteurBootstrapTest {
             val archive = ecrireArchive("bin/sh" to octets("x"))
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging).toList()
+            extracteur.extraire(archive, staging)
 
             assertTrue(File(staging, "tmp").isDirectory)
         }
@@ -113,7 +108,7 @@ class ExtracteurBootstrapTest {
                 )
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging).toList()
+            extracteur.extraire(archive, staging)
 
             assertTrue(File(staging, "bin/sh").canExecute())
             assertTrue(File(staging, "libexec/outil").canExecute())
@@ -138,7 +133,7 @@ class ExtracteurBootstrapTest {
                 )
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging).toList()
+            extracteur.extraire(archive, staging)
 
             for (chemin in listOf("bin/ls", "bin/dir")) {
                 val lien = File(staging, chemin)
@@ -163,7 +158,7 @@ class ExtracteurBootstrapTest {
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
             val erreur =
-                runCatching { extracteur.extraire(archive, staging).toList() }.exceptionOrNull()
+                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
             assertTrue(erreur is EchecBootstrap)
             assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
@@ -176,7 +171,7 @@ class ExtracteurBootstrapTest {
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
             val erreur =
-                runCatching { extracteur.extraire(archive, staging).toList() }.exceptionOrNull()
+                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
             assertTrue(erreur is EchecBootstrap)
             assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
@@ -189,7 +184,7 @@ class ExtracteurBootstrapTest {
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
             val erreur =
-                runCatching { extracteur.extraire(archive, staging).toList() }.exceptionOrNull()
+                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
             assertTrue(erreur is EchecBootstrap)
             assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
@@ -204,7 +199,7 @@ class ExtracteurBootstrapTest {
             val staging = File(dossierTemp.newFolder(), "usr-staging")
 
             val erreur =
-                runCatching { extracteur.extraire(archive, staging).toList() }.exceptionOrNull()
+                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
             assertTrue(erreur is EchecBootstrap)
             assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
@@ -215,7 +210,7 @@ class ExtracteurBootstrapTest {
         runBlocking {
             val archive = ecrireArchive("bin/sh" to octets("nouveau"))
             val staging = File(dossierTemp.newFolder(), "installation")
-            extracteur.extraire(archive, staging).toList()
+            extracteur.extraire(archive, staging)
 
             val prefixe = File(dossierTemp.newFolder(), "usr")
             prefixe.mkdirs()
