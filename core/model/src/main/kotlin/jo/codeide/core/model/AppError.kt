@@ -149,6 +149,12 @@ public sealed interface AppError {
 
         /** Le manifeste d'outils est invalide ou incompatible avec les exigences du catalogue. */
         ManifesteInvalide,
+
+        /**
+         * L'ABI de l'appareil n'est pas `arm64-v8a` (phase 1, ADR 0087) :
+         * l'archive du bootstrap n'est publiée que pour `aarch64`.
+         */
+        ArchitectureNonSupportee,
     }
 
     /**

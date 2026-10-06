@@ -4,6 +4,122 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.56.0] – 2026-10-06
+
+Deuxième étape (E2) de la **refonte complète du parcours
+d'installation** : le cadre commun d'exécution (orchestrateur concret,
+`CommandRunner`, `DownloadManager` à cache SHA-256, état persisté
+`install-state.json`, service de premier plan avec action Annuler) et
+les phases 1 (Bootstrap) et 2 (PackageTools). L'ancien parcours reste
+actif — le nouveau cadre coexiste jusqu'à E6, aucune interface ne le
+déclenche avant E5. Décisions : ADR 0087.
+
+### Ajouté
+
+- **ADR 0087 — cadre commun d'exécution** : reprise « verify-first »
+  (une étape déjà vérifiée est sautée — mécanisme unique de la reprise,
+  de l'idempotence et de la réparation ciblée : `repair(phase)` rejoue
+  la seule phase demandée), annulation synchrone avec persistance en
+  coroutine fraîche (leçon v0.55.0), séquentialité stricte (arrêt à la
+  première phase non livrée), licence SDK exigée avant `ANDROID_SDK`
+  (§ 12.5).
+- **`core:bootstrap` (sous-package `installation/`)** :
+  - `OrchestrateurInstallation` : implémentation du port
+    `EnvironmentSetupOrchestrator` — pipeline dans un scope interne
+    (survit à la coroutine appelante), journal borné 200 lignes expurgé
+    par `LogRedactor`, `verify(deep)` par exécution réelle (le contrôle
+    approfondi complet arrive avec la phase 4, journalisé explicitement
+    en attendant — jamais de repli silencieux) ;
+  - `CommandRunnerProcessus` : enveloppe du `NativeProcessLauncher`,
+    capture **intégrale** de stdout et stderr (l'ancien
+    `SupervisionProcessus` ne gardait que 5 lignes de stderr), délai
+    maximal qui détruit le processus (`CommandResult.timedOut`),
+    annulation qui ne laisse pas le sous-processus vivant ;
+  - `GestionnaireTelechargement` : cache `filesDir/cache/downloads`
+    adressé par SHA-256 (fichier présent + somme correcte = zéro requête
+    réseau — l'invariant « un composant = une version résolue = un
+    téléchargement » est testé par compteur de requêtes), sources
+    ordonnées avec miroirs journalisés, reprise HTTP `Range` (206) avec
+    hachage du `.part` repris dans l'empreinte ;
+  - `MagasinEtatInstallation` : `install-state.json` en `org.json`
+    (précédent `CrashReportFileStore`), écriture atomique, `Running`
+    normalisé `NotStarted` à l'écriture comme à la lecture, fichier
+    corrompu ou schéma inconnu = reprise de zéro ;
+  - `ClientManifesteOutils` : transport du manifeste v2 (URL unique du
+    catalogue, § 12.7) avec validation de schéma — les vecteurs de
+    référence officiels et la consommation arrivent en E4 ;
+  - `PhaseBootstrap` (8 étapes : préalables espace/architecture,
+    téléchargement, extraction gardée, bascule atomique, second stage,
+    configuration APT, vérifications **exécutées** `sh -c 'echo ok'` /
+    `apt --version` / `pkg help`, marqueur) et `PhaseOutilsPaquets`
+    (`pkg update` retenté à délai croissant puis repli journalisé
+    `apt update` — échec persistant = échec de phase en `Reseau` avec
+    sortie à l'appui — puis un step par paquet du catalogue, chacun
+    vérifié par exécution réelle : `curl`/`tar`/`xz`/`unzip`
+    `--version`, `ca-certificates` par `dpkg -l`) ;
+  - `ServiceInstallationEnvironnement` : service de premier plan
+    `specialUse` (sous-type documenté, précédent ADR 0035),
+    notification de progression avec **première action Annuler du
+    dépôt**, décision pure `DecisionNotificationInstallation`
+    (notification tant qu'une phase court, arrêt sinon), démarrage par
+    port interne `DemarreurServiceInstallation` — livré et testé, pas
+    encore déclenché en production (branchement UI en E5) ;
+  - fabrique `FabriquePhasesParDefaut` : la carte de phases (types
+    `internal`) ne transite jamais par le graphe Hilt (un `Map` générique
+    y serait traité comme un multibinding) — doublable en test par
+    `FabriquePhasesFausse`.
+- **`core:model`** : 9ᵉ raison `EnvironmentSetupReason.
+  ArchitectureNonSupportee` (l'ABI n'est pas `arm64-v8a` — ajout
+  purement additif, les traducteurs branchent sur le type, pas sur la
+  raison) ; `ConfigurationBootstrap.versionRelease` exposée (récapitulatif
+  de la phase 1).
+- **`core:domain`** : `CommandResult.timedOut` (délai maximal distingué
+  d'un échec banal) ; KDoc de `ArchiveExtractor` élargi (zip du
+  bootstrap en phase 1, `.tar.xz` du manifeste en phase 4).
+- **`core:testing`** : `FakeCommandRunner`, `FakeDownloadManager` (avec
+  compteur — l'invariant de l'unique téléchargement s'asserte),
+  `FakeArchiveExtractor`, `FakeToolManifestClient`, `FakeInstallStateStore`,
+  `FakeEnvironmentSetupOrchestrator`.
+- **Tests (56 nouveaux, module à 190)** : machine d'états complète
+  (transitions, échec avec sortie, annulation, reprise verify-first,
+  double `run` sans effet, `repair` ciblé, licence, `Permissions` au
+  lancement refusé, `Running` persisté normalisé) ; gestionnaire de
+  téléchargements sur serveur HTTP local avec compteur (cache = 1
+  requête au premier appel, 0 au second ; miroirs dans l'ordre ;
+  reprise `Range` depuis un `.part` laissé par un kill ; réponse coupée
+  = somme invalide, jamais d'artefact invalide au cache) ; runner
+  (capture intégrale, timeout qui tue, annulation qui tue, `IOException`
+  de lancement) ; magasin (aller-retour des trois états stables,
+  normalisation, corrompu/schéma inconnu/champ requis absent = nul,
+  écriture atomique) ; phases 1 et 2 de bout en bout (archive zip de
+  test réelle, commandes scriptées, monde simulé qui évolue avec les
+  installations) ; service (action Annuler, arrêt sans phase en cours,
+  maintien en phase en cours) ; client manifeste (fixtures conformes
+  § 12.2, schéma 1 rejeté, champ requis absent rejeté, SHA-256 mal
+  formée rejetée, HTTP 404 = `Reseau`).
+
+### Non vérifié (règle 2 du cahier des charges)
+
+- **Sur appareil aarch64** : comportement du service de premier plan
+  sous Android 15 avec cible 28 (le précédent terminal tourne, le type
+  `specialUse` est accepté), idempotence du second stage relancé (son
+  verrou interne est le comportement termux attendu — constaté sur le
+  script, pas exécuté sur appareil), exécution directe des scripts du
+  préfixe via shebang (les étapes passent par `sh`/`bash` explicites,
+  éprouvé par l'ancien pipeline).
+- **Vérification approfondie** (`verify(deep = true)`) : le contrôle
+  complet (projet généré + `assembleDebug` réel) exige la phase
+  `ANDROID_SDK` — livré en E4 ; E2 exécute les contrôles légers et le
+  journalise explicitement.
+- **Branchement UI** : le service et l'orchestrateur ne sont démarrés
+  par aucun écran (E5) — vérifiés par tests Robolectric et tests
+  d'intégration du cadre uniquement.
+
+### Questions au propriétaire
+
+- (Reprise des questions E1) Licences § 12.5 et divergence manifeste
+  v1 → publiées par le prompt 2 en v2 ; rien de nouveau de mon côté.
+
 ## [0.55.0] – 2026-10-05
 
 Première étape (E1) de la **refonte complète du parcours d'installation

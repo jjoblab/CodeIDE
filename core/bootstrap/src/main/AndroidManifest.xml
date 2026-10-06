@@ -1,2 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Service foreground de l'installation de l'environnement (refonte
+         E2, ADR 0087 § 8) : porte le pipeline du parcours hors écran,
+         notification de progression avec action Annuler. Type
+         specialUse (targetSdk 28 : aucun type imposé avant la cible
+         29, précédent ADR 0035) — le sous-type documenté ci-dessous
+         l'explique à la revue Play. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name="jo.codeide.core.bootstrap.installation.ServiceInstallationEnvironnement"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Exécute l'installation de l'environnement de développement (bootstrap, outils, JDK, SDK Android) avec progression et annulation." />
+        </service>
+    </application>
+
+</manifest>
