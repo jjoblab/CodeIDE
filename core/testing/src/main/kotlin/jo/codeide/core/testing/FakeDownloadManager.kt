@@ -31,6 +31,13 @@ public class FakeDownloadManager : DownloadManager {
     /** Fabrique du fichier à retourner — défaut : `null` traité comme cache absent. */
     public var fichierEnCache: File? = null
 
+    /**
+     * Fichiers par somme SHA-256 (E4) : quand la demande correspond, ce
+     * fichier est retourné — prioritaire sur [fichierEnCache] (plans
+     * multi-composants : une archive par composant).
+     */
+    public val fichiersParSha: MutableMap<String, File> = mutableMapOf()
+
     /** Quand non `null`, le téléchargement échoue par cette erreur typée. */
     public var echec: AppError? = null
 
@@ -46,6 +53,10 @@ public class FakeDownloadManager : DownloadManager {
         return when {
             echec != null -> {
                 AppResult.Failure(echec!!)
+            }
+
+            fichiersParSha.containsKey(request.sha256) -> {
+                restituer(fichiersParSha.getValue(request.sha256), onProgress)
             }
 
             fichierEnCache != null -> {

@@ -306,6 +306,90 @@ class LocalisationOutilsTest {
     }
 
     @Test
+    fun `androidHome accepte un SDK cohérent sans plateforme - build-tools seul suffit`() {
+        // Refonte E4 (§ 6) : un SDK partiel n'est plus invisible —
+        // `ANDROID_HOME` est exporté dès que le dossier est cohérent, sans
+        // attendre une plateforme (constat E1 corrigé).
+        val racine = racineFactice()
+        File(racine, "usr/opt/android-sdk/build-tools/35.0.2").mkdirs()
+
+        assertEquals(
+            File(racine, "usr/opt/android-sdk").absolutePath,
+            LocalisationOutils.trouverAndroidHome(racine)?.absolutePath,
+        )
+    }
+
+    @Test
+    fun `aapt2 est résolu depuis l installPath persisté du composant build-tools`() {
+        // § 12.4 : le chemin vient du plan matérialisé dans install-state.json —
+        // composant `aapt2` s'il existe, sinon `build-tools` (ADR 0089).
+        val racine = racineFactice()
+        File(racine, "home/android-sdk/build-tools/35.0.2").mkdirs()
+        deposerBinaire(racine, "home", "android-sdk", "build-tools", "35.0.2", "aapt2")
+        File(racine, "install-state.json").writeText(
+            """
+            {
+              "schemaVersion": 2,
+              "phases": {},
+              "installedComponents": [
+                {"id": "build-tools", "version": "35.0.2", "revision": "r1",
+                 "sha256": "${"ab".repeat(32)}", "installedAtMillis": 1,
+                 "installPath": "build-tools/35.0.2"}
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            File(racine, "home/android-sdk/build-tools/35.0.2/aapt2").absolutePath,
+            LocalisationOutils.trouverAapt2(racine)?.absolutePath,
+        )
+    }
+
+    @Test
+    fun `aapt2 privilégie le composant aapt2 du plan sur build-tools`() {
+        val racine = racineFactice()
+        File(racine, "home/android-sdk/aapt2/35").mkdirs()
+        File(racine, "home/android-sdk/build-tools/35.0.2").mkdirs()
+        deposerBinaire(racine, "home", "android-sdk", "aapt2", "35", "aapt2")
+        deposerBinaire(racine, "home", "android-sdk", "build-tools", "35.0.2", "aapt2")
+        File(racine, "install-state.json").writeText(
+            """
+            {
+              "schemaVersion": 2,
+              "phases": {},
+              "installedComponents": [
+                {"id": "aapt2", "version": "35", "revision": "r1",
+                 "sha256": "${"cd".repeat(32)}", "installedAtMillis": 1,
+                 "installPath": "aapt2/35"},
+                {"id": "build-tools", "version": "35.0.2", "revision": "r1",
+                 "sha256": "${"ef".repeat(32)}", "installedAtMillis": 1,
+                 "installPath": "build-tools/35.0.2"}
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            File(racine, "home/android-sdk/aapt2/35/aapt2").absolutePath,
+            LocalisationOutils.trouverAapt2(racine)?.absolutePath,
+        )
+    }
+
+    @Test
+    fun `aapt2 retombe sur le scan du SDK sans état persisté`() {
+        val racine = racineFactice()
+        File(racine, "home/android-sdk/platforms/android-34/android.jar").mkdirs()
+        deposerBinaire(racine, "home", "android-sdk", "build-tools", "34.0.0", "aapt2")
+        deposerBinaire(racine, "home", "android-sdk", "build-tools", "35.0.2", "aapt2")
+
+        assertEquals(
+            File(racine, "home/android-sdk/build-tools/35.0.2/aapt2").absolutePath,
+            LocalisationOutils.trouverAapt2(racine)?.absolutePath,
+        )
+    }
+
+    @Test
     fun `androidHome trouve le SDK posé sous le HOME par la commande android-sdk`() {
         // v0.37.3 (retour d'appareil réel) : le SDK vit sous le HOME du
         // shell — home/android-sdk, disposition de la commande

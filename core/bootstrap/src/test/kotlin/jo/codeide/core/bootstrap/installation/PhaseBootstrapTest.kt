@@ -14,6 +14,7 @@ import jo.codeide.core.domain.StepContext
 import jo.codeide.core.domain.ToolchainCatalog
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeNativeProcessLauncher
+import jo.codeide.core.testing.FakeVerificationApprofondie
 import jo.codeide.core.testing.ProcessusScripte
 import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
@@ -281,6 +282,7 @@ class PhaseBootstrapTest {
             horloge = horlogeFausse,
             journalFichier = FakeAppLogger(),
             demarreurService = demarreurFaux,
+            verificationApprofondie = verificationApprofondieFausse,
             fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.BOOTSTRAP to phase)),
         )
 
@@ -288,6 +290,8 @@ class PhaseBootstrapTest {
         object : DemarreurServiceInstallation {
             override fun demarrer() = Unit
         }
+
+    private val verificationApprofondieFausse = FakeVerificationApprofondie()
 
     private val horlogeFausse =
         object : jo.codeide.core.domain.TimeProvider {

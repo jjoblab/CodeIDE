@@ -333,9 +333,18 @@ private class EtapeVerificationTls(
         val reseau = TRACES_RESEAU.any { pile.contains(it) }
         val details =
             when {
-                truststore -> "test TLS échoué : truststore Java inutilisable (certificats racines absents ou cassés)"
-                reseau -> "test TLS échoué : $CIBLE_SONDE injoignable (réseau)"
-                else -> "test TLS échoué (code ${sonde.exitCode})"
+                truststore -> {
+                    "test TLS échoué : truststore Java inutilisable " +
+                        "(certificats racines absents ou cassés)"
+                }
+
+                reseau -> {
+                    "test TLS échoué : $CIBLE_SONDE injoignable (réseau)"
+                }
+
+                else -> {
+                    "test TLS échoué (code ${sonde.exitCode})"
+                }
             }
         return AppError.EnvironmentSetup(
             reason = if (truststore || !reseau) EnvironmentSetupReason.Jvm else EnvironmentSetupReason.Reseau,

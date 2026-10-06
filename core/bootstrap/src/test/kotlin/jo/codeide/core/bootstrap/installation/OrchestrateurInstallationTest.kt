@@ -18,6 +18,7 @@ import jo.codeide.core.testing.FakeCommandRunner
 import jo.codeide.core.testing.FakeDownloadManager
 import jo.codeide.core.testing.FakeInstallStateStore
 import jo.codeide.core.testing.FakeToolManifestClient
+import jo.codeide.core.testing.FakeVerificationApprofondie
 import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -101,6 +102,8 @@ class OrchestrateurInstallationTest {
         override fun nowMillis(): Long = instant++
     }
 
+    private val verificationApprofondieFausse = FakeVerificationApprofondie()
+
     private fun orchestrateur(
         phases: Map<InstallPhase, PhaseInstallation>,
         magasin: FakeInstallStateStore = FakeInstallStateStore(),
@@ -116,6 +119,7 @@ class OrchestrateurInstallationTest {
             horloge = HorlogeFausse(),
             journalFichier = FakeAppLogger(),
             demarreurService = demarreur,
+            verificationApprofondie = verificationApprofondieFausse,
             fabriquePhases = FabriquePhasesFausse(phases),
         ) to magasin
 
