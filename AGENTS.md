@@ -848,6 +848,23 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.57.0 : **E3 de la refonte** (ADR 0088) : phase 3 `JAVA` livrée dans
+      `core:bootstrap/installation/PhaseJava.kt` — étape `openjdk`
+      (`apt-cache policy` journalisé, jamais un verdict ; `pkg install`
+      du paquet catalogue ; contrôle immédiat : `JAVA_HOME` par la règle
+      unique `LocalisationOutils`, `java -version` (bannière sur
+      **stderr**) + `javac -version` exécutés, majeure comparée au
+      catalogue ; une JVM posée qui ne démarre pas échoue avec sa sortie
+      capturée — régression du mode muet R6, ADR 0084) et étape
+      `verification-tls` (sonde `SondeTls.java` compilée par `javac`
+      puis exécutée par `java` : JVM + truststore + poignée TLS + réseau
+      en un contrôle ; échecs **classés** truststore → `Jvm` /
+      réseau → `Reseau`, pile capturée) ; `versions["jdk"]` lu sur
+      `java -version` réel (jamais en dur) ; 7 tests `PhaseJavaTest`
+      (module 197) ; parcours BOOTSTRAP → PACKAGE_TOOLS → JAVA complet,
+      arrêt propre avant `ANDROID_SDK` (E4) ; leçon E3 : la bannière de
+      `java -version` est sur **stderr** — toujours lire stdout ET
+      stderr (helper `sortieComplete`).
 - v0.56.0 : **E2 de la refonte** (ADR 0087) : cadre commun livré dans
       `core:bootstrap/installation/` — orchestrateur concret (reprise
       « verify-first », annulation synchrone + persistance en coroutine
