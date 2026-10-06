@@ -177,14 +177,18 @@ class InstallationViewModelTest {
         }
 
     @Test
-    fun `accepterLicence enregistre l acceptation explicite`() =
+    fun `accepterEtDemarrer enregistre l acceptation puis lance le parcours`() =
         runTest {
             val viewModel = InstallationViewModel(orchestrateur)
             advanceUntilIdle()
 
-            viewModel.accepterLicence()
+            viewModel.accepterEtDemarrer()
+            advanceUntilIdle()
 
+            // v0.60.1 (ADR 0092) : consentement ET lancement, dans cet ordre —
+            // l'ancien bouton « Installer le SDK » ne faisait que démarrer.
             assertEquals(1, orchestrateur.acceptationsLicence.get())
+            assertEquals(listOf<InstallPhase?>(null), orchestrateur.lancements)
         }
 
     @Test

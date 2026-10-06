@@ -98,3 +98,18 @@ SDK n'est jamais migrée (§ 12.5 : consentement explicite). Trois
 scénarios testés : appareil ancien complet (0 téléchargement), appareil
 neuf (parcours propre), à moitié installé (adoption partielle +
 réparation du fautif seul).
+
+## Sortie de apt non fiable (v0.60.1, ADR 0092)
+
+Constat appareil réel : `pkg install` peut renvoyer le code 100 APRÈS une
+installation réussie (« `E: Directory … missing` », avertissement
+`EIPP::OrderInstall`). Les commandes d'installation de paquets
+(`EtapePaquetJdk`, `EtapePaquet`) et de mise à jour
+(`EtapeMiseAJourPaquets`, sonde locale `apt-cache policy` du paquet JDK)
+vérifient donc **par exécution** après un code non nul : l'outil répond →
+poursuite journalisée ; il ne répond pas → échec `Commande` avec la
+sortie apt. La tolérance est limitée aux commandes de paquets —
+téléchargements, extraction et phase 4 gardent leur verdict strict.
+Depuis la même version, `acceptSdkLicense()` (port du domaine) est
+`suspend` : l'acceptation de la licence § 12.5 est persistée AVANT le
+retour, un `run()` appelé juste après ne peut pas la manquer.

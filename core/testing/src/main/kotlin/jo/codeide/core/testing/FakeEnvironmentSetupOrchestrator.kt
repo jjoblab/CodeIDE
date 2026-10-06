@@ -69,7 +69,7 @@ public class FakeEnvironmentSetupOrchestrator : EnvironmentSetupOrchestrator {
         lancements += phase
     }
 
-    override fun acceptSdkLicense() {
+    override suspend fun acceptSdkLicense() {
         acceptationsLicence.incrementAndGet()
     }
 
