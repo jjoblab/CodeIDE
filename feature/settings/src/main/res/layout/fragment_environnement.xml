@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Écran Environnement des Paramètres (E5, § 7, ADR 0089) : composants
+     (versions, tailles, état vérifié), actions Vérifier (légère /
+     approfondie), Réparer, Désinstaller (confirmation), diagnostic. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                style="?attr/textAppearanceHeadlineSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/environnement_titre" />
+
+            <TextView
+                style="?attr/textAppearanceBodySmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/environnement_sous_titre" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/liste_composants"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/journal_environnement"
+        style="?attr/textAppearanceBodySmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:maxLines="6"
+        android:paddingHorizontal="16dp"
+        android:textIsSelectable="true" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <Button
+            android:id="@+id/bouton_verifier"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/environnement_verifier" />
+
+        <Button
+            android:id="@+id/bouton_verifier_profond"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/environnement_verifier_profond" />
+
+        <Button
+            android:id="@+id/bouton_reparer"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/environnement_reparer" />
+
+        <Button
+            android:id="@+id/bouton_diagnostic"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/environnement_diagnostic" />
+    </LinearLayout>
+</LinearLayout>

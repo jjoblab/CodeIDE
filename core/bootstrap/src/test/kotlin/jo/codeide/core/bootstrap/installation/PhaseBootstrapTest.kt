@@ -9,9 +9,11 @@ import jo.codeide.core.bootstrap.OperationsSysteme
 import jo.codeide.core.bootstrap.OperationsSystemeNio
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.InstallPhase
+import jo.codeide.core.domain.InstalledComponent
 import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.StepContext
 import jo.codeide.core.domain.ToolchainCatalog
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeNativeProcessLauncher
 import jo.codeide.core.testing.FakeVerificationApprofondie
@@ -283,6 +285,7 @@ class PhaseBootstrapTest {
             journalFichier = FakeAppLogger(),
             demarreurService = demarreurFaux,
             verificationApprofondie = verificationApprofondieFausse,
+            desinstalleur = desinstalleurFaux,
             fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.BOOTSTRAP to phase)),
         )
 
@@ -292,6 +295,11 @@ class PhaseBootstrapTest {
         }
 
     private val verificationApprofondieFausse = FakeVerificationApprofondie()
+
+    private val desinstalleurFaux =
+        object : DesinstalleurComposants {
+            override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> = AppResult.Success(Unit)
+        }
 
     private val horlogeFausse =
         object : jo.codeide.core.domain.TimeProvider {

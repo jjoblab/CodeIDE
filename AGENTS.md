@@ -848,6 +848,37 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.59.0 : **E5 de la refonte** (ADR 0090) : nouvelle interface —
+  `InstallationFragment`/`InstallationViewModel` (feature:install ;
+  projection pure de `EnvironmentSetupOrchestrator.state` : stepper 4
+  cartes, « étape N sur 4 », journal repliable monospace, consentement
+  licence réinitialisé à l'APPARITION de la carte seulement, vitesse +
+  temps restant MESURÉS sur deux échantillons (`estimer` pur — jamais
+  d'extrapolation : divergence ADR 0090 § 3), actions masquées hors
+  contexte jamais grisées, récapitulatif + « Créer mon premier projet »,
+  `layout-sw600dp` deux panneaux mêmes identifiants — journal
+  structurel, bouton bascule masqué) ; `EnvironnementFragment`/
+  `EnvironnementViewModel`/`ComposantsEnvAdapter` (feature:settings ;
+  composants du magasin + tailles RÉELLES par port `AuditeurComposants`
+  (état vérifié = présence du disque, jamais un booléen déduit), rangée
+  JDK « paquet APT » non désinstallable, Vérifier légère/approfondie /
+  Réparer (première phase non vérifiée) / Désinstaller avec confirmation
+  → `uninstallComponent` (nouveau port orchestrateur : retrait du
+  quadruplet par le seul décideur, `DesinstalleurComposants` supprime
+  l'installPath § 12.3) / Copier le diagnostic) ;
+  `DiagnosticInstallation` (core:domain, partagé, codes techniques
+  NEUTRES — aucun libellé localisé codé en dur) ; maquette
+  `docs/preview/installation-environnement.html` ; `SectionParametres.
+  OUTILS` (« bientôt ») SUPPRIMÉ remplacé par `ENVIRONNEMENT` (l'écran
+  bientôt ne garde qu'IA/Sécurité) ; destination `installation` →
+  `InstallationFragment` (l'ancien écran devient inatteignable,
+  suppression en E6) ; fakes : `FakeAuditeurComposants` neuf,
+  `FakeEnvironmentSetupOrchestrator.verifications` ; 26 tests nouveaux
+  (Diagnostic 6, InstallationVM 13, EnvironnementVM 7) ; leçon : le
+  ViewBinding des deux variantes téléphone/tablette de
+  `fragment_installation` expose `zoneJournal` en type commun
+  (FrameLayout ancêtre du ScrollView) — mêmes identifiants, une seule
+  classe de liaison.
 - v0.58.0 : **E4 de la refonte** (ADR 0089) : phase 4 `ANDROID_SDK`
       complète — cinq étapes (`resolution-plan` : manifeste v2 + résolution
       § 12.2 + espace (plan × 2) ; `composants` : péremption par

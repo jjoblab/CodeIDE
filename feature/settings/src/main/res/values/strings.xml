@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_title">Paramètres</string>
     <string name="settings_back_cd">Revenir en arrière</string>
 
@@ -82,8 +82,8 @@
     <string name="settings_sous_ia">Assistant de code intégré</string>
     <string name="settings_maitre_projets">Projets</string>
     <string name="settings_sous_projets">Dossier de travail, auteur, licence</string>
-    <string name="settings_maitre_outils">Outils de développement</string>
-    <string name="settings_sous_outils">Daemon Gradle, bootstrap PRoot/Ubuntu</string>
+    <string name="settings_maitre_env">Environnement de développement</string>
+    <string name="settings_sous_env">Composants du SDK, vérifications, réparations</string>
     <string name="settings_maitre_securite">Sécurité et confidentialité</string>
     <string name="settings_sous_securite">Rapports de plantage, verrouillage</string>
     <string name="settings_maitre_apropos">À propos</string>
@@ -95,8 +95,6 @@
     <!-- Écran générique « bientôt disponible ». -->
     <string name="settings_bientot_titre_ia">Assistant IA — bientôt disponible</string>
     <string name="settings_bientot_texte_ia">Cette section apparaîtra dans le menu dès que le module sera prêt.</string>
-    <string name="settings_bientot_titre_outils">Bientôt disponible</string>
-    <string name="settings_bientot_texte_outils">Daemon Gradle, bootstrap PRoot/Ubuntu, espace utilisé — proposition à valider avec toi.</string>
     <string name="settings_bientot_titre_securite">Bientôt disponible</string>
     <string name="settings_bientot_texte_securite">Rapports de plantage, verrouillage de l\'app — proposition à valider avec toi.</string>
 
@@ -183,9 +181,28 @@
     <string name="settings_cd_ligne_terminal">Ouvrir les réglages du terminal</string>
     <string name="settings_cd_ligne_ia">Assistant IA — bientôt disponible</string>
     <string name="settings_cd_ligne_projets">Ouvrir les réglages des projets</string>
-    <string name="settings_cd_ligne_outils">Outils de développement — bientôt disponible</string>
+    <string name="settings_cd_ligne_env">Ouvrir l\'écran Environnement</string>
     <string name="settings_cd_ligne_securite">Sécurité et confidentialité — bientôt disponible</string>
     <string name="settings_cd_ligne_apropos">Ouvrir les informations de l\'application</string>
     <string name="settings_cd_ligne_avance">Ouvrir les réglages avancés</string>
 
+
+    <!-- E5 : écran Environnement (ADR 0090) -->
+    <string name="environnement_titre">Environnement</string>
+    <string name="environnement_sous_titre">Versions et état vérifié de chaque composant installé.</string>
+    <string name="environnement_details">%1$s · %2$s · %3$s · %4$s</string>
+    <string name="environnement_etat_verifie">vérifié</string>
+    <string name="environnement_etat_verifie_apt">vérifié (paquet APT)</string>
+    <string name="environnement_etat_absent">absent du disque</string>
+    <string name="environnement_revision">%1$s</string>
+    <string name="environnement_revision_aucune">sans révision</string>
+    <string name="environnement_taille_mio" tools:ignore="PluralsCandidate">%1$d Mio</string>
+    <string name="environnement_taille_inconnue">taille inconnue</string>
+    <string name="environnement_diagnostic">Copier le diagnostic</string>
+    <string name="environnement_verifier">Vérifier (légère)</string>
+    <string name="environnement_verifier_profond">Vérification approfondie</string>
+    <string name="environnement_reparer">Réparer…</string>
+    <string name="environnement_desinstaller">Désinstaller</string>
+    <string name="environnement_desinstaller_titre">Désinstaller %1$s ?</string>
+    <string name="environnement_desinstaller_texte">Le composant %1$s sera supprimé du SDK. Il se réinstallera lors d\'une réparation.</string>
 </resources>

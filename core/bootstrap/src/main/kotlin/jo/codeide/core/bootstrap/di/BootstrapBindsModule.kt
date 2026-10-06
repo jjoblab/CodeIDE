@@ -129,6 +129,20 @@ internal abstract class BootstrapBindsModule {
     @Singleton
     abstract fun bindToolManifestClient(impl: ClientManifesteOutils): ToolManifestClient
 
+    /** Désinstallation de composants (E5, § 7 — écran Environnement). */
+    @Binds
+    @Singleton
+    abstract fun bindDesinstalleurComposants(
+        impl: jo.codeide.core.bootstrap.installation.DesinstalleurComposantsAndroid,
+    ): jo.codeide.core.bootstrap.installation.DesinstalleurComposants
+
+    /** Audit en lecture seule des composants (E5, § 7 — écran Environnement). */
+    @Binds
+    @Singleton
+    abstract fun bindAuditeurComposants(
+        impl: jo.codeide.core.bootstrap.installation.AuditeurComposantsAndroid,
+    ): jo.codeide.core.domain.AuditeurComposants
+
     /** Fabrique des phases livrées (E2 : BOOTSTRAP et PACKAGE_TOOLS, ADR 0087 § 1). */
     @Binds
     @Singleton

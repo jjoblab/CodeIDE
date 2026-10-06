@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- v0.31.4 (ADR 0048): the first setup installs the BASE
          ENVIRONMENT (shell + apt + updated repository); tool packages
          (JDK, git…) are optional and deferred. -->
@@ -56,4 +56,35 @@
     <string name="installation_erreur_asset">An embedded tool binary is missing from the app. A CodeIDE update will be required.</string>
     <string name="installation_erreur_architecture">This device\'s architecture is not supported by the bootstrap yet (arm64 required).</string>
     <string name="installation_erreur_inconnue">Unexpected error during installation. Retry.</string>
+
+    <!-- E5 : new installation UI (ADR 0090) -->
+    <string name="installation_titre_nouveau">Environment setup</string>
+    <string name="installation_sous_titre">Bootstrap, tools, Java then the Android SDK — every phase is verified by real execution.</string>
+    <string name="installation_progression" tools:ignore="PluralsCandidate">Step %1$d of %2$d</string>
+    <string name="installation_progression_exemple">Step 0 of 4</string>
+    <string name="installation_phase_bootstrap">Bootstrap</string>
+    <string name="installation_phase_outils">Tools</string>
+    <string name="installation_phase_java">Java</string>
+    <string name="installation_phase_android">Android</string>
+    <string name="installation_etat_attente">Pending</string>
+    <string name="installation_etat_encours">Running</string>
+    <string name="installation_etat_terminee">Completed</string>
+    <string name="installation_etat_degradee">Degraded</string>
+    <string name="installation_etat_echec">Failed</string>
+    <string name="installation_avertissements">Degraded: %1$s</string>
+    <string name="installation_licence_titre">Android SDK license</string>
+    <string name="installation_licence_texte">The Android SDK components are subject to Google\'s Android SDK license. Installation starts only after your acceptance.</string>
+    <string name="installation_licence_case">I accept the Android SDK license</string>
+    <string name="installation_installer_sdk">Install the Android SDK</string>
+    <string name="installation_demarrer">Start setup</string>
+    <string name="installation_env_annuler">Cancel</string>
+    <string name="installation_env_reessayer">Retry this phase</string>
+    <string name="installation_diagnostic">Copy diagnostic</string>
+    <string name="installation_terminal">Open terminal</string>
+    <string name="installation_journal_basculer">Live log</string>
+    <string name="installation_vitesse_mio_s">%1$.1f MiB/s</string>
+    <string name="installation_duree_secondes">%1$d s</string>
+    <string name="installation_duree_minutes">%1$d min</string>
+    <string name="installation_estimation">%1$s — about %2$s left</string>
+    <string name="installation_premier_projet">Create my first project</string>
 </resources>

@@ -79,6 +79,7 @@ internal class OrchestrateurInstallation
         private val journalFichier: AppLogger,
         private val demarreurService: DemarreurServiceInstallation,
         private val verificationApprofondie: VerificationApprofondie,
+        private val desinstalleur: DesinstalleurComposants,
         fabriquePhases: FabriquePhasesInstallation,
     ) : EnvironmentSetupOrchestrator {
         /** Phases livrées — E2 : phases 1 et 2 (ADR 0087 § 1) ; doublables en test (§ 10). */
@@ -138,6 +139,25 @@ internal class OrchestrateurInstallation
 
         override fun cancel() {
             travail?.cancel()
+        }
+
+        override suspend fun uninstallComponent(id: String): AppResult<Unit> {
+            chargerEtatSiNecessaire()
+            val composant =
+                composantsInstalles.firstOrNull { it.id == id }
+                    ?: return AppResult.Failure(
+                        AppError.EnvironmentSetup(
+                            reason = EnvironmentSetupReason.ManifesteInvalide,
+                            details = "composant installé inconnu : $id",
+                        ),
+                    )
+            val resultat = desinstalleur.desinstaller(composant)
+            if (resultat is AppResult.Success) {
+                composantsInstalles = composantsInstalles.filterNot { it.id == id }
+                journaliser("composant $id désinstallé (installPath « ${composant.installPath ?: "?"} » supprimé)")
+                persisterEtat()
+            }
+            return resultat
         }
 
         override fun acceptSdkLicense() {

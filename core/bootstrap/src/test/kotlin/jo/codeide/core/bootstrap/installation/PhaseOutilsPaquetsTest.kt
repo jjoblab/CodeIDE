@@ -4,9 +4,11 @@ import jo.codeide.core.domain.CommandResult
 import jo.codeide.core.domain.CommandSpec
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.InstallPhase
+import jo.codeide.core.domain.InstalledComponent
 import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.ToolchainCatalog
 import jo.codeide.core.model.AppError.EnvironmentSetupReason
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArchiveExtractor
 import jo.codeide.core.testing.FakeCommandRunner
@@ -56,6 +58,11 @@ class PhaseOutilsPaquetsTest {
 
     private val verificationApprofondieFausse = FakeVerificationApprofondie()
 
+    private val desinstalleurFaux =
+        object : DesinstalleurComposants {
+            override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> = AppResult.Success(Unit)
+        }
+
     private val orchestrateur: OrchestrateurInstallation =
         OrchestrateurInstallation(
             dispatchers = dispatcheursReels,
@@ -68,6 +75,7 @@ class PhaseOutilsPaquetsTest {
             journalFichier = FakeAppLogger(),
             demarreurService = demarreurFaux,
             verificationApprofondie = verificationApprofondieFausse,
+            desinstalleur = desinstalleurFaux,
             fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.PACKAGE_TOOLS to phase)),
         )
 

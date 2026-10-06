@@ -12,6 +12,7 @@ import jo.codeide.core.domain.ToolManifest
 import jo.codeide.core.domain.ToolchainCatalog
 import jo.codeide.core.domain.VerifySpec
 import jo.codeide.core.model.AppError.EnvironmentSetupReason
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArchiveExtractor
 import jo.codeide.core.testing.FakeCommandRunner
@@ -88,6 +89,11 @@ class PhaseAndroidSdkTest {
             override fun nowMillis(): Long = instant++
         }
 
+    private val desinstalleurFaux =
+        object : DesinstalleurComposants {
+            override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> = AppResult.Success(Unit)
+        }
+
     private val demarreurFaux =
         object : DemarreurServiceInstallation {
             override fun demarrer() = Unit
@@ -105,6 +111,7 @@ class PhaseAndroidSdkTest {
             journalFichier = FakeAppLogger(),
             demarreurService = demarreurFaux,
             verificationApprofondie = FakeVerificationApprofondie(),
+            desinstalleur = desinstalleurFaux,
             fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.ANDROID_SDK to phase)),
         )
 
