@@ -1,8 +1,514 @@
 # Journal des modifications
 
+## [0.60.0] – 2026-10-06
+
+Sixième et dernière étape (E6) de la **refonte complète du parcours
+d'installation** : la migration des installations existantes et la
+suppression de l'ancien code. Un appareil ayant vécu l'ancien parcours
+(≤ v0.54.0) est **adopté sans retéléchargement** au premier `run()` : un
+composant du SDK présent sans quadruplet persisté est vérifié **par
+exécution** (le `verify` du manifeste v2) — vérifié → adopté, quadruplet
+du plan reconstruit dans `install-state.json` ; en échec → réparation de
+ce composant seul ; un préfixe déjà basculé dispense de l'archive du
+bootstrap (l'ancien flux n'écrivait pas le cache SHA-256 du nouveau
+gestionnaire). La licence du SDK n'est jamais migrée : le consentement
+est un acte d'utilisateur (§ 12.5). L'ancien orchestrateur
+`InstallateurBootstrap` et tout son pipeline (écrivains de scripts CLI,
+`Aapt2Deployeur`, `VersionneurScriptsTerminal`, pilotage `codeide-env`
+du terminal, ancien écran + mini-terminal) sont supprimés — environ
+2 900 lignes —, les consommateurs (bandeau accueil, observateur d'outils,
+relance du daemon Gradle) sont rebranchés sur le parcours. Décisions :
+ADR 0091 ; ADR 0082/0083 marquées remplacées.
+
+### Ajouté
+
+- **ADR 0091 — migration des installations existantes et suppression de
+  l'ancien parcours** : adoption par l'exécution (jamais depuis les
+  marqueurs de fichier — un marqueur ne prouve rien), tableau des trois
+  scénarios d'ADR 0085 § 6, limite assumée de la réparation
+  superficielle, rebranchements documentés.
+- **Tests d'adoption** (5 nouveaux, monde simulé) :
+  - `PhaseBootstrapTest` : « un appareil ancien complet est adopté sans
+    retélécharger l'archive » (0 requête HTTP, marqueur intact) ;
+  - `PhaseAndroidSdkTest` : « une installation ancienne complète est
+    adoptée sans aucun téléchargement » (0 téléchargement, quadruplets
+    reconstruits, journal « adopté »), « un appareil à moitié installé
+    n'adopte que les composants présents » (3 téléchargements), « un
+    composant ancien dont l'exécution échoue est réparé seul, les autres
+    adoptés » (1 téléchargement, binaire corrompu remplacé).
+
+### Modifié
+
+- **`core:bootstrap`** : `controleComposant` — un composant présent sans
+  quadruplet n'est plus réparé d'office, son exécution tranche (adoption
+  ou réparation seule ; la divergence d'un quadruplet ENREGISTRÉ reste
+  réparée seule, § 12.4 inchangé) ; `EtapeTelechargement.verify` — un
+  préfixe déjà basculé (shell + second stage) dispense du téléchargement ;
+  `ExtracteurBootstrap.extraire` devient une simple `suspend fun` (le
+  flux d'étapes de l'ancien pipeline n'avait plus de consommateur) ;
+  `ObservateurOutilsTerminal` a pour stimulus l'état du parcours
+  (`EnvironmentSetupOrchestrator.state`).
+- **`feature:home`** : bandeau terminal et ouverture du terminal pilotés
+  par l'état du parcours (phase `BOOTSTRAP` vérifiée, `running`) en plus
+  du scan disque — l'ancien `BootstrapInstaller` n'existe plus.
+- **`app`** : `CodeIdeApplication` — la relance du daemon Gradle à
+  l'arrivée du JDK passe par le seul détecteur d'empreinte E4 (ADR 0089
+  § 6) ; `refreshTerminalScripts()` retiré (voir Supprimé).
+- **`feature:install`** : le module ne dépend plus de
+  `core:terminal-runtime` ni des artefacts Termux (l'autorisation
+  build-logic v0.54.0 devient inerte).
+
+### Supprimé
+
+- **`core:bootstrap`** : `InstallateurBootstrap` (ancien orchestrateur),
+  `TelechargeurBootstrap`, `EcrivainSdkAndroidCli`,
+  `EcrivainCodeideEnvCli`, `EcrivainGradleCli`, `EcrivainProfilShell`,
+  `Aapt2Deployeur`, `VersionneurScriptsTerminal` et leurs tests (~2 340
+  lignes de code seul).
+- **`core:domain`** : ports `BootstrapInstaller`, `BootstrapAssetsSource`
+  (l'`aapt2` vient du plan du manifeste depuis E4, § 12.4 — jamais d'un
+  asset) et `ConfigurationEnvTerminal`.
+- **`core:model`** : `EtatInstallationBootstrap`, `EtapeInstallation`,
+  `OutilResume` (l'état vit dans `core:domain` :
+  `EnvironmentSetupState`/`PhaseState`).
+- **`core:terminal-runtime`** : `ConfigurationEnvTermux` — le terminal
+  n'orchestre plus la configuration par frappe de pty (ADR 0083
+  remplacée) ; le mécanisme `envoyerTexte` reste (pilotage générique).
+- **`core:testing`** : `FakeBootstrapInstaller`,
+  `FakeConfigurationEnvTerminal`.
+- **`feature:install`** : ancien écran `InstallFragment` +
+  `InstallViewModel` + `ClientTerminalMini`, layouts `fragment_install`,
+  `rangee_etape_install`, `rangee_outil_install`, 45 clés de ressources
+  orphelines (fr + en).
+- **`app`** : `AssetsBootstrapSource` + `BootstrapAssetsModule` (le port
+  n'a plus de consommateur).
+- **`CodeIdeApplication.refreshTerminalScripts()`** (v0.37.3) : le
+  versionnage des scripts du terminal n'a plus d'objet — l'application
+  ne pose plus `etc/codeide.sh` ni les commandes `bin/gradle` /
+  `bin/android-sdk` / `bin/codeide-env` ; l'environnement des sessions
+  vient de `ProcessEnvironmentProvider` (JAVA_HOME, ANDROID_HOME, PATH,
+  GRADLE_USER_HOME injectés par processus). **Rupture assumée** : sur un
+  appareil ancien, ces scripts restent sur le disque et fonctionnent
+  tels quels, mais ne sont plus maintenus par l'application.
+
+### Non vérifié (appareil)
+
+- L'adoption réelle d'un appareil ≤ v0.54 (notamment : les `verify` du
+  manifeste v2 passent-ils sur les binaires posés par le manifeste v1 de
+  `codeide-tools` — même layout, mêmes versions publiées) — scénarios
+  E91–E95 ajoutés à `docs/TESTS_MANUELS.md` ; le manifeste v2 doit
+  d'abord être publié côté dépôt `codeide-tools` (prompt 2, R5).
+
+
 Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
+
+## [0.59.0] – 2026-10-06
+
+Cinquième étape (E5) de la **refonte complète du parcours
+d'installation** : la nouvelle interface. Maquettes statiques
+(`docs/preview/installation-environnement.html` : téléphone — en cours,
+consentement licence, échec, récapitulatif, écran Environnement ;
+tablette sw600dp — stepper à gauche, journal à droite), puis
+l'implémentation : écran d'installation à stepper de 4 cartes
+(progression « étape N sur 4 », journal en direct repliable, vitesse et
+temps restant **mesurés** du téléchargement courant, consentement
+licence avant la phase `ANDROID_SDK`, actions contextuelles masquées
+jamais grisées, récapitulatif final + « Créer mon premier projet »,
+variante tablette deux panneaux) et écran **Environnement** des
+Paramètres (rangées par composant avec **tailles réelles mesurées**,
+rangée JDK « paquet APT », Vérifier légère/approfondie, Réparer,
+Désinstaller avec confirmation, diagnostic copiable). La section
+« Outils de développement — bientôt » du maître est remplacée par la
+section réelle. Décisions : ADR 0090.
+
+### Ajouté
+
+- **ADR 0090 — nouvelle interface d'installation et écran
+  Environnement** : projection pure (le ViewModel décide rien),
+  divergence assumée sur l'estimation globale de temps restant (mesures
+  seulement, jamais d'extrapolation — § 14 du cahier), diagnostic
+  copiable en codes techniques neutres.
+- **`docs/preview/installation-environnement.html`** : maquettes
+  statiques des six états (liées à l'ADR 0090).
+- **`core:domain`** : `DiagnosticInstallation` (diagnostic presse-papiers
+  partagé : journal expurgé + récapitulatif par codes neutres, testé) ;
+  port `AuditeurComposants` (tailles réelles sur disque, lecture seule) ;
+  `EnvironmentSetupOrchestrator.uninstallComponent` (désinstallation
+  d'un composant — retrait du quadruplet persisté par l'orchestrateur
+  seul décideur).
+- **`core:bootstrap`** : `DesinstalleurComposants`/`…Android`
+  (suppression récursive idempotente de l'`installPath`, § 12.3) ;
+  `AuditeurComposantsAndroid` (marche de l'`installPath` et du
+  `JAVA_HOME` résolu, `DispatcherProvider.io`).
+- **`feature:install`** : `InstallationFragment` +
+  `InstallationViewModel` (stepper, journal repliable, consentement
+  licence, vitesse/temps restant mesurés sur deux échantillons,
+  actions masquées hors contexte, tablette sw600dp deux panneaux) ;
+  layouts `fragment_installation` (téléphone + tablette) et
+  `carte_phase_installation`.
+- **`feature:settings`** : `EnvironnementFragment` +
+  `EnvironnementViewModel` + `ComposantsEnvAdapter` (composants avec
+  tailles auditées et état vérifié par présence réelle, rangée JDK
+  informative non désinstallable, actions Vérifier légère/approfondie /
+  Réparer / Désinstaller avec confirmation / Copier le diagnostic) ;
+  destination `settings_environnement` du graphe ; rangée maître
+  « Environnement de développement ».
+- **`core:testing`** : `FakeAuditeurComposants` (neuf) ;
+  `FakeEnvironmentSetupOrchestrator` compte aussi les vérifications
+  (`verifications`).
+- **Tests** : 26 nouveaux — `DiagnosticInstallationTest` (6,
+  core:domain), `InstallationViewModelTest` (13, feature:install),
+  `EnvironnementViewModelTest` (7, feature:settings).
+
+### Modifié
+
+- Graphe de navigation : la destination `installation` pointe vers le
+  nouvel `InstallationFragment` ; `SectionParametres.OUTILS` (placeholder
+  « bientôt ») supprimé au profit d'`ENVIRONNEMENT` (l'écran « bientôt »
+  ne garde qu'IA et Sécurité) ; `AppNavigatorImpl` cartographie la
+  nouvelle section.
+
+### Non vérifié (appareil)
+
+- Rendu TalkBack réel, pli du journal sur tablette sw600dp, boîte de
+  confirmation de désinstallation, vitesse affichée pendant un vrai
+  téléchargement — procédures E85–E90 ajoutées à
+  `docs/TESTS_MANUELS.md`.
+
+### Questions au propriétaire
+
+- Maquettes livrées avec l'implémentation (poursuite sans interruption
+  demandée) : toute retouche visuelle sera intégrée à l'itération
+  suivante.
+- Estimation **globale** de temps restant volontairement absente (ADR
+  0090 § 3 : extrapolation = devinette, interdit § 14) — la valider ou
+  demander une moyenne mesurée par appareil.
+
+## [0.58.0] – 2026-10-06
+
+Quatrième étape (E4) de la **refonte complète du parcours
+d'installation** : la phase 4 `ANDROID_SDK` — plan résolu depuis le
+manifeste v2 (une résolution par exécution), composants installés et
+**vérifiés par exécution** avec péremption par quadruplet (réparation du
+seul composant fautif), licences écrites après acceptation, câblage
+Gradle (`android.aapt2FromMavenOverride` dans un bloc géré idempotent,
+build-tools des templates alignés sur le catalogue), relance du daemon
+Gradle par empreinte de chaîne d'outils, et vérification approfondie
+(projet généré + vrai `assembleDebug`). Le parcours complet BOOTSTRAP →
+PACKAGE_TOOLS → JAVA → ANDROID_SDK est exécutable de bout en bout.
+Décisions : ADR 0089.
+
+### Ajouté
+
+- **ADR 0089 — phase 4 Outils Android** : cinq étapes (`resolution-plan`,
+  `composants`, `licences`, `cablage`, `verification-sdk`), plan partagé
+  par exécution, criticité (`cmdline-tools` non critique → `Degraded`),
+  schéma de persistance 2 (`installPath` des composants).
+- **`core:domain`** : `InstalledComponent.installPath` ;
+  `EmpreinteChaineOutils` (SHA-256 de JAVA_HOME/ANDROID_HOME/aapt2/
+  versions, clés triées) + `DetecteurChangementEmpreinte` ; port
+  `VerificationApprofondie`.
+- **`core:bootstrap`** :
+  - `PhaseAndroidSdk` + `EtapesAndroidSdk` : résolution § 12.2 avec
+    contrôle d'espace (plan × 2), péremption § 12.4 (quadruplet persisté
+    comparé au plan — écart → réparation de CE composant seul),
+    téléchargement unique (cache SHA-256), extraction `tar.xz` par les
+    outils du bootstrap avec **garde anti-traversée**, bascule atomique
+    de l'`installPath`, `verify` du manifeste exécuté sans shell ;
+  - `EcrivainConfigurationGradle` : bloc géré **en place** (idempotence
+    octet pour octet), lignes utilisateur conservées, override manuel
+    hors bloc neutralisé par commentaire ;
+  - `LicencesSdk` : fichiers `licenses/` écrits de façon atomique et
+    idempotente après acceptation (hachages historiques — non vérifiés
+    sur appareil, contre-vérification consignée) ;
+  - orchestrateur : `avertissements()` → `Degraded`,
+    `composantsInstalles()` persistés (ce qui est prouvé par exécution),
+    `verify(deep)` délégué au port `VerificationApprofondie` (échec →
+    la phase est marquée en échec dans le rapport, sortie jointe) ;
+  - `LocalisationOutils.trouverAapt2` : plan d'abord (analyse tolérante
+    d'`install-state.json` sans org.json — Kotlin JVM pur), scan du SDK
+    ensuite, binaire hérité `$PREFIX/bin` en dernier (retiré en E6) ;
+  - `MarqueursOutils.estSdkAndroidValide` : SDK cohérent dès qu'un
+    répertoire attendu existe — un SDK partiel n'est plus invisible,
+    `ANDROID_HOME` exporté sans attendre une plateforme.
+- **App** : `VerificationApprofondieProjets` (projet de contrôle généré
+  par le pipeline réel, `gradlew assembleDebug`, suppression quoi qu'il
+  arrive), `InstallationModule` (liaison du port), relance du daemon
+  Gradle par empreinte dans `CodeIdeApplication` (première observation
+  ≠ changement).
+- **Templates** : `buildToolsVersion = "35.0.2"` explicite dans
+  `android-app` et `android-library` (celle du catalogue — sans elle AGP
+  téléchargerait une build-tools x86_64) ; matrice AGP ↔ build-tools ↔
+  compileSdk documentée dans `docs/ENVIRONNEMENT.md`.
+- **Tests** (22 nouveaux) : `PhaseAndroidSdkTest` (10 — dont reprise
+  zéro retéléchargement, réparation ciblée par quadruplet, dégradé non
+  critique, `--list_installed` incohérent, `android.jar` illisible),
+  `EcrivainConfigurationGradleTest` (5), `EmpreinteChaineOutilsTest` (4),
+  `AlignementCatalogueTemplatesTest` (4), 4 tests du localisateur.
+
+### Modifié
+
+- `FakeDownloadManager` (core:testing) : archives semées **par somme
+  SHA-256** (plans multi-composants) ; nouveau
+  `FakeVerificationApprofondie`.
+- `install-state.json` : schéma **2** — un fichier de schéma 1 est
+  rejeté (reprise de zéro **sans retéléchargement**, verify-first
+  re-vérifie chaque composant par exécution).
+
+### Non vérifié (règle 2 du prompt)
+
+- Extraction réelle des archives `.tar.xz` aarch64, `sdkmanager` réel
+  (sortie de `--list_installed` supposée citer l'`installPath`),
+  hachages de licences contre un vrai `sdkmanager --licenses`,
+  `assembleDebug` sur appareil — scénarios complets consignés pour
+  `docs/TESTS_MANUELS.md` en E6.
+
+## [0.57.0] – 2026-10-06
+
+Troisième étape (E3) de la **refonte complète du parcours
+d'installation** : la phase 3 `JAVA` — installation du JDK du catalogue,
+résolution unique de `JAVA_HOME`, vérification par exécution réelle et
+**sonde TLS** (le truststore cassé, cause classique d'échec ultérieur
+de `sdkmanager`, est détecté ici, pas en phase 4). Le parcours complet
+BOOTSTRAP → PACKAGE_TOOLS → JAVA est exécutable ; il s'arrête proprement
+avant `ANDROID_SDK` (E4). Décisions : ADR 0088.
+
+### Ajouté
+
+- **ADR 0088 — phase 3 Java** : deux étapes (`openjdk`,
+  `verification-tls`), interrogation du dépôt APT journalisée
+  (`apt-cache policy` — jamais un verdict), version affichée lue sur la
+  sortie réelle de `java -version` (jamais en dur), sonde HTTPS réelle
+  compilée et exécutée par le JDK installé (choix motivé contre
+  `keytool -list -cacerts`), classification truststore/réseau des
+  échecs TLS.
+- **`core:bootstrap`** :
+  - `PhaseJava` : étape `openjdk` — `pkg install -y <paquet du
+    catalogue>` précédé d'`apt-cache policy` journalisé, contrôle
+    immédiat « installé = vérifié en l'exécutant » : `JAVA_HOME` résolu
+    (règle unique `LocalisationOutils`), `java -version` et
+    `javac -version` exécutés, **majeure analysée** contre l'exigence du
+    catalogue — une JVM posée qui ne démarre pas (mode R6 de l'ADR 0084 :
+    bibliothèque manquante, code 127 muet) échoue avec sa sortie
+    capturée (test de régression du constat E1) ;
+  - étape `verification-tls` — classe `SondeTls.java` écrite dans
+    `$PREFIX/tmp`, **compilée par `javac`** puis **exécutée par `java`**
+    du `JAVA_HOME` résolu : la requête HTTPS vers `dl.google.com`
+    (cible de sonde du cahier, pas une source d'artefact) prouve d'un
+    seul geste JVM + `javac` + truststore + poignée de main TLS +
+    réseau ; succès `TLS_OK <code>` sur stdout, toute exception capturée
+    avec sa pile et **classée** (`PKIX`/`ValidatorException`/
+    `SSLHandshakeException` → `Jvm` « truststore inutilisable » ;
+    `UnknownHost`/`ConnectException`/délai → `Reseau`) ;
+  - recensement `versions["jdk"]` lu sur `java -version` réel, pour le
+    récapitulatif final et l'écran Environnement (E5).
+- **Tests** : `PhaseJavaTest` (7 tests) — parcours propre (installation
+  unique, dépôt interrogé, TLS vérifié), reprise sans réinstallation
+  (0 appel `pkg install`, sonde rejouée), échec d'installation
+  `Commande` avec sortie, JVM muette `Jvm` avec sortie R6 capturée,
+  truststore cassé `Jvm`, réseau coupé `Reseau`, majeure divergente
+  `Jvm`.
+
+### Non vérifié (règle 2 du prompt)
+
+- Installation réelle du paquet `openjdk-17` aarch64 et sonde TLS sur
+  appareil — comportement de référence établi par les reproductions E1
+  (ADR 0084) ; scénario complet sur appareil neuf consigné pour
+  `docs/TESTS_MANUELS.md` en E6.
+
+## [0.56.0] – 2026-10-06
+
+Deuxième étape (E2) de la **refonte complète du parcours
+d'installation** : le cadre commun d'exécution (orchestrateur concret,
+`CommandRunner`, `DownloadManager` à cache SHA-256, état persisté
+`install-state.json`, service de premier plan avec action Annuler) et
+les phases 1 (Bootstrap) et 2 (PackageTools). L'ancien parcours reste
+actif — le nouveau cadre coexiste jusqu'à E6, aucune interface ne le
+déclenche avant E5. Décisions : ADR 0087.
+
+### Ajouté
+
+- **ADR 0087 — cadre commun d'exécution** : reprise « verify-first »
+  (une étape déjà vérifiée est sautée — mécanisme unique de la reprise,
+  de l'idempotence et de la réparation ciblée : `repair(phase)` rejoue
+  la seule phase demandée), annulation synchrone avec persistance en
+  coroutine fraîche (leçon v0.55.0), séquentialité stricte (arrêt à la
+  première phase non livrée), licence SDK exigée avant `ANDROID_SDK`
+  (§ 12.5).
+- **`core:bootstrap` (sous-package `installation/`)** :
+  - `OrchestrateurInstallation` : implémentation du port
+    `EnvironmentSetupOrchestrator` — pipeline dans un scope interne
+    (survit à la coroutine appelante), journal borné 200 lignes expurgé
+    par `LogRedactor`, `verify(deep)` par exécution réelle (le contrôle
+    approfondi complet arrive avec la phase 4, journalisé explicitement
+    en attendant — jamais de repli silencieux) ;
+  - `CommandRunnerProcessus` : enveloppe du `NativeProcessLauncher`,
+    capture **intégrale** de stdout et stderr (l'ancien
+    `SupervisionProcessus` ne gardait que 5 lignes de stderr), délai
+    maximal qui détruit le processus (`CommandResult.timedOut`),
+    annulation qui ne laisse pas le sous-processus vivant ;
+  - `GestionnaireTelechargement` : cache `filesDir/cache/downloads`
+    adressé par SHA-256 (fichier présent + somme correcte = zéro requête
+    réseau — l'invariant « un composant = une version résolue = un
+    téléchargement » est testé par compteur de requêtes), sources
+    ordonnées avec miroirs journalisés, reprise HTTP `Range` (206) avec
+    hachage du `.part` repris dans l'empreinte ;
+  - `MagasinEtatInstallation` : `install-state.json` en `org.json`
+    (précédent `CrashReportFileStore`), écriture atomique, `Running`
+    normalisé `NotStarted` à l'écriture comme à la lecture, fichier
+    corrompu ou schéma inconnu = reprise de zéro ;
+  - `ClientManifesteOutils` : transport du manifeste v2 (URL unique du
+    catalogue, § 12.7) avec validation de schéma — les vecteurs de
+    référence officiels et la consommation arrivent en E4 ;
+  - `PhaseBootstrap` (8 étapes : préalables espace/architecture,
+    téléchargement, extraction gardée, bascule atomique, second stage,
+    configuration APT, vérifications **exécutées** `sh -c 'echo ok'` /
+    `apt --version` / `pkg help`, marqueur) et `PhaseOutilsPaquets`
+    (`pkg update` retenté à délai croissant puis repli journalisé
+    `apt update` — échec persistant = échec de phase en `Reseau` avec
+    sortie à l'appui — puis un step par paquet du catalogue, chacun
+    vérifié par exécution réelle : `curl`/`tar`/`xz`/`unzip`
+    `--version`, `ca-certificates` par `dpkg -l`) ;
+  - `ServiceInstallationEnvironnement` : service de premier plan
+    `specialUse` (sous-type documenté, précédent ADR 0035),
+    notification de progression avec **première action Annuler du
+    dépôt**, décision pure `DecisionNotificationInstallation`
+    (notification tant qu'une phase court, arrêt sinon), démarrage par
+    port interne `DemarreurServiceInstallation` — livré et testé, pas
+    encore déclenché en production (branchement UI en E5) ;
+  - fabrique `FabriquePhasesParDefaut` : la carte de phases (types
+    `internal`) ne transite jamais par le graphe Hilt (un `Map` générique
+    y serait traité comme un multibinding) — doublable en test par
+    `FabriquePhasesFausse`.
+- **`core:model`** : 9ᵉ raison `EnvironmentSetupReason.
+  ArchitectureNonSupportee` (l'ABI n'est pas `arm64-v8a` — ajout
+  purement additif, les traducteurs branchent sur le type, pas sur la
+  raison) ; `ConfigurationBootstrap.versionRelease` exposée (récapitulatif
+  de la phase 1).
+- **`core:domain`** : `CommandResult.timedOut` (délai maximal distingué
+  d'un échec banal) ; KDoc de `ArchiveExtractor` élargi (zip du
+  bootstrap en phase 1, `.tar.xz` du manifeste en phase 4).
+- **`core:testing`** : `FakeCommandRunner`, `FakeDownloadManager` (avec
+  compteur — l'invariant de l'unique téléchargement s'asserte),
+  `FakeArchiveExtractor`, `FakeToolManifestClient`, `FakeInstallStateStore`,
+  `FakeEnvironmentSetupOrchestrator`.
+- **Tests (56 nouveaux, module à 190)** : machine d'états complète
+  (transitions, échec avec sortie, annulation, reprise verify-first,
+  double `run` sans effet, `repair` ciblé, licence, `Permissions` au
+  lancement refusé, `Running` persisté normalisé) ; gestionnaire de
+  téléchargements sur serveur HTTP local avec compteur (cache = 1
+  requête au premier appel, 0 au second ; miroirs dans l'ordre ;
+  reprise `Range` depuis un `.part` laissé par un kill ; réponse coupée
+  = somme invalide, jamais d'artefact invalide au cache) ; runner
+  (capture intégrale, timeout qui tue, annulation qui tue, `IOException`
+  de lancement) ; magasin (aller-retour des trois états stables,
+  normalisation, corrompu/schéma inconnu/champ requis absent = nul,
+  écriture atomique) ; phases 1 et 2 de bout en bout (archive zip de
+  test réelle, commandes scriptées, monde simulé qui évolue avec les
+  installations) ; service (action Annuler, arrêt sans phase en cours,
+  maintien en phase en cours) ; client manifeste (fixtures conformes
+  § 12.2, schéma 1 rejeté, champ requis absent rejeté, SHA-256 mal
+  formée rejetée, HTTP 404 = `Reseau`).
+
+### Non vérifié (règle 2 du cahier des charges)
+
+- **Sur appareil aarch64** : comportement du service de premier plan
+  sous Android 15 avec cible 28 (le précédent terminal tourne, le type
+  `specialUse` est accepté), idempotence du second stage relancé (son
+  verrou interne est le comportement termux attendu — constaté sur le
+  script, pas exécuté sur appareil), exécution directe des scripts du
+  préfixe via shebang (les étapes passent par `sh`/`bash` explicites,
+  éprouvé par l'ancien pipeline).
+- **Vérification approfondie** (`verify(deep = true)`) : le contrôle
+  complet (projet généré + `assembleDebug` réel) exige la phase
+  `ANDROID_SDK` — livré en E4 ; E2 exécute les contrôles légers et le
+  journalise explicitement.
+- **Branchement UI** : le service et l'orchestrateur ne sont démarrés
+  par aucun écran (E5) — vérifiés par tests Robolectric et tests
+  d'intégration du cadre uniquement.
+
+### Questions au propriétaire
+
+- (Reprise des questions E1) Licences § 12.5 et divergence manifeste
+  v1 → publiées par le prompt 2 en v2 ; rien de nouveau de mon côté.
+
+## [0.55.0] – 2026-10-05
+
+Première étape (E1) de la **refonte complète du parcours d'installation
+de l'environnement** : investigation de la cause racine du « SDK non
+fonctionnel » (sortie réelle capturée), décisions d'architecture,
+modèle de domaine et ports, catalogue de versions. Aucun comportement
+existant n'est modifié dans cette étape — les types et ports posés ici
+sont le socle des étapes E2 à E6. Décisions : ADR 0084, 0085, 0086.
+
+### Ajouté
+
+- **ADR 0084 — investigation « SDK non fonctionnel »** : reproductions
+  réelles sur Linux x86_64 (archive reconditionnée `codeide-tools` et
+  zip Google rev 12.0, scripts `sdkmanager` identiques octet pour octet)
+  ; mode muet établi avec preuves — une JVM présente mais incapable de
+  démarrer sort en **code 127, stdout vide, diagnostic sur stderr
+  uniquement** (`error while loading shared libraries: libjli.so`), et
+  `sdk_fonctionnel` jetait les deux tuyaux. Analyse statique du paquet
+  APT réel `openjdk-17_17.0.20_aarch64.deb` : chaîne `java` →
+  `libjli.so` → `libz.so.1`, `libjvm.so` → `libandroid-shmem.so`,
+  RUNPATH absolu codé en dur — toute dépendance APT absente déclenche le
+  mode muet. Truststore (`ca-certificates-java`, simple `Recommends`) :
+  vérifié ne PAS casser `sdkmanager --version` (code 0 sans `cacerts`) —
+  d'où le test TLS exigé en phase 3. Plan de vérification sur appareil
+  rédigé (points restants « non vérifiés » : pas d'appareil aarch64
+  dans l'environnement de travail).
+- **ADR 0085 — orchestrateur d'installation en quatre phases vérifiées**
+  (BOOTSTRAP, PACKAGE_TOOLS, JAVA, ANDROID_SDK) : machine d'états
+  `PhaseState` (`NotStarted`/`Running`/`Succeeded`/`Degraded`/`Failed`),
+  état persisté `install-state.json` à schéma versionné, journal en
+  lecture seule alimenté par le `CommandRunner` (le terminal n'est plus
+  le moteur), service de premier plan hôte, migration des installations
+  existantes par adoption vérifiée.
+- **ADR 0086 — catalogue de versions et manifeste v2** : exigences
+  (build-tools 35.0.2 — seule version reconditionnée publiée pour
+  Android aarch64 —, plateforme android-37.2 des templates, JDK 17,
+  outils de la phase 2, URL du manifeste en constante unique) ;
+  résolution du plan en fonction pure avec règles du contrat commun
+  § 12.2 (révision la plus haute, canal stable, exclusivité des
+  `installPath`, exigences à version exacte — jamais de repli).
+- **`core:model`** : `AppError.EnvironmentSetup` (raisons réseau, espace
+  disque, somme de contrôle, commande, JVM, permissions, annulation,
+  manifeste invalide) portant `CommandOutput` (commande, code de retour,
+  dernières lignes) — le contrat « aucune sortie jetée » : un échec de
+  commande transporte désormais sa sortie réelle.
+- **`core:domain`** : `EnvironmentSetup.kt` (`InstallPhase`, `Progress`,
+  `StepId`, `ComponentIssue`, `PhaseState`, `EnvironmentSetupState`,
+  `VerificationReport`, port `EnvironmentSetupOrchestrator` et ports
+  `InstallStep`/`StepContext`/`CommandRunner`/`DownloadManager`/
+  `ArchiveExtractor`/`ToolManifestClient`/`InstallStateStore`,
+  `PersistedInstallState` avec le quadruplet d'immutabilité
+  `InstalledComponent`) ; `ToolManifest.kt` (types du manifeste v2 à la
+  lettre du § 12.2 + `InstallPlanResolver`, fonction pure, 20 tests
+  couvrant chaque règle du contrat) ; `ToolchainCatalog.kt` (exigences
+  déclarées à un seul endroit, justifiées valeur par valeur).
+- **Traducteurs d'erreur** : branche `EnvironmentSetup` ajoutée aux
+  quatre `when` exhaustifs (accueil, diagnostic, wizard, installation) —
+  le compilateur l'a exigée, l'exhaustivité reste intentionnelle.
+
+### Non vérifié (règle 2 du cahier des charges)
+
+- Comportements **sur appareil aarch64** : exécutions réelles de la JVM
+  du préfixe, RUNPATH hors utilisateur 0, `pkg`/`apt` du bootstrap,
+  installation des `Depends` d'`openjdk-17` — plan de vérification en
+  cinq points à l'ADR 0084, à exécuter à la première fenêtre appareil
+  (E2/E4).
+
+### Questions au propriétaire
+
+- Licences (§ 12.5) : l'app écrira les fichiers `licenses/` après
+  acceptation explicite — défaut prudent à confirmer.
+- Divergence contrat (§ 12) : le manifeste v1 ne publie ni `platform`
+  ni `aapt2` ni build-tools 36.0.0 — le prompt 2 doit les publier en
+  v2 ; build-tools 35.0.2 exigé en attendant (seule version aarch64
+  existante).
 
 ## [0.54.0] – 2026-10-05
 

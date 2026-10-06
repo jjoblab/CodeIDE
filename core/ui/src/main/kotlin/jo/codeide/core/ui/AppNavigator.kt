@@ -196,8 +196,12 @@ public enum class SectionParametres {
     /** Projets : dossier de travail, auteur, licence. */
     PROJETS,
 
-    /** Outils de développement — bientôt disponible. */
-    OUTILS,
+    /**
+     * Environnement de développement : composants du SDK, vérifications
+     * (légère/approfondie), réparation, désinstallation (E5, ADR 0090) —
+     * remplace la section « Outils » annoncée « bientôt disponible ».
+     */
+    ENVIRONNEMENT,
 
     /** Sécurité et confidentialité — bientôt disponible. */
     SECURITE,

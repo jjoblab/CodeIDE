@@ -9,4 +9,5 @@
          — assez grand pour lire les étapes, assez discret pour laisser la
          checklist respirer ; la vue gère son propre défilement interne. -->
     <dimen name="hauteur_terminal_installation">280dp</dimen>
+    <dimen name="installation_carte_marge">12dp</dimen>
 </resources>
