@@ -4,6 +4,59 @@ Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.
 
+## [0.57.0] – 2026-10-06
+
+Troisième étape (E3) de la **refonte complète du parcours
+d'installation** : la phase 3 `JAVA` — installation du JDK du catalogue,
+résolution unique de `JAVA_HOME`, vérification par exécution réelle et
+**sonde TLS** (le truststore cassé, cause classique d'échec ultérieur
+de `sdkmanager`, est détecté ici, pas en phase 4). Le parcours complet
+BOOTSTRAP → PACKAGE_TOOLS → JAVA est exécutable ; il s'arrête proprement
+avant `ANDROID_SDK` (E4). Décisions : ADR 0088.
+
+### Ajouté
+
+- **ADR 0088 — phase 3 Java** : deux étapes (`openjdk`,
+  `verification-tls`), interrogation du dépôt APT journalisée
+  (`apt-cache policy` — jamais un verdict), version affichée lue sur la
+  sortie réelle de `java -version` (jamais en dur), sonde HTTPS réelle
+  compilée et exécutée par le JDK installé (choix motivé contre
+  `keytool -list -cacerts`), classification truststore/réseau des
+  échecs TLS.
+- **`core:bootstrap`** :
+  - `PhaseJava` : étape `openjdk` — `pkg install -y <paquet du
+    catalogue>` précédé d'`apt-cache policy` journalisé, contrôle
+    immédiat « installé = vérifié en l'exécutant » : `JAVA_HOME` résolu
+    (règle unique `LocalisationOutils`), `java -version` et
+    `javac -version` exécutés, **majeure analysée** contre l'exigence du
+    catalogue — une JVM posée qui ne démarre pas (mode R6 de l'ADR 0084 :
+    bibliothèque manquante, code 127 muet) échoue avec sa sortie
+    capturée (test de régression du constat E1) ;
+  - étape `verification-tls` — classe `SondeTls.java` écrite dans
+    `$PREFIX/tmp`, **compilée par `javac`** puis **exécutée par `java`**
+    du `JAVA_HOME` résolu : la requête HTTPS vers `dl.google.com`
+    (cible de sonde du cahier, pas une source d'artefact) prouve d'un
+    seul geste JVM + `javac` + truststore + poignée de main TLS +
+    réseau ; succès `TLS_OK <code>` sur stdout, toute exception capturée
+    avec sa pile et **classée** (`PKIX`/`ValidatorException`/
+    `SSLHandshakeException` → `Jvm` « truststore inutilisable » ;
+    `UnknownHost`/`ConnectException`/délai → `Reseau`) ;
+  - recensement `versions["jdk"]` lu sur `java -version` réel, pour le
+    récapitulatif final et l'écran Environnement (E5).
+- **Tests** : `PhaseJavaTest` (7 tests) — parcours propre (installation
+  unique, dépôt interrogé, TLS vérifié), reprise sans réinstallation
+  (0 appel `pkg install`, sonde rejouée), échec d'installation
+  `Commande` avec sortie, JVM muette `Jvm` avec sortie R6 capturée,
+  truststore cassé `Jvm`, réseau coupé `Reseau`, majeure divergente
+  `Jvm`.
+
+### Non vérifié (règle 2 du prompt)
+
+- Installation réelle du paquet `openjdk-17` aarch64 et sonde TLS sur
+  appareil — comportement de référence établi par les reproductions E1
+  (ADR 0084) ; scénario complet sur appareil neuf consigné pour
+  `docs/TESTS_MANUELS.md` en E6.
+
 ## [0.56.0] – 2026-10-06
 
 Deuxième étape (E2) de la **refonte complète du parcours

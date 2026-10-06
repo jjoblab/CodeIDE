@@ -60,18 +60,22 @@ Branchement dans `app` (écran d'installation, onboarding, permission
 `core:domain` (ports) — et rien d'autre en production. La règle est
 vérifiée par `checkModuleDependencies`.
 
-## Cadre commun d'installation (E2, ADR 0087)
+## Cadre commun d'installation (E2-E3, ADR 0087/0088)
 
 Le sous-package `installation/` porte le nouveau parcours :
 `OrchestrateurInstallation` (reprise « verify-first », annulation,
 réparation ciblée, licence SDK exigée avant la phase 4), le runner de
 commandes à capture intégrale, le gestionnaire de téléchargements à
 cache SHA-256 et reprise `Range`, la persistance `install-state.json`,
-le client du manifeste v2 (transport), les phases `BOOTSTRAP` et
-`PACKAGE_TOOLS`, et le service de premier plan (notification avec
-action Annuler). L'ancien parcours (`InstallateurBootstrap`, ADR 0083)
-reste actif jusqu'à E6 — le nouveau cadre n'est déclenché par aucun
-écran avant E5. Les tests (56 nouveaux) éprouvent la machine d'états
-contre des phases doublées et le gestionnaire contre un serveur HTTP
-local à compteur de requêtes : l'invariant « un composant = une version
-résolue = un téléchargement » est vérifié, cache compris.
+le client du manifeste v2 (transport), les phases `BOOTSTRAP`,
+`PACKAGE_TOOLS` et `JAVA` (E3, ADR 0088 : JDK du catalogue vérifié par
+exécution, majeure analysée, sonde TLS compilée et exécutée par le JDK
+installé — truststore cassé détecté avant la phase 4), et le service de
+premier plan (notification avec action Annuler). L'ancien parcours
+(`InstallateurBootstrap`, ADR 0083) reste actif jusqu'à E6 — le nouveau
+cadre n'est déclenché par aucun écran avant E5. Les tests (63 nouveaux
+depuis E2) éprouvent la machine d'états contre des phases doublées, le
+gestionnaire contre un serveur HTTP local à compteur de requêtes
+(l'invariant « un composant = une version résolue = un téléchargement »
+est vérifié, cache compris) et la phase Java contre le mode muet R6 de
+l'ADR 0084 (JVM posée qui ne démarre pas — sortie capturée).
