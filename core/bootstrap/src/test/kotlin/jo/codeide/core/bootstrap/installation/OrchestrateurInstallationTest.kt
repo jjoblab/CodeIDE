@@ -3,6 +3,7 @@ package jo.codeide.core.bootstrap.installation
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.InstallStep
+import jo.codeide.core.domain.InstalledComponent
 import jo.codeide.core.domain.PersistedInstallState
 import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.Progress
@@ -12,6 +13,7 @@ import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppError.CommandOutput
 import jo.codeide.core.model.AppError.EnvironmentSetupReason
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArchiveExtractor
 import jo.codeide.core.testing.FakeCommandRunner
@@ -104,6 +106,11 @@ class OrchestrateurInstallationTest {
 
     private val verificationApprofondieFausse = FakeVerificationApprofondie()
 
+    private val desinstalleurFaux =
+        object : DesinstalleurComposants {
+            override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> = AppResult.Success(Unit)
+        }
+
     private fun orchestrateur(
         phases: Map<InstallPhase, PhaseInstallation>,
         magasin: FakeInstallStateStore = FakeInstallStateStore(),
@@ -120,6 +127,7 @@ class OrchestrateurInstallationTest {
             journalFichier = FakeAppLogger(),
             demarreurService = demarreur,
             verificationApprofondie = verificationApprofondieFausse,
+            desinstalleur = desinstalleurFaux,
             fabriquePhases = FabriquePhasesFausse(phases),
         ) to magasin
 

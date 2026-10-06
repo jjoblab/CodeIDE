@@ -1,5 +1,88 @@
 # Journal des modifications
 
+## [0.59.0] – 2026-10-06
+
+Cinquième étape (E5) de la **refonte complète du parcours
+d'installation** : la nouvelle interface. Maquettes statiques
+(`docs/preview/installation-environnement.html` : téléphone — en cours,
+consentement licence, échec, récapitulatif, écran Environnement ;
+tablette sw600dp — stepper à gauche, journal à droite), puis
+l'implémentation : écran d'installation à stepper de 4 cartes
+(progression « étape N sur 4 », journal en direct repliable, vitesse et
+temps restant **mesurés** du téléchargement courant, consentement
+licence avant la phase `ANDROID_SDK`, actions contextuelles masquées
+jamais grisées, récapitulatif final + « Créer mon premier projet »,
+variante tablette deux panneaux) et écran **Environnement** des
+Paramètres (rangées par composant avec **tailles réelles mesurées**,
+rangée JDK « paquet APT », Vérifier légère/approfondie, Réparer,
+Désinstaller avec confirmation, diagnostic copiable). La section
+« Outils de développement — bientôt » du maître est remplacée par la
+section réelle. Décisions : ADR 0090.
+
+### Ajouté
+
+- **ADR 0090 — nouvelle interface d'installation et écran
+  Environnement** : projection pure (le ViewModel décide rien),
+  divergence assumée sur l'estimation globale de temps restant (mesures
+  seulement, jamais d'extrapolation — § 14 du cahier), diagnostic
+  copiable en codes techniques neutres.
+- **`docs/preview/installation-environnement.html`** : maquettes
+  statiques des six états (liées à l'ADR 0090).
+- **`core:domain`** : `DiagnosticInstallation` (diagnostic presse-papiers
+  partagé : journal expurgé + récapitulatif par codes neutres, testé) ;
+  port `AuditeurComposants` (tailles réelles sur disque, lecture seule) ;
+  `EnvironmentSetupOrchestrator.uninstallComponent` (désinstallation
+  d'un composant — retrait du quadruplet persisté par l'orchestrateur
+  seul décideur).
+- **`core:bootstrap`** : `DesinstalleurComposants`/`…Android`
+  (suppression récursive idempotente de l'`installPath`, § 12.3) ;
+  `AuditeurComposantsAndroid` (marche de l'`installPath` et du
+  `JAVA_HOME` résolu, `DispatcherProvider.io`).
+- **`feature:install`** : `InstallationFragment` +
+  `InstallationViewModel` (stepper, journal repliable, consentement
+  licence, vitesse/temps restant mesurés sur deux échantillons,
+  actions masquées hors contexte, tablette sw600dp deux panneaux) ;
+  layouts `fragment_installation` (téléphone + tablette) et
+  `carte_phase_installation`.
+- **`feature:settings`** : `EnvironnementFragment` +
+  `EnvironnementViewModel` + `ComposantsEnvAdapter` (composants avec
+  tailles auditées et état vérifié par présence réelle, rangée JDK
+  informative non désinstallable, actions Vérifier légère/approfondie /
+  Réparer / Désinstaller avec confirmation / Copier le diagnostic) ;
+  destination `settings_environnement` du graphe ; rangée maître
+  « Environnement de développement ».
+- **`core:testing`** : `FakeAuditeurComposants` (neuf) ;
+  `FakeEnvironmentSetupOrchestrator` compte aussi les vérifications
+  (`verifications`).
+- **Tests** : 26 nouveaux — `DiagnosticInstallationTest` (6,
+  core:domain), `InstallationViewModelTest` (13, feature:install),
+  `EnvironnementViewModelTest` (7, feature:settings).
+
+### Modifié
+
+- Graphe de navigation : la destination `installation` pointe vers le
+  nouvel `InstallationFragment` ; `SectionParametres.OUTILS` (placeholder
+  « bientôt ») supprimé au profit d'`ENVIRONNEMENT` (l'écran « bientôt »
+  ne garde qu'IA et Sécurité) ; `AppNavigatorImpl` cartographie la
+  nouvelle section.
+
+### Non vérifié (appareil)
+
+- Rendu TalkBack réel, pli du journal sur tablette sw600dp, boîte de
+  confirmation de désinstallation, vitesse affichée pendant un vrai
+  téléchargement — procédures E85–E90 ajoutées à
+  `docs/TESTS_MANUELS.md`.
+
+### Questions au propriétaire
+
+- Maquettes livrées avec l'implémentation (poursuite sans interruption
+  demandée) : toute retouche visuelle sera intégrée à l'itération
+  suivante.
+- Estimation **globale** de temps restant volontairement absente (ADR
+  0090 § 3 : extrapolation = devinette, interdit § 14) — la valider ou
+  demander une moyenne mesurée par appareil.
+
+
 Ce journal suit le format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 en français. Le versionnage suit [SemVer](https://semver.org/lang/fr/) :
 `0.N.0` par étape validée, `0.N.M` pour une correction après retour utilisateur.

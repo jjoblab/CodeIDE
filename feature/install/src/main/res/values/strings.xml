@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- v0.31.4 (ADR 0048) : la première configuration installe
          l'ENVIRONNEMENT DE BASE (shell + apt + dépôt à jour) ; les
          paquets d'outils (JDK, git…) sont optionnels et différés. -->
@@ -59,4 +59,35 @@
     <string name="installation_erreur_asset">Un binaire d\'outil embarqué manque dans l\'application. Une mise à jour de CodeIDE sera nécessaire.</string>
     <string name="installation_erreur_architecture">L\'architecture de cet appareil n\'est pas encore prise en charge par le bootstrap (arm64 requis).</string>
     <string name="installation_erreur_inconnue">Erreur inattendue pendant l\'installation. Réessayez.</string>
+
+    <!-- E5 : nouvelle interface d'installation (ADR 0090) -->
+    <string name="installation_titre_nouveau">Installation de l\'environnement</string>
+    <string name="installation_sous_titre">Bootstrap, outils, Java puis le SDK Android — chaque phase est vérifiée par exécution réelle.</string>
+    <string name="installation_progression" tools:ignore="PluralsCandidate">Étape %1$d sur %2$d</string>
+    <string name="installation_progression_exemple">Étape 0 sur 4</string>
+    <string name="installation_phase_bootstrap">Bootstrap</string>
+    <string name="installation_phase_outils">Outils</string>
+    <string name="installation_phase_java">Java</string>
+    <string name="installation_phase_android">Android</string>
+    <string name="installation_etat_attente">En attente</string>
+    <string name="installation_etat_encours">En cours</string>
+    <string name="installation_etat_terminee">Terminée</string>
+    <string name="installation_etat_degradee">Dégradée</string>
+    <string name="installation_etat_echec">Échec</string>
+    <string name="installation_avertissements">Dégradée : %1$s</string>
+    <string name="installation_licence_titre">Licence du SDK Android</string>
+    <string name="installation_licence_texte">Les composants du SDK Android sont soumis à la licence du SDK Android de Google. L\'installation ne démarre qu\'après votre acceptation.</string>
+    <string name="installation_licence_case">J\'accepte la licence du SDK Android</string>
+    <string name="installation_installer_sdk">Installer le SDK Android</string>
+    <string name="installation_demarrer">Démarrer l\'installation</string>
+    <string name="installation_env_annuler">Annuler</string>
+    <string name="installation_env_reessayer">Réessayer cette phase</string>
+    <string name="installation_diagnostic">Copier le diagnostic</string>
+    <string name="installation_terminal">Ouvrir le terminal</string>
+    <string name="installation_journal_basculer">Journal en direct</string>
+    <string name="installation_vitesse_mio_s">%1$.1f Mio/s</string>
+    <string name="installation_duree_secondes">%1$d s</string>
+    <string name="installation_duree_minutes">%1$d min</string>
+    <string name="installation_estimation">%1$s — environ %2$s restant</string>
+    <string name="installation_premier_projet">Créer mon premier projet</string>
 </resources>

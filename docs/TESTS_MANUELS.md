@@ -450,6 +450,23 @@ désinstallation est requise, une seule fois.
 | E83 | **Transition unique** : avec la v0.37.1 installée, tenter d'installer l'APK v0.37.2 (CI ou portail), constater le refus, désinstaller CodeIDE, installer v0.37.2 | Le refus initial est ATTENDU (signature historique ≠ identité versionnée) ; après désinstallation + installation, v0.37.2 fonctionne ; les données Termux/bootstrap du préfixe doivent être exportées avant désinstallation si elles comptent (la désinstallation efface les données applicatives) |
 | E84 | **Mises à jour sans conflit, pour toujours** : à la livraison suivante (v0.37.3+), télécharger l'APK CI (artefact `CodeIDE-vX.Y.Z-debug`) et l'installer PAR-DESSUS la version installée, sans désinstallation | L'installation procède comme une mise à jour normale : les données et réglages sont conservés, aucun « conflit de package » ; l'étape CI « Signature = keystore versionné (ADR 0067) » est verte sur le run concerné |
 
+## Refonte installation — nouvelle interface E5 (v0.59.0)
+
+Préambule : APK debug v0.59.0+ sur appareil aarch64. L'écran d'installation
+s'ouvre depuis l'accueil (bandeau d'invitation) ; l'écran Environnement
+depuis Paramètres → carte Environnement → « Environnement de
+développement ». Maquettes de référence : `docs/preview/`
+`installation-environnement.html`.
+
+| # | Action | Attendu |
+|---|---|---|
+| E85 | **Stepper et états** : ouvrir l'écran d'installation puis lancer le parcours | Les 4 cartes passent par « En attente » → « En cours » → « Terminée » dans l'ordre strict ; la carte en cours affiche sa sous-étape ; l'entête compte « Étape N sur 4 » et la barre progresse ; les versions vérifiées apparaissent sur les cartes terminées (ex. `17.0.20 · TLS vérifié`) |
+| E86 | **Vitesse mesurée** : pendant le téléchargement d'un gros composant (build-tools), observer la ligne sous la barre globale | La vitesse en Mio/s et le temps restant s'affichent et évoluent (mesurés) ; sans mesure exploitable, la ligne est absente — jamais une vitesse figée ou fabriquée |
+| E87 | **Consentement licence** : après les phases 1-3 vérifiées, avant la phase Android | La carte licence apparaît (résumé + case) ; « Installer le SDK Android » est inactif tant que la case n'est pas cochée ; après acceptation, la carte disparaît définitivement (relance de l'app incluse — date persistée § 12.5) |
+| E88 | **Journal, annulation, échec** : déplier le journal, couper le réseau en phase 2, utiliser Annuler puis Réessayer | Le journal monospace se replie/déplie et est copiable ; l'échec affiche la sortie réelle de la commande en cause dans la carte ; Annuler arrête (notification incluse) ; « Réessayer cette phase » rejoue la phase fautive seule |
+| E89 | **Tablette sw600dp + rotation** : ouvrir l'écran sur tablette (ou émulateur 600dp+), faire pivoter l'écran pendant l'exécution | Stepper à gauche, journal à droite toujours visible (bouton de bascule absent) ; la rotation ne coupe ni l'installation ni l'affichage (service de premier plan, ADR 0087) |
+| E90 | **Écran Environnement** : Paramètres → Environnement de développement, avec un SDK installé | Une rangée par composant : version, révision, taille réelle en Mio, état (« vérifié », JDK « vérifié (paquet APT) ») ; « Vérifier (légère) » rejoue les contrôles ; « Vérification approfondie » génère un projet et lance un vrai `assembleDebug` (ADR 0089) ; « Désinstaller » exige une confirmation puis retire la rangée du disque ; « Copier le diagnostic » place journal + récapitulatif dans le presse-papiers |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

@@ -291,6 +291,18 @@ public interface EnvironmentSetupOrchestrator {
      * (§ 12.5) : conservée dans l'état persisté, exigée avant la phase 4.
      */
     public fun acceptSdkLicense()
+
+    /**
+     * Désinstalle un composant du manifeste (§ 7 — écran Environnement) :
+     * supprime son `installPath` sous la racine du SDK et retire son
+     * quadruplet de l'état persisté. La phase porteuse n'est pas retirée
+     * — un composant désinstallé se réinstalle par [repair].
+     *
+     * @param id identifiant du composant (ex. `cmdline-tools`).
+     * @return `Success` ; l'échec typé si le composant est inconnu ou la
+     * suppression impossible.
+     */
+    public suspend fun uninstallComponent(id: String): AppResult<Unit>
 }
 
 /**
