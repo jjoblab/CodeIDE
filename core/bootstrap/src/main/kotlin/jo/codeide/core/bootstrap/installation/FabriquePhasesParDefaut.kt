@@ -18,9 +18,9 @@ import javax.inject.Singleton
 
 /**
  * Assemblage de production des phases livrées (E2 : `BOOTSTRAP` et
- * `PACKAGE_TOOLS`, ADR 0087 § 1) — chaque phase reçoit ses briques
- * éprouvées du module, comme l'ancien `InstallateurBootstrap` construisait
- * ses collaborateurs internes.
+ * `PACKAGE_TOOLS` ; E3 : `JAVA`, ADR 0087 § 1 / ADR 0088) — chaque phase
+ * reçoit ses briques éprouvées du module, comme l'ancien
+ * `InstallateurBootstrap` construisait ses collaborateurs internes.
  */
 @Suppress("LongParameterList")
 @Singleton
@@ -58,5 +58,6 @@ internal class FabriquePhasesParDefaut
                         dispatchers = dispatchers,
                     ),
                 InstallPhase.PACKAGE_TOOLS to PhaseOutilsPaquets(racine = racine, catalogue = catalogue),
+                InstallPhase.JAVA to PhaseJava(racine = racine, catalogue = catalogue),
             )
     }

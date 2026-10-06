@@ -241,7 +241,12 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   cache SHA-256 + reprise `Range`, `install-state.json` atomique,
   service de premier plan avec Annuler) + phases 1 et 2 complètes
   (56 tests nouveaux, invariant de l'unique téléchargement testé).
-- **E3** — phase 3 Java (openjdk-17, `java`/`javac` démarrent, test TLS).
+- **E3** ✅ livré v0.57.0 (ADR 0088) : phase 3 Java complète — `openjdk-17`
+  du catalogue, dépôt APT interrogé et journalisé (`apt-cache policy`),
+  résolution unique `JAVA_HOME`, `java`/`javac` vérifiés par exécution,
+  majeure analysée, **sonde TLS** compilée et exécutée par le JDK
+  (truststore cassé détecté ici, classé `Jvm` vs `Reseau`) ; 7 tests,
+  dont la régression du mode muet R6 (ADR 0084).
 - **E4** — phase 4 Outils Android (manifeste v2, composants, licences
   après acceptation, câblage Gradle/aapt2, relance du daemon).
 - **E5** — maquettes validées puis nouvelle interface (écran
