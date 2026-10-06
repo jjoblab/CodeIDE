@@ -848,6 +848,41 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       37 combos** (andr-deps, andr-deps-java, sb-deps, kmp-deps,
       kt-app-renoms : README→NOTES avec build+run) ; ModelesPhase4Test
       (10), six fonctions ancrées, 1445 tests / 0 échec — ADR 0077]
+- v0.58.0 : **E4 de la refonte** (ADR 0089) : phase 4 `ANDROID_SDK`
+      complète — cinq étapes (`resolution-plan` : manifeste v2 + résolution
+      § 12.2 + espace (plan × 2) ; `composants` : péremption par
+      **quadruplet** persisté (§ 12.4 — écart = réparation du SEUL
+      composant fautif), téléchargement unique cache SHA-256, extraction
+      `tar.xz` par les outils du bootstrap + garde anti-traversée,
+      bascule atomique, `verify` du manifeste exécuté sans shell,
+      criticité (non critique tenté-échoué = `Degraded`, l'étape
+      CONTINUE) ; `licences` : fichiers écrits après acceptation
+      (hachages historiques, non vérifiés appareil) ; `cablage` :
+      `EcrivainConfigurationGradle` bloc géré **en place** (idempotence
+      octet pour octet, override manuel neutralisé par commentaire) ;
+      `verification-sdk` : `sdkmanager --version` (JAVA_HOME explicite +
+      `--sdk_root`), `--list_installed` cohérent avec le plan,
+      `android.jar` ouvrable) ; orchestrateur étendu
+      (`avertissements()` → `Degraded`, `composantsInstalles()` persistés
+      prouvés par exécution, `verify(deep)` → port
+      `VerificationApprofondie` — implémenté côté app par
+      `VerificationApprofondieProjets` : projet de contrôle réel +
+      `gradlew assembleDebug` + suppression) ; `install-state.json`
+      **schéma 2** (`installPath` — un fichier v1 est rejeté, reprise
+      sans retéléchargement) ; `aapt2` résolu plan d'abord (analyse
+      tolérante regex — PAS d'org.json dans `LocalisationOutils`, Kotlin
+      JVM pur) puis scan puis héritage `$PREFIX/bin` (retiré E6) ;
+      `estSdkAndroidValide` : SDK cohérent sans plateforme (constat § 1
+      corrigé) ; `buildToolsVersion = "35.0.2"` explicite dans les
+      templates + matrice AGP↔build-tools↔compileSdk dans
+      ENVIRONNEMENT.md + `AlignementCatalogueTemplatesTest` ; relance
+      daemon Gradle par `EmpreinteChaineOutils` +
+      `DetecteurChangementEmpreinte` (première observation ≠ changement)
+      câblée dans `CodeIdeApplication` ; 22 tests nouveaux (module
+      bootstrap 219) ; leçons E4 : `renameTo` exige le parent de la
+      cible posé ; un bloc géré doit être remplacé EN PLACE pour être
+      idempotent ; org.json indisponible en test JVM pur (regex
+      tolérante ou Robolectric).
 - v0.57.0 : **E3 de la refonte** (ADR 0088) : phase 3 `JAVA` livrée dans
       `core:bootstrap/installation/PhaseJava.kt` — étape `openjdk`
       (`apt-cache policy` journalisé, jamais un verdict ; `pkg install`

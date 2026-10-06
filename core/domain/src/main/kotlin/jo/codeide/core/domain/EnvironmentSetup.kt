@@ -211,6 +211,27 @@ public data class VerificationReport(
 )
 
 /**
+ * Vérification approfondie de l'environnement (§ 5.4.5, E4) : génère un
+ * projet réel depuis le template `android-app` et lance un vrai
+ * `assembleDebug` — **hors parcours par défaut**, déclenchée à la demande
+ * (bouton de l'écran Environnement, E5).
+ *
+ * L'implémentation vit côté application (elle orchestre la création de
+ * projet, le lanceur de processus et le nettoyage) ; l'orchestrateur du
+ * parcours la consomme via ce port — jamais de repli silencieux : un
+ * échec est retourné typé, pas avalé.
+ */
+public interface VerificationApprofondie {
+    /**
+     * Exécute la vérification approfondie complète.
+     *
+     * @return `Success` si le projet généré compile (`assembleDebug`
+     * réel) ; l'échec typé sinon (diagnostic complet attaché).
+     */
+    public suspend fun executer(): AppResult<Unit>
+}
+
+/**
  * Orchestrateur du parcours d'installation de l'environnement — port du
  * domaine, implémentation de référence dans `core:bootstrap` (ADR 0085),
  * hôte d'exécution : service de premier plan, singleton de processus.
@@ -496,8 +517,15 @@ public data class PersistedInstallState(
     public val sdkLicenseAcceptedAtMillis: Long?,
 ) {
     public companion object {
-        /** Version courante du schéma de persistance. */
-        public const val SCHEMA_VERSION: Int = 1
+        /**
+         * Version courante du schéma de persistance — 2 depuis E4 (ADR
+         * 0089) : `installedComponents` porte `installPath` (résolution
+         * de `aapt2` depuis le plan, § 12.4). Un fichier de schéma 1 est
+         * rejeté : le parcours repart de zéro **sans retélécharger** — la
+         * reprise « verify-first » re-vérifie chaque composant par
+         * exécution réelle (§ 3.2), seuls les quadruplets sont re-posés.
+         */
+        public const val SCHEMA_VERSION: Int = 2
     }
 }
 
@@ -509,6 +537,10 @@ public data class PersistedInstallState(
  * @property revision révision de reconditionnement (ex. `r1`).
  * @property sha256 somme SHA-256 de l'archive installée.
  * @property installedAtMillis horodatage d'installation, en millisecondes epoch.
+ * @property installPath chemin d'installation relatif à la racine du SDK
+ * (§ 12.2) — persisté depuis E4 (schéma 2) pour résoudre `aapt2` **depuis
+ * le plan** (§ 12.4) sans réseau : le composant `aapt2` s'il existe, sinon
+ * `build-tools`. `null` pour un état construit sans manifeste (tests).
  */
 public data class InstalledComponent(
     public val id: String,
@@ -516,4 +548,5 @@ public data class InstalledComponent(
     public val revision: String,
     public val sha256: String,
     public val installedAtMillis: Long,
+    public val installPath: String? = null,
 )

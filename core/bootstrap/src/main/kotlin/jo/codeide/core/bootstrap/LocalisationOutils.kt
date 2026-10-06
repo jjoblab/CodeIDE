@@ -111,12 +111,15 @@ internal object LocalisationOutils {
 
     /**
      * Racine du SDK Android parmi les candidats valides.
-     * Marqueur : au moins une plateforme (un `android.jar` sous `platforms`).
+     * Marqueur : un SDK **cohérent** (§ 6 du cahier de la refonte : un des
+     * répertoires attendus — `cmdline-tools`, `build-tools`,
+     * `platform-tools`, `platforms` — suffit ; un SDK partiel n'est plus
+     * invisible, `ANDROID_HOME` est exporté dès que le dossier est cohérent).
      *
      * v0.37.3 (retour d'appareil réel) : le SDK vit sous le HOME du shell
-     * (`home/android-sdk`, posé par la commande `$PREFIX/bin/android-sdk`) —
-     * les candidats du préfixe restent balayés en premier (priorité à un
-     * éventuel paquet futur du dépôt APT).
+     * (`home/android-sdk`, posé par la phase 4 du nouveau parcours) —
+     * les candidats du préfixe restent balayés en premier (installations
+     * historiques).
      */
     internal fun trouverAndroidHome(racine: File): File? {
         val prefix = DispositionsBootstrap.prefix(racine)
@@ -142,13 +145,11 @@ internal object LocalisationOutils {
             ?.let { File(it, "android.jar") }
 
     /**
-     * Binaire `aapt2` cross-compilé déployé dans `$PREFIX/bin`.
-     * Marqueur : présent **et exécutable** (le déploiement pose le bit).
+     * Binaire `aapt2` — résolu **depuis le plan** (§ 12.4) puis par replis
+     * documentés : voir [Aapt2Installe] (objet dédié, la classe reste sous
+     * le seuil de fonctions de detekt).
      */
-    internal fun trouverAapt2(racine: File): File? {
-        val binaire = File(DispositionsBootstrap.prefix(racine), "bin/aapt2")
-        return if (binaire.isFile && binaire.canExecute()) binaire else null
-    }
+    internal fun trouverAapt2(racine: File): File? = Aapt2Installe.trouver(racine, ::trouverAndroidHome)
 
     /**
      * Chemin du shell interactif par défaut : `bash` si présent, `sh`
@@ -175,4 +176,91 @@ internal object LocalisationOutils {
 
     /** Numéro de plateforme d'un nom (« android-37 » → 37, sinon -1). */
     private fun extraireNumeroPlateforme(nom: String): Int = Regex("[0-9]+").find(nom)?.value?.toIntOrNull() ?: -1
+}
+
+/**
+ * Résolution du binaire `aapt2` (§ 12.4, ADR 0089) — **depuis le plan**
+ * d'abord : l'`installPath` du composant `aapt2` persisté dans
+ * `install-state.json` s'il existe, sinon celui du composant
+ * `build-tools` ; à défaut, scan de la racine du SDK
+ * (`build-tools/<plus récente>/aapt2`) ; en dernier recours le binaire
+ * hérité de `$PREFIX/bin` (ancien `Aapt2Deployeur`, retiré en E6).
+ * Jamais un asset, jamais une constante.
+ *
+ * L'analyse d'`install-state.json` est volontairement **minimaliste par
+ * expressions régulières** — pas de dépendance JSON ici : ce code reste du
+ * Kotlin JVM pur testable sans Android (org.json est une classe du cadre
+ * Android). Tout écart de format rend `null` : les replis prennent le
+ * relais, jamais d'état inventé.
+ */
+internal object Aapt2Installe {
+    /** Chaîne de résolution : plan persisté → scan du SDK → binaire hérité. */
+    internal fun trouver(
+        racine: File,
+        sdkDe: (File) -> File?,
+    ): File? = depuisEtat(racine, sdkDe) ?: parScan(racine, sdkDe) ?: heritage(racine)
+
+    /** Plan matérialisé : `installPath` du porteur (`aapt2` sinon `build-tools`) sous la racine du SDK. */
+    private fun depuisEtat(
+        racine: File,
+        sdkDe: (File) -> File?,
+    ): File? =
+        sdkDe(racine)?.let { sdk ->
+            porteurPersiste(racine)
+                ?.let { porteur -> File(File(sdk, porteur), "aapt2") }
+                ?.takeIf { it.isFile && it.canExecute() }
+        }
+
+    /** `installPath` du composant porteur dans `install-state.json`, ou `null` (fichier absent ou illisible). */
+    private fun porteurPersiste(racine: File): String? =
+        runCatching { File(racine, "install-state.json").readText() }
+            .getOrNull()
+            ?.let(::installPathDuPorteur)
+
+    /** Premier `installPath` connu parmi `aapt2` puis `build-tools` (§ 12.4). */
+    private fun installPathDuPorteur(texte: String): String? =
+        sequenceOf("aapt2", "build-tools").firstNotNullOfOrNull { id -> installPathPersiste(texte, id) }
+
+    /**
+     * `installPath` du composant [id] dans le tableau `installedComponents`
+     * du texte JSON — `null` si absent (paires `"id"`/`"installPath"` des
+     * objets du tableau, indépendant de l'ordre des champs).
+     */
+    private fun installPathPersiste(
+        texte: String,
+        id: String,
+    ): String? {
+        val tableau = texte.substringAfter("\"installedComponents\"", "").substringAfter('[', "")
+        val entrees = Regex("\\{[^{}]*}").findAll(tableau).map { it.value }
+        return entrees
+            .firstOrNull { entree ->
+                Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(entree)?.groupValues?.get(1) == id
+            }?.let { entree ->
+                Regex(
+                    "\"installPath\"\\s*:\\s*\"([^\"]*)\"",
+                ).find(entree)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+            }
+    }
+
+    /** Scan de la racine du SDK : `build-tools/<plus récente>/aapt2` (installations sans état persisté). */
+    private fun parScan(
+        racine: File,
+        sdkDe: (File) -> File?,
+    ): File? {
+        val sdk = sdkDe(racine) ?: return null
+        return MarqueursOutils
+            .listerRepertoires(File(sdk, "build-tools"))
+            .map { File(it, "aapt2") }
+            .filter { it.isFile && it.canExecute() }
+            .maxWithOrNull(compareBy { numeroInitial(it.parentFile?.name ?: "") })
+    }
+
+    /** Numéro initial d'un nom de version (`35.0.2` → 35 ; illisible → -1). */
+    private fun numeroInitial(nom: String): Int = nom.split('.').firstOrNull()?.toIntOrNull() ?: -1
+
+    /** Binaire hérité déployé dans `$PREFIX/bin` par l'ancien `Aapt2Deployeur` (retiré en E6). */
+    private fun heritage(racine: File): File? {
+        val binaire = File(DispositionsBootstrap.prefix(racine), "bin/aapt2")
+        return if (binaire.isFile && binaire.canExecute()) binaire else null
+    }
 }
