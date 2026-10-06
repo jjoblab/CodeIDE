@@ -138,6 +138,13 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                 getString(R.string.wizard_echec_inattendu)
             }
 
+            is AppError.EnvironmentSetup -> {
+                // Hors périmètre de la création de projet : le parcours
+                // d'installation de l'environnement (refonte E1) ne
+                // participe pas à la génération des fichiers.
+                getString(R.string.wizard_echec_inattendu)
+            }
+
             is AppError.Tooling -> {
                 // Hors périmètre de la création de projet : le tooling
                 // Gradle ne participe pas à la génération des fichiers.
@@ -156,6 +163,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
             is AppError.Validation -> erreur.details
             is AppError.Template -> erreur.details
             is AppError.Bootstrap -> erreur.details
+            is AppError.EnvironmentSetup -> erreur.details
             is AppError.Tooling -> erreur.message
             is AppError.Unknown -> erreur.details
         }

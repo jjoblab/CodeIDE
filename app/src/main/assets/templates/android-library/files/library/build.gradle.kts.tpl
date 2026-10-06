@@ -6,6 +6,7 @@ android {
     namespace = "{{packageName}}"
     compileSdk = 37
     compileSdkMinor = 2
+    buildToolsVersion = "35.0.2"
 
     defaultConfig {
         minSdk = {{minSdk}}

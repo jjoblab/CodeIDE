@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Service de premier plan de l'installation (refonte E2, ADR 0087). -->
+    <string name="installation_service_canal">Installation de l\'environnement</string>
+    <string name="installation_service_titre">Installation de l\'environnement</string>
+    <string name="installation_service_annuler">Annuler</string>
+    <string name="installation_service_phase_bootstrap">Base du système (bootstrap)</string>
+    <string name="installation_service_phase_outils">Outils d\'installation</string>
+    <string name="installation_service_phase_java">Java</string>
+    <string name="installation_service_phase_sdk">SDK Android</string>
+</resources>

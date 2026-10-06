@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeIDE — Aperçu installation &amp; environnement (E5)</title>
+<style>
+:root{--bg:#F9F9FF;--sf:#F7F9FC;--s2:#EEF0F6;--tx:#1A1B21;--mu:#46464F;--ol:#C6C5D0;--pr:#43559E;--op:#fff;--pc:#DCE1FF;--opc:#001159;--er:#BA1A1A;--ok:#2E7D32;--sy:#0E7490;--wa:#9A6A00;--sc:rgba(0,0,0,.4)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111318;--sf:#1A1E25;--s2:#252A33;--tx:#E2E1E9;--mu:#C6C5D0;--ol:#46464F;--pr:#BAC4FF;--op:#0C2264;--pc:#293D8F;--opc:#DCE1FF;--er:#FFB4AB;--ok:#81C995;--sy:#5AC8DE;--wa:#FFD699;--sc:rgba(0,0,0,.6)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px;display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+h1{font-size:16px;margin:0 0 2px;width:100%;text-align:center}p.s{margin:0 0 12px;color:var(--mu);font-size:12px;width:100%;text-align:center}
+.col{display:flex;flex-direction:column;gap:10px}
+.lab{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);text-align:center;margin:2px 0 -2px}
+.phone{width:390px;height:740px;overflow:hidden;border-radius:22px;border:1px solid var(--ol);background:var(--bg);display:flex;flex-direction:column}
+.tablet{width:760px;height:740px;overflow:hidden;border-radius:22px;border:1px solid var(--ol);background:var(--bg);display:flex}
+.scroller{flex:1;overflow:auto;padding:12px}
+/* en-tête */
+.hd{padding:6px 2px 10px}
+.hd h2{margin:0;font-size:19px}
+.hd p{margin:2px 0 10px;color:var(--mu);font-size:12px}
+.gp{display:flex;align-items:center;gap:10px}
+.ring{width:44px;height:44px;border-radius:50%;flex:none;border:4px solid var(--s2);border-top-color:var(--pr);display:grid;place-items:center;font-size:11px;font-weight:600}
+.ring.done{border-color:var(--ok);color:var(--ok)}
+.gp .tt{flex:1}
+.gp b{font-size:13px}
+.gp span{display:block;font-size:11px;color:var(--mu)}
+/* cartes de phase */
+.carte{background:var(--sf);border:1px solid var(--ol);border-radius:16px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.carte .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:16px;flex:none;background:var(--s2);color:var(--mu)}
+.carte.encours .ic{background:var(--pr);color:var(--op)}
+.carte.terminee .ic{background:var(--ok);color:#fff}
+.carte.echec .ic{background:var(--er);color:#fff}
+.carte.degradee .ic{background:var(--wa);color:#fff}
+.carte .bd{flex:1;min-width:0}
+.carte .bd b{font-size:14px}
+.carte .etat{float:right;font-size:11px;color:var(--mu)}
+.carte.encours .etat{color:var(--pr);font-weight:600}
+.carte.terminee .etat{color:var(--ok)}
+.carte.echec .etat{color:var(--er)}
+.carte.degradee .etat{color:var(--wa)}
+.carte .sous{font-size:12px;color:var(--mu);margin-top:1px}
+.carte .vers{font-size:11px;color:var(--mu);margin-top:3px;font-family:monospace}
+.bar{height:5px;border-radius:3px;background:var(--s2);margin-top:6px;overflow:hidden}
+.bar>div{height:100%;background:var(--pr)}
+.bar.ind>div{width:35%;animation:m 1.2s ease-in-out infinite}
+@keyframes m{from{margin-left:-35%}to{margin-left:100%}}
+.bar .vitesse{font-size:10px;color:var(--mu);margin-top:2px}
+/* journal */
+.journal{background:var(--s2);border-radius:12px;padding:8px 10px;font:11px/1.55 monospace;color:var(--mu);margin:4px 0 8px}
+.journal .ok{color:var(--ok)}.journal .er{color:var(--er)}
+/* licence */
+.licence{background:var(--sf);border:1px solid var(--wa);border-radius:16px;padding:10px 12px;margin-bottom:8px}
+.licence b{font-size:13px}
+.licence p{font-size:11px;color:var(--mu);margin:4px 0 6px}
+.licence label{display:flex;gap:8px;align-items:flex-start;font-size:12px}
+.licence a{color:var(--sy)}
+/* actions */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.btn{border:1px solid var(--ol);background:var(--sf);color:var(--tx);border-radius:20px;padding:8px 14px;font:inherit;font-size:12px}
+.btn.p{background:var(--pr);color:var(--op);border-color:var(--pr)}
+.btn.d{color:var(--er);border-color:var(--er)}
+.btn:disabled{opacity:.35}
+/* récap final */
+.recap{background:var(--sf);border:1px solid var(--ok);border-radius:16px;padding:12px;margin-bottom:8px}
+.recap h3{margin:0 0 6px;font-size:15px;color:var(--ok)}
+.recap .li{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--ol)}
+.recap .li:last-child{border:0}
+.recap .li span{color:var(--mu)}.recap .li b{font-family:monospace}
+/* écran environnement */
+.env-hd h2{margin:0;font-size:19px}.env-hd p{margin:2px 0 10px;color:var(--mu);font-size:12px}
+.comp{background:var(--sf);border:1px solid var(--ol);border-radius:14px;padding:9px 12px;margin-bottom:7px}
+.comp .l1{display:flex;align-items:center;gap:8px}
+.comp .l1 b{font-size:13px;flex:1}
+.comp .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.comp .dot.degradee{background:var(--wa)}.comp .dot.absent{background:var(--ol)}
+.comp .l2{font-size:11px;color:var(--mu);margin-top:2px;font-family:monospace}
+.env-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.panel-d{width:46%;border-right:1px solid var(--ol);display:flex;flex-direction:column}
+.panel-g{flex:1;display:flex;flex-direction:column}
+.pane-hd{padding:12px 14px 6px;font-size:13px;font-weight:600}
+</style>
+</head>
+<body>
+<h1>CodeIDE — E5 : nouvelle interface d'installation &amp; écran Environnement</h1>
+<p class="s">Maquettes statiques (téléphone et tablette sw600dp) — Material 3, jetons du thème core:ui, français + anglais, TalkBack, « réduire les animations » respecté.</p>
+
+<!-- ===================== TÉLÉPHONE — installation en cours ===================== -->
+<div class="col"><div class="lab">Téléphone — installation en cours</div>
+<div class="phone"><div class="scroller">
+  <div class="hd">
+    <h2>Installation de l'environnement</h2>
+    <p>Bootstrap, outils, Java puis le SDK Android — chaque étape est vérifiée par exécution réelle.</p>
+    <div class="gp">
+      <div class="ring">3/4</div>
+      <div class="tt"><b>Phase Android</b><span>Estimation : environ 4 minutes restantes</span></div>
+    </div>
+  </div>
+
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd">
+    <span class="etat">Terminée</span><b>Bootstrap</b>
+    <div class="vers">sh 5.2.1 · apt 2.7.14</div>
+  </div></div>
+
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd">
+    <span class="etat">Terminée</span><b>Outils</b>
+    <div class="vers">curl 8.9 · tar 1.35 · xz 5.6 · unzip 6.0</div>
+  </div></div>
+
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd">
+    <span class="etat">Terminée</span><b>Java</b>
+    <div class="vers">openjdk 17.0.20 · TLS vérifié</div>
+  </div></div>
+
+  <div class="carte encours"><div class="ic">⬇</div><div class="bd">
+    <span class="etat">En cours</span><b>Android</b>
+    <div class="sous">build-tools 35.0.2 — 61 Mio sur 127 Mio</div>
+    <div class="bar"><div style="width:48%"></div><div class="vitesse">1,2 Mio/s — environ 1 min restante</div></div>
+  </div></div>
+
+  <div class="journal">$ sdkmanager --version --sdk_root /…/android-sdk<br>12.0<br><span class="ok">composant build-tools installé et vérifié par exécution</span><br>$ tar -xJf &lt;archive-platform-tools&gt; -C &lt;staging&gt;<br>extraction ok</div>
+
+  <div class="actions">
+    <button class="btn d">Annuler</button>
+    <button class="btn">Copier le diagnostic</button>
+    <button class="btn">Ouvrir le terminal</button>
+  </div>
+</div></div></div>
+
+<!-- ===================== TÉLÉPHONE — consentement licence ===================== -->
+<div class="col"><div class="lab">Téléphone — consentement licence (avant la phase Android)</div>
+<div class="phone"><div class="scroller">
+  <div class="hd"><h2>Installation de l'environnement</h2>
+    <p>Phases 1 à 3 vérifiées — la phase Android exige votre accord.</p></div>
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Bootstrap</b></div></div>
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Outils</b></div></div>
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Java</b></div></div>
+  <div class="licence">
+    <b>Licence du SDK Android</b>
+    <p>Les composants du SDK Android (build-tools, plateforme, platform-tools) sont soumis à la <a href="#">licence du SDK Android</a> de Google. L'installation ne démarre qu'après votre acceptation.</p>
+    <label><input type="checkbox"> J'accepte la licence du SDK Android</label>
+  </div>
+  <div class="actions"><button class="btn p" disabled>Installer le SDK Android</button></div>
+</div></div></div>
+
+<!-- ===================== TÉLÉPHONE — échec ===================== -->
+<div class="col"><div class="lab">Téléphone — échec (sortie réelle jointe)</div>
+<div class="phone"><div class="scroller">
+  <div class="hd"><h2>Installation de l'environnement</h2><p>La phase a échoué — le diagnostic complet est joint.</p></div>
+  <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Bootstrap</b></div></div>
+  <div class="carte echec"><div class="ic">✕</div><div class="bd">
+    <span class="etat">Échec</span><b>Outils</b>
+    <div class="sous">mise à jour des paquets impossible après 4 tentatives — vérifier la connexion réseau et le dépôt (miroir)</div>
+    <div class="journal" style="margin-top:6px"><span class="er">E: impossible de joindre le dépôt</span></div>
+  </div></div>
+  <div class="carte" style="opacity:.5"><div class="ic">…</div><div class="bd"><span class="etat">En attente</span><b>Java</b></div></div>
+  <div class="carte" style="opacity:.5"><div class="ic">…</div><div class="bd"><span class="etat">En attente</span><b>Android</b></div></div>
+  <div class="actions"><button class="btn p">Réessayer cette phase</button><button class="btn">Copier le diagnostic</button></div>
+</div></div></div>
+
+<!-- ===================== TÉLÉPHONE — récapitulatif final ===================== -->
+<div class="col"><div class="lab">Téléphone — terminé</div>
+<div class="phone"><div class="scroller">
+  <div class="hd"><h2>Environnement prêt</h2><p>Toutes les phases sont vérifiées par exécution réelle.</p></div>
+  <div class="recap">
+    <h3>✓ Installation terminée</h3>
+    <div class="li"><span>JDK</span><b>openjdk 17.0.20</b></div>
+    <div class="li"><span>Build-tools</span><b>35.0.2</b></div>
+    <div class="li"><span>Plateforme</span><b>android-37.2</b></div>
+    <div class="li"><span>Platform-tools</span><b>37.0.1</b></div>
+    <div class="li"><span>cmdline-tools</span><b>12.0</b></div>
+  </div>
+  <div class="carte degradee"><div class="ic">!</div><div class="bd">
+    <span class="etat">Dégradée</span><b>Android</b>
+    <div class="sous">cmdline-tools en échec — non critique : la compilation fonctionne sans lui. Réparable depuis Paramètres → Environnement.</div>
+  </div></div>
+  <div class="actions"><button class="btn p">Créer mon premier projet</button></div>
+</div></div></div>
+
+<!-- ===================== TÉLÉPHONE — écran Environnement (Paramètres) ===================== -->
+<div class="col"><div class="lab">Téléphone — Paramètres → Environnement</div>
+<div class="phone"><div class="scroller">
+  <div class="env-hd"><h2>Environnement</h2><p>Versions, tailles et état vérifié de chaque composant.</p></div>
+  <div class="comp"><div class="l1"><span class="dot"></span><b>build-tools</b></div>
+    <div class="l2">35.0.2 · r1 · 127 Mio · vérifié</div></div>
+  <div class="comp"><div class="l1"><span class="dot"></span><b>platform</b></div>
+    <div class="l2">android-37.2 · r1 · 64 Mio · vérifié</div></div>
+  <div class="comp"><div class="l1"><span class="dot"></span><b>platform-tools</b></div>
+    <div class="l2">37.0.1 · r1 · 12 Mio · vérifié</div></div>
+  <div class="comp"><div class="l1"><span class="dot degradee"></span><b>cmdline-tools</b></div>
+    <div class="l2">12.0 · r1 · 31 Mio · dégradé (non critique)</div></div>
+  <div class="comp"><div class="l1"><span class="dot absent"></span><b>JDK</b></div>
+    <div class="l2">openjdk-17 · 212 Mio · vérifié (paquet APT)</div></div>
+  <div class="env-actions">
+    <button class="btn">Vérifier (légère)</button>
+    <button class="btn">Vérification approfondie</button>
+    <button class="btn">Réparer…</button>
+    <button class="btn d">Désinstaller cmdline-tools…</button>
+    <button class="btn">Diagnostic</button>
+  </div>
+</div></div></div>
+
+<!-- ===================== TABLETTE sw600dp — installation ===================== -->
+<div class="col"><div class="lab">Tablette sw600dp — stepper à gauche, journal à droite</div>
+<div class="tablet">
+  <div class="panel-d">
+    <div class="pane-hd">Installation de l'environnement</div>
+    <div class="scroller">
+      <div class="gp" style="margin:4px 0 12px">
+        <div class="ring">3/4</div>
+        <div class="tt"><b>Phase Android</b><span>Environ 4 minutes restantes</span></div>
+      </div>
+      <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Bootstrap</b></div></div>
+      <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Outils</b></div></div>
+      <div class="carte terminee"><div class="ic">✓</div><div class="bd"><span class="etat">Terminée</span><b>Java</b></div></div>
+      <div class="carte encours"><div class="ic">⬇</div><div class="bd">
+        <span class="etat">En cours</span><b>Android</b>
+        <div class="sous">build-tools 35.0.2 — 61 / 127 Mio</div>
+        <div class="bar"><div style="width:48%"></div></div>
+      </div></div>
+    </div>
+    <div class="actions" style="padding:0 12px 12px"><button class="btn d">Annuler</button><button class="btn">Diagnostic</button></div>
+  </div>
+  <div class="panel-g">
+    <div class="pane-hd">Journal en direct</div>
+    <div class="scroller"><div class="journal" style="margin:0">
+      $ pkg install -y openjdk-17<br>Setting up openjdk-17 …<br>$ java -version<br>openjdk version "17.0.20"<br><span class="ok">test TLS : requête HTTPS Java vers https://dl.google.com</span><br><span class="ok">TLS_OK 200</span><br>$ sdkmanager --version --sdk_root /…/android-sdk<br>12.0<br>$ tar -xJf &lt;archive-build-tools&gt; -C &lt;staging&gt;<br>extraction ok<br><span class="ok">composant build-tools installé et vérifié par exécution</span>
+    </div></div>
+  </div>
+</div></div>
+
+</body>
+</html>

@@ -48,12 +48,6 @@ class BientotFragment : BaseFragment<FragmentSettingsBientotBinding>() {
                 binding.texteBientot.setText(R.string.settings_bientot_texte_ia)
             }
 
-            SectionParametres.OUTILS -> {
-                binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_outils)
-                binding.titreBientot.setText(R.string.settings_bientot_titre_outils)
-                binding.texteBientot.setText(R.string.settings_bientot_texte_outils)
-            }
-
             SectionParametres.SECURITE -> {
                 binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_bouclier)
                 binding.titreBientot.setText(R.string.settings_bientot_titre_securite)
@@ -63,7 +57,7 @@ class BientotFragment : BaseFragment<FragmentSettingsBientotBinding>() {
             // Repli défensif : toute autre section n'a rien à faire ici.
             else -> {
                 binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_info)
-                binding.titreBientot.setText(R.string.settings_bientot_titre_outils)
+                binding.titreBientot.setText(R.string.settings_bientot_titre_securite)
                 binding.texteBientot.setText(R.string.settings_bientot_texte_ia)
             }
         }

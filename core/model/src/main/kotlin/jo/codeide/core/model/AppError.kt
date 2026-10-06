@@ -117,6 +117,84 @@ public sealed interface AppError {
     ) : AppError
 
     /**
+     * Raison normalisée d'un échec du parcours d'installation de
+     * l'environnement de développement (refonte E1, ADR 0084/0085).
+     *
+     * Chaque raison correspond à un mode d'échec **reproduit** (ADR 0084) :
+     * le diagnostic complet — commande, code de retour, dernières lignes de
+     * sortie — accompagne l'erreur ([EnvironmentSetup.sortie]), jamais un
+     * message seul.
+     */
+    public enum class EnvironmentSetupReason {
+        /** Le réseau est indisponible ou tous les miroirs déclarés sont épuisés. */
+        Reseau,
+
+        /** L'espace disque disponible est insuffisant pour la phase en cours. */
+        EspaceDisque,
+
+        /** La somme SHA-256 d'une archive téléchargée ne correspond pas à l'attendu. */
+        SommeControle,
+
+        /** Une commande a échoué : code de retour non nul, sortie capturée. */
+        Commande,
+
+        /** La JVM ne démarre pas ou son truststore est inutilisable (ADR 0084, mode R5/R6). */
+        Jvm,
+
+        /** Une opération a été refusée par le système (permissions, exécution). */
+        Permissions,
+
+        /** Le parcours a été annulé par l'utilisateur. */
+        Annulation,
+
+        /** Le manifeste d'outils est invalide ou incompatible avec les exigences du catalogue. */
+        ManifesteInvalide,
+
+        /**
+         * L'ABI de l'appareil n'est pas `arm64-v8a` (phase 1, ADR 0087) :
+         * l'archive du bootstrap n'est publiée que pour `aarch64`.
+         */
+        ArchitectureNonSupportee,
+    }
+
+    /**
+     * Sortie d'une commande exécutée, capturée intégralement puis bornée —
+     * le contrat « aucune sortie jetée » de la refonte (ADR 0084) : le
+     * diagnostic réel (code + dernières lignes de stdout et stderr, dans
+     * l'ordre d'émission) accompagne toujours l'échec.
+     *
+     * @property commande la commande exécutée (programme et arguments),
+     * expurgée des données personnelles avant affichage.
+     * @property exitCode code de retour du processus.
+     * @property lastLines dernières lignes de sortie (stdout + stderr),
+     * bornées par l'implémentation (200 lignes), expurgées.
+     */
+    public data class CommandOutput(
+        public val commande: String,
+        public val exitCode: Int,
+        public val lastLines: List<String>,
+    )
+
+    /**
+     * Erreur du parcours d'installation de l'environnement (quatre phases,
+     * ADR 0085) : réseau, espace disque, somme de contrôle, commande, JVM,
+     * permissions, annulation, manifeste.
+     *
+     * @property reason raison normalisée, pilotant le message et l'action
+     * proposées par l'UI.
+     * @property details contexte technique pour les journaux (jamais
+     * affiché tel quel).
+     * @property sortie sortie de la commande en cause le cas échéant —
+     * interdit le « SDK non fonctionnel » sans indice (critère
+     * d'acceptation de la refonte).
+     */
+    public data class EnvironmentSetup(
+        public val reason: EnvironmentSetupReason,
+        public val details: String = "",
+        public val sortie: CommandOutput? = null,
+    ) : AppError
+
+    /**
      * Erreur du tooling Gradle client-serveur (prompt compagnon Tooling,
      * G3+) : l'orchestrateur signale un [code machine-lisible], jamais une
      * chaîne libre — l'UI traduit, elle n'interprète pas le texte brut.

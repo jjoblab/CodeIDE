@@ -222,6 +222,72 @@ Fichiers livrés :
 
 ---
 
+## Phase R — Refonte du parcours d'installation (E1–E6)
+
+Prompt « Refonte complète du parcours d'installation de l'environnement »
+(dépôt `jjoblab/CodeIDE`), exécuté en parallèle de la refonte de
+`jjoblab/codeide-tools` (manifeste v2) — contrat commun § 12 des deux
+prompts. Motivation : ~1 400 lignes de shell générées non testables,
+double téléchargement cmdline-tools, « SDK non fonctionnel » muet
+(cause racine établie : ADR 0084), orchestration par frappe dans un pty.
+
+- **E1** ✅ livré v0.55.0 (ADR 0084/0085/0086) : investigation (sorties
+  réelles capturées), ADR d'architecture (4 phases vérifiées, ports,
+  état persisté), modèle de domaine + résolveur de plan pur (20 tests),
+  catalogue de versions (build-tools 35.0.2 aarch64, platform
+  android-37.2, JDK 17).
+- **E2** ✅ livré v0.56.0 (ADR 0087) : cadre commun (orchestrateur
+  verify-first, `CommandRunner` capture intégrale, `DownloadManager`
+  cache SHA-256 + reprise `Range`, `install-state.json` atomique,
+  service de premier plan avec Annuler) + phases 1 et 2 complètes
+  (56 tests nouveaux, invariant de l'unique téléchargement testé).
+- **E3** ✅ livré v0.57.0 (ADR 0088) : phase 3 Java complète — `openjdk-17`
+  du catalogue, dépôt APT interrogé et journalisé (`apt-cache policy`),
+  résolution unique `JAVA_HOME`, `java`/`javac` vérifiés par exécution,
+  majeure analysée, **sonde TLS** compilée et exécutée par le JDK
+  (truststore cassé détecté ici, classé `Jvm` vs `Reseau`) ; 7 tests,
+  dont la régression du mode muet R6 (ADR 0084).
+- **E4** ✅ livré v0.58.0 (ADR 0089) : phase 4 Outils Android complète —
+  plan résolu du manifeste v2 (une fois par exécution, contrôle d'espace),
+  composants installés/vérifiés par exécution avec péremption par
+  quadruplet (réparation du seul fautif), `cmdline-tools` non critique
+  (`Degraded`), licences après acceptation, câblage Gradle (override
+  `aapt2` bloc géré idempotent, `buildToolsVersion` explicite dans les
+  templates, matrice documentée), relance du daemon par empreinte,
+  vérification approfondie (projet + vrai `assembleDebug`) ; 22 tests
+  nouveaux, parcours complet exécutable de bout en bout.
+- **E5** ✅ livré v0.59.0 (ADR 0090) : maquettes statiques
+  (`docs/preview/installation-environnement.html`, six états) puis
+  nouvelle interface — écran d'installation à stepper de 4 cartes
+  (progression « étape N sur 4 », journal en direct repliable, vitesse et
+  temps restant **mesurés** du téléchargement courant, consentement
+  licence § 12.5 avant la phase 4, actions contextuelles masquées jamais
+  grisées, récapitulatif final + « Créer mon premier projet », tablette
+  sw600dp deux panneaux) et écran Environnement des Paramètres (tailles
+  réelles auditées par composant, rangée JDK « paquet APT », Vérifier
+  légère/approfondie, Réparer, Désinstaller avec confirmation via
+  `uninstallComponent`, diagnostic copiable partagé en codes neutres) ;
+  section maître « Outils (bientôt) » remplacée par la section réelle ;
+  26 tests nouveaux (divergence assumée : pas d'estimation globale de
+  temps restant — ADR 0090 § 3).
+- **E6** ✅ livré v0.60.0 (ADR 0091) : **migration des installations
+  existantes** — adoption par l'exécution au premier `run()` (composants
+  sans quadruplet vérifiés par le `verify` du manifeste → quadruplets du
+  plan reconstruits, **zéro retéléchargement** ; préfixe déjà basculé →
+  archive dispensée ; le fautif éventuel réparé seul), trois scénarios
+  testés (appareil ancien complet, appareil neuf, à moitié installé) ;
+  **suppression de l'ancien code** (`InstallateurBootstrap`,
+  `TelechargeurBootstrap`, `EcrivainSdkAndroidCli`,
+  `EcrivainCodeideEnvCli`, `EcrivainGradleCli`, `EcrivainProfilShell`,
+  `Aapt2Deployeur`, `VersionneurScriptsTerminal`, ports
+  `BootstrapInstaller`/`BootstrapAssetsSource`/`ConfigurationEnvTerminal`,
+  modèles `EtatInstallationBootstrap`/`EtapeInstallation`/`OutilResume`,
+  ancien écran `InstallFragment` + mini-terminal, ~2 900 lignes) ;
+  rebranchements (bandeau accueil, observateur d'outils, relance du
+  daemon Gradle par empreinte E4 seule) ; `refreshTerminalScripts` retiré
+  (environnement injecté par session, scripts anciens laissés en place) ;
+  ADR 0082/0083 marquées **remplacées** ; **fin de la phase R**.
+
 ## Priorisation
 
 | Phase | Priorité | Effort | Impact utilisateur |
