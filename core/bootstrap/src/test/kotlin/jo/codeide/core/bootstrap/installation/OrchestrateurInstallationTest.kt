@@ -330,7 +330,9 @@ class OrchestrateurInstallationTest {
             assertEquals(0, phaseSdk.etapes[0].executions.get())
 
             orchestrateur.acceptSdkLicense()
-            attendre { orchestrateur.state.value.sdkLicenseAcceptedAtMillis != null }
+            // `suspend` (v0.60.1, ADR 0092) : l'acceptation est visible
+            // DÈS le retour — un run() qui suit ne peut plus la manquer.
+            assertTrue(orchestrateur.state.value.sdkLicenseAcceptedAtMillis != null)
             orchestrateur.run()
 
             assertEquals(1, phaseSdk.etapes[0].executions.get())

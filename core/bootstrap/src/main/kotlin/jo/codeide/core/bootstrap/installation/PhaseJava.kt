@@ -74,6 +74,14 @@ internal class PhaseJava(
  * JVM qui ne démarre pas (bibliothèque manquante, ADR 0084 R6) échoue
  * ici avec sa sortie capturée — plus jamais de « SDK non fonctionnel »
  * muet.
+ *
+ * **Le code de sortie de `pkg install` n'est pas un verdict** (constat
+ * appareil réel v0.60.0, ADR 0092) : `apt` peut renvoyer 100 APRÈS une
+ * installation réussie (« `E: Directory … missing` », avertissement
+ * `EIPP::OrderInstall`) — paquets posés et configurés. Après un code
+ * non nul, le contrôle réel du JDK tranche donc avant tout échec :
+ * opérationnel = l'installation a réussi malgré le code (journalisé) ;
+ * inexistant = l'échec `Commande` avec la sortie apt à l'appui.
  */
 private class EtapePaquetJdk(
     private val racine: File,
@@ -95,6 +103,17 @@ private class EtapePaquetJdk(
                 ),
             )
         if (!installation.succeeded) {
+            // Sortie apt non fiable : l'exécution réelle tranche (§ 3.2).
+            context.journal(
+                "pkg install a renvoyé le code ${installation.exitCode} — contrôle réel du JDK avant verdict",
+            )
+            if (controlerJdk(context) == null) {
+                context.journal(
+                    "JDK vérifié par exécution malgré le code ${installation.exitCode} " +
+                        "(anomalie apt connue : sortie non fiable) — poursuite",
+                )
+                return
+            }
             throw EchecEtapeInstallation(
                 ErreursInstallation.commande(
                     description = "installation du paquet ${catalogue.jdkPackage} impossible",

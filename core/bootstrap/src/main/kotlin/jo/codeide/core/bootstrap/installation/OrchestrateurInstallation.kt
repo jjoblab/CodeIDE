@@ -160,13 +160,17 @@ internal class OrchestrateurInstallation
             return resultat
         }
 
-        override fun acceptSdkLicense() {
-            portee.launch {
-                chargerEtatSiNecessaire()
-                etatInterne.update { it.copy(sdkLicenseAcceptedAtMillis = horloge.nowMillis()) }
-                journaliser("licence du SDK Android acceptée (§ 12.5)")
-                persisterEtat()
-            }
+        /**
+         * Acceptation explicite de la licence (§ 12.5) — `suspend` : l'état
+         * est persisté AVANT le retour, un `run()` appelé juste après est
+         * garanti de la voir (v0.60.1, ADR 0092 — l'ancien lancement en
+         * coroutine détachée permettait une course avec le parcours).
+         */
+        override suspend fun acceptSdkLicense() {
+            chargerEtatSiNecessaire()
+            etatInterne.update { it.copy(sdkLicenseAcceptedAtMillis = horloge.nowMillis()) }
+            journaliser("licence du SDK Android acceptée (§ 12.5)")
+            persisterEtat()
         }
 
         override suspend fun verify(deep: Boolean): VerificationReport {

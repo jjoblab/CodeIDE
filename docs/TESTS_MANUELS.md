@@ -486,6 +486,17 @@ l'ADR 0091 § 1.
 | E94 | **Scripts anciens orphelins** : sur l'appareil migré E91, ouvrir le terminal intégré | `JAVA_HOME`/`ANDROID_HOME`/`PATH` corrects (injectés par session, `ProcessEnvironmentProvider`) ; les commandes `gradle`/`android-sdk`/`codeide-env` héritées, si présentes, répondent toujours mais ne sont plus mises à jour par l'application (rupture assumée, CHANGELOG 0.60.0) |
 | E95 | **Bandeau accueil et daemon** : après adoption E91, revenir à l'accueil, puis ouvrir un projet et lancer un build | Le bandeau « terminal non installé » est absent ; le daemon Gradle démarre avec le JDK adopté (empreinte E4) ; un `assembleDebug` compile avec les composants adoptés — la contre-vérification des `verify` du manifeste v2 sur les binaires du manifeste v1 (même layout, mêmes versions 35.0.2) est LE point à surveiller (ADR 0091 § 1, non vérifié en simulation) |
 
+### Correctifs appareil réel (v0.60.1 — ADR 0092)
+
+Les scénarios E96-E98 rejouent les deux blocages constatés sur appareil
+réel avec la v0.60.0 et vérifient les correctifs de la v0.60.1.
+
+| # | Action | Attendu |
+|---|---|---|
+| E96 | **Anomalie apt code 100** : appareil neuf, lancer le parcours et observer le journal de la phase Java (et le cas échéant de la phase 2) | Si `pkg install` renvoie un code non nul après une installation réelle (sorties « Setting up … » présentes, puis « E: Directory … missing »/EIPP), le journal affiche « contrôle réel du JDK avant verdict » puis « JDK vérifié par exécution malgré le code … — poursuite » : la phase continue vers le test TLS, **sans échec** ; si l'outil est réellement absent, la phase échoue en `Commande` avec la sortie apt |
+| E97 | **Consentement licence** : appareil neuf, attendre la fin des phases 1-3, COCHER la case « J'accepte la licence du SDK Android » puis taper « Installer le SDK Android » | Le journal affiche « licence du SDK Android acceptée (§ 12.5) » **une seule fois** puis la phase Android démarre immédiatement (plus jamais « parcours suspendu » en boucle) ; le récapitulatif final et « Créer mon premier projet » arrivent si les 4 phases se vérifient |
+| E98 | **Reprise après mort du processus** : (a) pendant la phase Android, tuer l'application puis la rouvrir sur l'écran d'installation ; (b) séparément, accepter la licence puis tuer l'application avant que la phase Android ne démarre, puis rouvrir | (a) et (b) : le bouton principal réapparaît — « Installer le SDK Android » activé d'office (consentement déjà enregistré) dans le cas (b) ; « Reprendre l'installation » si la mort est survenue avant la phase Java ; le parcours reprend à la première phase non vérifiée sans rien réinstaller |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
