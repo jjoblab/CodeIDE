@@ -2,8 +2,9 @@ package jo.codeide.core.bootstrap
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jo.codeide.core.domain.BootstrapInstaller
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
+import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import kotlinx.coroutines.currentCoroutineContext
@@ -23,25 +24,26 @@ import javax.inject.Singleton
  * (v0.37.3 — retour d'appareil réel : « la plupart des points de l'UI
  * pour le tooling ne se mettent pas à jour »).
  *
- * Le diagnostic des 4 ViewModels consommateurs lisaient le localisateur
+ * Le diagnostic des ViewModels consommateurs lisaient le localisateur
  * en **instantané pull** (une fois, à la construction, ou à un geste
  * explicite « vérifier ») — les outils installés pendant qu'un écran
  * restait ouvert n'y apparaissaient jamais. Cette implémentation
  * réinterroge le disque à chaque **stimulus** et ne publie que les
  * états réellement changés :
  *
- * - **transitions de l'installateur** : chaque état du pipeline (fin de
- *   la base, fin des paquets d'outils, échec) redéclenche un scan — la
- *   fin d'une installation `apt` est visible immédiatement, sans
+ * - **transitions du parcours d'installation** (E6 : le stimulus est
+ *   l'état de [EnvironmentSetupOrchestrator], l'ancien
+ *   `BootstrapInstaller` a été retiré) : chaque changement de phase
+ *   (fin du bootstrap, JDK vérifié, SDK posé, échec) redéclenche un
+ *   scan — la fin d'une installation est visible immédiatement, sans
  *   attendre le prochain ballotage ;
  * - **ballotage périodique** tant qu'au moins un écran collecte : les
- *   outils peuvent apparaître SANS l'installateur — distribution Gradle
+ *   outils peuvent apparaître SANS le parcours — distribution Gradle
  *   téléchargée par l'orchestrateur du tooling dans
- *   `home/.gradle/wrapper/dists`, SDK Android posé par la commande
- *   `$PREFIX/bin/android-sdk` depuis une session de terminal, `aapt2`
- *   déployé à la première build. Le disque reste la seule source de
- *   vérité, il est réinterrogé — le scan est pur et borné (quelques
- *   tests de fichiers, [LocalisationOutils]).
+ *   `home/.gradle/wrapper/dists`, `aapt2` déployé à la première build.
+ *   Le disque reste la seule source de vérité, il est réinterrogé —
+ *   le scan est pur et borné (quelques tests de fichiers,
+ *   [LocalisationOutils]).
  *
  * Le flot vit derrière `flowOn(dispatchers.io)` : jamais d'I/S disque
  * sur le thread principal, contrairement aux pulls précédents des
@@ -55,14 +57,15 @@ internal class ObservateurOutilsTerminal
     @Inject
     constructor(
         @ApplicationContext contexte: Context,
-        private val installateur: BootstrapInstaller,
+        orchestrateur: EnvironmentSetupOrchestrator,
         private val dispatchers: DispatcherProvider,
     ) : ObserveToolchainStateUseCase {
         private val racine: File = contexte.filesDir
+        private val etatParcours: Flow<EnvironmentSetupState> = orchestrateur.state
 
         override fun invoke(): Flow<EtatOutilsTerminal> =
             combine(
-                installateur.etat,
+                etatParcours,
                 horlogeBallotage(),
             ) { _, _ -> scanner() }
                 .distinctUntilChanged()

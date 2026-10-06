@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Foreground service of the environment installation (E2 rewrite, ADR 0087). -->
+    <string name="installation_service_canal">Environment installation</string>
+    <string name="installation_service_titre">Environment installation</string>
+    <string name="installation_service_annuler">Cancel</string>
+    <string name="installation_service_phase_bootstrap">System base (bootstrap)</string>
+    <string name="installation_service_phase_outils">Installation tools</string>
+    <string name="installation_service_phase_java">Java</string>
+    <string name="installation_service_phase_sdk">Android SDK</string>
+</resources>

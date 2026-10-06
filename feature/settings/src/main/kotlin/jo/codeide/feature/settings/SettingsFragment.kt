@@ -253,7 +253,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         )
     }
 
-    /** Carte « Environnement » : Projets, Outils de développement (bientôt). */
+    /** Carte « Environnement » : Projets, Environnement de développement (E5). */
     private fun construireCarteEnvironnement() {
         ajouterRangees(
             binding.rangeesEnvironnement,
@@ -265,12 +265,11 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                     R.string.settings_cd_ligne_projets,
                 ) { getString(R.string.settings_sous_projets) },
                 ligne(
-                    SectionParametres.OUTILS,
+                    SectionParametres.ENVIRONNEMENT,
                     jo.codeide.core.ui.R.drawable.ic_outils,
-                    R.string.settings_maitre_outils,
-                    R.string.settings_cd_ligne_outils,
-                    bientot = true,
-                ) { getString(R.string.settings_sous_outils) },
+                    R.string.settings_maitre_env,
+                    R.string.settings_cd_ligne_env,
+                ) { getString(R.string.settings_sous_env) },
             ),
         )
     }

@@ -65,6 +65,27 @@ Gradle 9.7.1 (via wrapper, JVM 21.0.12.1)
 | JUnit | 4.13.2 | Choix du prompt maître pour les tests CodeIDE |
 | LeakCanary | 2.14 | `debugImplementation` uniquement |
 
+### Matrice AGP ↔ build-tools ↔ compileSdk (refonte du parcours, ADR 0089)
+
+Deux chaînes coexistent — ce ne sont **pas** les mêmes contraintes :
+
+| Contexte | AGP | build-tools | compileSdk | JDK |
+|---|---|---|---|---|
+| **Appareil (aarch64)** — projets générés et parcours d'installation (phase 4, manifeste `codeide-tools` v2) | 9.4.1 (templates) | **35.0.2** — seule version reconditionnée publiée pour aarch64 (ADR 0086) | 37 + minor 2 (`platform@android-37.2`) | 17 (`openjdk-17` du dépôt APT) |
+| **Machine de build (x86_64)** — ce dépôt et sa CI | 9.4.1 | 36.0.0 (SDK local de dev) | 37.2 | 21 (Temurin) |
+
+- Les templates `android-app`/`android-library` portent
+  `buildToolsVersion = "35.0.2"` **explicite** : sans elle, AGP prendrait
+  sa build-tools par défaut (36.0.0, binaire Maven x86_64 — inexécutable
+  sur appareil). L'alignement catalogue ↔ templates est verrouillé par
+  `AlignementCatalogueTemplatesTest` (§ 3.8 du cahier).
+- Sur l'appareil, l'`aapt2` utilisé par AGP vient de l'override
+  `android.aapt2FromMavenOverride` (bloc géré de
+  `$GRADLE_USER_HOME/gradle.properties`, écrit par l'étape `cablage`) —
+  chemin résolu **dans le plan** (§ 12.4), jamais un asset.
+- Toute montée de version est un geste délibéré : le manifeste publie
+  d'abord, le catalogue et les templates suivent **ensemble** (ADR 0086).
+
 ## Particularités découvertes et contournements
 
 ### AGP 9 : Kotlin intégré (ADR 0007)
