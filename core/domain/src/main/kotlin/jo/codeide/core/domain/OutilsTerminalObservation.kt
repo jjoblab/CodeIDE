@@ -51,13 +51,13 @@ public data class EtatOutilsTerminal(
  * transition observable.
  *
  * Source des réémissions (implémentation de référence
- * `core:bootstrap`) : les transitions de [BootstrapInstaller] (fin de
- * la base, fin des paquets d'outils) **et** un ballotage périodique
+ * `core:bootstrap`) : les transitions du parcours d'installation
+ * ([EnvironmentSetupOrchestrator] — E6 : l'ancien `BootstrapInstaller`
+ * a été retiré, ADR 0091) **et** un ballotage périodique
  * léger tant qu'un écran collecte — les outils peuvent aussi apparaître
- * SANS passer par l'installateur (distribution Gradle téléchargée par
- * l'orchestrateur du tooling, SDK posé par `$PREFIX/bin/android-sdk`
- * depuis le terminal, `aapt2` déployé à la première build) : le disque
- * reste la seule source de vérité, il est réinterrogé.
+ * SANS passer par le parcours (distribution Gradle téléchargée par
+ * l'orchestrateur du tooling, `aapt2` déployé à la première build) : le
+ * disque reste la seule source de vérité, il est réinterrogé.
  *
  * Contexte d'exécution attendu : collecte depuis le cycle de vie de
  * l'UI (`stateIn`/`WhileSubscribed`) ; le flot est **froid par écran**

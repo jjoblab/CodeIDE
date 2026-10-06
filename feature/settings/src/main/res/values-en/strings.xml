@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_title">Settings</string>
     <string name="settings_back_cd">Navigate back</string>
 
@@ -82,8 +82,8 @@
     <string name="settings_sous_ia">Built-in coding assistant</string>
     <string name="settings_maitre_projets">Projects</string>
     <string name="settings_sous_projets">Working folder, author, license</string>
-    <string name="settings_maitre_outils">Developer tools</string>
-    <string name="settings_sous_outils">Gradle daemon, PRoot/Ubuntu bootstrap</string>
+    <string name="settings_maitre_env">Development environment</string>
+    <string name="settings_sous_env">SDK components, verifications, repairs</string>
     <string name="settings_maitre_securite">Security and privacy</string>
     <string name="settings_sous_securite">Crash reports, app lock</string>
     <string name="settings_maitre_apropos">About</string>
@@ -95,8 +95,6 @@
     <!-- Generic "coming soon" screen. -->
     <string name="settings_bientot_titre_ia">AI assistant — coming soon</string>
     <string name="settings_bientot_texte_ia">This section will appear in the menu as soon as the module is ready.</string>
-    <string name="settings_bientot_titre_outils">Coming soon</string>
-    <string name="settings_bientot_texte_outils">Gradle daemon, PRoot/Ubuntu bootstrap, storage used — to be validated with you.</string>
     <string name="settings_bientot_titre_securite">Coming soon</string>
     <string name="settings_bientot_texte_securite">Crash reports, app lock — to be validated with you.</string>
 
@@ -183,9 +181,28 @@
     <string name="settings_cd_ligne_terminal">Open terminal settings</string>
     <string name="settings_cd_ligne_ia">AI assistant — coming soon</string>
     <string name="settings_cd_ligne_projets">Open project settings</string>
-    <string name="settings_cd_ligne_outils">Developer tools — coming soon</string>
+    <string name="settings_cd_ligne_env">Open the Environment screen</string>
     <string name="settings_cd_ligne_securite">Security and privacy — coming soon</string>
     <string name="settings_cd_ligne_apropos">Open app information</string>
     <string name="settings_cd_ligne_avance">Open advanced settings</string>
 
+
+    <!-- E5 : Environment screen (ADR 0090) -->
+    <string name="environnement_titre">Environment</string>
+    <string name="environnement_sous_titre">Versions and verified state of every installed component.</string>
+    <string name="environnement_details">%1$s · %2$s · %3$s · %4$s</string>
+    <string name="environnement_etat_verifie">verified</string>
+    <string name="environnement_etat_verifie_apt">verified (APT package)</string>
+    <string name="environnement_etat_absent">missing from disk</string>
+    <string name="environnement_revision">%1$s</string>
+    <string name="environnement_revision_aucune">no revision</string>
+    <string name="environnement_taille_mio" tools:ignore="PluralsCandidate">%1$d MiB</string>
+    <string name="environnement_taille_inconnue">unknown size</string>
+    <string name="environnement_diagnostic">Copy diagnostic</string>
+    <string name="environnement_verifier">Verify (light)</string>
+    <string name="environnement_verifier_profond">Deep verification</string>
+    <string name="environnement_reparer">Repair…</string>
+    <string name="environnement_desinstaller">Uninstall</string>
+    <string name="environnement_desinstaller_titre">Uninstall %1$s?</string>
+    <string name="environnement_desinstaller_texte">The component %1$s will be removed from the SDK. A repair reinstalls it.</string>
 </resources>

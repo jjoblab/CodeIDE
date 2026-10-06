@@ -43,6 +43,13 @@ internal object TraductionsAccueil {
                 R.string.accueil_erreur_bootstrap
             }
 
+            is AppError.EnvironmentSetup -> {
+                // Refonte E1 (ADR 0085) : le parcours d'installation de
+                // l'environnement — l'accueil renvoie à l'écran dédié, le
+                // diagnostic complet vit dans l'état du parcours.
+                R.string.accueil_erreur_installation_env
+            }
+
             is AppError.Tooling -> {
                 // G3 : le code machine (version, handshake, délai…) part
                 // dans les journaux ; l'utilisateur reçoit la marche à

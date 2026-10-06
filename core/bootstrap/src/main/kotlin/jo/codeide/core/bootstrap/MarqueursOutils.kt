@@ -36,11 +36,20 @@ internal object MarqueursOutils {
         return !jars.isNullOrEmpty()
     }
 
-    /** Un répertoire est-il un SDK Android exploitable ? */
-    internal fun estSdkAndroidValide(repertoire: File): Boolean {
-        val plateformes = repertoire.takeIf { it.isDirectory }?.resolve("platforms")?.listFiles()
-        return plateformes?.any { plateforme -> File(plateforme, "android.jar").isFile } == true
-    }
+    /**
+     * Un SDK Android est-il **cohérent** ? § 6 de la refonte : un des
+     * répertoires attendus suffit (`cmdline-tools`, `build-tools`,
+     * `platform-tools`, `platforms`) — un SDK partiel n'est plus invisible :
+     * `ANDROID_HOME` est exporté dès que le dossier est cohérent, sans
+     * attendre une plateforme (constat E1 corrigé). Le marqueur historique
+     * « au moins un android.jar » vivait dans [LocalisationOutils.trouverAndroidJar].
+     */
+    internal fun estSdkAndroidValide(repertoire: File): Boolean =
+        REPERTOIRES_SDK_ATTENDUS.any { File(repertoire, it).isDirectory }
+
+    /** Sous-répertoires attendus d'une racine de SDK Android (§ 12.2 : `installPath` racines). */
+    private val REPERTOIRES_SDK_ATTENDUS: List<String> =
+        listOf("cmdline-tools", "build-tools", "platform-tools", "platforms")
 
     /** Sous-répertoires directs existants (jamais de fichiers, liste vide si absent). */
     internal fun listerRepertoires(repertoire: File): List<File> {

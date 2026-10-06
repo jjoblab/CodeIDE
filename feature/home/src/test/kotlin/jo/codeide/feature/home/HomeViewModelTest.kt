@@ -2,10 +2,13 @@ package jo.codeide.feature.home
 
 import androidx.lifecycle.SavedStateHandle
 import jo.codeide.core.domain.DeleteProjectOnDiskUseCase
+import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.ImportExistingFolderUseCase
+import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.MarkProjectOpenedUseCase
 import jo.codeide.core.domain.ObserveProjectsUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.RelocalizeProjectUseCase
 import jo.codeide.core.domain.RemoveProjectUseCase
 import jo.codeide.core.domain.RenameProjectUseCase
@@ -20,7 +23,7 @@ import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.getOrNull
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
-import jo.codeide.core.testing.FakeBootstrapInstaller
+import jo.codeide.core.testing.FakeEnvironmentSetupOrchestrator
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.FakeObserveToolchainState
 import jo.codeide.core.testing.FakeProjectRepository
@@ -59,7 +62,7 @@ class HomeViewModelTest {
     private val horloge = TimeProvider { 10_000L }
     private val journal = FakeAppLogger()
     private val observerOutils = FakeObserveToolchainState()
-    private val installateur = FakeBootstrapInstaller()
+    private val parcours = FakeEnvironmentSetupOrchestrator()
 
     private lateinit var viewModel: HomeViewModel
     private val effetsRecus = mutableListOf<EffetAccueil>()
@@ -71,7 +74,7 @@ class HomeViewModelTest {
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
                 observerOutils,
-                installateur,
+                parcours,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -565,7 +568,7 @@ class HomeViewModelTest {
                 ObserveSettingsUseCase(parametres),
                 ObserveProjectsUseCase(depot),
                 observerOutils,
-                installateur,
+                parcours,
                 VerifyProjectAccessUseCase(depot, fichiers),
                 RenameProjectUseCase(depot),
                 SetProjectPinnedUseCase(depot),
@@ -585,7 +588,7 @@ class HomeViewModelTest {
             ObserveSettingsUseCase(parametres),
             ObserveProjectsUseCase(depot),
             observerOutils,
-            installateur,
+            parcours,
             VerifyProjectAccessUseCase(depot, fichiers),
             RenameProjectUseCase(depot),
             SetProjectPinnedUseCase(depot),
@@ -637,7 +640,20 @@ class HomeViewModelTest {
             advanceUntilIdle()
             assertFalse(viewModel.etat.value.bootstrapInstalle)
 
-            installateur.simulerTerminee()
+            // E6 : la phase BOOTSTRAP du parcours vérifiée = bootstrap
+            // installé (l'ancien `Terminee` de `BootstrapInstaller` est
+            // retiré).
+            parcours.semerEtat(
+                EnvironmentSetupState(
+                    phases =
+                        mapOf(
+                            InstallPhase.BOOTSTRAP to
+                                PhaseState.Succeeded(verifiedAtMillis = 1_000L, versions = emptyMap()),
+                        ),
+                    running = null,
+                    sdkLicenseAcceptedAtMillis = null,
+                ),
+            )
             advanceUntilIdle()
 
             assertTrue(viewModel.etat.value.bootstrapInstalle)

@@ -8,15 +8,18 @@ import jo.codeide.core.crash.AppProcess
 import jo.codeide.core.crash.CrashHandler
 import jo.codeide.core.crash.DeviceSnapshot
 import jo.codeide.core.data.MiroirApparence
-import jo.codeide.core.domain.BootstrapInstaller
+import jo.codeide.core.domain.DetecteurChangementEmpreinte
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EmpreinteChaineOutils
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
+import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
 import jo.codeide.core.domain.SettingsRepository
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.logging.CodeIdeAppLogger
 import jo.codeide.core.logging.LoggingInitializer
 import jo.codeide.core.model.CrashAppInfo
-import jo.codeide.core.model.EtatInstallationBootstrap
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppliquerApparence
 import jo.codeide.tooling.daemon.DaemonManager
@@ -64,7 +67,8 @@ class CodeIdeApplication : Application() {
     @Inject
     lateinit var parametres: SettingsRepository
 
-    /** Point de bascule du niveau de journalisation — port du domaine, implémenté par core:logging (façade interne). */
+    /** Point de bascule du niveau de journalisation — port du domaine,
+     * implémenté par core:logging (façade interne). */
     @Inject
     lateinit var applierNiveau: LogVerbosityApplier
 
@@ -72,9 +76,17 @@ class CodeIdeApplication : Application() {
     @Inject
     lateinit var daemonTooling: DaemonManager
 
-    /** Installateur du bootstrap — le daemon repart quand le JDK arrive. */
+    /** Orchestrateur du parcours d'installation (E2-E4, ADR 0087/0089) —
+     *  seule source de vérité sur l'environnement depuis E6 (ADR 0091). */
     @Inject
-    lateinit var installateurBootstrap: BootstrapInstaller
+    lateinit var orchestrateurInstallation: EnvironmentSetupOrchestrator
+
+    /** Localisateur de la chaîne d'outils — empreinte pour la relance du daemon (E4, § 6). */
+    @Inject
+    lateinit var localisateurOutils: ToolchainLocator
+
+    /** Détecteur de changement d'empreinte de la chaîne d'outils (E4, § 6). */
+    private val detecteurEmpreinte = DetecteurChangementEmpreinte()
 
     /**
      * Gestionnaire de plantages du processus principal — porté par
@@ -206,25 +218,28 @@ class CodeIdeApplication : Application() {
         // avec le processus principal et vit tant que lui — la fermeture du
         // socket par la mort de l'app termine proprement l'orchestrateur
         // (EOF = fin de boucle, code de sortie 0). JDK absent au démarrage :
-        // aucun lancement, l'état reste DECONNECTEE — la collecte ci-dessous
-        // relance le daemon quand l'installation du bootstrap aboutit.
+        // aucun lancement, l'état reste DECONNECTEE.
         daemonTooling.demarrer(porteeDemarrage)
+
+        // E4 (§ 6, ADR 0089) : le daemon Gradle est RELANCÉ quand
+        // l'empreinte de la chaîne d'outils change (JAVA_HOME,
+        // ANDROID_HOME, chemin et version d'aapt2, versions installées)
+        // — un daemon démarré avec l'ancien environnement garderait ses
+        // variables figées et compilerait avec des outils périmés. La
+        // première observation n'est pas un changement : le daemon vient
+        // de démarrer avec l'environnement courant. Depuis E6 (ADR 0091),
+        // ce collecteur couvre AUSSI l'arrivée du JDK en cours de session
+        // (l'ancien observateur de `BootstrapInstaller` a été retiré) :
+        // le localisateur scanne le disque, l'empreinte change dès que
+        // `java`/`javac` existent, le daemon (re)part.
         porteeDemarrage.launch {
-            installateurBootstrap.etat.collect { etat ->
-                if (etat is EtatInstallationBootstrap.Terminee) {
+            orchestrateurInstallation.state.collect { etat ->
+                if (relancerSiEmpreinteChangee(etat)) {
+                    daemonTooling.arreter()
                     daemonTooling.demarrer(porteeDemarrage)
                 }
             }
         }
-
-        // Scripts du terminal VERSIONNÉS (v0.37.3 — retour d'appareil réel :
-        // « ne pas être obligé de réinstaller l'application pour que les
-        // changements fassent effet ») : au démarrage, le marqueur posé est
-        // comparé à la version embarquée — un écart réécrit profil
-        // `codeide.sh`, commandes `gradle` et `android-sdk` SANS toucher au
-        // reste du bootstrap. Idempotent : rien à faire quand tout est à
-        // jour, aucun effet sans bootstrap installé.
-        installateurBootstrap.refreshTerminalScripts()
     }
 
     /**
@@ -239,6 +254,33 @@ class CodeIdeApplication : Application() {
             buildType = if (BuildConfig.DEBUG) "debug" else "release",
             applicationId = BuildConfig.APPLICATION_ID,
         )
+
+    /**
+     * Empreinte courante de la chaîne d'outils, soumise au détecteur —
+     * `true` quand elle a changé depuis l'observation précédente (le
+     * daemon Gradle doit alors être relancé, § 6 / ADR 0089). Les
+     * versions viennent de l'état **vérifié** du parcours, les chemins
+     * du localisateur (lui-même alimenté par l'état persisté pour
+     * `aapt2`, § 12.4).
+     */
+    private fun relancerSiEmpreinteChangee(etat: EnvironmentSetupState): Boolean {
+        val versions =
+            etat.phases.values
+                .flatMap { phase ->
+                    when (phase) {
+                        is jo.codeide.core.domain.PhaseState.Succeeded -> phase.versions.entries
+                        else -> emptySet()
+                    }
+                }.associate { it.key to it.value }
+        val empreinte =
+            EmpreinteChaineOutils.calculer(
+                javaHome = localisateurOutils.javaHome(),
+                androidHome = localisateurOutils.androidHome(),
+                aapt2 = localisateurOutils.aapt2Binary(),
+                versions = versions,
+            )
+        return detecteurEmpreinte.traiter(empreinte)
+    }
 
     /**
      * Active StrictMode avec journalisation (jamais de crash en debug pour

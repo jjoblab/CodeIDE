@@ -450,6 +450,42 @@ désinstallation est requise, une seule fois.
 | E83 | **Transition unique** : avec la v0.37.1 installée, tenter d'installer l'APK v0.37.2 (CI ou portail), constater le refus, désinstaller CodeIDE, installer v0.37.2 | Le refus initial est ATTENDU (signature historique ≠ identité versionnée) ; après désinstallation + installation, v0.37.2 fonctionne ; les données Termux/bootstrap du préfixe doivent être exportées avant désinstallation si elles comptent (la désinstallation efface les données applicatives) |
 | E84 | **Mises à jour sans conflit, pour toujours** : à la livraison suivante (v0.37.3+), télécharger l'APK CI (artefact `CodeIDE-vX.Y.Z-debug`) et l'installer PAR-DESSUS la version installée, sans désinstallation | L'installation procède comme une mise à jour normale : les données et réglages sont conservés, aucun « conflit de package » ; l'étape CI « Signature = keystore versionné (ADR 0067) » est verte sur le run concerné |
 
+## Refonte installation — nouvelle interface E5 (v0.59.0)
+
+Préambule : APK debug v0.59.0+ sur appareil aarch64. L'écran d'installation
+s'ouvre depuis l'accueil (bandeau d'invitation) ; l'écran Environnement
+depuis Paramètres → carte Environnement → « Environnement de
+développement ». Maquettes de référence : `docs/preview/`
+`installation-environnement.html`.
+
+| # | Action | Attendu |
+|---|---|---|
+| E85 | **Stepper et états** : ouvrir l'écran d'installation puis lancer le parcours | Les 4 cartes passent par « En attente » → « En cours » → « Terminée » dans l'ordre strict ; la carte en cours affiche sa sous-étape ; l'entête compte « Étape N sur 4 » et la barre progresse ; les versions vérifiées apparaissent sur les cartes terminées (ex. `17.0.20 · TLS vérifié`) |
+| E86 | **Vitesse mesurée** : pendant le téléchargement d'un gros composant (build-tools), observer la ligne sous la barre globale | La vitesse en Mio/s et le temps restant s'affichent et évoluent (mesurés) ; sans mesure exploitable, la ligne est absente — jamais une vitesse figée ou fabriquée |
+| E87 | **Consentement licence** : après les phases 1-3 vérifiées, avant la phase Android | La carte licence apparaît (résumé + case) ; « Installer le SDK Android » est inactif tant que la case n'est pas cochée ; après acceptation, la carte disparaît définitivement (relance de l'app incluse — date persistée § 12.5) |
+| E88 | **Journal, annulation, échec** : déplier le journal, couper le réseau en phase 2, utiliser Annuler puis Réessayer | Le journal monospace se replie/déplie et est copiable ; l'échec affiche la sortie réelle de la commande en cause dans la carte ; Annuler arrête (notification incluse) ; « Réessayer cette phase » rejoue la phase fautive seule |
+| E89 | **Tablette sw600dp + rotation** : ouvrir l'écran sur tablette (ou émulateur 600dp+), faire pivoter l'écran pendant l'exécution | Stepper à gauche, journal à droite toujours visible (bouton de bascule absent) ; la rotation ne coupe ni l'installation ni l'affichage (service de premier plan, ADR 0087) |
+| E90 | **Écran Environnement** : Paramètres → Environnement de développement, avec un SDK installé | Une rangée par composant : version, révision, taille réelle en Mio, état (« vérifié », JDK « vérifié (paquet APT) ») ; « Vérifier (légère) » rejoue les contrôles ; « Vérification approfondie » génère un projet et lance un vrai `assembleDebug` (ADR 0089) ; « Désinstaller » exige une confirmation puis retire la rangée du disque ; « Copier le diagnostic » place journal + récapitulatif dans le presse-papiers |
+
+## Refonte installation — migration des installations existantes E6 (v0.60.0)
+
+Préambule : APK debug v0.60.0+ sur appareil aarch64. **Prérequis côté
+dépôt** : le manifeste v2 (`manifest.v2.json`) doit être publié sur
+`jjoblab/codeide-tools` (prompt 2, R5) — sans lui, la phase 4 (nouvelle
+comme adoption) échoue en `Reseau`/`ManifesteInvalide` avec un message
+explicite. Les scénarios E91-E93 partent d'un appareil ayant vécu
+l'ancien parcours (≤ v0.54.0, bootstrap installé + `codeide-env` achevé
+ou commande `android-sdk` jouée) — c'est le scénario de migration de
+l'ADR 0091 § 1.
+
+| # | Action | Attendu |
+|---|---|---|
+| E91 | **Adoption appareil ancien complet** : installer v0.60.0 PAR-DESSUS la v0.54.0 (signature commune ADR 0067, données conservées), ouvrir l'écran d'installation, accepter la licence puis lancer | Phases 1-3 : étapes sautées (« déjà vérifiée — reprise ») SANS retélécharger l'archive du bootstrap ni les paquets (seul `pkg update` rafraîchit l'index) ; phase 4 : composants « présent sans quadruplet, vérifié par exécution — adopté » dans le journal, **zéro téléchargement d'archive de composant** ; les 4 phases finissent vérifiées ; Paramètres → Environnement affiche les quadruplets reconstruits (versions + révisions du plan) |
+| E92 | **Appareil neuf** : installation propre (données effacées), lancer le parcours complet | Comportement inchangé depuis E4 : 4 phases exécutées, composants téléchargés une seule fois, récapitulatif final et « Créer mon premier projet » |
+| E93 | **Appareil à moitié installé** : à partir d'un appareil ancien, supprimer UN composant (`home/android-sdk/platforms/android-37.2` par exemple, ou Désinstaller depuis l'écran Environnement), puis Réparer la phase Android | Seul le composant manquant est retéléchargé et réinstallé ; les autres sont adoptés sans téléchargement ; la phase finit vérifiée |
+| E94 | **Scripts anciens orphelins** : sur l'appareil migré E91, ouvrir le terminal intégré | `JAVA_HOME`/`ANDROID_HOME`/`PATH` corrects (injectés par session, `ProcessEnvironmentProvider`) ; les commandes `gradle`/`android-sdk`/`codeide-env` héritées, si présentes, répondent toujours mais ne sont plus mises à jour par l'application (rupture assumée, CHANGELOG 0.60.0) |
+| E95 | **Bandeau accueil et daemon** : après adoption E91, revenir à l'accueil, puis ouvrir un projet et lancer un build | Le bandeau « terminal non installé » est absent ; le daemon Gradle démarre avec le JDK adopté (empreinte E4) ; un `assembleDebug` compile avec les composants adoptés — la contre-vérification des `verify` du manifeste v2 sur les binaires du manifeste v1 (même layout, mêmes versions 35.0.2) est LE point à surveiller (ADR 0091 § 1, non vérifié en simulation) |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

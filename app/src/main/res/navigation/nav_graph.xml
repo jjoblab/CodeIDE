@@ -128,9 +128,15 @@
          l'installation est partagé, jamais relancé à l'ouverture. -->
     <fragment
         android:id="@+id/installation"
-        android:name="jo.codeide.feature.install.InstallFragment"
+        android:name="jo.codeide.feature.install.InstallationFragment"
         android:label="@string/installation_titre"
-        tools:layout="@layout/fragment_install" />
+        tools:layout="@layout/fragment_installation" />
+
+    <fragment
+        android:id="@+id/settings_environnement"
+        android:name="jo.codeide.feature.settings.EnvironnementFragment"
+        android:label="@string/environnement_titre"
+        tools:layout="@layout/fragment_environnement" />
 
     <fragment
         android:id="@+id/newproject"

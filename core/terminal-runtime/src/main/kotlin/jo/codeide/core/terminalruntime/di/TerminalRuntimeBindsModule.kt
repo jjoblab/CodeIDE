@@ -4,9 +4,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import jo.codeide.core.domain.ConfigurationEnvTerminal
 import jo.codeide.core.domain.TerminalSessionRepository
-import jo.codeide.core.terminalruntime.ConfigurationEnvTermux
 import jo.codeide.core.terminalruntime.CopieurPressePapiers
 import jo.codeide.core.terminalruntime.CopieurPressePapiersAndroid
 import jo.codeide.core.terminalruntime.DemarreurService
@@ -22,9 +20,10 @@ import javax.inject.Singleton
  * section 2.3) : le registre unique sert les **deux** ports —
  * [TerminalSessionRepository] (domaine, métadonnées consommables par
  * `feature:editor`) et [TerminalRuntime] (type Termux, réservé à
- * `feature:terminal`). Depuis la v0.52.0 (ADR 0083), il sert aussi le
- * pilotage de la configuration automatique de l'environnement
- * ([ConfigurationEnvTerminal]).
+ * `feature:terminal`). Le pilotage de la configuration automatique
+ * (`ConfigurationEnvTerminal`, v0.52.0) a été retiré en E6 (ADR 0091) :
+ * l'environnement de développement est installé par le parcours
+ * d'installation (ADR 0085), jamais par frappe dans un pty.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -38,11 +37,6 @@ internal interface TerminalRuntimeBindsModule {
     @Binds
     @Singleton
     fun bindTerminalRuntime(impl: RegistreSessionsTermux): TerminalRuntime
-
-    /** Configuration automatique de l'environnement (v0.52.0, ADR 0083). */
-    @Binds
-    @Singleton
-    fun bindConfigurationEnvTerminal(impl: ConfigurationEnvTermux): ConfigurationEnvTerminal
 
     /** Fabrique des coquilles : sessions Termux réelles. */
     @Binds
