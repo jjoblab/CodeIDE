@@ -776,6 +776,7 @@ class EditorViewModel
                 is ActionEditor.ValiderEdition -> validerEdition(action.nom)
                 ActionEditor.ReplierTout -> replierTout()
                 ActionEditor.DeplierTout -> deplierTout()
+                ActionEditor.DefilerVersSource -> defilerVersSource()
                 ActionEditor.AnnulerSuppression -> annulerSuppression()
                 ActionEditor.MasquerNotification -> masquerNotification()
                 else -> onActionPanneau(action)
@@ -1592,6 +1593,60 @@ class EditorViewModel
             val enfants = arbre.enfantsEnCache[uriDossier] ?: return
             for (enfant in enfants.filter { it.isDirectory }) {
                 deplierToutRecursif(arbre, enfant.uri)
+            }
+        }
+
+        /**
+         * C2c : « Scroll from Source » — déplie les parents du fichier de
+         * l'onglet actif, le sélectionne et émet un effet
+         * [EffetEditor.DefilementVersSource] pour que le fragment défile
+         * vers lui. Si l'onglet actif est d'une source différente de
+         * l'arbre affiché, bascule d'abord sur la bonne source (comme
+         * VS Code « Reveal in Explorer » révèle dans le dossier du
+         * fichier, peu importe l'arbre courant).
+         */
+        private fun defilerVersSource() {
+            val onglet =
+                etatInterne.value.onglets.getOrNull(etatInterne.value.indexOngletActif)
+                    ?: return
+            val sourceOnglet = onglet.source
+            if (source != sourceOnglet) {
+                basculerSource(sourceOnglet)
+            }
+            viewModelScope.launch {
+                deplierParentsVers(onglet.uri)
+                etatInterne.update { it.copy(uriSelection = onglet.uri) }
+                reconstruireNoeuds()
+                canalEffets.trySend(EffetEditor.DefilementVersSource(onglet.uri))
+            }
+        }
+
+        /**
+         * Déplie tous les parents de [uri] en remontant depuis la racine
+         * de l'arbre de la source de l'onglet. Charge paresseusement les
+         * dossiers non encore énumérés.
+         */
+        private suspend fun deplierParentsVers(uri: String) {
+            val onglet =
+                etatInterne.value.onglets
+                    .firstOrNull { it.uri == uri } ?: return
+            val arbre = arbrePour(onglet.source)
+            val racine = uriRacineDe(arbre) ?: return
+            // Remonte les parents depuis l'URI jusqu'à la racine.
+            val parents = mutableListOf<String>()
+            var courant: String? = uri
+            while (courant != null && courant != racine) {
+                val parent = arbre.parents[courant]
+                if (parent == null) break
+                parents.add(0, parent)
+                courant = parent
+            }
+            // Déplie chaque parent (et charge ses enfants si nécessaire).
+            for (parent in parents) {
+                arbre.dossiersDeplies += parent
+                if (parent !in arbre.enfantsEnCache) {
+                    chargerEnfants(parent)
+                }
             }
         }
 

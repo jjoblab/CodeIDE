@@ -284,6 +284,7 @@
     <!-- Entête du fragment Explorateur (§ 4). -->
     <string name="editor_explorateur_titre">Explorateur de fichiers</string>
     <string name="editor_explorateur_nouveau_cd">Nouveau (dans le dossier sélectionné)</string>
+    <string name="editor_explorateur_defiler_vers_source_cd">Défiler vers le fichier de l\'onglet actif</string>
     <string name="editor_explorateur_replier_tout_cd">Replier tout. Appui long pour tout déplier</string>
     <string name="editor_explorateur_legende_cd">Légende de l\'arborescence</string>
     <string name="editor_ariane_racine_cd">Racine de l\'arborescence</string>
