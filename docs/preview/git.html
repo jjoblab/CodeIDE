@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Git (maquette)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1e1f22; color: #dfe1e5; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+  h2 { font-size: 14px; margin: 20px 0 10px; color: #9ba0a8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tiroir { width: 320px; background: #2b2d30; border-radius: 8px; overflow: hidden; border: 1px solid #3c3f41; }
+  .entete { padding: 10px 12px; background: #42657f; display: flex; align-items: center; gap: 8px; }
+  .entete-icone { width: 20px; height: 20px; background: #4caf50; border-radius: 4px; flex-shrink: 0; }
+  .entete-titre { font-size: 13px; font-weight: 600; color: #fff; }
+  .entete-branche { font-size: 11px; background: rgba(255,255,255,.15); padding: 2px 8px; border-radius: 10px; color: #fff; margin-left: auto; cursor: pointer; }
+  .entete-actions { display: flex; gap: 4px; margin-left: 4px; }
+  .entete-action { width: 24px; height: 24px; background: rgba(255,255,255,.1); border-radius: 4px; cursor: pointer; }
+  .corps { padding: 8px; }
+  .message-commit { width: 100%; background: #1e1f22; border: 1px solid #3c3f41; border-radius: 6px; padding: 8px; color: #dfe1e5; font-size: 12px; margin-bottom: 8px; resize: none; height: 50px; }
+  .groupe { margin-bottom: 8px; }
+  .groupe-titre { font-size: 10px; font-weight: 600; color: #9ba0a8; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; display: flex; align-items: center; gap: 4px; }
+  .groupe-compteur { background: #3c3f41; border-radius: 8px; padding: 0 6px; font-size: 10px; }
+  .groupe-action { margin-left: auto; font-size: 10px; color: #70aeff; cursor: pointer; }
+  .ligne { display: flex; align-items: center; gap: 6px; padding: 4px 4px; border-radius: 4px; cursor: pointer; }
+  .ligne:hover { background: #3c3f41; }
+  .ligne-icone { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+  .ligne-nom { font-size: 12px; flex: 1; }
+  .ligne-chemin { font-size: 10px; color: #6f737a; }
+  .ligne-statut { font-size: 10px; font-weight: 700; width: 14px; text-align: center; }
+  .s-ajoute { color: #73bd79; }
+  .s-modifie { color: #70aeff; }
+  .s-supprime { color: #6f737a; }
+  .s-non-suivi { color: #e88f89; }
+  .s-conflit { color: #de6a66; }
+  .boutons { display: flex; gap: 6px; padding: 8px; }
+  .bouton { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .bouton-commit { background: #42657f; color: #fff; }
+  .bouton-commit:disabled { background: #3c3f41; color: #6f737a; cursor: not-allowed; }
+  .etat-vide { padding: 40px 20px; text-align: center; }
+  .etat-vide-icone { width: 40px; height: 40px; margin: 0 auto 12px; background: #3c3f41; border-radius: 50%; }
+  .etat-vide-texte { font-size: 13px; color: #9ba0a8; margin-bottom: 16px; }
+  .etat-vide-actions { display: flex; flex-direction: column; gap: 8px; }
+  .etat-vide-action { padding: 10px; background: #42657f; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .flex { display: flex; gap: 16px; flex-wrap: wrap; }
+  .label { font-size: 11px; color: #6f737a; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <h1>CodeIDE — Section Git du tiroir (maquette statique)</h1>
+
+  <div class="flex">
+
+    <!-- État "pas un dépôt" -->
+    <div>
+      <h2>Pas un dépôt</h2>
+      <div class="tiroir">
+        <div class="entete"><div class="entete-icone" style="background:#4caf50"></div><span class="entete-titre">Git</span></div>
+        <div class="etat-vide">
+          <div class="etat-vide-icone"></div>
+          <div class="etat-vide-texte">Ce projet n'est pas un dépôt Git</div>
+          <div class="etat-vide-actions">
+            <button class="etat-vide-action">Initialiser un dépôt</button>
+            <button class="etat-vide-action" style="background:#3c3f41">Cloner un dépôt…</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Changements et commit -->
+    <div>
+      <h2>Changements et commit</h2>
+      <div class="tiroir">
+        <div class="entete">
+          <div class="entete-icone"></div>
+          <span class="entete-titre">Git</span>
+          <span class="entete-branche">↓ main</span>
+          <div class="entete-actions">
+            <div class="entete-action"></div>
+          </div>
+        </div>
+        <div class="corps">
+          <textarea class="message-commit" placeholder="Message de commit…"></textarea>
+          <div class="groupe">
+            <div class="groupe-titre">Modifications indexées <span class="groupe-compteur">2</span><span class="groupe-action">Tout désindexer</span></div>
+            <div class="ligne"><div class="ligne-icone" style="background:#7f52ff"></div><span class="ligne-nom">Main.kt</span><span class="ligne-chemin">src/main/kotlin</span><span class="ligne-statut s-ajoute">A</span></div>
+            <div class="ligne"><div class="ligne-icone" style="background:#7f52ff"></div><span class="ligne-nom">Utils.kt</span><span class="ligne-chemin">src/main/kotlin</span><span class="ligne-statut s-modifie">M</span></div>
+          </div>
+          <div class="groupe">
+            <div class="groupe-titre">Modifications <span class="groupe-compteur">1</span><span class="groupe-action">Tout indexer</span></div>
+            <div class="ligne"><div class="ligne-icone" style="background:#7f52ff"></div><span class="ligne-nom">build.gradle.kts</span><span class="ligne-chemin">.</span><span class="ligne-statut s-modifie">M</span></div>
+          </div>
+          <div class="groupe">
+            <div class="groupe-titre">Fichiers non suivis <span class="groupe-compteur">1</span></div>
+            <div class="ligne"><div class="ligne-icone" style="background:#6c707e"></div><span class="ligne-nom">README.md</span><span class="ligne-chemin">.</span><span class="ligne-statut s-non-suivi">U</span></div>
+          </div>
+        </div>
+        <div class="boutons">
+          <button class="bouton bouton-commit" disabled>Commit</button>
+        </div>
+      </div>
+      <div class="label">Bouton activé quand message + changement indexé</div>
+    </div>
+
+    <!-- Conflits -->
+    <div>
+      <h2>Conflits de fusion</h2>
+      <div class="tiroir">
+        <div class="entete">
+          <div class="entete-icone" style="background:#de6a66"></div>
+          <span class="entete-titre">Git — Fusion en cours</span>
+          <span class="entete-branche">main ← feature</span>
+        </div>
+        <div class="corps">
+          <div class="groupe">
+            <div class="groupe-titre" style="color:#de6a66">Conflits <span class="groupe-compteur" style="background:rgba(222,106,102,.2)">1</span></div>
+            <div class="ligne"><div class="ligne-icone" style="background:#7f52ff"></div><span class="ligne-nom">Main.kt</span><span class="ligne-chemin">src/main/kotlin</span><span class="ligne-statut s-conflit">C</span></div>
+          </div>
+          <div style="padding:8px;display:flex;gap:6px;flex-direction:column">
+            <button class="bouton bouton-commit" style="background:#73bd79">Garder le mien</button>
+            <button class="bouton bouton-commit" style="background:#70aeff">Garder le leur</button>
+            <button class="bouton bouton-commit" style="background:#cf84cf">Garder les deux</button>
+            <button class="bouton" style="background:#3c3f41;color:#de6a66">Abandonner la fusion</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="label" style="margin-top:20px">Couleurs : Ajouté #73BD79 · Modifié #70AEFF · Supprimé #6F737A · Non suivi #E88F89 · Conflit #DE6A66 · Fusionné #CF84CF</div>
+</body>
+</html>
