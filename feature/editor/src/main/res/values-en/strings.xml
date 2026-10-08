@@ -375,6 +375,16 @@
     <string name="apercu_recherche_description">Project-wide full-text search will arrive with its dedicated batch: queries, file type filters and replacements.</string>
     <string name="apercu_git_description">The Git panel will show repository status, commit staging and branch history.</string>
 
+    <!-- Git drawer section (G2, ADR 0092). -->
+    <string name="git_titre">Git</string>
+    <string name="git_actualiser_cd">Refresh Git status</string>
+    <string name="git_pas_depot">This project is not a Git repository</string>
+    <string name="git_initialiser">Initialize repository</string>
+    <string name="git_message_hint">Commit message…</string>
+    <string name="git_committer">Commit</string>
+    <string name="git_aucun_changement">No changes</string>
+    <string name="git_n_changements">%d changes</string>
+
     <!-- Toolbar: closing the workspace (moved from the v1 header). -->
     <string name="editor_action_fermer_projet">Close the project</string>
 
