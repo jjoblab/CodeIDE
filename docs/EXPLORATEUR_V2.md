@@ -236,36 +236,60 @@ propriétés).
 
 ## 8. Icônes par type de fichier
 
-Icônes « marques » 24 × 24 rendues à 17 px, marge gauche 5 px / droite 2 px.
+**C0 (v0.63.0)** : les icônes sont les **VectorDrawable officiels
+d'Android Studio / IntelliJ Platform New UI**, convertis depuis les SVG
+des dépôts [`JetBrains/intellij-community`](https://github.com/JetBrains/intellij-community)
+(chemin `platform/icons/src/expui/…`) et [`JetBrains/android`](https://github.com/JetBrains/android)
+(chemin `artwork/resources/studio/icons/shell/filetree`), licences
+Apache 2.0 (voir `docs/THIRD_PARTY_NOTICES.md`). Variantes claire
+(`drawable/`) et sombre (`drawable-night/`) pour chaque type — la
+convention IntelliJ `X.svg` = clair, `X_dark.svg` = sombre est
+respectée.
 
-| Extension(s) | Marque | Couleur dominante | Motif |
-|---|---|---|---|
-| `kt` | Kotlin | `#7F52FF` | carré arrondi + chevron K blanc |
-| `java` | Java | `#f89820` | tasse fumante + anse |
-| `xml` | XML | `#FF7043` | feuille + chevrons `</>` blancs |
-| `kts`, scripts Gradle | Gradle | `#1B7EA6` | carré arrondi + « G » blanc |
-| `md` | Markdown | `#519aba` | rectangle + « M ↓ » blancs |
-| `json` | JSON | `#a9b838` | carré arrondi + `{ }` blancs |
-| `properties`, `pro` | propriétés | `#a074c4` | carré + engrenage blanc |
-| `toml` | TOML | `#9d7bd8` | carré + « T » blanc |
-| `.git*` (fichiers cachés) | git | `#F05033` | carré + branche de commits |
-| `db`, `jar` | base | `#26a69a` | cylindre de base de données |
-| `log`, `txt` | journal | `#79828f` | feuille + lignes |
-| sans extension | script | `#98b06a` | feuille + invite `>_` |
-| autres | fichier | `#8a93a3` | feuille grise |
+Icônes 16 × 16 (viewport IntelliJ) rendues à 17 px dans la ligne,
+marge gauche 5 px / droite 2 px.
+
+| Extension(s) / nom | Icône IntelliJ New UI | VectorDrawable CodeIDE |
+|---|---|---|
+| `kt` | `kotlin/kotlin` | `ic_fichier_kotlin` |
+| `kts` (script Kotlin) | `kotlin/kotlinGradleScript` | `ic_fichier_gradle_kts` |
+| `gradle` (script Groovy) | `fileTypes/gradle` | `ic_fichier_gradle` |
+| `*.gradle.kts` (nom complet) | `kotlin/kotlinGradleScript` | `ic_fichier_gradle_kts` |
+| `*.gradle` (nom complet) | `fileTypes/gradle` | `ic_fichier_gradle` |
+| `java` | `fileTypes/java` | `ic_fichier_java` |
+| `xml`, `html`, `htm` | `fileTypes/xml` | `ic_fichier_xml` |
+| `AndroidManifest.xml` (nom complet) | `fileTypes/manifest` | `ic_fichier_manifest` |
+| `md`, `markdown` | `fileTypes/markdown` | `ic_fichier_markdown` |
+| `json` | `fileTypes/json` | `ic_fichier_json` |
+| `properties`, `pro` | `fileTypes/properties` | `ic_fichier_properties` |
+| `toml` | `fileTypes/toml` | `ic_fichier_toml` |
+| `*.pro`, `proguard*` (ProGuard) | `fileTypes/config` (repli — pas d'icône Shrinker dédiée trouvée dans IntelliJ) | `ic_fichier_config` |
+| `.git*` (fichiers cachés) | (icône maison, conservée) | `ic_fichier_git` |
+| `db`, `jar` | (icône maison, conservée) | `ic_fichier_db` |
+| `log`, `txt` | (icône maison, conservée) | `ic_fichier_log` |
+| sans extension | (icône maison, conservée) | `ic_fichier_script` |
+| autres | (icône maison, conservée) | `ic_fichier_texte` |
 
 Règle des cachés : un nom **commençant** par un point (`.gitignore`,
 `.gitattributes`) porte la marque git — le point initial n'est jamais traité
 comme une extension (cohérent avec `mimeFichierTexte` v0.31.7). Un nom
 sans point du tout porte la marque script.
 
+**C0 — ordre de résolution** (`IconesFichiers.pourNom`) : les noms
+spécifiques d'Android Studio (`*.gradle.kts`, `*.gradle`,
+`AndroidManifest.xml`, `*.pro` / `proguard*`) sont reconnus **avant**
+l'extension générique, comme dans Android Studio. Cela permet à
+`build.gradle.kts` d'afficher l'icône `kotlinGradleScript` (et non
+l'icône `kotlin` du `kts` brut), et à `AndroidManifest.xml` d'afficher
+l'icône `manifest` (et non l'icône `xml` générique).
+
 ### Icônes de dossier
 
-Dossier 24 × 24 rempli, teinte selon le contexte : standard
-`#566175` ; racine projet `#6b96c4` ; racine privée `#7c6aa8` ; sous-dossier
-privé `#6d5f9b`. Toute entrée **privée** porte en plus un petit cadenas
-blanc (corps 4,6 × 3,6 + anse) posé sur le dossier. Un liseré horizontal
-`rgba(255,255,255,.16)` souligne la facette du dossier.
+**C0** : le dossier standard utilise l'icône `nodes/folder` d'IntelliJ
+New UI (`ic_dossier`). Le dossier privé conserve son icône maison
+(`ic_dossier_prive`, violet + cadenas). La teinte fine (racines
+projet/privé, sous-dossiers privés) est appliquée au rendu par
+l'appelant — le drawable suffit ici.
 
 ## 9. Arborescence du stockage privé
 
