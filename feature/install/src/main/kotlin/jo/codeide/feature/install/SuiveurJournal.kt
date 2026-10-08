@@ -20,7 +20,9 @@ import androidx.core.widget.NestedScrollView
  * l'utilisateur est au bas (typiquement une ligne de texte monospace
  * `bodySmall` ≈ 16 dp, convertie en px par l'appelant selon la densité).
  */
-internal class SuiveurJournal(private val toleranceBasPx: Int) {
+internal class SuiveurJournal(
+    private val toleranceBasPx: Int,
+) {
     /** Un défilement vers le bas est déjà planifié (déduplication). */
     private var defilementPlanifie = false
 
