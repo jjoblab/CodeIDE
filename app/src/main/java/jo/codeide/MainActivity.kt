@@ -62,6 +62,7 @@ import javax.inject.Inject
  *    valent consultation.
  */
 @AndroidEntryPoint
+@Suppress("TooManyFunctions") // Activité hôte : cycle de vie, routage, rapports.
 class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var logger: AppLogger
@@ -312,26 +313,31 @@ class MainActivity : AppCompatActivity() {
 
         logger.i(TAG) { "premier lancement : ouverture de l'assistant" }
 
-        // v0.69.0 : si l'installation est incomplète, route vers l'écran
-        // d'installation (reprise) plutôt que vers l'onboarding.
-        val parcours = orchestrateurInstallation.state.value
-        if (!parcours.estTermine() && parcours.phases.isNotEmpty()) {
-            logger.i(TAG) { "installation incomplète : reprise de l'écran d'installation" }
-            val optionsInstall =
-                NavOptions
-                    .Builder()
-                    .setPopUpTo(R.id.home, inclusive = true)
-                    .build()
-            navHost.navController.navigate(R.id.installation, null, optionsInstall)
-            return
-        }
-
         val options =
             NavOptions
                 .Builder()
                 .setPopUpTo(R.id.home, inclusive = true)
                 .build()
-        navHost.navController.navigate(R.id.onboarding, null, options)
+
+        // v0.69.0 : si l'installation est incomplète, route vers l'écran
+        // d'installation (reprise) plutôt que vers l'onboarding.
+        val destination = destinationRepriseOuOnboarding()
+        navHost.navController.navigate(destination, null, options)
+    }
+
+    /**
+     * v0.69.0 : décide de la destination du premier lancement. Si
+     * l'installation est incomplète (phases persistées non vides &&
+     * `!estTermine()`), retourne l'écran d'installation (reprise).
+     * Sinon, retourne l'onboarding.
+     */
+    private fun destinationRepriseOuOnboarding(): Int {
+        val parcours = orchestrateurInstallation.state.value
+        if (!parcours.estTermine() && parcours.phases.isNotEmpty()) {
+            logger.i(TAG) { "installation incomplète : reprise de l'écran d'installation" }
+            return R.id.installation
+        }
+        return R.id.onboarding
     }
 
     /**
