@@ -91,7 +91,7 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             val noeuds = viewModel.etat.value.noeuds
             // v2 (étape 31, § 6.1) : la racine ouvre la liste (ligne haute).
             assertEquals(
-                listOf("Alpha", "alpha-utils", "Zeta", "Main.kt", "readme.md"),
+                listOf("Alpha", "alpha-utils", "Zeta", "Main.kt", "readme.md", "Gradle Scripts"),
                 noeuds.map { it.nom },
             )
             // v2 (§ 6.1) : la racine est profondeur 0, ses enfants 1.
@@ -139,9 +139,11 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             )
             val noeuds = viewModel.etat.value.noeuds
             // v2 : la racine précède les enfants dépliés (§ 6.1).
-            assertEquals(listOf("Alpha", "src", "Main.kt"), noeuds.map { it.nom })
+            // C1 : le groupe « Gradle Scripts » est en fin de liste (profondeur 1).
+            assertEquals(listOf("Alpha", "src", "Main.kt", "Gradle Scripts"), noeuds.map { it.nom })
             // v2 : la racine est profondeur 0, ses enfants 1 (§ 6.1).
-            assertEquals(2, noeuds.last().profondeur)
+            // C1 : « Main.kt » reste à profondeur 2 (le groupe est à 1).
+            assertEquals(2, noeuds.first { it.nom == "Main.kt" }.profondeur)
 
             // Refermer puis rouvrir : le cache répond, aucun nouvel appel
             // (au dépliage près). v0.40.1 : la revalidation silencieuse
@@ -278,7 +280,7 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
                     ?.displayPath,
             )
             assertEquals(
-                listOf("Alpha", "Autre.kt"),
+                listOf("Alpha", "Autre.kt", "Gradle Scripts"),
                 viewModel.etat.value.noeuds
                     .map { it.nom },
             )

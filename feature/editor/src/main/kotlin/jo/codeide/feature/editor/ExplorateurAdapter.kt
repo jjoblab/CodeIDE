@@ -243,18 +243,41 @@ internal class ExplorateurAdapter(
         noeud: NoeudExplorateur,
     ) {
         val contexte = liaison.root.context
-        liaison.iconeNoeud.setImageResource(
-            if (noeud.estDossier) IconesFichiers.pourDossier(noeud.prive) else IconesFichiers.pourNom(noeud.nom),
-        )
+        // C1 : le groupe « Gradle Scripts » porte l'icône Gradle dédiée.
+        val icone =
+            when {
+                noeud.estGroupeGradle -> RUi.drawable.ic_gradle
+                noeud.estDossier -> IconesFichiers.pourDossier(noeud.prive)
+                else -> IconesFichiers.pourNom(noeud.nom)
+            }
+        liaison.iconeNoeud.setImageResource(icone)
         liaison.iconeNoeud.setColorFilter(ContextCompat.getColor(contexte, teinteDossier(noeud)))
 
         // La racine privée porte son libellé localisé (« Stockage
         // privé », § 9) — le ViewModel ne détient pas de ressources.
-        liaison.nomNoeud.text =
+        val nomBase =
             if (noeud.estRacine && noeud.prive) {
                 contexte.getString(R.string.explorateur_racine_privee)
             } else {
                 noeud.nom
+            }
+        // C1 : qualificatif en gris après le nom (ex. « build.gradle.kts
+        // (Project: App) »), comme Android Studio.
+        liaison.nomNoeud.text =
+            if (noeud.qualificatif != null) {
+                android.text.SpannableStringBuilder().apply {
+                    append(nomBase)
+                    append(' ')
+                    append(
+                        noeud.qualificatif,
+                        android.text.style.ForegroundColorSpan(
+                            ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_nom_prive),
+                        ),
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                }
+            } else {
+                nomBase
             }
         liaison.nomNoeud.setTextColor(
             when {
