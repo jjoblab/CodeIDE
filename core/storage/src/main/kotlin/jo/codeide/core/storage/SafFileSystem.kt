@@ -417,7 +417,14 @@ internal class SafFileSystem
          * `UnsupportedOperationException`. On traduit en `null` (document
          * absent) plutôt que de propager l'exception (qui planterait
          * `exists` — fix crash v0.64.0, C1 Gradle Scripts).
+         *
+         * Exemption `SwallowedException` ciblée (règle 16) : l'exception est
+         * intentionnellement avalée — sa traduction en `null` EST le
+         * contrat (document absent). La journaliser nécessiterait une
+         * dépendance `core:logging` non justifiée ici (ADR à venir si le
+         * besoin de diagnostic se précise).
          */
+        @Suppress("SwallowedException") // Traduite en null = document absent (contrat intentional).
         private fun <T> ContentResolver.interroger(
             documentUri: String,
             bloc: (Uri) -> T?,
