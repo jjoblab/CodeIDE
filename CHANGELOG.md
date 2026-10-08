@@ -4,6 +4,21 @@
 
 ### Corrigé
 
+- **`core:domain`** : l'URL par défaut du manifeste v2
+  (`ToolchainCatalog.DEFAULT_MANIFEST_URL`) pointait vers
+  `https://raw.githubusercontent.com/jjoblab/codeide-tools/main/manifest.v2.json`
+  — un chemin inexistant à la racine du dépôt (le manifeste v2 est
+  committé sous `dist/manifest.v2.json`, et la CI du dépôt
+  `codeide-tools` le recopie vers `gh-pages/manifests/v2/latest.json`
+  via le workflow `publish.yml`, ADR 0006 du dépôt `codeide-tools`).
+  L'étape `resolution-plan` de la phase `ANDROID_SDK` échouait donc en
+  **HTTP 404** dès la première exécution, bloquant tout parcours
+  d'installation au-delà de la phase 3 (JAVA). L'URL est désormais
+  l'URL officielle GitHub Pages
+  `https://jjoblab.github.io/codeide-tools/manifests/v2/latest.json`
+  (vérifiée : 200, `schemaVersion=2`, profil `default` présent). Le
+  contrôle `schemaVersion` côté CodeIDE reste inchangé — un manifeste
+  d'une autre génération ne peut toujours pas être consommé en silence.
 - **`feature:install`** : sur téléphone, le journal en direct de l'écran
   d'installation (`InstallationFragment`, ADR 0090) ne tenait plus dans
   l'écran — sa zone `zone_journal` était un `FrameLayout` à
@@ -18,10 +33,18 @@
   (`liaison.zoneJournal` est désormais `NestedScrollView` dans les deux
   variantes — un seul `FragmentInstallationBinding` inchangé, même si
   le type commun change de `FrameLayout` à `NestedScrollView`).
-  Auto-défilement vers le bas ajouté après chaque mise à jour du journal
-  (fonctionnalité attendue par ADR 0046, absente jusqu'ici) : la
-  dernière ligne reste visible pendant l'écoulement, sur téléphone
-  replié comme sur tablette structurelle.
+
+### Ajouté
+
+- **`feature:install`** : auto-défilement intelligent du journal en
+  direct (fonctionnalité attendue par ADR 0046, parité avec
+  `PanneauConsoleFragment` ADR 0078). La dernière ligne reste visible
+  pendant l'écoulement **tant que l'utilisateur est au bas** du
+  journal ; s'il remonte pour lire l'historique, l'auto-défilement se
+  met en pause et les nouvelles lignes attendent qu'il redescende.
+  Déduplication des `post` de scroll (un vivant au plus), tolérance « au
+  bas » de 16 dp (une ligne monospace `bodySmall`). Aucune logique
+  métier touchée ; tests du ViewModel inchangés.
 
 ## [0.60.0] – 2026-10-06
 
