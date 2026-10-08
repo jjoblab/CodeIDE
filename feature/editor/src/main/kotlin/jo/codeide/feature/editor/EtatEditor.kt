@@ -437,6 +437,14 @@ sealed interface ActionEditor {
         val uri: String,
     ) : ActionEditor
 
+    /**
+     * C2a : copie le chemin d'un nœud de l'arbre dans le presse-papiers
+     * système (chemin relatif au projet, comme Android Studio « Copy Path »).
+     */
+    data class CopierCheminNoeud(
+        val uri: String,
+    ) : ActionEditor
+
     /** Retient [uri] au presse-papiers en mode couper (étape 31, § 11). */
     data class CouperNoeud(
         val uri: String,
@@ -490,6 +498,13 @@ sealed interface ActionEditor {
 
     /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
     data object ReplierTout : ActionEditor
+
+    /**
+     * C2b : déplie tous les dossiers de l'arbre courant (garde-fou : si
+     * l'arbre a plus de [SEUIL_DEPLIER_TOUT] dossiers, l'action est refusée
+     * pour éviter un OOM sur les gros projets — un snackbar le signale).
+     */
+    data object DeplierTout : ActionEditor
 
     /**
      * Annule la dernière suppression (action « Annuler » du snackbar,
