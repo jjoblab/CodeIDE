@@ -199,10 +199,18 @@
             android:layout_marginTop="4dp"
             android:text="@string/installation_journal_basculer" />
 
-        <FrameLayout
+        <!-- Journal en direct repliable (E5, § 7) : NestedScrollView à
+             hauteur bornée pour que la sortie défile DANS sa propre zone
+             sans pousser le reste de l'écran (stepper, licence, actions).
+             Même id `zone_journal` que la variante sw600dp (un seul
+             FragmentInstallationBinding) ; l'auto-défilement reste collé
+             au bas (InstallationFragment). -->
+        <androidx.core.widget.NestedScrollView
             android:id="@+id/zone_journal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/hauteur_journal_installation"
+            android:layout_marginTop="4dp"
+            android:scrollbars="vertical"
             android:visibility="gone">
 
             <TextView
@@ -210,9 +218,9 @@
                 style="?attr/textAppearanceBodySmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:fontFamily="monospace"
+                android:padding="8dp"
                 android:textIsSelectable="true" />
-        </FrameLayout>
+        </androidx.core.widget.NestedScrollView>
     </LinearLayout>
 </ScrollView>
