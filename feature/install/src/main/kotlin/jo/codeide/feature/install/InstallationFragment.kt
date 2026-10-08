@@ -187,6 +187,12 @@ class InstallationFragment : Fragment() {
      * Consentement licence : carte visible AVANT la phase Android
      * uniquement ; la case n'est réinitialisée qu'à l'APPARITION de la
      * carte — jamais pendant qu'elle est affichée (l'utilisateur coche).
+     *
+     * Reprise (correctif v0.69.0) : le bouton « Démarrer » est aussi
+     * visible quand des phases sont déjà terminées mais que
+     * l'installation n'est pas complète — il devient « Reprendre ».
+     * Avant, le bouton était masqué dès que `terminees > 0`, bloquant
+     * l'utilisateur à la réouverture après une fermeture mid-install.
      */
     private fun projeterLicence(
         etat: EnvironmentSetupState,
@@ -203,11 +209,15 @@ class InstallationFragment : Fragment() {
             liaison.boutonDemarrer.setText(R.string.installation_installer_sdk)
         }
         licenceVisible = avantAndroid
+        // Bouton visible : licence SDK, OU premier démarrage (rien fait),
+        // OU reprise (phases terminées mais installation incomplète).
         liaison.boutonDemarrer.isVisible =
-            avantAndroid || (etat.running == null && terminees == 0)
-        if (!avantAndroid && terminees == 0 && etat.running == null) {
+            avantAndroid || (etat.running == null && !etat.estTermine())
+        if (!avantAndroid && etat.running == null && !etat.estTermine()) {
             liaison.boutonDemarrer.isEnabled = true
-            liaison.boutonDemarrer.setText(R.string.installation_demarrer)
+            liaison.boutonDemarrer.setText(
+                if (terminees == 0) R.string.installation_demarrer else R.string.installation_reprendre,
+            )
         }
     }
 
