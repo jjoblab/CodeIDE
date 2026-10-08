@@ -113,6 +113,18 @@ class EnvironnementViewModel
             }
         }
 
+        /**
+         * v0.69.0 : reprend l'installation complète (toutes les phases non
+         * terminées). Contrairement à `reparer()` qui ne cible qu'une phase,
+         * `reprendreTout()` appelle `orchestrateur.run()` — le parcours
+         * reprend à `premierePhaseNonVerifiee()` et skip les phases déjà
+         * `Succeeded` (verify-first, § 3.5). Utile après une fermeture
+         * mid-install : l'utilisateur reprend là où il s'était arrêté.
+         */
+        fun reprendreTout() {
+            viewModelScope.launch { orchestrateur.run() }
+        }
+
         /** Désinstalle un composant (confirmation portée par l'écran, § 7). */
         fun desinstaller(id: String) {
             viewModelScope.launch {

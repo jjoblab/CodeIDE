@@ -29,6 +29,7 @@
     <string name="installation_licence_case">I accept the Android SDK license</string>
     <string name="installation_installer_sdk">Install the Android SDK</string>
     <string name="installation_demarrer">Start setup</string>
+    <string name="installation_reprendre">Resume setup</string>
     <string name="installation_env_annuler">Cancel</string>
     <string name="installation_env_reessayer">Retry this phase</string>
     <string name="installation_diagnostic">Copy diagnostic</string>
