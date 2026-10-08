@@ -778,6 +778,8 @@ class EditorViewModel
                 ActionEditor.DeplierTout -> deplierTout()
                 ActionEditor.DefilerVersSource -> defilerVersSource()
                 ActionEditor.BasculerAffichageCompact -> basculerAffichageCompact()
+                ActionEditor.BasculerFichiersCaches -> basculerFichiersCaches()
+                ActionEditor.BasculerDossiersBuild -> basculerDossiersBuild()
                 ActionEditor.AnnulerSuppression -> annulerSuppression()
                 ActionEditor.MasquerNotification -> masquerNotification()
                 else -> onActionPanneau(action)
@@ -1558,6 +1560,27 @@ class EditorViewModel
             }
         }
 
+        /**
+         * C2f : déduit le nom du package à partir d'un chemin de dossier
+         * sous `src/main/java` ou `src/main/kotlin`. Retourne une chaîne
+         * vide si la source n'est pas trouvée.
+         *
+         * Fonction pure testable — ne lit pas le système de fichiers,
+         * travaille sur la liste des noms de dossiers (parents → enfant).
+         * Sur le companion object pour être testable sans instance.
+         */
+        internal fun deduirePackage(cheminDossiers: List<String>): String = Companion.deduirePackage(cheminDossiers)
+
+        /**
+         * C2f : génère le contenu d'un fichier Kotlin selon le modèle.
+         * Inclut la déclaration `package` si non vide. Délègue au companion.
+         */
+        internal fun genererContenuModele(
+            nom: String,
+            typeModele: ActionEditor.TypeModeleCreation,
+            pakage: String,
+        ): String = Companion.genererContenuModele(nom, typeModele, pakage)
+
         /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
         private fun replierTout() {
             arbre.dossiersDeplies.clear()
@@ -1625,6 +1648,18 @@ class EditorViewModel
          */
         private fun basculerAffichageCompact() {
             etatInterne.update { it.copy(affichageCompact = !it.affichageCompact) }
+            reconstruireNoeuds()
+        }
+
+        /** C2e : bascule l'affichage des fichiers cachés (commençant par un point). */
+        private fun basculerFichiersCaches() {
+            etatInterne.update { it.copy(masquerFichiersCaches = !it.masquerFichiersCaches) }
+            reconstruireNoeuds()
+        }
+
+        /** C2e : bascule le masquage des dossiers `build/` et `.gradle/`. */
+        private fun basculerDossiersBuild() {
+            etatInterne.update { it.copy(masquerDossiersBuild = !it.masquerDossiersBuild) }
             reconstruireNoeuds()
         }
 
@@ -1878,10 +1913,12 @@ class EditorViewModel
             masqueAncetres: Int,
             visibles: MutableList<NoeudExplorateur>,
         ) {
-            val enfants = arbre.enfantsEnCache[uriDossier] ?: return
+            val enfantsBruts = arbre.enfantsEnCache[uriDossier] ?: return
             val etat = etatInterne.value
             val presse = pressePapiers
             val compact = etat.affichageCompact
+            // C2e : filtrage des fichiers cachés et dossiers de build.
+            val enfants = filtrerEnfants(enfantsBruts, etat)
             for ((indice, enfant) in enfants.withIndex()) {
                 val deplie = enfant.isDirectory && enfant.uri in arbre.dossiersDeplies
                 // C2d : compactage — si l'enfant est un dossier à enfant
@@ -1945,6 +1982,21 @@ class EditorViewModel
                 }
             }
         }
+
+        /**
+         * C2e : filtre les enfants selon les options d'affichage.
+         * - `masquerFichiersCaches` : retire les noms commençant par un point.
+         * - `masquerDossiersBuild` : retire `build` et `.gradle` (dossiers).
+         */
+        private fun filtrerEnfants(
+            enfants: List<FileStat>,
+            etat: EtatEditor,
+        ): List<FileStat> =
+            enfants.filter { enfant ->
+                val cache = enfant.name.startsWith(".")
+                val build = enfant.isDirectory && (enfant.name == "build" || enfant.name == ".gradle")
+                !(etat.masquerFichiersCaches && cache) && !(etat.masquerDossiersBuild && build)
+            }
 
         /** URI de la racine de l'arbre donné. */
         private fun uriRacineDe(arbre: EtatArbre): String? =
@@ -3293,7 +3345,7 @@ class EditorViewModel
                 ?.let { nom -> FiltreCanalConsole.entries.firstOrNull { it.name == nom } }
                 ?: FiltreCanalConsole.SYNC
 
-        private companion object {
+        internal companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
 
@@ -3357,5 +3409,36 @@ class EditorViewModel
 
             /** v0.41.1 : motif regex pour détecter `fun main(` (bouton Run). */
             val MOTIF_FUN_MAIN = Regex("""\bfun\s+main\s*\(""")
+
+            /**
+             * C2f : déduit le nom du package à partir d'un chemin de dossier
+             * sous `src/main/java` ou `src/main/kotlin`. Retourne une chaîne
+             * vide si la source n'est pas trouvée. Fonction pure testable.
+             */
+            fun deduirePackage(cheminDossiers: List<String>): String {
+                val srcIndex =
+                    cheminDossiers.indexOfLast { it == "java" || it == "kotlin" }
+                if (srcIndex < 0 || srcIndex + 1 >= cheminDossiers.size) return ""
+                return cheminDossiers.drop(srcIndex + 1).joinToString(".")
+            }
+
+            /**
+             * C2f : génère le contenu d'un fichier Kotlin selon le modèle.
+             * Inclut la déclaration `package` si non vide.
+             */
+            fun genererContenuModele(
+                nom: String,
+                typeModele: ActionEditor.TypeModeleCreation,
+                pakage: String,
+            ): String {
+                val declarationPackage = if (pakage.isNotEmpty()) "package $pakage\n\n" else ""
+                return declarationPackage +
+                    when (typeModele) {
+                        ActionEditor.TypeModeleCreation.CLASSE_KOTLIN -> "class $nom\n"
+                        ActionEditor.TypeModeleCreation.INTERFACE_KOTLIN -> "interface $nom\n"
+                        ActionEditor.TypeModeleCreation.OBJET_KOTLIN -> "object $nom\n"
+                        ActionEditor.TypeModeleCreation.FICHIER, ActionEditor.TypeModeleCreation.DOSSIER -> ""
+                    }
+            }
         }
     }
