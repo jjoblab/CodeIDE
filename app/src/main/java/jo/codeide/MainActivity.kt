@@ -79,6 +79,10 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var observerParametres: ObserveSettingsUseCase
 
+    /** Orchestrateur d'installation — routage vers l'écran d'installation si incomplet (v0.69.0). */
+    @Inject
+    lateinit var orchestrateurInstallation: jo.codeide.core.domain.EnvironmentSetupOrchestrator
+
     /** Vrai dès la première émission des paramètres (libère le splash). */
     private var demarragePret = false
 
@@ -292,6 +296,13 @@ class MainActivity : AppCompatActivity() {
      * accueil vide. Ne joue qu'une fois par vie de l'activité : après
      * une mort du processus en plein assistant, la pile restaurée y
      * est déjà, et la garde `home` évite tout doublon.
+     *
+     * Correctif v0.69.0 (reprise installation) : si l'installation est
+     * **incomplète** (phases persistées dans `install-state.json` mais
+     * `!estTermine()`), route directement vers l'écran d'installation
+     * plutôt que vers l'onboarding — l'utilisateur reprend là où il
+     * s'était arrêté. L'orchestrateur a déjà relu l'état persisté au
+     * démarrage (init), `state.value` est fiable ici.
      */
     private fun routerPremierLancement(complete: Boolean) {
         if (complete) return
@@ -300,6 +311,21 @@ class MainActivity : AppCompatActivity() {
         if (navHost.navController.currentDestination?.id != R.id.home) return
 
         logger.i(TAG) { "premier lancement : ouverture de l'assistant" }
+
+        // v0.69.0 : si l'installation est incomplète, route vers l'écran
+        // d'installation (reprise) plutôt que vers l'onboarding.
+        val parcours = orchestrateurInstallation.state.value
+        if (!parcours.estTermine() && parcours.phases.isNotEmpty()) {
+            logger.i(TAG) { "installation incomplète : reprise de l'écran d'installation" }
+            val optionsInstall =
+                NavOptions
+                    .Builder()
+                    .setPopUpTo(R.id.home, inclusive = true)
+                    .build()
+            navHost.navController.navigate(R.id.installation, null, optionsInstall)
+            return
+        }
+
         val options =
             NavOptions
                 .Builder()

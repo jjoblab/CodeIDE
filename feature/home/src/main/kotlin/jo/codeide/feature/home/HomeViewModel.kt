@@ -140,6 +140,12 @@ class HomeViewModel
                     val bootstrapVerifie =
                         parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Succeeded ||
                             parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Degraded
+                    // Correctif v0.69.0 : le bandeau terminal porte sur
+                    // l'installation COMPLÈTE (4 phases), pas seulement
+                    // BOOTSTRAP — sinon le bandeau disparaît dès que
+                    // BOOTSTRAP est vérifié, même si JAVA/ANDROID_SDK
+                    // restent à faire (l'utilisateur n'a plus de rappel).
+                    val installationIncomplete = !parcours.estTermine()
                     etatInterne.update {
                         it.copy(
                             montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
@@ -147,7 +153,7 @@ class HomeViewModel
                             montrerBandeauTerminal =
                                 reglages.isSetupCompleted &&
                                     !outils.bootstrapInstalle &&
-                                    !bootstrapVerifie &&
+                                    installationIncomplete &&
                                     parcours.running == null,
                             // T6 + v0.37.3 : une installation terminée rend le
                             // terminal ouvrable SANS attendre un nouveau passage
