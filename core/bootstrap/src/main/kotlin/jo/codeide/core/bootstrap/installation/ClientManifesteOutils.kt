@@ -180,7 +180,12 @@ internal class ClientManifesteOutils
                             buildTools = ligne.getString(CHAMP_BUILD_TOOLS),
                             aapt2 = ligne.getString(CHAMP_AAPT2),
                             compileSdk = ligne.getString(CHAMP_COMPILE_SDK),
-                            jdk = ligne.getInt(CHAMP_JDK),
+                            // Le manifeste v2 exprime `jdk` comme une
+                            // contrainte (ex. ">=17"), pas un entier — on
+                            // lit la chaîne, l'analyse du préfixe `>=`/`>`/`=`
+                            // est laissée aux consommateurs (fix crash
+                            // JSONException : getInt échouait sur ">=17").
+                            jdk = ligne.getString(CHAMP_JDK),
                             status = ligne.getString(CHAMP_STATUS),
                         )
                 }

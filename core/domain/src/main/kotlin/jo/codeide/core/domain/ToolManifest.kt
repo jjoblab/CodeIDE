@@ -115,7 +115,10 @@ public data class VerifySpec(
  * @property buildTools version de build-tools.
  * @property aapt2 version d'aapt2.
  * @property compileSdk plateforme de compilation.
- * @property jdk version majeure de JDK exigée.
+ * @property jdk version majeure de JDK exigée — **chaîne** du manifeste
+ * (ex. `">=17"`, `"17"`, `"17+"`) : le manifeste v2 exprime une
+ * contrainte, pas un entier. L'analyse de la contrainte (parsing du
+ * `>=`, `>`, `=`) est laissée aux consommateurs.
  * @property status `tested` ou `untested` — informationnelle, affichée à
  * l'écran Environnement.
  */
@@ -124,7 +127,7 @@ public data class CompatLine(
     public val buildTools: String,
     public val aapt2: String,
     public val compileSdk: String,
-    public val jdk: Int,
+    public val jdk: String,
     public val status: String,
 )
 

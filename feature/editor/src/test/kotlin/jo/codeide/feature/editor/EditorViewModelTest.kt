@@ -119,7 +119,11 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             // tentative de restitution de l'état de sync (`.codeide/local/
             // sync-state.json` — v0.40.1, prompt de suivi §2) ; les
             // sous-dossiers restent paresseux.
-            assertEquals(4, fichiers.appelsList)
+            // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle`
+            // (racine, gradle/, gradle/wrapper/ — ils échouent en NotFound
+            // car le projet de test n'a pas de fichiers Gradle, mais
+            // `appelsList` est incrémenté même pour les échecs).
+            assertEquals(7, fichiers.appelsList)
 
             val uriSrc =
                 viewModel.etat.value.noeuds
@@ -133,9 +137,12 @@ class EditorViewModelTest : BaseEditorViewModelTest() {
             // venir de la revalidation silencieuse déclenchée par
             // `restaurerEtatSyncSiEmpreinteIdentique` si elle tourne après
             // le dépliage — on l'accepte tant que la racine reste cohérente.
+            // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle` à
+            // l'arrivée (racine, gradle/, gradle/wrapper/), donc 7 ou 8
+            // selon la revalidation.
             assertTrue(
-                "premier dépliement : 4 ou 5 appels attendus (revalidation silencieuse possible)",
-                fichiers.appelsList == 4 || fichiers.appelsList == 5,
+                "premier dépliement : 7 ou 8 appels attendus (revalidation silencieuse possible)",
+                fichiers.appelsList == 7 || fichiers.appelsList == 8,
             )
             val noeuds = viewModel.etat.value.noeuds
             // v2 : la racine précède les enfants dépliés (§ 6.1).
