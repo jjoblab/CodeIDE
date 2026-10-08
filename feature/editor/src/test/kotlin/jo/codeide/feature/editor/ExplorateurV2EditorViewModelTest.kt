@@ -69,7 +69,7 @@ class ExplorateurV2EditorViewModelTest : BaseEditorViewModelTest() {
                     .map { it.nom }
             assertEquals(
                 "dossiers avant fichiers, nom insensible à la casse (ADR 0027)",
-                listOf("Docs", "sources", "Alpha.md", "beta.json", "zeta.kt"),
+                listOf("Docs", "sources", "Alpha.md", "beta.json", "zeta.kt", "Gradle Scripts"),
                 noms,
             )
         }

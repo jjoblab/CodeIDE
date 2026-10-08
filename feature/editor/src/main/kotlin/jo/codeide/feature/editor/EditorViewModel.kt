@@ -323,6 +323,14 @@ class EditorViewModel
         /** Presse-papiers d'arbre mémoire (étape 31, § 12). */
         private var pressePapiers: PressePapiersArbre? = null
 
+        /**
+         * C1 : scripts Gradle résolus du projet (cache du groupe « Gradle
+         * Scripts »). `null` = pas encore chargé ; liste vide = chargé mais
+         * aucun fichier trouvé. Rechargé à chaque `Rafraichir` ou ouverture
+         * de projet.
+         */
+        private var scriptsGradle: List<ScriptGradle>? = null
+
         /** Suppression annulable en attente (snackbar, étape 31, § 11). */
         private var annulationEnAttente: AnnulationSuppression? = null
 
@@ -1314,6 +1322,7 @@ class EditorViewModel
          * l'état avant projet (l'arbre privé garde ses plis). */
         private fun reinitialiser() {
             arbreProjet.reinitialiser()
+            scriptsGradle = null // C1 : force le rechargement des scripts Gradle.
             typeProjetBrut = null
             etatInterne.update {
                 it.copy(
@@ -1463,6 +1472,17 @@ class EditorViewModel
         private fun basculer(uri: String) {
             val arbre = arbre
             when {
+                // C1 : groupe « Gradle Scripts » — URI virtuelle, pas de
+                // chargerEnfants (le contenu vient du cache scriptsGradle).
+                uri == URI_GROUPE_GRADLE -> {
+                    if (uri in arbreProjet.dossiersDeplies) {
+                        arbreProjet.dossiersDeplies -= uri
+                    } else {
+                        arbreProjet.dossiersDeplies += uri
+                    }
+                    reconstruireNoeuds()
+                }
+
                 uri in arbre.dossiersEnErreur -> {
                     arbre.dossiersDeplies += uri
                     chargerEnfants(uri)
@@ -1531,6 +1551,12 @@ class EditorViewModel
                     nbEnfants = arbre.enfantsEnCache[racine]?.size ?: -1,
                 )
             ajouterEnfantsVisibles(arbre, racine, 1, 0, visibles)
+            // C1 : groupe « Gradle Scripts » — uniquement en mode Projet,
+            // jamais en mode Privé. Placé après tous les enfants de la
+            // racine (même niveau qu'eux, comme Android Studio).
+            if (arbre === arbreProjet) {
+                ajouterGroupeGradleScripts(visibles, etat)
+            }
             etatInterne.update {
                 it.copy(
                     noeuds = visibles,
@@ -1545,6 +1571,127 @@ class EditorViewModel
                     cheminsDossiers = calculerCheminsDossiers(arbre),
                 )
             }
+        }
+
+        /**
+         * C1 : ajoute le nœud groupe « Gradle Scripts » (et ses enfants
+         * si déplié) à la fin de la liste des nœuds visibles. Le groupe
+         * est un nœud virtuel : son URI est [URI_GROUPE_GRADLE], son pli
+         * est mémorisé dans [EtatArbre.dossiersDeplies]. Les enfants sont
+         * des raccourcis vers les vrais fichiers — ils ouvrent le même
+         * onglet que depuis l'arbre classique.
+         */
+        private fun ajouterGroupeGradleScripts(
+            visibles: MutableList<NoeudExplorateur>,
+            etat: EtatEditor,
+        ) {
+            val deplie = URI_GROUPE_GRADLE in arbreProjet.dossiersDeplies
+            val scripts = scriptsGradle
+            val nbEnfants = scripts?.size ?: -1
+            visibles +=
+                NoeudExplorateur(
+                    uri = URI_GROUPE_GRADLE,
+                    nom = "Gradle Scripts",
+                    estDossier = true,
+                    profondeur = 1,
+                    deplie = deplie,
+                    estRacine = false,
+                    prive = false,
+                    selectionne = etat.uriSelection == URI_GROUPE_GRADLE,
+                    dernierEnfant = true,
+                    nbEnfants = nbEnfants,
+                    estGroupeGradle = true,
+                )
+            if (deplie && scripts != null) {
+                for (script in scripts) {
+                    visibles +=
+                        NoeudExplorateur(
+                            uri = script.uri,
+                            nom = script.nom,
+                            estDossier = false,
+                            profondeur = 2,
+                            selectionne = etat.uriSelection == script.uri,
+                            dernierEnfant = script === scripts.last(),
+                            masqueAncetresDerniers = 1,
+                            ongletActif =
+                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri == script.uri,
+                            ongletOuvert =
+                                script.uri in etat.onglets.map { it.uri } &&
+                                    etat.onglets.getOrNull(etat.indexOngletActif)?.uri != script.uri,
+                            qualificatif = script.qualificatif,
+                        )
+                }
+            }
+            // Déclenche le chargement asynchrone des scripts si pas encore fait.
+            if (scripts == null && !etatsChargementGradle) {
+                chargerScriptsGradle()
+            }
+        }
+
+        /** Garde-fou anti-reentrance pour le chargement des scripts Gradle. */
+        private var etatsChargementGradle = false
+
+        /**
+         * C1 : résout asynchronement les fichiers de build Gradle du projet
+         * et met en cache le résultat. L'ordre suit Android Studio :
+         * build racine, settings, gradle.properties, catalogue de versions,
+         * wrapper, local.properties, proguard. Dédoublonnage par URI (le
+         * dernier qualificatif l'emporte). Seuls les fichiers existants
+         * sont retenus.
+         */
+        private fun chargerScriptsGradle() {
+            etatsChargementGradle = true
+            val racine =
+                uriDocumentSuivie ?: run {
+                    etatsChargementGradle = false
+                    return
+                }
+            val nomProjet = etatInterne.value.projet?.name ?: "Project"
+            viewModelScope.launch {
+                val resolus = resoudreScriptsGradle(racine, nomProjet)
+                scriptsGradle = resolus
+                etatsChargementGradle = false
+                reconstruireNoeuds()
+            }
+        }
+
+        /**
+         * C1 : résout les fichiers de build Gradle d'un projet. Fonction
+         * `suspend` testable — énumère les chemins connus, vérifie
+         * l'existence, dédoublonne par URI (le dernier qualificatif
+         * l'emporte, conformément à Android Studio).
+         */
+        internal suspend fun resoudreScriptsGradle(
+            racine: String,
+            nomProjet: String,
+        ): List<ScriptGradle> {
+            // (chemin relatif, nom, qualificatif) — l'ordre est celui
+            // d'Android Studio (build racine → settings → properties →
+            // catalogue → wrapper → local.properties → proguard).
+            val candidats =
+                listOf(
+                    Triple("build.gradle.kts", "build.gradle.kts", "(Project: $nomProjet)"),
+                    Triple("build.gradle", "build.gradle", "(Project: $nomProjet)"),
+                    Triple("settings.gradle.kts", "settings.gradle.kts", "(Project Settings)"),
+                    Triple("settings.gradle", "settings.gradle", "(Project Settings)"),
+                    Triple("gradle.properties", "gradle.properties", "(Project Properties)"),
+                    Triple("gradle/libs.versions.toml", "libs.versions.toml", "(Version Catalog \"libs\")"),
+                    Triple("gradle/wrapper/gradle-wrapper.properties", "gradle-wrapper.properties", "(Gradle Version)"),
+                    Triple("local.properties", "local.properties", "(SDK Location)"),
+                    Triple("proguard-rules.pro", "proguard-rules.pro", "(ProGuard Rules for \":app\")"),
+                )
+            val resolus = mutableListOf<ScriptGradle>()
+            for ((relatif, nom, qualificatif) in candidats) {
+                val uri = "$racine/$relatif"
+                if (fichiers.exists(uri)) {
+                    resolus += ScriptGradle(uri = uri, nom = nom, qualificatif = qualificatif)
+                }
+            }
+            // Dédoublonnage par nom de fichier : si build.gradle.kts ET
+            // build.gradle existent tous les deux (rare mais possible),
+            // on garde les deux (Android Studio les montre tous les deux).
+            // Pas de dédoublonnage ici — chaque candidat a un chemin unique.
+            return resolus
         }
 
         /** Aplatit récursivement les enfants visibles du dossier donné.
@@ -2216,6 +2363,22 @@ class EditorViewModel
             val instantane: ArbreMemoire,
             val urisOnglets: List<String>,
             val etaitActif: Boolean,
+        )
+
+        /**
+         * C1 : un fichier de build Gradle résolu pour le groupe « Gradle
+         * Scripts » (raccourci vers le vrai fichier, comme Android Studio).
+         *
+         * @property uri URI réelle du fichier (ouvre le même onglet que
+         * depuis l'arbre classique).
+         * @property nom nom d'affichage (ex. `build.gradle.kts`).
+         * @property qualificatif libellé gris entre parenthèses (ex.
+         * `(Project: App)`), comme Android Studio.
+         */
+        internal data class ScriptGradle(
+            val uri: String,
+            val nom: String,
+            val qualificatif: String,
         )
 
         /**
@@ -2907,6 +3070,11 @@ class EditorViewModel
             /** URI de la racine virtuelle du stockage privé (schéma maison,
              * étape 31 — ne traverse jamais le port `FileSystem`). */
             const val URI_RACINE_PRIVEE = "prive:///"
+
+            /** C1 : URI virtuelle du nœud groupe « Gradle Scripts » —
+             *  raccourcis vers les fichiers de build, comme Android Studio.
+             *  Schéma maison, ne traverse jamais le port `FileSystem`. */
+            const val URI_GROUPE_GRADLE = "gradle://scripts"
 
             /** Chemin affiché de la racine du stockage privé (donnée système,
              * applicationId figé par le prompt maître — § 4/§ 9). Exemption
