@@ -208,13 +208,18 @@
         </LinearLayout>
     </ScrollView>
 
-    <ScrollView
+    <!-- Panneau droit (journal en direct, toujours visible sur tablette,
+         § 7) : NestedScrollView pour uniformiser le type ViewBinding avec
+         la variante téléphone (un seul FragmentInstallationBinding) et
+         bénéficier du scrolling imbriqué fluide. -->
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/zone_journal"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_marginStart="8dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="vertical">
 
         <TextView
             android:id="@+id/journal"
@@ -224,5 +229,5 @@
             android:fontFamily="monospace"
             android:padding="12dp"
             android:textIsSelectable="true" />
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>
