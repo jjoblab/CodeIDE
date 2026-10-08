@@ -161,6 +161,28 @@ internal class MoteurGitCli(
         return sortie is ResultatGit.Succes && sortie.valeur.trim() == "true"
     }
 
+    // G3 — Diff
+
+    override suspend fun diff(
+        cheminFuse: String,
+        chemin: String,
+    ): ResultatGit<String> = executer(cheminFuse, listOf("diff", "--", chemin))
+
+    // G7 — Stash
+
+    @Suppress("ReturnCount") // Gardes : échec stash create, rien à stasher.
+    override suspend fun stasher(cheminFuse: String): ResultatGit<String> {
+        val sortie = executer(cheminFuse, listOf("stash", "create"))
+        if (sortie is ResultatGit.Echec) return sortie
+        val hash = (sortie as ResultatGit.Succes).valeur.trim()
+        if (hash.isEmpty()) return ResultatGit.Succes("")
+        val store = executer(cheminFuse, listOf("stash", "store", hash))
+        return if (store is ResultatGit.Echec) store else ResultatGit.Succes(hash)
+    }
+
+    override suspend fun restaurerStash(cheminFuse: String): ResultatGit<Unit> =
+        unitSiSucces(executer(cheminFuse, listOf("stash", "pop")))
+
     override fun annuler() {
         // L'annulation cooperative est gérée par awaitExit() (coroutine).
         // L'UI appelle annuler() depuis un scope coroutine annulable.
