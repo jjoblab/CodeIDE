@@ -676,14 +676,15 @@ class ExplorateurFragment : Fragment() {
                     }
                 }
             } else {
-                // Fichier : Ouvrir (projet seulement — l'arbre privé n'a
-                // pas d'onglets, § 9), puis presse-papiers, déplacement,
+                // Fichier : Ouvrir (Projet ET Privé — bug A : un tap en
+                // mode privé ouvre le fichier depuis le stockage privé,
+                // l'onglet mémorise sa source pour ses sauvegardes
+                // ultérieures), puis presse-papiers, déplacement,
                 // renommage, suppression (§ 10.4).
                 action(
                     View.generateViewId(),
                     getString(R.string.popover_ouvrir),
                     jo.codeide.core.ui.R.drawable.ic_ouvrir,
-                    activee = !noeud.prive,
                 ) {
                     viewModel.onAction(ActionEditor.OuvrirFichier(noeud.uri))
                 }

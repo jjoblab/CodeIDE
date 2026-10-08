@@ -306,6 +306,20 @@ class EditorViewModel
         private val systeme: FileSystem
             get() = if (source == SourceArbre.PRIVE) fichiersPrives else fichiers
 
+        /**
+         * Système de fichiers d'une source donnée (bug A) — la lecture,
+         * la sauvegarde et le rechargement d'un onglet choisissent le
+         * système **par onglet**, pas selon l'arbre affiché à l'instant
+         * T : un onglet privé continue de se sauvegarder dans le privé
+         * même si l'utilisateur rebascule sur « Projet ».
+         */
+        private fun systemePour(source: SourceArbre): FileSystem =
+            if (source == SourceArbre.PRIVE) fichiersPrives else fichiers
+
+        /** Arbre d'une source donnée (cf. [systemePour], bug A). */
+        private fun arbrePour(source: SourceArbre): EtatArbre =
+            if (source == SourceArbre.PRIVE) arbrePrive else arbreProjet
+
         /** Presse-papiers d'arbre mémoire (étape 31, § 12). */
         private var pressePapiers: PressePapiersArbre? = null
 
@@ -1727,7 +1741,15 @@ class EditorViewModel
         // Onglets d'édition (étape 15)
         // ------------------------------------------------------------------
 
-        /** Ouvre un fichier en onglet, ou le sélectionne s'il est ouvert. */
+        /**
+         * Ouvre un fichier en onglet, ou le sélectionne s'il est ouvert.
+         *
+         * Bug A : la source mémorisée est la source **affichée à
+         * l'ouverture** (un tap en mode privé ouvre un fichier privé).
+         * L'onglet garde cette source pour ses sauvegardes et
+         * rechargements ultérieurs, même si l'utilisateur rebascule
+         * ensuite sur « Projet ».
+         */
         private fun ouvrir(uri: String) {
             etatInterne.value.onglets
                 .firstOrNull { it.uri == uri }
@@ -1739,16 +1761,17 @@ class EditorViewModel
                     return
                 }
 
-            val nomConnu = arbreProjet.statuts[uri]?.name ?: uri.substringAfterLast('/')
+            val nomConnu = arbre.statuts[uri]?.name ?: uri.substringAfterLast('/')
             if (FichiersOuverture.estBinaire(nomConnu)) {
                 canalEffets.trySend(EffetEditor.OuvrirAvec(uri))
                 return
             }
 
+            val sourceOnglet = source
             viewModelScope.launch {
-                when (val lecture = fichiers.readText(uri)) {
+                when (val lecture = systemePour(sourceOnglet).readText(uri)) {
                     is AppResult.Success -> {
-                        ajouterOnglet(uri, lecture.value)
+                        ajouterOnglet(uri, lecture.value, sourceOnglet)
                         canalEffets.trySend(EffetEditor.FichierOuvert)
                     }
 
@@ -1760,14 +1783,22 @@ class EditorViewModel
             }
         }
 
-        /** Crée la session et l'onglet, puis le sélectionne. */
+        /**
+         * Crée la session et l'onglet, puis le sélectionne.
+         *
+         * Bug A : [sourceOnglet] est mémorisée dans `EditorTabState` pour
+         * que les sauvegardes et rechargements ultérieurs ciblent le bon
+         * système de fichiers. Le chemin relatif est calculé dans l'arbre
+         * de cette source (et non `arbreProjet`).
+         */
         private fun ajouterOnglet(
             uri: String,
             texte: String,
+            sourceOnglet: SourceArbre = source,
         ) {
             if (sessions.containsKey(uri)) return
-            val chemin = cheminRelatifDe(uri)
-            val nom = arbreProjet.statuts[uri]?.name ?: chemin.substringAfterLast('/')
+            val chemin = cheminRelatifDe(uri, sourceOnglet)
+            val nom = arbrePour(sourceOnglet).statuts[uri]?.name ?: chemin.substringAfterLast('/')
             val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
             FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
@@ -1785,6 +1816,7 @@ class EditorViewModel
                                 nom = nom,
                                 langage = FichiersOuverture.langage(nom),
                                 aFunMain = aFunMain,
+                                source = sourceOnglet,
                             ),
                     indexOngletActif = etat.onglets.size,
                 )
@@ -1968,13 +2000,23 @@ class EditorViewModel
         /**
          * Écrit le texte courant de l'onglet via `FileSystem.writeText`,
          * verrouillé par fichier ; réussite = l'onglet redevient propre.
+         *
+         * Bug A : le système de fichiers est choisi **par onglet** — la
+         * source mémorisée à l'ouverture décide, pas l'arbre affiché à
+         * l'instant T (sinon la sauvegarde d'un onglet privé échoue
+         * silencieusement car `fichiers` ne contient pas `prive:///…`).
          */
         private suspend fun enregistrer(uri: String): Boolean {
             val verrou = verrousEcriture.getOrPut(uri) { Mutex() }
             return verrou.withLock {
                 val session = sessions[uri] ?: return@withLock false
+                val sourceOnglet =
+                    etatInterne.value.onglets
+                        .firstOrNull { it.uri == uri }
+                        ?.source
+                        ?: SourceArbre.PROJET
                 marquerSauvegarde(uri, enCours = true)
-                when (fichiers.writeText(uri, session.session.getText())) {
+                when (systemePour(sourceOnglet).writeText(uri, session.session.getText())) {
                     is AppResult.Success -> {
                         etatInterne.update { etat ->
                             etat.copy(
@@ -2011,15 +2053,30 @@ class EditorViewModel
             }
         }
 
-        /** Chemin relatif d'un document sous la racine (parents connus). */
-        private fun cheminRelatifDe(uri: String): String =
-            cheminRelatifDans(arbreProjet, uri).ifEmpty { uri.substringAfterLast('/') }
+        /**
+         * Chemin relatif d'un document sous la racine (parents connus).
+         *
+         * Bug A : la source est explicite — un onglet privé doit calculer
+         * son chemin dans `arbrePrive`, pas dans `arbreProjet` (sinon le
+         * chemin renvoyé est vide et le nom dérive du dernier segment
+         * de l'URI).
+         */
+        private fun cheminRelatifDe(
+            uri: String,
+            sourceOnglet: SourceArbre = source,
+        ): String = cheminRelatifDans(arbrePour(sourceOnglet), uri).ifEmpty { uri.substringAfterLast('/') }
 
-        /** Onglets ouverts et actif dans le sauvetage (mort du processus). */
+        /**
+         * Onglets ouverts et actif dans le sauvetage (mort du processus).
+         *
+         * Bug A : la source est sérialisée en 3e champ
+         * (`"uri\nchemin\nsource"`). Le rechargement tolère l'ancien
+         * format `"uri\nchemin"` (migration : `PROJET` par défaut).
+         */
         private fun persisterOnglets() {
             val etat = etatInterne.value
             sauvetage[ClesEditor.CLE_ONGLETS] =
-                ArrayList(etat.onglets.map { "${it.uri}\n${it.cheminRelatif}" })
+                ArrayList(etat.onglets.map { "${it.uri}\n${it.cheminRelatif}\n${it.source.name}" })
             sauvetage[ClesEditor.CLE_INDEX_ACTIF] = etat.indexOngletActif
             persisterEtatEspace()
         }
@@ -2074,17 +2131,36 @@ class EditorViewModel
             }
         }
 
-        /** Rouvre une liste d'onglets « uri \n chemin » à l'index donné. */
+        /**
+         * Rouvre une liste d'onglets « uri \n chemin [\n source] » à
+         * l'index donné.
+         *
+         * Bug A : le 3e champ `source` est optionnel — les états
+         * persisted antérieurs (format `"uri\nchemin"`) sont migrés en
+         * `PROJET` par défaut. Le système de fichiers de relecture est
+         * choisi **par onglet** : un onglet privé est relu depuis
+         * `fichiersPrives`, pas depuis `fichiers`.
+         */
         private suspend fun restaurer(
             ouverts: List<String>,
             index: Int,
         ) {
             ouverts.forEach { entree ->
                 val uri = entree.substringBefore('\n')
-                val chemin = entree.substringAfter('\n', "")
-                when (val lecture = fichiers.readText(uri)) {
+                val reste = entree.substringAfter('\n', "")
+                val chemin = reste.substringBefore('\n', "")
+                val sourceOnglet =
+                    reste
+                        .substringAfter('\n', SourceArbre.PROJET.name)
+                        .takeIf { it.isNotEmpty() && it != chemin }
+                        ?.let { nom -> SourceArbre.entries.firstOrNull { it.name == nom } }
+                        ?: SourceArbre.PROJET
+                when (val lecture = systemePour(sourceOnglet).readText(uri)) {
                     is AppResult.Success -> {
-                        val nom = chemin.substringAfterLast('/')
+                        val nom =
+                            chemin.substringAfterLast('/').ifBlank {
+                                arbrePour(sourceOnglet).statuts[uri]?.name ?: uri.substringAfterLast('/')
+                            }
                         val session = SessionSuivie(EditorSession(EditorDocument.of(lecture.value)))
                         FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
                         session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
@@ -2098,6 +2174,7 @@ class EditorViewModel
                                             cheminRelatif = chemin,
                                             nom = nom,
                                             langage = FichiersOuverture.langage(nom),
+                                            source = sourceOnglet,
                                         ),
                             )
                         }

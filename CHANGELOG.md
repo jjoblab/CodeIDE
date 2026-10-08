@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.61.0] – 2026-10-09
+
+### Corrigé
+
+- **`feature:editor`** : bug A — impossible d'ouvrir un fichier en mode
+  explorateur privé (`SourceArbre.PRIVE`). Le tiroir affichait « Ce
+  fichier n'a pas pu être lu » (`EffetEditor.ErreurOuverture`) car
+  `EditorViewModel.ouvrir` lisait avec `fichiers.readText(uri)` (système
+  du projet SAF) au lieu de `systeme.readText(uri)` (qui bascule sur
+  `fichiersPrives` en mode privé). Même défaut à la sauvegarde
+  (`enregistrer`), au rechargement (`restaurer`) et au calcul du chemin
+  relatif (`cheminRelatifDe` utilisait `arbreProjet` au lieu de `arbre`).
+
+  **Correction** : la source (Projet ou Privé) est désormais
+  **mémorisée dans l'onglet** (`EditorTabState.source`) à l'ouverture, et
+  les opérations ultérieures (sauvegarde, rechargement, chemin relatif)
+  choisissent le système de fichiers et l'arbre **par onglet**, pas
+  selon l'arbre affiché à l'instant T. Un onglet privé continue de se
+  sauvegarder dans le privé même si l'utilisateur rebascule sur
+  « Projet ».
+
+  **Persistance** : le format sérialisé passe de `"uri\nchemin"` à
+  `"uri\nchemin\nsource"`. Le rechargement tolère l'ancien format
+  (migration : `PROJET` par défaut). Les URIs des deux sources utilisant
+  des schémas distincts (`content://` vs `prive:///`), la clé de session
+  reste l'URI — pas de collision possible.
+
+  **Popover** : l'action « Ouvrir » du popover maison (§ 10.4) est
+  désormais activée aussi pour les fichiers privés (elle était
+  désactivée par `activee = !noeud.prive`), pour cohérence avec le tap
+  simple.
+
+  **Tests** : 5 nouveaux tests dans `ExplorateurPriveEditorViewModelTest`
+  (classe dédiée pour rester sous le seuil detekt `LargeClass`) :
+  ouverture privée réussie, sauvegarde privée, indépendance des onglets
+  après bascule, fichier binaire privé (→ « Ouvrir avec »), échec de
+  lecture privé réel (→ `ErreurOuverture`).
+
 ## [0.60.1] – 2026-10-09
 
 ### Corrigé

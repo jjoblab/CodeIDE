@@ -269,6 +269,13 @@ enum class OngletPanneau {
  * @property isDirty contenu modifié non enregistré : le point de
  * modification remplace la fermeture tant qu'il est sale (section 5.4).
  * @property sauvegardeEnCours une écriture est en vol pour cet onglet.
+ * @property source source de l'onglet (Projet ou Privé) — **mémorisée à
+ * l'ouverture** puis conservée par l'onglet, indépendamment de l'arbre
+ * ensuite affiché dans le tiroir (bug A : un fichier privé ouvert
+ * continue de se sauvegarder et recharger dans le stockage privé même si
+ * l'utilisateur rebascule sur « Projet »). Les URIs des deux sources
+ * utilisent des schémas distincts (`content://` vs `prive:///`), la clé
+ * de session reste donc l'URI.
  */
 data class EditorTabState(
     val uri: String,
@@ -280,6 +287,10 @@ data class EditorTabState(
     /** v0.41.1 : `true` si ce fichier contient `fun main(` — active le
      *  bouton Run dans la toolbar. */
     val aFunMain: Boolean = false,
+    /** Source du fichier (Projet ou Privé) — défaut `PROJET` pour
+     *  compatibilité avec les onglets persisted sans source (migration
+     *  au rechargement, bug A). */
+    val source: SourceArbre = SourceArbre.PROJET,
 )
 
 /**
