@@ -2,5 +2,5 @@
 <!-- Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license. -->
 <!-- Converti en VectorDrawable depuis ic_fichier_toml.svg (source : dépôts JetBrains/intellij-community et JetBrains/android, licence Apache 2.0). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="16dp" android:height="16dp" android:viewportWidth="16" android:viewportHeight="16">
-    <path android:pathData="M5.21826 4.5H10.7783V5.645H8.61826V11.5H7.38826V5.645H5.21826V4.5Z" android:fillColor="#3574F0" />
+    <path android:pathData="M5.21826 4.5H10.7783V5.645H8.61826V11.5H7.38826V5.645H5.21826V4.5Z" android:fillColor="#548AF7" />
 </vector>

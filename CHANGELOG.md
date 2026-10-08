@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.63.0] – 2026-10-09
+
+### Ajouté
+
+- **`core:ui`** : C0 — pack d'icônes officielles d'Android Studio /
+  IntelliJ Platform New UI pour l'explorateur. Les drawables maison sont
+  remplacés par des **VectorDrawable convertis depuis les SVG** des
+  dépôts `JetBrains/intellij-community` (chemin `platform/icons/src/expui/…`)
+  et `JetBrains/android` (chemin `artwork/.../filetree`), licences
+  Apache 2.0 (mention ajoutée dans `docs/THIRD_PARTY_NOTICES.md`).
+  Variantes claire (`drawable/`) et sombre (`drawable-night/`) pour
+  chaque type — la convention IntelliJ `X.svg` / `X_dark.svg` est
+  respectée.
+
+  **Nouvelles icônes** (13 VectorDrawable, 26 fichiers avec variantes
+  nuit) :
+  - `ic_fichier_kotlin` (`kotlin/kotlin`), `ic_fichier_gradle_kts`
+    (`kotlin/kotlinGradleScript`), `ic_fichier_gradle`
+    (`fileTypes/gradle`), `ic_fichier_properties` (`fileTypes/properties`),
+    `ic_fichier_toml` (`fileTypes/toml`), `ic_fichier_java`
+    (`fileTypes/java`), `ic_fichier_xml` (`fileTypes/xml`),
+    `ic_fichier_manifest` (`fileTypes/manifest`), `ic_fichier_markdown`
+    (`fileTypes/markdown`), `ic_fichier_json` (`fileTypes/json`),
+    `ic_fichier_config` (`fileTypes/config` — repli ProGuard, aucune
+    icône Shrinker dédiée trouvée dans IntelliJ), `ic_dossier`
+    (`nodes/folder`), `ic_gradle` (`gradle/gradle` — pour C1).
+
+  **`IconesFichiers`** : la résolution reconnaît désormais les noms
+  spécifiques d'Android Studio **avant** l'extension générique —
+  `build.gradle.kts` → `ic_fichier_gradle_kts` (et non `ic_fichier_kotlin`
+  du `kts` brut), `AndroidManifest.xml` → `ic_fichier_manifest` (et non
+  `ic_fichier_xml`), `proguard-rules.pro` / `proguard.pro` →
+  `ic_fichier_config`.
+
+  **Tests** : 4 nouveaux tests dans `IconesFichiersTest` (gradle.kts vs
+  gradle vs kts brut, AndroidManifest.xml vs *.xml, ProGuard/*.pro,
+  extensions de base). `docs/EXPLORATEUR_V2.md` § 8 mis à jour avec la
+  nouvelle table de correspondance.
+
 ## [0.62.0] – 2026-10-09
 
 ### Corrigé
