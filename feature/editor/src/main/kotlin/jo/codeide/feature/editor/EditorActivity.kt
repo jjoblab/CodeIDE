@@ -1510,6 +1510,7 @@ class EditorActivity :
     }
 
     /** Application des effets ponctuels. */
+    @Suppress("LongMethod") // when exhaustif sur EffetEditor — une branche par effet, pas de factorisation naturelle.
     private fun appliquer(effet: EffetEditor) {
         when (effet) {
             is EffetEditor.OuvrirAvec -> {
@@ -1583,6 +1584,10 @@ class EditorActivity :
                 Snackbar
                     .make(liaison.racineEditeur, R.string.editor_action_fichier_echouee, Snackbar.LENGTH_LONG)
                     .show()
+            }
+
+            is EffetEditor.DefilementVersSource -> {
+                Unit
             }
         }
     }

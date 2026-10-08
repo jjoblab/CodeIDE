@@ -146,6 +146,19 @@ class ExplorateurFragment : Fragment() {
         brancherBascule()
         brancherPressePapiers()
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
+        // C2c : Scroll from Source — défile vers l'URI émise par le
+        // ViewModel après dépliage des parents.
+        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
+            if (effet is EffetEditor.DefilementVersSource) {
+                val position =
+                    adaptateur.currentList.indexOfFirst {
+                        it is ExplorateurAdapter.Element.Noeud && it.noeud.uri == effet.uri
+                    }
+                if (position >= 0) {
+                    liaisonAmorce?.listeExplorateur?.smoothScrollToPosition(position)
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -222,6 +235,11 @@ class ExplorateurFragment : Fragment() {
         liaison.boutonReplierTout.setOnLongClickListener {
             viewModel.onAction(ActionEditor.DeplierTout)
             true
+        }
+        // C2c : Scroll from Source — déplie les parents du fichier de
+        // l'onglet actif et défile vers lui.
+        liaison.boutonDefilerVersSource.setOnClickListener {
+            viewModel.onAction(ActionEditor.DefilerVersSource)
         }
 
         // Actualiser : re-vérifie l'accès, l'icône tourne 0,65 s (§ 4).
