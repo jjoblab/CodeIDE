@@ -507,6 +507,13 @@ sealed interface ActionEditor {
     data object DeplierTout : ActionEditor
 
     /**
+     * C2c : « Scroll from Source » — déplie les parents du fichier de
+     * l'onglet actif, le sélectionne et défile l'arbre vers lui (comme
+     * Android Studio « Scroll from Source » / VS Code « Reveal in Explorer »).
+     */
+    data object DefilerVersSource : ActionEditor
+
+    /**
      * Annule la dernière suppression (action « Annuler » du snackbar,
      * § 11) : restaure l'élément à sa place et rouvre ses onglets.
      */
@@ -617,6 +624,15 @@ sealed interface EffetEditor {
      * drawer doit se fermer »).
      */
     data object FichierOuvert : EffetEditor
+
+    /**
+     * C2c : l'arbre doit défiler vers l'[uri] du fichier de l'onglet
+     * actif (les parents ont été dépliés par le ViewModel, le fragment
+     * n'a plus qu'à scroll).
+     */
+    data class DefilementVersSource(
+        val uri: String,
+    ) : EffetEditor
 
     /** La lecture d'un fichier a échoué. */
     data object ErreurOuverture : EffetEditor

@@ -97,6 +97,19 @@
                 android:src="@drawable/ic_nouveau_fichier"
                 app:tint="?attr/colorOnSurfaceVariant" />
 
+            <!-- C2c : Scroll from Source — déplie les parents du fichier
+                 de l'onglet actif et défile vers lui. -->
+            <ImageView
+                android:id="@+id/bouton_defiler_vers_source"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="3dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_explorateur_defiler_vers_source_cd"
+                android:padding="6dp"
+                android:src="@drawable/ic_maison"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
             <ImageView
                 android:id="@+id/bouton_replier_tout"
                 android:layout_width="32dp"

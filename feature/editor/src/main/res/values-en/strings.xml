@@ -272,6 +272,7 @@
     <!-- Explorer fragment header (§ 4). -->
     <string name="editor_explorateur_titre">File explorer</string>
     <string name="editor_explorateur_nouveau_cd">New (in the selected folder)</string>
+    <string name="editor_explorateur_defiler_vers_source_cd">Scroll to the active tab\'s file</string>
     <string name="editor_explorateur_replier_tout_cd">Collapse all. Long press to expand all</string>
     <string name="editor_explorateur_legende_cd">Tree legend</string>
     <string name="editor_ariane_racine_cd">Tree root</string>
