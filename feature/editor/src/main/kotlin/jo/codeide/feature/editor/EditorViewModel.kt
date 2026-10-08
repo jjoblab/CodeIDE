@@ -777,6 +777,7 @@ class EditorViewModel
                 ActionEditor.ReplierTout -> replierTout()
                 ActionEditor.DeplierTout -> deplierTout()
                 ActionEditor.DefilerVersSource -> defilerVersSource()
+                ActionEditor.BasculerAffichageCompact -> basculerAffichageCompact()
                 ActionEditor.AnnulerSuppression -> annulerSuppression()
                 ActionEditor.MasquerNotification -> masquerNotification()
                 else -> onActionPanneau(action)
@@ -1512,6 +1513,10 @@ class EditorViewModel
 
                 else -> {
                     arbre.dossiersDeplies += uri
+                    // C2d : si l'URI est un dossier compacté (pas un
+                    // enfant direct d'un dossier visible), déplie aussi
+                    // ses ancêtres pour que la récursion descende.
+                    deplierAncetres(arbre, uri)
                     if (uri !in arbre.enfantsEnCache) {
                         chargerEnfants(uri)
                     } else {
@@ -1535,6 +1540,22 @@ class EditorViewModel
             if (etatInterne.value.verificationAcces) return
             reinitialiser()
             verifierEtChargerRacine()
+        }
+
+        /**
+         * C2d : déplie tous les ancêtres de [uri] dans [arbre] (remonte
+         * via `parents` jusqu'à la racine). Synchronise — les parents
+         * doivent déjà être en cache (peuplé par un dépliage précédent).
+         */
+        private fun deplierAncetres(
+            arbre: EtatArbre,
+            uri: String,
+        ) {
+            var courant: String? = arbre.parents[uri]
+            while (courant != null) {
+                arbre.dossiersDeplies += courant
+                courant = arbre.parents[courant]
+            }
         }
 
         /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
@@ -1594,6 +1615,17 @@ class EditorViewModel
             for (enfant in enfants.filter { it.isDirectory }) {
                 deplierToutRecursif(arbre, enfant.uri)
             }
+        }
+
+        /**
+         * C2d : bascule le compactage des dossiers à enfant unique (ex.
+         * `jo/codeide` → `jo.codeide`), comme « Compact Middle Packages »
+         * d'Android Studio. La reconstruction des nœuds applique le nouvel
+         * état.
+         */
+        private fun basculerAffichageCompact() {
+            etatInterne.update { it.copy(affichageCompact = !it.affichageCompact) }
+            reconstruireNoeuds()
         }
 
         /**
@@ -1849,36 +1881,63 @@ class EditorViewModel
             val enfants = arbre.enfantsEnCache[uriDossier] ?: return
             val etat = etatInterne.value
             val presse = pressePapiers
+            val compact = etat.affichageCompact
             for ((indice, enfant) in enfants.withIndex()) {
                 val deplie = enfant.isDirectory && enfant.uri in arbre.dossiersDeplies
+                // C2d : compactage — si l'enfant est un dossier à enfant
+                // unique (lui-même dossier) ET non déplié, on fusionne la
+                // chaîne. Mais si l'URI compactée (dossier le plus profond)
+                // est elle-même dépliée, on ne compacte pas : l'utilisateur
+                // a déplié le compacté, il veut voir les vrais enfants.
+                val compactage = compact && enfant.isDirectory && !deplie
+                val uriCompactee: String?
+                val (uriEffective, nomAffiche, uriPourRecursion) =
+                    if (compactage) {
+                        val (uriC, nomC, _) = compacterChaine(arbre, enfant)
+                        if (uriC in arbre.dossiersDeplies) {
+                            // Le compacté est déplié → on affiche le dossier
+                            // original (non compacté), déplié.
+                            uriCompactee = uriC
+                            Triple(enfant.uri, enfant.name, enfant.uri)
+                        } else {
+                            uriCompactee = null
+                            Triple(uriC, nomC, uriC)
+                        }
+                    } else {
+                        uriCompactee = null
+                        Triple(enfant.uri, enfant.name, enfant.uri)
+                    }
+                val estCompact = nomAffiche != enfant.name
+                val deplieEffectif = deplie || uriCompactee != null
                 visibles +=
                     NoeudExplorateur(
-                        uri = enfant.uri,
+                        uri = uriEffective,
                         nom = enfant.name,
                         estDossier = enfant.isDirectory,
                         profondeur = profondeur,
-                        deplie = deplie,
+                        deplie = deplieEffectif,
                         chargementEnfants = enfant.uri in arbre.enumerationsEnCours,
                         erreurChargement = enfant.uri in arbre.dossiersEnErreur,
                         prive = arbre === arbrePrive,
-                        selectionne = etat.uriSelection == enfant.uri,
-                        coupe = presse?.mode == ModePressePapiers.COUPER && presse.uri == enfant.uri,
+                        selectionne = etat.uriSelection == uriEffective,
+                        coupe = presse?.mode == ModePressePapiers.COUPER && presse.uri == uriEffective,
                         ongletActif =
                             arbre === arbreProjet &&
-                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri == enfant.uri,
+                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri == uriEffective,
                         ongletOuvert =
                             arbre === arbreProjet &&
-                                enfant.uri in etat.onglets.map { it.uri } &&
-                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri != enfant.uri,
+                                uriEffective in etat.onglets.map { it.uri } &&
+                                etat.onglets.getOrNull(etat.indexOngletActif)?.uri != uriEffective,
                         dernierEnfant = indice == enfants.lastIndex,
                         masqueAncetresDerniers = masqueAncetres,
                         nbEnfants = if (enfant.isDirectory) arbre.enfantsEnCache[enfant.uri]?.size ?: -1 else -1,
                         flasher = enfant.uri in etat.urisFlachees,
+                        nomCompact = if (estCompact) nomAffiche else null,
                     )
-                if (deplie) {
+                if (deplieEffectif) {
                     ajouterEnfantsVisibles(
                         arbre,
-                        enfant.uri,
+                        uriPourRecursion,
                         profondeur + 1,
                         masqueAncetres or (1 shl (profondeur - 1)),
                         visibles,
@@ -1890,6 +1949,54 @@ class EditorViewModel
         /** URI de la racine de l'arbre donné. */
         private fun uriRacineDe(arbre: EtatArbre): String? =
             if (arbre === arbrePrive) URI_RACINE_PRIVEE else uriDocumentSuivie
+
+        /**
+         * C2d : compacte une chaîne de dossiers à enfant unique à partir
+         * de [dossier]. Retourne un triple :
+         * - URI effective = URI du dossier le plus profond de la chaîne.
+         * - Nom affiché = `parent.enfant.enfant…` (séparateur point).
+         * - URI pour récursion = URI du dossier le plus profond (pour
+         *   dépliage ultérieur).
+         *
+         * S'arrête dès qu'un dossier a 0 ou 2+ enfants, ou qu'un enfant
+         * est un fichier. Le dépliage d'un nœud compacté déplie le dossier
+         * le plus profond (l'utilisateur voit alors les vrais enfants).
+         */
+        private fun compacterChaine(
+            arbre: EtatArbre,
+            dossier: FileStat,
+        ): Triple<String, String, String> {
+            val noms = mutableListOf(dossier.name)
+            var uriCourant = dossier.uri
+            var nomCourant = dossier.name
+            // La boucle s'arrête quand le dossier courant n'a pas exactement
+            // un enfant dossier non déplié — on factorise les conditions pour
+            // éviter trop de break (detekt LoopWithTooManyJumpStatements).
+            var suivant = enfantUniqueCompactable(arbre, uriCourant)
+            while (suivant != null) {
+                noms.add(suivant.name)
+                uriCourant = suivant.uri
+                nomCourant = nomCourant + "." + suivant.name
+                suivant = enfantUniqueCompactable(arbre, uriCourant)
+            }
+            return Triple(uriCourant, nomCourant, uriCourant)
+        }
+
+        /**
+         * Retourne l'enfant unique d'un dossier s'il est compactable
+         * (unique, dossier, non déplié), `null` sinon.
+         */
+        private fun enfantUniqueCompactable(
+            arbre: EtatArbre,
+            uriDossier: String,
+        ): FileStat? {
+            val enfants = arbre.enfantsEnCache[uriDossier] ?: return null
+            if (enfants.size != 1) return null
+            val unique = enfants[0]
+            if (!unique.isDirectory) return null
+            if (unique.uri in arbre.dossiersDeplies) return null
+            return unique
+        }
 
         /** Tri de l'explorateur : dossiers d'abord, puis fichiers, puis nom. */
         private fun List<FileStat>.tries(): List<FileStat> =
