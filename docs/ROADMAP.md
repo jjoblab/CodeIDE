@@ -206,6 +206,7 @@ Fichiers livrés :
 - Remplacement multi-fichiers
 
 ### 6.2 Git intégré
+- **G0 (v0.70.0)** : investigation moteur, ADR 0092 (git CLI via NativeProcessLauncher), port `MoteurGit` dans `core:domain`, spec `docs/GIT.md`, maquette `docs/preview/git.html`
 - Statut des fichiers (modifié/ajouté/supprimé)
 - Diff visuel
 - Commit/Push depuis l'app
