@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.64.0] – 2026-10-09
+
+### Ajouté
+
+- **`feature:editor`** : C1 — section « Gradle Scripts » dans l'explorateur,
+  comme Android Studio. Un nœud virtuel de groupe apparaît après les
+  enfants de la racine (mode Projet uniquement, jamais en mode Privé),
+  pliable/dépliable. Déplié, il liste les fichiers de build du projet
+  avec un qualificatif en gris entre parenthèses, dans l'ordre
+  d'Android Studio :
+  1. `build.gradle[.kts]` → `(Project: <nom>)`
+  2. `settings.gradle[.kts]` → `(Project Settings)`
+  3. `gradle.properties` → `(Project Properties)`
+  4. `gradle/libs.versions.toml` → `(Version Catalog "libs")`
+  5. `gradle/wrapper/gradle-wrapper.properties` → `(Gradle Version)`
+  6. `local.properties` → `(SDK Location)`
+  7. `proguard-rules.pro` → `(ProGuard Rules for ":app")`
+
+  Seuls les fichiers existants sont affichés. Toucher une ligne ouvre
+  le vrai fichier en onglet (même onglet que depuis l'arbre classique,
+  pas de doublon). Le point d'état des onglets s'applique. L'icône du
+  groupe est `ic_gradle` (IntelliJ New UI). Le pli est mémorisé avec le
+  reste de l'arbre.
+
+  **Modèles** : `NoeudExplorateur` gagne deux champs
+  (`estGroupeGradle`, `qualificatif`). `EditorViewModel.ScriptGradle`
+  est un modèle interne (uri, nom, qualificatif). La résolution
+  (`resoudreScriptsGradle`) est une fonction `suspend` testable.
+
+  **Tests** : 5 nouveaux dans `GradleScriptsEditorViewModelTest`
+  (groupe présent en mode projet, absent en mode privé, dépliage montre
+  les scripts avec qualificatif, tap ouvre le fichier, seuls les
+  fichiers existants sont montrés). 4 tests existants mis à jour pour
+  inclure « Gradle Scripts » dans les listes de nœuds attendues.
+
 ## [0.63.0] – 2026-10-09
 
 ### Ajouté

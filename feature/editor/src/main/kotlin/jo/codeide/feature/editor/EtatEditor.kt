@@ -68,6 +68,12 @@ data class NoeudExplorateur(
     val masqueAncetresDerniers: Int = 0,
     val nbEnfants: Int = -1,
     val flasher: Boolean = false,
+    /** C1 : `true` pour le nœud virtuel « Gradle Scripts » (groupe de
+     *  raccourcis vers les fichiers de build, comme Android Studio). */
+    val estGroupeGradle: Boolean = false,
+    /** C1 : qualificatif affiché en gris après le nom (ex. « (Project: App) »
+     *  pour `build.gradle.kts`). `null` pour les nœuds normaux. */
+    val qualificatif: String? = null,
 )
 
 /**
