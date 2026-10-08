@@ -217,6 +217,12 @@ class ExplorateurFragment : Fragment() {
         liaison.boutonReplierTout.setOnClickListener {
             viewModel.onAction(ActionEditor.ReplierTout)
         }
+        // C2b : long-clic sur « Replier tout » → « Tout déplier » (garde-fou
+        // de taille dans le ViewModel, snackbar si refusé).
+        liaison.boutonReplierTout.setOnLongClickListener {
+            viewModel.onAction(ActionEditor.DeplierTout)
+            true
+        }
 
         // Actualiser : re-vérifie l'accès, l'icône tourne 0,65 s (§ 4).
         liaison.boutonActualiserEntete.setOnClickListener { bouton ->
@@ -658,6 +664,14 @@ class ExplorateurFragment : Fragment() {
                     ) {
                         montrerPopoverDeplacer(noeud, x, y)
                     }
+                    // C2a : Copier le chemin (relatif au projet, comme Android Studio).
+                    action(
+                        View.generateViewId(),
+                        getString(R.string.editor_menu_copier_chemin),
+                        jo.codeide.core.ui.R.drawable.ic_presse_papiers,
+                    ) {
+                        viewModel.onAction(ActionEditor.CopierCheminNoeud(noeud.uri))
+                    }
                     action(
                         View.generateViewId(),
                         getString(R.string.editor_menu_renommer),
@@ -709,6 +723,14 @@ class ExplorateurFragment : Fragment() {
                     jo.codeide.core.ui.R.drawable.ic_deplacer_vers,
                 ) {
                     montrerPopoverDeplacer(noeud, x, y)
+                }
+                // C2a : Copier le chemin (relatif au projet, comme Android Studio).
+                action(
+                    View.generateViewId(),
+                    getString(R.string.editor_menu_copier_chemin),
+                    jo.codeide.core.ui.R.drawable.ic_presse_papiers,
+                ) {
+                    viewModel.onAction(ActionEditor.CopierCheminNoeud(noeud.uri))
                 }
                 action(
                     View.generateViewId(),

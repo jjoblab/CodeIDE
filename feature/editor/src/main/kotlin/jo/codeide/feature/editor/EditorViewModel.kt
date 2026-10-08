@@ -765,6 +765,7 @@ class EditorViewModel
                 is ActionEditor.BasculerSource -> basculerSource(action.source)
                 is ActionEditor.SelectionnerNoeud -> selectionner(action.uri)
                 is ActionEditor.CopierNoeud -> copierNoeud(action.uri)
+                is ActionEditor.CopierCheminNoeud -> copierCheminNoeud(action.uri)
                 is ActionEditor.CouperNoeud -> couperNoeud(action.uri)
                 is ActionEditor.CollerDans -> collerDans(action.uriDossier)
                 is ActionEditor.DeplacerVers -> deplacerVers(action.uri, action.cheminDestination)
@@ -774,6 +775,7 @@ class EditorViewModel
                 ActionEditor.AnnulerEdition -> annulerEdition()
                 is ActionEditor.ValiderEdition -> validerEdition(action.nom)
                 ActionEditor.ReplierTout -> replierTout()
+                ActionEditor.DeplierTout -> deplierTout()
                 ActionEditor.AnnulerSuppression -> annulerSuppression()
                 ActionEditor.MasquerNotification -> masquerNotification()
                 else -> onActionPanneau(action)
@@ -806,6 +808,20 @@ class EditorViewModel
                 etatInterne.value.onglets
                     .firstOrNull { it.uri == uri }
                     ?.cheminRelatif ?: return
+            canalEffets.trySend(EffetEditor.CopierChemin(chemin))
+        }
+
+        /**
+         * C2a : copie le chemin relatif d'un nœud de l'arbre dans le
+         * presse-papiers système. Utilise [cheminRelatifDe] (qui tient
+         * compte de la source Projet/Privé, bug A). Le chemin absolu
+         * n'est pas accessible (SAF, ADR 0003) — seul le relatif est copié,
+         * comme le « Copy Path » d'Android Studio en mode relatif.
+         */
+        fun copierCheminNoeud(uri: String) {
+            val onglet = etatInterne.value.onglets.firstOrNull { it.uri == uri }
+            val sourceOnglet = onglet?.source ?: source
+            val chemin = cheminRelatifDe(uri, sourceOnglet)
             canalEffets.trySend(EffetEditor.CopierChemin(chemin))
         }
 
@@ -1524,6 +1540,59 @@ class EditorViewModel
         private fun replierTout() {
             arbre.dossiersDeplies.clear()
             reconstruireNoeuds()
+        }
+
+        /**
+         * C2b : déplie tous les dossiers de l'arbre courant. Garde-fou :
+         * si le cache contient plus de [SEUIL_DEPLIER_TOUT] dossiers
+         * connus, l'action est refusée (snackbar) pour éviter un OOM sur
+         * les gros projets — l'utilisateur doit déplier manuellement les
+         * branches qui l'intéressent.
+         *
+         * L'énumération est récursive sur le cache : chaque dossier
+         * déplié voit ses enfants énumérés (paresseux), puis les
+         * sous-dossiers sont ajoutés à la liste des dépliés. Le
+         * chargement est asynchrone (les `chargerEnfants` sont
+         * suspendus).
+         */
+        private fun deplierTout() {
+            val arbre = arbre
+            val dossiersConnus =
+                arbre.enfantsEnCache.values
+                    .flatten()
+                    .count { it.isDirectory }
+            if (dossiersConnus > SEUIL_DEPLIER_TOUT) {
+                etatInterne.update {
+                    it.copy(
+                        notification =
+                            NotificationArbre(
+                                type = TypeNotificationArbre.NOM_INVALIDE,
+                                nom = "Trop de dossiers ($dossiersConnus) — dépliage manuel requis",
+                            ),
+                    )
+                }
+                return
+            }
+            viewModelScope.launch {
+                val racine = uriRacineDe(arbre) ?: return@launch
+                deplierToutRecursif(arbre, racine)
+                reconstruireNoeuds()
+            }
+        }
+
+        /** Parcours récursif : déplie [uriDossier] et tous ses sous-dossiers. */
+        private suspend fun deplierToutRecursif(
+            arbre: EtatArbre,
+            uriDossier: String,
+        ) {
+            arbre.dossiersDeplies += uriDossier
+            if (uriDossier !in arbre.enfantsEnCache) {
+                chargerEnfants(uriDossier)
+            }
+            val enfants = arbre.enfantsEnCache[uriDossier] ?: return
+            for (enfant in enfants.filter { it.isDirectory }) {
+                deplierToutRecursif(arbre, enfant.uri)
+            }
         }
 
         /**
@@ -3075,6 +3144,11 @@ class EditorViewModel
              *  raccourcis vers les fichiers de build, comme Android Studio.
              *  Schéma maison, ne traverse jamais le port `FileSystem`. */
             const val URI_GROUPE_GRADLE = "gradle://scripts"
+
+            /** C2b : seuil du garde-fou « Tout déplier » — au-delà de
+             *  500 dossiers connus, l'action est refusée (OOM potentiel
+             *  sur les gros projets). */
+            const val SEUIL_DEPLIER_TOUT = 500
 
             /** Chemin affiché de la racine du stockage privé (donnée système,
              * applicationId figé par le prompt maître — § 4/§ 9). Exemption

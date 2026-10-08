@@ -1,5 +1,32 @@
 # Journal des modifications
 
+## [0.65.0] – 2026-10-09
+
+### Ajouté
+
+- **`feature:editor`** : C2a + C2b — deux fonctions de l'explorateur
+  reprises d'Android Studio.
+  - **C2a — Copier le chemin** : nouvelle action `CopierCheminNoeud`
+    accessible depuis le popover maison (§ 10) des dossiers et des
+    fichiers. Copie le chemin relatif au projet dans le presse-papiers
+    système via `EffetEditor.CopierChemin` (déjà existant pour les
+    onglets). Utilise `cheminRelatifDe` (qui tient compte de la source
+    Projet/Privé, bug A). Le chemin absolu n'est pas accessible (SAF,
+    ADR 0003) — seul le relatif est copié, comme le « Copy Path »
+    d'Android Studio en mode relatif.
+  - **C2b — Tout déplier** : nouvelle action `DeplierTout`, accessible
+    par **long-clic** sur le bouton « Replier tout » de l'entête (le
+    `contentDescription` mentionne le geste). Garde-fou : si l'arbre
+    contient plus de 500 dossiers connus, l'action est refusée avec un
+    snackbar (OOM potentiel sur les gros projets). L'énumération est
+    récursive et asynchrone (chaque dossier déplié voit ses enfants
+    chargés paresseusement). `replierTout` existant inchangé.
+
+  **Modèles** : `ActionEditor.CopierCheminNoeud` et
+  `ActionEditor.DeplierTout` ajoutés. `EditorViewModel.copierCheminNoeud`
+  et `deplierTout` + `deplierToutRecursif` (suspend). Constante
+  `SEUIL_DEPLIER_TOUT = 500`.
+
 ## [0.64.0] – 2026-10-09
 
 ### Ajouté
