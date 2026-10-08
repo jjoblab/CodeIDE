@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
-import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -45,12 +44,14 @@ class InstallationFragment : Fragment() {
     /** La carte licence était-elle visible à la dernière émission ? */
     private var licenceVisible = false
 
-    /** Un défilement vers le bas est déjà planifié (déduplication, ADR 0078). */
-    private var defilementPlanifie = false
-
-    /** Tolérance « l'utilisateur est au bas » (une ligne ≈ 16 dp, en px). */
-    private val toleranceBasPx: Int by lazy {
-        (TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt()
+    /**
+     * Aide à l'auto-défilement intelligent du journal (ADR 0046, parité
+     * `PanneauConsoleFragment` ADR 0078). Tolérance « au bas » d'une
+     * ligne monospace `bodySmall` (16 dp) convertie en pixels selon la
+     * densité de l'écran.
+     */
+    private val suiveurJournal: SuiveurJournal by lazy {
+        SuiveurJournal((TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt())
     }
 
     override fun onCreateView(
@@ -131,9 +132,9 @@ class InstallationFragment : Fragment() {
                         // l'historique, on ne le ramène pas en bas —
                         // la nouvelle ligne attendra sagement en
                         // attendant qu'il redescende.
-                        val suivreBas = estAuBas(liaison.zoneJournal)
+                        val suivreBas = suiveurJournal.estAuBas(liaison.zoneJournal)
                         liaison.journal.text = lignes.takeLast(NB_LIGNES_JOURNAL).joinToString("\n")
-                        if (suivreBas) suivreLeBas(liaison.zoneJournal)
+                        if (suivreBas) suiveurJournal.suivreLeBas(liaison.zoneJournal)
                     }
                 }
                 launch {
@@ -302,36 +303,13 @@ class InstallationFragment : Fragment() {
     }
 
     /**
-     * L'utilisateur est-il au bas du journal ? Sur tablette le panneau
-     * droit est toujours visible (`match_parent`) ; sur téléphone la zone
-     * est bornée à 160 dp. Si la zone est masquée (GONE, journal replié
-     * sur téléphone), on renvoie `true` pour que le défilement ait lieu
-     * au prochain dépliage (la nouvelle ligne reste la dernière visible).
+     * Réinitialise l'aide au défilement (déduplication des `post`) avant
+     * que la vue ne soit détruite — évite qu'un `post` en vol ne rappelle
+     * la vue morte au prochain dépliage.
      */
-    private fun estAuBas(defilement: NestedScrollView): Boolean {
-        if (!defilement.isVisible) return true
-        val contenu = defilement.getChildAt(0) ?: return true
-        return defilement.scrollY >= contenu.height - defilement.height - toleranceBasPx
-    }
-
-    /**
-     * Défile vers le bas (dédupliqué : un `post` vivant au plus). Le
-     * `post` attend la passe de layout pour que le scroll tienne compte
-     * de la nouvelle hauteur du TextView — sans quoi `fullScroll`
-     * s'arrêterait une ligne trop tôt.
-     */
-    private fun suivreLeBas(defilement: NestedScrollView) {
-        if (defilementPlanifie) return
-        defilementPlanifie = true
-        defilement.post {
-            defilementPlanifie = false
-            defilement.fullScroll(View.FOCUS_DOWN)
-        }
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
-        defilementPlanifie = false
+        suiveurJournal.reinitialiser()
         liaisonPrivee = null
     }
 
