@@ -469,11 +469,12 @@ développement ». Maquettes de référence : `docs/preview/`
 
 ## Refonte installation — migration des installations existantes E6 (v0.60.0)
 
-Préambule : APK debug v0.60.0+ sur appareil aarch64. **Prérequis côté
-dépôt** : le manifeste v2 (`manifest.v2.json`) doit être publié sur
-`jjoblab/codeide-tools` (prompt 2, R5) — sans lui, la phase 4 (nouvelle
-comme adoption) échoue en `Reseau`/`ManifesteInvalide` avec un message
-explicite. Les scénarios E91-E93 partent d'un appareil ayant vécu
+Préambule : APK debug v0.60.1+ sur appareil aarch64. **Prérequis côté
+dépôt** : le manifeste v2 doit être servi par GitHub Pages sur
+`jjoblab/codeide-tools` (URL `https://jjoblab.github.io/codeide-tools/
+manifests/v2/latest.json`, ADR 0006 du dépôt `codeide-tools`) — sans lui,
+la phase 4 (nouvelle comme adoption) échoue en `Reseau`/`ManifesteInvalide`
+avec un message explicite. Les scénarios E91-E93 partent d'un appareil ayant vécu
 l'ancien parcours (≤ v0.54.0, bootstrap installé + `codeide-env` achevé
 ou commande `android-sdk` jouée) — c'est le scénario de migration de
 l'ADR 0091 § 1.
