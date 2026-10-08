@@ -328,7 +328,14 @@ class EditorActivity :
         if (gestionnaire.findFragmentById(R.id.conteneur_fragments_tiroir) == null) {
             val explorateur = ExplorateurFragment()
             val recherche = RechercheFragment()
-            val git = GitFragment()
+            // G2 : passe le project ID au GitFragment pour son SavedStateHandle.
+            val git =
+                GitFragment().apply {
+                    arguments =
+                        android.os.Bundle().apply {
+                            putString(ClesEditor.EXTRA_PROJECT_ID, intent.getStringExtra(ClesEditor.EXTRA_PROJECT_ID))
+                        }
+                }
             val terminal = fabriqueTerminalTiroir.creer()
             gestionnaire
                 .beginTransaction()

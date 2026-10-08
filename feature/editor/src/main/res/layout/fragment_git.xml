@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Section Git du tiroir (mission Git G2, ADR 0092) : entête avec
+     branche courante, champ de message de commit, liste des changements,
+     bouton Commit. Structure VS Code + vocabulaire Android Studio. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Entête : emblème vert + branche courante + actualiser. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_entete_explorateur"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_git"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            android:id="@+id/titre_git"
+            style="?attr/textAppearanceTitleSmall"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/git_titre" />
+
+        <TextView
+            android:id="@+id/branche_git"
+            style="?attr/textAppearanceLabelSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/fond_badge_racine"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/bouton_actualiser_git"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/git_actualiser_cd"
+            android:padding="6dp"
+            android:src="@drawable/ic_actualiser"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <!-- État chargement. -->
+    <ProgressBar
+        android:id="@+id/chargement_git"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="40dp"
+        android:visibility="gone" />
+
+    <!-- État "pas un dépôt". -->
+    <LinearLayout
+        android:id="@+id/zone_pas_depot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="40dp"
+        android:visibility="gone">
+
+        <TextView
+            style="?attr/textAppearanceBodyMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/git_pas_depot"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <Button
+            android:id="@+id/bouton_initialiser_git"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/git_initialiser" />
+    </LinearLayout>
+
+    <!-- Corps : message + changements + commit. -->
+    <ScrollView
+        android:id="@+id/corps_git"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Champ message de commit. -->
+            <EditText
+                android:id="@+id/message_commit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/fond_champ_inline"
+                android:hint="@string/git_message_hint"
+                android:inputType="textMultiLine"
+                android:maxLines="3"
+                android:padding="8dp"
+                android:textSize="12sp" />
+
+            <!-- Résumé des changements. -->
+            <TextView
+                android:id="@+id/resume_changements"
+                style="?attr/textAppearanceLabelSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
+            <!-- Liste des changements (texte simple pour la v1). -->
+            <TextView
+                android:id="@+id/liste_changements"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
+            <!-- Erreur. -->
+            <TextView
+                android:id="@+id/erreur_git"
+                style="?attr/textAppearanceBodySmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?attr/colorError"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bouton Commit. -->
+    <Button
+        android:id="@+id/bouton_committer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:text="@string/git_committer"
+        android:visibility="gone" />
+</LinearLayout>

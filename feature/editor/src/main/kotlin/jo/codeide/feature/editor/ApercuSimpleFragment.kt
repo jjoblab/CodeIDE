@@ -98,15 +98,3 @@ class RechercheFragment :
         fondEmbleme = R.drawable.fond_embleme_entete_orange,
         teinteEmbleme = jo.codeide.core.ui.R.color.codeide_explorateur_rouge,
     )
-
-/** Destination « Git » du tiroir (étape 31) : aperçu vert + « Commit ». */
-class GitFragment :
-    ApercuSimpleFragment(
-        titre = R.string.apercu_git_titre,
-        sousTitre = R.string.apercu_git_sous_titre,
-        description = R.string.apercu_git_description,
-        iconeEmbleme = jo.codeide.core.ui.R.drawable.ic_git,
-        fondEmbleme = R.drawable.fond_embleme_entete_vert,
-        teinteEmbleme = jo.codeide.core.ui.R.color.codeide_explorateur_vert,
-        libelleBouton = R.string.apercu_git_commit,
-    )
