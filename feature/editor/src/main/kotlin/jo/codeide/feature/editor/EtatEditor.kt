@@ -484,6 +484,28 @@ sealed interface ActionEditor {
     ) : ActionEditor
 
     /**
+     * C2f : type de modèle pour la création depuis un dossier (menu
+     * « Nouveau » étendu, comme Android Studio).
+     */
+    enum class TypeModeleCreation {
+        FICHIER,
+        DOSSIER,
+        CLASSE_KOTLIN,
+        INTERFACE_KOTLIN,
+        OBJET_KOTLIN,
+    }
+
+    /**
+     * C2f : débute une création depuis un dossier avec un modèle (classe
+     * Kotlin, interface, objet). La déclaration `package` est déduite du
+     * chemin (parcours inverse jusqu'à `src/main/java` ou `src/main/kotlin`).
+     */
+    data class DebuterCreationModele(
+        val uriParent: String,
+        val typeModele: TypeModeleCreation,
+    ) : ActionEditor
+
+    /**
      * Débute un renommage inline du nœud [uri] (étape 31, § 11) : la
      * ligne devient un éditeur pré-rempli et sélectionné.
      */
@@ -522,6 +544,12 @@ sealed interface ActionEditor {
      * d'Android Studio.
      */
     data object BasculerAffichageCompact : ActionEditor
+
+    /** C2e : bascule l'affichage des fichiers cachés (commençant par un point). */
+    data object BasculerFichiersCaches : ActionEditor
+
+    /** C2e : bascule le masquage des dossiers `build/` et `.gradle/`. */
+    data object BasculerDossiersBuild : ActionEditor
 
     /**
      * Annule la dernière suppression (action « Annuler » du snackbar,
@@ -805,6 +833,11 @@ data class EtatEditor(
     /** C2d : compactage des dossiers à enfant unique (ex. `jo/codeide`
      *  s'affiche en `jo.codeide`). Activé par défaut, comme Android Studio. */
     val affichageCompact: Boolean = true,
+    /** C2e : masquer les fichiers cachés (commençant par un point). */
+    val masquerFichiersCaches: Boolean = false,
+    /** C2e : masquer `build/` et `.gradle/` (dossiers de build). Activé
+     *  par défaut, comme Android Studio. */
+    val masquerDossiersBuild: Boolean = true,
     val cheminRacine: String = "",
     val nomRacine: String? = null,
     val cheminsDossiers: List<String> = emptyList(),
