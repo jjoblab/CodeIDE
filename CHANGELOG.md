@@ -1,5 +1,28 @@
 # Journal des modifications
 
+## [0.60.1] – 2026-10-09
+
+### Corrigé
+
+- **`feature:install`** : sur téléphone, le journal en direct de l'écran
+  d'installation (`InstallationFragment`, ADR 0090) ne tenait plus dans
+  l'écran — sa zone `zone_journal` était un `FrameLayout` à
+  `wrap_content`, et quand la sortie grossissait (jusqu'à 200 lignes,
+  ADR 0046) elle poussait les cartes du stepper, le consentement licence
+  et les actions contextuelles hors écran. La zone devient un
+  `androidx.core.widget.NestedScrollView` à hauteur bornée
+  (`@dimen/hauteur_journal_installation` = 160 dp, dimen historique
+  v0.31.2 réutilisée) : la sortie défile DANS sa propre zone sans
+  pousser le reste de l'écran. La variante tablette sw600dp passe de
+  `ScrollView` à `NestedScrollView` pour uniformiser le type ViewBinding
+  (`liaison.zoneJournal` est désormais `NestedScrollView` dans les deux
+  variantes — un seul `FragmentInstallationBinding` inchangé, même si
+  le type commun change de `FrameLayout` à `NestedScrollView`).
+  Auto-défilement vers le bas ajouté après chaque mise à jour du journal
+  (fonctionnalité attendue par ADR 0046, absente jusqu'ici) : la
+  dernière ligne reste visible pendant l'écoulement, sur téléphone
+  replié comme sur tablette structurelle.
+
 ## [0.60.0] – 2026-10-06
 
 Sixième et dernière étape (E6) de la **refonte complète du parcours

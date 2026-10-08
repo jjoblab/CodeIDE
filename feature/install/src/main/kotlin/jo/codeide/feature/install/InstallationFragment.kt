@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -116,6 +117,16 @@ class InstallationFragment : Fragment() {
                 launch {
                     viewModel.journal.collect { lignes ->
                         liaison.journal.text = lignes.takeLast(NB_LIGNES_JOURNAL).joinToString("\n")
+                        // Auto-défilement vers le bas : la dernière ligne
+                        // reste visible pendant l'écoulement (ADR 0046),
+                        // que le journal soit replié sur téléphone (zone
+                        // bornée) ou structurel sur tablette (plein panneau).
+                        // Le `post` attend la passe de layout pour que le
+                        // scroll tienne compte de la nouvelle hauteur du
+                        // TextView ; noop si la zone est masquée (GONE).
+                        liaison.zoneJournal.post {
+                            liaison.zoneJournal.fullScroll(NestedScrollView.FOCUS_DOWN)
+                        }
                     }
                 }
                 launch {
