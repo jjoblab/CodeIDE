@@ -22,6 +22,10 @@ import jo.codeide.core.ui.couleurBordureDiscrete
  *   **dernier enfant** (notation `└`) ;
  * - un coude horizontal 1 dp `guide` de 10 dp de large à 16 dp du haut,
  *   reliant le trait vertical au début de la ligne.
+ * - **B1** : un dossier déplié qui a des enfants dessine un trait
+ *   vertical supplémentaire au niveau `profondeur + 1`, de sous le
+ *   chevron (16 dp du haut) jusqu'au bas de la ligne — pour rejoindre
+ *   sans coupure le trait du premier enfant.
  *
  * Le masque [programmer] (bit *k−1* = l'ancêtre de profondeur *k* est un
  * dernier enfant) masque les traits des niveaux ancestraux finis — le
@@ -45,6 +49,9 @@ internal class VueGuides
         /** La ligne est-elle le dernier enfant de son parent ? */
         private var dernierEnfant: Boolean = false
 
+        /** B1 : la ligne est-elle un dossier déplié avec enfants ? */
+        private var deplieAvecEnfants: Boolean = false
+
         private val pinceau = Paint(Paint.ANTI_ALIAS_FLAG)
         private val couleurGuide = contexte.couleurBordureDiscrete()
         private val dp = contexte.resources.displayMetrics.density
@@ -52,21 +59,26 @@ internal class VueGuides
         /**
          * Programme les guides de la ligne : [nouvelleProfondeur] de la
          * ligne, [nouveauDernier] raccourcit son trait propre à 17 dp,
-         * [nouveauMasque] masque les traits ancestraux finis.
+         * [nouveauMasque] masque les traits ancestraux finis,
+         * [nouveauDeplieAvecEnfants] (B1) trace un trait au niveau
+         * `profondeur + 1` de sous le chevron au bas — pour relier le
+         * dossier déplié au trait de son premier enfant.
          */
         fun programmer(
             nouvelleProfondeur: Int,
             nouveauDernier: Boolean,
             nouveauMasque: Int,
+            nouveauDeplieAvecEnfants: Boolean = false,
         ) {
             profondeur = nouvelleProfondeur
             dernierEnfant = nouveauDernier
             masqueAncetresDerniers = nouveauMasque
+            deplieAvecEnfants = nouveauDeplieAvecEnfants
             invalidate()
         }
 
         override fun onDraw(canevas: Canvas) {
-            if (profondeur < 1) return
+            if (profondeur < 1 && !deplieAvecEnfants) return
             val dp = this.dp
             val trait = 1f * dp
             val haut = trait / 2f
@@ -74,15 +86,29 @@ internal class VueGuides
             pinceau.color = couleurGuide
 
             // Niveau propre (k = profondeur) : pleine hauteur, ou 17 dp
-            // pour un dernier enfant.
-            val finPropre = if (dernierEnfant) haut + HAUTEUR_DERNIER_DP * dp else bas
-            dessinerNiveau(canevas, profondeur, haut, minOf(finPropre, bas), trait)
+            // pour un dernier enfant. (Pas dessiné pour la racine p=0.)
+            if (profondeur >= 1) {
+                val finPropre = if (dernierEnfant) haut + HAUTEUR_DERNIER_DP * dp else bas
+                dessinerNiveau(canevas, profondeur, haut, minOf(finPropre, bas), trait)
+            }
 
             // Niveaux ancestraux : pleine hauteur sauf ancêtre dernier
             // enfant (le bit correspondant est posé).
             for (k in 1 until profondeur) {
                 if (masqueAncetresDerniers and (1 shl (k - 1)) != 0) continue
                 dessinerNiveau(canevas, k, haut, bas, trait)
+            }
+
+            // B1 : dossier déplié avec enfants — trait vertical au niveau
+            // profondeur + 1, de sous le chevron (16 dp) au bas, pour
+            // rejoindre le trait du premier enfant sans coupure.
+            if (deplieAvecEnfants) {
+                val x = (INDENTATION_PAR_NIVEAU * (profondeur + 1) - DECALAGE_LIGNE) * dp
+                val yDepart = HAUTEUR_COUDE * dp
+                if (bas > yDepart) {
+                    pinceau.strokeWidth = trait
+                    canevas.drawLine(x, yDepart, x, bas, pinceau)
+                }
             }
         }
 

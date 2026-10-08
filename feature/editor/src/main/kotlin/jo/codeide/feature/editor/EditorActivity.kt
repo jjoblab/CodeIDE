@@ -772,7 +772,15 @@ class EditorActivity :
     private fun appliquerClavier() {
         val clavier = clavierVisible
         val edition = sessionActive() != null
-        liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
+        if (clavier) {
+            // Clavier ouvert : la barre de symboles se colle au clavier
+            // via le padding IME — le panneau s'efface (CodeAssist).
+            liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
+        } else {
+            // Clavier fermé : la réserve du panneau reprend le bas
+            // (B3 : l'éditeur ne passe plus sous le sheet replié).
+            appliquerReservePanneau()
+        }
         liaison.barreSymboles.isVisible = clavier && edition
         val panneau = liaison.panneauInferieur
         if (clavier) {
@@ -785,6 +793,25 @@ class EditorActivity :
             panneau.isVisible = true
             restaurerEtatPanneau()
         }
+    }
+
+    /**
+     * B3 : réserve en bas de la colonne centrale la hauteur de peek du
+     * panneau quand il est replié (STATE_COLLAPSED) — l'éditeur ne passe
+     * plus sous le sheet replié, la dernière ligne reste visible. À
+     * mi-hauteur ou étendu, le panneau se pose par-dessus l'éditeur
+     * (padding 0). Clavier ouvert, [appliquerClavier] gère le padding
+     * IME directement — cette fonction est sans effet.
+     */
+    internal fun appliquerReservePanneau() {
+        if (clavierVisible) return
+        val reserve =
+            if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
+                comportementPanneau.peekHeight
+            } else {
+                0
+            }
+        liaison.zoneCentrale.updatePadding(bottom = reserve)
     }
 
     /** Replace le panneau dans l'état du ViewModel après le clavier :
@@ -823,6 +850,7 @@ class EditorActivity :
                 comportementPanneau = comportementPanneau,
                 horloge = horloge,
                 surArret = { viewModel.onAction(ActionEditor.AnnulerBuild) },
+                surPeekChange = { appliquerReservePanneau() },
             )
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         comportementPanneau.addBottomSheetCallback(
@@ -838,16 +866,19 @@ class EditorActivity :
                         BottomSheetBehavior.STATE_COLLAPSED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
                             appliquerFonduEntete(0f)
+                            appliquerReservePanneau()
                         }
 
                         BottomSheetBehavior.STATE_HALF_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
                             appliquerFonduEntete(FRACTION_MI_HAUTEUR)
+                            appliquerReservePanneau()
                         }
 
                         BottomSheetBehavior.STATE_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.ETENDU))
                             appliquerFonduEntete(1f)
+                            appliquerReservePanneau()
                         }
 
                         else -> {
