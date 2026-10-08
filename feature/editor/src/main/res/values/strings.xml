@@ -387,6 +387,16 @@
     <string name="apercu_recherche_description">La recherche en plein texte du projet arrivera avec son lot dédié : requêtes, filtres par type de fichier et remplacements.</string>
     <string name="apercu_git_description">Le panneau Git affichera le statut du dépôt, la préparation des commits et l\'historique des branches.</string>
 
+    <!-- Section Git du tiroir (G2, ADR 0092). -->
+    <string name="git_titre">Git</string>
+    <string name="git_actualiser_cd">Actualiser le statut Git</string>
+    <string name="git_pas_depot">Ce projet n\'est pas un dépôt Git</string>
+    <string name="git_initialiser">Initialiser un dépôt</string>
+    <string name="git_message_hint">Message de commit…</string>
+    <string name="git_committer">Commit</string>
+    <string name="git_aucun_changement">Aucun changement</string>
+    <string name="git_n_changements">%d changements</string>
+
     <!-- Toolbar : fermeture du projet (déplacée de l'entête v1). -->
     <string name="editor_action_fermer_projet">Fermer le projet</string>
 
