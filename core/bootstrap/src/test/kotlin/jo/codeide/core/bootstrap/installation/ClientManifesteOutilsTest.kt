@@ -171,7 +171,7 @@ class ClientManifesteOutilsTest {
                 "default": ["build-tools@35.0.2", "platform@android-37.2"]
               },
               "compat": [
-                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-37.2", "jdk": 17, "status": "tested" }
+                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-37.2", "jdk": ">=17", "status": "tested" }
               ]
             }
             """

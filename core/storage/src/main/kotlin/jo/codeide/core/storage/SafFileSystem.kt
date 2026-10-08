@@ -411,11 +411,24 @@ internal class SafFileSystem
         /**
          * Interroge le résolveur avec une translation d'exception : `null`
          * si le document est absent.
+         *
+         * Certaines URI construites (par ex. `content://…/doc/build.gradle.kts`)
+         * ne sont pas adressables par le fournisseur SAF — `query` lève
+         * `UnsupportedOperationException`. On traduit en `null` (document
+         * absent) plutôt que de propager l'exception (qui planterait
+         * `exists` — fix crash v0.64.0, C1 Gradle Scripts).
          */
         private fun <T> ContentResolver.interroger(
             documentUri: String,
             bloc: (Uri) -> T?,
-        ): T? = bloc(documentUri.toUri())
+        ): T? =
+            try {
+                bloc(documentUri.toUri())
+            } catch (e: UnsupportedOperationException) {
+                null
+            } catch (e: IllegalArgumentException) {
+                null
+            }
 
         /** Traduit une exception système en erreur de stockage typée. */
         private fun Exception.versErreurStockage(uri: String): AppError.Storage =

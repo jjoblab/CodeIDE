@@ -1717,8 +1717,7 @@ class EditorViewModel
                 }
             val nomProjet = etatInterne.value.projet?.name ?: "Project"
             viewModelScope.launch {
-                val resolus = resoudreScriptsGradle(racine, nomProjet)
-                scriptsGradle = resolus
+                resoudreScriptsGradle(racine, nomProjet)
                 etatsChargementGradle = false
                 reconstruireNoeuds()
             }
@@ -1727,13 +1726,15 @@ class EditorViewModel
         /**
          * C1 : résout les fichiers de build Gradle d'un projet. Fonction
          * `suspend` testable — énumère les chemins connus, vérifie
-         * l'existence, dédoublonne par URI (le dernier qualificatif
-         * l'emporte, conformément à Android Studio).
+         * l'existence via `list` du parent (les URIs SAF construites
+         * `racine/relatif` ne sont pas adressables par `exists`/`query`),
+         * dédoublonne par URI (le dernier qualificatif l'emporte,
+         * conformément à Android Studio).
          */
         internal suspend fun resoudreScriptsGradle(
             racine: String,
             nomProjet: String,
-        ): List<ScriptGradle> {
+        ) {
             // (chemin relatif, nom, qualificatif) — l'ordre est celui
             // d'Android Studio (build racine → settings → properties →
             // catalogue → wrapper → local.properties → proguard).
@@ -1750,18 +1751,33 @@ class EditorViewModel
                     Triple("proguard-rules.pro", "proguard-rules.pro", "(ProGuard Rules for \":app\")"),
                 )
             val resolus = mutableListOf<ScriptGradle>()
+            // Indexe les enfants de chaque parent par nom pour éviter
+            // N appels `list` — un seul par parent.
+            val cacheListing = mutableMapOf<String, Map<String, String>>()
             for ((relatif, nom, qualificatif) in candidats) {
-                val uri = "$racine/$relatif"
-                if (fichiers.exists(uri)) {
-                    resolus += ScriptGradle(uri = uri, nom = nom, qualificatif = qualificatif)
-                }
+                val parentRelatif = relatif.substringBeforeLast('/', "")
+                val parentUri = if (parentRelatif.isEmpty()) racine else "$racine/$parentRelatif"
+                val listing =
+                    cacheListing.getOrPut(parentUri) {
+                        listerEnfantsParNom(parentUri)
+                    }
+                val uriEnfant = listing[nom] ?: continue
+                resolus += ScriptGradle(uri = uriEnfant, nom = nom, qualificatif = qualificatif)
             }
-            // Dédoublonnage par nom de fichier : si build.gradle.kts ET
-            // build.gradle existent tous les deux (rare mais possible),
-            // on garde les deux (Android Studio les montre tous les deux).
-            // Pas de dédoublonnage ici — chaque candidat a un chemin unique.
-            return resolus
+            scriptsGradle = resolus
         }
+
+        /**
+         * Liste les enfants d'un dossier et les indexe par nom → URI.
+         * Retourne une map vide si le dossier n'existe pas ou n'est pas
+         * listable (évite le crash `UnsupportedOperationException` sur
+         * les URIs SAF construites — fix v0.64.0).
+         */
+        private suspend fun listerEnfantsParNom(dossierUri: String): Map<String, String> =
+            when (val resultat = fichiers.list(dossierUri)) {
+                is AppResult.Success -> resultat.value.associate { it.name to it.uri }
+                is AppResult.Failure -> emptyMap()
+            }
 
         /** Aplatit récursivement les enfants visibles du dossier donné.
          *
