@@ -259,7 +259,8 @@ internal class ExplorateurAdapter(
             if (noeud.estRacine && noeud.prive) {
                 contexte.getString(R.string.explorateur_racine_privee)
             } else {
-                noeud.nom
+                // C2d : nom compacté s'il existe (ex. « jo.codeide.feature »).
+                noeud.nomCompact ?: noeud.nom
             }
         // C1 : qualificatif en gris après le nom (ex. « build.gradle.kts
         // (Project: App) »), comme Android Studio.
