@@ -114,8 +114,17 @@ internal class ExplorateurAdapter(
         // Hauteur : 38 dp racine, 34 dp sinon (§ 6.1).
         racine.layoutParams.height = ((if (noeud.estRacine) HAUTEUR_RACINE_DP else HAUTEUR_LIGNE_DP) * dp).toInt()
 
-        // Guides + indentation du contenu (§ 6.2).
-        liaison.guidesLigne.programmer(noeud.profondeur, noeud.dernierEnfant, noeud.masqueAncetresDerniers)
+        // Guides + indentation du contenu (§ 6.2). B1 : un dossier
+        // déplié qui a des enfants demande à VueGuides un trait
+        // supplémentaire au niveau profondeur + 1 (relié au premier
+        // enfant sans coupure).
+        val deplieAvecEnfants = noeud.estDossier && noeud.deplie && noeud.nbEnfants > 0
+        liaison.guidesLigne.programmer(
+            noeud.profondeur,
+            noeud.dernierEnfant,
+            noeud.masqueAncetresDerniers,
+            deplieAvecEnfants,
+        )
         liaison.contenuLigne.setPadding((INDENTATION * noeud.profondeur * dp).toInt(), 0, 0, 0)
 
         lierFondEtCoupe(racine, liaison, noeud)
@@ -151,7 +160,14 @@ internal class ExplorateurAdapter(
         }
     }
 
-    /** Fond (sélection/flash § 6.1) et rendu de la coupe (50 %, barré). */
+    /**
+     * Fond (sélection/flash § 6.1) et rendu de la coupe (50 %, barré).
+     *
+     * B2 : le fond est inset à gauche du trait fin du parent
+     * (`22 × profondeur − 10` dp, min. 0) — il ne s'étend plus sous
+     * l'indentation vide. La barre d'accent (2,5 dp) suit ce nouveau
+     * départ car elle est ancrée au bord gauche du drawable.
+     */
     private fun lierFondEtCoupe(
         racine: View,
         liaison: LigneNoeudArborescenceBinding,
@@ -160,7 +176,20 @@ internal class ExplorateurAdapter(
         val contexte = racine.context
         racine.background = null
         if (noeud.selectionne || noeud.flasher) {
-            racine.background = ContextCompat.getDrawable(contexte, R.drawable.fond_ligne_selectionnee)
+            val fondBase = ContextCompat.getDrawable(contexte, R.drawable.fond_ligne_selectionnee)
+            val insetGaucheDp = maxOf(0, (INDENTATION * noeud.profondeur - DECALAGE_LIGNE).toInt())
+            racine.background =
+                if (insetGaucheDp == 0) {
+                    fondBase
+                } else {
+                    android.graphics.drawable.InsetDrawable(
+                        fondBase,
+                        (insetGaucheDp * dp).toInt(),
+                        0,
+                        0,
+                        0,
+                    )
+                }
         }
         liaison.nomNoeud.paint.isStrikeThruText = noeud.coupe
         val alphaLigne = if (noeud.coupe) ALPHA_COUPE else 1f
@@ -402,6 +431,9 @@ internal class ExplorateurAdapter(
     private companion object {
         /** Indentation par niveau (22 dp, § 6.2). */
         const val INDENTATION = 22f
+
+        /** Distance du trait vertical au début de la ligne (10 dp, § 6.2). */
+        const val DECALAGE_LIGNE = 10f
 
         /** Hauteur d'une ligne standard (§ 6.1 : 34 dp). */
         const val HAUTEUR_LIGNE_DP = 34

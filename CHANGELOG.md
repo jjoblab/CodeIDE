@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.62.0] – 2026-10-09
+
+### Corrigé
+
+- **`feature:editor`** : design de l'arbre — trois problèmes de la
+  spécification `docs/EXPLORATEUR_V2.md` § 6.1-6.3 (partie B du prompt
+  explorateur).
+  - **B1 — fil vertical interrompu sous un dossier déplié** : la ligne
+    d'un dossier déplié ne traçait rien entre son chevron et la ligne de
+    son premier enfant (le fil des enfants démarrait seulement à
+    l'enfant, d'où un trou). `VueGuides` dessine désormais un trait
+    vertical supplémentaire au niveau `profondeur + 1`, de sous le
+    chevron (16 dp du haut) jusqu'au bas de la ligne, pour rejoindre
+    sans coupure le trait du premier enfant. Le flag
+    `deplieAvecEnfants` est calculé par `ExplorateurAdapter` :
+    `estDossier && deplie && nbEnfants > 0`.
+  - **B2 — fond de la ligne sélectionnée trop à gauche** : le drawable
+    `fond_ligne_selectionnee` s'étendait sur toute la largeur de la
+    ligne, y compris l'indentation vide. Il est désormais inset à gauche
+    de `max(0, 22 × profondeur − 10)` dp (le trait fin du parent) via un
+    `InsetDrawable` posé par l'adapter selon la profondeur du nœud. La
+    barre d'accent (2,5 dp) suit ce nouveau départ car elle est ancrée
+    au bord gauche du drawable.
+  - **B3 — vue centrale sous le bottom sheet** : le panneau inférieur
+    replié recouvrait le bas de l'éditeur (la dernière ligne n'était
+    pas visible). `EditorActivity.appliquerReservePanneau` réserve
+    désormais en bas de `zone_centrale` la hauteur de peek du panneau
+    (`BottomSheetBehavior.peekHeight`) quand il est replié
+    (STATE_COLLAPSED), 0 à mi-hauteur/étendu, et laisse le comportement
+    IME inchangé quand le clavier est ouvert. Un callback `surPeekChange`
+    sur `PanneauToolingController` recale la réserve à chaque changement
+    de peek (par ex. quand la ligne de build apparaît).
+
+  **Tests** : 2 nouveaux tests purs dans `CalculsArbreExplorateurTest`
+  (formule de l'inset B2, décision du trait de raccordement B1). Les
+  tests de layout `ActivityEditorLayoutTest` ne sont pas cassés (le
+  drawable de base reste inchangé, seul l'adapter l'wrap dans un
+  InsetDrawable).
+
 ## [0.61.0] – 2026-10-09
 
 ### Corrigé

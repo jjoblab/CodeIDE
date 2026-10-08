@@ -46,6 +46,10 @@ internal class PanneauToolingController(
     private val comportementPanneau: BottomSheetBehavior<*>,
     private val horloge: TimeProvider,
     private val surArret: () -> Unit,
+    /** B3 : appelé après chaque changement de `peekHeight` (par ex.
+     *  quand la ligne de build apparaît) pour que l'activité recale la
+     *  réserve du panneau sous l'éditeur. */
+    private val surPeekChange: () -> Unit = {},
 ) {
     /** L'en-tête tooling a-t-il quelque chose à montrer ? */
     private var ligneActivee = false
@@ -248,7 +252,8 @@ internal class PanneauToolingController(
 
     /** Peek du panneau : en-tête seul, + en-tête tooling enrichi (et
      *  progression) quand une activité s'y affiche — l'activité tooling
-     *  reste visible même replié (v0.32.5). */
+     *  reste visible même replié (v0.32.5). B3 : notifie l'activité
+     *  pour qu'elle recale la réserve sous l'éditeur. */
     private fun majPeekPanneau() {
         val peekReposPx = activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
         var peek = peekReposPx
@@ -259,6 +264,7 @@ internal class PanneauToolingController(
             }
         }
         comportementPanneau.peekHeight = peek
+        surPeekChange()
     }
 
     private companion object {
