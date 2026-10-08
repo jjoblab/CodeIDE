@@ -38,7 +38,7 @@ class InstallPlanResolverTest {
                         buildTools = "35.0.2",
                         aapt2 = "35.0.2",
                         compileSdk = "android-37.2",
-                        jdk = 17,
+                        jdk = ">=17",
                         status = "tested",
                     ),
                 ),
