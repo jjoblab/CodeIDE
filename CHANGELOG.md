@@ -43,8 +43,11 @@
   journal ; s'il remonte pour lire l'historique, l'auto-défilement se
   met en pause et les nouvelles lignes attendent qu'il redescende.
   Déduplication des `post` de scroll (un vivant au plus), tolérance « au
-  bas » de 16 dp (une ligne monospace `bodySmall`). Aucune logique
-  métier touchée ; tests du ViewModel inchangés.
+  bas » de 16 dp (une ligne monospace `bodySmall`). Logique encapsulée
+  dans une classe aide dédiée `SuiveurJournal` (séparation des
+  responsabilités, `InstallationFragment` reste sous le seuil
+  `TooManyFunctions` de detekt). Aucune logique métier touchée ; tests
+  du ViewModel inchangés.
 
 ## [0.60.0] – 2026-10-06
 
