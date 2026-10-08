@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jo.codeide.core.domain.BrancheGit
+import jo.codeide.core.domain.CommitGit
 import jo.codeide.core.domain.MoteurGit
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
@@ -29,6 +31,7 @@ import javax.inject.Inject
  * 0038) — jamais d'URI SAF côté moteur.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions") // Port Git G1-G7 : une fonction par action Git, hérité du port MoteurGit.
 class GitViewModel
     @Inject
     constructor(
@@ -125,6 +128,137 @@ class GitViewModel
             }
         }
 
+        // ------------------------------------------------------------------
+        // G3 — Diff (visionneuse)
+        // ------------------------------------------------------------------
+
+        /** Charge le diff d'un fichier (git diff). */
+        fun chargerDiff(chemin: String) {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.diff(cheminFuse, chemin)
+                _etat.value =
+                    _etat.value.copy(
+                        diff = (resultat as? ResultatGit.Succes)?.valeur,
+                        erreurDiff = (resultat as? ResultatGit.Echec)?.message,
+                    )
+            }
+        }
+
+        /** Ferme la visionneuse de diff. */
+        fun fermerDiff() {
+            _etat.value = _etat.value.copy(diff = null, erreurDiff = null)
+        }
+
+        // ------------------------------------------------------------------
+        // G4 — Branches
+        // ------------------------------------------------------------------
+
+        /** Charge la liste des branches (locales + distantes). */
+        fun chargerBranches() {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.branches(cheminFuse)
+                _etat.value =
+                    _etat.value.copy(
+                        branches = (resultat as? ResultatGit.Succes)?.valeur ?: emptyList(),
+                        erreurBranches = (resultat as? ResultatGit.Echec)?.message,
+                    )
+            }
+        }
+
+        /** Bascule sur la branche [nom] (git checkout). */
+        fun basculerBranche(nom: String) {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.basculerBranche(cheminFuse, nom)
+                if (resultat is ResultatGit.Echec) {
+                    _etat.value = _etat.value.copy(erreur = resultat.message)
+                }
+                chargerStatut()
+                chargerBranches()
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // G5 — Distant (fetch, pull, push)
+        // ------------------------------------------------------------------
+
+        /** Tire les changements du remote (git pull). */
+        fun tirer(rebase: Boolean = false) {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                _etat.value = _etat.value.copy(operationDistant = "pull")
+                val resultat = moteurGit.tirer(cheminFuse, rebase)
+                _etat.value =
+                    _etat.value.copy(
+                        operationDistant = null,
+                        erreur = (resultat as? ResultatGit.Echec)?.message,
+                    )
+                chargerStatut()
+            }
+        }
+
+        /** Pousse les commits vers le remote (git push). */
+        fun pousser(forceWithLease: Boolean = false) {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                _etat.value = _etat.value.copy(operationDistant = "push")
+                val resultat = moteurGit.pousser(cheminFuse, forceWithLease)
+                _etat.value =
+                    _etat.value.copy(
+                        operationDistant = null,
+                        erreur = (resultat as? ResultatGit.Echec)?.message,
+                    )
+                chargerStatut()
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // G6 — Historique (journal des commits)
+        // ------------------------------------------------------------------
+
+        /** Charge le journal des commits (git log). */
+        fun chargerHistorique(limite: Int = 50) {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.journal(cheminFuse, limite)
+                _etat.value =
+                    _etat.value.copy(
+                        historique = (resultat as? ResultatGit.Succes)?.valeur ?: emptyList(),
+                        erreurHistorique = (resultat as? ResultatGit.Echec)?.message,
+                    )
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // G7 — Stash
+        // ------------------------------------------------------------------
+
+        /** Met de côté les modifications (git stash). */
+        fun stasher() {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.stasher(cheminFuse)
+                if (resultat is ResultatGit.Echec) {
+                    _etat.value = _etat.value.copy(erreur = resultat.message)
+                }
+                chargerStatut()
+            }
+        }
+
+        /** Restaure le stash le plus récent (git stash pop). */
+        fun restaurerStash() {
+            viewModelScope.launch {
+                val cheminFuse = cheminFuseCourant() ?: return@launch
+                val resultat = moteurGit.restaurerStash(cheminFuse)
+                if (resultat is ResultatGit.Echec) {
+                    _etat.value = _etat.value.copy(erreur = resultat.message)
+                }
+                chargerStatut()
+            }
+        }
+
         @Suppress("ReturnCount") // Gardes : projectId absent, projet absent.
         private suspend fun cheminFuseCourant(): String? {
             val id = projectId ?: return null
@@ -142,6 +276,13 @@ class GitViewModel
  * @property branche nom de la branche courante.
  * @property messageCommit message saisi par l'utilisateur.
  * @property erreur message d'erreur (null si OK).
+ * @property diff texte du diff chargé (G3, null si pas de diff affiché).
+ * @property erreurDiff erreur lors du chargement du diff.
+ * @property branches liste des branches (G4).
+ * @property erreurBranches erreur lors du chargement des branches.
+ * @property operationDistant nom de l'opération distant en cours (G5, null si aucune).
+ * @property historique liste des commits (G6).
+ * @property erreurHistorique erreur lors du chargement de l'historique.
  */
 data class EtatGit(
     val chargement: Boolean = false,
@@ -150,10 +291,20 @@ data class EtatGit(
     val branche: String? = null,
     val messageCommit: String = "",
     val erreur: String? = null,
+    val diff: String? = null,
+    val erreurDiff: String? = null,
+    val branches: List<BrancheGit> = emptyList(),
+    val erreurBranches: String? = null,
+    val operationDistant: String? = null,
+    val historique: List<CommitGit> = emptyList(),
+    val erreurHistorique: String? = null,
 ) {
     /** Nombre total de modifications (indexées + non indexées + non suivies). */
     val nbChangements: Int get() = statut?.nbModifications ?: 0
 
     /** Le commit est-il possible (message non vide + au moins un changement) ? */
     val commitPossible: Boolean get() = messageCommit.isNotBlank() && nbChangements > 0
+
+    /** Une opération distant est-elle en cours ? */
+    val distantEnCours: Boolean get() = operationDistant != null
 }

@@ -114,6 +114,27 @@ public interface MoteurGit {
     public suspend fun estDepot(cheminFuse: String): Boolean
 
     /**
+     * G3 : charge le diff d'un fichier (`git diff -- chemin`). Retourne
+     * le texte du diff (format unified). `chemin` est relatif à la racine
+     * du dépôt.
+     */
+    public suspend fun diff(
+        cheminFuse: String,
+        chemin: String,
+    ): ResultatGit<String>
+
+    /**
+     * G7 : met de côté les modifications (`git stash`). Retourne le hash
+     * du stash créé, ou une chaîne vide si rien à stasher.
+     */
+    public suspend fun stasher(cheminFuse: String): ResultatGit<String>
+
+    /**
+     * G7 : restaure le stash le plus récent (`git stash pop`).
+     */
+    public suspend fun restaurerStash(cheminFuse: String): ResultatGit<Unit>
+
+    /**
      * Annule l'opération courante (kill du process git sous-jacent).
      */
     public fun annuler()
