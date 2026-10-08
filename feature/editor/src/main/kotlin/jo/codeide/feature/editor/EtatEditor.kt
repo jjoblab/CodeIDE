@@ -74,6 +74,9 @@ data class NoeudExplorateur(
     /** C1 : qualificatif affiché en gris après le nom (ex. « (Project: App) »
      *  pour `build.gradle.kts`). `null` pour les nœuds normaux. */
     val qualificatif: String? = null,
+    /** C2d : nom compacté d'une chaîne de dossiers à enfant unique (ex.
+     *  `jo.codeide.feature`). `null` pour les nœuds normaux (nom = [nom]). */
+    val nomCompact: String? = null,
 )
 
 /**
@@ -514,6 +517,13 @@ sealed interface ActionEditor {
     data object DefilerVersSource : ActionEditor
 
     /**
+     * C2d : bascule le compactage des dossiers à enfant unique (ex.
+     * `jo/codeide` → `jo.codeide`), comme « Compact Middle Packages »
+     * d'Android Studio.
+     */
+    data object BasculerAffichageCompact : ActionEditor
+
+    /**
      * Annule la dernière suppression (action « Annuler » du snackbar,
      * § 11) : restaure l'élément à sa place et rouvre ses onglets.
      */
@@ -792,6 +802,9 @@ data class EtatEditor(
     val edition: EditionInline? = null,
     val notification: NotificationArbre? = null,
     val urisFlachees: Set<String> = emptySet(),
+    /** C2d : compactage des dossiers à enfant unique (ex. `jo/codeide`
+     *  s'affiche en `jo.codeide`). Activé par défaut, comme Android Studio. */
+    val affichageCompact: Boolean = true,
     val cheminRacine: String = "",
     val nomRacine: String? = null,
     val cheminsDossiers: List<String> = emptyList(),
