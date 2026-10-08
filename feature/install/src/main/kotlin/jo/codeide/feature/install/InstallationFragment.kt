@@ -45,6 +45,14 @@ class InstallationFragment : Fragment() {
     /** La carte licence était-elle visible à la dernière émission ? */
     private var licenceVisible = false
 
+    /** Un défilement vers le bas est déjà planifié (déduplication, ADR 0078). */
+    private var defilementPlanifie = false
+
+    /** Tolérance « l'utilisateur est au bas » (une ligne ≈ 16 dp, en px). */
+    private val toleranceBasPx: Int by lazy {
+        (TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -116,17 +124,16 @@ class InstallationFragment : Fragment() {
                 }
                 launch {
                     viewModel.journal.collect { lignes ->
+                        // Auto-défilement intelligent (parité avec
+                        // PanneauConsoleFragment, ADR 0078) : on ne suit
+                        // le bas QUE si l'utilisateur y était déjà avant
+                        // la mise à jour. S'il a remonté pour lire
+                        // l'historique, on ne le ramène pas en bas —
+                        // la nouvelle ligne attendra sagement en
+                        // attendant qu'il redescende.
+                        val suivreBas = estAuBas(liaison.zoneJournal)
                         liaison.journal.text = lignes.takeLast(NB_LIGNES_JOURNAL).joinToString("\n")
-                        // Auto-défilement vers le bas : la dernière ligne
-                        // reste visible pendant l'écoulement (ADR 0046),
-                        // que le journal soit replié sur téléphone (zone
-                        // bornée) ou structurel sur tablette (plein panneau).
-                        // Le `post` attend la passe de layout pour que le
-                        // scroll tienne compte de la nouvelle hauteur du
-                        // TextView ; noop si la zone est masquée (GONE).
-                        liaison.zoneJournal.post {
-                            liaison.zoneJournal.fullScroll(NestedScrollView.FOCUS_DOWN)
-                        }
+                        if (suivreBas) suivreLeBas(liaison.zoneJournal)
                     }
                 }
                 launch {
@@ -294,8 +301,37 @@ class InstallationFragment : Fragment() {
         carte.progressionPhase.isVisible = etat is PhaseState.Running
     }
 
+    /**
+     * L'utilisateur est-il au bas du journal ? Sur tablette le panneau
+     * droit est toujours visible (`match_parent`) ; sur téléphone la zone
+     * est bornée à 160 dp. Si la zone est masquée (GONE, journal replié
+     * sur téléphone), on renvoie `true` pour que le défilement ait lieu
+     * au prochain dépliage (la nouvelle ligne reste la dernière visible).
+     */
+    private fun estAuBas(defilement: NestedScrollView): Boolean {
+        if (!defilement.isVisible) return true
+        val contenu = defilement.getChildAt(0) ?: return true
+        return defilement.scrollY >= contenu.height - defilement.height - toleranceBasPx
+    }
+
+    /**
+     * Défile vers le bas (dédupliqué : un `post` vivant au plus). Le
+     * `post` attend la passe de layout pour que le scroll tienne compte
+     * de la nouvelle hauteur du TextView — sans quoi `fullScroll`
+     * s'arrêterait une ligne trop tôt.
+     */
+    private fun suivreLeBas(defilement: NestedScrollView) {
+        if (defilementPlanifie) return
+        defilementPlanifie = true
+        defilement.post {
+            defilementPlanifie = false
+            defilement.fullScroll(View.FOCUS_DOWN)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        defilementPlanifie = false
         liaisonPrivee = null
     }
 
@@ -310,5 +346,12 @@ class InstallationFragment : Fragment() {
         private const val SEUIL_MINUTES: Long = 60L
 
         private const val MIO: Long = 1024L * 1024
+
+        /**
+         * Tolérance « au bas » du journal (en dp) : une ligne de texte
+         * monospace `bodySmall` ≈ 16 dp — sous cette marge, l'utilisateur
+         * est considéré au bas et l'auto-défilement reste actif.
+         */
+        private const val TOLERANCE_BAS_DP: Int = 16
     }
 }

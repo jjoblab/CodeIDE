@@ -46,13 +46,25 @@ public data class ToolchainCatalog(
 ) {
     public companion object {
         /**
-         * URL attendue du manifeste v2 sur le dépôt `codeide-tools` —
-         * **à confirmer par le prompt 2 (R5)** ; surchargeable par
-         * configuration. Le contrôle de `schemaVersion` garantit qu'aucun
-         * manifeste d'une autre génération n'est consommé en silence.
+         * URL officielle du manifeste v2 servie par GitHub Pages sur le
+         * dépôt `codeide-tools` (ADR 0006 du dépôt `codeide-tools`,
+         * confirmée par R5 : immuable par horodatage + pointeur `latest`,
+         * reprise Range vérifiée). Pages est activé : l'URL répond 200 et
+         * sert un manifeste `schemaVersion=2` à jour.
+         *
+         * L'ancienne valeur `raw.githubusercontent.com/.../manifest.v2.json`
+         * pointait vers un chemin inexistant à la racine du dépôt (le
+         * manifeste v2 est committé sous `dist/manifest.v2.json`, et la CI
+         * le recopie vers `gh-pages/manifests/v2/latest.json`) — l'étape
+         * `resolution-plan` de la phase `ANDROID_SDK` échouait donc en
+         * HTTP 404 dès la première exécution.
+         *
+         * Surchargeable par configuration (le contrôle de `schemaVersion`
+         * garantit qu'aucun manifeste d'une autre génération n'est
+         * consommé en silence).
          */
         public const val DEFAULT_MANIFEST_URL: String =
-            "https://raw.githubusercontent.com/jjoblab/codeide-tools/main/manifest.v2.json"
+            "https://jjoblab.github.io/codeide-tools/manifests/v2/latest.json"
 
         /** Profil SDK consommé (§ 12.2 : `profiles.<nom>`). */
         public const val DEFAULT_SDK_PROFILE: String = "default"
