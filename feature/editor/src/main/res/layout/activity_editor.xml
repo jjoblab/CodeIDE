@@ -249,7 +249,11 @@
             app:behavior_skipCollapsed="false"
             app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-            <!-- En-tête toujours visible : poignée, titre de l'onglet actif,
+            <!-- En-tête (v0.80.1) : visible sur les onglets Problèmes et
+                 Journal uniquement — l'onglet Console n'a PAS de première
+                 section (la ligne tooling ci-dessous sert d'en-tête).
+                 Poignée, titre de l'onglet, SOUS-TITRE d'informations
+                 correspondant (compte de diagnostics / d'entrées),
                  badge de compte, agrandir, réduire. Un appui bascule
                  replié <-> mi-hauteur (prompt compagnon 5.5). -->
             <LinearLayout
@@ -268,16 +272,37 @@
                     android:background="?attr/colorOutline"
                     android:contentDescription="@string/editor_panneau_poignee_cd" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/titre_panneau"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/spacing_sm"
                     android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
-                    tools:text="Journal" />
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/titre_panneau"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        tools:text="Journal" />
+
+                    <!-- Sous-titre d'informations de l'onglet actif (v0.80.1) :
+                         compte de diagnostics pour Problèmes, compte
+                         d'entrées pour Journal — annoncé à TalkBack. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/sous_titre_panneau"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="12 entrées affichées"
+                        tools:visibility="visible" />
+                </LinearLayout>
 
                 <!-- Badge de compte (nombre d'entrées affichées). -->
                 <com.google.android.material.textview.MaterialTextView
@@ -323,8 +348,10 @@
                  étape courante + détail (« 42 Mo · 3 éléments »), chrono
                  monospace, bouton Arrêter (build). Visible dès qu'un canal
                  est actif ou a un résultat ; le peek s'élargit pour
-                 l'accueillir. Fondu avec l'en-tête quand le panneau
-                 s'étend. L'étape courante est annoncée à TalkBack
+                 l'accueillir. v0.80.1 : sur l'onglet CONSOLE elle EST
+                 l'en-tête du panneau (la première section disparaît).
+                 Fondu avec l'en-tête quand le panneau s'étend. L'étape
+                 courante est annoncée à TalkBack
                  (accessibilityLiveRegion, §3.3 accessibilité). -->
             <LinearLayout
                 android:id="@+id/ligne_tooling"

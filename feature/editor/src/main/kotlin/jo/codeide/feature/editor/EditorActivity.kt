@@ -84,10 +84,14 @@ import jo.codeide.core.ui.R as RUi
  *   copier le chemin) au-dessus d'**un seul `EditorView`** rebranché sur la
  *   session de l'onglet actif — thème clair/sombre suivant l'application ;
  * - panneau inférieur (étape 16, ADR 0029 ; v0.32.4, ADR 0055 ; v0.32.5,
- *   ADR 0056) : trois états pilotés par `BottomSheetBehavior`, en-tête à
- *   poignée/titre/badge/actions qui S'EFFACE PROGRESSIVEMENT à
- *   l'extension, LIGNE TOOLING sur canal unique (Sync/Build : icône,
- *   couleur, activité, chrono, arrêt, progression) et onglets
+ *   ADR 0056 ; v0.80.1) : trois états pilotés par `BottomSheetBehavior`,
+ *   étendu ANCRÉ SOUS la toolbar et les onglets de fichiers (aligné
+ *   AndroidIDE, jamais par-dessus) ; en-tête à poignée/titre/badge/
+ *   sous-titre d'informations/actions qui S'EFFACE PROGRESSIVEMENT à
+ *   l'extension, SECTIONNÉ par onglet depuis la v0.80.1 (Console : la
+ *   première section disparaît, la LIGNE TOOLING — infos, chrono,
+ *   arrêt — EST l'en-tête ; Problèmes/Journal : la première section
+ *   porte les informations correspondantes) ; onglets
  *   Console/Problèmes/Journal dont le contenu vit dans des FRAGMENTS
  *   montrés/cachés ; fond opaque arrondi — plus de sheet transparent ;
  *   barre de symboles — la SymbolBarView de la bibliothèque code-editor —
@@ -165,6 +169,11 @@ class EditorActivity :
 
     /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
     private var panneauEtendu = false
+
+    /** Alpha courant du fondu de l'en-tête du panneau (v0.80.1) : compose
+     *  la visibilité de la première section avec l'onglet actif — GONE sur
+     *  Console, INVISIBLE sous le seuil du fondu sinon. */
+    private var alphaEnteteCourant = 1f
 
     /** Clavier visible selon les insets IME (API 30+) ? */
     private var clavierParInsets = false
@@ -254,7 +263,25 @@ class EditorActivity :
         // (PanneauToolingController) ; l'hôte ne garde que la collecte.
         viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
             controleurTooling?.rendre(etat)
+            rendreEntetePanneau()
         }
+    }
+
+    /**
+     * Surveillance de l'arbre (v0.80.1) : l'espace devient visible — le
+     * balayage périodique de l'explorateur démarre (créations externes
+     * de Gradle, du terminal, d'une autre application) ; arrêtée à
+     * [onStop] (plus aucune requête SAF en arrière-plan).
+     */
+    override fun onStart() {
+        super.onStart()
+        viewModel.onAction(ActionEditor.DemarrerSurveillanceArbre)
+    }
+
+    /** L'espace n'est plus visible : la surveillance s'arrête. */
+    override fun onStop() {
+        viewModel.onAction(ActionEditor.ArreterSurveillanceArbre)
+        super.onStop()
     }
 
     /**
@@ -652,12 +679,26 @@ class EditorActivity :
                     addUpdateListener { animateur ->
                         parametres.width = animateur.animatedValue as Int
                         liaison.tiroir.layoutParams = parametres
+                        // v0.80.1 : la zone centrale suit le bord du tiroir
+                        // PENDANT l'animation d'aimant aussi.
+                        reevaluerTranslationTiroir()
                     }
                 }.start()
         } else {
             parametres.width = cible
             liaison.tiroir.layoutParams = parametres
         }
+        // v0.80.1 (retour utilisateur) : le redimensionnement doit prendre
+        // en compte la zone centrale — le tiroir OUVERT garde le contenu
+        // poussé au bord de sa NOUVELLE largeur (sans cela, la translation
+        // restait celle de l'ancienne largeur posée à l'ouverture).
+        reevaluerTranslationTiroir()
+    }
+
+    /** Recalcule la poussée de la zone centrale après un changement de
+     *  largeur du tiroir (v0.80.1) — délégue au [TiroirPoussantLayout]. */
+    private fun reevaluerTranslationTiroir() {
+        (liaison.racineEditeur as? TiroirPoussantLayout)?.reevaluerTranslation()
     }
 
     /** Aimants de largeur (§ 13 : 55/69/85/98 %, tolérance ±12 dp). */
@@ -950,6 +991,12 @@ class EditorActivity :
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         // E2 (ADR 0093) : voile transparent — le tiroir pousse, ne recouvre pas.
         liaison.racineEditeur.setScrimColor(android.graphics.Color.TRANSPARENT)
+        // v0.80.1 (alignement AndroidIDE, EditorBottomSheet.setOffsetAnchor) :
+        // le sheet ÉTENDU s'arrête SOUS la toolbar et les onglets de
+        // fichiers — jamais par-dessus. L'ancre suit le layout (rotation,
+        // onglets de fichiers qui apparaissent/disparaissent).
+        liaison.zoneCentrale.viewTreeObserver.addOnGlobalLayoutListener { poserAncragePanneau() }
+        poserAncragePanneau()
         comportementPanneau.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(
@@ -1000,30 +1047,7 @@ class EditorActivity :
         )
 
         // En-tête : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
-        liaison.entetePanneau.setOnClickListener {
-            val cible =
-                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
-                    EtatPanneau.MI_HAUTEUR
-                } else {
-                    EtatPanneau.REPLIE
-                }
-            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
-        }
-
-        // Agrandir : replié -> mi-hauteur -> étendu, puis redescend.
-        liaison.boutonAgrandirPanneau.setOnClickListener {
-            val cible =
-                when (comportementPanneau.state) {
-                    BottomSheetBehavior.STATE_COLLAPSED -> EtatPanneau.MI_HAUTEUR
-                    BottomSheetBehavior.STATE_HALF_EXPANDED -> EtatPanneau.ETENDU
-                    else -> EtatPanneau.MI_HAUTEUR
-                }
-            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
-        }
-
-        liaison.boutonFermerPanneau.setOnClickListener {
-            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
-        }
+        brancherBoutonsEntetePanneau()
 
         // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de la
         // ligne d'activité — câblé par le PanneauToolingController (v4,
@@ -1064,6 +1088,55 @@ class EditorActivity :
                 override fun onTabReselected(tab: TabLayout.Tab) = Unit
             },
         )
+    }
+
+    /**
+     * Boutons de la tête du panneau inférieur (v0.80.1 : extraits de
+     * [brancherPanneauInferieur]) : appui d'en-tête = replié <->
+     * mi-hauteur (prompt compagnon 5.5) ; agrandir = replié -> mi-hauteur
+     * -> étendu, puis redescend ; réduire. Sur l'onglet CONSOLE, la ligne
+     * tooling EST l'en-tête — son appui bascule replié <-> mi-hauteur
+     * comme la première section (le glissement du sheet reste prioritaire
+     * : le comportement intercepte le geste dès qu'il dépasse le seuil de
+     * mouvement).
+     */
+    private fun brancherBoutonsEntetePanneau() {
+        // En-tête : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
+        liaison.entetePanneau.setOnClickListener {
+            val cible =
+                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
+                    EtatPanneau.MI_HAUTEUR
+                } else {
+                    EtatPanneau.REPLIE
+                }
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
+        }
+
+        // Agrandir : replié -> mi-hauteur -> étendu, puis redescend.
+        liaison.boutonAgrandirPanneau.setOnClickListener {
+            val cible =
+                when (comportementPanneau.state) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> EtatPanneau.MI_HAUTEUR
+                    BottomSheetBehavior.STATE_HALF_EXPANDED -> EtatPanneau.ETENDU
+                    else -> EtatPanneau.MI_HAUTEUR
+                }
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
+        }
+
+        liaison.boutonFermerPanneau.setOnClickListener {
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
+        }
+
+        // v0.80.1 : ligne tooling = en-tête de l'onglet Console.
+        liaison.ligneTooling.setOnClickListener {
+            val cible =
+                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
+                    EtatPanneau.MI_HAUTEUR
+                } else {
+                    EtatPanneau.REPLIE
+                }
+            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
+        }
     }
 
     /** Rend l'état : titre (type en sous-titre), onglets, éditeur, panneau,
@@ -1484,22 +1557,106 @@ class EditorActivity :
         // tiroir ne doivent pas être cachés, et réciproquement).
         montrerFragmentPanneau(etat.ongletPanneau)
 
-        // Titre de l'en-tête : libellé de l'onglet actif du panneau.
-        liaison.titrePanneau.setText(libelleOngletPanneau(etat.ongletPanneau))
+        // v0.80.1 : la composition de l'en-tête suit l'onglet actif —
+        // Console n'a PAS de première section, la ligne tooling EST
+        // l'en-tête ; Problèmes et Journal gardent la section titre avec
+        // les informations correspondantes (badge, sous-titre).
+        controleurTooling?.definirOnglet(etat.ongletPanneau)
+        rendreEntetePanneau()
+    }
 
-        // Badge (compte du journal — le rendu de la fenêtre vit dans
-        // PanneauJournalFragment).
-        liaison.badgePanneau.isVisible = etat.ongletPanneau == OngletPanneau.JOURNAL && etat.entreesJournal.isNotEmpty()
+    /**
+     * Rend la première section de l'en-tête du panneau (v0.80.1) : titre
+     * de l'onglet actif, sous-titre d'INFORMATIONS correspondant (compte
+     * de diagnostics pour Problèmes, compte d'entrées pour Journal),
+     * badge de compte — et la visibilité même de la section : GONE sur
+     * l'onglet Console (elle y est inutile, la ligne tooling sert
+     * d'en-tête), VISIBLE sinon (sous réserve du fondu d'extension).
+     */
+    private fun rendreEntetePanneau() {
+        val etat = viewModel.etat.value
+        val etatGradle = viewModel.etatGradle.value
+        val onglet = etat.ongletPanneau
+
+        // Titre de l'en-tête : libellé de l'onglet actif du panneau.
+        liaison.titrePanneau.setText(libelleOngletPanneau(onglet))
+
+        // Badge de compte : entrées du Journal, diagnostics des Problèmes.
+        val compte =
+            when (onglet) {
+                OngletPanneau.CONSOLE -> 0
+                OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
+                OngletPanneau.JOURNAL -> etat.entreesJournal.size
+            }
+        liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0
         if (liaison.badgePanneau.isVisible) {
             // Formatage explicite indépendant de la locale (SetTextI18n).
-            liaison.badgePanneau.text = String.format(java.util.Locale.ROOT, "%d", etat.entreesJournal.size)
+            liaison.badgePanneau.text = String.format(java.util.Locale.ROOT, "%d", compte)
             liaison.badgePanneau.contentDescription =
-                resources.getQuantityString(
-                    R.plurals.editor_panneau_badge_cd,
-                    etat.entreesJournal.size,
-                    etat.entreesJournal.size,
-                )
+                when (onglet) {
+                    OngletPanneau.PROBLEMES -> {
+                        resources.getQuantityString(
+                            R.plurals.editor_panneau_problemes_compte,
+                            compte,
+                            compte,
+                        )
+                    }
+
+                    else -> {
+                        resources.getQuantityString(
+                            R.plurals.editor_panneau_badge_cd,
+                            compte,
+                            compte,
+                        )
+                    }
+                }
         }
+
+        // Sous-titre d'informations de l'onglet actif.
+        when (onglet) {
+            OngletPanneau.CONSOLE -> {
+                liaison.sousTitrePanneau.isVisible = false
+            }
+
+            OngletPanneau.PROBLEMES -> {
+                liaison.sousTitrePanneau.isVisible = true
+                liaison.sousTitrePanneau.text =
+                    if (compte == 0) {
+                        getString(R.string.editor_panneau_aucun_probleme)
+                    } else {
+                        resources.getQuantityString(R.plurals.editor_panneau_problemes_compte, compte, compte)
+                    }
+            }
+
+            OngletPanneau.JOURNAL -> {
+                liaison.sousTitrePanneau.isVisible = true
+                liaison.sousTitrePanneau.text =
+                    if (compte == 0) {
+                        getString(R.string.editor_panneau_journal_vide)
+                    } else {
+                        resources.getQuantityString(R.plurals.editor_panneau_journal_compte, compte, compte)
+                    }
+            }
+        }
+
+        // Visibilité de la section : GONE sur Console (la ligne tooling
+        // prend sa place dans le peek), soumise au fondu sinon.
+        majVisibiliteEntetePanneau()
+    }
+
+    /**
+     * Visibilité effective de la première section : GONE sur l'onglet
+     * Console (v0.80.1 — elle n'y porte aucune information), INVISIBLE
+     * sous le seuil du fondu sur les autres onglets (la hauteur de la
+     * feuille ne saute pas en cours de glissement), VISIBLE sinon.
+     */
+    private fun majVisibiliteEntetePanneau() {
+        liaison.entetePanneau.visibility =
+            when {
+                viewModel.etat.value.ongletPanneau == OngletPanneau.CONSOLE -> View.GONE
+                alphaEnteteCourant > SEUIL_FONDU_VISIBLE -> View.VISIBLE
+                else -> View.INVISIBLE
+            }
     }
 
     /** Montre le fragment de l'[onglet] du panneau et cache les deux
@@ -1520,22 +1677,40 @@ class EditorActivity :
      * tooling) reste OPAQUE jusqu'à mi-hauteur puis s'éteint
      * progressivement — entièrement disparu à l'extension : la console
      * étendue prend tout l'écran, l'en-tête n'y a plus de place.
-     * INVISIBLE (pas GONE) une fois éteint : la hauteur de la feuille
-     * ne saute pas en cours de glissement, et les appuis fantômes
-     * cessent (les vues invisibles ne reçoivent plus les touches).
+     * INVISIBLE (pas GONE) une fois éteint sur Problèmes/Journal : la
+     * hauteur de la feuille ne saute pas en cours de glissement, et les
+     * appuis fantômes cessent (les vues invisibles ne reçoivent plus les
+     * touches). Sur l'onglet Console (v0.80.1), la première section est
+     * GONE — seule la ligne tooling (si active) partage le fondu.
      *
      * @param glissement fraction de glissement du sheet (0 replié,
-     *        1 étendu) — posée par trame par [androidx.core.view.WindowCompat]
-     *        onSlide ou par l'état stabilisé.
+     *        1 étendu) — posée par trame par onSlide ou par l'état
+     *        stabilisé.
      */
     private fun appliquerFonduEntete(glissement: Float) {
         val alpha =
             (1f - (glissement - FRACTION_MI_HAUTEUR) / (1f - FRACTION_MI_HAUTEUR)).coerceIn(0f, 1f)
+        alphaEnteteCourant = alpha
         liaison.entetePanneau.alpha = alpha
         liaison.ligneTooling.alpha = alpha
-        val visible = alpha > SEUIL_FONDU_VISIBLE
-        liaison.entetePanneau.isVisible = visible
+        majVisibiliteEntetePanneau()
         controleurTooling?.appliquerFondu(alpha)
+    }
+
+    /**
+     * Ancrage du sheet étendu (v0.80.1, alignement AndroidIDE) : le haut
+     * du panneau étendu rejoint le HAUT DE LA ZONE D'ÉDITION — sous la
+     * toolbar et les onglets de fichiers, qui restent visibles et
+     * utilisables (jamais recouverts par le sheet, comme
+     * `EditorBottomSheet.setOffsetAnchor(editorAppBarLayout)` côté
+     * AndroidIDE). Reposé à chaque layout : rotation, insets, onglets de
+     * fichiers qui apparaissent ou disparaissent.
+     */
+    private fun poserAncragePanneau() {
+        val ancrage = liaison.conteneurEditeur.top
+        if (ancrage > 0 && comportementPanneau.expandedOffset != ancrage) {
+            comportementPanneau.expandedOffset = ancrage
+        }
     }
 
     /** Fragments du panneau inférieur, par tag. */

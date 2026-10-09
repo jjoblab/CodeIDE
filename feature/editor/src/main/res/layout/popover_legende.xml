@@ -32,6 +32,47 @@
             android:textSize="13sp"
             android:textStyle="bold" />
 
+        <!-- Affichage (v0.80.1) : les trois bascules de l'explorateur,
+             enfin câblées — compactage, fichiers cachés, dossiers de
+             build (.gradle et app/build visibles par défaut). Le popover
+             reste ouvert : l'utilisateur peut enchaîner les bascules. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/legende_affichage"
+            android:textAllCaps="true"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="10sp" tools:ignore="SmallSp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/case_affichage_compact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:minHeight="34dp"
+            android:text="@string/legende_compact"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11.5sp" tools:ignore="SmallSp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/case_masquer_fichiers_caches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="34dp"
+            android:text="@string/legende_masquer_caches"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11.5sp" tools:ignore="SmallSp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/case_masquer_dossiers_build"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="34dp"
+            android:text="@string/legende_masquer_build"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11.5sp" tools:ignore="SmallSp" />
+
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

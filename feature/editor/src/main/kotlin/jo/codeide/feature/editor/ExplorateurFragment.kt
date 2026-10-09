@@ -960,12 +960,41 @@ class ExplorateurFragment : Fragment() {
         }
     }
 
-    /** Popover « Légende » (§ 10.5) : pastilles figées + notation. */
+    /** Popover « Légende » (§ 10.5 ; v0.80.1 : section Affichage) : les
+     *  trois bascules de l'explorateur — compactage, fichiers cachés,
+     *  dossiers de build — pré-cochées depuis l'état, chaque case envoie
+     *  l'action correspondante SANS refermer le popover (les bascules
+     *  s'enchaînent), puis pastilles figées + notation. */
     private fun montrerPopoverLegende(
         x: Int,
         y: Int,
     ) {
+        val etat = viewModel.etat.value
         popover.montrer(R.layout.popover_legende, x, y) { vue ->
+            vue
+                .findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.case_affichage_compact)
+                ?.apply {
+                    isChecked = etat.affichageCompact
+                    setOnClickListener {
+                        viewModel.onAction(ActionEditor.BasculerAffichageCompact)
+                    }
+                }
+            vue
+                .findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.case_masquer_fichiers_caches)
+                ?.apply {
+                    isChecked = etat.masquerFichiersCaches
+                    setOnClickListener {
+                        viewModel.onAction(ActionEditor.BasculerFichiersCaches)
+                    }
+                }
+            vue
+                .findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.case_masquer_dossiers_build)
+                ?.apply {
+                    isChecked = etat.masquerDossiersBuild
+                    setOnClickListener {
+                        viewModel.onAction(ActionEditor.BasculerDossiersBuild)
+                    }
+                }
             vue
                 .findViewById<jo.codeide.feature.editor.VuePointEtat>(R.id.legende_point_defaut)
                 .programmer(jo.codeide.feature.editor.VuePointEtat.EtatPoint.DEFAUT)

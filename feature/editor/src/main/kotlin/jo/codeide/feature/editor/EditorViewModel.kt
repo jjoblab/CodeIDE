@@ -72,6 +72,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -686,6 +687,14 @@ class EditorViewModel
             when (action) {
                 ActionEditor.Rafraichir -> {
                     rafraichir()
+                }
+
+                ActionEditor.DemarrerSurveillanceArbre -> {
+                    demarrerSurveillanceArbre()
+                }
+
+                ActionEditor.ArreterSurveillanceArbre -> {
+                    arreterSurveillanceArbre()
                 }
 
                 is ActionEditor.BasculerNoeud -> {
@@ -1542,6 +1551,129 @@ class EditorViewModel
             if (etatInterne.value.verificationAcces) return
             reinitialiser()
             verifierEtChargerRacine()
+        }
+
+        // ------------------------------------------------------------------
+        // Surveillance de l'arbre (v0.80.1)
+        // ------------------------------------------------------------------
+
+        /** Balayage périodique en cours, ou `null` (arrêté). */
+        private var travailSurveillance: Job? = null
+
+        /**
+         * Démarre la surveillance de l'arbre affiché (v0.80.1) : un balayage
+         * périodique re-liste les dossiers CONNUS (en cache) et met à jour
+         * l'arbre quand le système de fichiers a changé — Gradle qui pose
+         * `.gradle/` et `app/build/` en plein espace ouvert, terminal,
+         * autre application. Sans observateur fiable côté SAF (le pont
+         * FUSE n'est pas garanti sur tous les appareils, les URI n'ont pas
+         * de ContentObserver), le balayage comparatif est le seul mécanisme
+         * qui couvre les DEUX arbres (projet SAF et stockage privé).
+         *
+         * Comparaison par (URI, type) : un changement de contenu seul ne
+         * reconstruit pas l'arbre — seules les lignes visibles comptent.
+         * Idempotent : redémarrer une surveillance active ne fait rien.
+         *
+         * @param periodeMs période du balayage — paramètre de test (la
+         *        période de production est [PERIODE_SURVEILLANCE_MS]).
+         */
+        internal fun demarrerSurveillanceArbre(periodeMs: Long = PERIODE_SURVEILLANCE_MS) {
+            if (travailSurveillance?.isActive == true) return
+            travailSurveillance =
+                viewModelScope.launch {
+                    while (isActive) {
+                        delay(periodeMs)
+                        balayerArbre()
+                    }
+                }
+        }
+
+        /** Arrête la surveillance (l'espace n'est plus visible). */
+        internal fun arreterSurveillanceArbre() {
+            travailSurveillance?.cancel()
+            travailSurveillance = null
+        }
+
+        /**
+         * Un balayage : re-liste chaque dossier en cache de l'arbre
+         * affiché (borné à [SEUIL_SURVEILLANCE], dépliés d'abord — ce sont
+         * leurs enfants que l'écran montre), met à jour le cache si le
+         * contenu a changé et purge les dossiers disparus (NotFound) avec
+         * leurs sous-arbres. Un échec d'accès (permission perdue) arrête
+         * le balayage SANS toucher l'état — le bandeau d'accès relève de
+         * `Rafraichir` et du suivi du registre, pas d'un balayage discret.
+         */
+        private suspend fun balayerArbre() {
+            val arbre = arbre
+            val uris =
+                arbre.enfantsEnCache.keys
+                    .sortedByDescending { it in arbre.dossiersDeplies }
+                    .take(SEUIL_SURVEILLANCE)
+            var changements = false
+            for (uri in uris) {
+                when (val resultat = systeme.list(uri)) {
+                    is AppResult.Success -> {
+                        val enfants = resultat.value.tries()
+                        val connus = arbre.enfantsEnCache[uri] ?: continue
+                        if (!memeContenu(connus, enfants)) {
+                            arbre.enfantsEnCache[uri] = enfants
+                            majStatutsParents(arbre, uri, enfants)
+                            changements = true
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        if ((resultat.error as? AppError.Storage)?.reason ==
+                            AppError.StorageReason.NotFound
+                        ) {
+                            // Dossier disparu : cache et plis oubliés, le
+                            // parent le retirera de la liste à son propre
+                            // balayage (ou au dépliage suivant).
+                            purgerSousArbre(arbre, uri)
+                            changements = true
+                        } else {
+                            // Permission perdue ou E/S passagère : le
+                            // balayage s'interrompt discrètement — jamais
+                            // d'état d'erreur inventé par la surveillance.
+                            return
+                        }
+                    }
+                }
+            }
+            if (changements) reconstruireNoeuds()
+        }
+
+        /** Les deux listes montrent-elles les mêmes lignes (URI + type) ? */
+        private fun memeContenu(
+            anciens: List<FileStat>,
+            nouveaux: List<FileStat>,
+        ): Boolean {
+            if (anciens.size != nouveaux.size) return false
+            return anciens.zip(nouveaux).all { (ancien, nouveau) ->
+                ancien.uri == nouveau.uri && ancien.isDirectory == nouveau.isDirectory
+            }
+        }
+
+        /** Consigne les statuts et parents des enfants énumérés. */
+        private fun majStatutsParents(
+            arbre: EtatArbre,
+            uriDossier: String,
+            enfants: List<FileStat>,
+        ) {
+            enfants.forEach { enfant ->
+                arbre.statuts[enfant.uri] = enfant
+                arbre.parents[enfant.uri] = uriDossier
+            }
+        }
+
+        /** Oublie le dossier [uri], ses caches enfants et leurs plis. */
+        private fun purgerSousArbre(
+            arbre: EtatArbre,
+            uri: String,
+        ) {
+            arbre.enfantsEnCache.keys.removeAll { it == uri || it.startsWith("$uri/") }
+            arbre.dossiersDeplies.removeAll { it == uri || it.startsWith("$uri/") }
+            arbre.statuts.keys.removeAll { it.startsWith("$uri/") }
         }
 
         /**
@@ -3348,6 +3480,16 @@ class EditorViewModel
         internal companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /** Période du balayage de surveillance de l'arbre (v0.80.1) :
+             *  un changement externe (Gradle, terminal) apparaît dans
+             *  l'explorateur en moins d'une période. */
+            const val PERIODE_SURVEILLANCE_MS = 4_000L
+
+            /** Nombre maximal de dossiers balayés par cycle (v0.80.1) —
+             *  borne le coût E/S d'un arbre très déplié (chaque `list` SAF
+             *  est une requête de fournisseur). */
+            const val SEUIL_SURVEILLANCE = 25
 
             /**
              * Garde de temps pour attendre le premier état OUTILS avant la
