@@ -419,11 +419,11 @@ class LocalisationOutilsTest {
     fun `androidJar retient la plateforme la plus récente`() {
         val racine = racineFactice()
         deposerFichier(racine, "usr", "opt", "android-sdk", "platforms", "android-34", "android.jar")
-        deposerFichier(racine, "usr", "opt", "android-sdk", "platforms", "android-37", "android.jar")
+        deposerFichier(racine, "usr", "opt", "android-sdk", "platforms", "android-36", "android.jar")
 
         val jar = LocalisationOutils.trouverAndroidJar(File(racine, "usr/opt/android-sdk"))
 
-        assertTrue(jar?.absolutePath?.endsWith("platforms/android-37/android.jar") == true)
+        assertTrue(jar?.absolutePath?.endsWith("platforms/android-36/android.jar") == true)
     }
 
     // -------------------------------------------------------------------------

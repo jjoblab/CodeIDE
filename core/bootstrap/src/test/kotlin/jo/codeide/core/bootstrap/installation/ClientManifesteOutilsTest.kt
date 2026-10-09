@@ -156,22 +156,22 @@ class ClientManifesteOutilsTest {
                 },
                 {
                   "id": "platform",
-                  "version": "android-37.2",
+                  "version": "android-36",
                   "revision": "r1",
                   "arch": "any",
                   "sources": ["https://a.example/y"],
                   "sha256": "$SOMME_2",
                   "size": 50000000,
-                  "installPath": "platforms/android-37.2",
+                  "installPath": "platforms/android-36",
                   "critical": true,
                   "verify": { "cmd": "unzip -l android.jar", "expect": ".*" }
                 }
               ],
               "profiles": {
-                "default": ["build-tools@35.0.2", "platform@android-37.2"]
+                "default": ["build-tools@35.0.2", "platform@android-36"]
               },
               "compat": [
-                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-37.2", "jdk": ">=17", "status": "tested" }
+                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-36", "jdk": ">=17", "status": "tested" }
               ]
             }
             """
@@ -189,7 +189,7 @@ class ClientManifesteOutilsTest {
         assertEquals(2, manifeste.value.schemaVersion)
         assertTrue("profil default présent", manifeste.value.profiles.containsKey("default"))
         assertEquals(
-            listOf("build-tools@35.0.2", "platform@android-37.2"),
+            listOf("build-tools@35.0.2", "platform@android-36"),
             manifeste.value.profiles["default"],
         )
     }
@@ -208,22 +208,22 @@ class ClientManifesteOutilsTest {
                   "verify": { "cmd": "aapt2 --version", "expect": "Android Asset Packaging Tool" }
                 },
                 {
-                  "id": "platform", "version": "android-37.2", "revision": "r1", "arch": "any",
+                  "id": "platform", "version": "android-36", "revision": "r1", "arch": "any",
                   "sources": ["https://example.com/platform.zip"],
                   "sha256": "${"b".repeat(64)}",
                   "size": 5678,
-                  "installPath": "platforms/android-37.2",
+                  "installPath": "platforms/android-36",
                   "verify": { "cmd": "unzip -l android.jar", "expect": ".*" }
                 }
               ],
               "profiles": {
                 "default": {
-                  "components": ["build-tools@35.0.2", "platform@android-37.2"],
+                  "components": ["build-tools@35.0.2", "platform@android-36"],
                   "description": "Chaine recommandee"
                 }
               },
               "compat": [
-                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-37.2", "jdk": ">=17", "status": "tested" }
+                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-36", "jdk": ">=17", "status": "tested" }
               ]
             }
             """
