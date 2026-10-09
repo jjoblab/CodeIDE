@@ -87,14 +87,3 @@ abstract class ApercuSimpleFragment(
         super.onDestroyView()
     }
 }
-
-/** Destination « Recherche » du tiroir (étape 31) : aperçu orange. */
-class RechercheFragment :
-    ApercuSimpleFragment(
-        titre = R.string.apercu_recherche_titre,
-        sousTitre = R.string.apercu_recherche_sous_titre,
-        description = R.string.apercu_recherche_description,
-        iconeEmbleme = jo.codeide.core.ui.R.drawable.ic_recherche,
-        fondEmbleme = R.drawable.fond_embleme_entete_orange,
-        teinteEmbleme = jo.codeide.core.ui.R.color.codeide_explorateur_rouge,
-    )
