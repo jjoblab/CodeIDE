@@ -72,6 +72,7 @@ Réutilise `FeuilleTachesFragment`.
 | P1 | ✅ Livré | Protocole v7 : `BuildScriptsRequest/Result` + `BuildScriptsHandler` serveur + `LecteurScriptsDeBuild` JVM |
 | P2 | ✅ Livré | Fragment `ProjetFragment` + `ProjetViewModel` + port `GradleToolingRepository.scriptsBuild` + 5e destination du rail |
 | P3 | ✅ Livré | Onglet Dépendances : `ParseurDependances` (regex implementation/api/etc.) + UI |
-| P4 | ⏳ Protocole prêt | `ResolvedDependenciesRequest/Result` (v7) + handler stub — branchement IdeaProject + transitives en P6+ |
-| P5 | ⏳ Protocole prêt | `BuildVariantsRequest/Result` (v7) + handler stub + onglet Tâches (FeuilleTachesFragment) — branchement AGP TAPI en P6+ |
-| P6 | ⏳ À venir | Mises à jour Maven (`maven-metadata.xml`), édition des scripts, branchement IdeaProject + AGP TAPI |
+| P4 | ✅ Livré | `ResolvedDependenciesRequest/Result` (v7) + handler branché à `IdeaProject` (dépendances directes, transitives à venir P6+) |
+| P5 | ⏳ Protocole prêt | `BuildVariantsRequest/Result` (v7) + handler stub + onglet Tâches (FeuilleTachesFragment). Branchement AGP TAPI nécessite ajout `com.android.tools.build:gradle-api` (~10 Mo) au serveur — décision reportée |
+| P6 | ✅ Port + impl livrés | `MavenVersionesDisponibles` (port) + `ClientMavenHttp` (impl HttpURLConnection) + ADR 0097. UI onglet « Mises à jour » à venir |
+| P6+ | ⏳ À venir | Édition des scripts, dépendances transitives (`dependencyInsight`), UI onglet « Mises à jour » |
