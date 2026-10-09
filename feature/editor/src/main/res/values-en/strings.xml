@@ -383,7 +383,10 @@
     <string name="git_message_hint">Commit message…</string>
     <string name="git_committer">Commit</string>
     <string name="git_aucun_changement">No changes</string>
-    <string name="git_n_changements">%d changes</string>
+    <plurals name="git_n_changements">
+        <item quantity="one">%d change</item>
+        <item quantity="other">%d changes</item>
+    </plurals>
 
     <!-- Toolbar: closing the workspace (moved from the v1 header). -->
     <string name="editor_action_fermer_projet">Close the project</string>
