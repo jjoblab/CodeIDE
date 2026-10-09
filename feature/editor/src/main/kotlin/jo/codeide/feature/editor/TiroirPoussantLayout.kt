@@ -3,6 +3,7 @@ package jo.codeide.feature.editor
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.view.children
 import androidx.drawerlayout.widget.DrawerLayout
 
 /**
@@ -39,6 +40,42 @@ internal class TiroirPoussantLayout
                 findViewById<View>(idContenu)?.translationX = 0f
             }
         }
+
+        /**
+         * Recalcule la translation du contenu pour la largeur COURANTE du
+         * tiroir (v0.80.1, retour utilisateur) : un redimensionnement par
+         * la poignée ⋮ alors que le tiroir est OUVERT ne passe PAS par
+         * [onDrawerSlide] — la zone centrale restait poussée à l'ANCIENNE
+         * largeur, son bord dérivait sous le tiroir (ou découvrait une
+         * bande vide). Appelée à chaque trame du glissement et de
+         * l'animation d'aimant, elle applique exactement la formule de
+         * [onDrawerSlide] : largeur du tiroir × facteur.
+         */
+        fun reevaluerTranslation() {
+            val contenu =
+                if (idContenu == 0) {
+                    null
+                } else {
+                    findViewById<View>(idContenu)
+                } ?: return
+            val vueTiroir = trouverTiroir()
+            if (vueTiroir == null || facteur <= 0f || !isDrawerOpen(vueTiroir)) {
+                contenu.translationX = 0f
+                return
+            }
+            val translation = vueTiroir.width * facteur
+            val lp = vueTiroir.layoutParams as LayoutParams
+            val graviteStart = lp.gravity == android.view.Gravity.START
+            contenu.translationX = if (graviteStart) translation else -translation
+        }
+
+        /** Le tiroir (enfant de gravité START ou END) de ce layout. */
+        private fun trouverTiroir(): View? =
+            children.firstOrNull { vue ->
+                (vue.layoutParams as? LayoutParams)?.gravity?.let { gravite ->
+                    gravite == android.view.Gravity.START || gravite == android.view.Gravity.END
+                } == true
+            }
 
         init {
             addDrawerListener(

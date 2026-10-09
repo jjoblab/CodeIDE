@@ -189,6 +189,28 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
+    fun `l en tete du panneau porte un sous-titre d informations pour problemes et journal`() {
+        val racine = gonfler(R.layout.activity_editor)
+        val entete = racine.findViewById<View>(R.id.entete_panneau)
+
+        // v0.80.1 : la première section porte un SOUS-TITRE d'informations
+        // correspondant à l'onglet actif (compte de diagnostics pour
+        // Problèmes, compte d'entrées pour Journal) — masqué par défaut
+        // (l'onglet Console n'a pas de première section).
+        val sousTitre = racine.findViewById<View>(R.id.sous_titre_panneau)
+        assertNotNull("sous-titre d'informations de la première section (v0.80.1)", sousTitre)
+        assertEquals(
+            "sous-titre masqué par défaut (v0.80.1)",
+            View.GONE,
+            sousTitre.visibility,
+        )
+        assertNotNull(
+            "le titre reste le premier enfant texte de la colonne titre (v0.80.1)",
+            entete.findViewById<View>(R.id.titre_panneau),
+        )
+    }
+
+    @Test
     fun `les fragments du panneau se gonflent avec leurs vues completes`() {
         val journal = gonfler(R.layout.fragment_panneau_journal)
         assertNotNull("filtres du journal (v0.32.4)", journal.findViewById<View>(R.id.filtres_journal))
@@ -412,6 +434,23 @@ class ActivityEditorLayoutTest {
         assertNotNull(gonfler(R.layout.popover_deplacer).findViewById<View>(R.id.champ_destination_deplacer))
         assertNotNull(gonfler(R.layout.popover_supprimer).findViewById<View>(R.id.message_supprimer))
         assertNotNull(gonfler(R.layout.popover_legende).findViewById<View>(R.id.legende_point_actif))
+
+        // v0.80.1 : section Affichage du popover Légende — les trois
+        // bascules de l'explorateur (compactage, fichiers cachés,
+        // dossiers de build) enfin CÂBLÉES à l'interface.
+        val legende = gonfler(R.layout.popover_legende)
+        assertNotNull(
+            "case compactage des dossiers (v0.80.1)",
+            legende.findViewById<View>(R.id.case_affichage_compact),
+        )
+        assertNotNull(
+            "case masquage des fichiers cachés (v0.80.1)",
+            legende.findViewById<View>(R.id.case_masquer_fichiers_caches),
+        )
+        assertNotNull(
+            "case masquage des dossiers de build (v0.80.1)",
+            legende.findViewById<View>(R.id.case_masquer_dossiers_build),
+        )
     }
 
     @Test
