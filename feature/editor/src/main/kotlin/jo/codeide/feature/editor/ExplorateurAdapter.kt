@@ -251,7 +251,14 @@ internal class ExplorateurAdapter(
                 else -> IconesFichiers.pourNom(noeud.nom)
             }
         liaison.iconeNoeud.setImageResource(icone)
-        liaison.iconeNoeud.setColorFilter(ContextCompat.getColor(contexte, teinteDossier(noeud)))
+        // Fix v0.76.0 : ne teinter que les dossiers (icônes IntelliJ de
+        // fichiers ont leurs propres couleurs — violet Kotlin, bleu Gradle,
+        // etc. — le setColorFilter les écrasait).
+        if (noeud.estDossier) {
+            liaison.iconeNoeud.setColorFilter(ContextCompat.getColor(contexte, teinteDossier(noeud)))
+        } else {
+            liaison.iconeNoeud.clearColorFilter()
+        }
 
         // La racine privée porte son libellé localisé (« Stockage
         // privé », § 9) — le ViewModel ne détient pas de ressources.
