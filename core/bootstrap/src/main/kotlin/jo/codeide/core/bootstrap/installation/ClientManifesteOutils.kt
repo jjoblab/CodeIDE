@@ -263,6 +263,7 @@ internal class ClientManifesteOutils
                         ),
                     license = if (json.has(CHAMP_LICENSE)) json.getString(CHAMP_LICENSE) else null,
                     minAndroidApi = if (json.has(CHAMP_MIN_API)) json.getInt(CHAMP_MIN_API) else null,
+                    archiveRoot = json.optString(CHAMP_ARCHIVE_ROOT, "").takeIf { it.isNotBlank() },
                 ),
             )
         }
@@ -314,6 +315,7 @@ internal class ClientManifesteOutils
             internal const val CHAMP_EXIT_CODE = "exitCode"
             internal const val CHAMP_LICENSE = "license"
             internal const val CHAMP_MIN_API = "minAndroidApi"
+            internal const val CHAMP_ARCHIVE_ROOT = "archiveRoot"
             internal const val CHAMP_AGP = "agp"
             internal const val CHAMP_BUILD_TOOLS = "buildTools"
             internal const val CHAMP_AAPT2 = "aapt2"
