@@ -278,14 +278,37 @@ internal class EtapeComposants(
      * contient `android-36/`, pas `platforms/android-36/`), la source
      * est `archiveRoot` extraite à la racine du staging, et la cible
      * reste `installPath` sous la racine du SDK.
+     *
+     * Tolérance manifeste caché : si `archiveRoot` est absent (manifeste
+     * ancien téléchargé avant le fix codeide-tools), on détecte
+     * automatiquement la racine extraite — le seul répertoire à la racine
+     * du staging. Si `installPath` est introuvable ET qu'un seul dossier
+     * existe au premier niveau du staging, on l'utilise comme source.
      */
     private suspend fun basculer(
         context: StepContext,
         composant: ManifestComponent,
     ) {
+        val stagingDir = staging(composant)
         val racineExtraite = composant.archiveRoot ?: composant.installPath
-        val source = File(staging(composant), racineExtraite)
+        var source = File(stagingDir, racineExtraite)
         val cible = File(racineSdk(racine), composant.installPath)
+
+        // Tolérance : si la source n'existe pas et archiveRoot est absent,
+        // on tente de détecter automatiquement la racine extraite (manifeste
+        // ancien sans archiveRoot — l'app peut avoir caché le manifeste
+        // avant le fix codeide-tools).
+        if (!source.isDirectory && composant.archiveRoot == null) {
+            val racineDetectee = detecterRacineExtraite(stagingDir)
+            if (racineDetectee != null) {
+                source = racineDetectee
+                context.journal(
+                    "composant ${composant.id} : racine extraite « $racineExtraite » introuvable, " +
+                        "racine auto-détectée « ${racineDetectee.name} » (manifeste sans archiveRoot, § 12.3)",
+                )
+            }
+        }
+
         if (!source.isDirectory) {
             echouer(
                 composant,
@@ -320,6 +343,18 @@ internal class EtapeComposants(
             )
         }
         context.journal("composant ${composant.id} : installPath « ${composant.installPath} » basculé")
+    }
+
+    /**
+     * Détecte la racine extraite quand `archiveRoot` est absent : le seul
+     * répertoire à la racine du staging (les archives Google comme
+     * `platform-36_r02.zip` contiennent un unique dossier `android-36/`).
+     * `null` si le staging contient 0 ou plusieurs répertoires au premier
+     * niveau (ambiguïté — on laisse l'échec d'origine se produire).
+     */
+    private fun detecterRacineExtraite(stagingDir: File): File? {
+        val dossiers = stagingDir.listFiles { f -> f.isDirectory } ?: return null
+        return if (dossiers.size == 1) dossiers[0] else null
     }
 
     /** Garde anti-traversée (§ 12.3) : tout chemin extrait doit rester sous le staging. */
