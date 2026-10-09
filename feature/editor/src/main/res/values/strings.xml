@@ -31,6 +31,7 @@
     <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3). -->
     <string name="editor_nav_explorateur">Fichiers</string>
     <string name="editor_nav_recherche">Recherche</string>
+    <string name="editor_nav_projet">Projet</string>
     <string name="editor_nav_git">Git</string>
     <string name="editor_nav_bientot">%1$s — bientôt disponible</string>
 
@@ -428,6 +429,21 @@
         <item quantity="one">%d changement</item>
         <item quantity="other">%d changements</item>
     </plurals>
+
+    <!-- Section Projet du tiroir (P2, ADR 0095). -->
+    <string name="projet_titre">Projet</string>
+    <string name="projet_actualiser_cd">Actualiser les scripts de build</string>
+    <string name="projet_onglet_scripts">Scripts</string>
+    <string name="projet_onglet_dependances">Dépendances</string>
+    <string name="projet_onglet_variantes">Variantes</string>
+    <string name="projet_onglet_taches">Tâches</string>
+    <string name="projet_aucun_script">Aucun script de build trouvé</string>
+    <string name="projet_chargement">Lecture des scripts…</string>
+    <string name="projet_erreur_chargement">Impossible de lire les scripts</string>
+    <string name="projet_scripts_octets">%1$s o</string>
+    <string name="projet_dependances_bientot">Dépendances résolues — à venir</string>
+    <string name="projet_variantes_bientot">Variantes de build — à venir</string>
+    <string name="projet_taches_ouvrir">Ouvrir les tâches Gradle</string>
 
     <!-- Toolbar : fermeture du projet (déplacée de l'entête v1). -->
     <string name="editor_action_fermer_projet">Fermer le projet</string>
