@@ -62,6 +62,12 @@ public data class ToolManifest(
  * l'environnement du § 12.4, répertoire courant = racine du SDK.
  * @property license licence amont (informatif).
  * @property minAndroidApi API Android minimale (informatif).
+ * @property archiveRoot racine de l'archive quand elle diffère de
+ *        [installPath] (zips Google : `platform-36_r02.zip` contient
+ *        `android-36/` à sa racine, PAS `platforms/android-36/`).
+ *        L'installateur extrait puis déplace `archiveRoot` vers
+ *        `installPath`. `null` = l'archive contient directement
+ *        `installPath/...` (contrat § 12.3 par défaut).
  */
 public data class ManifestComponent(
     public val id: String,
@@ -78,6 +84,7 @@ public data class ManifestComponent(
     public val verify: VerifySpec,
     public val license: String? = null,
     public val minAndroidApi: Int? = null,
+    public val archiveRoot: String? = null,
 ) {
     public companion object {
         /** Canal stable, seul canal consommé par l'application. */

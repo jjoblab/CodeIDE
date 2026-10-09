@@ -270,12 +270,21 @@ internal class EtapeComposants(
             url.endsWith(".zip", ignoreCase = true)
         } ?: false
 
-    /** Déplace l'`installPath` extrait vers la racine du SDK — atomique (même système de fichiers). */
+    /**
+     * Déplace l'`installPath` extrait vers la racine du SDK — atomique
+     * (même système de fichiers).
+     *
+     * Quand `archiveRoot` est défini (zips Google : `platform-36_r02.zip`
+     * contient `android-36/`, pas `platforms/android-36/`), la source
+     * est `archiveRoot` extraite à la racine du staging, et la cible
+     * reste `installPath` sous la racine du SDK.
+     */
     private suspend fun basculer(
         context: StepContext,
         composant: ManifestComponent,
     ) {
-        val source = File(staging(composant), composant.installPath)
+        val racineExtraite = composant.archiveRoot ?: composant.installPath
+        val source = File(staging(composant), racineExtraite)
         val cible = File(racineSdk(racine), composant.installPath)
         if (!source.isDirectory) {
             echouer(
@@ -283,8 +292,13 @@ internal class EtapeComposants(
                 AppError.EnvironmentSetup(
                     reason = EnvironmentSetupReason.ManifesteInvalide,
                     details =
-                        "l'archive de ${composant.id} ne contient pas l'installPath " +
-                            "« ${composant.installPath} » (contrat § 12.3 rompu)",
+                        "l'archive de ${composant.id} ne contient pas la racine " +
+                            "« $racineExtraite » " +
+                            if (composant.archiveRoot != null) {
+                                "(archiveRoot, contrat § 12.3 + additif archiveRoot)"
+                            } else {
+                                "(installPath, contrat § 12.3)"
+                            },
                 ),
             )
         }
