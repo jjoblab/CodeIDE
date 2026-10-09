@@ -1,0 +1,65 @@
+# Spécification Projet — section « Projet » du tiroir CodeIDE
+
+Référence de comportement : Android Studio (Project Structure →
+Dependencies, Build Variants, fenêtre Gradle).
+
+## 1. Périmètre
+
+La section « Projet » du tiroir (5e destination du rail) gère :
+dépendances déclarées et résolues, mises à jour, catalogue de versions,
+variantes de build, tâches Gradle. **Hors périmètre** : gestionnaire de
+SDK, résolution hors ligne, dépôts privés, signature, vulnérabilités.
+
+## 2. Architecture
+
+- **Protocole v7** : nouveau `ResolvedDependenciesRequest`/`Result`
+  (arbre avec transitives, versions, raisons) + `BuildVariantsRequest`/`Result`.
+- **Lecteur de scripts** : module pur JVM (Kotlin DSL, Groovy, TOML),
+  lecture via FUSE.
+- **Client HTTP** : `maven-metadata.xml` pour les versions disponibles.
+- **Tâches** : réutilise `FeuilleTachesFragment` existant.
+
+## 3. Écrans
+
+### 3.1 Onglet « Dépendances déclarées »
+
+Sélecteur de module (liste) → liste des dépendances triées par
+configuration puis nom. Chaque ligne : icône (bibliothèque/module/jar),
+`groupe:nom`, version, configuration. Toucher → feuille de détails :
+version actuelle, versions disponibles, configuration, Aller au fichier,
+Supprimer (confirmation). Ajout (+) : bibliothèque (recherche),
+module, jar local. Après écriture : bandeau « Synchroniser ».
+
+### 3.2 Onglet « Dépendances résolues »
+
+Arbre par configuration/variante. Bascule arbre/liste. Recherche.
+Conflits mis en évidence (version demandée ≠ retenue). Vue inverse
+« qui dépend de ça ». Copie des coordonnées. Chargement paresseux.
+
+### 3.3 Onglet « Mises à jour »
+
+Indicateur par dépendance. Choix d'une version proposée. Mise à niveau
+groupée avec aperçu. Avertissement pour versions dynamiques (`+`).
+Support `libs.versions.toml` : alias, références partagées.
+
+### 3.4 Onglet « Variantes »
+
+Sélecteur par module (debug/release, product flavors, build types).
+Variante mémorisée par projet, réellement utilisée par les builds et
+les classpaths LSP.
+
+### 3.5 Onglet « Tâches »
+
+Arbre par module puis par groupe. Recherche. Lancement (réutilise
+l'exécution et la console existantes). Tâches récentes et favorites.
+Réutilise `FeuilleTachesFragment`.
+
+## 4. Critères d'acceptation
+
+1. Dépendances déclarées lues depuis les scripts de build et le catalogue.
+2. Dépendances résolues avec arbre, transitives, versions, raisons.
+3. Modification des scripts (ajout/suppression/montée de version) sûre.
+4. Versions disponibles depuis Maven (cache, hors ligne).
+5. Variantes sélectionnables et réellement utilisées.
+6. Tâches Gradle parcourables et lançables.
+7. Aucune régression sur le tooling, l'éditeur, les autres fragments.
