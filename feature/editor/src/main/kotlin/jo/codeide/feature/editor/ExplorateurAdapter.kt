@@ -251,14 +251,14 @@ internal class ExplorateurAdapter(
                 else -> IconesFichiers.pourNom(noeud.nom)
             }
         liaison.iconeNoeud.setImageResource(icone)
-        // Fix v0.76.0 : ne teinter que les dossiers (icônes IntelliJ de
-        // fichiers ont leurs propres couleurs — violet Kotlin, bleu Gradle,
-        // etc. — le setColorFilter les écrasait).
-        if (noeud.estDossier) {
-            liaison.iconeNoeud.setColorFilter(ContextCompat.getColor(contexte, teinteDossier(noeud)))
-        } else {
-            liaison.iconeNoeud.clearColorFilter()
-        }
+        // v0.80.2 (retour utilisateur, parité Android Studio) : PLUS
+        // AUCUN filtre de couleur sur les icônes — les dossiers affichent
+        // les couleurs officielles de `nodes/folder.svg` (gris clair /
+        // gris foncé selon le thème, identique replié et déplié), les
+        // icônes de fichiers leurs propres couleurs (violet Kotlin, bleu
+        // Gradle, etc.). Un résidu de filtre d'une ligne recyclée est
+        // systématiquement effacé.
+        liaison.iconeNoeud.clearColorFilter()
 
         // La racine privée porte son libellé localisé (« Stockage
         // privé », § 9) — le ViewModel ne détient pas de ressources.
@@ -326,15 +326,6 @@ internal class ExplorateurAdapter(
         vue.getLocationOnScreen(position)
         return position[1] + vue.height / 2
     }
-
-    /** Teinte du dossier selon le contexte (§ 8). */
-    private fun teinteDossier(noeud: NoeudExplorateur): Int =
-        when {
-            noeud.estRacine && noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_racine_prive
-            noeud.estRacine -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_racine_projet
-            noeud.prive -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier_prive
-            else -> jo.codeide.core.ui.R.color.codeide_explorateur_dossier
-        }
 
     // ------------------------------------------------------------------
     // Éditeur inline (§ 11)

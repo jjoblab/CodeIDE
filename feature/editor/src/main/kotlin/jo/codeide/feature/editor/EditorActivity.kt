@@ -164,6 +164,10 @@ class EditorActivity :
      *  par instance sauvegardée). */
     private var largeurTiroirPx: Int = 0
 
+    /** Fraction d'ouverture du tiroir (v0.80.2 : 0 fermé, 1 ouvert) — pilote
+     *  la position de la poignée racine qui suit le bord du tiroir. */
+    private var fractionTiroir = 0f
+
     /** Masquage automatique du snackbar (4 600 ms, § 15). */
     private var travailSnackbar: Job? = null
 
@@ -174,6 +178,12 @@ class EditorActivity :
      *  la visibilité de la première section avec l'onglet actif — GONE sur
      *  Console, INVISIBLE sous le seuil du fondu sinon. */
     private var alphaEnteteCourant = 1f
+
+    /** Le sheet inférieur est-il ÉTENDU (état stabilisé, v0.80.2) : la
+     *  première section disparaît alors COMPLÈTEMENT (GONE — les onglets
+     *  montent au sommet du sheet, comme l'en-tête ViewFlipper d'AndroidIDE
+     *  qui s'efface à l'extension). */
+    private var sheetEtenduStable = false
 
     /** Clavier visible selon les insets IME (API 30+) ? */
     private var clavierParInsets = false
@@ -327,6 +337,14 @@ class EditorActivity :
         // E2 (ADR 0093) : configure le TiroirPoussantLayout.
         (liaison.racineEditeur as? TiroirPoussantLayout)?.let { tiroir ->
             tiroir.idContenu = R.id.zone_centrale
+            // v0.80.2 : le conteneur de la poignée est DERNIER enfant de la
+            // racine — l'ordre des enfants le dessine au-dessus du tiroir et
+            // l'itération inverse des touches le sert avant lui. Condition :
+            // l'élévation du tiroir à 0 (DrawerLayout la force à 10 dp par
+            // défaut — le tri par Z des enfants passerait la poignée SOUS le
+            // tiroir, au dessin comme aux touches).
+            tiroir.setConteneurPoignee(liaison.conteneurPoignee)
+            liaison.racineEditeur.setDrawerElevation(0f)
         }
 
         // Clic bascule (ouvre si fermé, ferme si ouvert).
@@ -346,6 +364,11 @@ class EditorActivity :
                 ) {
                     // E1 : met à jour la fraction de l'icône animée.
                     iconeTiroir.setFraction(slideOffset)
+                    // v0.80.2 : la poignée racine suit le bord du tiroir
+                    // image par image (elle chevauche le bord, jamais cachée
+                    // dedans) et se fond quand le tiroir se referme.
+                    fractionTiroir = slideOffset.coerceIn(0f, 1f)
+                    recalerPoignee()
                 }
 
                 override fun onDrawerStateChanged(nouvelEtat: Int) {
@@ -360,6 +383,8 @@ class EditorActivity :
                     majRetourSysteme(tiroirOuvert = true)
                     liaison.toolbarEditeur.navigationContentDescription =
                         getString(R.string.editor_fermer_tiroir_cd)
+                    fractionTiroir = 1f
+                    recalerPoignee()
                 }
 
                 override fun onDrawerClosed(vueTiroir: View) {
@@ -367,6 +392,8 @@ class EditorActivity :
                     liaison.toolbarEditeur.navigationContentDescription =
                         getString(R.string.editor_ouvrir_tiroir_cd)
                     iconeTiroir.setFraction(0f)
+                    fractionTiroir = 0f
+                    recalerPoignee()
                 }
             },
         )
@@ -570,7 +597,13 @@ class EditorActivity :
      */
     private fun brancherPoignee() {
         val dp = resources.displayMetrics.density
+        // v0.80.2 : fraction initiale (tiroir verrouillé ouvert sur grand
+        // écran — la poignée est déjà en place au premier affichage).
+        fractionTiroir = if (liaison.racineEditeur.isDrawerOpen(liaison.tiroir)) 1f else 0f
         appliquerLargeurTiroir(initialiserSiNecessaire = true)
+        // Rotation, insets, premier layout : le recalage vertical de la
+        // poignée (centrée sur la hauteur du tiroir) suit chaque layout.
+        liaison.racineEditeur.viewTreeObserver.addOnGlobalLayoutListener { recalerPoignee() }
         // Exemption ClickableViewAccessibility : performClick() est bien
         // appelé au ACTION_UP (le glissement n'est pas un clic ordinaire).
         @Suppress("ClickableViewAccessibility")
@@ -648,15 +681,16 @@ class EditorActivity :
             .start()
     }
 
-    /** Largeur visible du tiroir : fraction de l'écran bornée 45-98 %
-     *  (§ 13) ; le débord de la poignée (13 dp) s'ajoute à la vue. */
+    /** Largeur du tiroir : fraction de l'écran bornée 45-98 %
+     *  (§ 13). v0.80.2 : la vue du tiroir est exactement aussi large que
+     *  son fond — plus de débord de 13 dp (la poignée vit désormais à la
+     *  racine, à cheval réel sur le bord). */
     private fun appliquerLargeurTiroir(
         largeurVisible: Int? = null,
         animer: Boolean = true,
         initialiserSiNecessaire: Boolean = false,
     ) {
         val ecran = resources.displayMetrics.widthPixels
-        val debord = (DEBORD_POIGNEE_DP * resources.displayMetrics.density).toInt()
         if (largeurTiroirPx == 0) {
             val fraction = FRACTION_TIROIR_DEFAUT
             largeurTiroirPx = (fraction * ecran).toInt()
@@ -669,7 +703,7 @@ class EditorActivity :
             // première pose : largeur par défaut déjà calculée
         }
         val parametres = liaison.tiroir.layoutParams
-        val cible = largeurTiroirPx + debord
+        val cible = largeurTiroirPx
         if (animer && parametres.width != cible) {
             val depart = parametres.width
             android.animation.ValueAnimator
@@ -682,6 +716,7 @@ class EditorActivity :
                         // v0.80.1 : la zone centrale suit le bord du tiroir
                         // PENDANT l'animation d'aimant aussi.
                         reevaluerTranslationTiroir()
+                        recalerPoignee()
                     }
                 }.start()
         } else {
@@ -693,6 +728,35 @@ class EditorActivity :
         // poussé au bord de sa NOUVELLE largeur (sans cela, la translation
         // restait celle de l'ancienne largeur posée à l'ouverture).
         reevaluerTranslationTiroir()
+        recalerPoignee()
+    }
+
+    /**
+     * Recale la poignée de redimensionnement sur le bord du tiroir
+     * (v0.80.2) : moitié de sa largeur (13 dp) SUR le tiroir, l'autre
+     * moitié SUR la zone centrale — un vrai chevauchement à la racine,
+     * plus de bande de débord transparente empruntée au tiroir. Elle suit
+     * le bord à chaque trame : glissement d'ouverture/fermeture
+     * ([DrawerLayout.DrawerListener.onDrawerSlide]), animation d'aimant
+     * et glissement de redimensionnement ([appliquerLargeurTiroir]),
+     * rotation et insets (layout global). Masquée quand le tiroir est
+     * refermé (elle ne dimensionne rien de fermé). RTL : le tiroir
+     * « start » s'ouvre depuis le bord DROIT et la poignée est ancrée au
+     * bord de fin du conteneur — le décalage s'inverse (translationX
+     * n'est JAMAIS auto-miroir, il reste en pixels bruts).
+     */
+    private fun recalerPoignee() {
+        val poignee = liaison.poigneeTiroir
+        val demi = (DEBORD_POIGNEE_DP * resources.displayMetrics.density)
+        // Bord du tiroir à l'écran : largeur × fraction d'ouverture (fermé,
+        // le bord est à 0 — la poignée sort de l'écran).
+        val bord = largeurTiroirPx * fractionTiroir
+        val decalage = bord - demi
+        val rtl = liaison.conteneurPoignee.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        poignee.translationX = if (rtl) -decalage else decalage
+        poignee.translationY =
+            liaison.tiroir.top + (liaison.tiroir.height - poignee.height) / 2f
+        poignee.isVisible = fractionTiroir > FRACTION_POIGNEE_VISIBLE
     }
 
     /** Recalcule la poussée de la zone centrale après un changement de
@@ -911,21 +975,19 @@ class EditorActivity :
 
     /**
      * B3 : réserve en bas de la colonne centrale la hauteur de peek du
-     * panneau quand il est replié (STATE_COLLAPSED) — l'éditeur ne passe
-     * plus sous le sheet replié, la dernière ligne reste visible. À
-     * mi-hauteur ou étendu, le panneau se pose par-dessus l'éditeur
-     * (padding 0). Clavier ouvert, [appliquerClavier] gère le padding
-     * IME directement — cette fonction est sans effet.
+     * panneau — l'éditeur ne passe plus sous le sheet replié, la dernière
+     * ligne reste visible. v0.80.2 (retour utilisateur, bug de l'état
+     * vide) : la réserve est désormais CONSTANT — mi-hauteur ou étendu,
+     * le sheet se pose par-dessus et la zone d'édition ne CHANGE PAS DE
+     * TAILLE : l'état vide ne « saute » plus au retour du sheet étendu
+     * (la vue centrée re-centrait à chaque va-et-vient de padding — même
+     * approche qu'AndroidIDE, `marginBottom = peekHeight` constant).
+     * Clavier ouvert, [appliquerClavier] gère le padding IME
+     * directement — cette fonction est sans effet.
      */
     internal fun appliquerReservePanneau() {
         if (clavierVisible) return
-        val reserve =
-            if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
-                comportementPanneau.peekHeight
-            } else {
-                0
-            }
-        liaison.zoneCentrale.updatePadding(bottom = reserve)
+        liaison.zoneCentrale.updatePadding(bottom = comportementPanneau.peekHeight)
     }
 
     /**
@@ -1022,7 +1084,21 @@ class EditorActivity :
                         BottomSheetBehavior.STATE_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.ETENDU))
                             appliquerFonduEntete(1f)
+                            // v0.80.2 : étendu stable — la première section
+                            // disparaît COMPLÈTEMENT (les onglets montent au
+                            // sommet du sheet, comme AndroidIDE).
+                            marquerSheetEtendu(true)
                             appliquerReservePanneau()
+                        }
+
+                        BottomSheetBehavior.STATE_DRAGGING,
+                        BottomSheetBehavior.STATE_SETTLING,
+                        -> {
+                            // v0.80.2 : on quitte l'état étendu stable — la
+                            // première section reprend sa place (INVISIBLE
+                            // sous le seuil du fondu : pas de saut de hauteur
+                            // en plein glissement).
+                            marquerSheetEtendu(false)
                         }
 
                         else -> {
@@ -1646,17 +1722,35 @@ class EditorActivity :
 
     /**
      * Visibilité effective de la première section : GONE sur l'onglet
-     * Console (v0.80.1 — elle n'y porte aucune information), INVISIBLE
-     * sous le seuil du fondu sur les autres onglets (la hauteur de la
-     * feuille ne saute pas en cours de glissement), VISIBLE sinon.
+     * Console (v0.80.1 — elle n'y porte aucune information), GONE quand
+     * le sheet est ÉTENDU stable (v0.80.2 — elle disparaît complètement,
+     * les onglets montent au sommet du sheet), INVISIBLE sous le seuil du
+     * fondu sur les autres onglets (la hauteur de la feuille ne saute pas
+     * en cours de glissement), VISIBLE sinon.
      */
     private fun majVisibiliteEntetePanneau() {
         liaison.entetePanneau.visibility =
             when {
                 viewModel.etat.value.ongletPanneau == OngletPanneau.CONSOLE -> View.GONE
+                sheetEtenduStable -> View.GONE
                 alphaEnteteCourant > SEUIL_FONDU_VISIBLE -> View.VISIBLE
                 else -> View.INVISIBLE
             }
+    }
+
+    /**
+     * Marque (ou démarque) le sheet comme ÉTENDU STABLE (v0.80.2) et
+     * propage la conséquence aux deux sections : la première repasse GONE
+     * une fois l'extension stabilisée (les onglets montent au sommet), la
+     * ligne tooling suit la même règle via le contrôleur. Au repli, la
+     * place est conservée (INVISIBLE sous le seuil du fondu) — jamais de
+     * GONE en plein glissement.
+     */
+    private fun marquerSheetEtendu(etendu: Boolean) {
+        if (etendu == sheetEtenduStable) return
+        sheetEtenduStable = etendu
+        controleurTooling?.definirSheetEtendu(etendu)
+        majVisibiliteEntetePanneau()
     }
 
     /** Montre le fragment de l'[onglet] du panneau et cache les deux
@@ -1681,7 +1775,9 @@ class EditorActivity :
      * hauteur de la feuille ne saute pas en cours de glissement, et les
      * appuis fantômes cessent (les vues invisibles ne reçoivent plus les
      * touches). Sur l'onglet Console (v0.80.1), la première section est
-     * GONE — seule la ligne tooling (si active) partage le fondu.
+     * GONE — seule la ligne tooling (si active) partage le fondu ; une
+     * fois l'extension STABILISÉE (v0.80.2) les deux sections passent
+     * GONE (les onglets montent au sommet du sheet, comme AndroidIDE).
      *
      * @param glissement fraction de glissement du sheet (0 replié,
      *        1 étendu) — posée par trame par onSlide ou par l'état
@@ -1958,8 +2054,14 @@ class EditorActivity :
         /** Hauteur du rail de fragments (§ 14 : 66 dp). */
         const val HAUTEUR_RAIL_DP = 66
 
-        /** Débord de la poignée hors du tiroir (§ 13 : 13 dp). */
+        /** Débord de la poignée de part et d'autre du bord du tiroir (§ 13 :
+         *  13 dp — moitié sur le tiroir, moitié sur la zone centrale,
+         *  v0.80.2). */
         const val DEBORD_POIGNEE_DP = 13
+
+        /** Fraction d'ouverture au-delà de laquelle la poignée du tiroir
+         *  est visible (v0.80.2 : refermé, elle ne dimensionne rien). */
+        const val FRACTION_POIGNEE_VISIBLE = 0.25f
 
         /** Durée d'animation de la largeur hors glissement (§ 13 : 0,18 s). */
         const val DUREE_LARGEUR_MS = 180L

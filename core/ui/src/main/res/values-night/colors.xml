@@ -86,7 +86,6 @@
     <color name="codeide_barre_symboles_fond">#20252E</color>
     <color name="codeide_barre_symboles_filet">#2C323D</color>
 
-    <color name="codeide_explorateur_fond_tiroir">#1A1E25</color>
     <color name="codeide_explorateur_fond_entete_debut">#20252E</color>
     <color name="codeide_explorateur_fond_entete_fin">#1C212A</color>
     <color name="codeide_explorateur_fond_cuve">#15181F</color>
@@ -106,10 +105,6 @@
     <color name="codeide_explorateur_rouge">#E5584F</color>
     <color name="codeide_explorateur_violet">#9C86D8</color>
     <color name="codeide_explorateur_guide">#343B47</color>
-    <color name="codeide_explorateur_dossier">#566175</color>
-    <color name="codeide_explorateur_dossier_racine_projet">#6B96C4</color>
-    <color name="codeide_explorateur_dossier_racine_prive">#7C6AA8</color>
-    <color name="codeide_explorateur_dossier_prive">#6D5F9B</color>
     <color name="codeide_explorateur_nom_prive">#CDBAF2</color>
     <color name="codeide_explorateur_survol">#0DFFFFFF</color>
     <color name="codeide_explorateur_snackbar_fond">#2B323E</color>
