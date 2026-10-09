@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import kotlin.io.path.createTempDirectory
 
 /**
  * Tests du [LecteurScriptsDeBuild] (P1, ADR 0095) — JVM pur, crée de
@@ -69,7 +70,7 @@ class LecteurScriptsDeBuildTest {
     }
 
     private fun dossierTemp(): File =
-        createTempDir("lecteur-scripts-test").apply {
+        createTempDirectory("lecteur-scripts-test").toFile().apply {
             deleteOnExit()
         }
 }
