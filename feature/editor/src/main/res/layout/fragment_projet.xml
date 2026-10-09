@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Section Projet du tiroir (P2, ADR 0095) : entête + 4 onglets
-     (Scripts, Dépendances, Variantes, Tâches). Chaque onglet a SA
-     propre vue sous le TabLayout ; le fragment bascule la visibilité
-     plutôt que d'ajouter/retirer des vues — plus simple et plus
-     robuste au changement d'onglet. -->
+<!-- Section Projet du tiroir (P2-P6, ADR 0095) : entête + 5 onglets
+     (Scripts, Dépendances, Mises à jour, Variantes, Tâches). Chaque
+     onglet a SA propre vue sous le TabLayout ; le fragment bascule la
+     visibilité plutôt que d'ajouter/retirer des vues. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -46,19 +45,20 @@
             app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
-    <!-- Onglets : 4 destinations. -->
+    <!-- Onglets : 5 destinations, scrollable (5 onglets ne tiennent pas
+         en fixed sur petit écran). -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/onglets_projet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
-        app:tabGravity="fill"
+        app:tabGravity="start"
         app:tabIndicatorColor="?attr/colorPrimary"
         app:tabIndicatorFullWidth="false"
-        app:tabMode="fixed"
+        app:tabMode="scrollable"
         app:tabTextColor="?attr/colorOnSurfaceVariant" />
 
-    <!-- Conteneur des 4 onglets — un seul visible à la fois. -->
+    <!-- Conteneur des 5 onglets — un seul visible à la fois. -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -115,8 +115,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Onglet Dépendances (P3) : liste des dépendances déclarées
-             parsées depuis les scripts de build. -->
+        <!-- Onglet Dépendances (P3) : liste des dépendances déclarées. -->
         <LinearLayout
             android:id="@+id/vue_dependances"
             android:layout_width="match_parent"
@@ -140,7 +139,40 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Onglet Variantes (P4 à venir). -->
+        <!-- Onglet Mises à jour (P6) : versions disponibles depuis Maven. -->
+        <LinearLayout
+            android:id="@+id/vue_mises_a_jour"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:id="@+id/chargement_mises_a_jour"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/message_mises_a_jour_vide"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="16dp"
+                android:text="@string/projet_aucune_mise_a_jour"
+                android:visibility="gone" />
+
+            <ListView
+                android:id="@+id/liste_mises_a_jour"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Onglet Variantes (P5 reporté). -->
         <TextView
             android:id="@+id/vue_variantes"
             android:layout_width="match_parent"

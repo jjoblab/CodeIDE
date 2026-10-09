@@ -423,10 +423,14 @@
     <string name="projet_actualiser_cd">Refresh build scripts</string>
     <string name="projet_onglet_scripts">Scripts</string>
     <string name="projet_onglet_dependances">Dependencies</string>
+    <string name="projet_onglet_mises_a_jour">Updates</string>
     <string name="projet_onglet_variantes">Variants</string>
     <string name="projet_onglet_taches">Tasks</string>
     <string name="projet_aucun_script">No build script found</string>
     <string name="projet_aucune_dependance">No declared dependency</string>
+    <string name="projet_aucune_mise_a_jour">No update found</string>
+    <string name="projet_mise_a_jour_versions">%1$s → %2$s</string>
+    <string name="projet_ouverture_script">Opening « %1$s »</string>
     <string name="projet_dependance_config_origine">%1$s — %2$s</string>
     <string name="projet_chargement">Reading scripts…</string>
     <string name="projet_erreur_chargement">Could not read scripts</string>
