@@ -68,4 +68,13 @@
          de la poignée (13 dp) s'ajoute à la largeur visible. -->
     <dimen name="editor_tiroir_largeur">262dp</dimen>
     <dimen name="editor_tiroir_debord_poignee">13dp</dimen>
+
+    <!-- E2 (ADR 0093) : coins arrondis du contenu quand le tiroir pousse. -->
+    <dimen name="editor_container_corners">28dp</dimen>
+
+    <!-- E3 (ADR 0093) : facteur d'échelle du contenu quand le bottom sheet
+         est étendu (87% = 0.87). La valeur intermédiaire (mi-hauteur) est
+         calculée à l'exécution : 1 - (1 - 0.87) * 0.5 = 0.935. -->
+    <item name="editor_echelle_sheet_etendu" format="float" type="dimen">0.87</item>
+    <item name="editor_facteur_translation_tiroir" format="float" type="dimen">0.95</item>
 </resources>

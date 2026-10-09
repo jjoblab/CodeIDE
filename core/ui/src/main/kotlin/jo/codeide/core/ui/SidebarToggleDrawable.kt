@@ -32,7 +32,7 @@ import android.graphics.drawable.Drawable
  * du tiroir/Git).
  * @property densité densité d'écran pour la conversion dp → px.
  */
-internal class SidebarToggleDrawable(
+class SidebarToggleDrawable(
     private val couleurContour: Int,
     private val couleurAccent: Int,
     private val densite: Float,
