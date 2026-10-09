@@ -229,6 +229,7 @@ class OnboardingViewModel
         private val fichiers: FileSystem,
         private val localisateurOutils: ToolchainLocator,
         private val observerEtatOutils: ObserveToolchainStateUseCase,
+        private val orchestrateurInstallation: jo.codeide.core.domain.EnvironmentSetupOrchestrator,
         private val logger: AppLogger,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -252,7 +253,18 @@ class OnboardingViewModel
             // ailleurs, marqueur posé), la page se décoche d'elle-même.
             viewModelScope.launch {
                 observerEtatOutils().collect { outils ->
-                    etatInterne.update { it.copy(terminalInstalle = outils.bootstrapInstalle) }
+                    // Fix v0.76.0 : terminalInstalle ne doit être vrai que
+                    // si le bootstrap EST installé ET que l'installation
+                    // complète (4 phases) est terminée. Avant, seul le
+                    // marqueur disque était vérifié — l'onboarding disait
+                    // « déjà installé » même si JAVA/ANDROID_SDK restaient
+                    // à faire.
+                    val installationTerminee = orchestrateurInstallation.state.value.estTermine()
+                    etatInterne.update {
+                        it.copy(
+                            terminalInstalle = outils.bootstrapInstalle && installationTerminee,
+                        )
+                    }
                 }
             }
         }
@@ -402,7 +414,13 @@ class OnboardingViewModel
          *  l'autre).
          */
         private fun verifierTerminal() {
-            etatInterne.update { it.copy(terminalInstalle = localisateurOutils.isBootstrapInstalled()) }
+            // Fix v0.76.0 : vérifie aussi estTermine() (pas seulement le marqueur disque).
+            val installationTerminee = orchestrateurInstallation.state.value.estTermine()
+            etatInterne.update {
+                it.copy(
+                    terminalInstalle = localisateurOutils.isBootstrapInstalled() && installationTerminee,
+                )
+            }
         }
 
         /** Recule d'une page, borné à la bienvenue. */
