@@ -115,15 +115,30 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Onglet Dépendances (P3 à venir). -->
-        <TextView
+        <!-- Onglet Dépendances (P3) : liste des dépendances déclarées
+             parsées depuis les scripts de build. -->
+        <LinearLayout
             android:id="@+id/vue_dependances"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:padding="24dp"
-            android:text="@string/projet_dependances_bientot"
-            android:visibility="gone" />
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/message_dependances_vides"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="16dp"
+                android:text="@string/projet_aucune_dependance"
+                android:visibility="gone" />
+
+            <ListView
+                android:id="@+id/liste_dependances"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <!-- Onglet Variantes (P4 à venir). -->
         <TextView

@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jo.codeide.core.domain.DependanceDeclaree
 import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.ParseurDependances
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.ScriptDeBuild
 import jo.codeide.core.model.AppResult
@@ -36,6 +38,7 @@ class ProjetViewModel
         private val tooling: GradleToolingRepository,
         private val observerProjet: ObserveProjectUseCase,
         private val resoudreRepertoire: ResoudreRepertoireProjet,
+        private val parseurDependances: ParseurDependances,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val projectId: ProjectId? =
@@ -61,11 +64,16 @@ class ProjetViewModel
                     }
                 when (val resultat = tooling.scriptsBuild(java.io.File(cheminFuse))) {
                     is AppResult.Success -> {
+                        // P3 : parse les dépendances déclarées depuis les
+                        // scripts lus (regex sur les déclarations
+                        // implementation/api/etc.).
+                        val dependances = parseurDependances.parser(resultat.value)
                         _etat.value =
                             _etat.value.copy(
                                 chargement = false,
                                 erreur = false,
                                 scripts = resultat.value,
+                                dependances = dependances,
                             )
                     }
 
@@ -77,11 +85,13 @@ class ProjetViewModel
         }
     }
 
-/** État immuable de la section Projet (P2). */
+/** État immuable de la section Projet (P2-P3). */
 data class EtatProjet(
     val chargement: Boolean = false,
     val erreur: Boolean = false,
     val scripts: List<ScriptDeBuild> = emptyList(),
+    /** P3 : dépendances déclarées, parsées depuis [scripts]. */
+    val dependances: List<DependanceDeclaree> = emptyList(),
     val ongletCourant: OngletProjet = OngletProjet.SCRIPTS,
 )
 
