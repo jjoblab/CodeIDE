@@ -3,6 +3,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="editor_title">Editor</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
+    <string name="editor_fermer_tiroir_cd">Close the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
     <string name="editor_vide_message">Open a file from the file drawer to edit it here — or start a terminal session.</string>
     <string name="editor_vide_action_explorer">Browse files</string>
