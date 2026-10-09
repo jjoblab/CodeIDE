@@ -280,12 +280,47 @@ class EditorActivity :
 
     /** Ouvre/ferme le tiroir ; sur grand écran il reste ancré (ADR 0026). */
     private fun brancherTiroir() {
+        // E1 (ADR 0093) : icône animée SidebarToggleDrawable.
+        val densite = resources.displayMetrics.density
+        val couleurContour =
+            com.google.android.material.color.MaterialColors.getColor(
+                liaison.toolbarEditeur,
+                com.google.android.material.R.attr.colorOnSurfaceVariant,
+            )
+        val couleurAccent =
+            com.google.android.material.color.MaterialColors.getColor(
+                liaison.toolbarEditeur,
+                androidx.appcompat.R.attr.colorPrimary,
+            )
+        val iconeTiroir =
+            jo.codeide.core.ui
+                .SidebarToggleDrawable(couleurContour, couleurAccent, densite)
+        liaison.toolbarEditeur.navigationIcon = iconeTiroir
+
+        // E2 (ADR 0093) : configure le TiroirPoussantLayout.
+        (liaison.racineEditeur as? TiroirPoussantLayout)?.let { tiroir ->
+            tiroir.idContenu = R.id.zone_centrale
+        }
+
+        // Clic bascule (ouvre si fermé, ferme si ouvert).
         liaison.toolbarEditeur.setNavigationOnClickListener {
-            liaison.racineEditeur.openDrawer(liaison.tiroir)
+            if (liaison.racineEditeur.isDrawerOpen(liaison.tiroir)) {
+                liaison.racineEditeur.closeDrawer(liaison.tiroir)
+            } else {
+                liaison.racineEditeur.openDrawer(liaison.tiroir)
+            }
         }
 
         liaison.racineEditeur.addDrawerListener(
             object : DrawerLayout.SimpleDrawerListener() {
+                override fun onDrawerSlide(
+                    vueTiroir: View,
+                    slideOffset: Float,
+                ) {
+                    // E1 : met à jour la fraction de l'icône animée.
+                    iconeTiroir.setFraction(slideOffset)
+                }
+
                 override fun onDrawerStateChanged(nouvelEtat: Int) {
                     majRetourSysteme(
                         tiroirOuvert =
@@ -296,10 +331,15 @@ class EditorActivity :
 
                 override fun onDrawerOpened(vueTiroir: View) {
                     majRetourSysteme(tiroirOuvert = true)
+                    liaison.toolbarEditeur.navigationContentDescription =
+                        getString(R.string.editor_fermer_tiroir_cd)
                 }
 
                 override fun onDrawerClosed(vueTiroir: View) {
                     majRetourSysteme(tiroirOuvert = false)
+                    liaison.toolbarEditeur.navigationContentDescription =
+                        getString(R.string.editor_ouvrir_tiroir_cd)
+                    iconeTiroir.setFraction(0f)
                 }
             },
         )
@@ -307,6 +347,8 @@ class EditorActivity :
         if (resources.configuration.smallestScreenWidthDp >= SEUIL_GRAND_ECRAN) {
             // Grand écran : tiroir permanent façon IDE de bureau (ADR 0026) —
             // verrouillé ouvert, plus de geste de bord ni de bouton ☰.
+            // E2 : aucune translation en mode permanent.
+            (liaison.racineEditeur as? TiroirPoussantLayout)?.setFacteur(0f)
             liaison.racineEditeur.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN)
             liaison.toolbarEditeur.navigationIcon = null
             majRetourSysteme(tiroirOuvert = true, tiroirBloque = true)
@@ -821,6 +863,28 @@ class EditorActivity :
         liaison.zoneCentrale.updatePadding(bottom = reserve)
     }
 
+    /**
+     * E3 (ADR 0093) : met à l'échelle le conteneur de l'éditeur quand le
+     * bottom sheet glisse. Échelle de 100% (replié) → 87% (étendu), avec
+     * interpolation linéaire. La mi-hauteur (slideOffset ≈ 0.5) donne
+     * ~93,5%. Couche matérielle activée pendant le glissement pour la
+     * fluidité, désactivée au repos.
+     */
+    private fun appliquerEchelleSheet(glissement: Float) {
+        val editeur = liaison.vueEditeur ?: return
+        if (glissement <= 0f) {
+            editeur.scaleX = 1f
+            editeur.scaleY = 1f
+            editeur.setLayerType(View.LAYER_TYPE_NONE, null)
+            return
+        }
+        val echelleMin = ECHELLE_SHEET_ETENDU
+        val echelle = 1f - (1f - echelleMin) * glissement
+        editeur.scaleX = echelle
+        editeur.scaleY = echelle
+        editeur.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+    }
+
     /** Replace le panneau dans l'état du ViewModel après le clavier :
      *  le comportement peut avoir dérivé pendant qu'il était masqué. */
     private fun restaurerEtatPanneau() {
@@ -860,6 +924,8 @@ class EditorActivity :
                 surPeekChange = { appliquerReservePanneau() },
             )
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
+        // E2 (ADR 0093) : voile transparent — le tiroir pousse, ne recouvre pas.
+        liaison.racineEditeur.setScrimColor(android.graphics.Color.TRANSPARENT)
         comportementPanneau.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(
@@ -903,6 +969,8 @@ class EditorActivity :
                     glissement: Float,
                 ) {
                     appliquerFonduEntete(glissement)
+                    // E3 (ADR 0093) : met à l'échelle le conteneur de l'éditeur.
+                    appliquerEchelleSheet(glissement)
                 }
             },
         )
@@ -1727,6 +1795,9 @@ class EditorActivity :
         /** Fraction de glissement correspondant à mi-hauteur (le fondu de
          *  l'en-tête démarre AU-DESSUS — v0.32.5, ADR 0056 décision 3). */
         const val FRACTION_MI_HAUTEUR = 0.5f
+
+        /** E3 (ADR 0093) : échelle minimale du contenu quand le sheet est étendu (87%). */
+        const val ECHELLE_SHEET_ETENDU = 0.87f
 
         /** Étiquette de la feuille de sélection des tâches (anti-doublon). */
         const val ETIQUETTE_FEUILLE_TACHES = "feuille-taches"
