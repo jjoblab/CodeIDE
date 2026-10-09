@@ -507,14 +507,12 @@
          Recherche, Git, Terminal) est un fragment portant son propre entête
          — plus d'entête commun. Le tiroir (FrameLayout) porte le contenu
          des fragments (FragmentContainerView), le rail de fragments commun
-         (§ 14), la zone du snackbar maison (§ 15) et la poignée ⋮ de
-         redimensionnement collée au bord droit (§ 13, déborde à moitié :
-         la largeur du tiroir inclut le débord de 13 dp).
+         (§ 14), la zone du snackbar maison (§ 15) et la pastille de taille.
 
-         Fond : fond_tiroir — borné à la largeur VISIBLE, la bande de
-         débord de 13 dp reste transparente (la moitié externe de la
-         poignée flotte sur l'éditeur, comme la maquette) ; les fragments
-         remplissent le tiroir visible d'un bord à l'autre.
+         Fond : fond_tiroir, pleine largeur (v0.80.2 : plus de bande de
+         débord — la poignée ⋮ de redimensionnement ne vit plus DANS le
+         tiroir mais dans conteneur_poignee, à la racine, à cheval réellement
+         sur le bord du tiroir et la zone centrale).
 
          Largeur : posée à l'exécution (largeurTiroirPx dans EditorActivity,
          bornes 45-98 %, aimants 55/69/85/98) — la valeur XML n'est que la
@@ -529,12 +527,12 @@
         android:layout_gravity="start"
         android:background="@drawable/fond_tiroir">
 
-        <!-- Colonne : fragment courant + rail commun. Le rebord droit de
-             13 dp laisse la poignée déborder à moitié (§ 13). -->
+        <!-- Colonne : fragment courant + rail commun (v0.80.2 : pleine
+             largeur du tiroir — le débord de 13 dp a disparu avec la
+             poignée racine). -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginEnd="13dp"
             android:orientation="vertical">
 
             <androidx.fragment.app.FragmentContainerView
@@ -566,25 +564,15 @@
             android:layout_marginBottom="74dp"
             android:paddingHorizontal="10dp" />
 
-        <!-- Poignée ⋮ de redimensionnement (§ 13) : 26 × 78 dp, collée au
-             bord droit à mi-hauteur, glissement = bornes/aimants. -->
-        <ImageView
-            android:id="@+id/poignee_tiroir"
-            android:layout_width="26dp"
-            android:layout_height="78dp"
-            android:layout_gravity="end|center_vertical"
-            android:background="@drawable/fond_poignee_tiroir"
-            android:contentDescription="@string/poignee_cd"
-            android:src="@drawable/ic_poignee_tiroir" />
-
-        <!-- Pastille de taille (§ 13) : au-dessus de la poignée, visible
-             pendant le glissement puis fondue. -->
+        <!-- Pastille de taille (§ 13) : flottante au-dessus du rail,
+             visible pendant le glissement puis fondue (v0.80.2 : reste
+             dans le tiroir — elle suit son bord sans recalage). -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/pastille_taille_tiroir"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="13dp"
             android:layout_marginBottom="54dp"
             android:background="@drawable/fond_pastille_taille"
             android:elevation="6dp"
@@ -595,6 +583,34 @@
             android:textSize="11sp"
             android:visibility="gone"
             tools:text="55 %" />
+    </FrameLayout>
+
+    <!-- ================= Poignée ⋮ de redimensionnement (v0.80.2) =================
+         DERNIER enfant de la racine : dessiné APRÈS le tiroir (au-dessus)
+         et touché AVANT lui (l'itération des touches est inverse à
+         l'ordre des enfants). Le conteneur plein écran est transparent et
+         ne consomme AUCUNE touche (FrameLayout non cliquable) : les
+         contacts hors poignée tombent normalement sur le tiroir puis la
+         zone centrale. La poignée (26 × 78 dp, § 13) est posée à
+         l'exécution (recalerPoignee) à CHEVAL sur le bord du tiroir :
+         moitié de gauche sur le tiroir, moitié de droite sur la zone
+         centrale — un VRAI chevauchement, plus de bande de débord
+         transparente empruntée au tiroir. -->
+    <FrameLayout
+        android:id="@+id/conteneur_poignee"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no">
+
+        <ImageView
+            android:id="@+id/poignee_tiroir"
+            android:layout_width="26dp"
+            android:layout_height="78dp"
+            android:background="@drawable/fond_poignee_tiroir"
+            android:contentDescription="@string/poignee_cd"
+            android:src="@drawable/ic_poignee_tiroir"
+            android:visibility="gone"
+            tools:visibility="visible" />
     </FrameLayout>
 
 </jo.codeide.feature.editor.TiroirPoussantLayout>

@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.80.2] – 2026-10-10
+
+### Corrigé
+
+- **`feature:editor`** : la **première section de l'en-tête du panneau
+  disparaît aussi quand le sheet est étendu** et la **deuxième section
+  ne vit plus que sur l'onglet Console** (retour utilisateur, ADR
+  0099). Problèmes et Journal actifs → la ligne tooling (et sa bande
+  de progression) passent GONE : seule la première section porte les
+  informations de l'onglet ; sheet ÉTENDU stabilisé → les DEUX
+  sections disparaissent complètement et les onglets montent au sommet
+  du sheet (comme l'en-tête `ViewFlipper` d'AndroidIDE qui s'efface à
+  l'extension) ; pendant le glissement, la place est conservée
+  (INVISIBLE sous le seuil du fondu — jamais de saut de hauteur en
+  plein geste).
+- **`feature:editor`** : **l'état vide ne « saute » plus** après
+  l'étirement puis le repli du panneau inférieur (retour utilisateur :
+  « on dirait qu'un espace était vide »). La réserve sous la zone
+  centrale est désormais CONSTANT (padding bas = peek, à la
+  `marginBottom = peekHeight` d'AndroidIDE) : la zone d'édition ne
+  change plus de taille entre replié, mi-hauteur et étendu, la vue
+  centrée ne re-centre pas à chaque va-et-vient.
+- **`feature:editor`** : **la poignée de redimensionnement du tiroir
+  chevauche réellement le bord** — moitié de sa largeur (13 dp) SUR le
+  tiroir, l'autre moitié SUR la zone centrale (retour utilisateur).
+  Elle vit désormais dans `conteneur_poignee`, DERNIER enfant de la
+  racine `TiroirPoussantLayout` (dessiné au-dessus du tiroir, servi
+  avant lui aux touches), suit le bord image par image (glissement
+  d'ouverture/fermeture, redimensionnement, aimants, rotation, RTL
+  miroir) et se masque tiroir refermé ; le fond du tiroir est pleine
+  largeur (plus de bande de débord transparente de 13 dp).
+
+### Ajouté
+
+- **`core:ui`** : **11 nouvelles icônes de fichiers** parité avec les
+  `fileTypes` d'IntelliJ New UI (retour utilisateur : « ajoute
+  d'autres icônes comme zip ») — archive (zip, jar, apk, 7z, rar,
+  tar, gz, tgz, bz2, xz), image (png, jpg, gif, webp, svg…), html,
+  css, js, yaml, shell, sql, csv, police (ttf, otf, woff…), binaire
+  (so, dex, class…), jour et nuit. L'icône dossier `nodes/folder.svg`
+  sert replié ET déplié (Android Studio New UI n'a pas de variante
+  ouverte — seule la flèche tourne) et les icônes de l'arbre ne sont
+  PLUS filtrées par couleur : les teintes officielles s'affichent
+  telles quelles.
+
 ## [0.80.1] – 2026-10-10
 
 ### Corrigé

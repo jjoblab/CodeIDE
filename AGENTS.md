@@ -1041,6 +1041,29 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       centrale [TiroirPoussantLayout.reevaluerTranslation() à chaque
       trame du glissement et de l'aimant] ; 6 tests SurveillanceArbre +
       défauts retournés + vues nouvelles.
+- v0.80.2 : **maturage du panneau et du tiroir** (retour utilisateur,
+      ADR 0099) — sections de l'en-tête CONDITIONNELLES [Problèmes/
+      Journal : ligne tooling + progression ÉTEINTES (seule la
+      première section porte les informations) ; sheet ÉTENDU stable :
+      les DEUX sections disparaissent (onglets au sommet, comme le
+      ViewFlipper d'AndroidIDE) ; INVISIBLE sous le seuil du fondu en
+      plein glissement — jamais de saut de hauteur ; peek sans ligne
+      hors Console] ; état vide STABLE [réserve CONSTANTE padding=
+      peekHeight à la marginBottom d'AndroidIDE — la zone d'édition ne
+      change plus de taille replié/mi-hauteur/étendu, la vue centrée ne
+      re-centre pas] ; poignée de redimensionnement À CHEVAL RÉEL
+      [conteneur_poignee DERNIER enfant de la racine + drawerElevation
+      0 + drawChild sans rognage : moitié 13 dp sur le tiroir, moitié
+      sur la zone centrale, suit le bord image par image (glissement,
+      redimensionnement, aimants, rotation), miroir RTL, masquée
+      refermée ; fond_tiroir pleine largeur (plus de débord)] ; icônes
+      parité Android Studio [11 fileTypes IntelliJ nouveaux (archive
+      zip/jar/apk…, image, html, css, js, yaml, shell, sql, csv,
+      police, binaire) jour/nuit ; folder.svg replié ET déplié ; PLUS
+      AUCUN setColorFilter sur les icônes de l'arbre — couleurs
+      officielles, 4 teintes de dossier retirées] ; tests
+      PanneauToolingControllerTest (matrice complète) + structure
+      racine de la poignée + 3 tests d'extensions.
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours
