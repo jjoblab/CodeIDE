@@ -231,7 +231,7 @@ internal object Aapt2Installe {
         id: String,
     ): String? {
         val tableau = texte.substringAfter("\"installedComponents\"", "").substringAfter('[', "")
-        val entrees = Regex("""\{[^{}]*}""").findAll(tableau).map { it.value }
+        val entrees = Regex("""[{][^{}]*[}]""").findAll(tableau).map { it.value }
         return entrees
             .firstOrNull { entree ->
                 Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(entree)?.groupValues?.get(1) == id
