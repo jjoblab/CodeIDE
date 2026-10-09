@@ -12,6 +12,12 @@
          tooling s'affiche. -->
     <dimen name="editor_entete_tooling_hauteur">52dp</dimen>
 
+    <!-- Onglets du panneau inférieur (v0.80.1) : hauteur repliée quand
+         l'onglet Console est actif SANS activité tooling — la première
+         section disparaît, les onglets deviennent la poignée du sheet
+         (hauteur standard d'un TabLayout Material). -->
+    <dimen name="editor_panneau_onglets_hauteur">48dp</dimen>
+
     <!-- Pastille du canal de l'en-tête tooling (§3.3) : carré arrondi
          coloré par canal, icône blanche / spinner en vol. -->
     <dimen name="editor_pastille_canal_taille">34dp</dimen>

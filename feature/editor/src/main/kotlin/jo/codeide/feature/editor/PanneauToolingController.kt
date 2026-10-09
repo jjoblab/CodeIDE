@@ -39,7 +39,13 @@ import kotlin.math.roundToInt
  * @param horloge horloge injectée (correctif n°12 : jamais l'horloge directe).
  * @param surArret action d'annulation du build (l'activité relaie le
  *        ViewModel — le contrôleur ne connaît ni ViewModel ni actions).
+ *
+ * Exemption detekt ciblée (règle 16, v0.80.1) : `TooManyFunctions` —
+ * une fonction par SECTION de l'en-tête tooling (pastille, sous-titre,
+ * progression, chrono, peek) ; les regrouper masquerait la structure
+ * du §3.3 du prompt tooling.
  */
+@Suppress("TooManyFunctions")
 internal class PanneauToolingController(
     private val activite: AppCompatActivity,
     private val liaison: ActivityEditorBinding,
@@ -53,6 +59,14 @@ internal class PanneauToolingController(
 ) {
     /** L'en-tête tooling a-t-il quelque chose à montrer ? */
     private var ligneActivee = false
+
+    /** Onglet actif du panneau (v0.80.1) : Console → la ligne tooling EST
+     *  l'en-tête, la première section disparaît et le peek s'adapte. */
+    private var ongletCourant: OngletPanneau = OngletPanneau.JOURNAL
+
+    /** Alpha courant du fondu de l'en-tête (v0.80.1) : la visibilité de la
+     *  ligne tooling ne dépend PLUS de celle de la première section. */
+    private var alphaCourant = 1f
 
     /** Ticker du chrono en vol (annulé au prochain rendre ou à la destruction). */
     private var travailMinuteur: Job? = null
@@ -94,7 +108,6 @@ internal class PanneauToolingController(
         }
         rendreProgression(entete, etat)
         liaison.boutonArreterTooling.isVisible = entete.arret
-
         // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
         // durée du résultat — jamais de temps figé qui ment.
         travailMinuteur?.cancel()
@@ -105,10 +118,23 @@ internal class PanneauToolingController(
             liaison.minuteurTooling.text = entete.dureeFigeeMs?.let(DureesLisibles::formater) ?: ""
         }
 
-        // Le peek suit la présence de l'en-tête (visible = état courant du
-        // fondu conservé — un panneau étendu n'a pas d'en-tête de toute
-        // façon).
-        liaison.ligneTooling.isVisible = ligneActivee && liaison.entetePanneau.isVisible
+        // Le peek suit la composition de l'en-tête (v0.80.1) : première
+        // section visible sur Problèmes/Journal, ligne tooling seule sur
+        // Console — les onglets deviennent alors la poignée repliée du
+        // sheet quand aucune activité tooling ne tourne.
+        liaison.ligneTooling.isVisible = ligneActivee && alphaCourant > SEUIL_FONDU_VISIBLE
+        majPeekPanneau()
+    }
+
+    /**
+     * Onglet actif du panneau (v0.80.1, appelé par l'activité à chaque
+     * rendu) : compose le peek — Console masque la première section, les
+     * onglets deviennent sa poignée repliée quand aucune activité tooling
+     * ne tourne.
+     */
+    fun definirOnglet(onglet: OngletPanneau) {
+        if (onglet == ongletCourant) return
+        ongletCourant = onglet
         majPeekPanneau()
     }
 
@@ -127,8 +153,11 @@ internal class PanneauToolingController(
         liaison.minuteurTooling.text = ""
     }
 
-    /** Le fondu de l'en-tête réapplique la visibilité de la ligne. */
+    /** Le fondu de l'en-tête réapplique la visibilité de la ligne (v0.80.1 :
+     *  indépendante de la première section — la ligne EST l'en-tête sur
+     *  l'onglet Console). */
     fun appliquerFondu(alpha: Float) {
+        alphaCourant = alpha
         liaison.ligneTooling.isVisible = alpha > SEUIL_FONDU_VISIBLE && ligneActivee
     }
 
@@ -252,16 +281,25 @@ internal class PanneauToolingController(
 
     /** Peek du panneau : en-tête seul, + en-tête tooling enrichi (et
      *  progression) quand une activité s'y affiche — l'activité tooling
-     *  reste visible même replié (v0.32.5). B3 : notifie l'activité
-     *  pour qu'elle recale la réserve sous l'éditeur. */
+     *  reste visible même replié (v0.32.5). v0.80.1 : sur l'onglet CONSOLE
+     *  la première section disparaît (la ligne tooling EST l'en-tête) et
+     *  les ONGLETS prennent la place de poignée repliée — sans activité
+     *  tooling, le sheet replié montre ses onglets au lieu de disparaître.
+     *  B3 : notifie l'activité pour qu'elle recale la réserve sous
+     *  l'éditeur. */
     private fun majPeekPanneau() {
-        val peekReposPx = activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
-        var peek = peekReposPx
+        var peek = 0
+        if (ongletCourant != OngletPanneau.CONSOLE) {
+            peek += activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
+        }
         if (ligneActivee) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
             if (liaison.progressionTooling.isVisible) {
                 peek += (HAUTEUR_PROGRESSION_TOOLING_DP * activite.resources.displayMetrics.density).toInt()
             }
+        }
+        if (ongletCourant == OngletPanneau.CONSOLE) {
+            peek += activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_onglets_hauteur)
         }
         comportementPanneau.peekHeight = peek
         surPeekChange()

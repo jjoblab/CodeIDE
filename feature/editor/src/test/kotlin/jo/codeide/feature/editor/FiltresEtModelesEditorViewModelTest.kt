@@ -18,7 +18,7 @@ class FiltresEtModelesEditorViewModelTest : BaseEditorViewModelTest() {
     // --- C2e : filtres ---
 
     @Test
-    fun `les dossiers build et gradle sont masques par defaut`() =
+    fun `les dossiers build et gradle sont visibles par defaut`() =
         runTest {
             val alpha = ajouterProjet("Alpha")
             semerDossier("src")
@@ -33,13 +33,17 @@ class FiltresEtModelesEditorViewModelTest : BaseEditorViewModelTest() {
             val noms =
                 viewModel.etat.value.noeuds
                     .map { it.nom }
-            assertFalse("build masqué par défaut", noms.contains("build"))
-            assertFalse(".gradle masqué par défaut", noms.contains(".gradle"))
+            // v0.80.1 : retour utilisateur — .gradle/ et app/build sont
+            // VISIBLES par défaut (l'utilisateur de l'IDE se sert de ces
+            // dossiers pour suivre une sync Gradle) ; la bascule du
+            // popover « Légende » les masque.
+            assertTrue("build visible par défaut (v0.80.1)", noms.contains("build"))
+            assertTrue(".gradle visible par défaut (v0.80.1)", noms.contains(".gradle"))
             assertTrue("src visible", noms.contains("src"))
         }
 
     @Test
-    fun `basculer dossiers build affiche build et gradle`() =
+    fun `basculer dossiers build masque build et gradle`() =
         runTest {
             val alpha = ajouterProjet("Alpha")
             semerDossier("src")
@@ -55,8 +59,8 @@ class FiltresEtModelesEditorViewModelTest : BaseEditorViewModelTest() {
             val noms =
                 viewModel.etat.value.noeuds
                     .map { it.nom }
-            assertTrue("build visible après bascule", noms.contains("build"))
-            assertTrue(".gradle visible après bascule", noms.contains(".gradle"))
+            assertFalse("build masqué après bascule", noms.contains("build"))
+            assertFalse(".gradle masqué après bascule", noms.contains(".gradle"))
         }
 
     @Test

@@ -1020,6 +1020,27 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       étapes suivantes E2 (cadre commun + phases 1-2), E3 (Java+TLS),
       E4 (manifeste v2 + licences + câblage Gradle/aapt2 + daemon),
       E5 (maquettes + nouvelle UI), E6 (migration + suppression).
+- v0.80.1 : **correctifs d'espace de travail** (retour utilisateur,
+      ADR 0098) — explorateur VIVANT [bascules d'affichage enfin CÂBLÉES
+      au popover Légende (section Affichage : compactage, fichiers
+      cachés, dossiers de build) ; `masquerDossiersBuild=false` par
+      défaut (.gradle et app/build visibles — l'utilisateur se sert de ces
+      dossiers) ; BALAYAGE périodique de l'arbre affiché (4 s,
+      onStart/onStop, borné 25 dossiers, comparaison URI+type, purge
+      NotFound, échec d'accès silencieux) — les créations externes de
+      Gradle/terminal apparaissent SANS Actualiser, projet SAF et
+      stockage privé couverts] ; panneau inférieur aligné AndroidIDE
+      [expandedOffset = haut de conteneur_editeur, reposé au layout —
+      le sheet étendu ne recouvre PLUS la toolbar ni les onglets de
+      fichiers] ; en-tête du panneau SECTIONNÉ par onglet [Console :
+      première section GONE, la ligne tooling EST l'en-tête (appui =
+      bascule replié↔mi-hauteur, onglets = poignée repliée sans
+      tooling, peek composé) ; Problèmes/Journal : sous-titre
+      d'informations (comptes plurialisés) + badge étendu aux
+      problèmes] ; redimensionnement du tiroir PREND EN COMPTE la zone
+      centrale [TiroirPoussantLayout.reevaluerTranslation() à chaque
+      trame du glissement et de l'aimant] ; 6 tests SurveillanceArbre +
+      défauts retournés + vues nouvelles.
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours
