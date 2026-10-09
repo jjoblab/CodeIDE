@@ -110,6 +110,7 @@
                 android:id="@+id/message_commit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:autofillHints="message"
                 android:background="@drawable/fond_champ_inline"
                 android:hint="@string/git_message_hint"
                 android:inputType="textMultiLine"

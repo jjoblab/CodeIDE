@@ -92,7 +92,7 @@ class GitFragment : Fragment() {
             if (nb == 0) {
                 getString(R.string.git_aucun_changement)
             } else {
-                getString(R.string.git_n_changements, nb)
+                resources.getQuantityString(R.plurals.git_n_changements, nb, nb)
             }
 
         liaison.listeChangements.isVisible = nb > 0 && etat.statut != null
