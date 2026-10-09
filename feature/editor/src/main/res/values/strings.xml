@@ -399,6 +399,21 @@
     <string name="recherche_bascule_mot_entier_cd">Mot entier</string>
     <string name="recherche_bascule_regex">.*</string>
     <string name="recherche_bascule_regex_cd">Expression régulière</string>
+    <string name="recherche_remplacer_label">↔</string>
+    <string name="recherche_remplacer_cd">Afficher/masquer le remplacement</string>
+    <string name="recherche_remplacement_hint">Remplacer par…</string>
+    <string name="recherche_tout_remplacer">Tout remplacer</string>
+    <string name="recherche_confirmer_remplacement">Confirmer le remplacement</string>
+    <plurals name="recherche_confirmer_message">
+        <item quantity="one">Remplacer %1$d occurrence dans %2$d fichier par « %3$s » ?</item>
+        <item quantity="other">Remplacer %1$d occurrences dans %2$d fichiers par « %3$s » ?</item>
+    </plurals>
+    <string name="recherche_remplacer">Remplacer</string>
+    <string name="recherche_precedent_cd">Occurrence précédente</string>
+    <string name="recherche_suivant_cd">Occurrence suivante</string>
+    <string name="recherche_mode_fichiers">Fichiers</string>
+    <string name="recherche_mode_texte">Texte</string>
+    <string name="recherche_mode_fichiers_cd">Bascule recherche de fichiers / recherche de texte</string>
     <string name="apercu_git_description">Le panneau Git affichera le statut du dépôt, la préparation des commits et l\'historique des branches.</string>
 
     <!-- Section Git du tiroir (G2, ADR 0092). -->
