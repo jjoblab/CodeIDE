@@ -3,11 +3,14 @@ package jo.codeide.feature.editor
 import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.textview.MaterialTextView
 import org.junit.Assert.assertEquals
@@ -66,23 +69,33 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `v0_80_2 - la poignee de redimensionnement vit a la racine a cheval sur le tiroir`() {
+    fun `v0_80_3 - la poignee vit dans un calque HORS du DrawerLayout superpose a la racine`() {
         val racine = gonfler(R.layout.activity_editor) as ViewGroup
-        val conteneur = racine.findViewById<View>(R.id.conteneur_poignee)
-        assertNotNull("conteneur racine de la poignée (v0.80.2)", conteneur)
         assertEquals(
-            "le conteneur de la poignée est un enfant DIRECT de la racine (v0.80.2)",
+            "la racine est un FrameLayout de superposition (v0.80.3, ADR 0100)",
+            FrameLayout::class.java,
+            racine.javaClass,
+        )
+        val conteneur = racine.findViewById<View>(R.id.conteneur_poignee)
+        assertNotNull("calque racine de la poignée (v0.80.2)", conteneur)
+        assertEquals(
+            "le calque de la poignée est un enfant DIRECT de la racine",
             racine.id,
             (conteneur.parent as View).id,
         )
         assertEquals(
-            "le conteneur est le DERNIER enfant : dessiné au-dessus du tiroir, servi avant lui",
+            "le calque est le DERNIER enfant de la racine : dessiné au-dessus du DrawerLayout, servi avant lui",
             racine.childCount - 1,
             racine.indexOfChild(conteneur),
         )
+        assertEquals(
+            "la racine porte exactement DEUX calques : le DrawerLayout puis la poignée",
+            2,
+            racine.childCount,
+        )
         val poignee = conteneur.findViewById<View>(R.id.poignee_tiroir)
         assertEquals(
-            "la poignée vit DANS le conteneur racine (plus dans le tiroir)",
+            "la poignée vit DANS le calque racine (plus dans le tiroir)",
             R.id.conteneur_poignee,
             (poignee.parent as View).id,
         )
@@ -91,12 +104,34 @@ class ActivityEditorLayoutTest {
             View.GONE,
             poignee.visibility,
         )
+        // LE point de la v0.80.3 : le calque de la poignée doit être HORS du
+        // DrawerLayout. Enfant de contenu plein écran du DrawerLayout, il
+        // faisait intercepter TOUTES les touches du tiroir ouvert
+        // (onInterceptTouchEvent : findTopChildUnder → conteneur →
+        // isContentView → interceptForTap quand mScrimOpacity > 0).
+        val racineEditeur = racine.findViewById<View>(R.id.racine_editeur) as ViewGroup
+        assertEquals(
+            "le TiroirPoussantLayout est le PREMIER calque de la racine",
+            0,
+            racine.indexOfChild(racineEditeur),
+        )
+        assertEquals(
+            "le DrawerLayout ne porte que sa zone centrale et son tiroir — AUCUN calque de poignée",
+            -1,
+            racineEditeur.indexOfChild(conteneur),
+        )
         val tiroir = racine.findViewById<View>(R.id.tiroir) as ViewGroup
         assertEquals(
             "la poignée a quitté le tiroir (v0.80.2)",
             -1,
             tiroir.indexOfChild(conteneur),
         )
+    }
+
+    @Test
+    fun `v0_80_2 - le fond du tiroir reste pleine largeur sans debord`() {
+        val racine = gonfler(R.layout.activity_editor) as ViewGroup
+        val tiroir = racine.findViewById<View>(R.id.tiroir) as ViewGroup
         // Le débord de 13 dp a disparu : le fond du tiroir est une forme
         // PLEINE LARGEUR (plus d'inset transparent au bord externe).
         val base = ApplicationProvider.getApplicationContext<Context>()
@@ -113,6 +148,113 @@ class ActivityEditorLayoutTest {
             0,
             (colonne.layoutParams as ViewGroup.MarginLayoutParams).marginEnd,
         )
+    }
+
+    /** Ouvre le tiroir de façon SYNCHRONE et pose l'état d'interception :
+     * ouverture avant le premier layout (DrawerLayout.mFirstLayout →
+     * lp.onScreen = 1 sans animation), puis layout manuel et
+     * [android.view.View.computeScroll] qui pose mScrimOpacity = 1 — la
+     * condition exacte qui déclenchait l'interception v0.80.2. */
+    private fun preparerTiroirOuvert(): ViewGroup {
+        val racine = gonfler(R.layout.activity_editor) as ViewGroup
+        val racineEditeur = racine.findViewById<TiroirPoussantLayout>(R.id.racine_editeur)
+        val tiroir = racine.findViewById<View>(R.id.tiroir)
+        // Argument positionnel : openDrawer(View, boolean) est une méthode
+        // Java (DrawerLayout) — les arguments nommés n'y sont pas permis.
+        racineEditeur.openDrawer(tiroir, false)
+        racine.measure(
+            View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(768, View.MeasureSpec.EXACTLY),
+        )
+        racine.layout(0, 0, 1024, 768)
+        assertEquals(
+            "préparation : le tiroir doit être ouvert plein écran",
+            0,
+            tiroir.left,
+        )
+        racineEditeur.computeScroll()
+        return racine
+    }
+
+    @Test
+    fun `v0_80_3 - tiroir ouvert une touche sur le corps du tiroir atteint son contenu`() {
+        val racine = preparerTiroirOuvert()
+        val tiroir = racine.findViewById<View>(R.id.tiroir)
+        val conteneurFragments = racine.findViewById<View>(R.id.conteneur_fragments_tiroir)
+        var toucheRecue = false
+        conteneurFragments.setOnTouchListener { _, _ ->
+            toucheRecue = true
+            true
+        }
+
+        // Appui AU MILIEU du corps du tiroir — loin de la poignée.
+        val appui =
+            MotionEvent.obtain(
+                0L,
+                0L,
+                MotionEvent.ACTION_DOWN,
+                (tiroir.left + tiroir.width / 2).toFloat(),
+                (tiroir.top + 200).toFloat(),
+                0,
+            )
+        val consomme = racine.dispatchTouchEvent(appui)
+        appui.recycle()
+
+        assertTrue(
+            "la touche atteint le CONTENU du tiroir — en v0.80.2, " +
+                "DrawerLayout.onInterceptTouchEvent l'interceptait (findTopChildUnder → " +
+                "conteneur_poignee plein écran → isContentView → interceptForTap, " +
+                "mScrimOpacity > 0), retour utilisateur : toutes les touches du tiroir " +
+                "étaient interceptées",
+            toucheRecue,
+        )
+        assertTrue("la racine consomme la touche (l'écouteur du tiroir la prend)", consomme)
+    }
+
+    @Test
+    fun `v0_80_3 - la poignee a cheval recoit ses touches par-dessus le tiroir ouvert`() {
+        val racine = preparerTiroirOuvert()
+        val tiroir = racine.findViewById<View>(R.id.tiroir)
+        val poignee = racine.findViewById<View>(R.id.poignee_tiroir)
+        poignee.isVisible = true
+        // Une vue GONE n'est PAS mesurée par la passe de layout : en
+        // production le framework replanifie le layout quand recalerPoignee
+        // la rend visible — ici on relance la passe à la main.
+        racine.measure(
+            View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(768, View.MeasureSpec.EXACTLY),
+        )
+        racine.layout(0, 0, 1024, 768)
+        // Pose manuelle du cheval de recalerPoignee : moitié sur le tiroir,
+        // moitié sur la zone centrale (translation, pas de layout).
+        val demi = 13 * racine.resources.displayMetrics.density
+        poignee.translationX = tiroir.width - demi
+        poignee.translationY = 100f
+        var appuiPoignee = false
+        poignee.setOnTouchListener { _, _ ->
+            appuiPoignee = true
+            true
+        }
+
+        // Appui EXACTEMENT sur le bord du tiroir : la moitié droite de la
+        // poignée (zone centrale) — le point le plus piégeux du cheval.
+        val appui =
+            MotionEvent.obtain(
+                0L,
+                0L,
+                MotionEvent.ACTION_DOWN,
+                tiroir.width.toFloat(),
+                130f,
+                0,
+            )
+        val consomme = racine.dispatchTouchEvent(appui)
+        appui.recycle()
+
+        assertTrue(
+            "la poignée reçoit l'appui posé à cheval sur le bord du tiroir",
+            appuiPoignee,
+        )
+        assertTrue("la racine consomme la touche (l'écouteur de la poignée la prend)", consomme)
     }
 
     @Test
