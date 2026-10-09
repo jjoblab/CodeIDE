@@ -369,7 +369,14 @@ class EditorActivity :
         val gestionnaire = supportFragmentManager
         if (gestionnaire.findFragmentById(R.id.conteneur_fragments_tiroir) == null) {
             val explorateur = ExplorateurFragment()
-            val recherche = RechercheFragment()
+            // S2 : RechercheFragment réel remplace l'aperçu statique.
+            val recherche =
+                RechercheFragment().apply {
+                    arguments =
+                        android.os.Bundle().apply {
+                            putString(ClesEditor.EXTRA_PROJECT_ID, intent.getStringExtra(ClesEditor.EXTRA_PROJECT_ID))
+                        }
+                }
             // G2 : passe le project ID au GitFragment pour son SavedStateHandle.
             val git =
                 GitFragment().apply {

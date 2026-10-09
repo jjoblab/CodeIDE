@@ -386,6 +386,19 @@
     <string name="apercu_git_commit">Commit</string>
     <string name="apercu_bientot">%1$s — bientôt disponible.</string>
     <string name="apercu_recherche_description">La recherche en plein texte du projet arrivera avec son lot dédié : requêtes, filtres par type de fichier et remplacements.</string>
+
+    <!-- Section Recherche du tiroir (S2, ADR 0094). -->
+    <string name="recherche_titre">Recherche</string>
+    <string name="recherche_hint">Rechercher dans le projet…</string>
+    <string name="recherche_effacer_cd">Effacer la recherche</string>
+    <string name="recherche_aucun_resultat">Aucun résultat</string>
+    <string name="recherche_plafond">Plafond atteint — affinez la recherche</string>
+    <string name="recherche_bascule_casse">Aa</string>
+    <string name="recherche_bascule_casse_cd">Ignorer la casse</string>
+    <string name="recherche_bascule_mot_entier">W</string>
+    <string name="recherche_bascule_mot_entier_cd">Mot entier</string>
+    <string name="recherche_bascule_regex">.*</string>
+    <string name="recherche_bascule_regex_cd">Expression régulière</string>
     <string name="apercu_git_description">Le panneau Git affichera le statut du dépôt, la préparation des commits et l\'historique des branches.</string>
 
     <!-- Section Git du tiroir (G2, ADR 0092). -->
