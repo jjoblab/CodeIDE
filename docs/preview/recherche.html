@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Recherche (maquette)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1e1f22; color: #dfe1e5; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+  h2 { font-size: 14px; margin: 20px 0 10px; color: #9ba0a8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tiroir { width: 320px; background: #2b2d30; border-radius: 8px; overflow: hidden; border: 1px solid #3c3f41; }
+  .entete { padding: 10px 12px; background: #b06d20; display: flex; align-items: center; gap: 8px; }
+  .entete-icone { width: 20px; height: 20px; background: #e88f89; border-radius: 4px; flex-shrink: 0; }
+  .entete-titre { font-size: 13px; font-weight: 600; color: #fff; }
+  .entete-actions { display: flex; gap: 4px; margin-left: auto; }
+  .entete-action { width: 24px; height: 24px; background: rgba(255,255,255,.1); border-radius: 4px; cursor: pointer; }
+  .corps { padding: 8px; }
+  .champ { width: 100%; background: #1e1f22; border: 1px solid #3c3f41; border-radius: 6px; padding: 8px; color: #dfe1e5; font-size: 12px; margin-bottom: 4px; }
+  .bascules { display: flex; gap: 4px; margin-bottom: 8px; }
+  .bascule { width: 28px; height: 28px; background: #1e1f22; border: 1px solid #3c3f41; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .bascule.active { background: #42657f; border-color: #42657f; color: #fff; }
+  .remplacer { width: 100%; background: #1e1f22; border: 1px solid #3c3f41; border-radius: 6px; padding: 8px; color: #dfe1e5; font-size: 12px; margin-bottom: 4px; display: none; }
+  .remplacer.visible { display: block; }
+  .resume { font-size: 11px; color: #9ba0a8; padding: 4px 0; }
+  .groupe-fichier { margin-bottom: 6px; }
+  .ligne-fichier { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .ligne-fichier:hover { background: #3c3f41; }
+  .ligne-fichier .icone { width: 16px; height: 16px; border-radius: 3px; }
+  .ligne-fichier .nom { font-weight: 600; }
+  .ligne-fichier .chemin { font-size: 10px; color: #6f737a; }
+  .ligne-fichier .compteur { margin-left: auto; background: #3c3f41; border-radius: 8px; padding: 0 6px; font-size: 10px; }
+  .occurrence { padding: 3px 8px 3px 28px; font-size: 11px; font-family: monospace; color: #9ba0a8; cursor: pointer; border-radius: 4px; }
+  .occurrence:hover { background: #3c3f41; }
+  .occurrence .numero { color: #6f737a; margin-right: 8px; }
+  .occurrence .surligne { background: #114957; color: #73bd79; border-radius: 2px; padding: 0 2px; }
+  .flex { display: flex; gap: 16px; flex-wrap: wrap; }
+  .label { font-size: 11px; color: #6f737a; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <h1>CodeIDE — Section Recherche du tiroir (maquette statique)</h1>
+
+  <div class="flex">
+
+    <!-- Recherche simple -->
+    <div>
+      <h2>Recherche simple</h2>
+      <div class="tiroir">
+        <div class="entete">
+          <div class="entete-icone"></div>
+          <span class="entete-titre">Recherche</span>
+          <div class="entete-actions">
+            <div class="entete-action"></div>
+            <div class="entete-action"></div>
+          </div>
+        </div>
+        <div class="corps">
+          <input class="champ" placeholder="Rechercher…" value="main">
+          <div class="bascules">
+            <div class="bascule">Aa</div>
+            <div class="bascule">W</div>
+            <div class="bascule">.*</div>
+          </div>
+          <div class="resume">3 résultats dans 2 fichiers</div>
+          <div class="groupe-fichier">
+            <div class="ligne-fichier">
+              <div class="icone" style="background:#7f52ff"></div>
+              <span class="nom">Main.kt</span>
+              <span class="chemin">src/main/kotlin</span>
+              <span class="compteur">2</span>
+            </div>
+            <div class="occurrence"><span class="numero">5</span>fun <span class="surligne">main</span>() {</div>
+            <div class="occurrence"><span class="numero">8</span>  println("Hello from <span class="surligne">main</span>")</div>
+          </div>
+          <div class="groupe-fichier">
+            <div class="ligne-fichier">
+              <div class="icone" style="background:#7f52ff"></div>
+              <span class="nom">Utils.kt</span>
+              <span class="chemin">src/main/kotlin</span>
+              <span class="compteur">1</span>
+            </div>
+            <div class="occurrence"><span class="numero">12</span>  // Entry point for <span class="surligne">main</span> module</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recherche avec remplacement -->
+    <div>
+      <h2>Recherche + Remplacement</h2>
+      <div class="tiroir">
+        <div class="entete">
+          <div class="entete-icone"></div>
+          <span class="entete-titre">Recherche</span>
+        </div>
+        <div class="corps">
+          <input class="champ" placeholder="Rechercher…" value="println">
+          <div class="bascules">
+            <div class="bascule active">Aa</div>
+            <div class="bascule">W</div>
+            <div class="bascule">.*</div>
+          </div>
+          <input class="champ remplacer visible" placeholder="Remplacer…" value="print">
+          <div class="bascules">
+            <div class="bascule" style="font-size:10px">Ab→aB</div>
+          </div>
+          <div class="resume">2 résultats dans 1 fichier — cliquez pour remplacer</div>
+          <div class="groupe-fichier">
+            <div class="ligne-fichier">
+              <div class="icone" style="background:#7f52ff"></div>
+              <span class="nom">Main.kt</span>
+              <span class="chemin">src/main/kotlin</span>
+              <span class="compteur">2</span>
+            </div>
+            <div class="occurrence"><span class="numero">6</span>  <span class="surligne">println</span>("Hello")</div>
+            <div class="occurrence"><span class="numero">7</span>  <span class="surligne">println</span>("World")</div>
+          </div>
+          <div style="padding:8px;display:flex;gap:6px">
+            <button style="flex:1;padding:8px;background:#42657f;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">Tout remplacer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- État vide -->
+    <div>
+      <h2>État vide</h2>
+      <div class="tiroir">
+        <div class="entete">
+          <div class="entete-icone"></div>
+          <span class="entete-titre">Recherche</span>
+        </div>
+        <div class="corps" style="padding:40px 20px;text-align:center">
+          <div style="width:40px;height:40px;margin:0 auto 12px;background:#3c3f41;border-radius:50%"></div>
+          <div style="font-size:13px;color:#9ba0a8">Saisissez une requête pour rechercher dans le projet</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="label" style="margin-top:20px">
+    Surbrillance liste : fond #114957 · texte #73BD79 ·<br>
+    Surbrillance éditeur : fond #2D543F (sombre) ·<br>
+    Bascules : Aa = ignorer casse · W = mot entier · .* = regex · Ab→aB = conserver casse
+  </div>
+</body>
+</html>
