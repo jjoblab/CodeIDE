@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Section Projet du tiroir (P2, ADR 0095) : entête + 4 onglets
+     (Scripts, Dépendances, Variantes, Tâches). Chaque onglet a SA
+     propre vue sous le TabLayout ; le fragment bascule la visibilité
+     plutôt que d'ajouter/retirer des vues — plus simple et plus
+     robuste au changement d'onglet. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Entête : emblème + titre + bouton actualiser. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fond_entete_explorateur"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_projet"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            style="?attr/textAppearanceTitleSmall"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/projet_titre" />
+
+        <ImageView
+            android:id="@+id/bouton_actualiser"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/projet_actualiser_cd"
+            android:padding="6dp"
+            android:src="@drawable/ic_recherche"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <!-- Onglets : 4 destinations. -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/onglets_projet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="?attr/colorPrimary"
+        app:tabIndicatorFullWidth="false"
+        app:tabMode="fixed"
+        app:tabTextColor="?attr/colorOnSurfaceVariant" />
+
+    <!-- Conteneur des 4 onglets — un seul visible à la fois. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Onglet Scripts (P2) : barre de progression, message d'erreur,
+             message « aucun script », liste. -->
+        <LinearLayout
+            android:id="@+id/vue_scripts"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <ProgressBar
+                android:id="@+id/chargement_scripts"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/message_chargement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="16dp"
+                android:text="@string/projet_chargement"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/message_erreur"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="16dp"
+                android:text="@string/projet_erreur_chargement"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/message_vide"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="16dp"
+                android:text="@string/projet_aucun_script"
+                android:visibility="gone" />
+
+            <ListView
+                android:id="@+id/liste_scripts"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Onglet Dépendances (P3 à venir). -->
+        <TextView
+            android:id="@+id/vue_dependances"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="24dp"
+            android:text="@string/projet_dependances_bientot"
+            android:visibility="gone" />
+
+        <!-- Onglet Variantes (P4 à venir). -->
+        <TextView
+            android:id="@+id/vue_variantes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="24dp"
+            android:text="@string/projet_variantes_bientot"
+            android:visibility="gone" />
+
+        <!-- Onglet Tâches (P5) : bouton d'ouverture de la feuille. -->
+        <LinearLayout
+            android:id="@+id/vue_taches"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_ouvrir_taches"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:text="@string/projet_taches_ouvrir" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

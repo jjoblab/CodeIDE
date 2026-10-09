@@ -16,6 +16,7 @@ import jo.codeide.core.domain.InstantaneTas
 import jo.codeide.core.domain.LigneSortieBuild
 import jo.codeide.core.domain.LigneSortieSync
 import jo.codeide.core.domain.ResultatSynchronisation
+import jo.codeide.core.domain.ScriptDeBuild
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.StatutTache
@@ -49,6 +50,10 @@ class FauxToolingEditor : GradleToolingRepository {
 
     /** Réponse de `classpath` (ADR 0058 — préparation LSP). */
     var prochainClasspath: AppResult<ClasspathProjet> =
+        AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
+    /** Réponse de `scriptsBuild` (P1, ADR 0095 — tiroir Projet). */
+    var prochainsScripts: AppResult<List<ScriptDeBuild>> =
         AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
     /** Dossier passé à chaque opération (assertions). */
@@ -141,6 +146,12 @@ class FauxToolingEditor : GradleToolingRepository {
         dossierRecu = projectDir
         nbClasspaths++
         return prochainClasspath
+    }
+
+    /** P1 (ADR 0095) : scripts de build — fake renvoyant [prochainsScripts]. */
+    override suspend fun scriptsBuild(projectDir: File): AppResult<List<ScriptDeBuild>> {
+        dossierRecu = projectDir
+        return prochainsScripts
     }
 
     override suspend fun build(

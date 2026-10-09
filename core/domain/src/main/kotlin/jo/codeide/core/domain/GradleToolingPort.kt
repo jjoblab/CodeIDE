@@ -119,6 +119,21 @@ public interface GradleToolingRepository {
     ): AppResult<ClasspathProjet>
 
     /**
+     * Scripts de build du projet (P1, ADR 0095) : lit les
+     * `build.gradle.kts`, `build.gradle`, `settings.gradle.kts`,
+     * `settings.gradle`, `gradle.properties` et le catalogue
+     * `gradle/libs.versions.toml` via le serveur de tooling (le
+     * `projectDir` DOIT être le chemin FUSE réel, résolu par
+     * `ResoudreRepertoireProjet` — ADR 0038).
+     *
+     * Lecture brute, aucune modification — l'UI Projet l'affiche
+     * puis proposera l'édition (P3).
+     *
+     * @param projectDir répertoire racine du projet Gradle.
+     */
+    public suspend fun scriptsBuild(projectDir: File): AppResult<List<ScriptDeBuild>>
+
+    /**
      * Tâches d'un build au fil de leur exécution (v3 — affichage à la
      * console d'Android Studio) : démarrage, puis fin avec statut et durée
      * MESURÉE par l'orchestrateur. Jamais conflaté, ordre d'exécution

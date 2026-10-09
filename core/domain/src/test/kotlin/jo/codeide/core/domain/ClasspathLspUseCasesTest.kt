@@ -223,6 +223,9 @@ class ClasspathLspUseCasesTest {
             return prochainClasspath
         }
 
+        override suspend fun scriptsBuild(projectDir: File): AppResult<List<ScriptDeBuild>> =
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
         override suspend fun build(
             projectDir: File,
             tasks: List<String>,
