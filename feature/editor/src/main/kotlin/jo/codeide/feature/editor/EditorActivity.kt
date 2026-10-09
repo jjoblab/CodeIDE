@@ -385,12 +385,23 @@ class EditorActivity :
                             putString(ClesEditor.EXTRA_PROJECT_ID, intent.getStringExtra(ClesEditor.EXTRA_PROJECT_ID))
                         }
                 }
+            // P2 : passe le project ID au ProjetFragment pour résoudre le
+            // chemin FUSE du projet et charger les scripts de build.
+            val projet =
+                ProjetFragment().apply {
+                    arguments =
+                        android.os.Bundle().apply {
+                            putString(ClesEditor.EXTRA_PROJECT_ID, intent.getStringExtra(ClesEditor.EXTRA_PROJECT_ID))
+                        }
+                }
             val terminal = fabriqueTerminalTiroir.creer()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_tiroir, explorateur, TAG_EXPLORATEUR)
                 .add(R.id.conteneur_fragments_tiroir, recherche, TAG_RECHERCHE)
                 .hide(recherche)
+                .add(R.id.conteneur_fragments_tiroir, projet, TAG_PROJET)
+                .hide(projet)
                 .add(R.id.conteneur_fragments_tiroir, git, TAG_GIT)
                 .hide(git)
                 .add(R.id.conteneur_fragments_tiroir, terminal, TAG_TERMINAL)
@@ -442,6 +453,11 @@ class EditorActivity :
                     jo.codeide.core.ui.R.drawable.ic_recherche,
                     R.string.editor_nav_recherche,
                 ),
+                Triple(
+                    R.id.destination_projet,
+                    jo.codeide.core.ui.R.drawable.ic_projet,
+                    R.string.editor_nav_projet,
+                ),
                 Triple(R.id.destination_git, jo.codeide.core.ui.R.drawable.ic_git, R.string.editor_nav_git),
                 Triple(
                     R.id.destination_terminal,
@@ -477,6 +493,7 @@ class EditorActivity :
             gestionnaire.findFragmentByTag(
                 when (destination) {
                     R.id.destination_recherche -> TAG_RECHERCHE
+                    R.id.destination_projet -> TAG_PROJET
                     R.id.destination_git -> TAG_GIT
                     R.id.destination_terminal -> TAG_TERMINAL
                     else -> TAG_EXPLORATEUR
@@ -486,7 +503,7 @@ class EditorActivity :
         // Ciblé PAR TAG (v0.32.4) : les fragments du PANNEAU inférieur
         // vivent dans le même manager — un forEach global les cacherait
         // à chaque changement de destination du tiroir.
-        listOf(TAG_EXPLORATEUR, TAG_RECHERCHE, TAG_GIT, TAG_TERMINAL)
+        listOf(TAG_EXPLORATEUR, TAG_RECHERCHE, TAG_PROJET, TAG_GIT, TAG_TERMINAL)
             .mapNotNull { tag -> gestionnaire.findFragmentByTag(tag) }
             .forEach { fragment ->
                 if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
@@ -1749,6 +1766,7 @@ class EditorActivity :
         /** Étiquettes des fragments du tiroir (§ 14 — restauration). */
         const val TAG_EXPLORATEUR = "tiroir_explorateur"
         const val TAG_RECHERCHE = "tiroir_recherche"
+        const val TAG_PROJET = "tiroir_projet"
         const val TAG_GIT = "tiroir_git"
         const val TAG_TERMINAL = "tiroir_terminal"
 
