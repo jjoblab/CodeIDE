@@ -48,6 +48,12 @@ class ClientManifesteOutilsTest {
         assertEquals(true, buildTools.critical)
         assertEquals("build-tools/35.0.2", buildTools.installPath)
         assertEquals("aapt2 --version", buildTools.verify.cmd)
+        // P4+ (fix Android SDK) : archiveRoot est lu pour platform (zip Google
+        // contient android-36/ à sa racine, pas platforms/android-36/).
+        val platform = manifeste.value.components.first { it.id == "platform" }
+        assertEquals("platforms/android-36", platform.installPath)
+        assertEquals("android-36", platform.archiveRoot)
+        assertEquals(null, buildTools.archiveRoot)
     }
 
     @Test
@@ -163,6 +169,7 @@ class ClientManifesteOutilsTest {
                   "sha256": "$SOMME_2",
                   "size": 50000000,
                   "installPath": "platforms/android-36",
+                  "archiveRoot": "android-36",
                   "critical": true,
                   "verify": { "cmd": "unzip -l android.jar", "expect": ".*" }
                 }
