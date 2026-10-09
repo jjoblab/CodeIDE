@@ -176,4 +176,55 @@ class ClientManifesteOutilsTest {
             }
             """
     }
+
+    @Test
+    fun `un manifeste avec le nouveau format de profils objet components est valide`() {
+        val manifeste = client().analyser(manifesteNouveauFormatProfils)
+
+        assertTrue(
+            "manifeste doit être un succès: $manifeste",
+            manifeste is AppResult.Success,
+        )
+        manifeste as AppResult.Success
+        assertEquals(2, manifeste.value.schemaVersion)
+        assertTrue("profil default présent", manifeste.value.profiles.containsKey("default"))
+        assertEquals(
+            listOf("build-tools@35.0.2", "platform@android-37.2"),
+            manifeste.value.profiles["default"],
+        )
+    }
+
+    private val manifesteNouveauFormatProfils = """
+            {
+              "schemaVersion": 2,
+              "generatedAt": "2026-10-09T00:00:00Z",
+              "components": [
+                {
+                  "id": "build-tools", "version": "35.0.2", "revision": "r1", "arch": "aarch64",
+                  "sources": ["https://example.com/build-tools.tar.xz"],
+                  "sha256": "${"a".repeat(64)}",
+                  "size": 1234,
+                  "installPath": "build-tools/35.0.2",
+                  "verify": { "cmd": "aapt2 --version", "expect": "Android Asset Packaging Tool" }
+                },
+                {
+                  "id": "platform", "version": "android-37.2", "revision": "r1", "arch": "any",
+                  "sources": ["https://example.com/platform.zip"],
+                  "sha256": "${"b".repeat(64)}",
+                  "size": 5678,
+                  "installPath": "platforms/android-37.2",
+                  "verify": { "cmd": "unzip -l android.jar", "expect": ".*" }
+                }
+              ],
+              "profiles": {
+                "default": {
+                  "components": ["build-tools@35.0.2", "platform@android-37.2"],
+                  "description": "Chaine recommandee"
+                }
+              },
+              "compat": [
+                { "agp": "9.4.1", "buildTools": "35.0.2", "aapt2": "35.0.2", "compileSdk": "android-37.2", "jdk": ">=17", "status": "tested" }
+              ]
+            }
+            """
 }

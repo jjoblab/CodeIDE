@@ -85,6 +85,9 @@ class OnboardingViewModelTest {
             fichiers = fichiers,
             localisateurOutils = localisateurOutils,
             observerEtatOutils = observerOutils,
+            orchestrateurInstallation =
+                jo.codeide.core.testing
+                    .FakeEnvironmentSetupOrchestrator(),
             logger = FakeAppLogger(),
             savedStateHandle = sauvetage,
         )
