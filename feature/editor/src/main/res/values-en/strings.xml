@@ -374,6 +374,19 @@
     <string name="apercu_git_commit">Commit</string>
     <string name="apercu_bientot">%1$s — coming soon.</string>
     <string name="apercu_recherche_description">Project-wide full-text search will arrive with its dedicated batch: queries, file type filters and replacements.</string>
+
+    <!-- Search drawer section (S2, ADR 0094). -->
+    <string name="recherche_titre">Search</string>
+    <string name="recherche_hint">Search in project…</string>
+    <string name="recherche_effacer_cd">Clear search</string>
+    <string name="recherche_aucun_resultat">No results</string>
+    <string name="recherche_plafond">Limit reached — refine your search</string>
+    <string name="recherche_bascule_casse">Aa</string>
+    <string name="recherche_bascule_casse_cd">Match case</string>
+    <string name="recherche_bascule_mot_entier">W</string>
+    <string name="recherche_bascule_mot_entier_cd">Whole word</string>
+    <string name="recherche_bascule_regex">.*</string>
+    <string name="recherche_bascule_regex_cd">Regular expression</string>
     <string name="apercu_git_description">The Git panel will show repository status, commit staging and branch history.</string>
 
     <!-- Git drawer section (G2, ADR 0092). -->
