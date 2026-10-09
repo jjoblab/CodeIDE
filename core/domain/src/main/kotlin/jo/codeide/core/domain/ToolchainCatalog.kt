@@ -94,14 +94,15 @@ public data class ToolchainCatalog(
          *   pour Android aarch64 (manifeste v1 vérifié, source
          *   `lzhiyong/android-sdk-tools`) — la machine de build x86_64
          *   utilise 36.0.0, ce n'est pas la même contrainte ;
-         * - `platform@android-37.2` : plateforme des templates
-         *   (`compileSdk` 37 + `compileSdkMinor` 2, vérifié dans
-         *   `templates/android-app`).
+         * - `platform@android-36` : plateforme de compilation. Le
+         *   manifeste v2 publie android-36 dans le profil default (la
+         *   plus stable éprouvée). Le projet compile en SDK 37.2 mais
+         *   la plateforme 36 suffit (backward compat AGP).
          */
         public val DEFAULT_REQUIRED_COMPONENTS: List<ComponentRequirement> =
             listOf(
                 ComponentRequirement("build-tools", "35.0.2"),
-                ComponentRequirement("platform", "android-37.2"),
+                ComponentRequirement("platform", "android-36"),
             )
 
         /** Seuil plancher : 1 Gio (marge pour le JDK seul, 200+ Mio installé). */
