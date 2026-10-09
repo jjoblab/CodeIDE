@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Tiroir poussant (maquette)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1e1f22; color: #dfe1e5; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+  h2 { font-size: 14px; margin: 20px 0 10px; color: #9ba0a8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .scene { display: flex; gap: 20px; flex-wrap: wrap; }
+  .phone { width: 360px; height: 640px; background: #2b2d30; border-radius: 16px; overflow: hidden; position: relative; border: 2px solid #3c3f41; }
+  .toolbar { height: 56px; background: #42657f; display: flex; align-items: center; padding: 0 12px; gap: 8px; }
+  .icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .icon-svg { width: 20px; height: 16px; position: relative; }
+  .icon-screen { width: 100%; height: 100%; border: 1.5px solid #9ba0a8; border-radius: 2px; position: relative; opacity: 0.7; }
+  .icon-panel { position: absolute; top: 1.5px; bottom: 1.5px; left: 1.5px; border-radius: 1px; transition: width 0.3s, background 0.3s; }
+  .icon-divider { position: absolute; top: 1.5px; bottom: 1.5px; width: 1.5px; transition: left 0.3s, background 0.3s; }
+  .toolbar-title { color: #fff; font-size: 14px; font-weight: 600; }
+  .content { position: absolute; top: 56px; left: 0; right: 0; bottom: 0; transition: transform 0.3s, border-radius 0.3s; }
+  .content-card { width: 100%; height: 100%; background: #1e1f22; border-radius: 0; transition: border-radius 0.3s, transform 0.3s; overflow: hidden; }
+  .editor-area { padding: 20px; font-family: monospace; font-size: 12px; color: #dfe1e5; line-height: 1.6; }
+  .drawer { position: absolute; top: 0; left: 0; bottom: 0; width: 280px; background: #2b2d30; border-right: 1px solid #3c3f41; transform: translateX(-100%); transition: transform 0.3s; padding: 16px; }
+  .drawer-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+  .drawer-item { padding: 8px; border-radius: 6px; font-size: 12px; margin-bottom: 4px; }
+  .drawer-item:hover { background: #3c3f41; }
+
+  /* États */
+  .closed .drawer { transform: translateX(-100%); }
+  .closed .content { transform: translateX(0); border-radius: 0; }
+  .closed .content-card { border-radius: 0; }
+  .closed .icon-panel { width: 34%; background: rgba(155,160,168,0.2); }
+  .closed .icon-divider { left: 34%; background: #9ba0a8; }
+
+  .open .drawer { transform: translateX(0); }
+  .open .content { transform: translateX(calc(280px * 0.95)); border-radius: 0; }
+  .open .content-card { border-radius: 16px; }
+  .open .icon-panel { width: 64%; background: rgba(66,101,127,0.4); }
+  .open .icon-divider { left: 64%; background: #42657f; }
+
+  .mid .drawer { transform: translateX(-50%); }
+  .mid .content { transform: translateX(calc(280px * 0.475)); border-radius: 0; }
+  .mid .content-card { border-radius: 12px; }
+  .mid .icon-panel { width: 49%; background: rgba(155,160,168,0.3); }
+  .mid .icon-divider { left: 49%; background: #6b8baa; }
+
+  /* Bottom sheet */
+  .sheet { position: absolute; bottom: 0; left: 0; right: 0; background: #2b2d30; border-top: 1px solid #3c3f41; transition: height 0.3s; z-index: 10; }
+  .sheet-handle { width: 32px; height: 4px; background: #6f737a; border-radius: 2px; margin: 8px auto; }
+  .sheet-content { padding: 8px 16px; font-size: 11px; color: #9ba0a8; }
+  .sheet-collapsed .sheet { height: 48px; }
+  .sheet-half .sheet { height: 320px; }
+  .sheet-expanded .sheet { height: 500px; }
+  .sheet-half .content, .sheet-expanded .content { transform-origin: center bottom; }
+  .sheet-half .content-card { transform: scale(0.93); border-radius: 12px; }
+  .sheet-expanded .content-card { transform: scale(0.87); border-radius: 16px; }
+
+  .label { text-align: center; font-size: 11px; color: #6f737a; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>CodeIDE — Tiroir poussant + icône animée + bottom sheet rétrécissant</h1>
+
+  <h2>Tiroir : fermé → mi-ouvert → ouvert</h2>
+  <div class="scene">
+    <div>
+      <div class="phone closed">
+        <div class="toolbar">
+          <div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div>
+          <span class="toolbar-title">Main.kt</span>
+        </div>
+        <div class="drawer"><div class="drawer-title">Explorateur</div><div class="drawer-item">src/</div><div class="drawer-item">Main.kt</div></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet sheet-collapsed"><div class="sheet-handle"></div><div class="sheet-content">Console</div></div>
+      </div>
+      <div class="label">Fermé : icône neutre, contenu plein</div>
+    </div>
+
+    <div>
+      <div class="phone mid">
+        <div class="toolbar">
+          <div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div>
+          <span class="toolbar-title">Main.kt</span>
+        </div>
+        <div class="drawer"><div class="drawer-title">Explorateur</div><div class="drawer-item">src/</div><div class="drawer-item">Main.kt</div></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet sheet-collapsed"><div class="sheet-handle"></div><div class="sheet-content">Console</div></div>
+      </div>
+      <div class="label">Mi-ouvert : icône 49%, contenu translé</div>
+    </div>
+
+    <div>
+      <div class="phone open">
+        <div class="toolbar">
+          <div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div>
+          <span class="toolbar-title">Main.kt</span>
+        </div>
+        <div class="drawer"><div class="drawer-title">Explorateur</div><div class="drawer-item">src/</div><div class="drawer-item">Main.kt</div></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet sheet-collapsed"><div class="sheet-handle"></div><div class="sheet-content">Console</div></div>
+      </div>
+      <div class="label">Ouvert : icône 64%, contenu poussé + coins arrondis</div>
+    </div>
+  </div>
+
+  <h2>Bottom sheet : replié → mi-hauteur → étendu</h2>
+  <div class="scene">
+    <div>
+      <div class="phone closed sheet-collapsed">
+        <div class="toolbar"><div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div><span class="toolbar-title">Main.kt</span></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet"><div class="sheet-handle"></div><div class="sheet-content">Console</div></div>
+      </div>
+      <div class="label">Replié : contenu 100%</div>
+    </div>
+
+    <div>
+      <div class="phone closed sheet-half">
+        <div class="toolbar"><div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div><span class="toolbar-title">Main.kt</span></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet"><div class="sheet-handle"></div><div class="sheet-content">Console — Build en cours…</div></div>
+      </div>
+      <div class="label">Mi-hauteur : contenu 93%</div>
+    </div>
+
+    <div>
+      <div class="phone closed sheet-expanded">
+        <div class="toolbar"><div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div><span class="toolbar-title">Main.kt</span></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main() {<br>&nbsp;&nbsp;println("Hello")<br>}</div></div></div>
+        <div class="sheet"><div class="sheet-handle"></div><div class="sheet-content">Console — BUILD SUCCESSFUL</div></div>
+      </div>
+      <div class="label">Étendu : contenu 87%</div>
+    </div>
+  </div>
+
+  <h2>Combinaison : tiroir ouvert + sheet étendu</h2>
+  <div class="scene">
+    <div>
+      <div class="phone open sheet-expanded">
+        <div class="toolbar"><div class="icon"><div class="icon-svg"><div class="icon-screen"><div class="icon-panel"></div><div class="icon-divider"></div></div></div></div><span class="toolbar-title">Main.kt</span></div>
+        <div class="drawer"><div class="drawer-title">Explorateur</div><div class="drawer-item">src/</div></div>
+        <div class="content"><div class="content-card"><div class="editor-area">fun main()</div></div></div>
+        <div class="sheet"><div class="sheet-handle"></div><div class="sheet-content">Console</div></div>
+      </div>
+      <div class="label">Tiroir ouvert + sheet étendu (effets combinés)</div>
+    </div>
+  </div>
+
+  <p style="margin-top:20px;font-size:11px;color:#6f737a">
+    Facteurs : translation tiroir = 0,95 (FULL) · échelle sheet = 1,0 → 0,93 (mi-hauteur) → 0,87 (étendu) ·
+    coins arrondis contenu = 28 dp (ouvert) / 0 (fermé) · icône séparateur = 34% → 64%
+  </p>
+</body>
+</html>
