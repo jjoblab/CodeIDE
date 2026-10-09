@@ -4,8 +4,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import jo.codeide.core.data.ClientMavenHttp
 import jo.codeide.core.data.ProjectRepositoryImpl
 import jo.codeide.core.data.SettingsRepositoryImpl
+import jo.codeide.core.domain.MavenVersionesDisponibles
 import jo.codeide.core.domain.ProjectRepository
 import jo.codeide.core.domain.SettingsRepository
 import javax.inject.Singleton
@@ -28,4 +30,9 @@ internal interface DataBindsModule {
     @Binds
     @Singleton
     fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    /** P6 (ADR 0097) : versions Maven disponibles via HttpURLConnection. */
+    @Binds
+    @Singleton
+    fun bindMavenVersionesDisponibles(impl: ClientMavenHttp): MavenVersionesDisponibles
 }
