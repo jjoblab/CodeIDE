@@ -55,6 +55,19 @@
     <string name="editor_panneau_problemes">Problems</string>
     <string name="editor_panneau_journal">Log</string>
 
+    <!-- Information subtitle of the first section (v0.80.1): count for
+         the active tab, Log or Problems. -->
+    <string name="editor_panneau_aucun_probleme">No problems</string>
+    <string name="editor_panneau_journal_vide">No entries</string>
+    <plurals name="editor_panneau_problemes_compte">
+        <item quantity="one">%1$d problem</item>
+        <item quantity="other">%1$d problems</item>
+    </plurals>
+    <plurals name="editor_panneau_journal_compte">
+        <item quantity="one">%1$d entry shown</item>
+        <item quantity="other">%1$d entries shown</item>
+    </plurals>
+
     <!-- Editing tabs (step 15). -->
     <string name="editor_onglet_fermer_cd">Close this tab</string>
     <string name="editor_onglet_sale_cd">%1$s — unsaved changes</string>
@@ -276,7 +289,7 @@
     <string name="editor_explorateur_nouveau_cd">New (in the selected folder)</string>
     <string name="editor_explorateur_defiler_vers_source_cd">Scroll to the active tab\'s file</string>
     <string name="editor_explorateur_replier_tout_cd">Collapse all. Long press to expand all</string>
-    <string name="editor_explorateur_legende_cd">Tree legend</string>
+    <string name="editor_explorateur_legende_cd">Tree legend and display options</string>
     <string name="editor_ariane_racine_cd">Tree root</string>
     <string name="explorateur_racine_privee">Private storage</string>
 
@@ -318,8 +331,12 @@
     <string name="supprimer_fichier_message">Delete %1$s? This cannot be undone.</string>
     <string name="supprimer_dossier_message">Delete %1$s and all its contents? This cannot be undone.</string>
 
-    <!-- “Legend” popover (§ 10.5). -->
+    <!-- “Legend” popover (§ 10.5; v0.80.1: Display section). -->
     <string name="legende_titre">Legend</string>
+    <string name="legende_affichage">Display</string>
+    <string name="legende_compact">Compact folders</string>
+    <string name="legende_masquer_caches">Hide hidden files</string>
+    <string name="legende_masquer_build">Hide build folders</string>
     <string name="legende_points_etat">State dots</string>
     <string name="legende_point_defaut">File not open</string>
     <string name="legende_point_ouvert">Open in an inactive tab</string>

@@ -1,5 +1,57 @@
 # Journal des modifications
 
+## [0.80.1] – 2026-10-10
+
+### Corrigé
+
+- **`feature:editor`** : l'explorateur de fichiers **se met enfin à
+  jour tout seul** (retour utilisateur : « .gradle n'est pas affiché,
+  de même pour app/build et en mode privé »). Trois causes, trois
+  correctifs (ADR 0098) :
+  - les dossiers de build étaient masqués PAR DÉFAUT sans AUCUNE
+    interface pour les afficher — `masquerDossiersBuild` passe à
+    `false` (`.gradle/` et `app/build/` visibles, comme l'attend
+    l'utilisateur qui suit une sync Gradle) et les trois bascules
+    existantes (compactage, fichiers cachés, dossiers de build) sont
+    CÂBLÉES dans le popover « Légende » (section « Affichage », trois
+    cases à cocher enchaînables sans refermer) ;
+  - l'arbre ne rafraîchissait qu'à l'appui sur Actualiser — un
+    **balayage périodique** (4 s, démarré à `onStart`, arrêté à
+    `onStop`, borné à 25 dossiers en cache, dépliés d'abord) re-liste
+    l'arbre AFFICHÉ, compare (URI + type) et reconstruit au
+    changement : une création externe (Gradle, terminal, autre
+    application) apparaît en moins d'une période, sur les DEUX sources
+    (projet SAF et stockage privé) ; un dossier disparu est purgé avec
+    ses sous-arbres ; un échec d'accès interrompt discrètement le
+    balayage sans toucher l'état ;
+  - SAF n'a pas d'observateur de dossier : le balayage comparatif
+    traverse le port `FileSystem` et couvre les deux arbres sans
+    hypothèse FUSE.
+- **`feature:editor`** : le panneau inférieur étendu **ne recouvre plus
+  la toolbar ni les onglets de fichiers** (alignement AndroidIDE,
+  consultation du code source `EditorBottomSheet.setOffsetAnchor`) :
+  `expandedOffset` est posé au haut de la zone d'édition et reposé à
+  chaque layout (rotation, onglets qui apparaissent/disparaissent). La
+  toolbar (titre du projet, Run, Synchroniser, Tâches) reste visible et
+  utilisable console ouverte.
+- **`feature:editor`** : **les deux sections de l'en-tête du panneau
+  inférieur sont séparées par onglet** (retour utilisateur) :
+  - onglet **Console** : la première section (poignée/titre/badge)
+    disparaît — la LIGNE TOOLING (pastille de canal, « étape n/N »,
+    détail, chrono, bouton Arrêt) EST l'en-tête, son appui bascule
+    replié ↔ mi-hauteur ; sans activité tooling, les ONGLETS deviennent
+    la poignée repliée du sheet (peek 48 dp) ;
+  - onglets **Problèmes / Journal** : la première section reste et
+    porte les INFORMATIONS correspondantes — nouveau sous-titre (compte
+    de diagnostics / compte d'entrées affichées, pluriels fr/en) et
+    badge étendu aux problèmes (compte total de l'état Gradle).
+- **`feature:editor`** : le redimensionnement du tiroir **prend en
+  compte la zone centrale** — `TiroirPoussantLayout.reevaluerTranslation()`
+  applique la formule de poussée (largeur × facteur) à chaque
+  changement de largeur (chaque trame du glissement de la poignée et de
+  l'animation d'aimant) : le bord de la zone centrale suit le bord du
+  tiroir OUVERT redimensionné, au lieu de rester à l'ancienne largeur.
+
 ## [0.65.0] – 2026-10-09
 
 ### Ajouté

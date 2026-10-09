@@ -552,6 +552,21 @@ sealed interface ActionEditor {
     data object BasculerDossiersBuild : ActionEditor
 
     /**
+     * Démarre la surveillance de l'arbre affiché (v0.80.1) : l'espace
+     * devient visible — l'explorateur doit suivre les créations et
+     * suppressions externes (Gradle qui pose `.gradle/` et `app/build/`,
+     * terminal, autre application) sans attendre un appui sur
+     * Actualiser.
+     */
+    data object DemarrerSurveillanceArbre : ActionEditor
+
+    /**
+     * Arrête la surveillance de l'arbre (v0.80.1) : l'espace n'est plus
+     * visible — plus aucun balayage périodique du système de fichiers.
+     */
+    data object ArreterSurveillanceArbre : ActionEditor
+
+    /**
      * Annule la dernière suppression (action « Annuler » du snackbar,
      * § 11) : restaure l'élément à sa place et rouvre ses onglets.
      */
@@ -835,9 +850,11 @@ data class EtatEditor(
     val affichageCompact: Boolean = true,
     /** C2e : masquer les fichiers cachés (commençant par un point). */
     val masquerFichiersCaches: Boolean = false,
-    /** C2e : masquer `build/` et `.gradle/` (dossiers de build). Activé
-     *  par défaut, comme Android Studio. */
-    val masquerDossiersBuild: Boolean = true,
+    /** C2e : masquer `build/` et `.gradle/` (dossiers de build). Désactivé
+     *  par défaut depuis la v0.80.1 : l'utilisateur de l'IDE se sert de ces
+     *  dossiers (suivi d'une sync Gradle, `app/build`, `.gradle`) — la
+     *  bascule du popover « Légende » les masque d'un geste si besoin. */
+    val masquerDossiersBuild: Boolean = false,
     val cheminRacine: String = "",
     val nomRacine: String? = null,
     val cheminsDossiers: List<String> = emptyList(),
