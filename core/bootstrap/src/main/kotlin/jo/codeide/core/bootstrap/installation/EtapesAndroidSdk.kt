@@ -189,7 +189,22 @@ internal class EtapeComposants(
             ?: arbitrer(composant, erreurDuParcours(resultat as AppResult.Failure))
     }
 
-    /** Extrait l'archive `.tar.xz` par `tar`/`xz` du bootstrap (§ 12.3 — bits et liens préservés). */
+    /**
+     * Extrait l'archive selon son format (§ 12.3 — bits et liens préservés).
+     *
+     * Le manifeste mélange deux formats :
+     * - `.tar.xz` (build-tools, platform-tools — depuis GitHub, archives
+     *   Linux natives avec bits d'exécution et liens symboliques) →
+     *   extraction par `tar -xJf` du bootstrap.
+     * - `.zip` (platform, cmdline-tools — depuis `dl.google.com`,
+     *   archives natives Google) → extraction par `unzip` du bootstrap
+     *   (les `.zip` ne sont PAS reconnus par `tar -xJf` et échouent avec
+     *   `xz: (stdin): File format not recognized`).
+     *
+     * Le format est détecté par l'extension de l'URL de la première
+     * source — les miroirs sont supposés servir le même format (contrat
+     * du manifeste).
+     */
     private suspend fun extraire(
         context: StepContext,
         composant: ManifestComponent,
@@ -199,21 +214,38 @@ internal class EtapeComposants(
         staging.deleteRecursively()
         staging.mkdirs()
         val prefixe = DispositionsBootstrap.prefix(racine)
+        val estZip = estArchiveZip(composant)
         val resultat =
-            context.commands.run(
-                CommandSpec(
-                    program = File(prefixe, "bin/tar").absolutePath,
-                    arguments = listOf("-xJf", archive.absolutePath, "-C", staging.absolutePath),
-                    workingDir = prefixe,
-                    timeoutMillis = DELAI_EXTRACTION,
-                ),
-            )
+            if (estZip) {
+                context.commands.run(
+                    CommandSpec(
+                        program = File(prefixe, "bin/unzip").absolutePath,
+                        arguments = listOf("-q", archive.absolutePath, "-d", staging.absolutePath),
+                        workingDir = prefixe,
+                        timeoutMillis = DELAI_EXTRACTION,
+                    ),
+                )
+            } else {
+                context.commands.run(
+                    CommandSpec(
+                        program = File(prefixe, "bin/tar").absolutePath,
+                        arguments = listOf("-xJf", archive.absolutePath, "-C", staging.absolutePath),
+                        workingDir = prefixe,
+                        timeoutMillis = DELAI_EXTRACTION,
+                    ),
+                )
+            }
         if (!resultat.succeeded) {
             echouer(
                 composant,
                 ErreursInstallation.commande(
                     description = "extraction de l'archive de ${composant.id} impossible",
-                    commande = "tar -xJf <archive-${composant.id}> -C <staging>",
+                    commande =
+                        if (estZip) {
+                            "unzip -q <archive-${composant.id}> -d <staging>"
+                        } else {
+                            "tar -xJf <archive-${composant.id}> -C <staging>"
+                        },
                     resultat = resultat,
                 ),
             )
@@ -231,6 +263,12 @@ internal class EtapeComposants(
             )
         }
     }
+
+    /** Détecte le format `.zip` par l'extension de l'URL de la première source. */
+    private fun estArchiveZip(composant: ManifestComponent): Boolean =
+        composant.sources.firstOrNull()?.let { url ->
+            url.endsWith(".zip", ignoreCase = true)
+        } ?: false
 
     /** Déplace l'`installPath` extrait vers la racine du SDK — atomique (même système de fichiers). */
     private suspend fun basculer(
