@@ -159,10 +159,26 @@ internal class ClientManifesteOutils
             return AppResult.Success(composants)
         }
 
-        /** Profils nommés : listes de références `"<id>@<version>"`. */
+        /**
+         * Profils nommés : listes de références `"<id>@<version>"`.
+         *
+         * Supporte deux formats :
+         * - **ancien** : `"<profil>": ["id@version", …]` (array direct)
+         * - **nouveau** : `"<profil>": { "components": ["id@version", …], … }`
+         *   (objet avec clé `components`)
+         */
+        @Suppress("ReturnCount")
         private fun lireProfils(profilsJson: JSONObject): Map<String, List<String>> {
             val profils = mutableMapOf<String, List<String>>()
             profilsJson.keys().forEach { nom ->
+                // Format nouveau : objet avec "components".
+                val objet = profilsJson.optJSONObject(nom)
+                if (objet != null) {
+                    val references = objet.optJSONArray(CHAMP_PROFILE_COMPONENTS) ?: return@forEach
+                    profils[nom] = (0 until references.length()).map { references.getString(it) }
+                    return@forEach
+                }
+                // Format ancien : array direct.
                 val references = profilsJson.optJSONArray(nom) ?: return@forEach
                 profils[nom] = (0 until references.length()).map { references.getString(it) }
             }
@@ -263,6 +279,7 @@ internal class ClientManifesteOutils
             internal const val CHAMP_GENERE_A = "generatedAt"
             internal const val CHAMP_COMPOSANTS = "components"
             internal const val CHAMP_PROFILS = "profiles"
+            internal const val CHAMP_PROFILE_COMPONENTS = "components"
             internal const val CHAMP_COMPAT = "compat"
             internal const val CHAMP_ID = "id"
             internal const val CHAMP_VERSION = "version"
