@@ -60,33 +60,67 @@ public object IconesFichiers {
             else -> pourExtension(nom.substringAfterLast('.', "").lowercase())
         }
 
-    /** Table des extensions connues (§ 8 de la spécification v2). */
-    @JvmStatic
-    public fun pourExtension(extension: String): Int =
-        when (extension) {
-            "kt" -> R.drawable.ic_fichier_kotlin
-            "kts" -> R.drawable.ic_fichier_gradle_kts
-            "gradle" -> R.drawable.ic_fichier_gradle
-            "java" -> R.drawable.ic_fichier_java
-            "xml", "html", "htm" -> R.drawable.ic_fichier_xml
-            "md", "markdown" -> R.drawable.ic_fichier_markdown
-            "json" -> R.drawable.ic_fichier_json
-            "properties", "pro" -> R.drawable.ic_fichier_properties
-            "toml" -> R.drawable.ic_fichier_toml
-            "db", "jar" -> R.drawable.ic_fichier_db
-            "log", "txt" -> R.drawable.ic_fichier_log
-            else -> R.drawable.ic_fichier_texte
+    /** Table des extensions connues (§ 8 de la spécification v2 ; v0.80.2 :
+     *  archives, images, scripts web, données et polices, parité avec les
+     *  `fileTypes` d'IntelliJ New UI — la table remplace le `when`
+     *  historique, dont la complexité cyclomatique avait dépassé le seuil
+     *  detekt une fois les familles nouvelles ajoutées). */
+    private val tableExtensions: Map<String, Int> =
+        buildMap {
+            put("kt", R.drawable.ic_fichier_kotlin)
+            put("kts", R.drawable.ic_fichier_gradle_kts)
+            put("gradle", R.drawable.ic_fichier_gradle)
+            put("java", R.drawable.ic_fichier_java)
+            put("xml", R.drawable.ic_fichier_xml)
+            // Web.
+            listOf("html", "htm").forEach { put(it, R.drawable.ic_fichier_html) }
+            listOf("css", "scss", "sass").forEach { put(it, R.drawable.ic_fichier_css) }
+            listOf("js", "mjs", "cjs").forEach { put(it, R.drawable.ic_fichier_js) }
+            // Documentation et données.
+            listOf("md", "markdown").forEach { put(it, R.drawable.ic_fichier_markdown) }
+            put("json", R.drawable.ic_fichier_json)
+            listOf("properties", "pro").forEach { put(it, R.drawable.ic_fichier_properties) }
+            put("toml", R.drawable.ic_fichier_toml)
+            listOf("yaml", "yml").forEach { put(it, R.drawable.ic_fichier_yaml) }
+            put("db", R.drawable.ic_fichier_db)
+            listOf("log", "txt").forEach { put(it, R.drawable.ic_fichier_log) }
+            listOf("sh", "bash", "zsh").forEach { put(it, R.drawable.ic_fichier_shell) }
+            put("sql", R.drawable.ic_fichier_sql)
+            listOf("csv", "tsv").forEach { put(it, R.drawable.ic_fichier_csv) }
+            // Archives (zip et cousines — le jar et l'apk sont des zip,
+            // IntelliJ leur donne l'icône archive).
+            listOf("zip", "jar", "apk", "7z", "rar", "tar", "gz", "tgz", "bz2", "xz")
+                .forEach { put(it, R.drawable.ic_fichier_archive) }
+            // Images.
+            listOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "tiff")
+                .forEach { put(it, R.drawable.ic_fichier_image) }
+            // Polices.
+            listOf("ttf", "otf", "woff", "woff2")
+                .forEach { put(it, R.drawable.ic_fichier_police) }
+            // Binaires (bibliothèques natives, classes, dex).
+            listOf("so", "dex", "class", "bin", "o", "a")
+                .forEach { put(it, R.drawable.ic_fichier_binaire) }
         }
 
+    /** Icône d'une extension (repli : fichier texte générique — un type
+     *  inconnu ne doit jamais bloquer l'affichage d'une ligne). */
+    @JvmStatic
+    public fun pourExtension(extension: String): Int = tableExtensions[extension] ?: R.drawable.ic_fichier_texte
+
     /**
-     * Icône d'un dossier de l'arborescence, teinte selon son contexte
-     * (§ 8) : la racine privée porte la marque dédiée (violet + cadenas),
-     * les autres contextes partagent le dossier standard — la teinte
-     * fine (racines projet/privé, sous-dossiers privés) est appliquée au
-     * rendu par l'appelant, le drawable suffit ici.
+     * Icône d'un dossier de l'arborescence : la racine privée porte la
+     * marque dédiée (violet + cadenas), les autres contextes partagent le
+     * dossier standard.
      *
-     * C0 : le dossier standard utilise désormais l'icône `folder` d'IntelliJ
-     * New UI (`nodes/folder.svg`).
+     * C0 : le dossier standard utilise l'icône `folder` d'IntelliJ New UI
+     * (`nodes/folder.svg`).
+     *
+     * v0.80.2 : Android Studio New UI n'a PAS de variante « dossier
+     * ouvert » — `nodes/folder.svg` sert AUSSI BIEN replié que déplié
+     * (seule la flèche tourne, l'icône ne change pas) et les dossiers ne
+     * sont PLUS teintés au rendu : les couleurs officielles de l'icône
+     * s'affichent telles quelles, comme dans l'explorateur d'Android
+     * Studio.
      */
     @JvmStatic
     public fun pourDossier(prive: Boolean = false): Int =

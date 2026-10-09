@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license. -->
+<!-- Converti en VectorDrawable depuis csv_dark.svg (source : dépôt JetBrains/intellij-community, licence Apache 2.0). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="16dp" android:height="16dp" android:viewportWidth="16" android:viewportHeight="16">
+    <path android:pathData="M4,2H12A2,2 0 0 1 14,4V12A2,2 0 0 1 12,14H4A2,2 0 0 1 2,12V4A2,2 0 0 1 4,2Z" android:fillColor="#253627" android:strokeColor="#57965C" />
+    <path android:pathData="M5 5.5H11" android:strokeColor="#57965C" android:strokeLineCap="round" />
+    <path android:pathData="M5 8L11 8" android:strokeColor="#57965C" android:strokeLineCap="round" />
+    <path android:pathData="M5 10.5L9 10.5" android:strokeColor="#57965C" android:strokeLineCap="round" />
+</vector>

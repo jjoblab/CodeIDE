@@ -1,9 +1,11 @@
 package jo.codeide.feature.editor
 
 import android.content.Context
+import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.view.children
+import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 
 /**
@@ -29,6 +31,20 @@ internal class TiroirPoussantLayout
     ) : DrawerLayout(contexte, attributs) {
         /** Id de la vue à translater quand le tiroir s'ouvre. */
         var idContenu: Int = 0
+
+        /** Conteneur de la poignée de redimensionnement (v0.80.2) : dessiné
+         *  HORS du rognage « contenu » de [DrawerLayout] — il chevauche
+         *  volontairement le bord du tiroir (moitié tiroir, moitié zone
+         *  centrale). */
+        private var conteneurPoignee: View? = null
+
+        /** Enregistre le conteneur de la poignée (enfant de contenu, plein
+         *  écran, DERNIER enfant du layout — l'ordre des enfants le dessine
+         *  au-dessus du tiroir et l'itération inverse des touches le sert
+         *  avant lui, à condition que l'élévation du tiroir soit 0). */
+        fun setConteneurPoignee(vue: View) {
+            conteneurPoignee = vue
+        }
 
         /** Facteur de translation (0 = désactivé, 0,95 = FULL). */
         private var facteur: Float = FACTEUR_DEFAUT
@@ -76,6 +92,32 @@ internal class TiroirPoussantLayout
                     gravite == android.view.Gravity.START || gravite == android.view.Gravity.END
                 } == true
             }
+
+        /**
+         * Rognage volontairement BYPASSÉ pour le conteneur de la poignée
+         * (v0.80.2) : [DrawerLayout.drawChild] rogne chaque enfant de
+         * contenu à la frontière du tiroir opaque (`clipRect` — un contenu
+         * ne dessine jamais SOUS un tiroir) ; la poignée de
+         * redimensionnement est justement À CHEVAL sur cette frontière
+         * (moitié sur le tiroir, moitié sur la zone centrale). On la
+         * dessine donc directement, sans rognage ni nœud de rendu
+         * intermédiaire (l'élévation du tiroir est posée à 0 par
+         * l'activité : l'ordre des enfants suffit à la placer au-dessus).
+         */
+        override fun drawChild(
+            canvas: Canvas,
+            child: View,
+            drawingTime: Long,
+        ): Boolean {
+            val poignee = conteneurPoignee
+            if (poignee != null && child === poignee) {
+                if (child.isVisible) {
+                    child.draw(canvas)
+                }
+                return true
+            }
+            return super.drawChild(canvas, child, drawingTime)
+        }
 
         init {
             addDrawerListener(

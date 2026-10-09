@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import android.content.res.ColorStateList
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -61,12 +62,24 @@ internal class PanneauToolingController(
     private var ligneActivee = false
 
     /** Onglet actif du panneau (v0.80.1) : Console → la ligne tooling EST
-     *  l'en-tête, la première section disparaît et le peek s'adapte. */
+     *  l'en-tête, la première section disparaît et le peek s'adapte.
+     *  v0.80.2 : Problèmes/Journal → la ligne tooling n'est PLUS affichée
+     *  (seule la première section porte les informations de l'onglet). */
     private var ongletCourant: OngletPanneau = OngletPanneau.JOURNAL
 
     /** Alpha courant du fondu de l'en-tête (v0.80.1) : la visibilité de la
      *  ligne tooling ne dépend PLUS de celle de la première section. */
     private var alphaCourant = 1f
+
+    /** Le sheet est-il ÉTENDU (état stabilisé, v0.80.2) : à l'extension la
+     *  ligne tooling disparaît COMPLÈTEMENT (GONE — les onglets montent au
+     *  sommet du sheet, comme l'en-tête d'AndroidIDE à l'extension). */
+    private var sheetEtendu = false
+
+    /** La progression tooling a-t-elle quelque chose à montrer (v0.80.2 —
+     *  indépendant de l'onglet : c'est le rendu qui la pose, l'onglet
+     *  décide de sa visibilité effective). */
+    private var progressionVisiblee = false
 
     /** Ticker du chrono en vol (annulé au prochain rendre ou à la destruction). */
     private var travailMinuteur: Job? = null
@@ -121,8 +134,9 @@ internal class PanneauToolingController(
         // Le peek suit la composition de l'en-tête (v0.80.1) : première
         // section visible sur Problèmes/Journal, ligne tooling seule sur
         // Console — les onglets deviennent alors la poignée repliée du
-        // sheet quand aucune activité tooling ne tourne.
-        liaison.ligneTooling.isVisible = ligneActivee && alphaCourant > SEUIL_FONDU_VISIBLE
+        // sheet quand aucune activité tooling ne tourne. v0.80.2 : la
+        // ligne tooling ne compte PLUS dans le peek hors onglet Console.
+        appliquerVisibiliteLigne()
         majPeekPanneau()
     }
 
@@ -130,12 +144,27 @@ internal class PanneauToolingController(
      * Onglet actif du panneau (v0.80.1, appelé par l'activité à chaque
      * rendu) : compose le peek — Console masque la première section, les
      * onglets deviennent sa poignée repliée quand aucune activité tooling
-     * ne tourne.
+     * ne tourne. v0.80.2 : sur Problèmes/Journal la ligne tooling est
+     * masquée (seule la première section est visible).
      */
     fun definirOnglet(onglet: OngletPanneau) {
         if (onglet == ongletCourant) return
         ongletCourant = onglet
+        appliquerVisibiliteLigne()
         majPeekPanneau()
+    }
+
+    /**
+     * État ÉTENDU stabilisé du sheet (v0.80.2, appelé par l'activité sur
+     * `onStateChanged`) : à l'extension la ligne tooling passe GONE — les
+     * onglets montent au sommet du sheet étendu ; au repli elle reprend
+     * sa place dans le peek (INVISIBLE puis VISIBLE avec le fondu, jamais
+     * GONE en plein glissement : la hauteur du sheet ne saute pas).
+     */
+    fun definirSheetEtendu(etendu: Boolean) {
+        if (etendu == sheetEtendu) return
+        sheetEtendu = etendu
+        appliquerVisibiliteLigne()
     }
 
     /**
@@ -155,10 +184,33 @@ internal class PanneauToolingController(
 
     /** Le fondu de l'en-tête réapplique la visibilité de la ligne (v0.80.1 :
      *  indépendante de la première section — la ligne EST l'en-tête sur
-     *  l'onglet Console). */
+     *  l'onglet Console ; v0.80.2 : INVISIBLE sous le seuil — la place est
+     *  conservée en cours de glissement, GONE seulement une fois étendu). */
     fun appliquerFondu(alpha: Float) {
         alphaCourant = alpha
-        liaison.ligneTooling.isVisible = alpha > SEUIL_FONDU_VISIBLE && ligneActivee
+        appliquerVisibiliteLigne()
+    }
+
+    /**
+     * Visibilité effective de la ligne tooling (v0.80.2) : visible sur
+     * l'onglet CONSOLE uniquement (sur Problèmes/Journal la PREMIÈRE
+     * section porte les informations de l'onglet — la 2e section est
+     * éteinte) ; GONE une fois le sheet étendu (elle disparaît), GONE si
+     * inactive, INVISIBLE sous le seuil du fondu (place conservée — pas
+     * de saut de hauteur en plein glissement), VISIBLE sinon.
+     */
+    private fun appliquerVisibiliteLigne() {
+        liaison.ligneTooling.visibility =
+            when {
+                ongletCourant != OngletPanneau.CONSOLE || sheetEtendu || !ligneActivee -> View.GONE
+                alphaCourant > SEUIL_FONDU_VISIBLE -> View.VISIBLE
+                else -> View.INVISIBLE
+            }
+        // La progression tooling suit la même règle d'onglet (v0.80.2) :
+        // bande d'activité réservée à la Console — mais elle reste VISIBLE
+        // même étendue (retour d'activité pendant l'extension).
+        liaison.progressionTooling.isVisible =
+            progressionVisiblee && ongletCourant == OngletPanneau.CONSOLE
     }
 
     /** Arrêt propre du ticker (destruction de la vue de l'activité). */
@@ -239,13 +291,15 @@ internal class PanneauToolingController(
     /** Progression : DÉTERMINÉE (octets reçus/total, pleine au succès)
      *  quand elle existe, indéterminée pendant une activité en vol —
      *  couleur de canal harmonisée, vert au succès. Material exige de
-     *  MASQUER l'indicateur pour basculer de mode. */
+     *  MASQUER l'indicateur pour basculer de mode. v0.80.2 : la visibilité
+     *  mémorisée ([progressionVisiblee]) est distincte de la visibilité
+     *  effective (Console uniquement). */
     private fun rendreProgression(
         entete: EtatEnteteTooling,
         etat: EtatGradle,
     ) {
         val indicateur = liaison.progressionTooling
-        val visible = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
+        progressionVisiblee = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
         val couleurBarre = couleurStatut(entete.statut, entete.couleur)
         indicateur.isVisible = false
         val progression = entete.progression
@@ -258,7 +312,7 @@ internal class PanneauToolingController(
             indicateur.isIndeterminate = true
         }
         indicateur.setIndicatorColor(couleurBarre)
-        indicateur.isVisible = visible
+        indicateur.isVisible = progressionVisiblee && ongletCourant == OngletPanneau.CONSOLE
     }
 
     // ---- Chrono ----------------------------------------------------------
@@ -285,6 +339,8 @@ internal class PanneauToolingController(
      *  la première section disparaît (la ligne tooling EST l'en-tête) et
      *  les ONGLETS prennent la place de poignée repliée — sans activité
      *  tooling, le sheet replié montre ses onglets au lieu de disparaître.
+     *  v0.80.2 : sur Problèmes/Journal la ligne tooling ne compte plus
+     *  dans le peek (seule la première section est repliée).
      *  B3 : notifie l'activité pour qu'elle recale la réserve sous
      *  l'éditeur. */
     private fun majPeekPanneau() {
@@ -292,7 +348,7 @@ internal class PanneauToolingController(
         if (ongletCourant != OngletPanneau.CONSOLE) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
         }
-        if (ligneActivee) {
+        if (ligneActivee && ongletCourant == OngletPanneau.CONSOLE) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
             if (liaison.progressionTooling.isVisible) {
                 peek += (HAUTEUR_PROGRESSION_TOOLING_DP * activite.resources.displayMetrics.density).toInt()

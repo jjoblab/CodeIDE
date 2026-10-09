@@ -71,7 +71,43 @@ class IconesFichiersTest {
 
     @Test
     fun `une extension inconnue reple sur le fichier texte`() {
-        assertEquals(R.drawable.ic_fichier_texte, IconesFichiers.pourNom("archive.tar.gz"))
+        assertEquals(R.drawable.ic_fichier_texte, IconesFichiers.pourNom("notes.zorglub"))
+    }
+
+    // v0.80.2 : parité avec les fileTypes d'IntelliJ New UI — archives,
+    // images, scripts web, données et polices (retour utilisateur :
+    // « ajoute d'autres icônes pour d'autres types de fichiers comme zip
+    // »). Le jar et l'apk sont des zip : IntelliJ leur donne l'icône
+    // archive.
+    @Test
+    fun `v0_80_2 - les archives ont leur icone dediee`() {
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("sources.zip"))
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("bibliotheque.jar"))
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("app.apk"))
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("paquet.7z"))
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("archive.tar.gz"))
+        assertEquals(R.drawable.ic_fichier_archive, IconesFichiers.pourNom("bundle.tgz"))
+    }
+
+    @Test
+    fun `v0_80_2 - les images les scripts web et les donnees ont leur icone`() {
+        assertEquals(R.drawable.ic_fichier_image, IconesFichiers.pourNom("photo.png"))
+        assertEquals(R.drawable.ic_fichier_image, IconesFichiers.pourNom("icone.svg"))
+        assertEquals(R.drawable.ic_fichier_html, IconesFichiers.pourNom("index.html"))
+        assertEquals(R.drawable.ic_fichier_css, IconesFichiers.pourNom("styles.scss"))
+        assertEquals(R.drawable.ic_fichier_js, IconesFichiers.pourNom("script.mjs"))
+        assertEquals(R.drawable.ic_fichier_yaml, IconesFichiers.pourNom("pipeline.yml"))
+        assertEquals(R.drawable.ic_fichier_shell, IconesFichiers.pourNom("script.sh"))
+        assertEquals(R.drawable.ic_fichier_sql, IconesFichiers.pourNom("requetes.sql"))
+        assertEquals(R.drawable.ic_fichier_csv, IconesFichiers.pourNom("table.csv"))
+    }
+
+    @Test
+    fun `v0_80_2 - polices et binaires ont leur icone`() {
+        assertEquals(R.drawable.ic_fichier_police, IconesFichiers.pourNom("titre.ttf"))
+        assertEquals(R.drawable.ic_fichier_police, IconesFichiers.pourNom("variable.woff2"))
+        assertEquals(R.drawable.ic_fichier_binaire, IconesFichiers.pourNom("native.so"))
+        assertEquals(R.drawable.ic_fichier_binaire, IconesFichiers.pourNom("classes.dex"))
     }
 
     @Test
