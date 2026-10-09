@@ -27,6 +27,7 @@
     <!-- Bottom navigation bar of the drawer (companion prompt 5.3). -->
     <string name="editor_nav_explorateur">Explorer</string>
     <string name="editor_nav_recherche">Search</string>
+    <string name="editor_nav_projet">Project</string>
     <string name="editor_nav_git">Git</string>
     <string name="editor_nav_bientot">%1$s — coming soon</string>
 
@@ -416,6 +417,21 @@
         <item quantity="one">%d change</item>
         <item quantity="other">%d changes</item>
     </plurals>
+
+    <!-- Project section of the drawer (P2, ADR 0095). -->
+    <string name="projet_titre">Project</string>
+    <string name="projet_actualiser_cd">Refresh build scripts</string>
+    <string name="projet_onglet_scripts">Scripts</string>
+    <string name="projet_onglet_dependances">Dependencies</string>
+    <string name="projet_onglet_variantes">Variants</string>
+    <string name="projet_onglet_taches">Tasks</string>
+    <string name="projet_aucun_script">No build script found</string>
+    <string name="projet_chargement">Reading scripts…</string>
+    <string name="projet_erreur_chargement">Could not read scripts</string>
+    <string name="projet_scripts_octets">%1$s B</string>
+    <string name="projet_dependances_bientot">Resolved dependencies — coming soon</string>
+    <string name="projet_variantes_bientot">Build variants — coming soon</string>
+    <string name="projet_taches_ouvrir">Open Gradle tasks</string>
 
     <!-- Toolbar: closing the workspace (moved from the v1 header). -->
     <string name="editor_action_fermer_projet">Close the project</string>
