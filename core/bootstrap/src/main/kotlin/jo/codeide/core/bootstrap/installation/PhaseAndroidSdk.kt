@@ -359,6 +359,7 @@ internal suspend fun controleComposant(
  * courant = racine du SDK, succès = code attendu ET regex dans
  * stdout + stderr.
  */
+@Suppress("ReturnCount")
 internal suspend fun verifierParSpecification(
     contexte: StepContext,
     racineSdk: File,
@@ -370,14 +371,25 @@ internal suspend fun verifierParSpecification(
             .split(Regex("\\s+"))
     if (parties.size < 2) return false
     val resultat =
-        contexte.commands.run(
-            CommandSpec(
-                program = File(racineSdk, parties.first()).absolutePath,
-                arguments = parties.drop(1),
-                workingDir = racineSdk,
-                timeoutMillis = ExecutionPhaseSdk.DELAI_VERIFICATION_COMPOSANT,
-            ),
-        )
+        try {
+            contexte.commands.run(
+                CommandSpec(
+                    program = File(racineSdk, parties.first()).absolutePath,
+                    arguments = parties.drop(1),
+                    workingDir = racineSdk,
+                    timeoutMillis = ExecutionPhaseSdk.DELAI_VERIFICATION_COMPOSANT,
+                ),
+            )
+        } catch (e: java.io.IOException) {
+            // Lancement refusé (shebang /usr/bin/env absent sur Android,
+            // binaire manquant, W^X) : non critique — la vérification
+            // échoue sans faire planter la phase. L'orchestrateur traduit
+            // ce retour `false` en dégradation (§ 5.4).
+            contexte.journal(
+                "vérification de ${composant.id} : lancement impossible (${e.message}) — dégradé",
+            )
+            return false
+        }
     val sortie = (resultat.stdout + resultat.stderr).joinToString("\n")
     return resultat.exitCode == composant.verify.exitCode && Regex(composant.verify.expect).containsMatchIn(sortie)
 }

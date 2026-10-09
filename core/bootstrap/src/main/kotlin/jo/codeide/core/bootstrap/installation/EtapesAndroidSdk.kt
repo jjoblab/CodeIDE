@@ -145,6 +145,7 @@ internal class EtapeComposants(
             val archive = telecharger(context, composant)
             extraire(context, composant, archive)
             basculer(context, composant)
+            reparerShebangs(context, composant)
             when (controleComposant(context, racine, composant, execution, magasin)) {
                 VerdictComposant.Verifie -> {
                     context.journal("composant ${composant.id} installé et vérifié par exécution")
@@ -355,6 +356,53 @@ internal class EtapeComposants(
     private fun detecterRacineExtraite(stagingDir: File): File? {
         val dossiers = stagingDir.listFiles { f -> f.isDirectory } ?: return null
         return if (dossiers.size == 1) dossiers[0] else null
+    }
+
+    /**
+     * Répare les shebangs `#!/usr/bin/env <interp>` des scripts extraits
+     * (cmdline-tools Google notamment) : Android n'a pas `/usr/bin/env`,
+     * le kernel renvoie ENOENT (error=2) à l'exécution. On réécrit en
+     * `#!<prefix>/bin/<interp>` (chemin Termux réel, ADR 0045).
+     *
+     * Parcourt récursivement l'installPath du composant, ne touche que
+     * les fichiers réguliers dont la première ligne commence par
+     * `#!/usr/bin/env `. Préserve le reste du fichier.
+     */
+    private fun reparerShebangs(
+        context: StepContext,
+        composant: ManifestComponent,
+    ) {
+        val prefixe = DispositionsBootstrap.prefix(racine)
+        val cible = File(racineSdk(racine), composant.installPath)
+        if (!cible.isDirectory) return
+        var nbReparees = 0
+        cible.walkTopDown().forEach { fichier ->
+            if (!fichier.isFile) return@forEach
+            reparerShebang(fichier, prefixe)?.let { nbReparees++ }
+        }
+        if (nbReparees > 0) {
+            context.journal(
+                "composant ${composant.id} : $nbReparees shebang(s) réparé(s) (/usr/bin/env → $prefixe/bin)",
+            )
+        }
+    }
+
+    /** Réécrit `#!/usr/bin/env <interp>` → `#!<prefix>/bin/<interp>` si applicable. */
+    @Suppress("ReturnCount")
+    private fun reparerShebang(
+        fichier: File,
+        prefixe: File,
+    ): Boolean {
+        val lignes = runCatching { fichier.readLines() }.getOrNull() ?: return false
+        if (lignes.isEmpty()) return false
+        val premiere = lignes[0]
+        if (!premiere.startsWith("#!/usr/bin/env ")) return false
+        val interpreteur = premiere.removePrefix("#!/usr/bin/env ").trim()
+        val nouveauShebang = "#!${File(prefixe, "bin/$interpreteur").absolutePath}"
+        val contenu = nouveauShebang + "\n" + lignes.drop(1).joinToString("\n")
+        fichier.writeText(contenu)
+        fichier.setExecutable(true)
+        return true
     }
 
     /** Garde anti-traversée (§ 12.3) : tout chemin extrait doit rester sous le staging. */
