@@ -95,13 +95,27 @@ private class EtapePaquetJdk(
                 ),
             )
         if (!installation.succeeded) {
-            throw EchecEtapeInstallation(
-                ErreursInstallation.commande(
-                    description = "installation du paquet ${catalogue.jdkPackage} impossible",
-                    commande = "pkg install -y ${catalogue.jdkPackage}",
-                    resultat = installation,
-                ),
-            )
+            // Tolérance EIPP (apt Termux) : `pkg install` peut retourner
+            // code 100 avec « E: Directory '...' missing » (EIPP planner)
+            // alors que le paquet s'est réellement installé. On vérifie
+            // par exécution avant de déclarer l'échec — « installé =
+            // vérifié en l'exécutant » (§ 3.2).
+            controlerJdk(context)?.let { echec ->
+                throw EchecEtapeInstallation(
+                    ErreursInstallation.commande(
+                        description = "installation du paquet ${catalogue.jdkPackage} impossible",
+                        commande = "pkg install -y ${catalogue.jdkPackage}",
+                        resultat = installation,
+                    ),
+                )
+            } ?: run {
+                // Le JDK fonctionne malgré le code non nul d'apt : on
+                // journalise l'avertissement EIPP et on continue.
+                context.journal(
+                    "avertissement apt (code ${installation.exitCode}) — JDK vérifié par exécution, " +
+                        "installation retenue (EIPP Termux, § 3.2)",
+                )
+            }
         }
         // « Installé = vérifié en l'exécutant » appliqué immédiatement : un
         // paquet posé dont la JVM ne démarre pas est un échec **diagnostiqué**
