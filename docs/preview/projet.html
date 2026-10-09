@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Projet (maquette)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1e1f22; color: #dfe1e5; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 16px; color: #fff; }
+  h2 { font-size: 14px; margin: 20px 0 10px; color: #9ba0a8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tiroir { width: 320px; background: #2b2d30; border-radius: 8px; overflow: hidden; border: 1px solid #3c3f41; }
+  .entete { padding: 10px 12px; background: #4a6b8a; display: flex; align-items: center; gap: 8px; }
+  .entete-icone { width: 20px; height: 20px; background: #70aeff; border-radius: 4px; flex-shrink: 0; }
+  .entete-titre { font-size: 13px; font-weight: 600; color: #fff; }
+  .onglets { display: flex; border-bottom: 1px solid #3c3f41; }
+  .onglet { flex: 1; padding: 8px 4px; text-align: center; font-size: 10px; color: #9ba0a8; cursor: pointer; border-bottom: 2px solid transparent; }
+  .onglet.active { color: #70aeff; border-bottom-color: #70aeff; }
+  .corps { padding: 8px; min-height: 300px; }
+  .selecteur-module { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #1e1f22; border-radius: 6px; margin-bottom: 8px; font-size: 12px; }
+  .selecteur-module .nom { font-weight: 600; }
+  .dep-ligne { display: flex; align-items: center; gap: 6px; padding: 6px 4px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .dep-ligne:hover { background: #3c3f41; }
+  .dep-icone { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+  .dep-coordonnees { flex: 1; font-family: monospace; font-size: 11px; }
+  .dep-version { font-size: 11px; color: #9ba0a8; }
+  .dep-config { font-size: 10px; background: #3c3f41; border-radius: 8px; padding: 1px 6px; color: #9ba0a8; }
+  .dep-maj { font-size: 10px; color: #73bd79; font-weight: 600; }
+  .groupe-titre { font-size: 10px; font-weight: 600; color: #9ba0a8; text-transform: uppercase; padding: 4px 0; }
+  .arbre-noeud { padding: 3px 0 3px 20px; font-size: 11px; font-family: monospace; color: #9ba0a8; }
+  .arbre-noeud.enfant { padding-left: 40px; }
+  .conflit { color: #de6a66; }
+  .variante-ligne { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 12px; }
+  .variante-select { background: #1e1f22; border: 1px solid #3c3f41; border-radius: 4px; padding: 4px 8px; font-size: 11px; color: #dfe1e5; }
+  .tache-groupe { font-size: 11px; font-weight: 600; color: #70aeff; padding: 6px 0 3px; }
+  .tache-ligne { padding: 3px 0 3px 20px; font-size: 11px; font-family: monospace; cursor: pointer; }
+  .tache-ligne:hover { color: #70aeff; }
+  .flex { display: flex; gap: 16px; flex-wrap: wrap; }
+  .label { font-size: 11px; color: #6f737a; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <h1>CodeIDE — Section « Projet » du tiroir (maquette statique)</h1>
+
+  <div class="flex">
+
+    <!-- Dépendances déclarées -->
+    <div>
+      <h2>Dépendances déclarées</h2>
+      <div class="tiroir">
+        <div class="entete"><div class="entete-icone"></div><span class="entete-titre">Projet</span></div>
+        <div class="onglets">
+          <div class="onglet active">Déclarées</div>
+          <div class="onglet">Résolues</div>
+          <div class="onglet">MàJ</div>
+          <div class="onglet">Variantes</div>
+          <div class="onglet">Tâches</div>
+        </div>
+        <div class="corps">
+          <div class="selecteur-module"><span>📦</span><span class="nom">:app</span></div>
+          <div class="groupe-titre">implementation</div>
+          <div class="dep-ligne">
+            <div class="dep-icone" style="background:#7f52ff"></div>
+            <span class="dep-coordonnees">org.jetbrains.kotlin:kotlin-stdlib</span>
+            <span class="dep-version">2.2.10</span>
+            <span class="dep-config">impl</span>
+          </div>
+          <div class="dep-ligne">
+            <div class="dep-icone" style="background:#3a8db7"></div>
+            <span class="dep-coordonnees">androidx.core:core-ktx</span>
+            <span class="dep-version">1.13.1</span>
+            <span class="dep-config">impl</span>
+            <span class="dep-maj">↑1.15.0</span>
+          </div>
+          <div class="dep-ligne">
+            <div class="dep-icone" style="background:#4caf50"></div>
+            <span class="dep-coordonnees">:core:domain</span>
+            <span class="dep-config">impl</span>
+          </div>
+          <div class="groupe-titre">testImplementation</div>
+          <div class="dep-ligne">
+            <div class="dep-icone" style="background:#7f52ff"></div>
+            <span class="dep-coordonnees">junit:junit</span>
+            <span class="dep-version">4.13.2</span>
+            <span class="dep-config">test</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dépendances résolues -->
+    <div>
+      <h2>Dépendances résolues (arbre)</h2>
+      <div class="tiroir">
+        <div class="entete"><div class="entete-icone"></div><span class="entete-titre">Projet</span></div>
+        <div class="onglets">
+          <div class="onglet">Déclarées</div>
+          <div class="onglet active">Résolues</div>
+          <div class="onglet">MàJ</div>
+          <div class="onglet">Variantes</div>
+          <div class="onglet">Tâches</div>
+        </div>
+        <div class="corps">
+          <div class="selecteur-module"><span>📦</span><span class="nom">:app (debug)</span></div>
+          <div class="groupe-titre">implementation</div>
+          <div class="arbre-noeud">📦 org.jetbrains.kotlin:kotlin-stdlib:2.2.10</div>
+          <div class="arbre-noeud enfant">↳ org.jetbrains:annotations:13.0</div>
+          <div class="arbre-noeud">📦 androidx.core:core-ktx:1.13.1</div>
+          <div class="arbre-noeud enfant">↳ androidx.core:core:1.13.1</div>
+          <div class="arbre-noeud enfant conflit">⚠ androidx.annotation:annotation:1.5.0 (demandée 1.6.0 → contrainte BOM)</div>
+          <div class="arbre-noeud">📦 :core:domain (projet)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variantes -->
+    <div>
+      <h2>Variantes de build</h2>
+      <div class="tiroir">
+        <div class="entete"><div class="entete-icone"></div><span class="entete-titre">Projet</span></div>
+        <div class="onglets">
+          <div class="onglet">Déclarées</div>
+          <div class="onglet">Résolues</div>
+          <div class="onglet">MàJ</div>
+          <div class="onglet active">Variantes</div>
+          <div class="onglet">Tâches</div>
+        </div>
+        <div class="corps">
+          <div class="variante-ligne"><span style="flex:1">:app</span>
+            <select class="variante-select"><option>debug</option><option>release</option></select>
+          </div>
+          <div class="variante-ligne"><span style="flex:1">:core:domain</span>
+            <select class="variante-select"><option>debug</option><option>release</option></select>
+          </div>
+          <div class="variante-ligne"><span style="flex:1">:feature:editor</span>
+            <select class="variante-select"><option>debug</option><option>release</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tâches -->
+    <div>
+      <h2>Tâches Gradle</h2>
+      <div class="tiroir">
+        <div class="entete"><div class="entete-icone"></div><span class="entete-titre">Projet</span></div>
+        <div class="onglets">
+          <div class="onglet">Déclarées</div>
+          <div class="onglet">Résolues</div>
+          <div class="onglet">MàJ</div>
+          <div class="onglet">Variantes</div>
+          <div class="onglet active">Tâches</div>
+        </div>
+        <div class="corps">
+          <div class="tache-groupe">build</div>
+          <div class="tache-ligne">:app:assembleDebug</div>
+          <div class="tache-ligne">:app:assembleRelease</div>
+          <div class="tache-groupe">verification</div>
+          <div class="tache-ligne">:app:lintDebug</div>
+          <div class="tache-ligne">:app:testDebugUnitTest</div>
+          <div class="tache-groupe">other</div>
+          <div class="tache-ligne">:app:clean</div>
+          <div class="tache-ligne">:app:dependencies</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="label" style="margin-top:20px">
+    5 onglets : Déclarées (scripts de build) · Résolues (arbre Gradle) · Mises à jour (Maven) · Variantes (debug/release) · Tâches (réutilise FeuilleTachesFragment)
+  </div>
+</body>
+</html>
