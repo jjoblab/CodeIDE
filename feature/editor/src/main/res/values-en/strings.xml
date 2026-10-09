@@ -387,6 +387,21 @@
     <string name="recherche_bascule_mot_entier_cd">Whole word</string>
     <string name="recherche_bascule_regex">.*</string>
     <string name="recherche_bascule_regex_cd">Regular expression</string>
+    <string name="recherche_remplacer_label">↔</string>
+    <string name="recherche_remplacer_cd">Show/hide replacement</string>
+    <string name="recherche_remplacement_hint">Replace with…</string>
+    <string name="recherche_tout_remplacer">Replace all</string>
+    <string name="recherche_confirmer_remplacement">Confirm replacement</string>
+    <plurals name="recherche_confirmer_message">
+        <item quantity="one">Replace %1$d occurrence in %2$d file with \"%3$s\"?</item>
+        <item quantity="other">Replace %1$d occurrences in %2$d files with \"%3$s\"?</item>
+    </plurals>
+    <string name="recherche_remplacer">Replace</string>
+    <string name="recherche_precedent_cd">Previous occurrence</string>
+    <string name="recherche_suivant_cd">Next occurrence</string>
+    <string name="recherche_mode_fichiers">Files</string>
+    <string name="recherche_mode_texte">Text</string>
+    <string name="recherche_mode_fichiers_cd">Toggle file search / text search</string>
     <string name="apercu_git_description">The Git panel will show repository status, commit staging and branch history.</string>
 
     <!-- Git drawer section (G2, ADR 0092). -->
