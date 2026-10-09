@@ -58,12 +58,31 @@ class OnboardingViewModelTest {
     private lateinit var horloge: TimeProvider
     private val localisateurOutils = FakeToolchainLocator()
     private val observerOutils = FakeObserveToolchainState()
+    private val orchestrateurInstallation =
+        jo.codeide.core.testing
+            .FakeEnvironmentSetupOrchestrator()
 
     @Before
     fun preparer() {
         depot = FakeSettingsRepository(initial = AppSettings())
         fichiers = FakeFileSystem()
         horloge = TimeProvider { 1_000L }
+        // Fix v0.76.0 : l'orchestrateur doit rapporter estTermine() = true
+        // pour que terminalInstalle suive bootstrapInstalle seul (les tests
+        // de l'onboarding ne testent pas le parcours d'installation).
+        orchestrateurInstallation.semerEtat(
+            jo.codeide.core.domain.EnvironmentSetupState(
+                phases =
+                    jo.codeide.core.domain.InstallPhase.entries.associateWith {
+                        jo.codeide.core.domain.PhaseState.Succeeded(
+                            verifiedAtMillis = 0L,
+                            versions = emptyMap(),
+                        )
+                    },
+                running = null,
+                sdkLicenseAcceptedAtMillis = null,
+            ),
+        )
     }
 
     /** Un dossier de travail sélectionnable, déjà présent dans le fake. */
@@ -85,9 +104,7 @@ class OnboardingViewModelTest {
             fichiers = fichiers,
             localisateurOutils = localisateurOutils,
             observerEtatOutils = observerOutils,
-            orchestrateurInstallation =
-                jo.codeide.core.testing
-                    .FakeEnvironmentSetupOrchestrator(),
+            orchestrateurInstallation = orchestrateurInstallation,
             logger = FakeAppLogger(),
             savedStateHandle = sauvetage,
         )
