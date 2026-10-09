@@ -151,6 +151,20 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # audits de fin de phase :
 #   ./gradlew spotlessCheck detekt checkModuleDependencies lintDebug \
 #     testDebugUnitTest koverVerify assembleDebug   (SANS clean, ADR 0037)
+#
+# DIRECTIVE OBLIGATOIRE (v0.79.0, retour CI) : pour chaque commit, lancer
+# la chaîne COMPLÈTE de vérification sur TOUS les modules touchés —
+# pas seulement compileDebugKotlin. Les tests unitaires, lint, kover et
+# Hilt doivent passer localement avant le push. La CI exécute la chaîne
+# complète (spotlessCheck detekt checkModuleDependencies lintDebug
+# testDebugUnitTest koverVerify assembleDebug) et tout échec bloque.
+# En pratique : identifier les modules touchés (git diff --name-only),
+# puis pour chacun lancer spotlessCheck detekt testDebugUnitTest
+# lintDebug koverVerify (si applicable), puis :app:assembleDebug.
+# Les changements de catalogues/constantes partagés (ToolchainCatalog,
+# ToolManifest, etc.) peuvent casser des tests dans des modules non
+# directement modifiés — toujours lancer les tests des modules qui
+# référencent les constantes changées.
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor|patch        # incrémente la version
                                             # (patch = correction après retour utilisateur)

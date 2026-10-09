@@ -305,7 +305,7 @@ class PhaseAndroidSdkTest {
         )
         val versions = (reussie as PhaseState.Succeeded).versions
         assertEquals("35.0.2", versions["build-tools"])
-        assertEquals("android-37.2", versions["platform"])
+        assertEquals("android-36", versions["platform"])
         val persiste = runBlocking { magasin.load() }
         assertEquals(
             listOf("build-tools", "platform-tools", "platform", "cmdline-tools"),
@@ -579,10 +579,10 @@ class PhaseAndroidSdkTest {
                     ),
                     composant(
                         "platform",
-                        "android-37.2",
-                        "platforms/android-37.2",
+                        "android-36",
+                        "platforms/android-36",
                         critical = true,
-                        verify = "platforms/android-37.2/props -v",
+                        verify = "platforms/android-36/props -v",
                         arch = "any",
                     ),
                     composant(
@@ -599,7 +599,7 @@ class PhaseAndroidSdkTest {
                         listOf(
                             "build-tools@$versionBuildTools",
                             "platform-tools@37.0.1",
-                            "platform@android-37.2",
+                            "platform@android-36",
                             "cmdline-tools@12.0",
                         ),
                 ),
@@ -620,7 +620,7 @@ class PhaseAndroidSdkTest {
             mapOf(
                 "build-tools" to "Android Asset Packaging Tool (aapt) 35.0.2",
                 "platform-tools" to "Android Debug Bridge version 37.0.1",
-                "platform" to "plateforme android-37.2",
+                "platform" to "plateforme android-36",
                 "cmdline-tools" to "sdkmanager 12.0",
             )
     }
