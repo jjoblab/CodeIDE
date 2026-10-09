@@ -210,6 +210,7 @@ internal class ClientManifesteOutils
         }
 
         /** Composant : champs texte requis non vides, somme bien formée, sources ordonnées. */
+        @Suppress("CyclomaticComplexMethod") // Parser de manifeste : gardes de validation en cascade.
         private fun analyserComposant(json: JSONObject): AppResult<ManifestComponent> {
             val requis = listOf(CHAMP_ID, CHAMP_VERSION, CHAMP_REVISION, CHAMP_ARCH, CHAMP_INSTALL_PATH)
             if (requis.any { json.optString(it, "").isBlank() }) {
@@ -219,6 +220,20 @@ internal class ClientManifesteOutils
             if (taille < 0) return invalide("composant : size absente ou négative")
             val urls = json.optJSONArray(CHAMP_SOURCES) ?: return invalide("composant : sources absentes")
             if (urls.length() == 0) return invalide("composant : aucune source")
+            // Le manifeste v2 peut publier les sources sous deux formats :
+            // - ancien : ["https://...", ...] (array de strings)
+            // - nouveau : [{"url":"https://..."}, ...] (array d'objets)
+            val sourcesListees =
+                (0 until urls.length())
+                    .map { index ->
+                        val element = urls.opt(index)
+                        when (element) {
+                            is String -> element
+                            is org.json.JSONObject -> element.optString(CHAMP_URL, "")
+                            else -> ""
+                        }
+                    }.filter { it.isNotBlank() }
+            if (sourcesListees.isEmpty()) return invalide("composant : sources vides ou mal formées")
             val sha256 = json.optString(CHAMP_SHA256, "")
             if (!sha256.matches(Regex("^[0-9a-f]{64}$"))) {
                 return invalide("composant : SHA-256 mal formée")
@@ -231,7 +246,7 @@ internal class ClientManifesteOutils
                     revision = json.getString(CHAMP_REVISION),
                     arch = json.getString(CHAMP_ARCH),
                     channel = json.optString(CHAMP_CHANNEL, ManifestComponent.CHANNEL_STABLE),
-                    sources = (0 until urls.length()).map { urls.getString(it) },
+                    sources = sourcesListees,
                     sha256 = sha256,
                     sizeBytes = taille,
                     installPath = json.getString(CHAMP_INSTALL_PATH),
@@ -287,6 +302,7 @@ internal class ClientManifesteOutils
             internal const val CHAMP_ARCH = "arch"
             internal const val CHAMP_CHANNEL = "channel"
             internal const val CHAMP_SOURCES = "sources"
+            internal const val CHAMP_URL = "url"
             internal const val CHAMP_SHA256 = "sha256"
             internal const val CHAMP_SIZE = "size"
             internal const val CHAMP_INSTALL_PATH = "installPath"
