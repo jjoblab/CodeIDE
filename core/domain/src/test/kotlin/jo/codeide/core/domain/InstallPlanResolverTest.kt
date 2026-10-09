@@ -27,7 +27,7 @@ class InstallPlanResolverTest {
                         listOf(
                             "build-tools@35.0.2",
                             "platform-tools@35.0.2",
-                            "platform@android-37.2",
+                            "platform@android-36",
                             "cmdline-tools@12.0",
                         ),
                 ),
@@ -37,7 +37,7 @@ class InstallPlanResolverTest {
                         agp = "9.4.1",
                         buildTools = "35.0.2",
                         aapt2 = "35.0.2",
-                        compileSdk = "android-37.2",
+                        compileSdk = "android-36",
                         jdk = ">=17",
                         status = "tested",
                     ),
@@ -67,7 +67,7 @@ class InstallPlanResolverTest {
         listOf(
             composant("build-tools", "35.0.2"),
             composant("platform-tools", "35.0.2"),
-            composant("platform", "android-37.2", arch = ManifestComponent.ARCH_ANY),
+            composant("platform", "android-36", arch = ManifestComponent.ARCH_ANY),
             // cmdline-tools : seul composant non critique (ADR 0086).
             composant("cmdline-tools", "12.0").copy(critical = false),
         )
@@ -93,7 +93,7 @@ class InstallPlanResolverTest {
         val exigees = plan.value.components.filter { it.requiredBy != null }
         assertEquals(catalogue.requiredComponents.size, exigees.size)
         assertTrue(plan.value.contains("build-tools", "35.0.2"))
-        assertTrue(plan.value.contains("platform", "android-37.2"))
+        assertTrue(plan.value.contains("platform", "android-36"))
     }
 
     @Test
@@ -146,7 +146,7 @@ class InstallPlanResolverTest {
                 listOf(
                     composant("build-tools", "35.0.2", arch = "x86_64"),
                     composant("platform-tools", "35.0.2"),
-                    composant("platform", "android-37.2", arch = ManifestComponent.ARCH_ANY),
+                    composant("platform", "android-36", arch = ManifestComponent.ARCH_ANY),
                     composant("cmdline-tools", "12.0").copy(critical = false),
                 ),
             )
@@ -185,7 +185,7 @@ class InstallPlanResolverTest {
                 listOf(
                     composant("build-tools", "35.0.2").copy(installPath = "outils"),
                     composant("platform-tools", "35.0.2").copy(installPath = "outils"),
-                    composant("platform", "android-37.2", arch = ManifestComponent.ARCH_ANY),
+                    composant("platform", "android-36", arch = ManifestComponent.ARCH_ANY),
                     composant("cmdline-tools", "12.0").copy(critical = false),
                 ),
             )
@@ -272,7 +272,7 @@ class InstallPlanResolverTest {
                             listOf(
                                 "build-tools@35.0.2",
                                 "platform-tools@35.0.2",
-                                "platform@android-37.2",
+                                "platform@android-36",
                                 "cmdline-tools@12.0",
                                 "aapt2@35.0.2",
                             ),

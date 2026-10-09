@@ -10,8 +10,8 @@ plugins {
 
 android {
     namespace = "{{packageName}}"
-    compileSdk = 37
-    compileSdkMinor = 2
+    compileSdk = 36
+    compileSdkMinor = 0
     buildToolsVersion = "35.0.2"
 
     defaultConfig {

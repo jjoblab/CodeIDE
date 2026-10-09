@@ -56,7 +56,7 @@ class AlignementCatalogueTemplatesTest {
     @Test
     fun `le compileSdk des templates correspond à la plateforme exigée par le catalogue`() {
         val plateforme = ToolchainCatalog.DEFAULT_REQUIRED_COMPONENTS.first { it.id == "platform" }.version
-        // « android-37.2 » → majeure 37, mineure 2.
+        // « android-36 » → majeure 36, mineure 0.
         val (majeure, mineure) = Regex("android-(\\d+)(?:\\.(\\d+))?").find(plateforme)!!.destructured
 
         listOf("android-app" to "app/build.gradle.kts.tpl", "android-library" to "library/build.gradle.kts.tpl")
