@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Section Recherche du tiroir (mission Recherche S2, ADR 0094) :
-     champ de recherche avec bascules, résultats, états vide/chargement. -->
+<!-- Section Recherche du tiroir (mission Recherche S2-S5, ADR 0094) :
+     champ de recherche avec bascules, remplacement, navigation, Go to File. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Entête : emblème orange + actions. -->
+    <!-- Entête : emblème orange + mode + actions. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -31,6 +31,19 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="@string/recherche_titre" />
+
+        <!-- S5 : bascule Texte | Fichiers. -->
+        <TextView
+            android:id="@+id/bascule_mode_fichiers"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/recherche_mode_fichiers_cd"
+            android:gravity="center"
+            android:paddingHorizontal="8dp"
+            android:text="@string/recherche_mode_fichiers"
+            android:textSize="11sp"
+            android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/bouton_effacer"
@@ -61,6 +74,37 @@
             android:inputType="text"
             android:padding="8dp"
             android:textSize="13sp" />
+
+        <!-- S4 : champ de remplacement (masqué par défaut). -->
+        <LinearLayout
+            android:id="@+id/zone_remplacement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/champ_remplacement"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:autofillHints="text"
+                android:background="@drawable/fond_champ_inline"
+                android:hint="@string/recherche_remplacement_hint"
+                android:inputType="text"
+                android:padding="8dp"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/bouton_tout_remplacer"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="@string/recherche_tout_remplacer"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -100,6 +144,18 @@
                 android:text="@string/recherche_bascule_regex"
                 android:textSize="12sp"
                 android:textStyle="bold" />
+
+            <!-- S4 : bouton remplacement. -->
+            <TextView
+                android:id="@+id/bouton_remplacer"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/recherche_remplacer_cd"
+                android:gravity="center"
+                android:text="@string/recherche_remplacer_label"
+                android:textSize="12sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
@@ -111,15 +167,48 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <!-- Résumé. -->
-    <TextView
-        android:id="@+id/resume"
-        style="?attr/textAppearanceLabelSmall"
+    <!-- Résumé + navigation S3. -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <TextView
+            android:id="@+id/resume"
+            style="?attr/textAppearanceLabelSmall"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <!-- S3 : navigation précédent/suivant. -->
+        <ImageView
+            android:id="@+id/bouton_precedent"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/recherche_precedent_cd"
+            android:padding="6dp"
+            android:src="@drawable/ic_chevron_noeud"
+            android:rotation="270"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageView
+            android:id="@+id/bouton_suivant"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/recherche_suivant_cd"
+            android:padding="6dp"
+            android:src="@drawable/ic_chevron_noeud"
+            android:rotation="90"
+            android:visibility="gone"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
 
     <!-- Liste des résultats (texte simple pour la v1). -->
     <ScrollView
