@@ -56,10 +56,22 @@ Réutilise `FeuilleTachesFragment`.
 
 ## 4. Critères d'acceptation
 
-1. Dépendances déclarées lues depuis les scripts de build et le catalogue.
-2. Dépendances résolues avec arbre, transitives, versions, raisons.
-3. Modification des scripts (ajout/suppression/montée de version) sûre.
-4. Versions disponibles depuis Maven (cache, hors ligne).
-5. Variantes sélectionnables et réellement utilisées.
-6. Tâches Gradle parcourables et lançables.
-7. Aucune régression sur le tooling, l'éditeur, les autres fragments.
+1. Dépendances déclarées lues depuis les scripts de build et le catalogue. **✅ P3 livré** — `ParseurDependances` (regex sur `implementation/api/...`).
+2. Dépendances résolues avec arbre, transitives, versions, raisons. **⏳ P4 protocole prêt** — `ResolvedDependenciesRequest/Result` (v7), handler serveur en stub.
+3. Modification des scripts (ajout/suppression/montée de version) sûre. **⏳ À venir** — édition syntaxique minimale.
+4. Versions disponibles depuis Maven (cache, hors ligne). **⏳ À venir** — ADR HTTP séparé requis (cf. ADR 0095 §4).
+5. Variantes sélectionnables et réellement utilisées. **⏳ P5 protocole prêt** — `BuildVariantsRequest/Result` (v7), handler serveur en stub (sans AGP TAPI branché).
+6. Tâches Gradle parcourables et lançables. **✅ P5 livré** — bouton d'ouverture de `FeuilleTachesFragment` (réutilisé).
+7. Aucune régression sur le tooling, l'éditeur, les autres fragments. **✅** — chaîne CI verte.
+
+## 5. Avancement
+
+| Étape | Statut | Livrable |
+|-------|--------|----------|
+| P0 | ✅ Livré | ADR 0095, spec PROJET.md, maquette projet.html |
+| P1 | ✅ Livré | Protocole v7 : `BuildScriptsRequest/Result` + `BuildScriptsHandler` serveur + `LecteurScriptsDeBuild` JVM |
+| P2 | ✅ Livré | Fragment `ProjetFragment` + `ProjetViewModel` + port `GradleToolingRepository.scriptsBuild` + 5e destination du rail |
+| P3 | ✅ Livré | Onglet Dépendances : `ParseurDependances` (regex implementation/api/etc.) + UI |
+| P4 | ⏳ Protocole prêt | `ResolvedDependenciesRequest/Result` (v7) + handler stub — branchement IdeaProject + transitives en P6+ |
+| P5 | ⏳ Protocole prêt | `BuildVariantsRequest/Result` (v7) + handler stub + onglet Tâches (FeuilleTachesFragment) — branchement AGP TAPI en P6+ |
+| P6 | ⏳ À venir | Mises à jour Maven (`maven-metadata.xml`), édition des scripts, branchement IdeaProject + AGP TAPI |
