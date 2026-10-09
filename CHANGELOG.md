@@ -1,5 +1,33 @@
 # Journal des modifications
 
+## [0.80.3] – 2026-10-10
+
+### Corrigé
+
+- **`feature:editor`** : **toutes les touches du tiroir ne sont plus
+  interceptées** (régression v0.80.2, retour utilisateur, ADR 0100).
+  Le calque de la poignée (`conteneur_poignee`, plein écran sans
+  gravité) vivait DANS le `DrawerLayout` comme enfant de contenu :
+  tiroir ouvert, `DrawerLayout.onInterceptTouchEvent` l'identifiait
+  comme l'enfant le plus haut sous chaque touche
+  (`findTopChildUnder` + `isContentView`, `mScrimOpacity > 0`) et
+  interceptait TOUT — l'explorateur, le rail, la recherche et la
+  poignée elle-même ne répondaient plus. La racine du layout devient
+  un FrameLayout de superposition : le `TiroirPoussantLayout`
+  (id inchangé) en dessous, le calque de la poignée AU-DESSUS, hors
+  du `DrawerLayout`. Le cheval 50 % tiroir / 50 % zone centrale est
+  conservé (translation inchangée), le comportement standard du
+  tiroir est restauré de bout en bout (tap sur le liseré pour
+  refermer, glissement, verrouillage grand écran), et l'ombre
+  d'élévation du tiroir revient (l'élévation forcée à 0 n'a plus
+  d'objet). Nettoyage : le bypass `drawChild` et
+  `setConteneurPoignee` de `TiroirPoussantLayout` ainsi que les
+  `requestDisallowInterceptTouchEvent` de la poignée disparaissent
+  (code mort). Deux régressions comportementales exécutent de vraies
+  touches : un appui au milieu du tiroir OUVERT atteint désormais le
+  conteneur de fragments, et l'appui posé sur le bord est consommé
+  par la poignée.
+
 ## [0.80.2] – 2026-10-10
 
 ### Corrigé

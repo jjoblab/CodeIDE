@@ -334,18 +334,12 @@ class EditorActivity :
                 .SidebarToggleDrawable(couleurContour, couleurAccent, densite)
         liaison.toolbarEditeur.navigationIcon = iconeTiroir
 
-        // E2 (ADR 0093) : configure le TiroirPoussantLayout.
-        (liaison.racineEditeur as? TiroirPoussantLayout)?.let { tiroir ->
-            tiroir.idContenu = R.id.zone_centrale
-            // v0.80.2 : le conteneur de la poignée est DERNIER enfant de la
-            // racine — l'ordre des enfants le dessine au-dessus du tiroir et
-            // l'itération inverse des touches le sert avant lui. Condition :
-            // l'élévation du tiroir à 0 (DrawerLayout la force à 10 dp par
-            // défaut — le tri par Z des enfants passerait la poignée SOUS le
-            // tiroir, au dessin comme aux touches).
-            tiroir.setConteneurPoignee(liaison.conteneurPoignee)
-            liaison.racineEditeur.setDrawerElevation(0f)
-        }
+        // E2 (ADR 0093) : configure le TiroirPoussantLayout. Rien d'autre
+        // à enregistrer (v0.80.3, ADR 0100) : le calque de la poignée vit
+        // HORS du DrawerLayout, superposé dans le FrameLayout racine —
+        // un enfant de contenu plein écran ICI faisait intercepter toutes
+        // les touches du tiroir par onInterceptTouchEvent.
+        (liaison.racineEditeur as? TiroirPoussantLayout)?.idContenu = R.id.zone_centrale
 
         // Clic bascule (ouvre si fermé, ferme si ouvert).
         liaison.toolbarEditeur.setNavigationOnClickListener {
@@ -585,6 +579,11 @@ class EditorActivity :
      * pendant le glissement puis fondu 380 ms après le relâchement.
      * La largeur est mémorisée par instance sauvegardée (§ 19).
      *
+     * v0.80.3 (ADR 0100) : la poignée vit dans son calque racine,
+     * superposé AU DrawerLayout — l'écouteur reçoit donc le geste ENTIER
+     * sans jamais demander au DrawerLayout de ne pas intercepter (plus de
+     * requestDisallowInterceptTouchEvent : le calque n'est plus son enfant).
+     *
      * Animation « pendant » (v0.32.2, retour d'appareil réel — la
      * maquette `.poignee.pendant` transposée) : l'écouteur tactile
      * consommant TOUT, l'état pressé du sélecteur ne s'active jamais de
@@ -620,7 +619,6 @@ class EditorActivity :
                         MotionEvent.ACTION_DOWN -> {
                             abscisseDepart = evenement.rawX
                             largeurDepart = largeurTiroirPx
-                            liaison.racineEditeur.requestDisallowInterceptTouchEvent(true)
                             animerPoigneePendant(vue as ImageView, pendant = true)
                             liaison.pastilleTailleTiroir.isVisible = true
                             liaison.pastilleTailleTiroir.alpha = 1f
@@ -635,7 +633,6 @@ class EditorActivity :
                         }
 
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            liaison.racineEditeur.requestDisallowInterceptTouchEvent(false)
                             vue.performClick()
                             animerPoigneePendant(vue as ImageView, pendant = false)
                             viserAimants(dp)

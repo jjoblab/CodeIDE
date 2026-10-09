@@ -1064,6 +1064,21 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       officielles, 4 teintes de dossier retirées] ; tests
       PanneauToolingControllerTest (matrice complète) + structure
       racine de la poignée + 3 tests d'extensions.
+- v0.80.3 : **touches du tiroir restaurées** (régression v0.80.2,
+      ADR 0100) — le calque de la poignée vivait DANS le DrawerLayout
+      comme enfant de contenu plein écran : tiroir ouvert,
+      onInterceptTouchEvent l'identifiait sous CHAQUE touche
+      (findTopChildUnder + isContentView, mScrimOpacity > 0) et tout
+      interceptait. La racine du layout devient un FrameLayout de
+      superposition [TiroirPoussantLayout (id inchangé — binding
+      inchangé), calque conteneur_poignee AU-DESSUS] ; cheval 50/50
+      conservé (recalerPoignee inchangé), comportement DrawerLayout
+      standard restauré (tap-liseré, glissement, verrouillage), ombre
+      d'élévation du tiroir de retour ; hacks v0.80.2 supprimés
+      (drawChild bypass, setConteneurPoignee, setDrawerElevation(0),
+      requestDisallowInterceptTouchEvent de la poignée) ; DEUX tests
+      comportementaux à vraies touches verrouillent la régression
+      (corps du tiroir ouvert + poignée à cheval).
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours
