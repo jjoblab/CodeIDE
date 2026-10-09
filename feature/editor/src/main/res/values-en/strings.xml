@@ -426,6 +426,8 @@
     <string name="projet_onglet_variantes">Variants</string>
     <string name="projet_onglet_taches">Tasks</string>
     <string name="projet_aucun_script">No build script found</string>
+    <string name="projet_aucune_dependance">No declared dependency</string>
+    <string name="projet_dependance_config_origine">%1$s — %2$s</string>
     <string name="projet_chargement">Reading scripts…</string>
     <string name="projet_erreur_chargement">Could not read scripts</string>
     <string name="projet_scripts_octets">%1$s B</string>

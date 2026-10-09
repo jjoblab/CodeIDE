@@ -53,6 +53,7 @@ class ProjetFragment : Fragment() {
         configurerOnglets()
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             afficherEtatScripts(etat)
+            afficherEtatDependances(etat)
         }
         // Premier chargement : les scripts sont affichés à l'ouverture.
         if (savedInstanceState == null) viewModel.chargerScripts()
@@ -120,6 +121,41 @@ class ProjetFragment : Fragment() {
             val taille = scripts[i].tailleOctets
             enfant.findViewById<android.widget.TextView>(R.id.taille_script)?.text =
                 getString(R.string.projet_scripts_octets, taille.toString())
+        }
+    }
+
+    /** Met à jour la liste des dépendances ou le message « aucune ». */
+    private fun afficherEtatDependances(etat: EtatProjet) {
+        liaison.messageDependancesVides.isVisible = etat.dependances.isEmpty()
+        liaison.listeDependances.isVisible = etat.dependances.isNotEmpty()
+        if (etat.dependances.isNotEmpty()) {
+            val contexte = requireContext()
+            liaison.listeDependances.adapter =
+                ArrayAdapter(
+                    contexte,
+                    R.layout.ligne_dependance,
+                    R.id.coordonnees_dependance,
+                    etat.dependances.map { it.coordonnes },
+                )
+            liaison.listeDependances.post {
+                remplirConfigurationsDependances(etat.dependances)
+            }
+        }
+    }
+
+    /** Remplit le champ « configuration — script » de chaque ligne. */
+    private fun remplirConfigurationsDependances(dependances: List<jo.codeide.core.domain.DependanceDeclaree>) {
+        val liste = liaison.listeDependances
+        val nb = minOf(liste.childCount, dependances.size)
+        for (i in 0 until nb) {
+            val enfant = liste.getChildAt(i) ?: continue
+            val dep = dependances[i]
+            enfant.findViewById<android.widget.TextView>(R.id.configuration_dependance)?.text =
+                getString(
+                    R.string.projet_dependance_config_origine,
+                    dep.configuration,
+                    dep.scriptOrigine,
+                )
         }
     }
 
