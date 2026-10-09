@@ -902,13 +902,12 @@ class ExplorateurFragment : Fragment() {
                                 jo.codeide.core.ui.R.drawable.ic_dossier
                             },
                         )
-                        setColorFilter(
-                            if (estRacine) {
-                                contexte.couleurSurSurfaceDiscret()
-                            } else {
-                                ContextCompat.getColor(contexte, RUi.color.codeide_explorateur_dossier)
-                            },
-                        )
+                        // v0.80.2 : l'ancienne teinte dédiée
+                        // codeide_explorateur_dossier a été retirée avec le
+                        // filtrage des couleurs de l'arbre — le glyphe
+                        // monochrome du popover prend le rôle discret du
+                        // thème, comme l'icône maison de la racine.
+                        setColorFilter(contexte.couleurSurSurfaceDiscret())
                     }
                 ligne.findViewById<MaterialTextView>(R.id.libelle_action_popover).text =
                     if (estRacine) {

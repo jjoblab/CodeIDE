@@ -66,6 +66,56 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
+    fun `v0_80_2 - la poignee de redimensionnement vit a la racine a cheval sur le tiroir`() {
+        val racine = gonfler(R.layout.activity_editor) as ViewGroup
+        val conteneur = racine.findViewById<View>(R.id.conteneur_poignee)
+        assertNotNull("conteneur racine de la poignée (v0.80.2)", conteneur)
+        assertEquals(
+            "le conteneur de la poignée est un enfant DIRECT de la racine (v0.80.2)",
+            racine.id,
+            (conteneur.parent as View).id,
+        )
+        assertEquals(
+            "le conteneur est le DERNIER enfant : dessiné au-dessus du tiroir, servi avant lui",
+            racine.childCount - 1,
+            racine.indexOfChild(conteneur),
+        )
+        val poignee = conteneur.findViewById<View>(R.id.poignee_tiroir)
+        assertEquals(
+            "la poignée vit DANS le conteneur racine (plus dans le tiroir)",
+            R.id.conteneur_poignee,
+            (poignee.parent as View).id,
+        )
+        assertEquals(
+            "la poignée est masquée par défaut (tiroir refermé — posée à l'exécution)",
+            View.GONE,
+            poignee.visibility,
+        )
+        val tiroir = racine.findViewById<View>(R.id.tiroir) as ViewGroup
+        assertEquals(
+            "la poignée a quitté le tiroir (v0.80.2)",
+            -1,
+            tiroir.indexOfChild(conteneur),
+        )
+        // Le débord de 13 dp a disparu : le fond du tiroir est une forme
+        // PLEINE LARGEUR (plus d'inset transparent au bord externe).
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val fond = ContextCompat.getDrawable(contexte, R.drawable.fond_tiroir)
+        assertEquals(
+            "fond du tiroir : plus d'inset — la poignée racine chevauche le bord",
+            android.graphics.drawable.GradientDrawable::class.java,
+            fond?.javaClass,
+        )
+        val colonne = tiroir.getChildAt(0) as ViewGroup
+        assertEquals(
+            "la colonne du tiroir occupe la pleine largeur (plus de marge de fin de 13 dp)",
+            0,
+            (colonne.layoutParams as ViewGroup.MarginLayoutParams).marginEnd,
+        )
+    }
+
+    @Test
     fun `l espace de travail porte la vraie barre de symboles colle au clavier et la vue vide riche`() {
         val racine = gonfler(R.layout.activity_editor)
         val barre = racine.findViewById<View>(R.id.barre_symboles)
