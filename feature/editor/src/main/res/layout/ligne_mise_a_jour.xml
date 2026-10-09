@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne d'une mise à jour disponible (P6, ADR 0097) : coordonnées +
+     version courante → dernière + indicateur visuel si mise à jour
+     disponible. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp">
+
+    <ImageView
+        android:id="@+id/indicateur_mise_a_jour"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:contentDescription="@null"
+        android:src="@drawable/cercle_attente_etape"
+        android:visibility="gone"
+        app:tint="?attr/colorPrimary" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/coordonnees_mise_a_jour"
+            style="?attr/textAppearanceBodyMedium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="13sp"
+            tools:ignore="HardcodedText"
+            tools:text="org.jetbrains.kotlin:kotlin-stdlib" />
+
+        <TextView
+            android:id="@+id/versions_mise_a_jour"
+            style="?attr/textAppearanceLabelSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp"
+            tools:ignore="HardcodedText"
+            tools:text="2.2.0 → 2.2.10" />
+    </LinearLayout>
+
+</LinearLayout>

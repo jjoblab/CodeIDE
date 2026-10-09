@@ -435,10 +435,14 @@
     <string name="projet_actualiser_cd">Actualiser les scripts de build</string>
     <string name="projet_onglet_scripts">Scripts</string>
     <string name="projet_onglet_dependances">Dépendances</string>
+    <string name="projet_onglet_mises_a_jour">Mises à jour</string>
     <string name="projet_onglet_variantes">Variantes</string>
     <string name="projet_onglet_taches">Tâches</string>
     <string name="projet_aucun_script">Aucun script de build trouvé</string>
     <string name="projet_aucune_dependance">Aucune dépendance déclarée</string>
+    <string name="projet_aucune_mise_a_jour">Aucune mise à jour trouvée</string>
+    <string name="projet_mise_a_jour_versions">%1$s → %2$s</string>
+    <string name="projet_ouverture_script">Ouverture de « %1$s »</string>
     <string name="projet_dependance_config_origine">%1$s — %2$s</string>
     <string name="projet_chargement">Lecture des scripts…</string>
     <string name="projet_erreur_chargement">Impossible de lire les scripts</string>
