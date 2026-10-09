@@ -248,13 +248,25 @@ private class EtapePaquet(
                 ),
             )
         if (!resultat.succeeded) {
-            throw EchecEtapeInstallation(
-                ErreursInstallation.commande(
-                    description = "installation du paquet $paquet impossible",
-                    commande = "pkg install -y $paquet",
-                    resultat = resultat,
-                ),
-            )
+            // Tolérance EIPP (apt Termux) : `pkg install` peut retourner
+            // code 100 avec « E: Directory '...' missing » (EIPP planner)
+            // alors que le paquet s'est réellement installé. On vérifie
+            // par exécution avant de déclarer l'échec — « installé =
+            // vérifié en l'exécutant » (§ 3.2, § 5.2).
+            if (!verify(context)) {
+                throw EchecEtapeInstallation(
+                    ErreursInstallation.commande(
+                        description = "installation du paquet $paquet impossible",
+                        commande = "pkg install -y $paquet",
+                        resultat = resultat,
+                    ),
+                )
+            } else {
+                context.journal(
+                    "avertissement apt (code ${resultat.exitCode}) — $paquet vérifié par exécution, " +
+                        "installation retenue (EIPP Termux, § 3.2)",
+                )
+            }
         }
         context.reportProgress(Progress.Items(done = index, total = total))
     }

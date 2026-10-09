@@ -79,6 +79,13 @@ class InstallationFragment : Fragment() {
         liaison.boutonJournal.setOnClickListener { viewModel.basculerJournal() }
         liaison.caseLicence.setOnCheckedChangeListener { _, coche ->
             liaison.boutonDemarrer.isEnabled = coche
+            if (coche) {
+                // L'orchestrateur exige l'acceptation explicite avant la
+                // phase ANDROID_SDK (§ 12.5) — sans cet appel, le parcours
+                // boucle sur « licence non acceptée » même si la case est
+                // cochée. On enregistre l'acceptation dès la cochage.
+                viewModel.accepterLicence()
+            }
         }
         liaison.boutonDiagnostic.setOnClickListener {
             val pressePapiers =
