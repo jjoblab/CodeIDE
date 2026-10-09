@@ -395,7 +395,10 @@
     <string name="git_message_hint">Message de commit…</string>
     <string name="git_committer">Commit</string>
     <string name="git_aucun_changement">Aucun changement</string>
-    <string name="git_n_changements">%d changements</string>
+    <plurals name="git_n_changements">
+        <item quantity="one">%d changement</item>
+        <item quantity="other">%d changements</item>
+    </plurals>
 
     <!-- Toolbar : fermeture du projet (déplacée de l'entête v1). -->
     <string name="editor_action_fermer_projet">Fermer le projet</string>
