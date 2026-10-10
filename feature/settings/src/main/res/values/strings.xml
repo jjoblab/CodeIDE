@@ -82,6 +82,8 @@
     <string name="settings_sous_ia">Assistant de code intégré</string>
     <string name="settings_maitre_projets">Projets</string>
     <string name="settings_sous_projets">Dossier de travail, auteur, licence</string>
+    <string name="settings_maitre_historique">Historique local</string>
+    <string name="settings_sous_historique">%1$s · indépendant de Git</string>
     <string name="settings_maitre_env">Environnement de développement</string>
     <string name="settings_sous_env">Composants du SDK, vérifications, réparations</string>
     <string name="settings_maitre_securite">Sécurité et confidentialité</string>
@@ -169,6 +171,25 @@
     <!-- Section Projets. -->
     <string name="settings_projets_titre">Projets</string>
 
+    <!-- Section Historique local (mission H6, ADR 0105). -->
+    <string name="settings_historique_titre">Historique local</string>
+    <string name="settings_historique_retention">Conserver</string>
+    <string name="settings_historique_retention_detail">Les révisions plus anciennes partent à la purge, à la prochaine ouverture du projet — les fichiers ne bougent jamais.</string>
+    <string name="settings_historique_retention_dialogue">Conserver l\'historique</string>
+    <string name="settings_historique_1_jour">1 jour</string>
+    <string name="settings_historique_5_jours">5 jours</string>
+    <string name="settings_historique_15_jours">15 jours</string>
+    <string name="settings_historique_30_jours">30 jours</string>
+    <string name="settings_historique_empreinte">Espace occupé : %1$s</string>
+    <string name="settings_historique_empreinte_attente">…</string>
+    <string name="settings_historique_octets">%1$d o</string>
+    <string name="settings_historique_ko">%1$d ko</string>
+    <string name="settings_historique_mo">%1$s Mo</string>
+    <string name="settings_historique_effacer">Effacer l\'historique local</string>
+    <string name="settings_historique_effacer_message">Tout l\'historique de TOUS les projets sera supprimé (révisions, pierres tombales, étiquettes). Les fichiers en cours ne changent pas.</string>
+    <string name="settings_historique_effacer_detail">Supprime les révisions de TOUS les projets — les fichiers en cours ne bougent pas.</string>
+    <string name="settings_historique_efface">Historique effacé</string>
+
     <!-- Sections À propos et Avancé. -->
     <string name="settings_apropos_titre">À propos</string>
     <string name="settings_avance_titre">Avancé</string>
@@ -181,6 +202,7 @@
     <string name="settings_cd_ligne_terminal">Ouvrir les réglages du terminal</string>
     <string name="settings_cd_ligne_ia">Assistant IA — bientôt disponible</string>
     <string name="settings_cd_ligne_projets">Ouvrir les réglages des projets</string>
+    <string name="settings_cd_ligne_historique">Ouvrir les réglages de l\'historique local</string>
     <string name="settings_cd_ligne_env">Ouvrir l\'écran Environnement</string>
     <string name="settings_cd_ligne_securite">Sécurité et confidentialité — bientôt disponible</string>
     <string name="settings_cd_ligne_apropos">Ouvrir les informations de l\'application</string>

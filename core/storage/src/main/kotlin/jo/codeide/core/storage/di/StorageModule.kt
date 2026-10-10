@@ -16,12 +16,14 @@ import jo.codeide.core.domain.HistoriqueFileSystem
 import jo.codeide.core.domain.HistoriqueLocal
 import jo.codeide.core.domain.MoteurHistoriqueLocal
 import jo.codeide.core.domain.PolitiqueHistorique
+import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.storage.ContentResolverPersistableUriPermissions
 import jo.codeide.core.storage.PersistableUriPermissions
 import jo.codeide.core.storage.SafArborescences
 import jo.codeide.core.storage.SafFileSystem
+import kotlinx.coroutines.flow.first
 import java.io.File
 import javax.inject.Singleton
 import jo.codeide.core.storage.FileSystemPrive as AdaptateurPrive
@@ -63,7 +65,9 @@ internal object StorageProvidesModule {
      * index atomiques dans le stockage PRIVÉ (`files/historique`) —
      * jamais dans le dossier d'un projet. La clé du projet COURANT suit
      * la source de capture : chaque projet ouvert possède son dossier
-     * d'historique (l'empreinte de l'URI de sa racine).
+     * d'historique (l'empreinte de l'URI de sa racine). La rétention
+     * est le réglage des Paramètres (mission H6, ADR 0105) : lue À
+     * CHAQUE purge — motif du réglage applog (mission R2).
      */
     @Provides
     @Singleton
@@ -72,12 +76,19 @@ internal object StorageProvidesModule {
         source: SourceProjetHistorique,
         horloge: TimeProvider,
         repartiteurs: DispatcherProvider,
+        depotParametres: SettingsRepository,
     ): HistoriqueLocal =
         MoteurHistoriqueLocal(
             racine = File(context.filesDir, "historique"),
             cleProjetCourante = { source.racineDocument },
             horloge = horloge,
             repartiteurs = repartiteurs,
+            retentionJoursCourante = {
+                depotParametres
+                    .observeSettings()
+                    .first()
+                    .retentionHistorique.jours
+            },
         )
 
     /**
