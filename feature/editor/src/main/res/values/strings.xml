@@ -97,6 +97,24 @@
     <string name="editor_fermeture_annuler">Annuler</string>
     <string name="editor_erreur_ouverture">Ce fichier n\'a pas pu être lu.</string>
     <string name="editor_erreur_enregistrement">Échec de l\'enregistrement : le contenu reste non enregistré.</string>
+
+    <!-- Mission « Exécuter » R1 (ADR 0102) : le « Run » d'Android Studio —
+         compiler, installer, lancer, sans adb. -->
+    <string name="editor_execution_compilation">Compilation de l\'application… :app:assembleDebug</string>
+    <string name="editor_execution_installation">Installation de l\'application…</string>
+    <string name="editor_execution_autorisation_requise">Autorisation « sources inconnues » requise — l\'écran système s\'ouvre, l\'installation reprendra à votre retour</string>
+    <string name="editor_execution_confirmation_systeme">Confirmation du système affichée…</string>
+    <string name="editor_execution_lancee">Application lancée : %1$s</string>
+    <string name="editor_execution_apk_introuvable">Le build n\'a produit aucun APK (module application introuvable)</string>
+    <string name="editor_execution_metadonnees_illisibles">Identifiant de l\'application illisible (output-metadata.json)</string>
+    <string name="editor_execution_autorisation_refusee">Installation impossible : l\'autorisation « sources inconnues » n\'a pas été accordée</string>
+    <string name="editor_execution_signature_differente">Une version signée différemment est déjà installée — la remplacer effacera ses données</string>
+    <string name="editor_execution_version_ancienne">La version installée est plus récente que l\'APK construit</string>
+    <string name="editor_execution_espace_insuffisant">Espace de stockage insuffisant pour installer l\'application</string>
+    <string name="editor_execution_annule">Installation annulée</string>
+    <string name="editor_execution_autre_echec">Installation impossible : %1$s</string>
+    <string name="editor_execution_lancement_introuvable">Application installée mais introuvable au lancement : %1$s</string>
+    <string name="editor_execution_action_desinstaller">Désinstaller…</string>
     <string name="editor_ouvrir_avec_aucune">Aucune application ne sait ouvrir ce fichier.</string>
     <string name="editor_chemin_copie">Chemin copié</string>
 

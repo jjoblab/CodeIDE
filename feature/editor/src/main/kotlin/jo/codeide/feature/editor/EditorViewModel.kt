@@ -16,9 +16,12 @@ import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EcrireSyncStateUseCase
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
+import jo.codeide.core.domain.EtapeExecutionApplication
+import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.EtatSyncLocal
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
+import jo.codeide.core.domain.ExecuterApplicationUseCase
 import jo.codeide.core.domain.ExecuterTachesUseCase
 import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
@@ -34,8 +37,10 @@ import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.PreparerClasspathLspUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
-import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.RestaurerArbreUseCase
+import jo.codeide.core.domain.ResultatExecutionApplication
+import jo.codeide.core.domain.ResultatInstallationApk
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
@@ -136,8 +141,9 @@ internal class SessionSuivie(
  * tiroir consomme uniquement `TerminalSessionRepository` (core:domain) —
  * aucune dépendance Termux n'entre ici, c'est le critère d'acceptation.
  * La résolution du dossier réel du projet passe par
- * `ResoudreRepertoireProjet` (même traduction SAF → FUSE que le futur
- * tooling réutilisera).
+ * [ResolveurCheminFuse] (même traduction SAF → FUSE que le futur
+ * tooling réutilisera — v0.80.4, ADR 0101 : le PORT, plus la classe
+ * concrète, ce qui éprouve aussi le dossier en tests JVM).
  *
  * Exemption detekt ciblée (règle 16) : TooManyFunctions, LargeClass et
  * LongParameterList — l'espace de travail couvre l'explorateur, les
@@ -164,12 +170,13 @@ class EditorViewModel
         private val reconnaitreTypeProjet: ReconnaitreTypeProjetUseCase,
         private val listerModeles: ListTemplatesUseCase,
         private val sessionsTerminal: TerminalSessionRepository,
-        private val resoudreRepertoireProjet: ResoudreRepertoireProjet,
+        private val resolveurChemin: ResolveurCheminFuse,
         private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
         private val preparerClasspathLsp: PreparerClasspathLspUseCase,
         private val executerTachesUseCase: ExecuterTachesUseCase,
+        private val executerApplication: ExecuterApplicationUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
         private val listerTachesProjet: ListerTachesProjetUseCase,
         private val optionsTooling: OptionsTooling,
@@ -723,6 +730,7 @@ class EditorViewModel
                 ActionEditor.OuvrirSelecteurTaches,
                 ActionEditor.AnnulerBuild,
                 ActionEditor.ExecuterMain,
+                ActionEditor.ExecuterApplication,
                 is ActionEditor.EnvoyerEntreeConsole,
                 -> {
                     onActionTooling(action)
@@ -906,7 +914,7 @@ class EditorViewModel
                 // que le terminal « ouvrir dans ce projet » (partage ce
                 // résolveur), l'empreinte Gradle et le sync-state.
                 ?.documentUri
-                ?.let { resoudreRepertoireProjet(it) }
+                ?.let { resolveurChemin(it) }
 
         // ------------------------------------------------------------------
         // Tooling Gradle (G5, section 6 du prompt compagnon).
@@ -935,6 +943,12 @@ class EditorViewModel
                 ActionEditor.ExecuterMain -> {
                     // v0.41.1 : lance `gradle run` pour exécuter fun main().
                     executerTachesGradle(listOf("run"))
+                }
+
+                ActionEditor.ExecuterApplication -> {
+                    // Mission « Exécuter » R1 (ADR 0102) : le « Run »
+                    // d'Android Studio — compile, installe, lance.
+                    executerApplicationAndroid()
                 }
 
                 is ActionEditor.EnvoyerEntreeConsole -> {
@@ -1155,6 +1169,232 @@ class EditorViewModel
             }
         }
 
+        // ------------------------------------------------------------------
+        // Mission « Exécuter » R1 (ADR 0102) — le « Run » d'Android Studio :
+        // compiler, installer, lancer, sans adb.
+        // ------------------------------------------------------------------
+
+        /**
+         * Exécute l'application du projet : compile la variante debug du
+         * module application (`:app:assembleDebug`), ATTEND le verdict du
+         * build, puis installe l'APK produit (PackageInstaller —
+         * confirmation système, reprise automatique de l'autorisation
+         * « sources inconnues ») et lance l'application (relances).
+         *
+         * Chaque étape s'affiche en FRANÇAIS dans la console (canal
+         * BUILD) et les événements notables en snackbar — l'échec porte
+         * son action correctrice (ADR 0102 : jamais d'échec muet).
+         *
+         * L'appel vient de l'écran d'édition au PREMIER PLAN : le
+         * lancement d'activité y est légal (un service d'arrière-plan
+         * n'y a pas le droit, Android 10+).
+         */
+        private fun executerApplicationAndroid() {
+            viewModelScope.launch {
+                // D'ABORD la console : les étapes du runner se lisent en
+                // direct, comme la fenêtre Run d'Android Studio.
+                selectionnerOngletPanneau(OngletPanneau.CONSOLE)
+                selectionnerFiltreConsole(FiltreCanalConsole.BUILD)
+                if (jdkAbsent()) {
+                    refuserSansJdk()
+                    return@launch
+                }
+                val dossier = dossierProjetOuEchec() ?: return@launch
+
+                serviceGradle.publierLigneExecution(TexteTooling.Ressource(R.string.editor_execution_compilation))
+                val taches = listOf(TACHE_ASSEMBLE_DEBUG)
+                val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
+                observerBuild(buildId, taches)
+
+                val etatBuild = attendreFinBuild(buildId)
+                if (etatBuild?.statutBuild != StatutBuild.REUSSI) {
+                    // La console a déjà le rapport de Gradle — le
+                    // runner s'arrête là, honnêtement.
+                    journal.w(TAG) { "exécution interrompue : build ${etatBuild?.statutBuild ?: "perdu"}" }
+                    return@launch
+                }
+
+                serviceGradle.publierLigneExecution(TexteTooling.Ressource(R.string.editor_execution_installation))
+                when (
+                    val resultat =
+                        executerApplication(dossier) { etape -> viewModelScope.launch { rendreEtapeExecution(etape) } }
+                ) {
+                    is ResultatExecutionApplication.Succes -> {
+                        journal.i(TAG) { "application lancée (${resultat.nomPaquet})" }
+                    }
+
+                    is ResultatExecutionApplication.Echec -> {
+                        traduireEchecExecution(resultat)
+                    }
+                }
+            }
+        }
+
+        /**
+         * Attend le verdict du build [buildId] sur l'état process-wide :
+         * le runner attend l'état TERMINAL de SON build (réussi, échoué,
+         * annulé) ; si un AUTRE build prend la place avant le verdict
+         * (l'utilisateur relance), l'attente s'arrête et l'exécution ne
+         * suit pas — la console suit le dernier build lancé, le runner
+         * ne lance jamais une app compilée par un build évincé.
+         *
+         * @return l'état terminal du build attendu, ou `null` (build
+         *         évincé, ou état jamais arrivé) — l'appelant s'arrête
+         *         honnêtement, la console montre déjà la vérité.
+         */
+        private suspend fun attendreFinBuild(buildId: String): EtatGradle? =
+            serviceGradle.etat
+                .first { etat ->
+                    val verdict =
+                        etat.buildId == buildId && etat.statutBuild != null && etat.statutBuild != StatutBuild.EN_COURS
+                    verdict || (etat.buildId != null && etat.buildId != buildId)
+                }.takeIf { it.buildId == buildId }
+
+        /**
+         * Rend une étape du cycle d'exécution : ligne de console (canal
+         * BUILD) et, pour les étapes notables, snackbar — l'utilisateur
+         * voit le runner travailler même les yeux hors de la console.
+         */
+        private suspend fun rendreEtapeExecution(etape: EtapeExecutionApplication) {
+            when (etape) {
+                EtapeExecutionApplication.AutorisationSourcesInconnuesRequise -> {
+                    serviceGradle.publierLigneExecution(
+                        TexteTooling.Ressource(R.string.editor_execution_autorisation_requise),
+                    )
+                    canalEffets.send(
+                        EffetEditor.NotifierExecution(message = R.string.editor_execution_autorisation_requise),
+                    )
+                }
+
+                EtapeExecutionApplication.CopieApk -> {
+                    Unit
+                }
+
+                EtapeExecutionApplication.ConfirmationSysteme -> {
+                    serviceGradle.publierLigneExecution(
+                        TexteTooling.Ressource(R.string.editor_execution_confirmation_systeme),
+                    )
+                }
+
+                is EtapeExecutionApplication.ApplicationLancee -> {
+                    serviceGradle.publierLigneExecution(
+                        TexteTooling.Ressource(R.string.editor_execution_lancee, listOf(etape.nomPaquet)),
+                    )
+                    canalEffets.send(
+                        EffetEditor.NotifierExecution(
+                            message = R.string.editor_execution_lancee,
+                            arguments = listOf(etape.nomPaquet),
+                        ),
+                    )
+                }
+            }
+        }
+
+        /**
+         * Traduit un échec du cycle d'exécution : ligne de console rouge
+         * + snackbar avec action correctrice quand elle existe
+         * (désinstallation de secours — le système confirmera).
+         */
+        private suspend fun traduireEchecExecution(echec: ResultatExecutionApplication.Echec) {
+            journal.w(TAG) { "échec d'exécution : $echec" }
+            when (echec) {
+                ResultatExecutionApplication.ApkAbsent -> {
+                    publierEchecExecution(R.string.editor_execution_apk_introuvable, null, null)
+                }
+
+                ResultatExecutionApplication.MetadonneesIllisibles -> {
+                    publierEchecExecution(R.string.editor_execution_metadonnees_illisibles, null, null)
+                }
+
+                is ResultatExecutionApplication.LancementIntrouvable -> {
+                    publierEchecExecution(
+                        R.string.editor_execution_lancement_introuvable,
+                        listOf(echec.nomPaquet),
+                        null,
+                    )
+                }
+
+                is ResultatExecutionApplication.Installation -> {
+                    when (val cause = echec.cause) {
+                        ResultatInstallationApk.AutorisationRefusee -> {
+                            publierEchecExecution(R.string.editor_execution_autorisation_refusee, null, null)
+                        }
+
+                        ResultatInstallationApk.SignatureDifferente -> {
+                            publierEchecExecution(
+                                R.string.editor_execution_signature_differente,
+                                null,
+                                R.string.editor_execution_action_desinstaller,
+                                echec.nomPaquet,
+                            )
+                        }
+
+                        ResultatInstallationApk.VersionPlusRecenteInstallee -> {
+                            publierEchecExecution(
+                                R.string.editor_execution_version_ancienne,
+                                null,
+                                R.string.editor_execution_action_desinstaller,
+                                echec.nomPaquet,
+                            )
+                        }
+
+                        ResultatInstallationApk.EspaceInsuffisant -> {
+                            publierEchecExecution(R.string.editor_execution_espace_insuffisant, null, null)
+                        }
+
+                        is ResultatInstallationApk.Annule -> {
+                            publierEchecExecution(R.string.editor_execution_annule, null, null)
+                        }
+
+                        is ResultatInstallationApk.Autre -> {
+                            publierEchecExecution(
+                                R.string.editor_execution_autre_echec,
+                                listOf(cause.messageSysteme ?: ""),
+                                null,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Publie un échec d'exécution : console (rouge) + snackbar
+         * (action correctrice éventuelle — l'hôte la branche sur la
+         * désinstallation système du paquet visé).
+         */
+        private suspend fun publierEchecExecution(
+            message: Int,
+            arguments: List<String>?,
+            action: Int?,
+            nomPaquet: String? = null,
+        ) {
+            serviceGradle.publierLigneExecution(
+                TexteTooling.Ressource(message, arguments ?: emptyList()),
+                StyleLigne.ERREUR,
+            )
+            canalEffets.send(
+                EffetEditor.NotifierExecution(message, arguments ?: emptyList(), action, nomPaquet),
+            )
+        }
+
+        /**
+         * Détecte le module application Android du projet
+         * (`app/build.gradle(.kts)`) : le bouton Exécuter devient
+         * « compile → installe → lance » — sinon il reste `gradle run`
+         * (projet JVM). Résolution silencieuse du dossier FUSE : une
+         * détection ratée n'est pas une erreur d'espace.
+         */
+        private fun detecterModuleApplication() {
+            viewModelScope.launch {
+                val dossier = resoudreCheminProjet()?.let { chemin -> File(chemin) } ?: return@launch
+                val estAndroid = executerApplication.estModuleApplication(dossier)
+                if (etatInterne.value.projetApplicationAndroid != estAndroid) {
+                    etatInterne.update { it.copy(projetApplicationAndroid = estAndroid) }
+                }
+            }
+        }
+
         /**
          * Le JDK de compilation est-il absent ? (Outils optionnels,
          * ADR 0048 — l'installation différée se propose à l'écran
@@ -1361,6 +1601,7 @@ class EditorViewModel
                     typeProjet = null,
                     uriSelection = if (source == SourceArbre.PROJET) null else it.uriSelection,
                     segmentsAriane = if (source == SourceArbre.PROJET) emptyList() else it.segmentsAriane,
+                    projetApplicationAndroid = false,
                 )
             }
         }
@@ -1376,6 +1617,7 @@ class EditorViewModel
                         if (verification.value == ProjectAccessState.Available) {
                             chargerEnfants(projet.location.documentUri)
                             reconnaitreLeType(projet.location.documentUri)
+                            detecterModuleApplication()
                         }
                     }
 
@@ -3480,6 +3722,11 @@ class EditorViewModel
         internal companion object {
             /** Délai d'inactivité avant sauvegarde automatique (ms). */
             const val DELAI_SAUVEGARDE_AUTO_MS = 1_500L
+
+            /** Tâche Gradle du « Run » (mission Exécuter R1, ADR 0102) :
+             *  variante debug du module application, celle dont l'APK
+             *  est signée installable (chemin déterministe du même ADR). */
+            const val TACHE_ASSEMBLE_DEBUG = ":app:assembleDebug"
 
             /** Période du balayage de surveillance de l'arbre (v0.80.1) :
              *  un changement externe (Gradle, terminal) apparaît dans

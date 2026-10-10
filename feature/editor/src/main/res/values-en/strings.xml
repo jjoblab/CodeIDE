@@ -90,6 +90,24 @@
     <string name="editor_fermeture_annuler">Cancel</string>
     <string name="editor_erreur_ouverture">This file could not be read.</string>
     <string name="editor_erreur_enregistrement">Saving failed: the content remains unsaved.</string>
+
+    <!-- Mission "Exécuter" R1 (ADR 0102): Android Studio's Run — build,
+         install, launch, without adb. -->
+    <string name="editor_execution_compilation">Building the app… :app:assembleDebug</string>
+    <string name="editor_execution_installation">Installing the app…</string>
+    <string name="editor_execution_autorisation_requise">"Unknown sources" permission required — the system screen is opening, installation will resume when you return</string>
+    <string name="editor_execution_confirmation_systeme">System confirmation shown…</string>
+    <string name="editor_execution_lancee">App launched: %1$s</string>
+    <string name="editor_execution_apk_introuvable">The build produced no APK (application module not found)</string>
+    <string name="editor_execution_metadonnees_illisibles">App identifier unreadable (output-metadata.json)</string>
+    <string name="editor_execution_autorisation_refusee">Installation impossible: the "unknown sources" permission was not granted</string>
+    <string name="editor_execution_signature_differente">A differently signed version is already installed — replacing it will erase its data</string>
+    <string name="editor_execution_version_ancienne">The installed version is newer than the built APK</string>
+    <string name="editor_execution_espace_insuffisant">Not enough storage to install the app</string>
+    <string name="editor_execution_annule">Installation cancelled</string>
+    <string name="editor_execution_autre_echec">Installation failed: %1$s</string>
+    <string name="editor_execution_lancement_introuvable">App installed but could not be launched: %1$s</string>
+    <string name="editor_execution_action_desinstaller">Uninstall…</string>
     <string name="editor_ouvrir_avec_aucune">No application can open this file.</string>
     <string name="editor_chemin_copie">Path copied</string>
 

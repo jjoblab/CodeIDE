@@ -36,6 +36,28 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <!--
+      Installation des APK produits (mission « Exécuter » R1, ADR 0102) :
+      permission « sources inconnues » — accordée par l'écran système
+      dédié (jamais demandée en boîte de dialogue), CodeIDE passe
+      TOUJOURS par la confirmation du système pour chaque paquet.
+      Permission RESTREINTE Google Play : impact documenté dans l'ADR —
+      CodeIDE se distribue aujourd'hui hors Play (dépôt GitHub).
+
+      queries (visibilité des paquets, Android 11+) : lancement de
+      l'application fraîchement installée (`getLaunchIntentForPackage`,
+      repli MAIN/LAUNCHER) — ne rend visibles que les applications
+      lançables depuis un écran d'accueil.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name="jo.codeide.CodeIdeApplication"
         android:icon="@mipmap/ic_launcher"

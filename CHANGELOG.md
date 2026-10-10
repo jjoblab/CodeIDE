@@ -1,5 +1,55 @@
 # Journal des modifications
 
+## [0.81.0] – 2026-10-10
+
+### Ajouté
+
+- **« Exécuter l'application » — le bouton Run d'Android Studio, sans
+  adb** (mission « Exécuter » R0+R1, ADR 0102/0103) : sur un projet
+  possédant un module application Android (`app/build.gradle(.kts)` —
+  détection à l'ouverture), le bouton Exécuter devient le runner
+  d'Android Studio : **compile** (`:app:assembleDebug`, chaîne Gradle
+  existante), **attend le verdict du build**, **installe l'APK produit**
+  (`PackageInstaller` — session `MODE_FULL_INSTALL`, copie 8 Ko +
+  `fsync`, commit par `PendingIntent` mutable vers un récepteur NON
+  exporté à action unique par session), puis **lance l'application**
+  (intent explicite, 10 relances × 200 ms — le `PackageManager` peut ne
+  pas voir le paquet juste après l'installation). Les projets JVM
+  conservent `gradle run` (fun main) — le même bouton, le bon runner.
+- **Permission « sources inconnues » guidée avec reprise automatique** :
+  la première installation ouvre l'écran système
+  (`ACTION_MANAGE_UNKNOWN_APP_SOURCES`) et l'installation REPREND
+  D'ELLE-MÊME au retour (attente bornée 5 min, poll 300 ms) — le Run
+  n'est jamais perdu ; `setRequireUserAction(USER_ACTION_NOT_REQUIRED)`
+  dès Android 12 : les mises à jour peuvent devenir silencieuses si le
+  système l'accepte.
+- **Échecs typés en français avec action correctrice** (console BUILD +
+  snackbar) : signature différente → « Désinstaller… » (boîte système
+  nommant la perte de données), version plus récente installée, espace
+  insuffisant, APK introuvable, identifiant illisible
+  (`output-metadata.json`), annulation, message système brut sinon.
+- **Progression du runner en français dans la console** (canal BUILD) :
+  compilation, installation, confirmation système, application lancée —
+  `GradleService.publierLigneExecution` (libellés localisables, styles
+  ETAPE/ERREUR).
+- **Port `ApkInstaller`** (`core:domain`, faux dans `core:testing`) +
+  implémentation Android (`app`, process principal — le lancement
+  d'activité est illégal depuis un service d'arrière-plan, Android 10+)
+  + `ExecuterApplicationUseCase` (chemin d'APK déterministe —
+  `verify-templates.sh`, `applicationId` lu des métadonnées AGP,
+  **aucun changement du protocole tooling**). Manifeste :
+  `REQUEST_INSTALL_PACKAGES` (permission restreinte Play — impact
+  documenté dans l'ADR, distribution actuelle hors Play) + `<queries>`
+  MAIN/LAUNCHER pour la visibilité du paquet installé.
+- **Tests** : `ExecuterApplicationUseCaseTest` (7 — cycle complet, APK
+  absent, métadonnées hostiles, échec typé + action, détection module,
+  analyseur JSON pur) ; `ExecuterApplicationEditorViewModelTest` (3 —
+  build→install→lance avec couture FUSE vers un dossier RÉEL, échec de
+  build sans installation, détection du module) ; `FakeApkInstaller`.
+- **R0 livré** : ADR 0102 (installation), ADR 0103 (pont de logs Binder
+  bidirectionnel, zéro permission ajoutée — R2),
+  `docs/EXECUTER.md` + maquette `docs/preview/executer-logcat.html`.
+
 ## [0.80.7] – 2026-10-10
 
 ### Corrigé
