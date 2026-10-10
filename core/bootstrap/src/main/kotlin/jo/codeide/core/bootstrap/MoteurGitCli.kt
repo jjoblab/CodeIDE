@@ -203,6 +203,15 @@ internal class MoteurGitCli(
     /**
      * Exécute une commande git et retourne la sortie stdout (succès) ou
      * un échec avec stderr. Vérifie d'abord que le binaire git existe.
+     *
+     * v0.80.7 (correctif « section Git figée ») : la sortie standard est
+     * lue dans le RÉSULTAT de [SupervisionProcessus.attendre]
+     * ([SupervisionProcessus.Sortie.sortieStandard]) — JAMAIS par une
+     * seconde collecte de `stdoutLines()` : les flux du port sont froids
+     * et consommables UNE SEULE FOIS (le tuyau est refermé à l'EOF), la
+     * seconde collecte rendait un stdout VIDE sur appareil réel et
+     * `estDepot` répondait FAUX pour tout dépôt existant — cause racine
+     * de la section figée sur « ce projet n'est pas un dépôt Git ».
      */
     @Suppress("ReturnCount") // Gardes : binaire absent, échec lancement, code non-zéro.
     private suspend fun executer(
@@ -222,8 +231,7 @@ internal class MoteurGitCli(
                 )
             val sortie = SupervisionProcessus.attendre(processus)
             if (sortie.code == 0) {
-                val stdout = processus.stdoutLines().toList().joinToString("\n")
-                ResultatGit.Succes(stdout)
+                ResultatGit.Succes(sortie.sortieStandard.joinToString("\n"))
             } else {
                 ResultatGit.Echec(
                     message = sortie.erreurs.joinToString("\n").ifBlank { "git a échoué (code ${sortie.code})" },
