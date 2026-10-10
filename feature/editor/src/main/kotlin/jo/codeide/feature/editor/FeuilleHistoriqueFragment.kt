@@ -41,18 +41,22 @@ internal sealed interface RangeeHistorique {
 }
 
 /**
- * Feuille « Historique » d'un fichier (mission « Historique local » H2,
- * spec HISTORIQUE_LOCAL.md § 5, maquette docs/preview/historique-local.html) :
- * liste des révisions groupées par période (moments relatifs), diff
- * unifié de la révision sélectionnée (contre le contenu ACTUEL ou la
- * révision PRÉCÉDENTE), restauration AVEC confirmation — puis snackbar
- * honnête « l'ancienne version est conservée dans l'historique » avec
- * action Annuler.
+ * Feuille « Historique » (missions « Historique local » H2 puis H3,
+ * spec HISTORIQUE_LOCAL.md § 5, maquette docs/preview/historique-local.html).
+ * H2 : révisions d'un FICHIER groupées par période (moments relatifs),
+ * diff unifié de la sélection (contre le contenu ACTUEL ou la révision
+ * PRÉCÉDENTE), restauration AVEC confirmation — snackbar honnête +
+ * Annuler. H3 : modes DOSSIER (tous les fichiers sous le préfixe) et
+ * PROJET (« Modifications récentes »), filtre « Supprimés seuls »
+ * (pierres tombales retrouvables) et RECRÉATION d'un fichier supprimé
+ * (restauration d'une tombale, dossier parent résolu segment par
+ * segment — jamais d'URI inventée).
  *
  * Le ViewModel porte TOUT l'état ; la feuille rend. Les moments
  * relatifs viennent de [CalculsDatesHistorique] (pur, testé).
  */
 @AndroidEntryPoint
+@Suppress("TooManyFunctions") // Cycle + un rendu par zone (H2) + modes H3 — même surface que le panneau Logcat.
 internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
     private val viewModel: HistoriqueViewModel by viewModels()
 
@@ -107,6 +111,11 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         liaison.boutonModeDiff.setOnClickListener {
             viewModel.definirMode(!viewModel.etat.value.modeActuel)
         }
+        // Filtre « Supprimés seuls » (H3) : bascule COCHÉE = pierres
+        // tombales seules (l'état checked suit l'état du ViewModel).
+        liaison.boutonFiltreSupprimes.setOnClickListener {
+            viewModel.definirFiltreSupprimes(!liaison.boutonFiltreSupprimes.isChecked)
+        }
         liaison.boutonRestaurer.setOnClickListener {
             val selection = viewModel.etat.value.selection ?: return@setOnClickListener
             demanderConfirmationRestauration(selection)
@@ -117,6 +126,9 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             uri = paquet.getString(CLE_URI).orEmpty(),
             cheminRelatif = paquet.getString(CLE_CHEMIN).orEmpty(),
             nomFichier = paquet.getString(CLE_NOM).orEmpty(),
+            mode =
+                paquet.getString(CLE_MODE)?.let { lu -> runCatching { ModeHistorique.valueOf(lu) }.getOrNull() }
+                    ?: ModeHistorique.FICHIER,
         )
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
     }
@@ -126,11 +138,38 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         super.onDestroyView()
     }
 
-    /** Rend TOUT l'état : sous-titre, liste/diff, indisponibilité, message. */
+    /** Rend TOUT l'état : en-tête, liste/diff, rafraîchissement de
+     *  l'onglet ouvert, snackbar. */
     private fun rendre(etat: EtatHistorique) {
-        liaison.sousTitreHistorique.text = etat.nomFichier
+        rendreEntete(etat)
+        rendreListe(etat)
+        rendreDiff(etat)
+        // D'ABORD le rafraîchissement de l'onglet ouvert (contenu
+        // restauré), PUIS le snackbar honnête (Annuler si possible).
+        etat.contenuRestaure?.let { contenu ->
+            viewModelEditeur.onAction(ActionEditor.RemplacerContenuFichier(etat.uri, contenu))
+            viewModel.consommerContenuRestaure()
+        }
+        etat.message?.let { message -> montrerSnackbar(message) }
+    }
 
-        // Rangées : insère un en-tête de période à CHAQUE changement.
+    /** En-tête : titre (mode projet = « Modifications récentes »),
+     *  sous-titre, filtre « Supprimés seuls » (l'état coché suit le
+     *  ViewModel, pas le doigt — modes dossier/projet, liste seule). */
+    private fun rendreEntete(etat: EtatHistorique) {
+        liaison.titreHistorique.setText(
+            if (etat.mode == ModeHistorique.PROJET) R.string.historique_titre_recentes else R.string.historique_titre,
+        )
+        liaison.sousTitreHistorique.text = etat.nomFichier
+        liaison.boutonFiltreSupprimes.isChecked = etat.filtreSupprimes
+        liaison.boutonFiltreSupprimes.isVisible =
+            etat.mode != ModeHistorique.FICHIER && etat.selection == null
+    }
+
+    /** Liste : rangées groupées par période (un en-tête à CHAQUE
+     *  changement), état vide honnête — le libellé dit la VÉRITÉ du
+     *  filtre courant (H3). */
+    private fun rendreListe(etat: EtatHistorique) {
         val rangees = ArrayList<RangeeHistorique>(etat.revisions.size + NB_MAX_PERIODES)
         var periodePrecedente: PeriodeHistorique? = null
         etat.revisions.forEach { revision ->
@@ -142,58 +181,75 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         }
         adaptateurRevisions.submitList(rangees)
         liaison.etatVideHistorique.isVisible = !etat.chargement && etat.revisions.isEmpty()
-
-        // Page courante : liste (aucune sélection) ou diff.
-        liaison.flipperHistorique.displayedChild = if (etat.selection == null) 0 else 1
-        if (etat.selection != null) {
-            adaptateurDiff.submitList(etat.lignesDiff)
-            liaison.ligneIndisponibleDiff.isVisible = etat.diffIndisponible
-            liaison.boutonRestaurer.isVisible = etat.selection.contenuDisponible
-            liaison.boutonRestaurer.isEnabled = etat.selection.contenuDisponible
-            liaison.titreDiff.text =
-                getString(
-                    R.string.historique_diff_titre,
-                    libelleMoment(etat.selection),
-                    etat.lignesDiff.count { it.type != TypeLigneDiff.INCHANGE },
-                )
-            liaison.boutonModeDiff.setText(
-                if (etat.modeActuel) R.string.historique_diff_vs_actuel else R.string.historique_diff_vs_precedente,
-            )
-        }
-
-        // Message (restauration) : snackbar honnête + Annuler si possible.
-        // D'ABORD le rafraîchissement de l'onglet ouvert (contenu restauré).
-        etat.contenuRestaure?.let { contenu ->
-            viewModelEditeur.onAction(ActionEditor.RemplacerContenuFichier(etat.uri, contenu))
-            viewModel.consommerContenuRestaure()
-        }
-        etat.message?.let { message ->
-            when (message) {
-                MessageHistorique.Restauree -> {
-                    Snackbar
-                        .make(liaison.root, R.string.historique_restauree, Snackbar.LENGTH_LONG)
-                        .setAction(R.string.historique_annuler) { viewModel.annulerRestauration() }
-                        .show()
-                }
-
-                MessageHistorique.ContenuIndisponible -> {
-                    Snackbar.make(liaison.root, R.string.historique_contenu_indisponible, Snackbar.LENGTH_LONG).show()
-                }
-
-                MessageHistorique.EchecEcriture -> {
-                    Snackbar.make(liaison.root, R.string.historique_echec_ecriture, Snackbar.LENGTH_LONG).show()
-                }
-            }
-            viewModel.consommerMessage()
-        }
+        liaison.texteVideHistorique.setText(
+            if (etat.filtreSupprimes) R.string.historique_vide_filtre else R.string.historique_vide,
+        )
     }
 
-    /** Confirmation honnête avant restauration (spec § 5). */
+    /** Page de diff (si une révision est sélectionnée). */
+    private fun rendreDiff(etat: EtatHistorique) {
+        // Page courante : liste (aucune sélection) ou diff.
+        liaison.flipperHistorique.displayedChild = if (etat.selection == null) 0 else 1
+        val selection = etat.selection ?: return
+        adaptateurDiff.submitList(etat.lignesDiff)
+        liaison.ligneIndisponibleDiff.isVisible = etat.diffIndisponible
+        liaison.boutonRestaurer.isVisible = selection.contenuDisponible
+        liaison.boutonRestaurer.isEnabled = selection.contenuDisponible
+        liaison.titreDiff.text =
+            getString(
+                R.string.historique_diff_titre,
+                libelleMoment(selection),
+                etat.lignesDiff.count { it.type != TypeLigneDiff.INCHANGE },
+            )
+        liaison.boutonModeDiff.setText(
+            if (etat.modeActuel) R.string.historique_diff_vs_actuel else R.string.historique_diff_vs_precedente,
+        )
+    }
+
+    /** Snackbar d'un message d'action (restauration, recréation,
+     *  indisponibilité, échec, impasse). */
+    private fun montrerSnackbar(message: MessageHistorique) {
+        when (message) {
+            MessageHistorique.Restauree,
+            MessageHistorique.FichierRecree,
+            -> {
+                val texte =
+                    if (message == MessageHistorique.Restauree) {
+                        R.string.historique_restauree
+                    } else {
+                        R.string.historique_fichier_recree
+                    }
+                Snackbar
+                    .make(liaison.root, texte, Snackbar.LENGTH_LONG)
+                    .setAction(R.string.historique_annuler) { viewModel.annulerRestauration() }
+                    .show()
+            }
+
+            MessageHistorique.ContenuIndisponible -> {
+                Snackbar.make(liaison.root, R.string.historique_contenu_indisponible, Snackbar.LENGTH_LONG).show()
+            }
+
+            MessageHistorique.EchecEcriture -> {
+                Snackbar.make(liaison.root, R.string.historique_echec_ecriture, Snackbar.LENGTH_LONG).show()
+            }
+
+            MessageHistorique.ParentIntrouvable -> {
+                Snackbar.make(liaison.root, R.string.historique_parent_introuvable, Snackbar.LENGTH_LONG).show()
+            }
+        }
+        viewModel.consommerMessage()
+    }
+
+    /** Confirmation honnête avant restauration (spec § 5) : une PIERRE
+     *  TOMBALE annonce la RECRÉATION (le fichier n'existe plus — le
+     *  dossier d'origine est résolu au moment voulu). */
     private fun demanderConfirmationRestauration(selection: EntreeHistorique) {
+        val tombale = selection.type == TypeEntreeHistorique.SUPPRESSION
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.historique_confirmer_titre)
-            .setMessage(R.string.historique_confirmer_message)
-            .setPositiveButton(R.string.historique_confirmer_oui) { _, _ ->
+            .setMessage(
+                if (tombale) R.string.historique_confirmer_recree_message else R.string.historique_confirmer_message,
+            ).setPositiveButton(R.string.historique_confirmer_oui) { _, _ ->
                 viewModel.restaurer(selection)
             }.setNegativeButton(R.string.historique_confirmer_non, null)
             .show()
@@ -274,8 +330,16 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             position: Int,
         ) {
             when (val rangee = getItem(position)) {
-                is RangeeHistorique.Periode -> (holder as VuePeriode).lier(rangee.periode)
-                is RangeeHistorique.Revision -> (holder as VueRevision).lier(rangee.revision)
+                is RangeeHistorique.Periode -> {
+                    (holder as VuePeriode).lier(rangee.periode)
+                }
+
+                is RangeeHistorique.Revision -> {
+                    (holder as VueRevision).lier(
+                        rangee.revision,
+                        viewModel.etat.value.mode,
+                    )
+                }
             }
         }
     }
@@ -295,21 +359,41 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         }
     }
 
-    /** Une révision. */
+    /** Une révision. En mode DOSSIER/PROJET, le NOM DU FICHIER porte le
+     *  libellé principal (les révisions mélangent les fichiers — H3) et
+     *  le détail ajoute le type et le dossier parent. */
     private inner class VueRevision(
         private val binding: LigneRevisionHistoriqueBinding,
         private val surChoix: (RevisionUi) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun lier(revision: RevisionUi) {
+        fun lier(
+            revision: RevisionUi,
+            mode: ModeHistorique,
+        ) {
             val entree = revision.entree
             binding.iconeRevision.setImageResource(iconeDeType(entree.type))
-            binding.libelleRevision.setText(libelleDeType(entree.type))
-            binding.detailRevision.text =
-                listOfNotNull(
-                    libelleMoment(entree),
-                    entree.libelle,
-                    if (entree.contenuDisponible) null else getString(R.string.historique_sans_contenu),
-                ).joinToString(" · ")
+            when (mode) {
+                ModeHistorique.FICHIER -> {
+                    binding.libelleRevision.setText(libelleDeType(entree.type))
+                    binding.detailRevision.text =
+                        listOfNotNull(
+                            libelleMoment(entree),
+                            entree.libelle,
+                            if (entree.contenuDisponible) null else getString(R.string.historique_sans_contenu),
+                        ).joinToString(" · ")
+                }
+
+                ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
+                    binding.libelleRevision.text = entree.cheminRelatif.substringAfterLast('/')
+                    binding.detailRevision.text =
+                        listOfNotNull(
+                            getString(libelleDeType(entree.type)),
+                            libelleMoment(entree),
+                            entree.cheminRelatif.substringBeforeLast('/', "").ifBlank { null },
+                            if (entree.contenuDisponible) null else getString(R.string.historique_sans_contenu),
+                        ).joinToString(" · ")
+                }
+            }
             binding.tailleRevision.text = tailleLisible(entree.tailleOctets)
             binding.root.setOnClickListener { surChoix(revision) }
             binding.root.isEnabled = entree.contenuDisponible
@@ -377,11 +461,14 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
     }
 
     internal companion object {
-        /** Ouvre la feuille de l'historique d'un fichier. */
+        /** Ouvre la feuille de l'historique d'un fichier (H2), d'un
+         *  dossier (H3 — préfixe récursif) ou du projet (« Modifications
+         *  récentes », H3). */
         fun creer(
             uri: String,
             cheminRelatif: String,
             nom: String,
+            mode: ModeHistorique = ModeHistorique.FICHIER,
         ): FeuilleHistoriqueFragment =
             FeuilleHistoriqueFragment().apply {
                 arguments =
@@ -389,12 +476,14 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
                         putString(CLE_URI, uri)
                         putString(CLE_CHEMIN, cheminRelatif)
                         putString(CLE_NOM, nom)
+                        putString(CLE_MODE, mode.name)
                     }
             }
 
         private const val CLE_URI = "uri"
         private const val CLE_CHEMIN = "chemin"
         private const val CLE_NOM = "nom"
+        private const val CLE_MODE = "mode"
 
         private const val TYPE_PERIODE = 0
         private const val TYPE_REVISION = 1

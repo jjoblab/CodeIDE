@@ -150,9 +150,12 @@
     <!-- Mission « Historique local » H2 (ADR 0104-0106): file History
          sheet — list, diff, restore. -->
     <string name="historique_titre">History</string>
+    <string name="historique_titre_recentes">Recent changes</string>
     <string name="historique_fermer">Close</string>
     <string name="historique_vide">No revision recorded</string>
     <string name="historique_vide_detail">History captures changes to project files — edit, save, then come back.</string>
+    <string name="historique_vide_filtre">No deleted file in this scope</string>
+    <string name="historique_filtre_supprimes">Deleted only</string>
     <string name="historique_sans_contenu">content unavailable</string>
     <string name="historique_contenu_indisponible">Content unavailable (binary or too large)</string>
     <string name="historique_periode_aujourdhui">Today</string>
@@ -188,9 +191,13 @@
     <string name="historique_confirmer_oui">Restore</string>
     <string name="historique_confirmer_non">Cancel</string>
     <string name="historique_restauree">Version restored — the previous version is kept in history</string>
+    <string name="historique_fichier_recree">File recreated — the deleted version remains in history</string>
+    <string name="historique_parent_introuvable">Cannot recreate: the parent folder no longer exists</string>
+    <string name="historique_confirmer_recree_message">The file will be recreated at its original location. The deleted version will remain in history.</string>
     <string name="historique_annuler">Undo</string>
     <string name="historique_echec_ecriture">Could not write — the file is unchanged</string>
     <string name="popover_historique">Show history</string>
+    <string name="popover_modifications_recentes">Recent changes</string>
     <string name="editor_menu_historique">Show history</string>
     <string name="logcat_pile_titre">Open from stack trace</string>
     <string name="logcat_plantage">The app crashed</string>

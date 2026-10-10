@@ -158,9 +158,12 @@
     <!-- Mission « Historique local » H2 (ADR 0104-0106) : feuille
          Historique d\'un fichier — liste, diff, restauration. -->
     <string name="historique_titre">Historique</string>
+    <string name="historique_titre_recentes">Modifications récentes</string>
     <string name="historique_fermer">Fermer</string>
     <string name="historique_vide">Aucune révision enregistrée</string>
     <string name="historique_vide_detail">L\'historique capture les modifications des fichiers du projet — éditez, enregistrez, puis revenez.</string>
+    <string name="historique_vide_filtre">Aucun fichier supprimé sous cette portée</string>
+    <string name="historique_filtre_supprimes">Supprimés seuls</string>
     <string name="historique_sans_contenu">contenu indisponible</string>
     <string name="historique_contenu_indisponible">Contenu indisponible (binaire ou trop grand)</string>
     <string name="historique_periode_aujourdhui">Aujourd\'hui</string>
@@ -198,9 +201,13 @@
     <string name="historique_confirmer_oui">Restaurer</string>
     <string name="historique_confirmer_non">Annuler</string>
     <string name="historique_restauree">Version restaurée — l\'ancienne version est conservée dans l\'historique</string>
+    <string name="historique_fichier_recree">Fichier recréé — la version supprimée reste dans l\'historique</string>
+    <string name="historique_parent_introuvable">Recréation impossible : le dossier parent n\'existe plus</string>
+    <string name="historique_confirmer_recree_message">Le fichier sera recréé à son emplacement d\'origine. La version supprimée restera dans l\'historique.</string>
     <string name="historique_annuler">Annuler</string>
     <string name="historique_echec_ecriture">Écriture impossible — le fichier n\'a pas changé</string>
     <string name="popover_historique">Afficher l\'historique</string>
+    <string name="popover_modifications_recentes">Modifications récentes</string>
     <string name="editor_menu_historique">Afficher l\'historique</string>
     <string name="logcat_pile_titre">Ouvrir depuis la trace</string>
     <string name="logcat_plantage">L\'application a planté</string>

@@ -1535,8 +1535,11 @@ class EditorActivity :
         vue.boutonFermerOnglet.isVisible = !onglet.isDirty
     }
 
-    /** Entrées du menu contextuel d'onglet (5.4 + mission H2). */
-    private fun construireMenuOnglet(menu: PopupMenu) {
+    /** Entrées du menu contextuel d'onglet (5.4 + missions H2/H3). */
+    private fun construireMenuOnglet(
+        menu: PopupMenu,
+        onglet: EditorTabState,
+    ) {
         menu.menu.add(android.view.Menu.NONE, ID_FERMER, android.view.Menu.NONE, R.string.editor_menu_fermer)
         menu.menu.add(
             android.view.Menu.NONE,
@@ -1564,8 +1567,16 @@ class EditorActivity :
             R.string.editor_menu_copier_chemin,
         )
         // Mission H (H2) : historique du fichier de l'onglet — la même
-        // feuille que le popover de l'explorateur.
-        menu.menu.add(android.view.Menu.NONE, ID_HISTORIQUE, android.view.Menu.NONE, R.string.editor_menu_historique)
+        // feuille que le popover de l'explorateur. H3 : les onglets
+        // PRIVÉS n'ont pas d'historique (arbre non capturé, ADR 0106).
+        if (onglet.source == SourceArbre.PROJET) {
+            menu.menu.add(
+                android.view.Menu.NONE,
+                ID_HISTORIQUE,
+                android.view.Menu.NONE,
+                R.string.editor_menu_historique,
+            )
+        }
     }
 
     /** Menu contextuel d'un onglet (section 5.4). */
@@ -1575,7 +1586,7 @@ class EditorActivity :
         tous: List<EditorTabState>,
     ) {
         val menu = PopupMenu(this, ancre)
-        construireMenuOnglet(menu)
+        construireMenuOnglet(menu, onglet)
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 ID_FERMER -> {
