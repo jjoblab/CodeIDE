@@ -81,4 +81,18 @@
     <color name="explorateur_texte_sur_accent">#FFFFFF</color>
     <color name="explorateur_rail_fond">#ECEFF4</color>
     <color name="explorateur_rail_bordure">#D3DAE4</color>
+
+    <!-- Jetons de l'onglet Logcat (mission « Exécuter » R3, spec
+         EXECUTER.md § 4.2) : fond dédié + niveaux — valeurs NUIT de la
+         maquette, variantes jour lisibles (jour/nuit comme le journal
+         compact, étape 16). -->
+    <color name="logcat_fond">#FBFCFE</color>
+    <color name="logcat_niveau_verbeux">#7A8492</color>
+    <color name="logcat_niveau_debogage">#1E6EC8</color>
+    <color name="logcat_niveau_info">#2E7D38</color>
+    <color name="logcat_niveau_avertissement">#9A6700</color>
+    <color name="logcat_niveau_erreur">#C6362D</color>
+    <color name="logcat_message_erreur">#B3261E</color>
+    <color name="logcat_bandeau_pertes_fond">#149A6700</color>
+    <color name="logcat_bandeau_arret_fond">#14B3261E</color>
 </resources>

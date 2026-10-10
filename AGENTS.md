@@ -1185,6 +1185,40 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.84.0 : **mission « Exécuter » R3 — l'onglet Logcat** (spec § 4,
+      ADR 0103/0107) : 4e onglet du panneau inférieur, le vrai Logcat
+      des applications exécutées sans adb. UI [fragment
+      PanneauLogcatFragment + LogcatViewModel @HiltViewModel ; barre
+      d'outils : sélecteur de processus (menu vivantes/terminées/
+      précédentes, ampoule teintée), filtre texte sous-chaîne casse
+      ignorée sur message ET étiquette, option regex (motif invalide
+      en ligne, pas de crash), niveau minimal Verbose→Assert, pause
+      (fige, collecte continue, reprise=rattrapage), effacer (affiché
+      seulement) ; table monospace 11 sp ListAdapter/DiffUtil
+      (identité= numéro croissant), couleurs V/D/I/W/E/F jetons § 4.2
+      jour/nuit, défilement honnête (doigt=arrêt, fond=reprise), clic
+      long copie brute logcat (presse-papiers, toast < API 33) ;
+      bandeaux pertes/arrêt/session précédente/erreur motif] ;
+      rattrapage [ADR 0107 : LotJournal positionnel (apres = compteur
+      du registre sous verrou) + port lignesDepuis(id, position) —
+      l'afficheur rattrape par delta, l'état des sessions réémis à
+      chaque lot sert de signal : aucune course instantané/abonnement
+      (perte ou doublon), filtrage incrémental (rien en rafale par
+      lot), tampon filtré synchronisé à la borne par identité
+      d'objet] ; archive [ArchiveSessionsJournalFichiers : JSON borné
+      6, atomique .tmp+rename, filesDir/logcat PRIVÉ, dernière ligne
+      seulement — pas d'historique complet de journaux sur disque ;
+      chargée au démarrage si rien de vivant, la plus récente
+      s'affiche] ; autosélection [vivante naissante déloge une
+      archive, JAMAIS une consultation de registre ; l'archive au
+      démarrage] ; câblage [OngletPanneau.LOGCAT, TabItem 4 aligné
+      sur l'enum, fragmentsPanneau/tag/libellé, sous-titre de
+      périmètre en en-tête, PanneauToolingController règle
+      non-Console] ; tests [FiltreLogcatTest 7, RegistrePontJournaux
+      +3 positions/delta, LogcatViewModelTest 10, Archive
+      Robolectric 8, contrôleur +1, layout 4 TabItem — 37 nouveaux] ;
+      chaîne verte sur core:domain, feature:editor, app —
+      assembleDebug 20,6 Mo.
 - v0.81.0 : **mission « Exécuter » R0+R1 — le bouton Run d'Android
       Studio, sans adb** (compile → installe → lance) : recherche des
       références mesurée (AndroidIDE : récepteur EXPORTÉ forgeable,

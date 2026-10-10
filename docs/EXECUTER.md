@@ -123,6 +123,15 @@ liste virtualisée — jamais de `TextView` à append sans borne).
   fichier à la ligne ; snackbar « L'app a planté » + action
   « Voir la trace » lors d'une exception non interceptée.
 
+### 4.4 Rattrapage incrémental (ADR 0107, R3 livré)
+
+L'afficheur ne souscrit PAS au flux de lots : l'état des sessions
+(réémis à CHAQUE lot) est le signal, le port gagne
+`lignesDepuis(id, position)` (delta exact sous le verrou). Les lots
+portent leur position (`LotJournal.apres`). Pause = ne pas rattraper ;
+reprise = un appel ramène tout ce qui est retenu. Détails et
+alternatives rejetées : ADR 0107.
+
 ## 5. Politiques d'honnêteté (affichées dans l'interface)
 
 - « Sans adb : journaux de votre application uniquement, depuis le
@@ -156,6 +165,6 @@ liste virtualisée — jamais de `TextView` à append sans borne).
 | R0 | investigation, ADR 0102/0103, maquette, cette spécification | ✅ v0.81.0 |
 | R1 | installer et lancer (port + use case + UI) | ✅ v0.81.0 |
 | R2 | pont de logs (bibliothèque, service, injection Gradle) | ✅ v0.83.0 |
-| R3 | onglet Logcat | à venir |
+| R3 | onglet Logcat | ✅ v0.84.0 |
 | R4 | traces cliquables et plantages | à venir |
 | R5 | finitions et tests | à venir |

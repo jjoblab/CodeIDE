@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Logcat du panneau inférieur (mission « Exécuter » R3, spec
+     EXECUTER.md § 4, maquette docs/preview/executer-logcat.html) : le
+     vrai Logcat des applications exécutées, sans adb.
+     De haut en bas : barre d'outils (sélecteur de processus, filtre
+     texte, regex, niveau, pause, effacer), bandeaux d'état (pertes,
+     arrêt, session précédente, erreur de motif), table monospace
+     virtualisée, état vide honnête. Fragment PanneauLogcatFragment — le
+     chrome (en-tête, onglets) reste à l'hôte (activity_editor.xml).
+     Jetons § 4.2 : fond #14171d, surfaces, niveaux — jour/nuit par
+     ressources (variantes jour des mêmes jetons). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/logcat_fond"
+    android:orientation="vertical">
+
+    <!-- ===================== Barre d'outils (§ 4.1) ===================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/explorateur_fond_surface"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp">
+
+        <!-- Sélecteur de processus (§ 4.1) : puce avec ampoule vivante,
+             menu des sessions (vivantes + précédentes). -->
+        <LinearLayout
+            android:id="@+id/puce_processus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/fond_outil_logcat"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <View
+                android:id="@+id/ampoule_processus"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:background="@drawable/ampoule_processus"
+                android:importantForAccessibility="no" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/nom_processus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:fontFamily="monospace"
+                android:maxWidth="96dp"
+                android:maxLines="1"
+                android:textColor="@color/explorateur_texte"
+                android:textSize="11sp"
+                tools:text=":monapp" />
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/logcat_selecteur_processus"
+                android:importantForAccessibility="no"
+                android:rotation="90"
+                android:src="@drawable/ic_chevron_droite"
+                app:tint="@color/explorateur_texte_3" />
+        </LinearLayout>
+
+        <!-- Filtre texte (§ 4.3) : sous-chaîne insensible à la casse, ou
+             regex quand l'option est active (bouton .*) -->
+        <EditText
+            android:id="@+id/champ_filtre"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/fond_outil_logcat"
+            android:fontFamily="monospace"
+            android:hint="@string/logcat_filtre_indice"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:minHeight="48dp"
+            android:paddingHorizontal="10dp"
+            android:textColor="@color/explorateur_texte"
+            android:textColorHint="@color/explorateur_texte_3"
+            android:textSize="11sp" />
+
+        <!-- Option regex (§ 4.3) : le motif du champ devient une
+             expression régulière (erreur signalée en ligne). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_regex"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/logcat_regex"
+            android:fontFamily="monospace"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/logcat_regex_marque"
+            android:textSize="11sp" />
+
+        <!-- Filtre de niveau (§ 4.1) : masque les niveaux inférieurs,
+             menu Verbose → Assert. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_niveau"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/logcat_filtre_niveau"
+            app:icon="@drawable/ic_niveau_logcat"
+            app:iconTint="@color/logcat_niveau_info" />
+
+        <!-- Pause du défilement (§ 4.3) : fige le tampon d'affichage, la
+             collecte continue (bornée) ; reprise = rattrapage. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_pause"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/logcat_pause"
+            app:icon="@drawable/ic_pause_logcat"
+            app:iconTint="@color/explorateur_texte_2" />
+
+        <!-- Effacer (§ 4.3) : vide le tampon AFFICHÉ — les sessions
+             gardées ne sont pas touchées. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_effacer"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/logcat_effacer"
+            app:icon="@drawable/ic_supprimer"
+            app:iconTint="@color/explorateur_texte_2" />
+    </LinearLayout>
+
+    <!-- ===================== Bandeaux d'état (§ 4.1) ===================== -->
+
+    <!-- Pertes : jamais silencieuses (§ 5) — orange. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_pertes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/logcat_bandeau_pertes_fond"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="7dp"
+        android:textColor="@color/logcat_niveau_avertissement"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="214 lignes perdues"
+        tools:visibility="visible" />
+
+    <!-- Arrêt du processus : rouge, la raison lisible. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_arret"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/logcat_bandeau_arret_fond"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="7dp"
+        android:textColor="@color/logcat_niveau_erreur"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="Le processus s'est arrêté : ANR"
+        tools:visibility="visible" />
+
+    <!-- Session précédente : grise, consultable (archive bornée). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_precedente"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/explorateur_fond_surface"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="7dp"
+        android:textColor="@color/explorateur_texte_2"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="Session précédente — :monapp (pid 18342) · terminée à 14:02"
+        tools:visibility="visible" />
+
+    <!-- Erreur de motif regex (§ 4.3) : signalée en ligne. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/ligne_erreur_motif"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/logcat_niveau_erreur"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="Motif invalide : *debut"
+        tools:visibility="visible" />
+
+    <!-- ===================== Table des journaux (§ 4.1) ===================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Liste virtualisée (§ 4.2 : jamais de TextView à append sans
+             borne) — l'état de défilement survit aux changements
+             d'onglet (fragments montrés/cachés, jamais détruits). -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_logcat"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/spacing_xs"
+            tools:itemCount="10"
+            tools:listitem="@layout/ligne_log_logcat" />
+
+        <!-- État vide (§ 4.1) : honnête — le périmètre SANS adb dit tel
+             quel, en pied de l'état vide (§ 5). -->
+        <LinearLayout
+            android:id="@+id/etat_vide_logcat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/state_padding"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/fond_vide_logcat">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_executer"
+                    app:tint="@color/explorateur_texte_3" />
+            </FrameLayout>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="@string/logcat_vide"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@color/explorateur_texte_2" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:gravity="center"
+                android:text="@string/logcat_vide_pied"
+                android:textColor="@color/explorateur_texte_3"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

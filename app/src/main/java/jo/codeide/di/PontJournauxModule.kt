@@ -1,11 +1,16 @@
 package jo.codeide.di
 
+import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import jo.codeide.core.domain.ArchiveSessionsJournal
+import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.PontJournauxApplications
 import jo.codeide.core.domain.RegistrePontJournaux
+import jo.codeide.logcat.ArchiveSessionsJournalFichiers
 import javax.inject.Singleton
 
 /**
@@ -27,4 +32,14 @@ internal object PontJournauxModule {
     @Provides
     @Singleton
     fun fournirPort(registre: RegistrePontJournaux): PontJournauxApplications = registre
+
+    /** Archive des sessions terminées (R3, spec § 4.3) : JSON borné dans
+     *  filesDir/logcat — dernière ligne et raison de fin consultables
+     *  entre deux démarrages de CodeIDE. */
+    @Provides
+    @Singleton
+    internal fun fournirArchive(
+        @ApplicationContext contexte: Context,
+        dispatchers: DispatcherProvider,
+    ): ArchiveSessionsJournal = ArchiveSessionsJournalFichiers(contexte, dispatchers)
 }

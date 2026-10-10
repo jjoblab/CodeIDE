@@ -501,6 +501,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/editor_panneau_journal" />
+
+                    <!-- Mission « Exécuter » R3 (ADR 0103) : journaux des
+                         applications exécutées, sans adb. L'ordre des
+                         TabItem suit STRICTEMENT l'enum OngletPanneau. -->
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/editor_panneau_logcat" />
                 </com.google.android.material.tabs.TabLayout>
 
                 <!-- Contenu des onglets (v0.32.4, ADR 0055) : fragments
