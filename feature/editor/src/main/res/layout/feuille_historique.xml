@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Feuille « Historique » d'un fichier (mission « Historique local » H2,
+<!-- Feuille « Historique » (missions « Historique local » H2 puis H3,
      spec § 5, maquette docs/preview/historique-local.html) : en-tête
-     (titre + nom du fichier + fermer), liste des révisions groupées par
-     période (Aujourd'hui / Hier / Plus ancien) avec moments relatifs,
-     état vide honnête. La page DIFF vit dans le ViewFlipper (le diff de
-     la révision sélectionnée contre le contenu actuel ou la révision
-     précédente). Jetons EXPLORATEUR_V2 § 3. -->
+     (titre + nom du fichier/du dossier/du projet + fermer), liste des
+     révisions groupées par période (Aujourd'hui / Hier / Plus ancien)
+     avec moments relatifs — filtre « Supprimés seuls » (H3 : pierres
+     tombales retrouvables, modes dossier et projet), état vide honnête.
+     La page DIFF vit dans le ViewFlipper (le diff de la révision
+     sélectionnée contre le contenu actuel ou la révision précédente).
+     Jetons EXPLORATEUR_V2 § 3. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -38,6 +40,7 @@
             android:orientation="vertical">
 
             <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/titre_historique"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/historique_titre"
@@ -70,6 +73,26 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/explorateur_bordure" />
+
+    <!-- Filtre « Supprimés seuls » (H3) : modes dossier/projet — les
+         pierres tombales des fichiers supprimés, retrouvables et
+         restaurables. Masqué en mode fichier (le filtre n'y a pas de
+         sens : toutes les révisions sont du MÊME fichier) et sur la
+         page de diff. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_filtre_supprimes"
+        style="@style/Widget.CodeIDE.Button.Outlined.Compact"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:checkable="true"
+        android:text="@string/historique_filtre_supprimes"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:icon="@drawable/ic_supprimer"
+        app:iconGravity="textStart"
+        tools:visibility="visible" />
 
     <!-- ============ Liste (page 0) / Diff (page 1) ============ -->
     <ViewFlipper
@@ -105,6 +128,7 @@
                 tools:visibility="visible">
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_vide_historique"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/historique_vide"

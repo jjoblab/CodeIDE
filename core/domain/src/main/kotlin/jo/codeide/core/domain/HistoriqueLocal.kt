@@ -175,6 +175,19 @@ public interface HistoriqueLocal {
     /** Révisions du [cheminRelatif], plus récentes d'abord. */
     public suspend fun listerRevisions(cheminRelatif: String): List<EntreeHistorique>
 
+    /**
+     * Révisions des fichiers SOUS [cheminDossier] (mission H3) :
+     * l'historique d'un DOSSIER de l'explorateur (préfixe strict
+     * `dossier/` — `src` ne couvre pas `srcX/`), plus récentes d'abord,
+     * bornées à [limite]. Un chemin VIDE désigne la racine du projet —
+     * les « **Modifications récentes** » du projet ENTIER (les chemins
+     * exclus ne sont jamais capturés, donc jamais listés).
+     */
+    public suspend fun listerRevisionsSous(
+        cheminDossier: String,
+        limite: Int = LIMITE_REVISIONS_SOUS_DOSSIER,
+    ): List<EntreeHistorique>
+
     /** Contenu stocké de l'entrée [id], ou `null` (indisponible / inconnue). */
     public suspend fun lireContenu(id: Long): String?
 
@@ -200,4 +213,9 @@ public interface HistoriqueLocal {
      * principal) — jamais bloquante pour l'appelant.
      */
     public suspend fun purger()
+
+    public companion object {
+        /** Borne des révisions d'un dossier / du projet (UI : la feuille ne rend jamais plus). */
+        public const val LIMITE_REVISIONS_SOUS_DOSSIER: Int = 200
+    }
 }
