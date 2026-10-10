@@ -1535,13 +1535,8 @@ class EditorActivity :
         vue.boutonFermerOnglet.isVisible = !onglet.isDirty
     }
 
-    /** Menu contextuel d'un onglet (section 5.4). */
-    private fun menuContextuelOnglet(
-        ancre: View,
-        onglet: EditorTabState,
-        tous: List<EditorTabState>,
-    ) {
-        val menu = PopupMenu(this, ancre)
+    /** Entrées du menu contextuel d'onglet (5.4 + mission H2). */
+    private fun construireMenuOnglet(menu: PopupMenu) {
         menu.menu.add(android.view.Menu.NONE, ID_FERMER, android.view.Menu.NONE, R.string.editor_menu_fermer)
         menu.menu.add(
             android.view.Menu.NONE,
@@ -1568,14 +1563,50 @@ class EditorActivity :
             android.view.Menu.NONE,
             R.string.editor_menu_copier_chemin,
         )
+        // Mission H (H2) : historique du fichier de l'onglet — la même
+        // feuille que le popover de l'explorateur.
+        menu.menu.add(android.view.Menu.NONE, ID_HISTORIQUE, android.view.Menu.NONE, R.string.editor_menu_historique)
+    }
+
+    /** Menu contextuel d'un onglet (section 5.4). */
+    private fun menuContextuelOnglet(
+        ancre: View,
+        onglet: EditorTabState,
+        tous: List<EditorTabState>,
+    ) {
+        val menu = PopupMenu(this, ancre)
+        construireMenuOnglet(menu)
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                ID_FERMER -> viewModel.onAction(ActionEditor.FermerOnglet(onglet.uri))
-                ID_FERMER_AUTRES -> viewModel.onAction(ActionEditor.FermerAutresOnglets(onglet.uri))
-                ID_FERMER_TOUT -> viewModel.onAction(ActionEditor.FermerTousOnglets)
-                ID_DEPLACER_GAUCHE -> viewModel.onAction(ActionEditor.DeplacerOnglet(onglet.uri, -1))
-                ID_DEPLACER_DROITE -> viewModel.onAction(ActionEditor.DeplacerOnglet(onglet.uri, +1))
-                ID_COPIER_CHEMIN -> viewModel.copierChemin(onglet.uri)
+                ID_FERMER -> {
+                    viewModel.onAction(ActionEditor.FermerOnglet(onglet.uri))
+                }
+
+                ID_FERMER_AUTRES -> {
+                    viewModel.onAction(ActionEditor.FermerAutresOnglets(onglet.uri))
+                }
+
+                ID_FERMER_TOUT -> {
+                    viewModel.onAction(ActionEditor.FermerTousOnglets)
+                }
+
+                ID_DEPLACER_GAUCHE -> {
+                    viewModel.onAction(ActionEditor.DeplacerOnglet(onglet.uri, -1))
+                }
+
+                ID_DEPLACER_DROITE -> {
+                    viewModel.onAction(ActionEditor.DeplacerOnglet(onglet.uri, +1))
+                }
+
+                ID_COPIER_CHEMIN -> {
+                    viewModel.copierChemin(onglet.uri)
+                }
+
+                ID_HISTORIQUE -> {
+                    FeuilleHistoriqueFragment
+                        .creer(uri = onglet.uri, cheminRelatif = onglet.cheminRelatif, nom = onglet.nom)
+                        .show(supportFragmentManager, ETIQUETTE_FEUILLE_HISTORIQUE)
+                }
             }
             true
         }
@@ -2210,6 +2241,12 @@ class EditorActivity :
         const val TAG_PANNEAU_PROBLEMES = "panneau_problemes"
         const val TAG_PANNEAU_JOURNAL = "panneau_journal"
         const val TAG_PANNEAU_LOGCAT = "panneau_logcat"
+
+        /** Mission H (H2) : id de menu « Afficher l\'historique ». */
+        const val ID_HISTORIQUE = 2001
+
+        /** Mission H (H2) : étiquette de la feuille Historique. */
+        const val ETIQUETTE_FEUILLE_HISTORIQUE = "feuille_historique"
 
         /** Seuil de détection de l'IME par la hauteur du root :
          *  un clavier occupe largement plus de 15 % de l'écran, une marge

@@ -343,6 +343,17 @@ sealed interface ActionEditor {
         val ligne: Int,
     ) : ActionEditor
 
+    /**
+     * Remplace le CONTENU d'un onglet ouvert (mission H, H2) : après une
+     * restauration de l'historique local, le disque contient le texte
+     * restauré — l'onglet doit le SUIVRE (sinon l'auto-sauvegarde
+     * écraserait la version restaurée). L'onglet redevient PROPRE.
+     */
+    data class RemplacerContenuFichier(
+        val uri: String,
+        val texte: String,
+    ) : ActionEditor
+
     /** Sélectionne l'onglet à la position [index]. */
     data class SelectionnerOnglet(
         val index: Int,
