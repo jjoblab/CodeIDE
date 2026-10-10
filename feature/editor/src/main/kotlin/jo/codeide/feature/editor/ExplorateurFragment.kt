@@ -77,6 +77,9 @@ class ExplorateurFragment : Fragment() {
     private lateinit var popoverDestination: PopoverExplorateur
 
     private companion object {
+        /** Étiquette de la feuille Historique (mission H2). */
+        const val ETIQUETTE_FEUILLE_HISTORIQUE = "feuille_historique"
+
         /** Rotation de l'icône Actualiser (§ 4 : 0,65 s). */
         const val DUREE_ROTATION_ACTUALISER_MS = 650L
 
@@ -712,7 +715,8 @@ class ExplorateurFragment : Fragment() {
                 // mode privé ouvre le fichier depuis le stockage privé,
                 // l'onglet mémorise sa source pour ses sauvegardes
                 // ultérieures), puis presse-papiers, déplacement,
-                // renommage, suppression (§ 10.4).
+                // renommage, suppression (§ 10.4) — et HISTORIQUE local
+                // (mission H2, maquette : après « Supprimer », séparée).
                 action(
                     View.generateViewId(),
                     getString(R.string.popover_ouvrir),
@@ -765,6 +769,23 @@ class ExplorateurFragment : Fragment() {
                     dangereuse = true,
                 ) {
                     montrerPopoverSupprimer(noeud, x, y)
+                }
+                // Mission H (H2) : « Afficher l'historique » — la feuille
+                // liste les révisions du fichier (moments relatifs),
+                // diff unifié et restauration. Maquette : ligne séparée
+                // après les actions de nœud.
+                separateur()
+                action(
+                    View.generateViewId(),
+                    getString(R.string.popover_historique),
+                    jo.codeide.core.ui.R.drawable.ic_actualiser,
+                ) {
+                    FeuilleHistoriqueFragment
+                        .creer(
+                            uri = noeud.uri,
+                            cheminRelatif = cheminRelatif(noeud, etat),
+                            nom = noeud.nom,
+                        ).show(parentFragmentManager, ETIQUETTE_FEUILLE_HISTORIQUE)
                 }
             }
         }

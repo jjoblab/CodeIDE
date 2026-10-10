@@ -1185,6 +1185,30 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.87.0 : **mission « Historique local » H2 — feuille Historique
+      d'un fichier + restauration** (spec § 5, maquette
+      historique-local.html) : DiffUnifie [core:domain PUR — rognage
+      préfixe/suffixe puis Myers O((N+M)·D) BORNÉ 4096 éditions, repli
+      honnête, scission calculer/rognerCommuns/ajouterCoeur/myersAvancer/
+      myersRemonter pour detekt ; partagé avec la future vue Git] ;
+      CalculsDatesHistorique [pur — moments il y a N min/h, hier HH:mm,
+      ancien ; le JOUR CALENDAIRE prime (hier 23:30 à 23 h d'écart) ;
+      périodes Aujourd'hui/Hier/Plus ancien ; LocalDate.ofInstant ÉVITÉ
+      (API 34) via LocalDateTime] ; HistoriqueViewModel [+Feuille-
+      HistoriqueFragment BottomSheet @AndroidEntryPoint — révisions
+      groupées, diff vs ACTUEL ou vs PRÉCÉDENTE (bascule),
+      indisponible honnête (binaire/trop grand), restauration AVEC
+      confirmation → port DÉCORÉ (avant → historique automatiquement,
+      annulable par construction) + snackbar « Version restaurée » +
+      Annuler (réécriture immédiate) ; contenuRestaure relayé à
+      ActionEditor.RemplacerContenuFichier — session remplacée,
+      PROPRE, auto-sauvegarde en attente ANNULÉE (sinon elle écraserait
+      la restauration)] ; entrées [popover explorateur après les
+      actions de nœud + menu contextuel d'onglet (construireMenuOnglet
+      extrait)] ; tests [DiffUnifie 10 (propriété de reconstruction
+      exacte), Dates 8, HistoriqueViewModel 8 ; FakeHistoriqueLocal +
+      contenusParId ; 26 nouveaux] ; chaîne verte sur core:domain,
+      core:testing, feature:editor, app — assembleDebug 22,7 Mo.
 - v0.86.0 : **mission « Exécuter » R5 — finitions et tests** (critère
       § 6.5 fermé) : ServicePontJournauxTest [Robolectric+Hilt, graphe
       de production, UID/PID appelants pilotés par ShadowBinder — 7

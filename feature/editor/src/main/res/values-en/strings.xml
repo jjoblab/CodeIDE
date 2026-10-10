@@ -146,6 +146,52 @@
     <string name="logcat_pid_tid">%1$d-%2$d</string>
     <string name="logcat_libelle_clip">Logcat line</string>
     <string name="logcat_copiee">Line copied</string>
+
+    <!-- Mission « Historique local » H2 (ADR 0104-0106): file History
+         sheet — list, diff, restore. -->
+    <string name="historique_titre">History</string>
+    <string name="historique_fermer">Close</string>
+    <string name="historique_vide">No revision recorded</string>
+    <string name="historique_vide_detail">History captures changes to project files — edit, save, then come back.</string>
+    <string name="historique_sans_contenu">content unavailable</string>
+    <string name="historique_contenu_indisponible">Content unavailable (binary or too large)</string>
+    <string name="historique_periode_aujourdhui">Today</string>
+    <string name="historique_periode_hier">Yesterday</string>
+    <string name="historique_periode_plus_ancien">Older</string>
+    <plurals name="historique_il_y_a_minutes">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="historique_il_y_a_heures">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <string name="historique_hier">yesterday %1$s</string>
+    <string name="historique_format_date_ancien">MMM d \'at\' HH:mm</string>
+    <string name="historique_type_modification">Modified</string>
+    <string name="historique_type_creation">Created</string>
+    <string name="historique_type_suppression">Deleted (recoverable)</string>
+    <string name="historique_type_renommage">Renamed</string>
+    <string name="historique_type_externe">External change</string>
+    <string name="historique_type_restauration">Restored</string>
+    <string name="historique_type_etiquette">Label</string>
+    <string name="historique_diff_retour">Back to the list</string>
+    <string name="historique_diff_ligne_inchange"> %1$s</string>
+    <string name="historique_diff_ligne_ajout">+%1$s</string>
+    <string name="historique_diff_ligne_retrait">-%1$s</string>
+    <string name="historique_diff_titre" tools:ignore="PluralsCandidate">%1$s · %2$d lines</string>
+    <string name="historique_diff_vs_actuel">vs current</string>
+    <string name="historique_diff_vs_precedente">vs previous</string>
+    <string name="historique_restaurer">Restore this version</string>
+    <string name="historique_confirmer_titre">Restore this version?</string>
+    <string name="historique_confirmer_message">The current version will be kept in history — restoring stays undoable.</string>
+    <string name="historique_confirmer_oui">Restore</string>
+    <string name="historique_confirmer_non">Cancel</string>
+    <string name="historique_restauree">Version restored — the previous version is kept in history</string>
+    <string name="historique_annuler">Undo</string>
+    <string name="historique_echec_ecriture">Could not write — the file is unchanged</string>
+    <string name="popover_historique">Show history</string>
+    <string name="editor_menu_historique">Show history</string>
     <string name="logcat_pile_titre">Open from stack trace</string>
     <string name="logcat_plantage">The app crashed</string>
     <string name="logcat_plantage_voir">View the trace</string>
