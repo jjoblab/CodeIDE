@@ -78,8 +78,12 @@ class GitFragment : Fragment() {
     }
 
     private fun rendre(etat: EtatGit) {
+        // v0.80.4 : pendant l'initialisation, la zone « pas un dépôt »
+        // s'efface au profit du repère de chargement — le bouton ne peut
+        // plus être martelé pendant un git init en cours.
         liaison.chargementGit.isVisible = etat.chargement
-        liaison.zonePasDepot.isVisible = etat.pasDepot
+        liaison.zonePasDepot.isVisible = etat.pasDepot && !etat.chargement
+        liaison.boutonInitialiserGit.isEnabled = !etat.chargement
         liaison.corpsGit.isVisible = !etat.chargement && !etat.pasDepot
         liaison.boutonCommitter.isVisible = !etat.chargement && !etat.pasDepot
 

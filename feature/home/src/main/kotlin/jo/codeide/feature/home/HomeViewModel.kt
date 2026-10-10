@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.ClonerDepotUseCase
 import jo.codeide.core.domain.DeleteProjectOnDiskUseCase
 import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.ImportDossier
@@ -19,6 +20,7 @@ import jo.codeide.core.domain.RelocalisationProjet
 import jo.codeide.core.domain.RelocalizeProjectUseCase
 import jo.codeide.core.domain.RemoveProjectUseCase
 import jo.codeide.core.domain.RenameProjectUseCase
+import jo.codeide.core.domain.ResultatClonage
 import jo.codeide.core.domain.SetProjectPinnedUseCase
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
@@ -87,6 +89,7 @@ class HomeViewModel
         private val supprimerDuDisque: DeleteProjectOnDiskUseCase,
         private val importerDossier: ImportExistingFolderUseCase,
         private val relocaliserProjet: RelocalizeProjectUseCase,
+        private val clonerDepot: ClonerDepotUseCase,
         private val marquerOuvert: MarkProjectOpenedUseCase,
         private val horloge: TimeProvider,
         private val journal: AppLogger,
@@ -167,7 +170,14 @@ class HomeViewModel
             observerRegistre()
         }
 
-        /** Traite une intention utilisateur (section 5.3). */
+        /**
+         * Traite une intention utilisateur (section 5.3).
+         *
+         * Exemption detekt ciblée (règle 16) : CyclomaticComplexMethod —
+         * un branch PAR intention UDF, c'est le dessin même du dispatcher
+         * (même exemption que `EditorViewModel.onAction`).
+         */
+        @Suppress("CyclomaticComplexMethod")
         fun action(action: ActionAccueil) {
             when (action) {
                 is ActionAccueil.Rechercher -> {
@@ -221,8 +231,51 @@ class HomeViewModel
                     ouvrirTerminal()
                 }
 
+                is ActionAccueil.ClonerDepot -> {
+                    cloner(action.url, action.nom)
+                }
+
                 is ActionAccueil.SurlignerProjet -> {
                     etatInterne.update { it.copy(projetEnEvidence = action.id) }
+                }
+            }
+        }
+
+        /**
+         * Clone un dépôt Git dans le dossier de travail (G5, v0.80.4) :
+         * bandeau de progression pendant l'opération, ouverture de
+         * l'éditeur en cas de succès (comme « Get from VCS » d'Android
+         * Studio — le projet fraîchement cloné devient LE projet),
+         * échec typé en snackbar sinon.
+         */
+        private fun cloner(
+            url: String,
+            nom: String,
+        ) {
+            if (etatInterne.value.clonageEnCours) return
+            etatInterne.update { it.copy(clonageEnCours = true) }
+            viewModelScope.launch {
+                when (val resultat = clonerDepot(url, nom)) {
+                    is ResultatClonage.Succes -> {
+                        journal.i(TAG) { "Projet ${resultat.projet.id.value} cloné." }
+                        etatInterne.update { it.copy(clonageEnCours = false) }
+                        ouvrir(resultat.projet.id)
+                    }
+
+                    is ResultatClonage.Refuse -> {
+                        etatInterne.update { it.copy(clonageEnCours = false) }
+                        emettre(EffetAccueil.NomClonageRefuse(resultat.raison))
+                    }
+
+                    is ResultatClonage.Erreur -> {
+                        etatInterne.update { it.copy(clonageEnCours = false) }
+                        emettre(EffetAccueil.EchecClonage(resultat.erreur, resultat.rollback))
+                    }
+
+                    is ResultatClonage.ErreurGit -> {
+                        etatInterne.update { it.copy(clonageEnCours = false) }
+                        emettre(EffetAccueil.EchecClonageGit(resultat.message, resultat.rollback))
+                    }
                 }
             }
         }

@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
@@ -40,6 +41,14 @@ import jo.codeide.feature.editor.databinding.FragmentProjetBinding
 class ProjetFragment : Fragment() {
     private val viewModel: ProjetViewModel by viewModels()
 
+    /**
+     * v0.80.4 : ViewModel d'éditeur **porté par l'activité** — le tiroir
+     * Projet lui délègue l'exécution des tâches et l'ouverture des
+     * fichiers, exactement comme la console et l'explorateur : une
+     * seule source de vérité pour l'état Gradle et les onglets ouverts.
+     */
+    private val viewModelEditeur: EditorViewModel by activityViewModels()
+
     private var liaisonAmorce: FragmentProjetBinding? = null
     private val liaison: FragmentProjetBinding
         get() = checkNotNull(liaisonAmorce) { "Binding détruit" }
@@ -69,7 +78,7 @@ class ProjetFragment : Fragment() {
         }
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
             when (effet) {
-                is EffetProjet.OuvrirScript -> ouvrirScriptDansEditeur(effet.script)
+                is EffetProjet.OuvrirScript -> ouvrirScriptDansEditeur(effet.uri, effet.cheminRelatif)
             }
         }
         if (savedInstanceState == null) viewModel.chargerScripts()
@@ -218,27 +227,39 @@ class ProjetFragment : Fragment() {
         }
     }
 
-    /** P5 : ouvre FeuilleTachesFragment (réutilisé). */
+    /**
+     * P5 : ouvre le sélecteur de tâches — v0.80.4 (correctif crash
+     * a6d72e9d) : l'action passe par l'[EditorViewModel] d'activité
+     * (`OuvrirSelecteurTaches`), exactement comme le bouton Tâches de
+     * la console. C'est lui qui garantit les arguments de la feuille :
+     * cache de sync d'abord, listage orchestrateur en repli, échec
+     * affiché avec « Réessayer » — au lieu d'instancier une feuille
+     * SANS arguments (crash `requireArguments`).
+     */
     private fun ouvrirFeuilleTaches() {
-        val feuille = FeuilleTachesFragment()
-        feuille.show(parentFragmentManager, "taches_projet")
+        viewModelEditeur.onAction(ActionEditor.OuvrirSelecteurTaches)
     }
 
     /**
-     * P6+ : ouvre un script de build dans l'éditeur.
-     *
-     * L'ouverture réelle via `EditorViewModel.onAction(OuvrirFichier)`
-     * nécessite de résoudre le chemin FUSE du script en URI SAF —
-     * l'effet est consommé par l'activité hôte qui a accès au
-     * `EditorViewModel`. À défaut, un snackbar informe l'utilisateur.
+     * P6+ : ouvre un script de build dans l'éditeur (v0.80.4 : ouverture
+     * RÉELLE — l'URI de document est résolue par le ViewModel, l'onglet
+     * s'ouvre via l'[EditorViewModel] d'activité ; le snackbar n'est plus
+     * qu'un repli d'erreur).
      */
-    private fun ouvrirScriptDansEditeur(script: jo.codeide.core.domain.ScriptDeBuild) {
-        Snackbar
-            .make(
-                liaison.root,
-                getString(R.string.projet_ouverture_script, script.cheminRelatif),
-                Snackbar.LENGTH_SHORT,
-            ).show()
+    private fun ouvrirScriptDansEditeur(
+        uri: String?,
+        cheminRelatif: String,
+    ) {
+        if (uri != null) {
+            viewModelEditeur.onAction(ActionEditor.OuvrirFichier(uri))
+        } else {
+            Snackbar
+                .make(
+                    liaison.root,
+                    getString(R.string.projet_ouverture_script, cheminRelatif),
+                    Snackbar.LENGTH_SHORT,
+                ).show()
+        }
     }
 
     override fun onDestroyView() {

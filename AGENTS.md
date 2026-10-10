@@ -1079,6 +1079,25 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       requestDisallowInterceptTouchEvent de la poignée) ; DEUX tests
       comportementaux à vraies touches verrouillent la régression
       (corps du tiroir ouvert + poignée à cheval).
+- v0.80.4 : **crash de la feuille des tâches, git init muet, clonage
+      depuis l'accueil** (retour utilisateur, ADR 0101) — onglet
+      « Tâches » du tiroir Projet : l'action passe par
+      `OuvrirSelecteurTaches` de l'EditorViewModel d'activité (cache
+      de sync, repli orchestrateur, « Réessayer ») au lieu
+      d'instancier une feuille SANS arguments [crash a6d72e9d :
+      requireArguments → IllegalStateException ; la feuille tolère
+      désormais un paquet absent] ; « Initialiser un dépôt » surfacé
+      [résultat de git init vérifié : git absent (pkg install git),
+      chemin FUSE, stderr — erreur affichée dans les DEUX états,
+      bouton désactivé pendant l'opération] ; bouton Git sur l'accueil
+      [« Get from VCS » mobile : dialogue URL + nom pré-rempli,
+      ClonerDepotUseCase à rollback honnête (SAF + port MoteurGit +
+      registre, résidu jamais silencieux), nouveau port
+      ResolveurCheminFuse lié à ResoudreRepertoireProjet (app/di),
+      FakeMoteurGit dans core:testing] ; scripts de build ouverts
+      VRAIMENT depuis l'onglet Scripts [ResoudreFichierRelatifUseCase
+      traduit le chemin relatif en URI SAF, OuvrirFichier via
+      l'EditorViewModel d'activité] ; 9 + 7 + 4 nouveaux tests.
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours

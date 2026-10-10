@@ -9,6 +9,7 @@ import jo.codeide.core.domain.GradleToolingRepository
 import jo.codeide.core.domain.MavenVersionesDisponibles
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ParseurDependances
+import jo.codeide.core.domain.ResoudreFichierRelatifUseCase
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.ScriptDeBuild
 import jo.codeide.core.domain.TypeDependance
@@ -40,7 +41,9 @@ import javax.inject.Inject
  * « Mises à jour » compare ces versions à celle déclarée.
  */
 @HiltViewModel
-@Suppress("TooManyFunctions")
+// Une fonction par onglet du tiroir (règle 16) ; chaque paramètre du constructeur
+// est un cas d'usage distinct du domaine (même exemption que HomeViewModel).
+@Suppress("TooManyFunctions", "LongParameterList")
 class ProjetViewModel
     @Inject
     constructor(
@@ -49,6 +52,7 @@ class ProjetViewModel
         private val resoudreRepertoire: ResoudreRepertoireProjet,
         private val parseurDependances: ParseurDependances,
         private val mavenVersiones: MavenVersionesDisponibles,
+        private val resoudreFichierRelatif: ResoudreFichierRelatifUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val projectId: ProjectId? =
@@ -142,11 +146,29 @@ class ProjetViewModel
             }
         }
 
-        /** P6+ : ouvre un script dans l'éditeur (effet consommé par l'activité). */
+        /**
+         * P6+ : ouvre un script dans l'éditeur — v0.80.4 : l'URI de
+         * document est résolue ICI (segment par segment depuis la
+         * racine du projet, [ResoudreFichierRelatifUseCase]) et voyage
+         * dans l'effet ; l'activité hôte n'a plus qu'à ouvrir l'onglet.
+         * Un chemin introuvable émet une URI `null` : l'UI garde son
+         * repli d'information, honnête.
+         */
         fun ouvrirScript(script: ScriptDeBuild) {
             viewModelScope.launch {
-                _effets.emit(EffetProjet.OuvrirScript(script))
+                val uriRacine = uriDocumentProjet()
+                val uri =
+                    uriRacine?.let { racine ->
+                        resoudreFichierRelatif(racine, script.cheminRelatif)
+                    }
+                _effets.emit(EffetProjet.OuvrirScript(uri, script.cheminRelatif))
             }
+        }
+
+        /** URI de document de la racine du projet courant (ou null). */
+        private suspend fun uriDocumentProjet(): String? {
+            val id = projectId ?: return null
+            return observerProjet(id).first()?.location?.documentUri
         }
     }
 
@@ -198,8 +220,15 @@ enum class OngletProjet {
 
 /** Effets de la section Projet (P6+). */
 sealed interface EffetProjet {
-    /** P6+ : ouvrir un script de build dans l'éditeur. */
+    /**
+     * P6+ : ouvrir un script de build dans l'éditeur.
+     *
+     * @property uri URI de document SAF du script (résolue depuis la
+     * racine du projet) — `null` si introuvable (repli d'information).
+     * @property cheminRelatif chemin relatif du script, pour l'affichage.
+     */
     data class OuvrirScript(
-        val script: ScriptDeBuild,
+        val uri: String?,
+        val cheminRelatif: String,
     ) : EffetProjet
 }

@@ -19,7 +19,8 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Titre et actions : terminal intégré (T6) + réglages. -->
+        <!-- Titre et actions : terminal intégré (T6) + clonage Git
+             (G5, v0.80.4) + réglages. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -48,6 +49,17 @@
                 android:contentDescription="@string/home_open_terminal"
                 app:icon="@drawable/ic_terminal" />
 
+            <!-- Clonage Git (G5, v0.80.4) : « Get from VCS » mobile —
+                 dialogue URL + dossier cible sous le dossier de travail. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_git"
+                style="@style/Widget.CodeIDE.Button.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/spacing_xs"
+                android:contentDescription="@string/home_open_git"
+                app:icon="@drawable/ic_git" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_settings"
                 style="@style/Widget.CodeIDE.Button.Icon"
@@ -56,6 +68,16 @@
                 android:contentDescription="@string/home_open_settings"
                 app:icon="@drawable/ic_parametres" />
         </LinearLayout>
+
+        <!-- Progression du clonage (G5, v0.80.4) : bandeau linéaire
+             indéterminé pendant git clone — discret, sous le titre. -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progression_clonage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+            android:indeterminate="true"
+            android:visibility="gone" />
 
         <!-- Recherche (avec délai de fusion des frappes). -->
         <com.google.android.material.textfield.TextInputLayout

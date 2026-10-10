@@ -48,12 +48,19 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
     /** Adaptateur des groupes + tâches filtrées. */
     private lateinit var adaptateur: AdaptateurFeuilleTaches
 
-    /** Tâches passées à la création (arguments — survit au processus). */
+    /** Tâches passées à la création (arguments — survit au processus).
+     *
+     * v0.80.4 (correctif crash a6d72e9d) : `arguments` et NON
+     * `requireArguments` — un fragment instancié sans arguments (ajout
+     * programmatique, restauration) rend une liste VIDE au lieu de
+     * planter l'activité ; l'état vide « synchronisation en cours »
+     * prend alors le relais, honnête plutôt que fatal. */
     private val taches: List<InfoTache>
         get() {
-            val chemins = requireArguments().getStringArrayList(CLE_CHEMINS).orEmpty()
-            val groupes = requireArguments().getStringArrayList(CLE_GROUPES).orEmpty()
-            val noms = requireArguments().getStringArrayList(CLE_NOMS).orEmpty()
+            val paquet = arguments ?: return emptyList()
+            val chemins = paquet.getStringArrayList(CLE_CHEMINS).orEmpty()
+            val groupes = paquet.getStringArrayList(CLE_GROUPES).orEmpty()
+            val noms = paquet.getStringArrayList(CLE_NOMS).orEmpty()
             return chemins.indices.map { indice ->
                 InfoTache(
                     chemin = chemins[indice],
@@ -97,9 +104,11 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
     }
 
     /** Chips des tâches récentes (la dernière exécution suivie) — la
-     *  section entière disparaît quand il n'y en a pas. */
+     *  section entière disparaît quand il n'y en a pas.
+     *
+     *  v0.80.4 : `arguments` tolérant (même correctif que [taches]). */
     private fun peuplerRecentes() {
-        val recents = requireArguments().getStringArrayList(CLE_RECENTES).orEmpty()
+        val recents = arguments?.getStringArrayList(CLE_RECENTES).orEmpty()
         liaison.libelleRecentesTaches.isVisible = recents.isNotEmpty()
         liaison.defilementRecentesTaches.isVisible = recents.isNotEmpty()
         recents.forEach { chemin ->
