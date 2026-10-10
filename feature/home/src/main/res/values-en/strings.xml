@@ -86,4 +86,19 @@
     <string name="home_bandeau_terminal_titre">Terminal not installed</string>
     <string name="home_bandeau_terminal_texte">Install the terminal tools (shell, JDK, command line) to build and run your projects directly on the device.</string>
     <string name="home_bandeau_terminal_bouton">Install the tools</string>
+
+    <!-- Git cloning from the home screen (G5, v0.80.4) — "Get from VCS". -->
+    <string name="home_open_git">Clone a Git repository</string>
+    <string name="accueil_cloner_titre">Clone a repository</string>
+    <string name="accueil_cloner_url">Repository URL</string>
+    <string name="accueil_cloner_nom">Folder name</string>
+    <string name="accueil_cloner_nom_aide">Created under the workspace folder</string>
+    <string name="accueil_cloner_action">Clone</string>
+    <string name="accueil_cloner_git_echec">Clone failed: %s</string>
+    <string name="accueil_cloner_residu">%s (folder not cleaned up)</string>
+    <string name="accueil_cloner_nom_longueur">The name must be 1 to 64 characters long.</string>
+    <string name="accueil_cloner_nom_caractere">The name contains a forbidden character.</string>
+    <string name="accueil_cloner_nom_points">"." and ".." are not valid names.</string>
+    <string name="accueil_cloner_nom_fin">The name cannot end with a dot or a space.</string>
+    <string name="accueil_cloner_nom_reserves">This name is reserved by the system.</string>
 </resources>

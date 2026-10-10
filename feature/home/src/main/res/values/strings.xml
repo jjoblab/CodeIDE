@@ -86,4 +86,19 @@
     <string name="home_bandeau_terminal_titre">Terminal non installé</string>
     <string name="home_bandeau_terminal_texte">Installez les outils du terminal (shell, JDK, ligne de commande) pour compiler et exécuter vos projets directement sur l\'appareil.</string>
     <string name="home_bandeau_terminal_bouton">Installer les outils</string>
+
+    <!-- Clonage Git depuis l\'accueil (G5, v0.80.4) — « Get from VCS ». -->
+    <string name="home_open_git">Cloner un dépôt Git</string>
+    <string name="accueil_cloner_titre">Cloner un dépôt</string>
+    <string name="accueil_cloner_url">URL du dépôt</string>
+    <string name="accueil_cloner_nom">Nom du dossier</string>
+    <string name="accueil_cloner_nom_aide">Créé sous le dossier de travail</string>
+    <string name="accueil_cloner_action">Cloner</string>
+    <string name="accueil_cloner_git_echec">Clonage échoué : %s</string>
+    <string name="accueil_cloner_residu">%s (dossier non nettoyé)</string>
+    <string name="accueil_cloner_nom_longueur">Le nom doit contenir entre 1 et 64 caractères.</string>
+    <string name="accueil_cloner_nom_caractere">Le nom contient un caractère interdit.</string>
+    <string name="accueil_cloner_nom_points">« . » et « .. » ne sont pas des noms valides.</string>
+    <string name="accueil_cloner_nom_fin">Le nom ne peut ni finir par un point, ni par un espace.</string>
+    <string name="accueil_cloner_nom_reserves">Ce nom est réservé par le système.</string>
 </resources>

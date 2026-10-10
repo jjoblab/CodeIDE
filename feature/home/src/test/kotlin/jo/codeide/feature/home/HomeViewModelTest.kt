@@ -1,8 +1,10 @@
 package jo.codeide.feature.home
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.ClonerDepotUseCase
 import jo.codeide.core.domain.DeleteProjectOnDiskUseCase
 import jo.codeide.core.domain.EnvironmentSetupState
+import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.ImportExistingFolderUseCase
 import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.MarkProjectOpenedUseCase
@@ -12,8 +14,10 @@ import jo.codeide.core.domain.PhaseState
 import jo.codeide.core.domain.RelocalizeProjectUseCase
 import jo.codeide.core.domain.RemoveProjectUseCase
 import jo.codeide.core.domain.RenameProjectUseCase
+import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.SetProjectPinnedUseCase
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.domain.VerifyCreationTargetUseCase
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppSettings
@@ -67,26 +71,51 @@ class HomeViewModelTest {
     private lateinit var viewModel: HomeViewModel
     private val effetsRecus = mutableListOf<EffetAccueil>()
 
+    /** Moteur git factice du clonage (G5, v0.80.4). */
+    private val git =
+        jo.codeide.core.testing
+            .FakeMoteurGit()
+
+    /** Construit le ViewModel avec le clonage Git branché (G5). */
+    private fun construireViewModel(etat: SavedStateHandle): HomeViewModel {
+        val resolveurFaux =
+            object : ResolveurCheminFuse {
+                override suspend fun invoke(documentUri: String): String? =
+                    documentUri
+                        .takeIf { it.startsWith("content://autorite/") }
+                        ?.let { "/fuse/" + it.substringAfter("tree/") }
+            }
+        return HomeViewModel(
+            ObserveSettingsUseCase(parametres),
+            ObserveProjectsUseCase(depot),
+            observerOutils,
+            parcours,
+            VerifyProjectAccessUseCase(depot, fichiers),
+            RenameProjectUseCase(depot),
+            SetProjectPinnedUseCase(depot),
+            RemoveProjectUseCase(depot, parametres, fichiers),
+            DeleteProjectOnDiskUseCase(depot, fichiers, RemoveProjectUseCase(depot, parametres, fichiers)),
+            ImportExistingFolderUseCase(depot, parametres, fichiers, arborescences, horloge),
+            RelocalizeProjectUseCase(depot, parametres, fichiers, arborescences, horloge),
+            ClonerDepotUseCase(
+                parametres,
+                fichiers,
+                depot,
+                git,
+                resolveurFaux,
+                EvaluerNomFichierUseCase(),
+                VerifyCreationTargetUseCase(fichiers),
+            ),
+            MarkProjectOpenedUseCase(depot),
+            horloge,
+            journal,
+            etat,
+        )
+    }
+
     @Before
     fun preparer() {
-        viewModel =
-            HomeViewModel(
-                ObserveSettingsUseCase(parametres),
-                ObserveProjectsUseCase(depot),
-                observerOutils,
-                parcours,
-                VerifyProjectAccessUseCase(depot, fichiers),
-                RenameProjectUseCase(depot),
-                SetProjectPinnedUseCase(depot),
-                RemoveProjectUseCase(depot, parametres, fichiers),
-                DeleteProjectOnDiskUseCase(depot, fichiers, RemoveProjectUseCase(depot, parametres, fichiers)),
-                ImportExistingFolderUseCase(depot, parametres, fichiers, arborescences, horloge),
-                RelocalizeProjectUseCase(depot, parametres, fichiers, arborescences, horloge),
-                MarkProjectOpenedUseCase(depot),
-                horloge,
-                journal,
-                SavedStateHandle(),
-            )
+        viewModel = construireViewModel(SavedStateHandle())
     }
 
     /** Collecteur des effets, démarré immédiatement puis annulé en fin de test. */
@@ -563,44 +592,10 @@ class HomeViewModelTest {
     // ------------------------------------------------------------------
 
     private fun preparerViewModel() {
-        viewModel =
-            HomeViewModel(
-                ObserveSettingsUseCase(parametres),
-                ObserveProjectsUseCase(depot),
-                observerOutils,
-                parcours,
-                VerifyProjectAccessUseCase(depot, fichiers),
-                RenameProjectUseCase(depot),
-                SetProjectPinnedUseCase(depot),
-                RemoveProjectUseCase(depot, parametres, fichiers),
-                DeleteProjectOnDiskUseCase(depot, fichiers, RemoveProjectUseCase(depot, parametres, fichiers)),
-                ImportExistingFolderUseCase(depot, parametres, fichiers, arborescences, horloge),
-                RelocalizeProjectUseCase(depot, parametres, fichiers, arborescences, horloge),
-                MarkProjectOpenedUseCase(depot),
-                horloge,
-                journal,
-                SavedStateHandle(),
-            )
+        viewModel = construireViewModel(SavedStateHandle())
     }
 
-    private fun viewModelAvec(etat: SavedStateHandle): HomeViewModel =
-        HomeViewModel(
-            ObserveSettingsUseCase(parametres),
-            ObserveProjectsUseCase(depot),
-            observerOutils,
-            parcours,
-            VerifyProjectAccessUseCase(depot, fichiers),
-            RenameProjectUseCase(depot),
-            SetProjectPinnedUseCase(depot),
-            RemoveProjectUseCase(depot, parametres, fichiers),
-            DeleteProjectOnDiskUseCase(depot, fichiers, RemoveProjectUseCase(depot, parametres, fichiers)),
-            ImportExistingFolderUseCase(depot, parametres, fichiers, arborescences, horloge),
-            RelocalizeProjectUseCase(depot, parametres, fichiers, arborescences, horloge),
-            MarkProjectOpenedUseCase(depot),
-            horloge,
-            journal,
-            etat,
-        )
+    private fun viewModelAvec(etat: SavedStateHandle): HomeViewModel = construireViewModel(etat)
 
     // ------------------------------------------------------------------
     // Terminal T6 : action de la toolbar (section 7 du prompt Terminal-1).
@@ -686,6 +681,99 @@ class HomeViewModelTest {
 
             assertFalse(viewModel.etat.value.montrerBandeauTerminal)
             assertTrue(viewModel.etat.value.bootstrapInstalle)
+            arreterCollecteEffets()
+        }
+
+    // ------------------------------------------------------------------
+    // Clonage Git (G5, v0.80.4) : progression, ouverture, échecs typés.
+    // ------------------------------------------------------------------
+
+    /** Amorce le dossier de travail des tests de clonage. */
+    private suspend fun amorcerDossierDeTravailClonage() {
+        val grantUri = "content://autorite/tree/travail"
+        val uriDocument = arborescences.uriDocument(grantUri)!!
+        fichiers.seedDocument(uriDocument, FakeFileSystem.Document(name = "travail", isDirectory = true))
+        parametres.setWorkspace(StorageLocation(grantUri, uriDocument, "travail"))
+    }
+
+    @Test
+    fun `cloner un depot marque la progression puis ouvre l editeur`() =
+        runTest(regleMain.dispatcher) {
+            advanceUntilIdle()
+            collecterEffets()
+            amorcerDossierDeTravailClonage()
+
+            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/app.git", "app"))
+            advanceUntilIdle()
+
+            // Le clonage est terminé : plus de bandeau de progression.
+            assertFalse(viewModel.etat.value.clonageEnCours)
+            // Le projet cloné est enregistré ET marqué ouvert (l'éditeur
+            // suit, comme « Get from VCS » d'Android Studio).
+            val projet =
+                viewModel.etat.value.projets
+                    .single()
+            assertEquals("app", projet.name)
+            assertTrue(effetsRecus.filterIsInstance<EffetAccueil.OuvrirEditeur>().isNotEmpty())
+            arreterCollecteEffets()
+        }
+
+    @Test
+    fun `un clonage en cours bloque les clones concurrents`() =
+        runTest(regleMain.dispatcher) {
+            advanceUntilIdle()
+            amorcerDossierDeTravailClonage()
+            // Latence factice : le premier clone reste « en cours ».
+            git.latence = 1_000L
+            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/a.git", "a"))
+            advanceTimeBy(100)
+            assertTrue(viewModel.etat.value.clonageEnCours)
+
+            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/b.git", "b"))
+            advanceUntilIdle()
+
+            // Un seul clone exécuté : le second a été ignoré.
+            assertEquals(1, git.operations.count { it.startsWith("cloner:") })
+            assertFalse(viewModel.etat.value.clonageEnCours)
+        }
+
+    @Test
+    fun `l echec de git est annonce avec le message honnete et rollback`() =
+        runTest(regleMain.dispatcher) {
+            advanceUntilIdle()
+            collecterEffets()
+            amorcerDossierDeTravailClonage()
+            git.resultatCloner =
+                jo.codeide.core.domain.ResultatGit
+                    .Echec("fatal: not found", "not found")
+
+            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/absent.git", "absent"))
+            advanceUntilIdle()
+
+            val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonageGit>().single()
+            assertEquals("fatal: not found", effet.message)
+            assertTrue(effet.rollback)
+            assertTrue(
+                viewModel.etat.value.projets
+                    .isEmpty(),
+            )
+            arreterCollecteEffets()
+        }
+
+    @Test
+    fun `l echec d enregistrement du clone est annonce et rollback`() =
+        runTest(regleMain.dispatcher) {
+            advanceUntilIdle()
+            collecterEffets()
+            amorcerDossierDeTravailClonage()
+            depot.writeError = IOException("base verrouillée")
+
+            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/x.git", "x"))
+            advanceUntilIdle()
+
+            val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonage>().single()
+            assertTrue(effet.rollback)
+            assertFalse(viewModel.etat.value.clonageEnCours)
             arreterCollecteEffets()
         }
 }
