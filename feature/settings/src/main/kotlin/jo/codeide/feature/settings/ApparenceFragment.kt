@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import com.google.android.material.color.DynamicColors
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.PaletteCouleur
@@ -27,6 +28,14 @@ import jo.codeide.core.ui.R as RUi
  * pastilles primaire / secondaire / tertiaire réactive à l'état du
  * switch (atténuée quand les couleurs dynamiques sont coupées), façon
  * sélecteur de style Android.
+ *
+ * Distinction dynamique/palette (v0.80.6) : les rangées ne se désactivent
+ * que si les couleurs dynamiques sont demandées ET réellement
+ * applicables ([DynamicColors.isDynamicColorAvailable], Android 12+) —
+ * sur un appareil sans Material You, le réglage dynamique retombe sur la
+ * palette (jo.codeide.core.ui.AppliquerApparence) et le sélecteur reste
+ * UTILISABLE : l'écran affiche ce qui s'applique vraiment, jamais « ni
+ * l'un ni l'autre » (retour utilisateur v0.80.5).
  */
 @AndroidEntryPoint
 class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
@@ -106,13 +115,17 @@ class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
             // coupées — les pastilles montrent la palette du thème courant
             // (dynamique ou de marque) telle quelle.
             binding.apercuPalette.alpha = if (reglages.useDynamicColor) 1f else ALPHA_PALETTE_ETEINTE
-            // Sélecteur : la palette n'a d'effet que sans les couleurs
-            // dynamiques — les rangées restent lisibles mais désactivées.
-            binding.textePaletteDynamique.isVisible = reglages.useDynamicColor
+            // Sélecteur (v0.80.6) : la palette ne cède la place aux couleurs
+            // dynamiques que si l'appareil les SUPPORTE — la distinction
+            // suit la capacité réelle, pas seulement le réglage, comme
+            // l'application des couleurs elle-même (AppliquerApparence).
+            val dynamiquesReellementActives =
+                reglages.useDynamicColor && DynamicColors.isDynamicColorAvailable()
+            binding.textePaletteDynamique.isVisible = dynamiquesReellementActives
             radiosPalettes.forEach { (palette, liaison) ->
                 liaison.radioLignePalette.isChecked = palette == reglages.paletteCouleur
-                liaison.racineLignePalette.isEnabled = !reglages.useDynamicColor
-                liaison.racineLignePalette.alpha = if (reglages.useDynamicColor) ALPHA_BIENTOT else 1f
+                liaison.racineLignePalette.isEnabled = !dynamiquesReellementActives
+                liaison.racineLignePalette.alpha = if (dynamiquesReellementActives) ALPHA_BIENTOT else 1f
             }
         } finally {
             renduEnCours = false

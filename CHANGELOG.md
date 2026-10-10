@@ -1,5 +1,53 @@
 # Journal des modifications
 
+## [0.80.6] – 2026-10-10
+
+### Corrigé
+
+- **`app` + `core:ui`** : **l'hôte de navigation et tous ses fragments
+  (accueil, assistant, paramètres, nouveau projet, installation,
+  diagnostic) n'appliquaient NI la palette choisie NI les couleurs
+  dynamiques** — seuls `EditorActivity`, `TerminalActivity` et
+  `CrashActivity` suivaient le réglage (retour utilisateur : « à part
+  l'écran EditorActivity et CrashActivity, tous les autres écrans
+  n'utilisent pas le thème ou palettes de couleurs choisies »). Cause
+  racine : `installSplashScreen()` — appelé uniquement par
+  `MainActivity` — résout `postSplashScreenTheme` puis appelle
+  `Activity.setTheme()` en interne, ce qui repart d'un thème NEUF et
+  EFFACE l'overlay d'apparence posé juste avant la création par
+  `AppliquerApparence.onActivityPreCreated` ; les activités sans écran
+  de démarrage gardaient, elles, leur overlay. Correctif :
+  `AppliquerApparence.rappliquer(activity)` — l'hôte repose l'overlay
+  immédiatement après `installSplashScreen()`, AVANT
+  `super.onCreate()`/`setContentView()`, pour que le contenu se gonfle
+  avec les couleurs réellement choisies (test d'intégration qui lance
+  `MainActivity` avec une palette BLEU : échoue sans le correctif,
+  passe avec).
+
+- **`core:ui`** : distinction honnête dynamique/palette — un réglage
+  « couleurs dynamiques » activé sur un appareil SANS Material You
+  (Android < 12, ou fabricant non supporté par Material avant Android
+  13) n'appliquait RIEN : ni couleurs dynamiques, ni palette statique,
+  pendant que l'écran Apparence griséait le sélecteur de palette sur
+  la foi du seul réglage. `AppliquerApparence` applique désormais les
+  couleurs dynamiques seulement si l'appareil les SUPPORTE
+  (`DynamicColors.isDynamicColorAvailable`) et retombe sinon sur la
+  palette statique ; l'écran Apparence (même règle) ne désactive les
+  rangées de palette que si les couleurs dynamiques sont réellement
+  applicables — l'écran affiche ce qui s'applique vraiment, et la
+  palette redevient utilisable sur les appareils sans Material You.
+
+### Ajouté
+
+- `AppliquerApparence.rappliquer(activity)` — API publique de
+  ré-application de l'état coloré pour une activité qui vient de
+  remplacer son propre thème (`installSplashScreen`) ; no-op tant que
+  le point d'application n'est pas installé dans le processus.
+  3 tests nouveaux (`AppliquerApparenceTest` : re-teinte après
+  remplacement de thème, repli palette quand dynamiques
+  indisponibles ; `ApparenceIntegrationTest` : palette appliquée à
+  l'hôte après l'écran de démarrage).
+
 ## [0.80.5] – 2026-10-10
 
 ### Corrigé

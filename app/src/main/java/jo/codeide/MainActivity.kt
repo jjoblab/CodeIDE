@@ -20,6 +20,7 @@ import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.AppliquerApparence
 import jo.codeide.navigation.RoutageEcran
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -46,6 +47,13 @@ import javax.inject.Inject
  *    retenu jusqu'à la première émission des paramètres : routage et
  *    apparence se décident **sous l'écran de démarrage**, jamais à
  *    découvert ;
+ * 1bis. v0.80.6 : le `setTheme` interne d'[installSplashScreen] efface
+ *    l'overlay de palette/couleurs dynamiques posé avant création par
+ *    `AppliquerApparence` — l'activité le REPOSE immédiatement
+ *    ([AppliquerApparence.rappliquer]) : sans ce retour, l'hôte et tous
+ *    ses fragments (accueil, assistant, paramètres…) restaient sur le
+ *    thème de base indigo, seuls l'éditeur et le diagnostic suivaient
+ *    le réglage (retour utilisateur v0.80.5) ;
  * 2. apparence pilotée par les paramètres (étape 5) : thème via
  *    [AppCompatDelegate.setDefaultNightMode], langue via
  *    [AppCompatDelegate.setApplicationLocales] (ADR 0013), couleurs
@@ -89,6 +97,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { !demarragePret }
+
+        // v0.80.6 : installSplashScreen() a appelé setTheme(postSplashScreenTheme)
+        // en interne — un thème NEUF, sans l'overlay d'apparence posé avant
+        // création. On le repose AVANT super.onCreate()/setContentView() :
+        // le contenu doit se gonfler avec les couleurs réellement choisies
+        // (palette statique ou Material You). No-op tant que le point
+        // d'application n'est pas installé (application de test Hilt).
+        AppliquerApparence.rappliquer(this)
+
         super.onCreate(savedInstanceState)
 
         // Étape 5 : les couleurs dynamiques ne s'appliquent plus ici mais
