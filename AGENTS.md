@@ -1185,6 +1185,19 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.86.0 : **mission « Exécuter » R5 — finitions et tests** (critère
+      § 6.5 fermé) : ServicePontJournauxTest [Robolectric+Hilt, graphe
+      de production, UID/PID appelants pilotés par ShadowBinder — 7
+      tests : paquet inconnu refusé, UID USURPÉ refusé (le critère
+      « rejet d'un émetteur non autorisé testé »), protocole inconnu,
+      lot sans connexion ignoré, connexion légitime ouvre + alimente,
+      lot de pertes seules, débranchement avec raison] ;
+      VerificateurUidPont (créé R2, jamais câblé) désormais réellement
+      utilisé par connecter — plus de code mort ; TESTS_MANUELS.md
+      section « Exécuter » [15 scénarios X1-X15 : Run, autorisation,
+      Logcat vivant, filtres/regex/niveau, pause/reprise, effacement,
+      sélecteur, mort, plantage + trace cliquable, réglage coupé,
+      pertes]. Mission « Exécuter » R0→R5 COMPLETE (v0.81.0→v0.86.0).
 - v0.85.0 : **mission « Exécuter » R4 — traces cliquables et
       plantages** (spec § 4.3) : LignesPile [analyseur PUR core:domain —
       regex groupes nommés, cadres .kt/.java SEULS (sources inconnues,

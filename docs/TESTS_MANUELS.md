@@ -487,6 +487,31 @@ l'ADR 0091 § 1.
 | E94 | **Scripts anciens orphelins** : sur l'appareil migré E91, ouvrir le terminal intégré | `JAVA_HOME`/`ANDROID_HOME`/`PATH` corrects (injectés par session, `ProcessEnvironmentProvider`) ; les commandes `gradle`/`android-sdk`/`codeide-env` héritées, si présentes, répondent toujours mais ne sont plus mises à jour par l'application (rupture assumée, CHANGELOG 0.60.0) |
 | E95 | **Bandeau accueil et daemon** : après adoption E91, revenir à l'accueil, puis ouvrir un projet et lancer un build | Le bandeau « terminal non installé » est absent ; le daemon Gradle démarre avec le JDK adopté (empreinte E4) ; un `assembleDebug` compile avec les composants adoptés — la contre-vérification des `verify` du manifeste v2 sur les binaires du manifeste v1 (même layout, mêmes versions 35.0.2) est LE point à surveiller (ADR 0091 § 1, non vérifié en simulation) |
 
+## Mission « Exécuter » — Run et Logcat sans adb (R1→R5, v0.81.0→v0.86.0)
+
+Préambule : APK debug v0.86.0+ sur appareil aarch64, bootstrap installé,
+un projet Android de test créé (wizard, application vide) — le pont de
+journaux est injecté dans les builds debug des projets QUAND le réglage
+« Journaux des applications exécutées » est actif (défaut).
+
+| # | Action | Attendu |
+|---|---|---|
+| X1 | Bouton **Run** de la barre de l'éditeur | Bascule sur la Console (canal BUILD), `:app:assembleDebug` s'exécute ; à la réussite : « Installation de l'application… », la confirmation système (première fois), puis l'application démarre PAR-DESSUS CodeIDE et le snackbar « Application lancée » paraît |
+| X2 | Première installation : refuser « sources inconnues » puis accepter | Refus : snackbar « Installation annulée » ; acceptation : l'écran système s'ouvre, la reprise est AUTOMATIQUE au retour (≤ 5 min) — aucun bouton à retoucher |
+| X3 | Onglet **Logcat** pendant que l'application tourne | Les journaux de l'application coulent EN DIRECT (table monospace : heure, pid-tid, étiquette, niveau coloré, message) — sans adb, sans ordinateur |
+| X4 | Taper du texte dans le champ de filtre | Seules les lignes dont le MESSAGE ou l'ÉTIQUETTE contient le texte (casse ignorée) restent ; vider le champ rend tout le tampon |
+| X5 | Activer `.*` (regex) et taper un motif invalide (`*debut`) | Une ligne d'erreur rouge « Motif invalide : … » sous le champ — JAMAIS de crash ; un motif valide filtre par regex sur le message |
+| X6 | Menu de niveau (barres) → Warning | Les lignes V, D et I disparaissent (masque des niveaux inférieurs, façon Android Studio) |
+| X7 | **Pause** pendant le défilement, laisser tourner l'app, reprendre | Le tampon FIGE pendant la pause (la collecte continue) ; la reprise RATTRAPE en un coup (les lignes de la pause apparaissent) |
+| X8 | **Effacer** puis laisser l'app journaliser | Le tampon affiché se vide ; les NOUVELLES lignes reviennent ; les sessions gardées (sélecteur) n'ont pas bougé |
+| X9 | Sélecteur de processus (puce) | Les sessions vivantes (ampoule verte), terminées et précédentes y sont listées ; en choisir une autre affiche SON tampon ; la plus récente archive s'affiche au démarrage de CodeIDE si rien ne vit |
+| X10 | Arrêter l'application depuis le sélecteur système (ou la faire mourir) | Bandeau rouge « Le processus s'est arrêté : … » dans l'onglet ; la session passe au sélecteur en « terminée » ; après relance de CodeIDE elle reste consultable en « précédente » (dernière ligne + raison) |
+| X11 | Faire PLANTER l'application (exception dans le code du projet de test) | Snackbar « L'application a planté » + action « Voir la trace » : l'onglet Logcat s'ouvre sur la session morte, la feuille se soulève si repliée |
+| X12 | Appuyer sur une ligne de TRACE de pile | Sélecteur « Ouvrir depuis la trace » listant les cadres `.kt`/`.java` ; en choisir un ouvre le fichier source dans l'éditeur, curseur posé à la ligne (clic long reste la COPIE de la ligne brute) |
+| X13 | Débranchement : fermer CodeIDE (glisser) pendant que l'app journalise | Rien à observer côté IDE ; au reopening, la session morte est en « précédente » — cohérent, jamais de session fantôme |
+| X14 | Réglage « Journaux des applications exécutées » COUPÉ puis Run | Le build produit un APK SANS la bibliothèque (vérifiable : la ligne Gradle « applog » n'apparaît pas) ; l'onglet Logcat reste honnête (« Lancez votre application… ») |
+| X15 | Lignes perdues : journaliser en rafale (boucle serrée de logs) | Le bandeau orange « N lignes perdues » paraît (jamais silencieux) et suit le compteur |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
