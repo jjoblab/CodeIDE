@@ -1117,6 +1117,31 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       GitViewModelTest (dont le scénario exact du retour : dépôt créé
       après l'ouverture, zone « initialiser » qui part) + 3 tests
       MoteurGitCliBinaireDynamiqueTest.
+- v0.80.7 : **section Git figée — cause racine TROUVÉE et prouvée**
+      (retour utilisateur récurrent : « la section git est toujours figée
+      à "ce projet n'est pas un dépôt git / initialisé un dépôt" »).
+      Les correctifs v0.80.4/v0.80.5 avaient traité les symptômes
+      (rafraîchissement, sonde .git) mais le vrai défaut vivait dans
+      MoteurGitCli.executer : DOUBLE COLLECTE de stdoutLines() —
+      SupervisionProcessus.attendre draine les flux (contrat du port :
+      flux froids consommables UNE SEULE FOIS, le lecteur referme le
+      tuyau à l'EOF), puis executer re-collectait le flux déjà refermé
+      → stdout VIDE sur appareil réel → estDepot = FAUX pour tout
+      dépôt existant, statut/branche/journal vides aussi ; le CLONAGE
+      réussissait pourtant (il ne lit que le code de sortie) — d'où le
+      tableau trompeur. Les faux de test rejouent leurs flux (asFlow
+      d'une liste) : tous les tests étaient verts, le bug n'était
+      visible qu'avec de VRAIS processus [correctif :
+      SupervisionProcessus.Sortie.sortieStandard — capture intégrale
+      pendant l'unique drainage, executer lit la capture, plus
+      AUCUNE seconde collecte] ; preuve rouge/vert sur 4 nouveaux
+      tests MoteurGitCliFluxUniqueTest (vrais sous-processus JVM :
+      « git » scripté + vrai git de la machine, git init réel) —
+      3 échecs avec l'ancien code, 4 succès avec le correctif ;
+      au passage TOUTES les lectures stdout deviennent fiables
+      (journal, branches, branche courante, diff, stash) ; chaîne
+      verte sur core:bootstrap (spotless, detekt, 4+3 tests, lint,
+      kover, checkModuleDependencies, assembleDebug 20,4 Mo).
 - v0.80.6 : **apparence appliquée à TOUS les écrans** (retour
       utilisateur : « à part EditorActivity et CrashActivity, tous les
       autres écrans n'utilisent pas le thème ou palettes de couleurs
