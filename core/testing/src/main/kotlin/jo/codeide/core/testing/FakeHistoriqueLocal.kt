@@ -38,6 +38,10 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     /** Contenu lu par [lireContenu] (null : indisponible). */
     public var contenuLu: String? = null
 
+    /** Contenus par identifiant d'entrée (prioritaires — H2 : la feuille
+     *  Historique lit des révisions DISTINCTES). */
+    public val contenusParId: MutableMap<Long, String> = mutableMapOf()
+
     override suspend fun enregistrer(
         cheminRelatif: String,
         type: TypeEntreeHistorique,
@@ -62,7 +66,7 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     override suspend fun listerRevisions(cheminRelatif: String): List<EntreeHistorique> =
         enregistrements.filter { it.cheminRelatif == cheminRelatif }.mapNotNull { it.retour }.asReversed()
 
-    override suspend fun lireContenu(id: Long): String? = contenuLu
+    override suspend fun lireContenu(id: Long): String? = contenusParId[id] ?: contenuLu
 
     override suspend fun derniereEmpreinte(cheminRelatif: String): String? = empreintesSemees[cheminRelatif]
 

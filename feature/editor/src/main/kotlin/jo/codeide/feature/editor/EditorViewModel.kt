@@ -787,6 +787,7 @@ class EditorViewModel
                 is ActionEditor.CreerDossier -> creerDossier(action.uriParent, action.nom)
                 is ActionEditor.RenommerDocument -> renommerDocument(action.uri, action.nouveauNom)
                 is ActionEditor.SupprimerDocument -> supprimerDocument(action.uri)
+                is ActionEditor.RemplacerContenuFichier -> remplacerContenuFichier(action.uri, action.texte)
                 is ActionEditor.BasculerSource -> basculerSource(action.source)
                 is ActionEditor.SelectionnerNoeud -> selectionner(action.uri)
                 is ActionEditor.CopierNoeud -> copierNoeud(action.uri)
@@ -2725,6 +2726,35 @@ class EditorViewModel
                     sautEnAttente = null
                     canalEffets.trySend(EffetEditor.DefilementVersLigne(uriSaut, ligne))
                 }
+        }
+
+        /**
+         * Remplace le contenu d'un onglet OUVERT (H2, restauration de
+         * l'historique local) : nouvelle session, PROPRE (le disque
+         * contient ce texte — l'écriture vient d'avoir lieu),
+         * auto-sauvegarde en attente ANNULÉE (sinon elle réécrirait
+         * l'ancien texte) et listener de salissure rebranché.
+         */
+        private fun remplacerContenuFichier(
+            uri: String,
+            texte: String,
+        ) {
+            val onglet = etatInterne.value.onglets.firstOrNull { it.uri == uri } ?: return
+            sauvegardesAuto[uri]?.cancel()
+            sauvegardesAuto.remove(uri)
+            val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
+            FichiersOuverture.langage(onglet.nom)?.let { session.session.setLanguage(it) }
+            session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
+            sessions[uri] = session
+            etatInterne.update { etat ->
+                etat.copy(
+                    onglets =
+                        etat.onglets.map {
+                            if (it.uri == uri) it.copy(isDirty = false) else it
+                        },
+                )
+            }
+            reconstruireNoeuds()
         }
 
         /** Une modification rend l'onglet sale et (re)programme l'auto-sauvegarde

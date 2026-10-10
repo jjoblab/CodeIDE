@@ -22,7 +22,7 @@ fichiers binaires (entrées sans contenu), intégration aux commits Git
 |---|---|---|
 | H0 | investigation, ADR 0104-0106, maquette, cette spécification | ✅ v0.82.0 |
 | H1 | moteur (port + stockage + décorateur FileSystem) | ✅ v0.82.0 |
-| H2 | afficher l'historique d'un fichier + restaurer | à venir |
+| H2 | afficher l'historique d'un fichier + restaurer | ✅ v0.87.0 |
 | H3 | historique de dossier + fichiers supprimés + Modifications récentes | à venir |
 | H4 | étiquettes (utilisateur + système) | à venir |
 | H6 | réglages et entretien | à venir |
