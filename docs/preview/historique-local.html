@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Historique local (maquette statique H0)</title>
+<style>
+  /* Jetons — thème nuit de référence (EXPLORATEUR_V2 § 3) */
+  :root {
+    --fond-page:#0b0d11; --fond-ecran:#14171d; --fond-tiroir:#1a1e25;
+    --fond-surface:#20252e; --fond-surface-2:#262c37; --fond-surface-3:#2d3441;
+    --bordure:#2c323d; --bordure-fine:#242a33;
+    --texte:#dde3ec; --texte-2:#99a2ae; --texte-3:#6c7581;
+    --accent:#7ab8f5; --accent-fort:#4f9be8; --accent-doux:rgba(122,184,245,.14);
+    --vert:#6fc47a; --orange:#eda63f; --rouge:#e5584f; --violet:#9c86d8;
+    --r-l:14px; --r-m:10px; --r-s:7px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', system-ui, sans-serif; background:var(--fond-page);
+         color:var(--texte); padding:20px; font-size:13px; }
+  h1 { font-size:16px; margin-bottom:4px; color:#fff; }
+  h2 { font-size:12px; margin:22px 0 10px; color:var(--texte-2);
+       text-transform:uppercase; letter-spacing:.6px; }
+  .note { font-size:11px; color:var(--texte-3); margin-bottom:12px; }
+
+  .ecran { width:414px; background:var(--fond-ecran); border:1px solid var(--bordure);
+           border-radius:var(--r-l); overflow:hidden; }
+
+  /* Popover § 10 : tête + actions */
+  .popover { width:300px; background:var(--fond-surface-2); border:1px solid var(--bordure);
+             border-radius:var(--r-m); box-shadow:0 12px 32px rgba(0,0,0,.55); overflow:hidden; }
+  .popover-tete { display:flex; gap:10px; padding:10px 12px; border-bottom:1px solid var(--bordure-fine);
+                  background:var(--fond-surface); }
+  .popover-icone { width:28px; height:28px; border-radius:var(--r-s);
+                   background:var(--accent-doux); display:flex; align-items:center;
+                   justify-content:center; }
+  .popover-icone svg { width:14px; height:14px; fill:var(--accent); }
+  .popover-nom { font-size:12.5px; font-weight:600; }
+  .popover-chemin { font-size:10.5px; color:var(--texte-3);
+                    font-family:'Cascadia Mono', monospace; }
+  .ligne-action { display:flex; align-items:center; gap:10px; padding:9px 12px;
+                  font-size:12px; cursor:default; }
+  .ligne-action:hover { background:var(--fond-surface-3); }
+  .ligne-action svg { width:13px; height:13px; fill:var(--texte-2); }
+  .ligne-action.nouvelle svg { fill:var(--accent); }
+  .separateur { height:1px; background:var(--bordure-fine); margin:4px 0; }
+
+  /* Feuille « Historique » */
+  .feuille { background:var(--fond-ecran); border:1px solid var(--bordure);
+             border-radius:var(--r-l); overflow:hidden; }
+  .feuille-tete { display:flex; align-items:center; gap:8px; padding:10px 12px;
+                  background:var(--fond-surface); border-bottom:1px solid var(--bordure-fine); }
+  .feuille-titre { font-size:13px; font-weight:600; color:#fff; flex:1; }
+  .feuille-sous-titre { font-size:10.5px; color:var(--texte-3);
+                        font-family:'Cascadia Mono', monospace; }
+  .bouton { padding:6px 12px; border-radius:var(--r-s); font-size:11px;
+            background:var(--fond-surface-2); border:1px solid var(--bordure); color:var(--texte); }
+  .bouton.primaire { background:var(--accent-doux); border-color:transparent;
+                     color:var(--accent); font-weight:600; }
+
+  /* Liste de révisions */
+  .revisions { max-height:250px; overflow:hidden; }
+  .periode { font-size:10px; color:var(--texte-3); text-transform:uppercase;
+             letter-spacing:.5px; padding:8px 12px 4px; }
+  .revision { display:flex; align-items:center; gap:10px; padding:8px 12px;
+              border-bottom:1px solid var(--bordure-fine); cursor:default; }
+  .revision:hover { background:var(--fond-surface); }
+  .revision svg { width:13px; height:13px; flex-shrink:0; }
+  .revision .moment { font-size:12px; flex:1; }
+  .revision .moment small { display:block; font-size:10px; color:var(--texte-3); }
+  .revision .taille { font-size:10px; color:var(--texte-3);
+                      font-family:'Cascadia Mono', monospace; }
+  .icone-modif { fill:var(--accent); } .icone-supp { fill:var(--rouge); }
+  .icone-crea { fill:var(--vert); } .icone-ext { fill:var(--orange); }
+  .icone-ren { fill:var(--violet); }
+  .etiquette { font-size:9.5px; background:rgba(156,134,216,.18); color:var(--violet);
+               border:1px solid rgba(156,134,216,.35); padding:1px 7px; border-radius:8px; }
+  .etiquette.systeme { background:rgba(111,196,122,.14); color:var(--vert);
+                       border-color:rgba(111,196,122,.3); }
+
+  /* Diff simplifié (composant partagé) */
+  .diff { font-family:'Cascadia Mono', 'Consolas', monospace; font-size:11px;
+          background:var(--fond-tiroir); border:1px solid var(--bordure-fine);
+          border-radius:var(--r-s); padding:8px 0; }
+  .diff-tete { display:flex; font-size:9.5px; color:var(--texte-3); padding:0 10px 6px;
+               border-bottom:1px solid var(--bordure-fine); margin-bottom:6px; gap:8px; }
+  .diff-ligne { padding:2px 10px; white-space:pre; }
+  .diff-ligne.ajout { background:rgba(111,196,122,.13); color:var(--vert); }
+  .diff-ligne.retrait { background:rgba(229,88,79,.12); color:#f2a29d; }
+
+  /* Snackbar */
+  .snackbar { background:#2b323e; border:1px solid #3a4351; border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.5); padding:10px 8px 10px 16px;
+      display:flex; align-items:center; gap:12px; max-width:90%; width:414px; }
+  .snackbar .texte { font-size:12.5px; color:var(--texte); flex:1; }
+  .snackbar .action { color:var(--accent); font-size:12px; font-weight:600; cursor:pointer; }
+  .zone-snackbars { display:flex; flex-direction:column; gap:10px; }
+</style>
+</head>
+<body>
+
+<h1>Historique local — maquette statique (H0)</h1>
+<p class="note">Thème nuit — jetons EXPLORATEUR_V2 § 3. Reproduction à 100 % à l'implémentation (H2). Aucune dépendance externe.</p>
+
+<h2>Point d'entrée — popover de l'explorateur (§ 10)</h2>
+<div class="popover">
+  <div class="popover-tete">
+    <div class="popover-icone"><svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg></div>
+    <div>
+      <div class="popover-nom">MainActivity.kt</div>
+      <div class="popover-chemin">app/src/main/java/com/exemple/monapp</div>
+    </div>
+  </div>
+  <div class="ligne-action"><svg viewBox="0 0 24 24"><path d="M3 17h6v4H3zM11 11h6v10h-6z"/></svg> Renommer…</div>
+  <div class="ligne-action"><svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7z"/></svg> Supprimer…</div>
+  <div class="separateur"></div>
+  <div class="ligne-action nouvelle"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 0 8.94 10h-2.02A7 7 0 1 1 13 5v3l4-4-4-4v3zM12 8v5l4.2 2.5.8-1.3-3.5-2.1V8z"/></svg> Afficher l'historique</div>
+</div>
+
+<h2>Feuille « Historique de MainActivity.kt » (BottomSheet, H2)</h2>
+<div class="feuille">
+  <div class="feuille-tete">
+    <div class="feuille-titre">Historique</div>
+    <div class="feuille-sous-titre">MainActivity.kt</div>
+    <div class="bouton">Fermer</div>
+  </div>
+  <div class="revisions">
+    <div class="periode">Aujourd'hui</div>
+    <div class="revision">
+      <svg viewBox="0 0 24 24" class="icone-modif"><path d="M3 17h6v4H3zM11 11h6v10h-6z"/></svg>
+      <div class="moment">Actuel<small>enregistré il y a 2 min</small></div>
+      <div class="taille">4,1 Ko</div>
+    </div>
+    <div class="revision">
+      <svg viewBox="0 0 24 24" class="icone-ext"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>
+      <div class="moment">Changement externe<small>il y a 26 min · git pull</small></div>
+      <div class="taille">3,9 Ko</div>
+    </div>
+    <div class="revision">
+      <svg viewBox="0 0 24 24" class="icone-crea"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
+      <div class="moment">Créé<small>il y a 4 h</small></div>
+      <span class="etiquette système">Avant compilation</span>
+      <div class="taille">1,2 Ko</div>
+    </div>
+    <div class="periode">Hier</div>
+    <div class="revision">
+      <svg viewBox="0 0 24 24" class="icone-ren"><path d="M8 4h8l4 4v12H4V4zm8 4h4l-4-4z"/></svg>
+      <div class="moment">Renommé<small>hier 14:02 · depuis HomeScreen.kt</small></div>
+      <div class="taille">3,1 Ko</div>
+    </div>
+    <div class="periode">Plus ancien</div>
+    <div class="revision">
+      <svg viewBox="0 0 24 24" class="icone-supp"><path d="M6 7h12l-1 13H7z"/></svg>
+      <div class="moment">Supprimé (retrouvé)<small>3 oct. 09:12 · contenu disponible</small></div>
+      <div class="taille">2,8 Ko</div>
+    </div>
+  </div>
+</div>
+
+<h2>Diff partagé (révision sélectionnée ↔ contenu actuel)</h2>
+<div class="diff">
+  <div class="diff-tete"><span>MainActivity.kt — il y a 26 min</span><span style="margin-left:auto;">3 lignes</span></div>
+  <div class="diff-ligne">class MainActivity : ComponentActivity() {</div>
+  <div class="diff-ligne retrait">-    val modele = ViewModelProvider(this)</div>
+  <div class="diff-ligne ajout">+    val modele by viewModels&lt;MainViewModel&gt;()</div>
+  <div class="diff-ligne ajout">+</div>
+  <div class="diff-ligne ajout">+    // suivi du cycle de vie (historique v1)</div>
+  <div class="diff-ligne">    override fun onCreate(savedInstanceState: Bundle?) {</div>
+</div>
+
+<h2>Restauration — snackbar honnête (H2)</h2>
+<div class="zone-snackbars">
+  <div class="snackbar">
+    <div class="texte">Version restaurée — l'ancienne version est conservée dans l'historique</div>
+    <div class="action">Annuler</div>
+  </div>
+  <div class="snackbar">
+    <div class="texte">Contenu du fichier indisponible (binaire ou trop grand)</div>
+  </div>
+</div>
+
+</body>
+</html>
