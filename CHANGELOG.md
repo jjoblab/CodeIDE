@@ -1,5 +1,29 @@
 # Journal des modifications
 
+## [0.86.0] – 2026-10-10
+
+### Ajouté
+
+- **Tests du service Binder du pont de journaux** (mission « Exécuter »
+  R5 — critère § 6.5 « rejet d'un émetteur non autorisé (UID) testé ») :
+  `ServicePontJournauxTest` (Robolectric + Hilt, graphe de production)
+  pilote l'UID/PID appelants par `ShadowBinder` — paquet inconnu refusé
+  sans session, UID USURPÉ refusé (l'appelant prétend être le paquet de
+  l'IDE, le noyau dit autre chose), protocole inconnu refusé, lot SANS
+  connexion préalable ignoré, connexion légitime ouvre la session et
+  alimente le registre, lot de pertes seules compté, débranchement
+  termine avec la raison.
+- **Recette manuelle de la mission** : section « Exécuter » de
+  `docs/TESTS_MANUELS.md` — 15 scénarios X1-X15 (Run, autorisation,
+  Logcat vivant, filtres/regex/niveau, pause/reprise, effacement,
+  sélecteur, mort, plantage + trace cliquable, réglage coupé, pertes).
+
+### Modifié
+
+- `VerificateurUidPont` (créé R2, resté non câblé) est désormais
+  réellement utilisé par `ServicePontJournaux.connecter` — plus de code
+  mort, la décision d'authenticité est une seule pièce.
+
 ## [0.85.0] – 2026-10-10
 
 ### Ajouté
