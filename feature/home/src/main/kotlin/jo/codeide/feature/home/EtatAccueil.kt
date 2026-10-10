@@ -45,6 +45,8 @@ enum class TriAccueil {
  * à l'installation — jamais un terminal non fonctionnel.
  * @property erreur le registre est illisible : écran d'erreur avec
  * « Réessayer » ; `null` en situation normale.
+ * @property clonageEnCours vrai pendant un `git clone` lancé depuis
+ * l'accueil (G5, v0.80.4) — bandeau de progression + actions figées.
  */
 data class EtatAccueil(
     val chargement: Boolean = true,
@@ -62,6 +64,8 @@ data class EtatAccueil(
     val erreur: AppError? = null,
     /** Projet créé par le wizard : défilement + surlignage (étape 11). */
     val projetEnEvidence: ProjectId? = null,
+    /** Clonage Git en cours (G5, v0.80.4). */
+    val clonageEnCours: Boolean = false,
 )
 
 /**
@@ -149,6 +153,16 @@ sealed interface ActionAccueil {
     data object OuvrirTerminal : ActionAccueil
 
     /**
+     * Clone un dépôt Git dans le dossier de travail (G5, v0.80.4) —
+     * « Get from VCS » mobile : l'URL désigne le dépôt, [nom] le dossier
+     * cible (pré-rempli depuis l'URL par le dialogue).
+     */
+    data class ClonerDepot(
+        val url: String,
+        val nom: String,
+    ) : ActionAccueil
+
+    /**
      * Met en évidence le projet créé par le wizard (section 12.3 :
      * « le nouveau projet apparaît, mis en évidence » — étape 11).
      */
@@ -197,6 +211,34 @@ sealed interface EffetAccueil {
 
     /** Ouvrir l'écran d'installation du bootstrap (T6, section 7). */
     data object OuvrirInstallationTerminal : EffetAccueil
+
+    /**
+     * Échec de clonage Git APÈS création du dossier (G5, v0.80.4) :
+     * [rollback] dit si le dossier a pu être nettoyé — un résidu n'est
+     * jamais silencieux (suffixe d'avertissement dans le snackbar).
+     */
+    data class EchecClonage(
+        val erreur: AppError,
+        val rollback: Boolean,
+    ) : EffetAccueil
+
+    /**
+     * Échec de git lui-même pendant un clonage (G5, v0.80.4) : message
+     * brut de git (réseau, authentification, dépôt introuvable…) —
+     * c'est lui qui dit vrai ; [rollback] comme [EchecClonage].
+     */
+    data class EchecClonageGit(
+        val message: String,
+        val rollback: Boolean,
+    ) : EffetAccueil
+
+    /**
+     * Nom de dossier de clonage refusé (G5, v0.80.4) : raison typée du
+     * validateur partagé — même vocabulaire que le wizard.
+     */
+    data class NomClonageRefuse(
+        val raison: jo.codeide.core.model.RaisonValidation,
+    ) : EffetAccueil
 
     /** Échec typé d'une action (message localisé par l'UI). */
     data class Echec(

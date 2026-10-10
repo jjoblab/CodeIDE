@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.80.4] – 2026-10-10
+
+### Corrigé
+
+- **`feature:editor`** : **crash de la feuille des tâches depuis le
+  tiroir Projet** (rapport a6d72e9d, `IllegalStateException:
+  Fragment FeuilleTachesFragment does not have any arguments`).
+  L'onglet « Tâches » instançait `FeuilleTachesFragment()` SANS
+  arguments — `requireArguments()` tuait l'activité dès
+  `onViewCreated`. Le bouton passe désormais par l'action
+  `OuvrirSelecteurTaches` de l'`EditorViewModel` d'activité, exactement
+  comme le bouton Tâches de la console : cache de sync d'abord, repli
+  listage orchestrateur, échec avec « Réessayer » — la feuille est
+  toujours créée par sa fabrique `creer(taches, recents)` avec ses
+  arguments. En profondeur, la feuille tolère un paquet d'arguments
+  absent (`arguments` au lieu de `requireArguments`) : l'état vide
+  « synchronisation en cours » remplace le crash.
+- **`feature:editor`** : **« Initialiser un dépôt » ne fait plus semblant
+  de ne rien faire** (retour utilisateur : « j'appuie sur initialiser
+  un dépôt rien ne se passe »). `GitViewModel.initialiser()` avalait
+  le résultat de `git init` — git absent du bootstrap (« Installez-le
+  via pkg install git »), chemin FUSE inaccessible ou stderr de git
+  restaient invisibles. L'échec est désormais surfacé (texte d'erreur
+  rouge SOUS la zone « pas un dépôt », sortie du ScrollView pour être
+  visible dans les DEUX états), la zone laisse place au repère de
+  chargement pendant l'opération et le bouton se désactive (plus de
+  martèlement pendant un git init en cours).
+
+### Ajouté
+
+- **`feature:home` + `core:domain`** : **bouton Git (clonage) sur
+  l'écran d'accueil** — l'équivalent mobile du « Get from VCS »
+  d'Android Studio, près du bouton terminal (retour utilisateur,
+  ADR 0101). Dialogue URL + nom de dossier (pré-rempli depuis l'URL,
+  dernier segment sans `.git`, éditable sans être récrasé), bandeau de
+  progression linéaire, clones concurrents bloqués. Le nouveau cas
+  d'usage `ClonerDepotUseCase` orchestre : dossier de travail résolu
+  (jamais de destination inventée), nom validé par le validateur
+  partagé `file-name` (mêmes raisons typées que le wizard), cible
+  vérifiée (`VerifyCreationTargetUseCase`), dossier créé via SAF,
+  clone via le port `MoteurGit` sur le chemin FUSE (nouveau port
+  `ResolveurCheminFuse`, lié à `ResoudreRepertoireProjet` en
+  production), registre en dernier. Tout échec postérieur à la création
+  DÉCLENCHE LE ROLLBACK (`FileSystem.delete`) et le résultat porte
+  l'issue du nettoyage (un résidu n'est jamais silencieux) ; le message
+  brut de git (réseau, auth, dépôt introuvable) s'affiche tel quel.
+  Succès → projet enregistré (`TemplateId.IMPORTED`, description
+  « Cloné depuis un dépôt Git »), marqué ouvert, éditeur ouvert (comme
+  Android Studio). `FakeMoteurGit` rejoint `core:testing` (prévu par
+  l'ADR 0092) ; 9 tests de cas d'usage + 4 tests ViewModel.
+- **`core:domain` + `feature:editor`** : **les scripts de build
+  s'ouvrent VRAIMENT depuis l'onglet Scripts** du tiroir Projet — le
+  nouveau `ResoudreFichierRelatifUseCase` descend le chemin relatif
+  segment par segment (`FileSystem.list`, durcissement `.`/`..`) pour
+  traduire `app/build.gradle.kts` en URI de document SAF ; l'effet
+  `OuvrirScript` porte l'URI résolue et le fragment l'ouvre via
+  l'`EditorViewModel` d'activité (`OuvrirFichier`) — l'onglet
+  s'ouvre dans l'éditeur, le snackbar n'est plus qu'un repli
+  d'erreur honnête.
+
 ## [0.80.3] – 2026-10-10
 
 ### Corrigé

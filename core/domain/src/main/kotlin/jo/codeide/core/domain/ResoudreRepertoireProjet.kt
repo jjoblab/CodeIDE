@@ -65,6 +65,22 @@ internal val RACINES_FUSE_PAR_DEFAUT: Map<String, String> =
     )
 
 /**
+ * Pont « dossier du projet (URI de document) → chemin FUSE » (v0.80.4).
+ *
+ * Port minimal du clonage [ClonerDepotUseCase] : la production lie
+ * [ResoudreRepertoireProjet] (garde « répertoire fantôme » comprise),
+ * les tests JVM lient un résolveur factice — le pont réel exige un
+ * système de fichiers monté qu'un test JVM ne possède pas.
+ */
+public fun interface ResolveurCheminFuse {
+    /**
+     * Résout le chemin FUSE du dossier désigné par l'URI de **document**
+     * [documentUri], ou `null` si le volume est inconnu / non monté.
+     */
+    public suspend operator fun invoke(documentUri: String): String?
+}
+
+/**
  * Cas d'usage « répertoire du projet pour le terminal » (Terminal T6) :
  * résout le dossier du projet courant en chemin utilisable par un shell
  * du bootstrap, ou `null` si ce n'est pas possible.
@@ -108,7 +124,7 @@ public class ResoudreRepertoireProjet
     constructor(
         private val arborescences: ArborescencesSaf,
         private val repartiteurs: DispatcherProvider,
-    ) {
+    ) : ResolveurCheminFuse {
         /**
          * Résout le chemin FUSE du dossier désigné par l'URI de **document**
          * [documentUri] (`StorageLocation.documentUri` — le dossier du
@@ -118,7 +134,7 @@ public class ResoudreRepertoireProjet
          * `document`) est REJETÉE (`null`) : elle désigne l'arbre porteur
          * de la permission, pas le projet.
          */
-        public suspend operator fun invoke(documentUri: String): String? =
+        override suspend fun invoke(documentUri: String): String? =
             withContext(repartiteurs.io) {
                 val idDocument =
                     arborescences.idDocumentDeUriDocument(documentUri) ?: return@withContext null

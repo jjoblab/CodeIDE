@@ -58,10 +58,10 @@ Réutilise `FeuilleTachesFragment`.
 
 1. Dépendances déclarées lues depuis les scripts de build et le catalogue. **✅ P3 livré** — `ParseurDependances` (regex sur `implementation/api/...`).
 2. Dépendances résolues avec arbre, transitives, versions, raisons. **✅ P4 livré** — `ResolvedDependenciesRequest/Result` (v7), handler branché à `IdeaProject` (dépendances directes ; transitives via `dependencyInsight` en P6++).
-3. Modification des scripts (ajout/suppression/montée de version) sûre. **⏳ P6++ à venir** — édition syntaxique minimale (ouverture des scripts au clic livrée en P6+).
+3. Modification des scripts (ajout/suppression/montée de version) sûre. **⏳ P6++ à venir** — édition syntaxique minimale à venir ; l'OUVERTURE des scripts au clic est RÉELLE depuis v0.80.4 (`ResoudreFichierRelatifUseCase` traduit le chemin relatif en URI de document, onglet ouvert via l'`EditorViewModel` d'activité).
 4. Versions disponibles depuis Maven (cache, hors ligne). **✅ P6 livré** — `MavenVersionesDisponibles` (port) + `ClientMavenHttp` (impl HttpURLConnection) + onglet « Mises à jour ».
 5. Variantes sélectionnables et réellement utilisées. **⏳ P5 protocole prêt** — `BuildVariantsRequest/Result` (v7), handler stub. Branchement AGP TAPI nécessite ajout `com.android.tools.build:gradle-api` (~10 Mo) au serveur — décision reportée.
-6. Tâches Gradle parcourables et lançables. **✅ P5 livré** — bouton d'ouverture de `FeuilleTachesFragment` (réutilisé).
+6. Tâches Gradle parcourables et lançables. **✅ P5 livré** — bouton d'ouverture de `FeuilleTachesFragment` (réutilisé ; v0.80.4 : l'action passe par `OuvrirSelecteurTaches` de l'`EditorViewModel` d'activité — arguments garantis, crash a6d72e9d corrigé).
 7. Aucune régression sur le tooling, l'éditeur, les autres fragments. **✅** — chaîne CI verte.
 
 ## 5. Avancement
@@ -75,4 +75,4 @@ Réutilise `FeuilleTachesFragment`.
 | P4 | ✅ Livré | `ResolvedDependenciesRequest/Result` (v7) + handler branché à `IdeaProject` (dépendances directes, transitives à venir P6++) |
 | P5 | ⏳ Protocole prêt | `BuildVariantsRequest/Result` (v7) + handler stub + onglet Tâches (FeuilleTachesFragment). Branchement AGP TAPI reporté (dépendance ~10 Mo) |
 | P6 | ✅ Livré | Port `MavenVersionesDisponibles` + `ClientMavenHttp` (impl HttpURLConnection, ADR 0097) + onglet « Mises à jour » UI + ouverture des scripts au clic |
-| P6++ | ⏳ À venir | Édition des scripts (modification sûre), dépendances transitives (`dependencyInsight`), branchement AGP TAPI pour variantes |
+| P6++ | ⏳ À venir | Édition des scripts (modification sûre), dépendances transitives (`dependencyInsight`), branchement AGP TAPI pour variantes. Ouverture des scripts livrée en v0.80.4 |

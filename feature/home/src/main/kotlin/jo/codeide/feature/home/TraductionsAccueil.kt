@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import jo.codeide.core.domain.ForbiddenFolders
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.ProjectAccessState
+import jo.codeide.core.model.RaisonValidation
 
 /**
  * Traduction des objets du domaine en ressources localisées (section 5.5 :
@@ -79,5 +80,27 @@ internal object TraductionsAccueil {
             ProjectAccessState.Available -> R.string.accueil_acces_disponible
             ProjectAccessState.Missing -> R.string.accueil_acces_introuvable
             ProjectAccessState.PermissionLost -> R.string.accueil_acces_permission
+        }
+
+    /**
+     * Message d'un nom de dossier de clonage refusé (G5, v0.80.4) —
+     * mêmes raisons typées que le wizard, mêmes règles de messages.
+     */
+    @StringRes
+    fun refusClonage(raison: RaisonValidation): Int =
+        when (raison) {
+            RaisonValidation.LongueurNom -> R.string.accueil_cloner_nom_longueur
+
+            is RaisonValidation.CaractereInterditNom -> R.string.accueil_cloner_nom_caractere
+
+            RaisonValidation.PointsFictifsNom -> R.string.accueil_cloner_nom_points
+
+            RaisonValidation.FinNomInterdite -> R.string.accueil_cloner_nom_fin
+
+            RaisonValidation.NomReserveWindows -> R.string.accueil_cloner_nom_reserves
+
+            // Les raisons hors « nom de fichier » ne sortent pas du
+            // validateur `file-name` : repli générique, jamais silencieux.
+            else -> R.string.accueil_erreur_saisie
         }
 }

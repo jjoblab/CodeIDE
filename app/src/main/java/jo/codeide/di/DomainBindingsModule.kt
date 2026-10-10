@@ -7,6 +7,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.DefaultDispatcherProvider
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.ResolveurCheminFuse
+import jo.codeide.core.domain.ResoudreRepertoireProjet
 import javax.inject.Singleton
 
 /**
@@ -21,4 +23,12 @@ internal interface DomainBindingsModule {
     @Binds
     @Singleton
     fun bindDispatcherProvider(impl: DefaultDispatcherProvider): DispatcherProvider
+
+    /**
+     * Pont FUSE du dossier de projet (G5, v0.80.4) : le clonage Git
+     * dépend du PORT, la production lie le cas d'usage réel (garde
+     * « répertoire fantôme » comprise) — les tests JVM lient un faux.
+     */
+    @Binds
+    fun bindResolveurCheminFuse(impl: ResoudreRepertoireProjet): ResolveurCheminFuse
 }

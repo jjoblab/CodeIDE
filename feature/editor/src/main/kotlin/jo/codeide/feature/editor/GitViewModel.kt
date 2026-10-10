@@ -61,7 +61,7 @@ class GitViewModel
             val projet = observerProjet(id).first() ?: return
             val cheminFuse =
                 resoudreRepertoire(projet.location.documentUri) ?: run {
-                    _etat.value = EtatGit(erreur = "Chemin du projet inaccessible (volume démonté ?)")
+                    _etat.value = EtatGit(erreur = MESSAGE_CHEMIN_INACCESSIBLE)
                     return
                 }
             val estDepot = moteurGit.estDepot(cheminFuse)
@@ -119,12 +119,39 @@ class GitViewModel
             _etat.value = _etat.value.copy(messageCommit = nouveau)
         }
 
-        /** Initialise un dépôt Git (git init). */
+        /**
+         * Initialise un dépôt Git (git init).
+         *
+         * v0.80.4 (correctif « bouton muet ») : l'échec n'est PLUS avalé.
+         * Chaque issue remonte à l'utilisateur : git absent (« Installez-le
+         * via pkg install git »), chemin FUSE inaccessible, ou stderr de
+         * git — affiché en rouge sous le bouton ; le succès rafraîchit
+         * l'état et la vue « pas un dépôt » laisse place au corps Git.
+         */
         fun initialiser() {
             viewModelScope.launch {
-                val cheminFuse = cheminFuseCourant() ?: return@launch
-                moteurGit.initialiser(cheminFuse)
+                _etat.value = _etat.value.copy(chargement = true)
+                val echec: String? =
+                    when (val cheminFuse = cheminFuseCourant()) {
+                        null -> {
+                            MESSAGE_CHEMIN_INACCESSIBLE
+                        }
+
+                        else -> {
+                            when (val resultat = moteurGit.initialiser(cheminFuse)) {
+                                is ResultatGit.Succes -> null
+                                is ResultatGit.Echec -> resultat.message
+                            }
+                        }
+                    }
                 chargerStatut()
+                // APRÈS chargerStatut : il remplace l'état entier, l'échec
+                // d'initialisation ne doit pas être écrasé par un statut
+                // sain (le dépôt existe désormais — c'est l'init qui a
+                // échoué ou réussi qu'il faut conserver).
+                if (echec != null) {
+                    _etat.value = _etat.value.copy(erreur = echec, chargement = false)
+                }
             }
         }
 
@@ -264,6 +291,13 @@ class GitViewModel
             val id = projectId ?: return null
             val projet = observerProjet(id).first() ?: return null
             return resoudreRepertoire(projet.location.documentUri)
+        }
+
+        private companion object {
+            /** v0.80.4 : chemin FUSE irrésolvable — message partagé par le
+             *  chargement et l'initialisation (une seule source de vérité). */
+            const val MESSAGE_CHEMIN_INACCESSIBLE =
+                "Chemin du projet inaccessible (volume démonté ?)"
         }
     }
 
