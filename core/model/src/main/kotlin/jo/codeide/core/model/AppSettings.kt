@@ -99,6 +99,10 @@ public data class AppSettings(
     public val toolingAfficherTaches: Boolean = true,
     public val toolingHorsLigne: Boolean = false,
     public val toolingArguments: String = "",
+    /** Injection de la bibliothèque applog-runtime dans les builds debug des
+     *  projets (mission « Exécuter » R2, ADR 0103) — par défaut ACTIVE ;
+     *  les journaux des apps exécutées arrivent dans l'onglet Logcat. */
+    public val injectionAppLog: Boolean = true,
     public val isSetupCompleted: Boolean = false,
 ) {
     public companion object {

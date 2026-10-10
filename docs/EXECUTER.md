@@ -155,7 +155,7 @@ liste virtualisée — jamais de `TextView` à append sans borne).
 |---|---|---|
 | R0 | investigation, ADR 0102/0103, maquette, cette spécification | ✅ v0.81.0 |
 | R1 | installer et lancer (port + use case + UI) | ✅ v0.81.0 |
-| R2 | pont de logs (bibliothèque, service, injection Gradle) | à venir |
+| R2 | pont de logs (bibliothèque, service, injection Gradle) | ✅ v0.83.0 |
 | R3 | onglet Logcat | à venir |
 | R4 | traces cliquables et plantages | à venir |
 | R5 | finitions et tests | à venir |

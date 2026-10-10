@@ -1145,6 +1145,46 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       dossiers temporaires, horloge factice] ; chaîne verte sur
       core:domain, core:storage, core:testing, feature:editor, app —
       assembleDebug 20,5 Mo.
+- v0.83.0 : **mission « Exécuter » R2 — le pont de journaux Binder
+      bidirectionnel** (ADR 0103 : zéro permission, zéro dépendance
+      ajoutée à l'app de l'utilisateur) : `applog-runtime` [module
+      NOUVEAU, Java pur, Java 8, minSdk 21, AUCUNE dépendance —
+      POM écrit à la main ; amorce ContentProvider neutre AVANT
+      l'Application, morte hors FLAG_DEBUGGABLE, lecteur logcat de
+      SON PROPRE pid (threadtime --pid, repli filtrage lecteur,
+      reprise -T sans doublon ni trou), tee System.out/err,
+      gestionnaire de crash, sortie précédente (ApplicationExitInfo
+      API 30+), anneau borné 5 000 trames — pertes comptées jamais
+      silencieuses, trames tabulaires « message = reste » tronquées
+      4 000] ; `ServicePontJournaux` [app, exporté SANS permission —
+      l'authenticité est l'UID DU NOYAU (Binder.getCallingUid vs
+      PackageManager.getPackageUid à CHAQUE connexion), lot refusé
+      sans connexion validée, linkToDeath, vit le temps des
+      connexions ; AIDL jumelles ILiaisonJournaux (oneway) +
+      IControlePont des deux côtés] ; injection Gradle [serveur :
+      --applog-repo + script d'init généré — API PUBLIQUES
+      seulement, beforeSettings (dépôt local compatible
+      FAIL_ON_PROJECT_REPOS), dépendance jo.codeide:applog-runtime
+      aux *RuntimeClasspath DEBUG seuls (JAMAIS de classes internes
+      AGP — la casse AndroidIDE), interrupteur projet
+      codeide.applog.isEnabled=false ; daemon : DepotAppLogDeployer
+      (assets → filesDir/applog-repo en disposition maven, marqueur
+      d'empreinte, .tmp+rename) + --applog-repo conditionné au
+      réglage] ; réglage « Journaux des applications exécutées »
+      [défaut ACTIF, libellé honnête, coupé = builds intacts] ;
+      domaine [port PontJournauxApplications + RegistrePontJournaux
+      pur (sessions StateFlow, lots, instantané borné, pertes) +
+      AnalyseurTramesJournal défensif] ; assets [copierAarVersAssets
+      + controlerAarAssets branché sur preBuild — AAR/POM jamais
+      versionnés, miroir ADR 0040] ; tests [applog-runtime :
+      Trames/AnneauTrames/LecteurLogcatParse ; core:domain :
+      Analyseur 7 + Registre 9 ; tooling:daemon : Depot 4 + 3
+      DaemonManager (--applog-repo selon réglage) ; tooling:server :
+      Generateur 6 + ScriptAppLogIntegration 2 — VRAI Gradle,
+      projet témoin hostile FAIL_ON_PROJECT_REPOS + variantes AGP] ;
+      chaîne verte sur applog-runtime, core:domain, core:model,
+      core:datastore, feature:editor, tooling:protocol, tooling:
+      daemon, tooling:server, app — assembleDebug 20,4 Mo.
 - v0.81.0 : **mission « Exécuter » R0+R1 — le bouton Run d'Android
       Studio, sans adb** (compile → installe → lance) : recherche des
       références mesurée (AndroidIDE : récepteur EXPORTÉ forgeable,

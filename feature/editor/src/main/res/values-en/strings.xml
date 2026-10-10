@@ -232,6 +232,11 @@
     <string name="editor_config_execution">Execution</string>
     <string name="editor_config_hors_ligne">Offline mode</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>
+
+    <!-- Mission « Exécuter » R2 (ADR 0103) : honest label — what is added
+         to the user's debug builds. -->
+    <string name="editor_config_injection_applog">Logs of running apps</string>
+    <string name="editor_config_injection_applog_desc" tools:ignore="TypographyDashes">Adds a debug library to your debug builds: logs of the launched app arrive in the Logcat tab (no permission, no extra dependency). Applies at the next build server start.</string>
     <string name="editor_config_arguments">Extra Gradle arguments</string>
     <string name="editor_config_arguments_aide" tools:ignore="TypographyDashes">Space-separated — e.g. --stacktrace --info</string>
     <string name="editor_config_etat">Orchestrator</string>

@@ -107,6 +107,32 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!--
+          Pont de journaux des applications exécutées (mission « Exécuter »
+          R2, ADR 0103) : les applications de l'utilisateur portant la
+          bibliothèque applog-runtime (injection Gradle, builds debug) SE
+          LIENT à ce service pour pousser leurs journaux — la connexion
+          elle-même maintient le service vivant pendant que l'app tourne,
+          que l'IDE soit au premier plan ou non.
+
+          Exporté SANS permission : l'authenticité est vérifiée à la
+          CONNEXION par l'UID du noyau (Binder.getCallingUid comparé à
+          l'UID du paquet déclaré — non falsifiable), et chaque lot est
+          refusé sans connexion préalable validée. Le manifeste de la
+          bibliothèque injectée porte le <queries> qui rend CodeIDE
+          visible à l'app — aucune permission n'est ajoutée de part et
+          d'autre.
+        -->
+        <!-- tools:ignore ciblé (ExportedService) : ADR 0103 — une
+             permission « normal » serait auto-accordée à tout demandeur
+             (falsifiable, le défaut mesuré d'AndroidIDE) ; l'authenticité
+             réelle est l'UID du noyau, vérifié à CHAQUE connexion, et
+             chaque lot est refusé sans connexion validée. -->
+        <service
+            android:name="jo.codeide.logcat.ServicePontJournaux"
+            android:exported="true"
+            tools:ignore="ExportedService" />
+
     </application>
 
 </manifest>

@@ -1,5 +1,85 @@
 # Journal des modifications
 
+## [0.83.0] – 2026-10-10
+
+### Ajouté
+
+- **Pont de journaux des applications exécutées** (mission « Exécuter »
+  R2, ADR 0103) : les applications lancées depuis CodeIDE font remonter
+  leurs journaux dans l'IDE **sans adb, sans permission, sans
+  dépendance ajoutée** — la plomberie de l'onglet Logcat (R3). Trois
+  briques :
+- **`applog-runtime` — la bibliothèque injectée** (module NOUVEAU, Java
+  pur, zéro dépendance — pas même kotlin-stdlib, Java 8, minSdk 21) :
+  amorcée par un `ContentProvider` neutre fusionné dans le manifeste
+  cible ( démarre AVANT l'`Application`, les initialiseurs statiques
+  sont donc vus) ; **morte hors debug** (`FLAG_DEBUGGABLE` vérifié à
+  l'exécution — même fuitée dans un release, elle ne fait rien) ;
+  elle lit le logcat de **SON PROPRE processus** (`logcat -v
+  threadtime --pid=<pid>`, repli filtrage côté lecteur, reprise sans
+  doublon ni trou par `-T <epoch>`), reflète `System.out/err`,
+  intercepte les exceptions non interceptées, annonce la fin du
+  processus PRÉCÉDENT (`ApplicationExitInfo`, API 30+) et expédie le
+  tout par lots Binder **oneway** ; anneau borné (5 000 trames) —
+  les débordements sont COMPTÉS et signalés, jamais perdus en
+  silence ; trames tabulaires « message = reste » (4 000 car.
+  max, tronquage marqué), analysées défensivement côté IDE.
+- **`ServicePontJournaux` — le récepteur Binder côté IDE** (`app`) :
+  exporté SANS permission (une permission `normal` serait
+  auto-accordée à tout demandeur — le défaut mesuré d'AndroidIDE) ;
+  l'authenticité est l'**UID du noyau** : `Binder.getCallingUid()`
+  comparé à l'UID du paquet DÉCLARÉ à chaque connexion (un faux nom
+  de paquet ne passe pas), et chaque lot est refusé sans connexion
+  préalable validée ; `linkToDeath` termine la session quand
+  l'application meurt ; le service vit le temps des connexions (les
+  journaux coulent pendant que l'utilisateur regarde SON app, IDE en
+  arrière-plan). AIDL jumelles `ILiaisonJournaux` (connecter /
+  envoyerLot / deconnecter, oneway) + `IControlePont` (veille) des
+  deux côtés.
+- **Injection Gradle propre** (`tooling/server`) : le serveur génère
+  un script d'init (`--applog-repo <chemin>`, AAR déployé en dépôt
+  maven local `filesDir/applog-repo` par le daemon) qui n'utilise que
+  des API PUBLIQUES de Gradle — `beforeSettings` (dépôt local au
+  niveau des RÉGLAGES, compatible `RepositoriesMode.
+  FAIL_ON_PROJECT_REPOS`) et ajout de `jo.codeide:applog-runtime`
+  aux `*RuntimeClasspath` **debug uniquement** (PAS de conversion
+  vers les classes internes d'AGP — la casse mesurée chez
+  AndroidIDE) ; **interrupteur honnête** :
+  `codeide.applog.isEnabled=false` dans le `gradle.properties` du
+  projet coupe l'injection pour CE projet (l'utilisateur garde le
+  dernier mot sur SON build). Prouvé par des tests d'intégration sur
+  un VRAI Gradle (projet témoin hostile : `FAIL_ON_PROJECT_REPOS`,
+  variantes nommées AGP — dépendance présente en debug, absente du
+  release et des tests).
+- **Réglage « Journaux des applications exécutées »** (écran de
+  configuration de la chaîne d'outils, défaut ACTIF) : ajoute une
+  bibliothèque de débogage à vos builds debug — le libellé le DIT ;
+  coupé = aucun argument, aucun script, les builds restent intacts ;
+  s'applique à la prochaine vie du process orchestrateur (dit tel
+  quel).
+- **Port `PontJournauxApplications` + `RegistrePontJournaux`**
+  (`core:domain`, JVM pur) : sessions (paquet, pid, nom de
+  processus) en `StateFlow`, lots de lignes en flux, instantané borné
+  (5 000 lignes), pertes comptées des deux côtés — la base pure de
+  l'onglet Logcat (R3), testable sans Android.
+- **Artefacts livrés en assets** : l'AAR release + un POM écrit à la
+  main (AUCUNE dépendance) sont recopiés vers `assets/applog/` par
+  `copierAarVersAssets` (miroir de la convention du JAR
+  orchestrateur, ADR 0040 — jamais versionnés, contrôlés par
+  `controlerAarAssets` branché sur `preBuild` : aucun APK sans la
+  bibliothèque).
+- **Tests** : `TramesTest` + `AnneauTramesTest` +
+  `LecteurLogcatParseTest` (applog-runtime) ;
+  `AnalyseurTramesJournalTest` (7 — trames hostiles, géantes,
+  tabulations internes) + `RegistrePontJournauxTest` (9 — sessions,
+  pertes, tampon borné, processus multiples) (core:domain) ;
+  `DepotAppLogDeployerTest` (4 — disposition maven exacte, marqueur,
+  redéploiement) + 3 tests `DaemonManagerTest` (`--applog-repo`
+  présent/dépendant du réglage, paire d'arguments)
+  (tooling:daemon) ; `GenerateurScriptAppLogTest` (6) +
+  `ScriptAppLogIntegrationTest` (2 — VRAI Gradle)
+  (tooling:server).
+
 ## [0.82.0] – 2026-10-10
 
 ### Ajouté
