@@ -1,5 +1,48 @@
 # Journal des modifications
 
+## [0.82.0] – 2026-10-10
+
+### Ajouté
+
+- **Historique local — le filet de sécurité indépendant de Git**
+  (mission H H0+H1, ADR 0104/0105/0106) : CodeIDE enregistre
+  **automatiquement** les versions successives des fichiers du projet
+  ouvert. Toute écriture, suppression, renommage ou création passant
+  par le port `FileSystem` laisse une entrée — **sans qu'aucun appelant
+  ne change** (décorateur `HistoriqueFileSystem` branché sur la liaison
+  SAF dans `core:storage`).
+- **Stockage à intégrité prouvée** (ADR 0104) : blobs adressés par
+  empreinte SHA-256 (contenu identique = stocké UNE fois —
+  déduplication naturelle) + index JSON réécrit **atomiquement**
+  (`.tmp` + renommage : la mort du processus ne corrompt jamais) dans
+  le stockage PRIVÉ (`files/historique/<empreinte-du-projet>/`) —
+  jamais dans le dossier du projet, un dossier par projet.
+- **Contenu AVANT + pierres tombales** (modèle IntelliJ établi dans le
+  code) : chaque entrée conserve l'état PRÉCÉDENT (l'état courant vit
+  sur le disque, jamais doublé) ; un fichier **supprimé reste
+  retrouvable et lisible** dans l'historique ; une entrée EXTERNE
+  capture les changements hors application (terminal, git) détectés à
+  l'ouverture.
+- **Politique mobile honnête** (ADR 0105) : 5 jours de rétention, **256
+  Mo** de quota par projet (les entrées les plus anciennes sacrifiées
+  d'abord, blobs orphelins supprimés), 2 Mo par fichier (au-delà :
+  entrée sans contenu — « indisponible », jamais inventé), 5 000
+  entrées ; **secrets jamais historisés** (`local.properties`, `*.jks`,
+  `*.env`, `*.pem`…), artefacts exclus (`build/`, `.gradle/`, `.git/`,
+  `.codeide/`) ; purge à l'ouverture du projet (E/S, jamais sur le fil
+  principal) ; **aucune entrée si le contenu ne change pas**.
+- **Tests** : `MoteurHistoriqueLocalTest` (14 — va-et-retour,
+  déduplication, anti-bruit, pierre tombale, purge par âge/quota/nombre,
+  blobs orphelins, index corrompu → historique vide, projets séparés,
+  hors projet) + `HistoriqueFileSystemTest` (9 — capture de toutes les
+  mutations, contenu AVANT, renommage avec ancien nom, secrets et
+  `build/` exclus, échec d'écriture sans entrée, hors projet) —
+  intégration RÉELLE sur dossiers temporaires.
+- **H0 livré** : ADR 0104/0105/0106, `docs/HISTORIQUE_LOCAL.md`,
+  maquette `docs/preview/historique-local.html` (comportement d'Android
+  Studio établi dans le code source : 5 jours, contenu avant, revert
+  annulable, étiquettes colorées — ré-implémentation intégrale).
+
 ## [0.81.0] – 2026-10-10
 
 ### Ajouté
