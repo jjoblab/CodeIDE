@@ -640,6 +640,14 @@ sealed interface ActionEditor {
     /** v0.41.1 : exécute `gradle run` pour lancer le programme (fun main). */
     data object ExecuterMain : ActionEditor
 
+    /**
+     * Mission « Exécuter » R1 (ADR 0102) : compile la variante debug du
+     * module application, INSTALLE l'APK produit (PackageInstaller,
+     * confirmation système) puis LANCE l'application — l'équivalent du
+     * bouton « Run » d'Android Studio, sans adb.
+     */
+    data object ExecuterApplication : ActionEditor
+
     /** v0.41.1 : envoie une entrée stdin au build en cours (readln). */
     data class EnvoyerEntreeConsole(
         val texte: String,
@@ -650,6 +658,26 @@ sealed interface ActionEditor {
  * Événements ponctuels de l'espace de travail (section 5.3 : `XxxEffect`).
  */
 sealed interface EffetEditor {
+    /**
+     * Mission « Exécuter » R1 (ADR 0102) : notification du cycle
+     * d'exécution d'une application — message (ressource) + action
+     * correctrice éventuelle.
+     *
+     * @property message ressource du texte du snackbar.
+     * @property arguments arguments de format du message (nom de
+     *           l'application, paquet…).
+     * @property action libellé de l'action correctrice (ressource), ou
+     *           `null` (information pure).
+     * @property nomPaquet paquet visé par l'action (désinstallation de
+     *           secours), ou `null`.
+     */
+    data class NotifierExecution(
+        val message: Int,
+        val arguments: List<String> = emptyList(),
+        val action: Int? = null,
+        val nomPaquet: String? = null,
+    ) : EffetEditor
+
     /** Fichier binaire : proposer « Ouvrir avec » une autre application. */
     data class OuvrirAvec(
         val uri: String,
@@ -821,6 +849,13 @@ data class EtatEditor(
     val acces: ProjectAccessState? = null,
     val verificationAcces: Boolean = false,
     val erreurRacine: Boolean = false,
+    /**
+     * Mission « Exécuter » R1 : le projet possède un module application
+     * Android (`app/build.gradle(.kts)`) — le bouton Exécuter devient le
+     * « Run » d'Android Studio (compile → installe → lance) au lieu de
+     * `gradle run` (JVM).
+     */
+    val projetApplicationAndroid: Boolean = false,
     val noeuds: List<NoeudExplorateur> = emptyList(),
     val onglets: List<EditorTabState> = emptyList(),
     val indexOngletActif: Int = -1,

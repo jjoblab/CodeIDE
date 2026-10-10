@@ -1117,6 +1117,50 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       GitViewModelTest (dont le scénario exact du retour : dépôt créé
       après l'ouverture, zone « initialiser » qui part) + 3 tests
       MoteurGitCliBinaireDynamiqueTest.
+- v0.81.0 : **mission « Exécuter » R0+R1 — le bouton Run d'Android
+      Studio, sans adb** (compile → installe → lance) : recherche des
+      références mesurée (AndroidIDE : récepteur EXPORTÉ forgeable,
+      aucune relance, aucune gestion de permission ; CodeAssist :
+      permission guidée avec reprise 5 min, récepteur non exporté à
+      action par session, 10×200 ms de relances, lancement relayé au
+      process UI ; aucun des deux n'utilise setRequireUserAction) ;
+      R0 [ADR 0102 (PackageInstaller : garde canRequestPackageInstalls
+      + écran système + reprise automatique, session MODE_FULL_INSTALL +
+      fsync, PendingIntent MUTABLE, récepteur RECEIVER_NOT_EXPORTE à
+      action unique par session, STATUS_PENDING_USER_ACTION → intent
+      système, échecs typés avec actions correctrices — signature →
+      désinstaller en nommant la perte, version antérieure, espace) +
+      ADR 0103 (pont de logs R2 : Binder bidirectionnel, authenticité
+      par UID vs getPackageUid, linkToDeath bilatéral, anneau borné +
+      pertes comptées, ApplicationExitInfo, un pont par process,
+      injection par script d'init + API PUBLIQUE AGP — configuration
+      <variante>RuntimeClasspath, jamais de classes internes) +
+      docs/EXECUTER.md + maquette executer-logcat.html] ; R1 [port
+      ApkInstaller + ResultatInstallationApk typé (core:domain) +
+      FakeApkInstaller (core:testing) + ApkInstallerAndroid (app, process
+      principal — un service d'arrière-plan ne peut pas démarrer une
+      activité, Android 10+) + ExecuterApplicationUseCase (APK au chemin
+      DÉTERMINISTE comme verify-templates.sh, applicationId lu
+      d'output-metadata.json par kotlinx.serialization — AUCUN changement
+      de protocole tooling) + EditorViewModel.ExecuterApplication
+      (attend le VERDICT BuildFinished via l'état process-wide — jamais
+      d'installation sur un build évincé, détecte app/build.gradle(.kts)
+      → bouton Run contextuel : Android = runner, JVM = gradle run) +
+      GradleService.publierLigneExecution (console BUILD, libellés
+      localisables) + EffetEditor.NotifierExecution (snackbar + action
+      « Désinstaller… » → boîte système) + manifeste :
+      REQUEST_INSTALL_PACKAGES (restreinte Play, distribution hors Play
+      documentée) + queries MAIN/LAUNCHER ; setRequireUserAction
+      (USER_ACTION_NOT_REQUIRED) API 31+ — mises à jour silencieuses SI
+      le système l'accepte ; EditorViewModel passe au PORT
+      ResolveurCheminFuse (comme GitViewModel v0.80.5 — le dossier
+      devient résolvable en tests JVM via couture)] ; tests
+      [ExecuterApplicationUseCaseTest 7 (cycle, APK absent, JSON
+      hostile, échecs typés, détection module) +
+      ExecuterApplicationEditorViewModelTest 3 (couture FUSE vers dossier
+      RÉEL : build→install→lance, échec de build = zéro installation,
+      détection)] ; chaîne verte sur core:domain, core:testing,
+      feature:editor (2 m 23 s), app — assembleDebug 20,5 Mo.
 - v0.80.7 : **section Git figée — cause racine TROUVÉE et prouvée**
       (retour utilisateur récurrent : « la section git est toujours figée
       à "ce projet n'est pas un dépôt git / initialisé un dépôt" »).

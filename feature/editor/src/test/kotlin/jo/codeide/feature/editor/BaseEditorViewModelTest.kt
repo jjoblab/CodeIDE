@@ -19,6 +19,7 @@ import jo.codeide.core.domain.templates.TemplateEngine
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
+import jo.codeide.core.testing.FakeApkInstaller
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
@@ -142,6 +143,10 @@ abstract class BaseEditorViewModelTest {
             repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
         )
 
+    /** Faux installeur d'APK (mission « Exécuter » R1, ADR 0102) :
+     *  résultats semés par le test, appels journalisés. */
+    protected val installateurApkTest = FakeApkInstaller()
+
     /** Cas d'usage d'arbre purs (étape 17) — sans état, partagés par test. */
     protected val copierArbre = CopierArbreUseCase()
 
@@ -169,6 +174,11 @@ abstract class BaseEditorViewModelTest {
      * rejoue (étape 15), y compris au-delà d'une écriture d'état d'espace
      * (étape 17).
      *
+     * Mission « Exécuter » R1 : un résolveur FUSE ALTERNATIF peut être
+     * injecté — le résolveur réel de la base ne résout rien en JVM
+     * (limite documentée T6), or le runner a BESOIN du dossier pour
+     * localiser l'APK : le test sème un dossier temporaire RÉEL.
+     *
      * Exemption detekt ciblée (règle 16) : LongMethod — la construction
      * d'un ViewModel de 30+ dépendances est longue par construction ; on
      * garde la lisibilité d'un constructeur explicite plutôt que de
@@ -178,6 +188,7 @@ abstract class BaseEditorViewModelTest {
     protected fun viewModel(
         id: ProjectId,
         sauvetage: SavedStateHandle,
+        resolveurFUSE: jo.codeide.core.domain.ResolveurCheminFuse = resoudreRepertoire,
     ): EditorViewModel =
         EditorViewModel(
             observerProjet = ObserveProjectUseCase(depot),
@@ -192,7 +203,7 @@ abstract class BaseEditorViewModelTest {
             reconnaitreTypeProjet = ReconnaitreTypeProjetUseCase(fichiers),
             listerModeles = listerModeles,
             sessionsTerminal = sessionsTerminal,
-            resoudreRepertoireProjet = resoudreRepertoire,
+            resolveurChemin = resolveurFUSE,
             observerEtatOutils = observerOutils,
             tooling = tooling,
             synchroniserProjet =
@@ -213,6 +224,11 @@ abstract class BaseEditorViewModelTest {
                     tooling,
                     journalEspace,
                     TestDispatcherProvider(regleMain.dispatcher),
+                ),
+            executerApplication =
+                jo.codeide.core.domain.ExecuterApplicationUseCase(
+                    installateur = installateurApkTest,
+                    repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
                 ),
             annulerBuild =
                 jo.codeide.core.domain
