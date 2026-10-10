@@ -1185,6 +1185,31 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.85.0 : **mission « Exécuter » R4 — traces cliquables et
+      plantages** (spec § 4.3) : LignesPile [analyseur PUR core:domain —
+      regex groupes nommés, cadres .kt/.java SEULS (sources inconnues,
+      natives, non éditables ignorés), borne 200, estPlantage
+      (étiquette Plantage + préfixe Exception non interceptée du pont
+      applog-runtime)] ; navigation [clic simple sur ligne à pile →
+      sélecteur MaterialAlertDialog des cadres (la trace arrive en UN
+      message multi-lignes — équivalent honnête du clic cadre par
+      cadre) → ActionEditor.SauterVersLigneSource : onglet ouvert =
+      sélection par suffixe paquet (chute nom de fichier) + effet
+      immédiat ; sinon sondes bornées 4 requêtes SAF des candidats
+      app/src/main/{java,kotlin}/<paquet> et racine/src/main/{…},
+      ouverture puis saut différé par sautEnAttente consommé dans
+      ajouterOnglet → EffetEditor.DefilementVersLigne → activité
+      scrollToLine + curseur (sauterVersLigne partagé avec
+      sauterAuProbleme)] ; plantage [détection dans le rattrapage du
+      LogcatViewModel → EtatLogcat.plantage (une fois par session) ;
+      ViewModel Logcat porté à portée ACTIVITÉ — l'activité collecte et
+      montre le snackbar « L'application a planté » + action « Voir la
+      trace » (ouvre l'onglet Logcat sur la session morte, soulève la
+      feuille repliée) ; dernierPlantageAffiche anti-ressassement] ;
+      tests [LignesPileTest 7, SautPileLogcatEditorViewModelTest 3
+      (onglet ouvert / résolution par candidats / cible introuvable),
+      LogcatViewModelTest +1 plantage — 11 nouveaux] ; chaîne verte
+      sur core:domain, feature:editor, app — assembleDebug 20,6 Mo.
 - v0.84.0 : **mission « Exécuter » R3 — l'onglet Logcat** (spec § 4,
       ADR 0103/0107) : 4e onglet du panneau inférieur, le vrai Logcat
       des applications exécutées sans adb. UI [fragment

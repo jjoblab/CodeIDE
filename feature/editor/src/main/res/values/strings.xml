@@ -154,6 +154,9 @@
     <string name="logcat_pid_tid">%1$d-%2$d</string>
     <string name="logcat_libelle_clip">Ligne Logcat</string>
     <string name="logcat_copiee">Ligne copiée</string>
+    <string name="logcat_pile_titre">Ouvrir depuis la trace</string>
+    <string name="logcat_plantage">L\'application a planté</string>
+    <string name="logcat_plantage_voir">Voir la trace</string>
 
     <!-- Panneau inférieur (étape 16). -->
     <string name="editor_panneau_agrandir_cd">Agrandir le panneau inférieur</string>
