@@ -24,7 +24,7 @@ fichiers binaires (entrées sans contenu), intégration aux commits Git
 | H1 | moteur (port + stockage + décorateur FileSystem) | ✅ v0.82.0 |
 | H2 | afficher l'historique d'un fichier + restaurer | ✅ v0.87.0 |
 | H3 | historique de dossier + fichiers supprimés + Modifications récentes | ✅ v0.88.0 |
-| H4 | étiquettes (utilisateur + système) | à venir |
+| H4 | étiquettes (utilisateur + système) | ✅ v0.89.0 |
 | H6 | réglages et entretien | à venir |
 
 ## 2. Architecture
@@ -107,6 +107,23 @@ réécrire via le port crée la révision « avant restauration ».
   dossier parent a disparu ; « Annuler » resupprime immédiatement.
 - Dates relatives lisibles (« il y a 4 min », « hier 14:02 »,
   « 3 oct. à 09:12 »).
+
+## 5bis. Interface (H4 — étiquettes)
+
+- **Bouton « Poser une étiquette »** dans l'en-tête de la feuille
+  (tous modes) : dialogue au nom libre borné (60), posé sur la
+  PORTÉE COURANTE — fichier, dossier LUI-MÊME, ou projet. Nom
+  vide : aucun effet.
+- Une étiquette est une **entrée sans contenu** : en tête de la
+  liste, elle MARQUE un instant — les voisines se lisent « avant /
+  après l'étiquette ». Le NOM est le libellé principal en modes
+  dossier/projet (le chemin d'une étiquette de projet est vide).
+- **Étiquettes SYSTÈME** : posées par CodeIDE aux actions risquées
+  (« Avant compilation » au bouton Exécuter — silencieuses, jamais
+  bloquantes). Point d'extension : `EtiqueteurHistorique`
+  (core:domain) — les actions risquées l'appellent, jamais
+  l'inverse. Libellé système = DONNÉE (index), pas chaîne
+  d'interface.
 
 ## 6. Critères d'acceptation (H1)
 

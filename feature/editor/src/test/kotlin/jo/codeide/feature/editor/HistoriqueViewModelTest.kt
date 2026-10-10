@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.core.domain.EntreeHistorique
+import jo.codeide.core.domain.EtiqueteurHistorique
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.TypeEntreeHistorique
 import jo.codeide.core.domain.TypeLigneDiff
@@ -18,13 +19,14 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Tests du ViewModel de la feuille « Historique » (missions H2/H3) —
+ * Tests du ViewModel de la feuille « Historique » (missions H2/H3/H4) —
  * faux du port [FakeHistoriqueLocal], [FakeFileSystem] et vrai
  * [ResolveurCheminHistorique] : chargement des révisions groupées,
  * diff (mode actuel / précédente), restauration (contenu indisponible,
  * réussie + relais vers l'onglet, annulation), modes DOSSIER/PROJET,
  * filtre « Supprimés seuls », recréation d'une pierre tombale (et son
- * annulation, et l'impasse parent disparu).
+ * annulation, et l'impasse parent disparu), ÉTIQUETTES utilisateur
+ * (H4 — portée courante de la feuille, nom vide muet).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoriqueViewModelTest {
@@ -37,6 +39,9 @@ class HistoriqueViewModelTest {
 
     /** Vrai résolveur sur le faux FileSystem (mission H3). */
     private val resolveur = ResolveurCheminHistorique(fichiers, source)
+
+    /** Poseur d'étiquettes (mission H4) sur le faux historique. */
+    private val etiqueteur = EtiqueteurHistorique(historique)
 
     private fun semerProjet() {
         source.racineDocument = "content://racine"
@@ -88,7 +93,7 @@ class HistoriqueViewModelTest {
     fun `le chargement liste les revisions et marque le chargement fini`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             val uri = "content://racine/src/Main.kt"
             fichiers.seedDocument(
                 uri,
@@ -114,7 +119,7 @@ class HistoriqueViewModelTest {
     fun `aucune revision donne l etat vide`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
 
             viewModel.charger("content://racine/src/Vide.kt", "src/Vide.kt", "Vide.kt")
             advanceUntilIdle()
@@ -130,7 +135,7 @@ class HistoriqueViewModelTest {
     fun `le mode dossier liste les revisions de tous les fichiers sous le prefixe`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             enregistrer(entree = entree(1, chemin = "src/Main.kt"), contenu = "v1")
             enregistrer(entree = entree(2, chemin = "srcX/Autre.kt"), contenu = "v2")
             enregistrer(
@@ -153,7 +158,7 @@ class HistoriqueViewModelTest {
     fun `le mode projet liste les modifications recentes de tout le projet`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             enregistrer(entree = entree(1, chemin = "src/Main.kt"), contenu = "v1")
             enregistrer(entree = entree(2, chemin = "srcX/Autre.kt"), contenu = "v2")
 
@@ -171,7 +176,7 @@ class HistoriqueViewModelTest {
     fun `le filtre supprimes seuls ne garde que les pierres tombales`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             enregistrer(
                 entree = entree(1, type = TypeEntreeHistorique.CREATION, chemin = "src/Main.kt"),
                 contenu = "v1",
@@ -206,7 +211,7 @@ class HistoriqueViewModelTest {
     fun `selectionner calcule le diff contre le contenu actuel`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             val uri = "content://racine/src/Main.kt"
             fichiers.seedDocument(
                 uri,
@@ -239,7 +244,7 @@ class HistoriqueViewModelTest {
                 "content://racine/src/Main.kt",
                 FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "a\nnouveau\nc".toByteArray()),
             )
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             historique.contenusParId[1L] = "a\nancien\nc"
             enregistrer(entree = entree(1, chemin = "src/Main.kt"), contenu = "ancien")
             viewModel.charger("content://racine/src", "src", "src", ModeHistorique.DOSSIER)
@@ -261,7 +266,7 @@ class HistoriqueViewModelTest {
     fun `le mode precedente en dossier compare la revision plus ancienne du MEME fichier`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             historique.contenusParId[1L] = "a\nancien\nc"
             historique.contenusParId[2L] = "a\nautre\nc"
             historique.contenusParId[3L] = "a\nnouveau\nc"
@@ -291,7 +296,7 @@ class HistoriqueViewModelTest {
     fun `une revision sans contenu marque le diff indisponible`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             enregistrer(
                 entree = entree(3, type = TypeEntreeHistorique.SUPPRESSION, empreinte = null),
                 contenu = null,
@@ -313,7 +318,7 @@ class HistoriqueViewModelTest {
     fun `restaurer ecrit le contenu stocke et le relaye a l onglet`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             val uri = "content://racine/src/Main.kt"
             fichiers.seedDocument(
                 uri,
@@ -340,7 +345,7 @@ class HistoriqueViewModelTest {
     fun `restaurer une revision sans contenu ne touche pas au fichier`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             val uri = "content://racine/src/Main.kt"
             fichiers.seedDocument(
                 uri,
@@ -364,7 +369,7 @@ class HistoriqueViewModelTest {
     fun `restaurer une pierre tombale RECREER le fichier dans son dossier d origine`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             historique.contenusParId[1L] = "contenu supprimé"
             enregistrer(
                 entree = entree(1, type = TypeEntreeHistorique.SUPPRESSION, chemin = "src/com/Main.kt"),
@@ -388,7 +393,7 @@ class HistoriqueViewModelTest {
     fun `annuler la recreation SUPPRIME le fichier recree`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             historique.contenusParId[1L] = "contenu supprimé"
             enregistrer(
                 entree = entree(1, type = TypeEntreeHistorique.SUPPRESSION, chemin = "src/com/Main.kt"),
@@ -413,7 +418,7 @@ class HistoriqueViewModelTest {
     fun `restaurer une tombale dont le dossier parent a disparu annonce l impasse`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             historique.contenusParId[1L] = "contenu supprimé"
             enregistrer(
                 entree = entree(1, type = TypeEntreeHistorique.SUPPRESSION, chemin = "src/dossierPerdu/Main.kt"),
@@ -433,10 +438,106 @@ class HistoriqueViewModelTest {
         }
 
     @Test
+    fun `etiqueter pose l etiquette sur le fichier et rafraichit la liste`() =
+        runTest {
+            semerProjet()
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
+            enregistrer(entree = entree(1), contenu = "v1")
+            viewModel.charger("content://racine/src/Main.kt", "src/Main.kt", "Main.kt")
+            advanceUntilIdle()
+
+            viewModel.etiqueter("avant essai")
+            advanceUntilIdle()
+
+            // Portée courante = le FICHIER ; l'étiquette apparaît en
+            // TÊTE des révisions (la plus récente) et le filet l'annonce.
+            assertEquals(MessageHistorique.EtiquettePosee, viewModel.etat.value.message)
+            assertEquals(
+                TypeEntreeHistorique.ETIQUETTE,
+                viewModel.etat.value.revisions
+                    .first()
+                    .entree.type,
+            )
+            assertEquals(
+                "avant essai",
+                viewModel.etat.value.revisions
+                    .first()
+                    .entree.libelle,
+            )
+        }
+
+    @Test
+    fun `etiqueter en mode dossier pose l etiquette SUR le dossier lui meme`() =
+        runTest {
+            semerProjet()
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
+            enregistrer(entree = entree(1, chemin = "src/Main.kt"), contenu = "v1")
+            viewModel.charger("content://racine/src", "src", "src", ModeHistorique.DOSSIER)
+            advanceUntilIdle()
+
+            viewModel.etiqueter("jalon")
+            advanceUntilIdle()
+
+            // L'étiquette est posée sur « src » LUI-MÊME : elle paraît
+            // dans l'historique du dossier (entrées == chemin + sous le
+            // préfixe, moteur H4).
+            assertEquals("jalon" to "src", historique.etiquettes.single())
+            assertEquals(
+                TypeEntreeHistorique.ETIQUETTE,
+                viewModel.etat.value.revisions
+                    .first()
+                    .entree.type,
+            )
+        }
+
+    @Test
+    fun `etiqueter en mode projet pose l etiquette sur tout le projet`() =
+        runTest {
+            semerProjet()
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
+            enregistrer(entree = entree(1, chemin = "src/Main.kt"), contenu = "v1")
+            viewModel.charger("content://racine", "", "Projet", ModeHistorique.PROJET)
+            advanceUntilIdle()
+
+            viewModel.etiqueter("jalon")
+            advanceUntilIdle()
+
+            // Chemin null = projet ENTIER — visible dans « Modifications
+            // récentes ».
+            assertEquals("jalon" to null, historique.etiquettes.single())
+            assertEquals(
+                TypeEntreeHistorique.ETIQUETTE,
+                viewModel.etat.value.revisions
+                    .first()
+                    .entree.type,
+            )
+        }
+
+    @Test
+    fun `un nom vide n etiquette RIEN - aucune message ni rechargement`() =
+        runTest {
+            semerProjet()
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
+            enregistrer(entree = entree(1), contenu = "v1")
+            viewModel.charger("content://racine/src/Main.kt", "src/Main.kt", "Main.kt")
+            advanceUntilIdle()
+            viewModel.consommerMessage()
+
+            viewModel.etiqueter("   ")
+            advanceUntilIdle()
+
+            // Le nom nettoyé est vide : l'étiqueteur refuse, la feuille
+            // reste muette (le dialogue ne devait rien promettre).
+            assertTrue(historique.etiquettes.isEmpty())
+            assertNull(viewModel.etat.value.message)
+            assertEquals(1, viewModel.etat.value.revisions.size)
+        }
+
+    @Test
     fun `annuler restauration reecrit le contenu d avant et le relaye`() =
         runTest {
             semerProjet()
-            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur)
+            val viewModel = HistoriqueViewModel(historique, fichiers, resolveur, etiqueteur)
             val uri = "content://racine/src/Main.kt"
             fichiers.seedDocument(
                 uri,

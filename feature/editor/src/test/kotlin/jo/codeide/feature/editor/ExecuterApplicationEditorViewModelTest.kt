@@ -2,6 +2,7 @@ package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
 import jo.codeide.core.domain.EtatOutilsTerminal
+import jo.codeide.core.domain.EtiqueteurHistorique
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.StatutBuild
 import kotlinx.coroutines.test.runTest
@@ -79,6 +80,32 @@ class ExecuterApplicationEditorViewModelTest : BaseEditorViewModelTest() {
                     it.message == R.string.editor_execution_lancee &&
                         it.arguments == listOf("com.exemple.monapp")
                 },
+            )
+        }
+
+    @Test
+    fun `le run pose l etiquette systeme avant compilation`() =
+        runTest {
+            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+            val id = ajouterProjet("Alpha")
+            val dossier = semerProjetAndroid()
+            val viewModel =
+                viewModel(
+                    id,
+                    SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                    ResolveurCheminFuse { dossier.absolutePath },
+                )
+            avancer()
+
+            viewModel.onAction(ActionEditor.ExecuterApplication)
+            avancer()
+
+            // Mission H4 (ADR 0106 § d) : le Run est une action RISQUÉE —
+            // le filet d'historique marque l'état d'avant compilation,
+            // silencieusement (jamais bloquant, jamais visible).
+            assertEquals(
+                listOf(EtiqueteurHistorique.ETIQUETTE_AVANT_COMPILATION to null),
+                historiqueTest.etiquettes,
             )
         }
 
