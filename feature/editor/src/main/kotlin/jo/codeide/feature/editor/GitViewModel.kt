@@ -6,17 +6,23 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.BrancheGit
 import jo.codeide.core.domain.CommitGit
+import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.MoteurGit
 import jo.codeide.core.domain.ObserveProjectUseCase
-import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.ResultatGit
 import jo.codeide.core.domain.StatutGit
 import jo.codeide.core.model.ProjectId
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -27,8 +33,26 @@ import javax.inject.Inject
  * (rafraîchir, indexer, committer) délèguent au [MoteurGit] qui exécute
  * le binaire `git` via le pont FUSE.
  *
- * Le chemin FUSE réel est obtenu via [ResoudreRepertoireProjet] (ADR
- * 0038) — jamais d'URI SAF côté moteur.
+ * Le chemin FUSE réel est obtenu via [ResolveurCheminFuse] (ADR 0038
+ * et ADR 0101 — le port, pas l'implémentation) : jamais d'URI SAF côté
+ * moteur.
+ *
+ * v0.80.5 (correctif « section figée sur initialiser un dépôt ») : la
+ * section est VIVANTE comme la fenêtre Git d'Android Studio — le
+ * statut n'est plus une photographie prise à l'ouverture de l'éditeur.
+ * Trois mécanismes se superposent :
+ * 1. sélection de l'onglet Git → [rafraichir] immédiat (le fragment
+ *    reçoit `onHiddenChanged`) — un dépôt cloné depuis l'accueil ou
+ *    initialisé dans le terminal n'a jamais le temps d'être « oublié » ;
+ * 2. balayage périodique discret ([demarrerSurveillance]) : deux stats
+ *    par période, AUCUN processus git lancé — existence du dossier
+ *    `.git`, horodatages de `.git/HEAD` et `.git/index`. Le moindre
+ *    changement de signature (dépôt créé, commit, checkout, add)
+ *    déclenche un rechargement complet — le `git init` fait dans le
+ *    terminal, invisible hier, se reflète maintenant tout seul ;
+ * 3. le bouton d'actualisation manuel reste — il est l'aveu honnête
+ *    que la sonde légère ignore les modifications simples du worktree
+ *    (contenu seul, sans index ni HEAD touchés).
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // Port Git G1-G7 : une fonction par action Git, hérité du port MoteurGit.
@@ -37,7 +61,8 @@ class GitViewModel
     constructor(
         private val moteurGit: MoteurGit,
         private val observerProjet: ObserveProjectUseCase,
-        private val resoudreRepertoire: ResoudreRepertoireProjet,
+        private val resoudreChemin: ResolveurCheminFuse,
+        private val repartiteurs: DispatcherProvider,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val projectId: ProjectId? =
@@ -55,12 +80,79 @@ class GitViewModel
             viewModelScope.launch { chargerStatut() }
         }
 
+        // ------------------------------------------------------------------
+        // Surveillance du dépôt (v0.80.5 — comme Android Studio)
+        // ------------------------------------------------------------------
+
+        /** Balayage périodique en cours, ou `null` (arrêté). */
+        private var travailSurveillance: Job? = null
+
+        /**
+         * Démarre la surveillance discrète du dépôt (v0.80.5) : toutes les
+         * [periodeMs], la sonde relit la signature du dossier (existence
+         * de `.git`, horodatages de `.git/HEAD` et `.git/index`) et un
+         * changement déclenche [chargerStatut]. Idempotent : redémarrer
+         * une surveillance active ne fait rien.
+         *
+         * La première période recharge TOUJOURS une fois (signature de
+         * référence `null`) : c'est volontaire — le chargement initial
+         * peut avoir lu le disque AVANT que le pont FUSE ne propage un
+         * clone tout juste terminé, et ce rattrapage soigne cette course.
+         *
+         * @param periodeMs période de la sonde — paramètre de test (la
+         *        période de production est [PERIODE_SURVEILLANCE_MS]).
+         */
+        internal fun demarrerSurveillance(periodeMs: Long = PERIODE_SURVEILLANCE_MS) {
+            if (travailSurveillance?.isActive == true) return
+            travailSurveillance =
+                viewModelScope.launch {
+                    var derniereSignature: SignatureDepot? = null
+                    while (isActive) {
+                        delay(periodeMs)
+                        val signature = sonder() ?: continue
+                        if (signature != derniereSignature) {
+                            derniereSignature = signature
+                            chargerStatut()
+                        }
+                    }
+                }
+        }
+
+        /** Arrête la surveillance (la section n'est plus visible). */
+        internal fun arreterSurveillance() {
+            travailSurveillance?.cancel()
+            travailSurveillance = null
+        }
+
+        /**
+         * Sonde du dossier projet : DEUX stats de fichiers au plus, aucun
+         * processus git lancé. Retourne `null` si le chemin FUSE est
+         * irrésolvable (volume démonté) — la sonde n'a alors rien à dire.
+         */
+        private suspend fun sonder(): SignatureDepot? {
+            val cheminFuse = cheminFuseCourant() ?: return null
+            return withContext(repartiteurs.io) {
+                val dossierGit = File(cheminFuse, ".git")
+                SignatureDepot(
+                    present = dossierGit.isDirectory,
+                    horodatageHead = horodatage(dossierGit, "HEAD"),
+                    horodatageIndex = horodatage(dossierGit, "index"),
+                )
+            }
+        }
+
+        /** Horodatage d'un fichier de `.git`, ou [HORODATAGE_ABSENT]. */
+        private fun horodatage(
+            dossierGit: File,
+            nom: String,
+        ): Long = File(dossierGit, nom).takeIf { it.isFile }?.lastModified() ?: HORODATAGE_ABSENT
+
         @Suppress("ReturnCount") // Gardes : projectId absent, projet absent, chemin FUSE absent.
         private suspend fun chargerStatut() {
             val id = projectId ?: return
             val projet = observerProjet(id).first() ?: return
             val cheminFuse =
-                resoudreRepertoire(projet.location.documentUri) ?: run {
+                resoudreChemin(projet.location.documentUri) ?: run {
                     _etat.value = EtatGit(erreur = MESSAGE_CHEMIN_INACCESSIBLE)
                     return
                 }
@@ -290,14 +382,38 @@ class GitViewModel
         private suspend fun cheminFuseCourant(): String? {
             val id = projectId ?: return null
             val projet = observerProjet(id).first() ?: return null
-            return resoudreRepertoire(projet.location.documentUri)
+            return resoudreChemin(projet.location.documentUri)
         }
+
+        /**
+         * Signature vivante du dossier projet à un instant donné : deux
+         * appels identiques ⇒ rien n'a changé pour git ; un écart ⇒ un
+         * rechargement (dépôt créé ou supprimé, commit, checkout, add).
+         */
+        private data class SignatureDepot(
+            val present: Boolean,
+            val horodatageHead: Long,
+            val horodatageIndex: Long,
+        )
 
         private companion object {
             /** v0.80.4 : chemin FUSE irrésolvable — message partagé par le
              *  chargement et l'initialisation (une seule source de vérité). */
             const val MESSAGE_CHEMIN_INACCESSIBLE =
                 "Chemin du projet inaccessible (volume démonté ?)"
+
+            /** Fichier absent : horodatage conventionnel (jamais confondu
+             *  avec un vrai, toujours positif). */
+            const val HORODATAGE_ABSENT = -1L
+
+            /**
+             * Période de production de la sonde du dépôt (v0.80.5) : même
+             * ordre de grandeur que la surveillance de l'arbre de
+             * l'explorateur (v0.80.1) — assez court pour qu'un `git init`
+             * dans le terminal paraisse immédiat, assez long pour que deux
+             * stats de fichiers restent invisibles à la batterie.
+             */
+            const val PERIODE_SURVEILLANCE_MS = 2_000L
         }
     }
 

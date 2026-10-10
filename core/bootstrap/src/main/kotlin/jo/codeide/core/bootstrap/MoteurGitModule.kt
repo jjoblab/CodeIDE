@@ -16,6 +16,11 @@ import javax.inject.Singleton
  * Construit [MoteurGitCli] avec le [NativeProcessLauncher] existant et
  * localise le binaire `git` dans `$PREFIX/bin/git`. L'identité est
  * `null` par défaut (configurable via les Paramètres — évolution future).
+ *
+ * v0.80.5 : la localisation est passée comme RÉSOLVEUR (une fonction),
+ * pas comme un chemin figé — le singleton vit aussi longtemps que le
+ * processus, et `pkg install git` dans le terminal doit être découvert
+ * sans redémarrer l'application.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,10 +32,9 @@ internal object MoteurGitModule {
         lanceur: NativeProcessLauncher,
     ): MoteurGit {
         val prefix = DispositionsBootstrap.prefix(contexte.filesDir)
-        val binaireGit = File(prefix, "bin/git").takeIf { it.exists() }?.absolutePath
         return MoteurGitCli(
             lanceur = lanceur,
-            binaireGit = binaireGit,
+            resoudreBinaireGit = { File(prefix, "bin/git").takeIf { it.exists() }?.absolutePath },
             identite = null, // Évolution : depuis les Paramètres utilisateur.
         )
     }
