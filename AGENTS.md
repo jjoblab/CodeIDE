@@ -1117,6 +1117,34 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       GitViewModelTest (dont le scénario exact du retour : dépôt créé
       après l'ouverture, zone « initialiser » qui part) + 3 tests
       MoteurGitCliBinaireDynamiqueTest.
+- v0.82.0 : **mission « Historique local » H0+H1 — le filet de
+      sécurité indépendant de Git** : recherche IntelliJ mesurée dans
+      le code [5 jours PAR ACTIVITÉ (trous ≥ 12 h = 1 jour), purge une
+      fois par session ~1 s après démarrage, AUCUN quota, contenu AVANT
+      changement, regroupement par frontières d'action nommées, revert
+      annulable (WriteCommandAction), contenus portés par le VFS (drop
+      au rebuild), binaires non stockés par défaut] ; H0 [ADR 0104
+      (blobs SHA-256 + index JSON atomique dans le stockage PRIVÉ —
+      Room écarté : journal append-then-compact, pas de migration),
+      ADR 0105 (5 jours calendaires — divergence assumée vs jours
+      d'activité, quota 256 Mo, 2 Mo/fichier, 5000 entrées, SECRETS
+      jamais historisés), ADR 0106 (capture par DÉCORATEUR du port
+      FileSystem, SourceProjetHistorique = projet ouvert, détection
+      externe au plus juste, restauration annulable par construction),
+      docs/HISTORIQUE_LOCAL.md + maquette] ; H1 [port HistoriqueLocal +
+      modèles + PolitiqueHistorique.exclut (core:domain, JVM pur),
+      MoteurHistoriqueLocal (dédup par empreinte, index tmp+rename,
+      clé de projet DYNAMIQUE — index rechargé à la clé, purge âge/
+      quota/nombre + blobs orphelins, index corrompu → vide),
+      HistoriqueFileSystem (contenu AVANT lu au délégué, pierres
+      tombales, renommage avec ancien nom, anti-bruit identique,
+      silencieux par contrat), liaison décorée dans StorageModule
+      (core:storage — l'arbre privé reste nu), EditorViewModel pose la
+      racine + purge à l'ouverture] ; tests [MoteurHistoriqueLocalTest
+      14 + HistoriqueFileSystemTest 9 — intégration réelle sur
+      dossiers temporaires, horloge factice] ; chaîne verte sur
+      core:domain, core:storage, core:testing, feature:editor, app —
+      assembleDebug 20,5 Mo.
 - v0.81.0 : **mission « Exécuter » R0+R1 — le bouton Run d'Android
       Studio, sans adb** (compile → installe → lance) : recherche des
       références mesurée (AndroidIDE : récepteur EXPORTÉ forgeable,

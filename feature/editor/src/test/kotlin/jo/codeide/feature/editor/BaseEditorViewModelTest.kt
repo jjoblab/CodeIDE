@@ -23,6 +23,7 @@ import jo.codeide.core.testing.FakeApkInstaller
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.FakeHistoriqueLocal
 import jo.codeide.core.testing.FakeObserveToolchainState
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
@@ -147,6 +148,15 @@ abstract class BaseEditorViewModelTest {
      *  résultats semés par le test, appels journalisés. */
     protected val installateurApkTest = FakeApkInstaller()
 
+    /** Source de capture de l'historique local (mission H, ADR 0106) :
+     *  l'espace d'édition y pose la racine du projet ouvert. */
+    protected val sourceHistoriqueTest =
+        jo.codeide.core.domain
+            .SourceProjetHistorique()
+
+    /** Faux historique local (mission H) : appels journalisés. */
+    protected val historiqueTest = FakeHistoriqueLocal()
+
     /** Cas d'usage d'arbre purs (étape 17) — sans état, partagés par test. */
     protected val copierArbre = CopierArbreUseCase()
 
@@ -204,6 +214,8 @@ abstract class BaseEditorViewModelTest {
             listerModeles = listerModeles,
             sessionsTerminal = sessionsTerminal,
             resolveurChemin = resolveurFUSE,
+            sourceHistorique = sourceHistoriqueTest,
+            historique = historiqueTest,
             observerEtatOutils = observerOutils,
             tooling = tooling,
             synchroniserProjet =
