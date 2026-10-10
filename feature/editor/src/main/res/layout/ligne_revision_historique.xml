@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une RÉVISION de l'historique (mission H2, maquette) : icône du type,
+     moment (libellé du type) + détail (moment relatif, note de
+     renommage/étiquette), taille à droite. L'appui montre le diff. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/touch_target_min"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_md">
+
+    <ImageView
+        android:id="@+id/icone_revision"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        app:tint="@color/explorateur_texte_2"
+        tools:src="@drawable/ic_editer" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/libelle_revision"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="@color/explorateur_texte"
+            tools:text="Changement externe" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/detail_revision"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="@color/explorateur_texte_2"
+            tools:text="il y a 26 min · git pull" />
+    </LinearLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/taille_revision"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="@color/explorateur_texte_3"
+        tools:text="3,9 Ko" />
+</LinearLayout>

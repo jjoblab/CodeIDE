@@ -78,5 +78,9 @@
     <color name="logcat_niveau_erreur">#E5584F</color>
     <color name="logcat_message_erreur">#F2A29D</color>
     <color name="logcat_bandeau_pertes_fond">#14EDA63F</color>
+
+    <!-- Jetons nuit de la feuille Historique (mission H, H2). -->
+    <color name="historique_diff_ajout_fond">#146FC47A</color>
+    <color name="historique_diff_retrait_fond">#14E5584F</color>
     <color name="logcat_bandeau_arret_fond">#14E5584F</color>
 </resources>

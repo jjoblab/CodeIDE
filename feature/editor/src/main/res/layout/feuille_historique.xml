@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feuille « Historique » d'un fichier (mission « Historique local » H2,
+     spec § 5, maquette docs/preview/historique-local.html) : en-tête
+     (titre + nom du fichier + fermer), liste des révisions groupées par
+     période (Aujourd'hui / Hier / Plus ancien) avec moments relatifs,
+     état vide honnête. La page DIFF vit dans le ViewFlipper (le diff de
+     la révision sélectionnée contre le contenu actuel ou la révision
+     précédente). Jetons EXPLORATEUR_V2 § 3. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/spacing_sm">
+
+    <!-- Poignée de la feuille (même chrome que la feuille des tâches). -->
+    <View
+        android:layout_width="24dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginVertical="@dimen/spacing_sm"
+        android:background="?attr/colorOutline" />
+
+    <!-- ===================== En-tête ===================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_md">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/historique_titre"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="@color/explorateur_texte" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/sous_titre_historique"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="@color/explorateur_texte_2"
+                tools:text="MainActivity.kt" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_fermer_historique"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:contentDescription="@string/historique_fermer"
+            android:text="@string/historique_fermer" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/explorateur_bordure" />
+
+    <!-- ============ Liste (page 0) / Diff (page 1) ============ -->
+    <ViewFlipper
+        android:id="@+id/flipper_historique"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Page 0 : les révisions groupées par période. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/liste_revisions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingBottom="@dimen/spacing_sm"
+                tools:itemCount="8"
+                tools:listitem="@layout/ligne_revision_historique" />
+
+            <!-- État vide honnête : l'historique couvre les fichiers du
+                 PROJET (l'arbre privé n'est pas capturé). -->
+            <LinearLayout
+                android:id="@+id/etat_vide_historique"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/state_padding"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/historique_vide"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="@color/explorateur_texte_2" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:gravity="center"
+                    android:text="@string/historique_vide_detail"
+                    android:textColor="@color/explorateur_texte_3"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Page 1 : le diff de la révision sélectionnée. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/spacing_sm">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_retour_diff"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/historique_diff_retour"
+                    app:icon="@drawable/ic_chevron_droite"
+                    app:iconTint="@color/explorateur_texte_2" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/titre_diff"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="@color/explorateur_texte"
+                    tools:text="il y a 26 min · 3 lignes" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_mode_diff"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:textSize="12sp"
+                    tools:text="@string/historique_diff_vs_actuel" />
+            </LinearLayout>
+
+            <!-- Diff indisponible : honnête (binaire ou trop grand). -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/ligne_indisponible_diff"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingVertical="@dimen/spacing_sm"
+                android:text="@string/historique_contenu_indisponible"
+                android:textColor="@color/explorateur_texte_3"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/liste_diff"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingBottom="@dimen/spacing_sm"
+                tools:itemCount="6"
+                tools:listitem="@layout/ligne_diff" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_restaurer"
+                style="@style/Widget.CodeIDE.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:minHeight="48dp"
+                android:text="@string/historique_restaurer" />
+        </LinearLayout>
+    </ViewFlipper>
+</LinearLayout>

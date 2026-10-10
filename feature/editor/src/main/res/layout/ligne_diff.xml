@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une ligne du DIFF unifié (mission H2) : monospace 11 sp, marqueur
+     +/-/espace, fond teinté par type (ajout vert translucide, retrait
+     rouge translucide — teinte posée au bind par l'adaptateur, la
+     ressource porte la teinte de TEXTE). -->
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/texte_ligne_diff"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fontFamily="monospace"
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingVertical="1dp"
+    android:textSize="11sp"
+    tools:text="-    val modele = ViewModelProvider(this)"
+    tools:textColor="@color/logcat_niveau_erreur" />

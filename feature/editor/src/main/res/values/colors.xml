@@ -94,5 +94,10 @@
     <color name="logcat_niveau_erreur">#C6362D</color>
     <color name="logcat_message_erreur">#B3261E</color>
     <color name="logcat_bandeau_pertes_fond">#149A6700</color>
+
+    <!-- Jetons de la feuille Historique (mission H, H2) : fonds des
+         lignes du diff unifié (vert/rouge translucides, maquette). -->
+    <color name="historique_diff_ajout_fond">#142E7D38</color>
+    <color name="historique_diff_retrait_fond">#14C6362D</color>
     <color name="logcat_bandeau_arret_fond">#14B3261E</color>
 </resources>
