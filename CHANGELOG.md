@@ -1,5 +1,33 @@
 # Journal des modifications
 
+## [0.80.7] – 2026-10-10
+
+### Corrigé
+
+- **`core:bootstrap`** : **section Git figée sur « Ce projet n'est pas
+  un dépôt Git » malgré un dépôt cloné ou initialisé** (retour
+  utilisateur, récurrent depuis la v0.80.4). Cause racine ENFIN
+  trouvée et prouvée : `MoteurGitCli.executer` collectait
+  `stdoutLines()` une **seconde** fois après le drainage de
+  `SupervisionProcessus.attendre` — or les flux du port sont froids et
+  **consommables une seule fois** (le lecteur referme le tuyau à
+  l'EOF). Sur un appareil réel, la seconde collecte rendait un stdout
+  VIDE : `git rev-parse --is-inside-work-tree` sortait bien `true`
+  mais `estDepot` répondait FAUX pour TOUT dépôt existant — la section
+  restait figée sur « pas un dépôt », pendant que le clonage (qui ne
+  lit que le code de sortie) réussissait. Les faux de test rejouent
+  leurs flux à l'infini (`asFlow()` d'une liste) : tous les tests
+  existants étaient verts et masquaient le bug. Correctif :
+  `SupervisionProcessus.Sortie` porte désormais la sortie standard
+  capturée pendant l'unique drainage (`sortieStandard`), et
+  `MoteurGitCli.executer` lit cette capture — plus AUCUNE seconde
+  collecte. Preuve rouge/vert : quatre nouveaux tests sur de VRAIS
+  sous-processus JVM (`MoteurGitCliFluxUniqueTest` — « git » factice
+  scripté + vrai git de la machine) échouent avec l'ancien code
+  (stdout vide : 3 échecs) et passent avec le correctif. Au passage,
+  toute la lecture du stdout git devient fiable : journal des commits,
+  branches, branche courante, diff, stash — pas seulement `estDepot`.
+
 ## [0.80.6] – 2026-10-10
 
 ### Corrigé
