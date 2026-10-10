@@ -787,7 +787,14 @@ class EditorActivity :
         liaison.toolbarEditeur.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_run -> {
-                    viewModel.onAction(ActionEditor.ExecuterMain)
+                    // Mission « Exécuter » R1 (ADR 0102) : projet Android →
+                    // « Run » d'Android Studio (compile → installe →
+                    // lance) ; projet JVM → `gradle run` (fun main).
+                    if (viewModel.etat.value.projetApplicationAndroid) {
+                        viewModel.onAction(ActionEditor.ExecuterApplication)
+                    } else {
+                        viewModel.onAction(ActionEditor.ExecuterMain)
+                    }
                     true
                 }
 
@@ -1233,13 +1240,15 @@ class EditorActivity :
     }
 
     /**
-     * v0.41.1 : bouton Run — visible seulement si l'onglet actif contient
-     * `fun main(`. Lance `gradle run` au clic via [ActionEditor.ExecuterMain].
+     * v0.41.1 : bouton Run — visible si l'onglet actif contient
+     * `fun main(` (lance `gradle run`) OU si le projet possède un module
+     * application Android (mission « Exécuter » R1, ADR 0102 : compile
+     * → installe → lance, comme le bouton Run d'Android Studio).
      */
     private fun rendreBoutonRun(etat: EtatEditor) {
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
         val menu = liaison.toolbarEditeur.menu
-        menu.findItem(R.id.action_run)?.isVisible = onglet?.aFunMain == true
+        menu.findItem(R.id.action_run)?.isVisible = onglet?.aFunMain == true || etat.projetApplicationAndroid
     }
 
     /**
@@ -1914,6 +1923,14 @@ class EditorActivity :
                 finish()
             }
 
+            is EffetEditor.NotifierExecution -> {
+                // Mission « Exécuter » R1 (ADR 0102) : snackbar du cycle
+                // d'exécution — l'action correctrice éventuelle ouvre la
+                // désinstallation SYSTÈME du paquet en cause (boîte de
+                // dialogue du système, confirmation à l'utilisateur).
+                afficherSnackbarExecution(effet)
+            }
+
             EffetEditor.ErreurOuverture -> {
                 Snackbar.make(liaison.racineEditeur, R.string.editor_erreur_ouverture, Snackbar.LENGTH_SHORT).show()
             }
@@ -1957,6 +1974,32 @@ class EditorActivity :
                 Unit
             }
         }
+    }
+
+    /**
+     * Snackbar du cycle « Exécuter l'application » (mission R1, ADR
+     * 0102) : message localisé + action correctrice éventuelle — la
+     * désinstallation de secours ouvre la boîte SYSTÈME du paquet (la
+     * confirmation reste à l'utilisateur, jamais silencieuse).
+     */
+    @Suppress("SpreadOperator") // getString n'expose ses arguments qu'en vararg.
+    private fun afficherSnackbarExecution(effet: EffetEditor.NotifierExecution) {
+        val texte =
+            if (effet.arguments.isEmpty()) {
+                getString(effet.message)
+            } else {
+                getString(effet.message, *effet.arguments.toTypedArray())
+            }
+        val snackbar = Snackbar.make(liaison.racineEditeur, texte, Snackbar.LENGTH_LONG)
+        if (effet.action != null && effet.nomPaquet != null) {
+            snackbar.setAction(effet.action) {
+                val desinstallation =
+                    Intent(Intent.ACTION_DELETE)
+                        .setData("package:${effet.nomPaquet}".toUri())
+                startActivity(desinstallation)
+            }
+        }
+        snackbar.show()
     }
 
     /** Fichier binaire : le proposer au système (« Ouvrir avec »). */
