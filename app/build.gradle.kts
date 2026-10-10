@@ -12,6 +12,10 @@ android {
         // BuildInfo du système de journalisation : VERSION_NAME/VERSION_CODE
         // alimentent l'en-tête de session et device-info.txt (section 5.7).
         buildConfig = true
+        // Pont de journaux des apps exécutées (mission « Exécuter » R2,
+        // ADR 0103) : interfaces AIDL partagées avec applog-runtime
+        // (fichiers jumeaux — même paquet, même protocole).
+        aidl = true
     }
 }
 
@@ -96,4 +100,8 @@ dependencies {
 // ---------------------------------------------------------------------------
 tasks.named("preBuild") {
     dependsOn(":tooling:server:controlerJarAssets")
+    // Mission « Exécuter » R2 (ADR 0103) : jamais d'APK sans la bibliothèque
+    // applog-runtime non plus — elle voyage dans les assets et devient le
+    // dépôt maven local du daemon.
+    dependsOn(":applog-runtime:controlerAarAssets")
 }

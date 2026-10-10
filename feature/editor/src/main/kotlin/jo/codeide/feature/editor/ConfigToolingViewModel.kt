@@ -68,6 +68,16 @@ class ConfigToolingViewModel
             viewModelScope.launch { persister { it.copy(toolingHorsLigne = horsLigne) } }
         }
 
+        /**
+         * Injection de la bibliothèque applog-runtime dans les builds debug
+         * des projets (mission « Exécuter » R2, ADR 0103) — s'applique à la
+         * prochaine vie du process orchestrateur (redémarrage de l'app ou
+         * de la chaîne d'outils), dit tel quel dans l'écran.
+         */
+        fun definirInjectionAppLog(active: Boolean) {
+            viewModelScope.launch { persister { it.copy(injectionAppLog = active) } }
+        }
+
         /** Arguments Gradle libres (séparés par des espaces). */
         fun definirArguments(arguments: String) {
             viewModelScope.launch { persister { it.copy(toolingArguments = arguments.trim()) } }
