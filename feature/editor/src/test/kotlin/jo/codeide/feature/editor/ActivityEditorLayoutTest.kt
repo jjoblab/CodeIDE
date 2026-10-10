@@ -311,6 +311,20 @@ class ActivityEditorLayoutTest {
             "conteneur de fragments du panneau (v0.32.4, ADR 0055)",
             racine.findViewById<View>(R.id.conteneur_fragments_panneau),
         )
+        // R3 : QUATRE onglets — l'ordre des TabItem suit STRICTEMENT
+        // l'enum OngletPanneau (Console, Problèmes, Journal, Logcat) ;
+        // la sélection commmune les fragments par index.
+        val onglets = racine.findViewById<com.google.android.material.tabs.TabLayout>(R.id.onglets_panneau)
+        assertEquals(
+            "quatre onglets : Console, Problèmes, Journal, Logcat (R3)",
+            4,
+            onglets.tabCount,
+        )
+        assertEquals(
+            "le 4e onglet est Logcat (ordre de l'enum OngletPanneau)",
+            "Logcat",
+            onglets.getTabAt(3)?.text,
+        )
         // Les ids des vues empilées ont disparu des ressources — la
         // vérification passe par getIdentifier (R.id.contenu_* ne compile
         // plus, c'est le point).

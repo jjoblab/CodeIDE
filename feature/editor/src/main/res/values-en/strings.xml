@@ -111,6 +111,42 @@
     <string name="editor_ouvrir_avec_aucune">No application can open this file.</string>
     <string name="editor_chemin_copie">Path copied</string>
 
+    <!-- Mission « Exécuter » R3 (ADR 0103): Logcat tab — the real Logcat
+         of executed apps, no adb (spec § 4-5). -->
+    <string name="editor_panneau_logcat">Logcat</string>
+    <string name="editor_panneau_logcat_sous_titre">Logs from your apps, no adb</string>
+    <string name="logcat_selecteur_processus">Select the displayed process</string>
+    <string name="logcat_aucun_processus">none</string>
+    <string name="logcat_session_menu">%1$s (%2$d)</string>
+    <string name="logcat_session_vivante"> · running</string>
+    <string name="logcat_session_terminee"> · finished</string>
+    <string name="logcat_session_precedente"> · previous</string>
+    <string name="logcat_filtre_indice">Filter text</string>
+    <string name="logcat_regex">Regular expression</string>
+    <string name="logcat_regex_marque">.*</string>
+    <string name="logcat_filtre_niveau">Minimum level shown</string>
+    <string name="logcat_niveau_verbeux">Verbose</string>
+    <string name="logcat_niveau_debogage">Debug</string>
+    <string name="logcat_niveau_info">Info</string>
+    <string name="logcat_niveau_avertissement">Warning</string>
+    <string name="logcat_niveau_erreur">Error</string>
+    <string name="logcat_niveau_assert">Assert</string>
+    <string name="logcat_pause">Pause scrolling</string>
+    <string name="logcat_effacer">Clear displayed logs</string>
+    <string name="logcat_vide">Run your app to see its logs</string>
+    <string name="logcat_vide_pied">No adb: logs from your app only, since its process started.</string>
+    <plurals name="logcat_lignes_perdues">
+        <item quantity="one">%1$d line lost</item>
+        <item quantity="other">%1$d lines lost</item>
+    </plurals>
+    <string name="logcat_arret">The process stopped: %1$s</string>
+    <string name="logcat_precedente">Previous session — %1$s (pid %2$d) · ended at %3$s</string>
+    <string name="logcat_precedente_heure_inconnue">unknown time</string>
+    <string name="logcat_motif_invalide">Invalid pattern: %1$s</string>
+    <string name="logcat_pid_tid">%1$d-%2$d</string>
+    <string name="logcat_libelle_clip">Logcat line</string>
+    <string name="logcat_copiee">Line copied</string>
+
     <!-- Panneau inférieur (étape 16). -->
     <string name="editor_panneau_agrandir_cd">Expand the bottom panel</string>
     <string name="editor_journal_niveau_debug">Debug</string>
