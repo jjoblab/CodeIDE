@@ -177,6 +177,19 @@ class MoteurHistoriqueLocalTest {
         }
 
     @Test
+    fun `une etiquette posee SUR le dossier parait dans son historique`() =
+        runTest {
+            val moteur = moteur()
+            moteur.enregistrer("src/Main.kt", TypeEntreeHistorique.MODIFICATION, "v1")
+            horloge.maintenant += 1_000L
+            moteur.etiqueter("avant essai", "src")
+
+            val revisions = moteur.listerRevisionsSous("src")
+            assertEquals("l'étiquette du dossier EST une entrée de son historique (H4)", 2, revisions.size)
+            assertEquals(TypeEntreeHistorique.ETIQUETTE, revisions.first().type)
+        }
+
+    @Test
     fun `au dela de la taille maximale l entree existe sans contenu`() =
         runTest {
             val moteur = moteur(politique = PolitiqueHistorique(tailleMaxFichierOctets = 5))

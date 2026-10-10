@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.DiffUnifie
 import jo.codeide.core.domain.EntreeHistorique
+import jo.codeide.core.domain.EtiqueteurHistorique
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.HistoriqueLocal
 import jo.codeide.core.domain.LigneDiff
@@ -40,6 +41,9 @@ sealed interface MessageHistorique {
     /** Impossible de recréer le fichier : son dossier parent a
      *  disparu (H3 — restaurer une pierre tombale). */
     data object ParentIntrouvable : MessageHistorique
+
+    /** Étiquette posée (H4) — le filet marque l'instant courant. */
+    data object EtiquettePosee : MessageHistorique
 }
 
 /** Mode d'ouverture de la feuille Historique (mission H3). */
@@ -105,13 +109,15 @@ data class EtatHistorique(
 
 /**
  * ViewModel de la feuille « Historique » (missions « Historique local »
- * H2 puis H3) : liste des révisions d'un fichier (moments relatifs,
+ * H2 → H4) : liste des révisions d'un fichier (moments relatifs,
  * périodes), d'un DOSSIER (tous les fichiers sous le préfixe) ou du
  * PROJET ENTIER (« Modifications récentes ») — filtre « Supprimés
  * seuls » (pierres tombales retrouvables), diff unifié (contre le
  * contenu ACTUEL ou la révision PRÉCÉDENTE — [DiffUnifie], partagé avec
- * la future vue Git), RESTAURATION d'une version existante et
- * RECRÉATION d'un fichier supprimé.
+ * la future vue Git), RESTAURATION d'une version existante,
+ * RECRÉATION d'un fichier supprimé, ÉTIQUETTES utilisateur (H4 — la
+ * portée courante de la feuille, [EtiqueteurHistorique] nettoie le
+ * nom).
  *
  * La restauration est annulable PAR CONSTRUCTION : l'écriture passe par
  * le port `FileSystem` DÉCORÉ (la version d'avant part à l'historique
@@ -127,6 +133,7 @@ class HistoriqueViewModel
         private val historique: HistoriqueLocal,
         private val fichiers: FileSystem,
         private val resolveur: ResolveurCheminHistorique,
+        private val etiqueteur: EtiqueteurHistorique,
     ) : ViewModel() {
         private val etatInterne = MutableStateFlow(EtatHistorique())
 
@@ -193,6 +200,27 @@ class HistoriqueViewModel
         fun definirFiltreSupprimes(supprimesSeuls: Boolean) {
             if (etatInterne.value.filtreSupprimes == supprimesSeuls) return
             etatInterne.update { it.copy(filtreSupprimes = supprimesSeuls, revisions = filtrer(supprimesSeuls)) }
+        }
+
+        /**
+         * Pose une étiquette UTILISATEUR (H4) sur la portée courante de
+         * la feuille : le fichier (mode fichier), le dossier LUI-MÊME
+         * (mode dossier — l'étiquette paraît dans l'historique du
+         * dossier), le projet entier (mode projet). Nom nettoyé par
+         * [EtiqueteurHistorique] (vide : aucun effet).
+         */
+        fun etiqueter(nom: String) {
+            viewModelScope.launch {
+                val chemin =
+                    when (etatInterne.value.mode) {
+                        ModeHistorique.FICHIER, ModeHistorique.DOSSIER -> etatInterne.value.cheminRelatif
+                        ModeHistorique.PROJET -> null
+                    }
+                if (etiqueteur.etiqueter(nom, chemin) != null) {
+                    etatInterne.update { it.copy(message = MessageHistorique.EtiquettePosee) }
+                    recharger()
+                }
+            }
         }
 
         /**

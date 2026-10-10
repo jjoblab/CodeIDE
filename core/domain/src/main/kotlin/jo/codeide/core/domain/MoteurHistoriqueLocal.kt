@@ -128,11 +128,13 @@ public class MoteurHistoriqueLocal(
                     return@withContext emptyList()
                 }
                 // Préfixe STRICT : « src » couvre « src/… », jamais
-                // « srcX/… » ; vide = racine = tout le projet.
+                // « srcX/… » ; L'EXACT le dossier lui-même (une
+                // étiquette posée SUR le dossier paraît dans SON
+                // historique — H4) ; vide = racine = tout le projet.
                 val prefixe = if (cheminDossier.isBlank()) "" else "$cheminDossier/"
                 entrees()
                     .asReversed()
-                    .filter { it.cheminRelatif.startsWith(prefixe) }
+                    .filter { it.cheminRelatif == cheminDossier || it.cheminRelatif.startsWith(prefixe) }
                     .take(limite.coerceAtLeast(0))
             }
         }

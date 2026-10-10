@@ -216,6 +216,9 @@ abstract class BaseEditorViewModelTest {
             resolveurChemin = resolveurFUSE,
             sourceHistorique = sourceHistoriqueTest,
             historique = historiqueTest,
+            etiqueteurHistorique =
+                jo.codeide.core.domain
+                    .EtiqueteurHistorique(historiqueTest),
             observerEtatOutils = observerOutils,
             tooling = tooling,
             synchroniserProjet =
