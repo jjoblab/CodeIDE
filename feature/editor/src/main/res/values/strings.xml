@@ -245,6 +245,12 @@
     <string name="editor_config_execution">Exécution</string>
     <string name="editor_config_hors_ligne">Mode hors ligne</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>
+
+    <!-- Mission « Exécuter » R2 (ADR 0103) : injection de la bibliothèque
+         de débogage applog-runtime — le libellé dit HONNÊTEMENT ce qui est
+         ajouté aux builds debug des projets. -->
+    <string name="editor_config_injection_applog">Journaux des applications exécutées</string>
+    <string name="editor_config_injection_applog_desc" tools:ignore="TypographyDashes">Ajoute une bibliothèque de débogage à vos builds debug : les journaux de l\'application lancée arrivent dans l\'onglet Logcat (aucune permission, aucune dépendance ajoutée). S\'applique au prochain démarrage du serveur de build.</string>
     <string name="editor_config_arguments">Arguments Gradle supplémentaires</string>
     <string name="editor_config_arguments_aide" tools:ignore="TypographyDashes">Séparés par des espaces — ex. --stacktrace --info</string>
     <string name="editor_config_etat">Orchestrateur</string>

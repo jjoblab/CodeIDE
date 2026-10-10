@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Bibliothèque applog-runtime (ADR 0103) — fusionne dans le manifeste
+      de l'application de l'utilisateur, SANS lui ajouter une permission :
+
+      - <queries> : visibilité du paquet de l'IDE (jo.codeide) pour la
+        LIAISON du pont de journaux (Android 11+ exige la déclaration —
+        c'est le mécanisme standard, aucune permission associée) ;
+
+      - provider d'amorçage : démarre le pont dès que le processus de
+        l'app existe. Non exporté (personne d'autre ne le touche),
+        autorité unique par app (${applicationId}).
+    -->
+
+    <queries>
+        <package android:name="jo.codeide" />
+    </queries>
+
+    <application>
+        <provider
+            android:name="jo.codeide.applog.AmorcePont"
+            android:authorities="${applicationId}.jo.codeide.applog"
+            android:exported="false" />
+    </application>
+
+</manifest>

@@ -151,6 +151,8 @@ public class SettingsDataStore(
             booleanPreferencesKey("tooling_offline")
         internal val TOOLING_ARGUMENTS: Preferences.Key<String> =
             stringPreferencesKey("tooling_extra_args")
+        internal val INJECTION_APPLOG: Preferences.Key<Boolean> =
+            booleanPreferencesKey("tooling_applog_injection")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
     }
 }
@@ -212,6 +214,7 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
         toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
         toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
         toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
+        injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
     )
 
@@ -255,6 +258,7 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES, reglage.toolingAfficherTaches)
     set(SettingsDataStore.Cles.TOOLING_HORS_LIGNE, reglage.toolingHorsLigne)
     set(SettingsDataStore.Cles.TOOLING_ARGUMENTS, reglage.toolingArguments)
+    set(SettingsDataStore.Cles.INJECTION_APPLOG, reglage.injectionAppLog)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
 
     val dossier = reglage.workspace

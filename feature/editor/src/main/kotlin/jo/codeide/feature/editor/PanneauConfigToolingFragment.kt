@@ -80,6 +80,12 @@ class PanneauConfigToolingFragment : Fragment() {
             if (!renduEnCours) viewModel.definirHorsLigne(coche)
         }
 
+        // Mission « Exécuter » R2 (ADR 0103) : interrupteur d'injection de
+        // la bibliothèque applog-runtime dans les builds debug des projets.
+        liaison.interrupteurInjectionApplog.setOnCheckedChangeListener { _, coche ->
+            if (!renduEnCours) viewModel.definirInjectionAppLog(coche)
+        }
+
         val saisie = liaison.saisieArguments as TextInputEditText
         saisie.doAfterTextChanged { _ ->
             // Écrit au repos (focus perdu / « Terminé »), jamais par frappe :
@@ -116,6 +122,7 @@ class PanneauConfigToolingFragment : Fragment() {
         renduEnCours = true
         try {
             liaison.interrupteurHorsLigne.isChecked = reglages.toolingHorsLigne
+            liaison.interrupteurInjectionApplog.isChecked = reglages.injectionAppLog
 
             // Le champ ne se réécrit QUE hors saisie : effacer le texte d'un
             // utilisateur en train de taper serait le pire des rendus.
