@@ -92,6 +92,18 @@
             android:text="@string/git_initialiser" />
     </LinearLayout>
 
+    <!-- Erreur (v0.80.4 : hors du ScrollView — visible dans l'état « pas
+         un dépôt » AUSSI, l'échec d'initialisation n'est plus muet). -->
+    <TextView
+        android:id="@+id/erreur_git"
+        style="?attr/textAppearanceBodySmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="4dp"
+        android:textColor="?attr/colorError"
+        android:visibility="gone" />
+
     <!-- Corps : message + changements + commit. -->
     <ScrollView
         android:id="@+id/corps_git"
@@ -136,16 +148,6 @@
                 android:layout_marginTop="4dp"
                 android:fontFamily="monospace"
                 android:textSize="11sp"
-                android:visibility="gone" />
-
-            <!-- Erreur. -->
-            <TextView
-                android:id="@+id/erreur_git"
-                style="?attr/textAppearanceBodySmall"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="?attr/colorError"
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>

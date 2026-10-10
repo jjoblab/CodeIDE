@@ -20,6 +20,7 @@ import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.collectWithLifecycle
+import jo.codeide.feature.home.databinding.DialogueClonerBinding
 import jo.codeide.feature.home.databinding.DialogueRenommerBinding
 import jo.codeide.feature.home.databinding.FragmentHomeBinding
 import javax.inject.Inject
@@ -111,6 +112,8 @@ class HomeFragment :
         // Terminal (T6) : la décision écran/installation vit au ViewModel
         // (bootstrap installé ou non) — le fragment ne fait que relayer.
         binding.buttonTerminal.setOnClickListener { viewModel.action(ActionAccueil.OuvrirTerminal) }
+        // Clonage Git (G5, v0.80.4) : « Get from VCS » mobile.
+        binding.buttonGit.setOnClickListener { ouvrirDialogueClonage() }
         binding.bandeauDossier.boutonConfigurer.setOnClickListener { navigator.openOnboarding() }
         // Include optionnel aux yeux de ViewBinding : appels sûrs, jamais de `!!`.
         binding.bandeauTerminal?.boutonInstallerTerminal?.setOnClickListener { navigator.openBootstrapInstall() }
@@ -205,6 +208,11 @@ class HomeFragment :
         binding.etatErreur.isVisible = etat.erreur != null
         binding.rafraichissementAccueil.isRefreshing = etat.rafraichissement
 
+        // Clonage (G5, v0.80.4) : bandeau de progression + actions figées
+        // — jamais deux clones concurrents.
+        binding.progressionClonage.isVisible = etat.clonageEnCours
+        binding.buttonGit.isEnabled = !etat.clonageEnCours
+
         val sansContenu = !etat.chargement && etat.erreur == null && etat.projets.isEmpty()
         binding.colonneEtatVide.isVisible = sansContenu
         if (sansContenu) {
@@ -268,24 +276,155 @@ class HomeFragment :
                 is EffetAccueil.OuvrirEditeur,
                 EffetAccueil.OuvrirTerminalEcran,
                 EffetAccueil.OuvrirInstallationTerminal,
-                -> return
+                -> {
+                    return
+                }
 
-                is EffetAccueil.ProjetImporte -> getString(R.string.accueil_snackbar_importe, effet.nom)
+                is EffetAccueil.ProjetImporte -> {
+                    getString(R.string.accueil_snackbar_importe, effet.nom)
+                }
 
-                EffetAccueil.DossierDejaPresent -> getString(R.string.accueil_snackbar_deja_present)
+                EffetAccueil.DossierDejaPresent -> {
+                    getString(R.string.accueil_snackbar_deja_present)
+                }
 
-                is EffetAccueil.DossierRefuse -> getString(TraductionsAccueil.refus(effet.raison))
+                is EffetAccueil.DossierRefuse -> {
+                    getString(TraductionsAccueil.refus(effet.raison))
+                }
 
-                is EffetAccueil.ProjetDeplace -> getString(R.string.accueil_snackbar_deplace, effet.nom)
+                is EffetAccueil.ProjetDeplace -> {
+                    getString(R.string.accueil_snackbar_deplace, effet.nom)
+                }
 
-                EffetAccueil.ProjetRetire -> getString(R.string.accueil_snackbar_retire)
+                EffetAccueil.ProjetRetire -> {
+                    getString(R.string.accueil_snackbar_retire)
+                }
 
-                EffetAccueil.ProjetSupprime -> getString(R.string.accueil_snackbar_supprime)
+                EffetAccueil.ProjetSupprime -> {
+                    getString(R.string.accueil_snackbar_supprime)
+                }
 
-                is EffetAccueil.Echec -> getString(TraductionsAccueil.message(effet.erreur))
+                is EffetAccueil.EchecClonage -> {
+                    messageClonage(
+                        getString(TraductionsAccueil.message(effet.erreur)),
+                        effet.rollback,
+                    )
+                }
+
+                is EffetAccueil.EchecClonageGit -> {
+                    messageClonage(
+                        getString(R.string.accueil_cloner_git_echec, effet.message),
+                        effet.rollback,
+                    )
+                }
+
+                is EffetAccueil.NomClonageRefuse -> {
+                    getString(TraductionsAccueil.refusClonage(effet.raison))
+                }
+
+                is EffetAccueil.Echec -> {
+                    getString(TraductionsAccueil.message(effet.erreur))
+                }
             }
         Snackbar.make(binding.racineAccueil, message, Snackbar.LENGTH_SHORT).show()
     }
+
+    /** Message d'échec de clonage, suffixé si un résidu subsiste. */
+    private fun messageClonage(
+        message: String,
+        rollback: Boolean,
+    ): String =
+        if (rollback) {
+            message
+        } else {
+            getString(R.string.accueil_cloner_residu, message)
+        }
+
+    /**
+     * Dialogue « Cloner un dépôt » (G5, v0.80.4) : URL + nom de dossier
+     * pré-rempli depuis l'URL (dernier segment, `.git` retiré) — le nom
+     * reste éditable, le pré-remplissage ne ré-écrase pas une saisie.
+     */
+    private fun ouvrirDialogueClonage() {
+        val vue = DialogueClonerBinding.inflate(layoutInflater)
+        var nomManuel = false
+
+        // Pré-remplissage du nom depuis l'URL (Get from VCS d'Android
+        // Studio : le Directory suit la Repository URL tant que
+        // l'utilisateur ne l'a pas touché).
+        vue.saisieUrlClone.addTextChangedListener(
+            object : TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) = Unit
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (!nomManuel) {
+                        vue.saisieNomClone.setText(nomDepuisUrl(s?.toString().orEmpty()))
+                    }
+                }
+            },
+        )
+        vue.saisieNomClone.addTextChangedListener(
+            object : TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) = Unit
+
+                override fun afterTextChanged(s: Editable?) {
+                    nomManuel = true
+                }
+            },
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.accueil_cloner_titre)
+            .setView(vue.root)
+            .setPositiveButton(R.string.accueil_cloner_action) { _, _ ->
+                val url =
+                    vue.saisieUrlClone.text
+                        ?.toString()
+                        .orEmpty()
+                val nom =
+                    vue.saisieNomClone.text
+                        ?.toString()
+                        .orEmpty()
+                if (url.isNotBlank() && nom.isNotBlank()) {
+                    viewModel.action(ActionAccueil.ClonerDepot(url, nom))
+                }
+            }.setNegativeButton(R.string.accueil_annuler, null)
+            .show()
+    }
+
+    /** Nom de dossier dérivé d'une URL de dépôt (dernier segment, sans
+     *  `.git`) — vide si l'URL ne dit rien d'utilisable. */
+    private fun nomDepuisUrl(url: String): String =
+        url
+            .trim()
+            .trimEnd('/')
+            .substringAfterLast('/')
+            .removeSuffix(".git")
+            .trim()
 
     /** Toucher une carte : ouvrir le projet, ou ses actions si l'accès est rompu. */
     override fun surClicProjet(
