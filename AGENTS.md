@@ -1185,6 +1185,32 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.88.0 : **mission « Historique local » H3 — historique de dossier,
+      fichiers supprimés, Modifications récentes** (spec § 5) : port
+      [listerRevisionsSous(cheminDossier, limite=200) — préfixe STRICT
+      (src ne couvre pas srcX/), chemin VIDE = projet ENTIER] ;
+      ResolveurCheminHistorique [feature:editor — chemin relatif → URI
+      par ÉNUMÉRATION des parents (un list par segment, garde
+      profondeur 16), JAMAIS d'URI SAF construite (leçon v0.64.0),
+      segment manquant → null] ; HistoriqueViewModel [modes FICHIER/
+      DOSSIER/PROJET ; filtre « Supprimés seuls » (pierres tombales) ;
+      cibleEcriture → Existante (écrasement H2) | ARecreer (tombale :
+      createFile dans le parent RÉSOLU + writeText, snackbar « Fichier
+      recréé » + Annuler = resuppression) | Introuvable (parent
+      disparu, snackbar honnête) ; diff « vs précédente » = plus
+      ancienne du MÊME chemin (listerRevisions, pas la liste mêlée)] ;
+      FeuilleHistoriqueFragment [titre « Modifications récentes » en
+      mode projet, rangées au NOM DU FICHIER (type + moment + dossier
+      parent en détail), bouton-filtre outlined checkable, confirmation
+      distincte pour tombale, 5 messages snackbar] ; entrées [popover
+      dossier + RACINE (Modifications récentes) + onglets/fichiers
+      PRIVÉS exclus (arbre non capturé, ADR 0106 —
+      construireMenuOnglet prend l'onglet)] ; tests [+13 : moteur 4
+      (préfixe strict, chemin vide, limite, hors projet), Resolveur 5,
+      ViewModel +4 nouveaux et 8 repris] ; CHANGELOG 0.87.0 laissé « (à
+      compléter) » par erreur REMPLI ; recette manuelle Y1-Y12
+      (TESTS_MANUELS.md) ; chaîne verte sur core:domain, core:testing,
+      feature:editor, app.
 - v0.87.0 : **mission « Historique local » H2 — feuille Historique
       d'un fichier + restauration** (spec § 5, maquette
       historique-local.html) : DiffUnifie [core:domain PUR — rognage

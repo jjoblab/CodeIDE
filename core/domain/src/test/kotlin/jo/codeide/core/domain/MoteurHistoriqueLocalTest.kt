@@ -119,6 +119,64 @@ class MoteurHistoriqueLocalTest {
         }
 
     @Test
+    fun `les revisions d un dossier couvrent le prefixe strict - src ne couvre pas srcX`() =
+        runTest {
+            val moteur = moteur()
+            moteur.enregistrer("src/Main.kt", TypeEntreeHistorique.MODIFICATION, "v1")
+            horloge.maintenant += 1_000L
+            moteur.enregistrer("srcX/Autre.kt", TypeEntreeHistorique.MODIFICATION, "v2")
+            horloge.maintenant += 1_000L
+            moteur.enregistrer("Main.kt", TypeEntreeHistorique.MODIFICATION, "v3")
+            horloge.maintenant += 1_000L
+            val dernier = moteur.enregistrer("src/com/Detail.kt", TypeEntreeHistorique.CREATION, null)
+
+            val revisions = moteur.listerRevisionsSous("src")
+            assertEquals(2, revisions.size)
+            assertEquals(dernier!!.id, revisions.first().id)
+            assertTrue(revisions.all { it.cheminRelatif.startsWith("src/") })
+        }
+
+    @Test
+    fun `un chemin vide liste les modifications recentes du projet entier`() =
+        runTest {
+            val moteur = moteur()
+            moteur.enregistrer("a.txt", TypeEntreeHistorique.MODIFICATION, "v1")
+            horloge.maintenant += 1_000L
+            moteur.enregistrer("src/Main.kt", TypeEntreeHistorique.MODIFICATION, "v2")
+            horloge.maintenant += 1_000L
+            val dernier = moteur.enregistrer("src/com/Detail.kt", TypeEntreeHistorique.CREATION, null)
+
+            val revisions = moteur.listerRevisionsSous("")
+            assertEquals(3, revisions.size)
+            assertEquals(dernier!!.id, revisions.first().id)
+        }
+
+    @Test
+    fun `les revisions d un dossier sont bornees a la limite demandee`() =
+        runTest {
+            val moteur = moteur()
+            repeat(5) { index ->
+                moteur.enregistrer("src/Fichier$index.kt", TypeEntreeHistorique.MODIFICATION, "v$index")
+                horloge.maintenant += 1_000L
+            }
+
+            val limitees = moteur.listerRevisionsSous("src", limite = 2)
+            assertEquals(2, limitees.size)
+            assertEquals("les PLUS RÉCENTES d'abord (Fichier4 puis Fichier3)", 5L, limitees[0].id)
+            assertEquals(4L, limitees[1].id)
+        }
+
+    @Test
+    fun `hors projet les revisions d un dossier sont vides`() =
+        runTest {
+            val moteur = moteur()
+            moteur.enregistrer("src/Main.kt", TypeEntreeHistorique.MODIFICATION, "v1")
+            cleCourante = null
+
+            assertTrue(moteur.listerRevisionsSous("src").isEmpty())
+        }
+
+    @Test
     fun `au dela de la taille maximale l entree existe sans contenu`() =
         runTest {
             val moteur = moteur(politique = PolitiqueHistorique(tailleMaxFichierOctets = 5))

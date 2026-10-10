@@ -118,6 +118,25 @@ public class MoteurHistoriqueLocal(
             }
         }
 
+    override suspend fun listerRevisionsSous(
+        cheminDossier: String,
+        limite: Int,
+    ): List<EntreeHistorique> =
+        verrou.withLock {
+            withContext(repartiteurs.io) {
+                if (cleCourante() == null) {
+                    return@withContext emptyList()
+                }
+                // Préfixe STRICT : « src » couvre « src/… », jamais
+                // « srcX/… » ; vide = racine = tout le projet.
+                val prefixe = if (cheminDossier.isBlank()) "" else "$cheminDossier/"
+                entrees()
+                    .asReversed()
+                    .filter { it.cheminRelatif.startsWith(prefixe) }
+                    .take(limite.coerceAtLeast(0))
+            }
+        }
+
     override suspend fun lireContenu(id: Long): String? =
         verrou.withLock {
             withContext(repartiteurs.io) {
