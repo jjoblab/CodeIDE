@@ -121,6 +121,11 @@ class EditorActivity :
     ControleurPanneauEditeur {
     private val viewModel: EditorViewModel by viewModels()
 
+    /** ViewModel Logcat (R3) — portée ACTIVITÉ (le fragment Logcat y
+     *  accède par `activityViewModels`) : le snackbar « L'application a
+     *  planté » (R4) vit ici, visible même replié. */
+    private val viewModelLogcat: LogcatViewModel by viewModels()
+
     /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
     @Inject
     lateinit var navigateur: AppNavigator
@@ -153,6 +158,10 @@ class EditorActivity :
 
     /** Idem pour les onglets du panneau inférieur (étape 16). */
     private var selectionProgrammatiquePanneau = false
+
+    /** Dernier plantage déjà signalé en snackbar (R4 — une fois par
+     *  session morte, jamais de ressassement à chaque réémission d'état). */
+    private var dernierPlantageAffiche: String? = null
 
     /** Le tiroir est-il ouvert (pilote le retour système) ? */
     private var tiroirOuvert = false
@@ -262,6 +271,12 @@ class EditorActivity :
         viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
 
+        // R4 : plantage de l'application exécutée — snackbar UNE fois par
+        // session morte (le pont signale l'exception non interceptée).
+        viewModelLogcat.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
+            surveillerPlantage(etat.plantage)
+        }
+
         // Réglages de l'éditeur (v0.37.0) : chaque changement persisté
         // s'applique à l'EditorView AU FIL DE L'EAU — thème de coloration,
         // zoom, retour à la ligne, minimap, caractères non imprimables,
@@ -275,6 +290,25 @@ class EditorActivity :
             controleurTooling?.rendre(etat)
             rendreEntetePanneau()
         }
+    }
+
+    /**
+     * Snackbar de plantage (R4, spec § 4.3) : UNE fois par session morte
+     * — l'action « Voir la trace » ouvre l'onglet Logcat SUR la session
+     * morte (et soulève la feuille si elle est repliée).
+     */
+    private fun surveillerPlantage(plantage: PlantageLogcat?) {
+        if (plantage == null || plantage.idSession == dernierPlantageAffiche) return
+        dernierPlantageAffiche = plantage.idSession
+        Snackbar
+            .make(liaison.racineEditeur, R.string.logcat_plantage, Snackbar.LENGTH_LONG)
+            .setAction(R.string.logcat_plantage_voir) {
+                viewModelLogcat.selectionnerSession(plantage.idSession)
+                viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.LOGCAT))
+                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
+                    viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
+                }
+            }.show()
     }
 
     /**
@@ -1902,8 +1936,21 @@ class EditorActivity :
         val index = onglets.indexOfFirst { onglet -> fichier.endsWith(onglet.cheminRelatif) }
         if (index < 0) return
         viewModel.onAction(ActionEditor.SelectionnerOnglet(index))
+        sauterVersLigne(onglets[index].uri, ligne)
+    }
+
+    /**
+     * Pose le défilement et le curseur à la LIGNE du fichier ouvert —
+     * APRÈS le re-rendu (post) pour que la vue soit rebranchée sur la
+     * bonne session (partagé par le saut au problème et le saut de pile
+     * Logcat, R4).
+     */
+    private fun sauterVersLigne(
+        uri: String,
+        ligne: Int,
+    ) {
         liaison.racineEditeur.post {
-            val session = viewModel.sessionSuivieDe(onglets[index].uri)?.session ?: return@post
+            val session = viewModel.sessionSuivieDe(uri)?.session ?: return@post
             val document = session.document
             val ligneBornee = (ligne - 1).coerceIn(0, document.lineCount() - 1)
             liaison.vueEditeur.scrollToLine(ligneBornee)
@@ -1999,6 +2046,13 @@ class EditorActivity :
 
             is EffetEditor.DefilementVersSource -> {
                 Unit
+            }
+
+            is EffetEditor.DefilementVersLigne -> {
+                // R4 : saut de pile — l'onglet vient d'être sélectionné (ou
+                // ouvert) ; le défilement et le curseur suivent APRÈS le
+                // re-rendu (même discipline que [sauterAuProbleme]).
+                sauterVersLigne(effet.uri, effet.ligne)
             }
         }
     }
