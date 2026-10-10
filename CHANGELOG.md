@@ -1,5 +1,45 @@
 # Journal des modifications
 
+## [0.85.0] – 2026-10-10
+
+### Ajouté
+
+- **Traces cliquables et plantages** (mission « Exécuter » R4, spec
+  EXECUTER.md § 4.3) : les piles `Fichier.kt:12` de l'onglet Logcat
+  deviennent NAVIGABLES, comme Android Studio :
+  - **Cadres cliquables** : l'analyseur pur `LignesPile` extrait les
+    cadres `.kt`/`.java` (sources inconnues, méthodes natives et
+    fichiers non éditables ignorés) ; un appui simple sur une ligne
+    portant une pile ouvre le SÉLECTEUR de cadres (la trace arrive en
+    UN message multi-lignes — l'équivalent honnête du clic cadre par
+    cadre) ; chaque choix saute au fichier source dans l'éditeur
+    (défilement + curseur à la ligne, même discipline que le saut au
+    diagnostic).
+  - **Résolution des fichiers** : onglet ouvert → sélection (suffixe
+    paquet du cadre, chute par nom de fichier) ; sinon sondes bornées
+    (au plus 4 requêtes SAF) des emplacements standards
+    `app/src/main/java|kotlin/<paquet>` — jamais de balayage complet.
+  - **Snackbar « L'application a planté »** : le pont signale
+    l'exception non interceptée (étiquette `Plantage`) — l'activité
+    montre le snackbar UNE fois par session morte, l'action « Voir la
+    trace » ouvre l'onglet Logcat sur la session morte et soulève la
+    feuille si repliée.
+- `ActionEditor.SauterVersLigneSource` + `EffetEditor.DefilementVersLigne`
+  (saut après re-branchement de la vue, partagé avec le saut au
+  problème) ; ViewModel Logcat porté à portée ACTIVITÉ (snackbar
+  visible même replié) ; 4 chaînes fr/en.
+
+### Tests
+
+- `LignesPileTest` (7, JVM pur) : cadres kt/java retenus, sources
+  inconnues/natives ignorées, non éditables ignorés, trace complète en
+  ordre, lignes non positives, détection du plantage du pont.
+- `SautPileLogcatEditorViewModelTest` (3) : onglet ouvert → sélection +
+  effet, résolution par candidats + ouverture + saut, cible introuvable
+  → rien.
+- `LogcatViewModelTest` (+1) : le plantage paraît dans l'état, une
+  seule fois par session.
+
 ## [0.84.0] – 2026-10-10
 
 ### Ajouté

@@ -300,6 +300,42 @@ class LogcatViewModelTest {
         }
 
     @Test
+    fun `un plantage du pont parait dans l etat une seule fois par session`() =
+        runTest {
+            pont.ouvrir("com.exemple.app", 4321)
+            val viewModel = viewModel()
+            avancer()
+
+            pont.pousser(
+                "com.exemple.app",
+                4321,
+                listOf(
+                    ligne("avant"),
+                    ligne(
+                        "Exception non interceptée dans le fil « main »",
+                        niveau = NiveauJournal.ERREUR,
+                        etiquette = "Plantage",
+                    ),
+                ),
+            )
+            avancer()
+
+            val plantage = viewModel.etat.value.plantage
+            assertNotNull("le plantage est signalé dans l'état (R4)", plantage)
+            assertEquals("com.exemple.app/4321", plantage?.idSession)
+
+            // Ré-émissions de sessions SANS nouveau plantage : inchangé
+            // (le snackbar de l'activité s'appuie sur l'identifiant).
+            pont.reemettre()
+            avancer()
+            assertEquals(
+                "com.exemple.app/4321",
+                viewModel.etat.value.plantage
+                    ?.idSession,
+            )
+        }
+
+    @Test
     fun `les pertes annoncees paraissent dans l etat`() =
         runTest {
             pont.ouvrir("com.exemple.app", 4321)

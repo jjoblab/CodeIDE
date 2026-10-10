@@ -41,12 +41,17 @@ internal fun lettreNiveauLogcat(niveau: NiveauJournal): String =
  * texte-3, D accent, I vert, W orange, E/F rouge — résolues UNE fois à
  * la construction (aucune allocation au bind, critère d'acceptation § 6).
  *
+ * R4 : clic SIMPLE = cadres cliquables (sélecteur côté fragment — la
+ * présence d'une pile est testée là, l'adaptateur ne fait que relayer).
+ *
  * @param contexte contexte des ressources (couleurs de niveaux).
+ * @param surLigneAppuyee clic simple : proposer le saut au source (R4).
  * @param surLigneLongueAppuyee copie de la ligne brute (clic long,
  *        spec § 4.3 — l'export reste une action explicite ailleurs).
  */
 class LignesLogcatAdapter(
     contexte: Context,
+    private val surLigneAppuyee: (LigneJournal) -> Unit,
     private val surLigneLongueAppuyee: (LigneJournal) -> Unit,
 ) : ListAdapter<LigneLogcatNumerotee, LignesLogcatAdapter.LigneViewHolder>(DIFF) {
     /** Format d'horodatage des colonnes (HH:mm:ss.SSS, invariant locale). */
@@ -77,6 +82,9 @@ class LignesLogcatAdapter(
                 if (ligne.niveau == NiveauJournal.ASSERT) Typeface.BOLD else Typeface.NORMAL,
             )
 
+            liaison.root.setOnClickListener {
+                surLigneAppuyee(ligne)
+            }
             liaison.root.setOnLongClickListener {
                 surLigneLongueAppuyee(ligne)
                 true

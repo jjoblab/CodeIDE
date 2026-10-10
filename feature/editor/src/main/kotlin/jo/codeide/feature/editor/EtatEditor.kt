@@ -330,6 +330,19 @@ sealed interface ActionEditor {
         val uri: String,
     ) : ActionEditor
 
+    /**
+     * Saute vers un emplacement de pile cliquable de l'onglet Logcat
+     * (mission « Exécuter » R4) : onglet ouvert → sélection ; sinon
+     * résolution par candidats sources (`src/main/java|kotlin`) puis
+     * ouverture — l'effet [EffetEditor.DefilementVersLigne] suit quand
+     * le fichier est devant l'utilisateur.
+     */
+    data class SauterVersLigneSource(
+        val classe: String,
+        val fichier: String,
+        val ligne: Int,
+    ) : ActionEditor
+
     /** Sélectionne l'onglet à la position [index]. */
     data class SelectionnerOnglet(
         val index: Int,
@@ -718,6 +731,16 @@ sealed interface EffetEditor {
      */
     data class DefilementVersSource(
         val uri: String,
+    ) : EffetEditor
+
+    /**
+     * R4 : l'éditeur doit défiler et poser le curseur à la LIGNE du
+     * fichier (on vient d'ouvrir/sélectionner son onglet — le saut suit
+     * le re-branchement de la vue, comme [sauterAuProbleme]).
+     */
+    data class DefilementVersLigne(
+        val uri: String,
+        val ligne: Int,
     ) : EffetEditor
 
     /** La lecture d'un fichier a échoué. */
