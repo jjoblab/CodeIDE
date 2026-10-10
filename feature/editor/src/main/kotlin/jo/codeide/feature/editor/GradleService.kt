@@ -758,6 +758,29 @@ class GradleService
         }
 
         /**
+         * Publie une ligne du CYCLE « EXÉCUTER L'APPLICATION » (mission
+         * R1, ADR 0102) sur le canal BUILD de la console — compilation
+         * lancée, APK trouvé, installation, confirmation système,
+         * lancement, échecs typés. Contrairement à [ajouterLigne], ces
+         * lignes ne viennent PAS de Gradle : elles racontent le runner
+         * d'Android Studio (les étapes autour du build), avec un
+         * libellé LOCALISABLE (ressource) plutôt que du texte brut.
+         */
+        internal fun publierLigneExecution(
+            libelle: TexteTooling,
+            style: StyleLigne = StyleLigne.ETAPE,
+        ) {
+            zoneTexteInterne.tryEmit(
+                EvenementConsoleTexte.Ligne(
+                    canal = CanalTooling.BUILD,
+                    libelle = libelle,
+                    style = style,
+                    horodatageMs = horloge.nowMillis(),
+                ),
+            )
+        }
+
+        /**
          * Publie un téléchargement du build suivi (v0.45.1 : le canal
          * téléchargements du client avait AUCUN consommateur — ces
          * événements existaient, la console les ignorait ; v0.46.0 : UNE

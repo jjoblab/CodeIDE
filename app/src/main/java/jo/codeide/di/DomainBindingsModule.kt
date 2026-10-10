@@ -5,10 +5,12 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import jo.codeide.core.domain.ApkInstaller
 import jo.codeide.core.domain.DefaultDispatcherProvider
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.ResoudreRepertoireProjet
+import jo.codeide.execution.ApkInstallerAndroid
 import javax.inject.Singleton
 
 /**
@@ -31,4 +33,12 @@ internal interface DomainBindingsModule {
      */
     @Binds
     fun bindResolveurCheminFuse(impl: ResoudreRepertoireProjet): ResolveurCheminFuse
+
+    /**
+     * Installeur d'APK de production (mission « Exécuter » R1, ADR 0102) :
+     * `PackageInstaller` du système, process principal — les tests JVM
+     * lient le faux de `core:testing`.
+     */
+    @Binds
+    fun bindApkInstaller(impl: ApkInstallerAndroid): ApkInstaller
 }
