@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeIDE — Exécuter / Logcat (maquette statique R0)</title>
+<style>
+  /* Jetons — thème nuit de référence (EXPLORATEUR_V2 § 3) */
+  :root {
+    --fond-page:#0b0d11; --fond-ecran:#14171d; --fond-tiroir:#1a1e25;
+    --fond-surface:#20252e; --fond-surface-2:#262c37; --fond-surface-3:#2d3441;
+    --bordure:#2c323d; --bordure-fine:#242a33;
+    --texte:#dde3ec; --texte-2:#99a2ae; --texte-3:#6c7581;
+    --accent:#7ab8f5; --accent-fort:#4f9be8; --accent-doux:rgba(122,184,245,.14);
+    --vert:#6fc47a; --orange:#eda63f; --rouge:#e5584f; --violet:#9c86d8;
+    --r-l:14px; --r-m:10px; --r-s:7px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', system-ui, sans-serif; background:var(--fond-page);
+         color:var(--texte); padding:20px; font-size:13px; }
+  h1 { font-size:16px; margin-bottom:4px; color:#fff; }
+  h2 { font-size:12px; margin:22px 0 10px; color:var(--texte-2);
+       text-transform:uppercase; letter-spacing:.6px; }
+  .note { font-size:11px; color:var(--texte-3); margin-bottom:12px; }
+
+  /* Écran téléphone */
+  .ecran { width:414px; background:var(--fond-ecran); border:1px solid var(--bordure);
+           border-radius:var(--r-l); overflow:hidden; }
+  .appbar { height:52px; display:flex; align-items:center; gap:10px; padding:0 12px;
+            border-bottom:1px solid var(--bordure-fine); }
+  .appbar .titre { flex:1; font-size:14px; font-weight:600; color:#fff; }
+  .bouton-executer { width:48px; height:48px; border-radius:var(--r-s);
+      background:var(--accent-doux); display:flex; align-items:center;
+      justify-content:center; position:relative; }
+  .bouton-executer svg { width:22px; height:22px; fill:var(--accent); }
+  .bouton-executer.en-cours svg { fill:var(--orange); }
+  .bouton-executer .point { position:absolute; top:6px; right:6px; width:8px; height:8px;
+      border-radius:50%; background:var(--orange); }
+
+  .zone-editeur { height:132px; background:
+      repeating-linear-gradient(180deg, #15181f 0 22px, #171b23 22px 44px);
+      position:relative; }
+  .zone-editeur .fantome { position:absolute; inset:0; display:flex;
+      align-items:center; justify-content:center; color:var(--texte-3);
+      font-size:11px; letter-spacing:.4px; }
+
+  /* Panneau inférieur */
+  .panneau { border-top:1px solid var(--bordure); background:var(--fond-ecran); }
+  .onglets { display:flex; height:40px; border-bottom:1px solid var(--bordure-fine); }
+  .onglet { flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+      font-size:11.5px; color:var(--texte-2); cursor:default;
+      border-bottom:2px solid transparent; }
+  .onglet.actif { color:var(--accent); border-bottom-color:var(--accent-fort);
+      background:var(--fond-ecran); }
+  .onglet .pastille { font-size:9px; background:var(--rouge); color:#fff;
+      border-radius:8px; padding:0 5px; }
+
+  /* Barre d'outils Logcat */
+  .outils { display:flex; align-items:center; gap:8px; padding:8px 10px;
+      background:var(--fond-surface); border-bottom:1px solid var(--bordure-fine); }
+  .puce-processus { display:flex; align-items:center; gap:6px; background:var(--fond-surface-2);
+      border:1px solid var(--bordure); border-radius:var(--r-s); padding:5px 10px;
+      font-size:11px; color:var(--texte); cursor:default; }
+  .puce-processus .ampoule { width:7px; height:7px; border-radius:50%;
+      background:var(--vert); }
+  .puce-processus .chevron { color:var(--texte-3); font-size:9px; }
+  .champ-filtre { flex:1; background:var(--fond-surface-2); border:1px solid var(--bordure);
+      border-radius:var(--r-s); height:32px; display:flex; align-items:center;
+      padding:0 10px; font-size:11.5px; color:var(--texte-3); gap:6px; }
+  .champ-filtre .loupe { opacity:.7; }
+  .outil-icone { width:32px; height:32px; border-radius:var(--r-s);
+      background:var(--fond-surface-2); border:1px solid var(--bordure);
+      display:flex; align-items:center; justify-content:center; cursor:default; }
+  .outil-icone svg { width:14px; height:14px; fill:var(--texte-2); }
+  .outil-icone.actif svg { fill:var(--accent); }
+  .outil-icone.niveau svg { fill:var(--vert); }
+
+  /* Bandeaux d'état */
+  .bandeau { display:flex; align-items:center; gap:8px; padding:7px 12px;
+      font-size:11px; border-bottom:1px solid var(--bordure-fine); }
+  .bandeau.pertes { color:var(--orange); background:rgba(237,166,63,.08); }
+  .bandeau.arret { color:var(--rouge); background:rgba(229,88,79,.08); }
+  .bandeau.precedente { color:var(--texte-2); background:var(--fond-surface); }
+  .bandeau .action { margin-left:auto; color:var(--accent); font-size:11px; }
+
+  /* Table de logs */
+  .logs { font-family:'Cascadia Mono', 'Consolas', monospace; font-size:11px;
+      background:var(--fond-ecran); height:214px; overflow:hidden;
+      display:flex; flex-direction:column; }
+  .ligne-log { display:flex; gap:8px; padding:3px 12px; white-space:pre; }
+  .ligne-log:hover { background:var(--fond-surface-3); }
+  .horodatage { color:var(--texte-3); flex-shrink:0; }
+  .pid-tid { color:var(--texte-2); flex-shrink:0; }
+  .etiquette { color:var(--violet); flex-shrink:0; width:110px; overflow:hidden;
+      text-overflow:ellipsis; }
+  .niveau { flex-shrink:0; width:34px; font-weight:700; }
+  .message { color:var(--texte); overflow:hidden; text-overflow:ellipsis; }
+  .v .niveau { color:#6c7581; } .d .niveau { color:#7ab8f5; }
+  .i .niveau { color:#6fc47a; } .w .niveau { color:#eda63f; }
+  .e .niveau { color:#e5584f; }
+  .e .message { color:#f2a29d; }
+  .e.plantage { background:rgba(229,88,79,.10); }
+  .e.plantage .message { font-weight:600; }
+  .ligne-code { color:var(--accent); text-decoration:underline dotted; cursor:pointer; }
+  .barre-defilement { height:6px; background:var(--fond-surface);
+      border-top:1px solid var(--bordure-fine); }
+  .pouce { width:38%; height:6px; background:var(--fond-surface-3);
+      border-radius:3px; margin-left:58%; }
+
+  /* États vides */
+  .vide { padding:28px 20px; text-align:center; color:var(--texte-2); font-size:12px; }
+  .vide .icone { width:40px; height:40px; margin:0 auto 10px; border-radius:var(--r-m);
+      background:var(--fond-surface); display:flex; align-items:center;
+      justify-content:center; }
+  .vide .icone svg { width:20px; height:20px; fill:var(--texte-3); }
+  .vide .pied { margin-top:10px; font-size:10.5px; color:var(--texte-3); }
+
+  /* Snackbars du flux Exécuter */
+  .zone-snackbars { display:flex; flex-direction:column; gap:10px; width:414px; }
+  .snackbar { background:#2b323e; border:1px solid #3a4351; border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.5); padding:10px 8px 10px 16px;
+      display:flex; align-items:center; gap:12px; max-width:90%; }
+  .snackbar .corps { flex:1; }
+  .snackbar .texte { font-size:12.5px; color:var(--texte); }
+  .snackbar .detail { font-size:10.5px; color:var(--texte-2); margin-top:2px;
+      font-family:'Cascadia Mono', monospace; }
+  .snackbar .action { color:var(--accent); font-size:12px; font-weight:600;
+      flex-shrink:0; cursor:pointer; padding:8px; }
+  .snackbar.avertissement { border-color:rgba(237,166,63,.4); }
+  .snackbar.avertissement .texte { color:var(--orange); }
+
+  /* Légende */
+  .legende { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px;
+      font-size:10.5px; color:var(--texte-2); }
+  .legende span b { font-weight:700; }
+  .cadre { border:1px dashed var(--bordure); border-radius:var(--r-m);
+      padding:12px; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<h1>Exécuter / Logcat — maquette statique (R0)</h1>
+<p class="note">Thème nuit de référence — jetons EXPLORATEUR_V2 § 3. Reproduction à 100 % à l'implémentation (R3). Aucune dépendance externe.</p>
+
+<div class="ecran">
+  <div class="appbar">
+    <div style="width:24px;height:24px;border-radius:6px;background:var(--fond-surface-2);"></div>
+    <div class="titre">MonApplication</div>
+    <div class="bouton-executer en-cours" title="Exécuter">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <div class="point"></div>
+    </div>
+    <div style="width:24px;height:24px;border-radius:6px;background:var(--fond-surface-2);"></div>
+  </div>
+
+  <div class="zone-editeur">
+    <div class="fantome">zone d'édition (inchangée)</div>
+  </div>
+
+  <div class="panneau">
+    <div class="onglets">
+      <div class="onglet">Console</div>
+      <div class="onglet">Problèmes</div>
+      <div class="onglet">Journal</div>
+      <div class="onglet actif">Logcat <span class="pastille">●</span></div>
+    </div>
+
+    <div class="outils">
+      <div class="puce-processus"><span class="ampoule"></span> :monapp <span class="chevron">▾</span></div>
+      <div class="champ-filtre"><span class="loupe">⌕</span> Filtrer… <span style="margin-left:auto;color:var(--vert);font-size:9.5px;">.*regex</span></div>
+      <div class="outil-icone niveau" title="Filtre de niveau : Info">
+        <svg viewBox="0 0 24 24"><path d="M3 17h6v4H3zM11 11h6v10h-6zM19 5h2v16h-2zM3 11h6v2H3zM11 5h6v2h-6z" opacity=".9"/></svg>
+      </div>
+      <div class="outil-icone" title="Pause du défilement">
+        <svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </div>
+      <div class="outil-icone" title="Effacer">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2H8l1-2z"/></svg>
+      </div>
+    </div>
+
+    <div class="bandeau pertes">⚠ 214 lignes perdues (tampon plein pendant la mise en arrière-plan)</div>
+    <div class="bandeau arret">■ Le processus s'est arrêté : ANR (plus de réponse)
+      <span class="action">Voir la trace</span></div>
+    <div class="bandeau precedente">◫ Session précédente — :monapp (pid 18342) · terminée à 14:02 par un plantage</div>
+
+    <div class="logs">
+      <div class="ligne-log v"><span class="horodatage">14:03:21.108</span><span class="pid-tid">18401-18401</span><span class="etiquette">com.exemple.monapp</span><span class="niveau">V</span><span class="message">BuildConfig marqué RELEASE=false</span></div>
+      <div class="ligne-log d"><span class="horodatage">14:03:21.339</span><span class="pid-tid">18401-18415</span><span class="etiquette">OpenGLRenderer</span><span class="niveau">D</span><span class="message">HWUI pipeline initialisé (threadBound)</span></div>
+      <div class="ligne-log i"><span class="horodatage">14:03:21.702</span><span class="pid-tid">18401-18401</span><span class="etiquette">MainActivity</span><span class="niveau">I</span><span class="message">onCreate terminé en 412 ms</span></div>
+      <div class="ligne-log w"><span class="horodatage">14:03:22.055</span><span class="pid-tid">18401-18401</span><span class="etiquette">Choreographer</span><span class="niveau">W</span><span class="message">38 images sautées ! Trop de travail sur le fil principal</span></div>
+      <div class="ligne-log d"><span class="horodatage">14:03:22.614</span><span class="pid-tid">18401-18416</span><span class="etiquette">System.out</span><span class="niveau">D</span><span class="message">Bonjour depuis l'application !</span></div>
+      <div class="ligne-log e plantage"><span class="horodatage">14:03:23.480</span><span class="pid-tid">18401-18401</span><span class="etiquette">AndroidRuntime</span><span class="niveau">E</span><span class="message">FATAL EXCEPTION : main</span></div>
+      <div class="ligne-log e"><span class="horodatage">14:03:23.481</span><span class="pid-tid">18401-18401</span><span class="etiquette">AndroidRuntime</span><span class="niveau">E</span><span class="message">java.lang.IllegalStateException: valeur absente</span></div>
+      <div class="ligne-log e"><span class="horodatage">14:03:23.482</span><span class="pid-tid">18401-18401</span><span class="etiquette">AndroidRuntime</span><span class="niveau">E</span><span class="message">   at com.exemple.monapp.<span class="ligne-code">Calculateur.kt:57</span></span></div>
+      <div class="ligne-log e"><span class="horodatage">14:03:23.483</span><span class="pid-tid">18401-18401</span><span class="etiquette">AndroidRuntime</span><span class="niveau">E</span><span class="message">   at com.exemple.monapp.<span class="ligne-code">MainActivity.kt:34</span></span></div>
+      <div class="ligne-log i"><span class="horodatage">14:03:24.004</span><span class="pid-tid">18401-18402</span><span class="etiquette">System.err</span><span class="niveau">W</span><span class="message">Process terminé par le signal 11 (plantage natif)</span></div>
+    </div>
+    <div class="barre-defilement"><div class="pouce"></div></div>
+  </div>
+</div>
+
+<div class="legende">
+  <span><b class="v" style="color:#6c7581">V</b> Verbose</span>
+  <span><b style="color:#7ab8f5">D</b> Debug</span>
+  <span><b style="color:#6fc47a">I</b> Info</span>
+  <span><b style="color:#eda63f">W</b> Warning</span>
+  <span><b style="color:#e5584f">E</b> Error / Assert</span>
+  <span>— la ligne plantage et les lignes de pile sont les cibles cliquables de R4</span>
+</div>
+
+<h2>Flux « Exécuter » — snackbars et console (R1)</h2>
+<div class="zone-snackbars">
+  <div class="snackbar">
+    <div class="corps"><div class="texte">Compilation de MonApplication (assembleDebug)…</div>
+    <div class="detail">:app:assembleDebug</div></div>
+  </div>
+  <div class="snackbar avertissement">
+    <div class="corps"><div class="texte">Pour installer vos applications, autorisez CodeIDE</div>
+    <div class="detail">Sources inconnues — l'écran système s'ouvre, l'installation reprendra au retour</div></div>
+    <div class="action">Autoriser</div>
+  </div>
+  <div class="snackbar">
+    <div class="corps"><div class="texte">MonApplication installée — lancement…</div>
+    <div class="detail">app/build/outputs/apk/debug/app-debug.apk</div></div>
+  </div>
+  <div class="snackbar avertissement">
+    <div class="corps"><div class="texte">Une version différente est déjà installée</div>
+    <div class="detail">Remplacer effacera les données de l'application</div></div>
+    <div class="action">Remplacer…</div>
+  </div>
+</div>
+
+<h2>État vide (aucune application lancée)</h2>
+<div class="cadre">
+  <div class="vide">
+    <div class="icone"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+    <div>Lancez votre application pour voir ses journaux</div>
+    <div class="pied">Sans adb : journaux de votre application uniquement, depuis le démarrage de son processus.</div>
+  </div>
+</div>
+
+</body>
+</html>
