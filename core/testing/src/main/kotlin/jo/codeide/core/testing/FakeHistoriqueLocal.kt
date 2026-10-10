@@ -35,6 +35,13 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     /** Réponses de [derniereEmpreinte] par chemin (null sinon). */
     public val empreintesSemees: MutableMap<String, String> = mutableMapOf()
 
+    /** Empreinte au stockage rendue par [empreinteOctets] (mission H6). */
+    public var empreinteSeme: Long = 0L
+
+    /** Compteur d'effacements TOTAUX par [effacerTout] (mission H6). */
+    public var effacementsTotaux: Int = 0
+        private set
+
     /** Appels REVUS de [etiqueter] (mission H4 — nom, chemin). */
     public val etiquettes: MutableList<Pair<String, String?>> = mutableListOf()
 
@@ -109,5 +116,16 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
 
     override suspend fun purger() {
         purges++
+    }
+
+    override suspend fun empreinteOctets(): Long = empreinteSeme
+
+    override suspend fun effacerTout() {
+        effacementsTotaux++
+        // Comme le vrai moteur : l'historique devient VIDE — les listes
+        // ne montrent plus rien (l'état « semé » du test est nettoyé).
+        enregistrements.clear()
+        contenusParId.clear()
+        etiquettes.clear()
     }
 }

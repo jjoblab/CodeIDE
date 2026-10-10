@@ -10,6 +10,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
 import jo.codeide.core.model.PaletteCouleur
+import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TemplateId
@@ -18,6 +19,7 @@ import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.FakeHistoriqueLocal
 import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.MainDispatcherRule
@@ -59,6 +61,9 @@ class SettingsViewModelTest {
     private lateinit var fichiers: FakeFileSystem
     private lateinit var projets: FakeProjectRepository
 
+    /** Faux historique local (mission H6 — empreinte et effacement). */
+    private val historique = FakeHistoriqueLocal()
+
     /** Informations de build factices pour la section « À propos ». */
     private val infosBuild =
         CrashAppInfo(versionName = "0.7.0", versionCode = 700L, buildType = "debug", applicationId = "jo.codeide")
@@ -84,6 +89,7 @@ class SettingsViewModelTest {
                 ),
             effacerDossier = ClearWorkspaceUseCase(depot, projets, fichiers),
             reinitialiserPreferences = ResetPreferencesUseCase(depot, projets, fichiers),
+            historique = historique,
             infosBuild = infosBuild,
             logger = FakeAppLogger(),
         )
@@ -291,6 +297,37 @@ class SettingsViewModelTest {
 
             assertEquals(listOf(EffetParametres.OuvrirSelecteurDossier), effets)
             travail.cancel()
+        }
+
+    @Test
+    fun `la retention de l'historique se persiste immediatement`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+
+            viewModel.onAction(ActionParametres.ChangerRetentionHistorique(RetentionHistorique.JOURS_30))
+            advanceUntilIdle()
+
+            assertEquals(RetentionHistorique.JOURS_30, depot.reglages.retentionHistorique)
+            assertEquals(RetentionHistorique.JOURS_30, viewModel.etat.value.reglage.retentionHistorique)
+        }
+
+    @Test
+    fun `l'empreinte de l'historique est chargee a l'ouverture puis remesuree apres effacement`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            historique.empreinteSeme = 1_234_567L
+            val viewModel = creerViewModel()
+            advanceUntilIdle()
+
+            assertEquals(1_234_567L, viewModel.etat.value.empreinteHistoriqueOctets)
+
+            historique.empreinteSeme = 0L
+            viewModel.onAction(ActionParametres.EffacerHistorique)
+            advanceUntilIdle()
+
+            assertEquals("l'effacement total est passé par le port", 1, historique.effacementsTotaux)
+            assertEquals(RetourHistorique.Efface, viewModel.etat.value.retourHistorique)
+            assertEquals(0L, viewModel.etat.value.empreinteHistoriqueOctets)
         }
 
     private companion object {

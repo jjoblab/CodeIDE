@@ -1185,6 +1185,32 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.90.0 : **mission « Historique local » H6 — réglages et entretien**
+      (spec § 6, ADR 0105 « réglable ») : RetentionHistorique [core:model —
+      enum 1/5/15/30 jours, défaut 5 ; persistance DataStore par NOM,
+      lecture tolérante (fromPersistedName, motif License)] ; moteur
+      [retentionJoursCourante : suspend () -> Int — la purge lit le
+      réglage à CHAQUE exécution, changement applicable SANS reconstruire
+      (motif applog R2 : SettingsRepository injecté dans StorageModule)] ;
+      port +2 [empreinteOctets() — TOUT projet confondu, blobs + index,
+      hors fil principal ; effacerTout() — index mémoire invalidé +
+      racine.deleteRecursively, repart proprement] ; section Paramètres
+      « Historique local » [SectionParametres.HISTORIQUE + destination
+      settings_historique + ic_historique (core:ui) ; rangée rétention à
+      dialogue choix unique (patron licence), empreinte o/ko/Mo (…
+      pendant la mesure), bouton « Effacer l'historique local » à
+      confirmation honnête, retour « Historique effacé » + remesure] ;
+      maître [rangée carte Environnement, sous-titre dynamique « 5 jours ·
+      indépendant de Git »] ; SettingsViewModel [+port HistoriqueLocal,
+      empreinte chargée à l'init, actions ChangerRetentionHistorique/
+      EffacerHistorique, H6 fusionné dans traiterReglageSection] ;
+      nettoyage [ic_etiquette de feature:editor (v0.89.0) doublonnait
+      core:ui — retiré, tint déjà posé par le layout] ; tests [+5 :
+      moteur 3 (rétention dynamique mutée, empreinte multi-projets,
+      effacerTout repart), SettingsViewModel 2 (rétention persistée,
+      empreinte+effacement)] ; recette manuelle Y17-Y19 ; chaîne verte
+      sur core:model, core:datastore, core:domain, core:storage, core:ui,
+      core:testing, feature:settings, feature:editor, app — APK 20,7 Mo.
 - v0.89.0 : **mission « Historique local » H4 — étiquettes (utilisateur
       + système)** (spec § 5bis, ADR 0106 § d) : EtiqueteurHistorique
       [core:domain, @Singleton — nom nettoyé (trim, vide refusé →
