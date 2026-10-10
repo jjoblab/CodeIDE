@@ -1117,6 +1117,31 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       GitViewModelTest (dont le scénario exact du retour : dépôt créé
       après l'ouverture, zone « initialiser » qui part) + 3 tests
       MoteurGitCliBinaireDynamiqueTest.
+- v0.80.6 : **apparence appliquée à TOUS les écrans** (retour
+      utilisateur : « à part EditorActivity et CrashActivity, tous les
+      autres écrans n'utilisent pas le thème ou palettes de couleurs
+      choisies ; incohérences entre palettes et dynamiccolors ») —
+      cause racine : installSplashScreen() (uniquement MainActivity)
+      appelle Activity.setTheme(postSplashScreenTheme) en interne,
+      thème NEUF qui EFFACE l'overlay posé avant création par
+      AppliquerApparence.onActivityPreCreated — les activités sans
+      splash (éditeur, terminal, diagnostic) gardaient leur overlay
+      [correctif : AppliquerApparence.rappliquer(activity), reposé
+      par l'hôte juste après installSplashScreen(), AVANT
+      super.onCreate()/setContentView() ; no-op si le point
+      d'application n'est pas installé (application de test Hilt)] ;
+      distinction dynamique/palette honnête [couleurs dynamiques
+      appliquées seulement si l'appareil les SUPPORTE
+      (DynamicColors.isDynamicColorAvailable : Android 13+, ou 12 chez
+      les fabricants supportés), sinon repli sur la palette statique —
+      plus jamais « ni l'un ni l'autre » ; écran Apparence : rangées
+      de palette désactivées seulement si dynamiques réellement
+      applicables, la palette redevient utilisable sans Material You] ;
+      preuve anti-régression [test d'intégration MainActivity + splash
+      réel + palette BLEU : échoue sans le correctif (vérifié),
+      passe avec] ; 2 tests AppliquerApparenceTest (core:ui) + 1
+      ApparenceIntegrationTest (app), chaîne verte sur les modules
+      touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours

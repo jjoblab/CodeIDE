@@ -33,6 +33,19 @@ import java.util.concurrent.CopyOnWriteArrayList
  * - [mettreAJour] — à chaque émission des réglages (processus principal) ;
  *   si l'état change, les activités vivantes sont recréées pour lever
  *   l'overlay déjà appliqué (un `applyStyle` ne se retire pas).
+ * - [rappliquer] — par une activité qui REMPLACE son propre thème après
+ *   `installSplashScreen()` (v0.80.6, retour utilisateur : seul l'éditeur
+ *   et le diagnostic suivaient le réglage) : le `setTheme` interne de
+ *   l'API SplashScreen repart d'un thème NEUF et efface l'overlay posé
+ *   avant création — l'activité hôte le repose immédiatement, avant
+ *   `super.onCreate()`/`setContentView()`.
+ *
+ * Distinction dynamique/palette (v0.80.6) : les couleurs dynamiques ne
+ * s'appliquent que si l'appareil les SUPPORTE (Android 12+,
+ * [DynamicColors.isDynamicColorAvailable]) ; sinon le réglage demandé
+ * retombe honnêtement sur la palette statique — un appareil sans
+ * Material You n'affiche jamais « ni l'un ni l'autre », l'écran
+ * Apparence reste cohérent avec ce qui s'affiche réellement.
  *
  * Le mode de thème (clair/sombre/système) reste porté par
  * `AppCompatDelegate.setDefaultNightMode` ; cet objet ne couvre QUE les
@@ -46,6 +59,17 @@ public object AppliquerApparence {
     /** Vrai dès l'installation des callbacks — un seul enregistrement par processus. */
     @Volatile
     private var installe = false
+
+    /**
+     * Vrai dès [installer] (installation SYNCHRONE de l'état, avant le
+     * post d'enregistrement) — [rappliquer] ne fait rien tant que le
+     * point d'application n'a pas été posé : sans `CodeIdeApplication`
+     * (application de test Hilt, sans le cycle applicatif), les
+     * activités ne reçoivent AUCUN état par défaut au lieu d'un état
+     * dynamique fantôme.
+     */
+    @Volatile
+    private var etatInitialise = false
 
     /** Activités vivantes du processus (références faibles : la recréation ne fuit pas). */
     private val activites = CopyOnWriteArrayList<WeakReference<Activity>>()
@@ -68,6 +92,7 @@ public object AppliquerApparence {
         palette: PaletteCouleur,
     ) {
         etat = EtatCouleur(couleursDynamiques, palette)
+        etatInitialise = true
         filPrincipal.post {
             if (!installe) {
                 application.registerActivityLifecycleCallbacks(Observateur)
@@ -94,10 +119,31 @@ public object AppliquerApparence {
         filPrincipal.post { recreerLesActivitesVivantes() }
     }
 
+    /**
+     * Ré-applique l'état coloré courant au thème d'une activité qui vient
+     * de REMPLACER son propre thème — cas unique de l'application :
+     * `installSplashScreen()` résout `postSplashScreenTheme` puis appelle
+     * `Activity.setTheme()`, qui repart d'un thème NEUF et efface l'overlay
+     * posé en `onActivityPreCreated` (v0.80.6 : l'hôte de navigation et
+     * tous ses fragments restaient sur le thème de base quand l'éditeur
+     * et le diagnostic suivaient le réglage).
+     *
+     * À appeler APRÈS le remplacement de thème et AVANT
+     * `super.onCreate()`/`setContentView()` — le contenu doit se gonfler
+     * avec les couleurs finales. Sans effet si [installer] n'a pas été
+     * appelé dans le processus.
+     *
+     * @param activity activité dont le thème vient d'être remplacé.
+     */
+    public fun rappliquer(activity: Activity) {
+        if (!etatInitialise) return
+        appliquerA(activity)
+    }
+
     /** Applique l'état courant au thème d'une activité (avant gonflement). */
     private fun appliquerA(activity: Activity) {
         val courant = etat
-        if (courant.couleursDynamiques) {
+        if (courant.couleursDynamiques && DynamicColors.isDynamicColorAvailable()) {
             DynamicColors.applyToActivityIfAvailable(activity)
         } else {
             activity.theme.applyStyle(styleOverlay(courant.palette), true)
