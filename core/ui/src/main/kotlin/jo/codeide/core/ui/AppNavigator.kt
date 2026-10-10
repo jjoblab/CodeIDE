@@ -197,6 +197,12 @@ public enum class SectionParametres {
     PROJETS,
 
     /**
+     * Historique local (mission H6) : rétention en jours du filet de
+     * sécurité, empreinte au stockage, effacement d'entretien.
+     */
+    HISTORIQUE,
+
+    /**
      * Environnement de développement : composants du SDK, vérifications
      * (légère/approfondie), réparation, désinstallation (E5, ADR 0090) —
      * remplace la section « Outils » annoncée « bientôt disponible ».

@@ -82,6 +82,8 @@
     <string name="settings_sous_ia">Built-in coding assistant</string>
     <string name="settings_maitre_projets">Projects</string>
     <string name="settings_sous_projets">Working folder, author, license</string>
+    <string name="settings_maitre_historique">Local history</string>
+    <string name="settings_sous_historique">%1$s · independent of Git</string>
     <string name="settings_maitre_env">Development environment</string>
     <string name="settings_sous_env">SDK components, verifications, repairs</string>
     <string name="settings_maitre_securite">Security and privacy</string>
@@ -169,6 +171,25 @@
     <!-- Projects section. -->
     <string name="settings_projets_titre">Projects</string>
 
+    <!-- Local history section (H6 mission, ADR 0105). -->
+    <string name="settings_historique_titre">Local history</string>
+    <string name="settings_historique_retention">Keep</string>
+    <string name="settings_historique_retention_detail">Revisions older than that are purged at the next project opening — files never move.</string>
+    <string name="settings_historique_retention_dialogue">Keep history</string>
+    <string name="settings_historique_1_jour">1 day</string>
+    <string name="settings_historique_5_jours">5 days</string>
+    <string name="settings_historique_15_jours">15 days</string>
+    <string name="settings_historique_30_jours">30 days</string>
+    <string name="settings_historique_empreinte">Storage used: %1$s</string>
+    <string name="settings_historique_empreinte_attente">…</string>
+    <string name="settings_historique_octets">%1$d B</string>
+    <string name="settings_historique_ko">%1$d kB</string>
+    <string name="settings_historique_mo">%1$s MB</string>
+    <string name="settings_historique_effacer">Clear local history</string>
+    <string name="settings_historique_effacer_message">The history of ALL projects will be deleted (revisions, deleted-file markers, labels). Current files are not touched.</string>
+    <string name="settings_historique_effacer_detail">Deletes the revisions of ALL projects — current files are not touched.</string>
+    <string name="settings_historique_efface">History cleared</string>
+
     <!-- About and Advanced sections. -->
     <string name="settings_apropos_titre">About</string>
     <string name="settings_avance_titre">Advanced</string>
@@ -181,6 +202,7 @@
     <string name="settings_cd_ligne_terminal">Open terminal settings</string>
     <string name="settings_cd_ligne_ia">AI assistant — coming soon</string>
     <string name="settings_cd_ligne_projets">Open project settings</string>
+    <string name="settings_cd_ligne_historique">Open local history settings</string>
     <string name="settings_cd_ligne_env">Open the Environment screen</string>
     <string name="settings_cd_ligne_securite">Security and privacy — coming soon</string>
     <string name="settings_cd_ligne_apropos">Open app information</string>

@@ -43,15 +43,21 @@ import java.security.MessageDigest
  *        rechargé quand la clé change.
  * @param horloge temps injecté (purges par âge testables).
  * @param repartiteurs dispatcheurs (toute E/S hors fil principal).
- * @param politique conservation (ADR 0105), réglable.
+ * @param politique conservation (ADR 0105) — taille maximale par
+ *        fichier et exclusions à la CAPTURE (non réglables).
+ * @param retentionJoursCourante rétention en jours lue à CHAQUE purge
+ *        (mission H6 : réglage des Paramètres, ADR 0105 « réglable ») —
+ *        le défaut cite la politique du constructeur : les tests
+ *        existants ne changent pas.
  */
-@Suppress("TooManyFunctions") // Port Historique : une fonction par opération + intégrité (index, blobs, purge).
+@Suppress("TooManyFunctions") // Port Historique : une fonction par opération + intégrité + entretien (H6).
 public class MoteurHistoriqueLocal(
     private val racine: File,
     private val cleProjetCourante: () -> String?,
     private val horloge: TimeProvider,
     private val repartiteurs: DispatcherProvider,
     private val politique: PolitiqueHistorique = PolitiqueHistorique(),
+    private val retentionJoursCourante: suspend () -> Int = { politique.joursRetention },
 ) : HistoriqueLocal {
     private val json = Json { ignoreUnknownKeys = true }
     private val verrou = Mutex()
@@ -191,7 +197,9 @@ public class MoteurHistoriqueLocal(
                 if (cleCourante() == null) return@withContext
                 val existantes = entrees()
                 val maintenant = horloge.nowMillis()
-                val ageMaxMs = politique.joursRetention * MILLIS_PAR_JOUR
+                // Rétention lue à CHAQUE purge (H6 — réglage des
+                // Paramètres, ADR 0105) : un changement s'applique ici.
+                val ageMaxMs = retentionJoursCourante() * MILLIS_PAR_JOUR
 
                 var conservees = existantes.filter { maintenant - it.horodatageMs <= ageMaxMs }
                 // Quota : les entrées les plus anciennes d'abord, jusqu'à
@@ -211,6 +219,30 @@ public class MoteurHistoriqueLocal(
                     reecrireIndex()
                 }
                 supprimerBlobsOrphelins(referencees.map { it.empreinte }.toSet())
+            }
+        }
+
+    override suspend fun empreinteOctets(): Long =
+        verrou.withLock {
+            withContext(repartiteurs.io) {
+                // TOUT projet confondu, index compris — l'écran
+                // d'entretien (H6) ne dépend d'aucun projet ouvert.
+                if (!racine.isDirectory) {
+                    0L
+                } else {
+                    racine.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                }
+            }
+        }
+
+    override suspend fun effacerTout(): Unit =
+        verrou.withLock {
+            withContext(repartiteurs.io) {
+                // Index en mémoire INVALIDÉ : le prochain accès
+                // rechargera (un dossier absent = historique vide).
+                indexEnMemoire = null
+                dossierCharge = null
+                racine.deleteRecursively()
             }
         }
 

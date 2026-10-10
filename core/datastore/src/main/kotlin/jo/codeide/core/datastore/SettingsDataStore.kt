@@ -13,6 +13,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.PaletteCouleur
+import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
@@ -153,6 +154,8 @@ public class SettingsDataStore(
             stringPreferencesKey("tooling_extra_args")
         internal val INJECTION_APPLOG: Preferences.Key<Boolean> =
             booleanPreferencesKey("tooling_applog_injection")
+        internal val RETENTION_HISTORIQUE: Preferences.Key<String> =
+            stringPreferencesKey("local_history_retention_days")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
     }
 }
@@ -215,6 +218,10 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
         toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
         toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
         injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
+        retentionHistorique =
+            this[SettingsDataStore.Cles.RETENTION_HISTORIQUE]
+                ?.let(RetentionHistorique.Companion::fromPersistedName)
+                ?: defaults.retentionHistorique,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
     )
 
@@ -259,6 +266,7 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.TOOLING_HORS_LIGNE, reglage.toolingHorsLigne)
     set(SettingsDataStore.Cles.TOOLING_ARGUMENTS, reglage.toolingArguments)
     set(SettingsDataStore.Cles.INJECTION_APPLOG, reglage.injectionAppLog)
+    set(SettingsDataStore.Cles.RETENTION_HISTORIQUE, reglage.retentionHistorique.name)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
 
     val dossier = reglage.workspace

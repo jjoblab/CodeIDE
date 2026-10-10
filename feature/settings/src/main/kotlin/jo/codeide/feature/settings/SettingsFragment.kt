@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.PaletteCouleur
+import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
@@ -253,7 +254,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         )
     }
 
-    /** Carte « Environnement » : Projets, Environnement de développement (E5). */
+    /** Carte « Environnement » : Projets, Historique local (H6),
+     *  Environnement de développement (E5). */
     private fun construireCarteEnvironnement() {
         ajouterRangees(
             binding.rangeesEnvironnement,
@@ -264,6 +266,17 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                     R.string.settings_maitre_projets,
                     R.string.settings_cd_ligne_projets,
                 ) { getString(R.string.settings_sous_projets) },
+                ligne(
+                    SectionParametres.HISTORIQUE,
+                    jo.codeide.core.ui.R.drawable.ic_historique,
+                    R.string.settings_maitre_historique,
+                    R.string.settings_cd_ligne_historique,
+                ) { etat ->
+                    getString(
+                        R.string.settings_sous_historique,
+                        getString(libelleRetention(etat.reglage.retentionHistorique)),
+                    )
+                },
                 ligne(
                     SectionParametres.ENVIRONNEMENT,
                     jo.codeide.core.ui.R.drawable.ic_outils,
@@ -340,4 +353,14 @@ private fun libelleThemeEditeur(theme: ThemeEditeur): Int =
         ThemeEditeur.GITHUB_CLAIR -> R.string.settings_theme_github_clair
         ThemeEditeur.GITHUB_SOMBRE -> R.string.settings_theme_github_sombre
         ThemeEditeur.NORD -> R.string.settings_theme_nord
+    }
+
+/** Libellé localisé d'une rétention de l'historique (sous-titre du
+ *  maître, mission H6). */
+private fun libelleRetention(retention: RetentionHistorique): Int =
+    when (retention) {
+        RetentionHistorique.JOURS_1 -> R.string.settings_historique_1_jour
+        RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
+        RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
+        RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
     }

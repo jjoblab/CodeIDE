@@ -537,6 +537,9 @@ dossier du projet.
 | Y14 | Poser une étiquette en mode DOSSIER puis en « Modifications récentes » (mode projet) | Mode dossier : l'étiquette est posée SUR le dossier lui-même (elle paraît dans SON historique) ; mode projet : sur le projet ENTIER (nom en libellé principal — le chemin est vide) |
 | Y15 | Dialogue d'étiquette → nom VIDE ou espaces seuls → « Poser » | AUCUN effet : rien dans la liste, aucun message — le nom nettoyé est refusé |
 | Y16 | Bouton **Exécuter** d'un projet Android, puis « Modifications récentes » | Une étiquette « Avant compilation » paraît (posée silencieusement AVANT le build) — le Run ne ralentit ni n'échoue jamais à cause d'elle |
+| Y17 | Paramètres → section **« Historique local »** (carte Environnement) | Rangée « Conserver » avec la valeur courante (5 jours par défaut), sous-titre du maître « 5 jours · indépendant de Git » ; l'empreinte s'affiche (o/ko/Mo) |
+| Y18 | Changer la rétention à 1 jour, ROUVRIR le projet, éditer, attendre plus d'un jour (ou régler l'horloge), réouvrir | Les révisions plus vieilles qu'un jour partent à la purge d'ouverture — la réglage s'applique SANS redémarrer l'app (lu à chaque purge) |
+| Y19 | « Effacer l'historique local » → confirmer le dialogue | « Historique effacé », empreinte repart à ~0, les feuilles Historique de TOUS les projets sont VIDES — les fichiers du disque n'ont PAS bougé |
 
 ## À venir
 
