@@ -1,5 +1,55 @@
 # Journal des modifications
 
+## [0.89.0] – 2026-10-11
+
+### Ajouté
+
+- **Étiquettes de l'historique local — utilisateur et système**
+  (mission « Historique local » H4, spec HISTORIQUE_LOCAL.md § 3/§ 5,
+  ADR 0106 § d) :
+  - **Bouton « Poser une étiquette »** dans l'en-tête de la feuille
+    Historique : dialogue au nom libre (borné à 60 caractères), posé
+    sur la PORTÉE COURANTE — le fichier (mode fichier), le dossier
+    LUI-MÊME (mode dossier), le projet entier (mode projet) ; nom
+    vide ou blanc : AUCUN effet (l'étiqueteur nettoie, la feuille
+    reste muette).
+  - **Une étiquette est une ENTRÉE sans contenu** : elle paraît en
+    tête des révisions et marque un instant — les révisions voisines
+    se lisent « avant / après l'étiquette », comme le Local History
+    d'IntelliJ. Le libellé d'une étiquette SYSTÈME est une DONNÉE
+    (visible dans toute langue d'interface), les libellés
+    utilisateur sont libres.
+  - **Étiquette système « Avant compilation »** : le bouton
+    « Exécuter » pose silencieusement l'étiquette avant de compiler
+    (le Run est une action risquée — le filet marque l'état d'avant ;
+    jamais bloquant, jamais visible) — point d'extension des futures
+    actions risquées (bascule de branche Git, remplacement
+    multi-fichiers).
+- **`EtiqueteurHistorique`** (core:domain) : cas d'usage du domaine —
+  les actions risquées l'appellent, jamais l'inverse (pas de
+  dépendance au module historique).
+- **Rendu des étiquettes** : en modes dossier/projet, une étiquette
+  porte son NOM en libellé principal (le chemin d'une étiquette de
+  projet est vide — le nom de fichier serait muet).
+
+### Modifié
+
+- `HistoriqueLocal.listerRevisionsSous` : le préfixe couvre AUSSI le
+  dossier LUI-MÊME — une étiquette posée SUR un dossier paraît dans
+  SON historique (moteur + faux de test alignés).
+- `HistoriqueViewModel` : constructeur + `EtiqueteurHistorique`
+  (H4) ; message « Étiquette posée ».
+
+### Tests
+
+- Moteur : une étiquette posée sur le dossier est une entrée de son
+  historique ; `EtiqueteurHistoriqueTest` (4 : nom nettoyé, vide
+  refusé, entrée visible, étiquette système).
+- ViewModel : 4 tests H4 (étiquette fichier + rafraîchissement,
+  dossier lui-même, projet entier, nom vide muet) ; Run : l'étiquette
+  « Avant compilation » est posée au lancement (silencieuse).
+- Recette manuelle : scénarios Y13-Y16 de `docs/TESTS_MANUELS.md`.
+
 ## [0.88.0] – 2026-10-11
 
 ### Ajouté

@@ -41,8 +41,8 @@ internal sealed interface RangeeHistorique {
 }
 
 /**
- * Feuille « Historique » (missions « Historique local » H2 puis H3,
- * spec HISTORIQUE_LOCAL.md § 5, maquette docs/preview/historique-local.html).
+ * Feuille « Historique » (missions « Historique local » H2 → H4, spec
+ * HISTORIQUE_LOCAL.md § 5, maquette docs/preview/historique-local.html).
  * H2 : révisions d'un FICHIER groupées par période (moments relatifs),
  * diff unifié de la sélection (contre le contenu ACTUEL ou la révision
  * PRÉCÉDENTE), restauration AVEC confirmation — snackbar honnête +
@@ -50,7 +50,10 @@ internal sealed interface RangeeHistorique {
  * PROJET (« Modifications récentes »), filtre « Supprimés seuls »
  * (pierres tombales retrouvables) et RECRÉATION d'un fichier supprimé
  * (restauration d'une tombale, dossier parent résolu segment par
- * segment — jamais d'URI inventée).
+ * segment — jamais d'URI inventée). H4 : ÉTIQUETTES — bouton « Poser
+ * une étiquette » sur la portée courante (fichier, dossier ou projet),
+ * dialogue au nom libre borné, l'étiquette paraît en tête de la liste
+ * (une entrée sans contenu — le filet marque un instant).
  *
  * Le ViewModel porte TOUT l'état ; la feuille rend. Les moments
  * relatifs viennent de [CalculsDatesHistorique] (pur, testé).
@@ -107,6 +110,7 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         liaison.listeDiff.adapter = adaptateurDiff
 
         liaison.boutonFermerHistorique.setOnClickListener { dismiss() }
+        liaison.boutonEtiquetterHistorique.setOnClickListener { demanderNomEtiquette() }
         liaison.boutonRetourDiff.setOnClickListener { viewModel.fermerDiff() }
         liaison.boutonModeDiff.setOnClickListener {
             viewModel.definirMode(!viewModel.etat.value.modeActuel)
@@ -236,8 +240,34 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             MessageHistorique.ParentIntrouvable -> {
                 Snackbar.make(liaison.root, R.string.historique_parent_introuvable, Snackbar.LENGTH_LONG).show()
             }
+
+            MessageHistorique.EtiquettePosee -> {
+                Snackbar.make(liaison.root, R.string.historique_etiquette_possee, Snackbar.LENGTH_SHORT).show()
+            }
         }
         viewModel.consommerMessage()
+    }
+
+    /** Dialogue « Poser une étiquette » (H4) : nom libre (borné), posé
+     *  sur la portée courante de la feuille — fichier, dossier ou
+     *  projet. Un nom vide ne fait RIEN (l'étiqueteur nettoie). */
+    private fun demanderNomEtiquette() {
+        val densite = resources.displayMetrics.density
+        val champ =
+            com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+                hint = getString(R.string.historique_etiquette_indice)
+                maxLines = 1
+                filters = arrayOf(android.text.InputFilter.LengthFilter(LONGUEUR_MAX_ETIQUETTE))
+                val pad = (MARGE_CHAMP_ETIQUETTE_DP * densite).toInt()
+                setPadding(pad, 0, pad, 0)
+            }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.historique_etiquette_titre)
+            .setView(champ)
+            .setPositiveButton(R.string.historique_etiquette_poser) { _, _ ->
+                viewModel.etiqueter(champ.text?.toString().orEmpty())
+            }.setNegativeButton(R.string.historique_confirmer_non, null)
+            .show()
     }
 
     /** Confirmation honnête avant restauration (spec § 5) : une PIERRE
@@ -384,7 +414,15 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
                 }
 
                 ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
-                    binding.libelleRevision.text = entree.cheminRelatif.substringAfterLast('/')
+                    // H4 : une ÉTIQUETTE porte son NOM en libellé
+                    // principal (le chemin d'une étiquette de projet
+                    // est vide — le nom de fichier serait muet).
+                    binding.libelleRevision.text =
+                        if (entree.type == TypeEntreeHistorique.ETIQUETTE) {
+                            entree.libelle.orEmpty()
+                        } else {
+                            entree.cheminRelatif.substringAfterLast('/')
+                        }
                     binding.detailRevision.text =
                         listOfNotNull(
                             getString(libelleDeType(entree.type)),
@@ -491,6 +529,12 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         private const val ALPHA_ACTIVE = 1f
         private const val ALPHA_INACTIVE = 0.45f
         private const val TRANSPARENT = 0x00000000
+
+        /** Longueur maximale d'un nom d'étiquette (H4). */
+        private const val LONGUEUR_MAX_ETIQUETTE = 60
+
+        /** Marge horizontale du champ du dialogue d'étiquette (dp). */
+        private const val MARGE_CHAMP_ETIQUETTE_DP = 20
 
         /** Maximum d'en-têtes de période (aujourd'hui, hier, plus ancien). */
         private const val NB_MAX_PERIODES = 3

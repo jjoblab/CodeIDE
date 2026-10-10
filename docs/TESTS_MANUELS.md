@@ -533,6 +533,10 @@ dossier du projet.
 | Y10 | Créer `local.properties` (secret), l'éditer, ouvrir son historique | AUCUNE révision — les secrets ne sont jamais historisés (ADR 0105) |
 | Y11 | Popover d'un fichier/dossier de l'arbre PRIVÉ | AUCUNE entrée « historique » (l'arbre privé n'est pas capturé) — idem menu contextuel d'un onglet privé |
 | Y12 | `git init` dans le projet, committer, puis éditer sans Git | L'historique continue d'enregistrer NORMALEMENT — le filet vit sa vie, indépendant du dépôt (aucune entrée Git dans l'historique) |
+| Y13 | Feuille Historique d'un fichier → bouton **« Poser une étiquette »**, nommer « avant essai » | L'étiquette paraît en TÊTE des révisions (type Étiquette, nom « avant essai »), snackbar « Étiquette posée » ; les révisions voisines se lisent « avant / après l'étiquette » |
+| Y14 | Poser une étiquette en mode DOSSIER puis en « Modifications récentes » (mode projet) | Mode dossier : l'étiquette est posée SUR le dossier lui-même (elle paraît dans SON historique) ; mode projet : sur le projet ENTIER (nom en libellé principal — le chemin est vide) |
+| Y15 | Dialogue d'étiquette → nom VIDE ou espaces seuls → « Poser » | AUCUN effet : rien dans la liste, aucun message — le nom nettoyé est refusé |
+| Y16 | Bouton **Exécuter** d'un projet Android, puis « Modifications récentes » | Une étiquette « Avant compilation » paraît (posée silencieusement AVANT le build) — le Run ne ralentit ni n'échoue jamais à cause d'elle |
 
 ## À venir
 

@@ -1185,6 +1185,28 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.89.0 : **mission « Historique local » H4 — étiquettes (utilisateur
+      + système)** (spec § 5bis, ADR 0106 § d) : EtiqueteurHistorique
+      [core:domain, @Singleton — nom nettoyé (trim, vide refusé →
+      null), étiquette SYSTÈME « Avant compilation »
+      (ETIQUETTE_AVANT_COMPILATION, DONNÉE française visible dans toute
+      langue d'interface) — POINT D'EXTENSION des actions risquées :
+      elles appellent ce cas d'usage, jamais l'inverse] ; EditorViewModel
+      [Run pose runCatching { avantCompilation() } AVANT le build —
+      silencieux par contrat, jamais bloquant] ; HistoriqueViewModel
+      [etiqueter(nom) — portée COURANTE : FICHIER/DOSSIER → chemin
+      relatif, PROJET → null ; message EtiquettePosee + rechargement
+      seulement si posée] ; FeuilleHistoriqueFragment [bouton-icône
+      en-tête (ic_etiquette, silhouette Material « label »), dialogue
+      MaterialAlertDialog + champ TextInputEditText borné 60, nom vide
+      muet] ; moteur [listerRevisionsSous : L'EXACT chemin du dossier
+      AUSSI (une étiquette posée SUR le dossier paraît dans SON
+      historique) — moteur + faux alignés] ; rendu [étiquette = NOM en
+      libellé principal en modes dossier/projet] ; tests [+9 :
+      EtiqueteurHistorique 4, moteur +1 (étiquette sur le dossier),
+      ViewModel 4 (fichier+dossier+projet+nom vide), Run +1 (étiquette
+      posée)] ; recette manuelle Y13-Y16 ; chaîne verte sur core:domain,
+      core:testing, feature:editor, app — APK 21,7 Mo.
 - v0.88.0 : **mission « Historique local » H3 — historique de dossier,
       fichiers supprimés, Modifications récentes** (spec § 5) : port
       [listerRevisionsSous(cheminDossier, limite=200) — préfixe STRICT

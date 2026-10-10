@@ -20,6 +20,7 @@ import jo.codeide.core.domain.EtapeExecutionApplication
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.EtatSyncLocal
+import jo.codeide.core.domain.EtiqueteurHistorique
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.ExecuterApplicationUseCase
 import jo.codeide.core.domain.ExecuterTachesUseCase
@@ -175,6 +176,7 @@ class EditorViewModel
         private val resolveurChemin: ResolveurCheminFuse,
         private val sourceHistorique: SourceProjetHistorique,
         private val historique: HistoriqueLocal,
+        private val etiqueteurHistorique: EtiqueteurHistorique,
         private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
@@ -1267,6 +1269,13 @@ class EditorViewModel
                 val dossier = dossierProjetOuEchec() ?: return@launch
 
                 serviceGradle.publierLigneExecution(TexteTooling.Ressource(R.string.editor_execution_compilation))
+                // Mission « Historique local » H4 (ADR 0106 § d) : le Run
+                // est une action RISQUÉE (la compilation bouge les
+                // sources générées, l'installation remplace l'APK) — le
+                // filet marque l'état d'avant d'une étiquette SYSTÈME.
+                // Silencieux par contrat : l'étiquette ne doit JAMAIS
+                // retarder ni casser l'exécution.
+                runCatching { etiqueteurHistorique.avantCompilation() }
                 val taches = listOf(TACHE_ASSEMBLE_DEBUG)
                 val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
                 observerBuild(buildId, taches)

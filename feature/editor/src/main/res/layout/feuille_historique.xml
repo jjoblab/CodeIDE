@@ -58,6 +58,18 @@
                 tools:text="MainActivity.kt" />
         </LinearLayout>
 
+        <!-- H4 : poser une étiquette sur la portée courante (fichier,
+             dossier ou projet) — marque l'instant avant une action
+             risquée ou un essai. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_etiquetter_historique"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/historique_etiquetter"
+            app:icon="@drawable/ic_etiquette"
+            app:iconTint="@color/explorateur_texte_2" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_fermer_historique"
             style="@style/Widget.CodeIDE.Button.Text"

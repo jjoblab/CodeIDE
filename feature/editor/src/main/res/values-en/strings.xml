@@ -194,6 +194,11 @@
     <string name="historique_fichier_recree">File recreated — the deleted version remains in history</string>
     <string name="historique_parent_introuvable">Cannot recreate: the parent folder no longer exists</string>
     <string name="historique_confirmer_recree_message">The file will be recreated at its original location. The deleted version will remain in history.</string>
+    <string name="historique_etiquetter">Put a label</string>
+    <string name="historique_etiquette_titre">Put a label</string>
+    <string name="historique_etiquette_indice">Name (e.g. before trial)</string>
+    <string name="historique_etiquette_poser">Put</string>
+    <string name="historique_etiquette_possee">Label put</string>
     <string name="historique_annuler">Undo</string>
     <string name="historique_echec_ecriture">Could not write — the file is unchanged</string>
     <string name="popover_historique">Show history</string>
