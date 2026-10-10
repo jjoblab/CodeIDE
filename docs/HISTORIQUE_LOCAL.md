@@ -25,7 +25,7 @@ fichiers binaires (entrées sans contenu), intégration aux commits Git
 | H2 | afficher l'historique d'un fichier + restaurer | ✅ v0.87.0 |
 | H3 | historique de dossier + fichiers supprimés + Modifications récentes | ✅ v0.88.0 |
 | H4 | étiquettes (utilisateur + système) | ✅ v0.89.0 |
-| H6 | réglages et entretien | à venir |
+| H6 | réglages et entretien | ✅ v0.90.0 |
 
 ## 2. Architecture
 
@@ -125,7 +125,27 @@ réécrire via le port crée la révision « avant restauration ».
   l'inverse. Libellé système = DONNÉE (index), pas chaîne
   d'interface.
 
-## 6. Critères d'acceptation (H1)
+## 6. Réglages et entretien (H6)
+
+- **Section « Historique local »** des Paramètres (carte
+  Environnement du maître, ADR 0059) : réglage de rétention +
+  empreinte + effacement.
+- **Rétention** : 1/5/15/30 jours (défaut 5, ADR 0105 « réglable »),
+  enum `RetentionHistorique` (core:model) persisté par nom (lecture
+  tolérante). Lue à CHAQUE purge par le moteur
+  (`retentionJoursCourante`, motif applog R2) : un changement
+  s'applique à la prochaine ouverture de projet — SANS reconstruire
+  le moteur. Les plafonds de capture (taille par fichier,
+  exclusions, quota) restent figés.
+- **Empreinte au stockage** : total de TOUT l'historique (tous
+  projets, blobs + index) mesuré hors fil principal, affiché en
+  o/ko/Mo.
+- **Effacement d'entretien** : « Effacer l'historique local » (port
+  `effacerTout`) supprime tout, TOUS projets — confirmation honnête
+  par dialogue ; les fichiers en cours ne bougent PAS (l'historique
+  est un CACHE, pas un document).
+
+## 7. Critères d'acceptation (H1)
 
 1. Décorateur : toute mutation du port produit une entrée (vérifié en
    JVM avec `FakeFileSystem` + moteur réel sur dossier temporaire).
@@ -138,7 +158,7 @@ réécrire via le port crée la révision « avant restauration ».
    jamais stockés.
 7. Chaîne de vérification verte sur les modules touchés.
 
-## 7. Limites assumées (affichées, pas cachées)
+## 8. Limites assumées (affichées, pas cachées)
 
 - Contenu des binaires et fichiers > 2 Mo : entrée sans contenu
   (« Contenu indisponible »).

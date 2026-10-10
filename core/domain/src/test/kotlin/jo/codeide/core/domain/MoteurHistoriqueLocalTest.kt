@@ -43,6 +43,7 @@ class MoteurHistoriqueLocalTest {
     private fun moteur(
         racine: File = dossierTemp.newFolder(),
         politique: PolitiqueHistorique = PolitiqueHistorique(),
+        retentionJoursCourante: suspend () -> Int = { politique.joursRetention },
     ): MoteurHistoriqueLocal =
         MoteurHistoriqueLocal(
             racine = racine,
@@ -50,6 +51,7 @@ class MoteurHistoriqueLocalTest {
             horloge = horloge,
             repartiteurs = TestDispatcherProvider(repartiteur.dispatcher),
             politique = politique,
+            retentionJoursCourante = retentionJoursCourante,
         )
 
     @Test
@@ -200,6 +202,62 @@ class MoteurHistoriqueLocalTest {
             assertNotNull(entree)
             assertNull("contenu indisponible, jamais inventé (ADR 0105)", entree!!.empreinte)
             assertNull(moteur.lireContenu(entree.id))
+        }
+
+    @Test
+    fun `la purge lit la retention COURANTE - un reglage change s applique sans reconstruire`() =
+        runTest {
+            // Politique figée (5 jours) mais rétention DYNAMIQUE pilotée
+            // par le réglage (mission H6) : muter la source change le
+            // comportement de la purge SUIVANTE.
+            var joursRegles = 5
+            val moteur = moteur(retentionJoursCourante = { joursRegles })
+            moteur.enregistrer("a.txt", TypeEntreeHistorique.MODIFICATION, "v1")
+            horloge.maintenant += 3L * 24L * 60L * 60L * 1000L
+            moteur.purger()
+            assertEquals("3 jours < 5 jours de rétention : rien ne part", 1, moteur.listerRevisions("a.txt").size)
+
+            joursRegles = 1
+            moteur.purger()
+            assertTrue("même moteur, rétention 1 jour : l'entrée part", moteur.listerRevisions("a.txt").isEmpty())
+        }
+
+    @Test
+    fun `l empreinte compte blobs et index - tous projets confondus`() =
+        runTest {
+            val racine = dossierTemp.newFolder()
+            val moteur = moteur(racine = racine)
+            assertEquals(0L, moteur.empreinteOctets())
+
+            moteur.enregistrer("a.txt", TypeEntreeHistorique.MODIFICATION, "contenu")
+            val empreinteApres = moteur.empreinteOctets()
+
+            assertTrue("blob + index > 0", empreinteApres > 0L)
+
+            // Deuxième projet : l'empreinte ENGLOBE les deux dossiers.
+            cleCourante = "content://arbre/document/autre-projet"
+            moteur.enregistrer("b.txt", TypeEntreeHistorique.MODIFICATION, "contenu2")
+            assertTrue("tous projets confondus", moteur.empreinteOctets() > empreinteApres)
+        }
+
+    @Test
+    fun `effacerTout vide l historique de TOUS les projets et repart proprement`() =
+        runTest {
+            val racine = dossierTemp.newFolder()
+            val moteur = moteur(racine = racine)
+            moteur.enregistrer("a.txt", TypeEntreeHistorique.MODIFICATION, "v1")
+            cleCourante = "content://arbre/document/autre-projet"
+            moteur.enregistrer("b.txt", TypeEntreeHistorique.MODIFICATION, "v2")
+            assertTrue(moteur.empreinteOctets() > 0L)
+
+            moteur.effacerTout()
+
+            assertEquals(0L, moteur.empreinteOctets())
+            assertTrue("le stockage lui-même est parti", !racine.exists())
+            // Le moteur continue de fonctionner (index rechargé vide).
+            val entree = moteur.enregistrer("c.txt", TypeEntreeHistorique.MODIFICATION, "v3")
+            assertNotNull("l'historique repart de zéro", entree)
+            assertEquals(1, moteur.listerRevisions("c.txt").size)
         }
 
     @Test

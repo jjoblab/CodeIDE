@@ -28,6 +28,17 @@ sealed interface RetourDossier {
 }
 
 /**
+ * Retour de l'entretien de l'historique local (mission H6).
+ */
+sealed interface RetourHistorique {
+    /** Rien à signaler. */
+    data object Aucun : RetourHistorique
+
+    /** Historique effacé — l'empreinte repart de zéro. */
+    data object Efface : RetourHistorique
+}
+
+/**
  * État observable de l'écran Paramètres (section 5.3 : `XxxUiState`
  * immutable exposée en `StateFlow`).
  *
@@ -42,10 +53,17 @@ sealed interface RetourDossier {
  * @property verificationDossier une opération dossier est en cours
  * (sélecteur, permission, test d'écriture).
  * @property infosBuild version et type de build (section « À propos »).
+ * @property empreinteHistoriqueOctets espace occupé par TOUT
+ * l'historique local (mission H6 — `null` tant que la mesure n'est
+ * pas revenue, E/S hors fil principal).
+ * @property retourHistorique retour transitoire de l'effacement
+ * d'entretien (mission H6).
  */
 data class EtatParametres(
     val reglage: AppSettings = AppSettings(),
     val retourDossier: RetourDossier = RetourDossier.Aucun,
     val verificationDossier: Boolean = false,
     val infosBuild: CrashAppInfo = CrashAppInfo("", 0L, "", ""),
+    val empreinteHistoriqueOctets: Long? = null,
+    val retourHistorique: RetourHistorique = RetourHistorique.Aucun,
 )

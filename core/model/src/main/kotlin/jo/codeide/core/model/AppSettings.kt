@@ -103,6 +103,11 @@ public data class AppSettings(
      *  projets (mission « Exécuter » R2, ADR 0103) — par défaut ACTIVE ;
      *  les journaux des apps exécutées arrivent dans l'onglet Logcat. */
     public val injectionAppLog: Boolean = true,
+    /** Rétention de l'historique local en jours calendaires (mission
+     *  « Historique local » H6, ADR 0105) — lue à CHAQUE purge
+     *  d'entretien (ouverture du projet) : un changement s'applique à
+     *  la prochaine ouverture. */
+    public val retentionHistorique: RetentionHistorique = RetentionHistorique.JOURS_5,
     public val isSetupCompleted: Boolean = false,
 ) {
     public companion object {

@@ -84,6 +84,12 @@
         tools:layout="@layout/fragment_settings_projets" />
 
     <fragment
+        android:id="@+id/settings_historique"
+        android:name="jo.codeide.feature.settings.HistoriqueSectionFragment"
+        android:label="@string/settings_historique_titre"
+        tools:layout="@layout/fragment_settings_historique" />
+
+    <fragment
         android:id="@+id/settings_apropos"
         android:name="jo.codeide.feature.settings.AProposFragment"
         android:label="@string/settings_apropos_titre"

@@ -212,9 +212,27 @@ public interface HistoriqueLocal {
      * Purge (âge + quota + nombre d'entrées), incrémentale : les
      * entrées les plus anciennes d'abord, puis les blobs devenus
      * orphelins. Appelée à l'ouverture du projet (E/S, hors fil
-     * principal) — jamais bloquante pour l'appelant.
+     * principal) — jamais bloquante pour l'appelant. La politique
+     * (rétention réglable — H6) est lue À CHAQUE purge : un
+     * changement aux Paramètres s'applique à la prochaine.
      */
     public suspend fun purger()
+
+    /**
+     * Empreinte au stockage de TOUT l'historique local (tous projets
+     * confondus — blobs + index, octets) pour l'écran d'entretien
+     * (mission H6). Ne dépend d'aucun projet ouvert.
+     */
+    public suspend fun empreinteOctets(): Long
+
+    /**
+     * Effacement d'entretien : supprime TOUT l'historique local de
+     * TOUS les projets (mission H6) — l'historique est un CACHE de
+     * sécurité, pas un document : aucune confirmation du côté du
+     * moteur, l'écran qui déclenche confirme. Retour normal même si
+     * rien n'existait.
+     */
+    public suspend fun effacerTout()
 
     public companion object {
         /** Borne des révisions d'un dossier / du projet (UI : la feuille ne rend jamais plus). */

@@ -120,6 +120,8 @@ internal class AppNavigatorImpl
 
                             SectionParametres.PROJETS -> R.id.settings_projets
 
+                            SectionParametres.HISTORIQUE -> R.id.settings_historique
+
                             SectionParametres.ENVIRONNEMENT -> R.id.settings_environnement
 
                             SectionParametres.A_PROPOS -> R.id.settings_apropos

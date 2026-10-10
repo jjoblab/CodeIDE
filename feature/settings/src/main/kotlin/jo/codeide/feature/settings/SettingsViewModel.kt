@@ -7,6 +7,7 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.ChangeWorkspaceUseCase
 import jo.codeide.core.domain.ClearWorkspaceUseCase
 import jo.codeide.core.domain.EffacementDossier
+import jo.codeide.core.domain.HistoriqueLocal
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ResetPreferencesUseCase
 import jo.codeide.core.domain.UpdateSettingsUseCase
@@ -16,6 +17,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
 import jo.codeide.core.model.License
 import jo.codeide.core.model.PaletteCouleur
+import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
@@ -168,6 +170,20 @@ sealed interface ActionParametres {
     /** Réinitialise les préférences (déjà confirmé par la boîte). */
     data object ReinitialiserPreferences : ActionParametres
 
+    /**
+     * Historique local (H6) : change la rétention — lue à CHAQUE purge,
+     * le changement s'applique à la prochaine ouverture de projet.
+     */
+    data class ChangerRetentionHistorique(
+        val retention: RetentionHistorique,
+    ) : ActionParametres
+
+    /**
+     * Historique local (H6) : efface TOUT l'historique de TOUS les
+     * projets — déjà confirmé par la boîte de dialogue.
+     */
+    data object EffacerHistorique : ActionParametres
+
     /** Relance l'assistant de premier lancement. */
     data object RelancerAssistant : ActionParametres
 }
@@ -204,7 +220,7 @@ sealed interface EffetParametres {
  * informations de build ; les regrouper en objet d'options nuirait à
  * la lisibilité Hilt.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions") // Use cases du domaine + une intention par fonction.
 @HiltViewModel
 class SettingsViewModel
     @Inject
@@ -214,6 +230,7 @@ class SettingsViewModel
         private val changerDossier: ChangeWorkspaceUseCase,
         private val effacerDossier: ClearWorkspaceUseCase,
         private val reinitialiserPreferences: ResetPreferencesUseCase,
+        private val historique: HistoriqueLocal,
         infosBuild: CrashAppInfo,
         private val logger: AppLogger,
     ) : ViewModel() {
@@ -230,6 +247,7 @@ class SettingsViewModel
             observerParametres()
                 .onEach { reglages -> etatInterne.update { it.copy(reglage = reglages) } }
                 .launchIn(viewModelScope)
+            mesurerEmpreinteHistorique()
         }
 
         /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
@@ -367,8 +385,9 @@ class SettingsViewModel
 
         /**
          * Réglages des sections créées par l'ADR 0059 (Terminal,
-         * Notifications) : écritures directes, unifiées ici pour garder le
-         * dispatcheur `onAction` lisible.
+         * Notifications) et de la section Historique local (mission H6) :
+         * écritures directes et effacement d'entretien, unifiés ici pour
+         * garder le dispatcheur `onAction` lisible.
          *
          * @return vrai si l'action a été consommée (réglage persisté).
          */
@@ -392,6 +411,16 @@ class SettingsViewModel
 
                 is ActionParametres.ChangerCopieSelection -> {
                     ecrireReglage("copie de sélection") { it.copy(copieSelectionAuto = action.activee) }
+                }
+
+                is ActionParametres.ChangerRetentionHistorique -> {
+                    ecrireReglage("rétention de l'historique") {
+                        it.copy(retentionHistorique = action.retention)
+                    }
+                }
+
+                ActionParametres.EffacerHistorique -> {
+                    effacerHistorique()
                 }
 
                 else -> {
@@ -497,6 +526,28 @@ class SettingsViewModel
                         logger.w(TAG) { "échec de persistance du réglage : $quoi" }
                     }
                 }
+            }
+        }
+
+        /**
+         * Entretien (H6) : efface TOUT l'historique local (tous projets)
+         * puis remesure l'empreinte — le retour [RetourHistorique.Efface]
+         * s'affiche sous la rangée d'entretien.
+         */
+        private fun effacerHistorique() {
+            viewModelScope.launch {
+                historique.effacerTout()
+                logger.i(TAG) { "historique local effacé (entretien)" }
+                etatInterne.update { it.copy(retourHistorique = RetourHistorique.Efface) }
+                mesurerEmpreinteHistorique()
+            }
+        }
+
+        /** Mesure l'espace occupé par l'historique (E/S, hors fil principal). */
+        private fun mesurerEmpreinteHistorique() {
+            viewModelScope.launch {
+                val octets = historique.empreinteOctets()
+                etatInterne.update { it.copy(empreinteHistoriqueOctets = octets) }
             }
         }
 

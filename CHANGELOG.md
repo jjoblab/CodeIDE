@@ -1,5 +1,54 @@
 # Journal des modifications
 
+## [0.90.0] – 2026-10-11
+
+### Ajouté
+
+- **Réglages et entretien de l'historique local** (mission
+  « Historique local » H6, ADR 0105 « réglable ») :
+  - **Section « Historique local »** des Paramètres (carte
+    Environnement du maître) : réglage de RÉTENTION — choix fermés
+    1/5/15/30 jours (défaut 5, aligné Android Studio), dialogue à
+    choix unique patron licence ; le sous-titre du maître suit la
+    valeur (« 5 jours · indépendant de Git »).
+  - **Rétention DYNAMIQUE** : `MoteurHistoriqueLocal` lit la
+    rétention à CHAQUE purge (`retentionJoursCourante`, motif du
+    réglage applog R2 — `SettingsRepository` injecté dans
+    `StorageModule`) : un changement aux Paramètres s'applique à la
+    prochaine ouverture de projet, sans reconstruire le moteur.
+  - **Empreinte au stockage** : espace occupé par TOUT l'historique
+    (tous projets — blobs + index), mesuré hors fil principal,
+    affiché en octets/ko/Mo ; « … » le temps du retour.
+  - **Effacement d'entretien** : « Effacer l'historique local »
+    supprime TOUT l'historique de TOUS les projets — confirmation
+    honnête par dialogue (révisions, pierres tombales et étiquettes
+    partent ; les fichiers en cours ne bougent PAS) ; retour
+    « Historique effacé », empreinte remesurée.
+  - **`RetentionHistorique`** (core:model) : enum à jours, persistance
+    DataStore par nom (lecture tolérante — nom inconnu = défaut).
+- **Port** : `HistoriqueLocal.empreinteOctets()` et
+  `HistoriqueLocal.effacerTout()` (mission H6 — entretien).
+
+### Modifié
+
+- Purge : la rétention vient du réglage courant (les plafonds de
+  capture — taille par fichier, exclusions — restent figés, ADR 0105).
+- `SettingsViewModel` : section H6 injectée (port `HistoriqueLocal`),
+  état empreinte + retour d'effacement ; actions
+  `ChangerRetentionHistorique` / `EffacerHistorique`.
+- Nettoyage : le drawable `ic_etiquette` de feature:editor (v0.89.0)
+  doublonnait celui de core:ui — le doublon est retiré (icône
+  identique, tint posé par le layout).
+
+### Tests
+
+- Moteur +3 (rétention lue à chaque purge — mutation SANS
+  reconstruction ; empreinte tous projets ; effacerTout repart
+  proprement).
+- SettingsViewModel +2 (rétention persistée immédiatement ; empreinte
+  chargée puis remesurée après effacement via le port).
+- Recette manuelle : scénarios Y17-Y19 de `docs/TESTS_MANUELS.md`.
+
 ## [0.89.0] – 2026-10-11
 
 ### Ajouté
