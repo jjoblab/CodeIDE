@@ -35,6 +35,9 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     /** Réponses de [derniereEmpreinte] par chemin (null sinon). */
     public val empreintesSemees: MutableMap<String, String> = mutableMapOf()
 
+    /** Appels REVUS de [etiqueter] (mission H4 — nom, chemin). */
+    public val etiquettes: MutableList<Pair<String, String?>> = mutableListOf()
+
     /** Contenu lu par [lireContenu] (null : indisponible). */
     public var contenuLu: String? = null
 
@@ -72,8 +75,9 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     ): List<EntreeHistorique> {
         val prefixe = if (cheminDossier.isBlank()) "" else "$cheminDossier/"
         return enregistrements
-            .filter { it.cheminRelatif.startsWith(prefixe) }
-            .mapNotNull { it.retour }
+            .filter {
+                it.cheminRelatif == cheminDossier || it.cheminRelatif.startsWith(prefixe)
+            }.mapNotNull { it.retour }
             .asReversed()
             .take(limite.coerceAtLeast(0))
     }
@@ -86,6 +90,7 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
         nom: String,
         cheminRelatif: String?,
     ): EntreeHistorique? {
+        etiquettes += nom to cheminRelatif
         val entree =
             EntreeHistorique(
                 id = 1_000L,
@@ -96,6 +101,9 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
                 tailleOctets = 0L,
                 libelle = nom,
             )
+        // Comme le vrai moteur : une étiquette est une ENTRÉE — les
+        // listes (fichier, dossier, projet) la montrent.
+        enregistrements += AppelEnregistrer(cheminRelatif ?: "", TypeEntreeHistorique.ETIQUETTE, null, nom, entree)
         return entree
     }
 

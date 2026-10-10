@@ -178,10 +178,12 @@ public interface HistoriqueLocal {
     /**
      * Révisions des fichiers SOUS [cheminDossier] (mission H3) :
      * l'historique d'un DOSSIER de l'explorateur (préfixe strict
-     * `dossier/` — `src` ne couvre pas `srcX/`), plus récentes d'abord,
-     * bornées à [limite]. Un chemin VIDE désigne la racine du projet —
-     * les « **Modifications récentes** » du projet ENTIER (les chemins
-     * exclus ne sont jamais capturés, donc jamais listés).
+     * `dossier/` — `src` ne couvre pas `srcX/` — ET le dossier
+     * lui-même : une étiquette posée SUR le dossier y paraît, H4),
+     * plus récentes d'abord, bornées à [limite]. Un chemin VIDE
+     * désigne la racine du projet — les « **Modifications
+     * récentes** » du projet ENTIER (les chemins exclus ne sont
+     * jamais capturés, donc jamais listés).
      */
     public suspend fun listerRevisionsSous(
         cheminDossier: String,
