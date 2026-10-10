@@ -27,6 +27,7 @@ import jo.codeide.core.domain.FileStat
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.FileSystemPrive
 import jo.codeide.core.domain.GradleToolingRepository
+import jo.codeide.core.domain.HistoriqueLocal
 import jo.codeide.core.domain.LireArbreUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
 import jo.codeide.core.domain.LireSyncStateUseCase
@@ -43,6 +44,7 @@ import jo.codeide.core.domain.ResultatExecutionApplication
 import jo.codeide.core.domain.ResultatInstallationApk
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.SeveriteDiagnostic
+import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
@@ -171,6 +173,8 @@ class EditorViewModel
         private val listerModeles: ListTemplatesUseCase,
         private val sessionsTerminal: TerminalSessionRepository,
         private val resolveurChemin: ResolveurCheminFuse,
+        private val sourceHistorique: SourceProjetHistorique,
+        private val historique: HistoriqueLocal,
         private val observerEtatOutils: ObserveToolchainStateUseCase,
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
@@ -1584,6 +1588,14 @@ class EditorViewModel
             uriDocumentSuivie = uriDocument
             reinitialiser()
             etatInterne.update { it.copy(projet = projet, chargement = false) }
+            // Mission H1 (ADR 0106) : la racine de capture désigne le
+            // projet ouvert — le décorateur FileSystem enregistrera ses
+            // mutations ; la purge d'entretien suit (âge + quota, E/S,
+            // jamais sur le fil principal).
+            sourceHistorique.racineDocument = projet?.location?.documentUri
+            if (projet != null) {
+                viewModelScope.launch { historique.purger() }
+            }
             if (projet != null) verifierEtChargerRacine()
         }
 
