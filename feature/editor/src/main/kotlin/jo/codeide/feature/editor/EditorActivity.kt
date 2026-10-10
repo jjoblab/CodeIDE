@@ -1142,6 +1142,7 @@ class EditorActivity :
             val console = PanneauConsoleFragment()
             val problemes = PanneauProblemesFragment()
             val journal = PanneauJournalFragment()
+            val logcat = PanneauLogcatFragment()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_panneau, console, TAG_PANNEAU_CONSOLE)
@@ -1149,6 +1150,8 @@ class EditorActivity :
                 .hide(problemes)
                 .add(R.id.conteneur_fragments_panneau, journal, TAG_PANNEAU_JOURNAL)
                 .hide(journal)
+                .add(R.id.conteneur_fragments_panneau, logcat, TAG_PANNEAU_LOGCAT)
+                .hide(logcat)
                 .commit()
         }
 
@@ -1664,11 +1667,14 @@ class EditorActivity :
         liaison.titrePanneau.setText(libelleOngletPanneau(onglet))
 
         // Badge de compte : entrées du Journal, diagnostics des Problèmes.
+        // Logcat : AUCUN badge (le flux vivant n'est pas un « compte à
+        // traiter » — Android Studio n'y badge rien non plus).
         val compte =
             when (onglet) {
                 OngletPanneau.CONSOLE -> 0
                 OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
                 OngletPanneau.JOURNAL -> etat.entreesJournal.size
+                OngletPanneau.LOGCAT -> 0
             }
         liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0
         if (liaison.badgePanneau.isVisible) {
@@ -1695,6 +1701,24 @@ class EditorActivity :
         }
 
         // Sous-titre d'informations de l'onglet actif.
+        rendreSousTitrePanneau(onglet, compte)
+
+        // Visibilité de la section : GONE sur Console (la ligne tooling
+        // prend sa place dans le peek), soumise au fondu sinon.
+        majVisibiliteEntetePanneau()
+    }
+
+    /**
+     * Sous-titre d'INFORMATIONS de la première section (v0.80.1) — une
+     * entrée par onglet : compte de diagnostics, d'entrées de journal,
+     * ou PÉRIMÈTRE de l'onglet Logcat (politique d'honnêteté § 5 de
+     * EXECUTER.md — le détail vivant reste dans la barre d'outils de
+     * l'onglet : sélecteur, filtres, bandeaux).
+     */
+    private fun rendreSousTitrePanneau(
+        onglet: OngletPanneau,
+        compte: Int,
+    ) {
         when (onglet) {
             OngletPanneau.CONSOLE -> {
                 liaison.sousTitrePanneau.isVisible = false
@@ -1719,11 +1743,12 @@ class EditorActivity :
                         resources.getQuantityString(R.plurals.editor_panneau_journal_compte, compte, compte)
                     }
             }
-        }
 
-        // Visibilité de la section : GONE sur Console (la ligne tooling
-        // prend sa place dans le peek), soumise au fondu sinon.
-        majVisibiliteEntetePanneau()
+            OngletPanneau.LOGCAT -> {
+                liaison.sousTitrePanneau.isVisible = true
+                liaison.sousTitrePanneau.text = getString(R.string.editor_panneau_logcat_sous_titre)
+            }
+        }
     }
 
     /**
@@ -1817,7 +1842,7 @@ class EditorActivity :
 
     /** Fragments du panneau inférieur, par tag. */
     private fun fragmentsPanneau(): List<androidx.fragment.app.Fragment> =
-        listOf(TAG_PANNEAU_CONSOLE, TAG_PANNEAU_PROBLEMES, TAG_PANNEAU_JOURNAL)
+        listOf(TAG_PANNEAU_CONSOLE, TAG_PANNEAU_PROBLEMES, TAG_PANNEAU_JOURNAL, TAG_PANNEAU_LOGCAT)
             .mapNotNull { tag -> supportFragmentManager.findFragmentByTag(tag) }
 
     /** Tag du fragment de l'onglet du panneau (ordre du layout). */
@@ -1826,6 +1851,7 @@ class EditorActivity :
             OngletPanneau.CONSOLE -> TAG_PANNEAU_CONSOLE
             OngletPanneau.PROBLEMES -> TAG_PANNEAU_PROBLEMES
             OngletPanneau.JOURNAL -> TAG_PANNEAU_JOURNAL
+            OngletPanneau.LOGCAT -> TAG_PANNEAU_LOGCAT
         }
 
     /** Libellé localisé d'un onglet du panneau inférieur. */
@@ -1834,6 +1860,7 @@ class EditorActivity :
             OngletPanneau.CONSOLE -> R.string.editor_panneau_console
             OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
             OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
+            OngletPanneau.LOGCAT -> R.string.editor_panneau_logcat
         }
 
     /**
@@ -2128,6 +2155,7 @@ class EditorActivity :
         const val TAG_PANNEAU_CONSOLE = "panneau_console"
         const val TAG_PANNEAU_PROBLEMES = "panneau_problemes"
         const val TAG_PANNEAU_JOURNAL = "panneau_journal"
+        const val TAG_PANNEAU_LOGCAT = "panneau_logcat"
 
         /** Seuil de détection de l'IME par la hauteur du root :
          *  un clavier occupe largement plus de 15 % de l'écran, une marge

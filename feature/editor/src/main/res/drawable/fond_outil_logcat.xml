@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Logcat (mission « Exécuter » R3) : cuve des outils de la
+     barre — puce de processus, champ de filtre. Rayon r-s 7 dp, fond
+     surface-2, filet bordure (jetons § 4.2, EXPLORATEUR_V2 § 3). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/explorateur_fond_surface_2" />
+    <stroke android:width="1dp" android:color="@color/explorateur_bordure" />
+    <corners android:radius="7dp" />
+</shape>

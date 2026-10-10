@@ -250,7 +250,8 @@ data class SegmentAriane(
  * Onglet actif du panneau inférieur (étape 16) : **Journal** est
  * fonctionnel, **Console** et **Problèmes** sont des stubs explicites
  * (aucune exécution Gradle ni analyse en Phase 1 — hors périmètre,
- * prompt maître section 13).
+ * prompt maître section 13). **Logcat** (mission « Exécuter » R3) suit
+ * les journaux des applications exécutées via le pont de journaux.
  */
 enum class OngletPanneau {
     /** Sortie de console/Gradle — stub explicite à l'étape 16. */
@@ -261,6 +262,10 @@ enum class OngletPanneau {
 
     /** Journal applicatif — fonctionnel (réutilise `LogRepository`). */
     JOURNAL,
+
+    /** Journaux des applications exécutées (mission « Exécuter », R3) :
+     *  le vrai Logcat de SON application, sans adb (ADR 0103). */
+    LOGCAT,
 }
 
 /**

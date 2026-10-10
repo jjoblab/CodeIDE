@@ -66,4 +66,17 @@
     <color name="explorateur_texte_sur_accent">#0D1420</color>
     <color name="explorateur_rail_fond">#171A21</color>
     <color name="explorateur_rail_bordure">#242A33</color>
+
+    <!-- Jetons nuit de l'onglet Logcat (mission « Exécuter » R3) : les
+         valeurs EXACTES de la maquette validée (spec § 4.2 — reproduction
+         à 100 %). -->
+    <color name="logcat_fond">#14171D</color>
+    <color name="logcat_niveau_verbeux">#6C7581</color>
+    <color name="logcat_niveau_debogage">#7AB8F5</color>
+    <color name="logcat_niveau_info">#6FC47A</color>
+    <color name="logcat_niveau_avertissement">#EDA63F</color>
+    <color name="logcat_niveau_erreur">#E5584F</color>
+    <color name="logcat_message_erreur">#F2A29D</color>
+    <color name="logcat_bandeau_pertes_fond">#14EDA63F</color>
+    <color name="logcat_bandeau_arret_fond">#14E5584F</color>
 </resources>

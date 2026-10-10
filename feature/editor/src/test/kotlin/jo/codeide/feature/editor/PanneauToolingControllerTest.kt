@@ -89,6 +89,24 @@ class PanneauToolingControllerTest {
         )
     }
 
+    /** R3 : Logcat suit la règle des onglets non-Console — la ligne
+     *  tooling n'y vit pas, la table occupe la hauteur (spec § 4.1). */
+    @Test
+    fun `sur logcat la deuxieme section est eteinte comme les autres onglets`() {
+        val (liaison, controleur) = construire()
+        controleur.rendre(EtatGradle(synchronisationEnCours = true))
+        controleur.definirOnglet(OngletPanneau.LOGCAT)
+        assertEquals(
+            "Logcat : la ligne tooling (2e section) est GONE (R3)",
+            View.GONE,
+            liaison.ligneTooling.visibility,
+        )
+        assertFalse(
+            "Logcat : la bande de progression n'est pas affichée (R3)",
+            liaison.progressionTooling.isVisible,
+        )
+    }
+
     /** La 2e section ne vit que sur la Console. */
     @Test
     fun `sur la console la ligne tooling redevient l en tete`() {

@@ -44,7 +44,7 @@ class RegistrePontJournauxTest {
     fun `les lots de trames alimentent tampon compteur et flux`() =
         runTest {
             val id = registre.ouvrirSession(identite)
-            val lots = ArrayList<List<LigneJournal>>()
+            val lots = ArrayList<LotJournal>()
             // L'abonné s'installe AVANT les émissions : un flux partagé sans
             // rejeu ne redonne pas le passé (l'instantané est là pour ça).
             val abonnement = registre.lignes(id).onEach { lots.add(it) }.launchIn(this)
@@ -63,6 +63,9 @@ class RegistrePontJournauxTest {
             assertEquals("un", registre.instantane(id)[0].message)
             assertEquals(2, registre.sessions.value[0].nombreLignes)
             assertEquals("un lot émis", 1L, lots.size.toLong())
+            // R3 : le lot part AVEC sa position (nombre de lignes après lui).
+            assertEquals(2, lots[0].apres)
+            assertEquals(2, lots[0].lignes.size)
             // La trame X documente la sortie précédente de la session.
             assertEquals("manque de mémoire", registre.sessions.value[0].sortiePrecedente)
             abonnement.cancel()
@@ -142,6 +145,54 @@ class RegistrePontJournauxTest {
             assertEquals(88L, session.lignesPerdues)
             abonnement.cancel()
         }
+
+    @Test
+    fun `le delta incremental rend les lignes apres la position`() {
+        val id = registre.ouvrirSession(identite)
+        for (numero in 1..3) {
+            registre.ajouterTrames(id, listOf(trameLigne("ligne-$numero")), 0)
+        }
+
+        // Position zéro : tout ce qui est retenu.
+        val complet = registre.lignesDepuis(id, 0)
+        assertEquals(3, complet.apres)
+        assertEquals(3, complet.lignes.size)
+        assertEquals("ligne-1", complet.lignes[0].message)
+
+        // Position intermédiaire : STRICTEMENT après.
+        val suite = registre.lignesDepuis(id, 2)
+        assertEquals(3, suite.apres)
+        assertEquals(listOf("ligne-3"), suite.lignes.map { it.message })
+
+        // Position à jour : rien (mais la position est rendue).
+        val aJour = registre.lignesDepuis(id, 3)
+        assertEquals(3, aJour.apres)
+        assertTrue(aJour.lignes.isEmpty())
+    }
+
+    @Test
+    fun `le delta d une position trop vielle rend tout le retenu`() {
+        // Capacité 8 : au-delà, les plus anciennes quittent le tampon —
+        // une position trop vieille rattrape sur TOUT ce qui reste.
+        val id = registre.ouvrirSession(identite)
+        for (numero in 1..12) {
+            registre.ajouterTrames(id, listOf(trameLigne("ligne-$numero")), 0)
+        }
+
+        val rattrapage = registre.lignesDepuis(id, 0)
+        assertEquals(12, rattrapage.apres)
+        assertEquals(8, rattrapage.lignes.size)
+        assertEquals("ligne-5", rattrapage.lignes.first().message)
+        assertEquals("ligne-12", rattrapage.lignes.last().message)
+    }
+
+    @Test
+    fun `le delta d une session inconnue est vide et position zero`() {
+        val delta = registre.lignesDepuis("inconnu/999", 17)
+
+        assertEquals(0, delta.apres)
+        assertTrue(delta.lignes.isEmpty())
+    }
 
     @Test
     fun `plusieurs processus coexistent sessions distinctes`() {
