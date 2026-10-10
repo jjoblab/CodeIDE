@@ -159,7 +159,9 @@ alternatives rejetées : ADR 0107.
 4. Chaîne de vérification verte sur les modules touchés
    (spotlessCheck, detekt, tests, lint, kover, assembleDebug).
 5. R3 : tampon borné, aucune allocation en rafale, filtres en JVM pur
-   testés, rejet d'un émetteur non autorisé (UID) testé.
+   testés, rejet d'un émetteur non autorisé (UID) testé
+   (`ServicePontJournauxTest`, R5 — UID usurpé par `ShadowBinder`,
+   paquet inconnu, protocole, lot sans connexion).
 
 ## 7. Avancement
 
@@ -170,4 +172,4 @@ alternatives rejetées : ADR 0107.
 | R2 | pont de logs (bibliothèque, service, injection Gradle) | ✅ v0.83.0 |
 | R3 | onglet Logcat | ✅ v0.84.0 |
 | R4 | traces cliquables et plantages | ✅ v0.85.0 |
-| R5 | finitions et tests | à venir |
+| R5 | finitions et tests | ✅ v0.86.0 |

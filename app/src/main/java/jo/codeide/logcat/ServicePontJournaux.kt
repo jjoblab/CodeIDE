@@ -46,6 +46,11 @@ public class ServicePontJournaux : Service() {
     @Inject
     internal lateinit var journal: AppLogger
 
+    /** Décision « l'appelant est-il le paquet déclaré ? » (R5 : câblé,
+     *  extrait pour le test JVM — le noyau ne ment pas, le nom si). */
+    @Inject
+    internal lateinit var verificateurUid: VerificateurUidPont
+
     /** Sessions ouvertes : pid de l'appelant → liaison (id + contrôle). */
     private val liaisons = ConcurrentHashMap<Int, Liaison>()
 
@@ -92,7 +97,7 @@ public class ServicePontJournaux : Service() {
                         journal.w(TAG, introuvable) { "pont $nomPaquet : paquet inconnu, liaison refusée" }
                         return
                     }
-                if (uid != uidAttendu) {
+                if (!verificateurUid.accepte(uid, uidAttendu)) {
                     // Le noyau ne ment pas : cet appelant n'est PAS le
                     // paquet qu'il prétend être.
                     journal.w(TAG) { "pont $nomPaquet : UID $uid ≠ UID du paquet $uidAttendu, liaison REFUSÉE" }
