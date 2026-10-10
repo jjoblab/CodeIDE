@@ -29,17 +29,22 @@ import java.io.IOException
  * utilisateur.
  *
  * @param lanceur port d'exécution des sous-processus natifs.
- * @param binaireGit chemin absolu vers le binaire `git` (typiquement
- * `$PREFIX/bin/git`), ou `null` si git n'est pas installé — les
- * opérations retournent alors [ResultatGit.Echec] avec un message
- * explicite.
+ * @param resoudreBinaireGit résolution du chemin du binaire `git`
+ * (typiquement `$PREFIX/bin/git`), appelée **à chaque exécution**
+ * (v0.80.5 — correctif « git installé après le démarrage ») : le
+ * binaire absent vaut `null` et les opérations retournent
+ * [ResultatGit.Echec] avec un message explicite. La détection FIGÉE
+ * à la création du singleton figeait aussi l'absence : installer git
+ * via `pkg install git` dans le terminal ne devenait utilisable
+ * qu'après un redémarrage de l'application — la fenêtre Git d'Android
+ * Studio, elle, découvre le binaire dès qu'il existe.
  * @param identite identité Git (nom, email) depuis les Paramètres, ou
  * `null` si non configurée — le commit refuse avec un message clair.
  */
 @Suppress("TooManyFunctions") // Port Git : une fonction par opération, hérité de MoteurGit.
 internal class MoteurGitCli(
     private val lanceur: NativeProcessLauncher,
-    private val binaireGit: String?,
+    private val resoudreBinaireGit: () -> String?,
     private val identite: IdentiteGit?,
 ) : MoteurGit {
     /** Identité Git pour les commits (nom + email utilisateur). */
@@ -206,7 +211,8 @@ internal class MoteurGitCli(
         env: Map<String, String> = emptyMap(),
     ): ResultatGit<String> {
         val git =
-            binaireGit ?: return ResultatGit.Echec("git n'est pas installé. Installez-le via pkg install git.", "")
+            resoudreBinaireGit()
+                ?: return ResultatGit.Echec("git n'est pas installé. Installez-le via pkg install git.", "")
         return try {
             val processus =
                 lanceur.launch(

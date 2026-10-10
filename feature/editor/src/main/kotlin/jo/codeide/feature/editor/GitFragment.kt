@@ -77,6 +77,37 @@ class GitFragment : Fragment() {
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
     }
 
+    /**
+     * v0.80.5 (correctif « section figée sur initialiser un dépôt ») :
+     * sélectionner l'onglet Git recharge l'état — comme la fenêtre Git
+     * d'Android Studio se rafraîchit à la prise de focus. Les fragments
+     * du tiroir sont pré-créés puis montrés/cachés par transactions : leur
+     * état vivait dans une photographie prise à l'ouverture de l'éditeur,
+     * un dépôt cloné depuis l'accueil ou initialisé dans le terminal
+     * laissait donc « Initialiser un dépôt » à l'écran indéfiniment.
+     */
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden) viewModel.rafraichir()
+    }
+
+    /**
+     * v0.80.5 : la section devient visible avec l'éditeur — la sonde
+     * discrète du dépôt démarre (dépôt créé, commit, checkout détectés
+     * en arrière-plan) ; [onStop] l'arrête (aucune stat de fichier quand
+     * l'éditeur n'est pas à l'écran).
+     */
+    override fun onStart() {
+        super.onStart()
+        viewModel.demarrerSurveillance()
+    }
+
+    /** L'éditeur n'est plus visible : la surveillance s'arrête. */
+    override fun onStop() {
+        viewModel.arreterSurveillance()
+        super.onStop()
+    }
+
     private fun rendre(etat: EtatGit) {
         // v0.80.4 : pendant l'initialisation, la zone « pas un dépôt »
         // s'efface au profit du repère de chargement — le bouton ne peut

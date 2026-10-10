@@ -1,5 +1,53 @@
 # Journal des modifications
 
+## [0.80.5] – 2026-10-10
+
+### Corrigé
+
+- **`feature:editor`** : **la section Git du tiroir reste figée sur
+  « Initialiser un dépôt » après un clonage** (retour utilisateur :
+  « j'ai cloné un dépôt et la section git du drawer ne s'est pas mise
+  à jour, elle affiche encore l'option initialisé »). Le statut Git
+  était une photographie prise UNE fois à l'ouverture de l'éditeur :
+  un dépôt apparu ensuite (clone depuis l'accueil, `git init` ou
+  `git clone` dans le terminal) restait invisible indéfiniment. La
+  section est maintenant VIVANTE comme la fenêtre Git d'Android
+  Studio, par trois mécanismes superposés : (1) sélectionner l'onglet
+  Git recharge l'état (`onHiddenChanged` — la fenêtre se rafraîchit à
+  la prise de focus, le rattrapage soigne aussi la course FUSE d'un
+  clone tout juste terminé) ; (2) une sonde discrète balaye le dossier
+  projet toutes les 2 s — DEUX stats de fichiers, AUCUN processus git
+  lancé : existence de `.git`, horodatages de `.git/HEAD` et
+  `.git/index` ; un changement de signature (dépôt créé, commit,
+  checkout, add) déclenche un rechargement complet, arrêté quand
+  l'éditeur n'est pas visible ; (3) le bouton d'actualisation reste
+  pour les modifications simples du worktree (contenu seul). Le
+  ViewModel reçoit le port `ResolveurCheminFuse` (plus la classe
+  concrète) et un `DispatcherProvider` — la sonde ne touche jamais le
+  disque sur le fil principal. 8 nouveaux tests
+  (`GitViewModelTest`), dont le scénario exact du retour : dépôt créé
+  APRÈS l'ouverture → la zone « initialiser » laisse place au corps
+  Git sans rouvrir l'éditeur.
+- **`core:bootstrap`** : **git installé après le démarrage restait
+  introuvable jusqu'au redémarrage de l'application** —
+  `MoteurGitCli` gelait le chemin du binaire (`$PREFIX/bin/git`
+  présent ou absent) à la création du singleton Hilt : installer git
+  via `pkg install git` dans le terminal ne devenait utilisable qu'en
+  tuant le processus. Le moteur reçoit désormais un RÉSOLVEUR appelé à
+  chaque exécution (une stat de fichier par commande git, un coût
+  invisible devant le lancement du processus) — le binaire fraîchement
+  installé est découvert immédiatement, comme la fenêtre Git
+  d'Android Studio découvre le sien. 3 nouveaux tests
+  (`MoteurGitCliBinaireDynamiqueTest` : installation tardive
+  utilisable, disparition/réapparition, `estDepot` dynamique).
+
+### Notes techniques
+
+- Portée du correctif : `feature:editor` (GitViewModel, GitFragment)
+  et `core:bootstrap` (MoteurGitCli, MoteurGitModule) — les modules
+  touchés seuls, conformément à la directive de vérification ciblée
+  (AGENTS.md, v0.79.0).
+
 ## [0.80.4] – 2026-10-10
 
 ### Corrigé

@@ -1098,6 +1098,25 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       VRAIMENT depuis l'onglet Scripts [ResoudreFichierRelatifUseCase
       traduit le chemin relatif en URI SAF, OuvrirFichier via
       l'EditorViewModel d'activité] ; 9 + 7 + 4 nouveaux tests.
+- v0.80.5 : **section Git du tiroir vivante** (retour utilisateur :
+      « cloné un dépôt, la section git affiche encore initialiser ») —
+      le statut Git n'était qu'une photographie de l'ouverture de
+      l'éditeur ; trois mécanismes superposés comme la fenêtre Git
+      d'Android Studio [sélection de l'onglet → rafraîchissement
+      immédiat (onHiddenChanged du GitFragment, soigne AUSSI la course
+      FUSE d'un clone tout juste terminé) ; sonde discrète toutes les
+      2 s — existence de .git + horodatages de .git/HEAD et
+      .git/index, DEUX stats sans AUCUN processus git, rechargement au
+      changement de signature, onStart/onStop de l'éditeur ; bouton
+      manuel conservé] ; GitViewModel reçoit le PORT
+      ResolveurCheminFuse (plus la classe concrète, ADR 0101) et un
+      DispatcherProvider (sonde hors fil principal) ; MoteurGitCli
+      résout le binaire git À CHAQUE exécution (résolveur injecté,
+      plus de chemin gelé au singleton : `pkg install git` dans le
+      terminal devient utilisable sans redémarrer l'app) ; 8 tests
+      GitViewModelTest (dont le scénario exact du retour : dépôt créé
+      après l'ouverture, zone « initialiser » qui part) + 3 tests
+      MoteurGitCliBinaireDynamiqueTest.
 - Prochaine : phase 5 du roadmap — LSP (kotlin-language-server côté
       Kotlin, jdtls côté Java, classpath préparé `.codeide/local/
       lsp-classpath.json` ; cf. docs/ROADMAP.md). La refonte du parcours
