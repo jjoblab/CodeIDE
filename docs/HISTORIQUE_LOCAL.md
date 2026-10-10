@@ -23,7 +23,7 @@ fichiers binaires (entrées sans contenu), intégration aux commits Git
 | H0 | investigation, ADR 0104-0106, maquette, cette spécification | ✅ v0.82.0 |
 | H1 | moteur (port + stockage + décorateur FileSystem) | ✅ v0.82.0 |
 | H2 | afficher l'historique d'un fichier + restaurer | ✅ v0.87.0 |
-| H3 | historique de dossier + fichiers supprimés + Modifications récentes | à venir |
+| H3 | historique de dossier + fichiers supprimés + Modifications récentes | ✅ v0.88.0 |
 | H4 | étiquettes (utilisateur + système) | à venir |
 | H6 | réglages et entretien | à venir |
 
@@ -85,16 +85,26 @@ réécrire via le port crée la révision « avant restauration ».
    chemin (les plus récentes d'abord) ; `lireContenu(id)` le texte
    stocké, ou `null` (binaire/trop grand — l'interface le dit).
 
-## 5. Interface (H2 — aperçu)
+## 5. Interface (H2 — aperçu, H3 — dossier et supprimés)
 
 - Menu contextuel de l'explorateur (popover § 10) et menu de l'éditeur :
-  **« Afficher l'historique »** (fichiers ; dossiers en H3).
+  **« Afficher l'historique »** (fichiers ET dossiers — l'arbre privé
+  n'est pas capturé, aucune entrée) ; la RACINE du projet ouvre
+  **« Modifications récentes »** (tout le projet).
 - Vue : liste des révisions (date/heure relative, taille, type,
   étiquette éventuelle), **diff** entre une révision et le contenu
   actuel ou la révision précédente (composant PARTAGÉ `core:ui` — la
   future section Git s'en sert aussi), **restaurer** avec confirmation
   (« Restaurer cette version ? La version actuelle sera conservée dans
   l'historique »).
+- Modes dossier/projet : rangées au NOM DU FICHIER (les révisions
+  mélangent les fichiers) ; **filtre « Supprimés seuls »** — les
+  pierres tombales retrouvables d'un coup ; la « révision précédente »
+  d'une sélection est la plus ancienne du MÊME chemin.
+- **Fichier supprimé** : restaurer une pierre tombale RECRÉE le
+  fichier dans son dossier d'origine (parent résolu segment par
+  segment — jamais d'URI SAF construite) ; impasse honnête si le
+  dossier parent a disparu ; « Annuler » resupprime immédiatement.
 - Dates relatives lisibles (« il y a 4 min », « hier 14:02 »,
   « 3 oct. à 09:12 »).
 
@@ -120,3 +130,6 @@ réécrire via le port crée la révision « avant restauration ».
   couvre l'immédiat ; H3 ajoute la vue d'ensemble).
 - Terminal/git : détectés comme « Changement externe » à
   l'ouverture/rafraîchissement, pas en direct.
+- Les listes de dossier/projet sont BORNÉES (200 révisions, les plus
+  récentes) — l'historique complet vit dans le stockage, la feuille
+  n'en rend qu'une fenêtre (H3).

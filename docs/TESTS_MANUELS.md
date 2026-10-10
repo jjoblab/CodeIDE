@@ -512,6 +512,28 @@ journaux est injecté dans les builds debug des projets QUAND le réglage
 | X14 | Réglage « Journaux des applications exécutées » COUPÉ puis Run | Le build produit un APK SANS la bibliothèque (vérifiable : la ligne Gradle « applog » n'apparaît pas) ; l'onglet Logcat reste honnête (« Lancez votre application… ») |
 | X15 | Lignes perdues : journaliser en rafale (boucle serrée de logs) | Le bandeau orange « N lignes perdues » paraît (jamais silencieux) et suit le compteur |
 
+## Mission « Historique local » — le filet de sécurité sans Git (H1→H3, v0.82.0→v0.88.0)
+
+Préambule : APK debug v0.88.0+, un projet OUVERT (l'historique est
+indépendant de Git — les scénarios fonctionnent avec ou sans dépôt) ;
+l'historique vit dans le stockage privé de CodeIDE, jamais dans le
+dossier du projet.
+
+| # | Action | Attendu |
+|---|---|---|
+| Y1 | Popover d'un fichier du projet → **« Afficher l'historique »**, après quelques enregistrements | Feuille « Historique » du fichier : révisions les plus récentes d'abord, groupées par période (Aujourd'hui/Hier/Plus ancien), moments relatifs (« il y a 4 min »), type, taille |
+| Y2 | Appuyer une révision, puis **« Restaurer cette version »** | Confirmation honnête (« la version actuelle sera conservée dans l'historique ») ; après oui : le fichier contient la révision, l'onglet ouvert suit, snackbar « Version restaurée » + **Annuler** qui réécrit l'avant |
+| Y3 | Diff **vs actuel** / **vs précédente** (bascule de la page de diff) | vs actuel : révision ↔ contenu du disque ; vs précédente : révision ↔ révision plus ancienne du MÊME fichier (lignes +/−, fonds vert/rouge) |
+| Y4 | Popover d'un DOSSIER du projet → « Afficher l'historique » | Toutes les révisions des fichiers SOUS le dossier (préfixe strict : `src` ne couvre pas `srcX/`), rangées au NOM DU FICHIER avec le dossier parent en détail |
+| Y5 | Popover de la RACINE → **« Modifications récentes »** | Titre « Modifications récentes », sous-titre le projet, révisions du projet ENTIER (bornées aux plus récentes) |
+| Y6 | Filtre **« Supprimés seuls »** (modes dossier/projet) | Seules les pierres tombales restent (« Supprimé (retrouvé) ») ; vider le filtre rend tout ; état vide dit « Aucun fichier supprimé sous cette portée » |
+| Y7 | Restaurer une révision **« Supprimé (retrouvé) »** dont le dossier existe | Annonce « Le fichier sera recréé… » ; le fichier REPARAÎT à son emplacement d'origine, snackbar « Fichier recréé » + **Annuler** (resuppression immédiate) |
+| Y8 | Restaurer une tombale dont le dossier parent a DISPARU (supprimer le dossier entier d'abord) | Snackbar « Recréation impossible : le dossier parent n'existe plus » — jamais de fichier au mauvais endroit, jamais d'URI inventée |
+| Y9 | Éditer dans le TERMINAL (`echo coucou > fichier.txt`), puis réouvrir le fichier | À l'ouverture/rafraîchissement, une entrée « Changement externe » paraît dans l'historique du fichier (ADR 0106 : détection, jamais de scrutation) |
+| Y10 | Créer `local.properties` (secret), l'éditer, ouvrir son historique | AUCUNE révision — les secrets ne sont jamais historisés (ADR 0105) |
+| Y11 | Popover d'un fichier/dossier de l'arbre PRIVÉ | AUCUNE entrée « historique » (l'arbre privé n'est pas capturé) — idem menu contextuel d'un onglet privé |
+| Y12 | `git init` dans le projet, committer, puis éditer sans Git | L'historique continue d'enregistrer NORMALEMENT — le filet vit sa vie, indépendant du dépôt (aucune entrée Git dans l'historique) |
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

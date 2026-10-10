@@ -710,6 +710,33 @@ class ExplorateurFragment : Fragment() {
                         montrerPopoverSupprimer(noeud, x, y)
                     }
                 }
+                // Mission H (H3) : « Afficher l'historique » d'un DOSSIER
+                // (tous les fichiers sous le préfixe, préfixe strict) ;
+                // la RACINE du projet ouvre « Modifications récentes »
+                // (tout le projet). L'arbre PRIVÉ n'est pas capturé
+                // (liaison séparée, ADR 0106).
+                if (!noeud.prive) {
+                    separateur()
+                    action(
+                        View.generateViewId(),
+                        getString(
+                            if (noeud.estRacine) {
+                                R.string.popover_modifications_recentes
+                            } else {
+                                R.string.popover_historique
+                            },
+                        ),
+                        jo.codeide.core.ui.R.drawable.ic_actualiser,
+                    ) {
+                        FeuilleHistoriqueFragment
+                            .creer(
+                                uri = noeud.uri,
+                                cheminRelatif = cheminRelatif(noeud, etat),
+                                nom = noeud.nom,
+                                mode = if (noeud.estRacine) ModeHistorique.PROJET else ModeHistorique.DOSSIER,
+                            ).show(parentFragmentManager, ETIQUETTE_FEUILLE_HISTORIQUE)
+                    }
+                }
             } else {
                 // Fichier : Ouvrir (Projet ET Privé — bug A : un tap en
                 // mode privé ouvre le fichier depuis le stockage privé,
@@ -773,19 +800,22 @@ class ExplorateurFragment : Fragment() {
                 // Mission H (H2) : « Afficher l'historique » — la feuille
                 // liste les révisions du fichier (moments relatifs),
                 // diff unifié et restauration. Maquette : ligne séparée
-                // après les actions de nœud.
-                separateur()
-                action(
-                    View.generateViewId(),
-                    getString(R.string.popover_historique),
-                    jo.codeide.core.ui.R.drawable.ic_actualiser,
-                ) {
-                    FeuilleHistoriqueFragment
-                        .creer(
-                            uri = noeud.uri,
-                            cheminRelatif = cheminRelatif(noeud, etat),
-                            nom = noeud.nom,
-                        ).show(parentFragmentManager, ETIQUETTE_FEUILLE_HISTORIQUE)
+                // après les actions de nœud. H3 : l'arbre PRIVÉ n'est pas
+                // capturé (liaison séparée, ADR 0106) — pas d'entrée.
+                if (!noeud.prive) {
+                    separateur()
+                    action(
+                        View.generateViewId(),
+                        getString(R.string.popover_historique),
+                        jo.codeide.core.ui.R.drawable.ic_actualiser,
+                    ) {
+                        FeuilleHistoriqueFragment
+                            .creer(
+                                uri = noeud.uri,
+                                cheminRelatif = cheminRelatif(noeud, etat),
+                                nom = noeud.nom,
+                            ).show(parentFragmentManager, ETIQUETTE_FEUILLE_HISTORIQUE)
+                    }
                 }
             }
         }

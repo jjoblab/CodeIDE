@@ -1,10 +1,75 @@
 # Journal des modifications
 
+## [0.88.0] – 2026-10-11
+
+### Ajouté
+
+- **Historique de dossier, fichiers supprimés et Modifications
+  récentes** (mission « Historique local » H3, spec
+  HISTORIQUE_LOCAL.md § 5) :
+  - **Modes dossier et projet de la feuille Historique** : « Afficher
+    l'historique » sur un dossier de l'explorateur (préfixe STRICT —
+    `src` ne couvre pas `srcX/`), et « Modifications récentes » sur la
+    racine (tout le projet) ; rangées au NOM DU FICHIER, diff et
+    restauration inchangés ; l'arbre PRIVÉ n'est pas capturé (ADR 0106)
+    — pas d'entrée d'historique (fichiers, dossiers, onglets privés).
+  - **Filtre « Supprimés seuls »** : les pierres tombales (fichiers
+    supprimés retrouvables) d'un dossier ou du projet, en un geste.
+  - **Recréation d'un fichier supprimé** : restaurer une pierre
+    tombale recrée le fichier dans son dossier d'origine — dossier
+    parent résolu segment par segment par `ResolveurCheminHistorique`
+    (énumération des parents, JAMAIS d'URI SAF construite — leçon
+    v0.64.0) ; impasse honnête si le parent a disparu ; snackbar
+    « Fichier recréé » avec Annuler (resuppression immédiate) — la
+    restauration reste annulable par construction.
+  - **Diff « vs précédente » par chemin** : en mode dossier, la
+    révision de comparaison est la PLUS ANCIENNE du MÊME fichier (les
+    révisions d'un dossier mélangent les fichiers).
+- **`HistoriqueLocal.listerRevisionsSous`** (port + moteur) : révisions
+  sous un préfixe, bornées (200), plus récentes d'abord ; chemin vide =
+  projet entier.
+- **Recette manuelle** : section « Historique local » de
+  `docs/TESTS_MANUELS.md` — scénarios Y1-Y12 (fichier, restauration,
+  annulation, dossier, récentes, filtre, tombale, parent disparu,
+  indépendance Git, secrets).
+
+### Modifié
+
+- Le menu contextuel d'onglet n'offre l'historique qu'aux onglets du
+  projet (source Projet — les onglets privés n'ont pas d'historique) ;
+  l'entrée CHANGELOG 0.87.0 laissée « (à compléter) » par erreur est
+  remplie.
+
 ## [0.87.0] – 2026-10-10
 
 ### Ajouté
 
-- (à compléter)
+- **Feuille « Historique » d'un fichier + diff unifié + restauration**
+  (mission « Historique local » H2, spec HISTORIQUE_LOCAL.md § 5,
+  maquette historique-local.html) : révisions groupées par période
+  (Aujourd'hui/Hier/Plus ancien), moments relatifs (« il y a 4 min »,
+  « hier 14:02 », date complète), type, libellé, taille ; état vide
+  honnête ; entrées par le popover de l'explorateur et le menu
+  contextuel d'onglet.
+- **Diff unifié de la révision contre le CONTENU ACTUEL ou la révision
+  PRÉCÉDENTE (bascule)** : `DiffUnifie` (core:domain, pur) — rognage
+  préfixe/suffixe puis Myers O((N+M)·D) borné 4096 éditions, repli
+  honnête ; rendu monospace, marqueurs +/-/espace, fonds vert/rouge
+  translucides (partagé avec la future vue Git).
+- **Restauration avec confirmation** : écriture par le port DÉCORÉ (la
+  version d'avant part automatiquement à l'historique — annulable par
+  construction, ADR 0106) ; snackbar « Version restaurée » + action
+  Annuler (réécriture immédiate) ; contenu indisponible honnête
+  (binaire/trop grand), échec d'écriture signalé.
+- `ActionEditor.RemplacerContenuFichier` : l'onglet ouvert suit le
+  texte restauré (session remplacée, PROPRE, auto-sauvegarde en
+  attente ANNULÉE — sinon elle écraserait la restauration).
+
+### Modifié
+
+- 26 nouveaux tests : `DiffUnifieTest` 10 (reconstruction exacte),
+  `CalculsDatesHistoriqueTest` 8, `HistoriqueViewModelTest` 8 ;
+  `FakeHistoriqueLocal` + contenus par identifiant.
 
 ## [0.86.0] – 2026-10-10
 
