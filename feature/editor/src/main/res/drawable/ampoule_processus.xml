@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ampoule de la puce de processus de l'onglet Logcat (R3) : cercle
+     7 dp — teinté au rendu (vert = vivante, gris = terminée). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <size
+        android:width="7dp"
+        android:height="7dp" />
+    <solid android:color="@color/explorateur_vert" />
+</shape>

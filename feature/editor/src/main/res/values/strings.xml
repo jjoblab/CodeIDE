@@ -118,6 +118,43 @@
     <string name="editor_ouvrir_avec_aucune">Aucune application ne sait ouvrir ce fichier.</string>
     <string name="editor_chemin_copie">Chemin copié</string>
 
+    <!-- Mission « Exécuter » R3 (ADR 0103) : onglet Logcat — le vrai
+         Logcat des applications exécutées, sans adb (spec § 4-5). -->
+    <string name="editor_panneau_logcat">Logcat</string>
+    <string name="editor_panneau_logcat_sous_titre">Journaux de vos applications, sans adb</string>
+    <string name="logcat_selecteur_processus">Sélectionner le processus affiché</string>
+    <string name="logcat_aucun_processus">aucun</string>
+    <string name="logcat_session_menu">%1$s (%2$d)</string>
+    <string name="logcat_session_vivante"> · en cours</string>
+    <string name="logcat_session_terminee"> · terminée</string>
+    <string name="logcat_session_precedente"> · précédente</string>
+    <string name="logcat_filtre_indice">Filtrer le texte</string>
+    <string name="logcat_regex">Expression régulière</string>
+    <string name="logcat_regex_marque">.*</string>
+    <string name="logcat_filtre_niveau">Niveau minimal affiché</string>
+    <string name="logcat_niveau_verbeux">Verbose</string>
+    <string name="logcat_niveau_debogage">Débug</string>
+    <string name="logcat_niveau_info">Info</string>
+    <string name="logcat_niveau_avertissement">Avertissement</string>
+    <string name="logcat_niveau_erreur">Erreur</string>
+    <string name="logcat_niveau_assert">Assert</string>
+    <string name="logcat_pause">Pause du défilement</string>
+    <string name="logcat_effacer">Effacer les journaux affichés</string>
+    <string name="logcat_vide">Lancez votre application pour voir ses journaux</string>
+    <string name="logcat_vide_pied">Sans adb : journaux de votre application uniquement, depuis le démarrage de son processus.</string>
+    <plurals name="logcat_lignes_perdues">
+        <item quantity="one">%1$d ligne perdue</item>
+        <item quantity="many">%1$d lignes perdues</item>
+        <item quantity="other">%1$d lignes perdues</item>
+    </plurals>
+    <string name="logcat_arret">Le processus s\'est arrêté : %1$s</string>
+    <string name="logcat_precedente">Session précédente — %1$s (pid %2$d) · terminée à %3$s</string>
+    <string name="logcat_precedente_heure_inconnue">heure inconnue</string>
+    <string name="logcat_motif_invalide">Motif invalide : %1$s</string>
+    <string name="logcat_pid_tid">%1$d-%2$d</string>
+    <string name="logcat_libelle_clip">Ligne Logcat</string>
+    <string name="logcat_copiee">Ligne copiée</string>
+
     <!-- Panneau inférieur (étape 16). -->
     <string name="editor_panneau_agrandir_cd">Agrandir le panneau inférieur</string>
     <string name="editor_journal_niveau_debug">Débug</string>

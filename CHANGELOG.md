@@ -1,5 +1,69 @@
 # Journal des modifications
 
+## [0.84.0] – 2026-10-10
+
+### Ajouté
+
+- **Onglet Logcat** (mission « Exécuter » R3, spec EXECUTER.md § 4,
+  ADR 0103/0107) : le vrai Logcat des applications exécutées coule
+  maintenant dans l'IDE, **sans adb** — 4e onglet du panneau inférieur,
+  façon Android Studio :
+  - **Barre d'outils** : sélecteur de processus (puce + ampoule verte
+    vivante, menu des sessions vivantes / terminées / précédentes),
+    filtre texte (sous-chaîne insensible à la casse sur message ET
+    étiquette), option **regex** (motif invalide signalé en ligne,
+    jamais de crash), filtre de **niveau minimal** (Verbose → Assert,
+    masque les inférieurs), **pause** du défilement (fige l'affichage,
+    la collecte continue — reprise = rattrapage), **effacer** (vide
+    l'affiché, les sessions gardées restent).
+  - **Table monospace 11 sp** virtualisée (`ListAdapter` + DiffUtil,
+    identité = numéro de ligne strictement croissant, couleurs de
+    niveau V/D/I/W/E/F jetons § 4.2 jour/nuit) — défilement automatique
+    HONNÊTE (un doigt qui touche arrête le suivi, revenir au fond le
+    reprend), clic long = copie de la ligne brute au format logcat.
+  - **Bandeaux d'état jamais silencieux** : « N lignes perdues »
+    (orange), « Le processus s'est arrêté : raison » (rouge), « Session
+    précédente » (grise, consultable), erreur de motif regex.
+  - **Sessions précédentes archivées** entre deux démarrages de
+    CodeIDE (JSON borné à 6, atomique, stockage PRIVÉ `filesDir/logcat`
+    — identité, raison de fin, compteurs et DERNIÈRE ligne seulement ;
+    un historique complet sur disque serait un trou de confidentialité
+    que personne n'a demandé).
+  - **Rattrapage incrémental exact** (ADR 0107) : les lots du registre
+    portent leur position (`LotJournal.apres`) et le port gagne
+    `lignesDepuis(id, position)` — l'afficheur rattrape par delta sous
+    le verrou du registre : **aucune ligne perdue, aucune doublon**,
+    filtrage incrémental (aucune allocation en rafale par lot),
+    pause/reprise triviales. Corrige au passage la course
+    instantané/abonnement du flux de lots.
+- `editor_panneau_logcat` + 30 chaînes fr/en (barre, bandeaux, niveaux,
+  menus, copie) ; 9 jetons de couleur jour/nuit ; 5 drawables
+  (ampoule, fonds d'outil et d'état vide, pause, niveaux).
+
+### Modifié
+
+- `OngletPanneau` gagne `LOGCAT` (4e onglet, ordre des `TabItem`
+  strictement aligné) ; l'en-tête du panneau porte le sous-titre de
+  périmètre (« Journaux de vos applications, sans adb » — politique
+  d'honnêteté § 5), sans badge.
+
+### Tests
+
+- `FiltreLogcatTest` (7, JVM pur) : niveaux, sous-chaîne message +
+  étiquette, regex, motif invalide signalé, liste entière.
+- `RegistrePontJournauxTest` (12, +3) : position du lot, delta
+  intermédiaire/à jour/trop vieux, session inconnue.
+- `LogcatViewModelTest` (10) : autosélection, choix qui prime, vivante
+  qui déloge une archive, pause/reprise rattrapée, effacement local,
+  filtres, erreur de motif, archivage unique avec dernière ligne,
+  pertes.
+- `ArchiveSessionsJournalFichiersTest` (8, Robolectric) :
+  aller-retour JSON, borne 6, ordre, ré-archive, corruption lue comme
+  vide, atomicité (pas de résidu `.tmp`), niveau inconnu replié.
+- `PanneauToolingControllerTest` (+1) : Logcat = ligne tooling éteinte
+  (règle des onglets non-Console). `ActivityEditorLayoutTest` : 4
+  TabItem, le 4e est Logcat.
+
 ## [0.83.0] – 2026-10-10
 
 ### Ajouté

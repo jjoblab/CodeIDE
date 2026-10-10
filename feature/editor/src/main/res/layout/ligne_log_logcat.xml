@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une ligne de la table Logcat (mission « Exécuter » R3, spec § 4.1) :
+     monospace 11 sp, colonnes horodatage / pid-tid / étiquette / niveau /
+     message. Niveau teinté au bind (V texte-3, D accent, I vert, W orange,
+     E/F rouge — jetons § 4.2). Clic long = copie de la ligne brute. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="3dp">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/horodatage_log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:textColor="@color/explorateur_texte_3"
+        android:textSize="11sp"
+        tools:text="14:03:21.108" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/pid_tid_log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:textColor="@color/explorateur_texte_2"
+        android:textSize="11sp"
+        tools:text="18401-18401" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/etiquette_log"
+        android:layout_width="110dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:ellipsize="end"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:maxLines="1"
+        android:textColor="@color/explorateur_violet"
+        android:textSize="11sp"
+        tools:text="MainActivity" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/niveau_log"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:textSize="11sp"
+        tools:text="I"
+        tools:textColor="@color/logcat_niveau_info" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/message_log"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="monospace"
+        android:maxLines="1"
+        android:textColor="@color/explorateur_texte"
+        android:textSize="11sp"
+        tools:text="onCreate terminé en 412 ms" />
+</LinearLayout>

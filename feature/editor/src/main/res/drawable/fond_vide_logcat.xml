@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône de l'état vide de l'onglet Logcat (R3, maquette § « États
+     vides ») : pastille surface, rayon r-m 10 dp. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/explorateur_fond_surface" />
+    <corners android:radius="10dp" />
+</shape>
