@@ -19,6 +19,20 @@ import kotlinx.coroutines.launch
  * flux au fil de l'eau** (stdout compris, acheminé au journal d'écran de
  * l'installation) — l'ordre relatif entre les deux flux n'est pas
  * garanti, chaque flux conserve néanmoins son ordre interne.
+ *
+ * v0.80.7 (correctif « section Git figée ») : [Sortie] porte désormais
+ * la sortie standard **INTÉGRALE** ([Sortie.sortieStandard]). Contrat
+ * des flux du port : stdout et stderr sont des flux froids
+ * **consommables UNE SEULE FOIS** (le tuyau sous-jacent est refermé à
+ * l'EOF) — collecter `stdoutLines()` APRÈS [attendre] ne relit RIEN.
+ * [MoteurGitCli] commettait exactement cette double collecte : sur un
+ * appareil réel, `git rev-parse --is-inside-work-tree` sortait bien
+ * `true` mais la seconde collecte (sur le tuyau déjà refermé) rendait un
+ * stdout VIDE — `estDepot` répondait FAUX pour tout dépôt existant, la
+ * section Git restait figée sur « ce projet n'est pas un dépôt Git »
+ * alors même que le clonage (qui ne lit que le code de sortie)
+ * réussissait. Les flux rejouables des faux de test masquaient le bug :
+ * seuls de VRAIS processus le révèlent (MoteurGitCliFluxUniqueTest).
  */
 internal object SupervisionProcessus {
     /** Lignes conservées par flux, au maximum. */
@@ -29,10 +43,14 @@ internal object SupervisionProcessus {
      *
      * @property code code de sortie du processus.
      * @property erreurs dernières lignes de stderr (bornées).
+     * @property sortieStandard lignes de stdout capturées pendant
+     * l'unique drainage (v0.80.7) — LA source de vérité de la sortie,
+     * le tuyau est refermé après.
      */
     internal data class Sortie(
         val code: Int,
         val erreurs: List<String>,
+        val sortieStandard: List<String> = emptyList(),
     )
 
     /**
@@ -40,7 +58,8 @@ internal object SupervisionProcessus {
      *
      * @param consommateur receptacle optionnel de chaque ligne (stdout et
      * stderr, ordre d'arrivée) — journal d'affichage de l'installation.
-     * @return le code de sortie et un extrait borné de stderr.
+     * @return le code de sortie, la sortie standard capturée pendant le
+     * drainage (v0.80.7) et un extrait borné de stderr.
      */
     internal suspend fun attendre(
         processus: ManagedProcess,
@@ -48,10 +67,12 @@ internal object SupervisionProcessus {
     ): Sortie =
         coroutineScope {
             val erreurs = mutableListOf<String>()
+            val sortieStandard = mutableListOf<String>()
             val drainages =
                 listOf(
                     launch {
                         processus.stdoutLines().collect { ligne ->
+                            sortieStandard += ligne
                             consommateur?.invoke(ligne)
                         }
                     },
@@ -64,6 +85,6 @@ internal object SupervisionProcessus {
                 )
             val code = processus.awaitExit()
             drainages.joinAll()
-            Sortie(code, erreurs.toList())
+            Sortie(code, erreurs.toList(), sortieStandard.toList())
         }
 }
