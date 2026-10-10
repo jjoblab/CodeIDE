@@ -119,9 +119,12 @@ liste virtualisée — jamais de `TextView` à append sans borne).
   sélecteur de processus liste les sessions vivantes + « session
   précédente » consultable (dernière ligne et raison de fin conservées
   entre deux démarrages de CodeIDE, bornées, stockage privé).
-- **R4** : lignes de pile `Fichier.kt:12` **cliquables** → ouvrent le
-  fichier à la ligne ; snackbar « L'app a planté » + action
-  « Voir la trace » lors d'une exception non interceptée.
+- **R4** (livré v0.85.0) : lignes de pile `Fichier.kt:12` **cliquables** →
+  sélecteur de cadres (la trace arrive en UN message multi-lignes) →
+  ouvrent le fichier à la ligne (onglet ouvert, sinon résolution par
+  candidats `src/main/java|kotlin/<paquet>`, au plus 4 sondes) ;
+  snackbar « L'application a planté » + action « Voir la trace » lors
+  d'une exception non interceptée (une fois par session morte).
 
 ### 4.4 Rattrapage incrémental (ADR 0107, R3 livré)
 
@@ -166,5 +169,5 @@ alternatives rejetées : ADR 0107.
 | R1 | installer et lancer (port + use case + UI) | ✅ v0.81.0 |
 | R2 | pont de logs (bibliothèque, service, injection Gradle) | ✅ v0.83.0 |
 | R3 | onglet Logcat | ✅ v0.84.0 |
-| R4 | traces cliquables et plantages | à venir |
+| R4 | traces cliquables et plantages | ✅ v0.85.0 |
 | R5 | finitions et tests | à venir |

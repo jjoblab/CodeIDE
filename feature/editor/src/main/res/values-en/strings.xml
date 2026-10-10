@@ -146,6 +146,9 @@
     <string name="logcat_pid_tid">%1$d-%2$d</string>
     <string name="logcat_libelle_clip">Logcat line</string>
     <string name="logcat_copiee">Line copied</string>
+    <string name="logcat_pile_titre">Open from stack trace</string>
+    <string name="logcat_plantage">The app crashed</string>
+    <string name="logcat_plantage_voir">View the trace</string>
 
     <!-- Panneau inférieur (étape 16). -->
     <string name="editor_panneau_agrandir_cd">Expand the bottom panel</string>

@@ -17,12 +17,14 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.EtatSessionJournal
 import jo.codeide.core.domain.LigneJournal
+import jo.codeide.core.domain.LignesPile
 import jo.codeide.core.domain.NiveauJournal
 import jo.codeide.core.domain.SessionJournal
 import jo.codeide.core.ui.collectWithLifecycle
@@ -39,6 +41,13 @@ import java.util.Locale
  * arrêt, session précédente, erreur de motif), table monospace
  * virtualisée, état vide honnête.
  *
+ * R4 : les lignes portant une pile sont CLIQUABLES — un sélecteur de
+ * cadres s'ouvre (la trace arrive en UN message multi-lignes, le
+ * sélecteur est l'équivalent honnête du clic cadre par cadre d'Android
+ * Studio) ; chaque cadre saute au fichier source dans l'éditeur.
+ * Le snackbar « L'application a planté » vit côté activité (même
+ * ViewModel, portée ACTIVITÉ).
+ *
  * Le fragment NE FAIT QUE RENDRE : tout l'état vit dans
  * [LogcatViewModel] (sélection, tampon, filtre, pause) — le chrome
  * (en-tête, onglets) reste à l'hôte (activity_editor.xml), même
@@ -51,13 +60,18 @@ import java.util.Locale
  * Exemption detekt ciblée (règle 16, même forme que
  * ExplorateurFragment) : `TooManyFunctions` — UNE fonction par ZONE de
  * l'onglet (§ 4.1 : barre, table, bandeaux) et une par ACTION de la
- * barre (menu processus, menu niveau, copie, clavier) ; les regrouper
- * masquerait la structure de la spécification.
+ * barre (menu processus, menu niveau, copie, clavier, cadres) ; les
+ * regrouper masquerait la structure de la spécification.
  */
 @Suppress("TooManyFunctions")
 @AndroidEntryPoint
 class PanneauLogcatFragment : Fragment() {
-    private val viewModel: LogcatViewModel by viewModels()
+    /** ViewModel Logcat — portée ACTIVITÉ : l'hôte y montre le snackbar
+     *  de plantage même replié, et le fragment survit aux cachés/montrés. */
+    private val viewModel: LogcatViewModel by activityViewModels()
+
+    /** ViewModel de l'espace (R4 : sauter au fichier source). */
+    private val viewModelEditeur: EditorViewModel by activityViewModels()
 
     private var liaisonAmorce: FragmentPanneauLogcatBinding? = null
 
@@ -166,12 +180,15 @@ class PanneauLogcatFragment : Fragment() {
     }
 
     /** Table (§ 4.2) : liste virtualisée, suivi direct honnête, copie au
-     *  clic long (export reste une action explicite, jamais automatique). */
+     *  clic long (export reste une action explicite, jamais automatique),
+     *  cadres CLIQUABLES au clic simple (R4 : saut au source). */
     private fun brancherListe() {
         adaptateur =
-            LignesLogcatAdapter(requireContext()) { ligne ->
-                copierLigne(ligne)
-            }
+            LignesLogcatAdapter(
+                contexte = requireContext(),
+                surLigneAppuyee = { ligne -> proposerSautSource(ligne) },
+                surLigneLongueAppuyee = { ligne -> copierLigne(ligne) },
+            )
         liaison.listeLogcat.layoutManager = LinearLayoutManager(requireContext())
         liaison.listeLogcat.adapter = adaptateur
         liaison.listeLogcat.addOnScrollListener(
@@ -280,6 +297,31 @@ class PanneauLogcatFragment : Fragment() {
         if (etat.erreurMotif) {
             liaison.ligneErreurMotif.text = getString(R.string.logcat_motif_invalide, etat.filtre.texte)
         }
+    }
+
+    /**
+     * Sélecteur de cadres cliquables (R4, spec § 4.3) : la trace arrive
+     * en UN message multi-lignes — chaque cadre `.kt`/`.java` listé est
+     * un saut potentiel ; un message sans pile ne réagit PAS (seul le
+     * clic long copie).
+     */
+    private fun proposerSautSource(ligne: LigneJournal) {
+        val emplacements = LignesPile.extraire(ligne.message)
+        if (emplacements.isEmpty()) return
+        val libelles =
+            emplacements.map { "${it.classe}.${it.methode}(${it.fichier}:${it.ligne})" }.toTypedArray()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.logcat_pile_titre)
+            .setItems(libelles) { _, choix ->
+                val cadre = emplacements[choix]
+                viewModelEditeur.onAction(
+                    ActionEditor.SauterVersLigneSource(
+                        classe = cadre.classe,
+                        fichier = cadre.fichier,
+                        ligne = cadre.ligne,
+                    ),
+                )
+            }.show()
     }
 
     /** Sélecteur de processus (§ 4.3) : vivantes d'abord, puis terminées

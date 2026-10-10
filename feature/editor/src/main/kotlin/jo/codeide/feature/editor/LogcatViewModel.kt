@@ -8,6 +8,7 @@ import jo.codeide.core.domain.EtatSessionJournal
 import jo.codeide.core.domain.FiltreLogcat
 import jo.codeide.core.domain.FinSessionJournal
 import jo.codeide.core.domain.LigneJournal
+import jo.codeide.core.domain.LignesPile
 import jo.codeide.core.domain.NiveauJournal
 import jo.codeide.core.domain.PontJournauxApplications
 import jo.codeide.core.domain.SessionJournal
@@ -41,6 +42,8 @@ import javax.inject.Inject
  * @property fin raison de fin de la session affichée (`null` : vivante)
  * @property archives sessions précédentes (fin bornée) — le sélecteur
  *           de processus les liste après les sessions du registre
+ * @property plantage dernier plantage signalé par le pont (R4, snackbar
+ *           « L'application a planté » — `null` tant qu'aucun)
  */
 data class EtatLogcat(
     val sessions: List<SessionJournal> = emptyList(),
@@ -53,6 +56,22 @@ data class EtatLogcat(
     val lignesPerdues: Long = 0L,
     val fin: FinSessionJournal? = null,
     val archives: List<SessionJournalArchivee> = emptyList(),
+    val plantage: PlantageLogcat? = null,
+)
+
+/**
+ * Un plantage de l'application exécutée (R4) : signalé par le pont
+ * (exception non interceptée, étiquette « Plantage »), affiché en
+ * snackbar UNE fois par session — l'action « Voir la trace » ouvre
+ * l'onglet Logcat sur la session morte.
+ *
+ * @property idSession identifiant de la session morte
+ * @property raison annonce du pont (« Exception non interceptée dans le
+ *           fil « main » »)
+ */
+data class PlantageLogcat(
+    val idSession: String,
+    val raison: String,
 )
 
 /**
@@ -333,11 +352,17 @@ class LogcatViewModel
             if (etatInterne.value.enPause) return
             val filtre = etatInterne.value.filtre
             val delta = pont.lignesDepuis(id, positionRendue)
+            var plantage: PlantageLogcat? = null
             for (ligne in delta.lignes) {
                 val entree = LigneLogcatNumerotee(prochainNumero++, ligne)
                 tampon.add(entree)
                 if (filtre.accepte(ligne)) {
                     lignesFiltrees.add(entree)
+                }
+                // R4 : le pont annonce l'exception non interceptée de CETTE
+                // session — le snackbar « L'application a planté » suit.
+                if (LignesPile.estPlantage(ligne) && etatInterne.value.plantage?.idSession != id) {
+                    plantage = PlantageLogcat(id, ligne.message)
                 }
                 // Borne synchronisée : la ligne évincée du tampon quitte
                 // AUSSI le tampon filtré si elle y était (identité d'objet).
@@ -349,6 +374,7 @@ class LogcatViewModel
                 }
             }
             positionRendue = delta.apres
+            etatInterne.update { etat -> etat.copy(plantage = plantage ?: etat.plantage) }
             if (delta.lignes.isNotEmpty()) {
                 republier()
             }

@@ -310,6 +310,10 @@ class EditorViewModel
         /** Source de l'arbre affiché (étape 31 : exclusif, § 5). */
         private var source = SourceArbre.PROJET
 
+        /** Saut de pile en attente d'ouverture (R4) : uri → ligne — posé
+         *  par [sauterVersLigneSource], consommé par [ajouterOnglet]. */
+        private var sautEnAttente: Pair<String, Int>? = null
+
         /** Arbre affiché selon la source courante. */
         private val arbre: EtatArbre
             get() = if (source == SourceArbre.PRIVE) arbrePrive else arbreProjet
@@ -814,7 +818,63 @@ class EditorViewModel
                 is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
                 is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
                 ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
+                is ActionEditor.SauterVersLigneSource -> sauterVersLigneSource(action)
                 else -> Unit // Routage exhaustif par les trois branches.
+            }
+        }
+
+        /**
+         * Saute vers un emplacement de pile cliquable (R4, spec
+         * EXECUTER.md § 4.3) : onglet déjà ouvert → sélection + effet
+         * immédiat ; sinon résolution par CANDIDATS sources (un projet
+         * Android standard place les sources de `app` sous
+         * `src/main/java` ou `src/main/kotlin`, le paquet du cadre donne
+         * le chemin) — le premier existant est ouvert, le saut part à
+         * l'ajout de l'onglet ([ajouterOnglet]).
+         */
+        private fun sauterVersLigneSource(action: ActionEditor.SauterVersLigneSource) {
+            val onglets = etatInterne.value.onglets
+            // 1. Onglet ouvert : le paquet du cadre est le SUFFIXE du
+            //    chemin relatif (chute : simple nom de fichier — Kotlin
+            //    autorise un nom de fichier différent de la classe).
+            val paquet = action.classe.substringBeforeLast('.', "").replace('.', '/')
+            val suffixe = if (paquet.isEmpty()) action.fichier else "$paquet/${action.fichier}"
+            onglets
+                .firstOrNull { it.cheminRelatif.endsWith(suffixe) }
+                ?.let { onglet ->
+                    selectionner(onglets.indexOf(onglet))
+                    canalEffets.trySend(EffetEditor.DefilementVersLigne(onglet.uri, action.ligne))
+                    return
+                }
+            onglets
+                .firstOrNull { it.cheminRelatif.substringAfterLast('/') == action.fichier }
+                ?.let { onglet ->
+                    selectionner(onglets.indexOf(onglet))
+                    canalEffets.trySend(EffetEditor.DefilementVersLigne(onglet.uri, action.ligne))
+                    return
+                }
+
+            // 2. Résolution par candidats dans l'arbre PROJET (bornée :
+            //    au plus 4 sondes SAF — le paquet + le module standard).
+            val racine = uriRacineDe(arbre) ?: return
+            val cheminClasse = action.classe.replace('.', '/')
+            val extension = action.fichier.substringAfterLast('.', "kt")
+            val candidats =
+                listOf("java", "kotlin").flatMap { sources ->
+                    listOf(
+                        "$racine/app/src/main/$sources/$cheminClasse.$extension",
+                        "$racine/src/main/$sources/$cheminClasse.$extension",
+                    )
+                }
+            viewModelScope.launch {
+                val uri =
+                    candidats.firstOrNull { candidat -> systemePour(SourceArbre.PROJET).exists(candidat) }
+                if (uri == null) {
+                    journal.w(TAG) { "emplacement de pile introuvable : $suffixe" }
+                    return@launch
+                }
+                sautEnAttente = uri to action.ligne
+                ouvrir(uri)
             }
         }
 
@@ -2656,6 +2716,15 @@ class EditorViewModel
             persisterOnglets()
             // Point d'état des nœuds (§ 7) : l'arbre suit les onglets.
             reconstruireNoeuds()
+            // R4 : un saut de pile attendait CET ouverture — il part
+            // MAINTENANT que la session existe (l'effet défile et pose
+            // le curseur, comme [sauterAuProbleme]).
+            sautEnAttente
+                ?.takeIf { it.first == uri }
+                ?.let { (uriSaut, ligne) ->
+                    sautEnAttente = null
+                    canalEffets.trySend(EffetEditor.DefilementVersLigne(uriSaut, ligne))
+                }
         }
 
         /** Une modification rend l'onglet sale et (re)programme l'auto-sauvegarde
