@@ -70,6 +70,13 @@ dependencies {
     // fermé par la mort de l'app termine proprement l'orchestrateur).
     implementation(project(":tooling:daemon"))
 
+    // Mission « LSP Java » étape 4 h2 (§16.2) : liaison Hilt des coutures
+    // de l'hôte LSP (SourceClasspathLsp sur l'accesseur protocole BRUT de
+    // tooling:client + DossierIndexLsp sur filesDir/codeide/lsp/index) —
+    // l'app est le SEUL point où tooling et hôte se rencontrent (règle
+    // §2.2 : les features ne voient que les types de :lsp:host).
+    implementation(project(":lsp:host"))
+
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
     implementation(libs.androidx.activity)
