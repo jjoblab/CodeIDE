@@ -1,5 +1,28 @@
 # Journal des modifications
 
+## [0.96.2] – 2026-10-11
+
+### Corrigé
+
+- **Mission « LSP Java » étape 3 (lot F, 1re partie) — le « 0 item »
+  de la complétion NOM : contrat « jamais null »**
+  (étude §4.2/§4.3 — symptôme « got 0 items » du banc ; docs/
+  LSP_JAVA.md §15.6) : les contextes NON capturés par conception
+  (nom de déclaration — parité CodeAssist « ContextAnalyzer ne capture
+  pas les noms de déclarations » ; annotation en recovery — les
+  annotation-statements ne sont pas une syntaxe Java valide ; position
+  après crochets de tableau) faisaient rendre `null` par
+  `EcjCompletionEngine.complete` — l'appelant itérant sur null jetait
+  une NPE avalée et le banc observait « 0 items ». `completeImpl`
+  rend désormais une liste VIDE honnête dans TOUS les cas (y compris
+  le kill-switch DISABLED) — les positions travaillées du même corpus
+  (type de paramètre, nom en instruction, type dans générique)
+  continuent de rendre leurs items. 6 tests de non-régression sur jar
+  compilé au vol (3 contrats jamais-null + 3 positions proposantes) —
+  `:lsp:java` 291 tests verts. Reste au lot F : le port du banc moteur
+  (cible complétion types p95 < 100 ms — nécessite les jeux de
+  données, cf. scripts/lsp-index/construire-jeux.sh).
+
 ## [0.96.1] – 2026-10-11
 
 ### Ajouté
