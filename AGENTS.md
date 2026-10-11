@@ -1188,6 +1188,18 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.96.2 : **mission « LSP Java » étape 3 (lot F, 1re partie) —
+      correctif du « 0 item » de la complétion NOM** (étude §4.2/§4.3 ;
+      docs/LSP_JAVA.md §15.6) : le symptôme reproduit en 3 positions
+      (nom de déclaration `void f(int Bund|`, annotation en recovery
+      `@Overri|`, après crochets `Alp[]|`) — complete() rendait NULL
+      sur les contextes non capturés par conception, NPE avalée par
+      les appelants, banc observant « 0 items » ; CONTRAT « jamais
+      null » : liste vide honnête dans tous les cas (y compris
+      DISABLED), positions travaillées vérifiées non affectées
+      (type de paramètre, nom en instruction, générique) ; 6 tests de
+      non-régression sur jar au vol — lsp:java 291 tests verts. Reste
+      lot F : banc moteur (jeux de données requis).
 - v0.96.1 : **mission « LSP Java » étape 3 (lot D) — cache de parse
       multi-entrées** (W8 ; docs/LSP_JAVA.md §15.5) : EcjParseCache en
       LRU d'accès 8 entrées, clé (chemin, longueur, FNV-1a 64 bits du
