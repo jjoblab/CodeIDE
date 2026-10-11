@@ -1,5 +1,31 @@
 # Journal des modifications
 
+## [0.96.3] – 2026-10-12
+
+### Corrigé
+
+- **Mission « LSP Java » — la CI rejette la dépendance de test
+  `:lsp:java` → `:lsp:index` (section 5.2, ADR 0108)** : les 4 tests
+  d'intégration du branchement index (lot C) et leur adaptateur
+  (`AdaptateurIndexNoms` + `IndexNomsIntegrationTest`, fichiers
+  déplacés tels quels — historique git suivi en renommage) déménagent
+  dans le NOUVEAU module `:lsp:testing` (pattern `:tooling:testing`,
+  dépendance de test uniquement) — la suite vit AU-DESSUS du moteur
+  vendored et de l'index, et le cœur Java redevient SANS AUCUNE
+  dépendance de projet, test comprise (extractibilité bibliothèque
+  indépendante). Le module applique kover : la CI (koverVerify) y
+  exécute la suite, qui ne dépend ni d'android.jar ni du cache
+  Gradle. Le fileTree `api` des jars Eclipse patchés porte désormais
+  `builtBy(patchEclipseForArt)` — l'ordonnancement du patcher voyage
+  avec la dépendance de fichiers, garantissant aux consommateurs
+  qu'il a produit les jars avant compilation/tests. Lignes `lsp:index`
+  (absente — dette documentaire de l'étape 2) et `lsp:testing`
+  ajoutées aux tableaux d'ARCHITECTURE.md (§3.2 et §5.2), à
+  l'allow-list du plugin `codeide.module-rules` et à
+  MODULES_PURS (module JVM pur). Baseline : `:lsp:java` 287 tests,
+  `:lsp:testing` 4, `:lsp:index` 59, `:lsp:model` 35,
+  `:lsp:ecj-art` 2 — 0 échec.
+
 ## [0.96.2] – 2026-10-11
 
 ### Corrigé
