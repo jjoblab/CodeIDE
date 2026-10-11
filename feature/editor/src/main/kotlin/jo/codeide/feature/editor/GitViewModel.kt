@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.BrancheGit
 import jo.codeide.core.domain.CommitGit
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EtatDepot
 import jo.codeide.core.domain.MoteurGit
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ResolveurCheminFuse
@@ -156,20 +157,36 @@ class GitViewModel
                     _etat.value = EtatGit(erreur = MESSAGE_CHEMIN_INACCESSIBLE)
                     return
                 }
-            val estDepot = moteurGit.estDepot(cheminFuse)
-            if (!estDepot) {
-                _etat.value = EtatGit(pasDepot = true)
-                return
+            // v0.90.1 (mission « section Git figée » étape A) : l'état du
+            // dépôt est TYPÉ — « pas un dépôt » n'existe que si git le dit
+            // explicitement ; toute autre cause (binaire absent, refus de
+            // propriété, permission refusée…) devient une erreur observable,
+            // JAMAIS la proposition « Initialiser un dépôt ».
+            when (val etatDepot = moteurGit.etatDepot(cheminFuse)) {
+                EtatDepot.Depot -> {
+                    val statut = moteurGit.statut(cheminFuse)
+                    val branche = moteurGit.brancheCourante(cheminFuse)
+                    _etat.value =
+                        EtatGit(
+                            chargement = false,
+                            statut = (statut as? ResultatGit.Succes)?.valeur,
+                            branche = (branche as? ResultatGit.Succes)?.valeur,
+                            erreur = (statut as? ResultatGit.Echec)?.message,
+                        )
+                }
+
+                EtatDepot.PasUnDepot -> {
+                    _etat.value = EtatGit(pasDepot = true)
+                }
+
+                is EtatDepot.Inaccessible -> {
+                    _etat.value =
+                        EtatGit(
+                            chargement = false,
+                            erreurDepot = etatDepot,
+                        )
+                }
             }
-            val statut = moteurGit.statut(cheminFuse)
-            val branche = moteurGit.brancheCourante(cheminFuse)
-            _etat.value =
-                EtatGit(
-                    chargement = false,
-                    statut = (statut as? ResultatGit.Succes)?.valeur,
-                    branche = (branche as? ResultatGit.Succes)?.valeur,
-                    erreur = (statut as? ResultatGit.Echec)?.message,
-                )
         }
 
         /** Indexe un fichier (git add). */
@@ -421,7 +438,13 @@ class GitViewModel
  * État observable de la section Git.
  *
  * @property chargement vrai pendant le premier chargement.
- * @property pasDepot vrai si le projet n'est pas un dépôt Git.
+ * @property pasDepot vrai si le projet n'est pas un dépôt Git — **uniquement
+ * sur parole de git** (« not a git repository », v0.90.1).
+ * @property erreurDepot dépôt à l'état indéterminé : git est injoignable ou
+ * refuse d'opérer (v0.90.1, mission « section Git figée » étape A — binaire
+ * absent, dubious ownership, permission refusée…). L'affichage montre
+ * l'erreur et le bouton Actualiser ; « Initialiser » est interdit tant
+ * que git n'a pas confirmé l'absence de dépôt.
  * @property statut statut des fichiers (null si pas encore chargé).
  * @property branche nom de la branche courante.
  * @property messageCommit message saisi par l'utilisateur.
@@ -437,6 +460,7 @@ class GitViewModel
 data class EtatGit(
     val chargement: Boolean = false,
     val pasDepot: Boolean = false,
+    val erreurDepot: EtatDepot.Inaccessible? = null,
     val statut: StatutGit? = null,
     val branche: String? = null,
     val messageCommit: String = "",

@@ -8,6 +8,8 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.EtatDepot
+import jo.codeide.core.domain.RaisonDepotInaccessible
 import jo.codeide.core.domain.StatutFichier
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentGitBinding
@@ -113,10 +115,13 @@ class GitFragment : Fragment() {
         // s'efface au profit du repère de chargement — le bouton ne peut
         // plus être martelé pendant un git init en cours.
         liaison.chargementGit.isVisible = etat.chargement
+        // v0.90.1 (étape A) : état indéterminé (erreurDepot) — la zone
+        // « pas un dépôt » reste CACHÉE (git ne l'a pas dit) et le corps
+        // aussi (rien à montrer) : l'erreur observable prime.
         liaison.zonePasDepot.isVisible = etat.pasDepot && !etat.chargement
         liaison.boutonInitialiserGit.isEnabled = !etat.chargement
-        liaison.corpsGit.isVisible = !etat.chargement && !etat.pasDepot
-        liaison.boutonCommitter.isVisible = !etat.chargement && !etat.pasDepot
+        liaison.corpsGit.isVisible = !etat.chargement && !etat.pasDepot && etat.erreurDepot == null
+        liaison.boutonCommitter.isVisible = !etat.chargement && !etat.pasDepot && etat.erreurDepot == null
 
         liaison.brancheGit.text = etat.branche
         liaison.brancheGit.isVisible = etat.branche != null
@@ -137,10 +142,33 @@ class GitFragment : Fragment() {
                 "$code ${mod.chemin}"
             }
 
-        liaison.erreurGit.isVisible = etat.erreur != null
-        liaison.erreurGit.text = etat.erreur
+        val erreurDepot = etat.erreurDepot
+        if (erreurDepot != null) {
+            liaison.erreurGit.text = texteErreurDepot(erreurDepot)
+        } else {
+            liaison.erreurGit.text = etat.erreur
+        }
+        liaison.erreurGit.isVisible = etat.erreur != null || erreurDepot != null
 
         liaison.boutonCommitter.isEnabled = etat.commitPossible
+    }
+
+    /**
+     * Message observable d'un dépôt à l'état indéterminé (v0.90.1,
+     * étape A) : préfixe localisé par raison + stderr réel de git (la
+     * preuve) — l'utilisateur peut relancer par le bouton Actualiser,
+     * « Initialiser » lui est interdit tant que git n'a pas confirmé.
+     */
+    private fun texteErreurDepot(erreur: EtatDepot.Inaccessible): String {
+        val prefixe =
+            when (erreur.raison) {
+                RaisonDepotInaccessible.BINAIRE_ABSENT -> getString(R.string.git_erreur_depot_binaire_absent)
+                RaisonDepotInaccessible.LANCEMENT_IMPOSSIBLE -> getString(R.string.git_erreur_depot_lancement)
+                RaisonDepotInaccessible.REFUS_GIT -> getString(R.string.git_erreur_depot_refus)
+                RaisonDepotInaccessible.STDOUT_INATTENDU -> getString(R.string.git_erreur_depot_stdout)
+            }
+        val details = erreur.stderrExpurge.trim()
+        return if (details.isEmpty()) prefixe else "$prefixe\n$details"
     }
 
     /** Code d'affichage du statut (lettre + couleur, format Android Studio). */

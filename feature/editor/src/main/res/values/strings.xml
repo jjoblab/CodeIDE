@@ -568,6 +568,13 @@
     <string name="git_message_hint">Message de commit…</string>
     <string name="git_committer">Commit</string>
     <string name="git_aucun_changement">Aucun changement</string>
+    <!-- v0.90.1, mission « section Git figée » étape A : dépôt à l'état
+         indéterminé — jamais « Initialiser » tant que git n'a pas dit
+         « not a git repository » lui-même. -->
+    <string name="git_erreur_depot_binaire_absent">Git n\'est pas installé — installez-le via «\u00A0pkg install git\u00A0» dans le terminal.</string>
+    <string name="git_erreur_depot_lancement">Lancement de git impossible.</string>
+    <string name="git_erreur_depot_refus">Git a refusé d\'opérer sur ce dépôt (état indéterminé, pas «\u00A0absent\u00A0»).</string>
+    <string name="git_erreur_depot_stdout">Réponse inattendue de git.</string>
     <plurals name="git_n_changements">
         <item quantity="one">%d changement</item>
         <item quantity="other">%d changements</item>

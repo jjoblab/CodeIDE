@@ -2,8 +2,10 @@ package jo.codeide.core.testing
 
 import jo.codeide.core.domain.BrancheGit
 import jo.codeide.core.domain.CommitGit
+import jo.codeide.core.domain.EtatDepot
 import jo.codeide.core.domain.MoteurGit
 import jo.codeide.core.domain.ProgressionGit
+import jo.codeide.core.domain.RapportDiagnosticGit
 import jo.codeide.core.domain.ResultatGit
 import jo.codeide.core.domain.StatutGit
 import kotlinx.coroutines.delay
@@ -19,7 +21,10 @@ import kotlinx.coroutines.delay
  *   assertions savent QUOI a été exécuté et sur quel dossier ;
  * - [resultatCloner] / [resultatInitialiser] pilotent les échecs git
  *   (réseau, git absent…) : un échec de clone par défaut honnête ;
- * - [estDepot] pilote l'état « pas un dépôt » de la section Git ;
+ * - [etatDepot] pilote les trois états du port (dépôt sain, pas un
+ *   dépôt, inaccessible) — v0.90.1, mission « section Git figée » ;
+ * - [rapportDiagnostic] pilote [diagnostiquer] (sondes globales par
+ *   défaut, aucun projet) ;
  * - [latence] ralentit chaque appel — éprouver les états de chargement.
  *
  * Exemption detekt ciblée (règle 16 du prompt maître) :
@@ -35,8 +40,24 @@ public class FakeMoteurGit : MoteurGit {
     /** Latence artificielle de chaque opération (0 par défaut). */
     public var latence: Long = 0L
 
-    /** Réponse de [estDepot] (faux par défaut : « pas un dépôt »). */
-    public var depot: Boolean = false
+    /** Réponse de [etatDepot] (pas un dépôt par défaut : l'état le plus neutre). */
+    public var reponseEtatDepot: EtatDepot = EtatDepot.PasUnDepot
+
+    /** Rapport retourné par [diagnostiquer] (sondes globales, aucun projet, par défaut). */
+    public var rapportDiagnostic: RapportDiagnosticGit =
+        RapportDiagnosticGit(
+            nomProjet = null,
+            cheminFuse = null,
+            cheminBinaire = null,
+            versionGit = null,
+            uidEffectif = null,
+            uidProprietaireDossier = null,
+            pointDeMontage = null,
+            typeSystemeFichiers = null,
+            revParse = null,
+            configList = null,
+            environnement = emptyMap(),
+        )
 
     /** Résultat de [cloner] (succès silencieux par défaut). */
     public var resultatCloner: ResultatGit<Unit> = ResultatGit.Succes(Unit)
@@ -169,10 +190,19 @@ public class FakeMoteurGit : MoteurGit {
         return resultatInitialiser
     }
 
-    override suspend fun estDepot(cheminFuse: String): Boolean {
+    override suspend fun etatDepot(cheminFuse: String): EtatDepot {
         attendre()
-        operations += "estDepot:$cheminFuse"
-        return depot
+        operations += "etatDepot:$cheminFuse"
+        return reponseEtatDepot
+    }
+
+    override suspend fun diagnostiquer(
+        nomProjet: String?,
+        cheminFuse: String?,
+    ): RapportDiagnosticGit {
+        attendre()
+        operations += "diagnostiquer:${nomProjet ?: "-"}"
+        return rapportDiagnostic
     }
 
     override suspend fun diff(

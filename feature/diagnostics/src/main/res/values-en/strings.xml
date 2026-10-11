@@ -77,4 +77,11 @@
     <!-- ====== Misc ====== -->
 
     <string name="diagnostics_annuler">Cancel</string>
+    <!-- v0.90.1, "frozen Git section" mission step A: Git diagnostic. -->
+    <string name="diagnostics_onglet_git">Git</string>
+    <string name="diagnostics_git_titre">Git diagnostic</string>
+    <string name="diagnostics_git_relancer">Run again</string>
+    <string name="diagnostics_git_copier_cd">Copy diagnostic (redacted version)</string>
+    <string name="diagnostics_git_copie">Diagnostic copied (redacted version)</string>
+    <string name="diagnostics_git_description">Git execution environment for the last opened project: binary, folder owner, mount point, rev-parse, configuration and variables. The copied version is redacted (paths and identities masked).</string>
 </resources>
