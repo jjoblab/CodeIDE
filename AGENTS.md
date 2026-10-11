@@ -1185,6 +1185,52 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.91.0 : **mission « LSP Java » étape 0 — étude, mesures et ADR**
+      (prompt mission 2 ; AUCUN code de production, livrable d'analyse :
+      docs/LSP_JAVA.md + ADR 0108–0112) : écarts majeurs trouvés sur les
+      hypothèses du prompt [le modèle IdeaProject livré par
+      ClasspathHandler est VIDE pour les 26 modules Android du dépôt
+      (sources ET dépendances) — seuls les 8 modules JVM purs ont du
+      contenu, 13 fichiers uniques ; le fixture d'intégration
+      multi-module est pur JVM (plugins { java }), le cas AGP n'a jamais
+      été exercé — l'étape 1 devra étendre la source du classpath
+      (builder-model AGP) ; AAR livrés TELS QUELS confirmé (ADR 0058) ;
+      champs fichiersGeneres/androidJar/ignore/avertissements JAMAIS
+      remplis ; audit-provenance-lsp-java.md ABSENT de l'archive —
+      reconstitué ; cel-lsp 3.41.0 VÉRIFIÉ sur JitPack (lsp4j 0.22.0 ≠
+      0.21.2 de lspjava — alignement à prévoir)] ; W1–W10 vérifiés dans
+      le code [confirmés W1/W2*/W3/W4/W5/W6/W7 — W6 aggravé : ni hash
+      NI mtime ; partiels W2/W8/W9/W10 : pool LRU 24 poignées existant,
+      3–5 variantes splicées (pas 4) avec break au rang 2, R-downgrade
+      honnête réel, heuristiques R.java = commentaire seulement] ;
+      banc de mesure JVM [3 jeux RÉELS : 20 jars / 73 (classpath debug
+      de :app, 49 AAR normalisés) / 250 (projet Compose, 191 AAR = 76 %)
+      ; mesures clés : index froid 214/322/1086 ms, reconstruction
+      98/219/794 ms, +1 dépendance = 257/396/1178 ms TOUT repayé,
+      complétion types p50 18/54/109 ms (croissance super-linéaire W3
+      quantifiée), tas 108–131 Mo / 250 jars (budget snapshot 2,5 Mo/jar),
+      poignées plafonnées 28–42 (pool LRU 24), dispose() propre] ;
+      audit de provenance reconstitué [niveau A confirmé :
+      RuntimeVersion 69 % lignes identiques/Jaccard 0,93, StackWalker
+      40 %/0,89, InputStreamCompat 60 %/0,57 ; niveau B : 31 fichiers
+      « portage », ressemblance textuelle faible 0,08–0,26 MAIS
+      constantes identiques CompletionRanker (1000/500/200/120/300/200/
+      400) ; ecj-art : passes RelocateTypesInJar/EclipseStreamArtPass
+      retrouvées dans build-logic CodeAssist ; 6 noms de fichiers
+      identiques ; contre-exemple JdtLocateCache (LRU ≠ CLOCK)] ; ADR
+      [0108 D1 module vendored Java exempté + couches neuves Kotlin ;
+      0109 D2 in-process ART + transport abstrait ; 0110 D3 PROPOSÉ —
+      4 options au propriétaire, aucune publication avant règlement ;
+      0111 D4 index disque segments PAR JAR (amélioration vs CodeAssist
+      classpath entier) ; 0112 D5 android.jar seul pour modules
+      Android, conformité par module] ; plan de renommage [préfixe Ecj*,
+      package jo.lspjava.ecj, shims → ArtCompat* — évite tout nom
+      CodeAssist] ; cibles §9 recalées sur mesures [ouverture < 1,5 s
+      inatteignable sans persistance ; types p95 < 100 ms violée dès
+      250 jars ; tas < 30 Mo structurellement hors borne] ; étape 1
+      repriorisée en conséquence. En ATTENTE : décision D3 du
+      propriétaire + GO étape 1 ; parallèlement mission 1 étape B
+      attend le diagnostic appareil de l'utilisateur.
 - v0.90.1 : **mission « section Git figée » étape A — rendre l'échec
       observable** (prompt mission 1 ; défaut récurrent v0.80.4/.5/.7 :
       « Ce projet n'est pas un dépôt Git » permanent sur un projet
