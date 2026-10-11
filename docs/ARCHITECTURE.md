@@ -64,8 +64,10 @@ sections 5 et 6.
 | `feature:editor` | Espace de travail : tiroir (explorateur + fragments Recherche/Git ; fragment Terminal via fabrique Hilt, ADR 0053), onglets, panneau inférieur |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 | `lsp:model` | Kotlin JVM pur — modèle de projet LSP : conversion `ClasspathResult` → snapshots immuables empreintés, persistance versionnée validée (mission « LSP Java » étape 1, ADR 0113) |
+| `lsp:index` | Kotlin JVM pur — index disque en segments par jar : clés de contenu W6, fusion LSM à la requête, construction en arrière-plan bornée (mission « LSP Java » étape 2, ADR 0111) |
 | `lsp:java` | Moteur LSP Java vendored (ecj/JDT patché pour ART) — exempté de « Kotlin 100 % » par l'ADR 0108, sources intactes de l'archive, tests JUnit 5 en suite de non-régression |
 | `lsp:ecj-art` | Patcher ASM build-time d'ecj pour ART (jamais dans l'APK, ADR 0108) |
+| `lsp:testing` | Suite d'intégration moteur ↔ index (v0.96.3) : les tests du branchement réel vivent AU-DESSUS de `lsp:java` et `lsp:index` (pattern `tooling:testing`, dépendances de test uniquement) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,
 API prévue) et un `Module.md` (page Dokka).
@@ -95,15 +97,19 @@ toute dépendance non autorisée **fait échouer le build**.
 | `tooling:client` | `tooling:protocol`, `tooling:api`, `core:domain` | `tooling:server`, features |
 | `tooling:daemon` | `tooling:protocol`, `core:domain`, `tooling:client` | `tooling:server` (production — voir ci-dessous), features |
 | `lsp:model` | `tooling:protocol` | Android, moteur `lsp:java` (extractibilité — ADR 0113) |
-| `lsp:java` | rien (module vendored autonome) | tout module interne (extractibilité, ADR 0108) |
+| `lsp:index` | `lsp:model`, `tooling:protocol` | Android, moteur `lsp:java`, tout autre module interne (couche SOUS le moteur — ADR 0111) |
+| `lsp:java` | rien (module vendored autonome) | tout module interne, test compris (extractibilité, ADR 0108 — la suite d'intégration vit dans `lsp:testing`) |
 | `lsp:ecj-art` | rien | tout module interne |
+| `lsp:testing` | `lsp:java`, `lsp:index`, `lsp:model` | tout le reste (suite d'intégration TEST-ONLY, pattern `tooling:testing` — au-dessus du moteur et de l'index) |
 | `app` | tout (assemblage) | — |
 | `core:testing` | `core:model`, `core:domain` | — (consommé en `testImplementation` seulement) |
 
 Règles additionnellement vérifiées : `core:testing` et `tooling:testing` ne
 peuvent apparaître que dans les configurations de test ; `core:model`,
 `core:domain`, `tooling:protocol`, `tooling:api` et `tooling:server` ne
-peuvent appliquer aucun plugin Android (modules JVM purs — `lsp:model`, `lsp:java` et `lsp:ecj-art` suivent la même règle) ;
+peuvent appliquer aucun plugin Android (modules JVM purs — `lsp:model`,
+`lsp:index`, `lsp:java`, `lsp:ecj-art` et `lsp:testing` suivent la même
+règle) ;
 **`tooling:server` n'entre dans `tooling:daemon` qu'en configuration de
 test** (bout-en-bout §7.4 : le VRAI orchestrateur relancé en sous-processus
 depuis la JVM de test, ADR 0042 — en production, le daemon ne voit du

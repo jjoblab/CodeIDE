@@ -1188,6 +1188,20 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.96.3 : **mission « LSP Java » — correction CI : dépendance
+      interdite :lsp:java → :lsp:index (section 5.2, ADR 0108)** :
+      le testImplementation(project(":lsp:index")) posé au lot C
+      faisait échouer checkModuleDependencies en CI (le module
+      vendored ne dépend d'AUCUN module interne, test compris) —
+      la suite d'intégration du branchement index (4 tests +
+      AdaptateurIndexNoms, déplacés tels quels) vit dans le NOUVEAU
+      module :lsp:testing (pattern :tooling:testing, AU-DESSUS du
+      moteur et de l'index, kover → exécutée en CI) ; builtBy sur le
+      fileTree api des jars Eclipse patchés (ordonnancement du patcher
+      propagé aux consommateurs) ; lignes lsp:index (dette étape 2)
+      et lsp:testing ajoutées à ARCHITECTURE.md §3.2/§5.2 et au
+      plugin module-rules (MODULES_PURS inclus) — lsp:java 287
+      tests, lsp:testing 4 verts.
 - v0.96.2 : **mission « LSP Java » étape 3 (lot F, 1re partie) —
       correctif du « 0 item » de la complétion NOM** (étude §4.2/§4.3 ;
       docs/LSP_JAVA.md §15.6) : le symptôme reproduit en 3 positions
