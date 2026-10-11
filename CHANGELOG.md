@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## [0.96.1] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (lot D) — cache de parse
+  multi-entrées** (W8 ; docs/LSP_JAVA.md §15.5) : `EcjParseCache`
+  passe d'une entrée unique (évinçait à chaque put — l'aller-retour
+  entre fichiers repayait le parse) à un LRU d'accès de 8 entrées —
+  clé `(chemin, longueur, hachage FNV-1a 64 bits du contenu)` (la
+  source entière n'est plus retenue par entrée ; risque de collision
+  ~10⁻¹³ à un million de contenus). Asymétrie codegen conservée (une
+  entrée sans codegen ne sert pas les diagnostics) et NON DÉGRADATIVE
+  (un put sans codegen ne remplace jamais une entrée avec codegen) ;
+  invalidation totale (classpath) et ciblée par fichier inchangées ;
+  `parseCacheSize()` observable. 4 tests nouveaux (cohabitation
+  A/B, éviction LRU à capacité, invalidation ciblée épargne les
+  autres, non-dégradation codegen) — `:lsp:java` 285 tests verts.
+
 ## [0.96.0] – 2026-10-11
 
 ### Ajouté

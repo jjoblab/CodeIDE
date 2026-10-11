@@ -1188,6 +1188,13 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.96.1 : **mission « LSP Java » étape 3 (lot D) — cache de parse
+      multi-entrées** (W8 ; docs/LSP_JAVA.md §15.5) : EcjParseCache en
+      LRU d'accès 8 entrées, clé (chemin, longueur, FNV-1a 64 bits du
+      contenu — la source entière n'est plus retenue), asymétrie codegen
+      non dégradative (put sans codegen ne remplace pas une entrée
+      codegen), invalidation totale + ciblée par fichier, parseCacheSize
+      observable ; 4 tests nouveaux — lsp:java 285 tests verts.
 - v0.96.0 : **mission « LSP Java » étape 3 (lot C) — branchement du
       moteur vendored sur l'index disque** (ADR 0111 §8 ; docs/
       LSP_JAVA.md §15.4/.4.1) : SPI publique jo.lspjava.api.IndexNoms
