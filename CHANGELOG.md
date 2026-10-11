@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.99.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » étape 4 (lot h1) — le module `:lsp:host`**
+  (docs/LSP_JAVA.md §16.1, ADR 0109 D2) : `SessionLsp`, la façade aux
+  frontières nettes — transport abstrait (démarrer/arrêter, requêtes,
+  flux d'état) dont le branchement IN-PROCESS cel-lsp
+  (`definition()` : `LanguageServerDefinition` +
+  `InProcessStreamConnectionProvider`, UN `JavaLanguageServer` par
+  connexion) est UNE implémentation ; un transport socket vers un
+  sous-processus JDK resterait branchable sans réécriture. Le module
+  est le POINT UNIQUE de changement de transport. **Orchestrateur**
+  (interne) : `ClasspathResult` v8 → `ProjetLsp` (`:lsp:model`, ADR
+  0113) → moteurs PAR module (API qualifiée lot E — les entrées
+  `MODULE` se résolvent en SOURCES du frère, motif lot C) + UNE vue
+  d'index FUSION sur l'union des classpaths (ADR 0111 — l'empreinte
+  de contenu déduplique : deux modules partageant un jar partagent le
+  même segment) ; **budget de cache DÉRIVÉ DU MODÈLE** (leçon du banc
+  lot F2 §15.8 : ~512 Kio/entrée, plancher 30 Mio, croissance
+  monotone — le service n'est recréé que si le corpus dépasse le
+  budget, segments persistants, zéro ré-indexation). Adaptateur de
+  PRODUCTION de la SPI `IndexNoms` (empreintes du modèle, transition
+  PRÊT par collecte du StateFlow — P7/P8). Flux publics `modele` et
+  `etatIndexation` DÉCOUPLÉS des types internes de `:lsp:index`.
+  `close()` exhaustif : coroutines annulées, moteurs disposés, modèle
+  vidé, usage ultérieur refusé. `LecteurStatistiquesFichierDisque` :
+  première implémentation réelle de la couture de `:lsp:model`
+  (lecture bornée manuelle — `readNBytes` est API 33, minSdk 26).
+  9 tests : orchestration (modèle, 2 moteurs distincts, résolution
+  frère, complétion via l'index, PRÊT, sync redondant no-op, modules
+  ignorés, budget par jar), **test de fuite à la fermeture** (prompt 3
+  : le serveur est COLLECTABLE après close — champ `indexNoms` FINAL
+  du moteur, la chaîne entière meurt avec la session), alignement
+  lsp4j (écart §2.6 tranché : ALIGNER — la résolution prend 0.22.0
+  imposée par cel-lsp, le moteur binaire 0.21.2 fonctionne dessous,
+  cycle LSP complet vérifié). kover ≥ 80 %, detekt/spotless/lint,
+  `checkModuleDependencies` (allow-list §5.2) — verts.
+
 ## [0.98.0] – 2026-10-12
 
 ### Ajouté
