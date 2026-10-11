@@ -1188,6 +1188,25 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.99.0 : **mission « LSP Java » étape 4 (lot h1) — le module
+      :lsp:host** (docs/LSP_JAVA.md §16.1, ADR 0109 D2) : SessionLsp
+      (façade transport abstrait — démarrer/arrêter, requêtes, flux
+      d'état ; branchement cel-lsp in-process par definition(), UN
+      JavaLanguageServer par connexion ; point UNIQUE de changement
+      de transport), orchestrateur ClasspathResult v8 → ProjetLsp →
+      moteurs PAR module (API lot E, MODULE → sources du frère) +
+      vue d'index FUSION sur l'union des classpaths (ADR 0111) ;
+      budget de cache DÉRIVÉ DU MODÈLE (leçon banc F2 §15.8 —
+      512 Kio/entrée, plancher 30 Mio, croissance monotone) ;
+      adaptateur de production de la SPI IndexNoms (empreintes du
+      modèle, PRÊT par collecte du StateFlow) ; close() exhaustif
+      (test de FUITES : serveur collectable après close — prompt 3) ;
+      alignement lsp4j TRANCHÉ : résolution 0.22.0 (cel-lsp), moteur
+      0.21.2 vérifié dessous (AlignementLsp4jTest, cycle LSP
+      complet). 9 tests, kover ≥ 80 %, allow-list §5.2
+      (lsp:java/index/model). RESTE h2 : branchement EditorActivity
+      (LspProject/LspEditor/EditorView), état d'indexation UI +
+      Réindexer, alimentation sync (§16.2).
 - v0.98.0 : **mission « LSP Java » étape 3 (lot F2) — banc moteur
       PORTÉ et EXÉCUTÉ, cible §9 p95 < 100 ms TENUE** (docs/
       LSP_JAVA.md §15.8) : BancMoteur dans le source set de test de
