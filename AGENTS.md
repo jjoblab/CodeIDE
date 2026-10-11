@@ -1188,6 +1188,22 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.95.0 : **mission « LSP Java » étape 3 (lot B) — renommage §7
+      intégral du module vendored** (docs/LSP_JAVA.md §7 table et
+      §15.3) : package jo.lspjava.jdt → jo.lspjava.ecj (23+27 fichiers,
+      git mv) ; 21 classes Jdt* → Ecj* (CompletionEngine, CompilerEngine,
+      CompilerEnvironment, EngineScheduler, RenameEngine,
+      NavigationEngine, FastDiagnose, SignatureHelp, InlayHints,
+      SemanticHighlighter, CodeFolder, SourceUnit, PostfixTemplates,
+      LiveTemplates, Formatter, ImportOrganizer, BinarySourceNames,
+      LocateCache, Ast, PrefixMatcher ex-CompletionPrefixMatcher,
+      ParseCache ex-BindingParseCache) + tests homonymes ;
+      invalidateEcjEngine/isEcjInitialized, étiquette diagnostics
+      "jo.lspjava.ecj" ; inchangés (table) : RawZipReader, SourceFocuser,
+      ClassFileStubBuilder, CancelToken, OperationCanceledException,
+      CompilationEnvironment, façades LSP4J, api/*, services/*,
+      jo.lspjava.jdtpatch ; mentions provenance CodeAssist conservées
+      (audit D3) ; lsp:java 277 tests verts.
 - v0.94.0 : **mission « LSP Java » étape 3 (lot A) — shims ART
       réécrits depuis la spécification JDK** (traitement D3 lot 1,
       ADR 0110 §5.3 — « priorité absolue, petit volume » ;

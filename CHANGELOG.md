@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.95.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (lot B) — renommage §7 intégral du
+  module vendored** (plan de renommage docs/LSP_JAVA.md §7 ;
+  docs/LSP_JAVA.md §15.1 lot B) :
+  - Package `jo.lspjava.jdt` → `jo.lspjava.ecj` (retrait de la
+    référence JDT du nom de package — 23 fichiers principaux + 27
+    fichiers de tests déplacés, historique préservé par `git mv`).
+  - 21 classes renommées selon la table §7 : `JdtCompletionEngine` →
+    `EcjCompletionEngine`, `JdtCompilerEngine` → `EcjCompilerEngine`,
+    `JdtCompilerEnvironment` → `EcjCompilerEnvironment`,
+    `JdtEngineScheduler` → `EcjEngineScheduler`, `JdtRenameEngine` →
+    `EcjRenameEngine`, `JdtNavigationEngine` → `EcjNavigationEngine`,
+    `JdtFastDiagnose` → `EcjFastDiagnose`, `JdtSignatureHelp` →
+    `EcjSignatureHelp`, `JdtInlayHints` → `EcjInlayHints`,
+    `JdtSemanticHighlighter` → `EcjSemanticHighlighter`,
+    `JdtCodeFolder` → `EcjCodeFolder`, `JdtSourceUnit` →
+    `EcjSourceUnit`, `JdtPostfixTemplates` → `EcjPostfixTemplates`,
+    `JdtLiveTemplates` → `EcjLiveTemplates`, `JdtFormatter` →
+    `EcjFormatter`, `JdtImportOrganizer` → `EcjImportOrganizer`,
+    `JdtBinarySourceNames` → `EcjBinarySourceNames`,
+    `JdtLocateCache` → `EcjLocateCache`, `JdtAst` → `EcjAst`,
+    `CompletionPrefixMatcher` → `EcjPrefixMatcher`,
+    `BindingParseCache` → `EcjParseCache` (les tests homonymes
+    suivent — le nom du test désigne la classe testée).
+  - Méthodes internes : `invalidateJdtEngine` → `invalidateEcjEngine`,
+    `isJdtInitialized` → `isEcjInitialized` ; étiquette source des
+    diagnostics `"jo.lspjava.jdt"` → `"jo.lspjava.ecj"` (aucune
+    assertion de test ne portait l'ancienne valeur — vérifié).
+  - Inchangés (table §7 « sans changement ») : `RawZipReader`,
+    `SourceFocuser`, `ClassFileStubBuilder`, `CancelToken`,
+    `OperationCanceledException`, `CompilationEnvironment` (supprimé à
+    terme par le lot C), façades LSP4J, `api/*`, `services/*` ; le
+    package du patcher `jo.lspjava.jdtpatch` ne figure pas dans la
+    table — inchangé. Les mentions PROVENANCE de classes CodeAssist
+    (`{@code JdtResolver}`, `JdtEnvironmentCache`…) restent : elles
+    documentent l'histoire (audit D3), pas le code présent.
+  - Chaîne verte : `:lsp:java` 277 tests (69 skippés
+    env-dépendants), 0 échec.
+
 ## [0.94.0] – 2026-10-11
 
 ### Ajouté
