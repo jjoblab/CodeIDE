@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## [0.93.1] – 2026-10-11
+
+### Corrigé
+
+- **lsp:index : course de renommage entre écritures concurrentes du
+  MÊME segment** (constatée sur la CI du v0.93.0 —
+  ServiceIndexDisqueTest « deux vues partagent les segments ») : le nom
+  temporaire portait le seul PID du processus, donc deux constructions
+  parallèles du même contenu (vues distinctes partageant un segment)
+  écrivaient le MÊME `.tmp` — l'un des renommages échouait et l'état
+  passait à ERREUR. Le nom est désormais unique PAR ÉCRITURE
+  (pid + thread + nano), l'écriture atomique reste intacte.
+
 ## [0.93.0] – 2026-10-11
 
 ### Ajouté
