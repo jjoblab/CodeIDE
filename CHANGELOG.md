@@ -1,5 +1,63 @@
 # Journal des modifications
 
+## [0.91.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 0 — étude, mesures de référence et
+  ADR** (docs/LSP_JAVA.md + ADR 0108–0112 ; **aucun code de
+  production**, livrable d'analyse et de décisions) :
+  - **Écarts démontrés sur les hypothèses du prompt 2** : le modèle
+    `IdeaProject` que livre `ClasspathHandler` est **vide pour les 26
+    modules Android** du dépôt (sources et dépendances) — seuls les 8
+    modules Kotlin JVM purs livrent un contenu (13 fichiers uniques) ;
+    le fixture du test d'intégration est pur JVM, le cas AGP n'a donc
+    jamais été exercé. Conséquence : l'étape 1 devra étendre la source
+    du classpath (modèle AGP `builder-model` via la Tooling API).
+    Confirmations : AAR livrés tels quels (ADR 0058, la normalisation
+    reviendra au serveur) ; champs `fichiersGeneres`, `androidJar`,
+    `ignore`, `avertissements` jamais remplis ; l'audit de provenance
+    annoncé est **absent de l'archive** et a été reconstitué ;
+    `cel-lsp` 3.41.0 vérifié disponible sur JitPack (lsp4j 0.22.0 en
+    runtime — écart avec lspjava 0.21.2 à aligner à l'étape 4).
+  - **W1–W10 vérifiés dans le code** (confirmés : W1, W3, W4, W5, W6
+    aggravé — aucune empreinte NI mtime, W7 ; partiels nuancés : W2,
+    W8 — 3–5 variantes splicées et non 4, W9 — pool LRU de 24
+    poignées existant, W10 — downgrade « R » honnête réel,
+    heuristiques R.java réduites à un commentaire).
+  - **Banc de mesure JVM** (reproductible, scripts conservés) sur
+    trois jeux de données réels — 20 jars ; 73 jars (classpath debug
+    de `:app`, AAR normalisés) ; 250 jars (projet Compose résolu par
+    Gradle, 191 AAR normalisés = 76 %) : indexation à froid
+    214/322/1 086 ms ; reconstruction intégrale 98/219/794 ms ;
+    **+1 dépendance = 257/396/1 178 ms tout repayé** ; complétion de
+    types p50 18/54/109 ms (croissance super-linéaire — W3
+    quantifié) ; tas 108–131 Mo pour 250 jars ; poignées plafonnées
+    (pool LRU 24) ; `dispose()` propre. Les cibles §9 du prompt sont
+    recalées sur ces mesures.
+  - **Audit de provenance reconstitué** (D3) : niveau A confirmé
+    (`RuntimeVersion` 69 % de lignes identiques, Jaccard 0,93 ;
+    `StackWalker` 40 %/0,89 ; `InputStreamCompat` 60 %/0,57) ;
+    niveau B : 31 fichiers « portage » déclarés, ressemblance
+    textuelle faible mais constantes de score identiques à
+    `CompletionRanker` de CodeAssist ; passes `RelocateTypesInJar`/
+    `EclipseStreamArtPass` retrouvées ; six noms de fichiers
+    identiques. **ADR 0110 PROPOSÉ : quatre options soumises au
+    propriétaire** (réécriture cloisonnée — recommandée,
+    autorisation de l'auteur, conformité GPL, remplacement) ;
+    aucune publication en bibliothèque avant règlement.
+  - **ADR** : 0108 (D1, module vendored Java exempté, nouvelles
+    couches Kotlin, conversion conditionnelle), 0109 (D2, in-process
+    ART + transport abstrait), 0111 (D4, index disque en segments
+    PAR JAR — amélioration du modèle CodeAssist), 0112 (D5,
+    `android.jar` seul pour les modules Android, conformité par
+    module).
+  - **Plan de renommage** complet (préfixe `Ecj*`, package
+    `jo.lspjava.ecj`, shims `ArtCompat*` — aucun nom identique à
+    CodeAssist), **étude d'extractibilité** (extraire plus tard,
+    design extractible conservé), **plan ajusté des étapes 1–5** et
+    **procédure de mesure appareil** écrite (exécution aux étapes 3+).
+
 ## [0.90.1] – 2026-10-11
 
 ### Ajouté
