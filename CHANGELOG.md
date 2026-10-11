@@ -1,5 +1,45 @@
 # Journal des modifications
 
+## [0.94.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (début) — traitement D3 lot 1 : les
+  shims ART réécrits depuis la spécification JDK** (prompt 2 §7.1 ;
+  ADR 0110 §5.3 lot 1 ; docs/LSP_JAVA.md §15) :
+  - `compat/RuntimeVersion` (niveau A : 69 % lignes identiques à
+    CodeAssist / Jaccard 0,93) **réécrit depuis le javadoc JDK +
+    JEP 322** en `ArtCompatVersion` — balayage unique de `$VNUM`
+    (plus de `split`), garde de segment vide/non numérique/négatif,
+    ordre élément par élément (divergence `1.8 < 9` conservée :
+    suffisante pour l'usage d'ecj), `hashCode` cohérent avec l'égalité
+    ordinale (zéros de queue normalisés).
+  - `compat/StackWalker` (niveau A : 40 %/0,89) **réécrit depuis le
+    javadoc JDK** en `ArtCompatStackWalker` — `getCallerClass` saute
+    les frames du shim PAR NOM (profondeur variable, plus robuste
+    que la profondeur codée en dur), puis la méthode invoquante ;
+    l'enum `Option` porte exactement les trois constantes du JDK ;
+    jamais d'exception, jamais de null (divergence documentée :
+    `IllegalCallerException` est API 33).
+  - `compat/InputStreamCompat` (niveau A : 60 %/0,57) **réécrit depuis
+    le javadoc JDK** en `ArtCompatInputStream` — tampon à doublement
+    (plus de `ByteArrayOutputStream`), `readNBytes` alloue la cible
+    exacte avec la garde `MAX_BUFFER` de la spécification JDK, tampon
+    de lecture 16 384 (constante déterminée par mesure :
+    `BufferedInputStream.DEFAULT_BUFFER_SIZE` du JDK).
+  - **Patcher `:lsp:ecj-art` réaligné** : les renommages standard
+    ciblent désormais `jo/lspjava/ecj/compat/ArtCompat*` — les jars
+    Eclipse patchés ne référencent plus AUCUNE classe de
+    `jo/lspjava.jdt.compat` (vérifié : 0 ancienne / 4 nouvelles
+    références dans ecj-3.40.0-art.jar).
+  - Les shims migrent vers le package `jo.lspjava.ecj.compat`
+    (renommage §7 de LSP_JAVA.md) ; `CompatShimsTest` suit et gagne
+    deux tests de non-régression de la réécriture (appelant du
+    `getCallerClass` par porte intermédiaire ; les trois constantes
+    `Option` du JDK).
+  - Chaîne verte : `:lsp:java` 277 tests (69 skippés env-dépendants),
+    `:lsp:ecj-art` 2 tests, patcher exécuté sur les 20 jars Eclipse.
+
 ## [0.93.1] – 2026-10-11
 
 ### Corrigé

@@ -1188,6 +1188,29 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.94.0 : **mission « LSP Java » étape 3 (lot A) — shims ART
+      réécrits depuis la spécification JDK** (traitement D3 lot 1,
+      ADR 0110 §5.3 — « priorité absolue, petit volume » ;
+      docs/LSP_JAVA.md §15) : `compat/RuntimeVersion` (niveau A : 69 %
+      lignes/Jaccard 0,93) → `ArtCompatVersion` [balayage unique $VNUM
+      JEP 322, garde segment vide/non numérique/négatif, hashCode
+      ordinal cohérent] ; `compat/StackWalker` (40 %/0,89) →
+      `ArtCompatStackWalker` [getCallerClass saute les frames du shim
+      PAR NOM puis la méthode invoquante (sémantique JDK « caller of
+      the caller »), 3 constantes Option du JDK, jamais d'exception
+      (IllegalCallerException = API 33)] ; `compat/InputStreamCompat`
+      (60 %/0,57) → `ArtCompatInputStream` [tampon à doublement,
+      readNBytes à cible exacte + garde MAX_BUFFER de la spec JDK,
+      constante 16 384 déterminée par mesure (BufferedInputStream.
+      DEFAULT_BUFFER_SIZE)] ; package `jo.lspjava.ecj.compat`
+      (renommage §7 engagé) ; patcher :lsp:ecj-art réaligné
+      (ECLIPSE_RENAMES → ArtCompat*) — vérifié sur ecj-3.40.0-art.jar
+      régénéré : 0 ancienne référence, 4 nouvelles ; CompatShimsTest
+      migre + 2 tests (appelant par porte intermédiaire, constantes
+      Option) ; chaîne verte : lsp:java 277 tests, lsp:ecj-art 2.
+      Plan de l'étape 3 en lots A–G documenté (LSP_JAVA.md §15.1) ;
+      écart assumé : renommage intégral AVANT les réécritures D3
+      restantes (le branchement d'index du lot C touche ces fichiers).
 - v0.93.0 : **mission « LSP Java » étape 2 — index disque en segments
       par jar** (prompt 2 §7.2 ; ADR 0111 ; docs/LSP_JAVA.md §14) :
       nouveau module `:lsp:index` (Kotlin JVM pur) — segments PAR JAR
