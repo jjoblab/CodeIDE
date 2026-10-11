@@ -80,4 +80,11 @@
     <!-- ====== Divers ====== -->
 
     <string name="diagnostics_annuler">Annuler</string>
+    <!-- v0.90.1, mission « section Git figée » étape A : Diagnostic Git. -->
+    <string name="diagnostics_onglet_git">Git</string>
+    <string name="diagnostics_git_titre">Diagnostic Git</string>
+    <string name="diagnostics_git_relancer">Relancer</string>
+    <string name="diagnostics_git_copier_cd">Copier le diagnostic (version expurgée)</string>
+    <string name="diagnostics_git_copie">Diagnostic copié (version expurgée)</string>
+    <string name="diagnostics_git_description">Environnement d\'exécution de git pour le dernier projet ouvert : binaire, propriétaire du dossier, point de montage, rev-parse, configuration et variables. La copie est expurgée (chemins et identités masqués).</string>
 </resources>

@@ -1,7 +1,9 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.EtatDepot
 import jo.codeide.core.domain.ObserveProjectUseCase
+import jo.codeide.core.domain.RaisonDepotInaccessible
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.testing.FakeMoteurGit
@@ -93,14 +95,14 @@ class GitViewModelTest {
         )
     }
 
-    /** Nombre d'appels `estDepot` passés au moteur (proxy des rechargements). */
-    private val nbSondesEstDepot: Int
-        get() = git.operations.count { it.startsWith("estDepot:") }
+    /** Nombre d'appels `etatDepot` passés au moteur (proxy des rechargements). */
+    private val nbSondesEtatDepot: Int
+        get() = git.operations.count { it.startsWith("etatDepot:") }
 
     @Test
     fun `le chargement initial rend le statut d'un depot sain`() =
         runTest {
-            git.depot = true
+            git.reponseEtatDepot = EtatDepot.Depot
             viewModel = construire()
 
             advanceUntilIdle()
@@ -114,7 +116,7 @@ class GitViewModelTest {
     @Test
     fun `un projet sans depot affiche la zone initialiser`() =
         runTest {
-            git.depot = false
+            git.reponseEtatDepot = EtatDepot.PasUnDepot
             viewModel = construire()
 
             advanceUntilIdle()
@@ -122,6 +124,42 @@ class GitViewModelTest {
             val etat = viewModel.etat.value
             assertTrue(etat.pasDepot)
             assertFalse(etat.chargement)
+        }
+
+    @Test
+    fun `un depot inaccessible reste une erreur jamais une proposition d initialiser`() =
+        runTest {
+            // v0.90.1 (mission « section Git figée » étape A) : git refuse
+            // d'opérer (dubious ownership) — l'état est INDÉTERMINÉ, la
+            // section ne doit JAMAIS proposer « Initialiser un dépôt ».
+            git.reponseEtatDepot =
+                EtatDepot.Inaccessible(
+                    RaisonDepotInaccessible.REFUS_GIT,
+                    codeSortie = 128,
+                    stderrExpurge = "fatal: detected dubious ownership in repository at /projets/depot",
+                )
+            viewModel = construire()
+
+            advanceUntilIdle()
+
+            val etat = viewModel.etat.value
+            assertFalse("état indéterminé : pas « pas un dépôt »", etat.pasDepot)
+            assertNotNull("l'échec doit être observable", etat.erreurDepot)
+            assertEquals(RaisonDepotInaccessible.REFUS_GIT, etat.erreurDepot?.raison)
+        }
+
+    @Test
+    fun `un binaire git absent reste une erreur jamais une proposition d initialiser`() =
+        runTest {
+            git.reponseEtatDepot =
+                EtatDepot.Inaccessible(RaisonDepotInaccessible.BINAIRE_ABSENT, codeSortie = null, stderrExpurge = "")
+            viewModel = construire()
+
+            advanceUntilIdle()
+
+            val etat = viewModel.etat.value
+            assertFalse(etat.pasDepot)
+            assertEquals(RaisonDepotInaccessible.BINAIRE_ABSENT, etat.erreurDepot?.raison)
         }
 
     @Test
@@ -151,7 +189,7 @@ class GitViewModelTest {
     fun `la surveillance decouvre un depot cree apres l ouverture`() =
         runTest {
             // Ouverture de l'éditeur : pas encore de dépôt (le clone arrive).
-            git.depot = false
+            git.reponseEtatDepot = EtatDepot.PasUnDepot
             viewModel = construire()
             advanceUntilIdle()
             assertTrue(viewModel.etat.value.pasDepot)
@@ -159,7 +197,7 @@ class GitViewModelTest {
             // Le dépôt apparaît (clone depuis l'accueil, git init dans le
             // terminal) : dossier .git réel + moteur honnête.
             File(racineProjet, ".git").mkdirs()
-            git.depot = true
+            git.reponseEtatDepot = EtatDepot.Depot
 
             // La sonde discrète le découvre — le scénario exact du retour
             // utilisateur v0.80.5 : la zone « initialiser un dépôt »
@@ -183,10 +221,10 @@ class GitViewModelTest {
             val dossierGit = File(racineProjet, ".git")
             dossierGit.mkdirs()
             File(dossierGit, "HEAD").writeText("ref: refs/heads/main\n")
-            git.depot = true
+            git.reponseEtatDepot = EtatDepot.Depot
             viewModel = construire()
             advanceUntilIdle()
-            val apresChargement = nbSondesEstDepot
+            val apresChargement = nbSondesEtatDepot
 
             // Plusieurs périodes sans changement : le rattrapage initial
             // recharge UNE fois (garde anti-course FUSE du premier tic),
@@ -198,7 +236,7 @@ class GitViewModelTest {
             runCurrent()
             viewModel.arreterSurveillance()
 
-            assertEquals(apresChargement + 1, nbSondesEstDepot)
+            assertEquals(apresChargement + 1, nbSondesEtatDepot)
         }
 
     @Test
@@ -208,7 +246,7 @@ class GitViewModelTest {
             dossierGit.mkdirs()
             val head = File(dossierGit, "HEAD")
             head.writeText("ref: refs/heads/main\n")
-            git.depot = true
+            git.reponseEtatDepot = EtatDepot.Depot
             viewModel = construire()
             advanceUntilIdle()
 
@@ -217,7 +255,7 @@ class GitViewModelTest {
             viewModel.demarrerSurveillance(periode)
             advanceTimeBy(periode * 3)
             runCurrent()
-            val apresRattrapage = nbSondesEstDepot
+            val apresRattrapage = nbSondesEtatDepot
 
             // Commit (ou checkout) : HEAD est réécrit, son horodatage
             // bouge — la sonde doit recharger EXACTEMENT une fois.
@@ -226,27 +264,27 @@ class GitViewModelTest {
             runCurrent()
             viewModel.arreterSurveillance()
 
-            assertEquals(apresRattrapage + 1, nbSondesEstDepot)
+            assertEquals(apresRattrapage + 1, nbSondesEtatDepot)
         }
 
     @Test
     fun `rafraichir recharge immediatement le statut`() =
         runTest {
-            git.depot = true
+            git.reponseEtatDepot = EtatDepot.Depot
             viewModel = construire()
             advanceUntilIdle()
-            val avant = nbSondesEstDepot
+            val avant = nbSondesEtatDepot
 
             viewModel.rafraichir()
             advanceUntilIdle()
 
-            assertEquals(avant + 1, nbSondesEstDepot)
+            assertEquals(avant + 1, nbSondesEtatDepot)
         }
 
     @Test
     fun `l echec de git init n est pas avale`() =
         runTest {
-            git.depot = false
+            git.reponseEtatDepot = EtatDepot.PasUnDepot
             git.resultatInitialiser =
                 jo.codeide.core.domain.ResultatGit
                     .Echec("fatal: mauvaise version", "")

@@ -1,5 +1,88 @@
 # Journal des modifications
 
+## [0.90.1] – 2026-10-11
+
+### Ajouté
+
+- **Rendre l'échec Git observable — mission « section Git figée »
+  étape A** (défaut récurrent v0.80.4/.5/.7 : la section Git affiche
+  en permanence « Ce projet n'est pas un dépôt Git » sur un projet
+  tout juste cloné ; l'étape A est la LIVRAISON SEULE de
+  l'instrumentation, avant tout correctif — la cause devra être
+  démontrée par le diagnostic sur l'appareil) :
+  - **`EtatDepot` typé** (core:domain) : `Depot | PasUnDepot |
+    Inaccessible(raison, codeSortie, stderrExpurge)` remplace
+    `estDepot(): Boolean` — `PasUnDepot` n'existe QUE si git répond
+    explicitement « not a git repository » (ou stdout « false ») ;
+    binaire absent, refus de propriété (« dubious ownership »),
+    permission refusée, stdout vide : tout devient `Inaccessible` —
+    l'état est INDÉTERMINÉ, jamais « absent ». Quatre raisons typées
+    (`BINAIRE_ABSENT`, `LANCEMENT_IMPOSSIBLE`, `REFUS_GIT`,
+    `STDOUT_INATTENDU`).
+  - **Journalisation des commandes git** (core:bootstrap) :
+    `MoteurGitCli` journalise chaque exécution via `AppLogger` (tag
+    `git-cli`) — commande, code de sortie et stderr (succès → DEBUG,
+    échec → WARN ; chemins/courriels expurgés par le pipeline,
+    règle 11).
+  - **Onglet « Diagnostic Git »** dans l'écran Diagnostic
+    (feature:diagnostics) : rapport pour le projet le plus
+    récemment ouvert — chemin et version du binaire, uid effectif vs
+    uid propriétaire du dossier (`st_uid`), point de montage et type
+    (fuse/sdcardfs/ext4 — plus long préfixe de la table des
+    montages), sortie COMPLÈTE de `git rev-parse
+    --is-inside-work-tree` (code + stdout + stderr) et de
+    `git config --list --show-origin` (recherche de
+    `safe.directory`), variables d'environnement pertinentes
+    (HOME/PATH/TMPDIR/GIT_*). Boutons Relancer et **Copier** — la
+    copie est EXPURGÉE (nom de projet, chemins, courriels,
+    identités et jetons de configuration masqués ; types d'erreur,
+    uid et codes survivent — règle 15).
+  - **Port** : `MoteurGit.diagnostiquer(nomProjet, cheminFuse)`
+    (rapport sans échec : une sonde indisponible vaut `null`,
+    jamais une exception) + cas d'usage
+    `DiagnostiquerGitProjetUseCase` (dispatcher IO injecté).
+- **Sondes d'environnement** (core:bootstrap) :
+  `SondesEnvironnementGit` (couture de test) et
+  `SondesEnvironnementLinux` (Process.myUid, Os.stat,
+  /proc/self/mounts, environnement du fournisseur).
+
+### Modifié
+
+- **Section Git du tiroir** : un dépôt à l'état indéterminé
+  (`Inaccessible`) affiche l'erreur observable (préfixe localisé par
+  raison + stderr réel de git) et le bouton Actualiser — « Initialiser
+  un dépôt » est INTERDIT tant que git n'a pas dit « not a git
+  repository » lui-même (l'ancien booléen proposait d'initialiser un
+  dépôt sain que git refusait de lire).
+- `SupervisionProcessus.attendre` : limite de stderr paramétrable
+  (le diagnostic capture un stderr intégral borné à 200 lignes, les
+  opérations métier gardent l'extrait de 5).
+- `FakeMoteurGit` : `reponseEtatDepot` (état typé piloté) et
+  `rapportDiagnostic` remplacent `depot: Boolean`.
+
+### Tests
+
+- Classification stderr → EtatDepot (+10, messages réels de git :
+  deux variantes de « not a git repository » — dont la frontière de
+  montage —, dubious ownership 2.35+ et variante unsafe repository
+  pré-2.35, permission denied, binaire absent, stdout vide).
+- Moteur (+9) : etatDepot au faux lanceur, journalisation de
+  l'échec (commande/code/stderr), assemblage du diagnostic complet
+  (sans projet, sans binaire, sondes globales), opérations métier
+  intactes après le remaniement d'executer.
+- Cas d'usage (+5, core:domain) : projet le plus récemment ouvert,
+  jamais ouvert, FUSE irrésolvable → null (pas d'exception),
+  dispatcher IO.
+- ViewModel Git (+2) : dépôt inaccessible ⇒ erreur observable,
+  JAMAIS « Initialiser » (dubious ownership et binaire absent).
+- Formateur (+5) : affichage réel vs copie expurgée — fuite des
+  origines `file:/chemin` de `--show-origin` découverte par le test
+  et corrigée (un slash échappe au LogRedactor, masquée dans le
+  formateur) ; safe.directory et uid survivent au masquage.
+- Sondes Robolectric (+5) : uid, stat, montages, environnement —
+  contrats « jamais d'exception » (la valeur réelle sur FUSE
+  relève de la validation appareil de l'étape A).
+
 ## [0.90.0] – 2026-10-11
 
 ### Ajouté

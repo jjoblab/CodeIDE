@@ -1185,6 +1185,42 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.90.1 : **mission « section Git figée » étape A — rendre l'échec
+      observable** (prompt mission 1 ; défaut récurrent v0.80.4/.5/.7 :
+      « Ce projet n'est pas un dépôt Git » permanent sur un projet
+      tout juste cloné ; livraison SEULE de l'instrumentation, la cause
+      doit être DÉMONTRÉE par le diagnostic sur l'appareil avant tout
+      correctif — étape B en attente du retour utilisateur) :
+      EtatDepot typé [core:domain — Depot | PasUnDepot | Inaccessible(
+      raison, codeSortie, stderrExpurge), remplace estDepot():Boolean ;
+      PasUnDepot UNIQUEMENT si git dit « not a git repository » ou
+      stdout « false » ; 4 raisons : BINAIRE_ABSENT, LANCEMENT_IMPOSSIBLE,
+      REFUS_GIT, STDOUT_INATTENDU — classification ClassificationEtatDepot
+      (core:bootstrap) testée sur les messages RÉELS de git, dont les 2
+      variantes « not a git repository » (frontière de montage comprise)] ;
+      journalisation [MoteurGitCli + AppLogger tag git-cli : commande/
+      code/stderr de CHAQUE exécution, DEBUG succès / WARN échec,
+      expurgé par le pipeline règle 11] ; Diagnostic Git [feature:
+      diagnostics 3e onglet : DiagnosticGitViewModel + FormateurDiagnosticGit
+      + rapport du projet le plus récemment ouvert — binaire+version,
+      uid effectif vs uid propriétaire st_uid (SondesEnvironnementLinux :
+      Process.myUid, Os.stat, /proc/self/mounts), point de montage + type
+      par plus long préfixe, rev-parse et config --show-origin COMPLETS
+      (stderr borné 200 lignes via SupervisionProcessus paramétrable),
+      env HOME/PATH/TMPDIR/GIT_* triée ; bouton Copier → version
+      EXPURGÉE (LogRedactor + nom de projet/identités/jetons masqués ;
+      PIÈGE découvert par le test : origines file:/chemin (1 slash)
+      échappent au LogRedactor — masquées dans le formateur) ;
+      DiagnostiquerGitProjetUseCase : maxByOrNull lastOpenedAt, chemin
+      FUSE null = donnée de diagnostic, dispatcher IO] ; section Git du
+      tiroir [Inaccessible → erreur observable : préfixe localisé +
+      stderr réel + Actualiser ; « Initialiser » INTERDIT tant que git
+      n'a pas confirmé l'absence] ; tests [+36 : classification 10,
+      moteur 9, cas d'usage 5 (domain), ViewModel 2, formateur 5,
+      sondes Robolectric 5 ; FluxUnique/BinaireDynamique portés sur
+      etatDepot] ; chaîne verte sur core:domain, core:bootstrap,
+      core:testing, feature:diagnostics, feature:editor, app
+      (assembleDebug 20,8 Mo, kover, lint, checkModuleDependencies).
 - v0.90.0 : **mission « Historique local » H6 — réglages et entretien**
       (spec § 6, ADR 0105 « réglable ») : RetentionHistorique [core:model —
       enum 1/5/15/30 jours, défaut 5 ; persistance DataStore par NOM,

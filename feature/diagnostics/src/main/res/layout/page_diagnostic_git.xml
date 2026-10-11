@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onglet « Git » de l'écran Diagnostic (v0.90.1, mission « section Git
+  figée » étape A) : rapport d'exécution de l'environnement git pour le
+  projet le plus récemment ouvert — binaire, uid/propriétaire, point de
+  montage, rev-parse, config, environnement. Affichage monospace,
+  copie EXPURGÉE (aucune donnée personnelle, règle 15).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_relancer_diagnostic_git"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="start|center_vertical"
+            android:text="@string/diagnostics_git_relancer"
+            app:icon="@drawable/ic_actualiser" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_copier_diagnostic_git"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/diagnostics_git_copier_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            app:icon="@drawable/ic_copie" />
+    </LinearLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_description_diagnostic_git"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:text="@string/diagnostics_git_description"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <ProgressBar
+        android:id="@+id/chargement_diagnostic_git"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:id="@+id/defilement_diagnostic_git"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="@dimen/spacing_sm">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_diagnostic_git"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+            android:layout_marginBottom="@dimen/spacing_md"
+            android:fontFamily="monospace"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurface"
+            android:textIsSelectable="true"
+            tools:text="=== Diagnostic Git ===&#10;Projet : MonProjet&#10;[Binaire git]…" />
+    </ScrollView>
+
+</LinearLayout>
