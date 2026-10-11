@@ -59,6 +59,38 @@
                      d'appareil réel — le rendu de la bibliothèque ne
                      donnait pas le design espéré (ADR 0056, décision 1). -->
 
+                <!-- Mission « LSP Java » h2 (§16.2) : barre d'état de
+                     l'indexation Java — point d'état (la vue existante)
+                     + libellé de phase/progression. Masquée sans session
+                     LSP ou avant le premier sync (phase INITIALE). -->
+                <LinearLayout
+                    android:id="@+id/barre_etat_lsp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="2dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <jo.codeide.feature.editor.VuePointEtat
+                        android:id="@+id/point_etat_lsp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:id="@+id/texte_etat_lsp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="Indexation Java : 12/191" />
+                </LinearLayout>
+
                 <FrameLayout
                     android:id="@+id/conteneur_editeur"
                     android:layout_width="match_parent"

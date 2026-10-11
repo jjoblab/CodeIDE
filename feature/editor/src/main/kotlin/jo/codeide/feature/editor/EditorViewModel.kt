@@ -49,6 +49,7 @@ import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.SynchroniserProjetUseCase
 import jo.codeide.core.domain.TerminalSessionRepository
+import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.domain.TypeProjetReconnu
 import jo.codeide.core.domain.VerifyProjectAccessUseCase
 import jo.codeide.core.domain.mimeFichierTexte
@@ -63,6 +64,9 @@ import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.getOrNull
+import jo.codeide.lsp.host.DossierIndexLsp
+import jo.codeide.lsp.host.SessionLsp
+import jo.codeide.lsp.host.SourceClasspathLsp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -181,6 +185,13 @@ class EditorViewModel
         private val tooling: GradleToolingRepository,
         private val synchroniserProjet: SynchroniserProjetUseCase,
         private val preparerClasspathLsp: PreparerClasspathLspUseCase,
+        // Mission « LSP Java » étape 4 h2 (§16.2) : la session LSP vit dans
+        // l'espace — source du classpath BRUT (liaison Hilt de l'app sur
+        // l'accesseur protocole de tooling:client), stockage d'index
+        // injecté (ADR 0111 §2) et JDK du terminal (sondes du moteur).
+        private val sourceClasspathLsp: SourceClasspathLsp,
+        private val dossierIndexLsp: DossierIndexLsp,
+        private val outilchain: ToolchainLocator,
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val executerApplication: ExecuterApplicationUseCase,
         private val annulerBuild: AnnulerBuildUseCase,
@@ -251,6 +262,22 @@ class EditorViewModel
         /** État observable des outils du terminal, poussé par le domaine
          *  (v0.39.1 — correctif n°6 : exposition publique pour diagnostic UI). */
         val etatOutilsTerminal: StateFlow<EtatOutilsTerminal> = etatOutilsTerminalInterne.asStateFlow()
+
+        /**
+         * Session LSP Java du projet ouvert (mission « LSP Java » étape 4
+         * h2, §16.2 — cycle de vie PAR ESPACE : ouverte dès que le projet
+         * et sa racine FUSE sont connus, refermée au changement de projet
+         * et à la destruction ; le test de fuite h1 (SessionLspTest)
+         * couvre déjà le contrat « 0 ressource orpheline » de close()).
+         *
+         * `null` tant que le projet/racine est inconnu — l'activité y
+         * collecte pour brancher l'EditorView (LspProject/LspEditor) et
+         * l'état d'indexation.
+         */
+        private val sessionLspInterne = MutableStateFlow<SessionLsp?>(null)
+
+        /** Session LSP observable (branchement éditeur, §16.2). */
+        val sessionLsp: StateFlow<SessionLsp?> = sessionLspInterne.asStateFlow()
 
         /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
          *  détenteur process-wide y publie, l'activité ET le service de
@@ -507,6 +534,11 @@ class EditorViewModel
         private fun lancerSyncOuverture() {
             viewModelScope.launch {
                 etatInterne.map { it.projet }.filterNotNull().first()
+                // Mission LSP Java h2 (§16.2) : la session s'ouvre dès que
+                // le projet est connu — AVANT la garde outils : le moteur
+                // ne dépend PAS du tooling (le classpath l'y rejoindra
+                // après la sync).
+                ouvrirSessionLspSiPossible()
                 // Garde bornée : on attend le premier état OUTILS
                 // ISSU d'un scan réel (`initialise = true`) — sinon la
                 // garde JDK ment sur la valeur par défaut (`false`). Le
@@ -602,6 +634,10 @@ class EditorViewModel
             if (resultat is AppResult.Success && resultat.value.reussie) {
                 publierTachesDisponiblesSiSyncUtile(dossier, resultat)
                 persisterSyncState(resultat)
+                // Mission LSP Java h2 : la revalidation silencieuse nourrit
+                // la session aussi (sync restituée → revalidation → le
+                // classpath rejoint la session SANS geste utilisateur).
+                nourrirSessionLspSiSyncUtile(dossier, resultat)
             }
             // v0.48.0 (ADR 0079) : l'ÉTAT DE SYNC n'est plus publié ICI —
             // le TERMINAL du flux ordonné (vidange process-wide) conclut la
@@ -733,6 +769,10 @@ class EditorViewModel
 
                 ActionEditor.OuvrirTerminal -> {
                     ouvrirTerminal()
+                }
+
+                ActionEditor.Reindexer -> {
+                    reindexerLsp()
                 }
 
                 is ActionEditor.Synchroniser,
@@ -984,6 +1024,108 @@ class EditorViewModel
                 ?.let { resolveurChemin(it) }
 
         // ------------------------------------------------------------------
+        // Session LSP Java (mission « LSP Java » étape 4 lot h2, §16.2).
+        // ------------------------------------------------------------------
+
+        /**
+         * Ouvre la session LSP du projet si elle n'existe pas et que sa
+         * racine FUSE est résoluble — le MOTEUR vit dès l'ouverture (le
+         * premier branchement d'onglet .java peut arriver avant toute
+         * sync) ; le CLASSPATH l'y rejoindra après la première sync
+         * utile ([nourrirSessionLspSiSyncUtile]).
+         *
+         * Racine irrésoluble (volume inconnu) : journal seul — l'édition
+         * n'est jamais bloquée, la session n'existe simplement pas.
+         */
+        private suspend fun ouvrirSessionLspSiPossible() {
+            if (sessionLspInterne.value != null) return
+            val racine =
+                resoudreCheminProjet()?.let { chemin -> File(chemin) }
+                    ?: run {
+                        journal.w(TAG) {
+                            "session LSP non ouverte : racine FUSE introuvable (projet ${identifiantSuivi()})"
+                        }
+                        return
+                    }
+            val session =
+                SessionLsp(
+                    racineProjet = racine,
+                    stockageIndex = dossierIndexLsp.emplacement(),
+                    // D5 : le moteur sonde lib/src.zip + lib/modules du JDK
+                    // pour java.* — le JDK du TERMINAL (bootstrap). Absent :
+                    // null (java.home du runtime ART) → moteur dégradé,
+                    // documenté §16.2 — réouvrir l'espace après installation.
+                    jdkHome = outilchain.javaHome()?.toPath(),
+                )
+            sessionLspInterne.value = session
+            journal.i(TAG) { "session LSP ouverte (projet ${identifiantSuivi()})" }
+        }
+
+        /** Referme la session LSP (changement de projet, destruction). */
+        private fun fermerSessionLsp() {
+            val session = sessionLspInterne.value ?: return
+            sessionLspInterne.value = null
+            session.close()
+            journal.i(TAG) { "session LSP refermée (projet ${identifiantSuivi()})" }
+        }
+
+        /**
+         * Nourrit la session LSP après une sync utile (§16.2 : « le flux
+         * de sync → ClasspathResult BRUT → session.appliquerClasspath ») :
+         * la source résout via l'accesseur protocole (le serveur répond
+         * depuis le cache de sync — CacheSync — la résolution n'est pas
+         * repayée), l'application reconstruit modèle + index fusion +
+         * moteurs par module (lot E). Sync échouée : rien ; source muette :
+         * journal seul — jamais bloquant pour l'édition.
+         */
+        private suspend fun nourrirSessionLspSiSyncUtile(
+            dossier: File,
+            resultat: AppResult<ResultatSynchronisation>,
+        ) {
+            val resultatSync = (resultat as? AppResult.Success)?.value ?: return
+            if (!resultatSync.reussie && !resultatSync.partielle) return
+            val session = sessionLspInterne.value ?: return
+            val brut =
+                sourceClasspathLsp.resoudre(dossier, optionsTooling.argumentsBuild())
+                    ?: run {
+                        journal.w(TAG) {
+                            "classpath brut non résolu — session LSP non nourrie (projet ${identifiantSuivi()})"
+                        }
+                        return
+                    }
+            val application = session.appliquerClasspath(brut)
+            journal.i(TAG) {
+                "session LSP nourrie (${application.modulesActifs} module(s) actif(s), " +
+                    "${application.entreesIndex} entrées d'index, projet ${identifiantSuivi()})"
+            }
+        }
+
+        /**
+         * Chemin FUSE d'un fichier ouvert (branchement LspEditor côté
+         * activité, §16.2) — le même résolveur que la racine projet.
+         *
+         * @return le chemin, ou `null` si l'URI ne résout pas (volume
+         *   inconnu) — l'appelant renonce silencieusement à brancher.
+         */
+        suspend fun cheminFuseDe(uri: String): String? = resolveurChemin(uri)
+
+        /**
+         * Action « Réindexer » (§16.2) : revalidation des segments
+         * persistés + auto-guérison des corrompus — la progression suit
+         * sur `session.etatIndexation` (la barre d'état de l'éditeur y
+         * collecte). Sans session (projet/racine inconnue) : journal seul.
+         */
+        private fun reindexerLsp() {
+            val session = sessionLspInterne.value
+            if (session == null) {
+                journal.w(TAG) { "réindexation demandée sans session LSP (projet ${identifiantSuivi()})" }
+                return
+            }
+            session.reindexer()
+            journal.i(TAG) { "réindexation LSP demandée (projet ${identifiantSuivi()})" }
+        }
+
+        // ------------------------------------------------------------------
         // Tooling Gradle (G5, section 6 du prompt compagnon).
         // ------------------------------------------------------------------
 
@@ -1074,6 +1216,11 @@ class EditorViewModel
                 // « Synchronisé ») ; le classpath peut travailler derrière.
                 publierTachesDisponiblesSiSyncUtile(dossier, resultat)
                 preparerClasspathLspSiSyncUtile(dossier, resultat)
+                // Mission LSP Java h2 (§16.2) : le flux de sync nourrit
+                // AUSSI la session LSP — ClasspathResult BRUT, la même
+                // trame que la persistance lsp-classpath.json (une seule
+                // résolution côté serveur, CacheSync).
+                nourrirSessionLspSiSyncUtile(dossier, resultat)
                 // v0.40.1 (prompt de suivi §2) : on persiste l'état sous
                 // `.codeide/local/sync-state.json` pour restituer au retour
                 // si l'empreinte n'a pas changé. En cas d'échec, on NE
@@ -1657,7 +1804,18 @@ class EditorViewModel
             }
             uriDocumentSuivie = uriDocument
             reinitialiser()
+            // Mission LSP Java h2 : la session du projet précédent ne
+            // survit PAS au changement — moteurs, index en cours et
+            // modèle meurent AVEC elle (test de fuite h1).
+            fermerSessionLsp()
             etatInterne.update { it.copy(projet = projet, chargement = false) }
+            // Mission LSP Java h2 : (ré)ouverture de la session après
+            // changement — la coroutine d'ouverture ne vit qu'une fois
+            // (garde syncOuvertureLancee), le changement de projet doit
+            // rouvrir la sienne.
+            if (projet != null) {
+                viewModelScope.launch { ouvrirSessionLspSiPossible() }
+            }
             // Mission H1 (ADR 0106) : la racine de capture désigne le
             // projet ouvert — le décorateur FileSystem enregistrera ses
             // mutations ; la purge d'entretien suit (âge + quota, E/S,
@@ -3133,6 +3291,10 @@ class EditorViewModel
             sauvegardesAuto.values.forEach { it.cancel() }
             sessions.values.forEach { it.disposer() }
             sessions.clear()
+            // Mission LSP Java h2 : la session LSP meurt AVEC l'espace —
+            // coroutines annulées, moteurs disposés, modèle vidé (le
+            // test de fuite h1 prouve le contrat de close()).
+            fermerSessionLsp()
         }
 
         // ------------------------------------------------------------------

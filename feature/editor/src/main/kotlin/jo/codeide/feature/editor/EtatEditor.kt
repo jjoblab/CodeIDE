@@ -305,7 +305,16 @@ data class EditorTabState(
      *  compatibilité avec les onglets persisted sans source (migration
      *  au rechargement, bug A). */
     val source: SourceArbre = SourceArbre.PROJET,
-)
+) {
+    /**
+     * Fichier Java (mission « LSP Java » h2, §16.2) : l'onglet actif est
+     * branché sur le serveur LSP Java in-process — langage reconnu ou
+     * extension `.java` en repli (langage null = repli neutre à
+     * l'ouverture, l'extension reste discriminante).
+     */
+    fun estJava(): Boolean =
+        langage?.equals("java", ignoreCase = true) == true || nom.endsWith(".java", ignoreCase = true)
+}
 
 /**
  * Intentions utilisateur de l'espace de travail (section 5.3 : `XxxAction`).
@@ -648,6 +657,14 @@ sealed interface ActionEditor {
      * inférieur (état de synchronisation de l'onglet Sortie).
      */
     data object Synchroniser : ActionEditor
+
+    /**
+     * Relance la construction de l'index disque LSP Java (mission
+     * « LSP Java » étape 4 h2, §16.2) : revalidation des segments
+     * persistés + auto-guérison des corrompus — l'état se lit sur la
+     * barre d'état de l'indexation (point d'état de l'éditeur).
+     */
+    data object Reindexer : ActionEditor
 
     /**
      * Exécute les [taches] Gradle du projet courant (G5, §6) — la sortie
