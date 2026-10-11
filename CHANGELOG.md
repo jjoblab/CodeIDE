@@ -1,5 +1,67 @@
 # Journal des modifications
 
+## [0.93.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 2 — index disque en segments par jar**
+  (prompt 2 §7.2 ; ADR 0111 ; docs/LSP_JAVA.md §14) :
+  - **Module `:lsp:index` (Kotlin JVM pur)** : UN segment PAR JAR sur le
+    disque, clé = identité du contenu (empreintes W6 de `:lsp:model` :
+    `maven:<sha1>` / `transform:<haché>` / `partiel:…`, clés dérivées
+    `aar:` et signature d'arborescence `dossier:`), stockage PARTAGÉ
+    entre projets (`~/.codeide/lsp/index/` en JVM, chemin injecté pour
+    l'hôte Android), FUSION LSM À LA REQUÊTE (l'union ordonnée des
+    segments d'un classpath ne reconstruit jamais de gros index),
+    format binaire « CIDX » VERSIONNÉ (magie + version + crc32, sections
+    nommées, écriture atomique `.tmp`+renommage+fsync — corruption d'un
+    segment ⇒ reconstruction de CE segment, jamais de crash).
+  - **Lecteur ZIP brut Kotlin** (`LecteurZipBrut` — équivalent du
+    `RawZipReader` vendored) : `RandomAccessFile` + `Inflater`, AUCUN
+    `java.util.zip.ZipFile` (CloseGuard, ADR 0111 §6), sources fichier
+    et octets en mémoire (jars internes d'AAR) ; petit-boutien ZIP
+    explicite (`OctetsIndex`).
+  - **Analyseur de fichiers de classe** (`AnalyseurClassFile`) :
+    pool de constantes minimal — drapeaux, champs et méthodes pour les
+    extensions `java.members`/`java.membersByOwner`.
+  - **Analyseur de classpath** : jar, AAR NORMALISÉ à l'indexation
+    (classes.jar puis libs, premier porteur gagnant, origines par
+    entrée), dossier par signature d'arborescence (ADR 0111 §10) ;
+    prédicat de reprise (seul un jar manquant est analysé).
+  - **Vue d'index** (`VueIndex`) : les six extensions d'ADR 0111 §5 —
+    `java.classLocator` (recherche binaire, négatifs autoritatifs à
+    l'état PRÊT), `java.classNames` (borne inférieure + marche bornée —
+    tue le balayage linéaire W3), `java.packages`, `java.packageTypes`
+    (« ni plus ni moins »), `java.members`, `java.membersByOwner`
+    (imports statiques) ; lectures par **cache LRU borné** (30 Mo,
+    octets comptés, refus mémorisés, auto-guérison).
+  - **Service de construction** (`ServiceIndexDisque`) : arrière-plan
+    (parallélisme `min(4, cœurs/2)`, annulable — jamais de faux PRÊT),
+    états `{construction, prêt, partiel, erreur}` en `StateFlow` avec
+    progression par jar et reprises comptées ; auto-guérison (crc ⇒
+    reconstruction du SEUL segment, anti-rebond) ; segments mutualisés
+    entre modules ; `octetsCache` public (transparence du budget).
+  - **Nettoyage** (`NettoyageSegments`) : orphelins par âge (âge =
+    dernier ACCÈS), budget disque global (LRU des orphelins), les
+    segments référencés ne sont JAMAIS amputés, dépassement signalé.
+  - **Banc + recette versionnée** : tâche `:lsp:index:bench` (JVM
+    `-Xmx2g -XX:+UseSerialGC` comme le banc d'étude) ;
+    `scripts/lsp-index/construire-jeux.sh` — moyen = classpath
+    `debugCompileClasspath` réel de `:app` (83 entrées), petit =
+    android.jar + jars androidx (14), lourd = 250 artefacts du cache
+    Gradle dont 122 AAR (tri déterministe). **Cibles ADR 0111 TENUES** :
+    reprise 7/10/25 ms (cible < 1,5 s — 60× de marge) ; +1 dépendance
+    85/89/87 ms (vs 257/396/1 178 ms tout repayé à l'étude — seul le
+    nouveau jar est indexé) ; cache borné 4,2/2,9/29,7 Mo (vs
+    108-131 Mo non bornés) ; complétion par préfixe p50 0,16-1,7 ms.
+  - 59 tests : format aller-retour/troncature/crc/version/clé/stats,
+    ZIP DEFLATED+STORED+mémoire, analyseur (octets forgés + classe
+    compilée réelle), AAR normalisé/dossier, vues (préséance d'ordre,
+    imbriquées, ni-plus-ni-moins, membres statiques), service (PRÊT,
+    PARTIEL honnête, ERREUR stockage, annulation, reprise, +1
+    dépendance, auto-guérison, mutualisation), cache (budget, éviction,
+    refus invalidé), nettoyage (âge, budget, référencés intouchables).
+
 ## [0.92.0] – 2026-10-11
 
 ### Ajouté
