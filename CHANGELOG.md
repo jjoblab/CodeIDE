@@ -1,5 +1,51 @@
 # Journal des modifications
 
+## [0.98.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (lot F2) — banc moteur PORTÉ et
+  EXÉCUTÉ : cible §9 p95 < 100 ms TENUE** (docs/LSP_JAVA.md §15.8) :
+  `BancMoteur.java` vit dans le source set de test de `:lsp:testing`
+  (paquet `jo.lspjava.ecj`, accès package-private à
+  `AdaptateurIndexNoms` — écart documenté au design initial « source
+  set bench de `:lsp:java` » : la leçon v0.96.3/section 5.2 s'applique,
+  le module vendored ne référence aucun module interne, banc compris) ;
+  tâche `:lsp:testing:bench` — UNE JVM SÉPARÉE par (jeu × mode),
+  `-Xmx2g -XX:+UseSerialGC`, ProcessBuilder avec attente bornée 20 min,
+  résultats JSON + `banc-complet.log` (jamais dans la chaîne de
+  vérification). Scénarios recréés d'après §4.2/§11.1 : complétion NOM
+  (types, la métrique §9), complétion membre, diagnose premier/memo/
+  édition confinée, tas, poignées, dispose, index disque froid +
+  reprise ; corpus NORMALISÉ (AAR → classes.jar extrait — parité
+  AVANT/APRÈS stricte), 30 itérations + 3 échauffements. Jeux
+  reconstitués dans le bac à sable (SDK android-37.2 par
+  `scripts/setup-env.sh`, cache peuplé par `:app:assembleDebug`,
+  recette `scripts/lsp-index/construire-jeux.sh`). **Résultats** :
+  complétion NOM p95 lourd (248 jars) 27,7 ms APRÈS vs 38,9 AVANT à
+  machine/corpus égaux ; diagnose édité inchangé (~28 ms p95) ; tas
+  stable 100 vs 141 Mo ; dispose → 12-13 Mo, poignées 45-47 (contrat
+  « 0 ressource orpheline » tenu). 8 tests des utilitaires du banc
+  (percentiles, normalisation AAR idempotente, JSON, sources).
+
+### Corrigé
+
+- **Trois défauts d'index découverts par le banc (jeu lourd)** :
+  (1) jar VIDE légitime refusé — le `classes.jar` d'un AAR wrapper
+  sans code (leakcanary-android 2.14, 22 octets d'EOCD) était rejeté
+  « répertoire central hors bornes » par `LecteurZipBrut`, la
+  construction terminait PARTIEL (jamais PRÊT — repli permanent) :
+  0 entrée = jar valide, segment vide (test de régression) ;
+  (2) `CacheSegments.obtenir` écrivait le mtime du segment À CHAQUE
+  hit (LRU du nettoyage) — écriture disque sur le chemin de LECTURE,
+  +130-300 ms par requête globale à 248 segments : rafraîchissement
+  AMORTI (au plus 1×/segment/10 min) ; (3) budget de cache PLAT
+  (30 Mo) ≠ cible §9 PAR JAR : à 248 segments l'ensemble de travail
+  (~61 Mo) s'évince en continu — complétion p95 452-536 ms MESURÉE ;
+  le banc APRÈS passe un budget PROPORTIONNEL (plancher 32 Mio,
+  ~512 Kio/jar), l'hôte de l'étape 4 dérivera le budget du modèle
+  (arbitrage documenté §15.8).
+
 ## [0.97.0] – 2026-10-12
 
 ### Ajouté

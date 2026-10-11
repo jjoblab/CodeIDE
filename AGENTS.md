@@ -1188,6 +1188,25 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.98.0 : **mission « LSP Java » étape 3 (lot F2) — banc moteur
+      PORTÉ et EXÉCUTÉ, cible §9 p95 < 100 ms TENUE** (docs/
+      LSP_JAVA.md §15.8) : BancMoteur dans le source set de test de
+      :lsp:testing (accès package-private à AdaptateurIndexNoms),
+      tâche :lsp:testing:bench (JVM séparée par jeu × mode, -Xmx2g
+      SerialGC, ProcessBuilder borné 20 min, JSON + banc-complet.log,
+      hors chaîne de vérification) ; corpus normalisé AAR→classes.jar
+      (parité AVANT/APRÈS stricte), jeux reconstitués (setup-env.sh +
+      assembleDebug + construire-jeux.sh). Résultats (2 cœurs, 30
+      itérations) : complétion NOM p95 lourd 27,7 ms APRÈS vs 38,9
+      AVANT, diagnose édité ~28 ms, tas 100 vs 141 Mo, dispose
+      12-13 Mo/poignées 45-47 ; le banc a en outre découvert TROIS
+      défauts d'index corrigés : jar vide d'AAR wrapper (PARTIEL
+      permanent), mtime écrit À CHAQUE hit de cache (écriture sur le
+      chemin de lecture, +130-300 ms/requête globale à 248 segments),
+      budget plat 30 Mo ≠ cible par jar (thrash : complétion p95
+      452-536 ms mesurée — banc à budget proportionnel, hôte étape 4
+      dérivera le budget du modèle). 8 tests d'utilitaires + 1
+      régression :lsp:index (60 tests).
 - v0.97.0 : **mission « LSP Java » étape 3 (lot E, commit a) — moteur
       PAR module (verrou global → périmètre module)** (docs/
       LSP_JAVA.md §15.7) : CompilationEnvironment porte une carte de
