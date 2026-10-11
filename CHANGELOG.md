@@ -1,5 +1,54 @@
 # Journal des modifications
 
+## [0.100.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » étape 4 (lot h2) — branchement éditeur + UI**
+  (docs/LSP_JAVA.md §16.2) : le serveur LSP Java in-process vit
+  DÉSORMAIS dans l'éditeur. **Coutures de l'hôte** (`:lsp:host`) :
+  `SourceClasspathLsp` (résolution du `ClasspathResult` BRUT pour la
+  session) et `DossierIndexLsp` (stockage d'index injecté — le défaut
+  `~/.codeide/lsp/index` n'a pas de sens sous ART). **Liaisons Hilt de
+  l'app** (`ModuleLsp`) : la source habille le NOUVEL accesseur
+  protocole `GradleApiImpl.classpathBrut()` (`tooling:client` —
+  résultat v8 TEL QUEL, le domaine garde sa voie pour
+  `lsp-classpath.json` ; une seule résolution côté serveur, CacheSync) ;
+  le stockage lie `filesDir/codeide/lsp/index`. **Session LSP PAR
+  ESPACE** (`EditorViewModel`) : ouverte dès que projet + racine FUSE
+  sont connus (AVANT la garde outils — le moteur ne dépend pas du
+  tooling ; racine irrésoluble = journal seul, édition jamais bloquée),
+  nourrie après CHAQUE sync utile — manuelle OU revalidation
+  silencieuse (une sync restituée nourrit la session sans geste
+  utilisateur) — par `session.appliquerClasspath(brut)` (modèle +
+  index fusion + moteurs par module, lot E), refermée au changement
+  de projet et à la destruction (contrat de fuite couvert par
+  SessionLspTest h1) ; action « Réindexer » (menu de l'éditeur, visible
+  si session vivante). **Branchement cel-lsp**
+  (`EditorActivity`/`CoordonnateurLsp`) : `LspProject` créé UNE fois
+  par session (définition `session.definition()`), `LspEditor` par
+  onglet .java actif (`createEditor("file://…")` + `setEditorView` +
+  `setCurrentFilePath` + `connect()` asynchrone — complétion,
+  diagnostics, hover arrivent dans l'EditorView unique), déconnexion
+  au changement d'onglet, `shutdown()` à la destruction ; échec de
+  connexion journalisé, repli coloration lexicale. **Barre d'état de
+  l'indexation** sous les onglets : la vue `VuePointEtat` RÉUTILISÉE
+  (anneau accent en construction, disque vert plein prêt, bordure
+  verte partielle, bordure accent en erreur) + libellé localisé
+  (fr/en) avec progression `faits/total` ; chaînage `flatMapLatest` —
+  la collecte meurt avec la session. **Dépendances** : allow-list §5.2
+  `feature:editor` → `:lsp:host` (exception feature EXPLICITE,
+  cel-lsp INDIRECT par l'`api` de l'hôte) ; `app` → `:lsp:host`.
+  Le moteur vendored (ECJ patché) est DEXÉ dans l'APK (in-process
+  ART, ADR 0109 D2 — multidex natif, APK debug 28,2 Mo). **8 tests**
+  (`LspEditorViewModelTest`) : ouverture au projet connu, silence sans
+  racine, nourrissage après sync (modèle publié), source muette
+  (session vivante non nourrie), relocalisation (ancienne fermée +
+  nouvelle sur la nouvelle racine), réindexation sans/avec session,
+  résolution `cheminFuseDe`. Chaîne complète verte
+  (spotless/detekt/checkModuleDependencies/lint/tests/kover,
+  assembleDebug).
+
 ## [0.99.1] – 2026-10-12
 
 ### Corrigé

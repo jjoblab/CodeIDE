@@ -104,10 +104,11 @@ Modules : `app`, `core:{model, domain, data, database, datastore, storage,
 logging, crash, ui, testing}`, `feature:{onboarding, home, newproject,
 settings, diagnostics, editor}`, `tools:{generateur}` (harnais de
 vérification des modèles, hors application — ADR 0019), `tooling:{protocol,
-api, server, client, daemon, testing}`, `lsp:{model, index, java, ecj-art}`
-(mission « LSP Java », prompt 2 — ADR 0108-0113). `core:model`,
-`core:domain` et les modules `lsp:` Kotlin sont des modules **Kotlin JVM
-purs** avec `explicitApi()`.
+api, server, client, daemon, testing}`, `lsp:{model, index, java, ecj-art,
+testing, host}` (mission « LSP Java », prompt 2 — ADR 0108-0113 ; `host`
+est une bibliothèque ANDROID — transport cel-lsp, ADR 0109). `core:model`,
+`core:domain` et les modules `lsp:` Kotlin JVM purs sont avec
+`explicitApi()`.
 
 Tableau des dépendances autorisées : `docs/ARCHITECTURE.md`. Patron de
 présentation : MVVM + flux unidirectionnel (UiState/Action/Effect via
@@ -1188,6 +1189,37 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.100.0 : **mission « LSP Java » étape 4 (lot h2) — branchement
+      éditeur + UI** (docs/LSP_JAVA.md §16.2) : coutures de l'hôte
+      SourceClasspathLsp/DossierIndexLsp (implémentations dans
+      ModuleLsp de l'app — accesseur protocole BRUT
+      GradleApiImpl.classpathBrut côté tooling:client, stockage
+      filesDir/codeide/lsp/index) ; session LSP PAR ESPACE
+      (EditorViewModel : ouverte au projet+racine FUSE connus,
+      nourrie après CHAQUE sync utile y compris revalidation
+      silencieuse, refermée au changement de projet et à la
+      destruction ; action Réindexer) ; CoordonnateurLsp
+      (EditorActivity : LspProject cel-lsp par session, LspEditor
+      par onglet actif, connect() asynchrone, shutdown à la
+      destruction) ; barre d'état d'indexation sous les onglets
+      (VuePointEtat réutilisée + libellé localisé, flatMapLatest —
+      la collecte meurt avec la session) ; allow-list §5.2 :
+      feature:editor → :lsp:host (exception feature documentée,
+      cel-lsp INDIRECT par l'api de l'hôte) ; app → :lsp:host
+      (liaisons Hilt). Le moteur vendored est DEXÉ dans l'APK
+      (in-process ART — 28,2 Mo debug, multidex). 8 tests
+      LspEditorViewModelTest ; chaîne complète verte.
+- v0.99.1 : **correctif tooling — déploiement du JAR orchestrateur
+      observable et retentable** (retour utilisateur « JAR
+      orchestrateur indisponible : <chemin>: The source file doesn't
+      exist. ») : enquête AVANT correctif (APK CI + assembleDebug
+      local : l'asset est LIVRÉ, la chaîne de build est SAINE — le
+      défaut vit dans JarDeployer à l'exécution) ; EchecDeploiementJar
+      typé (SourceJarIndisible = définitif avec conduite à tenir ;
+      CibleInaccessible/EcritureImpossible = retentables — la boucle
+      de vie consomme une tentative, mkdirs() vérifié, cause
+      originale préservée, journal avec l'exception ENTIÈRE). 5
+      tests durcis/nouveaux (tooling:daemon).
 - v0.99.0 : **mission « LSP Java » étape 4 (lot h1) — le module
       :lsp:host** (docs/LSP_JAVA.md §16.1, ADR 0109 D2) : SessionLsp
       (façade transport abstrait — démarrer/arrêter, requêtes, flux
@@ -1204,9 +1236,7 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       alignement lsp4j TRANCHÉ : résolution 0.22.0 (cel-lsp), moteur
       0.21.2 vérifié dessous (AlignementLsp4jTest, cycle LSP
       complet). 9 tests, kover ≥ 80 %, allow-list §5.2
-      (lsp:java/index/model). RESTE h2 : branchement EditorActivity
-      (LspProject/LspEditor/EditorView), état d'indexation UI +
-      Réindexer, alimentation sync (§16.2).
+      (lsp:java/index/model).
 - v0.98.0 : **mission « LSP Java » étape 3 (lot F2) — banc moteur
       PORTÉ et EXÉCUTÉ, cible §9 p95 < 100 ms TENUE** (docs/
       LSP_JAVA.md §15.8) : BancMoteur dans le source set de test de

@@ -61,7 +61,7 @@ sections 5 et 6.
 | `tooling:client` | Client Android du tooling : écoute du socket (l'app est le serveur), handshake au secret, façade `GradleToolingRepository` du domaine, diffusion non conflatante (ADR 0041) |
 | `tooling:daemon` | Daemon du tooling : déploiement du JAR (marqueur de version), lancement du process orchestrateur sur `NativeProcessLauncher`, health check ping/pong, relances bornées, stderr → journal `gradle-server` (ADR 0042) |
 | `tooling:testing` | Fixtures du tooling : mini-projets Gradle réels (pur JVM + fixture ANDROID `android-simple` depuis v0.92.0), dépendance de test uniquement |
-| `feature:editor` | Espace de travail : tiroir (explorateur + fragments Recherche/Git ; fragment Terminal via fabrique Hilt, ADR 0053), onglets, panneau inférieur |
+| `feature:editor` | Espace de travail : tiroir (explorateur + fragments Recherche/Git ; fragment Terminal via fabrique Hilt, ADR 0053), onglets, panneau inférieur ; session LSP Java de l'espace (hôte `:lsp:host` : branchement cel-lsp de l'éditeur, état d'indexation, réindexation — mission « LSP Java » h2) |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
 | `lsp:model` | Kotlin JVM pur — modèle de projet LSP : conversion `ClasspathResult` → snapshots immuables empreintés, persistance versionnée validée (mission « LSP Java » étape 1, ADR 0113) |
 | `lsp:index` | Kotlin JVM pur — index disque en segments par jar : clés de contenu W6, fusion LSM à la requête, construction en arrière-plan bornée (mission « LSP Java » étape 2, ADR 0111) |
@@ -92,6 +92,7 @@ toute dépendance non autorisée **fait échouer le build**.
 | `core:ui` | `core:model` | `core:domain`, `core:data`, features |
 | `feature:*` | `core:ui`, `core:domain`, `core:model` | `core:data`, sources de données, `core:crash`, `core:logging`, **autres features** |
 | `feature:terminal`, `feature:install` | `core:ui`, `core:domain`, `core:model`, `core:terminal-runtime` | — (exception v0.54.0, ADR 0083 : le journal live de l'installation est un mini TerminalView intégré) |
+| `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
 | `tooling:protocol` | rien | tout module interne (pur JVM) |
 | `tooling:api` | `tooling:protocol` | autre chose (pur JVM) |
 | `tooling:server` | `tooling:protocol`, `tooling:api` | Android, domaine (pur JVM, ADR 0040) |

@@ -40,6 +40,7 @@ import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
@@ -61,8 +62,12 @@ import jo.codeide.core.ui.couleurSurSurface
 import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
+import jo.codeide.lsp.host.EtatIndexation
+import jo.codeide.lsp.host.PhaseIndexation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -149,7 +154,17 @@ class EditorActivity :
     @Inject
     lateinit var optionsEditeur: OptionsEditeur
 
+    /** Journal applicatif (mission « LSP Java » h2) : le coordonnateur LSP
+     *  y journalise les cycles de connexion cel-lsp (règle 11 — chemins
+     *  seuls, rien de personnel). */
+    @Inject
+    lateinit var journalLsp: AppLogger
+
     private lateinit var liaison: ActivityEditorBinding
+
+    /** Coordonnateur LSP Java (mission « LSP Java » h2) : LspProject +
+     *  LspEditor cel-lsp de l'onglet actif — see [brancherLspSiNecessaire]. */
+    private val coordonnateurLsp by lazy { CoordonnateurLsp(journalLsp) }
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
@@ -268,8 +283,18 @@ class EditorActivity :
         // re-création de l'activité, donc après chaque changement de langue.
         viewModel.onAction(ActionEditor.PreciserLangue(langueCourante()))
 
-        viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat -> rendre(etat) }
+        viewModel.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
+            rendre(etat)
+            // Mission LSP Java h2 (§16.2) : le branchement suit le rendu —
+            // async (résolution FUSE suspendante), gardé par URI.
+            brancherLspSiNecessaire(etat)
+        }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
+
+        // Mission LSP Java h2 : la session LSP du projet — la visibilité de
+        // l'action « Réindexer » la suit, et le branchement s'y re-déclenche.
+        observerSessionLsp()
+        observerEtatIndexationLsp()
 
         // R4 : plantage de l'application exécutée — snackbar UNE fois par
         // session morte (le pont signale l'exception non interceptée).
@@ -839,6 +864,14 @@ class EditorActivity :
 
                 R.id.action_synchroniser -> {
                     viewModel.onAction(ActionEditor.Synchroniser)
+                    true
+                }
+
+                R.id.action_reindexer -> {
+                    // Mission LSP Java h2 (§16.2) : revalidation des
+                    // segments d'index + auto-guérison — la barre d'état
+                    // de l'indexation porte la progression.
+                    viewModel.onAction(ActionEditor.Reindexer)
                     true
                 }
 
@@ -1669,6 +1702,138 @@ class EditorActivity :
         vue.setShowNonPrintable(optionsEditeur.courants.editorCaracteresNonImprimables)
         vue.setFontLigatures(optionsEditeur.courants.editorLigatures)
         vue.setDiagnosticChipsEnabled(optionsEditeur.courants.editorChipsDiagnostics)
+    }
+
+    // ------------------------------------------------------------------
+    // LSP Java (mission « LSP Java » étape 4 lot h2, docs/LSP_JAVA.md §16.2).
+    // ------------------------------------------------------------------
+
+    /** Session LSP du projet : visibilité « Réindexer » + re-branchement. */
+    private fun observerSessionLsp() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.sessionLsp.collect { session ->
+                    majActionReindexer(session != null)
+                    brancherLspSiNecessaire(viewModel.etat.value)
+                }
+            }
+        }
+    }
+
+    /**
+     * État d'indexation de la session courante — chaîné par
+     * flatMapLatest (expérimental : opt-in ciblé) pour que la collecte
+     * MEURE avec sa session (une collecte imbriquée fuiterait vers
+     * l'ancienne).
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observerEtatIndexationLsp() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.sessionLsp
+                    .flatMapLatest { session ->
+                        session?.etatIndexation ?: flowOf(null)
+                    }.collect { etat -> rendreEtatIndexationLsp(etat) }
+            }
+        }
+    }
+
+    /**
+     * Branche l'onglet ACTIF sur le serveur LSP Java (async : la résolution
+     * FUSE suspend) — un onglet non-Java ou une session absente DÉBRANCHE ;
+     * la garde URI ([CoordonnateurLsp.estBrancheSur]) évite les
+     * re-connexions au re-rendu. La course « onglet changé pendant la
+     * résolution » est refermée en re-vérifiant l'état courant.
+     */
+    private fun brancherLspSiNecessaire(etat: EtatEditor) {
+        val session = viewModel.sessionLsp.value
+        val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
+        if (session == null || onglet == null || !onglet.estJava()) {
+            coordonnateurLsp.debrancher()
+            return
+        }
+        if (coordonnateurLsp.estBrancheSur(onglet.uri)) return
+        val uri = onglet.uri
+        lifecycleScope.launch {
+            val chemin = viewModel.cheminFuseDe(uri) ?: return@launch
+            val courant = viewModel.etat.value
+            val actif = courant.onglets.getOrNull(courant.indexOngletActif)
+            if (actif?.uri != uri || viewModel.sessionLsp.value !== session) return@launch
+            coordonnateurLsp.brancher(session, uri, chemin, liaison.vueEditeur)
+        }
+    }
+
+    /**
+     * Rend l'état d'indexation LSP sur la barre dédiée (point d'état +
+     * libellé, §16.2) : masquée sans session/avant sync, progression par
+     * jar en construction, verdict honnête ensuite (prêt/partiel/erreur).
+     */
+    private fun rendreEtatIndexationLsp(etat: EtatIndexation?) {
+        if (etat == null || etat.phase == PhaseIndexation.INITIAL) {
+            liaison.barreEtatLsp.isVisible = false
+            return
+        }
+        liaison.barreEtatLsp.isVisible = true
+        liaison.pointEtatLsp.programmer(etatPointDe(etat))
+        liaison.texteEtatLsp.text = libelleEtatIndexation(etat)
+        liaison.texteEtatLsp.contentDescription = libelleEtatIndexation(etat)
+    }
+
+    /**
+     * Point d'état de l'indexation (la vue existante, §16.2) : anneau
+     * accent en construction (attire l'œil), disque vert plein prêt
+     * (« sain »), bordure verte partielle (dégradé mais utilisable),
+     * bordure accent en erreur.
+     */
+    private fun etatPointDe(etat: EtatIndexation): VuePointEtat.EtatPoint =
+        when (etat.phase) {
+            PhaseIndexation.CONSTRUCTION -> VuePointEtat.EtatPoint.SELECTION_ACTIF
+            PhaseIndexation.PRET -> VuePointEtat.EtatPoint.ACTIF
+            PhaseIndexation.PARTIEL -> VuePointEtat.EtatPoint.OUVERT
+            PhaseIndexation.ERREUR -> VuePointEtat.EtatPoint.SELECTIONNE
+            PhaseIndexation.INITIAL -> VuePointEtat.EtatPoint.DEFAUT
+        }
+
+    /** Libellé localisé de l'état d'indexation (progression comprise). */
+    private fun libelleEtatIndexation(etat: EtatIndexation): String =
+        when (etat.phase) {
+            PhaseIndexation.CONSTRUCTION -> {
+                val base = getString(R.string.editor_lsp_indexation_en_cours)
+                if (etat.total > 0) "$base ${etat.faits}/${etat.total}" else base
+            }
+
+            PhaseIndexation.PRET -> {
+                getString(R.string.editor_lsp_indexation_prete)
+            }
+
+            PhaseIndexation.PARTIEL -> {
+                getString(R.string.editor_lsp_indexation_partielle)
+            }
+
+            PhaseIndexation.ERREUR -> {
+                getString(R.string.editor_lsp_indexation_erreur)
+            }
+
+            PhaseIndexation.INITIAL -> {
+                getString(R.string.editor_lsp_indexation_prete)
+            }
+        }
+
+    /** Visibilité de l'action « Réindexer » (session vivante). */
+    private fun majActionReindexer(visible: Boolean) {
+        liaison.toolbarEditeur.menu
+            .findItem(R.id.action_reindexer)
+            ?.isVisible = visible
+    }
+
+    /**
+     * Fermeture de l'espace : le LspProject cel-lsp s'arrête ICI (avant
+     * le ViewModel, qui referme la SESSION LSP dans onCleared — l'ordre
+     * de destruction va l'activité PUIS le ViewModel, §16.2).
+     */
+    override fun onDestroy() {
+        coordonnateurLsp.fermer()
+        super.onDestroy()
     }
 
     /**

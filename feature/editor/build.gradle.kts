@@ -13,6 +13,15 @@ dependencies {
     // documentée (prompt compagnon, section 3).
     implementation(libs.codeeditor.ui)
 
+    // Hôte LSP Java (mission « LSP Java » étape 4 lot h2, §16.2) :
+    // SessionLsp + la définition cel-lsp du serveur Java. La feature ne
+    // déclare PAS cel-lsp (l'exception feature reste cel-ui SEULE) :
+    // les types LspProject/LspEditor/SessionLsp arrivent par l'API de
+    // :lsp:host (sa dépendance cel-lsp est `api` — traversée documentée
+    // §16.1 : « la DefinitionServeurLspJava traverse la surface
+    // publique, branchement LspProject côté feature à l'étape 4 h2 »).
+    implementation(project(":lsp:host"))
+
     // Tests du ViewModel : fakes et horloge virtuelle.
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -29,9 +29,12 @@ import jo.codeide.core.testing.FakeProjectRepository
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.FakeTemplateAssetsSource
 import jo.codeide.core.testing.FakeTerminalSessionRepository
+import jo.codeide.core.testing.FakeToolchainLocator
 import jo.codeide.core.testing.InMemoryLogRepository
 import jo.codeide.core.testing.MainDispatcherRule
 import jo.codeide.core.testing.TestDispatcherProvider
+import jo.codeide.lsp.host.DossierIndexLsp
+import jo.codeide.lsp.host.SourceClasspathLsp
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -75,6 +78,31 @@ abstract class BaseEditorViewModelTest {
     /** Faux du port tooling (G5) — pilotable par les tests de l'espace. */
     protected val tooling = FauxToolingEditor()
 
+    /** Source du classpath brut LSP (mission « LSP Java » h2) — MUETTE
+     *  par défaut : la session s'ouvre mais n'est jamais nourrie, les
+     *  tests existants ne voient AUCUN nouveau comportement (les tests
+     *  LSP sèment un résultat réel). */
+    protected var resultatClasspathBrut: jo.codeide.tooling.protocol.ClasspathResult? = null
+
+    /** Couture classpath LSP de l'espace (mission h2). */
+    protected val sourceClasspathLspTest: SourceClasspathLsp =
+        SourceClasspathLsp { _, _ -> resultatClasspathBrut }
+
+    /** Stockage d'index LSP des tests (mission h2) — dossier temporaire
+     *  réel (UN par test, paresseux) : les segments s'y écrivent comme
+     *  en production. */
+    protected val dossierIndexLspTest: DossierIndexLsp = DossierIndexLsp { dossierIndexLspUnique }
+
+    private val dossierIndexLspUnique: java.io.File by lazy {
+        java.nio.file.Files
+            .createTempDirectory("codeide-index-lsp")
+            .toFile()
+    }
+
+    /** Chaîne d'outils factice (mission h2) : JDK absent par défaut — la
+     *  session LSP vit dégradée (java.home du runtime de test). */
+    protected val outilchainTest = FakeToolchainLocator()
+
     /** Réglages en mémoire — pilote [optionsTooling] (v3) et
      *  [optionsEditeur] (v0.37.0) : même dépôt, mêmes semailles. */
     protected val depotReglages = FakeSettingsRepository()
@@ -106,6 +134,10 @@ abstract class BaseEditorViewModelTest {
 
     /** Journal de l'espace (partagé, pour les use cases tooling). */
     protected val journalEspace = FakeAppLogger()
+
+    /** Journal PROPRE du ViewModel (mission h2 : assertions des messages
+     *  LSP — session ouverte/nourrie/fermée, réindexation). */
+    protected val journalViewModel = FakeAppLogger()
 
     /** Horloge tooling pilotable (v0.32.5) : les chronos de l'en-tête du
      *  panneau (instants de départ Sync/Build) avancent à la main — le
@@ -205,7 +237,7 @@ abstract class BaseEditorViewModelTest {
             verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
             fichiers = fichiers,
             fichiersPrives = fichiersPrives,
-            journal = FakeAppLogger(),
+            journal = journalViewModel,
             observerJournaux = ObserveLogsUseCase(depotJournaux),
             evaluerNom = EvaluerNomFichierUseCase(),
             enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
@@ -234,6 +266,10 @@ abstract class BaseEditorViewModelTest {
                     journalEspace,
                     TestDispatcherProvider(regleMain.dispatcher),
                 ),
+            // Mission « LSP Java » h2 (§16.2) : coutures LSP de l'espace.
+            sourceClasspathLsp = sourceClasspathLspTest,
+            dossierIndexLsp = dossierIndexLspTest,
+            outilchain = outilchainTest,
             executerTachesUseCase =
                 jo.codeide.core.domain.ExecuterTachesUseCase(
                     tooling,

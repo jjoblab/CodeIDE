@@ -227,6 +227,13 @@
     <string name="editor_journal_vide">Aucune entrée pour ces filtres.</string>
     <string name="editor_journal_complet">Ouvrir le journal complet</string>
     <string name="editor_synchroniser">Synchroniser</string>
+    <!-- Mission « LSP Java » h2 (§16.2) : action et barre d'état de
+         l'indexation Java dans l'éditeur. -->
+    <string name="editor_lsp_reindexer">Réindexer Java</string>
+    <string name="editor_lsp_indexation_en_cours">Indexation Java :</string>
+    <string name="editor_lsp_indexation_prete">Index Java prêt</string>
+    <string name="editor_lsp_indexation_partielle">Index Java partiel</string>
+    <string name="editor_lsp_indexation_erreur">Index Java en erreur</string>
     <string name="editor_run">Run</string>
     <string name="editor_executer">Exécuter…</string>
     <string name="editor_executer_titre">Exécuter une tâche Gradle</string>
