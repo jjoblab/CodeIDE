@@ -103,8 +103,11 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
 Modules : `app`, `core:{model, domain, data, database, datastore, storage,
 logging, crash, ui, testing}`, `feature:{onboarding, home, newproject,
 settings, diagnostics, editor}`, `tools:{generateur}` (harnais de
-vérification des modèles, hors application — ADR 0019). `core:model` et
-`core:domain` sont des modules **Kotlin JVM purs** avec `explicitApi()`.
+vérification des modèles, hors application — ADR 0019), `tooling:{protocol,
+api, server, client, daemon, testing}`, `lsp:{model, index, java, ecj-art}`
+(mission « LSP Java », prompt 2 — ADR 0108-0113). `core:model`,
+`core:domain` et les modules `lsp:` Kotlin sont des modules **Kotlin JVM
+purs** avec `explicitApi()`.
 
 Tableau des dépendances autorisées : `docs/ARCHITECTURE.md`. Patron de
 présentation : MVVM + flux unidirectionnel (UiState/Action/Effect via
@@ -1185,6 +1188,37 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.93.0 : **mission « LSP Java » étape 2 — index disque en segments
+      par jar** (prompt 2 §7.2 ; ADR 0111 ; docs/LSP_JAVA.md §14) :
+      nouveau module `:lsp:index` (Kotlin JVM pur) — segments PAR JAR
+      (clé = empreinte W6, stockage partagé injectable), fusion LSM à la
+      requête (union ordonnée, premier porteur gagnant), format CIDX
+      binaire versionné (magie+version+crc32, écriture atomique,
+      corruption ⇒ reconstruction du SEUL segment, auto-guérison à la
+      lecture, migration = ré-indexation paresseuse), lecteur ZIP brut
+      Kotlin SANS java.util.zip.ZipFile (CloseGuard — petit-boutien
+      explicite, bug de boutisme corrigé avant les tests), analyseur de
+      fichiers de classe (members/membersByOwner), AAR NORMALISÉ à
+      l'indexation (classes.jar+libs, origines), dossiers par signature
+      d'arborescence ; six extensions de requête servies par la VueIndex
+      (classLocator binaire, classNames par borne inférieure — tue W3,
+      packages, packageTypes ni-plus-ni-moins, members, imports
+      statiques) via cache LRU BORNÉ (30 Mo, octets comptés) ; service
+      d'arrière-plan (min(4, cœurs/2), annulable, états
+      construction/prêt/partiel/erreur en StateFlow, progression par
+      jar, reprises comptées, repli par sondage tant que non prêt) ;
+      nettoyage (orphelins par âge de dernier ACCÈS, budget disque,
+      référencés jamais amputés) ; 59 tests dont reprise/+1
+      dépendance/auto-guérison/corruption/migration ; banc versionné
+      (tâche :lsp:index:bench + scripts/lsp-index/construire-jeux.sh :
+      moyen = classpath réel de :app 83 entrées, petit = 14, lourd = 250
+      artefacts du cache dont 122 AAR) — **CIBLES ADR 0111 TENUES** :
+      reprise 7/10/25 ms (cible < 1,5 s), +1 dépendance 85/89/87 ms
+      (vs 257/396/1 178 ms tout repayé à l'étude), cache borné
+      4,2/2,9/29,7 Mo (vs 108-131 Mo avant), préfixe p50 0,16-1,7 ms.
+      Chaîne complète verte : spotlessCheck, detekt, koverVerify
+      (lsp:index ≥ 80 %), testDebugUnitTest, lintDebug, assembleDebug
+      (APK 20,9 Mo).
 - v0.92.0 : **mission « LSP Java » étape 1 — modèle de projet LSP + source
       du classpath Android + vendoring** (prompt 2 §7.1/§8 ; ADR 0113) :
       nouveau module `:lsp:model` (Kotlin JVM pur — conversion pure
