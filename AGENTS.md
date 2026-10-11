@@ -1185,6 +1185,33 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.92.0 : **mission « LSP Java » étape 1 — modèle de projet LSP + source
+      du classpath Android + vendoring** (prompt 2 §7.1/§8 ; ADR 0113) :
+      nouveau module `:lsp:model` (Kotlin JVM pur — conversion pure
+      ClasspathResult → snapshots immuables empreintés W6, ensembles de
+      sources par rôle W5, cycles rejetés, association fichier→module
+      + FQCN recoupé, persistance versionnée VALIDÉE W7, 35 tests dont
+      le CRITÈRE du prompt) ; tooling:server résout les modèles **v2
+      d'AGP** (builder-model 9.4.1 : BasicAndroidProject/AndroidProject/
+      VariantDependencies paramétré par ModelBuilderParameter —
+      paramètre TOUJOURS complet, un getter non posé fait échouer AGP
+      en NPE) + IdeaProject par le MODEL BUILDER après l'action (dans
+      une action, l'adaptateur ne proxifie les dépendances Idea que par
+      l'interface de base — types concrets seulement côté model
+      builder, mesuré) ; AAR livrés NORMALISÉS par AGP (jars extraits
+      des transforms + provenance `ClasspathEntry.aar` — mesuré sur le
+      jeu lourd 191/191, le serveur n'extrait rien) ; protocole **v8**
+      (sourceDirsTest, aar, name = chemin Gradle, champs androidJar/
+      fichiersGeneres/varianteAndroid réels/ignore/avertissements
+      remplis, goldens régénérés) ; modules vendored **:lsp:java**
+      (sources intactes, 246 tests verts — JO_TEST_JDK_HOME fourni par
+      le build) et **:lsp:ecj-art** intégrés aux conventions Gradle du
+      dépôt (kts + catalogue + tâche patchEclipseForArt compatible
+      configuration cache par ProcessBuilder) — carte blanche du
+      propriétaire ; fixture AGP réelle android-simple + test
+      d'intégration ; mission 1 : **preuve appareil reçue** (dubious
+      ownership démontré, docs/GIT.md §2.3, étapes B–F documentées) ;
+      mission 3 : plan du travail restant consigné (docs/CYCLE_DE_VIE.md).
 - v0.91.0 : **mission « LSP Java » étape 0 — étude, mesures et ADR**
       (prompt mission 2 ; AUCUN code de production, livrable d'analyse :
       docs/LSP_JAVA.md + ADR 0108–0112) : écarts majeurs trouvés sur les

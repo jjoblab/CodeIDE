@@ -1,5 +1,122 @@
 # Journal des modifications
 
+## [0.92.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 1 — modèle de projet LSP et source du
+  classpath Android** (prompt 2 §7.1/§8 ; ADR 0113 ;
+  docs/LSP_JAVA.md §13) :
+  - **Module `:lsp:model` (Kotlin JVM pur)** : conversion pure du
+    `ClasspathResult` en snapshots immuables — `ProjetLsp`/`ModuleLsp`/
+    `EnsemblesSources` par rôle (main/test/générés — W5),
+    `ClasspathInstantane` avec **empreintes par contenu** (W6 : sha1 du
+    chemin de cache Maven, haché de transform, sinon
+    taille+mtime+empreinte partielle de 64 Kio),
+    `DependanceModule` (cycles rejetés à l'échelle du PROJET avec
+    avertissement), `AssociationFichier` (racine de sourceset la plus
+    profonde + FQCN recoupé à la déclaration `package` — correctif du
+    bug historique « 31 diagnostics sur 349 caractères »),
+    `PersistanceModeleLsp` (format versionné VALIDÉ taille/horodatage —
+    W7 : un modèle périmé reste utilisable mais MARQUÉ non vérifié) et
+    `DepotModeleLsp` (publication par instantanés successifs). 35
+    tests couvrant tous les cas exigés par le prompt : multi-modules,
+    api/impl (isolation par module), conflits de versions « plus récent
+    gagne », dépendance cyclique rejetée, module ignoré avec raison,
+    AAR normalisé et brut, sourcesets de test — **et le critère** :
+    même classpath ⇒ même empreinte (ordre permuté compris) ;
+    une dépendance changée ⇒ l'empreinte du SEUL module concerné change.
+  - **Source du classpath Android par le modèle v2 d'AGP** (options A+C
+    de l'étude) : `tooling:server` résout `BasicAndroidProject`
+    (bootClasspath = android.jar — D5/ADR 0112, sourcesets
+    main/unitTest java+kotlin), `AndroidProject` v2 (générés, sorties
+    dont R.jar, par variante) et `VariantDependencies` paramétré
+    (`ModelBuilderParameter` — variante `debug` par défaut) dans l'action
+    unique ; IdeaProject reste la source des modules JVM purs, résolu
+    par le model builder APRÈS l'action (constat mesuré : dans une
+    action, l'adaptateur ne proxifie les dépendances Idea que par
+    l'interface de base — les types concrets n'existent que côté model
+    builder). Fusion par chemin : un module Android remplace son
+    homologue Idea (vide pour lui). Vérifié par une sonde empirique
+    (projet Compose 250 jars + dépôt de référence 34 projets) puis par
+    une NOUVELLE fixture d'intégration AGP réelle (`android-simple`) —
+    le cas que le fixture pur JVM n'avait jamais couvert.
+  - **Normalisation des AAR par AGP** (mesuré, jeu lourd : 191/191
+    AAR) : le serveur livre les jars DÉJÀ EXTRAITS par les transforms
+    du cache Gradle avec l'AAR d'origine en provenance — le serveur
+    n'extrait rien (l'étude §2.2 recommandait l'extraction côté
+    serveur : inutile). RELOCATED/NO_ARTIFACT_FILE écartés.
+  - **Protocole v8** : `ClasspathModule.sourceDirsTest` (main/test
+    séparés), `ClasspathEntry.aar` (provenance), `name` normalisé au
+    chemin Gradle (`:app` — les entrées MODULE désignent leur cible par
+    le même identifiant), remplissage de `androidJar`/
+    `fichiersGeneres`/`varianteAndroid` (variante RÉELLE du modèle v2 —
+    l'heuristique de nom v0.40.1 supprimée)/`ignore`+`raisonIgnore`
+    (module conteneur)/`avertissements` (dépendances non résolues).
+    Goldens régénérés volontairement (procédure `REGENERER_DORES=1`,
+    diff relu avant commit).
+  - **Modules vendored intégrés au build** (carte blanche du
+    propriétaire) : `:lsp:java` (moteur, 90 fichiers Java de l'archive,
+    sources INTACTES — ADR 0108) et `:lsp:ecj-art` (patcher build-time)
+    — build.gradle traduits en Kotlin DSL, versions par
+    `gradle/libs.versions.toml` (toutes vérifiées sur les dépôts
+    officiels), `patchEclipseForArt` en classe de tâche compatible
+    configuration cache + ProcessBuilder (Gradle 9 a retiré
+    `Project.javaexec`), `JO_TEST_JDK_HOME` fourni par le build (les
+    sondes du module attrapaient sinon des JRE système sans `src.zip`
+    — 6 tests JDK corrigeables par l'environnement), README d'exemption
+    (règle 8) et crédits CodeAssist. Suite vendored : **246 tests
+    verts**.
+- **Mission 1 (section Git figée) — preuve appareil REÇUE**
+  (docs/GIT.md §2.3) : le diagnostic Git exécuté sur l'appareil
+  démontre l'hypothèse H1 — `git rev-parse` échoue en « **dubious
+  ownership** » (git 2.55.0, uid app 10298 ≠ uid dossier 10217, montage
+  fuse, `gitconfig` global vide). L'étape B (correctif `safe.directory`
+  à toutes les commandes de `MoteurGitCli`) est prête ; les étapes C–F
+  restantes sont documentées.
+- **Mission 3 (cycle de vie) — plan du travail restant consigné**
+  (docs/CYCLE_DE_VIE.md) : constats E1–E6 vérifiés, liste des points à
+  instruire (GradleConnectorPool/démons Gradle, portées Hilt,
+  navigation), étapes A–F, décisions à soumettre au propriétaire,
+  invariants I1–I9.
+
+### Modifié
+
+- **Résolution directe du classpath** (`ClasspathHandler`) : exécute la
+  MÊME chaîne que la sync (action Android v2 + model builder Idea +
+  fusion) au lieu du `model(IdeaProject)` isolé — le « doublon
+  volontaire » de conversion de la v4 est fermé (`ConversionClasspath`
+  partagé entre le cache et le handler).
+- **`sourceDirs` ne porte plus que les racines PRINCIPALES** (v8) :
+  les consommateurs d'affichage voient le compte des sources
+  principales ; les racines de test voyagent dans `sourceDirsTest`
+  (périphérique pour l'affichage, structurant pour `lsp:model`).
+
+### Tests
+
+- **Nouveaux** : `:lsp:model` 35 tests (conversion, empreintes,
+  association fichier→module, persistance validée, dépôt) ;
+  `:tooling:server` +1 test d'intégration AGP réel (fixture
+  `android-simple`, 2 modules — saut propre sans SDK) ;
+  `:tooling:protocol` goldens v8 régénérés ; `:tooling:testing` la
+  garde des fixtures porte la 5e fixture ; **`:lsp:java` 246 tests**
+  (dont les 16 de non-régression de l'ancienne version, tous présents)
+  et **`:lsp:ecj-art` 9 tests** — la suite vendored tourne dans la
+  chaîne de vérification du dépôt.
+
+### Notes techniques
+
+- `com.android.tools.build:builder-model` 9.4.1 (Apache-2.0 AOSP,
+  Google Maven) rejoint le JAR orchestrateur (~300 Ko) : les interfaces
+  v2 exigent un AGP cible ≥ 8 ; un projet plus ancien retombe sur
+  IdeaProject (repli total, jamais fatal).
+- `junit-platform-launcher` suit la version de la PLATEFORME JUnit
+  (1.10.1 pour Jupiter 5.10.1) — piège du catalogue documenté.
+- Les commentaires de bloc Kotlin S'IMBRIQUENT : le littéral
+  `libs/*.jar` dans un KDoc ouvrait un commentaire imbriqué et
+  « mangeait » la suite du fichier (2 occurrences corrigées en
+  formulation).
+
 ## [0.91.0] – 2026-10-11
 
 ### Ajouté
