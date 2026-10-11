@@ -57,6 +57,39 @@ uid et codes de sortie survivent au masquage : la copie reste
 diagnostique. Le rapport ne présuppose rien : une sonde indisponible
 vaut `(indisponible)`, jamais une supposition.
 
+### 2.3 Preuve appareil reçue (v0.92.0) — hypothèse H1 DÉMONTRÉE, reste à faire
+
+Le diagnostic Git exécuté **sur l'appareil** par l'utilisateur (v0.90.1,
+sortie expurgée reçue le 2026-10-11) établit enfin la preuve que les
+trois correctifs précédents (v0.80.4/.5/.7) n'avaient pas :
+
+- **`git rev-parse --is-inside-work-tree` échoue en « dubious
+  ownership »** (`fatal: detected dubious ownership in repository at …`,
+  code 128) — le refus déterministe de git, exactement le symptôme C2
+  (clone OK, première lecture KO, jamais de rétablissement) ;
+- **uid effectif de l'application ≠ uid propriétaire du dossier**
+  (10298 vs 10217) sur un point de montage **fuse** — la condition de
+  refus de git ≥ 2.35.2 (H1, la piste n°1 du prompt, C3 : aucune
+  configuration `safe.directory` dans le dépôt) ;
+- `git config --list --show-origin` répond **vide** (code 0) : aucun
+  `gitconfig` global dans le `HOME` du bootstrap — le mécanisme de
+  confiance ne peut venir que de l'application ;
+- binaire git **2.55.0**, environnement FUSE/Termux-like conforme aux
+  sondes (`GRADLE_USER_HOME`, `HOME`, `LD_LIBRARY_PATH`, `PATH` du
+  bootstrap).
+
+**Conséquence** : la cause est démontrée par observation (règle 1 du
+prompt 1) — l'étape B peut corriger à la racine. Travail restant
+(documenté, exécution à valider par le « GO » utilisateur) :
+
+| Étape | Contenu | Statut |
+|---|---|---|
+| **B — Correctif safe.directory** | Appliquer `safe.directory` pour le chemin exact du projet à TOUTES les commandes de `MoteurGitCli` (pas seulement `rev-parse`) ; vérifier empiriquement le mécanisme honoré par git 2.55 (`-c safe.directory=<chemin>` vs `GIT_CONFIG_COUNT/KEY_n/VALUE_n` vs entrée dans le `gitconfig` global du `HOME` du bootstrap) ; ADR de cohérence terminal (config globale = le terminal en profite aussi ; par invocation = non) | **prêt** (preuve reçue) |
+| C — États UI complets | Chargement / dépôt valide / vraiment pas un dépôt / erreur git (dont `.git` présent) — invariance : `.git` existe ⇒ jamais « Initialiser » | spécifié §7.1 |
+| D — Parcours clone bout en bout | Clone → ouverture = statut correct sans action ; latence FUSE → relance bornée (exponentielle plafonnée, annulable) ; `core.fileMode`/`core.symlinks` (second symptôme probable après le correctif — les bits de mode ne sont pas conservés sur FUSE) | à faire |
+| E — Tests de non-régression | Faux `git` scripté qui émet « dubious ownership » tant que l'argument de confiance n'est pas fourni — prouver que TOUTES les commandes le fournissent (test rouge avant / vert après) ; classification stderr ; intégration vrai git | à faire |
+| F — Documentation et traçabilité | CHANGELOG, ADR safe.directory (mécanisme, périmètre, cohérence terminal), docs/GIT.md, critères §6 (clone depuis l'accueil, stockage partagé ET privé, `git init` dans le terminal, panne binaire, réouverture) | à faire |
+
 ## 3. Authentification
 
 Jeton d'accès personnel GitHub (HTTPS), stocké chiffré (Android
