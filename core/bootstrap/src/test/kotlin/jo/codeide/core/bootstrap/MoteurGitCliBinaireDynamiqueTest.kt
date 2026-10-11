@@ -1,6 +1,7 @@
 package jo.codeide.core.bootstrap
 
 import jo.codeide.core.domain.ResultatGit
+import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeNativeProcessLauncher
 import jo.codeide.core.testing.ProcessusScripte
 import kotlinx.coroutines.test.runTest
@@ -17,17 +18,35 @@ import org.junit.Test
  */
 class MoteurGitCliBinaireDynamiqueTest {
     private val lanceur = FakeNativeProcessLauncher()
+    private val journal = FakeAppLogger()
+
+    /** Sondes factices minimales (aucune lecture système en test). */
+    private val sondes =
+        object : SondesEnvironnementGit {
+            override fun uidEffectif(): Long? = null
+
+            override fun uidProprietaire(chemin: String): Long? = null
+
+            override fun contenuMonts(): String? = null
+
+            override fun environnement(): Map<String, String> = emptyMap()
+        }
+
+    /** Moteur branché sur le faux lanceur avec journal et sondes. */
+    private fun moteurAvecBinaire(resoudre: () -> String?): MoteurGitCli =
+        MoteurGitCli(
+            lanceur = lanceur,
+            resoudreBinaireGit = resoudre,
+            identite = null,
+            journal = journal,
+            sondes = sondes,
+        )
 
     @Test
     fun `git installe apres le demarrage devient utilisable sans recreer le moteur`() =
         runTest {
             var binaire: String? = null
-            val moteur =
-                MoteurGitCli(
-                    lanceur = lanceur,
-                    resoudreBinaireGit = { binaire },
-                    identite = null,
-                )
+            val moteur = moteurAvecBinaire { binaire }
 
             // Binaire absent au premier appel : échec explicite, AUCUN
             // processus lancé (le message oriente vers pkg install git).
@@ -51,12 +70,7 @@ class MoteurGitCliBinaireDynamiqueTest {
     fun `le binaire reste resolu a chaque execution`() =
         runTest {
             val chemins = mutableListOf<String?>()
-            val moteur =
-                MoteurGitCli(
-                    lanceur = lanceur,
-                    resoudreBinaireGit = { chemins.lastOrNull() },
-                    identite = null,
-                )
+            val moteur = moteurAvecBinaire { chemins.lastOrNull() }
 
             chemins += "/prefix/bin/git"
             moteur.brancheCourante("/projets/depot")
@@ -75,17 +89,13 @@ class MoteurGitCliBinaireDynamiqueTest {
     fun `est depot lit la sortie du processus resolu dynamiquement`() =
         runTest {
             var binaire: String? = null
-            val moteur =
-                MoteurGitCli(
-                    lanceur = lanceur,
-                    resoudreBinaireGit = { binaire },
-                    identite = null,
-                )
+            val moteur = moteurAvecBinaire { binaire }
             // stdout « true » : rev-parse --is-inside-work-tree.
             lanceur.fabrique = { ProcessusScripte(lignesStdout = listOf("true")) }
 
             binaire = "/prefix/bin/git"
-            assertTrue(moteur.estDepot("/projets/depot"))
+            // v0.90.1 : état typé — Depot quand rev-parse répond true.
+            assertEquals(jo.codeide.core.domain.EtatDepot.Depot, moteur.etatDepot("/projets/depot"))
             assertEquals(1, lanceur.lancements.size)
         }
 }

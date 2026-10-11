@@ -1,15 +1,18 @@
 package jo.codeide.core.bootstrap
 
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.BrancheGit
 import jo.codeide.core.domain.CommitGit
+import jo.codeide.core.domain.EtatDepot
 import jo.codeide.core.domain.ModificationFichier
 import jo.codeide.core.domain.MoteurGit
 import jo.codeide.core.domain.NativeProcessLauncher
 import jo.codeide.core.domain.ProgressionGit
+import jo.codeide.core.domain.RapportDiagnosticGit
+import jo.codeide.core.domain.ResultatCommandeGit
 import jo.codeide.core.domain.ResultatGit
 import jo.codeide.core.domain.StatutFichier
 import jo.codeide.core.domain.StatutGit
-import kotlinx.coroutines.flow.toList
 import java.io.File
 import java.io.IOException
 
@@ -28,6 +31,17 @@ import java.io.IOException
  * `GIT_COMMITTER_EMAIL`) sont passées via `extraEnv` depuis les paramètres
  * utilisateur.
  *
+ * v0.90.1 (mission « section Git figée », étape A) : [etatDepot] remplace
+ * l'ancien `estDepot(): Boolean` qui écrasait toute cause d'échec en
+ * « pas un dépôt » ; chaque exécution git journalise commande, code de
+ * sortie et stderr (expurgés par le pipeline, règle 11) via [journal] ;
+ * [diagnostiquer] assemble le rapport de l'écran Diagnostic.
+ *
+ * Exemptions detekt ciblées (règle 16 du prompt maître) :
+ * TooManyFunctions et LongParameterList — port Git, une fonction par
+ * opération héritée de [MoteurGit], journal et sondes v0.90.1 dépendances
+ * distinctes de l'exécution.
+ *
  * @param lanceur port d'exécution des sous-processus natifs.
  * @param resoudreBinaireGit résolution du chemin du binaire `git`
  * (typiquement `$PREFIX/bin/git`), appelée **à chaque exécution**
@@ -40,12 +54,18 @@ import java.io.IOException
  * Studio, elle, découvre le binaire dès qu'il existe.
  * @param identite identité Git (nom, email) depuis les Paramètres, ou
  * `null` si non configurée — le commit refuse avec un message clair.
+ * @param journal journal applicatif (commande/code/stderr expurgés en
+ * aval par le pipeline — l'observabilité exigée par l'étape A).
+ * @param sondes lectures système du diagnostic (uid, propriétaire,
+ * montages, environnement) — couture de test.
  */
-@Suppress("TooManyFunctions") // Port Git : une fonction par opération, hérité de MoteurGit.
+@Suppress("TooManyFunctions", "LongParameterList")
 internal class MoteurGitCli(
     private val lanceur: NativeProcessLauncher,
     private val resoudreBinaireGit: () -> String?,
     private val identite: IdentiteGit?,
+    private val journal: AppLogger,
+    private val sondes: SondesEnvironnementGit,
 ) : MoteurGit {
     /** Identité Git pour les commits (nom + email utilisateur). */
     internal data class IdentiteGit(
@@ -161,9 +181,38 @@ internal class MoteurGitCli(
     override suspend fun initialiser(cheminFuse: String): ResultatGit<Unit> =
         unitSiSucces(executer(cheminFuse, listOf("init")))
 
-    override suspend fun estDepot(cheminFuse: String): Boolean {
-        val sortie = executer(cheminFuse, listOf("rev-parse", "--is-inside-work-tree"))
-        return sortie is ResultatGit.Succes && sortie.valeur.trim() == "true"
+    override suspend fun etatDepot(cheminFuse: String): EtatDepot {
+        val brute = executerBrut(cheminFuse, listOf("rev-parse", "--is-inside-work-tree"))
+        return ClassificationEtatDepot.classer(brute)
+    }
+
+    override suspend fun diagnostiquer(
+        nomProjet: String?,
+        cheminFuse: String?,
+    ): RapportDiagnosticGit {
+        val binaire = resoudreBinaireGit()
+        val version =
+            binaire?.let {
+                executerBrut(null, listOf("--version")).stdout.lines().firstOrNull { l -> l.isNotBlank() }
+            }
+        val revParse = cheminFuse?.let { executerDiagnostic(it, listOf("rev-parse", "--is-inside-work-tree")) }
+        val configList = cheminFuse?.let { executerDiagnostic(it, listOf("config", "--list", "--show-origin")) }
+        val uidEffectif = sondes.uidEffectif()
+        val uidProprietaire = cheminFuse?.let { sondes.uidProprietaire(it) }
+        val monts = pointDeMontage(cheminFuse, sondes.contenuMonts())
+        return RapportDiagnosticGit(
+            nomProjet = nomProjet,
+            cheminFuse = cheminFuse,
+            cheminBinaire = binaire,
+            versionGit = version,
+            uidEffectif = uidEffectif,
+            uidProprietaireDossier = uidProprietaire,
+            pointDeMontage = monts?.first,
+            typeSystemeFichiers = monts?.second,
+            revParse = revParse,
+            configList = configList,
+            environnement = environnementPertinent(),
+        )
     }
 
     // G3 — Diff
@@ -219,28 +268,95 @@ internal class MoteurGitCli(
         args: List<String>,
         env: Map<String, String> = emptyMap(),
     ): ResultatGit<String> {
+        val brute = executerBrut(cheminFuse, args, env)
+        return brute.versResultat()
+    }
+
+    /**
+     * Exécution brute d'une commande git (v0.90.1) : lancement dans le
+     * répertoire [cheminFuse] (ou sans répertoire si `null`), drainage
+     **unique** des flux ([SupervisionProcessus]), journal de la commande
+     * (code + stderr, expurgé par le pipeline) — retourne la matière
+     * première (code, stdout, stderr, échec éventuel).
+     */
+    @Suppress("ReturnCount") // Gardes : binaire absent, échec lancement.
+    private suspend fun executerBrut(
+        cheminFuse: String?,
+        args: List<String>,
+        env: Map<String, String> = emptyMap(),
+        limiteStderr: Int = LIMITE_STDERR_METIER,
+    ): ExecutionGitBrute {
         val git =
             resoudreBinaireGit()
-                ?: return ResultatGit.Echec("git n'est pas installé. Installez-le via pkg install git.", "")
+                ?: return ExecutionGitBrute(
+                    code = null,
+                    stdout = "",
+                    stderr = "",
+                    causeLancement = CauseLancementGit.BINAIRE_ABSENT,
+                    messageEchec = "git n'est pas installé. Installez-le via pkg install git.",
+                )
         return try {
             val processus =
                 lanceur.launch(
                     command = listOf(git) + args,
                     extraEnv = env,
-                    workingDir = File(cheminFuse),
+                    workingDir = cheminFuse?.let(::File),
                 )
-            val sortie = SupervisionProcessus.attendre(processus)
-            if (sortie.code == 0) {
-                ResultatGit.Succes(sortie.sortieStandard.joinToString("\n"))
-            } else {
-                ResultatGit.Echec(
-                    message = sortie.erreurs.joinToString("\n").ifBlank { "git a échoué (code ${sortie.code})" },
-                    sortieErreur = sortie.erreurs.joinToString("\n"),
-                )
-            }
+            val sortie = SupervisionProcessus.attendre(processus, limiteStderr = limiteStderr)
+            journalCommande(args, sortie.code, sortie.erreurs)
+            ExecutionGitBrute(
+                code = sortie.code,
+                stdout = sortie.sortieStandard.joinToString("\n"),
+                stderr = sortie.erreurs.joinToString("\n"),
+                causeLancement = null,
+                messageEchec = null,
+            )
         } catch (e: IOException) {
-            ResultatGit.Echec("Lancement de git impossible : ${e.message}", "")
+            journal.e(TAG_JOURNAL) { "git ${args.joinToString(" ")} : lancement impossible (${e.message})" }
+            ExecutionGitBrute(
+                code = null,
+                stdout = "",
+                stderr = "",
+                causeLancement = CauseLancementGit.ERREUR_IO,
+                messageEchec = "Lancement de git impossible : ${e.message}",
+            )
         }
+    }
+
+    /**
+     * Exécution pour le Diagnostic Git : stderr capté intégral (borné
+     * généreusement) — le diagnostic ne tronque pas la preuve.
+     */
+    private suspend fun executerDiagnostic(
+        cheminFuse: String,
+        args: List<String>,
+    ): ResultatCommandeGit {
+        val brute = executerBrut(cheminFuse, args, limiteStderr = SupervisionProcessus.LIMITE_STDERR_DIAGNOSTIC)
+        return ResultatCommandeGit(
+            code = brute.code,
+            sortieStandard = brute.stdout,
+            sortieErreur = brute.stderr.ifEmpty { brute.messageEchec ?: "" },
+        )
+    }
+
+    /**
+     * Journal d'une exécution (étape A : l'échec observable) : la
+     * commande (sans chemin du binaire — identique à chaque fois), le
+     * code de sortie et le stderr ; succès → DEBUG, échec → WARN.
+     * L'expurgation (chemins, courriels) est appliquée en aval par le
+     * pipeline de journalisation (règle 11) — le producteur reste sobre.
+     */
+    private fun journalCommande(
+        args: List<String>,
+        code: Int,
+        stderr: List<String>,
+    ) {
+        if (code == 0 && stderr.isEmpty()) {
+            journal.d(TAG_JOURNAL) { "git ${args.joinToString(" ")} -> code 0" }
+            return
+        }
+        val extrait = stderr.joinToString(" | ").take(LONGUEUR_STDERR_JOURNAL)
+        journal.w(TAG_JOURNAL) { "git ${args.joinToString(" ")} -> code $code, stderr : $extrait" }
     }
 
     /** Variables d'environnement pour l'identité Git. */
@@ -252,9 +368,91 @@ internal class MoteurGitCli(
             "GIT_COMMITTER_EMAIL" to identite.email,
         )
 
+    /**
+     * Environnement pertinent du diagnostic : `HOME`, `PATH`, `TMPDIR`,
+     * `LD_LIBRARY_PATH`, `PREFIX` et toutes les `GIT_*` — trié par clé
+     * pour un rapport reproductible d'une exécution à l'autre.
+     */
+    private fun environnementPertinent(): Map<String, String> =
+        sondes
+            .environnement()
+            .filterKeys { it in VARIABLES_GARDEES || it.startsWith(PREFIXE_GIT) }
+            .toSortedMap()
+
     internal companion object {
+        /** Étiquette de journal des commandes git (identifiant court, anglais). */
+        private const val TAG_JOURNAL = "git-cli"
+
+        /** Limite du stderr pour les opérations métier (extrait historique). */
+        private const val LIMITE_STDERR_METIER = 5
+
+        /** Longueur maximale du stderr journalisé (extrait observable, pas un dump). */
+        private const val LONGUEUR_STDERR_JOURNAL = 400
+
+        /** Variables d'environnement toujours rapportées par le diagnostic. */
+        private val VARIABLES_GARDEES =
+            setOf("HOME", "PATH", "TMPDIR", "LD_LIBRARY_PATH", "PREFIX", "GRADLE_USER_HOME")
+
+        /** Préfixe des variables git du diagnostic. */
+        private const val PREFIXE_GIT = "GIT_"
+
         /** Longueur du préfixe `XY ` dans `--porcelain` (statut index + statut travail + espace). */
         private const val PREFIXE_PORCELAIN = 3
+
+        /**
+         * Point de montage du [chemin] dans la table des montages
+         * ([contenu] brut de `/proc/self/mounts`) : le plus long point
+         * de montage qui est un préfixe **par segments** du chemin.
+         *
+         * Format d'une ligne : `périphérique point type options 0 0`.
+         * Retourne le couple (point de montage, type de système de
+         * fichiers), ou `null` si introuvable/illisible.
+         */
+        internal fun pointDeMontage(
+            chemin: String?,
+            contenu: String?,
+        ): Pair<String, String>? {
+            if (chemin == null || contenu == null) return null
+            val cible = normaliser(chemin)
+            return contenu
+                .lines()
+                .mapNotNull(::champsMontage)
+                .filter { (point, _) -> prefixeParSegments(cible, normaliser(point)) }
+                .maxByOrNull { (point, _) -> normaliser(point).length }
+        }
+
+        /**
+         * Champs (point de montage, type) d'une ligne de la table des
+         * montages, ou `null` si la ligne est inexploitable.
+         */
+        @Suppress("MagicNumber") // Champs d'une ligne /proc/self/mounts.
+        private fun champsMontage(ligne: String): Pair<String, String>? {
+            val champs = ligne.split(' ', limit = CHAMPS_MONTS).filter { it.isNotBlank() }
+            if (champs.size < MINIMUM_CHAMPS_MONTS) return null
+            return champs[1] to champs[2]
+        }
+
+        /**
+         * Retire le slash final (la racine `/` devient vide : préfixe de
+         * tout chemin — le montage racine doit pouvoir matcher).
+         */
+        private fun normaliser(chemin: String): String =
+            when {
+                chemin == "/" -> ""
+                chemin.length > 1 && chemin.endsWith('/') -> chemin.dropLast(1)
+                else -> chemin
+            }
+
+        /** `a/b/c` est-il sous `a/b` ? (préfixe par segments entiers). */
+        private fun prefixeParSegments(
+            chemin: String,
+            prefixe: String,
+        ): Boolean =
+            when {
+                chemin == prefixe -> true
+                prefixe.isEmpty() -> true
+                else -> chemin.startsWith("$prefixe/")
+            }
 
         /**
          * Parse la sortie de `git status --porcelain=v1 -z` en liste de
@@ -312,5 +510,33 @@ internal class MoteurGitCli(
                 'U' -> StatutFichier.CONFLIT
                 else -> StatutFichier.NON_MODIFIE
             }
+
+        /** Champs d'une ligne `/proc/self/mounts` : périph, point, type, options, dump, pass. */
+        private const val CHAMPS_MONTS = 6
+
+        /** Nombre minimal de champs exploitables d'une ligne de montages. */
+        private const val MINIMUM_CHAMPS_MONTS = 3
     }
+
+    /**
+     * Traduction d'une exécution brute en résultat métier (succès =
+     * stdout, échec = message + stderr).
+     */
+    private fun ExecutionGitBrute.versResultat(): ResultatGit<String> =
+        when {
+            messageEchec != null -> {
+                ResultatGit.Echec(messageEchec ?: "", "")
+            }
+
+            code == 0 -> {
+                ResultatGit.Succes(stdout)
+            }
+
+            else -> {
+                ResultatGit.Echec(
+                    message = stderr.ifBlank { "git a échoué (code $code)" },
+                    sortieErreur = stderr,
+                )
+            }
+        }
 }

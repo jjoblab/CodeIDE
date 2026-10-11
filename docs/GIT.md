@@ -21,6 +21,42 @@ de production (`MoteurGitCli`, `core:bootstrap`) utilise le pont FUSE
 (`ResoudreRepertoireProjet`, ADR 0038) pour obtenir le chemin réel du
 projet.
 
+### 2.1 État du dépôt typé (v0.90.1, mission « section Git figée »)
+
+`MoteurGit.etatDepot(cheminFuse)` retourne `EtatDepot` :
+
+| État | Signification | Affichage |
+|---|---|---|
+| `Depot` | `git rev-parse --is-inside-work-tree` répond `true` (code 0) | Statut, branche, actions |
+| `PasUnDepot` | git répond **explicitement** « not a git repository » (stderr) ou `false` (stdout, répertoire `.git` interne) | « Initialiser un dépôt » |
+| `Inaccessible(raison, codeSortie, stderrExpurge)` | Tout le reste : binaire absent, lancement impossible, refus de git (dubious ownership, permission refusée…), stdout incohérent | Erreur observable + Actualiser — **jamais** « Initialiser » |
+
+Règle d'invariance : l'état `Inaccessible` signifie que l'état du dépôt
+est **indéterminé** — proposer « Initialiser un dépôt » reviendrait à
+`git init` sur un dépôt sain que git refuse de lire (le `git init` sur
+un `.git` existant réussit silencieusement, le symptôme revient).
+
+Chaque exécution git est journalisée (tag `git-cli`, `AppLogger`) :
+commande, code de sortie, stderr — succès en DEBUG, échec en WARN,
+expurgé par le pipeline (règle 11).
+
+### 2.2 Diagnostic Git (v0.90.1, étape A)
+
+L'écran **Diagnostic** porte un onglet **Git** qui exécute et affiche,
+pour le projet le plus récemment ouvert : chemin et version du binaire
+git ; uid effectif de l'application et uid propriétaire du dossier
+(`st_uid`) — divergents ⇒ piste « dubious ownership » (git ≥ 2.35.2) ;
+point de montage et type (fuse/sdcardfs/ext4) ; sortie complète de
+`git rev-parse --is-inside-work-tree` (code + stdout + stderr) et de
+`git config --list --show-origin` (recherche de `safe.directory`) ;
+variables d'environnement (`HOME`, `PATH`, `TMPDIR`, `GIT_*`).
+
+« Copier le diagnostic » colle une version **expurgée** (nom de projet,
+chemins, courriels, identités et jetons masqués) — les types d'erreur,
+uid et codes de sortie survivent au masquage : la copie reste
+diagnostique. Le rapport ne présuppose rien : une sonde indisponible
+vaut `(indisponible)`, jamais une supposition.
+
 ## 3. Authentification
 
 Jeton d'accès personnel GitHub (HTTPS), stocké chiffré (Android
