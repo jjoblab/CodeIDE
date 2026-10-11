@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.99.1] – 2026-10-12
+
+### Corrigé
+
+- **Tooling : échec de déploiement du JAR orchestrateur rendu observable
+  et retentable** (retour utilisateur : « JAR orchestrateur
+  indisponible : <chemin>: The source file doesn't exist. »). Enquête
+  menée AVANT correctif : l'APK CI v0.99.0 téléchargé et inspecté
+  contient bien `assets/tooling/gradle-server.jar` (8 025 979 octets),
+  et un `assembleDebug` sur arbre frais le livre à l'identique — la
+  chaîne de build (preBuild → `controlerJarAssets` →
+  `copierJarVersAssets` → `shadowJar`) est SAINE ; le défaut vit donc
+  dans le déploiement à l'EXÉCUTION (`JarDeployer`) sur l'appareil.
+  Trois faiblesses corrigées, prouvées par tests :
+  1. `mkdirs()` du répertoire cible ignorait son résultat : un
+     répertoire incréable produisait en cascade une
+     `FileNotFoundException` ENOENT sans contexte — exactement la
+     classe du message rapporté. Désormais : échec TYPÉ portant le
+     chemin complet.
+  2. TOUT `IOException` du déploiement était déclaré DÉFINITIF («
+     réinstaller ») — faux côté stockage (répertoire incréable, copie,
+     marqueur : l'état du disque PEUT changer). Désormais :
+     [SourceJarIndisible] (asset absent/corrompu DANS l'APK) reste
+     définitif et le journal le DIT (chemin + cause + conduite à
+     tenir) ; CibleInaccessible/EcritureImpossible consomment une
+     TENTATIVE — la boucle de vie du daemon repart avec son back-off
+     et son épuisement honnête.
+  3. Le journal ne portait que `e.message` (un « The source file
+     doesn't exist. » nu, sans classe ni trace) : l'exception ENTIERE
+     est désormais journalisée via la variante `AppLogger` à throwable.
+  Nouvelle hiérarchie `EchecDeploiementJar` (source/cible/écriture,
+  messages français avec chemin + cause originale). Tests : message
+  AOSP réel de l'AssetManager absent (« Asset file: tooling/… »)
+  enveloppé en échec typé actionnable ; répertoire cible incréable →
+  échec typé retentable avec chemin ; remplacement impossible → échec
+  typé (l'ancien JAR reste complet) ; le daemon épuise ses tentatives
+  sur un échec d'écriture (journal « tentative consommée ») et reste
+  définitif sur l'asset absent (journal « réinstaller »). Extraction
+  de `attendreConnexion` de `tentative()` (lisibilité, detekt
+  LongMethod). `:tooling:daemon` — compile, spotless, detekt,
+  `testDebugUnitTest` verts.
+
 ## [0.99.0] – 2026-10-12
 
 ### Ajouté
