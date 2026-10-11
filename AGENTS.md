@@ -1188,6 +1188,19 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.97.0 : **mission « LSP Java » étape 3 (lot E, commit a) — moteur
+      PAR module (verrou global → périmètre module)** (docs/
+      LSP_JAVA.md §15.7) : CompilationEnvironment porte une carte de
+      contextes par module (clé chemin Gradle), chaque contexte
+      dérive SON EcjCompilerEngine (son verrou, ses caches) —
+      complétion de A ne bloque plus diagnostic de B, re-sync de A ne
+      vide pas les caches de B ; API qualifiée
+      remplacerContexteModule/jdt(module)/isEcjInitialized(module),
+      clé vide/null = défaut (comportement historique inchangé) ;
+      compliance/JDK/index PARTAGÉS (changer invalide tous les
+      moteurs), dispose() libère tout ; commit b (routage fichier →
+      module) reporté à l'étape 4 (association :lsp:model requise) ;
+      8 tests MoteurParModuleTest — lsp:java 295 tests verts.
 - v0.96.3 : **mission « LSP Java » — correction CI : dépendance
       interdite :lsp:java → :lsp:index (section 5.2, ADR 0108)** :
       le testImplementation(project(":lsp:index")) posé au lot C

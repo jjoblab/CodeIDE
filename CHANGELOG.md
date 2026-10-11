@@ -1,5 +1,37 @@
 # Journal des modifications
 
+## [0.97.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (lot E, commit a) — moteur PAR
+  module : le verrou global devient un périmètre module**
+  (docs/LSP_JAVA.md §15.7) : `CompilationEnvironment` porte une carte
+  de contextes par module (clé : chemin Gradle, ex. `:app`) — chaque
+  contexte dérive SON `EcjCompilerEngine` (son verrou, ses caches de
+  parse/localisation/fast-diagnose) : une complétion du module A ne
+  bloque plus le diagnostic du module B, et le re-sync de A
+  (remplacement de contexte) ne vide pas les caches de B. NOUVELLE
+  API qualifiée : `remplacerContexteModule(module, sources,
+  classpath)` (sémantiques `replaceAll` bornées au module — no-op
+  système sur sync redondant, notification des auditeurs sur
+  remplacement effectif), `jdt(module)` (jamais null, module inconnu
+  = contexte vide), `isEcjInitialized(module)` ; la clé vide/null
+  vise le contexte DÉFAUT (comportement historique inchangé — zéro
+  changement pour les consommateurs existants). Le compliance, le JDK
+  home et l'index disque restent PARTAGÉS (une plateforme par projet) :
+  les changer invalide TOUS les moteurs ; `dispose()` libère défaut et
+  modules (contextes conservés, moteurs reconstruisibles). Le commit b
+  (routage fichier → module dans `JavaLanguageServer`) est reporté à
+  l'étape 4 : il exige l'association fichier → module de `:lsp:model`
+  branchée par l'hôte (le serveur reste mono-workspace à contexte
+  plat — écart documenté §15.7). 8 tests `MoteurParModuleTest` (verrou
+  par moteur DÉTERMINISTE : monitor de A tenu pendant que B passe ;
+  isolation des caches ; no-op redondant ; notification unique ;
+  invalidation globale + idempotence ; dispose-all ; redirection clé
+  vide ; mix concurrent bi-module 4+4 threads) — `:lsp:java` 295
+  tests verts.
+
 ## [0.96.3] – 2026-10-12
 
 ### Corrigé
