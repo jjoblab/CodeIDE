@@ -1188,6 +1188,36 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.96.0 : **mission « LSP Java » étape 3 (lot C) — branchement du
+      moteur vendored sur l'index disque** (ADR 0111 §8 ; docs/
+      LSP_JAVA.md §15.4/.4.1) : SPI publique jo.lspjava.api.IndexNoms
+      [estPret, ajouterObservateurPret P7/P8, jarDe, nomsParPrefixe,
+      estPaquet, sousPaquetsDirects, typesDansPaquet,
+      membresStatiques] — le cœur Java ne dépend d'AUCUN module Kotlin
+      (ADR 0108), l'adaptateur de production viendra à l'étape 4
+      (:lsp:host) ; EcjCompilerEnvironment branché [PRÊT :
+      localisateur AUTORITATIF (prober du EcjLocateCache = jarDe,
+      négatif définitif côté jars, octets par pool LRU de handles PAR
+      CHEMIN — classBytesParChemin, un seul budget de descripteurs) ;
+      complétion par préfixe depuis l'index (recherche binaire par
+      graine indexPrefix() en 2 variantes de casse — tue le balayage
+      W3) ; paquets/types/sous-paquets par l'index (conversion
+      noms-complets→segments) ; réouverture à chaud : index déjà prêt
+      ⇒ buildJarIndex SAUTÉ (zéro mémoire) ; hors PRÊT : index
+      mémoire substrat (repli par sondage) ; SUBSTRING côté jars
+      non servi à PRÊT — écart documenté] ; P7/P8 : observateur PRÊT
+      vide le EcjLocateCache (debugLocateCacheSize observable) ;
+      CompilationEnvironment.setIndexNoms (idempotent, invalide le
+      moteur) + constructeur complet EcjCompilerEngine à 5 arguments ;
+      AdaptateurIndexNoms de test (Java sur ServiceIndexDisque/
+      VueIndex réels, fil surveillant la transition, clé sha256 du
+      contenu) + FauxIndexNoms (transition déterministe) ; 4 tests
+      d'intégration sur jar fixture COMPILÉ AU VOL par javax.tools
+      (zéro dépendance android.jar/cache — tournent partout) :
+      parité complétion/paquets/diagnose avec-sans index, autorité à
+      PRÊT, réouverture chaude sans index mémoire, transition purge +
+      autorité ; chaîne verte : lsp:java 281, lsp:ecj-art 2,
+      lsp:index 59, lsp:model 35.
 - v0.95.0 : **mission « LSP Java » étape 3 (lot B) — renommage §7
       intégral du module vendored** (docs/LSP_JAVA.md §7 table et
       §15.3) : package jo.lspjava.jdt → jo.lspjava.ecj (23+27 fichiers,

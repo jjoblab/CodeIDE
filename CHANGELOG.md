@@ -1,5 +1,52 @@
 # Journal des modifications
 
+## [0.96.0] – 2026-10-11
+
+### Ajouté
+
+- **Mission « LSP Java » étape 3 (lot C) — branchement du moteur sur
+  l'index disque** (ADR 0111 §8 ; docs/LSP_JAVA.md §15.4) :
+  - **SPI publique `jo.lspjava.api.IndexNoms`** : le cœur Java vendored
+    consomme l'index SANS dépendance Gradle vers les modules Kotlin
+    (ADR 0108 respecté) — requêtes (nomsParPrefixe, jarDe, estPaquet,
+    sousPaquetsDirects, typesDansPaquet, membresStatiques), état
+    PRÊT et observateurs de transition (P7/P8). L'adaptateur de
+    production vivra dans `:lsp:host` (étape 4) ; les tests du lot C
+    fournissent le leur (Java sur `VueIndex`/`ServiceIndexDisque`
+    réels, `testImplementation` seul).
+  - **`EcjCompilerEnvironment` branché** : à l'état PRÊT le
+    localisateur est AUTORITATIF (le prober du `EcjLocateCache` devient
+    `jarDe` — négatif définitif côté jars, sondage mémoire sauté),
+    les octets se lisent par le pool de handles **par chemin**
+    (`classBytesParChemin`, un seul budget LRU de descripteurs) ;
+    complétion par préfixe depuis l'index (recherche binaire par
+    graine — `indexPrefix()` du matcher en deux variantes de casse :
+    tue le balayage W3 côté moteur) ; paquets/types/sous-paquets
+    servis par l'index (conversion noms complets → segments relative
+    documentée). **Réouverture à chaud** : un index DÉJÀ prêt à la
+    construction du moteur saute `buildJarIndex` (zéro entrée mémoire
+    — snapshots, index de noms, sets) — c'est la cible « ouverture
+    index chaud ». Tant que la construction n'a pas fini, l'index
+    mémoire reste le substrat (repli par sondage). Écart documenté :
+    les candidats SUBSTRING du côté jars ne sont plus servis à l'état
+    PRÊT (grade démoté, produit du balayage intégral W3 ; jrt et
+    sources les gardent).
+  - **P7/P8 implémentés** : l'observateur de transition PRÊT vide le
+    `EcjLocateCache` (un négatif mémorisé pendant la fenêtre de
+    construction se guérir) — observable par
+    `debugLocateCacheSize()` (tests).
+  - **`CompilationEnvironment.setIndexNoms`** : attache l'index
+    (invalide le moteur dérivé, idempotent) ; le constructeur complet
+    `EcjCompilerEngine(..., IndexNoms)` propage.
+  - **4 tests d'intégration** (jar fixture compilé au vol par javac —
+    aucune dépendance android.jar/cache) : parité complétion/paquets/
+    diagnose avec et sans index ; résolution autoritaire à PRÊT
+    (binaryType via jarDe + membres statiques publics via la SPI) ;
+    réouverture chaude sans index mémoire ; transition PRÊT purge le
+    cache et passe l'autorité à jarDe (faux index déterministe).
+    Chaîne verte : lsp:java 281 tests, lsp:ecj-art 2, lsp:index 59,
+    lsp:model 35.
+
 ## [0.95.0] – 2026-10-11
 
 ### Ajouté
