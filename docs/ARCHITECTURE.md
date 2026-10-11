@@ -68,6 +68,7 @@ sections 5 et 6.
 | `lsp:java` | Moteur LSP Java vendored (ecj/JDT patché pour ART) — exempté de « Kotlin 100 % » par l'ADR 0108, sources intactes de l'archive, tests JUnit 5 en suite de non-régression |
 | `lsp:ecj-art` | Patcher ASM build-time d'ecj pour ART (jamais dans l'APK, ADR 0108) |
 | `lsp:testing` | Suite d'intégration moteur ↔ index (v0.96.3) : les tests du branchement réel vivent AU-DESSUS de `lsp:java` et `lsp:index` (pattern `tooling:testing`, dépendances de test uniquement) |
+| `lsp:host` | Hôte LSP (étape 4, ADR 0109 D2) : `SessionLsp` (transport abstrait — in-process ART par défaut, branchement cel-lsp), orchestrateur sync → modèle → index → moteurs par module (lot E), adaptateur de production de la SPI `IndexNoms`, état d'indexation pour l'UI |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,
 API prévue) et un `Module.md` (page Dokka).
@@ -101,6 +102,7 @@ toute dépendance non autorisée **fait échouer le build**.
 | `lsp:java` | rien (module vendored autonome) | tout module interne, test compris (extractibilité, ADR 0108 — la suite d'intégration vit dans `lsp:testing`) |
 | `lsp:ecj-art` | rien | tout module interne |
 | `lsp:testing` | `lsp:java`, `lsp:index`, `lsp:model` | tout le reste (suite d'intégration TEST-ONLY, pattern `tooling:testing` — au-dessus du moteur et de l'index) |
+| `lsp:host` | `lsp:java`, `lsp:index`, `lsp:model` | tout le reste (l'hôte BRANCHE le moteur, il ne le modifie pas — ADR 0109 ; consommateur cel-lsp externe réservé à ce module) |
 | `app` | tout (assemblage) | — |
 | `core:testing` | `core:model`, `core:domain` | — (consommé en `testImplementation` seulement) |
 
