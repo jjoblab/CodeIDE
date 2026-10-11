@@ -550,6 +550,13 @@
     <string name="git_message_hint">Commit message…</string>
     <string name="git_committer">Commit</string>
     <string name="git_aucun_changement">No changes</string>
+    <!-- v0.90.1, « frozen Git section » mission step A: undetermined
+         repository state — never offer "Initialize" until git itself
+         says "not a git repository". -->
+    <string name="git_erreur_depot_binaire_absent">Git is not installed — install it with "\u00A0pkg install git\u00A0" in the terminal.</string>
+    <string name="git_erreur_depot_lancement">Could not launch git.</string>
+    <string name="git_erreur_depot_refus">Git refused to operate on this repository (undetermined state, not "\u00A0missing\u00A0").</string>
+    <string name="git_erreur_depot_stdout">Unexpected answer from git.</string>
     <plurals name="git_n_changements">
         <item quantity="one">%d change</item>
         <item quantity="other">%d changes</item>

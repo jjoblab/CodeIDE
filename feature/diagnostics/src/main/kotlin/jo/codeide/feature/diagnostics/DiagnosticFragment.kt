@@ -84,7 +84,8 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
             onglet.text =
                 when (position) {
                     POSITION_JOURNAUX -> getString(R.string.diagnostics_onglet_journaux)
-                    else -> getString(R.string.diagnostics_onglet_plantages)
+                    POSITION_PLANTAGES -> getString(R.string.diagnostics_onglet_plantages)
+                    else -> getString(R.string.diagnostics_onglet_git)
                 }
         }.attach()
 
@@ -115,7 +116,7 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
         binding.texteSession.text = getString(R.string.diagnostics_infos_session, journal.sessionId)
     }
 
-    /** Deux pages : Journaux et Plantages. */
+    /** Trois pages : Journaux, Plantages et Git (v0.90.1). */
     private class PagesDiagnosticAdapter(
         hote: Fragment,
     ) : FragmentStateAdapter(hote) {
@@ -124,7 +125,8 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
         override fun createFragment(position: Int): Fragment =
             when (position) {
                 POSITION_JOURNAUX -> JournalFragment()
-                else -> PlantagesFragment()
+                POSITION_PLANTAGES -> PlantagesFragment()
+                else -> DiagnosticGitFragment()
             }
     }
 
@@ -132,7 +134,10 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
         /** Position de l'onglet Journaux. */
         const val POSITION_JOURNAUX = 0
 
+        /** Position de l'onglet Plantages. */
+        const val POSITION_PLANTAGES = 1
+
         /** Nombre d'onglets de l'écran. */
-        const val NOMBRE_ONGLETS = 2
+        const val NOMBRE_ONGLETS = 3
     }
 }

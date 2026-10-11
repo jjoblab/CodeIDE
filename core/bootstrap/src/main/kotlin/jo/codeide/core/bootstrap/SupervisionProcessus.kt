@@ -35,8 +35,13 @@ import kotlinx.coroutines.launch
  * seuls de VRAIS processus le révèlent (MoteurGitCliFluxUniqueTest).
  */
 internal object SupervisionProcessus {
-    /** Lignes conservées par flux, au maximum. */
+    /** Lignes de stderr conservées par défaut (opérations métier). */
     private const val LIMITE_LIGNES = 5
+
+    /** Limite du stderr pour le Diagnostic Git (v0.90.1) : intégralité
+     * bornée généreusement — un stderr de rev-parse ou de config tient
+     * en quelques lignes, la borne ne garde que la garantie anti-DoS. */
+    internal const val LIMITE_STDERR_DIAGNOSTIC = 200
 
     /**
      * Résultat supervisé d'un sous-processus terminé.
@@ -58,12 +63,16 @@ internal object SupervisionProcessus {
      *
      * @param consommateur receptacle optionnel de chaque ligne (stdout et
      * stderr, ordre d'arrivée) — journal d'affichage de l'installation.
+     * @param limiteStderr lignes de stderr conservées au maximum
+     * (v0.90.1 : le Diagnostic Git capture un stderr intégral borné,
+     * les opérations métier gardent l'extrait court historique).
      * @return le code de sortie, la sortie standard capturée pendant le
      * drainage (v0.80.7) et un extrait borné de stderr.
      */
     internal suspend fun attendre(
         processus: ManagedProcess,
         consommateur: ((String) -> Unit)? = null,
+        limiteStderr: Int = LIMITE_LIGNES,
     ): Sortie =
         coroutineScope {
             val erreurs = mutableListOf<String>()
@@ -79,7 +88,7 @@ internal object SupervisionProcessus {
                     launch {
                         processus.stderrLines().collect { ligne ->
                             consommateur?.invoke(ligne)
-                            if (erreurs.size < LIMITE_LIGNES) erreurs += ligne
+                            if (erreurs.size < limiteStderr) erreurs += ligne
                         }
                     },
                 )

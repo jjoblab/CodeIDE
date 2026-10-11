@@ -1,7 +1,9 @@
 package jo.codeide.core.bootstrap
 
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EtatDepot
 import jo.codeide.core.domain.ResultatGit
+import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeProcessEnvironmentProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -54,7 +56,10 @@ class MoteurGitCliFluxUniqueTest {
 
             val moteur = moteurAvecBinaire(script.absolutePath)
 
-            assertTrue("stdout vide : double collecte du flux unique ?", moteur.estDepot(dossierTemp.root.absolutePath))
+            // v0.90.1 : état typé — le double drainage rendait un stdout
+            // vide, donc « pas un dépôt » : le défaut est désormais
+            // OBSERVABLE (un Depot est attendu ici).
+            assertEquals(EtatDepot.Depot, moteur.etatDepot(dossierTemp.root.absolutePath))
         }
 
     @Test
@@ -116,9 +121,10 @@ class MoteurGitCliFluxUniqueTest {
             assertEquals(0, init.waitFor())
 
             val moteur = moteurAvecBinaire(git)
-            assertTrue(
+            assertEquals(
                 "un dépôt initialisé doit être vu comme un dépôt",
-                withTimeout(delaiMaxMs) { moteur.estDepot(depot.absolutePath) },
+                EtatDepot.Depot,
+                withTimeout(delaiMaxMs) { moteur.etatDepot(depot.absolutePath) },
             )
 
             // La branche courante d'un dépôt frais est non vide : preuve
@@ -128,13 +134,30 @@ class MoteurGitCliFluxUniqueTest {
             assertTrue((branche as ResultatGit.Succes).valeur.isNotBlank())
         }
 
+    /** Journal de test : observe les commandes sans écrire. */
+    private val journal = FakeAppLogger()
+
+    /** Sondes factives minimales (aucune lecture système en test). */
+    private val sondes =
+        object : SondesEnvironnementGit {
+            override fun uidEffectif(): Long? = null
+
+            override fun uidProprietaire(chemin: String): Long? = null
+
+            override fun contenuMonts(): String? = null
+
+            override fun environnement(): Map<String, String> = emptyMap()
+        }
+
     /** Moteur branché sur le lanceur RÉEL de sous-processus, binaire imposé. */
     private fun moteurAvecBinaire(binaire: String): MoteurGitCli {
-        val lanceur = LanceurProcessusNatifs(environnement, dispatcheursReels())
+        val lanceurReel = LanceurProcessusNatifs(environnement, dispatcheursReels())
         return MoteurGitCli(
-            lanceur = lanceur,
+            lanceur = lanceurReel,
             resoudreBinaireGit = { binaire },
             identite = null,
+            journal = journal,
+            sondes = sondes,
         )
     }
 
