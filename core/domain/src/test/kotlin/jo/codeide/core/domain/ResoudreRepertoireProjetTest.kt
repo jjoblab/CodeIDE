@@ -3,6 +3,7 @@ package jo.codeide.core.domain
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.MainDispatcherRule
 import jo.codeide.core.testing.TestDispatcherProvider
+import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -207,4 +208,74 @@ class ResoudreRepertoireProjetTest {
                 ),
             )
         }
+
+    // ------------------------------------------------------------------
+    // V0.100.3 : contrats fichier ([ResolveurCheminFuse.resoudreEntree])
+    // vs répertoire ([ResolveurCheminFuse.invoke]) — régression du retour
+    // d'appareil v0.100.2 (§16.2.3). Un dossier temporaire JVM joue le
+    // volume monté ; la garde est une lambda, comme dans l'habillage du
+    // cas d'usage.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `regression v0 100 2 - un fichier existant est resolu par le contrat d entree`() {
+        val volume = createTempDirectory("fuse-entree").toFile()
+        val fichier =
+            volume.resolve("MonApp/MainActivity.java").apply {
+                parentFile.mkdirs()
+                createNewFile()
+            }
+        assertEquals(
+            fichier.absolutePath,
+            cheminFuseVerifie(
+                "essai:MonApp/MainActivity.java",
+                mapOf("essai" to volume.absolutePath),
+            ) { entree -> entree.exists() },
+        )
+    }
+
+    @Test
+    fun `regression v0 100 2 - le contrat repertoire rejette le fichier du branchement LSP`() {
+        // LE bug : le branchement LspEditor passait l'URI du `.java` par
+        // l'opérateur du pont (garde isDirectory) → `null` → renoncement
+        // SILENCIEUX, jamais « LSP Java connecté » (journal d'appareil
+        // « ouverte → nourrie », zéro complétion Java, zéro diagnostic).
+        val volume = createTempDirectory("fuse-dossier").toFile()
+        volume.resolve("MonApp/MainActivity.java").apply {
+            parentFile.mkdirs()
+            createNewFile()
+        }
+        assertNull(
+            cheminFuseVerifie(
+                "essai:MonApp/MainActivity.java",
+                mapOf("essai" to volume.absolutePath),
+            ) { entree -> entree.isDirectory },
+        )
+    }
+
+    @Test
+    fun `un dossier reste resolu par le contrat d entree`() {
+        // La symétrie : resoudreEntree accepte AUSSI les dossiers (la
+        // racine projet y passera) — l'existence, pas la nature.
+        val volume = createTempDirectory("fuse-symetrie").toFile()
+        volume.resolve("MonApp").mkdirs()
+        assertEquals(
+            volume.resolve("MonApp").absolutePath,
+            cheminFuseVerifie(
+                "essai:MonApp",
+                mapOf("essai" to volume.absolutePath),
+            ) { entree -> entree.exists() },
+        )
+    }
+
+    @Test
+    fun `une entree absente est rejetee par la garde d existence`() {
+        val volume = createTempDirectory("fuse-fantome").toFile()
+        assertNull(
+            cheminFuseVerifie(
+                "essai:MonApp/Fantome.java",
+                mapOf("essai" to volume.absolutePath),
+            ) { entree -> entree.exists() },
+        )
+    }
 }

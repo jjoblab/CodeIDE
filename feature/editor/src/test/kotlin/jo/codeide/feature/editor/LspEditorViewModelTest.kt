@@ -178,13 +178,29 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
-    fun `cheminFuseDe resout l uri par le meme resolveur que la racine`() =
+    fun `cheminFuseDe resout un FICHIER par le contrat d entree - regression v0 100 2`() =
         runTest {
+            // Le pont de production sépare ses contrats : l'opérateur
+            // (« répertoire », garde isDirectory) REJETTE un fichier,
+            // le contrat d'entrée (garde exists) le résout. Le faux
+            // ci-dessous mime EXACTEMENT cette séparation — si
+            // cheminFuseDe repasse par l'opérateur, ce test échoue :
+            // c'est la régression du retour d'appareil v0.100.2
+            // (branchement muet, jamais « LSP Java connecté »).
             val id = ajouterProjet("Chemins")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/fichiers/$it" })
+            val resolveurFichiers =
+                object : ResolveurCheminFuse {
+                    override suspend fun invoke(documentUri: String): String? = null
+
+                    override suspend fun resoudreEntree(documentUri: String): String? = "/fuse/fichiers/$documentUri"
+                }
+            val viewModel = viewModel(id, resolveurFichiers)
             avancer()
 
-            assertEquals("/fuse/fichiers/content://x/y", viewModel.cheminFuseDe("content://x/y"))
+            assertEquals(
+                "/fuse/fichiers/content://x/y",
+                viewModel.cheminFuseDe("content://x/y"),
+            )
         }
 
     /** Construit le ViewModel sur un résolveur FUSE résolvant (h2). */
