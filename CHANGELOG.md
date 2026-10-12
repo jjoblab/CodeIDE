@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.103.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « Cycle de vie » — étape B : contrat de session de projet
+  et registre de fermeture** (docs/CYCLE_DE_VIE.md §5 ; ADR 0114).
+  Nouveau module Kotlin JVM PUR `:core:session` (aucune dépendance
+  Android — les adaptateurs des ressources réelles vivront aux étapes
+  C/D) : ① `Fermable` — contrat d'abonnement d'une ressource (elle
+  s'enregistre AU MOMENT où elle démarre, refermée en ordre INVERSE du
+  démarrage ; idempotente, bornée par délai, jamais réentrante, une
+  exception = une panne pas un arrêt) + `RaisonFermeture`
+  {Utilisateur, ChangementDeProjet, Nettoyage} et
+  `ContexteFermeture` ; ② `RegistreFermeture` — délai maximal PAR
+  ÉLÉMENT, drapeau « ne pas annuler » (I7 : contexte `NonCancellable`
+  — l'annulation de l'appelant n'empêche jamais le flush), tolérant
+  aux pannes partielles, rapport de durée par élément
+  (`RapportFermeture`) ; ③ `SessionProjet` — machine à états observable
+  `{Fermee, Ouverture, Ouverte, Fermeture}` (StateFlow, I3), ouvrir/
+  fermer sérialisés, idempotence de fermeture (rapport MÉMORISÉ),
+  travaux d'ouverture fournis par l'appelant et refermés en Nettoyage
+  en cas d'échec ; ④ `GestionnaireSessionProjet` — garant d'I1 : ouvrir
+  B pendant que A vit FERME A d'abord (séquentiellement, délais
+  compris) puis ouvre B ; ouvrir le projet déjà ouvert = no-op ; ⑤
+  `MarqueFermeture` — garde anti-réentrance par marque de contexte de
+  coroutine : tout appel déclenché depuis la libération d'un `Fermable`
+  reçoit un échec typé, jamais d'interblocage. ⑥ `AppError.Session`
+  (core:model) — 4 raisons typées (`DejaOuverte`, `AucuneSession`,
+  `FermetureEnCours`, `Reentrance`), refus COOPÉRATIFS attendus, jamais
+  des crash ; libellé UI `diagnostics_erreur_session` FR/EN + whens
+  exhaustifs complétés (accueil, wizard). 33 tests verts (cas limites
+  §9 du prompt : ordre inverse, idempotence, panne partielle,
+  dépassement de délai, fermeture pendant l'ouverture, ouverture
+  pendant la fermeture, réentrance, annulation, I1, double demande
+  simultanée) ; kover ligne 88,3 % (seuil 80 %).
+
 ## [0.102.0] – 2026-10-12
 
 ### Ajouté

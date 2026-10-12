@@ -73,6 +73,9 @@
     <string name="diagnostics_erreur_saisie">The operation failed: invalid data.</string>
     <string name="diagnostics_erreur_modele">The operation failed: invalid internal model.</string>
     <string name="diagnostics_erreur_outils">Terminal tools installation failure.</string>
+    <!-- v0.103.0, mission « Cycle de vie » étape B : refus du contrat de
+         session (erreur COOPÉRATIVE attendue, jamais un crash). -->
+    <string name="diagnostics_erreur_session">The operation failed: the project session is in an incompatible state.</string>
 
     <!-- ====== Misc ====== -->
 
