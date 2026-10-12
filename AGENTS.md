@@ -1189,6 +1189,16 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.110.0 : **LSP Kotlin K1 — grammaire du compilateur vendorée**
+      (module `:lsp:kotlin`, ADR 0115) : vendoring v2.3.0 octet identique
+      (bootstrap 2.2.x = notre Kotlin 2.2.10), façade Kt* + arbre immuable
+      tolérant, suite de parité (corpus dépôt 818 fichiers / 0 erreur,
+      digeste baseline `-Dparite.majBase=true`), SPI ServiceLoader +
+      descripteur de pack (découpage réel DIFFÉRÉ post-stabilisation —
+      décision propriétaire), jar 257 Ko, kover 91,7 % ; dépôt
+      intellij-dependencies ajouté (syntax-api, filtre KMP -jvm) ;
+      LayoutLib v2.1.1 publié sur JitPack (préparation PE1, dépôt
+      jjoblab/LayoutLib commit 6c56ab8).
 - v0.109.0 : **cadrage des missions LSP Kotlin / LSP XML / Previews**
       (docs/LSP_KOTLIN.md, docs/LSP_XML.md, docs/PREVIEW.md — décisions
       propriétaire 2026-10-13) : étude comparative CodeAssist (tyron12233,

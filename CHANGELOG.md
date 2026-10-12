@@ -1,5 +1,77 @@
 # Journal des modifications
 
+## [0.110.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP Kotlin — étape K1** (`docs/LSP_KOTLIN.md` §5, ADR 0115) :
+  le moteur d'analyse Kotlin existe, in-process, par **vendoring de la
+  grammaire officielle du compilateur** :
+  - **Nouveau module `:lsp:kotlin`** (Kotlin JVM pur, aucune dépendance
+    interne) : `compiler/multiplatform-parsing` du tag **v2.3.0** de
+    JetBrains/kotlin vendoré **octet pour octet** dans
+    `src/main/vendor` (Apache 2.0 — LICENSE/COPYRIGHT/VENDOR.md, zéro
+    modification locale ; v2.3.0 = première version publiée du module,
+    compilée par le bootstrap 2.2.x = exactement notre outillage 2.2.10).
+    Dépendances amont en binaire : `org.jetbrains:syntax-api:0.3.340`
+    (dépôt intellij-dependencies par cache-redirector, filtre strict) et
+    `org.jetbrains:annotations:26.0.2`.
+  - **Façade publique** `jo.lspkotlin.parse` : `ParseurKotlin` (lexique +
+    parse via l'API documentée de l'amont), arbre immuable
+    `ArbreSyntaxiqueKotlin` (nœuds/jetons/erreurs transportées — D3 :
+    jamais d'exception sur texte invalide), façade `Kt*` au vocabulaire
+    du compilateur (`KtFile`, `KtClass`, `KtFunction`, `KtProperty`,
+    imports/package avec alias et wildcard).
+  - **Suite de parité** (D2 : propriété vérifiée) : sweep du corpus du
+    dépôt — **818 fichiers `.kt`, 0 marqueur d'erreur** (dont les 23
+    fichiers vendorés qui se parsent eux-mêmes) ; digeste structurel
+    SHA-256 épinglé par baseline régénérable délibérément
+    (`-Dparite.majBase=true`) ; fixtures épinglées (imports alias/
+    wildcard, enum, typealias, objet anonyme, troncatures) ; tolérance
+    aux fautes (troncature à TOUTES les positions, injections hostiles,
+    suppressions déterministes) ; budget de performance du sweep.
+  - **Découplage « pack langue » préparé dès K1** (D6, décision
+    propriétaire — découpage réel différé post-stabilisation) : SPI
+    `jo.lspkotlin.api.MoteurLangageKotlin` résolu par **ServiceLoader**
+    (descripteur META-INF/services, testé mécaniquement), descripteur de
+    pack `jo/lspkotlin/pack/version.properties` (id, version, version
+    minimale d'app, version de grammaire) ; aucune classe du module
+    référencée hors du module (checkModuleDependencies : zéro dépendance
+    interne).
+  - **Rapport de taille** (`./gradlew :lsp:kotlin:rapportTaille`, risque
+    §8 mesuré dès K1) : **jar 257 Ko** (66 classes vendorées, 30 nôtres)
+    — cible T1 ≤ 4 Mo respectée avec marge très large.
+  - **Re-sync scripté** : `scripts/vendor-grammaire-kotlin.sh` (clone
+    sparse, remplacement par écrasement, licences, rappel des étapes
+    manuelles : VENDOR.md, version syntax-api, suite de parité).
+  - Qualité : kover **91,7 %** ligne (≥ 80 % requis, vendoring exclu —
+    attesté par la parité, ADR 0115), detekt/spotless verts (vendor
+    exclu : on ne reformate jamais l'octet identique), 27 tests.
+  - Découvertes de parité PSI épinglées en tests (K2+ les exploitera) :
+    `PACKAGE_DIRECTIVE` vide toujours présente, conteneur `IMPORT_LIST`
+    toujours présent, jetons blancs = feuilles de l'arbre.
+- **Documentation** : ADR 0115 (vendoring grammaire Kotlin — précédent
+  ADR 0108 du module vendored Java, mêmes disciplines), notices tierces
+  (grammaire vendorée + syntax-api + adaptation NewTestParser),
+  `docs/LSP_KOTLIN.md` §5 K1 livré, ROADMAP 5.2.
+- **LayoutLib v2.1.1 publié sur JitPack** (dépôt jjoblab/LayoutLib, même
+  propriétaire — préparation PE1) : le tag v2.1.0 ne pouvait pas s'y
+  construire (JDK 11 + pas de maven-publish) ; commit `6c56ab8` : jitpack.yml
+  (recette code-editor) + maven-publish/singleVariant sur les 6 modules,
+  `publishToMavenLocal` validé localement. Aucune incidence sur CodeIDE
+  dans CETTE version (la dépendance arrive avec PE1).
+
+### Changed
+
+- `settings.gradle.kts` : dépôt `intellij-dependencies` (cache-redirector)
+  filtré `org.jetbrains:syntax-api*`/`lang-syntax*` (filtre KMP : les
+  variantes -jvm DOIVENT être admises, sinon les métadonnées résolvent
+  mais aucun jar ne se trouve — piège documenté).
+- `gradle/libs.versions.toml` : `jetbrains-syntax-api` 0.3.340 +
+  `jetbrains-annotations` 26.0.2 (à monter ENSEMBLE du vendoring).
+- `build-logic` ModuleRulesPlugin : `:lsp:kotlin` en module pur sans
+  dépendance interne autorisée (condition du pack futur).
+
 ## [0.109.0] – 2026-10-13
 
 ### Ajouté
