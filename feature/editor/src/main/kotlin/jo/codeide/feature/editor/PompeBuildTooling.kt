@@ -106,6 +106,30 @@ class PompeBuildTooling
         /** Vidange sync déjà lancée (UNE par process — idempotente). */
         private val vidangeSyncLancee = AtomicBoolean(false)
 
+        /** Miroir de connexion déjà branché (UNE par process — idempotente, E13). */
+        private val miroirConnexionLance = AtomicBoolean(false)
+
+        /**
+         * Miroir PROCESS-WIDE de l'état de CONNEXION du démon (mission
+         * « Cycle de vie » étape C, E13/§2.7) : alimente
+         * [GradleService.publierConnexion] depuis la portée de la pompe —
+         * l'ancien collecteur viewModelScope de l'éditeur gelait l'état
+         * process-wide à la fermeture de l'espace (ToolingService
+         * décidait sur un état figé). Comme [pomperSync] : idempotente,
+         * chaque espace peut l'appeler, seul le premier branche ; v0.49.0
+         * (ADR 0080) : un événement fautif est journalisé et PASSÉ.
+         */
+        fun pomperConnexion() {
+            if (!miroirConnexionLance.compareAndSet(false, true)) return
+            portee.launch {
+                tooling.observeConnectionState().collect { connexion ->
+                    traiterSansPanne("état de connexion") {
+                        serviceGradle.publierConnexion(connexion)
+                    }
+                }
+            }
+        }
+
         /**
          * Publie le build suivi (reset console + chrono, même sémantique
          * que l'ancien `suivreBuild` de la couture) et garantit qu'UNE

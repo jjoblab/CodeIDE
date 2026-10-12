@@ -169,6 +169,24 @@ abstract class BaseEditorViewModelTest {
             dispatchers = TestDispatcherProvider(regleMain.dispatcher),
         )
 
+    /** Gestionnaire de session de projet RÉEL (cycle de vie étape C) :
+     *  contrat Kotlin JVM pur, aucune dépendance Android — partagé par
+     *  les ViewModels d'un même test (I1 : ouvrir B ferme A d'abord, le
+     *  parcours P→Q se teste ICI). Horloge des rapports pilotable. */
+    protected val gestionnaireSessionTest =
+        jo.codeide.core.session.GestionnaireSessionProjet(
+            journal = journalViewModel,
+            horloge = horlogeOutil,
+        )
+
+    /** Portée des fermetures de session (cycle de vie étape C) : sur le
+     *  planificateur de test — `advanceUntilIdle` exécute les fermetures
+     *  lancées par onCleared (le viewModelScope y est déjà mort). */
+    protected val porteeFermetureSessionTest =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + regleMain.dispatcher,
+        )
+
     /** Résolution du répertoire projet (T6) — pure fonction du domaine testée à part. */
     protected val resoudreRepertoire =
         ResoudreRepertoireProjet(
@@ -315,6 +333,12 @@ abstract class BaseEditorViewModelTest {
                 ),
             serviceGradle = serviceGradleTest,
             pompeBuilds = pompeBuildsTest,
+            // Cycle de vie étape C : gestionnaire RÉEL (contrat pur,
+            // I1 testable) et portée de fermeture pilotée par le
+            // planificateur de test (avancerUntilIdle exécute les
+            // fermetures d'onCleared de façon déterministe).
+            gestionnaireSession = gestionnaireSessionTest,
+            porteeFermetureSession = porteeFermetureSessionTest,
             savedStateHandle = sauvetage,
         )
 
