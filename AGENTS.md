@@ -1189,6 +1189,45 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.103.0 : **mission « Cycle de vie » étape B — contrat de session
+      de projet et registre de fermeture** (prompt 3 §5.1 ;
+      docs/CYCLE_DE_VIE.md §5 ; ADR 0114) : nouveau module Kotlin JVM
+      PUR `:core:session` (settings.gradle.kts + ModuleRulesPlugin —
+      modules purs, deps `:core:model`/`:core:domain`, même famille
+      que core:database ; aucune dépendance Android, les adaptateurs
+      vivront en étapes C/D) : `Fermable` (contrat d'abonnement :
+      s'enregistrer AU DÉMARRAGE, refermé en ordre INVERSE,
+      idempotente, bornée, jamais réentrante, exception = panne pas
+      arrêt) + RaisonFermeture/ContexteFermeture/Desenregistrement ;
+      `RegistreFermeture` (délai maximal PAR ÉLÉMENT, drapeau « ne pas
+      annuler » I7 via NonCancellable — annulation RELANCÉE via
+      FermetureInterrompue sous-classe de CancellationException, règle
+      projet, pannes partielles tolérées, RapportFermeture avec durées
+      par TimeProvider injectable) ; `SessionProjet` (machine à états
+      StateFlow {Fermee, Ouverture, Ouverte, Fermeture} — I3, verrou
+      Mutex, idempotence de fermeture par rapport MÉMORISÉ, travaux
+      d'ouverture fournis par l'appelant et refermés en Nettoyage non
+      annulable si échec, fermeture-durant-ouverture et ouverture-
+      durant-fermeture sérialisées) ; `GestionnaireSessionProjet` (I1 :
+      ouvrir B ferme A d'abord — raison ChangementDeProjet, délais
+      compris — projet déjà ouvert = no-op, demandes simultanées
+      sérialisées) ; `MarqueFermeture` (CoroutineContext.Key posée
+      pendant la libération : réentrance refusée par échec typé, JAMAIS
+      de blocage). `AppError.Session` + SessionReason (4 raisons :
+      DejaOuverte/AucuneSession/FermetureEnCours/Reentrance — refus
+      COOPÉRATIFS, jamais des crash) dans core:model ; whens
+      exhaustifs AppError complétés : libellé diagnostics_erreur_
+      session FR/EN (feature/diagnostics, TraductionsDiagnostic),
+      TraductionsAccueil (repli générique documenté, exemption detekt
+      ciblée CyclomaticComplexMethod — table de traduction) et
+      EcranCreationFragment (wizard_echec_inattendu + details). 33
+      tests verts (SessionProjetTest 12, RegistreFermetureTest 12,
+      GestionnaireSessionProjetTest 9 — tous les cas limites §9 du
+      prompt) ; detekt+spotless verts ; kover LIGNE 88,3 % (seuil 80,
+      classe 96,3, branche 77,9 — défenses en profondeur) ;
+      assembleDebug complet vert. Aucune ressource réelle branchée
+      (étape C), aucune décision §2 tranchée, baseline §4.5 toujours
+      attendue sur appareil.
 - (post v0.102.0, livraison documentaire sans version) : **mission
       « Cycle de vie » étape A — audit et cartographie** (prompt 3 ;
       docs/CYCLE_DE_VIE.md §4, mission entamée au retour du

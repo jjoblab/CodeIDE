@@ -151,6 +151,14 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                 getString(R.string.wizard_echec_inattendu)
             }
 
+            is AppError.Session -> {
+                // Cycle de vie, étape B (v0.103.0) : refus coopératif du
+                // contrat de session — hors périmètre du wizard, qui
+                // n'ouvre aucune session (l'ouverture vivra dans
+                // l'éditeur, étape C).
+                getString(R.string.wizard_echec_inattendu)
+            }
+
             is AppError.Unknown -> {
                 getString(R.string.wizard_echec_inattendu)
             }
@@ -165,6 +173,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
             is AppError.Bootstrap -> erreur.details
             is AppError.EnvironmentSetup -> erreur.details
             is AppError.Tooling -> erreur.message
+            is AppError.Session -> erreur.details
             is AppError.Unknown -> erreur.details
         }
 

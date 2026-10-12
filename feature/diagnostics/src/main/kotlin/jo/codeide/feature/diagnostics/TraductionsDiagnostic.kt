@@ -16,11 +16,22 @@ internal object TraductionsDiagnostic {
     fun message(erreur: AppError): Int =
         when (erreur) {
             is AppError.Storage -> R.string.diagnostics_erreur_stockage
+
             is AppError.Validation -> R.string.diagnostics_erreur_saisie
+
             is AppError.Template -> R.string.diagnostics_erreur_modele
+
             is AppError.Bootstrap -> R.string.diagnostics_erreur_outils
+
             is AppError.EnvironmentSetup -> R.string.diagnostics_erreur_outils
+
             is AppError.Tooling -> R.string.diagnostics_erreur_outils
+
+            // Cycle de vie, étape B (v0.103.0) : refus coopératif du contrat
+            // de session — libellé unique, la raison précise vit dans les
+            // journaux (AppError.Session.details), pas dans l'UI.
+            is AppError.Session -> R.string.diagnostics_erreur_session
+
             is AppError.Unknown -> R.string.diagnostics_erreur_stockage
         }
 

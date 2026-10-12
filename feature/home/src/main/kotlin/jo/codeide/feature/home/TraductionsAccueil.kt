@@ -15,7 +15,15 @@ import jo.codeide.core.model.RaisonValidation
  * suivre.
  */
 internal object TraductionsAccueil {
-    /** Message d'un échec applicatif typé. */
+    /**
+     * Message d'un échec applicatif typé.
+     *
+     * Exemption detekt ciblée (règle 16) : CyclomaticComplexMethod —
+     * un branch PAR erreur typée du domaine, la projection exhaustive
+     * est le dessin même d'une table de traduction (même exemption que
+     * `RenduParametres.rendre`).
+     */
+    @Suppress("CyclomaticComplexMethod")
     @StringRes
     fun message(erreur: AppError): Int =
         when (erreur) {
@@ -56,6 +64,14 @@ internal object TraductionsAccueil {
                 // dans les journaux ; l'utilisateur reçoit la marche à
                 // suivre — l'erreur fine guide le diagnostic.
                 R.string.accueil_erreur_tooling
+            }
+
+            is AppError.Session -> {
+                // Cycle de vie, étape B (v0.103.0) : refus coopératif du
+                // contrat de session. Hors périmètre de l'accueil (clonage
+                // et effets du registre) — repli générique du fichier ;
+                // l'étape C donnera à l'éditeur son propre canal d'état.
+                R.string.accueil_erreur_stockage
             }
 
             is AppError.Unknown -> {
