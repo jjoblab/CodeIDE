@@ -192,11 +192,12 @@ Fichiers livrés :
 - Classpath modèle v8 (ADR 0113), index disque segments par jar (ADR 0111), session intégrée au cycle de vie (I1–I7, RegistreFermeture), routage `jo.codeide.projet_cible` (v0.106.0).
 - Correctifs d'exploitation v0.108.0 : intrinsèques du compilateur (StringConcatFactory), downgrade honnête databinding.
 
-### 5.2 LSP Kotlin — K1 livré (v0.110.0)
+### 5.2 LSP Kotlin — K1 et K2 livrés (v0.110.0, v0.112.0)
 
 - Décision : **parseur vendoré** (grammaire officielle du compilateur, Apache 2.0) + **modèle de symboles propre** conservateur, in-process — fwcd/kotlin-language-server **écarté**, Analysis API K2 réduite à un éventuel « mode profond » à la demande (étude CodeAssist).
 - **K1 livré v0.110.0** : module `:lsp:kotlin`, vendoring **v2.3.0** octet identique (ADR 0115, VENDOR.md, script de re-sync), façade `Kt*`, suite de parité (corpus dépôt 818 fichiers / 0 erreur, digeste baseline), SPI ServiceLoader + descripteur de pack (découpage réel différé), jar 257 Ko, kover 91,7 %.
-- Étapes K2–K5, classes synthétiques R/ViewBinding/databinding, protocole v10 (compliance par projet) — détail dans `docs/LSP_KOTLIN.md`.
+- **K2 livré v0.112.0** : session LSP minimale — contrat de session derrière le SPI (D6 : diagnostics neutres, aucun LSP4J dans le moteur), diagnostics syntaxiques conservateurs `kt.syntax`/`kt.unusedImport`/`kt.conflictingImport`, adaptateur LSP4J + façade `SessionLspKotlin` dans `:lsp:host` (définitions cel-lsp `kt`/`kts`), éditeur bilingue (LspProject unique, routage par extension, cycle de vie registre I2/I7) — 25 tests.
+- Étapes K3–K5, classes synthétiques R/ViewBinding/databinding, protocole v10 (compliance par projet) — détail dans `docs/LSP_KOTLIN.md`.
 - Distribution : embarqué en T1, découpage en « pack langue » téléchargeable **différé à post-stabilisation** (décision propriétaire, architecture préparée dès K1).
 
 ### 5.3 LSP XML — cadré (v0.109.0)
@@ -206,7 +207,7 @@ Fichiers livrés :
 
 ### 5.4 Previews — PE1 livré (v0.111.0)
 
-- **XML — PE1 livré v0.111.0** : module `:preview:xml` (moteur **LayoutLib v2.1.2** via JitPack, rendu bitmap off-screen sur fil dédié, résolveurs du projet par FUSE), panneau `VuePreviewXml` + menu « Aperçu XML » dans l'éditeur, 22 tests, kit catalogue 50 layouts (TESTS_MANUELS) — détail dans `docs/PREVIEW.md`.
+- **XML — PE1 livré v0.111.0** : module `:preview:xml` (moteur **LayoutLib en intégration source composite depuis v0.112.0** — tag v2.2.0, JitPack abandonné pour LayoutLib sur décision propriétaire — rendu bitmap off-screen sur fil dédié, résolveurs du projet par FUSE), panneau `VuePreviewXml` + menu « Aperçu XML » dans l'éditeur, 22 tests, kit catalogue 50 layouts (TESTS_MANUELS) — détail dans `docs/PREVIEW.md`.
 - **XML — suite** : PE2 isolation processus `:preview` (AIDL, DeathRecipient, repli in-process), PE3 sélection/inspection + profiles device + jour/nuit.
 - **Compose** : **interpréteur sur l'arbre résolu** (approche CodeAssist), runtime Compose comme bibliothèque de preview (ADR 0002 intact), **après stabilisation du LSP Kotlin** — étapes C0–C3.
 - Détail dans `docs/PREVIEW.md`.
