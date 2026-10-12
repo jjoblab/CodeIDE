@@ -1,5 +1,46 @@
 # Journal des modifications
 
+## [0.108.0] – 2026-10-12
+
+### Corrigé
+
+- **LSP Java — ① « The type java.lang.invoke.StringConcatFactory
+  cannot be resolved » (retour propriétaire)** : fait établi — la
+  classe n'existe dans AUCUNE plateforme Android (vérifié android-31
+  et android-36 ; D8 désugare toujours les concats indy), le seul
+  fournisseur possible est l'image jrt du JDK toolchain ; sur
+  l'appareil concerné elle n'avait pas chargé (échec silencieux de
+  jrt-fs) et les classes du projet compilées par le serveur Gradle
+  référencent l'intrinsèque dans leur pool → faux positif STRUCTUREL,
+  incurable côté utilisateur. Correctif :
+  **`StubsIntrinseques`** — repli 4 de `find` (APRÈS sources, jars et
+  jrt : priorité réelle préservée, index de complétion non nourri) :
+  déclaration minimale fabriquée à la main en octets (CAFEBABE v8,
+  aucun membre) de `StringConcatFactory`, `ObjectMethods` (records) et
+  `SwitchBootstraps` (switch pattern) — zéro compilation au runtime,
+  cache statique ; ET l'échec du scan jrt passe de FINE à WARNING
+  (la cause racine silencieuse devient un signal de recette).
+  Repro exact par fixture ASM (`batisse.Biblio` étend l'intrinsèque —
+  message natif « indirectly referenced » reproduit) ; 5 tests dont
+  garde de non-régression, témoin jrt et contrat des stubs.
+- **LSP Java — ② « The import com.example.monip.databinding cannot
+  be resolved »** : les classes XxxBinding ne sont générées par AGP
+  qu'AU BUILD (la sync ne les crée pas) → l'import était
+  structurellement non résoluble en ERROR sec. Correctif :
+  **downgrade honnête ERROR→HINT + remède** (« lance un Build »),
+  même philosophie « zéro devinette » que la classe R : reconnaissance
+  par les ARGUMENTS STRUCTURÉS du problème ecj (stables entre
+  locales), segment `.databinding` strict, coupure automatique dès que
+  la première classe générée existe (sonde
+  `hasGeneratedDatabindingClasses`, TTL 5 s — une faute de frappe
+  redevient ERROR intégrale). 3 tests en vrai flux LSP4J (client
+  espion) : HINT sans build, ERROR avec générées, homonyme non
+  déclassé.
+- Suite lsp:java complète VERT (315 tests, 8 nouveaux) ;
+  :lsp:testing VERT. Docs : LSP_JAVA.md §17 (mécanismes, preuves,
+  décisions ouvertes : génération post-sync, compliance par projet —
+  candidat protocole v10).
+
 ## [0.107.0] – 2026-10-12
 
 ### Ajouté
