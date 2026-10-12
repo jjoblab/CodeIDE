@@ -1795,6 +1795,19 @@ class EditorActivity :
                 }
             }
         }
+
+        // K2 : l'arrivée (ou la disparition) de la session Kotlin doit
+        // REBONDIR le branchement — un onglet .kt ouvert pendant que le
+        // moteur finissait de se résoudre reste sinon en coloration seule
+        // jusqu'au prochain changement d'onglet (la garde estBrancheSur
+        // empêche toute reconnexion superflue).
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.sessionLspKotlin.collect {
+                    brancherLspSiNecessaire(viewModel.etat.value)
+                }
+            }
+        }
     }
 
     /**
@@ -1830,8 +1843,16 @@ class EditorActivity :
      */
     private fun brancherLspSiNecessaire(etat: EtatEditor) {
         val session = viewModel.sessionLsp.value
+        val sessionKotlin = viewModel.sessionLspKotlin.value
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
-        if (session == null || onglet == null || !onglet.estJava()) {
+        // K2 (LSP_KOTLIN.md §5) : l'onglet Kotlin exige SA session — les
+        // deux moteurs ouvrent sous le même verrou, mais la dégradation
+        // honnête (moteur Kotlin absent) ne doit pas priver un onglet
+        // .java de sa session : la garde est PAR LANGUE.
+        val serveurPret =
+            (onglet?.estJava() == true && session != null) ||
+                (onglet?.estKotlin() == true && sessionKotlin != null)
+        if (onglet == null || !serveurPret) {
             coordonnateurLsp.debrancher()
             return
         }
@@ -1853,7 +1874,7 @@ class EditorActivity :
                 }
                 return@launch
             }
-            coordonnateurLsp.brancher(session, uri, chemin, liaison.vueEditeur)
+            coordonnateurLsp.brancher(session, sessionKotlin, uri, chemin, liaison.vueEditeur)
         }
     }
 

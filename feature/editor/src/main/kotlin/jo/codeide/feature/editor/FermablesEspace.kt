@@ -6,6 +6,7 @@ import jo.codeide.core.model.AppResult
 import jo.codeide.core.session.ContexteFermeture
 import jo.codeide.core.session.Fermable
 import jo.codeide.lsp.host.SessionLsp
+import jo.codeide.lsp.host.SessionLspKotlin
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -62,6 +63,28 @@ internal object FermablesEspace {
     ): Fermable =
         object : Fermable {
             override val nom: String = "session-lsp-java"
+
+            override suspend fun fermer(contexte: ContexteFermeture) {
+                detacher()
+                session.close()
+            }
+        }
+
+    /**
+     * Session LSP Kotlin → `Fermable` (mission « LSP Kotlin » K2) : même
+     * contrat que [sessionLsp] — détache la référence observable d'abord
+     * (jamais d'usage post-close), referme ensuite (idempotent, les
+     * pannes pas à pas sont attrapées dans close).
+     *
+     * @param session la session Kotlin vivante.
+     * @param detacher remet la référence observable du ViewModel à `null`.
+     */
+    internal fun sessionLspKotlin(
+        session: SessionLspKotlin,
+        detacher: () -> Unit,
+    ): Fermable =
+        object : Fermable {
+            override val nom: String = "session-lsp-kotlin"
 
             override suspend fun fermer(contexte: ContexteFermeture) {
                 detacher()

@@ -1,5 +1,70 @@
 # Journal des modifications
 
+## [0.112.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP Kotlin — étape K2 : session LSP minimale** (`docs/LSP_KOTLIN.md`
+  §5) : les fichiers `.kt`/`.kts` de l'éditeur obtiennent leurs
+  premiers diagnostics en temps réel, in-process :
+  - **Moteur (`:lsp:kotlin`)** : le SPI gagne le contrat de session
+    (`SessionLangageKotlin` : ouvrir/modifier/fermer, diagnostics en
+    types NEUTRES — décision D6 respectée : le moteur ne voit jamais
+    LSP4J, le découpage futur en « pack langue » reste gratuit).
+    Diagnostics **syntaxiques conservateurs** (philosophie D3 —
+    sous-rapporte plutôt que faux positif) : `kt.syntax` (marqueurs
+    d'erreur du parseur vendoré, message amont repris tel quel),
+    `kt.unusedImport` (nom effectif — alias ou dernier segment — absent
+    des identifiants du fichier ; joker et directives en édition jamais
+    signalés), `kt.conflictingImport` (deux imports non joker de noms
+    qualifiés distincts partageant le même nom effectif — signalé sur
+    le plus tardif, message portant les deux noms).
+  - **Hôte (`:lsp:host`)** : `KotlinLanguageServer` — adaptateur LSP4J
+    (synchronisation de document COMPLÈTE, publication après chaque
+    frappe, traduction offsets → positions LSP UTF-16, plages vides
+    élargies d'un caractère, capacités honnêtes : sync seule, rien
+    d'inventé) ; `SessionLspKotlin` — façade de cycle de vie (définitions
+    cel-lsp `kt` ET `kts`, UNE session moteur par connexion, sessions
+    vivantes suivies, fermeture exhaustive « 0 ressource orpheline »,
+    dégradation explicite si le moteur n'est pas résolvable).
+  - **Éditeur** : la session Kotlin s'ouvre dans le MÊME verrou que la
+    session Java (registre de fermeture Fermable, délai partagé I7) ;
+    le `LspProject` cel-lsp unique porte les définitions des DEUX
+    langues (routage par extension) ; `estKotlin()` reconnaît
+    `.kt`/`.kts` ; un échec de connexion laisse le fichier en coloration
+    seule (jamais bloquant, journalisé).
+  - 25 tests (16 moteur via le SPI, 9 hôte en vrai flux LSP4J avec
+    client espion — même harnais que les tests databinding Java) ;
+    baseline de parité repoussée à 835 fichiers de corpus.
+
+### Modifié
+
+- **Previews — LayoutLib en intégration SOURCE (P2 révisée, décision
+  propriétaire 2026-10-13)** : LayoutLib est un projet personnel
+  GitHub-only, **la publication JitPack est abandonnée** (tags distants
+  v2.1.1/v2.1.2 supprimés ; l'artefact v2.1.2 reste en cache JitPack
+  jusqu'à suppression par le propriétaire sur jitpack.io — CodeIDE ne
+  le référence plus). `:preview:xml` consomme LayoutLib par **build
+  composite** : `settings.gradle.kts` inclut le checkout frère
+  `../LayoutLib` et substitue les coordonnées
+  `com.github.jjoblab.LayoutLib:*` (chaque dépôt garde son catalogue et
+  ses conventions ; l'épinglage = ref git, tag **v2.2.0**) ; le build
+  échoue avec instructions claires si le checkout manque ; la CI clone
+  le tag épinglé (dépôt public, anonyme).
+- **Dépôt LayoutLib aligné sur l'outillage CodeIDE** (v2.2.0, même
+  environnement pour les deux dépôts — démon Gradle et caches partagés,
+  décisions du propriétaire) : Gradle 8.7 → 9.7.1 (wrapper + jar +
+  scripts), AGP 8.5.0 → 9.4.1, JDK 17 → 21 (CI incluse), Java 11 → 17,
+  compileSdk 34 → 37.2 (plateforme partagée), AndroidX/Material alignés
+  sur le catalogue CodeIDE, code-editor v3.41.0 → 3.49.2,
+  `junit-platform-launcher` explicite (exigence Gradle 9),
+  `FAIL_ON_PROJECT_REPOS`, README complété (build composite documenté).
+- **CI CodeIDE** : étape de clonage LayoutLib (tag v2.2.0, checkout
+  hors espace de travail — chemin par défaut du composite) ; miroir
+  local complet des trois étapes de la CI LayoutLib avant son push
+  (tests 842, assembleDebug, lintDebug — verts), **sans surveillance de
+  la CI GitHub** (directive propriétaire).
+
 ## [0.111.0] – 2026-10-13
 
 ### Ajouté

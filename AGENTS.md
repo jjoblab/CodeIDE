@@ -136,6 +136,18 @@ dans `core:ui`, implémentée dans `app`).
   **JitPack** (dépôt `maven { url = uri("https://jitpack.io") }` à ajouter —
   seule dépendance externe autorisée dans une feature, exception documentée ;
   accès réseau à `jitpack.io` vérifié le 2026-09-23).
+- **LayoutLib (moteur des previews XML, github.com/jjoblab/LayoutLib) :
+  build composite en SOURCE** (v0.112.0, décision propriétaire — LayoutLib
+  est un projet personnel GitHub-only, **PAS de publication JitPack**) :
+  `settings.gradle.kts` inclut le dépôt frère `../LayoutLib` et substitue
+  les coordonnées `com.github.jjoblab.LayoutLib:*` (chacun des deux dépôts
+  garde son catalogue et ses conventions ; le dépôt LayoutLib est aligné
+  toolchain — Gradle 9.7.1/AGP 9.4.1/JDK 21, tag **v2.2.0** — démon Gradle
+  et caches PARTAGÉS). Le build ÉCHOUE avec instructions si le checkout
+  manque : `git clone https://github.com/jjoblab/LayoutLib.git ../LayoutLib`
+  (défaut sandbox : `/home/z/my-project/LayoutLib` ; surcharge : propriété
+  Gradle `layoutLib.dir` ou env `CODEIDE_LAYOUTLIB_DIR` ; CI : clonage du
+  tag épinglé v2.2.0, miroir des 3 étapes locales).
 
 ## Commandes
 
@@ -1189,6 +1201,27 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.112.0 : **LSP Kotlin K2 (session minimale) + LayoutLib en intégration
+      SOURCE** (décisions propriétaire 2026-10-13) : ① `:lsp:kotlin` gagne
+      le contrat de session (SPI `SessionLangageKotlin` : ouvrir/modifier/
+      fermer + diagnostics NEUTRES — D6 respecté, le moteur ne voit pas
+      LSP4J) avec diagnostics syntaxiques conservateurs `kt.syntax` /
+      `kt.unusedImport` / `kt.conflictingImport` (D3 : joker et directives
+      en édition jamais signalés ; 16 tests) ; ② `:lsp:host` : serveur
+      LSP4J `KotlinLanguageServer` (sync complète, publication traduite
+      offsets→positions, plages vides élargies, capacités honnêtes) +
+      façade `SessionLspKotlin` (définitions cel-lsp `kt`/`kts`, sessions
+      par connexion suivies, close exhaustif — 9 tests) ; ③ éditeur :
+      session Kotlin ouverte dans le MÊME verrou que Java + registre
+      Fermable (I2/I7), LspProject unique portant les définitions des
+      deux langues (routage par extension cel-lsp), estKotlin() pour
+      .kt/.kts ; ④ DÉPÔT LayoutLib : aligné toolchain CodeIDE (Gradle
+      9.7.1, AGP 9.4.1, JDK 21, compileSdk 37.2, code-editor 3.49.2,
+      junit-platform-launcher exigé par Gradle 9 — tag **v2.2.0** poussé,
+      main réécrit SANS JitPack, tags distants v2.1.1/v2.1.2 supprimés) ;
+      CodeIDE consomme LayoutLib par build composite (checkout frère,
+      échec rapide actionnable, CI clone v2.2.0) ; baseline parité 835
+      fichiers ; JitPack reste pour code-editor/termux uniquement.
 - v0.111.0 : **Previews PE1 — panneau d'aperçu XML** (module
       `:preview:xml` : LayoutLib v2.1.2 via JitPack — le tag a dû être
       réparé côté dépôt LayoutLib (jitpack.yml + maven-publish + miroir

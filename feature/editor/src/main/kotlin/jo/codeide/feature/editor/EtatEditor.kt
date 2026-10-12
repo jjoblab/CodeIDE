@@ -314,6 +314,17 @@ data class EditorTabState(
      */
     fun estJava(): Boolean =
         langage?.equals("java", ignoreCase = true) == true || nom.endsWith(".java", ignoreCase = true)
+
+    /**
+     * Fichier Kotlin (mission « LSP Kotlin » K2, LSP_KOTLIN.md §5) :
+     * l'onglet actif est branché sur le serveur LSP Kotlin in-process —
+     * langage reconnu ou extensions `.kt`/`.kts` en repli (même logique
+     * de repli que [estJava]).
+     */
+    fun estKotlin(): Boolean =
+        langage?.equals("kotlin", ignoreCase = true) == true ||
+            nom.endsWith(".kt", ignoreCase = true) ||
+            nom.endsWith(".kts", ignoreCase = true)
 }
 
 /**
