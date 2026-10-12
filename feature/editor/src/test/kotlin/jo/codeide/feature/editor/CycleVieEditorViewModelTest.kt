@@ -204,6 +204,51 @@ class CycleVieEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `la fermeture de session libere le projet cote orchestrateur`() =
+        runTest {
+            // Étape D (v9, E9) : le Fermable tooling demande à
+            // l'orchestrateur de libérer la connexion et le cache du
+            // projet quand la session se ferme.
+            val id = ajouterProjet("Outil")
+            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Outil" })
+            avancer()
+
+            viewModel.detruire()
+            avancer()
+
+            assertEquals(
+                "la fermeture tooling part avec le chemin FUSE du projet",
+                listOf("/fuse/projets/Outil"),
+                tooling.fermeturesProjet,
+            )
+        }
+
+    @Test
+    fun `un travail gradle en vol fait renoncer la liberation tooling`() =
+        runTest {
+            // §2.1c : un build (ou une sync) en cours CONTINUE à la fermeture
+            // — sa connexion vit avec lui, la libération est renoncée
+            // (journalisée), jamais un échec bloquant.
+            val id = ajouterProjet("Vivant")
+            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Vivant" })
+            avancer()
+            serviceGradleTest.suivreBuild("b-1", listOf("assembleDebug"))
+
+            viewModel.detruire()
+            avancer()
+
+            assertTrue("la libération est renoncée (build en vol)", tooling.fermeturesProjet.isEmpty())
+            assertTrue(
+                journalViewModel.entries.any { it.message.contains("renoncée") },
+            )
+            assertEquals(
+                "la session est fermée malgré le renoncement",
+                EtatSession.Fermee,
+                gestionnaireSessionTest.etat.value,
+            )
+        }
+
+    @Test
     fun `le miroir de connexion vit dans la pompe process wide`() =
         runTest {
             // E13 : l'état de connexion alimente GradleService depuis la

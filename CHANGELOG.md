@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.105.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « Cycle de vie » — étape D : fermeture de projet côté
+  orchestrateur (protocole v9)** (docs/CYCLE_DE_VIE.md §7). E9 fermé :
+  la fermeture de session de projet gagne ENFIN sa voie
+  orchestrateur. ① **Protocole v8 → v9** :
+  `FermerProjetRequest`/`FermerProjetResult` (idempotents — fermer un
+  projet inconnu est un no-op ACCUSÉ ; l'existence de l'accusé corrélé
+  par `id` est le succès) ; doc champ par champ dans
+  `GradleProtocol.kt` au motif des v4–v8 ; dorés 36 → **38**,
+  cardinalités 15 requêtes / 23 événements. ② **Serveur** :
+  `GradleConnectorPool.fermer(dossier)` — ferme la connexion Tooling
+  API du projet UNIQUEMENT (clé canonique, idempotente ; fermer une
+  ProjectConnection ne tue PAS le démon Gradle sous-jacent) ;
+  `CacheSync.purger(projectDir)` ; branche dispatcher
+  (`traiterFermetureProjet` : libération + purge + accusé sur le bus) ;
+  l'EventBus n'a RIEN à purger (tuyau global sans abonnement — constat
+  d'étape A confirmé). ③ **Client + éditeur** : nouvelle méthode du
+  port `GradleToolingRepository.fermerProjet(projectDir): AppResult<Unit>`
+  (accusé attendu 15 s, échec typé sans orchestrateur, jamais
+  bloquant) ; router client : branche `FermerProjetResult` ;
+  **Fermable « tooling-projet »** enregistré dans les travaux
+  d'ouverture de session (refermé en PREMIER — ordre inverse) avec
+  politique de renoncement §2.1c : un build OU une sync en vol
+  CONTINUE, sa connexion vit avec lui (renoncement journalisé) ; un
+  chemin non résolu : rien à libérer. ④ Correctif déterminisme : le
+  Fermable LSP ne saute plus sur `Dispatchers.IO` (un saut réel
+  échappe au temps virtuel des tests et laissait la séquence de
+  fermeture en plan au milieu — le registre sérialise et borne déjà
+  chaque élément). **Politique du démon applicatif REPORTÉE aux
+  mesures** (§2.2, S6) : le démon reste process-wide, l'étape D
+  libère à l'intérieur. +2 tests client (envoi/accusé canonique,
+  échec typé), +1 intégration serveur RÉELLE (sync → fermeture accusée
+  → idempotence → session vivante → re-sync), +2 CacheSync (purge,
+  idempotence), +2 éditeur (fermeture tooling au chemin FUSE,
+  renoncement build en vol).
+
 ## [0.104.0] – 2026-10-12
 
 ### Ajouté
