@@ -1189,6 +1189,26 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.101.0 : **mission « LSP Java » lot h4 « LSP instantané » + montée
+      code-editor 3.49.2** (docs/LSP_JAVA.md §16.4) : le moteur n'est
+      plus « tout ou rien » — avant sync et sans jrt, parseSeul
+      (Parser.parse DIET + getMethodBodies, le second pass est
+      OBLIGATOIRE : le diet parse laisse statements null) puis
+      diagnoseSyntax filtré au bit IProblem.Syntax (0x40000000) servent
+      la SYNTAXE dès le didOpen ; EcjSyntaxCompletion propose les
+      symboles DÉCLARÉS du fichier (types/méthodes/champs +
+      paramètres/locales de la méthode englobante, préfixe strict) +
+      mots-clés, ZÉRO devinette (aucun type du JDK en repli) ; montée en
+      régime automatique par le live-republish post-sync ; le didOpen
+      annonce le régime (« [h4] plateforme absente — mode instantané »,
+      JUL). Garanties testées : source cassée → SES erreurs de syntaxe,
+      source saine non résolue → silence (jamais de « cannot be
+      resolved » fabriqué — EcjSyntaxInstantTest, 12 tests,
+      pré-condition forcée jdkHome sans lib/modules). code-editor
+      3.41.0 → 3.49.2 (diff des tags : zéro méthode publique retirée ;
+      EditorView en ajouts purs — guides d'indentation, sticky lines,
+      color pickers, plis d'imports, complétion native mots-clés avec
+      context gate ; 3.49.2 = correctif build JitPack).
 - v0.100.3 : **correctif « troisième retour d'appareil » LSP Java — le
       branchement muet** (docs/LSP_JAVA.md §16.2.3 ; barre d'état fine =
       v0.100.2 confirmé installé ; journal « ouverte → nourrie →

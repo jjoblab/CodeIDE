@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.101.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » — lot h4 « LSP instantané »** (docs/LSP_JAVA.md
+  §16.4). Le moteur n'est plus « tout ou rien » : avant la première sync
+  et sans JDK du terminal, `isLikelyUsable()` fermait TOUT (zéro
+  diagnostic, complétion vide) — un `.java` ouvert était branché mais
+  MUET. Désormais, le mode instantané (le « dumb mode »
+  d'IntelliJ/Android Studio) parle dès le didOpen : ① diagnostics de
+  SYNTAXE seuls — nouveau `parseSeul` (parseur ecj sans environnement
+  de noms, `Parser.parse` + `getMethodBodies` pour les corps) et
+  `diagnoseSyntax` filtré au bit `IProblem.Syntax` ; ② complétion
+  instantanée `EcjSyntaxCompletion` — symboles DÉCLARÉS du fichier
+  (types, méthodes, champs, paramètres/locales de la méthode englobante)
+  + mots-clés du langage, zéro devinette (aucun type du JDK). Montée en
+  régime AUTOMATIQUE : le live-republish post-sync remplace le repli.
+  Garanties testées (`EcjSyntaxInstantTest`, 12 tests, pré-condition
+  forcée jdkHome sans lib/modules) : une source cassée rend SES erreurs
+  de syntaxe ; une source saine non résolue reste silencieuse (jamais
+  de « cannot be resolved » fabriqué).
+
+### Modifié
+
+- **code-editor 3.41.0 → 3.49.2** (demande du retour) : compat API
+  vérifiée par diff des tags — zéro méthode publique retirée (cel-lsp
+  et cel-core inchangés ; `EditorView` en ajouts purs). Apports visibles
+  : guides d'indentation (approche Sora Editor/VS Code avec cache par
+  révision + recherche binaire), sticky lines, color pickers inline et
+  par variable, pliage des imports, complétion native mots-clés avec
+  context gate — cette dernière complète le mode instantané h4 côté
+  éditeur. 3.49.2 = correctif de build JitPack (safe.directory + install
+  step explicite).
+
 ## [0.100.3] – 2026-10-12
 
 ### Corrigé
