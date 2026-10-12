@@ -1189,6 +1189,35 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.109.0 : **cadrage des missions LSP Kotlin / LSP XML / Previews**
+      (docs/LSP_KOTLIN.md, docs/LSP_XML.md, docs/PREVIEW.md — décisions
+      propriétaire 2026-10-13) : étude comparative CodeAssist (tyron12233,
+      GPL — enseignements SEULEMENT, zéro code : pas de LSP du tout chez
+      eux, parseur seul + 31k lignes de symboles propres, FIR rejeté par
+      frappe, compilateur K2 forké en VM persistante sur ART + 9 passes
+      ASM « compiler-on-ART » + Analysis API réservée à KSP2) ; analyse
+      directe jjoblab/LayoutLib v2.1.0 (6 modules, 329 classes, 868 tests
+      JVM, RenderService debounce/validation/dernier-rendu-valide,
+      limitations tracées : qualifiers langue, layer-list/ripple,
+      VectorDrawable partiel, pas de solver ConstraintLayout). LSP Kotlin :
+      D1–D8 (option ③ vendoré : grammaire officielle du compilateur
+      Apache 2.0 + modèle de symboles propre conservateur ; fwcd écarté ;
+      Analysis API = mode profond différé ; classes synthétiques
+      R/ViewBinding/databinding fermant la décision ① §17.3 ; T1 éditeur
+      K1–K5, T2 compilation différé au tooling ; **distribution « pack
+      langue » téléchargeable DIFFÉRÉE à post-stabilisation** — décision
+      propriétaire, architecture préparée dès K1 : SPI mince, module
+      sans référence directe, version.properties de pack). LSP XML :
+      X1–X5 (moteur maison in-process, parseur tolérant, contributeurs
+      catalogue plateforme + index ressources projet, Lemminx écarté ;
+      XE1–XE4). Previews : P1–P6/PC1–PC4 (XML via LayoutLib dépendance
+      Maven versionnée + FUSE + isolation processus :preview AIDL/
+      DeathRecipient/repli ; Compose = interpréteur sur l'arbre résolu
+      approche CodeAssist APRÈS stabilisation LSP Kotlin, runtime Compose
+      = bibliothèque de preview, ADR 0002 intact, garde-fous
+      obligatoires ; PE1–PE3/C0–C3). ROADMAP Phase 5 réécrite
+      (5.1 livré, 5.2–5.4 cadrés). Version documentation pure : aucun
+      code modifié, suites inchangées.
 - v0.108.0 : **correctifs d'exploitation LSP Java — retour
       propriétaire** (docs/LSP_JAVA.md §17) : ① StringConcatFactory
       — fait établi : la classe n'existe dans AUCUNE plateforme
