@@ -456,15 +456,18 @@ class EditorViewModel
             // session de projet — le contrat process-wide I1 (ouvrir B ferme
             // A d'abord) ; le ViewModel OBSERVE la session, il n'en est plus
             // propriétaire (§5.1). Les travaux enregistrent le FLUSH des
-            // sauvegardes (élément NON annulable, I7) : une session n'est
-            // jamais ouverte sans sa garantie de flush. En viewModelScope :
+            // sauvegardes (élément NON annulable, I7) PUIS la libération
+            // tooling du projet (étape D, v9 — refermée en ordre inverse :
+            // tooling d'abord, flush en dernier) : une session n'est
+            // jamais ouverte sans ses garanties de fermeture. En
+            // viewModelScope :
             // la rotation ne referme RIEN (I3 — le ViewModel survit), une
             // ouverture annulée (écran mort en vol) referme ce qu'elle avait
             // démarré (Nettoyage, contrat §4.8).
             viewModelScope.launch {
                 when (
                     gestionnaireSession.ouvrir(ProjectId(identifiant)) {
-                        enregistrerFlushSauvegardes()
+                        enregistrerRessourcesOuverture()
                     }
                 ) {
                     is AppResult.Failure -> {
@@ -3516,6 +3519,39 @@ class EditorViewModel
             sessions.clear()
             fermerSessionLsp()
             persisterEtatEspaceFinal()
+        }
+
+        /**
+         * Travaux d'ouverture de la session de projet (étapes C/D) :
+         * enregistre les DEUX garanties de fermeture — le FLUSH des
+         * sauvegardes (élément NON annulable, I7, enregistré PREMIER →
+         * refermé en DERNIER) et la libération tooling du projet (étape D,
+         * enregistrée en SECOND → refermée en PREMIER). Le moindre refus
+         * (fermeture en cours) fait échouer les travaux : l'ouverture est
+         * alors refusée proprement, sans garantie partielle.
+         */
+        private fun enregistrerRessourcesOuverture(): AppResult<Unit> {
+            val flush = enregistrerFlushSauvegardes()
+            if (flush is AppResult.Failure) return flush
+            return when (
+                val resultat =
+                    gestionnaireSession.session.enregistrer(
+                        fermable =
+                            FermablesEspace.fermetureProjetTooling(
+                                tooling = tooling,
+                                cheminDuProjet = { cheminProjet },
+                                travailEnVol = {
+                                    val etat = serviceGradle.etat.value
+                                    etat.statutBuild == StatutBuild.EN_COURS || etat.synchronisationEnCours
+                                },
+                                journal = journal,
+                            ),
+                        delai = FermablesEspace.DELAI_FERMETURE_TOOLING,
+                    )
+            ) {
+                is AppResult.Success -> AppResult.Success(Unit)
+                is AppResult.Failure -> resultat
+            }
         }
 
         /**

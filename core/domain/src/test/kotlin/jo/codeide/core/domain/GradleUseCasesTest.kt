@@ -163,6 +163,9 @@ class GradleUseCasesTest {
             buildAnnule = buildId
         }
 
+        // Cycle de vie étape D (v9) : hors périmètre de ces tests — no-op.
+        override suspend fun fermerProjet(projectDir: File): AppResult<Unit> = AppResult.Success(Unit)
+
         override fun envoyerEntree(
             buildId: String,
             texte: String,

@@ -1,13 +1,13 @@
 # Cycle de vie de l'éditeur — session de projet et fermeture propre (prompt 3)
 
-> **Statut (v0.104.0) : mission EN COURS — étapes A, B et C LIVRÉES**.
+> **Statut (v0.105.0) : mission EN COURS — étapes A, B, C et D LIVRÉES**.
 > Étape A : audit documentaire (§4). Étape B : module pur `:core:session`
-> + ADR 0114 (§5, v0.103.0). Étape C : branchement éditeur — session
-> ouverte au démarrage, flush I7 en sortie, session LSP Fermable, I1
-> P→Q, miroir E13, E12, E16, décisions §2 arbitrées (§2, §6, v0.104.0).
-> Prochaine étape : **D — côté serveur de tooling** (libération par
-> projet, message de protocole « fermeture de projet »). La baseline
-> §4.5 reste exécutable sur le TAG v0.103.0 (état pré-correctif figé).
+> + ADR 0114 (§5, v0.103.0). Étape C : branchement éditeur (§6,
+> v0.104.0). Étape D : protocole v9 « fermeture de projet » +
+> libération PAR PROJET côté orchestrateur (§7, v0.105.0 — E9 fermé,
+> politique du démon reportée aux mesures S6). Prochaine étape : **E —
+> cohérence de navigation** (matrice §4.4). La baseline §4.5 reste
+> exécutable sur le TAG v0.103.0 (état pré-correctif figé).
 > Lecture préalable : `AGENTS.md`,
 > `docs/ARCHITECTURE.md`, `docs/TOOLING.md`, `feature/editor/Module.md`,
 > prompt 3 (`upload/extracted_files/03-prompt-cycle-de-vie-editeur.md`).
@@ -51,7 +51,7 @@ bornés) reste à construire à l'étape B.
 | **A — Audit et cartographie** | **LIVRÉ (présent document, §4)** — livrable écrit, pas de code de production | Table d'inventaire de TOUTES les ressources de fond ; diagrammes de séquence des parcours ; matrice de transitions (une ligne = un test) ; protocole de mesures de référence appareil (exécution par le propriétaire, baseline de l'étape F) ; détection de fuites en debug (déjà en place : StrictMode + LeakCanary 2.14, procédure §4.6) |
 | **B — Contrat de session et registre de fermeture** | **LIVRÉ (v0.103.0, §5 du présent document — ADR 0114)** : module Kotlin JVM pur `:core:session` | `SessionProjet` (`ouvrir(projet)`, `fermer(raison)`, états `{Fermee, Ouverture, Ouverte, Fermeture}`), registre de ressources `Fermable` (ordre inverse, délai maximal, drapeau « ne pas annuler ») ; tests unitaires : ordre inverse, idempotence, **panne partielle**, **dépassement de délai**, fermeture pendant l'ouverture, ouverture pendant la fermeture, réentrance, annulation — 33 tests verts. Aucune dépendance Android |
 | **C — Intégration éditeur et migration des ressources existantes** | **LIVRÉ (v0.104.0, §6 du présent document)** | `EditorActivity`/`EditorViewModel` : session ouverte au démarrage (I1 par le gestionnaire), flush des sauvegardes NON annulable en sortie (I7/E2, portée application), session LSP `Fermable`, `onTrimMemory` caches reconstructibles (E16), miroir connexion process-wide (E13), fuite E12 corrigée, annonce build en cours (§2.1c) ; 6 nouveaux tests, 338 au total |
-| **D — Côté serveur de tooling** | Libération PAR PROJET (connexions Tooling API du `GradleConnectorPool`, démons Gradle sous-jacents, caches du `CacheSync`, abonnements du bus) ; message de protocole de « fermeture de projet » si nécessaire (compatibilité ascendante : `PROTOCOL_VERSION`, champs optionnels) ; politique du démon applicatif selon les mesures (conservé tant qu'une session existe ; arrêté après X min sans session et app en arrière-plan) | |
+| **D — Côté serveur de tooling** | **LIVRÉ (v0.105.0, §7 du présent document)** : protocole v9 | `FermerProjetRequest`/`FermerProjetResult` (idempotents, accusé corrélé) ; `GradleConnectorPool.fermer(dossier)` (connexion PAR projet), `CacheSync.purger`, branchement dispatcher ; port `fermerProjet` (E9 fermé) + Fermable « tooling-projet » (renoncement §2.1c si build/sync en vol) ; politique du démon REPORTÉE aux mesures (S6) |
 | **E — Cohérence de navigation** | Matrice de transitions implémentée : état « projet ouvert » sur l'accueil (liste récente, dernier ouvert), rafraîchissement au retour, réglages appliqués au retour (thème, palette, langue), permission SAF révoquée / stockage disparu détectés au retour, état de l'installation d'outils répercuté, retour depuis notification, écran de plantage → relance propre | |
 | **F — Vérification et validation appareil** | 20 cycles ouvrir/quitter : croissance du tas < 5 %, aucune instance d'`EditorActivity` retenue (détecteur) ; sortie de l'éditeur ⇒ aucun processus enfant lié au projet au-delà de la politique ; ouvrir P, quitter, ouvrir Q ⇒ aucun vestige de P ; aucune perte de la dernière modification en sortie rapide (test automatisé) ; rotation ne ferme rien ; fermeture bornée en temps même si un élément bloque | |
 
@@ -613,3 +613,83 @@ chaude.
 `:app:assembleDebug` + `checkModuleDependencies` VERTS (9 min, machine
 2 cœurs / 3,9 Go, cache chaud). Durée de l'étape C : ~1,5 journée de
 travail agent (audit §6.1 compris).
+
+## 7. Étape D — libération par projet côté tooling (v0.105.0, LIVRÉE)
+
+> Livrable : le message de protocole **v9 « fermeture de projet »** (E9 :
+> la fermeture de session gagne sa voie orchestrateur — l'écart
+> `GradleApiImpl.fermerSession()` « jamais appelée par l'UI » était le
+> constat d'ouverture de la mission). La **politique de durée de vie du
+> démon applicatif reste REPORTÉE aux mesures** (§2.2, S6) : l'étape D
+> libère les ressources PAR PROJET à l'intérieur du démon, elle ne
+> touche PAS au démon lui-même.
+
+### 7.1 Protocole v9 (compatibilité ascendante)
+
+| Message | Sens | Rôle |
+|---|---|---|
+| `FermerProjetRequest {id, protocolVersion, projectDir}` | app → orchestrateur | Demande la libération du projet (idempotente : un projet inconnu est un no-op accusé) |
+| `FermerProjetResult {id, protocolVersion, projectDir}` | orchestrateur → app | Accusé corrélé — son EXISTENCE est le succès |
+
+- `PROTOCOL_VERSION` v8 → **v9** (doc champ par champ dans
+  `GradleProtocol.kt`, motif des v4–v8) ; le handshake exige l'égalité
+  exacte — les deux bouts vivant dans le même APK, la montée est
+  atomique. Un pair v8 rejette le v9 net (`PROTOCOL_VERSION_MISMATCH`),
+  jamais de comportement indéfini (testé depuis longtemps).
+- Dorés : 38 fichiers `golden/` (36 + 2), cardinalités du
+  `ProtocoleRoundTripTest` mises à jour (15 requêtes / 23 événements).
+
+### 7.2 Serveur (tooling:server)
+
+- `GradleConnectorPool.fermer(dossier)` : ferme la connexion Tooling API
+  du projet UNIQUEMENT (clé canonique, idempotente) — fermer une
+  `ProjectConnection` ne tue PAS le démon Gradle sous-jacent (géré par
+  Gradle — politique hors périmètre, reportée S6).
+- `CacheSync.purger(projectDir)` : retire l'entrée du projet (clé
+  canonique, idempotente).
+- `MessageDispatcher.traiter` : branche `FermerProjetRequest` →
+  libération + purge + ACCUSÉ publié sur le bus (corrélation par `id`).
+- EventBus : **rien à purger** — le bus est un tuyau global sans
+  abonnement ni notion de projet (constat d'étape A confirmé par
+  lecture : les événements portent leur projet dans leur charge utile).
+
+### 7.3 Client et éditeur (tooling:client, feature:editor)
+
+- `GradleToolingRepository.fermerProjet(projectDir): AppResult<Unit>`
+  (nouvelle méthode du PORT, E9 fermé) : `echanger` avec accusé, délai
+  15 s, échec typé si l'orchestrateur est absent (jamais bloquant).
+  Router client : branche `FermerProjetResult` (complétion de promesse
+  — l'épuisement du `when` est la garde de compilation).
+- `FermablesEspace.fermetureProjetTooling(...)` : le **Fermable
+  « tooling-projet »** de la session — enregistré dans les travaux
+  d'ouverture (étape C), refermé en PREMIER (ordre inverse). Politique
+  de renoncement (§2.1c) : un build OU une sync en vol au moment de la
+  fermeture CONTINUE — sa connexion vit avec lui (renoncement
+  journalisé, la prochaine ouverture ou la mort du process refermera) ;
+  un chemin non résolu : rien à libérer.
+- LSP Fermable : le saut `Dispatchers.IO` est retiré de `fermer()` — le
+  registre sérialise et borne déjà chaque élément, et un saut réel
+  échappe au temps virtuel des tests (indéterminisme corrigé).
+
+### 7.4 Vérifications
+
+`:tooling:protocol:check` (38 dorés, round-trip, compat) ;
+`:tooling:server:check` (117 tests, INTÉGRATION RÉELLE : sync fixture
+→ fermeture accusée → idempotence projet inconnu → session vivante
+(ping) → re-sync réussit = le pool ROUVRE à la demande) ;
+`:tooling:client:check` (envoi + accusé corrélé + chemin canonique +
+échec typé sans orchestrateur) ; `:tooling:daemon:check` ;
+`:feature:editor:check` (fermeture tooling part avec le chemin FUSE ;
+renoncement build en vol + session fermée quand même) ;
+`:core:domain:check` (faux du port étendus) ; `:app:assembleDebug` +
+`checkModuleDependencies` VERTS.
+
+### 7.5 Ce que l'étape D ne fait PAS
+
+- **Politique du démon** (§2.2) : durée de vie inchangée (process-wide)
+  — les mesures S6 décideront (conservé / arrêt après X min / relance).
+- **Build en vol** : la libération est renoncée (pas différée — la
+  re-libération à la fin du build demanderait un index projectDir→build
+  côté serveur, ajouté si les mesures le justifient).
+- **Étape E (navigation)** : notifications E10, extra de routage,
+  état accueil — hors périmètre.
