@@ -1,5 +1,27 @@
 # Journal des modifications
 
+## [0.100.3] – 2026-10-12
+
+### Corrigé
+
+- **Mission « LSP Java » — troisième retour d'appareil v0.100.2 : le
+  branchement muet** (docs/LSP_JAVA.md §16.2.3). La barre d'état était
+  fine (v0.100.2 installé), le journal disait « session LSP ouverte →
+  nourrie → refermée » — mais JAMAIS « LSP Java connecté » NI aucun
+  WARN d'échec, aucune complétion Java (liste lexicale seule), aucun
+  diagnostic sur erreurs volontaires. Cause : le branchement résout le
+  chemin FUSE du FICHIER `.java` par le pont `ResolveurCheminFuse`, qui
+  n'avait qu'UN contrat — RÉPERTOIRE (garde `isDirectory`, héritée du
+  terminal T6) : tout fichier résolvait à `null` et l'appelant renonçait
+  AU SILENCE (session saine, zéro éditeur branché). Correctif : contrat
+  explicite `resoudreEntree` (fichier OU dossier, garde `exists`),
+  l'opérateur garde `isDirectory` (terminal/Git/clone/racine LSP),
+  fonction pure `cheminFuseVerifie` testable en JVM, `cheminFuseDe`
+  passe par le contrat d'entrée, et PLUS AUCUN renoncement silencieux
+  (« branchement LSP renoncé : chemin FUSE introuvable » en WARN, tag
+  `LspEditeur`). +4 tests de régression (`ResoudreRepertoireProjetTest`)
+  et le faux du test ViewModel SÉPARE désormais les deux contrats.
+
 ## [0.100.2] – 2026-10-12
 
 ### Corrigé

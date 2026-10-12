@@ -1744,6 +1744,12 @@ class EditorActivity :
      * la garde URI ([CoordonnateurLsp.estBrancheSur]) évite les
      * re-connexions au re-rendu. La course « onglet changé pendant la
      * résolution » est refermée en re-vérifiant l'état courant.
+     *
+     * V0.100.3 : chaque renoncement est JOURNALISÉ — le retour d'appareil
+     * v0.100.2 (§16.2.3) a montré le coût du silence : la résolution
+     * fichier rejetée par le contrat « répertoire » du pont tuait TOUT
+     * branchement sans la moindre trace. Un renoncement désormais est
+     * un WARN (échec de résolution) ou un DEBUG (course bénigne).
      */
     private fun brancherLspSiNecessaire(etat: EtatEditor) {
         val session = viewModel.sessionLsp.value
@@ -1755,10 +1761,21 @@ class EditorActivity :
         if (coordonnateurLsp.estBrancheSur(onglet.uri)) return
         val uri = onglet.uri
         lifecycleScope.launch {
-            val chemin = viewModel.cheminFuseDe(uri) ?: return@launch
+            val chemin =
+                viewModel.cheminFuseDe(uri) ?: run {
+                    journalLsp.w(TAG_LSP) {
+                        "branchement LSP renoncé : chemin FUSE introuvable ($uri)"
+                    }
+                    return@launch
+                }
             val courant = viewModel.etat.value
             val actif = courant.onglets.getOrNull(courant.indexOngletActif)
-            if (actif?.uri != uri || viewModel.sessionLsp.value !== session) return@launch
+            if (actif?.uri != uri || viewModel.sessionLsp.value !== session) {
+                journalLsp.d(TAG_LSP) {
+                    "branchement LSP abandonné (onglet ou session changé pendant la résolution)"
+                }
+                return@launch
+            }
             coordonnateurLsp.brancher(session, uri, chemin, liaison.vueEditeur)
         }
     }
@@ -2368,6 +2385,11 @@ class EditorActivity :
         const val TAG_PROJET = "tiroir_projet"
         const val TAG_GIT = "tiroir_git"
         const val TAG_TERMINAL = "tiroir_terminal"
+
+        /** Étiquette LSP de l'activité — la MÊME que
+         * [CoordonnateurLsp] ("LspEditeur") : la séquence « branchement
+         * renoncé → LSP Java connecté » se lit d'un seul filtre journal. */
+        const val TAG_LSP = "LspEditeur"
 
         /** Bornes de largeur du tiroir (§ 13 : 45 % ↔ 98 %). */
         const val FRACTION_MIN = 0.45f
