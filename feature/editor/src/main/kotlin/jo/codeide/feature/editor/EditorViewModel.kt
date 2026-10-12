@@ -617,6 +617,15 @@ class EditorViewModel
             if (state.taches.isNotEmpty()) {
                 serviceGradle.publierTachesDisponibles(state.taches)
             }
+            // Lot h4 écart 2 (v0.102.0, §16.5) : empreinte identique ⇒ le
+            // classpath persisté est ENCORE BON — la session s'en nourrit
+            // IMMÉDIATEMENT (avant la revalidation silencieuse ci-dessous) :
+            // la réouverture redevient quasi instantanée comme Android
+            // Studio (index + modèle persistés). L'empreinte Gradle est la
+            // CLÉ de cache ; l'application est idempotente (redondant =
+            // no-op chaud, lot E) : quand la revalidation rendra le même
+            // classpath, rien ne sera reconstruit.
+            nourrirSessionLspDepuisModelePersiste()
             // Revalidation silencieuse : on relance la sync sans déroulé
             // visible — on garde l'état restitué affiché pendant la
             // revalidation. Si elle échoue, on ne met PAS l'état à rouge :
@@ -624,6 +633,30 @@ class EditorViewModel
             // — l'utilisateur peut appuyer sur « Sync » manuellement.
             viewModelScope.launch { revaliderSyncSilencieusement() }
             return true
+        }
+
+        /**
+         * Nourrit la session depuis le modèle persisté (lot h4 écart 2,
+         * v0.102.0) — `.codeide/local/lsp-modele.json`, écrit à chaque
+         * application de classpath : modèle + moteurs retrouvés SANS
+         * Gradle, l'empreinte a déjà été validée par l'appelant. Session
+         * absente ou fichier absent : journal discret, JAMAIS bloquant —
+         * la revalidation silencieuse nourrira à sa suite.
+         */
+        private fun nourrirSessionLspDepuisModelePersiste() {
+            val session = sessionLspInterne.value ?: return
+            if (session.nourrirDepuisModelePersiste()) {
+                journal.i(TAG) {
+                    "session LSP nourrie depuis le cache (${session.modele.value
+                        ?.modules
+                        ?.size ?: 0} " +
+                        "module(s), projet ${identifiantSuivi()})"
+                }
+            } else {
+                journal.d(TAG) {
+                    "modèle LSP persisté absent — session nourrie après sync (projet ${identifiantSuivi()})"
+                }
+            }
         }
 
         /**
@@ -1075,6 +1108,15 @@ class EditorViewModel
                         // null (java.home du runtime ART) → moteur dégradé,
                         // documenté §16.2 — réouvrir l'espace après installation.
                         jdkHome = outilchain.javaHome()?.toPath(),
+                        // Lot h4 écart 1 (v0.102.0, §16.5) : la plateforme
+                        // installée par le bootstrap rejoint le moteur PAR
+                        // DÉFAUT dès l'ouverture — le SDK est sur disque
+                        // AVANT toute sync (EtapesAndroidSdk), Android Studio
+                        // y branche android.jar dès la config SDK : android.*
+                        // et java.* (boot classpath) résolvent SANS attendre
+                        // le modèle Gradle. Absent : repli mode instantané
+                        // (v0.101.0) — le didOpen annonce son régime.
+                        androidJar = outilchain.androidJar(),
                     )
                 sessionLspInterne.value = session
                 journal.i(TAG) { "session LSP ouverte (projet ${identifiantSuivi()})" }

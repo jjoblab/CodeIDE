@@ -1,21 +1,29 @@
 package jo.codeide.feature.editor
 
 import androidx.lifecycle.SavedStateHandle
+import jo.codeide.core.domain.CalculerEmpreinteGradleUseCase
 import jo.codeide.core.domain.EtatOutilsTerminal
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.testing.FakeFileSystem
+import jo.codeide.core.testing.TestDispatcherProvider
+import jo.codeide.lsp.host.SessionLsp
+import jo.codeide.tooling.protocol.ClasspathModule
 import jo.codeide.tooling.protocol.ClasspathResult
+import jo.lspjava.lsp.JavaLanguageServer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.nio.file.Files
 
 /**
  * Tests de la session LSP Java de l'espace (mission « LSP Java » étape 4
@@ -213,4 +221,183 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
             SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
             resolveurFUSE,
         )
+
+    // ------------------------------------------------------------------
+    // v0.102.0 — lot h4, les deux écarts réels (§16.5).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `l ouverture branche le android jar de la toolchain au moteur par defaut`() =
+        runTest {
+            // Écart 1 : le SDK installé par le bootstrap est sur disque
+            // AVANT toute sync — la plateforme rejoint le moteur par défaut
+            // dès l'ouverture (FakeToolchainLocator.androidJar).
+            val plateforme =
+                Files
+                    .createTempDirectory("codeide-sdk")
+                    .resolve("android.jar")
+                    .toFile()
+            plateforme.writeBytes(byteArrayOf(0x50, 0x4b, 1, 2))
+            outilchainTest.androidJar = plateforme
+            val id = ajouterProjet("Plateforme")
+            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Plateforme" })
+            avancer()
+
+            val session = viewModel.sessionLsp.value
+            assertNotNull("la session devait s'ouvrir", session)
+            val environnement = (session!!.serveur() as JavaLanguageServer).environment()
+            assertTrue(
+                "la plateforme de la toolchain devait rejoindre le moteur par défaut",
+                environnement.classpathEntries().any { it.name == "android.jar" },
+            )
+        }
+
+    @Test
+    fun `la reouverture avec empreinte identique nourrit la session depuis le cache`() =
+        runTest {
+            // Écart 2 : la sync passée a PERSISTÉ le modèle (session 1) ;
+            // la réouverture (session 2, empreinte Gradle inchangée) s'en
+            // nourrit AVANT la revalidation silencieuse — sans Gradle.
+            val racine = Files.createTempDirectory("codeide-projet-cache").toFile()
+            persisterModeleSous(racine)
+            assertTrue(
+                "le modèle devait être persisté sous la racine",
+                File(racine, ".codeide/local/lsp-modele.json").isFile,
+            )
+
+            val uriRacine = "content://autorite/tree/Cache/doc"
+            semerArborescenceSync(uriRacine)
+            semerEtatSync(uriRacine, empreinteGradleCourante(uriRacine))
+
+            val id = ajouterProjet("Cache")
+            val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
+            avancer()
+
+            assertTrue(
+                "la session devait être nourrie depuis le cache",
+                journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
+            )
+            assertNotNull(
+                "le modèle devait être relu depuis le disque",
+                viewModel.sessionLsp.value
+                    ?.modele
+                    ?.value,
+            )
+        }
+
+    @Test
+    fun `empreinte differente - pas de nourrissage depuis le cache perime`() =
+        runTest {
+            // L'empreinte Gradle est la CLÉ de cache : des fichiers Gradle
+            // changés depuis la dernière sync ⇒ le modèle persisté n'est
+            // plus garanti — sync complète, JAMAIS de cache trompeur.
+            val racine = Files.createTempDirectory("codeide-projet-perime").toFile()
+            persisterModeleSous(racine)
+
+            val uriRacine = "content://autorite/tree/Perime/doc"
+            semerArborescenceSync(uriRacine)
+            semerEtatSync(uriRacine, "0".repeat(64))
+
+            val id = ajouterProjet("Perime")
+            val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
+            avancer()
+
+            assertTrue(
+                "l'empreinte différente devait forcer la sync manuelle",
+                journalViewModel.entries.any { it.message.contains("empreinte différente") },
+            )
+            assertFalse(
+                "aucun nourrissage depuis un cache périmé",
+                journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
+            )
+            assertNull(
+                "le modèle périmé ne devait PAS être appliqué",
+                viewModel.sessionLsp.value
+                    ?.modele
+                    ?.value,
+            )
+        }
+
+    /**
+     * Persiste un modèle `:app` sous la racine (lot h4 écart 2) — joue
+     * la session de la sync passée : appliquerClasspath écrit
+     * `.codeide/local/lsp-modele.json` sous la racine (vue FUSE).
+     */
+    private fun persisterModeleSous(racine: File) {
+        SessionLsp(
+            racineProjet = racine,
+            stockageIndex = Files.createTempDirectory("codeide-index-lsp").toFile(),
+        ).use { session ->
+            session.appliquerClasspath(
+                ClasspathResult(
+                    id = "persiste",
+                    protocolVersion = 8,
+                    projectDir = racine.absolutePath,
+                    modules =
+                        listOf(
+                            ClasspathModule(
+                                name = ":app",
+                                sourceDirs = listOf(racine.absolutePath),
+                                entries = emptyList(),
+                            ),
+                        ),
+                ),
+            )
+        }
+    }
+
+    /**
+     * Sème l'arborescence de l'état de sync dans le faux SAF (v0.40.1) :
+     * racine + `build.gradle` (empreinte calculable) + `.codeide/local`.
+     */
+    private fun semerArborescenceSync(uriRacine: String) {
+        fichiers.grantPermission(uriRacine.removeSuffix("/doc"))
+        fichiers.seedDocument(
+            uriRacine,
+            FakeFileSystem.Document(name = uriRacine.substringAfterLast('/'), isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$uriRacine/build.gradle",
+            FakeFileSystem.Document(
+                name = "build.gradle",
+                isDirectory = false,
+                bytes = "plugins { }".toByteArray(),
+            ),
+        )
+        fichiers.seedDocument(
+            "$uriRacine/.codeide",
+            FakeFileSystem.Document(name = ".codeide", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$uriRacine/.codeide/local",
+            FakeFileSystem.Document(name = "local", isDirectory = true),
+        )
+    }
+
+    /**
+     * Sème `.codeide/local/sync-state.json` (l'état que la réouverture
+     * restitue quand l'empreinte correspond, v0.40.1).
+     */
+    private fun semerEtatSync(
+        uriRacine: String,
+        empreinte: String,
+    ) {
+        val json =
+            """{"schema":1,"empreinte":"$empreinte","taches":[],"dureeMs":0,"instantMs":0}"""
+        fichiers.seedDocument(
+            "$uriRacine/.codeide/local/sync-state.json",
+            FakeFileSystem.Document(
+                name = "sync-state.json",
+                isDirectory = false,
+                bytes = json.toByteArray(),
+            ),
+        )
+    }
+
+    /** Empreinte Gradle courante du faux SAF (build.gradle semé). */
+    private suspend fun empreinteGradleCourante(uriRacine: String): String =
+        CalculerEmpreinteGradleUseCase(
+            fichiers,
+            TestDispatcherProvider(regleMain.dispatcher),
+        )(uriRacine)
 }

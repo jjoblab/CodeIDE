@@ -1189,6 +1189,28 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.102.0 : **mission « LSP Java » lot h4 (suite) — les DEUX ÉCARTS
+      réels avec Android Studio** (docs/LSP_JAVA.md §16.5 ; le retour
+      citait le plan : §16.4 avait livré le repli syntaxique, pas les
+      écarts) : ① pré-classpath — `SessionLsp(androidJar ←
+      outilchain.androidJar())` branche la plateforme du bootstrap au
+      contexte PAR DÉFAUT dès l'ouverture (android.* ET java.* du boot
+      classpath résolvent AVANT sync, régime plein) ; le champ
+      androidJar du modèle v8 est ENFIN consommé (jarsDe des moteurs
+      par module + UNION INDEXABLE : l'index disque PRÊT est
+      AUTORITATIF — négatif définitif — un jar hors union y était
+      INVISIBLE ; sous-bug corrigé : VueIndex.estPaquet niait les
+      paquets INTERMÉDIAIRES, feuilles seules en segments) ; ②
+      réouverture lente (~2 min constatées) — PersistanceModeleLsp
+      ENFIN CÂBLÉ : le modèle est persisté à chaque appliquerClasspath
+      (.codeide/local/lsp-modele.json, validation W7) et relu à
+      l'ouverture par nourrirDepuisModelePersiste (OrchestrateurLsp.
+      appliquerModele — MÊME triptyque, idempotent) QUAND l'empreinte
+      Gradle de sync-state.json est identique — jamais de cache
+      trompeur ; journal « session LSP nourrie depuis le cache (N
+      module(s)) ». +5 tests OrchestrateurLspTest (fixture jar de
+      plateforme compilée au vol), +1 VueIndexTest, +3
+      LspEditorViewModelTest.
 - v0.101.0 : **mission « LSP Java » lot h4 « LSP instantané » + montée
       code-editor 3.49.2** (docs/LSP_JAVA.md §16.4) : le moteur n'est
       plus « tout ou rien » — avant sync et sans jrt, parseSeul
