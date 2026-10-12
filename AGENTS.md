@@ -1189,6 +1189,40 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- (post v0.102.0, livraison documentaire sans version) : **mission
+      « Cycle de vie » étape A — audit et cartographie** (prompt 3 ;
+      docs/CYCLE_DE_VIE.md §4, mission entamée au retour du
+      propriétaire) : constats E1–E6 re-vérifiés à v0.102.0 + dix
+      nouveaux [E7 SessionLsp par espace SANS coordination
+      process-wide ni bornage ; E8 rotation = shutdown cel-lsp
+      inconditionnel ; E9 fermerSession() sans voie UI + aucun message
+      protocole « fermeture de projet » ; E10 notifications SANS
+      projet ; E11 sessions terminal globales ; E12 session cel
+      remplacée sans disposer (remplacerContenuFichier) ; E13 miroir
+      GradleService.etat alimenté par le seul collecteur de l'éditeur ;
+      E15 cache LRU cel-ui INFIRMÉ (LinkedHashMap non borné, ADR
+      0028) ; E16 zéro onTrimMemory au dépôt] ; inventaire §4.2 des
+      24 ressources de fond (portée/démarrage/arrêt actuel/arrêt
+      cible/risque — le cœur : tout ce qui est lié au projet et lourd
+      vit avec le PROCESSUS, tout ce qui est bien scopé est léger et
+      meurt déjà) ; 7 parcours séquencés vérifiés §4.3 (P3
+      éditeur→paramètres INEXISTANT ; P4 cas dégénéré 2 sessions =
+      I1 violable ; P6 restauration post-kill propre depuis
+      workspace-state.json + lsp-modele.json) ; matrice de transitions
+      §4.4 attendu vs observé (une ligne = un test) ; protocole de
+      mesures baseline appareil §4.5 (S1–S7 : 20 cycles, rotation,
+      P→Q, build en cours, terminal, arrière-plan, kill+relance — à
+      exécuter par le propriétaire AVANT tout correctif, conjointement
+      au p95 LSP §11.2 de LSP_JAVA.md) ; fuites §4.6 : StrictMode
+      (detectAll+penaltyLog, debug) et LeakCanary 2.14 (debug
+      implementation, ADR 0028) DÉJÀ en place — procédure de recette
+      formalisée ; verdicts §4.7 sur chaque constat/hypothèse du
+      prompt (dont INFIRMÉS : cache LRU cel-ui, EventBus/HeapMonitor
+      côté app) ; arbitrage §4.8 : registre Fermable MINIMAL (I2/I7),
+      accroche LSP premier client, I1 par le gestionnaire pas le
+      manifeste. Aucun code de production modifié. LSP_JAVA.md §16.3
+      actualisé : mission « LSP Java » close (lot h3 et ADR 0112
+      strict reportés par le propriétaire).
 - v0.102.0 : **mission « LSP Java » lot h4 (suite) — les DEUX ÉCARTS
       réels avec Android Studio** (docs/LSP_JAVA.md §16.5 ; le retour
       citait le plan : §16.4 avait livré le repli syntaxique, pas les
