@@ -276,6 +276,16 @@ class EditorViewModel
          */
         private val sessionLspInterne = MutableStateFlow<SessionLsp?>(null)
 
+        /**
+         * Exclusion mutuelle de l'ouverture de session LSP (v0.100.1) :
+         * deux coroutines sollicitent l'ouverture au démarrage — la garde
+         * doit être reverifiée SOUS verrou APRÈS la résolution FUSE
+         * suspendante (sinon la seconde session écrase la première sans
+         * la refermer : moteurs et index orphelins, journal d'appareil
+         * « session LSP ouverte » ×2 à 15 ms d'écart).
+         */
+        private val exclusionOuvertureLsp = Mutex()
+
         /** Session LSP observable (branchement éditeur, §16.2). */
         val sessionLsp: StateFlow<SessionLsp?> = sessionLspInterne.asStateFlow()
 
@@ -1036,29 +1046,39 @@ class EditorViewModel
          *
          * Racine irrésoluble (volume inconnu) : journal seul — l'édition
          * n'est jamais bloquée, la session n'existe simplement pas.
+         *
+         * v0.100.1 (journal d'appareil : deux « session LSP ouverte » à
+         * 15 ms d'écart, aucune refermée) : l'ouverture est sollicitée par
+         * DEUX coroutines au démarrage (suivi du projet + sync
+         * d'ouverture) — la garde était franchie AVANT la résolution FUSE
+         * SUSPENDANTE, la seconde session ÉCRASAIT la première sans la
+         * refermer : moteurs, constructions d'index et modèle ORPHELINS.
+         * L'ouverture est EXCLUSIVE et la garde REVERIFIÉE sous le verrou.
          */
         private suspend fun ouvrirSessionLspSiPossible() {
-            if (sessionLspInterne.value != null) return
-            val racine =
-                resoudreCheminProjet()?.let { chemin -> File(chemin) }
-                    ?: run {
-                        journal.w(TAG) {
-                            "session LSP non ouverte : racine FUSE introuvable (projet ${identifiantSuivi()})"
+            exclusionOuvertureLsp.withLock {
+                if (sessionLspInterne.value != null) return
+                val racine =
+                    resoudreCheminProjet()?.let { chemin -> File(chemin) }
+                        ?: run {
+                            journal.w(TAG) {
+                                "session LSP non ouverte : racine FUSE introuvable (projet ${identifiantSuivi()})"
+                            }
+                            return
                         }
-                        return
-                    }
-            val session =
-                SessionLsp(
-                    racineProjet = racine,
-                    stockageIndex = dossierIndexLsp.emplacement(),
-                    // D5 : le moteur sonde lib/src.zip + lib/modules du JDK
-                    // pour java.* — le JDK du TERMINAL (bootstrap). Absent :
-                    // null (java.home du runtime ART) → moteur dégradé,
-                    // documenté §16.2 — réouvrir l'espace après installation.
-                    jdkHome = outilchain.javaHome()?.toPath(),
-                )
-            sessionLspInterne.value = session
-            journal.i(TAG) { "session LSP ouverte (projet ${identifiantSuivi()})" }
+                val session =
+                    SessionLsp(
+                        racineProjet = racine,
+                        stockageIndex = dossierIndexLsp.emplacement(),
+                        // D5 : le moteur sonde lib/src.zip + lib/modules du JDK
+                        // pour java.* — le JDK du TERMINAL (bootstrap). Absent :
+                        // null (java.home du runtime ART) → moteur dégradé,
+                        // documenté §16.2 — réouvrir l'espace après installation.
+                        jdkHome = outilchain.javaHome()?.toPath(),
+                    )
+                sessionLspInterne.value = session
+                journal.i(TAG) { "session LSP ouverte (projet ${identifiantSuivi()})" }
+            }
         }
 
         /** Referme la session LSP (changement de projet, destruction). */
