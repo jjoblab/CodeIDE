@@ -543,8 +543,10 @@ dossier du projet.
 
 ## Mission « Previews » — panneau d'aperçu XML (PE1, v0.111.0)
 
-Le rendu vit dans `:preview:xml` (moteur LayoutLib v2.1.2 via JitPack,
-fil dédié, bitmap off-screen — PREVIEW.md §3) ; ces recettes éprouvent
+Le rendu vit dans `:preview:xml` (moteur LayoutLib **en intégration source
+par build composite** depuis v0.112.0 — checkout frère `../LayoutLib`,
+tag v2.2.0 ; JitPack abandonné pour LayoutLib, décision propriétaire —
+fil dédié, bitmap off-screen, PREVIEW.md §3) ; ces recettes éprouvent
 le câblage complet : FUSE (`res/` du projet), classification, debounce,
 « jamais de panneau vide », et l'INERTIE de l'IDE (le rendu ne doit
 JAMAIS bloquer la frappe).
@@ -566,7 +568,7 @@ L'état des lieux comparatif vit dans le DÉPÔT LayoutLib (module
 `validation/`, propriétaire du catalogue) :
 
 ```bash
-# Dans un checkout de jjoblab/LayoutLib (tag ≥ v2.1.2), appareil branché :
+# Dans un checkout de jjoblab/LayoutLib (tag ≥ v2.2.0), appareil branché :
 ANDROID_HOME=<sdk> ./gradlew :validation:connectedAndroidTest
 # Le rapport d'intégration sort dans validation/build/ (harness 50 layouts :
 # inflation + mesure + layout, par catégorie — basic/nested/resources/…).
