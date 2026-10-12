@@ -16,6 +16,7 @@ import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
 import jo.codeide.core.domain.EcrireSyncStateUseCase
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
+import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.EtapeExecutionApplication
 import jo.codeide.core.domain.EtatBuild
 import jo.codeide.core.domain.EtatOutilsTerminal
@@ -65,6 +66,7 @@ import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.getOrNull
 import jo.codeide.core.session.Desenregistrement
+import jo.codeide.core.session.EtatSession
 import jo.codeide.core.session.GestionnaireSessionProjet
 import jo.codeide.core.session.RaisonFermeture
 import jo.codeide.feature.editor.di.PorteeFermetureSession
@@ -224,6 +226,10 @@ class EditorViewModel
         private val gestionnaireSession: GestionnaireSessionProjet,
         @param:PorteeFermetureSession
         private val porteeFermetureSession: CoroutineScope,
+        // Mission « Cycle de vie » étape E : l'état du parcours
+        // d'installation des outils répercute la DISPONIBILITÉ du
+        // tooling (installation en cours ≠ outils jamais installés).
+        private val orchestrateurInstallation: EnvironmentSetupOrchestrator,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -441,6 +447,21 @@ class EditorViewModel
         /** Langue des libellés du catalogue (étape 18), précisée par l'activité. */
         private var langueLibelles: String = TemplateOptions.LANGUE_DEFAUT
 
+        /**
+         * Projet de SESSION de cet espace (mission « Cycle de vie » étape
+         * E) : l'identité ouverte auprès du gestionnaire — sert au veilleur
+         * de bascule et à la garde de propriété de la fermeture.
+         */
+        private val projetSession: ProjectId =
+            ProjectId(sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty())
+
+        /**
+         * Vrai quand LA session ouverte du gestionnaire est la NÔTRE — le
+         * veilleur de bascule (étape E) ne referme l'espace que pour un
+         * changement parti de CE projet ; faux dès la bascule, pour toujours.
+         */
+        private var sessionOuverteParMoi = false
+
         init {
             val identifiant = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
             observerProjet(ProjectId(identifiant))
@@ -465,8 +486,19 @@ class EditorViewModel
             // ouverture annulée (écran mort en vol) referme ce qu'elle avait
             // démarré (Nettoyage, contrat §4.8).
             viewModelScope.launch {
+                // Étape E : la session peut déjà être ouverte sur CE projet
+                // par un AUTRE espace (double routage de notification alors
+                // que l'espace vit sous l'hôte) — l'ouverture est alors un
+                // no-op du gestionnaire, le premier espace reste l'unique
+                // propriétaire : le NOUVEAU se referme aussitôt.
+                val dejaTenue =
+                    when (val avant = gestionnaireSession.etat.value) {
+                        is EtatSession.Ouverture -> avant.projet == projetSession
+                        is EtatSession.Ouverte -> avant.projet == projetSession
+                        else -> false
+                    }
                 when (
-                    gestionnaireSession.ouvrir(ProjectId(identifiant)) {
+                    gestionnaireSession.ouvrir(projetSession) {
                         enregistrerRessourcesOuverture()
                     }
                 ) {
@@ -477,10 +509,42 @@ class EditorViewModel
                     }
 
                     is AppResult.Success -> {
-                        Unit
+                        sessionOuverteParMoi = true
+                        if (dejaTenue) {
+                            journal.i(TAG) {
+                                "session déjà ouverte pour le projet ${identifiantSuivi()} — " +
+                                    "l'espace nouveau se referme"
+                            }
+                            canalEffets.trySend(EffetEditor.FermerEspace)
+                        }
                     }
                 }
             }
+
+            // Mission « Cycle de vie » étape E (cohérence de navigation,
+            // matrice §6.3 « notification (X) pendant que Y est ouvert ») :
+            // l'espace OBSERVE la session unique — le gestionnaire l'a
+            // refermée pour ouvrir X (I1, flush I7 compris par le registre),
+            // l'espace de Y n'a plus rien à montrer : il se referme de
+            // lui-même, SANS dialogue (la fermeture contractuelle a déjà eu
+            // lieu) — jamais deux espaces vivants sur deux projets.
+            gestionnaireSession.etat
+                .onEach { etat ->
+                    if (!sessionOuverteParMoi) return@onEach
+                    val projetCourant =
+                        when (etat) {
+                            is EtatSession.Ouverture -> etat.projet
+                            is EtatSession.Ouverte -> etat.projet
+                            else -> return@onEach
+                        }
+                    if (projetCourant != projetSession) {
+                        sessionOuverteParMoi = false
+                        journal.i(TAG) {
+                            "session basculée vers un autre projet — l'espace ${identifiantSuivi()} se referme"
+                        }
+                        canalEffets.trySend(EffetEditor.FermerEspace)
+                    }
+                }.launchIn(viewModelScope)
 
             // Étape 32 (ADR 0057) : l'état tooling est process-wide —
             // l'espace qui s'ouvre s'y rattache (console vierge, activités
@@ -1360,6 +1424,10 @@ class EditorViewModel
             viewModelScope.launch {
                 selectionnerFiltreConsole(FiltreCanalConsole.SYNC)
                 serviceGradle.marquerSyncEnCours()
+                // Étape E (E10) : le projet d'origine de la sync — le miroir
+                // du routage de notification survit à la fermeture de
+                // l'espace (renoncement §2.1c : la sync continue).
+                serviceGradle.publierProjetDuCanal(CanalTooling.SYNC, projetSession)
                 if (jdkAbsent()) {
                     refuserSansJdk()
                     return@launch
@@ -1544,6 +1612,10 @@ class EditorViewModel
                 val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
                 val finLancementMs = System.currentTimeMillis()
                 observerBuild(buildId, taches)
+                // Étape E (E10) : le build appartient à CE projet — sa
+                // notification routera vers lui, même après la fermeture de
+                // l'espace (renoncement §2.1c : le build continue).
+                serviceGradle.publierProjetDuCanal(CanalTooling.BUILD, projetSession)
                 journal.i(TAG) {
                     "build lancé (${taches.size} tâche(s), projet ${identifiantSuivi()}) — " +
                         "préparation ${finLancementMs - debutPreparationMs} ms " +
@@ -1597,6 +1669,8 @@ class EditorViewModel
                 val taches = listOf(TACHE_ASSEMBLE_DEBUG)
                 val buildId = executerTachesUseCase(dossier, taches, optionsTooling.argumentsBuild())
                 observerBuild(buildId, taches)
+                // Étape E (E10) : le Run appartient à CE projet (canal BUILD).
+                serviceGradle.publierProjetDuCanal(CanalTooling.BUILD, projetSession)
 
                 val etatBuild = attendreFinBuild(buildId)
                 if (etatBuild?.statutBuild != StatutBuild.REUSSI) {
@@ -1802,12 +1876,26 @@ class EditorViewModel
          * Refus typé d'une demande de tooling sans JDK : message
          * actionnable dans l'onglet Sortie (où installer les outils),
          * journalisé — jamais une connexion perdue sans indice.
+         *
+         * Mission « Cycle de vie » étape E : une INSTALLATION EN COURS
+         * n'est pas une absence d'outils — le message dit l'état réel du
+         * parcours (disponibilité du tooling répercutée, prompt §6 E).
          */
         private fun refuserSansJdk() {
-            journal.w(TAG) { "tooling refusé : JDK absent (outils du terminal non installés)" }
+            val installationEnCours = orchestrateurInstallation.state.value.running != null
+            journal.w(TAG) {
+                if (installationEnCours) {
+                    "tooling refusé : JDK absent (installation des outils en cours)"
+                } else {
+                    "tooling refusé : JDK absent (outils du terminal non installés)"
+                }
+            }
             serviceGradle.publierResultatSync(
                 AppResult.Failure(
-                    AppError.Tooling(AppError.ToolingReason.Internal, MESSAGE_JDK_ABSENT),
+                    AppError.Tooling(
+                        AppError.ToolingReason.Internal,
+                        if (installationEnCours) MESSAGE_INSTALLATION_EN_COURS else MESSAGE_JDK_ABSENT,
+                    ),
                 ),
             )
         }
@@ -1857,6 +1945,8 @@ class EditorViewModel
                     return@launch
                 }
                 serviceGradle.marquerTachesEnCours()
+                // Étape E (E10) : le listage appartient à CE projet (TACHES).
+                serviceGradle.publierProjetDuCanal(CanalTooling.TACHES, projetSession)
                 if (jdkAbsent()) {
                     serviceGradle.tachesTerminees()
                     refuserSansJdk()
@@ -2232,6 +2322,10 @@ class EditorViewModel
          */
         internal fun demarrerSurveillanceArbre(periodeMs: Long = PERIODE_SURVEILLANCE_MS) {
             if (travailSurveillance?.isActive == true) return
+            // Mission « Cycle de vie » étape E : permission SAF révoquée ou
+            // stockage disparu PENDANT l'absence — détectés AU RETOUR (la
+            // surveillance reprend à chaque onStart de l'écran).
+            verifierAccesAuRetour()
             travailSurveillance =
                 viewModelScope.launch {
                     while (isActive) {
@@ -2239,6 +2333,40 @@ class EditorViewModel
                         balayerArbre()
                     }
                 }
+        }
+
+        /**
+         * Mission « Cycle de vie » étape E : contrôle d'accès au RETOUR dans
+         * l'espace. Le balayage périodique ne sait que balayer — il s'arrête
+         * M U E T sur une permission perdue (kdoc de [balayerArbre] : « le
+         * bandeau relève de `Rafraichir` et du suivi du registre »). Ce
+         * contrôle EST ce suivi au retour : une permission révoquée ou un
+         * stockage disparu pendant l'absence remonte dans le bandeau
+         * existant (ExplorateurFragment, « Résoudre » referme l'espace) et
+         * la surveillance s'arrête — plus de balayage muet sous un bandeau.
+         *
+         * Un échec d'accès INJOIGNABLE (E/S passagère) ne fabrique RIEN : le
+         * balayage reprend, `Rafraichir` relèvera honnêtement.
+         */
+        private fun verifierAccesAuRetour() {
+            val projet = etatInterne.value.projet ?: return
+            viewModelScope.launch {
+                when (val verification = verifierAcces(projet.id)) {
+                    is AppResult.Success -> {
+                        if (verification.value != ProjectAccessState.Available) {
+                            arbreProjet.reinitialiser()
+                            etatInterne.update {
+                                it.copy(acces = verification.value, noeuds = emptyList())
+                            }
+                            arreterSurveillanceArbre()
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        Unit
+                    }
+                }
+            }
         }
 
         /** Arrête la surveillance (l'espace n'est plus visible). */
@@ -3498,16 +3626,37 @@ class EditorViewModel
          */
         private suspend fun fermerSessionDeProjetEnSortie() {
             try {
-                when (val rapport = gestionnaireSession.fermer(RaisonFermeture.Utilisateur)) {
-                    is AppResult.Success -> {
-                        val fermeture = rapport.value
-                        journal.i(TAG) {
-                            "session de projet fermée (${fermeture.elements.size} élément(s), ${fermeture.dureeTotale})"
+                // Étape E : la session unique a pu changer de mains (I1 —
+                // notification X pendant que Y vivait : le gestionnaire a
+                // refermé Y pour ouvrir X) ; le nouveau propriétaire la
+                // tient : cet espace ne referme QUE sa propre session,
+                // jamais celle du vivant (sinon la sortie de Y tuerait le
+                // travail de X — cas dégénéré P4 enfin clos).
+                val projetTenue =
+                    when (val courant = gestionnaireSession.etat.value) {
+                        is EtatSession.Ouverture -> courant.projet
+                        is EtatSession.Ouverte -> courant.projet
+                        is EtatSession.Fermeture -> courant.projet
+                        else -> null
+                    }
+                if (projetTenue == null || projetTenue == projetSession) {
+                    when (val rapport = gestionnaireSession.fermer(RaisonFermeture.Utilisateur)) {
+                        is AppResult.Success -> {
+                            val fermeture = rapport.value
+                            journal.i(TAG) {
+                                "session de projet fermée (${fermeture.elements.size} élément(s), " +
+                                    "${fermeture.dureeTotale})"
+                            }
+                        }
+
+                        is AppResult.Failure -> {
+                            journal.w(TAG) { "fermeture de session refusée : ${rapport.error}" }
                         }
                     }
-
-                    is AppResult.Failure -> {
-                        journal.w(TAG) { "fermeture de session refusée : ${rapport.error}" }
+                } else {
+                    journal.i(TAG) {
+                        "session tenue par le projet ${projetTenue.value} — " +
+                            "la sortie de ${identifiantSuivi()} ne la referme pas"
                     }
                 }
             } catch (annulation: kotlinx.coroutines.CancellationException) {
@@ -4409,6 +4558,13 @@ class EditorViewModel
                 "JDK absent — les outils du terminal ne sont pas installés. " +
                     "Ouvrez l'écran d'installation depuis la carte Terminal du tiroir, " +
                     "installez les outils, puis relancez."
+
+            /** Refus tooling pendant l'installation des outils (cycle de vie
+             * étape E — disponibilité répercutée, pas de « non installé »
+             * mensonge pendant le parcours). */
+            const val MESSAGE_INSTALLATION_EN_COURS =
+                "Installation des outils en cours — le tooling sera disponible à la " +
+                    "fin du parcours. Réessayez ensuite."
 
             /** Fenêtre du journal compact (capacité du tampon mémoire). */
             const val FENETRE_JOURNAL = 200

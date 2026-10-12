@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
+import jo.codeide.core.domain.EtatSessionProjetVue
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
@@ -17,14 +18,18 @@ import jo.codeide.core.model.TemplateId
 import jo.codeide.feature.home.databinding.ItemProjetBinding
 
 /**
- * Projet prêt au rendu : le projet du registre et son état d'accès
- * calculé (éphémère, section 5.6). L'inclure dans l'égalité du
- * [DiffUtil] fait rafraîchir la ligne quand l'accès change — le badge
- * apparaît sans attendre un autre mouvement dans la liste.
+ * Projet prêt au rendu : le projet du registre, son état d'accès
+ * calculé (éphémère, section 5.6) et son état de SESSION (mission
+ * « Cycle de vie » étape E) — `null` quand ce projet n'est pas celui de
+ * la session du processus. Inclure les deux dans l'égalité du
+ * [DiffUtil] fait rafraîchir la ligne quand l'accès OU la session
+ * change — le badge apparaît sans attendre un autre mouvement dans la
+ * liste.
  */
 internal data class ProjetAffiche(
     val projet: Project,
     val acces: ProjectAccessState?,
+    val session: EtatSessionProjetVue? = null,
 )
 
 /**
@@ -69,7 +74,7 @@ internal class ProjetsAccueilAdapter(
         holder: VueProjet,
         position: Int,
     ) {
-        val (projet, acces) = getItem(position)
+        val (projet, acces, session) = getItem(position)
         val liaison = holder.liaison
 
         liaison.nomProjet.text = projet.name
@@ -111,6 +116,28 @@ internal class ProjetsAccueilAdapter(
 
             else -> {
                 liaison.rangeeEtat.isVisible = false
+            }
+        }
+
+        // Badge de session (mission « Cycle de vie » étape E, matrice
+        // §6.3) : la carte du projet OUVERT (ou en cours d'ouverture /
+        // fermeture — la transition se montre, l'accueil reste honnête)
+        // porte l'état réel du processus — pas seulement la liste.
+        when (session) {
+            null, EtatSessionProjetVue.Aucune -> {
+                liaison.rangeeSession.isVisible = false
+            }
+
+            is EtatSessionProjetVue.Ouverture,
+            is EtatSessionProjetVue.Ouverte,
+            -> {
+                liaison.rangeeSession.isVisible = true
+                liaison.texteSession.setText(R.string.accueil_session_ouverte)
+            }
+
+            is EtatSessionProjetVue.Fermeture -> {
+                liaison.rangeeSession.isVisible = true
+                liaison.texteSession.setText(R.string.accueil_session_fermeture)
             }
         }
 

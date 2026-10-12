@@ -123,7 +123,12 @@ class MainActivity : AppCompatActivity() {
         // après la première émission des paramètres — le routage du premier
         // lancement doit avoir posé la racine (accueil ou assistant) d'abord.
         // Un `onNewIntent` suivra pour les remontées à chaud.
-        routageEnAttente = savedInstanceState == null && intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)
+        // Étape E : le routage d'un PROJET (retour de notification tooling)
+        // suit le même contrat — la session est ouverte par l'espace de
+        // travail qui s'ouvre, I1 par le gestionnaire (ADR 0114).
+        routageEnAttente =
+            savedInstanceState == null &&
+            (intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE) || intent.hasExtra(RoutageEcran.EXTRA_PROJET_CIBLE))
 
         // Dernier écran connu des rapports de plantage (section 5.8) : le
         // libellé de destination est plus précis que le nom d'activité.
@@ -166,9 +171,34 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)) {
+        // Étape E : le projet visé l'emporte sur l'écran cible — une
+        // notification qui parle d'un PROJET ouvre l'espace de travail,
+        // pas un écran du graphe.
+        if (intent.hasExtra(RoutageEcran.EXTRA_PROJET_CIBLE)) {
+            routerProjetCible(intent)
+        } else if (intent.hasExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)) {
             routerEcranCible(intent)
         }
+    }
+
+    /**
+     * Ouvre le projet visé par une notification de tooling (mission
+     * « Cycle de vie » étape E, matrice §6.3 ligne « notification (X)
+     * pendant que Y est ouvert ») : l'espace de travail démarre au-dessus
+     * de l'accueil, sa session s'ouvre par le gestionnaire — ouvrir X
+     * FERME la session de Y d'abord (I1, ADR 0114) ; l'espace de Y se
+     * referme de lui-même (effet `FermerEspace`) — jamais deux espaces
+     * vivants pour deux projets.
+     *
+     * Identité vide ou inconnue du registre : l'espace vit sans session
+     * (journalisée par le ViewModel) — aucun crash, l'accueil reste.
+     */
+    private fun routerProjetCible(intent: Intent) {
+        val identifiant = intent.getStringExtra(RoutageEcran.EXTRA_PROJET_CIBLE)
+        if (identifiant.isNullOrBlank()) return
+        logger.d(TAG) { "routage externe -> projet de la notification" }
+        intent.removeExtra(RoutageEcran.EXTRA_PROJET_CIBLE)
+        navigator.openEditor(identifiant)
     }
 
     /**
@@ -229,6 +259,15 @@ class MainActivity : AppCompatActivity() {
                     actions = mapOf(R.id.home to R.id.action_home_to_newproject),
                 )
             }
+
+            RoutageEcran.ECRAN_TERMINAL -> {
+                // Mission « Cycle de vie » étape E (E10) : la notification du
+                // terminal (42 001) promettait l'écran du terminal — le
+                // routage tient enfin la promesse (même écran plein écran
+                // que l'accueil, sessions globales §2.4).
+                logger.d(TAG) { "routage externe -> terminal" }
+                navigator.openTerminal(null)
+            }
         }
     }
 
@@ -264,6 +303,7 @@ class MainActivity : AppCompatActivity() {
                     // de lancement) : maintenant que la racine est posée.
                     if (routageEnAttente) {
                         routageEnAttente = false
+                        routerProjetCible(intent)
                         routerEcranCible(intent)
                     }
                 }

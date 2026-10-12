@@ -885,6 +885,19 @@ class EditorActivity :
                     true
                 }
 
+                R.id.action_parametres -> {
+                    // Mission « Cycle de vie » étape E (P3) : le parcours
+                    // éditeur → paramètres → retour existait NULLE PART
+                    // (matrice §4.4, « PARCOURS INEXISTANT »). Le routage
+                    // ADR 0048 (relancerMainActivity + REORDER_TO_FRONT |
+                    // SINGLE_TOP) remonte l'hôte du graphe SANS détruire
+                    // l'espace dessous : la session survit (I3), les
+                    // réglages se propagent par leurs trois canaux au
+                    // retour (thème/langue, palette, OptionsEditeur).
+                    navigateur.openSettings()
+                    true
+                }
+
                 else -> {
                     false
                 }
@@ -2293,6 +2306,15 @@ class EditorActivity :
 
             is EffetEditor.OuvrirSelecteurTaches -> {
                 ouvrirFeuilleTaches(effet.taches)
+            }
+
+            EffetEditor.FermerEspace -> {
+                // Mission « Cycle de vie » étape E : la session a changé de
+                // mains (notification X pendant que Y vivait — I1) ou
+                // l'espace naît sur une session déjà tenue : le registre a
+                // DÉJÀ refermé côté contrat (flush I7 compris), l'écran se
+                // referme SANS dialogue ni re-flush.
+                finish()
             }
 
             EffetEditor.ErreurListageTaches -> {

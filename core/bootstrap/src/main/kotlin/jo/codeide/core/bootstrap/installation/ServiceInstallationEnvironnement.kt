@@ -17,6 +17,7 @@ import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.Progress
+import jo.codeide.core.domain.RoutageInterEcrans
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -131,7 +132,20 @@ internal class ServiceInstallationEnvironnement : Service() {
             .build()
     }
 
-    /** Canal + constructeur commun (titre, action Annuler, ouverture de l'application). */
+    /**
+     * Canal + constructeur commun (titre, action Annuler, ouverture de
+     * l'application). Mission « Cycle de vie » étape E (E10) : l'ouverture
+     * route vers l'ÉCRAN D'INSTALLATION (extra d'écran cible, motif ADR
+     * 0048 consommé par l'hôte du graphe) — l'utilisateur qui touche la
+     * notification de progression retrouve l'écran du parcours, pas
+     * l'accueil.
+     *
+     * Code de requête = l'identifiant de notification : les extras ne
+     * comptent PAS dans l'identité d'un `PendingIntent` (filterEquals)
+     * — un code partagé avec les autres services de notification
+     * laisserait le DERNIER créé réécrire les extras du premier
+     * (piège classique UPDATE_CURRENT).
+     */
     private fun baseNotification(): NotificationCompat.Builder {
         val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         gestionnaire.createNotificationChannel(
@@ -143,9 +157,10 @@ internal class ServiceInstallationEnvironnement : Service() {
         )
         val ouverture =
             packageManager.getLaunchIntentForPackage(packageName)?.let { intention ->
+                intention.putExtra(RoutageInterEcrans.EXTRA_ECRAN_CIBLE, RoutageInterEcrans.ECRAN_INSTALLATION)
                 PendingIntent.getActivity(
                     this,
-                    0,
+                    IDENTIFIANT_NOTIFICATION,
                     intention,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
@@ -153,7 +168,7 @@ internal class ServiceInstallationEnvironnement : Service() {
         val annuler =
             PendingIntent.getService(
                 this,
-                0,
+                IDENTIFIANT_NOTIFICATION,
                 Intent(this, ServiceInstallationEnvironnement::class.java).setAction(ACTION_ANNULER),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )

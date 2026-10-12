@@ -121,6 +121,37 @@
                     android:textColor="?attr/colorError"
                     tools:text="Permission perdue" />
             </LinearLayout>
+
+            <!-- Badge de session (mission « Cycle de vie » étape E) : la
+                 carte du projet OUVERT porte l'état réel du processus —
+                 couleur primaire (état informatif, pas une erreur). -->
+            <LinearLayout
+                android:id="@+id/rangee_session"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/icone_session"
+                    android:layout_width="@dimen/taille_icone_etat"
+                    android:layout_height="@dimen/taille_icone_etat"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_fait"
+                    app:tint="?attr/colorPrimary" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_session"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="Session ouverte" />
+            </LinearLayout>
         </LinearLayout>
 
         <ImageButton

@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.session.GestionnaireSessionProjet
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +44,25 @@ internal object ModuleSessionProjet {
         journal: AppLogger,
         horloge: TimeProvider,
     ): GestionnaireSessionProjet = GestionnaireSessionProjet(journal = journal, horloge = horloge)
+
+    /**
+     * Port d'observation de session (mission « Cycle de vie » étape E) :
+     * la projection LECTURE SEULE pour les écrans — l'accueil affiche
+     * l'état « projet ouvert » sans dépendre de `:core:session` (le
+     * port vit dans `core:domain`, l'implémentation ici, auprès du
+     * gestionnaire qu'elle projette). Liaison au composant singleton :
+     * résout pour TOUT ViewModel injecté du processus.
+     */
+    @Provides
+    @Singleton
+    fun observateurSessionProjet(
+        gestionnaireSession: GestionnaireSessionProjet,
+        dispatchers: DispatcherProvider,
+    ): ObservateurSessionProjet =
+        jo.codeide.feature.editor.ObservateurSessionProjetEspace(
+            gestionnaireSession = gestionnaireSession,
+            dispatchers = dispatchers,
+        )
 
     /**
      * Portée des fermetures : supervisée (une fermeture en échec n'en

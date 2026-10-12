@@ -18,6 +18,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.RoutageInterEcrans
 import jo.codeide.core.model.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -199,7 +200,7 @@ internal class ToolingService : Service() {
             .setContentTitle(getString(R.string.tooling_service_titre))
             .setContentText(getString(R.string.tooling_service_neutre_texte))
             .setOngoing(true)
-            .setContentIntent(intentionOuverture())
+            .setContentIntent(intentionOuverture(canal = null))
             .build()
     }
 
@@ -236,7 +237,7 @@ internal class ToolingService : Service() {
                     getString(R.string.tooling_service_taches_en_cours)
                 }
             }
-        return notification(texte = texte, enCours = true)
+        return notification(texte = texte, enCours = true, canal = decision.canal)
     }
 
     /** Notification « résultat » : le dénouement, non persistante. */
@@ -276,13 +277,14 @@ internal class ToolingService : Service() {
                     getString(R.string.tooling_service_taches_en_cours)
                 }
             }
-        return notification(texte = texte, enCours = false)
+        return notification(texte = texte, enCours = false, canal = decision.canal)
     }
 
     /** Notification honnête du tooling : un titre, un texte, un état. */
     private fun notification(
         texte: String,
         enCours: Boolean,
+        canal: CanalTooling? = null,
     ): Notification {
         val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         gestionnaire.createNotificationChannel(
@@ -299,7 +301,7 @@ internal class ToolingService : Service() {
             .setContentText(texte)
             .setOngoing(enCours)
             .setAutoCancel(!enCours)
-            .setContentIntent(intentionOuverture())
+            .setContentIntent(intentionOuverture(canal))
             .build()
     }
 
@@ -319,12 +321,31 @@ internal class ToolingService : Service() {
             NotificationManager.IMPORTANCE_LOW
         }
 
-    /** Ouvre l'app au toucher (l'éditeur y montrera le détail des canaux). */
-    private fun intentionOuverture(): PendingIntent? {
+    /**
+     * Ouvre l'app au toucher — le PROJET dont l'activité de [canal] est
+     * partie quand il est connu (mission « Cycle de vie » étape E, E10 :
+     * matrice §6.3 « notification (X) pendant que Y est ouvert »), la
+     * racine sinon (notification neutre ou canal sans projet publié).
+     * L'hôte du graphe consomme l'extra (`RoutageInterEcrans`) et ouvre
+     * l'espace de travail : ouvrir X FERME la session de Y d'abord (I1,
+     * gestionnaire ADR 0114).
+     *
+     * Code de requête = l'identifiant de notification : les extras ne
+     * comptent PAS dans l'identité d'un `PendingIntent` (filterEquals)
+     * — un code partagé avec les autres services de notification
+     * laisserait le DERNIER créé réécrire les extras du premier
+     * (piège classique UPDATE_CURRENT).
+     */
+    private fun intentionOuverture(canal: CanalTooling?): PendingIntent? {
         val intention = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+        if (canal != null) {
+            serviceGradle.etat.value.projetDuCanal(canal)?.let { projet ->
+                intention.putExtra(RoutageInterEcrans.EXTRA_PROJET_CIBLE, projet.value)
+            }
+        }
         return PendingIntent.getActivity(
             this,
-            0,
+            IDENTIFIANT_NOTIFICATION,
             intention,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

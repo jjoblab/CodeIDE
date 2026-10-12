@@ -18,6 +18,7 @@ import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.ProjectId
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -214,6 +215,13 @@ data class GroupeProblemes(
  * @property messageEchecSync message de l'échec de synchronisation.
  * @property tachesEnCours le listage des tâches est en vol (étape 32).
  * @property debutTachesMs instant de départ du listage (chrono).
+ * @property projetsParCanal identité du projet DONT l'activité de chaque
+ *           canal est partie (mission « Cycle de vie » étape E, E10) :
+ *           le miroir honnête du routage de notification — un build
+ *           parti du projet X continue sous le renoncement §2.1c même
+ *           après la fermeture de X, et SA notification route vers X,
+ *           pas vers le projet ouvert depuis (clé absente = sans
+ *           contexte : l'accueil reste la cible).
  */
 data class EtatGradle(
     val connexion: EtatConnexion = EtatConnexion.DECONNECTEE,
@@ -241,7 +249,12 @@ data class EtatGradle(
      *  remplies à la fin d'une sync réussie, restituées au retour du
      *  projet si l'empreinte n'a pas changé. `null` si non résolu. */
     val statsClasspath: List<jo.codeide.core.domain.ModuleClasspath>? = null,
+    /** Projet d'origine de l'activité de chaque canal (étape E, E10). */
+    val projetsParCanal: Map<CanalTooling, ProjectId> = emptyMap(),
 ) {
+    /** Projet dont l'activité de [canal] est partie (étape E, E10). */
+    fun projetDuCanal(canal: CanalTooling): ProjectId? = projetsParCanal[canal]
+
     /** Nombre total de diagnostics (badge de l'onglet Problèmes). */
     val problemesTotal: Int
         get() = groupesProblemes.sumOf { groupe -> groupe.problems.size }
@@ -438,6 +451,22 @@ class GradleService
         /** Publie l'état de connexion (daemon G4). */
         fun publierConnexion(connexion: EtatConnexion) {
             maj { it.copy(connexion = connexion) }
+        }
+
+        /**
+         * Publie le projet DONT l'activité de [canal] part (mission
+         * « Cycle de vie » étape E, E10) : le miroir du routage de
+         * notification. Appelé par l'espace AU LANCEMENT de chaque
+         * opération — la publication survit à la fermeture de l'espace
+         * (l'état est process-wide), comme l'activité elle-même sous le
+         * renoncement §2.1c ; l'ouverture d'un AUTRE projet ne l'efface
+         * pas : le canal porte l'origine de SA propre activité.
+         */
+        fun publierProjetDuCanal(
+            canal: CanalTooling,
+            projet: ProjectId,
+        ) {
+            maj { it.copy(projetsParCanal = it.projetsParCanal + (canal to projet)) }
         }
 
         /** Marque le début d'une synchronisation : instant de départ du

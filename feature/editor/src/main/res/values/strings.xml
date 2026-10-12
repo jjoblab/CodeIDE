@@ -23,6 +23,7 @@
     <string name="editor_tiroir_section">Projet</string>
     <string name="editor_tiroir_actualiser_cd">Revérifier l\'accès au projet et recharger l\'arborescence</string>
     <string name="editor_tiroir_fermer_projet">Fermer le projet</string>
+    <string name="editor_parametres">Paramètres</string>
     <string name="editor_explorateur_vide">Dossier vide</string>
 
     <!-- Carte d\'aperçu du terminal du tiroir (T6, section 8 du prompt Terminal-1). -->
