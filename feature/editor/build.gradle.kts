@@ -28,6 +28,12 @@ dependencies {
     // couture DI vit dans di/ModuleSessionProjet.kt.
     implementation(project(":core:session"))
 
+    // Mission « Previews » PE1 (PREVIEW.md §3) : panneau d'aperçu XML —
+    // le moteur et la vue vivent dans :preview:xml (la dépendance
+    // LayoutLib y est confinée, la feature ne la voit jamais ; PE2 y
+    // ajoutera le processus :preview).
+    implementation(project(":preview:xml"))
+
     // Tests du ViewModel : fakes et horloge virtuelle.
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

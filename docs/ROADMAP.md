@@ -204,9 +204,10 @@ Fichiers livrés :
 - Moteur **maison in-process** : parseur tolérant + DOM neutre + complétion par contributeurs (catalogue dérivé des données de plateforme, index ressources projet) ; Lemminx/XSD écartés — détail dans `docs/LSP_XML.md`.
 - Étapes XE1–XE4 ; fixtures partagées avec le catalogue de validation LayoutLib.
 
-### 5.4 Previews — cadré (v0.109.0)
+### 5.4 Previews — PE1 livré (v0.111.0)
 
-- **XML** : moteur **jjoblab/LayoutLib** v2.1.0, ressources par FUSE, isolation processus `:preview` (AIDL, DeathRecipient, repli in-process) — étapes PE1–PE3.
+- **XML — PE1 livré v0.111.0** : module `:preview:xml` (moteur **LayoutLib v2.1.2** via JitPack, rendu bitmap off-screen sur fil dédié, résolveurs du projet par FUSE), panneau `VuePreviewXml` + menu « Aperçu XML » dans l'éditeur, 22 tests, kit catalogue 50 layouts (TESTS_MANUELS) — détail dans `docs/PREVIEW.md`.
+- **XML — suite** : PE2 isolation processus `:preview` (AIDL, DeathRecipient, repli in-process), PE3 sélection/inspection + profiles device + jour/nuit.
 - **Compose** : **interpréteur sur l'arbre résolu** (approche CodeAssist), runtime Compose comme bibliothèque de preview (ADR 0002 intact), **après stabilisation du LSP Kotlin** — étapes C0–C3.
 - Détail dans `docs/PREVIEW.md`.
 
