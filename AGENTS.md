@@ -1189,6 +1189,14 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.111.0 : **Previews PE1 — panneau d'aperçu XML** (module
+      `:preview:xml` : LayoutLib v2.1.2 via JitPack — le tag a dû être
+      réparé côté dépôt LayoutLib (jitpack.yml + maven-publish + miroir
+      Central, commits 6c56ab8/61afd2c) ; moteur « RenderService adapté »
+      sur fil dédié, bitmap off-screen, res/ du projet par FUSE, panneau
+      VuePreviewXml auto-dessiné, classification previewKindOf, menu
+      « Aperçu XML » de l'éditeur ; 22 tests, kit 50 layouts en attente
+      d'appareil (TESTS_MANUELS §Previews).
 - v0.110.0 : **LSP Kotlin K1 — grammaire du compilateur vendorée**
       (module `:lsp:kotlin`, ADR 0115) : vendoring v2.3.0 octet identique
       (bootstrap 2.2.x = notre Kotlin 2.2.10), façade Kt* + arbre immuable

@@ -73,6 +73,9 @@
     <string name="editor_onglet_fermer_cd">Close this tab</string>
     <string name="editor_onglet_sale_cd">%1$s — unsaved changes</string>
     <string name="editor_enregistrer">Save</string>
+    <!-- Mission « Previews » PE1 : XML preview panel toggle (LayoutLib). -->
+    <string name="editor_action_apercu">XML preview</string>
+    <string name="editor_action_apercu_fermer">Hide preview</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
     <string name="editor_menu_fermer_tout">Close all</string>

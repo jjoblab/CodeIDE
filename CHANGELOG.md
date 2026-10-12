@@ -1,5 +1,69 @@
 # Journal des modifications
 
+## [0.111.0] – 2026-10-13
+
+### Ajouté
+
+- **Previews — étape PE1** (`docs/PREVIEW.md` §3, P1–P5) : l'aperçu XML
+  existe, à côté de l'éditeur :
+  - **Nouveau module `:preview:xml`** (bibliothèque Android, la dépendance
+    LayoutLib y est CONFINÉE — feature:editor ne la voit jamais) :
+    **`MoteurPreviewXml`** — le « RenderService adapté » du cadrage :
+    validation XmlPullParser (XML malformé = frappe en cours → dernier
+    rendu valide conservé, comportement Android Studio), inflation par
+    vraies classes Android (BridgeInflater/ViewTagRegistry), mesure/layout
+    (LayoutEngineImpl), **dessin bitmap off-screen** — le rendu s'exécute
+    sur un **fil dédié** (jamais le thread UI de l'IDE, P3/P4 ; le
+    RenderService d'origine rendait sur le principal), single-flight par
+    mutex (l'inflater n'est pas thread-safe), debounce 400 ms avec
+    fournisseur paresseux (une frappe ne coûte aucune copie de texte).
+  - **Ressources du projet (P5)** : `res/` résolu par le MÊME chemin FUSE
+    que la session LSP et le terminal (`ResoudreRepertoireProjet`,
+    ADR 0038) ; thèmes du projet enregistrés (values + values-night +
+    styles, au mieux) ; `res/` absent → repli natif documenté (jamais de
+    blocage de l'édition).
+  - **`VuePreviewXml`** (vue auto-dessinée) : zoom par pincement (0,25×–
+    6×), pan borné, double-tap de réajustement, damier de transparence,
+    bandeau d'erreur lisible en haut, signal discret d'édition en bas,
+    accueil — aucun panneau vide, jamais de toast (§3.3).
+  - **Classification `previewKindOf`** (à la CodeAssist) : LAYOUT
+    (chemin `res/layout*` ou racine vue/groupe, noms AndroidX normalisés
+    au nom simple), DRAWABLE et VALEURS classifiés dès maintenant — le
+    RENDU en est réservé à PE3 (état d'accueil honnête).
+  - **Câblage éditeur** : `ControleurPreviewXml` (onglet actif,
+    réattachement de l'écoute des frappes à chaque bascule — patron
+    CoordonnateurLsp), panneau en partage 50/50 de la largeur
+    (`zone_edition_partagee`), entrée de menu « Aperçu XML » visible
+    seulement sur un onglet previewable, fermeture au onDestroy.
+  - **Tests : 22 verts** : classification (chemin/racine/normalisation
+    AndroidX/inconnu-null), calculs purs de zoom (fit, plancher, bornes,
+    centrage), moteur sous Robolectric (rendu valide, malformé avant/
+    après rendu, erreur sémantique, debounce 400 ms, immédiat, fermeture,
+    `@color/` du projet depuis un `res/` réel, `res/` absent), vue
+    (fumée de dessin des états).
+  - **Kit état des lieux catalogue 50 layouts** (TESTS_MANUELS §
+    « Previews ») : le harness vit dans le dépôt LayoutLib
+    (`:validation:connectedAndroidTest`) — procédure prête, **en attente
+    d'appareil** comme le reste des recettes P/B.
+
+### Changed
+
+- **Dépendance LayoutLib v2.1.2 via JitPack** (`P2`) — dépôt
+  jjoblab/LayoutLib : les tags v2.1.0/v2.1.1 n'étaient PAS publies sur
+  JitPack (image legacy/JDK 11 incompatible AGP 8.5, pas de
+  maven-publish, puis 429 Maven Central côté infra JitPack) ; corrigés
+  dans le dépôt LayoutLib (commits `6c56ab8` + `61afd2c` : jitpack.yml
+  recette code-editor, maven-publish/singleVariant des 6 modules, miroir
+  Google de Central en tête des dépôts) — la dépendance
+  `com.github.jjoblab.LayoutLib:module-inflater:v2.1.2` a été vérifiée
+  résolue depuis JitPack pour CE build (artefacts POM + AAR contrôlés).
+- `settings.gradle.kts`/catalogue : version `layoutlib = v2.1.2` ;
+  ModuleRulesPlugin : `:preview:xml` (ne dépend que de core:domain) et
+  `:feature:editor` → `:preview:xml` autorisés (test : core:testing).
+- `docs/PREVIEW.md` (PE1 livré, P2 actialisée), `docs/ROADMAP.md` 5.4,
+  notices tierces (LayoutLib), `docs/TESTS_MANUELS.md` (recettes P1–P6,
+  B1–B2 + état des lieux 50 layouts).
+
 ## [0.110.0] – 2026-10-13
 
 ### Ajouté

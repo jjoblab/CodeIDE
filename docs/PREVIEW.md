@@ -106,7 +106,7 @@ LSP_XML X4).
 | # | Décision | Motif |
 |---|----------|-------|
 | P1 | **LayoutLib est le moteur de rendu XML** de CodeIDE (pas de réécriture, pas d'AOSP layoutlib). | Dépôt de l'auteur, conçu pour, tests fournis. |
-| P2 | **Dépendance Maven versionnée** (tag LayoutLib v2.1.0) via JitPack (`com.github.jjoblab:LayoutLib:<tag>`), le composite build restant l'option de développement local. | Le README de LayoutLib documente déjà JitPack pour ses propres deps ; évolution découplée des deux dépôts ; la mise à jour = bump de version. |
+| P2 | **Dépendance Maven versionnée** (tag LayoutLib ≥ **v2.1.2**) via JitPack (`com.github.jjoblab.LayoutLib:module-inflater:<tag>`, les 5 modules frères en transitif), le composite build restant l'option de développement local. | Évolution découplée des deux dépôts ; la mise à jour = bump de version. v2.1.0/v2.1.1 n'étaient pas publies (JDK 11, pas de maven-publish, 429 Central côté JitPack — corrigés dans le dépôt LayoutLib). |
 | P3 | **Isolation processus `:preview`** (motif CodeAssist) : service + AIDL, `DeathRecipient` → « Preview process crashed, retry », **repli in-process** automatique. Le rendu ne tourne **jamais** sur le thread UI de l'IDE. | RenderService rend aujourd'hui sur le thread principal (§2.2) ; une vue peut crasher ou bloquer ; l'IDE doit survivre. |
 | P4 | **Rendu bitmap off-screen** : measure/layout (`LayoutEngineImpl`) à la taille device-profile choisie + `view.draw(canvas)` sur un `Bitmap` ; streaming du bitmap (pas de vue attachée à la hiérarchie de l'IDE). | Découple preview de l'UI CodeIDE ; redimensionnement/vivacité ; même forme que le pipeline Compose §4. |
 | P5 | **Ressources via FUSE + résolveurs LayoutLib** : `ResourceResolverImpl`/`ThemeResolverImpl`/`DrawableResolverImpl` montés sur le chemin FUSE du projet, thème du projet appliqué. | §2.4 ; zéro adaptation LayoutLib. |
@@ -140,7 +140,8 @@ malformés gardent le dernier rendu (§2.2, comportement AS).
 
 | Étape | Contenu | Version cible |
 |-------|---------|---------------|
-| PE1 | Dépendance LayoutLib (P2) + intégration FUSE + rendu **in-process sur fil dédié** (hors thread UI) + panneau PreviewPane + état des lieux du catalogue 50 layouts sur l'appareil de référence. | v0.120.0 |
+| **PE1** ✅ | **Livré v0.111.0** : module `:preview:xml` (moteur LayoutLib **v2.1.2** via JitPack — P2 ; v2.1.0/v2.1.1 n'y étaient pas publiables : recette miroir Maven + maven-push épinglée au dépôt jjoblab/LayoutLib, commits 6c56ab8/61afd2c) ; « RenderService adapté » (validation XmlPullParser, inflation, LayoutEngine, **dessin bitmap off-screen sur fil dédié** — P3/P4, single-flight par mutex) ; résolveurs du projet par FUSE (`res/`, thèmes jour/nuit — P5) ; `VuePreviewXml` auto-dessinée (zoom/pan/double-tap, damier, bandeau d'erreur, dernier rendu valide conservé) ; classification `previewKindOf` (LAYOUT rendu, DRAWABLE/VALEURS classifiés pour PE3) ; câblage `ControleurPreviewXml` (onglet actif, écoute des frappes, menu « Aperçu XML ») ; **22 tests** (classification, calculs purs, moteur Robolectric — debounce/malformé/erreur/ressources projet/repli natif, vue) ; kit état des lieux 50 layouts documenté (TESTS_MANUELS §Previews — en attente d'appareil). | v0.111.0 |
+| PE2 | Isolation `:preview` (P3/P4) : AIDL, DeathRecipient, repli in-process, idle-shutdown, registre I7. | v0.112.0 |
 | PE2 | Isolation `:preview` (P3/P4) : AIDL, DeathRecipient, repli in-process, idle-shutdown, registre I7. | v0.121.0 |
 | PE3 | Sélection/inspection bidirectionnelle (P6) + profiles device + jour/nuit + drawables/values previewables. | v0.122.0 |
 | PE4 | Remontée des limitations LayoutLib restantes à l'auteur + bump de version priorisé (ConstraintLayout solver d'abord si l'usage le justifie). | continu |
