@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.107.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « Cycle de vie » — étape F OUTILLÉE : vérification et
+  validation** (docs/CYCLE_DE_VIE.md §9). ① **Test d'invariant
+  rotation** (critère §8.5, matrice §6.3 ligne 6) :
+  « la rotation ne ferme ni ne reouvre la session » — I3 prouvé au
+  niveau session (UNE ouverture journalisée, ZÉRO fermeture pendant
+  la recréation de l'interface, session LSP toujours attachée : le
+  rebranchement cel-lsp de la vue est un coût borné, E8/§2.5a).
+  ② **Kit de validation appareil `scripts/validation-f.sh`** —
+  exécution automatisée des critères §8 du prompt 3 avec verdicts
+  CALCULÉS : F1 = 20 cycles ouvrir/quitter par `am start` + extra de
+  routage v0.106.0 (`jo.codeide.projet_cible`, à froid comme à chaud)
+  puis BACK, GC forcé (SIGUSR1) avant chaque relevé `meminfo`
+  (croissance du tas Java < 5 % → verdict), comptage des détections
+  LeakCanary (`LEAK*`) et violations StrictMode au journal ; F2 =
+  processus liés au projet après sortie (`ps` + lignes de commande
+  `/proc/*/cmdline` — vestige de P = échec, démons Gradle
+  process-wide = OK par politique §2.2) ; F3 = P→Q (ordre
+  « session fermée (P) » AVANT « session ouverte (Q) », aucune ligne
+  de P dans le journal de Q) ; F5 = 5 rotations forcées (process
+  vivant, zéro fermeture, rebranchements LSP comptés) ; F7 = build en
+  vol (process vivant pendant le build après sortie, §2.1c).
+  Acquisition des uuid P/Q au journal (tag `SessionProjet`), écran
+  forcé allumé + restauré (trap), rapport-f.md assemblé avec la table
+  de verdicts §8.1→§8.8 et les commandes Gradle des preuves locales.
+  ③ **Table de traçabilité §9.1** : chaque critère §8 → preuve locale
+  (nom du test vert : flush I7, I1, protocole v9, renoncement §2.1c,
+  délais bornés, rotation) ou preuve appareil (verdict auto du kit) ;
+  §9.3 documente ce qui reste à exécuter au propriétaire (appareil
+  branché) — l'exécution elle-même est bloquée sans téléphone : aucun
+  périphérique `adb`, pas d'émulateur KVM sur la machine de travail.
+
 ## [0.106.0] – 2026-10-12
 
 ### Ajouté
