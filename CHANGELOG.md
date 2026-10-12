@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.102.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « LSP Java » — lot h4 (suite) : les DEUX ÉCARTS réels avec
+  Android Studio** (docs/LSP_JAVA.md §16.5). ① **Pré-classpath** : le
+  SDK installé par le bootstrap rejoint le moteur PAR DÉFAUT dès
+  l'ouverture (`SessionLsp(androidJar)` ← `outilchain.androidJar()`) —
+  android.* ET java.* (boot classpath) résolvent AVANT toute sync, en
+  régime plein ; le champ `androidJar` du modèle Gradle est ENFIN
+  consommé par les moteurs par module (`jarsDe`) et rejoint l'UNION
+  INDEXABLE (l'index disque PRÊT est autoritatif : un jar hors union y
+  était invisible). ② **Réouverture lente** (~2 min entre état sync
+  restitué et session nourrie) : le modèle est PERSISTÉ à chaque
+  application (`.codeide/local/lsp-modele.json`, validation W7 —
+  `PersistanceModeleLsp` enfin câblé) et la réouverture s'en nourrit
+  AVANT la revalidation silencieuse quand l'empreinte Gradle
+  (`sync-state.json`) n'a pas changé — idempotent (redondant = no-op
+  chaud). Journal : « session LSP nourrie depuis le cache (N module(s)) ».
+
+### Corrigé
+
+- **Index disque : paquets intermédiaires** — `VueIndex.estPaquet`
+  niait les préfixes (segments portant les paquets FEUILLES seuls) :
+  « The import android cannot be resolved » alors que
+  `android.util.Log` était localisé par l'index. La sémantique
+  préfixe est admise (O(log n), « ni plus ni moins » préservé pour
+  `typesDansPaquet`) et verrouillée par un test dédié.
+
 ## [0.101.0] – 2026-10-12
 
 ### Ajouté
