@@ -1,5 +1,48 @@
 # Journal des modifications
 
+## [0.100.1] – 2026-10-12
+
+### Corrigé
+
+- **Mission « LSP Java » — retour d'appareil v0.100.0 : la première
+  exécution réelle** (docs/LSP_JAVA.md §16.2.1, rapport 62f8627d,
+  moto g06 / Android 15 / API 35). QUATRE défauts :
+- **CRASH FATAL — `NoClassDefFoundError: java.lang.ProcessHandle`**
+  à la première écriture de segment d'index (juste après un sync
+  réussi) : le nom `.tmp` unique dérivait de
+  `ProcessHandle.current().pid()` (JDK 9) et `Thread.threadId()`
+  (JDK 19) — **tous deux ABSENT du runtime ART ≤ API 35** (présents
+  sur la plateforme 37, d'où un module JVM pur qui compile et passe
+  CI — son bytecode dexé n'est vérifié par AUCUN lint). L'unicité
+  passe au compteur atomique + `System.nanoTime()` (API 1) ;
+  vérification BYTECODE : zéro référence `ProcessHandle` dans les
+  classes ET les 30 dex de l'APK.
+- **`readNBytes` (JDK 9, API Android 33+) dans la reprise d'en-tête
+  de segment** (`LecteurSegment.enTeteValide`) : `NoSuchMethodError`
+  en attente sur tout appareil API 26–32 (minSdk 26) — remplacé par
+  `DataInputStream.readFully` sur tampon borné (API 1).
+- **« JAR orchestrateur indisponible : <chemin>: The source file
+  doesn't exist. »** (pile JarDeployer.kt:183, repli de renommage) :
+  `.tmp` à nom FIXE + repli hors hiérarchie typée — deux déploiements
+  CONCURRENTS partageaient le même `.tmp`, le perdant mourrait d'un
+  `NoSuchFileException` BRUT classé définitif alors que le JAR ÉTAIT
+  déployé. Désormais : `.tmp` UNIQUE, exclusion mutuelle (`Mutex`),
+  repli TYÉ et TOLÉRANT (un concurrent gagné la course = résultat
+  atteint), purge du `.tmp` à nom fixe hérité (≤ v0.100.0).
+- **Fuite de session LSP au démarrage** (journal : deux « session LSP
+  ouverte » à 15 ms, aucune refermée) : deux coroutines franchissaient
+  la garde avant la résolution FUSE suspendante — la seconde session
+  écrasait la première sans la refermer (moteurs et index orphelins).
+  Ouverture EXCLUSIVE, garde reverifiée sous verrou.
+
+### Ajouté
+
+- 3 tests `EcrivainSegmentTest` (unicité ×1000, écritures concurrentes
+  du même contenu — round-trip complet, en-tête court borné) et 2
+  tests `JarDeployerTest` (déploiements concurrents ×8, purge du
+  `.tmp` hérité) ; protocole « comment savoir si le LSP est branché »
+  documenté (§16.2.1 : barre d'état, journal, épreuve de complétion).
+
 ## [0.100.0] – 2026-10-12
 
 ### Ajouté
