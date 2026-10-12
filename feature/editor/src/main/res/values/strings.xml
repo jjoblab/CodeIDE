@@ -79,6 +79,9 @@
     <string name="editor_onglet_fermer_cd">Fermer cet onglet</string>
     <string name="editor_onglet_sale_cd">%1$s — modifications non enregistrées</string>
     <string name="editor_enregistrer">Enregistrer</string>
+    <!-- Mission « Previews » PE1 : bascule du panneau d'aperçu XML (LayoutLib). -->
+    <string name="editor_action_apercu">Aperçu XML</string>
+    <string name="editor_action_apercu_fermer">Masquer l\'aperçu</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
     <string name="editor_menu_fermer_tout">Fermer tout</string>

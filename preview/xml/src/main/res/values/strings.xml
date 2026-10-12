@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Module :preview:xml — chaînes du panneau de preview (PE1). Français
+     par défaut (convention du dépôt), l'anglais vit dans values-en/. -->
+<resources>
+    <string name="preview_cd">Aperçu du layout XML rendu par le moteur de preview</string>
+    <string name="preview_accueil">Ouvrez un layout XML pour voir son aperçu</string>
+    <string name="preview_en_edition">XML en cours de frappe — dernier rendu conservé</string>
+</resources>

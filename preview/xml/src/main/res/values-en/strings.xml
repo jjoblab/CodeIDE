@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings for :preview:xml (PE1). -->
+<resources>
+    <string name="preview_cd">XML layout preview rendered by the preview engine</string>
+    <string name="preview_accueil">Open an XML layout to see its preview</string>
+    <string name="preview_en_edition">XML being typed — last render kept</string>
+</resources>

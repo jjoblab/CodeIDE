@@ -41,7 +41,9 @@ import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.InfoTache
+import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.ProjectAccessState
@@ -62,6 +64,7 @@ import jo.codeide.core.ui.couleurSurSurface
 import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
+import jo.codeide.feature.editor.preview.ControleurPreviewXml
 import jo.codeide.lsp.host.EtatIndexation
 import jo.codeide.lsp.host.PhaseIndexation
 import kotlinx.coroutines.Job
@@ -160,11 +163,33 @@ class EditorActivity :
     @Inject
     lateinit var journalLsp: AppLogger
 
+    /** Dispatchers injectés (règle 5) — la preview XML y rend sur fil dédié. */
+    @Inject
+    lateinit var dispatchers: DispatcherProvider
+
+    /** Résolveur SAF → FUSE (ADR 0038) : `res/` du projet rejoint le moteur
+     *  de preview XML par le MÊME chemin que la session LSP et le terminal. */
+    @Inject
+    lateinit var resolveurCheminProjet: ResoudreRepertoireProjet
+
     private lateinit var liaison: ActivityEditorBinding
 
     /** Coordonnateur LSP Java (mission « LSP Java » h2) : LspProject +
      *  LspEditor cel-lsp de l'onglet actif — see [brancherLspSiNecessaire]. */
     private val coordonnateurLsp by lazy { CoordonnateurLsp(journalLsp) }
+
+    /** Contrôleur de la preview XML (mission « Previews » PE1) : branche le
+     *  moteur :preview:xml sur l'onglet actif et le projet — bascule du
+     *  panneau par le menu, fermeture au onDestroy. */
+    private val controleurApercu by lazy {
+        ControleurPreviewXml(
+            vue = liaison.vuePreview,
+            dispatchers = dispatchers,
+            journal = journalLsp,
+            scope = lifecycleScope,
+            resolveurChemin = resolveurCheminProjet,
+        )
+    }
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
@@ -288,6 +313,14 @@ class EditorActivity :
             // Mission LSP Java h2 (§16.2) : le branchement suit le rendu —
             // async (résolution FUSE suspendante), gardé par URI.
             brancherLspSiNecessaire(etat)
+            // Mission « Previews » PE1 : le contrôleur suit l'onglet actif
+            // (classification + écoute des frappes) et le projet (res/ FUSE).
+            val sessionActive =
+                etat.onglets.getOrNull(etat.indexOngletActif)?.let { onglet ->
+                    viewModel.sessionDe(onglet.uri)
+                }
+            controleurApercu.onEtat(etat, sessionActive)
+            majMenuApercu()
         }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
 
@@ -859,6 +892,20 @@ class EditorActivity :
 
                 R.id.action_enregistrer -> {
                     viewModel.onAction(ActionEditor.Enregistrer)
+                    true
+                }
+
+                R.id.action_apercu -> {
+                    // Mission « Previews » PE1 : bascule du panneau d'aperçu
+                    // XML — le titre suit l'état (ouvrir / masquer).
+                    val visible = controleurApercu.bascule()
+                    item.setTitle(
+                        if (visible) {
+                            R.string.editor_action_apercu_fermer
+                        } else {
+                            R.string.editor_action_apercu
+                        },
+                    )
                     true
                 }
 
@@ -1533,6 +1580,23 @@ class EditorActivity :
             .setEnabled(etat.onglets.isNotEmpty())
     }
 
+    /**
+     * Mission « Previews » PE1 : visibilité et titre de l'action d'aperçu —
+     * visible si l'onglet actif est previewable (classification du
+     * contrôleur), le titre suit l'état ouvert/masqué du panneau.
+     */
+    private fun majMenuApercu() {
+        val action = liaison.toolbarEditeur.menu.findItem(R.id.action_apercu) ?: return
+        action.isVisible = controleurApercu.genreActif.value != null
+        action.setTitle(
+            if (controleurApercu.visible) {
+                R.string.editor_action_apercu_fermer
+            } else {
+                R.string.editor_action_apercu
+            },
+        )
+    }
+
     /** Crée l'onglet graphique (vue personnalisée) pour [onglet]. */
     private fun creerOnglet(
         onglet: EditorTabState,
@@ -1870,6 +1934,9 @@ class EditorActivity :
      */
     override fun onDestroy() {
         coordonnateurLsp.fermer()
+        // Mission « Previews » PE1 : moteur et écoute d'onglet coupés avec
+        // l'écran (PE2 déplacera le rendu dans le processus :preview).
+        controleurApercu.fermer()
         super.onDestroy()
     }
 

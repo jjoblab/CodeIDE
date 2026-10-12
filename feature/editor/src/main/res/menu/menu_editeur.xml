@@ -41,6 +41,16 @@
         android:visible="false"
         app:showAsAction="never" />
 
+    <!-- Mission « Previews » PE1 (PREVIEW.md §3.4) : bascule du panneau
+         d'aperçu XML — visible quand l'onglet actif est previewable
+         (res/layout ou racine de layout) ; le rendu vit dans :preview:xml
+         (LayoutLib, fil dédié, bitmap off-screen). -->
+    <item
+        android:id="@+id/action_apercu"
+        android:title="@string/editor_action_apercu"
+        android:visible="false"
+        app:showAsAction="never" />
+
     <!-- Fermeture de l'espace de travail (étape 31) : l'action vivait
          dans l'entête v1 du tiroir, elle rejoint le débordement de la
          toolbar depuis l'architecture à fragments. -->

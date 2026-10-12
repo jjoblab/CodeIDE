@@ -541,6 +541,42 @@ dossier du projet.
 | Y18 | Changer la rétention à 1 jour, ROUVRIR le projet, éditer, attendre plus d'un jour (ou régler l'horloge), réouvrir | Les révisions plus vieilles qu'un jour partent à la purge d'ouverture — la réglage s'applique SANS redémarrer l'app (lu à chaque purge) |
 | Y19 | « Effacer l'historique local » → confirmer le dialogue | « Historique effacé », empreinte repart à ~0, les feuilles Historique de TOUS les projets sont VIDES — les fichiers du disque n'ont PAS bougé |
 
+## Mission « Previews » — panneau d'aperçu XML (PE1, v0.111.0)
+
+Le rendu vit dans `:preview:xml` (moteur LayoutLib v2.1.2 via JitPack,
+fil dédié, bitmap off-screen — PREVIEW.md §3) ; ces recettes éprouvent
+le câblage complet : FUSE (`res/` du projet), classification, debounce,
+« jamais de panneau vide », et l'INERTIE de l'IDE (le rendu ne doit
+JAMAIS bloquer la frappe).
+
+| # | Action | Attendu |
+|---|--------|--------|
+| P1 | Ouvrir un projet Android, ouvrir `res/layout/activity_main.xml` (ou tout layout) | Le menu ⋮ de la toolbar offre **« Aperçu XML »** (invisible sur un fichier non-XML ou non-layout) |
+| P2 | Menu → « Aperçu XML » | Le panneau s'ouvre À CÔTÉ de l'éditeur (partage 50/50 de la largeur) avec le bitmap rendu ajusté à la vue ; l'entrée de menu devient « Masquer l'aperçu » |
+| P3 | Pincer, glisser, double-tap dans le panneau | Zoom borné (0,25×–6×), pan borné, double-tap réajuste le rendu à la vue ; damier de transparence derrière les zones alpha |
+| P4 | Éditer le texte du layout (couleur, texte, padding) | Après ~400 ms sans frappe : NOUVEAU rendu ; PENDANT les frappes (XML malformé) : le DERNIER rendu valide reste affiché + signal discret « XML en cours de frappe » en bas |
+| P5 | Casser volontairement le XML proprement (balise inconnue `<Machin/>`, vue inexistante) | Bandeau rouge en haut de panneau avec le message d'erreur lisible ; le rendu précédent reste visibles dessous |
+| P6 | Référencer `@color/…`/`@string/…`/`@dimen/…` définis dans `res/values*` du projet | Rendus RÉSOLUS depuis le projet (le résolveur lit le `res/` réel par le chemin FUSE — même résolveur que le LSP) |
+| B1 | Ouvrir le panneau sur un layout MASSIF (imbrications ~300 éléments) puis taper au clavier | La frappe reste FLUIDE (le rendu vit sur un fil dédié, jamais le thread UI) ; latence de rendu complète < 400 ms après debounce |
+| B2 | Menu → « Aperçu XML » sur un drawable (`res/drawable/*.xml`) ou `values/*.xml` | Classifié (le menu apparaît) mais rendu réservé à PE3 : le panneau ouvre sur l'état d'accueil, sans erreur |
+
+### État des lieux du catalogue 50 layouts (PE1 — en attente d'appareil)
+
+L'état des lieux comparatif vit dans le DÉPÔT LayoutLib (module
+`validation/`, propriétaire du catalogue) :
+
+```bash
+# Dans un checkout de jjoblab/LayoutLib (tag ≥ v2.1.2), appareil branché :
+ANDROID_HOME=<sdk> ./gradlew :validation:connectedAndroidTest
+# Le rapport d'intégration sort dans validation/build/ (harness 50 layouts :
+# inflation + mesure + layout, par catégorie — basic/nested/resources/…).
+```
+
+Reporter ici, à chaque montée de LayoutLib : nombre de layouts OK /
+échecs / temps moyens par catégorie — les limitations résiduelles
+(PREVIEW.md §2.3) se lisent dans le diff entre versions. **Aucune
+exécution à ce jour (pas d'appareil dans l'environnement de build).**
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
