@@ -329,6 +329,38 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `le tri restaure depuis le SavedStateHandle sans crash (String)`() =
+        runTest(regleMain.dispatcher) {
+            projet("Alpha")
+            projet("Beta")
+            // Écrit exactement comme la production : ChangerTri persiste
+            // tri.name (une String) — v0.100.2 : la lecture inférée
+            // `TriAccueil` levait ClassCastException à la restauration.
+            val etatSauvegarde = SavedStateHandle()
+            etatSauvegarde["accueil-tri"] = "NOM"
+            val viewModelRestaure = viewModelAvec(etatSauvegarde)
+            advanceUntilIdle()
+
+            assertEquals(TriAccueil.NOM, viewModelRestaure.etat.value.tri)
+            assertEquals(
+                listOf("Alpha", "Beta"),
+                viewModelRestaure.etat.value.projets
+                    .map { it.name },
+            )
+        }
+
+    @Test
+    fun `un tri persiste inconnu retombe sur recents sans crash`() =
+        runTest(regleMain.dispatcher) {
+            val etatSauvegarde = SavedStateHandle()
+            etatSauvegarde["accueil-tri"] = "OBSOLETE"
+            val viewModelRestaure = viewModelAvec(etatSauvegarde)
+            advanceUntilIdle()
+
+            assertEquals(TriAccueil.RECENTS, viewModelRestaure.etat.value.tri)
+        }
+
+    @Test
     fun `un registre illisible bascule en erreur puis Reessayer recharge`() =
         runTest(regleMain.dispatcher) {
             depot.flowError = RuntimeException("base corrompue")

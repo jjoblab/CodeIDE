@@ -77,7 +77,10 @@ internal class CoordonnateurLsp(
         vue.setCurrentFilePath(cheminFuse)
         editeur
             .connect()
-            .thenRun { journal.d(TAG) { "LSP Java connecté ($cheminFuse)" } }
+            // v0.100.2 : INFO (visible en verbosité NORMAL) — c'est LE
+            // signal « LSP branché » demandé par l'utilisateur ; en DEBUG
+            // il était filtré et la connexion semblait muette (§16.2.2).
+            .thenRun { journal.i(TAG) { "LSP Java connecté ($cheminFuse)" } }
             .exceptionally { echec ->
                 journal.w(TAG, echec) { "LSP Java : échec de connexion ($cheminFuse) — coloration seule" }
                 null

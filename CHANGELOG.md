@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.100.2] – 2026-10-12
+
+### Corrigé
+
+- **Mission « LSP Java » — second retour d'appareil v0.100.1**
+  (docs/LSP_JAVA.md §16.2.2, rapport e69fc0d8, moto g06 / Android 15 /
+  API 35). TROIS défauts — et une BONNE nouvelle : plus AUCUNE trace du
+  crash `ProcessHandle` de v0.100.0 (la session LSP a été ouverte,
+  nourrie — 46 entrées d'index — puis revalidée SANS incident : le
+  correctif v0.100.1 tient sur appareil), le JAR orchestrateur s'est
+  déployé sans erreur :
+- **La barre d'état d'indexation avalait l'éditeur** (« elle prend tout
+  l'espace de l'éditeur view ») : `VuePointEtat` ne surcharge pas
+  `onMeasure` ; déclaré `wrap_content` dans `activity_editor.xml`
+  (contrairement à `popover_legende.xml`, qui le fixe à 20 dp), la
+  mesure par défaut sous `AT_MOST` retourne TOUTE la hauteur
+  disponible — la barre `wrap_content` devenait haute comme l'écran
+  restant et le conteneur d'éditeur (poids 1) était écrasé. Point à
+  20 dp FIXE (motif des autres usages), barre fine de 24 dp sous les
+  onglets.
+- **CRASH ACCUEIL — `ClassCastException: String cannot be cast to
+  TriAccueil`** (`HomeViewModel.kt:112`, retour accueil après éditeur)
+  : `ChangerTri` persiste `tri.name` (String, seul type persistable
+  par `SavedStateHandle`) mais la lecture `savedState[CLE_TRI] ?:
+  TriAccueil.RECENTS` inférait `TriAccueil` — cast String vers énuméré
+  à la restauration. Lecture `get<String>` + résolution par nom,
+  valeur inconnue → RECENTS (jamais de crash pour une préférence) ;
+  +2 tests de restauration.
+- **« LSP Java connecté » invisible dans le journal** (« pas de lsp
+  java connecté ») : la ligne était journalisée en DEBUG, or la
+  verbosité par défaut (NORMAL) filtre à INFO — la connexion pouvait
+  réussir sans laisser de trace visible. Promue en INFO : c'est LE
+  signal demandé, aux côtés de « session LSP ouverte ».
+
 ## [0.100.1] – 2026-10-12
 
 ### Corrigé
