@@ -3,12 +3,12 @@ package jo.codeide.core.domain
 import jo.codeide.core.testing.FakeArborescencesSaf
 import jo.codeide.core.testing.MainDispatcherRule
 import jo.codeide.core.testing.TestDispatcherProvider
-import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import kotlin.io.path.createTempDirectory
 
 /**
  * Tests du pont « arborescence SAF → chemin FUSE » (Terminal T6, critère
