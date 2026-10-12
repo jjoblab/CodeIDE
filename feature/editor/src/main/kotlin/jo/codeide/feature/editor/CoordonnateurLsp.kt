@@ -72,8 +72,10 @@ internal class CoordonnateurLsp(
                 return
             }
         editeur.setEditorView(vue)
-        // v3.33.11 cel : le chemin courant conditionne la reconnaissance
-        // des cibles de définition DANS le fichier courant.
+        // cel (depuis 3.33) : le chemin courant conditionne la
+        // reconnaissance des cibles de définition DANS le fichier
+        // courant (v0.101.0 : lib montée en 3.49.2 — comportement
+        // inchangé, vérifié par diff des sources publiques).
         vue.setCurrentFilePath(cheminFuse)
         editeur
             .connect()
