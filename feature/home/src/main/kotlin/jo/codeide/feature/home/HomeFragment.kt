@@ -229,7 +229,17 @@ class HomeFragment :
 
         binding.listeProjets.isVisible = !etat.chargement && etat.erreur == null && etat.projets.isNotEmpty()
         adapteur.projetEnEvidence = etat.projetEnEvidence
-        adapteur.submitList(etat.projets.map { ProjetAffiche(it, etat.etatsAcces[it.id]) })
+        adapteur.submitList(
+            etat.projets.map {
+                ProjetAffiche(
+                    it,
+                    etat.etatsAcces[it.id],
+                    // Mission « Cycle de vie » étape E : l'état de session ne
+                    // concerne QUE la carte du projet porté par la session.
+                    etat.session.takeIf { session -> session.projet == it.id },
+                )
+            },
+        )
 
         // Défilement vers le projet créé — une seule fois, quand il est
         // enfin présent dans la liste (le registre peut émettre avant).

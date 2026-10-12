@@ -207,6 +207,13 @@ abstract class BaseEditorViewModelTest {
     /** Faux historique local (mission H) : appels journalisés. */
     protected val historiqueTest = FakeHistoriqueLocal()
 
+    /** Faux orchestrateur d'installation (cycle de vie étape E) : l'état
+     *  du parcours est semable — le refus tooling pendant une installation
+     *  se distingue de l'absence d'outils. */
+    protected val parcoursInstallationTest =
+        jo.codeide.core.testing
+            .FakeEnvironmentSetupOrchestrator()
+
     /** Cas d'usage d'arbre purs (étape 17) — sans état, partagés par test. */
     protected val copierArbre = CopierArbreUseCase()
 
@@ -339,6 +346,7 @@ abstract class BaseEditorViewModelTest {
             // fermetures d'onCleared de façon déterministe).
             gestionnaireSession = gestionnaireSessionTest,
             porteeFermetureSession = porteeFermetureSessionTest,
+            orchestrateurInstallation = parcoursInstallationTest,
             savedStateHandle = sauvetage,
         )
 

@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.RoutageInterEcrans
 import jo.codeide.core.domain.TerminalSessionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -122,12 +123,26 @@ internal class TerminalService : Service() {
             .build()
     }
 
-    /** Ouvre l'écran du terminal au toucher (activité branchée en T5). */
+    /**
+     * Ouvre l'écran du terminal au toucher (mission « Cycle de vie »
+     * étape E, E10 — le commentaire promettait l'écran du terminal depuis
+     * T5, le code ouvrait l'accueil) : l'intention de lancement porte
+     * l'extra d'écran cible, l'hôte du graphe (`MainActivity`) route vers
+     * l'écran plein écran du terminal — MÊME liste de sessions, quel que
+     * soit le point d'entrée (§2.4 : sessions GLOBALES).
+     *
+     * Code de requête = l'identifiant de notification : les extras ne
+     * comptent PAS dans l'identité d'un `PendingIntent` (filterEquals)
+     * — un code partagé avec les autres services de notification
+     * laisserait le DERNIER créé réécrire les extras du premier
+     * (piège classique UPDATE_CURRENT).
+     */
     private fun intentionOuverture(): PendingIntent? {
         val intention = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+        intention.putExtra(RoutageInterEcrans.EXTRA_ECRAN_CIBLE, RoutageInterEcrans.ECRAN_TERMINAL)
         return PendingIntent.getActivity(
             this,
-            0,
+            IDENTIFIANT_NOTIFICATION,
             intention,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

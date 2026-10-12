@@ -1,13 +1,16 @@
 # Cycle de vie de l'éditeur — session de projet et fermeture propre (prompt 3)
 
-> **Statut (v0.105.0) : mission EN COURS — étapes A, B, C et D LIVRÉES**.
-> Étape A : audit documentaire (§4). Étape B : module pur `:core:session`
-> + ADR 0114 (§5, v0.103.0). Étape C : branchement éditeur (§6,
-> v0.104.0). Étape D : protocole v9 « fermeture de projet » +
-> libération PAR PROJET côté orchestrateur (§7, v0.105.0 — E9 fermé,
-> politique du démon reportée aux mesures S6). Prochaine étape : **E —
-> cohérence de navigation** (matrice §4.4). La baseline §4.5 reste
-> exécutable sur le TAG v0.103.0 (état pré-correctif figé).
+> **Statut (v0.106.0) : mission EN COURS — étapes A, B, C, D et E
+> LIVRÉES**. Étape A : audit documentaire (§4). Étape B : module pur
+> `:core:session` + ADR 0114 (§5, v0.103.0). Étape C : branchement
+> éditeur (§6, v0.104.0). Étape D : protocole v9 « fermeture de
+> projet » + libération PAR PROJET côté orchestrateur (§7, v0.105.0 —
+> E9 fermé). Étape E : cohérence de navigation (§8, v0.106.0 — E10/P3/
+> P4-dégénéré fermés, badge de session, SAF au retour, kit de baseline
+> §4.5). Reste : **F — vérification et validation appareil**, sur les
+> mesures du kit `scripts/baseline-cycle-vie.sh` (rejouable sur le TAG
+> v0.103.0, état pré-correctif figé — ou sur l'état courant pour le
+> suivi).
 > Lecture préalable : `AGENTS.md`,
 > `docs/ARCHITECTURE.md`, `docs/TOOLING.md`, `feature/editor/Module.md`,
 > prompt 3 (`upload/extracted_files/03-prompt-cycle-de-vie-editeur.md`).
@@ -52,7 +55,7 @@ bornés) reste à construire à l'étape B.
 | **B — Contrat de session et registre de fermeture** | **LIVRÉ (v0.103.0, §5 du présent document — ADR 0114)** : module Kotlin JVM pur `:core:session` | `SessionProjet` (`ouvrir(projet)`, `fermer(raison)`, états `{Fermee, Ouverture, Ouverte, Fermeture}`), registre de ressources `Fermable` (ordre inverse, délai maximal, drapeau « ne pas annuler ») ; tests unitaires : ordre inverse, idempotence, **panne partielle**, **dépassement de délai**, fermeture pendant l'ouverture, ouverture pendant la fermeture, réentrance, annulation — 33 tests verts. Aucune dépendance Android |
 | **C — Intégration éditeur et migration des ressources existantes** | **LIVRÉ (v0.104.0, §6 du présent document)** | `EditorActivity`/`EditorViewModel` : session ouverte au démarrage (I1 par le gestionnaire), flush des sauvegardes NON annulable en sortie (I7/E2, portée application), session LSP `Fermable`, `onTrimMemory` caches reconstructibles (E16), miroir connexion process-wide (E13), fuite E12 corrigée, annonce build en cours (§2.1c) ; 6 nouveaux tests, 338 au total |
 | **D — Côté serveur de tooling** | **LIVRÉ (v0.105.0, §7 du présent document)** : protocole v9 | `FermerProjetRequest`/`FermerProjetResult` (idempotents, accusé corrélé) ; `GradleConnectorPool.fermer(dossier)` (connexion PAR projet), `CacheSync.purger`, branchement dispatcher ; port `fermerProjet` (E9 fermé) + Fermable « tooling-projet » (renoncement §2.1c si build/sync en vol) ; politique du démon REPORTÉE aux mesures (S6) |
-| **E — Cohérence de navigation** | Matrice de transitions implémentée : état « projet ouvert » sur l'accueil (liste récente, dernier ouvert), rafraîchissement au retour, réglages appliqués au retour (thème, palette, langue), permission SAF révoquée / stockage disparu détectés au retour, état de l'installation d'outils répercuté, retour depuis notification, écran de plantage → relance propre | |
+| **E — Cohérence de navigation** | **LIVRÉ (v0.106.0, §8 du présent document)** | Routage des 3 notifications (E10 : tooling → le PROJET du canal, terminal → l'écran du terminal, installation → l'écran du parcours) ; MainActivity consomme l'extra projet (ouvrir X ferme Y par I1, l'espace de Y se referme de lui-même — P4 dégénéré clos) ; entrée Paramètres dans l'éditeur (P3) ; état « session ouverte » sur l'accueil (port lecture seule) ; permission SAF révoquée/stockage disparu détectés AU RETOUR ; disponibilité du tooling honnête pendant une installation ; kit de baseline §4.5 |
 | **F — Vérification et validation appareil** | 20 cycles ouvrir/quitter : croissance du tas < 5 %, aucune instance d'`EditorActivity` retenue (détecteur) ; sortie de l'éditeur ⇒ aucun processus enfant lié au projet au-delà de la politique ; ouvrir P, quitter, ouvrir Q ⇒ aucun vestige de P ; aucune perte de la dernière modification en sortie rapide (test automatisé) ; rotation ne ferme rien ; fermeture bornée en temps même si un élément bloque | |
 
 ## 2. Décisions à soumettre au propriétaire (avec recommandation)
@@ -355,27 +358,35 @@ comportement vérifié ; les écarts alimentent les étapes C–E.
 |---|---|---|---|
 | Accueil → Éditeur (P) | Session P ouverte ; UNE seule ; tooling lié à P ; Git/arbre démarrés | Session #10 ouverte ✓ ; unicité NON garantie (E7) ; tooling PROCESS-wide, pas lié à P ; arbre+Git démarrés ✓ | B (I1), D |
 | Éditeur → Accueil | Session fermée ; plus de travail de fond lié à P ; accueil à jour | #10 #11 #13 #15 #16 fermés/arrêtés ✓ ; fond #1–#8 lié à P survit (E9) ; accueil à jour ✓ (flux Room recollecté à STARTED) | C/D |
-| Éditeur → Terminal → retour | Session conservée ; état inchangé ; aucun doublon de surveillance | Conservée ✓ (activité dessous) ; sessions terminal GLOBALES (E11) ; reprise idempotente ✓ | E (politique §2.4) |
-| Éditeur → Paramètres → retour | Session conservée ; réglages appliqués | **PARCOURS INEXISTANT** (P3) ; propagation des réglages déjà fonctionnelle par les 3 canaux | E (ajouter l'entrée) |
+| Éditeur → Terminal → retour | Session conservée ; état inchangé ; aucun doublon de surveillance | Conservée ✓ (activité dessous) ; sessions terminal GLOBALES (E11 — politique §2.4 tranchée : conservées) ; reprise idempotente ✓ ; notification 42 001 → ÉCRAN DU TERMINAL (v0.106.0, §8.1) | clos (politique documentée) |
+| Éditeur → Paramètres → retour | Session conservée ; réglages appliqués | PARCOURS LIVRÉ (v0.106.0, §8.3) : entrée de menu + routage ADR 0048, l'espace survit dessous (I3) ; propagation par les 3 canaux déjà fonctionnelle | E ✓ |
 | Éditeur (P) → Accueil → Éditeur (Q) | P fermée AVANT Q ; aucun état de P visible dans Q | P fermée (nominal) ✓ ; console repart vierge ✓ MAIS #2 #4 serveur gardent P (E9) ; cas dégénéré : 2 sessions (E7/I1) | B, D |
 | Rotation dans l'éditeur | Aucune fermeture ; aucune ressource dupliquée | Session conservée ✓ (I3 côté session) ; #11 recréé+reconnecté (E8) ; aucune duplication ✓ | C (garde) ou §2.5a |
 | Éditeur → arrière-plan → retour | Session conservée ; reprise propre ; caches éventuellement reconstruits | Conservée ✓ ; RIEN ne coupe en arrière-plan (E16 : pas de temporisation, pas de `onTrimMemory`) | C + §2.3 |
 | Mort du processus → restauration | Ouverture propre ; aucune ressource fantôme | Restauration workspace + modèle LSP ✓ (v0.102.0) ; daemon relancé par `Application.onCreate` ✓ ; TerminalService sticky repart et s'arrête seul ✓ ; process enfants : à vérifier (S7) | mesure, puis E |
-| Notification tooling (X) pendant que Y est ouvert | Comportement défini et testé | Retour à l'ACCUEIL (E10) — ni X ni Y ; le cas dégénéré P4 existe | E |
+| Notification tooling (X) pendant que Y est ouvert | Comportement défini et testé | LIVRÉ (v0.106.0, §8.1–8.2) : la notification porte l'extra projet du CANAL (X) ; l'ouverture de X referme la session de Y (I1) et l'espace de Y se referme de lui-même (effet `FermerEspace`) — comportement DÉFINI et TESTÉ | E ✓ |
 | Build en cours → quitter | Selon la décision §2.1 | (c) DE FACTO : build continue (singletons), notification maintenue par #9, console conserve le rejeu | valider §2.1c |
 
 ### 4.5 Protocole de mesures de référence sur appareil (AVANT tout correctif)
 
-Conditions : build **debug** v0.102.0 (LeakCanary actif), appareil du
+> **Kit rejouable (v0.106.0)** : `scripts/baseline-cycle-vie.sh` exécute
+> S1–S7 + le p95 LSP avec capture automatique des journaux, `meminfo` et
+> `ps` — usage et préparation en tête de script. Corrections apportées
+> au protocole d'origine : les tags de journal cités initialement
+> (`LspEditeurSession`, `GradleServer`) n'existent PAS dans le code —
+> les tags réels sont `App`, `Editor` (cycle de session LSP compris),
+> `LspEditeur` (connexion cel-lsp), `ToolingDaemon`, `gradle-server`
+> (minuscule, stderr du serveur réinjectée), `ToolingService`.
+
+Conditions : build **debug** (LeakCanary actif), appareil du
 propriétaire (moto g06, Android 15 / API 35), projet réel multi-gradle
 (P) et un second (Q), 10 min de repos avant le premier relevé, écran
 allumé sauf S6. Chaque scénario note l'heure de début/fin et le journal
-(`adb logcat` filtré `App|Editor|LspEditeur|LspEditeurSession`,
-`GradleServer`). Relevés communs : `adb shell dumpsys meminfo
-jo.codeide` (Java heap, native heap, TOTAL), `adb shell ps -A -o
-PID,PPID,NAME | grep -i codeide` (processus enfants : orchestrateur
-`java`, démons Gradle `GradleDaemon`, shells) — consigner le tableau
-ci-dessous.
+(`adb logcat`, filtre conservé par le kit). Relevés communs : `adb
+shell dumpsys meminfo jo.codeide` (Java heap, native heap, TOTAL),
+`adb shell ps -A -o PID,PPID,NAME | grep -i codeide` (processus
+enfants : orchestrateur `java`, démons Gradle `GradleDaemon`, shells)
+— consigner le tableau ci-dessous.
 
 | Scénario | Procédure | Relevés |
 |---|---|---|
@@ -692,4 +703,149 @@ renoncement build en vol + session fermée quand même) ;
   re-libération à la fin du build demanderait un index projectDir→build
   côté serveur, ajouté si les mesures le justifient).
 - **Étape E (navigation)** : notifications E10, extra de routage,
-  état accueil — hors périmètre.
+  état accueil — hors périmètre → **LIVRÉE en v0.106.0 (§8)**.
+
+## 8. Étape E — cohérence de navigation (v0.106.0, LIVRÉE)
+
+Le prompt §6 E demandait la matrice de transitions « implémentée » :
+état « projet ouvert » sur l'accueil, réglages au retour, SAF révoquée
+détectée, installation répercutée, retour depuis notification, relance
+propre après plantage. Ce qui suit détaille chaque livrable, le mécanisme,
+et les tests (matrice §4.4 mise à jour en conséquence).
+
+### 8.1 Retour depuis notification — routage par extra (E10/P7 clos)
+
+- **Clés partagées `RoutageInterEcrans`** (`core:domain`, nouveau) :
+  `EXTRA_PROJET_CIBLE` + `EXTRA_ECRAN_CIBLE`/valeurs canoniques —
+  l'unique carrefour visible des 3 services (terminal-runtime,
+  bootstrap, feature:editor) ET de `:app` (les règles de dépendance
+  interdisent à un service de cœur de voir le module applicatif).
+  `RoutageEcran` (app) y délègue : source unique.
+- **Notification tooling (42 002)** : `GradleService.EtatGradle` gagne
+  `projetsParCanal` (miroir par canal, publié par l'espace AU LANCEMENT
+  de chaque opération sync/build/tâches — `publierProjetDuCanal`) ;
+  le `PendingIntent` porte l'extra projet du canal de la notification.
+  Un build parti du projet X continue sous le renoncement §2.1c :
+  SA notification route vers X, même après la fermeture de X ou
+  l'ouverture de Y — le canal porte l'ORIGINE de sa propre activité.
+- **Notification terminal (42 001)** : extra `ECRAN_TERMINAL` — le
+  commentaire du service promettait l'écran du terminal depuis T5, le
+  code tient enfin la promesse.
+- **Notification installation (4 2087)** : extra `ECRAN_INSTALLATION`
+  (valeur déjà routée par `MainActivity`).
+- **`MainActivity`** consomme l'extra projet à froid (après le routage
+  racine) et à chaud (`onNewIntent`, priorité sur l'écran cible) →
+  `navigator.openEditor(id)`.
+- **Codes de requête = identifiants de notification** (42 001/42 002/
+  4 2087) : les extras ne comptent pas dans l'identité d'un
+  `PendingIntent` (`filterEquals`) — un code partagé laisserait le
+  dernier créé réécrire les extras du premier (piège UPDATE_CURRENT).
+
+### 8.2 Notification (X) pendant que Y est ouvert — P4 dégénéré clos
+
+Ouverture de X par le routage → le gestionnaire referme la session de Y
+(I1, flush I7 compris) PUIS ouvre X — c'était le contrat de l'étape B.
+Ce qui manquait : l'ÉCRAN de Y restait vivant dessous (E6/E7, deux
+espaces pour deux projets, le ViewModel de Y refermait à sa mort la
+session de X !). Trois mécanismes livrés dans `EditorViewModel` :
+
+- **veilleur de bascule** : l'espace observe `gestionnaireSession.etat`
+  — dès que la session vit sur UN AUTRE projet, émet
+  `EffetEditor.FermerEspace` (l'activité fait `finish()` SANS dialogue
+  ni re-flush : le registre a déjà tout refermé) ;
+- **garde de propriété à la sortie** : `onCleared` ne referme la
+  session QUE si elle est encore la sienne (sinon la sortie de Y
+  tuerait le travail de X) ;
+- **espace né sur session déjà tenue** (double ouverture du MÊME projet
+  via notification alors qu'un espace vit dessous) : le nouveau se
+  referme aussitôt — le premier reste l'unique propriétaire.
+
+Résultat : jamais deux espaces vivants sur deux projets ; un retour sur
+un espace révoqué le referme immédiatement. `§2.6 (b)` (launchMode)
+reste non retenue — le gestionnaire + le veilleur couvrent I1 sans
+toucher au manifeste, comme l'arbitrage le prévoyait.
+
+### 8.3 Parcours P3 — éditeur → paramètres → retour
+
+Entrée `action_parametres` dans `menu_editeur.xml` (débordement) →
+`navigateur.openSettings()` — le routage ADR 0048
+(`relancerMainActivity` + `REORDER_TO_FRONT|SINGLE_TOP`) remonte l'hôte
+du graphe SANS détruire l'espace dessous : la session survit (I3). La
+propagation des réglages existait déjà par ses trois canaux
+(`AppCompatDelegate` thème/langue, `AppliquerApparence` palette
+— recreate de TOUTES les activités vivantes, éditeur compris —, flux
+`OptionsEditeur` au fil de l'eau) : le parcours manquait, il est livré.
+
+### 8.4 État « projet ouvert » sur l'accueil
+
+Port LECTURE SEULE `ObservateurSessionProjet` + `EtatSessionProjetVue`
+(`core:domain`, nouveaux) : l'accueil observe la session du processus
+SANS dépendre de `:core:session` (règle de dépendance inchangée —
+l'implémentation `ObservateurSessionProjetEspace` vit dans
+feature:editor, auprès du gestionnaire, liaison Hilt singleton).
+`EtatAccueil.session` + badge sur la carte du projet concerné
+(« Session ouverte », « Fermeture en cours » pendant la transition —
+l'état RÉEL, la liste n'est plus la seule source) ; le rafraîchissement
+de la liste au retour existait (flux Room recollecté à STARTED +
+`marquerOuvert` à l'ouverture).
+
+### 8.5 Permission SAF révoquée / stockage disparu AU RETOUR
+
+Le balayage périodique s'arrêtait MUET sur une permission perdue
+(kdoc : « le bandeau relève de Rafraichir et du suivi du registre »).
+Le contrôle manquant est livré : `verifierAccesAuRetour()` au
+redémarrage de la surveillance (chaque `onStart` de l'écran) —
+`VerifyProjectAccessUseCase` (permission puis existence), bandeau
+EXISTANT de l'explorateur (« Résoudre » referme l'espace), surveillance
+arrêtée sous le bandeau. Un échec injoignable (E/S passagère) ne
+fabrique rien : le balayage reprend, `Rafraichir` relève.
+
+### 8.6 Installation des outils → disponibilité du tooling
+
+L'état était déjà répercuté (refus typé `MESSAGE_JDK_ABSENT` actionnable
+dans l'onglet Sortie, redirection vers l'écran d'installation pour le
+terminal, sync d'ouverture attendant ≤ 5 s le premier état outils).
+Le mensonge restant : « JDK absent (outils non installés) » pendant
+qu'une installation VIENT — le refus dit désormais l'état réel du
+parcours (`MESSAGE_INSTALLATION_EN_COURS`, orchestrateur consulté) ;
+le journal distingue les deux cas.
+
+### 8.7 Écran de plantage → relance propre (choix DOCUMENTÉ, sans code)
+
+Le mécanisme est sain et vérifié (P6) : `CrashHandler` tue le processus
+AVANT relance, `CrashActivity` relance le launch intent en
+`NEW_TASK|CLEAR_TASK` — la racine (accueil) repart PROPRE : aucun état
+fantôme, aucune ressource ressuscitée. **Choix assumé** : après un
+plantage, NE PAS rouvrir automatiquement le projet (l'état au moment du
+crash est suspect ; l'utilisateur rouvre délibérément — et la
+restauration par projet existe : workspace + modèle LSP persistés,
+v0.102.0). La cohérence exige une relance propre, pas une amnésie
+courageuse.
+
+### 8.8 Vérifications
+
+`:feature:editor:check` (341 tests — 6 nouveaux : miroir du canal SYNC,
+bascule → `FermerEspace`, espace né sur session tenue, sortie qui
+épargne la session d'un autre, permission révoquée au retour, message
+d'installation) ; `ObservateurSessionProjetEspaceTest` (projection du
+cycle complet) ; `:feature:home:check` (34 tests — état de session dans
+l'accueil) ; `:core:domain:check` (ports purs) ;
+`:core:terminal-runtime:check` ; `:core:bootstrap:check` ;
+`:app:compileDebugKotlin` + `:app:assembleDebug` (28,3 Mo) +
+`checkModuleDependencies` VERTS. Durées réelles (machine 2 cœurs,
+démons frais) : domain 2m41s (dont téléchargements), editor check
+~1m10s par passage test, assembleDebug 3m32s.
+
+### 8.9 Ce que l'étape E ne fait PAS
+
+- **LaunchMode §2.6 (b)** : non retenue (le veilleur couvre I1 sans
+  manifeste) — à revisiter si les mesures F montrent des empilements
+  résiduels.
+- **Notification pendant l'espace AU PREMIER PLAN** : le tap ramène la
+  TÂCHE au premier plan (comportement Android du launch intent) sans
+  livrer l'extra si l'activité top n'est pas l'hôte — inchangé
+  (non régressif), documenté ici.
+- **Politique du démon §2.2 / temporisation §2.3** : toujours aux
+  mesures S6 (kit §4.5 prêt).
+- **p95 appareil §11.2** : relevés à exécuter par le propriétaire avec
+  le kit (chronométrage vidéo des frappes compris).
