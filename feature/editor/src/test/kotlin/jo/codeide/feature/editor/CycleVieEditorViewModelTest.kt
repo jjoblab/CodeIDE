@@ -184,6 +184,54 @@ class CycleVieEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `la rotation ne ferme ni ne reouvre la session`() =
+        runTest {
+            // Matrice §6.3 ligne 6 / critère §8.5 du prompt : la rotation
+            // recrée l'ACTIVITÉ, le ViewModel (et sa session) SURVIT —
+            // aucune fermeture, aucune ré-ouverture, la session LSP reste
+            // attachée (le rebranchement cel-lsp de la VUE est un coût
+            // borné, E8/§2.5a — la SessionLsp et ses caches survivent).
+            val alpha = ajouterProjet("Alpha")
+            // Résolveur FUSE résolvant : la session LSP cel exige un
+            // chemin réel (cf. « la fermeture par le registre »).
+            val viewModel = viewModel(alpha, ResolveurCheminFuse { "/fuse/projets/Alpha" })
+            avancer()
+            assertEquals(EtatSession.Ouverte(alpha), gestionnaireSessionTest.etat.value)
+            assertNotNull("pré-condition : session LSP attachée", viewModel.sessionLsp.value)
+            assertEquals(
+                "pré-condition : UNE ouverture journalisée",
+                1,
+                journalViewModel.entries.count { it.message.contains("session ouverte") },
+            )
+
+            // « Rotation » : l'interface est recréée, PAS le ViewModel —
+            // aucun onCleared, aucun nouvel init ; le temps s'écoule
+            // (le rebranchement de la vue y compris).
+            regleMain.dispatcher.scheduler.advanceTimeBy(30_000)
+            avancer()
+
+            assertEquals(
+                "aucune ré-ouverture à la rotation",
+                1,
+                journalViewModel.entries.count { it.message.contains("session ouverte") },
+            )
+            assertEquals(
+                "aucune fermeture à la rotation",
+                0,
+                journalViewModel.entries.count { it.message.contains("session fermée") },
+            )
+            assertEquals(
+                "I3 : la session SURVIT à la rotation",
+                EtatSession.Ouverte(alpha),
+                gestionnaireSessionTest.etat.value,
+            )
+            assertNotNull(
+                "la session LSP survit à la rotation (E8 : rebranchement borné)",
+                viewModel.sessionLsp.value,
+            )
+        }
+
+    @Test
     fun `liberer memoire vide les caches sans fermer la session`() =
         runTest {
             val id = ajouterProjet("Alpha")
