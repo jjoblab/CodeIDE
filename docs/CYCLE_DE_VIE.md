@@ -56,7 +56,7 @@ bornés) reste à construire à l'étape B.
 | **C — Intégration éditeur et migration des ressources existantes** | **LIVRÉ (v0.104.0, §6 du présent document)** | `EditorActivity`/`EditorViewModel` : session ouverte au démarrage (I1 par le gestionnaire), flush des sauvegardes NON annulable en sortie (I7/E2, portée application), session LSP `Fermable`, `onTrimMemory` caches reconstructibles (E16), miroir connexion process-wide (E13), fuite E12 corrigée, annonce build en cours (§2.1c) ; 6 nouveaux tests, 338 au total |
 | **D — Côté serveur de tooling** | **LIVRÉ (v0.105.0, §7 du présent document)** : protocole v9 | `FermerProjetRequest`/`FermerProjetResult` (idempotents, accusé corrélé) ; `GradleConnectorPool.fermer(dossier)` (connexion PAR projet), `CacheSync.purger`, branchement dispatcher ; port `fermerProjet` (E9 fermé) + Fermable « tooling-projet » (renoncement §2.1c si build/sync en vol) ; politique du démon REPORTÉE aux mesures (S6) |
 | **E — Cohérence de navigation** | **LIVRÉ (v0.106.0, §8 du présent document)** | Routage des 3 notifications (E10 : tooling → le PROJET du canal, terminal → l'écran du terminal, installation → l'écran du parcours) ; MainActivity consomme l'extra projet (ouvrir X ferme Y par I1, l'espace de Y se referme de lui-même — P4 dégénéré clos) ; entrée Paramètres dans l'éditeur (P3) ; état « session ouverte » sur l'accueil (port lecture seule) ; permission SAF révoquée/stockage disparu détectés AU RETOUR ; disponibilité du tooling honnête pendant une installation ; kit de baseline §4.5 |
-| **F — Vérification et validation appareil** | 20 cycles ouvrir/quitter : croissance du tas < 5 %, aucune instance d'`EditorActivity` retenue (détecteur) ; sortie de l'éditeur ⇒ aucun processus enfant lié au projet au-delà de la politique ; ouvrir P, quitter, ouvrir Q ⇒ aucun vestige de P ; aucune perte de la dernière modification en sortie rapide (test automatisé) ; rotation ne ferme rien ; fermeture bornée en temps même si un élément bloque | |
+| **F — Vérification et validation appareil** | **OUTILLÉE (v0.107.0, §9 du présent document)** : preuves locales (tests §9.1 — dont le NOUVEAU test « la rotation ne ferme ni ne reouvre la session ») + kit `scripts/validation-f.sh` (verdicts automatiques par critère §8 : 20 cycles par `am start`+extra, GC forcé, meminfo/ps/cmdline, rotations, journaux) ; exécution sur appareil en attente d'un téléphone branché | 20 cycles ouvrir/quitter : croissance du tas < 5 %, aucune instance d'`EditorActivity` retenue (détecteur) ; sortie de l'éditeur ⇒ aucun processus enfant lié au projet au-delà de la politique ; ouvrir P, quitter, ouvrir Q ⇒ aucun vestige de P ; aucune perte de la dernière modification en sortie rapide (test automatisé) ; rotation ne ferme rien ; fermeture bornée en temps même si un élément bloque |
 
 ## 2. Décisions à soumettre au propriétaire (avec recommandation)
 
@@ -849,3 +849,64 @@ démons frais) : domain 2m41s (dont téléchargements), editor check
   mesures S6 (kit §4.5 prêt).
 - **p95 appareil §11.2** : relevés à exécuter par le propriétaire avec
   le kit (chronométrage vidéo des frappes compris).
+
+## 9. Étape F — vérification et validation (v0.107.0, OUTILLÉE)
+
+> **Statut** : la mission est fermée côté CODE jusqu'à E incluse ; F est
+> LIVRÉE en deux volets — **preuves locales** (tests automatisés, verts
+> en chaîne de vérification) et **kit d'exécution sur appareil**
+> (`scripts/validation-f.sh`, verdicts AUTOMATIQUES par critère §8).
+> L'exécution appareil elle-même attend un TÉLÉPHONE BRANCHÉ : la
+> machine de travail n'a ni périphérique (`adb devices` vide) ni
+> émulateur (pas d'image KVM, 2 cœurs/3,9 Go). Le kit fait tout ce qui
+> est scriptable (cycles par `am start` + extra de routage v0.106.0,
+> GC forcé, `meminfo`/`ps`/`cmdline`, rotations forcées, journaux
+> filtrés) et calcule les verdicts ; le propriétaire branche, lance,
+> consigne les deux observations manuelles (console de Q, notification
+> finale du build).
+
+### 9.1 Table de traçabilité — critères §8 du prompt → preuve
+
+| Critère §8 | Preuve locale (test, vert) | Preuve appareil (kit F) |
+|---|---|---|
+| 1. 20 cycles, croissance < 5 %, zéro `EditorActivity` retenue | — (mesure par nature) | F1 AUTO : GC forcé + `meminfo` cycles 1/5/10/20 → croissance calculée ; `LEAK*` LeakCanary et violations StrictMode comptées au journal |
+| 2. Aucun processus enfant LIÉ AU PROJET après sortie | `la fermeture de session libere le projet cote orchestrateur` (CycleVieEditorViewModelTest — protocole v9, E9) | F2 AUTO : `ps` + lignes de commande `/proc/*/cmdline` — vestige de P = ÉCHEC ; démons Gradle process-wide = OK (politique §2.2, reportée aux mesures) |
+| 3. P → Q : aucun vestige de P | `ouvrir B ferme A d abord et flushe les onglets sales de A` (I1) + `la fermeture par le registre referme la session LSP enregistree` | F3 AUTO : « session fermée (P) » AVANT « session ouverte (Q) » au journal ; AUCUNE ligne de P après l'ouverture de Q ; console/onglets/classpath : observation manuelle guidée |
+| 4. Aucune perte en sortie rapide (AUTOMATISÉ) | `la sortie ferme la session ET flushe les onglets sales` (I7 : la frappe est ÉCRITE avant le debounce, prouvée sur disque) | — (couvert par le test) |
+| 5. Rotation : rien ne ferme, rien ne se duplique | `la rotation ne ferme ni ne reouvre la session` (NOUVEAU v0.107.0 : I3 — une seule ouverture, zéro fermeture, session LSP attachée, E8 borné) | F5 AUTO : 5 rotations forcées → process vivant, ZÉRO « session fermée » au journal, rebranchements LSP comptés (≥ 5) |
+| 6. Fermeture bornée même si un élément bloque | `depassement de delai — element abandonne, les autres ferment` + `le delai borne aussi les elements non annulables` (RegistreFermetureTest — l'élément bloqué est JOURNALISÉ) | — (couvert par les tests) |
+| 7. Build en vol → sortie suit §2.1c | `un travail gradle en vol fait renoncer la liberation tooling` (§2.1c : renoncement journalisé, session fermée quand même) | F7 SEMI : process VIVANT pendant le build après sortie (AUTO) ; notification finale + console au retour : observation manuelle guidée |
+| 8. Matrice §6.3 entièrement verte | §4.4 colonne « Écart / étape » : toutes les lignes livrées (B/C/D/E) ; invariants I1/I2/I3/I7 par les tests cités | S1–S7 du kit §4.5 rejoués par le kit F sur les parcours équivalents |
+
+### 9.2 Kit `scripts/validation-f.sh` — mode d'emploi
+
+```bash
+JAVA_HOME=<jdk21> ./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+./scripts/validation-f.sh            # uuid P/Q acquis au journal (guidé)
+./scripts/validation-f.sh --projet <uuid-P> --projet-q <uuid-Q> --cycles 20
+```
+
+Préparation : build **debug** (LeakCanary + StrictMode actifs),
+appareil DÉVERROUILLÉ, deux projets distincts (P multi-gradle, Q). Le
+kit : force l'écran allumé pendant la session (restauré en sortant),
+exécute F1 (20 cycles : `am start` avec l'extra
+`jo.codeide.projet_cible` — le routage v0.106.0, à froid comme à chaud
+— puis BACK ; GC par SIGUSR1 avant chaque relevé), F2, F5 (rotations
+forcées `user_rotation`, `accelerometer_rotation` restauré), F3, F7
+(guidé : lancement du build à la main) et assemble
+`resultats-f-<date>/rapport-f.md` : verdicts `PASS`/`FAIL` calculés +
+deux observations à consigner + rappel des commandes Gradle pour
+rejouer les preuves locales.
+
+### 9.3 Ce qui reste à exécuter (propriétaire, appareil branché)
+
+1. `./scripts/validation-f.sh` (sur la version courante) — viser
+   F1–F8 tous `PASS` (F2 : démons Gradle process-wide tolérés par la
+   politique §2.2 jusqu'aux mesures).
+2. Le kit de baseline §4.5 sur le tag figé v0.103.0 si la comparaison
+   avant/après est voulue (les chiffres manquent aux deux rapports).
+3. Reporter les verdicts et relevés dans le présent §9 (§4.5 pour la
+   baseline) — c'est la clôture de la mission 3.
+4. Les mesures S6 tranchent ensuite §2.2 (politique du démon) et §2.3
+   (temporisation en arrière-plan) — éventuelle mission 3 « suite ».

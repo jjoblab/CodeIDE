@@ -1189,6 +1189,35 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.107.0 : **mission « Cycle de vie » étape F OUTILLÉE —
+      vérification et validation** (prompt 3 §7/§8 ;
+      docs/CYCLE_DE_VIE.md §9) : ① test d'invariant ROTATION
+      (critère §8.5, matrice §6.3 ligne 6 — « la rotation ne ferme ni
+      ne reouvre la session » dans CycleVieEditorViewModelTest) : I3
+      prouvé au niveau session, une seule ouverture journalisée,
+      zéro fermeture pendant la recréation de l'interface, session
+      LSP attachée (E8 : rebranchement de la VUE borné, §2.5a) ;
+      ② KIT D'EXÉCUTION APPAREIL scripts/validation-f.sh — verdicts
+      AUTOMATIQUES par critère §8 : F1 = 20 cycles par am start +
+      extra de routage v0.106.0 (jo.codeide.projet_cible, à froid et
+      à chaud) puis BACK, GC forcé (SIGUSR1), meminfo cycles
+      1/5/10/20 → croissance du tas Java calculée (< 5 % = PASS),
+      LeakCanary (LEAK*) et StrictMode comptés ; F2 = ps + lignes de
+      commande /proc/*/cmdline (vestige du projet = FAIL, démons
+      Gradle process-wide = OK, politique §2.2) ; F3 = P→Q (ordre
+      fermeture/ouverture au journal, aucune ligne de P après Q) ;
+      F5 = 5 rotations forcées (process vivant, zéro fermeture,
+      rebranchements « LSP Java connecté » comptés) ; F7 = build en
+      vol guidé (process vivant après sortie, §2.1c) ; acquisition
+      des uuid au journal (tag SessionProjet, LogcatSink écrit le
+      message brut), écran forcé allumé/restauré (trap
+      accelerometer_rotation/user_rotation/stayon) ;
+      resultats-f-<date>/rapport-f.md (verdicts + relevés +
+      commandes Gradle des preuves locales) ; ③ table de traçabilité
+      §9.1 : chaque critère §8 → preuve locale (flush I7, I1, v9,
+      renoncement, délais bornés, rotation) ou verdict kit ; §9.3 =
+      reste à exécuter par le propriétaire appareil branché (aucun
+      périphérique adb ni émulateur KVM sur la machine de travail).
 - v0.106.0 : **mission « Cycle de vie » étape E — cohérence de
       navigation** (prompt 3 §6 E ; docs/CYCLE_DE_VIE.md §8 ; E10/P3/
       P7 fermés, P4 dégénéré clos) : ① routage des notifications —
