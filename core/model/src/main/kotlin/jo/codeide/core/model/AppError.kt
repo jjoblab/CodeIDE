@@ -240,6 +240,39 @@ public sealed interface AppError {
     }
 
     /**
+     * Raisons normalisées d'un refus du contrat de session de projet
+     * (mission « Cycle de vie », prompt 3 §5.1 — étape B, ADR 0114).
+     */
+    public enum class SessionReason {
+        /** Ouverture refusée : une session est déjà ouverte ou en cours d'ouverture (I1). */
+        DejaOuverte,
+
+        /** Enregistrement refusé : aucune session ouverte ne le porte. */
+        AucuneSession,
+
+        /** Enregistrement refusé : la fermeture est en cours (registre figé). */
+        FermetureEnCours,
+
+        /** Fermeture redemandée depuis elle-même (réentrance détectée). */
+        Reentrance,
+    }
+
+    /**
+     * Refus du contrat de session de projet (mission « Cycle de vie »,
+     * prompt 3 §5.1 — étape B, ADR 0114). Le contrat est coopératif : ces
+     * refus sont des erreurs **attendues** (courses entre transitions),
+     * jamais des crash — l'appelant observe, décide ou réessaie.
+     *
+     * @property reason raison normalisée du refus.
+     * @property details contexte technique pour les journaux (états,
+     * identifiants — jamais un nom de projet ni un chemin).
+     */
+    public data class Session(
+        public val reason: SessionReason,
+        public val details: String = "",
+    ) : AppError
+
+    /**
      * Erreur non prévue par le domaine (par défaut, imprévue).
      *
      * @property details contexte technique pour les journaux.

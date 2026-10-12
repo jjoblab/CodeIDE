@@ -1,13 +1,18 @@
 # Cycle de vie de l'éditeur — session de projet et fermeture propre (prompt 3)
 
-> **Statut (v0.102.0) : mission ENTAMÉE — étape A LIVRÉE** (audit et
-> cartographie, §4 du présent document). La mission démarre au retour du
-> propriétaire après la mission « LSP Java » ; l'application a évolué
-> depuis la rédaction du plan initial (v0.92.0 → v0.102.0 : sessions LSP
-> par espace, index disque, coordination éditeur/LSP, montée
-> code-editor 3.49.2) — chaque constat a été RE-VÉRIFIÉ dans le code de
-> cette version. Prochaine étape : **B — contrat de session et registre
-> de fermeture**, attente du « GO ». Lecture préalable : `AGENTS.md`,
+> **Statut (v0.103.0) : mission EN COURS — étapes A et B LIVRÉES**.
+> Étape A (audit et cartographie, §4 du présent document) : documentaire,
+> aucun code de production. Étape B (contrat de session et registre de
+> fermeture, §5 du présent document) : module Kotlin JVM pur
+> `:core:session` + ADR 0114, 33 tests verts, couverture ligne 88,3 %
+> (seuil 80). La mission démarre au retour du propriétaire après la
+> mission « LSP Java » ; l'application a évolué depuis la rédaction du
+> plan initial (v0.92.0 → v0.102.0 : sessions LSP par espace, index
+> disque, coordination éditeur/LSP, montée code-editor 3.49.2) — chaque
+> constat a été RE-VÉRIFIÉ dans le code de cette version. Prochaine
+> étape : **C — intégration éditeur et migration des ressources
+> existantes**, attente du « GO » (et idéalement de la baseline §4.5
+> exécutée AVANT tout correctif). Lecture préalable : `AGENTS.md`,
 > `docs/ARCHITECTURE.md`, `docs/TOOLING.md`, `feature/editor/Module.md`,
 > prompt 3 (`upload/extracted_files/03-prompt-cycle-de-vie-editeur.md`).
 
@@ -48,7 +53,7 @@ bornés) reste à construire à l'étape B.
 | Étape | Livrable | Contenu |
 |---|---|---|
 | **A — Audit et cartographie** | **LIVRÉ (présent document, §4)** — livrable écrit, pas de code de production | Table d'inventaire de TOUTES les ressources de fond ; diagrammes de séquence des parcours ; matrice de transitions (une ligne = un test) ; protocole de mesures de référence appareil (exécution par le propriétaire, baseline de l'étape F) ; détection de fuites en debug (déjà en place : StrictMode + LeakCanary 2.14, procédure §4.6) |
-| **B — Contrat de session et registre de fermeture** | Module de domaine Kotlin JVM pur : `SessionProjet` (`ouvrir(projet)`, `fermer(raison)`, états `{Fermee, Ouverture, Ouverte, Fermeture}`), registre de ressources `Fermable` (priorité d'ordre, délai maximal, drapeau « ne pas annuler ») ; tests unitaires : ordre inverse, idempotence, **panne partielle**, **dépassement de délai**, fermeture pendant l'ouverture, ouverture pendant la fermeture, réentrance, annulation. Aucune dépendance Android | |
+| **B — Contrat de session et registre de fermeture** | **LIVRÉ (v0.103.0, §5 du présent document — ADR 0114)** : module Kotlin JVM pur `:core:session` | `SessionProjet` (`ouvrir(projet)`, `fermer(raison)`, états `{Fermee, Ouverture, Ouverte, Fermeture}`), registre de ressources `Fermable` (ordre inverse, délai maximal, drapeau « ne pas annuler ») ; tests unitaires : ordre inverse, idempotence, **panne partielle**, **dépassement de délai**, fermeture pendant l'ouverture, ouverture pendant la fermeture, réentrance, annulation — 33 tests verts. Aucune dépendance Android |
 | **C — Intégration éditeur et migration des ressources existantes** | `EditorActivity`/`EditorViewModel` : distinguer `isChangingConfigurations` (ne rien fermer) / `isFinishing` (fermeture de session) / `onStop` (suspension) / `onTrimMemory` (libération de caches) ; flush des sauvegardes en contexte NON annulable avant libération des sessions d'édition (I7) ; GitViewModel, GradleService/client tooling, surveillance de fichiers, caches — retrait des durées de vie process-wide injustifiées | |
 | **D — Côté serveur de tooling** | Libération PAR PROJET (connexions Tooling API du `GradleConnectorPool`, démons Gradle sous-jacents, caches du `CacheSync`, abonnements du bus) ; message de protocole de « fermeture de projet » si nécessaire (compatibilité ascendante : `PROTOCOL_VERSION`, champs optionnels) ; politique du démon applicatif selon les mesures (conservé tant qu'une session existe ; arrêté après X min sans session et app en arrière-plan) | |
 | **E — Cohérence de navigation** | Matrice de transitions implémentée : état « projet ouvert » sur l'accueil (liste récente, dernier ouvert), rafraîchissement au retour, réglages appliqués au retour (thème, palette, langue), permission SAF révoquée / stockage disparu détectés au retour, état de l'installation d'outils répercuté, retour depuis notification, écran de plantage → relance propre | |
@@ -431,3 +436,86 @@ par `dispose()`, contrat `SessionSuivie`).
   session pour l'étape B (machine 2 cœurs / 3,9 Go, cache Gradle
   chaud) : tests domaine ~1 min, detekt+spotless ~1 min,
   `assembleDebug` ~1,5–5 min selon fraîcheur de l'arbre.
+
+## 5. Étape B — contrat de session et registre de fermeture (v0.103.0, LIVRÉE)
+
+> Décision d'architecture : **ADR 0114**
+> (`docs/adr/0114-session-projet-registre-fermeture.md`).
+> Livrable : module **Kotlin JVM pur** `:core:session`
+> (`core/session/`), câblé dans `settings.gradle.kts` et
+> `ModuleRulesPlugin.kt` (modules purs + dépendances autorisées
+> `:core:model`, `:core:domain` — même famille que
+> `core:database`/`core:bootstrap`). Aucune dépendance Android ; les
+> adaptateurs des ressources réelles vivront aux étapes C
+> (feature:editor) et D (tooling).
+
+### 5.1 Ce qui a été livré
+
+| Élément | Fichier | Rôle |
+|---|---|---|
+| `Fermable` (+ `RaisonFermeture`, `ContexteFermeture`, `Desenregistrement`) | `Fermable.kt` | Contrat d'abonnement d'une ressource (§5.5) : idempotente, bornée par délai, jamais réentrante, une exception = une panne pas un arrêt. `nom` = identifiant stable (règle 15) |
+| `RegistreFermeture` | `RegistreFermeture.kt` | Fermeture en **ordre inverse du démarrage**, **délai maximal par élément**, drapeau **« ne pas annuler »** (I7, `NonCancellable`), tolérante aux **pannes partielles**, rapport de durée par élément (`RapportFermeture`) |
+| `SessionProjet` | `SessionProjet.kt` | Machine à états observable `{Fermee, Ouverture, Ouverte, Fermeture}` (`StateFlow`), transitions `ouvrir`/`fermer` sérialisées par verrou, idempotence de fermeture (rapport MÉMORISÉ), nettoyage non annulable après échec des travaux d'ouverture |
+| `GestionnaireSessionProjet` | `GestionnaireSessionProjet.kt` | Le garant d'**I1** : ouvrir B pendant que A vit **ferme A d'abord** (raison `ChangementDeProjet`, délais compris), PUIS ouvre B ; ouvrir le projet déjà ouvert = no-op ; deux demandes simultanées = sérialisées |
+| `MarqueFermeture` | `MarqueFermeture.kt` | Garde anti-réentrance : `CoroutineContext.Key` posée pendant la libération — tout appel `ouvrir`/`fermer` déclenché DEPUIS un `Fermable` reçoit `AppError.Session(Reentrance)`, jamais d'interblocage |
+| `RapportFermeture` | `RapportFermeture.kt` | Rapport de fermeture : durée totale, par élément (libéré/annulé/en panne/délai dépassé), journalisable via `AppLogger` |
+
+- **Erreurs typées** : `AppError.Session` (nouvelle variante
+  `core:model`, 4 raisons `SessionReason` : `DejaOuverte`,
+  `AucuneSession`, `FermetureEnCours`, `Reentrance`) — refus
+  coopératifs attendus (courses entre transitions), jamais des crash.
+- **UI maintenue compilable** (whens exhaustifs sur `AppError`) :
+  libellé `diagnostics_erreur_session` FR/EN ajouté
+  (`feature/diagnostics`) ; `TraductionsAccueil` et
+  `EcranCreationFragment` complétés (Session = hors périmètre de
+  l'accueil et du wizard à cette étape — replis documentés).
+
+### 5.2 Couverture des cas limites §9 du prompt (tests)
+
+33 tests verts (`SessionProjetTest` 12, `RegistreFermetureTest` 12,
+`GestionnaireSessionProjetTest` 9) :
+
+| Cas exigé par le prompt §9 | Test(s) |
+|---|---|
+| Ordre inverse de fermeture | `RegistreFermetureTest` |
+| Idempotence (fermer deux fois = rapport mémorisé, ressources jamais libérées deux fois) | `SessionProjetTest`, `RegistreFermetureTest` |
+| **Panne partielle** (un élément jette, les AUTRES sont libérés) | `RegistreFermetureTest` |
+| **Dépassement de délai** (élément abandonné + journalisé, les autres continuent) | `RegistreFermetureTest` |
+| Fermeture pendant l'ouverture | `SessionProjetTest` |
+| Ouverture pendant la fermeture | `SessionProjetTest`, `GestionnaireSessionProjetTest` |
+| Réentrance (fermer depuis un `Fermable` = refus typé, pas de blocage) | `SessionProjetTest`, `GestionnaireSessionProjetTest` |
+| Annulation de l'appelant (I7 : non-annulables exécutés, annulation RELANCÉE) | `RegistreFermetureTest`, `SessionProjetTest` |
+| I1 : ouvrir B ferme A d'abord (séquentiel, délais compris) | `GestionnaireSessionProjetTest` |
+| Ouvrir le projet déjà ouvert = no-op | `GestionnaireSessionProjetTest` |
+| Deux demandes d'ouverture simultanées = sérialisées | `GestionnaireSessionProjetTest` |
+
+Qualité : detekt + spotless verts ; kover **ligne 88,3 %** (seuil
+projet ≥ 80 %, classe 96,3 %, branche 77,9 % — les branches non
+couvertes sont les défenses en profondeur « inatteignables »
+documentées) ; `assembleDebug` complet vert (548 tâches).
+
+### 5.3 Ce que l'étape B ne fait PAS (et pourquoi)
+
+- **Aucune ressource réelle n'est branchée** : le module n'est importé
+  nulle part hors tests — la session ne démarre RIEN elle-même
+  (règle : le contrat de domaine, pas l'orchestrateur). L'étape C
+  branchera les premiers adaptateurs (`SessionLsp` borné, flush des
+  sauvegardes NON annulable — I7, `LspProject` avec garde rotation).
+- **Aucune décision §2 tranchée dans le code** : le gestionnaire
+  offre les pièces pour l'option I1-(a) (gestionnaire séquentiel),
+  mais build en cours (§2.1), démon (§2.2) et terminal (§2.3)
+  attendent l'arbitrage du propriétaire — recommandations §2
+  inchangées.
+- **La baseline §4.5 reste à exécuter** : les mesures S1–S7 sur
+  appareil doivent idéalement précéder l'étape C (avant tout
+  correctif de production), conjointement au p95 LSP (§11.2 de
+  `LSP_JAVA.md`, mêmes séances appareil).
+
+### 5.4 Durée réelle des vérifications (références étape C)
+
+Machine 2 cœurs / 3,9 Go, cache Gradle chaud, JDK 21
+(`/home/z/tools/jdk-21` — le JRE système seul ne fournit pas `javac`) :
+`:core:session:check` ~2 min (33 tests + detekt + spotless + kover) ;
+`:app:assembleDebug` ~8 min ; `check` des 5 modules touchés
+(model/diagnostics/home/newproject/session) ~3 min après compilation
+chaude.
