@@ -189,6 +189,22 @@ public interface GradleToolingRepository {
         texte: String,
     )
 
+    /**
+     * Ferme le projet [projectDir] côté orchestrateur (mission « Cycle de
+     * vie » étape D, E9) : libère la connexion Tooling API du projet et
+     * purge le cache de sync — le démon applicatif continue de vivre (sa
+     * politique de durée de vie est reportée aux mesures, S6). Appelé par
+     * le Fermable de session à la fermeture de la session de projet (hors
+     * build/sync en vol, §2.1c : un build en cours continue, sa connexion
+     * aussi).
+     *
+     * Idempotente ; une absence d'orchestrateur est un échec typé
+     * (l'appelant journalise, jamais ne bloque la fermeture de session).
+     *
+     * @param projectDir répertoire racine du projet Gradle.
+     */
+    public suspend fun fermerProjet(projectDir: File): AppResult<Unit>
+
     /** Instantanés périodiques du tas de l'orchestrateur (§4.6). */
     public fun observeHeap(): Flow<InstantaneTas>
 

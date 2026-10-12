@@ -1189,6 +1189,36 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.105.0 : **mission « Cycle de vie » étape D — fermeture de projet
+      côté orchestrateur, protocole v9** (prompt 3 §5.3 ;
+      docs/CYCLE_DE_VIE.md §7 ; E9 fermé) : ① protocole v8→v9 —
+      FermerProjetRequest/FermerProjetResult (idempotents, accusé
+      corrélé par id, doc GradleProtocol.kt champ par champ, dorés
+      36→38, cardinalités 15/23/38) ; ② serveur —
+      GradleConnectorPool.fermer(dossier) ferme la connexion Tooling
+      API du projet SEUL (clé canonique, ProjectConnection ≠ démon
+      Gradle sous-jacent), CacheSync.purger(projectDir), dispatcher
+      traiterFermetureProjet (libération+purge+accusé sur le bus) ;
+      EventBus RIEN à purger (tuyau global, pas d'abonnements —
+      constat A confirmé) ; ③ port GradleToolingRepository.fermerProjet
+      (AppResult<Unit>, accusé 15 s, échec typé ConnectionLost sans
+      orchestrateur) + router client branche FermerProjetResult +
+      Fermable « tooling-projet » enregistré aux travaux d'ouverture
+      (refermé PREMIER) avec renoncement §2.1c (build OU sync en vol
+      → la connexion vit avec le travail, journalisé ; chemin non
+      résolu → rien) ; ④ déterminisme : Fermable LSP sans saut
+      Dispatchers.IO (le saut réel échappait au temps virtuel des
+      tests — séquence de fermeture en plan ; le registre borne déjà
+      chaque élément). POLITIQUE DU DÉMON REPORTÉE aux mesures S6
+      (§2.2) — démon process-wide inchangé, libération PAR PROJET
+      dedans. +7 tests (2 client SessionFactice, 1 intégration serveur
+      RÉELLE sync→fermeture→idempotence→ping→re-sync, 2 CacheSync
+      purge/idempotence, 2 éditeur fermeture-tooling/renoncement) ;
+      faux du port étendus (FauxToolingEditor enregistre les appels,
+      faux domain no-op) ; exemptions detekt ciblées (routeur
+      dispatcher CyclomaticComplexMethod, LargeClass suites
+      client/serveur). check VERT sur protocol/server/client/daemon/
+      editor/domain + assembleDebug + checkModuleDependencies.
 - v0.104.0 : **mission « Cycle de vie » étape C — intégration éditeur**
       (prompt 3 §5.4/§6 ; docs/CYCLE_DE_VIE.md §6 ; ADR 0114) : le
       contrat :core:session BRANCHE les ressources réelles —

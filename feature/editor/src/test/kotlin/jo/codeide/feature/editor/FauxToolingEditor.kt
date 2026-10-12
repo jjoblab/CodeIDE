@@ -170,6 +170,20 @@ class FauxToolingEditor : GradleToolingRepository {
         buildAnnule = buildId
     }
 
+    /**
+     * Cycle de vie étape D (v9) : fermeture de projet — les tests
+     * observent les APPELS (chemins reçus) et sèment le résultat.
+     */
+    val fermeturesProjet = mutableListOf<String>()
+
+    /** Résultat semé de la prochaine fermeture de projet (succès par défaut). */
+    var prochaineFermetureProjet: AppResult<Unit> = AppResult.Success(Unit)
+
+    override suspend fun fermerProjet(projectDir: File): AppResult<Unit> {
+        fermeturesProjet += projectDir.absolutePath
+        return prochaineFermetureProjet
+    }
+
     override fun envoyerEntree(
         buildId: String,
         texte: String,
