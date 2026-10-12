@@ -1189,6 +1189,22 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.100.2 : **correctif « second retour d'appareil » LSP Java + accueil**
+      (docs/LSP_JAVA.md §16.2.2, rapport e69fc0d8 — moto g06, Android 15 /
+      API 35 ; v0.100.1 CONFIRMÉ sur appareil : session nourrie 46 entrées,
+      revalidation terminée, zéro ProcessHandle/NoSuchFileException) :
+      barre d'état d'indexation qui AVALAIT l'éditeur (VuePointEtat sans
+      onMeasure déclaré wrap_content — getDefaultSize sous AT_MOST retourne
+      toute la hauteur → point à 20 dp FIXE comme popover_legende ; règle :
+      vue custom sans onMeasure = dimension FIXE dans le XML) ; CRASH
+      accueil `ClassCastException String → TriAccueil` (HomeViewModel.kt:
+      112 : ChangerTri persiste tri.name String, lecture inférait
+      l'énuméré → get<String> + résolution par nom, inconnu → RECENTS ;
+      règle : écrire/relire le MÊME type plateforme dans
+      SavedStateHandle, motif WizardViewModel) ; « LSP Java connecté »
+      journalisé en DEBUG donc filtré à la verbosité NORMAL → INFO
+      (séquence complète désormais lisible : session ouverte → connecté
+      → nourrie). 2 tests HomeViewModelTest.
 - v0.100.1 : **correctif « retour d'appareil » LSP Java + tooling**
       (docs/LSP_JAVA.md §16.2.1, rapport 62f8627d — moto g06,
       Android 15 / API 35) : CRASH `NoClassDefFoundError

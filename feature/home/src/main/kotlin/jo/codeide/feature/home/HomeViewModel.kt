@@ -108,8 +108,8 @@ class HomeViewModel
         /** Recherche courante, persistée pour la rotation. */
         private val requeteInterne = MutableStateFlow(savedState[CLE_REQUETE] ?: "")
 
-        /** Tri choisi, persisté pour la rotation. */
-        private val triInterne = MutableStateFlow(savedState[CLE_TRI] ?: TriAccueil.RECENTS)
+        /** Tri choisi, persisté pour la rotation (nom d'énuméré, v0.100.2). */
+        private val triInterne = MutableStateFlow(lireTriPersiste())
 
         /** Dernière liste brute du registre (hors filtre), pour les vérifications. */
         private var derniereListe: List<Project> = emptyList()
@@ -518,6 +518,23 @@ class HomeViewModel
         /** Publie un événement ponctuel (résilient à l'absence de lecteur). */
         private suspend fun emettre(effet: EffetAccueil) {
             effetsInterne.send(effet)
+        }
+
+        /**
+         * Lit le tri persisté du [SavedStateHandle] — correctif v0.100.2
+         * (plantage e69fc0d8) : [ActionAccueil.ChangerTri] écrit le NOM
+         * (`tri.name`, une String, seul type de plateforme persistable)
+         * ; l'ancienne lecture `savedState[CLE_TRI] ?: TriAccueil.RECENTS`
+         * inférait `TriAccueil` et jetait ClassCastException à la
+         * restauration (String vers énuméré) dès que l'accueil revenait
+         * après un changement de tri. On relit une String, on résout le
+         * nom, et toute valeur inconnue retombe sur RECENTS (jamais de
+         * crash pour une préférence).
+         */
+        private fun lireTriPersiste(): TriAccueil {
+            val nom = savedState.get<String>(CLE_TRI) ?: return TriAccueil.RECENTS
+            return TriAccueil.entries.firstOrNull { it.name == nom }
+                ?: TriAccueil.RECENTS
         }
 
         private companion object {
