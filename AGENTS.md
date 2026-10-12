@@ -1189,6 +1189,27 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.100.1 : **correctif « retour d'appareil » LSP Java + tooling**
+      (docs/LSP_JAVA.md §16.2.1, rapport 62f8627d — moto g06,
+      Android 15 / API 35) : CRASH `NoClassDefFoundError
+      java.lang.ProcessHandle` à la première écriture de segment
+      (PID du `.tmp` via `ProcessHandle.current().pid()` JDK 9 +
+      `Thread.threadId()` JDK 19 — ABSENTS d'ART ≤ 35, présents sur
+      la plateforme 37 : un module JVM pur dexé compile et passe CI
+      sans qu'aucun lint vérifie son niveau d'API → unicité par
+      compteur atomique + nanoTime, vérification bytecode + scan des
+      30 dex : zéro référence) ; `readNBytes` (JDK 9, API 33+) de la
+      reprise d'en-tête → `readFully` borné (minSdk 26) ; « JAR
+      orchestrateur indisponible : The source file doesn't exist. »
+      (JarDeployer.kt:183 — `.tmp` à nom fixe + repli non typé :
+      le perdant d'une course de déploiements concurrents mourrait
+      d'un NoSuchFileException BRUT classé définitif → `.tmp` unique,
+      Mutex, repli typé TOLÉRANT, purge du `.tmp` hérité) ; fuite de
+      session LSP (deux « session LSP ouverte » à 15 ms — garde
+      franchie avant la résolution FUSE suspendante → ouverture
+      exclusive, garde reverifiée sous verrou). 5 nouveaux tests
+      (EcrivainSegmentTest, JarDeployerTest) ; audit ART des modules
+      JVM purs documenté (règle : sous-ensemble OpenJDK-8 + API-26).
 - v0.100.0 : **mission « LSP Java » étape 4 (lot h2) — branchement
       éditeur + UI** (docs/LSP_JAVA.md §16.2) : coutures de l'hôte
       SourceClasspathLsp/DossierIndexLsp (implémentations dans
