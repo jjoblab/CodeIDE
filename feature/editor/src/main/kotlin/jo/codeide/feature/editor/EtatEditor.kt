@@ -406,6 +406,15 @@ sealed interface ActionEditor {
     data object Quitter : ActionEditor
 
     /**
+     * Libère les caches RECONSTRUCTIBLES (mission « Cycle de vie » étape
+     * C, E16) : demandée par `EditorActivity.onTrimMemory` sous pression
+     * mémoire (niveau RUNNING_CRITICAL ou plus — y compris l'arrière-plan
+     * UI_HIDDEN). La session de projet ne se ferme JAMAIS ici (I3/I2 —
+     * les durées de vie ne bougent pas, seuls les caches tombent).
+     */
+    data object LibererMemoire : ActionEditor
+
+    /**
      * Change l'état d'ouverture du panneau inférieur (en-tête, bouton
      * agrandir/réduire, glissement, retour système) — persisté pour la
      * rotation.

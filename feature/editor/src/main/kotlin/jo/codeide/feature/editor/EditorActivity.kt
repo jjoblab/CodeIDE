@@ -1847,10 +1847,37 @@ class EditorActivity :
      * Fermeture de l'espace : le LspProject cel-lsp s'arrête ICI (avant
      * le ViewModel, qui referme la SESSION LSP dans onCleared — l'ordre
      * de destruction va l'activité PUIS le ViewModel, §16.2).
+     *
+     * Cycle de vie étape C (décision §2.5a) : le shutdown/rebranchement
+     * du LspProject à chaque rotation est ACCEPTÉ (coût borné : la
+     * SessionLsp du ViewModel et ses caches survivent, reconnexion
+     * seule) — la rotation ne ferme RIEN côté session de projet (I3 :
+     * le ViewModel survit, la session vit hors de l'écran) ; le coût
+     * réel sera mesuré (S2) avant réarbitrage.
      */
     override fun onDestroy() {
         coordonnateurLsp.fermer()
         super.onDestroy()
+    }
+
+    /**
+     * Pression mémoire (mission « Cycle de vie » étape C, E16 — PREMIER
+     * `onTrimMemory` du dépôt) : les caches RECONSTRUCTIBLES tombent
+     * (énumérations d'arbre) via [ActionEditor.LibererMemoire] — la
+     * session de projet, les sessions d'édition et la session LSP ne
+     * sont JAMAIS touchées (I3/I2 : libération de mémoire, pas de
+     * durée de vie ; la temporisation d'arrière-plan attend les
+     * mesures §2.3).
+     *
+     * Seuil RUNNING_CRITICAL et au-delà : pression AVANT-plan ET
+     * arrière-plan (UI_HIDDEN=20 ≥ 15) — conformes à la politique du
+     * prompt §5.2 (caches sur onTrimMemory, session conservée).
+     */
+    override fun onTrimMemory(niveau: Int) {
+        super.onTrimMemory(niveau)
+        if (niveau >= SEUIL_TRIM_MEMORY_CACHES) {
+            viewModel.onAction(ActionEditor.LibererMemoire)
+        }
     }
 
     /**
@@ -2218,6 +2245,16 @@ class EditorActivity :
             }
 
             EffetEditor.Quitter -> {
+                // Cycle de vie étape C (décision §2.1c — comportement DE
+                // FACTO explicite) : le build en cours CONTINUE en
+                // arrière-plan (process-wide, notification maintenue par
+                // ToolingService) — l'annonce part AVANT finish(), le
+                // toast survit à la destruction de l'écran.
+                if (viewModel.etatGradle.value.statutBuild == StatutBuild.EN_COURS) {
+                    android.widget.Toast
+                        .makeText(this, R.string.editor_sortie_build_continue, android.widget.Toast.LENGTH_LONG)
+                        .show()
+                }
                 finish()
             }
 
@@ -2390,6 +2427,15 @@ class EditorActivity :
          * [CoordonnateurLsp] ("LspEditeur") : la séquence « branchement
          * renoncé → LSP Java connecté » se lit d'un seul filtre journal. */
         const val TAG_LSP = "LspEditeur"
+
+        /** Seuil de pression mémoire déclenchant la libération des caches
+         * (cycle de vie étape C, E16) — la VALEUR de
+         * `ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL`, constante
+         * contractuelle depuis l'API 14 (jamais changée) ; le champ statique
+         * de l'interface est déprécié au compileSdk 37, la valeur nommée
+         * évite l'avertissement ET documente le seuil (UI_HIDDEN = 20 ≥ 15 :
+         * l'arrière-plan est couvert aussi). */
+        const val SEUIL_TRIM_MEMORY_CACHES = 15
 
         /** Bornes de largeur du tiroir (§ 13 : 45 % ↔ 98 %). */
         const val FRACTION_MIN = 0.45f

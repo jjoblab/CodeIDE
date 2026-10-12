@@ -95,6 +95,10 @@
     <string name="editor_fermeture_enregistrer_tout">Enregistrer tout</string>
     <string name="editor_fermeture_ne_pas_enregistrer">Ne pas enregistrer</string>
     <string name="editor_fermeture_annuler">Annuler</string>
+    <!-- Cycle de vie étape C (§2.1c) : le build continue en arrière-plan
+         à la sortie de l'éditeur (toast — survit à la fermeture de
+         l'écran ; la notification ToolingService reste le détail). -->
+    <string name="editor_sortie_build_continue">Le build continue en arrière-plan — sa notification suit la fin de l\'exécution.</string>
     <string name="editor_erreur_ouverture">Ce fichier n\'a pas pu être lu.</string>
     <string name="editor_erreur_enregistrement">Échec de l\'enregistrement : le contenu reste non enregistré.</string>
 

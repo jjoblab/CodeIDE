@@ -1189,6 +1189,42 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.104.0 : **mission « Cycle de vie » étape C — intégration éditeur**
+      (prompt 3 §5.4/§6 ; docs/CYCLE_DE_VIE.md §6 ; ADR 0114) : le
+      contrat :core:session BRANCHE les ressources réelles —
+      EditorViewModel.init → gestionnaireSession.ouvrir(projetId) avec
+      travaux = enregistrement du FLUSH des sauvegardes (Fermable NON
+      annulable, I7 — une session ne s'ouvre jamais sans garantie de
+      flush) ; onCleared RÉÉCRIT (E2 corrigé) : fermeture dans la portée
+      session application (@PorteeFermetureSession — di/
+      ModuleSessionProjet.kt : @Singleton GestionnaireSessionProjet +
+      CoroutineScope supervisée), séquence CONTRACTUELLE flush (registre,
+      NonCancellable, borne 10 s) → sessions cel (ADR 0028,
+      enregistrer lit leur texte) → session LSP → workspace-state.json ;
+      session LSP Fermable (borne 5 s, détacheur remettant la référence
+      observable à null AVANT close, désenregistrement à la mort
+      propre) ; I1 testé P→Q (ouvrir B ferme A, flush compris) ;
+      PompeBuildTooling.pomperConnexion() — miroir de CONNEXION en
+      portée process idempotente (E13 corrigé côté connexion,
+      diagnostics arbitrés : restent par espace, attacher() les
+      remet à zéro) ; remplacerContenuFichier dispose l'ancienne
+      session cel (E12, ADR 0028) ; PREMIER onTrimMemory du dépôt
+      (E16) — EditorActivity seuil RUNNING_CRITICAL en constante
+      nommée (champ statique ComponentCallbacks2 déprécié compileSdk
+      37) → ActionEditor.LibererMemoire → caches d'arbre
+      reconstructibles vidés (plis/sélection conservés, session
+      jamais touchée) ; §2.1c : toast editor_sortie_build_continue
+      FR/EN au quit avec build en vol. Décisions §2 ARBITRÉES :
+      1→(c) explicite, 2→reporté mesures S6 (démon process-wide
+      inchangé), 3→reporté mesures (onTrimMemory livré seul), 4→
+      terminal GLOBAL conservé, 5→(a) rebranchement rotation accepté
+      (I3 structurel : session hors écran), 6→(a) gestionnaire (b
+      réservé étape E), 7→implémenté (connexion) ; baseline §4.5
+      rejouable sur TAG v0.103.0 (APK CI CodeIDE-v0.103.0-debug —
+      état pré-correctif figé). +6 tests CycleVieEditorViewModelTest
+      (338 feature:editor), ModuleRulesPlugin : feature:editor →
+      :core:session. :feature:editor:check VERT, assembleDebug +
+      checkModuleDependencies VERTS.
 - v0.103.0 : **mission « Cycle de vie » étape B — contrat de session
       de projet et registre de fermeture** (prompt 3 §5.1 ;
       docs/CYCLE_DE_VIE.md §5 ; ADR 0114) : nouveau module Kotlin JVM

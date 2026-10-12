@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.104.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « Cycle de vie » — étape C : intégration éditeur** (docs/
+  CYCLE_DE_VIE.md §6 ; ADR 0114). Le contrat `:core:session` (v0.103.0)
+  branche les ressources réelles de l'espace : ① **ouverture de session
+  au démarrage** — `EditorViewModel.init` → `gestionnaireSession.ouvrir
+  (projetId)`, les travaux enregistrent le FLUSH des sauvegardes comme
+  élément NON annulable (I7 : une session ne s'ouvre jamais sans sa
+  garantie de flush) ; le ViewModel OBSERVE la session (§5.1), il n'en
+  est plus propriétaire ; ② **sortie propre E2 corrigé** — `onCleared`
+  réécrit : la fermeture vit dans la PORTÉE SESSION application
+  (`@PorteeFermetureSession`, survit à l'écran — le viewModelScope y est
+  déjà mort), le registre FLUSHE les onglets sales (non annulable,
+  borne 10 s) PUIS dispose les sessions cel (ADR 0028 — `enregistrer`
+  lit leur texte, l'ordre est contractuel) PUIS session LSP PUIS
+  workspace-state.json ; ③ **session LSP Fermable** — enregistrée au
+  démarrage (borne 5 s), détacheur qui remet la référence observable à
+  `null` AVANT close (défense anti-usage post-close) ;
+  désenregistrement quand elle meurt de sa propre initiative ; ④ **I1
+  testé P→Q** — ouvrir B ferme A d'abord (flush compris) puis ouvre B,
+  jamais deux sessions ; ⑤ **E13 corrigé** — le miroir de CONNEXION
+  vit dans `PompeBuildTooling.pomperConnexion()` (portée process,
+  idempotente, événements sans panne — l'ancien collecteur
+  viewModelScope gelait `GradleService.etat` à la fermeture) ; ⑥ **E12
+  corrigé** — `remplacerContenuFichier` dispose l'ancienne session cel
+  avant de l'écraser (fuite du thread de restyle, ADR 0028) ; ⑦ **E16
+  comblé — premier `onTrimMemory` du dépôt** : seuil
+  RUNNING_CRITICAL (constante nommée — le champ statique est déprécié
+  compileSdk 37), caches d'arbre reconstructibles vidés via la nouvelle
+  action `ActionEditor.LibererMemoire` (plis et sélection conservés,
+  session jamais touchée — I3/I2) ; ⑧ **§2.1c explicite** — toast
+  `editor_sortie_build_continue` FR/EN au quit quand un build est en
+  vol (le comportement de facto « le build continue », annoncé).
+  Décisions §2 arbitrées (§2 du doc : 1c, 4 global, 5a, 6a, 7 implémenté
+  ; 2 et 3 reportées aux mesures S6 — le TAG v0.103.0 fige l'état
+  pré-correctif pour la baseline §4.5). +6 tests
+  `CycleVieEditorViewModelTest` (338 au total), di/
+  ModuleSessionProjet.kt (liaisons Hilt), ModuleRulesPlugin :
+  feature:editor → :core:session.
+
 ## [0.103.0] – 2026-10-12
 
 ### Ajouté
