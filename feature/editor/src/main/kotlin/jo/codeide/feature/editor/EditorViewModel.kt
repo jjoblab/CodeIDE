@@ -1122,12 +1122,21 @@ class EditorViewModel
 
         /**
          * Chemin FUSE d'un fichier ouvert (branchement LspEditor côté
-         * activité, §16.2) — le même résolveur que la racine projet.
+         * activité, §16.2) — le même résolveur que la racine projet, mais
+         * par le contrat D'ENTRÉE (fichier ou dossier).
+         *
+         * V0.100.3 (retour d'appareil v0.100.2) : l'opérateur du pont
+         * (contrat « répertoire », garde isDirectory) rejetait tout
+         * FICHIER en `null` — le branchement était renoncé SILENCIEUSEMENT
+         * avant même `CoordonnateurLsp.brancher` : journal « ouverte →
+         * nourrie » mais jamais « LSP Java connecté », aucune complétion
+         * Java, aucun diagnostic. [ResolveurCheminFuse.resoudreEntree]
+         * (garde existence) est le contrat explicite des fichiers.
          *
          * @return le chemin, ou `null` si l'URI ne résout pas (volume
-         *   inconnu) — l'appelant renonce silencieusement à brancher.
+         *   inconnu / entrée absente) — l'appelant journalise et renonce.
          */
-        suspend fun cheminFuseDe(uri: String): String? = resolveurChemin(uri)
+        suspend fun cheminFuseDe(uri: String): String? = resolveurChemin.resoudreEntree(uri)
 
         /**
          * Action « Réindexer » (§16.2) : revalidation des segments

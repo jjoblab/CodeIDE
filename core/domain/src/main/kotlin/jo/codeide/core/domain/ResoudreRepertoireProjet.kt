@@ -58,6 +58,24 @@ private fun racineVolumeAmovible(volume: String): String? {
     return volume.takeIf { motifs.matches(it) }?.let { "/storage/$it" }
 }
 
+/**
+ * Traduction pure + garde d'existence : la traduction
+ * ([cheminFuseDepuisIdDocument]) suivie d'une VÉRIFICATION sur le système
+ * de fichiers réel — [verifie] reçoit le `File` résolu (dossier pour le
+ * contrat d'origine, entrée quelconque pour le contrat fichier).
+ *
+ * V0.100.3 : extraite du cas d'usage pour être éprouvée en JVM pur — un
+ * dossier temporaire y joue le volume monté, la garde est une lambda
+ * (`isDirectory` vs `exists`). C'est le point d'ancrage du test de
+ * régression du retour d'appareil v0.100.2 (le fichier .java rejeté par
+ * la garde « répertoire » coupe TOUT branchement LSP, silencieusement).
+ */
+internal fun cheminFuseVerifie(
+    idDocument: String,
+    racinesVolume: Map<String, String>,
+    verifie: (File) -> Boolean,
+): String? = cheminFuseDepuisIdDocument(idDocument, racinesVolume)?.takeIf { verifie(File(it)) }
+
 /** Racines FUSE par volume (cartographie `ExternalStorageProvider`). */
 internal val RACINES_FUSE_PAR_DEFAUT: Map<String, String> =
     mapOf(
@@ -74,10 +92,31 @@ internal val RACINES_FUSE_PAR_DEFAUT: Map<String, String> =
  */
 public fun interface ResolveurCheminFuse {
     /**
-     * Résout le chemin FUSE du dossier désigné par l'URI de **document**
-     * [documentUri], ou `null` si le volume est inconnu / non monté.
+     * Résout le chemin FUSE du DOSSIER désigné par l'URI de **document**
+     * [documentUri], ou `null` si le volume est inconnu / non monté /
+     * l'entrée n'est pas un répertoire.
      */
     public suspend operator fun invoke(documentUri: String): String?
+
+    /**
+     * Résout le chemin FUSE de l'ENTRÉE (fichier OU dossier) désignée par
+     * l'URI de **document** [documentUri], ou `null` si elle n'existe pas
+     * sur le volume monté (fichier supprimé, carte retirée).
+     *
+     * V0.100.3 (retour d'appareil v0.100.2) : le branchement LspEditor
+     * (mission « LSP Java ») résout des FICHIERS `.java` — passé par
+     * [invoke], le seul contrat d'alors (« répertoire », garde
+     * `isDirectory`), chaque fichier résolvait à `null` et l'appelant
+     * renonçait SILENCIEUSEUSEMENT à brancher (journal d'appareil :
+     * « session LSP ouverte → nourrie » mais JAMAIS « LSP Java connecté »).
+     * Le contrat d'entrée est EXPLICITE désormais — jamais un pont
+     * détourné au-delà de sa kdoc.
+     *
+     * Défaut = [invoke] : un pont simple qui ne distingue pas fichier et
+     * dossier résout pareil (les faux des tests JVM restent des faux
+     * « tout réussit ») ; l'implémentation réelle sépare les gardes.
+     */
+    public suspend fun resoudreEntree(documentUri: String): String? = invoke(documentUri)
 }
 
 /**
@@ -114,7 +153,9 @@ public fun interface ResolveurCheminFuse {
  * - volume inconnu ou segments hostiles → `null` ;
  * - chemin résolu mais **absent du système de fichiers** (carte SD
  *   retirée, volume non monté) → `null` : jamais de session ouverte
- *   dans un répertoire fantôme.
+ *   dans un répertoire fantôme — [invoke] exige en outre un
+ *   RÉPERTOIRE (garde d'origine, terminal T6), [resoudreEntree]
+ *   accepte un fichier OU un dossier (branchement LspEditor, v0.100.3).
  *
  * Contexte d'exécution attendu : suspendante (stat FUSE), hors thread
  * principal.
@@ -135,10 +176,26 @@ public class ResoudreRepertoireProjet
          * de la permission, pas le projet.
          */
         override suspend fun invoke(documentUri: String): String? =
+            resoudre(documentUri) { entree -> entree.isDirectory }
+
+        /**
+         * Résout le chemin FUSE de l'entrée (fichier OU dossier) désignée
+         * par l'URI de **document** [documentUri] — contrat v0.100.3 du
+         * branchement LspEditor : un `.java` ouvert est un FICHIER, la
+         * garde est l'EXISTENCE, pas la nature répertoire. Même défense
+         * « volume démonté / supprimé → null » que [invoke].
+         */
+        override suspend fun resoudreEntree(documentUri: String): String? =
+            resoudre(documentUri) { entree -> entree.exists() }
+
+        /** Traduction + garde partagées des deux contrats (stat FUSE). */
+        private suspend fun resoudre(
+            documentUri: String,
+            verifie: (File) -> Boolean,
+        ): String? =
             withContext(repartiteurs.io) {
-                val idDocument =
-                    arborescences.idDocumentDeUriDocument(documentUri) ?: return@withContext null
-                cheminFuseDepuisIdDocument(idDocument, RACINES_FUSE_PAR_DEFAUT)
-                    ?.let { chemin -> chemin.takeIf { File(chemin).isDirectory() } }
+                arborescences
+                    .idDocumentDeUriDocument(documentUri)
+                    ?.let { id -> cheminFuseVerifie(id, RACINES_FUSE_PAR_DEFAUT, verifie) }
             }
     }

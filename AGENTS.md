@@ -1189,6 +1189,23 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.100.3 : **correctif « troisième retour d'appareil » LSP Java — le
+      branchement muet** (docs/LSP_JAVA.md §16.2.3 ; barre d'état fine =
+      v0.100.2 confirmé installé ; journal « ouverte → nourrie →
+      refermée » SANS « LSP Java connecté » NI WARN, zéro complétion
+      Java, zéro diagnostic) : le branchement résout le FICHIER `.java`
+      par le pont `ResolveurCheminFuse` dont l'UNIQUE contrat était
+      RÉPERTOIRE (garde isDirectory, terminal T6) → null → renoncement
+      SILENCIEUX (session saine, zéro éditeur branché ; les faux JVM
+      « tout réussit » ne portent pas la garde). Correctif : contrat
+      explicite `resoudreEntree` (fichier OU dossier, garde exists ;
+      défaut = invoke), fonction pure `cheminFuseVerifie` testable en
+      JVM, `cheminFuseDe` sur le contrat d'entrée, renoncements
+      JOURNALISÉS (WARN chemin introuvable, DEBUG course, tag
+      LspEditeur) ; règle : un pont réutilisé au-delà de son contrat
+      l'ÉTEND, jamais détourné — tout renoncement de branchement se
+      journalise. +4 tests ResoudreRepertoireProjetTest + faux
+      ViewModel séparant les deux contrats.
 - v0.100.2 : **correctif « second retour d'appareil » LSP Java + accueil**
       (docs/LSP_JAVA.md §16.2.2, rapport e69fc0d8 — moto g06, Android 15 /
       API 35 ; v0.100.1 CONFIRMÉ sur appareil : session nourrie 46 entrées,
