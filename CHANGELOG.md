@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.109.0] – 2026-10-13
+
+### Ajouté
+
+- **Cadrage des trois missions suivantes** (décisions propriétaire du
+  2026-10-13, formalisées suite à l'étude comparative de CodeAssist
+  (tyron12233, GPL — enseignements d'architecture uniquement, zéro code
+  réutilisé) et l'analyse directe de jjoblab/LayoutLib v2.1.0) :
+  - **`docs/LSP_KOTLIN.md`** — LSP Kotlin **in-process** par parseur
+    vendoré (grammaire officielle du compilateur, Apache 2.0, suite de
+    parité obligatoire) + modèle de symboles propre conservateur ;
+    fwcd écarté ; Analysis API réduite à un éventuel mode profond ;
+    étapes K1–K5 ; classes synthétiques R/ViewBinding/databinding
+    (généralise le correctif v0.108.0 — ferme la décision ① de
+    LSP_JAVA §17.3) ; **distribution en « pack langue » téléchargeable
+    différée à post-stabilisation** (architecture préparée dès K1 :
+    SPI mince, module sans référence directe — décision propriétaire).
+  - **`docs/LSP_XML.md`** — LSP XML **moteur maison in-process** :
+    parseur tolérant écrit main + DOM neutre + contributeurs (catalogue
+    dérivé des données de plateforme installées, index ressources du
+    projet) ; Lemminx/XSD écartés ; règles pures conservatrices ;
+    étapes XE1–XE4 ; fixtures partagées avec le catalogue LayoutLib.
+  - **`docs/PREVIEW.md`** — previews formalisés : **XML** via
+    jjoblab/LayoutLib v2.1.0 (dépendance Maven versionnée, ressources
+    par FUSE, isolation processus `:preview` avec AIDL/DeathRecipient/
+    repli in-process, PE1–PE3, limitations tracées) ; **Compose** par
+    **interpréteur sur l'arbre résolu** (approche CodeAssist : runtime
+    embarqué comme bibliothèque, streaming bitmap + forwarding
+    d'entrées, garde-fous obligatoires, C0–C3 **après stabilisation
+    LSP Kotlin**) ; ADR 0002 intact (pas de Compose dans l'UI CodeIDE).
+- ROADMAP.md Phase 5 mise à jour (5.1 Java livré ; 5.2 Kotlin, 5.3 XML,
+  5.4 Previews cadrés — l'ancienne option kotlin-language-server
+  externe est remplacée par la décision D1).
+
 ## [0.108.0] – 2026-10-12
 
 ### Corrigé

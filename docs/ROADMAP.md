@@ -184,18 +184,30 @@ Fichiers livrés :
 
 ---
 
-## Phase 5 — LSP (long terme)
+## Phase 5 — LSP
 
-### 5.1 LSP Kotlin
+### 5.1 LSP Java ✅ (v0.91.0 → v0.108.0)
 
-- Utiliser le classpath préparé (`.codeide/local/lsp-classpath.json`)
-- Intégrer un LSP Kotlin (ex. kotlin-language-server) via le tooling serveur
-- Autocomplétion, hover, go-to-definition, diagnostics en temps réel
+- Livré **in-process** (compilateur ECJ embarqué, module vendored ADR 0108) — détail dans `docs/LSP_JAVA.md`.
+- Classpath modèle v8 (ADR 0113), index disque segments par jar (ADR 0111), session intégrée au cycle de vie (I1–I7, RegistreFermeture), routage `jo.codeide.projet_cible` (v0.106.0).
+- Correctifs d'exploitation v0.108.0 : intrinsèques du compilateur (StringConcatFactory), downgrade honnête databinding.
 
-### 5.2 LSP Java
+### 5.2 LSP Kotlin — cadré (v0.109.0)
 
-- jdtls (Eclipse JDT Language Server) ou java-language-server
-- Même architecture que le LSP Kotlin
+- Décision : **parseur vendoré** (grammaire officielle du compilateur, Apache 2.0) + **modèle de symboles propre** conservateur, in-process — fwcd/kotlin-language-server **écarté**, Analysis API K2 réduite à un éventuel « mode profond » à la demande (étude CodeAssist).
+- Étapes K1–K5, classes synthétiques R/ViewBinding/databinding, protocole v10 (compliance par projet) — détail dans `docs/LSP_KOTLIN.md`.
+- Distribution : embarqué en T1, découpage en « pack langue » téléchargeable **différé à post-stabilisation** (décision propriétaire, architecture préparée dès K1).
+
+### 5.3 LSP XML — cadré (v0.109.0)
+
+- Moteur **maison in-process** : parseur tolérant + DOM neutre + complétion par contributeurs (catalogue dérivé des données de plateforme, index ressources projet) ; Lemminx/XSD écartés — détail dans `docs/LSP_XML.md`.
+- Étapes XE1–XE4 ; fixtures partagées avec le catalogue de validation LayoutLib.
+
+### 5.4 Previews — cadré (v0.109.0)
+
+- **XML** : moteur **jjoblab/LayoutLib** v2.1.0, ressources par FUSE, isolation processus `:preview` (AIDL, DeathRecipient, repli in-process) — étapes PE1–PE3.
+- **Compose** : **interpréteur sur l'arbre résolu** (approche CodeAssist), runtime Compose comme bibliothèque de preview (ADR 0002 intact), **après stabilisation du LSP Kotlin** — étapes C0–C3.
+- Détail dans `docs/PREVIEW.md`.
 
 ---
 
