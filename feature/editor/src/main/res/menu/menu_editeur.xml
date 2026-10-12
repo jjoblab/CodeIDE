@@ -48,4 +48,13 @@
         android:id="@+id/action_fermer_projet"
         android:title="@string/editor_tiroir_fermer_projet"
         app:showAsAction="never" />
+
+    <!-- Mission « Cycle de vie » étape E (P3) : le parcours
+         éditeur → paramètres → retour était INEXISTANT — le routage
+         ADR 0048 remonte l'hôte du graphe, la session survit dessous
+         (I3) et les réglages se propagent au retour. -->
+    <item
+        android:id="@+id/action_parametres"
+        android:title="@string/editor_parametres"
+        app:showAsAction="never" />
 </menu>

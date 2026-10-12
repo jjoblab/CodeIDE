@@ -1189,6 +1189,50 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.106.0 : **mission « Cycle de vie » étape E — cohérence de
+      navigation** (prompt 3 §6 E ; docs/CYCLE_DE_VIE.md §8 ; E10/P3/
+      P7 fermés, P4 dégénéré clos) : ① routage des notifications —
+      RoutageInterEcrans (core:domain, source unique des clés
+      EXTRA_PROJET_CIBLE/EXTRA_ECRAN_CIBLE + valeurs canoniques ;
+      RoutageEcran app délègue) ; notification tooling 42 002 porte
+      le PROJET du canal (miroir EtatGradle.projetsParCanal publié
+      par l'espace au lancement sync/build/tâches — un build de X
+      sous renoncement §2.1c route vers X) ; notification terminal
+      42 001 → ÉCRAN_TERMINAL (promesse T5 tenue) ; installation
+      4 2087 → ECRAN_INSTALLATION ; MainActivity routerProjetCible à
+      froid + à chaud (priorité projet > écran) ; codes de requête =
+      identifiants de notification (filterEquals ignore les extras —
+      piège UPDATE_CURRENT documenté dans les 3 services) ; ② I1 à
+      l'écran — EditorViewModel OBSERVE gestionnaireSession.etat :
+      bascule vers un autre projet → EffetEditor.FermerEspace
+      (finish() SANS dialogue, le registre a déjà refermé) ; garde
+      de propriété dans onCleared (la sortie de Y épargne la session
+      de X) ; espace né sur session déjà tenue → se referme (le
+      premier reste propriétaire) ; ③ P3 : menu action_parametres →
+      openSettings() par routage ADR 0048 (espace survit dessous,
+      I3) ; ④ badge de session sur l'accueil — port LECTURE SEULE
+      ObservateurSessionProjet + EtatSessionProjetVue (core:domain),
+      ObservateurSessionProjetEspace (feature:editor, liaison Hilt
+      singleton, stateIn Eagerly) → EtatAccueil.session + badge
+      carte (« Session ouverte »/« Fermeture en cours ») ; ⑤ SAF
+      révoquée/stockage disparu AU RETOUR : verifierAccesAuRetour()
+      au redémarrage de la surveillance (onStart) — bandeau
+      explorateur existant, surveillance arrêtée dessous ; ⑥ refus
+      tooling honnête pendant l'installation
+      (MESSAGE_INSTALLATION_EN_COURS vs MESSAGE_JDK_ABSENT,
+      orchestrateur injecté) ; ⑦ KIT DE BASELINE §4.5 :
+      scripts/baseline-cycle-vie.sh (S1–S7 + p95 §11.2, journaux aux
+      tags RÉELS — le protocole citait LspEditeurSession/GradleServer
+      qui n'existent pas : Editor/gradle-server ; meminfo/ps
+      automatiques, vidéo des frappes optionnelle, rapport.md).
+      +7 tests (6 CohesionNavigationEditorViewModelTest : miroir
+      canal SYNC, bascule→FermerEspace, session déjà tenue, sortie
+      qui épargne, permission révoquée au retour, message
+      installation ; 1 ObservateurSessionProjetEspaceTest) + 1 home
+      (état de session) ; 341 editor / 34 home ; exemption detekt
+      LargeClass ciblée HomeViewModelTest ; assembleDebug 28,3 Mo +
+      checkModuleDependencies VERTS. launchMode §2.6 (b) non retenue
+      (veilleur couvre I1 sans manifeste) ; F reste aux mesures.
 - v0.105.0 : **mission « Cycle de vie » étape D — fermeture de projet
       côté orchestrateur, protocole v9** (prompt 3 §5.3 ;
       docs/CYCLE_DE_VIE.md §7 ; E9 fermé) : ① protocole v8→v9 —

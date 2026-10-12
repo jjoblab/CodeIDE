@@ -1,5 +1,53 @@
 # Journal des modifications
 
+## [0.106.0] – 2026-10-12
+
+### Ajouté
+
+- **Mission « Cycle de vie » — étape E : cohérence de navigation**
+  (docs/CYCLE_DE_VIE.md §8). ① **Routage des notifications (E10/P7
+  fermés)** : clés partagées `RoutageInterEcrans` (`core:domain` —
+  carrefour visible des services et de l'app) ; la notification
+  tooling (42 002) porte l'extra PROJET du canal — `GradleService`
+  gagne un miroir `projetsParCanal` publié par l'espace au lancement de
+  chaque opération (un build parti de X route vers X, même sous le
+  renoncement §2.1c) ; la notification terminal (42 001) route vers
+  l'ÉCRAN DU TERMINAL (le commentaire le promettait depuis T5) ;
+  l'installation (4 2087) route vers l'écran du parcours ; codes de
+  requête = identifiants de notification (piège `filterEquals`/
+  UPDATE_CURRENT documenté). `MainActivity` consomme l'extra projet à
+  froid et à chaud (`routerProjetCible` → `openEditor`). ② **P4
+  dégénéré clos (I1 à l'écran)** : l'espace OBSERVE la session —
+  bascule vers un autre projet → effet `FermerEspace` (l'activité se
+  referme SANS dialogue : le registre a déjà tout refermé, I7 compris) ;
+  garde de propriété dans `onCleared` (la sortie de Y ne referme JAMAIS
+  la session de X) ; un espace né sur une session déjà tenue se referme
+  aussitôt. ③ **Parcours P3** : entrée `action_parametres` dans le menu
+  de l'éditeur → `openSettings()` par routage ADR 0048 (l'espace survit
+  dessous, I3 ; réglages propagés au retour par les 3 canaux). ④ **État
+  « projet ouvert » sur l'accueil** : port lecture seule
+  `ObservateurSessionProjet` + `EtatSessionProjetVue` (`core:domain`),
+  implémentation dans feature:editor (liaison Hilt singleton) ; badge
+  « Session ouverte » / « Fermeture en cours » sur la carte du projet
+  concerné. ⑤ **SAF révoquée / stockage disparu AU RETOUR** :
+  `verifierAccesAuRetour()` au redémarrage de la surveillance (chaque
+  `onStart`) — bandeau existant de l'explorateur, surveillance arrêtée
+  dessous (le balayage muet existait, pas la détection). ⑥
+  **Disponibilité du tooling honnête pendant l'installation** : le refus
+  sans JDK dit « Installation des outils en cours » quand le parcours
+  vit (sinon « JDK absent » comme avant). ⑦ **Kit de baseline §4.5** :
+  `scripts/baseline-cycle-vie.sh` — S1–S7 + p95 LSP (§11.2 de
+  LSP_JAVA.md) avec capture automatique (journaux aux tags RÉELS,
+  meminfo, ps), vidéo des frappes optionnelle, rapport assemblé ; le
+  protocole §4.5 est corrigé (les tags `LspEditeurSession`/
+  `GradleServer` cités n'existaient pas). 7 nouveaux tests (341 editor
+  + 34 home), chaîne complète verte.
+
+### Modifié
+
+- `RoutageEcran` (app) délègue aux constantes canoniques de
+  `core:domain` (source unique, consommation locale inchangée).
+
 ## [0.105.0] – 2026-10-12
 
 ### Ajouté

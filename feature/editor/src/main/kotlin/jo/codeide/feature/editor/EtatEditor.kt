@@ -822,6 +822,18 @@ sealed interface EffetEditor {
     data class OuvrirSelecteurTaches(
         val taches: List<jo.codeide.core.domain.InfoTache>,
     ) : EffetEditor
+
+    /**
+     * Mission « Cycle de vie » étape E : l'espace doit se refermer — la
+     * session de projet a basculé vers UN AUTRE projet (retour de
+     * notification pendant que Y est ouvert : ouvrir X ferme la session
+     * de Y par le gestionnaire I1, l'espace de Y n'a plus rien à
+     * montrer) ou l'espace naît alors que SA session est déjà ouverte
+     * par un autre (pas de double espace). La fermeture de session a
+     * DÉJÀ eu lieu par le registre — l'hôte referme l'écran SANS
+     * dialogue ni re-flush (I7 déjà tenu par l'élément non annulable).
+     */
+    data object FermerEspace : EffetEditor
 }
 
 /**

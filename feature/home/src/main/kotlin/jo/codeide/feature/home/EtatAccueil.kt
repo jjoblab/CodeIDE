@@ -1,5 +1,6 @@
 package jo.codeide.feature.home
 
+import jo.codeide.core.domain.EtatSessionProjetVue
 import jo.codeide.core.domain.ForbiddenFolders
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.ProjectAccessState
@@ -47,6 +48,10 @@ enum class TriAccueil {
  * « Réessayer » ; `null` en situation normale.
  * @property clonageEnCours vrai pendant un `git clone` lancé depuis
  * l'accueil (G5, v0.80.4) — bandeau de progression + actions figées.
+ * @property session état de la session de projet du processus (mission
+ * « Cycle de vie » étape E, matrice §6.3) : la carte du projet ouvert
+ * porte le badge « Session ouverte » — l'accueil montre l'état RÉEL
+ * (transition Fermeture comprise), pas seulement la liste.
  */
 data class EtatAccueil(
     val chargement: Boolean = true,
@@ -66,6 +71,8 @@ data class EtatAccueil(
     val projetEnEvidence: ProjectId? = null,
     /** Clonage Git en cours (G5, v0.80.4). */
     val clonageEnCours: Boolean = false,
+    /** État de la session de projet du processus (cycle de vie étape E). */
+    val session: EtatSessionProjetVue = EtatSessionProjetVue.Aucune,
 )
 
 /**

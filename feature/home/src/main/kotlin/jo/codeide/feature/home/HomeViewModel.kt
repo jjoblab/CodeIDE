@@ -12,6 +12,7 @@ import jo.codeide.core.domain.ImportDossier
 import jo.codeide.core.domain.ImportExistingFolderUseCase
 import jo.codeide.core.domain.InstallPhase
 import jo.codeide.core.domain.MarkProjectOpenedUseCase
+import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.ObserveProjectsUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ObserveToolchainStateUseCase
@@ -40,6 +41,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -91,6 +94,7 @@ class HomeViewModel
         private val relocaliserProjet: RelocalizeProjectUseCase,
         private val clonerDepot: ClonerDepotUseCase,
         private val marquerOuvert: MarkProjectOpenedUseCase,
+        private val observateurSession: ObservateurSessionProjet,
         private val horloge: TimeProvider,
         private val journal: AppLogger,
         private val savedState: SavedStateHandle,
@@ -168,6 +172,15 @@ class HomeViewModel
                 }
             }
             observerRegistre()
+
+            // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
+            // ouverte ») : l'accueil reflète l'état RÉEL de la session du
+            // processus — port LECTURE SEULE de `core:domain`, l'implémentation
+            // vit dans feature:editor auprès du gestionnaire qu'elle projette
+            // (règle de dépendance : l'accueil ne voit pas `:core:session`).
+            observateurSession.etatSession
+                .onEach { session -> etatInterne.update { it.copy(session = session) } }
+                .launchIn(viewModelScope)
         }
 
         /**

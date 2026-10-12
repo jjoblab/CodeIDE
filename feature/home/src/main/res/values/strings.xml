@@ -26,6 +26,9 @@
 
     <!-- Ligne de projet. -->
     <string name="accueil_meta_projet">%1$s · %2$s</string>
+    <!-- Badge de session (mission « Cycle de vie » étape E, matrice §6.3). -->
+    <string name="accueil_session_ouverte">Session ouverte</string>
+    <string name="accueil_session_fermeture">Fermeture en cours</string>
     <string name="accueil_desc_epingle">Épinglé</string>
     <string name="accueil_desc_menu">Actions de « %1$s »</string>
     <string name="accueil_acces_disponible">Accessible</string>

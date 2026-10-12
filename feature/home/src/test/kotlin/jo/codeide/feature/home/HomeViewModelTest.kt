@@ -53,8 +53,14 @@ import java.io.IOException
  * liste (chargement, vide, sans résultat, erreur, contenu), la recherche
  * avec délai, les tris, les états d'accès et leur revérification, et
  * chaque action par projet — doublés par les fakes de `core:testing`.
+ *
+ * Exemption detekt ciblée (règle 16) : LargeClass — un gestionnaire par
+ * intention UDF de l'accueil (section 5.3) + l'état de session de
+ * l'étape E (cycle de vie) : la classe agrège les tests D'UN ViewModel,
+ * la scinder dupliquerait la construction à 17 dépendances.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass")
 class HomeViewModelTest {
     @get:Rule
     val regleMain = MainDispatcherRule()
@@ -67,6 +73,19 @@ class HomeViewModelTest {
     private val journal = FakeAppLogger()
     private val observerOutils = FakeObserveToolchainState()
     private val parcours = FakeEnvironmentSetupOrchestrator()
+
+    /** Faux port d'observation de session (cycle de vie étape E) :
+     *  l'état est semable, comme le processus le publierait. */
+    private val sessionVue: kotlinx.coroutines.flow.MutableStateFlow<jo.codeide.core.domain.EtatSessionProjetVue> =
+        kotlinx.coroutines.flow.MutableStateFlow(
+            jo.codeide.core.domain.EtatSessionProjetVue.Aucune,
+        )
+
+    private val observateurSession =
+        object : jo.codeide.core.domain.ObservateurSessionProjet {
+            override val etatSession: kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatSessionProjetVue> =
+                sessionVue
+        }
 
     private lateinit var viewModel: HomeViewModel
     private val effetsRecus = mutableListOf<EffetAccueil>()
@@ -107,6 +126,7 @@ class HomeViewModelTest {
                 VerifyCreationTargetUseCase(fichiers),
             ),
             MarkProjectOpenedUseCase(depot),
+            observateurSession,
             horloge,
             journal,
             etat,
@@ -229,6 +249,42 @@ class HomeViewModelTest {
                 listOf("Gamma", "Beta", "Alpha"),
                 viewModel.etat.value.projets
                     .map { it.name },
+            )
+        }
+
+    @Test
+    fun `l accueil reflete l etat de session du processus`() =
+        runTest(regleMain.dispatcher) {
+            // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
+            // ouverte ») : l'accueil consomme le port LECTURE SEULE —
+            // l'ouverture, la fermeture et le repos se VOIENT, la liste
+            // n'est plus la seule source d'état.
+            val alpha = projet("Alpha")
+            advanceUntilIdle()
+            assertEquals(
+                jo.codeide.core.domain.EtatSessionProjetVue.Aucune,
+                viewModel.etat.value.session,
+            )
+
+            sessionVue.value =
+                jo.codeide.core.domain.EtatSessionProjetVue
+                    .Ouverte(alpha.id)
+            advanceUntilIdle()
+            assertEquals(
+                jo.codeide.core.domain.EtatSessionProjetVue
+                    .Ouverte(alpha.id),
+                viewModel.etat.value.session,
+            )
+
+            sessionVue.value =
+                jo.codeide.core.domain.EtatSessionProjetVue
+                    .Fermeture(alpha.id)
+            advanceUntilIdle()
+            assertEquals(
+                "la transition de fermeture se montre, honnêtement",
+                jo.codeide.core.domain.EtatSessionProjetVue
+                    .Fermeture(alpha.id),
+                viewModel.etat.value.session,
             )
         }
 
