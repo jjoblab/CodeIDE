@@ -22,6 +22,12 @@ dependencies {
     // publique, branchement LspProject côté feature à l'étape 4 h2 »).
     implementation(project(":lsp:host"))
 
+    // Contrat de session de projet (mission « Cycle de vie » étape C,
+    // ADR 0114) : la feature branche ses ressources (session LSP, flush
+    // des sauvegardes) sur GestionnaireSessionProjet/Fermable — la
+    // couture DI vit dans di/ModuleSessionProjet.kt.
+    implementation(project(":core:session"))
+
     // Tests du ViewModel : fakes et horloge virtuelle.
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -1,18 +1,14 @@
 # Cycle de vie de l'éditeur — session de projet et fermeture propre (prompt 3)
 
-> **Statut (v0.103.0) : mission EN COURS — étapes A et B LIVRÉES**.
-> Étape A (audit et cartographie, §4 du présent document) : documentaire,
-> aucun code de production. Étape B (contrat de session et registre de
-> fermeture, §5 du présent document) : module Kotlin JVM pur
-> `:core:session` + ADR 0114, 33 tests verts, couverture ligne 88,3 %
-> (seuil 80). La mission démarre au retour du propriétaire après la
-> mission « LSP Java » ; l'application a évolué depuis la rédaction du
-> plan initial (v0.92.0 → v0.102.0 : sessions LSP par espace, index
-> disque, coordination éditeur/LSP, montée code-editor 3.49.2) — chaque
-> constat a été RE-VÉRIFIÉ dans le code de cette version. Prochaine
-> étape : **C — intégration éditeur et migration des ressources
-> existantes**, attente du « GO » (et idéalement de la baseline §4.5
-> exécutée AVANT tout correctif). Lecture préalable : `AGENTS.md`,
+> **Statut (v0.104.0) : mission EN COURS — étapes A, B et C LIVRÉES**.
+> Étape A : audit documentaire (§4). Étape B : module pur `:core:session`
+> + ADR 0114 (§5, v0.103.0). Étape C : branchement éditeur — session
+> ouverte au démarrage, flush I7 en sortie, session LSP Fermable, I1
+> P→Q, miroir E13, E12, E16, décisions §2 arbitrées (§2, §6, v0.104.0).
+> Prochaine étape : **D — côté serveur de tooling** (libération par
+> projet, message de protocole « fermeture de projet »). La baseline
+> §4.5 reste exécutable sur le TAG v0.103.0 (état pré-correctif figé).
+> Lecture préalable : `AGENTS.md`,
 > `docs/ARCHITECTURE.md`, `docs/TOOLING.md`, `feature/editor/Module.md`,
 > prompt 3 (`upload/extracted_files/03-prompt-cycle-de-vie-editeur.md`).
 
@@ -54,12 +50,19 @@ bornés) reste à construire à l'étape B.
 |---|---|---|
 | **A — Audit et cartographie** | **LIVRÉ (présent document, §4)** — livrable écrit, pas de code de production | Table d'inventaire de TOUTES les ressources de fond ; diagrammes de séquence des parcours ; matrice de transitions (une ligne = un test) ; protocole de mesures de référence appareil (exécution par le propriétaire, baseline de l'étape F) ; détection de fuites en debug (déjà en place : StrictMode + LeakCanary 2.14, procédure §4.6) |
 | **B — Contrat de session et registre de fermeture** | **LIVRÉ (v0.103.0, §5 du présent document — ADR 0114)** : module Kotlin JVM pur `:core:session` | `SessionProjet` (`ouvrir(projet)`, `fermer(raison)`, états `{Fermee, Ouverture, Ouverte, Fermeture}`), registre de ressources `Fermable` (ordre inverse, délai maximal, drapeau « ne pas annuler ») ; tests unitaires : ordre inverse, idempotence, **panne partielle**, **dépassement de délai**, fermeture pendant l'ouverture, ouverture pendant la fermeture, réentrance, annulation — 33 tests verts. Aucune dépendance Android |
-| **C — Intégration éditeur et migration des ressources existantes** | `EditorActivity`/`EditorViewModel` : distinguer `isChangingConfigurations` (ne rien fermer) / `isFinishing` (fermeture de session) / `onStop` (suspension) / `onTrimMemory` (libération de caches) ; flush des sauvegardes en contexte NON annulable avant libération des sessions d'édition (I7) ; GitViewModel, GradleService/client tooling, surveillance de fichiers, caches — retrait des durées de vie process-wide injustifiées | |
+| **C — Intégration éditeur et migration des ressources existantes** | **LIVRÉ (v0.104.0, §6 du présent document)** | `EditorActivity`/`EditorViewModel` : session ouverte au démarrage (I1 par le gestionnaire), flush des sauvegardes NON annulable en sortie (I7/E2, portée application), session LSP `Fermable`, `onTrimMemory` caches reconstructibles (E16), miroir connexion process-wide (E13), fuite E12 corrigée, annonce build en cours (§2.1c) ; 6 nouveaux tests, 338 au total |
 | **D — Côté serveur de tooling** | Libération PAR PROJET (connexions Tooling API du `GradleConnectorPool`, démons Gradle sous-jacents, caches du `CacheSync`, abonnements du bus) ; message de protocole de « fermeture de projet » si nécessaire (compatibilité ascendante : `PROTOCOL_VERSION`, champs optionnels) ; politique du démon applicatif selon les mesures (conservé tant qu'une session existe ; arrêté après X min sans session et app en arrière-plan) | |
 | **E — Cohérence de navigation** | Matrice de transitions implémentée : état « projet ouvert » sur l'accueil (liste récente, dernier ouvert), rafraîchissement au retour, réglages appliqués au retour (thème, palette, langue), permission SAF révoquée / stockage disparu détectés au retour, état de l'installation d'outils répercuté, retour depuis notification, écran de plantage → relance propre | |
 | **F — Vérification et validation appareil** | 20 cycles ouvrir/quitter : croissance du tas < 5 %, aucune instance d'`EditorActivity` retenue (détecteur) ; sortie de l'éditeur ⇒ aucun processus enfant lié au projet au-delà de la politique ; ouvrir P, quitter, ouvrir Q ⇒ aucun vestige de P ; aucune perte de la dernière modification en sortie rapide (test automatisé) ; rotation ne ferme rien ; fermeture bornée en temps même si un élément bloque | |
 
 ## 2. Décisions à soumettre au propriétaire (avec recommandation)
+
+> **Arbitrage v0.103.0→v0.104.0 (retour propriétaire « GO étapes C et D,
+> sans attendre la baseline »)** : les décisions 1, 4, 5, 6 et 7 sont
+> TRANCHÉES (recommandations appliquées, réversibles, documentées
+> ci-dessous) ; les décisions 2 et 3 restent EXPLICITEMENT reportées aux
+> mesures (§4.5) — le protocole reste rejouable sur le tag v0.103.0
+> (APK de CI « CodeIDE-v0.103.0-debug ») qui FIGE l'état pré-correctif.
 
 1. **Build en cours à la sortie** : (a) fermeture différée jusqu'à la fin
    du build avec notification ; (b) annulation avec confirmation ; (c) le
@@ -71,32 +74,60 @@ bornés) reste à construire à l'étape B.
    pas ; il manque seulement l'annonce à l'utilisateur. Recommandation
    affine : valider (c) et l'expliciter (notification « build P en cours,
    interface fermée »).
+   **→ TRANCHÉ (c) en v0.104.0** : expliciter = toast
+   `editor_sortie_build_continue` AVANT `finish()` quand un build est en
+   vol (la notification ToolingService reste le détail visible).
 2. **Politique du démon de tooling** : conservé tant qu'une session
    existe / arrêté après X minutes sans session et app en arrière-plan /
    relancé à la demande — trancher sur MESURES (§4.5, scénario S6 :
    mémoire au repos du démon + temps de démarrage), pas sur l'intuition.
+   **→ REPORTÉ aux mesures** (S6) : l'étape D livre la libération PAR
+   PROJET dans le démon, PAS sa politique de durée de vie — le démon
+   reste process-wide jusqu'aux chiffres.
 3. **Temporisation en arrière-plan** avant arrêt des services lourds
    (LSP inclus) — aujourd'hui RIEN ne coupe en arrière-plan (S6) ; à
    proposer après les mesures.
+   **→ REPORTÉ aux mesures** (S6) ; v0.104.0 livre la part
+   INCONDITIONNELLE : `onTrimMemory` (E16) libère les caches
+   reconstructibles (arbre) dès RUNNING_CRITICAL — UI_HIDDEN (arrière-
+   plan) est couvert par le seuil (20 ≥ 15), la session ne bouge pas.
 4. **Terminal lié au projet ou global** — politique voulue. Constat
    d'étape A : global de fait (E11), les sessions survivent à la
    fermeture de l'éditeur ; le tiroir terminal de l'éditeur et
    `TerminalActivity` partagent le même registre.
+   **→ TRANCHÉ : GLOBAL conservé** — lier les shells au projet tuerait
+   des sessions utilisateur à la fermeture d'un projet (une commande
+   longue `top`/`gradle` ne doit pas mourir parce qu'on referme
+   l'éditeur) ; le registre global reste le comportement voulu. Révisable
+   en étape E si la matrice l'exige.
 5. **Rotation : coût cel-lsp** (nouveau, E8) — (a) accepter le
    shutdown/rebranchement du `LspProject` à chaque rotation (simple,
    coût borné : reconnexion, la `SessionLsp` et ses caches survivent) ;
    (b) hisser la coordination cel-lsp hors de l'Activity (ViewModel)
    pour survivre au changement de configuration. Recommandation : (a)
    à court terme, mesurer le coût réel (S2) et réarbitrer.
+   **→ TRANCHÉ (a)** en v0.104.0 : I3 ne requiert RIEN de plus — la
+   session de projet vit hors de l'écran (le ViewModel survit à la
+   rotation), le rebranchement cel-lsp est un coût de RECONNEXION borné.
+   Réarbitrage après S2.
 6. **I1 et launchMode** (nouveau, E6/E7) — (a) le gestionnaire de
    session garantit I1 à l'ouverture (fermer A puis ouvrir B, séquentiel)
    sans toucher au manifeste ; (b) `launchMode` + routage par extra (motif
    ADR 0048 de `MainActivity`). Recommandation : (a) à l'étape B, (b) à
    l'étape E si les mesures montrent des empilements réels.
+   **→ TRANCHÉ (a) — appliqué en v0.103.0/v0.104.0** (gestionnaire
+   câblé, I1 testé : « ouvrir B ferme A d'abord et flushe A ») ; (b)
+   reste réservée à l'étape E.
 7. **Miroir d'état tooling** (nouveau, E13) — déplacer la collecte
    d'état `GradleService.etat` vers une portée process (étape C/D) pour
    que `ToolingService` ne décide plus sur un état gelé après la
    fermeture de l'éditeur.
+   **→ IMPLÉMENTÉ en v0.104.0** : le miroir de CONNEXION vit dans
+   `PompeBuildTooling.pomperConnexion()` (portée process, idempotente —
+   E13 corrigé côté connexion). Arbitrage des diagnostics : ils restent
+   collectés par l'espace (consommation UI, `attacher()` les remet à
+   zéro à la ré-ouverture — un état gelé de diagnostics est sans effet
+   process-wide, contrairement à la connexion).
 
 ## 3. Invariants à garantir (contrat de la session)
 
@@ -519,3 +550,66 @@ Machine 2 cœurs / 3,9 Go, cache Gradle chaud, JDK 21
 `:app:assembleDebug` ~8 min ; `check` des 5 modules touchés
 (model/diagnostics/home/newproject/session) ~3 min après compilation
 chaude.
+
+## 6. Étape C — intégration éditeur et migration des ressources (v0.104.0, LIVRÉE)
+
+> Livrable : le branchement des ressources RÉELLES de l'éditeur sur le
+> contrat `:core:session` (ADR 0114). Décisions §2 arbitrées (voir
+> l'en-tête §2) ; baseline §4.5 exécutable sur le TAG v0.103.0 (état
+> pré-correctif figé, APK « CodeIDE-v0.103.0-debug » sur la CI).
+
+### 6.1 Ce qui a été livré
+
+| Sujet | Changement | Preuve |
+|---|---|---|
+| **Ouverture de session** | `EditorViewModel.init` → `gestionnaireSession.ouvrir(projetId)` ; les travaux enregistrent le FLUSH des sauvegardes (élément non annulable, I7) — le ViewModel OBSERVE la session (§5.1), il n'en est plus propriétaire | `EditorViewModel.kt` (init + `enregistrerFlushSauvegardes`) ; test « l'ouverture de l'espace ouvre la session de projet » |
+| **Sortie propre (E2/I7)** | `onCleared()` réécrit : la fermeture part dans la **portée session application** (`@PorteeFermetureSession`, survit à l'écran) — le registre FLUSHE les onglets sales (non annulable) PUIS les sessions cel sont disposées (ADR 0028) PUIS session LSP PUIS `workspace-state.json` | test « la sortie ferme la session ET flushe les onglets sales » (frappe non sauvegardée ÉCRITE au disque) |
+| **Session LSP enregistrée** | `ouvrirSessionLspSiPossible` enregistre un `Fermable` (borne 5 s, détacheur qui remet la référence observable à `null` AVANT close) ; `fermerSessionLsp` désenregistre d'abord (mort de sa propre initiative) | test « la fermeture par le registre referme la session LSP enregistrée » |
+| **I1 au changement de projet (P→Q)** | Le gestionnaire sérialise : ouvrir B ferme A (flush compris) puis ouvre B — testé avec DEUX espaces sur le MÊME gestionnaire process-wide | test « ouvrir B ferme A d'abord et flushe les onglets sales de A » |
+| **E13 (miroir figé)** | Collecteur de connexion déplacé du viewModelScope vers `PompeBuildTooling.pomperConnexion()` (portée process, idempotente, sans panne) | test « le miroir de connexion vit dans la pompe process wide » (connexion mise à jour APRÈS la mort de l'espace) |
+| **E12 (fuite cel)** | `remplacerContenuFichier` dispose l'ancienne session AVANT de l'écraser (contrat `SessionSuivie`/ADR 0028) | revue + pattern identique à `fermer()` ; la fuite était détectable LeakCanary |
+| **E16 (onTrimMemory)** | PREMIER `onTrimMemory` du dépôt : `EditorActivity` → `ActionEditor.LibererMemoire` → caches d'arbre reconstructibles vidés (énumérations, statuts, parents — les plis/ sélection ne bougent pas) ; seuil RUNNING_CRITICAL (15, constante nommée — le champ statique est déprécié au compileSdk 37) ; la session ne bouge JAMAIS (I3/I2) | test « libérer mémoire vide les caches sans fermer la session » |
+| **§2.1c (build en cours)** | Toast `editor_sortie_build_continue` (FR/EN) au `EffetEditor.Quitter` quand un build est en vol — l'annonce explicite du comportement de facto | `EditorActivity.appliquer(EffetEditor.Quitter)` |
+| **DI** | `di/ModuleSessionProjet.kt` : `@Singleton GestionnaireSessionProjet` + `@PorteeFermetureSession CoroutineScope` (supervisée) ; `ModuleRulesPlugin` : `:feature:editor` autorisé à `:core:session` | build vert + `checkModuleDependencies` |
+
+### 6.2 Choix d'implémentation notables
+
+- **Rotation (I3)** : garantie STRUCTURELLE — la session vit hors de
+  l'écran, le ViewModel survit au changement de configuration ;
+  `onCleared` n'intervient qu'à la sortie réelle. Le rebranchement
+  cel-lsp par rotation reste (§2.5a) : coût de reconnexion mesurable
+  (S2), jamais de session dupliquée.
+- **La fermeture du flush est NON annulable par CONSTRUCTION** :
+  enregistrée comme travaux d'ouverture (une session n'existe jamais
+  sans sa garantie de flush) ; le registre l'exécute en
+  `NonCancellable` avec borne 10 s (elle borne un déraisonnement, pas
+  une écriture normale).
+- **Ordre contractuel de sortie** : flush → sessions cel → session LSP
+  → état d'espace. `enregistrer()` lit le texte de la SESSION cel —
+  l'ordre est la garantie I7 elle-même (testé).
+- **Défense anti-course** : le détacheur du `Fermable` LSP remet la
+  référence observable à `null` avant `close()` — un usage post-close
+  (`verifierOuverte`) devient un `null` observé, pas une exception.
+- **E2 vs dialogue de sortie** : le dialogue (`EnregistrerPuisFermer`)
+  reste le chemin interactif ; le flush de sortie est le filet
+  SILENCIEUX (kill pendant le debounce, sortie non dialoguée) — borné,
+  journalisé, jamais bloquant.
+
+### 6.3 Ce que l'étape C ne fait PAS
+
+- **GitViewModel, surveillance de fichiers** : déjà fragment-scoped
+  (E5 — meurt avec l'écran, pas une fuite) — pas de Fermable nécessaire
+  à ce stade ; l'inventaire §4.2 reste la référence pour l'étape D/E.
+- **Temporisation d'arrière-plan (§2.3)** et **politique du démon
+  (§2.2)** : reportées aux mesures (S6) — v0.104.0 ne touche PAS aux
+  durées de vie process-wide du démon et des services.
+- **Navigation (extra de routage, état accueil, notifications E10)** :
+  étape E — hors périmètre.
+
+### 6.4 Vérifications
+
+`:feature:editor:check` VERT : 338 tests (332 existants + 6 nouveaux
+`CycleVieEditorViewModelTest`), detekt, spotless, lint, kover ;
+`:app:assembleDebug` + `checkModuleDependencies` VERTS (9 min, machine
+2 cœurs / 3,9 Go, cache chaud). Durée de l'étape C : ~1,5 journée de
+travail agent (audit §6.1 compris).

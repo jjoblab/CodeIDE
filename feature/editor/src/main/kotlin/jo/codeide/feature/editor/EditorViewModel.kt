@@ -64,9 +64,14 @@ import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.getOrNull
+import jo.codeide.core.session.Desenregistrement
+import jo.codeide.core.session.GestionnaireSessionProjet
+import jo.codeide.core.session.RaisonFermeture
+import jo.codeide.feature.editor.di.PorteeFermetureSession
 import jo.codeide.lsp.host.DossierIndexLsp
 import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SourceClasspathLsp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -212,6 +217,13 @@ class EditorViewModel
         private val ecrireSyncState: EcrireSyncStateUseCase,
         private val serviceGradle: GradleService,
         private val pompeBuilds: PompeBuildTooling,
+        // Mission « Cycle de vie » étape C (ADR 0114) : le garant d'I1 et
+        // la portée des fermetures — la session de projet vit HORS de
+        // l'écran (ouvrir B ferme A d'abord) et sa fermeture SURVIT au
+        // ViewModel (le viewModelScope est déjà mort dans onCleared).
+        private val gestionnaireSession: GestionnaireSessionProjet,
+        @param:PorteeFermetureSession
+        private val porteeFermetureSession: CoroutineScope,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -285,6 +297,15 @@ class EditorViewModel
          * « session LSP ouverte » ×2 à 15 ms d'écart).
          */
         private val exclusionOuvertureLsp = Mutex()
+
+        /**
+         * Enregistrement de la session LSP au REGISTRE de la session de
+         * projet (mission « Cycle de vie » étape C, ADR 0114) : la
+         * ressource s'abonne AU MOMENT où elle démarre — refermée en ordre
+         * inverse par le registre (délai borné), désenregistrée quand elle
+         * meurt de sa propre initiative (changement de projet).
+         */
+        private var enregistrementLsp: Desenregistrement? = null
 
         /** Session LSP observable (branchement éditeur, §16.2). */
         val sessionLsp: StateFlow<SessionLsp?> = sessionLspInterne.asStateFlow()
@@ -431,6 +452,33 @@ class EditorViewModel
             observerOutilsTerminal()
             observerTooling()
 
+            // Mission « Cycle de vie » étape C (ADR 0114) : OUVERTURE de la
+            // session de projet — le contrat process-wide I1 (ouvrir B ferme
+            // A d'abord) ; le ViewModel OBSERVE la session, il n'en est plus
+            // propriétaire (§5.1). Les travaux enregistrent le FLUSH des
+            // sauvegardes (élément NON annulable, I7) : une session n'est
+            // jamais ouverte sans sa garantie de flush. En viewModelScope :
+            // la rotation ne referme RIEN (I3 — le ViewModel survit), une
+            // ouverture annulée (écran mort en vol) referme ce qu'elle avait
+            // démarré (Nettoyage, contrat §4.8).
+            viewModelScope.launch {
+                when (
+                    gestionnaireSession.ouvrir(ProjectId(identifiant)) {
+                        enregistrerFlushSauvegardes()
+                    }
+                ) {
+                    is AppResult.Failure -> {
+                        journal.w(TAG) {
+                            "session de projet refusée (projet ${identifiantSuivi()}) — l'espace vit sans session"
+                        }
+                    }
+
+                    is AppResult.Success -> {
+                        Unit
+                    }
+                }
+            }
+
             // Étape 32 (ADR 0057) : l'état tooling est process-wide —
             // l'espace qui s'ouvre s'y rattache (console vierge, activités
             // en vol conservées : un build parti avant la fermeture reste
@@ -471,10 +519,13 @@ class EditorViewModel
          * ligne — la vidange process-wide est l'unique source.
          */
         private fun observerTooling() {
-            tooling
-                .observeConnectionState()
-                .onEach { connexion -> serviceGradle.publierConnexion(connexion) }
-                .launchIn(viewModelScope)
+            // Mission « Cycle de vie » étape C (E13, §2.7) : le miroir de
+            // CONNEXION vit désormais dans la pompe PROCESS-WIDE — l'ancien
+            // collecteur viewModelScope gelait `GradleService.etat` à la
+            // fermeture de l'espace (ToolingService décidait sur un état
+            // figé). Idempotent : chaque espace peut l'appeler, seul le
+            // premier branche.
+            pompeBuilds.pomperConnexion()
             // Étapes, lignes et RÉSULTAT de sync : la vidange vit dans la
             // pompe PROCESS-WIDE (v0.45.1 pour la survie aux écrans fermés ;
             // v0.48.0, ADR 0079 pour le terminal qui conclut l'UI sur le
@@ -806,6 +857,10 @@ class EditorViewModel
                     demanderSortie()
                 }
 
+                ActionEditor.LibererMemoire -> {
+                    libererMemoireCaches()
+                }
+
                 is ActionEditor.PreciserLangue -> {
                     preciserLangue(action.langue)
                 }
@@ -1119,13 +1174,55 @@ class EditorViewModel
                         androidJar = outilchain.androidJar(),
                     )
                 sessionLspInterne.value = session
+                // Cycle de vie étape C (ADR 0114) : la ressource démarre →
+                // elle s'enregistre au registre de la session de projet
+                // (fermeture ordonnée, bornée, en ordre inverse). Refus
+                // (session déjà fermée / fermeture en vol) : la ressource
+                // n'est pas portée par le registre — refermée immédiatement,
+                // l'espace vit sans LSP (renoncé, pas orphelin).
+                enregistrementLsp = enregistrerSessionLspAuRegistre(session)
                 journal.i(TAG) { "session LSP ouverte (projet ${identifiantSuivi()})" }
             }
         }
 
+        /**
+         * Enregistre la session LSP au registre de la session de projet
+         * (étape C) : la poignée servira au désenregistrement quand la
+         * session LSP meurt de sa propre initiative.
+         *
+         * @return la poignée, ou `null` si le registre a refusé (la session
+         *   est alors refermée localement, référence remise à `null`).
+         */
+        private fun enregistrerSessionLspAuRegistre(session: SessionLsp): Desenregistrement? =
+            when (
+                val resultat =
+                    gestionnaireSession.session.enregistrer(
+                        fermable = FermablesEspace.sessionLsp(session) { sessionLspInterne.value = null },
+                        delai = FermablesEspace.DELAI_FERMETURE_LSP,
+                    )
+            ) {
+                is AppResult.Success -> {
+                    resultat.value
+                }
+
+                is AppResult.Failure -> {
+                    sessionLspInterne.value = null
+                    session.close()
+                    journal.w(TAG) {
+                        "session LSP non enregistrée au registre (fermeture en cours ?) — refermée localement"
+                    }
+                    null
+                }
+            }
+
         /** Referme la session LSP (changement de projet, destruction). */
         private fun fermerSessionLsp() {
             val session = sessionLspInterne.value ?: return
+            // Cycle de vie étape C : la ressource meurt de sa propre
+            // initiative → désenregistrement d'abord (le registre ne
+            // rappellera pas une fermeture locale — I2).
+            enregistrementLsp?.desenregistrer()
+            enregistrementLsp = null
             sessionLspInterne.value = null
             session.close()
             journal.i(TAG) { "session LSP refermée (projet ${identifiantSuivi()})" }
@@ -2983,6 +3080,11 @@ class EditorViewModel
             val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
             FichiersOuverture.langage(onglet.nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
+            // E12 (cycle de vie étape C) : l'ancienne session est disposée
+            // AVANT d'être écrasée — le contrat SessionSuivie (ADR 0028)
+            // exige la libération (fuite du thread de restyle sinon, vue
+            // par LeakCanary) ; remplacer sans disposer la laissait vivante.
+            sessions.remove(uri)?.disposer()
             sessions[uri] = session
             etatInterne.update { etat ->
                 etat.copy(
@@ -3357,15 +3459,152 @@ class EditorViewModel
             selectionner(index)
         }
 
-        /** Libère toutes les sessions à la destruction (fuite sinon, ADR 0028). */
+        /**
+         * Libère l'espace à sa destruction (étape C de la mission « Cycle
+         * de vie » — réécriture I7/E2, ADR 0114 l.90-92).
+         *
+         * La fermeture vit dans la PORTÉE SESSION (application) : le
+         * viewModelScope est déjà mort quand onCleared s'exécute — c'était
+         * le trou E2 (les jobs d'auto-sauvegarde étaient annulés SANS
+         * flush : kill du processus pendant le debounce de 1,5 s ⇒ perte
+         * de frappe). Désormais :
+         *
+         * 1. `gestionnaire.fermer()` referme la session de projet — le
+         *    REGISTRE exécute le FLUSH des sauvegardes (élément NON
+         *    annulable, I7) AVANT toute autre libération ;
+         * 2. PUIS les sessions d'édition sont disposées (ADR 0028 — le
+         *    flush lit leur texte, l'ordre est contractuel) ;
+         * 3. la session LSP est refermée (idempotente : le registre l'a
+         *    déjà fait si elle était enregistrée) ;
+         * 4. l'état d'espace persiste (workspace-state.json) en dernier.
+         *
+         * Rotation : onCleared ne doit JAMAIS s'exécuter (le ViewModel survit,
+         * I3) — rien ici ne coupe la session pour un changement de
+         * configuration.
+         */
         override fun onCleared() {
             sauvegardesAuto.values.forEach { it.cancel() }
+            porteeFermetureSession.launch { fermerSessionDeProjetEnSortie() }
+        }
+
+        /**
+         * Séquence de fermeture de sortie (étape C) — ordre CONTRACTUEL :
+         * flush (via le registre, non annulable) → sessions d'édition →
+         * session LSP → état d'espace. Chaque étape survit à une panne de
+         * la précédente (journalisée, jamais bloquante).
+         */
+        private suspend fun fermerSessionDeProjetEnSortie() {
+            try {
+                when (val rapport = gestionnaireSession.fermer(RaisonFermeture.Utilisateur)) {
+                    is AppResult.Success -> {
+                        val fermeture = rapport.value
+                        journal.i(TAG) {
+                            "session de projet fermée (${fermeture.elements.size} élément(s), ${fermeture.dureeTotale})"
+                        }
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) { "fermeture de session refusée : ${rapport.error}" }
+                    }
+                }
+            } catch (annulation: kotlinx.coroutines.CancellationException) {
+                // la portée application n'est jamais annulée — défense en
+                // profondeur : les sessions restent libérées ci-dessous
+                journal.w(TAG, annulation) { "fermeture de session interrompue (défense)" }
+            }
             sessions.values.forEach { it.disposer() }
             sessions.clear()
-            // Mission LSP Java h2 : la session LSP meurt AVEC l'espace —
-            // coroutines annulées, moteurs disposés, modèle vidé (le
-            // test de fuite h1 prouve le contrat de close()).
             fermerSessionLsp()
+            persisterEtatEspaceFinal()
+        }
+
+        /**
+         * Travaux d'ouverture de la session de projet (étape C) :
+         * enregistre le FLUSH des sauvegardes comme élément NON annulable
+         * du registre (I7) — une session ne s'ouvre JAMAIS sans sa
+         * garantie de flush. Le refus (fermeture en cours) fait échouer
+         * les travaux : l'ouverture est alors refusée proprement.
+         */
+        private fun enregistrerFlushSauvegardes(): AppResult<Unit> =
+            when (
+                val resultat =
+                    gestionnaireSession.session.enregistrer(
+                        fermable = FermablesEspace.sauvegardesOnglets { flusherSauvegardesOnglets() },
+                        delai = FermablesEspace.DELAI_FLUSH_SAUVEGARDES,
+                        annulable = false,
+                    )
+            ) {
+                is AppResult.Success -> AppResult.Success(Unit)
+                is AppResult.Failure -> resultat
+            }
+
+        /**
+         * Écrit tous les onglets SALES (I7, étape C) : appelé PAR LE
+         * REGISTRE dans un contexte non annulable — l'annulation de
+         * l'appelant n'empêche JAMAIS l'écriture. Idempotente par état :
+         * les onglets deviennent propres, un second appel n'écrit rien.
+         *
+         * Les sessions d'édition vivent ENCORE (libérées après, séquence
+         * contractuelle) : [enregistrer] lit leur texte.
+         */
+        private suspend fun flusherSauvegardesOnglets() {
+            val sales =
+                etatInterne.value.onglets
+                    .filter { it.isDirty }
+                    .map { it.uri }
+            if (sales.isEmpty()) return
+            var echecs = 0
+            for (uri in sales) {
+                if (!enregistrer(uri)) echecs++
+            }
+            journal.i(TAG) {
+                "flush de sauvegardes : ${sales.size - echecs}/${sales.size} onglet(s) écrit(s)"
+            }
+        }
+
+        /**
+         * Libère les caches RECONSTRUCTIBLES (étape C, E16 — appelée par
+         * `onTrimMemory` via [ActionEditor.LibererMemoire]) : énumérations
+         * d'arbre, statuts et parents retombent (la prochaine expansion
+         * ré-énumère — arborescence paresseuse ADR 0027) ; les plis et la
+         * sélection ne bougent PAS (état d'interface, pas des caches). La
+         * session, les sessions d'édition et la session LSP ne sont PAS
+         * touchées (I3/I2 — libération de MÉMOIRE, pas de durée de vie).
+         */
+        private fun libererMemoireCaches() {
+            arbreProjet.enfantsEnCache.clear()
+            arbreProjet.statuts.clear()
+            arbreProjet.parents.clear()
+            arbrePrive.enfantsEnCache.clear()
+            arbrePrive.statuts.clear()
+            arbrePrive.parents.clear()
+            journal.i(TAG) { "caches d'arbre libérés (pression mémoire)" }
+        }
+
+        /**
+         * Dernière persistance de l'état d'espace (étape C) : écrite dans
+         * la portée de fermeture (le viewModelScope est mort) —
+         * `workspace-state.json` reflète la sortie, la réouverture
+         * retrouve les derniers onglets.
+         */
+        private suspend fun persisterEtatEspaceFinal() {
+            val racine = uriDocumentSuivie ?: return
+            val etat = etatInterne.value
+            when (
+                enregistrerEtatEspace(
+                    racine,
+                    etat.onglets.map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) },
+                    etat.indexOngletActif,
+                )
+            ) {
+                is AppResult.Success -> {
+                    Unit
+                }
+
+                is AppResult.Failure -> {
+                    journal.w(TAG) { "échec de la persistance finale de l'état d'espace" }
+                }
+            }
         }
 
         // ------------------------------------------------------------------
