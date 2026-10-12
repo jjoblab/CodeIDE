@@ -1189,6 +1189,34 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.108.0 : **correctifs d'exploitation LSP Java — retour
+      propriétaire** (docs/LSP_JAVA.md §17) : ① StringConcatFactory
+      — fait établi : la classe n'existe dans AUCUNE plateforme
+      Android (D8 désugare toujours les concats indy), seul fournisseur
+      = image jrt du JDK toolchain (n'avait pas chargé sur l'appareil,
+      échec silencieux) ; les .class du projet compilés par le serveur
+      Gradle référencent l'intrinsèque dans leur pool → faux positif
+      STRUCTUREL « indirectly referenced » (reproduit exactement :
+      StringConcatFactoryReproTest, fixture ASM batisse.Biblio étend
+      l'intrinsèque) ; correctif : StubsIntrinseques — repli 4 de
+      EcjCompilerEnvironment.find APRÈS sources/jars/jrt (priorité
+      réelle préservée, complétion non nourrie) : .class minimal
+      fabriqué à la main en octets (CAFEBABE v8, zéro membre) pour
+      StringConcatFactory/ObjectMethods/SwitchBootstraps, cache
+      statique + échec scanJrt FINE→WARNING (signal de recette) ;
+      ② databinding — les XxxBinding ne sont générées qu'AU BUILD
+      (dataBindingGenBaseClasses) : import structurellement
+      non-résoluble avant build ; downgrade honnête ERROR→HINT+remède
+      (motif R, arguments STRUCTURÉS ecj stables entre locales,
+      segment .databinding strict, coupure par sonde
+      hasGeneratedDatabindingClasses TTL 5 s — faute de frappe
+      redevient ERROR) ; 3 tests en vrai flux LSP4J (client espion
+      publishDiagnostics). +8 tests vendored (315 lsp:java VERT,
+      lsp:testing VERT) ; asm en testImplementation de lsp:java
+      (fixture, externe Maven — ADR 0108 intact). Décisions ouvertes
+      §17.3 : génération post-sync (generateSources à la sync),
+      compliance PAR PROJET (champ ClasspathModule — candidat
+      protocole v10).
 - v0.107.0 : **mission « Cycle de vie » étape F OUTILLÉE —
       vérification et validation** (prompt 3 §7/§8 ;
       docs/CYCLE_DE_VIE.md §9) : ① test d'invariant ROTATION
