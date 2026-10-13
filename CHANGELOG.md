@@ -1,5 +1,38 @@
 # Journal des modifications
 
+## [0.121.1] – 2026-10-13
+
+### Corrigé
+
+- **CI : deux échecs de la chaîne v0.121.0** (runs 38412598199 et
+  38412598723 du commit 2509f1f) :
+  - **Baseline de parité du corpus non régénérée par XE5** : les 50
+    nouveaux fichiers Kotlin de la complétion drawables/menus ont fait
+    diverger le digeste structurel du corpus (873 → 923 fichiers) ;
+    `PariteCorpusDepotTest` échouait par `ComparisonFailure`. La
+    baseline est régénérée par le mécanisme prévu
+    (`-Dparite.majBase=true`, revue VENDOR.md) — le diff (873 → 923)
+    correspond exactement aux ajouts de XE5, aucune dérive de
+    grammaire.
+  - **`SessionLspTest` « close est idempotent et le modele se vide »
+    flaky** : `java.io.IOException` au nettoyage `@TempDir` de JUnit
+    (rapport d'échec téléversé : `Failed to delete temp directory`).
+    Cause démontrée : `SessionLsp.close()` annulait le scope mais
+    n'attendait PAS l'arrêt effectif — l'analyse de jar en vol
+    (travail bloquant sur `Dispatchers.IO`) continuait puis ÉCRIVAIT
+    son segment APRÈS le retour de `close`, en course avec le
+    nettoyage du répertoire temporaire. Correctif en profondeur :
+    (1) `ServiceIndexDisque.construirePosition`/`reconstruireCorrompu`
+    vérifient l'annulation AVANT `entrepot.ecrire` (une construction
+    annulée n'écrit plus rien — la `CancellationException` se
+    propage, règle 6) ; (2) `SessionLsp.close()` attend l'arrêt
+    EFFECTIF des coroutines, borné à 2 s (I2 : jamais bloquant, cas
+    dégénéré journalisé, `CountDownLatch` — pas de `runBlocking` en
+    production). Test de régression : « close attend l arret effectif
+    - aucun segment ecrit apres fermeture » (fermeture sans attendre
+    le PRÊT, puis surveillance du stockage — le scénario exact de la
+    course CI).
+
 ## [0.121.0] – 2026-10-13
 
 ### Ajouté
