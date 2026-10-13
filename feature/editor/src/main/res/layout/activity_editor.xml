@@ -43,6 +43,7 @@
                     style="@style/Widget.CodeIDE.Toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    app:menu="@menu/menu_indexation"
                     app:navigationContentDescription="@string/editor_ouvrir_tiroir_cd"
                     app:navigationIcon="@drawable/ic_menu_tiroir"
                     app:title="@string/editor_title" />
@@ -59,42 +60,14 @@
                      d'appareil réel — le rendu de la bibliothèque ne
                      donnait pas le design espéré (ADR 0056, décision 1). -->
 
-                <!-- Mission « LSP Java » h2 (§16.2) : barre d'état de
-                     l'indexation Java — point d'état (la vue existante)
-                     + libellé de phase/progression. Masquée sans session
-                     LSP ou avant le premier sync (phase INITIALE).
-                     v0.100.2 : le point est à TAILLE FIXE (20 dp, comme
-                     popover_legende.xml) — VuePointEtat ne surcharge pas
-                     onMeasure, donc wrap_content sous AT_MOST renvoyait
-                     TOUTE la hauteur disponible et la barre avalait
-                     l'éditeur (retour d'appareil e69fc0d8). -->
-                <LinearLayout
-                    android:id="@+id/barre_etat_lsp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="2dp"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-
-                    <jo.codeide.feature.editor.VuePointEtat
-                        android:id="@+id/point_etat_lsp"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/texte_etat_lsp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="Indexation Java : 12/191" />
-                </LinearLayout>
+                <!-- (v0.124.12) barre_etat_lsp RETIRÉE — remplacée par la
+                     pastille de toolbar VuePointIndexation (menu_indexation).
+                     La ligne consommait de la hauteur dans la colonne
+                     centrale (incident v0.100.2 « la barre avalait
+                     l'éditeur ») et n'affichait ni les avertissements ni
+                     les erreurs du modèle EtatIndex. La pastille vit dans
+                     la toolbar qui existe déjà — aucun saut de mise en
+                     page pendant l'indexation (Phase B prompt 2, ADR 0117). -->
 
                 <FrameLayout
                     android:id="@+id/conteneur_editeur"

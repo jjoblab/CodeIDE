@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Menu de la toolbar pour l'indexation (Phase B prompt 2, ADR 0117 §4.4 —
+  lot B5). Un seul item : la pastille d'indexation, qui ouvre le panneau
+  de détail (bottom sheet, lot B6) au toucher.
+
+  La pastille est GONE par défaut (visibilité gérée par code selon l'état
+  d'indexation — invisible en INITIAL, visible dans les autres états).
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_indexation"
+        android:title="@string/editor_indexation_construction_titre"
+        android:visible="false"
+        app:actionViewClass="jo.codeide.feature.editor.VuePointIndexation"
+        app:showAsAction="ifRoom" />
+
+</menu>
