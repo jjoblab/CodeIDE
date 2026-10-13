@@ -46,7 +46,7 @@ class ServicePreviewTest {
 
     @Test
     fun `rendu - PNG compressé + métriques`() {
-        val resultat = binder().rendre(layoutLineaire, null)
+        val resultat = binder().rendre(requete(layoutLineaire))
         assertTrue("rendu attendu réussi : ${resultat.message}", resultat.ok)
         assertEquals(null, resultat.message)
         assertTrue(resultat.png.isNotEmpty())
@@ -61,7 +61,7 @@ class ServicePreviewTest {
 
     @Test
     fun `xml malformé - échec en donnée (sentinelle, pas d'exception)`() {
-        val resultat = binder().rendre("<LinearLayout><TextView", null)
+        val resultat = binder().rendre(requete("<LinearLayout><TextView"))
         assertFalse(resultat.ok)
         assertEquals(XML_MALFORME, resultat.message)
         assertTrue(resultat.png.isEmpty())
@@ -69,7 +69,7 @@ class ServicePreviewTest {
 
     @Test
     fun `erreur sémantique - message lisible en donnée`() {
-        val resultat = binder().rendre("<TagInconnu />", null)
+        val resultat = binder().rendre(requete("<TagInconnu />"))
         assertFalse(resultat.ok)
         assertTrue(resultat.message.orEmpty().isNotEmpty())
     }
@@ -85,6 +85,11 @@ class ServicePreviewTest {
                 nombreVues = 5,
                 dureeMs = 67L,
                 png = byteArrayOf(1, 2, 3, 4),
+                vues =
+                    arrayOf(
+                        InfoVueRendu(0, 0, 10, 10, "TextView @+id/titre", 3, 40, -1, 0),
+                        InfoVueRendu(1, 1, 5, 5, "Button", -1, -1, 0, 1),
+                    ),
             )
         val parcel = android.os.Parcel.obtain()
         try {
@@ -97,8 +102,20 @@ class ServicePreviewTest {
             assertEquals(source.nombreVues, relu.nombreVues)
             assertEquals(source.dureeMs, relu.dureeMs)
             assertTrue(relu.png.contentEquals(source.png))
+            // PE3 : les vues (hit-test P6) survivent à la frontière.
+            assertEquals(source.vues.size, relu.vues.size)
+            assertEquals(source.vues[0], relu.vues[0])
+            assertEquals(source.vues[1], relu.vues[1])
         } finally {
             parcel.recycle()
         }
     }
+
+    /** Requête de test (PE3) : layout simple, repli natif. */
+    private fun requete(
+        texte: String,
+        genre: GenrePreview = GenrePreview.LAYOUT,
+        profil: ProfilPeripherique = ProfilPeripherique.PAR_DEFAUT,
+        nuit: Boolean = false,
+    ): RequeteRendu = RequeteRendu(texte = texte, dossierRes = null, genre = genre, profil = profil, nuit = nuit)
 }

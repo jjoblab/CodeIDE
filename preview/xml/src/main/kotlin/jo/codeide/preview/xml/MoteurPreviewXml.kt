@@ -17,7 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * Moteur de preview XML — PE1 → PE2 (PREVIEW.md §3, P1–P5).
+ * Moteur de preview XML — PE1 → PE2 → PE3 (PREVIEW.md §3, P1–P6).
  *
  * Orchestration : debounce 400 ms (défaut — « RenderService adapté »),
  * single-flight par mutex, états publiés ([etat]) — le RENDU lui-même
@@ -26,6 +26,11 @@ import kotlinx.coroutines.withContext
  *    (AIDL, DeathRecipient, UNE reprise puis repli local honnête —
  *    §6) ;
  *  - les tests injectent le transport local (le pipeline PE1 inchangé).
+ *
+ * PE3 : la demande est PARAMÉTRÉE ([RequeteRendu]) — genre (layout /
+ * drawable / values), profil d'appareil, régime jour/nuit — chaque
+ * changement de paramètre relance un rendu IMMÉDIAT (pas d'attente de
+ * debounce : l'utilisateur a agi, la réponse doit suivre).
  *
  * Comportements repris de LayoutLib/Android Studio :
  * - XML malformé (frappe en cours) → rendu annulé **silencieusement**,
@@ -81,6 +86,18 @@ public class MoteurPreviewXml(
     private var dossierRes: String? = null
     private var ferme = false
 
+    /** Genre du document actif (PE3 — dispatch du pipeline). */
+    private var genreCourant: GenrePreview = GenrePreview.LAYOUT
+
+    /** Profil d'appareil cible (PE3 — sélecteur de l'UI). */
+    private var profilCourant: ProfilPeripherique = ProfilPeripherique.PAR_DEFAUT
+
+    /** Régime nuit courant (PE3). */
+    private var nuitCourant: Boolean = false
+
+    /** Fournisseur de texte courant (dernier onglet branché). */
+    private var fournisseurTexte: (() -> String)? = null
+
     init {
         travailleur =
             scope.launch {
@@ -96,6 +113,7 @@ public class MoteurPreviewXml(
      */
     public fun soumettre(fournisseur: () -> String) {
         if (ferme) return
+        fournisseurTexte = fournisseur
         soumissions.tryEmit(fournisseur)
     }
 
@@ -105,6 +123,7 @@ public class MoteurPreviewXml(
      */
     public fun soumettreImmediat(fournisseur: () -> String) {
         if (ferme) return
+        fournisseurTexte = fournisseur
         scope.launch { traiter(fournisseur) }
     }
 
@@ -116,6 +135,44 @@ public class MoteurPreviewXml(
         dossierRes = chemin
     }
 
+    /**
+     * Définit le genre du document actif (PE3) : un CHANGEMENT relance un
+     * rendu immédiat (la vue doit refléter le nouveau document, pas
+     * attendre la prochaine frappe).
+     */
+    public fun definirGenre(genre: GenrePreview?) {
+        if (ferme) return
+        if (genre == genreCourant) return
+        genreCourant = genre ?: GenrePreview.LAYOUT
+        relancerSiTexte()
+    }
+
+    /**
+     * Définit le profil d'appareil cible (PE3 — sélecteur) : un
+     * CHANGEMENT relance un rendu immédiat (nouvelles dimensions).
+     */
+    public fun definirProfil(profil: ProfilPeripherique) {
+        if (ferme || profil == profilCourant) return
+        profilCourant = profil
+        relancerSiTexte()
+    }
+
+    /**
+     * Bascule le régime jour/nuit (PE3) : un CHANGEMENT relance un rendu
+     * immédiat (thèmes et ressources `values-night`).
+     */
+    public fun definirNuit(nuit: Boolean) {
+        if (ferme || nuit == nuitCourant) return
+        nuitCourant = nuit
+        relancerSiTexte()
+    }
+
+    /** Profil courant (observable par l'UI pour libeller le sélecteur). */
+    public val profil: ProfilPeripherique get() = profilCourant
+
+    /** Régime nuit courant (observable par l'UI pour libeller le bouton). */
+    public val nuit: Boolean get() = nuitCourant
+
     /** Coupe debounce, worker et transport (déliaison :preview). Idempotent. */
     public override fun close() {
         if (ferme) return
@@ -123,6 +180,12 @@ public class MoteurPreviewXml(
         travailleur?.cancel()
         travailleur = null
         transport.close()
+    }
+
+    /** Relance un rendu immédiat si un texte est branché (changement de paramètre). */
+    private fun relancerSiTexte() {
+        val fournisseur = fournisseurTexte ?: return
+        soumettreImmediat(fournisseur)
     }
 
     /** Traite une soumission (debouncée ou immédiate) : validation puis rendu, en single-flight. */
@@ -139,7 +202,15 @@ public class MoteurPreviewXml(
                 }
                 return
             }
-            val resultat = withContext(dispatchers.default) { transport.rendre(texte, dossierRes) }
+            val requete =
+                RequeteRendu(
+                    texte = texte,
+                    dossierRes = dossierRes,
+                    genre = genreCourant,
+                    profil = profilCourant,
+                    nuit = nuitCourant,
+                )
+            val resultat = withContext(dispatchers.default) { transport.rendre(requete) }
             etatInterne.value = etatDe(resultat)
         }
     }
@@ -154,6 +225,7 @@ public class MoteurPreviewXml(
                     nombreVues = resultat.nombreVues,
                     largeur = resultat.largeur,
                     hauteur = resultat.hauteur,
+                    vues = resultat.vues,
                 )
             }
 

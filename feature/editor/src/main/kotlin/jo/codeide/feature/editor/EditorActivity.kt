@@ -178,12 +178,15 @@ class EditorActivity :
      *  LspEditor cel-lsp de l'onglet actif — see [brancherLspSiNecessaire]. */
     private val coordonnateurLsp by lazy { CoordonnateurLsp(journalLsp) }
 
-    /** Contrôleur de la preview XML (mission « Previews » PE1) : branche le
+    /** Contrôleur de la preview XML (mission « Previews » PE1 → PE3) : branche le
      *  moteur :preview:xml sur l'onglet actif et le projet — bascule du
-     *  panneau par le menu, fermeture au onDestroy. */
+     *  panneau par le menu (colonne réglages + rendu), profils device et
+     *  jour/nuit (PE3), sélection bidirectionnelle P6, fermeture au
+     *  onDestroy. */
     private val controleurApercu by lazy {
         ControleurPreviewXml(
             vue = liaison.vuePreview,
+            colonneApercu = liaison.colonneApercu,
             dispatchers = dispatchers,
             journal = journalLsp,
             scope = lifecycleScope,
@@ -300,6 +303,7 @@ class EditorActivity :
         brancherOnglets()
         brancherVueVide()
         brancherEditeur()
+        brancherApercu()
         brancherPanneauInferieur()
         brancherBarreSymboles()
         onBackPressedDispatcher.addCallback(this, retourEspace)
@@ -1160,6 +1164,43 @@ class EditorActivity :
 
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
     private fun brancherEditeur() = Unit
+
+    /**
+     * Mission « Previews » PE3 : la barre de réglages de l'aperçu (profil
+     * device, jour/nuit) et la sélection BIDIRECTIONNELLE (P6) — le tap
+     * sur le rendu est traité par le contrôleur, la sélection de l'ÉDITEUR
+     * est observée ici (l'écouteur vit sur [jo.codeeditor.view.EditorView])
+     * et remise au contrôleur pour le surlignage de la vue correspondante.
+     */
+    private fun brancherApercu() {
+        liaison.boutonProfilApercu.setOnClickListener {
+            controleurApercu.profilSuivant()
+            majBarreApercu()
+        }
+        liaison.boutonNuitApercu.setOnClickListener {
+            controleurApercu.basculerNuit()
+            majBarreApercu()
+        }
+        liaison.vueEditeur.addOnSelectionChangedListener { debut, fin, _ ->
+            // P6 (éditeur → preview) : surlignage de l'élément sous le
+            // curseur ; une sélection programmatique (tap preview) passe
+            // par le même chemin — le retour visuel est alors immédiat.
+            controleurApercu.onSelectionEditeur(debut, fin)
+        }
+        majBarreApercu()
+    }
+
+    /** Libellés de la barre de réglages : profil courant, régime jour/nuit. */
+    private fun majBarreApercu() {
+        liaison.boutonProfilApercu.text = controleurApercu.profil.description()
+        liaison.boutonNuitApercu.setText(
+            if (controleurApercu.nuit) {
+                R.string.preview_nuit
+            } else {
+                R.string.preview_jour
+            },
+        )
+    }
 
     /**
      * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055) : trois états,
