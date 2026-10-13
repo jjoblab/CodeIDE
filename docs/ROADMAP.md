@@ -203,11 +203,12 @@ Fichiers livrés :
 - Étape suivante éventuelle : protocole v10 (compliance par projet — champ `languageVersion` du module) ; détail du cadre dans `docs/LSP_KOTLIN.md`.
 - Distribution : embarqué en T1, découpage en « pack langue » téléchargeable **différé à post-stabilisation** (décision propriétaire, architecture préparée dès K1).
 
-### 5.3 LSP XML — XE1 livré (v0.117.0)
+### 5.3 LSP XML — XE1 et XE2 livrés (v0.117.0, v0.118.0)
 
 - Moteur **maison in-process** : parseur tolérant + DOM neutre + complétion par contributeurs (catalogue dérivé des données de plateforme, index ressources projet) ; Lemminx/XSD écartés — détail dans `docs/LSP_XML.md`.
 - **XE1 livré v0.117.0** : module `:lsp:xml` (zéro dépendance, jar 80 Ko) — parseur TOLÉRANT écrit main (pile de noms ouverts, reprise sur buffer à moitié tapé, aucun marqueur à chaud sur le guillemet en frappe), DOM neutre aux plages, recouvrements `xml.tag*` + règles de structure pures PAR GENRE (layout/values, conservatoires X4), session LSP minimale derrière le SPI ServiceLoader (descripteur de pack), façade `SessionLspXml` + adaptateur `XmlLanguageServer` dans `:lsp:host`, éditeur trilingue (garde PAR LANGUE, registre ADR 0114) ; corpus LayoutLib en test (0 recouvrement), 67 tests module + 13 hôte/éditeur, kover 91,1 %.
-- Étapes suivantes : XE2 catalogue plateforme + complétion balises/attributs ; XE3 index ressources + résolution `@ref` ; XE4 manifest + quick-fixes. Fixtures partagées avec le catalogue de validation LayoutLib.
+- **XE2 livré v0.118.0** : scanner de position du curseur (lexical, respect des quotes) + catalogue plateforme (`widgets.txt` + `attrs.xml` **parsés par notre parseur**, cache partagé une fois par plateforme) + complétion BALISES (vues + spéciales, fréquentes SDK d'abord) et ATTRIBUTS (styleables de la chaîne de classes + `layout_*` du PARENT + `tools:` + `xmlns:` en frappe), serveur LSP4J (déclencheurs `<`/`=`/`:`) ; genre layout seul (X4), 108 tests module, vraie plateforme SDK en test optionnel auto-skippé.
+- Étapes suivantes : XE3 index ressources + résolution `@ref` + hover/définition ; XE4 manifest + quick-fixes. Fixtures partagées avec le catalogue de validation LayoutLib.
 
 ### 5.4 Previews — PE1 et PE2 livrés (v0.111.0, v0.114.0)
 

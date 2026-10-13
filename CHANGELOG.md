@@ -1,5 +1,46 @@
 # Journal des modifications
 
+## [0.118.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP XML — étape XE2 : catalogue plateforme et complétion
+  balises/attributs** (`docs/LSP_XML.md` §5, décision X3 — « la
+  connaissance Android est une DONNÉE, pas du code ») :
+  - **Scanner de position du curseur** (`context/`) : UN scanner
+    tranche où est le caret (nom de balise, nom d'attribut, valeur,
+    muet) — lexical depuis le dernier `<`, RESPECT des guillemets (un
+    `>` dans une valeur ne clôt pas la balise), parent et élément
+    porteur retrouvés dans le DOM tolérant ; la fermante, le texte et
+    les commentaires sont MUETS (jamais de proposition inventée, X4).
+  - **Catalogue de plateforme** (`catalog/`) : dérivé des données de
+    la plateforme INSTALLÉE du projet (`data/widgets.txt` — vues et
+    chaînes de super-classes ; `data/res/values/attrs.xml` — 299
+    styleables + registre global des formats/énumérations/fanions),
+    **parsé par notre propre parseur tolérant** (le DOM neutre sert
+    aussi aux données), chargé UNE fois par plateforme (cache partagé
+    du moteur, empreinte = chemin de la plateforme — risque §7 :
+    versionné par plateforme, JAMAIS par constante) ; le vrai SDK en
+    test optionnel auto-skippé (budget §6 mesuré).
+  - **Complétion balises** : toutes les vues du catalogue (FQCN en
+    détail) + balises spéciales (`merge`, `include`, `fragment`,
+    `requestFocus`), vues FRÉQUENTES d'abord (classement anti-bruit,
+    risque §7 — le scoreur vit dans `ClassementXml`, clé de tri LSP
+    complète).
+  - **Complétion attributs** : styleables de la CHAÎNE de classes de
+    l'élément (Button → TextView → View), paramètres de mise en page
+    du PARENT (sémantique Android : `layout_*` appartient au
+    consommateur — `LinearLayout_Layout` etc., universels en racine),
+    `tools:` fixes, déclarations `xmlns:` en frappe de préfixe ;
+    filtrage par préfixe AVEC ou SANS deux-points ; le détail porte
+    le format et les énumérations du registre.
+  - **Session + serveur** : la complétion vit dans le contrat de
+    session (genre LAYOUT seul à XE2 — values/manifest suivent XE4,
+    X4 conservatoire), le serveur LSP4J déclare les déclencheurs
+    `<`/`=`/`:` et traduit les propositions (CompletionItemKind,
+    sortText) ; sans classpath ni catalogue : SILENCE (jamais de
+    candidat inventé). 108 tests module + 6 hôte ; kover ≥ 80 %.
+
 ## [0.117.0] – 2026-10-13
 
 ### Ajouté
