@@ -1,5 +1,49 @@
 # Journal des modifications
 
+## [0.124.9] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lot B2 (instrumenter ServiceIndexDisque)** :
+  `ServiceIndexDisque` publie désormais les nouveaux champs de `EtatIndex`
+  (lot B1, v0.124.8) au fil de la construction.
+  - **Liste de travail** : `StatistiquesConstruction` suit l'état de
+    chaque entrée (chemin → `EtatEntreeTravail`) via une
+    `ConcurrentHashMap`. Chaque entrée passe par `ACTIF` (début de
+    traitement) puis `TERMINE` / `REPRIS` / `ECARTE` selon le résultat
+    de l'analyse. La liste est triée par chemin dans `etat()` pour un
+    affichage déterministe.
+  - **Phase détaillée** : `BIBLIOTHEQUES` pendant la construction des
+    jars du classpath, `AUCUNE` au repos. La phase `SOURCES` n'est pas
+    gérée par `ServiceIndexDisque` (elle vivra dans un indexeur dédié
+    aux fichiers `.java` du projet — hors périmètre B2).
+  - **Durées par phase** : `DureesPhases` mesuré par
+    `System.currentTimeMillis()` autour de la construction. La phase
+    `sourcesMs` vaut 0 pour l'instant (indexeur sources non implémenté).
+  - **Bilan du dernier passage** : `BilanDernierPassage` construit à la
+    fin de la construction — durée totale, artefacts total/repris/
+    reconstruits, fichiers parcourus/ré-analysés (0 pour l'instant),
+    indexeur le plus coûteux (`noms-classes-java` par défaut), horodatage.
+  - **Drapeau `settled`** : `true` à la fin de la construction (un
+    passage est allé au bout). Garde « mode dégradé » : avant
+    `PhaseIndex.PRET`, une recherche vide veut dire « pas encore »
+    (settled = false) et non « absent » (settled = true).
+  - **Compatibilité** : `StatistiquesConstruction.etat()` accepte des
+    paramètres optionnels avec valeurs par défaut — les sites d'appel
+    existants (dans `construireInterne` et `construirePosition`)
+    utilisent maintenant les nouveaux paramètres, mais un appelant
+    externe qui n'utiliserait que `phase` + `entreeCourante` compilerait
+    toujours.
+  - **Exemption detekt ciblée** (`LongParameterList` sur `etat()`) :
+    7 paramètres, seuil à 6 — justifiée par la rétrocompatibilité (les
+    valeurs par défaut ne s'appliqueraient plus avec un objet paramètre).
+  - **Vérification locale incrémentale** :
+    `:lsp:index:spotlessCheck` ✅, `:lsp:index:detekt` ✅,
+    `:lsp:index:compileKotlin` ✅, `:lsp:index:test` ✅ (14 tests B1
+    passent toujours),
+    `:lsp:host:compileDebugKotlin` ✅, `:lsp:host:test` ✅,
+    `checkModuleDependencies` ✅.
+
 ## [0.124.8] – 2026-10-14
 
 ### Ajouté
