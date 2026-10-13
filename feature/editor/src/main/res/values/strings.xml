@@ -248,6 +248,61 @@
     <string name="editor_lsp_indexation_prete">Index Java prêt</string>
     <string name="editor_lsp_indexation_partielle">Index Java partiel</string>
     <string name="editor_lsp_indexation_erreur">Index Java en erreur</string>
+
+    <!-- Phase B prompt 2 (lot B4+B8) — écran d'indexation : pastille de
+         toolbar + panneau de détail. Libellés transportés par énumérations,
+         jamais par chaînes comparables (règle §5.11). -->
+    <!-- Titres du panneau de détail (4 états + initial). -->
+    <string name="editor_indexation_initial_titre">Indexation</string>
+    <string name="editor_indexation_initial_soustitre">En attente de synchronisation</string>
+    <string name="editor_indexation_construction_titre">Indexation en cours</string>
+    <string name="editor_indexation_construction_soustitre">Bibliothèques et SDK</string>
+    <string name="editor_indexation_construction_soustitre_n">%1$s sur %2$s entrées</string>
+    <string name="editor_indexation_pret_titre">Index à jour</string>
+    <string name="editor_indexation_pret_soustitre">Java prêt</string>
+    <string name="editor_indexation_partiel_titre">Index partiel</string>
+    <string name="editor_indexation_partiel_soustitre">%1$s sur %2$s entrées indexées</string>
+    <string name="editor_indexation_erreur_titre">Index en erreur</string>
+    <string name="editor_indexation_erreur_soustitre">Construction impossible</string>
+
+    <!-- Compteur « n / N ». -->
+    <string name="editor_indexation_compteur_n_sur_n">%1$s sur %2$s</string>
+
+    <!-- Vue par moteur. -->
+    <string name="editor_indexation_moteur_java">Java</string>
+    <string name="editor_indexation_moteur_pret">Prêt</string>
+    <string name="editor_indexation_moteur_partiel">Partiel</string>
+    <string name="editor_indexation_moteur_erreur">Erreur</string>
+
+    <!-- Notes d'impact utilisateur. -->
+    <string name="editor_indexation_note_construction">Pendant l\'indexation, la complétion des bibliothèques est limitée. L\'édition n\'est pas bloquée.</string>
+    <string name="editor_indexation_note_partiel">La complétion et les imports de ces entrées peuvent être incomplets. L\'éditeur reste utilisable.</string>
+    <string name="editor_indexation_note_erreur">L\'index n\'a pas pu être construit. L\'éditeur fonctionne en mode dégradé : la complétion, les diagnostics et la recherche de symboles sont plus lents.</string>
+
+    <!-- Actions du panneau de détail. -->
+    <string name="editor_indexation_action_reindexer">Réindexer</string>
+    <string name="editor_indexation_action_reeessayer_echecs">Réessayer les entrées échouées</string>
+    <string name="editor_indexation_action_annuler">Annuler le passage</string>
+    <string name="editor_indexation_action_tout_reindexer">Tout réindexer</string>
+
+    <!-- Bilan du dernier passage. -->
+    <string name="editor_indexation_bilan_dernier_passage">Dernier passage</string>
+    <string name="editor_indexation_bilan_duree">Durée</string>
+    <string name="editor_indexation_bilan_bibliotheques">Bibliothèques</string>
+    <string name="editor_indexation_bilan_fichiers">Fichiers du projet</string>
+    <string name="editor_indexation_bilan_indexeur_couteux">Ce qui a coûté le plus de temps</string>
+    <!-- Lint : PluralsCandidate — fausse détection (les 3 nombres sont
+         indépendants : total, reprises, reconstruites — pas une
+         quantité unique qui fléchit grammaticalement). -->
+    <string name="editor_indexation_bilan_arteffacts_repris" tools:ignore="PluralsCandidate">%1$d · %2$d reprises · %3$d reconstruites</string>
+    <string name="editor_indexation_bilan_fichiers_reanalyses" tools:ignore="PluralsCandidate">%1$d ré-analysés sur %2$d</string>
+
+    <!-- Pastille de toolbar (contentDescription). -->
+    <string name="editor_indexation_pastille_cd_construction">Indexation en cours, %1$d%%</string>
+    <string name="editor_indexation_pastille_cd_pret">Index à jour</string>
+    <string name="editor_indexation_pastille_cd_partiel">Index partiel</string>
+    <string name="editor_indexation_pastille_cd_erreur">Index en erreur</string>
+
     <string name="editor_run">Run</string>
     <string name="editor_executer">Exécuter…</string>
     <string name="editor_executer_titre">Exécuter une tâche Gradle</string>
