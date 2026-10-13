@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.114.1] – 2026-10-13
+
+### Corrigé
+
+- **LSP Kotlin — couverture `:lsp:host` sous le plancher Kover (échec
+  CI v0.114.0 : règle `couverture-minimale-lsp-host`, 73,59 % < 80 %)** :
+  fait établi — K3 avait ajouté ~580 lignes côté hôte (adaptateur de
+  vue neutre, serveur LSP4J, façade de session) en n'étendant que le
+  test du serveur : `AdaptateurVueClasspath` était resté à **0 %** (65
+  lignes exécutables). Deux actions, le TDD rouge d'abord :
+  - **Correctif de fond — `octetsClasse` faux pour les classes d'AAR** :
+    le localisateur de la vue fusion rend le conteneur COMPOSITE
+    « aar!classes.jar » (`conteneurDe` d'un segment AAR), l'adaptateur
+    l'ouvrait comme un FICHIER plat inexistant → toujours `null` (la
+    chaîne de supertypes et le `@Metadata` d'un type d'AAR étaient
+    inaccessibles, branches `Arr` mortes). Le lecteur reconnaît
+    désormais le chemin composite et lit l'entrée dans le jar INTERNE
+    de l'AAR ouvert — un seul `ZipFile` par AAR dans le cache FIFO
+    (miroir du `SEPARATEUR_JAR_INTERNE` de `:lsp:index`, contrat du
+    localisateur documenté dans l'adaptateur).
+  - **Couverture (lignes 73,13 → 91,35 %)** : nouvelle suite
+    `AdaptateurVueClasspathTest` — index RÉEL nourri d'un jar plat +
+    d'un AAR non normalisé compilés au vol (noms par préfixe, paquets,
+    membres, octets des DEUX conteneurs, conteneur supprimé après
+    indexation, jar corrompu, éviction FIFO du cache à sept jars, vue
+    avant orchestration) ; 11 tests de traduction/tolérance du serveur
+    (`exit` sans shutdown, notifications d'espace, didChange par PLAGE,
+    requêtes en échec honnêtes, auto-import en additionalTextEdits
+    après le dernier import / en tête de fichier, genres LSP restants,
+    définition lue sur disque, cible illisible omise, client cassant) ;
+    nouvelle suite `SessionLspKotlinTest` (cycle de vie, appliquer-
+    Classpath, filtres AAR/absent/plateforme/ignoré, poussée et
+    fermeture défaillantes absorbées, fabrique in-process par
+    extension). 44 tests au total sur `:lsp:host` (13 + 31).
+
 ## [0.114.0] – 2026-10-13
 
 ### Ajouté
