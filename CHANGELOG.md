@@ -1,5 +1,46 @@
 # Journal des modifications
 
+## [0.124.12] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lot B5 (pastille de toolbar + suppression
+  barre_etat_lsp)** : la ligne `barre_etat_lsp` (qui consommait de la
+  hauteur dans la colonne centrale — incident v0.100.2 « la barre avalait
+  l'éditeur ») est REMPLACÉE par une pastille dans la toolbar.
+  - **Nouvelle vue custom** `VuePointIndexation` : dessin `Canvas` +
+    `Paint`, 4 états visuels (anneau accent en rotation pendant la
+    construction, coche verte au repos, triangle d'avertissement en
+    partiel, croix rouge en erreur). Animation `ValueAnimator` pour la
+    rotation de l'anneau. Cible tactile 48 dp (règle d'accessibilité).
+    `contentDescription` localisé pour TalkBack.
+  - **Menu `menu_indexation`** : un seul item `action_indexation` avec
+    `actionViewClass = VuePointIndexation`. Déclaré dans le layout de la
+    toolbar via `app:menu="@menu/menu_indexation"`.
+  - **`activity_editor.xml`** : `barre_etat_lsp` (LinearLayout +
+    `VuePointEtat` + `TextView`) RETIRÉE. La toolbar porte désormais
+    `app:menu="@menu/menu_indexation"`. Aucun saut de mise en page
+    pendant l'indexation (la pastille vit dans la toolbar qui existe
+    déjà).
+  - **`EditorActivity`** : `brancherPastilleIndexation()` récupère
+    l'`actionView` depuis le menu. `rendreEtatIndexationLsp` délègue
+    désormais à `PresentationIndexation.afficher()` (lot B4) et programme
+    la pastille via `VuePointIndexation.programmer()`. Les anciennes
+    fonctions `etatPointDe` et `libelleEtatIndexation` sont SUPPRIMÉES
+    (le présentateur pur les remplace).
+  - **Exemption detekt** `@file:Suppress("MagicNumber")` sur
+    `VuePointIndexation` — les ratios de dessin géométrique (0.55, 0.7,
+    0.5, 270°) sont des constantes visuelles, pas des magic numbers
+    métier.
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅,
+    `:feature:editor:testDebugUnitTest` ✅ (tests B1+B4 passent),
+    `checkModuleDependencies` ✅.
+  - **Note** : l'appui sur la pastille est sans effet pour l'instant —
+    le panneau de détail (bottom sheet) sera branché au lot B6.
+
 ## [0.124.11] – 2026-10-14
 
 ### Ajouté

@@ -207,6 +207,13 @@ class EditorActivity :
      */
     private var gestionnaireInsets: GestionnaireInsetsEditeur? = null
 
+    /**
+     * Pastille d'indexation de la toolbar (Phase B prompt 2, ADR 0117
+     * §4.4 — lot B5). Récupérée depuis le menu `menu_indexation` de la
+     * toolbar via `actionView`. `null` si le menu n'est pas encore gonflé.
+     */
+    private var vuePointIndexation: VuePointIndexation? = null
+
     /** Sélection programmatique d'onglet : ne pas la renvoyer au ViewModel. */
     private var selectionProgrammatique = false
 
@@ -326,6 +333,7 @@ class EditorActivity :
         brancherFragmentsTiroir()
         brancherPoignee()
         brancherOnglets()
+        brancherPastilleIndexation()
         brancherVueVide()
         brancherEditeur()
         brancherApercu()
@@ -907,6 +915,23 @@ class EditorActivity :
     private fun montrerTailleEnPourcent() {
         val ecran = resources.displayMetrics.widthPixels
         liaison.pastilleTailleTiroir.text = getString(R.string.poignee_taille, (100f * largeurTiroirPx / ecran).toInt())
+    }
+
+    /**
+     * Pastille d'indexation de la toolbar (Phase B prompt 2, ADR 0117
+     * §4.4 — lot B5). Récupère l'`actionView` de l'item `action_indexation`
+     * du menu `menu_indexation` (déclaré dans le layout de la toolbar).
+     * L'appui sur la pastille ouvrira le panneau de détail (bottom sheet,
+     * lot B6 — pour l'instant, seul le rendu de la pastille est branché).
+     */
+    private fun brancherPastilleIndexation() {
+        val item = liaison.toolbarEditeur.menu.findItem(R.id.action_indexation) ?: return
+        vuePointIndexation = item.actionView as? VuePointIndexation
+        vuePointIndexation?.setOnClickListener {
+            // Lot B6 : ouvrir le panneau de détail (bottom sheet).
+            // Pour l'instant, la pastille est seulement un indicateur
+            // visuel — l'appui est sans effet.
+        }
     }
 
     /** Onglets de fichiers : sélection, fermeture, menu contextuel (étape 15). */
@@ -1986,59 +2011,37 @@ class EditorActivity :
     }
 
     /**
-     * Rend l'état d'indexation LSP sur la barre dédiée (point d'état +
-     * libellé, §16.2) : masquée sans session/avant sync, progression par
-     * jar en construction, verdict honnête ensuite (prêt/partiel/erreur).
+     * Rend l'état d'indexation LSP sur la pastille de toolbar (Phase B
+     * prompt 2, ADR 0117 §4.4 — lot B5). Remplace l'ancienne ligne
+     * `barre_etat_lsp` (qui consommait de la hauteur dans la colonne
+     * centrale).
+     *
+     * La pastille [VuePointIndexation] vit dans la toolbar (menu
+     * `menu_indexation`). Le panneau de détail (bottom sheet, lot B6)
+     * s'ouvre au toucher de la pastille — pour l'instant, seul le rendu
+     * de la pastille est implémenté.
      */
     private fun rendreEtatIndexationLsp(etat: EtatIndexation?) {
+        val pastille = vuePointIndexation ?: return
         if (etat == null || etat.phase == PhaseIndexation.INITIAL) {
-            liaison.barreEtatLsp.isVisible = false
+            pastille.programmer(VuePointIndexation.Etat.INITIAL)
             return
         }
-        liaison.barreEtatLsp.isVisible = true
-        liaison.pointEtatLsp.programmer(etatPointDe(etat))
-        liaison.texteEtatLsp.text = libelleEtatIndexation(etat)
-        liaison.texteEtatLsp.contentDescription = libelleEtatIndexation(etat)
+        val modele = PresentationIndexation.afficher(etat)
+        pastille.programmer(
+            etat = traduireEtatPastille(modele.pastille.etat),
+            pourcentage = modele.pastille.pourcentage,
+        )
     }
 
-    /**
-     * Point d'état de l'indexation (la vue existante, §16.2) : anneau
-     * accent en construction (attire l'œil), disque vert plein prêt
-     * (« sain »), bordure verte partielle (dégradé mais utilisable),
-     * bordure accent en erreur.
-     */
-    private fun etatPointDe(etat: EtatIndexation): VuePointEtat.EtatPoint =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> VuePointEtat.EtatPoint.SELECTION_ACTIF
-            PhaseIndexation.PRET -> VuePointEtat.EtatPoint.ACTIF
-            PhaseIndexation.PARTIEL -> VuePointEtat.EtatPoint.OUVERT
-            PhaseIndexation.ERREUR -> VuePointEtat.EtatPoint.SELECTIONNE
-            PhaseIndexation.INITIAL -> VuePointEtat.EtatPoint.DEFAUT
-        }
-
-    /** Libellé localisé de l'état d'indexation (progression comprise). */
-    private fun libelleEtatIndexation(etat: EtatIndexation): String =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> {
-                val base = getString(R.string.editor_lsp_indexation_en_cours)
-                if (etat.total > 0) "$base ${etat.faits}/${etat.total}" else base
-            }
-
-            PhaseIndexation.PRET -> {
-                getString(R.string.editor_lsp_indexation_prete)
-            }
-
-            PhaseIndexation.PARTIEL -> {
-                getString(R.string.editor_lsp_indexation_partielle)
-            }
-
-            PhaseIndexation.ERREUR -> {
-                getString(R.string.editor_lsp_indexation_erreur)
-            }
-
-            PhaseIndexation.INITIAL -> {
-                getString(R.string.editor_lsp_indexation_prete)
-            }
+    /** Traduit l'état de la pastille du modèle d'affichage vers la vue. */
+    private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat =
+        when (etat) {
+            EtatPastilleIndexation.INITIAL -> VuePointIndexation.Etat.INITIAL
+            EtatPastilleIndexation.CONSTRUCTION -> VuePointIndexation.Etat.CONSTRUCTION
+            EtatPastilleIndexation.PRET -> VuePointIndexation.Etat.PRET
+            EtatPastilleIndexation.PARTIEL -> VuePointIndexation.Etat.PARTIEL
+            EtatPastilleIndexation.ERREUR -> VuePointIndexation.Etat.ERREUR
         }
 
     /** Visibilité de l'action « Réindexer » (session vivante). */
