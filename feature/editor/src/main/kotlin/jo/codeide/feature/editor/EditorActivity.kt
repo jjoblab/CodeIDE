@@ -105,7 +105,7 @@ import jo.codeide.core.ui.R as RUi
  *   barre de symboles — la SymbolBarView de la bibliothèque code-editor —
  *   au BAS de la colonne centrale, remontée sur le clavier par les
  *   insets IME (padding animé) : « collée » au clavier, le sheet
- *   s'efface le temps de la frappe (patron CodeAssist) ;
+ *   s'efface le temps de la frappe (patron ADR 0056 décision 2) ;
  *
  * Sauvegarde automatique (délai d'inactivité, côté ViewModel) et manuelle
  * (action de la toolbar). Fermeture d'un onglet sale — ou sortie avec des
@@ -1044,7 +1044,7 @@ class EditorActivity :
      *  la barre — dernière vue de la colonne — se retrouve POSÉE sur
      *  lui. Sur les resize hérités le root rétrécit déjà tout seul :
      *  l'inset vaut 0, le padding reste nul, même résultat. Le panneau
-     *  inférieur s'efface le temps de la frappe (patron CodeAssist :
+     *  s'efface le temps de la frappe (patron ADR 0056 décision 2 :
      *  le dock disparaît quand le clavier monte, l'éditeur prime). */
     private fun observerClavier() {
         ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
@@ -1098,31 +1098,44 @@ class EditorActivity :
      *  barre de symboles en bas (collée au clavier via le padding),
      *  panneau inférieur masqué pendant la frappe puis restauré dans
      *  l'état du ViewModel (v0.32.5). La barre n'apparaît que si l'IME
-     *  est ouvert ET qu'un fichier est édité. */
+     *  est ouvert ET qu'un fichier est édité.
+     *
+     *  v0.124.4 (E5 Phase B prompt 1, ADR 0118 brouillon) : le sheet
+     *  n'est plus masqué via `isVisible = false/true` (saut brutal à la
+     *  dernière trame de fermeture, car `clavierParInsets = ime > 0`
+     *  restait vrai jusqu'à la dernière trame). Désormais, le sheet est
+     *  TRANSLATÉ verticalement via `translationY` : clavier ouvert, le
+     *  sheet glisse vers le bas de la hauteur de l'IME (il reste
+     *  « posé » sous le clavier, invisible mais pas GONE) ; clavier
+     *  fermé, `translationY` revient à 0 (animation continue via
+     *  `onProgress` du `WindowInsetsAnimationCompat.Callback`). Aucune
+     *  écriture de `comportementPanneau.state` pendant l'animation
+     *  (l'ancien `restaurerEtatPanneau` était appelé en plein relayout
+     *  et causait des sauts). L'état du sheet (replié/mi-hauteur/
+     *  étendu) est préservé à l'identique après un cycle clavier. */
     private fun appliquerClavier() {
         val clavier = clavierVisible
         val edition = sessionActive() != null
         if (clavier) {
             // Clavier ouvert : la barre de symboles se colle au clavier
-            // via le padding IME — le panneau s'efface (CodeAssist).
+            // via le padding IME — le sheet est TRANSLATÉ hors champ.
             liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
+            // E5 : translationY piloté par la progression IME (cf.
+            // onProgress du WindowInsetsAnimationCompat.Callback).
+            // L'animation continue pendant l'ouverture ET la fermeture.
+            liaison.panneauInferieur.translationY = hauteurIme.toFloat()
         } else {
             // Clavier fermé : la réserve du panneau reprend le bas
             // (B3 : l'éditeur ne passe plus sous le sheet replié).
             appliquerReservePanneau()
+            // E5 : translationY remis à 0 — le sheet reprend sa place.
+            // Aucune écriture de comportementPanneau.state ici : l'état
+            // du ViewModel est préservé, le sheet est resté à sa position
+            // (COLLAPSED/HALF_EXPANDED/EXPANDED) pendant toute la durée
+            // du cycle clavier.
+            liaison.panneauInferieur.translationY = 0f
         }
         liaison.barreSymboles.isVisible = clavier && edition
-        val panneau = liaison.panneauInferieur
-        if (clavier) {
-            // La frappe prime (CodeAssist) : le sheet s'efface, la barre
-            // prend le bas de l'écran. STATE_HIDDEN resterait « l'état
-            // du sheet » à la réouverture — on cache la VUE, l'état du
-            // ViewModel survit et se ré-applique au retour.
-            if (panneau.isVisible) panneau.isVisible = false
-        } else if (!panneau.isVisible) {
-            panneau.isVisible = true
-            restaurerEtatPanneau()
-        }
     }
 
     /**
@@ -1169,21 +1182,6 @@ class EditorActivity :
         editeur.scaleX = echelle
         editeur.scaleY = echelle
         editeur.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-    }
-
-    /** Replace le panneau dans l'état du ViewModel après le clavier :
-     *  le comportement peut avoir dérivé pendant qu'il était masqué. */
-    private fun restaurerEtatPanneau() {
-        if (clavierVisible) return
-        val cible =
-            when (viewModel.etat.value.etatPanneau) {
-                EtatPanneau.REPLIE -> BottomSheetBehavior.STATE_COLLAPSED
-                EtatPanneau.MI_HAUTEUR -> BottomSheetBehavior.STATE_HALF_EXPANDED
-                EtatPanneau.ETENDU -> BottomSheetBehavior.STATE_EXPANDED
-            }
-        if (comportementPanneau.state != cible) {
-            comportementPanneau.state = cible
-        }
     }
 
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
