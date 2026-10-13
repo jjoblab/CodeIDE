@@ -1,5 +1,97 @@
 # Journal des modifications
 
+## [0.116.0] – 2026-10-13
+
+### Corrigé
+
+- **ANR e7dd5a7 (retour d'appareil v0.115.0, motorola moto g06 /
+  Android 15) — « Input dispatching timed out … EditorActivity is not
+  responding. Waited 10000ms for MotionEvent »** : fait établi par la
+  trace — le nourrissage LSP de la RÉOUVERTURE
+  (`restaurerEtatSyncSiEmpreinteIdentique →
+  nourrirSessionLspDepuisModelePersiste → SessionLspKotlin.
+  appliquerModele → IndexAppelablesKotlin.definir`) tournait SUR LE
+  THREAD PRINCIPAL : l'index des appelables Kotlin décode chaque jar
+  du classpath (lecture + `kotlin-metadata` par classe, ≥ 10 s à froid
+  sur un appareil d'entrée de gamme, deux fenêtres ANR de suite dans
+  le journal critique), bloquant TOUTE entrée. Correctif :
+  `DispatcherProvider` INJECTÉ dans `EditorViewModel` (règle 5) — les
+  DEUX chemins de nourrissage (réouverture depuis le modèle persisté
+  h4 + post-sync `nourrirSessionLspSiSyncUtile`, le chemin CHAUD)
+  exécutent la reconstruction des index sous `withContext(io)` ; le
+  verdict du modèle et la publication d'état restent sur le thread
+  courant (légers), le thread principal rend la main IMMÉDIATEMENT.
+  Test dédié (`LspEditorViewModelTest`) : répartiteur d'E/S dédié qui
+  journalise son thread — la preuve n'est pas « ça finit » mais « ça
+  finit HORS du thread principal ».
+
+### Ajouté
+
+- **LSP Kotlin — étape K5 : classes synthétiques, multi-langue et
+  reliquats K4** (`docs/LSP_KOTLIN.md` §5, décision D5) :
+  - **Classes synthétiques AVANT TOUT BUILD** (`synthetics/`,
+    généralisation de la sonde `hasGeneratedDatabindingClasses`
+    v0.108.0) : `R` (sous-objets par famille DÉMONTRÉE — layouts,
+    `@+id`, `values` (`string`/`color`/`dimen`/`integer`/`bool`/
+    `array`), noms de fichiers `drawable`/`mipmap`/`raw`/`anim` —
+    une constante `Int` par entrée), `BuildConfig` (le TYPE résout,
+    les champs du build ne sont JAMAIS inventés — sous-rapport
+    honnête), ViewBinding (`ns.<Layout>Binding` — champs des
+    `@+id` typés par le porteur : composants `android.*` usuels
+    mappés, tags pleinement qualifiés pris tels quels, inconnu
+    rabattu sur `android.view.View` ; plus `root`, `inflate`,
+    `bind`), DataBinding (racine `<layout>` = la PREUVE qu'AGP
+    compilera la classe ; classe sous `ns.databinding`, variables
+    `<data>` comprises). La COUPURE de la sonde est conservée : dès
+    qu'une classe générée RÉELLE existe dans le scan (racines
+    `generes` post-build), le groupe synthétique HOMONYME s'efface
+    ENTIER (la sortie du build est la source de vérité). Sources
+    toutes démontrables : racine `src/main/java|kotlin` → frères
+    `src/main/res` + `src/main/AndroidManifest.xml` (convention AGP ;
+    manifeste sans `package` ⇒ aucun synthétique, zéro FQCN
+    inventé), parcours DOM bornés (400 fichiers par dossier,
+    300 entrées par famille), go-to-definition d'un binding vers
+    son layout.
+  - **Multi-langue Java↔Kotlin** (`session/SourcesJava.kt`) : les
+    types de premier niveau des sources `.java` du projet entrent
+    dans le scan — complétion (auto-import), résolution, survol et
+    définition depuis un fichier Kotlin (la cible ouvre le `.java`
+    à la position du nom). Extraction conservatrice : neutralisation
+    des commentaires/chaînes/caractères (longueurs conservées, les
+    décalages restent exacts), PREMIER NIVEAU SEUL (une classe
+    imbriquée ne devient JAMAIS un top-niveau au FQCN faux) ;
+    marqueur `estJava` sur `DeclarationProjet` : `kt.argumentCount`
+    ignore les candidates Java (arité non extraite — jamais de faux
+    « 0 attendu » sur un constructeur Java à N paramètres).
+  - **Récepteurs `with`** (reliquat K4 documenté « K5+ » ;
+    `resolve/RecepteursWith.kt`) : dans `with(v) { … }`, les membres
+    du récepteur implicite sont proposés sans sélecteur, typés et
+    RÉSOLUS (plus de faux `kt.unresolved` sur un membre nu) ; le
+    littéral le plus PROFOND gagne et les récepteurs englobants
+    TRAVERSENT les littéraux emboîtés (sémantique de la chaîne des
+    récepteurs implicites Kotlin) — un littéral intermédiaire non
+    `with` coupe correctement l'attente directe.
+  - **Attentes de lambda du CLASSPATH** (reliquat K4 ; extension de
+    `ParametresLambda`) : `v.setOnClickListener { vue -> … }` — le
+    type du récepteur résout la méthode, la surcharge donne le
+    paramètre attendu, l'interface SAM Java à méthode ABSTRAITE
+    unique donne les types des paramètres du littéral (`vue` :
+    `android.view.View`).
+  - **Correctifs de fond découverts en route** : typage STATIQUE des
+    chaînes qualifiées (`R.layout.activity_main` — un récepteur
+    référence qui ne type pas en valeur est résolu comme TYPE,
+    membres du PROJET compris — les companions de classpath
+    profitent du même chemin) et membres du PROJET dans le typage
+    de sélecteur (`vue.proprieteProjet` enfin typée) ;
+    `kt.unresolved` ne signale plus les SEGMENTS des directives
+    import/package (« com » de `import com.ex.app.R` — faux positif
+    multi-segments jamais couvert par les fixtures antérieures).
+  - **Tests** : 17 nouveaux moteur par SPI (familles et constantes R,
+    résolution nue, bindings + coupure + définition vers layout,
+    databinding + variable, BuildConfig, multi-langue ×3, `with` ×3,
+    SAM classpath) et 1 éditeur (ANR). Baseline de parité repoussée
+    à 873 fichiers (digeste régénéré, re-sync délibéré).
+
 ## [0.115.0] – 2026-10-13
 
 ### Ajouté
