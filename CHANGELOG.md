@@ -1,5 +1,62 @@
 # Journal des modifications
 
+## [0.117.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP XML — étape XE1 : moteur maison in-process, parseur tolérant
+  et diagnostics de structure** (`docs/LSP_XML.md` §5, décision X1 —
+  « la majorité silencieuse de ce que l'utilisateur édite ») :
+  - **Module `:lsp:xml`** (miroir `:lsp:kotlin` : zéro dépendance, jar
+    80 Ko, 42 classes, SPI ServiceLoader
+    `jo.lspxml.api.MoteurLangageXml` seul visible + descripteur de
+    pack) : le XML Android n'est PAS schématisable (XSD écarté,
+    Lemminx écarté) — sa sémantique viendra des données de plateforme
+    (XE2) et des ressources du projet (XE3), jamais d'un schéma.
+  - **Parseur TOLÉRANT écrit main** (leçon CodeAssist : un parseur
+    strict, XmlPullParser compris, est inutilisable pour l'ÉDITION) :
+    pile de noms ouverts — une balise non fermée se rétablit (marqueur
+    sur son NOM, sauf balise EN ÉDITION : le `>` n'est pas encore
+    tapé) ; une fermante incohérente referme les intermédiaires
+    implicitement (UN diagnostic) ; une orpheline est ignorée
+    (l'arbre vit) ; un guillemet cassé par un `<` reprend au chevron,
+    un guillemet courant à la FIN du texte est une frappe en cours —
+    AUCUN marqueur à chaud. Le DOM neutre (XmlElement/XmlAttribute,
+    plages, préfixes/locale scindés, `@+id` et namespaces) est
+    immuable, parents résolus top-down.
+  - **Diagnostics XE1** : recouvrements `xml.tagNonFermee`/
+    `xml.tagOrpheline`/`xml.tagFermanteIncoherente`/
+    `xml.guillemetNonFerme` + règles de structure PURES PAR GENRE
+    (genre déduit de l'URI : layout/values/manifest/autre) :
+    génériques (attribut dupliqué, esperluette non échappée dans le
+    TEXTE et les VALEURS) ; layout (`xmlns:android` manquant SI un
+    attribut `android:` est utilisé — conservatoire ; tailles
+    manquantes en AVERTISSEMENT « hint, pas error » ; `@+id`
+    dupliqué dans le fichier ; `<include>` sans `layout` ; `<merge>`
+    hors racine) ; values (entrée sans `name`, `name` dupliqué PAR
+    TYPE — `string/x` et `color/x` sont deux ressources distinctes).
+  - **Session LSP minimale** : contrat de session neutre derrière le
+    SPI (X2 : aucun LSP4J dans le moteur), synchronisation COMPLÈTE +
+    publication à la frappe, capacités honnêtes (rien d'autre déclaré
+    à XE1) ; façade `SessionLspXml` + adaptateur `XmlLanguageServer`
+    dans `:lsp:host` (définition cel-lsp `xml`, transport in-process,
+    couture `vueNomsXml` sur l'index fusion — garde « balise inconnue »
+    X4 préparée) ; classpath neutre STOCKÉ (plateforme = parent du
+    `android.jar`, racines sources de l'union, vue de noms) — XE2/XE3
+    le consommeront.
+  - **Éditeur trilingue** : la session XML vit le cycle de vie des
+    sessions Java/Kotlin (même verrou d'ouverture, registre ADR
+    0114, dégradation honnête « coloration seule » si le moteur est
+    absent, nourrissage en cascade depuis le modèle persisté et la
+    sync fraîche, HORS thread principal comme le correctif ANR
+    e7dd5a7) ; garde PAR LANGUE au branchement (un onglet `.xml`
+    n'exige que SA session).
+  - **Corpus LayoutLib** : les 65 fichiers XML du dépôt frère
+    deviennent fixtures du parseur (LSP_XML §7 — re-parse intégral
+    ZÉRO recouvrement, budget de re-parse éprouvé ; auto-skip honnête
+    sans frère). 67 tests module + 8 façade + 5 serveur + 2 espace ;
+    kover `:lsp:xml` **91,1 % ligne** (règle ≥ 80 %).
+
 ## [0.116.0] – 2026-10-13
 
 ### Corrigé

@@ -325,6 +325,15 @@ data class EditorTabState(
         langage?.equals("kotlin", ignoreCase = true) == true ||
             nom.endsWith(".kt", ignoreCase = true) ||
             nom.endsWith(".kts", ignoreCase = true)
+
+    /**
+     * Fichier XML (mission « LSP XML » XE1, LSP_XML.md §5) : l'onglet
+     * actif est branché sur le serveur LSP XML in-process — langage
+     * reconnu ou extension `.xml` en repli (même logique de repli que
+     * [estJava] ; le GENRE layout/values/manifest se déduit de l'URI
+     * côté moteur, X1).
+     */
+    fun estXml(): Boolean = langage?.equals("xml", ignoreCase = true) == true || nom.endsWith(".xml", ignoreCase = true)
 }
 
 /**

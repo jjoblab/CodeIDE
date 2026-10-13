@@ -1844,14 +1844,17 @@ class EditorActivity :
     private fun brancherLspSiNecessaire(etat: EtatEditor) {
         val session = viewModel.sessionLsp.value
         val sessionKotlin = viewModel.sessionLspKotlin.value
+        val sessionXml = viewModel.sessionLspXml.value
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
         // K2 (LSP_KOTLIN.md §5) : l'onglet Kotlin exige SA session — les
         // deux moteurs ouvrent sous le même verrou, mais la dégradation
         // honnête (moteur Kotlin absent) ne doit pas priver un onglet
-        // .java de sa session : la garde est PAR LANGUE.
+        // .java de sa session : la garde est PAR LANGUE. XE1 : idem pour
+        // l'onglet XML (moteur absent → coloration seule).
         val serveurPret =
             (onglet?.estJava() == true && session != null) ||
-                (onglet?.estKotlin() == true && sessionKotlin != null)
+                (onglet?.estKotlin() == true && sessionKotlin != null) ||
+                (onglet?.estXml() == true && sessionXml != null)
         if (onglet == null || !serveurPret) {
             coordonnateurLsp.debrancher()
             return
@@ -1874,7 +1877,7 @@ class EditorActivity :
                 }
                 return@launch
             }
-            coordonnateurLsp.brancher(session, sessionKotlin, uri, chemin, liaison.vueEditeur)
+            coordonnateurLsp.brancher(session, sessionKotlin, sessionXml, uri, chemin, liaison.vueEditeur)
         }
     }
 
