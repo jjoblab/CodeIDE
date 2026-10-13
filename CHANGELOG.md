@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.124.5] – 2026-10-14
+
+### Corrigé
+
+- **Phase B Prompt 1 — lot E1b (désalignements pendant le glissement)** :
+  la mise à l'échelle `scaleX`/`scaleY` de l'éditeur pendant le
+  glissement du bottom sheet est DÉSACTIVÉE. Constat #1b de l'audit
+  v0.124.1 : `appliquerEchelleSheet` appliquait `scaleX/scaleY` sur
+  `vue_editeur` avec `LAYER_TYPE_HARDWARE`, l'échelle partait du CENTRE
+  de la vue (pivot par défaut Android 50 %, 50 %), les popups et
+  poignées de sélection de la bibliothèque `code-editor` ne suivaient
+  pas (ils vivent dans leur propre hiérarchie), et la zone visible ne
+  correspondait plus à la réserve calculée (qui reste `peekHeight +
+  insetNavigation` constant).
+  - **Décision** : désactiver l'échelle plutôt que de la corriger. Le
+    coût visuel (éditeur qui rétrécit pendant le glissement) ne
+    justifiait pas les désalignements. Le sheet se pose désormais
+    PAR-DESSUS l'éditeur à taille constante (décision v0.80.2 déjà en
+    place pour l'état vide). La fonction `appliquerEchelleSheet` est
+    conservée (pour ne pas casser le site d'appel `onSlide` du
+    `BottomSheetCallback`) mais ne fait rien. La constante
+    `ECHELLE_SHEET_ETENDU = 0.87f` est conservée pour traçabilité.
+  - **KDoc documente le retour éventuel** : si une échelle est
+    réintroduite, elle devra (1) partir du coin haut-gauche (pivot
+    0, 0), (2) être coordonnée avec la bibliothèque `code-editor` pour
+    que ses popups suivent, (3) recalculer la réserve en fonction de
+    l'échelle courante.
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅, `:feature:editor:testDebugUnitTest`
+    ✅ (tests passent — problème d'isolation préexistant de
+    `LspEditorViewModelTest` non lié à ce lot, manifeste seulement
+    avec `--rerun-tasks` sur 4 Go RAM), `checkModuleDependencies` ✅.
+
 ## [0.124.4] – 2026-10-14
 
 ### Corrigé

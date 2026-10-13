@@ -1168,20 +1168,32 @@ class EditorActivity :
      * interpolation linéaire. La mi-hauteur (slideOffset ≈ 0.5) donne
      * ~93,5%. Couche matérielle activée pendant le glissement pour la
      * fluidité, désactivée au repos.
+     *
+     * v0.124.5 (E1b Phase B prompt 1, ADR 0118 brouillon) : la mise à
+     * l'échelle est DÉSACTIVÉE. Constat #1b de l'audit v0.124.1 :
+     * `scaleX`/`scaleY` partent du CENTRE de la vue (pivot par défaut
+     * Android 50 %, 50 %), les popups et poignées de sélection de la
+     * bibliothèque `code-editor` ne suivent pas (ils vivent dans leur
+     * propre hiérarchie), et la zone visible ne correspond plus à la
+     * réserve calculée (qui reste `peekHeight + insetNavigation`
+     * constant). Le coût visuel (éditeur qui rétrécit pendant le
+     * glissement) ne justifiait pas les désalignements — le sheet se
+     * pose désormais PAR-DESSUS l'éditeur à taille constante (décision
+     * v0.80.2 déjà en place pour l'état vide). La fonction est gardée
+     * pour ne pas casser le site d'appel (`onSlide` du
+     * `BottomSheetCallback`), mais ne fait rien. La constante
+     * `ECHELLE_SHEET_ETENDU` est conservée pour traçabilité.
      */
     private fun appliquerEchelleSheet(glissement: Float) {
-        val editeur = liaison.vueEditeur ?: return
-        if (glissement <= 0f) {
-            editeur.scaleX = 1f
-            editeur.scaleY = 1f
-            editeur.setLayerType(View.LAYER_TYPE_NONE, null)
-            return
-        }
-        val echelleMin = ECHELLE_SHEET_ETENDU
-        val echelle = 1f - (1f - echelleMin) * glissement
-        editeur.scaleX = echelle
-        editeur.scaleY = echelle
-        editeur.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        // E1b (v0.124.5) : aucune mise à l'échelle — voir KDoc ci-dessus.
+        // La signature est conservée pour ne pas casser le site d'appel
+        // (onSlide du BottomSheetCallback). À l'avenir, si une échelle
+        // est réintroduite, elle devra : (1) partir du coin haut-gauche
+        // (pivot 0, 0), (2) être coordonnée avec la bibliothèque
+        // code-editor pour que ses popups suivent, (3) recalculer la
+        // réserve en fonction de l'échelle courante.
+        @Suppress("UNUSED_PARAMETER")
+        val sansEffet = glissement
     }
 
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
