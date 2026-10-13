@@ -74,6 +74,7 @@ import jo.codeide.feature.editor.di.PorteeFermetureSession
 import jo.codeide.lsp.host.DossierIndexLsp
 import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SessionLspKotlin
+import jo.codeide.lsp.host.SessionLspXml
 import jo.codeide.lsp.host.SourceClasspathLsp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -316,6 +317,18 @@ class EditorViewModel
         private val sessionLspKotlinInterne = MutableStateFlow<SessionLspKotlin?>(null)
 
         /**
+         * Session LSP XML du projet ouvert (mission « LSP XML » XE1,
+         * LSP_XML.md §5) — même cycle de vie PAR ESPACE que les sessions
+         * Java/Kotlin : ouverte dans le MÊME verrou (les trois moteurs
+         * vivent dès que la racine FUSE est connue), refermée au
+         * changement de projet et à la destruction. XE1 = parseur
+         * tolérant + règles de structure (publication à la frappe) ;
+         * `null` si le moteur n'est pas résolvable (dégradation honnête :
+         * fichiers .xml en coloration seule, jamais de blocage).
+         */
+        private val sessionLspXmlInterne = MutableStateFlow<SessionLspXml?>(null)
+
+        /**
          * Exclusion mutuelle de l'ouverture de session LSP (v0.100.1) :
          * deux coroutines sollicitent l'ouverture au démarrage — la garde
          * doit être reverifiée SOUS verrou APRÈS la résolution FUSE
@@ -337,12 +350,19 @@ class EditorViewModel
         /** Poignée d'enregistrement au registre de la session Kotlin (K2). */
         private var enregistrementLspKotlin: Desenregistrement? = null
 
+        /** Poignée d'enregistrement au registre de la session XML (XE1). */
+        private var enregistrementLspXml: Desenregistrement? = null
+
         /** Session LSP observable (branchement éditeur, §16.2). */
         val sessionLsp: StateFlow<SessionLsp?> = sessionLspInterne.asStateFlow()
 
         /** Session LSP Kotlin observable (branchement éditeur, K2). */
         val sessionLspKotlin: StateFlow<SessionLspKotlin?> =
             sessionLspKotlinInterne.asStateFlow()
+
+        /** Session LSP XML observable (branchement éditeur, XE1). */
+        val sessionLspXml: StateFlow<SessionLspXml?> =
+            sessionLspXmlInterne.asStateFlow()
 
         /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
          *  détenteur process-wide y publie, l'activité ET le service de
@@ -819,6 +839,15 @@ class EditorViewModel
                     val modele = session.modele.value
                     if (sessionKotlin != null && modele != null) {
                         sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                    }
+                    // XE1 (LSP_XML.md §5) : la session XML partage le MÊME
+                    // modèle — nourrie en cascade (XE1 le STOCKE, XE2/XE3
+                    // le consommeront : catalogue plateforme + index
+                    // ressources), la sync fraîche remplacera si
+                    // l'empreinte a changé.
+                    val sessionXml = sessionLspXmlInterne.value
+                    if (sessionXml != null && modele != null) {
+                        sessionXml.appliquerModele(modele, session.vueNomsXml())
                     }
                 }
             } else {
@@ -1306,6 +1335,11 @@ class EditorViewModel
                 // jamais un blocage de l'espace : les .kt restent en
                 // coloration seule, les .java gardent leur session.
                 ouvrirSessionLspKotlinSiPossible(racine)
+                // XE1 (LSP_XML.md §5) : la session XML ouvre dans le MÊME
+                // verrou — même dégradation honnête que Kotlin (moteur
+                // absent → coloration seule pour les .xml, jamais un
+                // blocage de l'espace).
+                ouvrirSessionLspXmlSiPossible(racine)
             }
         }
 
@@ -1355,6 +1389,55 @@ class EditorViewModel
                     }
                 }
             journal.i(TAG) { "session LSP Kotlin ouverte (projet ${identifiantSuivi()})" }
+        }
+
+        /**
+         * Ouvre la session LSP XML (XE1) — appelée sous le MÊME verrou
+         * que les sessions Java/Kotlin, racine déjà résolue. Dégradation
+         * honnête : moteur non résolvable → journal seul, session absente.
+         */
+        private fun ouvrirSessionLspXmlSiPossible(racine: File) {
+            if (sessionLspXmlInterne.value != null) return
+            val session =
+                try {
+                    SessionLspXml(racineProjet = racine)
+                } catch (t: Throwable) {
+                    journal.w(TAG, t) {
+                        "session LSP XML non ouverte (moteur non résolvable) — fichiers .xml en coloration seule"
+                    }
+                    return
+                }
+            sessionLspXmlInterne.value = session
+            // Même registre, même délai que les sessions Java/Kotlin
+            // (ADR 0114) : refus (fermeture en vol) → refermée
+            // immédiatement, l'espace vit sans LSP XML (renoncé, pas
+            // orphelin).
+            enregistrementLspXml =
+                when (
+                    val resultat =
+                        gestionnaireSession.session.enregistrer(
+                            fermable =
+                                FermablesEspace.sessionLspXml(session) {
+                                    sessionLspXmlInterne.value = null
+                                },
+                            delai = FermablesEspace.DELAI_FERMETURE_LSP,
+                        )
+                ) {
+                    is AppResult.Success -> {
+                        resultat.value
+                    }
+
+                    is AppResult.Failure -> {
+                        sessionLspXmlInterne.value = null
+                        session.close()
+                        journal.w(TAG) {
+                            "session LSP XML non enregistrée au registre " +
+                                "(fermeture en cours ?) — refermée localement"
+                        }
+                        null
+                    }
+                }
+            journal.i(TAG) { "session LSP XML ouverte (projet ${identifiantSuivi()})" }
         }
 
         /**
@@ -1410,6 +1493,16 @@ class EditorViewModel
             journal.i(TAG) { "session LSP Kotlin refermée (projet ${identifiantSuivi()})" }
         }
 
+        /** Referme la session LSP XML (changement de projet, destruction). */
+        private fun fermerSessionLspXml() {
+            val session = sessionLspXmlInterne.value ?: return
+            enregistrementLspXml?.desenregistrer()
+            enregistrementLspXml = null
+            sessionLspXmlInterne.value = null
+            session.close()
+            journal.i(TAG) { "session LSP XML refermée (projet ${identifiantSuivi()})" }
+        }
+
         /**
          * Nourrit la session LSP après une sync utile (§16.2 : « le flux
          * de sync → ClasspathResult BRUT → session.appliquerClasspath ») :
@@ -1452,6 +1545,10 @@ class EditorViewModel
             // décode ses propres jars (segments par empreinte).
             withContext(dispatcheurs.io) {
                 sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
+                // XE1 : la même cascade côté XML — la vue de NOMS vit
+                // dans la session Java (un seul budget de cache, D4),
+                // la session XML la consomme par la couture neutre.
+                sessionLspXmlInterne.value?.appliquerClasspath(brut, session.vueNomsXml())
             }
         }
 
@@ -2199,6 +2296,7 @@ class EditorViewModel
             // modèle meurent AVEC elle (test de fuite h1).
             fermerSessionLsp()
             fermerSessionLspKotlin()
+            fermerSessionLspXml()
             etatInterne.update { it.copy(projet = projet, chargement = false) }
             // Mission LSP Java h2 : (ré)ouverture de la session après
             // changement — la coroutine d'ouverture ne vit qu'une fois
@@ -3798,6 +3896,7 @@ class EditorViewModel
             sessions.clear()
             fermerSessionLsp()
             fermerSessionLspKotlin()
+            fermerSessionLspXml()
             persisterEtatEspaceFinal()
         }
 

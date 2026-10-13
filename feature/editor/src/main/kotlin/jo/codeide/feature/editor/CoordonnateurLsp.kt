@@ -6,6 +6,7 @@ import jo.codeeditor.view.EditorView
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SessionLspKotlin
+import jo.codeide.lsp.host.SessionLspXml
 
 /**
  * Branche l'EditorView cel sur le serveur LSP Java in-process (mission
@@ -45,27 +46,31 @@ internal class CoordonnateurLsp(
     internal fun estBrancheSur(uri: String): Boolean = uriBranchee == uri
 
     /**
-     * Branche l'éditeur du fichier [cheminFuse] sur le serveur Java de
-     * la [session] — déconnecte l'éditeur précédent, crée le nouveau
-     * via le `LspProject` (créé UNE fois par session, muni de la
-     * définition `definition()` de `:lsp:host`), le lie à la vue puis
+     * Branche l'éditeur du fichier [cheminFuse] sur le serveur de la
+     * [session] — déconnecte l'éditeur précédent, crée le nouveau
+     * via le `LspProject` (créé UNE fois par session, muni des
+     * définitions `definition()` de `:lsp:host`), le lie à la vue puis
      * connecte (asynchrone : le cycle LSP part en arrière-plan).
      *
      * Exemption detekt ciblée (règle 16) : ReturnCount — chaque sortie
      * porte une DÉCISION distincte (déjà branché, projet cel-lsp
      * incréable, LspEditor incréable, branchement) avec son journal.
+     * LongParameterList — une session PAR LANGUE (Java, Kotlin, XML :
+     * garde par langue, miroir de brancherLspSiNecessaire) : chaque
+     * paramètre est une frontière consommée, pas un regroupement.
      */
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "LongParameterList")
     internal fun brancher(
         session: SessionLsp?,
         sessionKotlin: SessionLspKotlin?,
+        sessionXml: SessionLspXml?,
         uri: String,
         cheminFuse: String,
         vue: EditorView,
     ) {
         if (uriBranchee == uri && editeurCourant?.isConnected == true) return
         debrancher()
-        val projet = projetLsp ?: creerProjet(session, sessionKotlin) ?: return
+        val projet = projetLsp ?: creerProjet(session, sessionKotlin, sessionXml) ?: return
         val editeur =
             try {
                 projet.createEditor("file://$cheminFuse")
@@ -86,7 +91,11 @@ internal class CoordonnateurLsp(
             // il était filtré et la connexion semblait muette (§16.2.2).
             .thenRun {
                 val langue =
-                    if (cheminFuse.endsWith(".kts", true) || cheminFuse.endsWith(".kt", true)) "Kotlin" else "Java"
+                    when {
+                        cheminFuse.endsWith(".kts", true) || cheminFuse.endsWith(".kt", true) -> "Kotlin"
+                        cheminFuse.endsWith(".xml", true) -> "XML"
+                        else -> "Java"
+                    }
                 journal.i(TAG) { "LSP $langue connecté ($cheminFuse)" }
             }.exceptionally { echec ->
                 journal.w(TAG, echec) { "LSP : échec de connexion ($cheminFuse) — coloration seule" }
@@ -128,16 +137,17 @@ internal class CoordonnateurLsp(
 
     /**
      * Crée le LspProject de la session (définitions cel-lsp des langues
-     * présentes — Java et/ou Kotlin, K2) : cel-lsp route par EXTENSION,
+     * présentes — Java, Kotlin et/ou XML) : cel-lsp route par EXTENSION,
      * le même projet porte toutes les définitions. Racine = celle de la
-     * session Java (prioritaire) ou Kotlin — les DEUX sessions d'un même
+     * session Java (prioritaire), Kotlin ou XML — les sessions d'un même
      * espace partagent la racine du projet.
      */
     private fun creerProjet(
         session: SessionLsp?,
         sessionKotlin: SessionLspKotlin?,
+        sessionXml: SessionLspXml?,
     ): LspProject? {
-        val racine = session?.racine ?: sessionKotlin?.racine
+        val racine = session?.racine ?: sessionKotlin?.racine ?: sessionXml?.racine
         if (racine == null) {
             journal.w(TAG) { "LspProject incréable : aucune session de langue — coloration seule" }
             return null
@@ -146,14 +156,19 @@ internal class CoordonnateurLsp(
             LspProject(racine.absolutePath).also { projet ->
                 session?.let { projet.addServerDefinition(it.definition()) }
                 sessionKotlin?.definitions()?.forEach { projet.addServerDefinition(it) }
+                sessionXml?.let { projet.addServerDefinition(it.definition()) }
                 journal.d(TAG) {
-                    "LspProject configuré (${if (session != null) "Java" else ""}" +
-                        "${if (session != null && sessionKotlin != null) " + " else ""}" +
-                        "${if (sessionKotlin != null) "Kotlin" else ""}, ${racine.absolutePath})"
+                    "LspProject configuré (" +
+                        listOfNotNull(
+                            session?.let { "Java" },
+                            sessionKotlin?.let { "Kotlin" },
+                            sessionXml?.let { "XML" },
+                        ).joinToString(" + ") +
+                        ", ${racine.absolutePath})"
                 }
             }
         } catch (t: Throwable) {
-            journal.w(TAG, t) { "configuration LspProject impossible — fichiers .java/.kt en coloration seule" }
+            journal.w(TAG, t) { "configuration LspProject impossible — fichiers sources en coloration seule" }
             null
         }
     }

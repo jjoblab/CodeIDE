@@ -56,6 +56,59 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
         }
 
     @Test
+    fun `la session LSP XML s ouvre aux cotes des sessions Java et Kotlin`() =
+        runTest {
+            val id = ajouterProjet("ProjetXml")
+            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/ProjetXml" })
+            avancer()
+
+            val sessionXml = viewModel.sessionLspXml.value
+            assertNotNull("la session XML devait s'ouvrir (racine résoluble)", sessionXml)
+            assertEquals(File("/fuse/projets/ProjetXml"), sessionXml?.racine)
+            // Les TROIS moteurs vivent ensemble (même verrou d'ouverture,
+            // XE1 : Java + Kotlin + XML).
+            assertNotNull(viewModel.sessionLsp.value)
+            assertNotNull(viewModel.sessionLspKotlin.value)
+            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML ouverte") })
+        }
+
+    @Test
+    fun `le deplacement du projet referme la session LSP XML et ouvre la nouvelle`() =
+        runTest {
+            val id = ajouterProjet("DeplaceXml")
+            val viewModel =
+                viewModel(
+                    id,
+                    ResolveurCheminFuse { uri ->
+                        if (uri.contains("DeplaceXml2")) "/fuse/b/DeplaceXml" else "/fuse/a/DeplaceXml"
+                    },
+                )
+            avancer()
+
+            val ancienne = viewModel.sessionLspXml.value
+            assertNotNull(ancienne)
+
+            // Le projet est RELOCALISÉ : l'ancienne session XML doit
+            // mourir avec les autres, la nouvelle s'ouvrir sur la
+            // NOUVELLE racine.
+            depot.updateLocation(
+                id,
+                StorageLocation(
+                    grantUri = "content://autorite/tree/DeplaceXml2",
+                    documentUri = "content://autorite/tree/DeplaceXml2/doc",
+                    displayPath = "Projets/DeplaceXml2",
+                ),
+            )
+            avancer()
+
+            val nouvelle = viewModel.sessionLspXml.value
+            assertNotNull("la nouvelle session XML devait s'ouvrir", nouvelle)
+            assertTrue("l'ancienne session XML devait être refermée", ancienne !== nouvelle)
+            assertEquals(File("/fuse/b/DeplaceXml"), nouvelle?.racine)
+            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML refermée") })
+        }
+
+    @Test
     fun `la racine FUSE irre solvable laisse la session absente sans bloquer l edition`() =
         runTest {
             // Résolveur de la base : ne résout RIEN en JVM (limite T6) —
