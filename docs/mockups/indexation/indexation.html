@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Indexation LSP — maquette d'écran (Phase A, ADR 0117 brouillon)</title>
+<!--
+  Maquette HTML ancrée sur les VRAIES ressources de l'application CodeIDE
+  (core/ui/src/main/res/values/colors.xml et values-night/colors.xml).
+  Aucune couleur en dur hors palette : tous les #... ci-dessous sont
+  des valeurs EXACTES des tokens CodeIDE (vérifiables par grep).
+  Référence : la maquette de départ fournie par l'utilisateur
+  (Main.dc.html, Partiel.dc.html, Pret.dc.html) a été respectée et
+  étendue avec : état ERREUR (manquant), mode SOMBRE, paysage, écran
+  large, et la vue par moteur (Java + Kotlin) déjà présente dans la
+  maquette de départ.
+-->
+<style>
+  /* ============================================================
+     PALETTE — extraite de core/ui/src/main/res/values/colors.xml.
+     Aucune valeur n'est inventée : toutes sont des tokens CodeIDE.
+     ============================================================ */
+  :root {
+    /* Marque */
+    --codeide-primary: #43559E;
+    --codeide-on-primary: #FFFFFF;
+    --codeide-primary-container: #DCE1FF;
+    --codeide-on-primary-container: #001159;
+
+    /* Surfaces */
+    --codeide-background: #F9F9FF;
+    --codeide-on-background: #1A1B21;
+    --codeide-surface: #F9F9FF;
+    --codeide-on-surface: #1A1B21;
+    --codeide-surface-variant: #E2E1EC;
+    --codeide-on-surface-variant: #46464F;
+    --codeide-outline: #767680;
+    --codeide-outline-variant: #C6C5D0;
+
+    /* Statut */
+    --codeide-succes: #2E7D32;   /* vert "prêt" */
+    --codeide-warn: #9A6700;     /* ambre "partiel" (journal_warn) */
+    --codeide-error: #BA1A1A;    /* rouge "erreur" */
+
+    /* Langages (accents ADR 0059) */
+    --codeide-langage-java: #E76F00;
+    --codeide-langage-kotlin: #7F52FF;
+
+    /* Container "warn" dérivé (palette Material) */
+    --codeide-warn-container: #F6E7C1;
+    --codeide-on-warn-container: #7A5200;
+
+    /* Succès container (palette Material dérivée) */
+    --codeide-succes-container: #DDEFE0;
+  }
+
+  /* Mode sombre — valeurs EXACTES de values-night/colors.xml */
+  .dark {
+    --codeide-primary: #BAC4FF;
+    --codeide-on-primary: #0C2264;
+    --codeide-primary-container: #293D8F;
+    --codeide-on-primary-container: #DCE1FF;
+
+    --codeide-background: #111318;
+    --codeide-on-background: #E2E1E9;
+    --codeide-surface: #111318;
+    --codeide-on-surface: #E2E1E9;
+    --codeide-surface-variant: #46464F;
+    --codeide-on-surface-variant: #C6C5D0;
+    --codeide-outline: #90909A;
+    --codeide-outline-variant: #46464F;
+
+    --codeide-succes: #81C995;
+    --codeide-warn: #FDD663;
+    --codeide-error: #FFB4AB;
+
+    --codeide-langage-java: #F5A85C;
+    --codeide-langage-kotlin: #B39AFF;
+
+    --codeide-warn-container: #5A3D56;       /* dérivé tertiaire nuit */
+    --codeide-on-warn-container: #FFD7F3;
+    --codeide-succes-container: #1F3A1F;     /* dérivé */
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #2A2A2A;
+    color: #FFF;
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 32px 0 12px; color: #FFF;
+       border-left: 4px solid var(--codeide-primary); padding-left: 12px; }
+  h3 { font-size: 14px; margin: 16px 0 8px; color: #BBB;
+       text-transform: uppercase; letter-spacing: 0.5px; }
+  p.lead { color: #BBB; max-width: 880px; margin: 0 0 8px; }
+
+  .grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
+    margin-top: 12px;
+  }
+  .pair {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 390px 390px;
+  }
+  @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
+
+  .device {
+    width: 390px;
+    height: 844px;
+    position: relative;
+    overflow: hidden;
+    background: var(--codeide-background);
+    color: var(--codeide-on-background);
+    font-family: system-ui, sans-serif;
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .device.landscape { width: 844px; height: 390px; }
+  .device.wide { width: 1280px; height: 800px; }
+
+  .label {
+    color: #888;
+    font-size: 12px;
+    text-align: center;
+    margin: -12px 0 16px;
+  }
+
+  /* Barre d'application (toolbar) */
+  .bar {
+    height: 56dp;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--codeide-surface);
+    color: var(--codeide-on-surface);
+  }
+  .t { flex: 1; font-size: 18px; font-weight: 600; }
+
+  /* Pastille d'indexation (la NOUVELLE pastille de toolbar) */
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip-construction { background: var(--codeide-primary-container); color: var(--codeide-on-primary-container); }
+  .chip-pret { background: var(--codeide-succes-container); color: var(--codeide-succes); }
+  .chip-partiel { background: var(--codeide-warn-container); color: var(--codeide-on-warn-container); }
+  .chip-erreur { background: var(--codeide-error); color: var(--codeide-on-primary); }
+  .chip-hidden { display: none; } /* masquée sur écran étroit au repos */
+
+  /* Bloc de code (éditeur visible en arrière-plan, atténué) */
+  .code {
+    padding: 12px 16px;
+    font: 12px/1.8 ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--codeide-on-surface-variant);
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Scrim derrière le bottom sheet */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(26,27,33,0.4);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Bottom sheet de détail */
+  .sh {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--codeide-surface);
+    color: var(--codeide-on-surface);
+    border-radius: 28px 28px 0 0;
+    padding: 12px 20px 28px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+    max-height: 80%;
+    overflow: hidden;
+  }
+  .sh.scroll { overflow-y: auto; }
+  .grip {
+    width: 32px; height: 4px;
+    border-radius: 2px;
+    background: var(--codeide-outline-variant);
+    margin: 0 auto 16px;
+  }
+  .h { display: flex; gap: 12px; align-items: center; }
+  .ic {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ic-construction { background: var(--codeide-primary-container); color: var(--codeide-primary); }
+  .ic-pret { background: var(--codeide-succes-container); color: var(--codeide-succes); }
+  .ic-partiel { background: var(--codeide-warn-container); color: var(--codeide-on-warn-container); }
+  .ic-erreur { background: var(--codeide-error); color: var(--codeide-on-primary); }
+  .h1 { font-size: 16px; font-weight: 600; }
+  .s { font-size: 12px; color: var(--codeide-on-surface-variant); }
+
+  /* Barre de progression */
+  .pg {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--codeide-surface-variant);
+    margin: 16px 0 8px;
+    overflow: hidden;
+  }
+  .pg > i {
+    display: block;
+    height: 100%;
+    background: var(--codeide-primary);
+    border-radius: 3px;
+  }
+  /* Progression indéterminée (animation) */
+  .pg.indeterminate > i {
+    width: 40%;
+    animation: pgslide 1.5s infinite ease-in-out;
+  }
+  @keyframes pgslide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  /* Libellés de section */
+  .lb {
+    margin: 16px 0 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--codeide-on-surface-variant);
+  }
+
+  /* Lignes de données */
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--codeide-surface-variant);
+  }
+  .row > .s { flex: 1; text-align: right; }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Note informative (encadré) */
+  .note {
+    margin: 14px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--codeide-surface-variant);
+    color: var(--codeide-on-surface-variant);
+    font-size: 12px;
+  }
+  .note-warn { background: var(--codeide-warn-container); color: var(--codeide-on-warn-container); }
+  .note-error { background: var(--codeide-error); color: var(--codeide-on-primary); }
+
+  /* Boutons */
+  .btn {
+    height: 44px;
+    border-radius: 22px;
+    border: 1px solid var(--codeide-outline);
+    background: transparent;
+    color: var(--codeide-primary);
+    font: 600 14px system-ui, sans-serif;
+    width: 100%;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .btn.primary {
+    background: var(--codeide-primary);
+    border-color: var(--codeide-primary);
+    color: var(--codeide-on-primary);
+  }
+
+  /* Histogramme (indexeur le plus coûteux) */
+  .bar2 {
+    height: 20px;
+    border-radius: 6px;
+    background: var(--codeide-surface-variant);
+    position: relative;
+    margin: 4px 0;
+  }
+  .bar2 > i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 6px;
+    background: var(--codeide-primary-container);
+  }
+  .bar2 > span {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 20px;
+    color: var(--codeide-on-surface);
+  }
+
+  /* SVG icon size standard */
+  svg { display: block; }
+
+  /* Couleurs par langage (vue par moteur) */
+  .lang-java { color: var(--codeide-langage-java); }
+  .lang-kotlin { color: var(--codeide-langage-kotlin); }
+  .dot-java { background: var(--codeide-langage-java); }
+  .dot-kotlin { background: var(--codeide-langage-kotlin); }
+</style>
+</head>
+<body>
+
+<h1>Indexation LSP — maquette d'écran</h1>
+<p class="lead">
+  Maquette ancrée sur les VRAIES ressources CodeIDE
+  (<code>core/ui/.../colors.xml</code> et <code>values-night/colors.xml</code>).
+  Toutes les couleurs sont des tokens existants — aucune valeur en dur
+  hors palette (règle 3 du prompt maître).
+</p>
+<p class="lead">
+  La maquette de départ fournie par l'utilisateur (3 états : construction,
+  partiel, prêt) est respectée et étendue avec : état ERREUR (manquant),
+  mode SOMBRE, PORTRAIT et PAYSAGE, ÉCRAN LARGE, et la vue par moteur
+  (Java + Kotlin) déjà présente dans la maquette de départ.
+</p>
+
+<h2>1. Pastilles de toolbar — les 4 états × 2 thèmes</h2>
+<p class="lead">
+  La pastille remplace la ligne <code>barre_etat_lsp</code> (qui consommait
+  de la hauteur). Elle vit dans la toolbar qui existe déjà — aucun saut
+  de mise en page pendant l'indexation. Masquée sur écran étroit au repos
+  (l'information « tout va bien » n'a pas besoin d'être visible).
+</p>
+
+<div class="pair">
+  <div>
+    <div class="label">Clair</div>
+    <div class="device" style="height: 80px;">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+        <span class="chip chip-partiel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Partiel
+        </span>
+        <span class="chip chip-erreur">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          Erreur
+        </span>
+        <span class="chip chip-pret">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Index à jour
+        </span>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="label">Sombre</div>
+    <div class="device dark" style="height: 80px;">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+        <span class="chip chip-partiel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Partiel
+        </span>
+        <span class="chip chip-erreur">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          Erreur
+        </span>
+        <span class="chip chip-pret">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Index à jour
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>2. Panneau de détail — Construction (clair + sombre)</h2>
+<p class="lead">
+  Toucher la pastille ouvre un bottom sheet de détail (la métaphore est
+  déjà celle de l'app — pas un nouveau paradigme). En-tête : icône d'état
+  + titre + sous-titre (phase courante). Barre déterminée, compteur
+  « n / N entrées », estimation du temps restant (UNIQUEMENT si fiable —
+  assez d'échantillons, débit stable, reprises exclues du calcul).
+  Vue par moteur (Java + Kotlin, tokens existants ADR 0059). Liste de
+  travail : une ligne par entrée, icône d'état. Note d'impact utilisateur
+  (« pendant l'indexation, la complétion des bibliothèques est limitée »).
+</p>
+
+<div class="pair">
+  <!-- Construction — Clair -->
+  <div>
+    <div class="label">Construction — clair (portrait 390×844)</div>
+    <div class="device">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-construction">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Indexation en cours</div>
+            <div class="s">Bibliothèques et SDK · 118 sur 191</div>
+          </div>
+          <div style="text-align:right">
+            <div class="h1">62 %</div>
+            <div class="s">≈ 40 s restantes</div>
+          </div>
+        </div>
+        <div class="pg"><i style="width:62%"></i></div>
+        <div class="s">Les entrées déjà indexées sont reprises sans reconstruction : 96 reprises, 22 reconstruites.</div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s">En construction · 118/191</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <div class="lb">EN COURS</div>
+        <div class="row"><span style="color: var(--codeide-succes)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>androidx.core 1.19.0</span><span class="s">repris</span></div>
+        <div class="row"><span style="color: var(--codeide-primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg></span><span>material 1.14.0</span><span class="s">en cours</span></div>
+        <div class="row"><span class="dot" style="background: var(--codeide-outline-variant); margin: 3px"></span><span style="color: var(--codeide-on-surface-variant)">okio 3.9.0</span><span class="s">en attente</span></div>
+        <div class="note">Pendant l'indexation, la complétion des bibliothèques est limitée. L'édition n'est pas bloquée.</div>
+        <button class="btn">Annuler le passage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Construction — Sombre -->
+  <div>
+    <div class="label">Construction — sombre (portrait 390×844)</div>
+    <div class="device dark">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-construction">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Indexation en cours</div>
+            <div class="s">Bibliothèques et SDK · 118 sur 191</div>
+          </div>
+          <div style="text-align:right">
+            <div class="h1">62 %</div>
+            <div class="s">≈ 40 s restantes</div>
+          </div>
+        </div>
+        <div class="pg"><i style="width:62%"></i></div>
+        <div class="s">Les entrées déjà indexées sont reprises sans reconstruction : 96 reprises, 22 reconstruites.</div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s">En construction · 118/191</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <div class="lb">EN COURS</div>
+        <div class="row"><span style="color: var(--codeide-succes)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>androidx.core 1.19.0</span><span class="s">repris</span></div>
+        <div class="row"><span style="color: var(--codeide-primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg></span><span>material 1.14.0</span><span class="s">en cours</span></div>
+        <div class="row"><span class="dot" style="background: var(--codeide-outline-variant); margin: 3px"></span><span style="color: var(--codeide-on-surface-variant)">okio 3.9.0</span><span class="s">en attente</span></div>
+        <div class="note">Pendant l'indexation, la complétion des bibliothèques est limitée. L'édition n'est pas bloquée.</div>
+        <button class="btn">Annuler le passage</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>3. Panneau de détail — Index partiel (avec avertissements)</h2>
+<p class="lead">
+  Honnêteté du résultat : les états partiel et erreur sont déjà distincts
+  dans le modèle <code>EtatIndex</code>. Liste les entrées écartées (jar
+  illisible, AAR sans jar interne, dossier vide), explique l'effet concret
+  (« la complétion de X peut être incomplète ») et propose une action :
+  réessayer ces entrées seulement, ou tout réindexer.
+</p>
+
+<div class="pair">
+  <div>
+    <div class="label">Partiel — clair</div>
+    <div class="device">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-partiel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Partiel
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh scroll">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-partiel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index partiel</div>
+            <div class="s">188 sur 191 entrées indexées</div>
+          </div>
+        </div>
+        <div class="note note-warn">La complétion et les imports de ces 3 bibliothèques peuvent être incomplets. L'éditeur reste utilisable.</div>
+        <div class="lb">ENTRÉES ÉCARTÉES</div>
+        <div class="row"><span style="flex:1">legacy-utils.jar</span><span class="s">jar illisible</span></div>
+        <div class="row"><span style="flex:1">play-core.aar</span><span class="s">AAR sans jar interne</span></div>
+        <div class="row"><span style="flex:1">res-extra/</span><span class="s">dossier vide</span></div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s" style="color: var(--codeide-on-warn-container)">Partiel</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <button class="btn primary" style="margin-top:16px">Réessayer les 3 entrées</button>
+        <button class="btn">Tout réindexer</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Partiel — sombre</div>
+    <div class="device dark">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-partiel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          Partiel
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh scroll">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-partiel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l10 18H2z M12 10v5 M12 18v.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index partiel</div>
+            <div class="s">188 sur 191 entrées indexées</div>
+          </div>
+        </div>
+        <div class="note note-warn">La complétion et les imports de ces 3 bibliothèques peuvent être incomplets. L'éditeur reste utilisable.</div>
+        <div class="lb">ENTRÉES ÉCARTÉES</div>
+        <div class="row"><span style="flex:1">legacy-utils.jar</span><span class="s">jar illisible</span></div>
+        <div class="row"><span style="flex:1">play-core.aar</span><span class="s">AAR sans jar interne</span></div>
+        <div class="row"><span style="flex:1">res-extra/</span><span class="s">dossier vide</span></div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s" style="color: var(--codeide-on-warn-container)">Partiel</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <button class="btn primary" style="margin-top:16px">Réessayer les 3 entrées</button>
+        <button class="btn">Tout réindexer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>4. Panneau de détail — Index à jour (bilan du dernier passage)</h2>
+<p class="lead">
+  Au repos : confirmation « à jour » + dernier bilan (durée, artefacts
+  reconstruits/réutilisés, fichiers ré-analysés, indexeur le plus coûteux
+  en histogramme horizontal). Bouton « Réindexer » toujours disponible.
+</p>
+
+<div class="pair">
+  <div>
+    <div class="label">À jour — clair</div>
+    <div class="device">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-pret">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Index à jour
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-pret">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index à jour</div>
+            <div class="s">Java et Kotlin prêts · il y a 2 min</div>
+          </div>
+        </div>
+        <div class="lb">DERNIER PASSAGE</div>
+        <div class="row"><span style="flex:1">Durée</span><span class="s">4,2 s</span></div>
+        <div class="row"><span style="flex:1">Bibliothèques</span><span class="s">191 · 188 reprises · 3 reconstruites</span></div>
+        <div class="row"><span style="flex:1">Fichiers du projet</span><span class="s">12 ré-analysés sur 214</span></div>
+        <div class="lb">CE QUI A COÛTÉ LE PLUS DE TEMPS</div>
+        <div class="bar2"><i style="width:100%"></i><span><b>Noms de classes Java</b><span>1,8 s</span></span></div>
+        <div class="bar2"><i style="width:61%"></i><span><b>Appelables Kotlin</b><span>1,1 s</span></span></div>
+        <div class="bar2"><i style="width:33%"></i><span><b>Ressources Android</b><span>0,6 s</span></span></div>
+        <button class="btn" style="margin-top:20px">Réindexer</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">À jour — sombre</div>
+    <div class="device dark">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-pret">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Index à jour
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-pret">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index à jour</div>
+            <div class="s">Java et Kotlin prêts · il y a 2 min</div>
+          </div>
+        </div>
+        <div class="lb">DERNIER PASSAGE</div>
+        <div class="row"><span style="flex:1">Durée</span><span class="s">4,2 s</span></div>
+        <div class="row"><span style="flex:1">Bibliothèques</span><span class="s">191 · 188 reprises · 3 reconstruites</span></div>
+        <div class="row"><span style="flex:1">Fichiers du projet</span><span class="s">12 ré-analysés sur 214</span></div>
+        <div class="lb">CE QUI A COÛTÉ LE PLUS DE TEMPS</div>
+        <div class="bar2"><i style="width:100%"></i><span><b>Noms de classes Java</b><span>1,8 s</span></span></div>
+        <div class="bar2"><i style="width:61%"></i><span><b>Appelables Kotlin</b><span>1,1 s</span></span></div>
+        <div class="bar2"><i style="width:33%"></i><span><b>Ressources Android</b><span>0,6 s</span></span></div>
+        <button class="btn" style="margin-top:20px">Réindexer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>5. Panneau de détail — Erreur</h2>
+<p class="lead">
+  État <code>PhaseIndex.ERREUR</code> (construction impossible — stockage
+  illisible…). Le LSP vit sans index (repli intégral par sondage, ADR
+  0111 §8). La maquette de départ ne montrait pas cet état — ajouté car
+  il existe dans le modèle et DOIT être représenté.
+</p>
+
+<div class="pair">
+  <div>
+    <div class="label">Erreur — clair</div>
+    <div class="device">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-erreur">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          Erreur
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-erreur">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index en erreur</div>
+            <div class="s">Construction impossible</div>
+          </div>
+        </div>
+        <div class="note note-error">L'index n'a pas pu être construit (stockage illisible). L'éditeur fonctionne en mode dégradé : la complétion, les diagnostics et la recherche de symboles sont plus lents.</div>
+        <div class="lb">ERREURS BLOQUANTES</div>
+        <div class="row"><span style="flex:1">Segment n°3 corrompu (checksum invalide)</span></div>
+        <div class="row"><span style="flex:1">Échec écriture /index/.lock (Permission denied)</span></div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s" style="color: var(--codeide-error)">Erreur</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <button class="btn primary" style="margin-top:16px">Réindexer</button>
+        <button class="btn">Effacer l'index et réessayer</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Erreur — sombre</div>
+    <div class="device dark">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-erreur">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          Erreur
+        </span>
+      </div>
+      <div class="code">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-erreur">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v6 M12 16v.5" stroke-linecap="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index en erreur</div>
+            <div class="s">Construction impossible</div>
+          </div>
+        </div>
+        <div class="note note-error">L'index n'a pas pu être construit (stockage illisible). L'éditeur fonctionne en mode dégradé : la complétion, les diagnostics et la recherche de symboles sont plus lents.</div>
+        <div class="lb">ERREURS BLOQUANTES</div>
+        <div class="row"><span style="flex:1">Segment n°3 corrompu (checksum invalide)</span></div>
+        <div class="row"><span style="flex:1">Échec écriture /index/.lock (Permission denied)</span></div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s" style="color: var(--codeide-error)">Erreur</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        <button class="btn primary" style="margin-top:16px">Réindexer</button>
+        <button class="btn">Effacer l'index et réessayer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>6. Paysage — Construction</h2>
+<p class="lead">
+  Paysage (844×390 — Pixel 4 rotated). Le bottom sheet occupe toute la
+  largeur, hauteur réduite à 65 % de l'écran pour préserver la lecture du
+  code en arrière-plan. Vue par moteur et liste de travail côte à côte.
+</p>
+
+<div class="pair" style="grid-template-columns: 844px 844px;">
+  <div>
+    <div class="label">Paysage — clair</div>
+    <div class="device landscape">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+      </div>
+      <div class="code" style="position:absolute; top:56px; left:0; right:0; bottom:0;">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh" style="max-height: 70%; display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <div class="grip" style="grid-column: 1 / -1"></div>
+          <div class="h">
+            <div class="ic ic-construction">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="h1">Indexation en cours</div>
+              <div class="s">Bibliothèques et SDK · 118 sur 191</div>
+            </div>
+            <div style="text-align:right">
+              <div class="h1">62 %</div>
+              <div class="s">≈ 40 s restantes</div>
+            </div>
+          </div>
+          <div class="pg"><i style="width:62%"></i></div>
+          <div class="lb">MOTEURS</div>
+          <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s">118/191</span></div>
+          <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        </div>
+        <div>
+          <div class="lb">EN COURS</div>
+          <div class="row"><span style="color: var(--codeide-succes)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>androidx.core 1.19.0</span><span class="s">repris</span></div>
+          <div class="row"><span style="color: var(--codeide-primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg></span><span>material 1.14.0</span><span class="s">en cours</span></div>
+          <div class="row"><span class="dot" style="background: var(--codeide-outline-variant); margin: 3px"></span><span style="color: var(--codeide-on-surface-variant)">okio 3.9.0</span><span class="s">en attente</span></div>
+          <div class="note">Complétion limitée. Édition non bloquée.</div>
+          <button class="btn">Annuler le passage</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Paysage — sombre</div>
+    <div class="device landscape dark">
+      <div class="bar">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+        <span class="t">MonProjet</span>
+        <span class="chip chip-construction">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+          62 %
+        </span>
+      </div>
+      <div class="code" style="position:absolute; top:56px; left:0; right:0; bottom:0;">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+      <div class="scrim"></div>
+      <div class="sh" style="max-height: 70%; display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <div class="grip" style="grid-column: 1 / -1"></div>
+          <div class="h">
+            <div class="ic ic-construction">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="h1">Indexation en cours</div>
+              <div class="s">Bibliothèques et SDK · 118 sur 191</div>
+            </div>
+            <div style="text-align:right">
+              <div class="h1">62 %</div>
+              <div class="s">≈ 40 s restantes</div>
+            </div>
+          </div>
+          <div class="pg"><i style="width:62%"></i></div>
+          <div class="lb">MOTEURS</div>
+          <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s">118/191</span></div>
+          <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt</span></div>
+        </div>
+        <div>
+          <div class="lb">EN COURS</div>
+          <div class="row"><span style="color: var(--codeide-succes)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>androidx.core 1.19.0</span><span class="s">repris</span></div>
+          <div class="row"><span style="color: var(--codeide-primary)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/></svg></span><span>material 1.14.0</span><span class="s">en cours</span></div>
+          <div class="row"><span class="dot" style="background: var(--codeide-outline-variant); margin: 3px"></span><span style="color: var(--codeide-on-surface-variant)">okio 3.9.0</span><span class="s">en attente</span></div>
+          <div class="note">Complétion limitée. Édition non bloquée.</div>
+          <button class="btn">Annuler le passage</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>7. Écran large (tablette 1280×800)</h2>
+<p class="lead">
+  Écran large (1280×800 — tablette). Le bottom sheet s'élargit et peut
+  présenter les sections côte à côte (moteurs, liste de travail, bilan).
+  La pastille reste visible dans la toolbar. Sur écran large, la pastille
+  « prêt » EST visible (l'espace le permet).
+</p>
+
+<div>
+  <div class="label">Tablette — clair — « à jour »</div>
+  <div class="device wide">
+    <div class="bar">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+      <span class="t">MonProjet</span>
+      <span class="chip chip-pret">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Index à jour
+      </span>
+    </div>
+    <div class="code" style="position:absolute; top:56px; left:0; right:0; bottom:0;">1 package jo.demo<br>2 <br>3 class MainActivity {<br>4 &nbsp;&nbsp;override fun onCreate() {<br>5 &nbsp;&nbsp;&nbsp;&nbsp;super.onCreate()</div>
+    <div class="scrim"></div>
+    <div class="sh" style="max-height: 75%; display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+      <div style="grid-column: 1 / -1;">
+        <div class="grip"></div>
+        <div class="h">
+          <div class="ic ic-pret">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="h1">Index à jour</div>
+            <div class="s">Java et Kotlin prêts · il y a 2 min</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="lb">DERNIER PASSAGE</div>
+        <div class="row"><span style="flex:1">Durée</span><span class="s">4,2 s</span></div>
+        <div class="row"><span style="flex:1">Bibliothèques</span><span class="s">191 · 188 reprises · 3 reconstruites</span></div>
+        <div class="row"><span style="flex:1">Fichiers du projet</span><span class="s">12 ré-analysés sur 214</span></div>
+      </div>
+      <div>
+        <div class="lb">MOTEURS</div>
+        <div class="row"><span class="dot dot-java"></span><b>Java</b><span class="s" style="color: var(--codeide-succes)">Prêt · 1,8 s</span></div>
+        <div class="row"><span class="dot dot-kotlin"></span><b>Kotlin</b><span class="s" style="color: var(--codeide-succes)">Prêt · 1,1 s</span></div>
+        <div class="row"><span class="dot" style="background: var(--codeide-langage_xml, #B35C00)"></span><b>Ressources</b><span class="s" style="color: var(--codeide-succes)">Prêt · 0,6 s</span></div>
+      </div>
+      <div>
+        <div class="lb">CE QUI A COÛTÉ LE PLUS DE TEMPS</div>
+        <div class="bar2"><i style="width:100%"></i><span><b>Noms de classes Java</b><span>1,8 s</span></span></div>
+        <div class="bar2"><i style="width:61%"></i><span><b>Appelables Kotlin</b><span>1,1 s</span></span></div>
+        <div class="bar2"><i style="width:33%"></i><span><b>Ressources Android</b><span>0,6 s</span></span></div>
+        <button class="btn" style="margin-top:16px">Réindexer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>8. Décisions de design tracées</h2>
+<p class="lead">
+  Récapitulatif des décisions de design prises en phase A (à valider en
+  phase B après GO de l'utilisateur).
+</p>
+
+<ol style="max-width: 880px; color: #DDD; line-height: 1.7;">
+  <li><b>Pastille de toolbar</b> (pas de nouvelle ligne dans la colonne centrale) — supprime le risque v0.100.2 « la barre avalait l'éditeur ».</li>
+  <li><b>Bottom sheet de détail</b> (métaphore existante de l'app, pas un nouveau paradigme) — cohérence avec le panneau inférieur tooling.</li>
+  <li><b>4 états pastille</b> (construction animée + %, prêt discrète, partiel avertissement, erreur rouge) — couvre tous les <code>PhaseIndex</code>.</li>
+  <li><b>4 états panneau</b> (construction, partiel avec avertissements, erreur, au repos avec bilan) — couvre tous les <code>PhaseIndex</code> + bilan.</li>
+  <li><b>Vue par moteur</b> (Java + Kotlin, accents ADR 0059) — distingue les langages, ne se limite pas à Java.</li>
+  <li><b>Liste de travail</b> (entrées en attente / actives / terminées / écartées) — répond à « qu'est-ce qui est en cours ? ».</li>
+  <li><b>Histogramme horizontal simple</b> (3 indexeurs les plus coûteux) — répond à « quel index coûte le plus ? ».</li>
+  <li><b>Estimation du temps restant</b> (UNIQUEMENT si fiable, ≥ 20 % traités + débit stable) — jamais de faux chiffre.</li>
+  <li><b>Bouton « Annuler »</b> présent dans la maquette mais <b>non implémenté en phase B</b> (cf. question Q3).</li>
+  <li><b>Bilan persistant</b> (DataStore, clé par projet) — au prochain démarrage.</li>
+  <li><b>Pas de couleur en dur</b> — toutes les valeurs sont des tokens CodeIDE existants (règle 3 du prompt maître).</li>
+  <li><b>Cibles tactiles ≥ 48 dp</b> (boutons 44 px ici, à passer en 48 dp en Android).</li>
+  <li><b>Annonces TalkBack aux changements de phase</b> (pas à chaque pourcentage) — accessibilité.</li>
+</ol>
+
+<p class="lead" style="margin-top: 32px; color: #888;">
+  Maquette livrée en phase A — <b>aucun code de production</b>. La phase B
+  (implémentation) ne démarre qu'après GO du propriétaire. Voir
+  <code>docs/audit/INDEXATION_PHASE_A.md</code> §5 pour le plan en 8 lots.
+</p>
+
+</body>
+</html>
