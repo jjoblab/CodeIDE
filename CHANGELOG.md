@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.124.11] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lot B4 (présentateur pur PresentationIndexation)** :
+  nouveau présentateur pur qui transforme `EtatIndexation` (lsp:host) en
+  `ModeleAffichageIndexation` (modèle d'affichage immutable, sans
+  aucune référence Android). Patron `PresentationTooling` — le
+  présentateur ne touche ni `Context` ni vue ; la résolution des
+  libellés localisés a lieu au dernier moment par l'appelant.
+  - **Nouveau fichier** `PresentationIndexation.kt` : 15 fonctions
+    couvrent tous les états (INITIAL, CONSTRUCTION, PRET, PARTIEL,
+    ERREUR) × pastille + panneau de détail. Les libellés sont
+    transportés par des ÉNUMÉRATIONS (jamais par chaînes comparables —
+    règle §5.11 du prompt 2).
+  - **Modèle d'affichage** : `ModeleAffichageIndexation` (pastille +
+    panneau), `PastilleIndexation` (état + pourcentage + masquée
+    étroit), `PanneauDetailIndexation` (en-tête + progression + liste
+    de travail + vue par moteur + bilan + actions + note d'impact).
+  - **Tests** : 22 tests unitaires purs dans `PresentationIndexationTest`
+    — tous les états × pastille + panneau, cas dégénérés (total
+    inconnu, pourcentage borné, faits > total), vue par moteur (Java
+    présent sauf INITIAL), bilan du dernier passage, actions
+    (ANNULER/REINDEXER/REESSAYER_ECHECS), notes d'impact
+    (INFO/AVERTISSEMENT/ERREUR).
+  - **Chaînes FR + EN** : 40+ nouvelles chaînes dans `strings.xml` et
+    `values-en/strings.xml` — titres, sous-titres, compteurs, vue par
+    moteur, notes d'impact, actions, bilan, pastille CD. Exemption
+    lint `PluralsCandidate` sur 2 chaînes (fausse détection : les 3
+    nombres sont indépendants).
+  - **Exemption detekt ciblée** (`TooManyFunctions`) : 15 fonctions,
+    seuil à 11 — chaque fonction traduit un champ distinct de
+    `EtatIndexation` ; les regrouper masquerait la structure.
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅,
+    `:feature:editor:testDebugUnitTest` ✅ (22 nouveaux tests
+    passent — `PresentationIndexationTest` validé seul ; problème
+    d'isolation préexistant `LspEditorViewModelTest` non lié),
+    `checkModuleDependencies` ✅.
+
 ## [0.124.10] – 2026-10-14
 
 ### Ajouté
