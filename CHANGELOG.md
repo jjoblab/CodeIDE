@@ -1,5 +1,37 @@
 # Journal des modifications
 
+## [0.124.6] – 2026-10-14
+
+### Corrigé
+
+- **Phase B Prompt 1 — lot E6 complet (thème et barres système)** :
+  `enableEdgeToEdge()` est désormais appelé avec des `SystemBarStyle`
+  EXPLICITES, au lieu du comportement par défaut. Constat #4 de l'audit
+  v0.124.1 : `enableEdgeToEdge()` était appelé sans style explicite, ce
+  qui laissait le système choisir un style par défaut ne correspondant
+  pas toujours au thème CodeIDE (Material 3 + couleurs dynamiques
+  optionnelles).
+  - **StatusBarStyle** : `SystemBarStyle.auto(0x66000000, 0x66000000)`
+    — s'adapte au thème jour/nuit, scrim sombre pour garantir le
+    contraste des icônes de statut.
+  - **NavigationBarStyle** : `SystemBarStyle.auto(0x66FFFFFF, 0x66000000)`
+    — s'adapte au thème jour/nuit, scrim clair en jour (0x66FFFFFF) et
+    sombre en nuit (0x66000000) pour garantir le contraste WCAG AA des
+    icônes de navigation quel que soit le fond derrière la barre.
+  - Les valeurs de scrim sont les valeurs recommandées par la
+    documentation `androidx.activity` (transparence 40 % + teinte
+    adaptée au thème).
+  - **Partie « contraste forcé désactivé »** : non traitée dans ce lot
+    car `isNavigationBarContrastEnforced` (API 29+) est une propriété
+    window — elle sera traitée dans un lot ultérieur si des retours
+    appareil le justifient (le sheet gère déjà son fond opaque, le
+    contraste forcé est généralement désactivé par défaut en edge-to-edge).
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅, `:feature:editor:testDebugUnitTest`
+    ✅, `checkModuleDependencies` ✅.
+
 ## [0.124.5] – 2026-10-14
 
 ### Corrigé
