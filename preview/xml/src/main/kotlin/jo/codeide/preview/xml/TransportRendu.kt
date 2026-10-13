@@ -30,24 +30,22 @@ import kotlin.coroutines.resume
  */
 public interface TransportRendu : AutoCloseable {
     /**
-     * Rend [texte] avec les ressources de [dossierRes] (null = repli
-     * natif). BLOQUANT (rendu réel) — à appeler hors thread UI.
+     * Rend la [RequeteRendu] (texte + res/ + genre + profil + nuit).
+     * BLOQUANT (rendu réel) — à appeler hors thread UI.
      */
-    public suspend fun rendre(
-        texte: String,
-        dossierRes: String?,
-    ): ResultatTransport
+    public suspend fun rendre(requete: RequeteRendu): ResultatTransport
 }
 
 /** Résultat d'un rendu transporté (donnée, jamais une exception). */
 public sealed interface ResultatTransport {
-    /** Rendu valide : bitmap + métriques. */
+    /** Rendu valide : bitmap + métriques + vues (hit-test P6, PE3). */
     public class Succes(
         public val bitmap: Bitmap,
         public val dureeMs: Long,
         public val nombreVues: Int,
         public val largeur: Int,
         public val hauteur: Int,
+        public val vues: List<InfoVueRendu> = emptyList(),
     ) : ResultatTransport
 
     /** Rendu échoué (XML malformé → [m[message] = [XML_MALFORME]). */
@@ -72,11 +70,8 @@ public class TransportRenduLocal(
 ) : TransportRendu {
     private val pipeline = RenduLayoutLib(contexte, journal)
 
-    override suspend fun rendre(
-        texte: String,
-        dossierRes: String?,
-    ): ResultatTransport {
-        val resultat = pipeline.rendre(texte, dossierRes, compresser = false)
+    override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
+        val resultat = pipeline.rendre(requete, compresser = false)
         return depuisPipeline(resultat)
     }
 
@@ -88,6 +83,7 @@ public class TransportRenduLocal(
                 nombreVues = resultat.rendu.nombreVues,
                 largeur = resultat.rendu.largeur,
                 hauteur = resultat.rendu.hauteur,
+                vues = resultat.rendu.vues.toList(),
             )
         } else {
             ResultatTransport.Erreur(resultat.rendu.message ?: "rendu échoué")
@@ -128,15 +124,12 @@ internal class TransportRenduProcess(
     /** Binder vivant (null : à relancer). */
     private var binder: IRenduApercu? = null
 
-    override suspend fun rendre(
-        texte: String,
-        dossierRes: String?,
-    ): ResultatTransport {
+    override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
         val service = binder() ?: throw ProcessusIndisponible("liaison :preview impossible")
         val brut: ResultatRendu =
             try {
                 withTimeout(DELAI_RENDU_MS) {
-                    runInterruptible(Dispatchers.IO) { service.rendre(texte, dossierRes) }
+                    runInterruptible(Dispatchers.IO) { service.rendre(requete) }
                 }
             } catch (t: Throwable) {
                 // RemoteException, délai, interruption : panne TRANSPORT.
@@ -155,6 +148,7 @@ internal class TransportRenduProcess(
             nombreVues = brut.nombreVues,
             largeur = brut.largeur,
             hauteur = brut.hauteur,
+            vues = brut.vues.toList(),
         )
     }
 
@@ -354,26 +348,20 @@ public class TransportIsolation(
     /** Régime de rendu courant (le moteur le publie à l'UI). */
     public val regime: kotlinx.coroutines.flow.StateFlow<RegimeRendu> = regimeInterne.asStateFlow()
 
-    override suspend fun rendre(
-        texte: String,
-        dossierRes: String?,
-    ): ResultatTransport {
-        val resultat = rendreAvecReprise(texte, dossierRes)
+    override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
+        val resultat = rendreAvecReprise(requete)
         planifierVeille()
         return resultat
     }
 
     /** Rendu par le processus (UNE reprise), repli local sinon. */
-    private suspend fun rendreAvecReprise(
-        texte: String,
-        dossierRes: String?,
-    ): ResultatTransport {
+    private suspend fun rendreAvecReprise(requete: RequeteRendu): ResultatTransport {
         if (desactive.get()) {
-            return local.rendre(texte, dossierRes)
+            return local.rendre(requete)
         }
         val premier =
             try {
-                return process.rendre(texte, dossierRes)
+                return process.rendre(requete)
             } catch (indisponible: ProcessusIndisponible) {
                 indisponible
             }
@@ -381,7 +369,7 @@ public class TransportIsolation(
         journal?.d(TAG) { "processus :preview indisponible (${premier.message}) — reprise" }
         val seconde =
             try {
-                return process.rendre(texte, dossierRes)
+                return process.rendre(requete)
             } catch (indisponible: ProcessusIndisponible) {
                 indisponible
             }
@@ -397,7 +385,7 @@ public class TransportIsolation(
                     "repli local in-process (rendu inchangé, isolation perdue)"
             }
         }
-        return local.rendre(texte, dossierRes)
+        return local.rendre(requete)
     }
 
     /** (Re)planifie l'idle-shutdown : déliaison après DELAI_IDLE_MS sans rendu. */

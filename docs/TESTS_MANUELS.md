@@ -541,7 +541,7 @@ dossier du projet.
 | Y18 | Changer la rétention à 1 jour, ROUVRIR le projet, éditer, attendre plus d'un jour (ou régler l'horloge), réouvrir | Les révisions plus vieilles qu'un jour partent à la purge d'ouverture — la réglage s'applique SANS redémarrer l'app (lu à chaque purge) |
 | Y19 | « Effacer l'historique local » → confirmer le dialogue | « Historique effacé », empreinte repart à ~0, les feuilles Historique de TOUS les projets sont VIDES — les fichiers du disque n'ont PAS bougé |
 
-## Mission « Previews » — panneau d'aperçu XML (PE1 v0.111.0 + PE2 v0.114.0)
+## Mission « Previews » — panneau d'aperçu XML (PE1 v0.111.0 + PE2 v0.114.0 + PE3 v0.122.0)
 
 Le rendu vit dans `:preview:xml` (moteur LayoutLib **en intégration source
 par build composite** depuis v0.112.0 — checkout frère `../LayoutLib`,
@@ -564,7 +564,12 @@ JAMAIS bloquer la frappe).
 | P5 | Casser volontairement le XML proprement (balise inconnue `<Machin/>`, vue inexistante) | Bandeau rouge en haut de panneau avec le message d'erreur lisible ; le rendu précédent reste visibles dessous |
 | P6 | Référencer `@color/…`/`@string/…`/`@dimen/…` définis dans `res/values*` du projet | Rendus RÉSOLUS depuis le projet (le résolveur lit le `res/` réel par le chemin FUSE — même résolveur que le LSP) |
 | B1 | Ouvrir le panneau sur un layout MASSIF (imbrications ~300 éléments) puis taper au clavier | La frappe reste FLUIDE (le rendu vit sur un fil dédié, jamais le thread UI) ; latence de rendu complète < 400 ms après debounce |
-| B2 | Menu → « Aperçu XML » sur un drawable (`res/drawable/*.xml`) ou `values/*.xml` | Classifié (le menu apparaît) mais rendu réservé à PE3 : le panneau ouvre sur l'état d'accueil, sans erreur |
+| B2 | (PE3) Menu → « Aperçu XML » sur un drawable (`res/drawable/*.xml`) | Le drawable est RENDU (taille intrinsèque, 160 dp par défaut) sur le damier de transparence ; les types non supportés par LayoutLib (layer-list complet, ripple…) donnent l'état de leur support réel, jamais d'invention |
+| B3 | (PE3) Menu → « Aperçu XML » sur `values/*.xml` | Inventaire du fichier en tableau lisible : une ligne par entrée (`[color] nom` + nuancier coloré, `[dimen]`, `[string]`…) ; racine non `<resources>` = bandeau d'erreur lisible |
+| B4 | (PE3) Bouton « Jour »/« Nuit » de la barre de réglages | Le rendu bascule IMMÉDIATEMENT (thèmes `values-night` et ressources nuit du projet priorisés) ; un `@color` défini en jour et nuit change de couleur |
+| B5 | (PE3) Bouton de profil (ex. « Pixel 4 · 393×851dp · 440dpi ») | Cycle des profils (Pixel 4 → Pixel 7 Pro → Galaxy S24) : chaque clic relance un rendu immédiat AUX DIMENSIONS du profil (un layout `match_parent` change de largeur visiblement) |
+| B6 | (PE3) Tap simple sur une vue du rendu | L'ÉLÉMENT XML correspondant est sélectionné dans l'éditeur (span exact du `<Balise …>` fermé) ; tap sur un enfant d'un `<include>` non résolu : remonte au parent sélectionnable le plus proche, jamais de sélection inventée |
+| B7 | (PE3) Déplacer le curseur dans le XML (clic dans le texte de la vue) | La vue correspondante se SURLIGNE dans le rendu (rect couleur primaire translucide) — l'élément le plus interne contenant le curseur |
 
 ### État des lieux du catalogue 50 layouts (PE1 — en attente d'appareil)
 

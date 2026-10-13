@@ -1216,6 +1216,31 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.122.0 : **Previews PE3 — sélection bidirectionnelle, profils device,
+      jour/nuit, drawables/values previewables** (`docs/PREVIEW.md` §3.4) :
+      requête de rendu PARAMÉTRÉE `RequeteRendu` (Parcelable, AIDL
+      IRenduApercu.rendre(requete) — texte + res/ + genre + profil +
+      nuit) ; profils device (ProfilPeripherique, miroir DeviceProfile
+      DEFAULTS — densité et dimensions du PROFIL, barre de réglages,
+      changement = rendu immédiat) ; jour/nuit (setNightMode des deux
+      résolveurs, testé par PIXEL) ; dispatch PAR GENRE du pipeline
+      (drawable : DrawableResolverImpl.parse → dessin intrinsèque ;
+      values : inventaire bitmap-tableau, nuanciers, racine non
+      resources = erreur lisible — X4) ; SÉLECTION P6 : AligneurElements
+      Xml (miroir EXACT des sémantiques BridgeInflater — pré-ordre,
+      merge transparent, include résolu par le MÊME résolveur, éléments
+      externes non sélectionnables, désalignement honnête, jamais de
+      span deviné), spans dans le TEXTE ORIGINAL (sémantique parseur
+      épinglée par tests), vues (bounds+spans, InfoVueRendu) dans le
+      ResultatRendu AIDL ; tap confirmé → hit-test → Selection.range
+      dans l'éditeur (remontée ancêtre), sélection éditeur → surlignage
+      (overlay, élément le plus interne) ; moteur definirGenre/Profil/
+      Nuit = rendu immédiat ; 27 tests module (83 total — aligneur,
+      hit-test pur, moteur nuit par pixel/profils/genres, parcel) ;
+      TESTS_MANUELS B2-B7. Avant cela, v0.121.1 : correctif CI (close
+      SessionLsp attend l'arrêt EFFECTIF borné 2 s + garde ensureActive
+      avant écriture de segment + baseline parité XE5 régénérée —
+      directive AGENTS.md régénération avant push).
 - v0.115.0 : **LSP Kotlin K4 — inférence bornée, smart casts, diagnos-
       tics sémantiques, quick-fixes d'import** (`docs/LSP_KOTLIN.md` §5,
       GO propriétaire) : SmartCasts positionnels (THEN/when sans sujet/

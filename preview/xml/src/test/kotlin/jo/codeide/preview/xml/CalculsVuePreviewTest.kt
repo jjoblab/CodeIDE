@@ -52,4 +52,48 @@ class CalculsVuePreviewTest {
         assertEquals(0f, CalculsVuePreview.bornerDecalage(50f, 300f, 500f), 0f)
         assertEquals(-100f, CalculsVuePreview.bornerDecalage(-100f, 300f, 500f), 0f)
     }
+
+    @Test
+    fun `coordonnees contenu - zoom et pan inversés (hit-test P6)`() {
+        // Pan de 50, zoom 2× : le point écran (150, 110) est le point
+        // bitmap (50, 30).
+        val (x, y) =
+            CalculsVuePreview.coordonneesContenu(
+                xVue = 150f,
+                yVue = 110f,
+                decalageX = 50f,
+                decalageY = 50f,
+                echelle = 2f,
+            )
+        assertEquals(50f, x, 0f)
+        assertEquals(30f, y, 0f)
+    }
+
+    @Test
+    fun `coordonnees contenu - échelle nulle garde-fou`() {
+        val (x, y) =
+            CalculsVuePreview.coordonneesContenu(
+                xVue = 100f,
+                yVue = 100f,
+                decalageX = 0f,
+                decalageY = 0f,
+                echelle = 0f,
+            )
+        assertEquals(0f, x, 0f)
+        assertEquals(0f, y, 0f)
+    }
+
+    @Test
+    fun `coordonnees contenu - sans zoom ni pan, identité`() {
+        val (x, y) =
+            CalculsVuePreview.coordonneesContenu(
+                xVue = 12f,
+                yVue = 34f,
+                decalageX = 0f,
+                decalageY = 0f,
+                echelle = 1f,
+            )
+        assertEquals(12f, x, 0f)
+        assertEquals(34f, y, 0f)
+    }
 }

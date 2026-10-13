@@ -82,6 +82,12 @@
     <!-- Mission « Previews » PE1 : bascule du panneau d'aperçu XML (LayoutLib). -->
     <string name="editor_action_apercu">Aperçu XML</string>
     <string name="editor_action_apercu_fermer">Masquer l\'aperçu</string>
+    <!-- Mission « Previews » PE3 : réglages du panneau (profil, jour/nuit). -->
+    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
+    <string name="preview_profil_cd">Changer le profil d\'appareil de l\'aperçu</string>
+    <string name="preview_jour">Jour</string>
+    <string name="preview_nuit">Nuit</string>
+    <string name="preview_nuit_cd">Basculer l\'aperçu entre thème de jour et de nuit</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
     <string name="editor_menu_fermer_tout">Fermer tout</string>

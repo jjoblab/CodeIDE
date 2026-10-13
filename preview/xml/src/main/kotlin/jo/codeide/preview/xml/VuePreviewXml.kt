@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -13,12 +14,20 @@ import android.view.View
 import kotlin.math.min
 
 /**
- * Panneau de rendu de la preview XML (PE1 — PREVIEW.md §3.3) : dessine le
- * bitmap off-screen du [MoteurPreviewXml] avec **zoom/pan** (pincer,
- * glisser, double-tap pour réajuster) et damier de transparence, PLUS les
- * états du panneau (bandeau d'erreur en haut, signal discret d'édition,
- * accueil) — TOUT est dessiné ici (aucune vue enfant : la vue EST le
- * panneau, la bibliothèque Material n'entre pas dans ce module).
+ * Panneau de rendu de la preview XML (PE1 — PREVIEW.md §3.3, étendu PE3 :
+ * sélection P6) : dessine le bitmap off-screen du [MoteurPreviewXml] avec
+ * **zoom/pan** (pincer, glisser, double-tap pour réajuster) et damier de
+ * transparence, PLUS les états du panneau (bandeau d'erreur en haut,
+ * signal discret d'édition, accueil) — TOUT est dessiné ici (aucune vue
+ * enfant : la vue EST le panneau, la bibliothèque Material n'entre pas
+ * dans ce module).
+ *
+ * PE3/P6 : l'appui SIMPLE (confirmé — pas de conflit avec le double-tap
+ * de réajustement) est converti en coordonnées BITMAP (zoom/pan inversés)
+ * et remis à [auTap] ; les vues rendues ([afficherRendu]) portent leur
+ * span source, le contrôleur décide de la sélection. Le SURLIGNAGE de
+ * la vue sélectionnée dans l'éditeur se dessine en overlay (rect pleins
+ * bords sur les bounds de la vue).
  *
  * Le bitmap n'est jamais recyclé par la vue (le moteur peut en émettre un
  * nouveau pendant un dessin) : le GC d'ART collecte.
@@ -26,7 +35,7 @@ import kotlin.math.min
  * Le calcul d'échelle « ajuster à la vue » vit dans [CalculsVuePreview]
  * (fonctions pures, testées sans Android).
  */
-@Suppress("TooManyFunctions", "LargeClass") // Vue auto-dessinée (états, damier, bandeau, zoom) : un panneau UNE vue.
+@Suppress("TooManyFunctions", "LargeClass") // Vue auto-dessinée : un panneau UNE vue.
 public class VuePreviewXml : View {
     private var bitmap: Bitmap? = null
     private var echelle = 1f
@@ -35,6 +44,15 @@ public class VuePreviewXml : View {
     private var messageErreur: String? = null
     private var enEdition = false
     private var accueilAffiche = true
+
+    /** Vues du dernier rendu (hit-test P6 — vides hors LAYOUT). */
+    private var vues: List<InfoVueRendu> = emptyList()
+
+    /** Indice de la vue surlignée (sélection éditeur → preview, -1 aucune). */
+    private var indiceSurligne: Int = -1
+
+    /** Appui simple confirmé, en coordonnées BITMAP (contenu, pas écran). */
+    public var auTap: ((x: Float, y: Float) -> Unit)? = null
 
     private val peintDamier =
         Paint().apply {
@@ -61,6 +79,19 @@ public class VuePreviewXml : View {
         Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
+        }
+
+    /** Trait du surlignage de sélection (P6) — couleur du thème, épaisseur écran constante. */
+    private val peintSurlignage =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Fond translucide du surlignage (P6). */
+    private val peintFondSurlignage =
+        Paint().apply {
+            style = Paint.Style.FILL
         }
 
     private val detecteurZoom =
@@ -103,6 +134,21 @@ public class VuePreviewXml : View {
                     invalidate()
                     return true
                 }
+
+                override fun onSingleTapConfirmed(evenement: MotionEvent): Boolean {
+                    // P6 : coordonnées BITMAP (zoom/pan inversés) — le
+                    // contrôleur fait le hit-test et décide de la sélection.
+                    val (xContenu, yContenu) =
+                        CalculsVuePreview.coordonneesContenu(
+                            xVue = evenement.x,
+                            yVue = evenement.y,
+                            decalageX = decalageX,
+                            decalageY = decalageY,
+                            echelle = echelle,
+                        )
+                    auTap?.invoke(xContenu, yContenu)
+                    return true
+                }
             },
         )
 
@@ -118,11 +164,16 @@ public class VuePreviewXml : View {
     }
 
     /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom). */
-    public fun afficherRendu(bitmap: Bitmap) {
+    public fun afficherRendu(
+        bitmap: Bitmap,
+        vuesRendues: List<InfoVueRendu> = emptyList(),
+    ) {
         this.bitmap = bitmap
+        this.vues = vuesRendues
         messageErreur = null
         enEdition = false
         accueilAffiche = false
+        indiceSurligne = -1
         ajusterALaVue()
         invalidate()
     }
@@ -144,11 +195,27 @@ public class VuePreviewXml : View {
     /** Réinitialise (fermeture du panneau, plus de document). */
     public fun reinitialiser() {
         bitmap = null
+        vues = emptyList()
+        indiceSurligne = -1
         messageErreur = null
         enEdition = false
         accueilAffiche = true
         invalidate()
     }
+
+    /**
+     * Surligne la vue d'indice [indice] (sélection éditeur → preview,
+     * P6) ; -1 efface le surlignage. Un indice hors bornes est ignoré.
+     */
+    public fun surlignerVue(indice: Int) {
+        val borne = indice in vues.indices
+        if (indice == indiceSurligne || (indice == -1 && indiceSurligne == -1)) return
+        indiceSurligne = if (borne) indice else -1
+        invalidate()
+    }
+
+    /** Dernier arbre de vues affiché (le contrôleur y fait son hit-test). */
+    public val vuesRendues: List<InfoVueRendu> get() = vues
 
     override fun onSizeChanged(
         largeur: Int,
@@ -185,9 +252,29 @@ public class VuePreviewXml : View {
         canevas.translate(decalageX, decalageY)
         canevas.scale(echelle, echelle)
         canevas.drawBitmap(bmp, 0f, 0f, null)
+        dessinerSurlignage(canevas)
         canevas.restore()
         if (messageErreur != null) dessinerBandeauErreur(canevas)
         if (enEdition) dessinerSignalEdition(canevas)
+    }
+
+    /** Overlay de sélection P6 : rect sur les bounds de la vue surlignée. */
+    private fun dessinerSurlignage(canevas: Canvas) {
+        if (indiceSurligne !in vues.indices) return
+        val vue = vues[indiceSurligne]
+        val rect =
+            RectF(
+                vue.gauche.toFloat(),
+                vue.haut.toFloat(),
+                vue.droite.toFloat(),
+                vue.bas.toFloat(),
+            )
+        peintSurlignage.strokeWidth = LARGEUR_TRAIT_SURLIGNAGE / echelle
+        peintSurlignage.color = couleurSurlignage
+        canevas.drawRect(rect, peintSurlignage)
+        peintFondSurlignage.color =
+            (couleurSurlignage and MASQUE_COULEUR_RGB) or (COULEUR_ALPHA_SURLIGNAGE shl DECALAGE_ALPHA)
+        canevas.drawRect(rect, peintFondSurlignage)
     }
 
     /** Hauteur disponible au contenu : le bandeau d'erreur la grignote. */
@@ -302,6 +389,9 @@ public class VuePreviewXml : View {
         }
     }
 
+    /** Couleur du surlignage : la couleur primaire du thème de l'IDE. */
+    private val couleurSurlignage: Int by lazy { couleurTheme(android.R.attr.colorPrimary) }
+
     public companion object {
         private const val COULEUR_DAMIER_A = 0xFFE8E8EC.toInt()
         private const val COULEUR_DAMIER_B = 0xFFF6F6F9.toInt()
@@ -312,11 +402,40 @@ public class VuePreviewXml : View {
         private const val TAILLE_TEXTE_BANDEAU_DP = 13f
         private const val HAUTEUR_BANDEAU_DP = 36f
         private const val SUFFIXE_TRONQUE = "…"
+
+        /** Largeur du trait de surlignage en dp (épaisseur ÉCRAN constante au zoom). */
+        private const val LARGEUR_TRAIT_SURLIGNAGE = 2f
+
+        /** Alpha du fond de surlignage (0-255) — translucide, le rendu reste lisible. */
+        private const val COULEUR_ALPHA_SURLIGNAGE = 0x30
+
+        /** Masque RGB (privé du canal alpha) pour teinter le fond de surlignage. */
+        private const val MASQUE_COULEUR_RGB = 0x00FFFFFF
+
+        /** Position du canal alpha dans un ARGB int. */
+        private const val DECALAGE_ALPHA = 24
     }
 }
 
-/** Calculs de zoom/pan de la vue — fonctions pures (testées sans Android). */
+/** Calculs de zoom/pan/sélection de la vue — fonctions pures (testées sans Android). */
 internal object CalculsVuePreview {
+    /**
+     * Coordonnées BITMAP (contenu) d'un point de la vue : zoom/pan
+     * INVERSÉS (le hit-test P6 se fait dans le repère du rendu).
+     */
+    internal fun coordonneesContenu(
+        xVue: Float,
+        yVue: Float,
+        decalageX: Float,
+        decalageY: Float,
+        echelle: Float,
+    ): Pair<Float, Float> =
+        if (echelle <= 0f) {
+            Pair(0f, 0f)
+        } else {
+            Pair((xVue - decalageX) / echelle, (yVue - decalageY) / echelle)
+        }
+
     /** Échelle ajustée (fit) : le contenu ENTIER tient dans la vue ; ≥ 0,1. */
     internal fun echelleAjustee(
         largeurContenu: Int,

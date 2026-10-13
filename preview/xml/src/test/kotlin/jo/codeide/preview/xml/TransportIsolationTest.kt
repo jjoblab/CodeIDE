@@ -41,10 +41,7 @@ class TransportIsolationTest {
         var fermes: Int = 0
             private set
 
-        override suspend fun rendre(
-            texte: String,
-            dossierRes: String?,
-        ): ResultatTransport {
+        override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
             appels += 1
             if (echecsRestantes > 0) {
                 echecsRestantes -= 1
@@ -90,7 +87,7 @@ class TransportIsolationTest {
                     scope = TestScope(dispatcher),
                     fabriqueProcess = { faux },
                 )
-            val resultat = isolation.rendre(layout, null)
+            val resultat = isolation.rendre(requete())
             assertTrue(resultat is ResultatTransport.Succes)
             assertEquals(1, faux.appels)
             assertEquals(0, faux.fermes)
@@ -113,7 +110,7 @@ class TransportIsolationTest {
                     scope = TestScope(dispatcher),
                     fabriqueProcess = { faux },
                 )
-            val resultat = isolation.rendre(layout, null)
+            val resultat = isolation.rendre(requete())
             assertTrue(resultat is ResultatTransport.Succes)
             // Échec + reprise = 2 appels processus, 0 repli local.
             assertEquals(2, faux.appels)
@@ -136,7 +133,7 @@ class TransportIsolationTest {
                     scope = TestScope(dispatcher),
                     fabriqueProcess = { faux },
                 )
-            val resultat = isolation.rendre(layout, null)
+            val resultat = isolation.rendre(requete())
             // Panne + reprise en échec → repli LOCAL : le rendu est livré.
             assertTrue(
                 "le repli local doit livrer un rendu, trouvé $resultat",
@@ -146,7 +143,7 @@ class TransportIsolationTest {
             assertEquals(RegimeRendu.LOCAL_DEGRADE, isolation.regime.value)
             // Session désactivée : les rendus suivants ne touchent PLUS
             // le processus (0 appel supplémentaire).
-            val suivant = isolation.rendre(layout, null)
+            val suivant = isolation.rendre(requete())
             assertTrue(suivant is ResultatTransport.Succes)
             assertEquals(2, faux.appels)
             isolation.close()
@@ -164,7 +161,7 @@ class TransportIsolationTest {
                     scope = TestScope(dispatcher),
                     fabriqueProcess = { faux },
                 )
-            isolation.rendre(layout, null)
+            isolation.rendre(requete())
             // 59 999 ms : la veille (60 s) n'a PAS encore tiré.
             advanceTimeBy(DELAI_IDLE_MS - 1)
             assertEquals("pas encore d'idle", 0, faux.fermes)
@@ -172,7 +169,7 @@ class TransportIsolationTest {
             advanceTimeBy(2)
             assertEquals("déliaison attendue à l'idle", 1, faux.fermes)
             // Un rendu POSTÉRIEUR relance la liaison (rebind paresseux).
-            val resultat = isolation.rendre(layout, null)
+            val resultat = isolation.rendre(requete())
             assertTrue(resultat is ResultatTransport.Succes)
             assertEquals(2, faux.appels)
             isolation.close()
@@ -190,8 +187,18 @@ class TransportIsolationTest {
                     scope = TestScope(dispatcher),
                     fabriqueProcess = { faux },
                 )
-            isolation.rendre(layout, null)
+            isolation.rendre(requete())
             isolation.close()
             assertEquals(1, faux.fermes)
         }
+
+    /** Requête de test : le petit layout, repli natif (pas de res/). */
+    private fun requete(): RequeteRendu =
+        RequeteRendu(
+            texte = layout,
+            dossierRes = null,
+            genre = GenrePreview.LAYOUT,
+            profil = ProfilPeripherique.PAR_DEFAUT,
+            nuit = false,
+        )
 }
