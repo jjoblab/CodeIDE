@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.123.0] – 2026-10-14
+
+### Ajouté
+
+- **PE4 — audit des limitations LayoutLib v2.2.0 livré** (`docs/adr/0116-pe4-limitations-layoutlib-v2-2-0-et-priorisation.md`,
+  `docs/PREVIEW.md` §PE4, `docs/TESTS_MANUELS.md` §« Limitations
+  LayoutLib v2.2.0 connues »). Premier livrable de la mission PE4
+  (continue) : état réel des limitations vérifié au code source de
+  LayoutLib au tag `v2.2.0` (le tag épinglé dans `gradle/libs.versions.toml`
+  et substitué par build composite dans `settings.gradle.kts`).
+  - **6 limitations toujours absentes** : qualifiers de langue
+    (`values-fr/`/`values-en/`), `<layer-list>`/`<ripple>`/`<inset>`/
+    `<bitmap>` (retournent `null` dans `DrawableResolverImpl.parse`),
+    `<animated-vector>`, `<adaptive-icon>`, `applyCustomAttributes`
+    (stub dans `AttributeRegistryImpl`), `LayoutInflater.Factory2`,
+    `LayoutTransition`/`ViewTreeObserver`.
+  - **3 limitations partiellement rattrapées** : qualifiers `sw600dp`
+    (`SmallestScreenWidthQualifier.java` existe, à vérifier en intégration),
+    `VectorDrawable` pathData (`VectorParser.java` lit `pathData`),
+    ConstraintLayout (`ConstraintSolver` maison gère parent/vue/biais/
+    pourcentage, mais le solver Cassowary complet dans le package
+    `cassowary/` n'est PAS câblé à `ConstraintSolver` — `LayoutEngine`
+    le mentionne en commentaire sans l'invoquer).
+  - **1 limitation à clarifier** : `?attr/` vers drawables (audit
+    rapide insuffisant).
+  - **Priorisation fondée sur l'usage CodeIDE réel** : P0 = layer-list/
+    ripple (très fréquents dans les projets Android), P1 = qualifiers
+    de langue (cohérence i18n CodeIDE), P2 = ConstraintLayout Cassowary
+    (ConstraintLayout est le layout par défaut des nouveaux projets
+    Android Studio), P3-P6 = limitations négligeables en preview statique.
+  - **Aucun changement de code de production** : le pipeline de preview
+    reste tolérant (placeholder neutre, dernier rendu valide conservé,
+    philosophie PE1 X4). Aucun bump LayoutLib (aucun tag publié au-delà
+    de v2.2.0 — `git log --oneline --all` sur le clone `--unshallow`
+    ne montre aucun commit au-delà de `3ed0185 build: toolchain alignée
+    sur CodeIDE`).
+  - **Remontée à l'auteur** : issues GitHub à ouvrir côté `jjoblab/LayoutLib`
+    pour P0/P1/P2 (4 issues P0 — une par type de drawable manquant —
+    plus P1 langue plus P2 Cassowary câblage). Le caractère continu de
+    la mission est préservé : tout nouveau tag LayoutLib déclenchera un
+    nouvel audit + bump éventuel.
+
 ## [0.122.2] – 2026-10-14
 
 ### Changements
