@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.124.2] – 2026-10-14
+
+### Corrigé
+
+- **Phase B Prompt 1 — lot E3b + E4 + E6** : premiers correctifs
+  EditorActivity (prompt 1 Phase A livrée en v0.124.1, ADR 0118 à venir).
+  - **E3b (mode de redimensionnement non défini)** : `EditorActivity`
+    déclare désormais explicitement `android:windowSoftInputMode=
+    "adjustResize"` dans `feature/editor/src/main/AndroidManifest.xml`
+    (était absent — seul `MainActivity` le déclarait). Les insets IME
+    sont désormais livrés de manière fiable par le système (le détecteur
+    de hauteur de secours dans `observerClavier` reste en place pour
+    API 26-29 où les insets IME peuvent être silencieux — ADR 0114 §6).
+  - **E4 (touches qui traversent)** : `panneau_inferieur` ( LinearLayout
+    racine du bottom sheet dans `activity_editor.xml`) est désormais
+    `android:clickable="true"` et `android:focusable="true"`. Une touche
+    tombant sur une zone du sheet qu'aucun enfant ne consomme (en-tête,
+    espaces, contenu non cliquable) ne remonte plus au frère `zone_centrale`
+    et donc à l'`EditorView` — fini le curseur déplacé, le focus volé et
+    le clavier ouvert par erreur. Le glissement du sheet (géré par
+    `BottomSheetBehavior`), le défilement imbriqué des fragments et les
+    boutons de l'en-tête ne sont pas affectés.
+  - **E6 (thème et manifeste — partie manifeste)** :
+    `windowSoftInputMode="adjustResize"` posé (cf. E3b). La partie
+    « style des barres système via `enableEdgeToEdge(SystemBarStyle...)` »
+    et « contraste forcé désactivé » reste à livrer dans un lot
+    ultérieur (E2 + E6 complet) — elles nécessitent la nouvelle classe
+    `GestionnaireInsetsEditeur` (E1).
+  - **Vérification locale incrémentale** (directive v0.124.2 du 14/10/2026) :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:lintDebug` ✅, `:feature:editor:testDebugUnitTest` ✅,
+    `checkModuleDependencies` ✅. Environnement de build installé via
+    `scripts/setup-env.sh` (JDK Temurin 21 + Android SDK cmdline-tools +
+    platform 37.2 + build-tools 36.0.0 + Gradle 9.7.1 via wrapper).
+
 ## [0.124.1] – 2026-10-14
 
 ### Ajouté

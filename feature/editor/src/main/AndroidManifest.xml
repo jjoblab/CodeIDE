@@ -19,7 +19,8 @@
         <activity
             android:name="jo.codeide.feature.editor.EditorActivity"
             android:exported="false"
-            android:label="@string/editor_title" />
+            android:label="@string/editor_title"
+            android:windowSoftInputMode="adjustResize" />
 
         <service
             android:name="jo.codeide.feature.editor.ToolingService"
