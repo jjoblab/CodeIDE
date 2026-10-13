@@ -226,6 +226,128 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     // v0.102.0 — lot h4, les deux écarts réels (§16.5).
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // v0.116.0 — K5 : ANR e7dd5a7 (v0.115.0 sur appareil), le
+    // nourrissage de classpath vit sur le répartiteur d'E/S INJECTÉ,
+    // jamais sur le thread principal (trace : restaurerEtatSync →
+    // appliquerClasspath → IndexAppelablesKotlin sur « main »).
+    // ------------------------------------------------------------------
+
+    /**
+     * Répartiteur d'E/S qui journalise le NOM DU THREAD d'exécution —
+     * la preuve du test n'est pas « ça finit » mais « ça finit HORS du
+     * thread principal » (un `withContext` mal branché finirait aussi,
+     * sur le thread du planificateur de test).
+     */
+    private class DispatcheursAnr(
+        threads: MutableSet<String>,
+    ) : jo.codeide.core.domain.DispatcherProvider {
+        private val executeur =
+            java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "io-anr").apply { isDaemon = true }
+            }
+
+        override val io: kotlinx.coroutines.CoroutineDispatcher =
+            object : kotlinx.coroutines.CoroutineDispatcher() {
+                override fun dispatch(
+                    context: kotlin.coroutines.CoroutineContext,
+                    block: Runnable,
+                ) {
+                    executeur.execute {
+                        threads.add(Thread.currentThread().name)
+                        block.run()
+                    }
+                }
+            }
+
+        override val default: kotlinx.coroutines.CoroutineDispatcher =
+            kotlinx.coroutines.Dispatchers.Unconfined
+
+        override val main: kotlinx.coroutines.CoroutineDispatcher =
+            kotlinx.coroutines.Dispatchers.Unconfined
+
+        /** Arrête le thread dédié (le test rend ses ressources). */
+        fun arreter() {
+            executeur.shutdown()
+        }
+    }
+
+    @Test
+    fun `le nourrissage de classpath s execute hors du thread principal`() =
+        runTest {
+            // Corps long par construction (scénario complet + attente
+            // bornée du thread dédié) — extraction ciblée ci-dessous.
+            horsDuThreadPrincipal()
+        }
+
+    /** Scénario de l'ANR e7dd5a7 : le nourrissage finit HORS du principal. */
+    @Suppress("LongMethod")
+    private suspend fun horsDuThreadPrincipal() {
+        val threads =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<String>()
+        val dispatcheurs = DispatcheursAnr(threads)
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        tooling.prochaineSynchronisation =
+            AppResult.Success(
+                ResultatSynchronisation(
+                    projectDir = "/fuse/projets/HorsPrincipal",
+                    reussie = true,
+                    dureeMs = 1_000,
+                ),
+            )
+        resultatClasspathBrut =
+            ClasspathResult(
+                id = "test-anr",
+                protocolVersion = 8,
+                projectDir = "/fuse/projets/HorsPrincipal",
+                modules = emptyList(),
+            )
+        val id = ajouterProjet("HorsPrincipal")
+        val viewModel =
+            viewModel(
+                id,
+                SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                ResolveurCheminFuse { "/fuse/projets/HorsPrincipal" },
+                dispatcheurs,
+            )
+        avancer()
+
+        // Le coroutine du ViewModel s'arrête sur withContext(io) :
+        // avancer() ne l'exécute PAS (thread RÉEL dédié). On attend
+        // borné la fin du nourrissage ET sa reprise sur le principal
+        // (journal écrit à la reprise) — le motif même de l'ANR : le
+        // thread principal n'attend JAMAIS ce travail.
+        val session = viewModel.sessionLsp.value
+        assertNotNull("la session devait s'ouvrir", session)
+        var borne = 200
+        while (borne-- > 0 &&
+            (
+                session?.modele?.value == null ||
+                    journalViewModel.entries.none { it.message.contains("session LSP nourrie") }
+            )
+        ) {
+            Thread.sleep(25)
+            avancer()
+        }
+        try {
+            assertNotNull(
+                "le classpath devait être appliqué (hors du principal)",
+                session?.modele?.value,
+            )
+            assertTrue(
+                "l'application devait tourner sur le répartiteur d'E/S dédié, pas le thread principal : $threads",
+                threads.contains("io-anr"),
+            )
+            assertTrue(
+                "le journal confirme le nourrissage",
+                journalViewModel.entries.any { it.message.contains("session LSP nourrie") },
+            )
+        } finally {
+            dispatcheurs.arreter()
+        }
+    }
+
     @Test
     fun `l ouverture branche le android jar de la toolchain au moteur par defaut`() =
         runTest {
