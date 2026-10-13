@@ -122,16 +122,55 @@
                             android:layout_weight="1"
                             android:visibility="gone" />
 
-                        <!-- Aperçu XML (PE1) : bitmap off-screen rendu par le
+                        <!-- Aperçu XML (PE1 → PE3) : bitmap off-screen rendu par le
                              moteur :preview:xml sur fil dédié — zoom/pan,
                              damier de transparence, bandeau d'erreur, le
-                             dernier rendu valide reste pendant les frappes. -->
-                        <jo.codeide.preview.xml.VuePreviewXml
-                            android:id="@+id/vue_preview"
+                             dernier rendu valide reste pendant les frappes.
+                             PE3 : barre de réglages (profil device, jour/nuit)
+                             au-dessus du rendu, sélection bidirectionnelle
+                             (tap → span source, sélection → surlignage). -->
+                        <LinearLayout
+                            android:id="@+id/colonne_apercu"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
                             android:layout_weight="1"
-                            android:visibility="gone" />
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <LinearLayout
+                                android:id="@+id/barre_reglages_apercu"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="@dimen/spacing_sm"
+                                android:paddingEnd="@dimen/spacing_sm">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/bouton_profil_apercu"
+                                    style="@style/Widget.Material3.Button.TextButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:contentDescription="@string/preview_profil_cd"
+                                    android:text="@string/preview_profil" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/bouton_nuit_apercu"
+                                    style="@style/Widget.Material3.Button.TextButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:contentDescription="@string/preview_nuit_cd"
+                                    android:text="@string/preview_jour" />
+                            </LinearLayout>
+
+                            <jo.codeide.preview.xml.VuePreviewXml
+                                android:id="@+id/vue_preview"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator

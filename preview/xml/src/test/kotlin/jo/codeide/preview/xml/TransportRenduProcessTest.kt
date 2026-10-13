@@ -83,7 +83,7 @@ class TransportRenduProcessTest {
             val liaison = LiaisonFausse()
             val transport = TransportRenduProcess(liaison)
             assertEquals("aucune liaison avant demande", 0, liaison.liaisons)
-            val resultat = transport.rendre(layout, null)
+            val resultat = transport.rendre(requete())
             assertTrue("succès attendu, trouvé $resultat", resultat is ResultatTransport.Succes)
             resultat as ResultatTransport.Succes
             assertTrue(resultat.bitmap.width > 0)
@@ -96,13 +96,13 @@ class TransportRenduProcessTest {
         runBlocking {
             val liaison = LiaisonFausse()
             val transport = TransportRenduProcess(liaison)
-            assertTrue(transport.rendre(layout, null) is ResultatTransport.Succes)
+            assertTrue(transport.rendre(requete()) is ResultatTransport.Succes)
             assertEquals(1, liaison.liaisons)
             // Le processus :preview MEURT (OS / crash de vue) : le
             // DeathRecipient invalide la liaison — la demande suivante
             // RELANCE (bind) et réussit.
             liaison.tuer()
-            val resultat = transport.rendre(layout, null)
+            val resultat = transport.rendre(requete())
             assertTrue("relance attendue, trouvé $resultat", resultat is ResultatTransport.Succes)
             assertEquals("deux liaisons (relance)", 2, liaison.liaisons)
             transport.close()
@@ -113,8 +113,18 @@ class TransportRenduProcessTest {
         runBlocking {
             val liaison = LiaisonFausse()
             val transport = TransportRenduProcess(liaison)
-            transport.rendre(layout, null)
+            transport.rendre(requete())
             transport.close()
             assertEquals(1, liaison.deliaisons)
         }
+
+    /** Requête de test : petit layout, repli natif. */
+    private fun requete(): RequeteRendu =
+        RequeteRendu(
+            texte = layout,
+            dossierRes = null,
+            genre = GenrePreview.LAYOUT,
+            profil = ProfilPeripherique.PAR_DEFAUT,
+            nuit = false,
+        )
 }

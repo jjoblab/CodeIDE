@@ -39,12 +39,9 @@ public class ServicePreview : Service() {
 
     override fun onBind(intention: Intent): IBinder =
         object : IRenduApercu.Stub() {
-            override fun rendre(
-                xml: String,
-                dossierRes: String?,
-            ): ResultatRendu =
+            override fun rendre(requete: RequeteRendu): ResultatRendu =
                 synchronized(verrou) {
-                    rendu.rendre(xml, dossierRes, compresser = true).rendu
+                    rendu.rendre(requete, compresser = true).rendu
                 }
         }
 

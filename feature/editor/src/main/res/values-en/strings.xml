@@ -76,6 +76,12 @@
     <!-- Mission « Previews » PE1 : XML preview panel toggle (LayoutLib). -->
     <string name="editor_action_apercu">XML preview</string>
     <string name="editor_action_apercu_fermer">Hide preview</string>
+    <!-- Mission « Previews » PE3 : panel settings (profile, day/night). -->
+    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
+    <string name="preview_profil_cd">Change the preview device profile</string>
+    <string name="preview_jour">Day</string>
+    <string name="preview_nuit">Night</string>
+    <string name="preview_nuit_cd">Toggle the preview between day and night theme</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
     <string name="editor_menu_fermer_tout">Close all</string>

@@ -1,5 +1,76 @@
 # Journal des modifications
 
+## [0.122.0] – 2026-10-14
+
+### Ajouté
+
+- **Previews XML — étape PE3 : sélection/inspection bidirectionnelle,
+  profils device, jour/nuit, drawables/values previewables**
+  (`docs/PREVIEW.md` §3.4, cible v0.122.0 — P6 + fin de la ligne
+  « classification sans rendu » de PE1) :
+  - **Demande de rendu PARAMÉTRÉE** ([RequeteRendu] Parcelable, AIDL
+    `IRenduApercu.rendre(requete)`) : texte + `res/` + GENRE + profil
+    d'appareil + régime jour/nuit — le transport (local et processus)
+    et le service `:preview` consomment la même requête ; frontière
+    inchangée côté politique d'isolation (PE2 intact).
+  - **Profils device** ([ProfilPeripherique], miroir de
+    `DeviceProfile.DEFAULTS` LayoutLib : Pixel 4, Pixel 7 Pro, Galaxy
+    S24) : la mesure, le layout et le `DimensionConverter` vivent à la
+    densité et aux dimensions du PROFIL, plus de celles de la machine
+    qui exécute l'IDE ; barre de réglages au-dessus du rendu (bouton
+    cyclique, libellé « nom · dp · dpi »), changement = rendu immédiat.
+  - **Jour/nuit** : `ThemeResolverImpl`/`ResourceResolverImpl`
+    `setNightMode` appliqués aux deux résolveurs à chaque
+    (re)configuration (thèmes `values-night` ET ressources qualifiées) ;
+    test de non-régression par PIXEL (`@color/fond` rouge le jour, bleu
+    la nuit) ; bascule par bouton, rendu immédiat.
+  - **Drawables/values previewables** : le pipeline dispatche PAR GENRE —
+    DRAWABLE : `DrawableResolverImpl.parse` → dessin à la taille
+    intrinsèque (160 dp par défaut) sur le damier de transparence ;
+    VALEURS : inventaire lisible en bitmap-tableau (une ligne par
+    entrée, nuancier pour les couleurs, troncature honnête à 96 entrées
+    avec pied explicite) ; racine non `resources` = erreur lisible,
+    jamais un rendu inventé (X4). L'état « rendu réservé à PE3 » de
+    TESTS_MANUELS B2 est levé.
+  - **Sélection bidirectionnelle P6** :
+    - *preview → éditeur* : tap confirmé sur le rendu → coordonnées
+      bitmap (zoom/pan inversés, [CalculsVuePreview.coordonneesContenu])
+      → hit-test sur les bounds ABSOLUS du `ViewInfoCollector`
+      LayoutLib → **span source exact de l'élément sélectionné dans
+      l'éditeur** (`EditorSession.setSelection(Selection.range(...))`),
+      en remontant à l'ancêtre sélectionnable (comme Android Studio) ;
+    - *éditeur → preview* : `EditorView.OnSelectionChangedListener` →
+      surlignage de la vue à l'élément le plus INTERNE contenant le
+      curseur (overlay rect couleur primaire, translucide) ;
+    - **l'alignement** ([AligneurElementsXml], pur) : miroir exact des
+      sémantiques de `BridgeInflater` (une vue par élément producteur,
+      pré-ordre, `<merge>` transparent, `<requestFocus>`/`<blink>`
+      sautés, `<include>` résolu par le MÊME `ResourceResolver` que
+      l'inflater et marché en place — éléments externes non
+      sélectionnables) ; les SPANS sont calculés dans le texte ORIGINAL
+      (sémantique (ligne, colonne) du parseur épinglée par tests :
+      position juste après le `>`, début par recherche arrière du `<`,
+      interdit dans les valeurs d'attribut) ; include non résoluble
+      (repli natif) → désalignement honnête : plus AUCUNE sélection au
+      delà (jamais de span deviné — X4) ; écart de séquence vues/éléments
+      → sélection entièrement désarmée ;
+    - les vues rendues voyagent dans [ResultatRendu] (`InfoVueRendu`
+      Parcelable : bounds absolus, libellé, span, indice de parent,
+      profondeur — arbre aplati en pré-ordre) à travers la frontière
+      AIDL.
+  - Moteur : `definirGenre`/`definirProfil`/`definirNuit` — tout
+    changement de paramètre relance un rendu IMMÉDIAT (l'utilisateur a
+    agi, la réponse suit) ; genre poussé par la classification du
+    contrôleur à chaque changement d'onglet.
+  - Tests : 27 nouveaux au module `:preview:xml` (83 au total) —
+    aligneur (spans exacts, merge, include résolu/échoué, attributs
+    exotiques), hit-test pur (profondeur, remontée, dégénérés, mapping
+    curseur), moteur (spans P6 dans l'état, profil = nouvelles
+    dimensions, nuit par PIXEL, genres drawable/values/erreur),
+    coordonnées contenu, parcel `vues` — + chaîne locale complète
+    (spotless, detekt, checkModuleDependencies, lintDebug, koverVerify,
+    tests des modules touchés, assembleDebug).
+
 ## [0.121.1] – 2026-10-13
 
 ### Corrigé
