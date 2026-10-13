@@ -1,5 +1,58 @@
 # Journal des modifications
 
+## [0.124.1] – 2026-10-14
+
+### Ajouté
+
+- **Phase A — Prompt 1 EditorActivity : audit des constats et plan de
+  correctif** livré en phase A (prompt 1 du 2026-10-13, « EditorActivity
+  bottom sheet, clavier, barre de navigation »). **Aucun code de
+  production modifié** — la phase B (implémentation E1-E7 + tests)
+  nécessite un environnement de build Android non disponible dans cette
+  session.
+  - **Audit complet** (`docs/audit/EDITORACTIVITY_PHASE_A.md`) :
+    vérification au code v0.124.0 de chacun des 5 constats du tableau
+    §2 du prompt (originellement rédigé pour v0.115.0). **5 constats
+    confirmés sur 5** avec preuves `fichier:ligne` :
+    - #1 (éditeur masqué) : `appliquerReservePanneau` ne prend que
+      `peekHeight` sans inset barre de navigation ; peek dynamique
+      (`majPeekPanneau`).
+    - #1b (désalignements glissement) : `appliquerEchelleSheet`
+      `scaleX`/`scaleY` sur `vue_editeur` avec `LAYER_TYPE_HARDWARE`,
+      échelle part du centre (pivot par défaut Android), popups ne
+      suivent pas.
+    - #2 (touches traversent) : `panneau_inferieur` (activity_editor.xml
+      L358-369) n'est ni `clickable` ni `focusable`.
+    - #3 (bug clavier) : `appliquerClavier` bascule
+      `panneau.isVisible` + écrit `comportementPanneau.state` en plein
+      relayout ; 3 sources d'état clavier (insets IME, hauteur root,
+      animation IME) écrivent concurremment ; `clavierParInsets = ime
+      > 0` reste vrai jusqu'à la dernière trame de fermeture.
+    - #3b (mode redimensionnement non défini) :
+      `feature/editor/src/main/AndroidManifest.xml` EditorActivity n'a
+      ni `windowSoftInputMode` ni thème.
+    - #4 (barre navigation) : `brancherInsets` ne traite que toolbar
+      (top) + tiroir (marges) ; aucun inset `systemBars().bottom` pour
+      `zone_centrale` ni pour le sheet ; `enableEdgeToEdge()` sans
+      style explicite ; `gestureInsetBottomIgnored` jamais réglé ;
+      aucune référence à `navigationBarColor` /
+      `windowLightNavigationBar` / `isNavigationBarContrastEnforced`.
+  - **Constat TiroirPoussantLayout / calque poignée INFIRMÉ** : ces
+    composants vivent hors de la zone sheet — pas d'interaction avec
+    les symptômes #1 à #4. Confirmation par lecture.
+  - **Plan de correctif E1-E7 détaillé** : pour chaque exigence,
+    fichiers touchés, risques, et propositions concrètes. **Aucune
+    ligne de code modifiée** — la phase B (implémentation) nécessite
+    un environnement de build Android (SDK + Gradle) non disponible
+    dans cette session d'audit.
+  - **Tests proposés** : unitaires du calculateur de réserve, Robolectric
+    (touches, cycle clavier), tests manuels appareil (7 recettes à
+    ajouter à `docs/TESTS_MANUELS.md`).
+  - **Limites de l'audit** : sources Material 1.14.0 non lues (pas de
+    cache Gradle), sources `code-editor` 3.69.0 non lues pour
+    `EditorView.ensureCursorVisible()`, tests Robolectric non écrits,
+    aucun appareil Android disponible.
+
 ## [0.124.0] – 2026-10-14
 
 ### Ajouté
