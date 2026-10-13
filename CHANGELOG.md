@@ -1,5 +1,60 @@
 # Journal des modifications
 
+## [0.124.3] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 1 — lot E1 + E2 + E3 (GestionnaireInsetsEditeur)** :
+  nouvelle classe dédiée `GestionnaireInsetsEditeur` qui centralise la
+  consommation des insets pour l'espace de travail, extraite
+  d'`EditorActivity` (2 717 lignes) sur le patron de
+  `PanneauToolingController`. L'activité ne garde que le cycle de vie et
+  la collecte — le gestionnaire reçoit les insets une seule fois et
+  pilote les trois consommateurs.
+  - **E1 (propriétaire des insets)** : `GestionnaireInsetsEditeur`
+    consomme les insets de barre de navigation (et gauche/droite en
+    paysage) pour la colonne centrale et pour le sheet, en plus de la
+    toolbar et du tiroir (inchangés). La fonction pure
+    `calculerReserveEditeur(peek, insetNavigation, insetIme,
+    clavierOuvert)` est testée unitairement (12 tests couvrent tous les
+    états du sheet × clavier ouvert/fermé × avec/sans inset de
+    navigation × peek dynamique × cas dégénérés).
+  - **E2 (barre de navigation)** : le fond opaque du sheet descend
+    désormais jusqu'au bord bas de l'écran (padding interne bas =
+    `insetNavigation`), son contenu et son en-tête replié restent
+    AU-DESSUS de la barre de navigation (l'ancien `appliquerReservePanneau`
+    ne prenait que `peekHeight` sans inset navigation — l'en-tête replié
+    de 48 dp se retrouvait sous la barre, hors de portée du doigt).
+    Fonctionne en navigation par gestes ET à trois boutons, en portrait
+    et paysage (insets gauche/droite traités). La partie « style des
+    barres système via `enableEdgeToEdge(SystemBarStyle...)` » et
+    « contraste forcé désactivé » reste à livrer dans un lot ultérieur
+    (E6 complet) — nécessite plus de refactor.
+  - **E3 (réserve sous l'éditeur)** : sheet replié, la réserve =
+    `peekHeight + insetNavigation` (au lieu de `peekHeight` seul) — la
+    dernière ligne et le curseur ne sont jamais masqués, y compris
+    quand le peek change (ligne tooling qui apparaît) et quand les
+    insets changent (rotation, pli d'écran). Mi-hauteur/étendu :
+    décision v0.80.2 préservée (zone d'édition de taille constante).
+  - **`EditorActivity.appliquerReservePanneau`** délègue désormais au
+    gestionnaire (au lieu d'écrire directement
+    `liaison.zoneCentrale.updatePadding(bottom = peekHeight)`). Tous les
+    sites d'appel existants (callbacks `onStateChanged`, `surPeekChange`
+    du `PanneauToolingController`) restent inchangés — ils appellent
+    toujours `appliquerReservePanneau`, qui route vers le gestionnaire.
+  - **Tests** : 12 tests unitaires purs (JVM, pas de Robolectric) de la
+    fonction `calculerReserveEditeur` — tous les états du sheet ×
+    clavier ouvert/fermé × avec/sans inset de navigation × peek
+    dynamique × cas dégénérés (peek nul, IME nul, sans barre).
+  - **Vérification locale incrémentale** (directive v0.124.2) :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅, `:feature:editor:testDebugUnitTest`
+    ✅ (12 nouveaux tests passent), `checkModuleDependencies` ✅.
+    `:feature:editor:koverVerify` non lancé en local (OOM sur 4 Go
+    RAM — la compilation release requise par kover dépasse le budget
+    mémoire de la sandbox ; la CI GitHub le validera avec 16 Go).
+
 ## [0.124.2] – 2026-10-14
 
 ### Corrigé
