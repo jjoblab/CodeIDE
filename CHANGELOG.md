@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.120.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP XML — étape XE4 : manifest, complétion values (styles/thèmes)
+  et quick-fixes** (`docs/LSP_XML.md` §5 — dernière étape de la
+  mission) :
+  - **Règles de manifest** : `xml.manifestSansPackage` (racine
+    `<manifest>` sans attribut `package`) et `xml.composantSansNom`
+    (composant d'`<application>` — activity, activity-alias, service,
+    receiver, provider — sans `android:name`) ; genre déduit de l'URI
+    (`AndroidManifest.xml`), conservatoire X4 (un manifest non
+    reconnu comme tel ne passe jamais dans ces règles).
+  - **Règle `xml.tagInconnu`** (décision X4, la couture
+    CONSERVATRICE) : une balise de classe n'est signalée ERREUR que
+    si le catalogue plateforme ET la vue de noms du classpath (projet
+    compris — l'index fusion porte les classes du projet) sont TOUS
+    d'accord pour dire qu'elle n'existe pas ; catalogue ou vue
+    absents (index froid) = SILENCE total — jamais de « classe
+    inconnue » à chaud ; les balises SPÉCIALES (merge, include,
+    requestFocus…) et pleinement QUALIFIÉES restent couvertes par la
+    vue de noms.
+  - **Complétion du genre VALUES** (`CompletionEntreesXml`, même
+    moteur, catalogue distinct — §4.3) : balises d'entrées nommées
+    (string, plurals, color, dimen, style, declare-styleable, font,
+    attr… + `item` proposé sous un style), attributs d'entrée
+    (`name` en tête, `parent`, `translatable`, `format`) et VALEUR
+    de `parent=` — styles du PROJET (index ressources) puis thèmes
+    du FRAMEWORK (`@android:style/…`, public-final) ; le manifest
+    reste sans complétion (règles seules, X4).
+  - **QUICK-FIXES `textDocument/codeAction`** : le moteur rend des
+    éditions NEUTRES (`CorrectifXml`/`EditionXml`, miroir de
+    `importsCandidats` Kotlin — le moteur possède la SÉMANTIQUE,
+    l'hôte le document LSP) que l'hôte traduit en CodeAction :
+    `xml.manqueXmlnsAndroid` → insertion `xmlns:android="…"` juste
+    après le nom de racine ; `xml.tagInconnu` → « did you mean »
+    (préfixe commun le plus long, puis Levenshtein BORNÉE, plafond
+    4 candidats — ouvrante ET fermante renommées d'un seul geste).
+    Capacité `codeActionProvider` déclarée ; codes hors `xml.*`
+    ignorés (jamais de quick-fix pour un diagnostic étranger).
+  - 152 tests module (+22 : règles manifeste, balise inconnue avec
+    gardes, complétion values, correctifs insertion/renommage) ;
+    71 tests hôte (codeAction en intégration — insertion xmlns
+    complète traduite, garde code étranger).
+
 ## [0.119.0] – 2026-10-13
 
 ### Ajouté
