@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.124.4] – 2026-10-14
+
+### Corrigé
+
+- **Phase B Prompt 1 — lot E5 (clavier)** : le sheet n'est plus masqué
+  via `panneau.isVisible = false/true` (saut brutal à la dernière trame
+  de fermeture, car `clavierParInsets = ime > 0` restait vrai jusqu'à
+  la dernière trame — cf. audit v0.124.1 §1 constat #3).
+  - **Nouvelle approche** : le sheet est TRANSLATÉ verticalement via
+    `translationY`. Clavier ouvert, le sheet glisse vers le bas de la
+    hauteur de l'IME (il reste « posé » sous le clavier, invisible mais
+    pas GONE) ; clavier fermé, `translationY` revient à 0. L'animation
+    est continue via `onProgress` du `WindowInsetsAnimationCompat.Callback`
+    (déjà en place, cf. `observerClavier`).
+  - **Aucune écriture de `comportementPanneau.state` pendant l'animation**
+    : l'ancien `restaurerEtatPanneau` était appelé en plein relayout et
+    causait des sauts (`comportementPanneau.state = cible` en pleine
+    fermeture du clavier). La fonction `restaurerEtatPanneau` est
+    SUPPRIMÉE — l'état du sheet (replié/mi-hauteur/étendu) est préservé
+    à l'identique pendant toute la durée du cycle clavier, le sheet
+    reste à sa position (COLLAPSED/HALF_EXPANDED/EXPANDED).
+  - **Exigences E5 respectées** : animation continue pendant
+    l'ouverture ET la fermeture (aucun saut à la dernière trame) ;
+    un seul détecteur de clavier (le détecteur de hauteur de secours
+    reste pour API 26-29, isolé et commenté) ; état du sheet préservé
+    après un cycle clavier ; aucune écriture de `state` pendant une
+    animation.
+  - **Patron ADR 0056 décision 2 préservé** : la barre de symboles se
+    colle au clavier via le padding IME (l'éditeur prime pendant la
+    frappe), le sheet s'efface visuellement (translationY) sans être
+    GONE.
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅, `:feature:editor:testDebugUnitTest`
+    ✅ (avec `--rerun-tasks` pour éviter le cache de configuration
+    stale), `checkModuleDependencies` ✅.
+
 ## [0.124.3] – 2026-10-14
 
 ### Ajouté
