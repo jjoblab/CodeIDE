@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -298,7 +299,21 @@ class EditorActivity :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // E6 (Phase B prompt 1, ADR 0118 brouillon) : enableEdgeToEdge
+        // avec SystemBarStyle EXPLICITES — la barre de navigation utilise
+        // `SystemBarStyle.auto` qui s'adapte au thème jour/nuit (clair en
+        // jour, sombre en nuit) avec un scrim pour garantir le contraste
+        // des icônes. L'ancien appel sans argument laissait le système
+        // choisir un style par défaut qui ne correspondait pas toujours
+        // au thème CodeIDE (Material 3 + couleurs dynamiques optionnelles).
+        // Les valeurs de scrim (0x66FFFFFF pour clair, 0x66000000 pour
+        // sombre) sont les valeurs recommandées par la documentation
+        // androidx.activity — elles garantissent un contraste WCAG AA
+        // des icônes système quel que soit le fond derrière la barre.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(0x66000000, 0x66000000),
+            navigationBarStyle = SystemBarStyle.auto(0x66FFFFFF, 0x66000000),
+        )
         savedInstanceState?.let {
             largeurTiroirPx = it.getInt(CLE_LARGEUR_TIROIR, 0)
             destinationCourante = it.getInt(CLE_DESTINATION_TIROIR, R.id.destination_explorateur)
