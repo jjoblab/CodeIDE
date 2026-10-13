@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Panneau de détail de l'indexation (Phase B prompt 2, ADR 0117 §4.4 —
+  lot B6). BottomSheetDialogFragment affiché au toucher de la pastille de
+  toolbar (lot B5).
+
+  Structure (miroir de la maquette HTML docs/mockups/indexation/) :
+  - en-tête (icône d'état + titre + sous-titre)
+  - barre de progression (déterminée ou indéterminée)
+  - compteur « n / N »
+  - liste de travail (RecyclerView, hauteur bornée)
+  - vue par moteur (section Java + Kotlin à venir)
+  - bilan du dernier passage (au repos)
+  - note d'impact utilisateur
+  - boutons d'action (Réindexer / Réessayer les échecs / Annuler)
+
+  Couleurs : toutes par tokens (?attr/color*, @color/codeide_*), aucune
+  couleur en dur (règle 3 du prompt maître).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingBottom="28dp"
+    android:paddingTop="12dp">
+
+    <!-- Poignée de glissement. -->
+    <View
+        android:layout_width="32dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="?attr/colorOutlineVariant" />
+
+    <!-- En-tête : icône d'état + titre + sous-titre. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <jo.codeide.feature.editor.VuePointIndexation
+            android:id="@+id/icone_etat_detail"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="12dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/titre_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                tools:text="Indexation en cours" />
+
+            <TextView
+                android:id="@+id/sous_titre_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Bibliothèques et SDK · 118 sur 191" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Barre de progression. -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progression_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        app:indicatorColor="?attr/colorPrimary"
+        app:trackColor="?attr/colorSurfaceVariant" />
+
+    <!-- Compteur « n / N ». -->
+    <TextView
+        android:id="@+id/compteur_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="118 sur 191"
+        tools:visibility="visible" />
+
+    <!-- Liste de travail (RecyclerView, hauteur bornée). -->
+    <TextView
+        android:id="@+id/label_liste_travail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/editor_indexation_bilan_dernier_passage"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="@string/editor_indexation_bilan_dernier_passage"
+        tools:visibility="visible" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_travail_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="240dp"
+        android:overScrollMode="never"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Vue par moteur. -->
+    <TextView
+        android:id="@+id/label_moteurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/editor_indexation_moteur_java"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_moteurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Bilan du dernier passage. -->
+    <TextView
+        android:id="@+id/label_bilan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/editor_indexation_bilan_dernier_passage"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_bilan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Note d'impact utilisateur. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/note_impact"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/texte_note_impact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            tools:text="Pendant l'indexation, la complétion des bibliothèques est limitée." />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Boutons d'action (ajoutés dynamiquement par code). -->
+    <LinearLayout
+        android:id="@+id/conteneur_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical" />
+
+</LinearLayout>
