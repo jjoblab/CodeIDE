@@ -238,6 +238,43 @@
     <string name="editor_lsp_indexation_prete">Java index ready</string>
     <string name="editor_lsp_indexation_partielle">Java index partial</string>
     <string name="editor_lsp_indexation_erreur">Java index failed</string>
+
+    <!-- Phase B prompt 2 (lot B4+B8) — indexing screen: toolbar chip + detail panel. -->
+    <string name="editor_indexation_initial_titre">Indexing</string>
+    <string name="editor_indexation_initial_soustitre">Waiting for synchronization</string>
+    <string name="editor_indexation_construction_titre">Indexing in progress</string>
+    <string name="editor_indexation_construction_soustitre">Libraries and SDK</string>
+    <string name="editor_indexation_construction_soustitre_n">%1$s of %2$s entries</string>
+    <string name="editor_indexation_pret_titre">Index up to date</string>
+    <string name="editor_indexation_pret_soustitre">Java ready</string>
+    <string name="editor_indexation_partiel_titre">Partial index</string>
+    <string name="editor_indexation_partiel_soustitre">%1$s of %2$s entries indexed</string>
+    <string name="editor_indexation_erreur_titre">Index error</string>
+    <string name="editor_indexation_erreur_soustitre">Construction failed</string>
+    <string name="editor_indexation_compteur_n_sur_n">%1$s of %2$s</string>
+    <string name="editor_indexation_moteur_java">Java</string>
+    <string name="editor_indexation_moteur_pret">Ready</string>
+    <string name="editor_indexation_moteur_partiel">Partial</string>
+    <string name="editor_indexation_moteur_erreur">Error</string>
+    <string name="editor_indexation_note_construction">During indexing, library completion is limited. Editing is not blocked.</string>
+    <string name="editor_indexation_note_partiel">Completion and imports for these entries may be incomplete. The editor remains usable.</string>
+    <string name="editor_indexation_note_erreur">The index could not be built. The editor runs in degraded mode: completion, diagnostics and symbol search are slower.</string>
+    <string name="editor_indexation_action_reindexer">Reindex</string>
+    <string name="editor_indexation_action_reeessayer_echecs">Retry failed entries</string>
+    <string name="editor_indexation_action_annuler">Cancel pass</string>
+    <string name="editor_indexation_action_tout_reindexer">Reindex all</string>
+    <string name="editor_indexation_bilan_dernier_passage">Last pass</string>
+    <string name="editor_indexation_bilan_duree">Duration</string>
+    <string name="editor_indexation_bilan_bibliotheques">Libraries</string>
+    <string name="editor_indexation_bilan_fichiers">Project files</string>
+    <string name="editor_indexation_bilan_indexeur_couteux">Most time-consuming</string>
+    <string name="editor_indexation_bilan_arteffacts_repris" tools:ignore="PluralsCandidate">%1$d · %2$d reused · %3$d rebuilt</string>
+    <string name="editor_indexation_bilan_fichiers_reanalyses" tools:ignore="PluralsCandidate">%1$d re-analyzed of %2$d</string>
+    <string name="editor_indexation_pastille_cd_construction">Indexing in progress, %1$d%%</string>
+    <string name="editor_indexation_pastille_cd_pret">Index up to date</string>
+    <string name="editor_indexation_pastille_cd_partiel">Partial index</string>
+    <string name="editor_indexation_pastille_cd_erreur">Index error</string>
+
     <string name="editor_run">Run</string>
     <string name="editor_executer">Run…</string>
     <string name="editor_executer_titre">Run a Gradle task</string>
