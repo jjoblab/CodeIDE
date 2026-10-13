@@ -1,5 +1,77 @@
 # Journal des modifications
 
+## [0.122.2] – 2026-10-14
+
+### Changements
+
+- **Bibliothèque `code-editor` : montée de `3.49.2` à `3.69.0`**
+  (`gradle/libs.versions.toml`). Cette montée intègre **dix-neuf lots
+  cumulés** livrés par la bibliothèque entre octobre 2026 et le lot B15
+  du 2026-10-14 — guide de référence archivé dans le dépôt compagnon
+  `jjoblab/code-editor` à `docs/MISE-A-JOUR-CODEIDE.md`.
+  - **3.50.0 → 3.51.1** (actions de code au point d'invocation) :
+    pont client LSP qui ne vide plus les réponses, quick-fixes réels
+    au caret, ampoule dès publication, trigger « . », `Unnecessary`
+    grisé. Aucune action CodeIDE requise (consommateur LSP inchangé).
+  - **3.52.0 → 3.57.0** (six jalons : édition tactile et contexte
+    visuel) : popup de diagnostic au tap, SPI d'actions de la pill,
+    sticky interactif, inlays typés, loupe instrument, en-têtes
+    enrichis (code + source), i18n. Toutes les surfaces consommatrices
+    sont **purement additives** côté API publique.
+  - **3.58.0 → 3.63.0** (six retours terrain) : UX-4 (popup suit sa
+    carte à droite), UX-5 (zones de tap fantômes de l'ancienne toolbar
+    canvas supprimées), refonte B6 (fil d'Ariane « intelligent »),
+    retours n°4/5/6 (six + trois + quatre irritants réglés à la
+    racine).
+  - **3.64.0 → 3.69.0** (lots B10 à B15) : recherche/remplacement
+    dans le fichier + 4e tap paragraphe, fast-scroller de gouttière +
+    bande d'erreurs, zoom persistant par type + colonnes relatives,
+    drag-déposer de bloc (glisser une sélection la DÉPLACE), plis par
+    niveau + régions (tout replier/déplier), API `GutterAction`
+    (icônes de gouttière injectables).
+  - **Rupture assumée 3.69.0** : `EditorBarTools` (classe publique
+    orpheline depuis B5) est SUPPRIMÉE. **CodeIDE n'est pas concerné** :
+    audit du code Kotlin du dépôt (`grep -r EditorBarTools feature/
+    core/ lsp/`) ne renvoie aucune référence. Les surfaces CodeIDE
+    (`LspProject`, `createEditor`, `setEditorView`, `EditorView` API
+    historique) restent intactes.
+  - **Compatibilité API vérifiée additive sur toute la plage
+    3.51.1 → 3.69.0** : les nouveaux champs des modèles
+    diagnostic/inlay passent par des constructeurs étendus (les
+    historiques délèguent avec défaut vide) ; les nouvelles méthodes
+    `EditorView` (`setPreviewIconsVisible`, `BreadcrumbBar.addIconAction`
+    /`addEditorActions`, `setZoomMemoryKey`, `setLineNumberStyle`,
+    `armBlockDrag`/`cancelBlockDrag`, `setErrorStripeEnabled`,
+    `EditorSearchBar`/`EditorSearchController`, `EditorSession.moveRange`
+    /`collapseFoldsAtLevel`/`collapseAllFolds`/`expandAllFolds`,
+    `EditorView.gutterActions`/`EditorGutterActions`,
+    `EditorIcons.Icon.BREAKPOINT`) sont purement additives et ne
+    s'activent QUE si l'hôte les consomme — aucun comportement par
+    défaut n'est modifié.
+  - Aucun changement requis dans `lsp/host/build.gradle.kts:62`
+    (`api(libs.codeeditor.lsp)`) ni `feature/editor/build.gradle.kts:14`
+    (`implementation(libs.codeeditor.ui)`) : ils suivent le
+    `version.ref` commun.
+  - **Améliorations recommandées** (optionnelles, hors périmètre de
+    cette montée — tracées dans `docs/MISE-A-JOUR-CODEIDE.md` §4 du
+    dépôt compagnon) : adopter la barre de fil d'Ariane à actions (B5),
+    les trois actions d'IDE (B6), la barre de recherche/remplacement
+    (B10), la bande d'erreurs (B11), la clé de zoom par type + numéros
+    relatifs (B12), l'item ✥ Move de la pill (B13), les commandes de
+    pliage de masse (B14), les icônes de gouttière (B15). Chacune se
+    pose en trois lignes de code ; elles seront traitées par étapes
+    ultérieures dédiées si l'utilisateur le demande.
+
+### Documentation
+
+- **AGENTS.md — nouvelle section « Workflow d'agent IA asynchrone »**
+  (directive du 14/10/2026) : précise les règles de push (vérification
+  locale hors-`assembleDebug` verte suffisante — la CI GitHub exécute
+  l'APK à chaque push, ADR 0037), la surveillance CI en arrière-plan
+  (toutes les 5 min, durée 20-30 min), la récupération des logs
+  d'erreur en parallèle de l'étape en cours, et la conservation du
+  token GitHub dans `.gh-token` (gitignored, durée 24 h).
+
 ## [0.122.1] – 2026-10-14
 
 ### Corrigé
