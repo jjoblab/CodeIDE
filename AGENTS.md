@@ -1201,6 +1201,34 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.113.0 : **LSP Kotlin K3 — symboles + classpath + complétion/survol/
+      définition** (`docs/LSP_KOTLIN.md` §5 K3) : ① `:lsp:kotlin` gagne
+      kotlin-metadata-jvm 2.2.10 (dépendance amont du futur pack) + un
+      LECTEUR de class-files maison (pool/supertypes/@Metadata — sans
+      ASM, miroir minimal d'AnalyseurClassFile, piège tag 16 MethodType
+      couvert) + un DÉCODEUR jars/AAR (porte META-INF/*.kotlin_module —
+      zéro classe décodée pour un jar Java ; facades + parties
+      multi-fichiers ; appelables top/extensions, visibilité
+      public/protected) + l'INDEX DISQUE des appelables
+      (kotlin-appelables/*.kidx par empreinte W6, clés top:/ext:,
+      écriture atomique, auto-guérison) + le SCAN paresseux des racines
+      sources (partagé moteur, documents ouverts dominants) + la
+      RÉSOLUTION conservatrice (portées, initialiseurs, chaînes
+      a.b().c, supertypes par lecture brute, alias kotlin/java) ; le
+      contrat de session gagne definirClasspath/completion/survol/
+      definitions avec DÉFAUTS VIDES (tolérance de version du pack) ;
+      ② `:lsp:host` : SessionLspKotlin.appliquerClasspath/appliquerModele
+      (sessions vivantes poussées, futures nées nourries),
+      SessionLsp.vueClasspathKotlin() (la vue d'index fusion est PARTAGÉE
+      avec le LSP Java — un seul budget de cache, D4) via
+      AdaptateurVueClasspath (octets par localisation ADR 0111, cache
+      ZipFiles borné), KotlinLanguageServer implémente les trois
+      requêtes + capacités (trigger « . », kinds LSP, sortText total,
+      auto-import additionalTextEdits) ; ③ éditeur : session Kotlin
+      nourrie en CASCADE (post-sync + modèle persisté réouverture) ;
+      27 tests (lecteur/décodeur sur le stdlib RÉEL, index disque
+      persistance/auto-guérison, requêtes via SPI + vrai flux LSP4J) ;
+      baseline parité 853 fichiers, jar 0,4 Mo.
 - v0.112.0 : **LSP Kotlin K2 (session minimale) + LayoutLib en intégration
       SOURCE** (décisions propriétaire 2026-10-13) : ① `:lsp:kotlin` gagne
       le contrat de session (SPI `SessionLangageKotlin` : ouvrir/modifier/

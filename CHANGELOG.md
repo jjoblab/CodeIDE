@@ -1,5 +1,72 @@
 # Journal des modifications
 
+## [0.113.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP Kotlin — étape K3 : symboles, classpath et les trois requêtes**
+  (`docs/LSP_KOTLIN.md` §5) : les fichiers `.kt`/`.kts` obtiennent la
+  **complétion** (membre après `.`/`?.`, noms en portée, imports), le
+  **survol** (signature de la déclaration visée) et la **définition**
+  (projet, inter-fichiers) — in-process, sur l'infrastructure du LSP
+  Java (décisions D3/D4/D6) :
+  - **Moteur (`:lsp:kotlin`)** : nouvelle dépendance amont
+    `kotlin-metadata-jvm` 2.2.10 (Apache 2.0, zéro transitif gênant —
+    embarquée dans le futur « pack langue » §6). **Lecteur de
+    class-files maison** (pool de constantes, supertypes, annotation
+    `@Metadata` reconstruite — octet par octet, sans ASM, miroir
+    minimal d'`AnalyseurClassFile` d':lsp:index, incl. le piège du tag
+    16 MethodType des lambdas). **Décodeur de jars/AAR** : porte
+    `META-INF/*.kotlin_module` (un jar Java saute sans décoder UNE
+    classe), facades et parties multi-fichiers décodées lenientment →
+    **appelables de premier niveau + extensions** (visibilité
+    public/protected, récepteurs FQCN). **Index des appelables disque**
+    (`kotlin-appelables/<sha256(empreinte)>.kidx`, sous-répertoire
+    dédié de l'index partagé — écriture atomique tmp+rename,
+    auto-guérison, clés taggées `top:`/`ext:`) : un jar inchangé n'est
+    JAMAIS redécodé. **Symboles projet** : extraction des déclarations
+    de l'arbre + **scan paresseux des racines sources** (partagé par le
+    moteur, documents ouverts dominants — la définition
+    inter-fichiers n'attend aucun build). **Résolution conservatrice**
+    (portées depuis les parents syntaxiques, locaux typés par
+    initialiseur, retours écrits, constructeurs, chaînes `a.b().c`,
+    surcharges par nom) ; **chaîne de supertypes** par lecture brute
+    des classes (profondeur bornée, cache plat) ; traduction des
+    descripteurs JVM en rendu Kotlin. **Complétion** : membre
+    (membres déclarés ∪ extensions par chaîne de supertypes, statiques
+    sur récepteur de type, membres du PROJET), noms (locales >
+    membres > projet > classpath > appelables > mots-clés, auto-import
+    porté en `fqnImport`), imports (sous-paquets/types du paquet tapé).
+    **Survol/définition** en chaîne de résolution (chaque échec est une
+    ISSUE, jamais une invention).
+  - **Contrat de session étendu** (`SessionLangageKotlin.definirClasspath/
+    completion/survol/definitions`) : les requêtes K3 ont des
+    IMPLÉMENTATIONS PAR DÉFAUT vides — un pack K2 face à un hôte K3
+    dégrade honnêtement, la tolérance de version du pack est le
+    descripteur.
+  - **Hôte (`:lsp:host`)** : `SessionLspKotlin.appliquerClasspath/
+    appliquerModele` (sync + modèle persisté — entrées JAR/AAR
+    d'existence vérifiée + plateforme + racines sources, sessions
+    vivantes poussées, sessions futures nées nourries) ;
+    `SessionLsp.vueClasspathKotlin()` — **la vue d'index fusion est
+    PARTAGÉE** avec le LSP Java (un seul budget de cache, D4) à travers
+    `AdaptateurVueClasspath` (octets de classes par localisation ADR
+    0111, cache de ZipFiles borné et fermé à l'éviction) ;
+    `KotlinLanguageServer` implémente `completion`/`hover`/`definition`
+    + capacités déclarées (trigger `.`), traduction complète
+    positions↔offsets, CompletionItems (kinds LSP, sortText total,
+    **auto-import en additionalTextEdits** à l'offset d'insertion
+    d'import).
+  - **Éditeur** : la session Kotlin est nourrie en cascade (post-sync +
+    réouverture depuis le modèle persisté) — la même vue, les mêmes
+    empreintes que la session Java.
+  - **Tests** : 27 nouveaux (:lsp:kotlin — lecteur/décodeur sur le
+    kotlin-stdlib RÉEL du classpath de test, index disque
+    persistance/auto-guérison, complétion/survol/définition via le SPI
+    avec vue factice + stdlib réel ; :lsp:host — vrai flux LSP4J des
+    trois requêtes, capacités, poussée de classpath). Baseline de
+    parité repoussée à **853 fichiers**. Jar 0,4 Mo (cible ≤ 4 Mo).
+
 ## [0.112.0] – 2026-10-13
 
 ### Ajouté
