@@ -1201,6 +1201,18 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.114.1 : **correctif couverture `:lsp:host` + bug AAR K3** (échec CI
+      v0.114.0, règle Kover 73,59 % < 80) : `AdaptateurVueClasspath`
+      restait à 0 % (65 lignes, K3) ET `octetsClasse` était FAUX pour
+      les AAR — le localisateur rend le conteneur COMPOSITE
+      « aar!classes.jar », ouvert comme fichier plat inexistant →
+      toujours null ; le lecteur lit désormais dans le jar INTERNE de
+      l'AAR (un seul ZipFile par AAR au cache FIFO). Suites :
+      AdaptateurVueClasspathTest (index réel jar+AAR, replis, eviction
+      FIFO), 11 tests de traduction/tolérance du serveur (exit, plage,
+      auto-import, genres, disque), SessionLspKotlinTest (cycle,
+      filtres, sessions défaillantes) — lignes 73,13 → 91,35 %, 44
+      tests.
 - v0.114.0 : **Previews PE2 — isolation processus :preview** (`docs/
       PREVIEW.md` §3 P3/P4, GO propriétaire, cible devancée v0.121) :
       frontière AIDL IRenduApercu/ResultatRendu (bitmap COMPRESSÉ PNG —
