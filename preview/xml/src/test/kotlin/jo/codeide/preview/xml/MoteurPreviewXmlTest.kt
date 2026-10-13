@@ -228,5 +228,14 @@ class MoteurPreviewXmlTest {
             dispatchers = TestDispatcherProvider(dispatcher),
             journal = null,
             scope = TestScope(dispatcher),
+            // PE2 : le moteur délègue le rendu à un transport — les tests
+            // du PIPELINE injectent le LOCAL (l'isolation a ses propres
+            // tests, la liaison Robolectric est couverte par
+            // ServicePreviewTest).
+            transport =
+                TransportRenduLocal(
+                    ApplicationProvider.getApplicationContext(),
+                    null,
+                ),
         )
 }
