@@ -1,5 +1,49 @@
 # Journal des modifications
 
+## [0.119.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP XML — étape XE3 : index ressources du projet, résolution de
+  références, complétion de valeurs, survol et définition**
+  (`docs/LSP_XML.md` §5, décision X5 — « la résolution des références
+  est l'attente n°1 après la complétion ») :
+  - **Index des ressources du PROJET** (`resources/`) : scan des
+    `res/` des racines sources du classpath — entrées NOMMÉES de
+    values (le TAG décide le type, `name` le nom, le déclarant pointe
+    la plage du nom) et ressources de DOSSIER (layout/drawable/menu/
+    mipmap/anim/raw/xml/font…, le FICHIER est le déclarant) ;
+    INCRÉMENTAL par mtime (un fichier inchangé n'est jamais re-parsé,
+    un fichier changé perd ses anciennes entrées, un fichier disparu
+    est purgé — l'index ne ment jamais), PARTAGÉ par le moteur (les
+    connexions LSP successives ne re-scannent que les deltas).
+  - **Résolution de références** (`resolution/`) : `@type/nom`,
+    `@+id/…` (DÉCLARANTE — jamais signalée), `@android:…` et
+    `@*android:…` (framework), `?attr/…` et sa forme courte. Garde
+    X4 : le framework est consulté sur `public-final.xml` de la
+    plateforme (3 515 ressources publiques, PARSÉ PAR NOTRE PROPRE
+    parseur) ; sans catalogue, une référence framework n'est jamais
+    signalée ; index froid = DUMB MODE silencieux (même garde que
+    CodeAssist).
+  - **Complétion de VALEURS** : `@` → types du projet puis noms du
+    type filtrés ; `@android:` → types et noms du framework ;
+    `?attr/` → attributs de style du projet ; énumérations et fanions
+    du catalogue quand l'attribut est connu (X4 : ce que l'index et
+    le catalogue ne prouvent pas n'apparaît pas).
+  - **SURVOL** : sur une référence — `string « hello » — projet,
+    values/strings.xml` (framework et `@+id` : leurs origines) ; sur
+    un nom de balise — `class android.widget.TextView` ; sur un nom
+    d'attribut — format + énumérations. **DÉFINITION** : saut au
+    `res/values` DÉCLARANT (projet seul — la cible framework n'a pas
+    de source locale), traduite en Locations LSP (relecture FUSE de
+    la cible, omise si illisible — jamais fausse).
+  - **Règle `xml.referenceNonResolue`** : `@color/…`/`@string/…`
+    introuvable du projet ET du framework — marqueur sur le NOM de la
+    référence ; garde dumb mode intégrale.
+  - 130 tests module (index, résolution, complétion de valeurs,
+    survol, définitions, règle) ; serveur LSP4J : survol et définition
+    déclarés dans les capacités et traduits.
+
 ## [0.118.0] – 2026-10-13
 
 ### Ajouté
