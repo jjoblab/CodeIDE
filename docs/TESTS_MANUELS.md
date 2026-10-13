@@ -609,6 +609,35 @@ layout, la version LayoutLib (`./gradlew :preview:xml:dependencies |
 grep layoutlib`), et la priorité pressentie (fréquence d'usage
 constatée dans des projets Android réels).
 
+## Mission « EditorActivity » — bottom sheet, clavier, barre de navigation (Phase B prompt 1, v0.124.2 → v0.124.6)
+
+Les correctifs E1-E7 du prompt 1 (ADR 0118) ne peuvent pas être éprouvés
+en tests automatiques (animation IME réelle, comportement barre de
+navigation par gestes vs 3 boutons, contraste WCAG AA). Les recettes
+suivantes sont à exécuter sur appareil réel (Android 8-15, portrait et
+paysage, thème clair et sombre) à chaque montée de version touchant
+`feature:editor`.
+
+| # | Action | Attendu |
+|---|--------|--------|
+| E1 | Ouvrir un projet, ouvrir un fichier, replier le panneau inférieur | L'en-tête replié (48 dp) est entièrement visible et cliquable AU-DESSUS de la barre de navigation (gestes ou 3 boutons) — pas sous la barre |
+| E2 | Basculer en navigation par gestes puis à 3 boutons (Réglages système) | L'en-tête replié reste entièrement visible et cliquable dans les deux modes |
+| E3 | Sheet replié, mi-hauteur, étendu : toucher le VIDE du sheet (en-tête sans bouton, espace entre les boutons) | Le curseur de l'éditeur NE se déplace PAS, le clavier NE s'ouvre PAS — la touche est consommée par `panneau_inferieur` (clickable/focusable) |
+| E4 | Taper dans l'éditeur sheet replié, puis mi-hauteur, puis étendu | Le clavier s'ouvre SANS saut (animation continue via `translationY`), le sheet glisse sous le clavier. Fermeture : le sheet remonte SANS saut à la dernière trame |
+| E5 | Après un cycle clavier (ouverture puis fermeture), vérifier l'état du sheet | L'état du sheet (replié/mi-hauteur/étendu) est PRÉSERVÉ à l'identique — aucune écriture de `state` pendant l'animation |
+| E6 | Sheet replié, dernière ligne du fichier sous le curseur | La dernière ligne et le curseur sont VISIBLES — la réserve = `peekHeight + insetNavigation` les garde au-dessus du sheet |
+| E7 | Lancer un build Gradle (ligne tooling apparaît), sheet replié | La réserve s'ajuste AUSSITÔT (peek élargi) — la dernière ligne reste visible, pas de saut |
+| E8 | Changer d'onglet du panneau (Console, Problèmes, Journal, Logcat) | L'éditeur NE bouge PAS — la réserve est constante (peek dynamique recalculé) |
+| E9 | Rotation avec le clavier ouvert | Le sheet reste masqué sous le clavier pendant la rotation, revient à `translationY = 0` à la fermeture |
+| E10 | Mode multi-fenêtre, clavier flottant ou scindé | Le sheet reste cohérent — pas de saut, pas de zone morte |
+| E11 | Thème clair puis sombre (Réglages système ou bascule CodeIDE) | Les barres système (statut + navigation) ont un contraste lisible dans les deux thèmes — `SystemBarStyle.auto` s'adapte |
+| E12 | Android 8-9 (API 26-29) si disponible | Le détecteur de hauteur de secours fonctionne (insets IME silencieux) — pas de saut, pas de sheet fantôme |
+
+Reporter toute régression observée sur appareil : indiquer l'API
+Android, le mode de navigation (gestes vs 3 boutons), le thème
+(clair/sombre + couleurs dynamiques si actives), et la recette
+E1-E12 qui échoue.
+
 ## À venir
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,

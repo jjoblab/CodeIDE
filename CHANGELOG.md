@@ -1,5 +1,33 @@
 # Journal des modifications
 
+## [0.124.7] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 1 — ADR 0118 final + tests manuels** : finalisation
+  de la mission Phase B du prompt 1 (EditorActivity bottom sheet,
+  clavier, barre de navigation).
+  - **ADR 0118** (`docs/adr/0118-editoractivity-bottom-sheet-clavier-barre-navigation.md`)
+    : documente les 5 lots livrés (v0.124.2 → v0.124.6), les décisions
+    prises pour chaque exigence E1-E7, les options écartées, les
+    conséquences positives/négatives/neutres, et les tests. Statut :
+    accepté.
+  - **Tests manuels** (`docs/TESTS_MANUELS.md` §« Mission EditorActivity ») :
+    12 recettes à exécuter sur appareil réel (Android 8-15, portrait et
+    paysage, thème clair et sombre) à chaque montée de version
+    touchant `feature:editor`. Les recettes couvrent : en-tête cliquable
+    au-dessus de la barre (E1-E2), touches dans le sheet (E3), cycle
+    clavier sans saut (E4-E5), dernière ligne visible (E6-E7),
+    changement d'onglet (E8), rotation + multi-fenêtre (E9-E10),
+    thème jour/nuit (E11), API 26-29 (E12).
+  - **Bilan Phase B Prompt 1** : tous les constats de l'audit Phase A
+    (v0.124.1) sont adressés — 5/5 confirmés, 5/5 corrigés. 12 tests
+    unitaires purs de la fonction `calculerReserveEditeur`. Vérification
+    locale incrémentale (spotlessCheck, detekt, lintDebug,
+    testDebugUnitTest, checkModuleDependencies) passée avant chaque
+    push. CI GitHub SUCCESS pour v0.124.2 → v0.124.5 (v0.124.6 en cours
+    à la rédaction).
+
 ## [0.124.6] – 2026-10-14
 
 ### Corrigé
