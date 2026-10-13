@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.115.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP Kotlin — étape K4 : inférence bornée, smart casts, diagnostics
+  sémantiques et quick-fixes d'import** (`docs/LSP_KOTLIN.md` §5) : la
+  sémantique CONSERVATRICE arrive au fil de l'édition — chaque preuve
+  est syntaxique et positionnelle, jamais devinée (D3) :
+  - **Smart casts positionnels** (`resolve/SmartCasts.kt`) : branche
+    THEN d'un `if`, entrée de `when` sans sujet, opérande droit d'un
+    `&&`, garde `nom !is T` à sortie précoce (return/throw) dans le
+    bloc englobant — la complétion membre voit le type CASTÉ. Bornes
+    sonores : un `||` dans la condition annule toute déduction, la
+    branche ELSE ne profite que d'un `!is` SEUL, l'ombrage par une
+    locale déclarée APRÈS la condition est tranché par les portées,
+    les génériques sont rabattus sur le nom de base.
+  - **Inférence bornée des paramètres de lambda**
+    (`resolve/ParametresLambda.kt`) : le type des paramètres EXPLICITES
+    et du `it` implicite découle de l'ATTENTE DÉMONTRABLE — paramètre à
+    type de fonction écrit d'une fonction du projet (`action: (String)
+    -> Unit`), SAM d'une interface du projet à méthode unique
+    (`Ecrivain { ligne -> … }`), initialiseur de propriété au type de
+    fonction écrit (`val cb: (String) -> Unit = { … }`). Atteintes du
+    classpath et récepteurs `with` : K5+ (sous-rapport documenté).
+  - **Diagnostics sémantiques** (`diagnostics/DiagnosticsSemantiques.kt`)
+    — sept codes, chacun avec sa fixture TDD ET sa garde de
+    sous-rapport : `kt.unresolved` (identifiant simple que la chaîne
+    K3/K4 complète ne résout pas ; sélecteurs qualifiés et `it` jamais
+    signalés, arbre en édition et régime sans classpath exclus),
+    `kt.typeMismatch` (familles de littéraux contre primitives écrites
+    — les conversions littérales légales ne signalent pas),
+    `kt.argumentCount` (candidates du projet, plage élargie par les
+    paramètres par défaut, vararg inéligible, constructeur primaire
+    compris — `DeclarationProjet` gagne défauts/vararg/paramètres de
+    constructeur), `kt.unsafeNullable` (`.` sur un récepteur au type
+    écrit nullable, gardes `!= null` et `== null` précoce honorées),
+    `kt.missingReturn`, `kt.unreachable` (première déclaration morte
+    d'un bloc), `kt.valReassign` (affectation `=` seule, paramètres
+    immuables compris).
+  - **Quick-fixes d'import** : contrat de session
+    `importsCandidats(uri, decalage)` (défaut VIDE — un pack K3 face à
+    un hôte K4 dégrade honnêtement) + `textDocument/codeAction` dans
+    `KotlinLanguageServer` : UN CodeAction QuickFix par FQN candidate
+    du classpath portant exactement le nom du `kt.unresolved` du
+    contexte (déjà importés exclus, plafond 8), l'édition insérant
+    `import fqn` à l'heuristique partagée (après le dernier import,
+    sinon le package, sinon la tête). Capacité `codeActionProvider`
+    déclarée.
+  - **Correctifs de fond découverts en route** : `classesProjet` du
+    contexte de nommage K3 était TOUJOURS VIDE (la double garde
+    `!= CLASSE` suivie de `!= INTERFACE` rejetait tout — les classes du
+    projet ne résolvaient jamais sans import) ; l'API de session
+    documente la tolérance de version du pack pour la nouvelle requête.
+  - **Tests** : 36 nouveaux (31 moteur par SPI — casts positifs,
+    bornes et ombrage, lambdas/SAM/`it`, chaque diagnostic positif +
+    sous-rapport, candidats d'import — et 5 hôte en vrai flux LSP4J —
+    codeAction, plafond, capacité). Baseline de parité repoussée à
+    868 fichiers (digeste régénéré, re-sync délibéré). kover moteur
+    84,1 % (nouveaux fichiers 82–100 %).
+
 ## [0.114.1] – 2026-10-13
 
 ### Corrigé

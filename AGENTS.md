@@ -1201,6 +1201,19 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.115.0 : **LSP Kotlin K4 — inférence bornée, smart casts, diagnos-
+      tics sémantiques, quick-fixes d'import** (`docs/LSP_KOTLIN.md` §5,
+      GO propriétaire) : SmartCasts positionnels (THEN/when sans sujet/
+      droite de &&/garde !is précoce — ombrage tranché, || annule),
+      ParametresLambda (attente du consommateur projet : fonction à type
+      de fonction, SAM interface à méthode unique, initialiseur typé,
+      it implicite), DiagnosticsSemantiques SEPT codes (kt.unresolved/
+      typeMismatch/argumentCount/unsafeNullable/missingReturn/unreach-
+      able/valReassign — sous-rapport par code, arbre en édition exclu),
+      quick-fixes d'import (importsCandidats au contrat + codeAction
+      LSP4J, un CodeAction par FQN, plafond 8) ; correctifs de fond :
+      classesProjet K3 TOUJOURS VIDE (double garde), baseline parité
+      868 fichiers ; 36 tests (31 moteur + 5 hôte), kover moteur 84,1 %.
 - v0.114.1 : **correctif couverture `:lsp:host` + bug AAR K3** (échec CI
       v0.114.0, règle Kover 73,59 % < 80) : `AdaptateurVueClasspath`
       restait à 0 % (65 lignes, K3) ET `octetsClasse` était FAUX pour
