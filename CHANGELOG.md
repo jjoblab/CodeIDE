@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.124.8] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lot B1 (modèle d'état étendu lsp:index)** :
+  extension additive de `EtatIndex` avec les champs manquants
+  identifiés en Phase A (v0.124.0, `docs/audit/INDEXATION_PHASE_A.md`
+  §3.3). Tous les nouveaux champs ont des valeurs par défaut neutres —
+  la compatibilité binaire est préservée (les consommateurs existants
+  qui ne lisent que `phase`/`faits`/`total`/`entreeCourante`/`reprises`/
+  `avertissements`/`erreurs` ne sont pas affectés).
+  - **Nouveau fichier** `lsp/index/src/main/kotlin/jo/codeide/lsp/index/TypesEtatIndexEtendus.kt` :
+    - `PhaseDetailleeIndex` (enum) : affinage de `PhaseIndex.CONSTRUCTION`
+      en `INITIAL` / `BIBLIOTHEQUES` / `SOURCES` / `AUCUNE`.
+    - `EntreeTravail` (data class) + `EtatEntreeTravail` (enum) :
+      liste de travail avec état par entrée (en attente / actif /
+      terminé / repris / écarté).
+    - `BreakdownIndexeur` (data class) : répartition du temps par
+      indexeur (identifiant stable, libellé lisible, millisecondes
+      cumulées, nombre d'entrées).
+    - `DureesPhases` (data class) : durées par phase
+      (`bibliothequesMs`, `sourcesMs`).
+    - `BilanDernierPassage` (data class) : bilan du dernier passage
+      (durée, artefacts total/repris/reconstruits, fichiers
+      parcourus/ré-analysés, indexeur le plus coûteux, horodatage).
+  - **`EtatIndex` étendu** avec 5 nouveaux champs (tous avec valeurs
+    par défaut) : `phaseDetaillee`, `listeTravail`, `breakdownIndexeurs`,
+    `dureesPhases`, `bilanDernierPassage`, `settled`. Le champ
+    `settled` (un passage est-il allé au bout ?) sert de garde « mode
+    dégradé » : avant `PhaseIndex.PRET`, une recherche vide veut dire
+    « pas encore » (settled = false) et non « absent » (settled = true).
+  - **Tests** : 14 tests unitaires purs (JVM) dans
+    `TypesEtatIndexEtendusTest` — rétrocompatibilité (état initial,
+    construction sans nouveaux champs), champs étendus (phase
+    détaillée, liste de travail, bilan, settled), breakdown (tri du
+    plus coûteux au plus rapide), durées par phase, tous les états
+    d'entrée de travail.
+  - **Module JVM pur** `lsp:index` avec `explicitApi()` — toutes les
+    nouvelles surfaces sont `public` explicitement.
+  - **Vérification locale incrémentale** :
+    `:lsp:index:spotlessCheck` ✅, `:lsp:index:detekt` ✅,
+    `:lsp:index:compileKotlin` ✅, `:lsp:index:test` ✅ (14 nouveaux
+    tests passent), `:lsp:host:compileDebugKotlin` ✅ (consommateur
+    non cassé), `:lsp:host:test` ✅, `checkModuleDependencies` ✅.
+
 ## [0.124.7] – 2026-10-14
 
 ### Ajouté
