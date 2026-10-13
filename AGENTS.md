@@ -1201,6 +1201,21 @@ de vérification — Vérification-1, section 2.4) puis attente du « GO ».
       chaîne verte sur applog-runtime, core:domain, core:model,
       core:datastore, feature:editor, tooling:protocol, tooling:
       daemon, tooling:server, app — assembleDebug 20,4 Mo.
+- v0.114.0 : **Previews PE2 — isolation processus :preview** (`docs/
+      PREVIEW.md` §3 P3/P4, GO propriétaire, cible devancée v0.121) :
+      frontière AIDL IRenduApercu/ResultatRendu (bitmap COMPRESSÉ PNG —
+      plafond Binder ~1 Mo) ; ServicePreview (manifest android:process=
+      ":preview", BOUND-ONLY : délié il meurt seul — l'idle-shutdown est
+      la déliaison 60 s côté app + fermeture d'espace I7) ; pipeline
+      extrait RenduLayoutLib PARTAGÉ service + repli (zéro duplication) ;
+      couture publique TransportRendu (TransportRenduLocal = PE1, Trans-
+      portRenduProcess = liaison paresseuse bornée, appel borné 10 s,
+      DeathRecipient → relance à la demande) ; politique TransportIso-
+      lation (UNE reprise silencieuse puis désactivation SESSION —
+      journal honnête + MoteurPreviewXml.regime PROCESSUS_ISOLE/
+      LOCAL_DEGRADE) ; 12 tests (service Robolectric PNG/Parcel,
+      politique par faux, transport par couture + VRAI stub) ; socle
+      réutilisable tel quel par la preview Compose (§4.2.3).
 - v0.113.0 : **LSP Kotlin K3 — symboles + classpath + complétion/survol/
       définition** (`docs/LSP_KOTLIN.md` §5 K3) : ① `:lsp:kotlin` gagne
       kotlin-metadata-jvm 2.2.10 (dépendance amont du futur pack) + un

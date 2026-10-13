@@ -31,6 +31,13 @@ plugins {
     id("codeide.android.library")
 }
 
+android {
+    // PE2 (PREVIEW.md §3 P3) : frontière AIDL du processus :preview.
+    buildFeatures {
+        aidl = true
+    }
+}
+
 dependencies {
     // DispatcherProvider + AppLogger (contrats du domaine, injectés).
     api(project(":core:domain"))
