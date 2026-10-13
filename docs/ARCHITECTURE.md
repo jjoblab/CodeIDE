@@ -68,7 +68,9 @@ sections 5 et 6.
 | `lsp:java` | Moteur LSP Java vendored (ecj/JDT patché pour ART) — exempté de « Kotlin 100 % » par l'ADR 0108, sources intactes de l'archive, tests JUnit 5 en suite de non-régression |
 | `lsp:ecj-art` | Patcher ASM build-time d'ecj pour ART (jamais dans l'APK, ADR 0108) |
 | `lsp:testing` | Suite d'intégration moteur ↔ index (v0.96.3) : les tests du branchement réel vivent AU-DESSUS de `lsp:java` et `lsp:index` (pattern `tooling:testing`, dépendances de test uniquement) |
-| `lsp:host` | Hôte LSP (étape 4, ADR 0109 D2) : `SessionLsp` (transport abstrait — in-process ART par défaut, branchement cel-lsp), orchestrateur sync → modèle → index → moteurs par module (lot E), adaptateur de production de la SPI `IndexNoms`, état d'indexation pour l'UI |
+| `lsp:host` | Hôte LSP (étape 4, ADR 0109 D2) : `SessionLsp` (transport abstrait — in-process ART par défaut, branchement cel-lsp), orchestrateur sync → modèle → index → moteurs par module (lot E), adaptateur de production de la SPI `IndexNoms`, état d'indexation pour l'UI ; depuis K2/XE1 il porte AUSSI les adaptateurs LSP4J Kotlin (`KotlinLanguageServer`) et XML (`SessionLspXml`/`XmlLanguageServer`) — les moteurs restent autonomes et découplables |
+| `lsp:kotlin` | Moteur LSP Kotlin (K1–K5, LSP_KOTLIN.md) : grammaire du compilateur vendorée (ADR 0115), session, diagnostics syntaxiques et sémantiques, complétion/survol/définition, quick-fixes d'import ; Kotlin JVM pur, découplable en « pack langue » (l'adaptateur LSP4J vit dans `lsp:host`) |
+| `lsp:xml` | Moteur LSP XML maison (XE1–XE4, LSP_XML.md) : parseur tolérant écrit main, DOM neutre, règles conservatoires, catalogue plateforme + index ressources projet, complétion balises/attributs/valeurs, survol/définition, quick-fixes ; Kotlin JVM pur zéro dépendance, découplable en « pack langue » (la façade vit dans `lsp:host`) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,
 API prévue) et un `Module.md` (page Dokka).
@@ -103,7 +105,9 @@ toute dépendance non autorisée **fait échouer le build**.
 | `lsp:java` | rien (module vendored autonome) | tout module interne, test compris (extractibilité, ADR 0108 — la suite d'intégration vit dans `lsp:testing`) |
 | `lsp:ecj-art` | rien | tout module interne |
 | `lsp:testing` | `lsp:java`, `lsp:index`, `lsp:model` | tout le reste (suite d'intégration TEST-ONLY, pattern `tooling:testing` — au-dessus du moteur et de l'index) |
-| `lsp:host` | `lsp:java`, `lsp:index`, `lsp:model` | tout le reste (l'hôte BRANCHE le moteur, il ne le modifie pas — ADR 0109 ; consommateur cel-lsp externe réservé à ce module) |
+| `lsp:kotlin` | rien (module moteur autonome) | tout module interne, test compris (K1, ADR 0115 : grammaire du compilateur vendorée ; découplable en « pack langue » — l'adaptateur LSP4J vit dans `lsp:host`, K2) |
+| `lsp:xml` | rien (module moteur autonome) | tout module interne, test compris (XE1, LSP_XML.md X1 : moteur maison zéro dépendance ; découplable en « pack langue » — la façade `SessionLspXml` vit dans `lsp:host`, miroir `lsp:kotlin`) |
+| `lsp:host` | `lsp:java`, `lsp:index`, `lsp:model`, `lsp:kotlin`, `lsp:xml` | tout le reste (l'hôte BRANCHE le moteur, il ne le modifie pas — ADR 0109 ; consommateur cel-lsp externe réservé à ce module) |
 | `app` | tout (assemblage) | — |
 | `core:testing` | `core:model`, `core:domain` | — (consommé en `testImplementation` seulement) |
 
@@ -111,8 +115,8 @@ Règles additionnellement vérifiées : `core:testing` et `tooling:testing` ne
 peuvent apparaître que dans les configurations de test ; `core:model`,
 `core:domain`, `tooling:protocol`, `tooling:api` et `tooling:server` ne
 peuvent appliquer aucun plugin Android (modules JVM purs — `lsp:model`,
-`lsp:index`, `lsp:java`, `lsp:ecj-art` et `lsp:testing` suivent la même
-règle) ;
+`lsp:index`, `lsp:java`, `lsp:ecj-art`, `lsp:testing`, `lsp:kotlin` et
+`lsp:xml` suivent la même règle) ;
 **`tooling:server` n'entre dans `tooling:daemon` qu'en configuration de
 test** (bout-en-bout §7.4 : le VRAI orchestrateur relancé en sous-processus
 depuis la JVM de test, ADR 0042 — en production, le daemon ne voit du

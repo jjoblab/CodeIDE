@@ -1,5 +1,30 @@
 # Journal des modifications
 
+## [0.120.1] – 2026-10-13
+
+### Corrigé
+
+- **CI : `checkModuleDependencies` rejetait `:lsp:host` → `:lsp:xml`**
+  (retour CI sur la chaîne complète, ADR 0037) : la liste
+  d'autorisation du plugin `codeide.module-rules` (section 5.2) était
+  restée au périmètre K2 — l'addition XE1 n'y avait jamais été portée,
+  alors que la dépendance `api(project(":lsp:xml"))` de l'hôte existe
+  depuis v0.117.0 (façade `SessionLspXml` + adaptateur
+  `XmlLanguageServer`, LSP_XML.md §4.1 — miroir exact de l'addition K2
+  `:lsp:kotlin`, approuvée avec le cadrage v0.109.0). Tout build racine
+  échouait donc depuis XE1 ; les chaînes locales `:app:`-scopées
+  (lintDebug/assembleDebug) ne l'exécutaient pas, d'où l'écart CI.
+  Correctif : `:lsp:xml` ajouté à l'autorisation `:lsp:host` ET à
+  `MODULES_PURS` (Kotlin JVM pur, zéro dépendance — garde plugin
+  Android) ; `docs/ARCHITECTURE.md` re-synchronisé (lignes `lsp:kotlin`
+  et `lsp:xml` des tables de dépendances et de l'inventaire — absentes
+  depuis K1/XE1 —, `lsp:host` à jour K2+XE1, liste des modules JVM purs
+  complétée).
+- **Processus (directive propriétaire 2026-10-13)** :
+  `checkModuleDependencies` entre dans la vérification LOCALE avant
+  push (AGENTS.md) ; `assembleDebug` n'est plus un prérequis bloquant
+  du push — la CI l'exécute à chaque push (ADR 0037).
+
 ## [0.120.0] – 2026-10-13
 
 ### Ajouté
