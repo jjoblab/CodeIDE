@@ -189,6 +189,13 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # assembleDebug n'est PLUS un prérequis BLOQUANT du push (la CI l'exécute
 # à chaque push, ADR 0037) — chaîne locale de push : spotlessCheck detekt
 # checkModuleDependencies + tests/kover/lintDebug des modules touchés.
+#
+# DIRECTIVE 2026-10-13 (v0.121.1, retour CI) : tout commit qui AJOUTE ou
+# MODIFIE des fichiers .kt doit régénérer la baseline de parité du corpus
+# AVANT le push — ./gradlew :lsp:kotlin:test -Dparite.majBase=true — le
+# diff de baseline fait partie de la revue (VENDOR.md) ; un push sans
+# régénération fait échouer la CI sur PariteCorpusDepotTest (constat
+# v0.121.0 : XE5 a ajouté 50 fichiers, digeste divergé, build rouge).
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor|patch        # incrémente la version
                                             # (patch = correction après retour utilisateur)
