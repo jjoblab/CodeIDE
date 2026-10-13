@@ -181,6 +181,14 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # ToolManifest, etc.) peuvent casser des tests dans des modules non
 # directement modifiés — toujours lancer les tests des modules qui
 # référencent les constantes changées.
+#
+# DIRECTIVE 2026-10-13 (v0.120.1, retour CI) : `checkModuleDependencies`
+# fait partie de la vérification LOCALE AVANT PUSH — il échoue là où
+# lintDebug/assembleDebug restent verts (listes d'autorisation du plugin
+# codeide.module-rules, ex. :lsp:host → :lsp:xml v0.120.1). À l'inverse,
+# assembleDebug n'est PLUS un prérequis BLOQUANT du push (la CI l'exécute
+# à chaque push, ADR 0037) — chaîne locale de push : spotlessCheck detekt
+# checkModuleDependencies + tests/kover/lintDebug des modules touchés.
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor|patch        # incrémente la version
                                             # (patch = correction après retour utilisateur)
