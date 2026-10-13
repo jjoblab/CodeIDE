@@ -790,6 +790,16 @@ class EditorViewModel
                         ?.size ?: 0} " +
                         "module(s), projet ${identifiantSuivi()})"
                 }
+                // K3 (LSP_KOTLIN.md §5) : la session Kotlin partage le
+                // MÊME modèle et la MÊME vue d'index que la session Java
+                // — nourrie en cascade, elle retrouve ses appelables et
+                // racines sources QUASI INSTANTANÉMENT, la sync fraîche
+                // remplacera si l'empreinte a changé.
+                val sessionKotlin = sessionLspKotlinInterne.value
+                val modele = session.modele.value
+                if (sessionKotlin != null && modele != null) {
+                    sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                }
             } else {
                 journal.d(TAG) {
                     "modèle LSP persisté absent — session nourrie après sync (projet ${identifiantSuivi()})"
@@ -1408,6 +1418,12 @@ class EditorViewModel
                 "session LSP nourrie (${application.modulesActifs} module(s) actif(s), " +
                     "${application.entreesIndex} entrées d'index, projet ${identifiantSuivi()})"
             }
+            // K3 (LSP_KOTLIN.md §5) : la même cascade côté Kotlin — la
+            // VUE d'index fusion vit dans la session Java (un seul
+            // budget de cache, D4), la session Kotlin consomme la même
+            // par la couture neutre ; l'index des APPELABLES Kotlin
+            // décode ses propres jars (segments par empreinte).
+            sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
         }
 
         /**
