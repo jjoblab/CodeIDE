@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.124.0] – 2026-10-14
+
+### Ajouté
+
+- **Phase A — écran d'indexation LSP : audit, conception et maquette**
+  livrés en phase A (prompt 2 du 2026-10-13). **Aucun code de
+  production** : la phase B (implémentation) ne démarre qu'après le GO
+  du propriétaire.
+  - **Audit complet** (`docs/audit/INDEXATION_PHASE_A.md`) :
+    cartographie de la chaîne d'état de `ServiceIndexDisque` jusqu'à
+    l'écran (3.1 — cadence de publication, risque de saturation UI),
+    inventaire des consommateurs de « l'index est-il prêt ? » (3.2 —
+    `AdaptateurVueClasspath`, `AdaptateurIndexNoms`, `EditorActivity`),
+    tableau données disponibles vs manquantes (3.3 — `reprises` perdu
+    à la frontière lsp:host, `listeTravail`/`breakdownIndexeurs`/
+    `dureesPhases`/`bilanDernierPassage` à ajouter, `settled` à
+    déduire), contraintes d'architecture (3.4 — `explicitApi()` sur
+    `lsp:*` purs, patron `PresentationTooling.kt`), impact sur les
+    surfaces existantes (3.5 — suppression de `barre_etat_lsp`,
+    exposition de `SessionLspKotlin.etatIndexation`).
+  - **ADR brouillon 0117** (`docs/adr/0117-ecran-indexation-lsp-pastille-toolbar-sheet-detail-brouillon.md`)
+    : décision recommandée = pastille de toolbar + bottom sheet de
+    détail. Options A/B/C/D évaluées. Conséquences positives/négatives
+    tracées.
+  - **Plan d'implémentation en 8 lots** (§5) : B1 modèle d'état étendu
+    (lsp:index), B2 instrumenter les indexeurs (lsp:index, lsp:kotlin),
+    B3 étendre la transcription (lsp:host), B4 présentateur pur
+    (feature:editor), B5 pastille de toolbar (feature:editor),
+    B6 bottom sheet de détail (feature:editor), B7 branchement et
+    tests UI, B8 chaînes FR + EN. Un commit conventionnel par lot.
+  - **Maquette HTML** (`docs/mockups/indexation/indexation.html`)
+    ancrée sur les VRAIES ressources CodeIDE (`core/ui/.../colors.xml`
+    et `values-night/colors.xml` — aucune couleur en dur hors palette) :
+    les 4 états de la pastille (construction animée + %, prêt discrète,
+    partiel avertissement, erreur rouge), les 4 états du panneau de
+    détail (construction, partiel avec avertissements, erreur, au repos
+    avec bilan), clair ET sombre, portrait ET paysage, écran large
+    (1280×800). Vue par moteur (Java + Kotlin, accents ADR 0059),
+    liste de travail, histogramme horizontal simple des 3 indexeurs les
+    plus coûteux, boutons Réindexer / Réessayer les échecs.
+  - **6 questions ouvertes** (§7) : persistance du bilan (Q1 —
+    recommandation : DataStore), estimation du temps restant (Q2 —
+    recommandation : seulement si ≥ 20 % traités + débit stable),
+    annulation d'un passage (Q3 — recommandation : non en phase B),
+    indexation en priorité du projet courant (Q4 — non, ADR 0114 I1),
+    cohérence visuelle avec la ligne tooling (Q5 — oui pastille, non
+    panneau), cycle de vie du panneau (Q6 — fermeture douce à la
+    fermeture de session).
+  - La maquette de départ fournie par l'utilisateur (`Main.dc.html`,
+    `Partiel.dc.html`, `Pret.dc.html`) a été respectée et étendue :
+    ajout de l'état ERREUR (manquant dans la maquette de départ),
+    ajout du mode sombre, ajout du paysage, ajout de l'écran large,
+    conservation de la vue par moteur et de la palette de tokens
+    CodeIDE.
+  - **Hors périmètre** : prompt 1 (agencement EditorActivity), logique
+    interne de construction des index, bibliothèque `code-editor`.
+    `barre_etat_lsp` est retirée de `activity_editor.xml` UNIQUEMENT
+    en phase B (lot B5) — signalé pour ne pas marcher sur le travail
+    du prompt 1.
+
 ## [0.123.0] – 2026-10-14
 
 ### Ajouté
