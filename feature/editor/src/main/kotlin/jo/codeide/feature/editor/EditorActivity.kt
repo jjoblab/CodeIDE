@@ -196,6 +196,16 @@ class EditorActivity :
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
+    /**
+     * Gestionnaire unique des insets de l'espace de travail (E1 du
+     * prompt 1 Phase B, ADR 0118 brouillon). Centralise la consommation
+     * des insets de barre de navigation pour la colonne centrale et
+     * pour le sheet, et calcule la réserve sous l'éditeur (fonction
+     * pure testée unitairement). Initialisé dans [brancherPanneauInferieur]
+     * après la création du `comportementPanneau`.
+     */
+    private var gestionnaireInsets: GestionnaireInsetsEditeur? = null
+
     /** Sélection programmatique d'onglet : ne pas la renvoyer au ViewModel. */
     private var selectionProgrammatique = false
 
@@ -405,7 +415,14 @@ class EditorActivity :
      *  sous la barre de statut (MARGE haute — v0.32.1) et AU-DESSUS de la
      *  barre de navigation (MARGE basse — v0.32.2 : retour d'appareil réel,
      *  « le tiroir chevauche la navbar » — il ne peint plus rien derrière
-     *  l'une ni l'autre, le rail du tiroir s'arrête au-dessus des gestes). */
+     *  l'une ni l'autre, le rail du tiroir s'arrête au-dessus des gestes).
+     *
+     *  v0.124.3 (E1 Phase B prompt 1, ADR 0118 brouillon) : la gestion des
+     *  insets est désormais DÉLÉGUÉE à [gestionnaireInsets] (créé dans
+     *  [brancherPanneauInferieur] après le `comportementPanneau`). Cette
+     *  fonction reste appelée tôt dans `onCreate` (avant le sheet), mais
+     *  elle ne fait que brancher la toolbar et le tiroir — le reste
+     *  (colonne centrale + sheet) est piloté par le gestionnaire. */
     private fun brancherInsets() {
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
         liaison.tiroir.applySystemBarsInsetsMargins()
@@ -1119,10 +1136,17 @@ class EditorActivity :
      * approche qu'AndroidIDE, `marginBottom = peekHeight` constant).
      * Clavier ouvert, [appliquerClavier] gère le padding IME
      * directement — cette fonction est sans effet.
+     *
+     * v0.124.3 (E1+E2+E3 Phase B prompt 1, ADR 0118 brouillon) : la
+     * fonction DÉLÈGUE désormais à [gestionnaireInsets] qui consomme
+     * AUSSI l'inset de barre de navigation (l'en-tête replié reste
+     * AU-DESSUS de la barre) et le padding interne du sheet (le fond
+     * opaque descend jusqu'au bord bas de l'écran derrière la barre
+     * transparente). La garde `clavierVisible` est désormais gérée par
+     * la fonction pure [GestionnaireInsetsEditeur.calculerReserveEditeur].
      */
     internal fun appliquerReservePanneau() {
-        if (clavierVisible) return
-        liaison.zoneCentrale.updatePadding(bottom = comportementPanneau.peekHeight)
+        gestionnaireInsets?.appliquerReservePanneau()
     }
 
     /**
@@ -1210,6 +1234,20 @@ class EditorActivity :
      */
     private fun brancherPanneauInferieur() {
         comportementPanneau = BottomSheetBehavior.from(liaison.panneauInferieur)
+        // E1 (Phase B prompt 1, ADR 0118 brouillon) : gestionnaire unique
+        // des insets — créé APRÈS le comportementPanneau (le peek est
+        // piloté par le PanneauToolingController, mais la lecture initiale
+        // est possible). Le gestionnaire consomme les insets de barre de
+        // navigation pour la colonne centrale et le sheet, et calcule la
+        // réserve sous l'éditeur (fonction pure testée unitairement).
+        gestionnaireInsets =
+            GestionnaireInsetsEditeur(
+                liaison = liaison,
+                comportementPanneau = comportementPanneau,
+                clavierVisible = { clavierVisible },
+                hauteurIme = { hauteurIme },
+            )
+        gestionnaireInsets?.brancher()
         // Contrôleur du rendu tooling (v4, correctif n°13) : le rendu de
         // l'en-tête quitte l'activité — horloge injectée, annulation
         // relayée au ViewModel, présentateur pur pour la décision.
