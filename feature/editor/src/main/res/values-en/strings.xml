@@ -275,6 +275,13 @@
     <string name="editor_indexation_pastille_cd_partiel">Partial index</string>
     <string name="editor_indexation_pastille_cd_erreur">Index error</string>
 
+    <!-- Entry states in the work list (lot B6). -->
+    <string name="editor_indexation_entree_attente">pending</string>
+    <string name="editor_indexation_entree_actif">in progress</string>
+    <string name="editor_indexation_entree_termine">done</string>
+    <string name="editor_indexation_entree_repris">reused</string>
+    <string name="editor_indexation_entree_ecarte">skipped</string>
+
     <string name="editor_run">Run</string>
     <string name="editor_executer">Run…</string>
     <string name="editor_executer_titre">Run a Gradle task</string>

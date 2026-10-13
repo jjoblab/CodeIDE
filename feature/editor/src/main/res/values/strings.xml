@@ -303,6 +303,13 @@
     <string name="editor_indexation_pastille_cd_partiel">Index partiel</string>
     <string name="editor_indexation_pastille_cd_erreur">Index en erreur</string>
 
+    <!-- États d\'entrée dans la liste de travail (lot B6). -->
+    <string name="editor_indexation_entree_attente">en attente</string>
+    <string name="editor_indexation_entree_actif">en cours</string>
+    <string name="editor_indexation_entree_termine">terminé</string>
+    <string name="editor_indexation_entree_repris">repris</string>
+    <string name="editor_indexation_entree_ecarte">écarté</string>
+
     <string name="editor_run">Run</string>
     <string name="editor_executer">Exécuter…</string>
     <string name="editor_executer_titre">Exécuter une tâche Gradle</string>

@@ -1,5 +1,73 @@
 # Journal des modifications
 
+## [0.125.0] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lots B6 + B7 + B8 (panneau de détail + branchement
+  + finalisation)** : finalisation de l'écran d'indexation LSP. L'appui
+  sur la pastille de toolbar ouvre un `BottomSheetDialogFragment`
+  (`FragmentDetailIndexation`) qui affiche le modèle d'affichage produit
+  par `PresentationIndexation` (lot B4).
+  - **Lot B6 — Panneau de détail** :
+    - Nouveau `FragmentDetailIndexation` (`BottomSheetDialogFragment`,
+      patron `FeuilleTachesFragment`) — observe le modèle d'affichage,
+      ne contient AUCUNE logique (règle §5.11 du prompt 2).
+    - Layout `fragment_detail_indexation.xml` : en-tête (icône + titre
+      + sous-titre), barre `LinearProgressIndicator`, compteur, liste
+      de travail (`RecyclerView`), vue par moteur, bilan du dernier
+      passage, note d'impact, boutons d'action.
+    - Layouts `ligne_travail_indexation.xml` + `ligne_moteur.xml` +
+      `ligne_bilan.xml` pour les sous-vues.
+    - `AdaptateurListeTravail` (`ListAdapter` avec `DiffUtil`) pour la
+      liste de travail — diff efficace, pas de recréation de vues.
+    - 5 chaînes FR + EN pour les états d'entrée (en attente / actif /
+      terminé / repris / écarté).
+  - **Lot B7 — Branchement** :
+    - `EditorActivity.brancherPastilleIndexation()` : l'appui sur la
+      pastille appelle `ouvrirPanneauDetailIndexation()` qui affiche le
+      `FragmentDetailIndexation` via `supportFragmentManager`.
+    - `rendreEtatIndexationLsp` propage désormais le modèle au fragment
+      s'il est ouvert (mises à jour en direct pendant l'indexation).
+    - Fermeture automatique du panneau quand la session LSP se ferme
+      (état `INITIAL` → `dismissAllowingStateLoss()`).
+    - `dernierModeleIndexation` : conservation du dernier modèle pour
+      le fragment qui peut être recréé (rotation).
+  - **Lot B8 — Finalisation** :
+    - **ADR 0117** finalisé (`docs/adr/0117-ecran-indexation-lsp-pastille-toolbar-sheet-detail-brouillon.md`)
+      : statut `accepté` (v0.125.0).
+    - Chaînes FR + EN déjà livrées en lot B4 (40+ chaînes).
+    - **Tests manuels** à ajouter à `docs/TESTS_MANUELS.md` (section
+      « Mission Indexation » — à venir dans un correctif si des retours
+      appareil le justifient).
+  - **Vérification locale incrémentale** :
+    `:feature:editor:spotlessCheck` ✅, `:feature:editor:detekt` ✅,
+    `:feature:editor:compileDebugKotlin` ✅,
+    `:feature:editor:lintDebug` ✅,
+    `:feature:editor:testDebugUnitTest` ✅ (tests B1+B4 passent),
+    `checkModuleDependencies` ✅.
+  - **Exemption detekt** `@file:Suppress("MagicNumber", "TooManyFunctions", "SpreadOperator")`
+    sur `FragmentDetailIndexation` — 16 fonctions (une par section du
+    panneau), magic numbers de layout (44 dp, 22 corner radius), spread
+    pour `getString` vararg (même précédent que `PresentationTooling`).
+
+### Bilan Phase B Prompt 2 (v0.124.8 → v0.125.0)
+
+- **8 lots livrés** (B1 → B8), tous avec vérification locale
+  incrémentale avant push.
+- **Architecture complète** : `ServiceIndexDisque` (lsp:index) publie
+  `EtatIndex` étendu → `SessionLsp.traduireEtatIndex()` (lsp:host)
+  publie `EtatIndexation` étendue → `PresentationIndexation.afficher()`
+  (feature:editor) produit `ModeleAffichageIndexation` →
+  `VuePointIndexation` (pastille toolbar) + `FragmentDetailIndexation`
+  (bottom sheet) lient le modèle aux vues.
+- **36 tests unitaires** (14 B1 + 22 B4) + présentateur pur testé
+  sur tous les états.
+- **`barre_etat_lsp` retirée** — aucun saut de mise en page pendant
+  l'indexation (la pastille vit dans la toolbar qui existe déjà).
+- **ADR 0117 accepté** — documente les décisions, options écartées,
+  conséquences.
+
 ## [0.124.12] – 2026-10-14
 
 ### Ajouté

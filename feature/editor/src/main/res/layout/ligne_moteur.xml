@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne de moteur dans le panneau de détail d'indexation. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingVertical="9dp">
+
+    <View
+        android:id="@+id/point_moteur"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginEnd="10dp"
+        android:background="?attr/colorPrimary" />
+
+    <TextView
+        android:id="@+id/nom_moteur"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textStyle="bold"
+        tools:text="Java" />
+
+    <TextView
+        android:id="@+id/etat_moteur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="118/191" />
+
+</LinearLayout>
