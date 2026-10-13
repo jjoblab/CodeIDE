@@ -224,6 +224,89 @@ silencieusement les tags légers : prompt Vérification-1, section 2.5) ;
 rapport remis (format section 14, avec la **durée réelle** de chaque commande
 de vérification — Vérification-1, section 2.4) puis attente du « GO ».
 
+## Workflow d'agent IA asynchrone (directive du 14/10/2026, v0.122.2)
+
+Cette directive s'ajoute à la « Définition de terminé » ci-dessus et la
+**précise** pour les sessions menées par un agent IA sans chaîne locale
+complète (pas de SDK Android ni de Gradle disponibles dans l'environnement
+de l'agent). Elle s'applique **en plus** des directives précédentes
+(v0.79.0, v0.120.1, v0.121.1) — en cas de conflit, la plus récente prime.
+
+### 1. Push dès que la vérification locale hors-`assembleDebug` est verte
+
+- Une étape est **poussable** dès que les vérifications hors `assembleDebug`
+  sont vertes localement : `spotlessCheck detekt checkModuleDependencies` +
+  `lintDebug testDebugUnitTest koverVerify` sur les modules touchés.
+- `assembleDebug` **n'est plus un prérequis bloquant du push** : la CI
+  GitHub l'exécute à chaque push (chaîne complète ADR 0037). Si
+  l'environnement de l'agent ne permet pas de l'exécuter (pas de SDK
+  Android), on s'appuie sur la CI comme seule source de vérité pour cette
+  étape, sans attendre.
+- Identité Git inchangée : `jjoblab <olson12jb@gmail.com>` (règle
+  permanente, section « Identité Git »).
+
+### 2. Surveillance de la CI GitHub en arrière-plan
+
+- Dès qu'un commit ou un tag est poussé, la CI GitHub démarre
+  (workflow `.github/workflows/ci.yml` — chaîne complète, environ 20 à
+  30 minutes, parfois plus).
+- L'agent **surveille l'état du run toutes les 5 minutes** via l'API
+  GitHub (`GET /repos/jjoblab/CodeIDE/actions/runs?per_page=5`), sans
+  bloquer le travail courant.
+- L'agent **continue les étapes suivantes** pendant que la CI tourne :
+  préparation du prochain commit, lecture/audit, rédaction d'ADR, etc.
+
+### 3. Récupération des logs d'erreur en parallèle
+
+- Si la CI GitHub **échoue** pendant que l'agent travaille sur l'étape
+  suivante, l'agent **récupère immédiatement le log d'erreur** via
+  l'API GitHub :
+  1. `GET /repos/jjoblab/CodeIDE/actions/runs/{run_id}/jobs` pour
+     identifier le job en échec.
+  2. `GET /repos/jjoblab/CodeIDE/actions/jobs/{job_id}/logs` pour
+     télécharger le journal complet.
+  3. Extraction des lignes d'erreur (`##[error]` ou `FAILED` ou
+     `* What went wrong:`).
+- L'agent **corrige l'erreur en parallèle** de l'étape en cours — sans
+  interrompre le travail courant — puis pousse un commit correctif
+  (`fix(ci): ...`) qui redéclenche une nouvelle exécution CI.
+- Les deux flux (étape courante + correctif CI) restent indépendants :
+  un correctif CI ne doit **jamais** annuler ou perdre le travail déjà
+  commencé sur l'étape en cours.
+
+### 4. Conservation du token d'accès GitHub
+
+- Le token d'accès GitHub (PAT, durée 24 h) est **sauvegardé localement**
+  dans le dépôt, à la racine, sous `.gh-token` — **jamais versionné**
+  (règle 7 : aucun secret dans le dépôt, déjà couvert par `.gitignore`).
+- Ce fichier survive aux resets de l'environnement agent tant que le
+  working directory du dépôt persiste. En cas de reset total (perte du
+  working directory), l'agent demande à l'utilisateur un nouveau token.
+- Pour pousser : `git push https://$(cat .gh-token)@github.com/jjoblab/CodeIDE.git main`
+  (en évitant de laisser le token dans l'historique shell — préférer
+  configurer un remote avec credentials incluses dans la valeur
+  `url` ou utiliser `git credential`).
+- Vérifier avant chaque push que `.gh-token` est bien ignoré :
+  `git status --ignored | grep .gh-token`.
+
+### 5. Traçabilité — journal de travail partagé
+
+- L'agent tient un journal de travail dans
+  `/home/z/my-project/worklog.md` (en dehors du dépôt) — une entrée par
+  commit poussé : hash, version, étape, liens vers les runs CI, état
+  final (succès/échec en cours/corrigé).
+- Ce journal permet à un agent successeur (en cas de reset) de reprendre
+  exactement là où le précédent s'est arrêté, sans perdre le contexte.
+
+### 6. Non-régression du travail effectué
+
+- En cas de reset de l'environnement agent, **aucun travail poussé
+  n'est perdu** : les commits et tags sont sur `origin/main`.
+- L'agent successeur clone le dépôt (`git clone https://github.com/jjoblab/CodeIDE.git`),
+  lit le `CHANGELOG.md`, le dernier ADR, et le journal de travail partagé
+  pour reprendre le travail. La directive ci-dessus s'applique à chaque
+  session sans modification.
+
 ## État d'avancement
 
 - [x] Étape 0 — Environnement, squelette, outillage → v0.1.0
