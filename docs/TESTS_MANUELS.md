@@ -541,12 +541,14 @@ dossier du projet.
 | Y18 | Changer la rétention à 1 jour, ROUVRIR le projet, éditer, attendre plus d'un jour (ou régler l'horloge), réouvrir | Les révisions plus vieilles qu'un jour partent à la purge d'ouverture — la réglage s'applique SANS redémarrer l'app (lu à chaque purge) |
 | Y19 | « Effacer l'historique local » → confirmer le dialogue | « Historique effacé », empreinte repart à ~0, les feuilles Historique de TOUS les projets sont VIDES — les fichiers du disque n'ont PAS bougé |
 
-## Mission « Previews » — panneau d'aperçu XML (PE1, v0.111.0)
+## Mission « Previews » — panneau d'aperçu XML (PE1 v0.111.0 + PE2 v0.114.0)
 
 Le rendu vit dans `:preview:xml` (moteur LayoutLib **en intégration source
 par build composite** depuis v0.112.0 — checkout frère `../LayoutLib`,
 tag v2.2.0 ; JitPack abandonné pour LayoutLib, décision propriétaire —
-fil dédié, bitmap off-screen, PREVIEW.md §3) ; ces recettes éprouvent
+fil dédié, bitmap off-screen, PREVIEW.md §3 ; PE2 v0.114.0 : le rendu vit
+dans le PROCESSUS DÉDIÉ `:preview` — AIDL, DeathRecipient, repli local) ;
+ces recettes éprouvent
 le câblage complet : FUSE (`res/` du projet), classification, debounce,
 « jamais de panneau vide », et l'INERTIE de l'IDE (le rendu ne doit
 JAMAIS bloquer la frappe).
@@ -554,6 +556,8 @@ JAMAIS bloquer la frappe).
 | # | Action | Attendu |
 |---|--------|--------|
 | P1 | Ouvrir un projet Android, ouvrir `res/layout/activity_main.xml` (ou tout layout) | Le menu ⋮ de la toolbar offre **« Aperçu XML »** (invisible sur un fichier non-XML ou non-layout) |
+| P0 | (PE2) Après P1 avec le panneau d'aperçu OUVERT et un rendu affiché | `adb shell pidof jo.codeide:preview` NON vide (le processus de rendu vit) ; après ~60 s SANS édition, le pid disparaît (idle-shutdown : déliaison, le processus meurt seul) ; une frappe le relance | 
+| P0b | (PE2) Robustesse — depuis un terminal Android : `adb shell am crash jo.codeide:preview` (ou forcer l'arrêt du pid) puis ÉDITER le layout | Le rendu suivant revient SANS que l'éditeur ne bouge : reprise silencieuse (une relance Binder) ; si le processus re-meurt, la session passe en repli local (rendu identique, journal « processus :preview désactivé pour la session ») | 
 | P2 | Menu → « Aperçu XML » | Le panneau s'ouvre À CÔTÉ de l'éditeur (partage 50/50 de la largeur) avec le bitmap rendu ajusté à la vue ; l'entrée de menu devient « Masquer l'aperçu » |
 | P3 | Pincer, glisser, double-tap dans le panneau | Zoom borné (0,25×–6×), pan borné, double-tap réajuste le rendu à la vue ; damier de transparence derrière les zones alpha |
 | P4 | Éditer le texte du layout (couleur, texte, padding) | Après ~400 ms sans frappe : NOUVEAU rendu ; PENDANT les frappes (XML malformé) : le DERNIER rendu valide reste affiché + signal discret « XML en cours de frappe » en bas |

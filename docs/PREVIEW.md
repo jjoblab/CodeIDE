@@ -141,14 +141,14 @@ malformés gardent le dernier rendu (§2.2, comportement AS).
 | Étape | Contenu | Version cible |
 |-------|---------|---------------|
 | **PE1** ✅ | **Livré v0.111.0** : module `:preview:xml` (moteur LayoutLib — P2 d'alors en dépendance JitPack v2.1.2, **révisée v0.112.0 en intégration source composite, tag v2.2.0, plus de JitPack**) ; « RenderService adapté » (validation XmlPullParser, inflation, LayoutEngine, **dessin bitmap off-screen sur fil dédié** — P3/P4, single-flight par mutex) ; résolveurs du projet par FUSE (`res/`, thèmes jour/nuit — P5) ; `VuePreviewXml` auto-dessinée (zoom/pan/double-tap, damier, bandeau d'erreur, dernier rendu valide conservé) ; classification `previewKindOf` (LAYOUT rendu, DRAWABLE/VALEURS classifiés pour PE3) ; câblage `ControleurPreviewXml` (onglet actif, écoute des frappes, menu « Aperçu XML ») ; **22 tests** (classification, calculs purs, moteur Robolectric — debounce/malformé/erreur/ressources projet/repli natif, vue) ; kit état des lieux 50 layouts documenté (TESTS_MANUELS §Previews — en attente d'appareil). | v0.111.0 |
-| PE2 | Isolation `:preview` (P3/P4) : AIDL, DeathRecipient, repli in-process, idle-shutdown, registre I7. | v0.121.0 |
+| **PE2** ✅ | **Livré v0.114.0 (devancée — GO propriétaire)** : isolation `:preview` (P3/P4) — frontière AIDL (`IRenduApercu`/`ResultatRendu` Parcelable, **bitmap compressé en PNG** — plafond Binder ~1 Mo) ; service `ServicePreview` du processus `:preview` (manifest, **bound-only** : délié il meurt seul — AUCUN minuteur interne nécessaire), pipeline extrait dans `RenduLayoutLib` (partagé service + repli, zéro duplication), rendu verrouillé (inflater non thread-safe) ; **couture `TransportRendu`** (publique) : `TransportRenduLocal` (PE1 tel quel) + `TransportRenduProcess` (liaison paresseuse bornée 8 s, appel borné 10 s, **DeathRecipient** → relance à la demande suivante) ; **politique `TransportIsolation`** (transport par défaut) : UNE reprise silencieuse puis **désactivation session** (journal honnête + `regime` observable PROCESSUS_ISOLE/LOCAL_DEGRADE — le rendu courant toujours livré par le repli) ; **idle-shutdown** : déliaison après 60 s sans rendu + fermeture d'espace (I7), BIND_AUTO_CREATE relance ; socle **réutilisable tel quel par la preview Compose** (§4.2.3). 12 tests (service Robolectric PNG/Parcel, politique par faux injecté, transport par couture de liaison + VRAI stub). | v0.114.0 |
 | PE3 | Sélection/inspection bidirectionnelle (P6) + profiles device + jour/nuit + drawables/values previewables. | v0.122.0 |
 | PE4 | Remontée des limitations LayoutLib restantes à l'auteur + bump de version priorisé (ConstraintLayout solver d'abord si l'usage le justifie). | continu |
 
 PE1 ne dépend d'aucune autre mission (LSP XML améliorera la complétion mais
-le preview consomme le document brut + FUSE). PE2 introduit le socle `:preview`
-**réutilisé tel quel par la preview Compose** (§4) — c'est la raison de le
-faire proprement dès le départ.
+le preview consomme le document brut + FUSE). PE2 (livré) a introduit le
+socle `:preview` **réutilisé tel quel par la preview Compose** (§4) — c'est
+la raison de l'avoir fait proprement dès le départ.
 
 ## 4. Preview Compose — intégration de l'approche CodeAssist
 

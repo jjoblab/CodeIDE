@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!--
+          Service de rendu des previews dans le PROCESSUS DÉDIÉ « :preview »
+          (PREVIEW.md §3 P3, PE2) : le rendu des layouts du PROJET ÉDITÉ ne
+          tourne jamais dans le processus de l'IDE — une vue framework qui
+          crashe ou bloque tue le processus :preview (DeathRecipient côté
+          app : reprise puis repli in-process), jamais l'éditeur.
+
+          Bound-only (aucun startService) : le processus meurt de LUI-MÊME
+          quand l'app se délie (idle-shutdown côté app + fermeture de
+          l'espace — registre I7 par l'annulation du scope de session).
+        -->
+        <service
+            android:name=".ServicePreview"
+            android:process=":preview"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

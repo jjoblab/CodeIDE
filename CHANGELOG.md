@@ -1,5 +1,51 @@
 # Journal des modifications
 
+## [0.114.0] – 2026-10-13
+
+### Ajouté
+
+- **Previews — étape PE2 : isolation processus `:preview`** (`docs/PREVIEW.md`
+  §3 P3/P4, §6) : le rendu des layouts du projet édité quitte le
+  processus de l'IDE — une vue framework qui crashe ou bloque tue le
+  processus `:preview`, jamais l'éditeur (motif CodeAssist) :
+  - **Frontière AIDL** (`IRenduApercu.rendre(xml, dossierRes)` +
+    `ResultatRendu` Parcelable) : le bitmap voyage **compressé en PNG**
+    (une transaction Binder plafonne à ~1 Mo), décompressé côté app ;
+    l'échec de rendu voyage en DONNÉE (ok=false + message), seule la
+    panne de transport est une exception.
+  - **Service `ServicePreview`** (manifest : `android:process=":preview"`,
+    bound-only, non exporté) : pipeline LayoutLib EXTRAIT dans
+    `RenduLayoutLib` (partagé service + repli — zéro duplication), rendu
+    synchronisé par verrou (l'inflater n'est pas thread-safe) ;
+    bound-only = le processus **meurt de lui-même** délié (aucun
+    startService).
+  - **Couture transport** (`TransportRendu` — publique, conçue dès PE1
+    pour ce déménagement) : `TransportRenduLocal` (pipeline PE1 tel
+    quel, fil dédié) et `TransportRenduProcess` (liaison paresseuse,
+    attente bornée 8 s, appel borné 10 s, **DeathRecipient** →
+    relance à la demande suivante).
+  - **Politique d'isolation** (`TransportIsolation`, transport par
+    défaut du moteur) : processus `:preview` d'abord, **UNE reprise
+    silencieuse** à la panne, puis **désactivation pour la session** —
+    message honnête au journal + `MoteurPreviewXml.regime`
+    (`RegimeRendu.PROCESSUS_ISOLE`/`LOCAL_DEGRADE`, observabilité de
+    l'UI) ; le rendu courant est TOUJOURS livré par le repli local.
+  - **Idle-shutdown** (§3.2) : déliaison après 60 s sans rendu (le
+    processus :preview meurt alors seul) + déliaison immédiate à la
+    fermeture de l'espace (I7 — `close` du moteur, branché au cycle de
+    l'activité) ; BIND_AUTO_CREATE relance à la demande.
+  - **Moteur inchangé de surface** : debounce 400 ms, single-flight,
+    états, `definirDossierRes` — le rendu est DÉLÉGUÉ au transport
+    (ressources poussées à chaque rendu, le processus reconfigure seul).
+  - **Socle réutilisable par la preview Compose** (§4.2.3 : même AIDL,
+    même streaming bitmap, même politique) — conçu pour, rien à
+    retoucher.
+  - **Tests** : 12 nouveaux (34 au total :preview:xml) — service sous
+    Robolectric (PNG + métriques + sentinelle XML malformé + aller-retour
+    Parcel), politique d'isolation (nominal/reprise/désactivation-session/
+    idle/close) avec faux injecté, transport processus (liaison paresseuse,
+    mort → relance, déliaison) par couture de liaison + VRAI stub.
+
 ## [0.113.0] – 2026-10-13
 
 ### Ajouté
