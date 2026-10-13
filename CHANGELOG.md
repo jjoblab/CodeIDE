@@ -1,5 +1,58 @@
 # Journal des modifications
 
+## [0.121.0] – 2026-10-13
+
+### Ajouté
+
+- **LSP XML — étape XE5 : complétion drawables/menus** (`docs/LSP_XML.md`
+  §4.3 « manifest, res/values, drawables : mêmes moteurs, catalogues
+  distincts » — suite de mission après XE1–XE4, demandée par le
+  propriétaire) :
+  - **Genres DRAWABLE et MENU** déduits de l'URI (`res/drawable*`,
+    `res/menu*`, qualifiers compris — `drawable-v24`…), miroir des
+    genres existants ; tout chemin inconnu reste AUTRE (X4).
+  - **Complétion de balises** (`CompletionDrawablesXml`,
+    `CompletionMenusXml`, contributeurs parents-conscients) : racines
+    drawables (shape, selector, layer-list, ripple, vector, inset,
+    bitmap, clip, scale, rotate, animation-list, level-list,
+    transition, animated-vector) et ENFANTS selon le parent
+    (corners/gradient/solid/stroke/padding/size sous `shape` ;
+    group/path/clip-path sous `vector`/`group` ; `item` sous
+    selector/layer-list/ripple/animation-list/level-list/transition ;
+    `target` sous animated-vector ; drawable direct sous les
+    enveloppes inset/clip/scale/rotate/bitmap et `item`) ; menus :
+    `menu` en racine, `item`/`group` sous `menu`, `item` seul sous
+    `group`, sous-`menu` dans un `item`. Parent inconnu = SILENCE
+    (X4 : jamais de candidat inventé).
+  - **Complétion d'attributs PAR BALISE** (catalogue fixé par la
+    documentation, motif XE2/XE4 — les attributs de drawables/menus ne
+    vivent dans aucun styleable de vues) : shape/corners/gradient/
+    solid/stroke/padding/size, états (`android:state_pressed`…) et
+    calques (`android:left`…) PARENT-CONSCIENTS pour `item`, paths
+    vectoriels (`pathData`, `fillColor`, `trimPath*`…), items de menu
+    (trinité `id`/`title`/`icon` en tête, `showAsAction`,
+    `actionViewClass`… avec le préfixe AppCompat `app:`), `group`
+    (`checkableBehavior`…) ; déclarations `xmlns:` en frappe sur
+    toute racine (helper partagé de `CompletionXml`).
+  - **Complétion de VALEURS FUSIONNÉE** avec le contributeur général
+    XE3 (références `@drawable/…` du projet + énumérations du
+    catalogue, dédoublonnage par libellé) : énumérations fixées
+    (`shape` rectangle/oval/line/ring, `type` linear/radial/sweep,
+    `tileMode`, `clipOrientation`, `fillType`, `strokeLineCap/Join`,
+    booléens) et FANIONS `showAsAction`
+    (never/ifRoom/always/withText/collapseActionView, combinables
+    par `|`).
+  - **Règles étendues aux nouveaux genres** : `xml.manqueXmlnsAndroid`
+    s'applique aux drawables/menus (un `android:shape=` sans
+    déclaration est la même erreur de gonfleur — le QUICK-FIX
+    d'insertion XE4 suit, sans changement) ; `xml.idDuplique` aux
+    menus (les ids d'items de menu sont de vrais ids).
+  - Aucun changement de CONTRAT de session (genres de complétion
+    existants réutilisés) ; descripteur de pack 0.121.0.
+  - Tests : 36 nouveaux (17 drawables, 11 menus, 8 session/genre) et
+    1 attendu XE1 mis à jour (le genre drawable n'est plus AUTRE) —
+    188 au module.
+
 ## [0.120.1] – 2026-10-13
 
 ### Corrigé
