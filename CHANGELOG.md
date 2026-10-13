@@ -1,5 +1,21 @@
 # Journal des modifications
 
+## [0.122.1] – 2026-10-14
+
+### Corrigé
+
+- **CI : lint `NestedWeights` rejetait la colonne d'aperçu PE3** (retour
+  CI des runs du commit 3ffbd87 — lintDebug `:feature:editor`, échec
+  invisible dans la chaîne locale initiale qui n'avait lancé le lint que
+  du module `:preview:xml`) : la colonne d'aperçu empile barre de
+  réglages (`wrap_content`) + rendu (reste au poids) DANS une zone de
+  partage horizontale pondérée — double mesure. Suppression ciblée
+  `tools:ignore="NestedWeights"` avec justification en commentaire
+  (colonne `GONE` par défaut, basculée à la demande : le coût ne se
+  paie pas à l'usage) ; lintDebug `:feature:editor` désormais dans la
+  chaîne locale des modules touchés. Le lint du module ÉTAIT le seul
+  écart de la v0.122.0 — aucun code de production touché.
+
 ## [0.122.0] – 2026-10-14
 
 ### Ajouté
