@@ -256,6 +256,8 @@ abstract class BaseEditorViewModelTest {
         id: ProjectId,
         sauvetage: SavedStateHandle,
         resolveurFUSE: jo.codeide.core.domain.ResolveurCheminFuse = resoudreRepertoire,
+        dispatcheurs: jo.codeide.core.domain.DispatcherProvider =
+            TestDispatcherProvider(regleMain.dispatcher),
     ): EditorViewModel =
         EditorViewModel(
             observerProjet = ObserveProjectUseCase(depot),
@@ -347,6 +349,7 @@ abstract class BaseEditorViewModelTest {
             gestionnaireSession = gestionnaireSessionTest,
             porteeFermetureSession = porteeFermetureSessionTest,
             orchestrateurInstallation = parcoursInstallationTest,
+            dispatcheurs = dispatcheurs,
             savedStateHandle = sauvetage,
         )
 

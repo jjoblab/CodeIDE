@@ -14,6 +14,7 @@ import jo.codeide.core.domain.CalculerEmpreinteGradleUseCase
 import jo.codeide.core.domain.CopierArbreUseCase
 import jo.codeide.core.domain.DeplacerArbreUseCase
 import jo.codeide.core.domain.DiagnosticBuild
+import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.EcrireSyncStateUseCase
 import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EnvironmentSetupOrchestrator
@@ -96,6 +97,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -231,6 +233,12 @@ class EditorViewModel
         // d'installation des outils répercute la DISPONIBILITÉ du
         // tooling (installation en cours ≠ outils jamais installés).
         private val orchestrateurInstallation: EnvironmentSetupOrchestrator,
+        // K5 (retour d'appareil v0.115.0, ANR e7dd5a7) : le nourrissage
+        // LSP décode les index de classpath (secondes D'ENTRÉES/SORTIES
+        // + CPU sur un appareil d'entrée de gamme) — il vit sur le
+        // répartiteur d'E/S INJECTÉ, JAMAIS sur le thread principal
+        // (règle 5 : dispatchers injectés).
+        private val dispatcheurs: DispatcherProvider,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -780,9 +788,20 @@ class EditorViewModel
          * Gradle, l'empreinte a déjà été validée par l'appelant. Session
          * absente ou fichier absent : journal discret, JAMAIS bloquant —
          * la revalidation silencieuse nourrira à sa suite.
+         *
+         * K5 (ANR e7dd5a7 v0.115.0) : l'application reconstruit l'index
+         * fusion Java PUIS l'index des appelables Kotlin (décodage
+         * kotlin-metadata de CHAQUE jar, ≥ 10 s sur moto g06 à froid) —
+         * ce travail vit sur [DispatcherProvider.io], le thread
+         * principal rend la main à l'utilisateur IMMÉDIATEMENT (trace :
+         * restaurerEtatSyncSiEmpreinteIdentique → appliquerModele →
+         * IndexAppelablesKotlin.definir sur « main »).
          */
-        private fun nourrirSessionLspDepuisModelePersiste() {
+        private suspend fun nourrirSessionLspDepuisModelePersiste() {
             val session = sessionLspInterne.value ?: return
+            // Le verdict du modèle persisté et la publication d'état
+            // restent sur le thread courant (léger) ; SEULE la
+            // reconstruction des index saute sur l'E/S.
             if (session.nourrirDepuisModelePersiste()) {
                 journal.i(TAG) {
                     "session LSP nourrie depuis le cache (${session.modele.value
@@ -795,10 +814,12 @@ class EditorViewModel
                 // — nourrie en cascade, elle retrouve ses appelables et
                 // racines sources QUASI INSTANTANÉMENT, la sync fraîche
                 // remplacera si l'empreinte a changé.
-                val sessionKotlin = sessionLspKotlinInterne.value
-                val modele = session.modele.value
-                if (sessionKotlin != null && modele != null) {
-                    sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                withContext(dispatcheurs.io) {
+                    val sessionKotlin = sessionLspKotlinInterne.value
+                    val modele = session.modele.value
+                    if (sessionKotlin != null && modele != null) {
+                        sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                    }
                 }
             } else {
                 journal.d(TAG) {
@@ -1413,7 +1434,13 @@ class EditorViewModel
                         }
                         return
                     }
-            val application = session.appliquerClasspath(brut)
+            // K5 (ANR e7dd5a7 v0.115.0) : l'application du classpath
+            // reconstruit l'index fusion Java + décode l'index des
+            // appelables Kotlin — HORS du thread principal, même motif
+            // que nourrirSessionLspDepuisModelePersiste (la sync fraîche
+            // est le chemin CHAUD : encore plus de jars à décoder).
+            val application =
+                withContext(dispatcheurs.io) { session.appliquerClasspath(brut) }
             journal.i(TAG) {
                 "session LSP nourrie (${application.modulesActifs} module(s) actif(s), " +
                     "${application.entreesIndex} entrées d'index, projet ${identifiantSuivi()})"
@@ -1423,7 +1450,9 @@ class EditorViewModel
             // budget de cache, D4), la session Kotlin consomme la même
             // par la couture neutre ; l'index des APPELABLES Kotlin
             // décode ses propres jars (segments par empreinte).
-            sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
+            withContext(dispatcheurs.io) {
+                sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
+            }
         }
 
         /**
