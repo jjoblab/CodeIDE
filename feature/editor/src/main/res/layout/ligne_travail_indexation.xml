@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne de la liste de travail du panneau de détail d'indexation
+  (Phase B prompt 2, ADR 0117 §4.4 — lot B6). Une entrée par jar/AAR/dossier,
+  avec icône d'état + nom + libellé d'état.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingVertical="9dp">
+
+    <ImageView
+        android:id="@+id/icone_entree"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="10dp"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_check" />
+
+    <TextView
+        android:id="@+id/nom_entree"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="androidx.core 1.19.0" />
+
+    <TextView
+        android:id="@+id/etat_entree"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="repris" />
+
+</LinearLayout>
