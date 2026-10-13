@@ -1,5 +1,49 @@
 # Journal des modifications
 
+## [0.124.10] – 2026-10-14
+
+### Ajouté
+
+- **Phase B Prompt 2 — lot B3 (étendre EtatIndexation lsp:host)** :
+  `EtatIndexation` (lsp:host, type public exposé à l'UI) est étendu
+  pour transporter les nouveaux champs de `EtatIndex` (lsp:index). Tous
+  les nouveaux champs ont des valeurs par défaut — la compatibilité
+  binaire est préservée.
+  - **Nouveau fichier** `lsp/host/src/main/kotlin/jo/codeide/lsp/host/TypesIndexationPublics.kt` :
+    traduction publique des types internes de `lsp:index` (qui est en
+    `implementation`, non transitive) — `PhaseDetailleeIndexation`,
+    `EtatEntreeTravailIndexation`, `EntreeTravailIndexation`,
+    `BreakdownIndexeurIndexation`, `DureesPhasesIndexation`,
+    `BilanDernierPassageIndexation`.
+  - **`EtatIndexation` étendu** avec 7 nouveaux champs (tous avec
+    valeurs par défaut) : `phaseDetaillee`, `listeTravail`,
+    `breakdownIndexeurs`, `dureesPhases`, `bilanDernierPassage`,
+    `settled`, `reprises` (le champ `reprises` était perdu à la
+    frontière lsp:host — Phase A §3.3 l'avait identifié, il est
+    désormais transporté).
+  - **Traduction extraite** dans `SessionLsp.traduireEtatIndex()` +
+    7 sous-fonctions (`traduirePhase`, `traduirePhaseDetaillee`,
+    `traduireEntreeTravail`, `traduireEtatEntree`, `traduireBreakdown`,
+    `traduireDurees`, `traduireBilan`) — découplage propre entre
+    `EtatIndex` (interne) et `EtatIndexation` (publique). Exemption
+    detekt ciblée (`LongMethod`, `CyclomaticComplexMethod`) justifiée
+    par la traduction exhaustive de tous les champs.
+  - **`relancerCollecteEtat` simplifié** — ne fait plus que la
+    collecte, la traduction est déléguée à `traduireEtatIndex`.
+  - **Compatibilité** : les consommateurs existants
+    (`EditorActivity.rendreEtatIndexationLsp`,
+    `AdaptateurVueClasspath`, `AdaptateurIndexNoms`) ne sont pas
+    affectés — ils ne lisent que les champs historiques.
+  - **Vérification locale incrémentale** :
+    `:lsp:host:spotlessCheck` ✅, `:lsp:host:detekt` ✅,
+    `:lsp:host:compileDebugKotlin` ✅, `:lsp:host:test` ✅,
+    `:feature:editor:compileDebugKotlin` ✅ (consommateur non cassé),
+    `checkModuleDependencies` ✅.
+  - **Note** : la création de `SessionLspKotlin.etatIndexation` (vue par
+    moteur Kotlin) est reportée à un lot ultérieur — le moteur Kotlin
+    a son propre index `IndexAppelablesKotlin` non publié en flux, et
+    l'exposer nécessite un travail plus profond dans `lsp:kotlin`.
+
 ## [0.124.9] – 2026-10-14
 
 ### Ajouté
