@@ -163,7 +163,10 @@ public class VuePreviewXml : View {
         contentDescription = contexte.getString(R.string.preview_cd)
     }
 
-    /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom). */
+    /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom).
+     *  Si la vue n'a pas encore ses dimensions (width/height = 0 — layout
+     *  pas encore passé), l'ajustement est reporté au prochain layout via
+     *  [onSizeChanged]. */
     public fun afficherRendu(
         bitmap: Bitmap,
         vuesRendues: List<InfoVueRendu> = emptyList(),
@@ -174,7 +177,17 @@ public class VuePreviewXml : View {
         enEdition = false
         accueilAffiche = false
         indiceSurligne = -1
-        ajusterALaVue()
+        if (width > 0 && height > 0) {
+            ajusterALaVue()
+        } else {
+            // La vue n'a pas encore été mesurée — on reporte l'ajustement.
+            // onSizeChanged re-appellera ajusterALaVue() + invalidate().
+            // En attendant, on met une échelle de repli pour ne pas
+            // dessiner à échelle 0 (invisible).
+            echelle = 0.1f
+            decalageX = 0f
+            decalageY = 0f
+        }
         invalidate()
     }
 
@@ -226,6 +239,7 @@ public class VuePreviewXml : View {
         super.onSizeChanged(largeur, hauteur, ancienneLargeur, ancienneHauteur)
         if (largeur != ancienneLargeur || hauteur != ancienneHauteur) {
             ajusterALaVue()
+            invalidate()
         }
     }
 

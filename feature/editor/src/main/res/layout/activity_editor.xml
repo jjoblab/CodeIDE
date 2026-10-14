@@ -75,91 +75,89 @@
                     android:layout_height="0dp"
                     android:layout_weight="1">
 
-                    <!-- Zone d'édition PARTAGÉE (mission « Previews » PE1,
-                         PREVIEW.md §3.3) : l'éditeur et le panneau d'aperçu
-                         XML se partagent la largeur par poids égaux —
-                         l'aperçu GONE par défaut, l'éditeur reprend tout ;
-                         la bascule vit dans le menu de la toolbar. -->
-                    <LinearLayout
-                        android:id="@+id/zone_edition_partagee"
+                    <!-- Éditeur du fichier actif (pleine largeur — l'aperçu
+                         XML se superpose en overlay quand activé, plus de
+                         split 50/50 qui rendait l'éditeur illisible). -->
+                    <jo.codeeditor.view.EditorView
+                        android:id="@+id/vue_editeur"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:orientation="horizontal">
+                        android:visibility="gone" />
 
-                        <!-- Éditeur du fichier actif : une seule vue, rebranchée sur
-                             la session de l'onglet sélectionné (ADR 0028). -->
-                        <jo.codeeditor.view.EditorView
-                            android:id="@+id/vue_editeur"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:visibility="gone" />
+                    <!-- Aperçu XML OVERLAY plein écran (PE1 → PE5) :
+                         couvre TOUT l'éditeur quand visible, GONE par
+                         défaut. Bitmap off-screen rendu par le moteur
+                         :preview:xml sur fil dédié — zoom/pan, damier,
+                         bandeau d'erreur. PE3 : barre de réglages
+                         (profil, jour/nuit, langue) + bouton fermer.
+                         PE5 : la bascule se fait par overlay, pas par
+                         split — l'éditeur garde sa pleine largeur. -->
+                    <LinearLayout
+                        android:id="@+id/colonne_apercu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/colorSurface"
+                        android:orientation="vertical"
+                        android:visibility="gone">
 
-                        <!-- Aperçu XML (PE1 → PE3) : bitmap off-screen rendu par le
-                             moteur :preview:xml sur fil dédié — zoom/pan,
-                             damier de transparence, bandeau d'erreur, le
-                             dernier rendu valide reste pendant les frappes.
-                             PE3 : barre de réglages (profil device, jour/nuit)
-                             au-dessus du rendu, sélection bidirectionnelle
-                             (tap → span source, sélection → surlignage).
-                             NestedWeights ignoré (rendu : barre wrap_content
-                             + reste au poids) : la colonne est GONE par
-                             défaut et basculée à la demande — le double
-                             measure ne coûte rien à l'usage réel. -->
                         <LinearLayout
-                            android:id="@+id/colonne_apercu"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:visibility="gone">
+                            android:id="@+id/barre_reglages_apercu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="@dimen/spacing_sm"
+                            android:paddingEnd="@dimen/spacing_sm">
 
-                            <LinearLayout
-                                android:id="@+id/barre_reglages_apercu"
-                                android:layout_width="match_parent"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_profil_apercu"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                android:paddingStart="@dimen/spacing_sm"
-                                android:paddingEnd="@dimen/spacing_sm">
+                                android:minWidth="0dp"
+                                android:contentDescription="@string/preview_profil_cd"
+                                android:text="@string/preview_profil" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/bouton_profil_apercu"
-                                    style="@style/Widget.Material3.Button.TextButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:contentDescription="@string/preview_profil_cd"
-                                    android:text="@string/preview_profil" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_nuit_apercu"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minWidth="0dp"
+                                android:contentDescription="@string/preview_nuit_cd"
+                                android:text="@string/preview_jour" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/bouton_nuit_apercu"
-                                    style="@style/Widget.Material3.Button.TextButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:contentDescription="@string/preview_nuit_cd"
-                                    android:text="@string/preview_jour" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_langue_apercu"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minWidth="0dp"
+                                android:contentDescription="@string/preview_langue_cd"
+                                android:text="@string/preview_langue_defaut" />
 
-                                <!-- PE5a : bouton bascule langue (LayoutLib v3.0.0 P1
-                                     résolu — ResourceResolver.setLanguage()). -->
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/bouton_langue_apercu"
-                                    style="@style/Widget.Material3.Button.TextButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:minWidth="0dp"
-                                    android:contentDescription="@string/preview_langue_cd"
-                                    android:text="@string/preview_langue_defaut" />
-                            </LinearLayout>
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1" />
 
-                            <jo.codeide.preview.xml.VuePreviewXml
-                                android:id="@+id/vue_preview"
-                                android:layout_width="match_parent"
-                                android:layout_height="0dp"
-                                android:layout_weight="1"
-                                tools:ignore="NestedWeights" />
+                            <!-- Bouton fermer l'aperçu — retour à l'éditeur. -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fermer_apercu"
+                                style="@style/Widget.Material3.Button.IconButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:contentDescription="@string/editor_action_apercu_fermer"
+                                app:icon="@drawable/ic_fermer"
+                                app:iconTint="?attr/colorOnSurface" />
                         </LinearLayout>
+
+                        <jo.codeide.preview.xml.VuePreviewXml
+                            android:id="@+id/vue_preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            tools:ignore="NestedWeights" />
                     </LinearLayout>
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator

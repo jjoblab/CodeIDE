@@ -1279,6 +1279,11 @@ class EditorActivity :
             controleurApercu.basculerLangue()
             majBarreApercu()
         }
+        // Bouton fermer l'aperçu — retour à l'éditeur plein écran.
+        liaison.boutonFermerApercu.setOnClickListener {
+            controleurApercu.bascule()
+            majMenuApercu()
+        }
         liaison.vueEditeur.addOnSelectionChangedListener { debut, fin, _ ->
             controleurApercu.onSelectionEditeur(debut, fin)
         }
