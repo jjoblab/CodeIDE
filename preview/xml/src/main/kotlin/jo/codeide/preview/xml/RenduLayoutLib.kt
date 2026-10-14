@@ -386,12 +386,20 @@ public class RenduLayoutLib(
         return tampon.toByteArray()
     }
 
-    /** Dessine la racine mesurée dans un bitmap off-screen (P4). */
+    /** Dessine la racine mesurée dans un bitmap off-screen (P4).
+     *  Le bitmap est pré-rempli avec une couleur de fond (blanc par défaut)
+     *  car Bitmap.createBitmap(ARGB_8888) crée un bitmap TRANSPARENT —
+     *  si la racine n'a pas de android:background, le draw() ne dessine
+     *  rien et le bitmap reste invisible. */
     private fun dessiner(racine: View): Bitmap {
         val largeur = racine.measuredWidth.coerceAtLeast(1)
         val hauteur = racine.measuredHeight.coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
-        racine.draw(Canvas(bitmap))
+        val canevas = Canvas(bitmap)
+        // Pré-remplir avec le fond de surface du thème — sinon un layout
+        // sans android:background produit un bitmap transparent (invisible).
+        canevas.drawColor(android.graphics.Color.WHITE)
+        racine.draw(canevas)
         return bitmap
     }
 
