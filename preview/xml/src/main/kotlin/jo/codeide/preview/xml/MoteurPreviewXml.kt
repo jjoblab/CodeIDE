@@ -129,10 +129,14 @@ public class MoteurPreviewXml(
     /**
      * Soumet un rendu immédiat (ouverture du panneau, bascule d'onglet) :
      * PAS de debounce — mais TOUJOURS le mutex de rendu (single-flight).
+     * v0.133.4 — reset du cache anti-boucle : un changement d'onglet
+     * implique un nouveau fournisseur de texte → le même texte peut
+     * provenir d'un layout différent, il faut le re-rendre.
      */
     public fun soumettreImmediat(fournisseur: () -> String) {
         if (ferme) return
         fournisseurTexte = fournisseur
+        dernierTexteRendu = null // nouveau fournisseur → autoriser le rendu
         scope.launch { traiter(fournisseur) }
     }
 
@@ -231,9 +235,13 @@ public class MoteurPreviewXml(
         transport.close()
     }
 
-    /** Relance un rendu immédiat si un texte est branché (changement de paramètre). */
+    /** Relance un rendu immédiat si un texte est branché (changement de paramètre).
+     *  v0.133.4 — reset du cache anti-boucle : un changement de paramètre
+     *  (profil, nuit, langue, thème, classpath) justifie un re-rendu même
+     *  si le texte est identique. */
     private fun relancerSiTexte() {
         val fournisseur = fournisseurTexte ?: return
+        dernierTexteRendu = null // autoriser le re-rendu
         soumettreImmediat(fournisseur)
     }
 
@@ -250,10 +258,12 @@ public class MoteurPreviewXml(
                 return
             }
             // v0.133.3 — anti-boucle : skip si le texte est IDENTIQUE au
-            // dernier rendu (même hash). Évite 3416 rendus du même XML
-            // en échec qui gelait l'app (ANR).
-            if (texte == dernierTexteRendu && etatInterne.value is EtatPreviewXml.ErreurRendu) {
-                journal?.d(TAG_PREVIEW) { "rendu annulé : texte inchangé, erreur précédente conservée" }
+            // dernier rendu. Évite les boucles infinies de rendu (que ce
+            // soit en succès ou en échec) qui gelait l'app (ANR).
+            // v0.133.4 — étendu à TOUS les états (pas seulement ErreurRendu) :
+            // un rendu 0x0 en succès bouclait aussi.
+            if (texte == dernierTexteRendu) {
+                journal?.d(TAG_PREVIEW) { "rendu annulé : texte inchangé, rendu précédent conservé" }
                 return
             }
             if (!jo.codeide.preview.xml
