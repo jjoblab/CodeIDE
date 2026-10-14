@@ -82,6 +82,11 @@
     <string name="preview_jour">Day</string>
     <string name="preview_nuit">Night</string>
     <string name="preview_nuit_cd">Toggle the preview between day and night theme</string>
+    <!-- PE5a : language toggle button (LayoutLib v3.0.0 P1 resolved). -->
+    <string name="preview_langue_cd">Toggle the preview language (default / French / English)</string>
+    <string name="preview_langue_defaut">Default</string>
+    <string name="preview_langue_fr">FR</string>
+    <string name="preview_langue_en">EN</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
     <string name="editor_menu_fermer_tout">Close all</string>

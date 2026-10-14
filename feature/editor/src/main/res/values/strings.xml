@@ -88,6 +88,11 @@
     <string name="preview_jour">Jour</string>
     <string name="preview_nuit">Nuit</string>
     <string name="preview_nuit_cd">Basculer l\'aperçu entre thème de jour et de nuit</string>
+    <!-- PE5a : bouton bascule langue (LayoutLib v3.0.0 P1 résolu). -->
+    <string name="preview_langue_cd">Basculer la langue de l\'aperçu (défaut / français / anglais)</string>
+    <string name="preview_langue_defaut">Défaut</string>
+    <string name="preview_langue_fr">FR</string>
+    <string name="preview_langue_en">EN</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
     <string name="editor_menu_fermer_tout">Fermer tout</string>

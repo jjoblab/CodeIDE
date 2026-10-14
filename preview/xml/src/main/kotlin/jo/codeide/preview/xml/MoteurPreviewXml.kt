@@ -95,6 +95,9 @@ public class MoteurPreviewXml(
     /** Régime nuit courant (PE3). */
     private var nuitCourant: Boolean = false
 
+    /** Langue courante de l'aperçu (PE5a — null = défaut système). */
+    private var langueCourante: String? = null
+
     /** Fournisseur de texte courant (dernier onglet branché). */
     private var fournisseurTexte: (() -> String)? = null
 
@@ -167,6 +170,20 @@ public class MoteurPreviewXml(
         relancerSiTexte()
     }
 
+    /** Langue courante de l'aperçu (PE5a — null = défaut système). */
+    public val langue: String? get() = langueCourante
+
+    /** Définit la langue de l'aperçu (PE5a — LayoutLib v3.0.0 P1 résolu) :
+     *  `null` = défaut système, `"fr"` = français, `"en"` = anglais.
+     *  Un CHANGEMENT relance un rendu immédiat (les chaînes
+     *  `values-fr` / `values-en` sont basculées par
+     *  `ResourceResolverImpl.setLanguage()`). */
+    public fun definirLangue(langue: String?) {
+        if (ferme || langue == langueCourante) return
+        langueCourante = langue
+        relancerSiTexte()
+    }
+
     /** Profil courant (observable par l'UI pour libeller le sélecteur). */
     public val profil: ProfilPeripherique get() = profilCourant
 
@@ -213,6 +230,7 @@ public class MoteurPreviewXml(
                     genre = genreCourant,
                     profil = profilCourant,
                     nuit = nuitCourant,
+                    langue = langueCourante,
                 )
             journal?.i(TAG_PREVIEW) {
                 "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +

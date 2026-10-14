@@ -1,5 +1,61 @@
 # Journal des modifications
 
+## [0.126.0] – 2026-10-14
+
+### Ajouté
+
+- **PE5a — Bouton bascule langue dans l'aperçu XML** (LayoutLib v3.0.0
+  P1 résolu) : un nouveau bouton dans la barre de réglages de l'aperçu
+  XML permet de basculer la langue (Défaut → FR → EN → Défaut). Le
+  résolveur `ResourceResolverImpl.setLanguage()` bascule les chaînes
+  `values-fr` / `values-en` du projet.
+  - `RequeteRendu` étendu avec `langue: String?` (Parcelable, champ
+    additif avec valeur par défaut `null` — rétrocompatible).
+  - `MoteurPreviewXml` : nouveau champ `langueCourante` + méthode
+    `definirLangue()` qui relance un rendu immédiat.
+  - `RenduLayoutLib.reconfigurerSiNecessaire()` : appelle
+    `setLanguage()` sur le résolveur si la langue est non-null.
+  - `ControleurPreviewXml.basculerLangue()` : cycle null → "fr" →
+    "en" → null.
+  - `EditorActivity.brancherApercu()` : bouton + libellé dynamique.
+  - Layout `activity_editor.xml` : nouveau `bouton_langue_apercu`.
+  - Chaînes FR + EN : `preview_langue_defaut`, `preview_langue_fr`,
+    `preview_langue_en`, `preview_langue_cd`.
+
+- **PE5b — Tests non-régression drawables composites** (P0 résolu) :
+  4 tests Robolectric vérifient que `<layer-list>`, `<ripple>`,
+  `<inset>` et `<bitmap>` ne plantent pas le pipeline et produisent un
+  rendu OK. Les drawables composites qui retournaient `null` depuis v1
+  sont désormais rendus par les nouveaux parsers LayoutLib v3.0.0.
+
+- **PE5c — Tests non-régression ConstraintLayout** (P2 résolu) :
+  2 tests Robolectric vérifient que les layouts avec contraintes ne
+  plantent pas. Le solver Cassowary câblé en LayoutLib v3.0.0 résout
+  les chaînes, guidelines, barrières et ratios complexes.
+
+- **Tests PE5a** : 2 tests vérifient que le rendu avec `langue="fr"`
+  et `langue="en"` ne plante pas.
+
+### Corrigé
+
+- **Preview XML — logging diagnostic** (v0.125.2) : ajout de logs
+  dans `MoteurPreviewXml.traiter()` et `ControleurPreviewXml.bascule()`
+  pour diagnostiquer le bug « le rendu ne donne rien ». Les logs sont
+  visibles dans Logcat avec les tags `MoteurPreviewXml` et
+  `ControleurPreviewXml`.
+
+### Documentation
+
+- **AGENTS.md** — section « Workflow d'agent IA asynchrone » mise à
+  jour : l'environnement de build Android (JDK 21 + SDK + Gradle
+  9.7.1) est désormais installé via `scripts/setup-env.sh`. La
+  vérification locale incrémentale (spotlessCheck, detekt,
+  checkModuleDependencies, lintDebug, testDebugUnitTest sur les modules
+  touchés) est le STANDARD pour toutes les sessions — un commit n'est
+  poussé que quand ces vérifications passent localement.
+
+## [0.125.2] – 2026-10-14
+
 ## [0.125.2] – 2026-10-14
 
 ### Corrigé

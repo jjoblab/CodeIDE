@@ -1274,16 +1274,18 @@ class EditorActivity :
             controleurApercu.basculerNuit()
             majBarreApercu()
         }
+        // PE5a : bouton bascule langue (LayoutLib v3.0.0 P1 résolu).
+        liaison.boutonLangueApercu.setOnClickListener {
+            controleurApercu.basculerLangue()
+            majBarreApercu()
+        }
         liaison.vueEditeur.addOnSelectionChangedListener { debut, fin, _ ->
-            // P6 (éditeur → preview) : surlignage de l'élément sous le
-            // curseur ; une sélection programmatique (tap preview) passe
-            // par le même chemin — le retour visuel est alors immédiat.
             controleurApercu.onSelectionEditeur(debut, fin)
         }
         majBarreApercu()
     }
 
-    /** Libellés de la barre de réglages : profil courant, régime jour/nuit. */
+    /** Libellés de la barre de réglages : profil, jour/nuit, langue. */
     private fun majBarreApercu() {
         liaison.boutonProfilApercu.text = controleurApercu.profil.description()
         liaison.boutonNuitApercu.setText(
@@ -1291,6 +1293,14 @@ class EditorActivity :
                 R.string.preview_nuit
             } else {
                 R.string.preview_jour
+            },
+        )
+        // PE5a : libellé du bouton langue.
+        liaison.boutonLangueApercu.setText(
+            when (controleurApercu.langue) {
+                "fr" -> R.string.preview_langue_fr
+                "en" -> R.string.preview_langue_en
+                else -> R.string.preview_langue_defaut
             },
         )
     }

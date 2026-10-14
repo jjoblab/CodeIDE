@@ -140,6 +140,17 @@
                                     android:minWidth="0dp"
                                     android:contentDescription="@string/preview_nuit_cd"
                                     android:text="@string/preview_jour" />
+
+                                <!-- PE5a : bouton bascule langue (LayoutLib v3.0.0 P1
+                                     résolu — ResourceResolver.setLanguage()). -->
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/bouton_langue_apercu"
+                                    style="@style/Widget.Material3.Button.TextButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:minWidth="0dp"
+                                    android:contentDescription="@string/preview_langue_cd"
+                                    android:text="@string/preview_langue_defaut" />
                             </LinearLayout>
 
                             <jo.codeide.preview.xml.VuePreviewXml

@@ -155,6 +155,21 @@ class ControleurPreviewXml(
         moteur.definirNuit(!moteur.nuit)
     }
 
+    /** Basculer la langue de l'aperçu (PE5a — null → "fr" → "en" → null). */
+    fun basculerLangue() {
+        val courante = moteur.langue
+        val suivante =
+            when (courante) {
+                null -> "fr"
+                "fr" -> "en"
+                else -> null
+            }
+        moteur.definirLangue(suivante)
+    }
+
+    /** Langue courante de l'aperçu (PE5a — null = défaut système). */
+    val langue: String? get() = moteur.langue
+
     /**
      * Sélection de l'ÉDITEUR → surlignage preview (P6, direction inverse) :
      * l'élément le plus INTERNE contenant l'offset du curseur. Appelé par
