@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -61,8 +62,8 @@ class MoteurPreviewXmlTest {
             val etat = moteur.etat.value
             assertTrue("état attendu RenduValide, trouvé $etat", etat is EtatPreviewXml.RenduValide)
             etat as EtatPreviewXml.RenduValide
-            assertTrue(etat.bitmap.width > 0)
-            assertTrue(etat.bitmap.height > 0)
+            assertTrue((etat.bitmap?.width ?: 0) > 0)
+            assertTrue((etat.bitmap?.height ?: 0) > 0)
             assertTrue(
                 "3 vues attendues (LinearLayout + TextView + Button), trouvé ${etat.nombreVues}",
                 etat.nombreVues >= 2,
@@ -301,13 +302,17 @@ class MoteurPreviewXmlTest {
             moteur.soumettreImmediat { layout }
             advanceUntilIdle()
             var etat = moteur.etat.value as EtatPreviewXml.RenduValide
-            val pixelJour = etat.bitmap.getPixel(etat.bitmap.width / 2, etat.bitmap.height / 2)
+            val bmpJour = etat.bitmap
+            assertNotNull(bmpJour)
+            val pixelJour = bmpJour!!.getPixel(bmpJour.width / 2, bmpJour.height / 2)
             assertEquals("jour : rouge attendu", 0xFFFF0000.toInt(), pixelJour)
 
             moteur.definirNuit(true)
             advanceUntilIdle()
             etat = moteur.etat.value as EtatPreviewXml.RenduValide
-            val pixelNuit = etat.bitmap.getPixel(etat.bitmap.width / 2, etat.bitmap.height / 2)
+            val bmpNuit = etat.bitmap
+            assertNotNull(bmpNuit)
+            val pixelNuit = bmpNuit!!.getPixel(bmpNuit.width / 2, bmpNuit.height / 2)
             assertEquals("nuit : bleu attendu (values-night prioritaire)", 0xFF0000FF.toInt(), pixelNuit)
             moteur.close()
         }
@@ -333,8 +338,8 @@ class MoteurPreviewXmlTest {
             val etat = moteur.etat.value
             assertTrue("rendu drawable attendu, trouvé $etat", etat is EtatPreviewXml.RenduValide)
             etat as EtatPreviewXml.RenduValide
-            assertTrue(etat.bitmap.width > 0)
-            assertTrue(etat.bitmap.height > 0)
+            assertTrue((etat.bitmap?.width ?: 0) > 0)
+            assertTrue((etat.bitmap?.height ?: 0) > 0)
             assertTrue("pas de sélection sur un drawable", etat.vues.isEmpty())
             moteur.close()
         }
@@ -362,7 +367,7 @@ class MoteurPreviewXmlTest {
             etat as EtatPreviewXml.RenduValide
             assertEquals("une ligne par entrée", 3, etat.nombreVues)
             // Robolectric densité 1 : 4 lignes (en-tête + 3) x 30 + 2 x 10 marge = 140.
-            assertEquals(140, etat.bitmap.height)
+            assertEquals(140, etat.bitmap?.height ?: 0)
             assertTrue("pas de sélection sur un values", etat.vues.isEmpty())
             moteur.close()
         }
