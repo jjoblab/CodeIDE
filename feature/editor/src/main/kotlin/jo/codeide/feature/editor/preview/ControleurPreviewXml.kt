@@ -61,7 +61,7 @@ class ControleurPreviewXml(
     private val vue: VuePreviewXml,
     private val colonneApercu: View,
     dispatchers: DispatcherProvider,
-    journal: AppLogger,
+    private val journal: AppLogger,
     private val scope: CoroutineScope,
     private val resolveurChemin: ResoudreRepertoireProjet,
 ) : AutoCloseable {
@@ -128,6 +128,11 @@ class ControleurPreviewXml(
             if (session != null) {
                 moteur.soumettreImmediat { session.text }
             } else {
+                journal.w(TAG_APERCU) {
+                    "bascule ouverte mais sessionEcoutee=null — " +
+                        "session pas prête ou onglet non previewable " +
+                        "(genre=${genreActifInterne.value})"
+                }
                 vue.reinitialiser()
             }
         }
@@ -278,5 +283,9 @@ class ControleurPreviewXml(
             EtatPreviewXml.EnEdition -> vue.afficherEnEdition()
             EtatPreviewXml.Inactif -> vue.reinitialiser()
         }
+    }
+
+    private companion object {
+        private const val TAG_APERCU: String = "ControleurPreviewXml"
     }
 }

@@ -1,5 +1,28 @@
 # Journal des modifications
 
+## [0.125.2] – 2026-10-14
+
+### Corrigé
+
+- **Preview XML — logging diagnostic** (PE5 préliminaire) : ajout de
+  logs dans le pipeline de rendu pour diagnostiquer le bug « le rendu
+  ne donne rien » rapporté par l'utilisateur. Les logs sont visibles
+  dans Logcat avec le tag `MoteurPreviewXml` et `ControleurPreviewXml`.
+  - `MoteurPreviewXml.traiter()` : log INFO à chaque soumission
+    (genre, longueur texte, profil, nuit, dossier res) et à chaque
+    résultat (dimensions, nombre de vues, durée — ou message d'erreur).
+    Log WARN si texte vide, DEBUG si XML malformé (frappe en cours).
+  - `ControleurPreviewXml.bascule()` : log WARN si `sessionEcoutee`
+    est null quand l'utilisateur ouvre la preview — indique que la
+    session éditeur n'est pas encore prête ou que l'onglet n'est pas
+    previewable (genre null).
+  - **Action utilisateur** : filtrer Logcat par `MoteurPreviewXml|ControleurPreviewXml`
+    pour voir le diagnostic. Si le log « rendu soumis » n'apparaît
+    PAS, la session n'est pas branchée. S'il apparaît mais suivi de
+    « rendu ÉCHEC », le moteur de rendu a planté (le message donne la
+    cause). Si « rendu OK » apparaît avec 0×0, l'inflation a réussi
+    mais la vue est vide.
+
 ## [0.125.1] – 2026-10-14
 
 ### Changements
