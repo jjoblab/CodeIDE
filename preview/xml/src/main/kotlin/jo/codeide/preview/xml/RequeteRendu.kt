@@ -26,6 +26,11 @@ public class RequeteRendu(
     public val profil: ProfilPeripherique,
     /** Régime nuit : thèmes et ressources `values-night` priorisés. */
     public val nuit: Boolean,
+    /** Langue de l'aperçu (PE5a — LayoutLib v3.0.0 P1 résolu) :
+     *  `null` = défaut système, `"fr"` = français, `"en"` = anglais.
+     *  Le résolveur `ResourceResolverImpl.setLanguage()` bascule les
+     *  chaînes `values-fr` / `values-en`. */
+    public val langue: String? = null,
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -43,6 +48,7 @@ public class RequeteRendu(
                 densiteDpi = parcel.readInt(),
             ),
         nuit = parcel.readByte() != 0.toByte(),
+        langue = parcel.readString(),
     )
 
     override fun writeToParcel(
@@ -57,6 +63,7 @@ public class RequeteRendu(
         parcel.writeInt(profil.hauteurDp)
         parcel.writeInt(profil.densiteDpi)
         parcel.writeByte(if (nuit) 1 else 0)
+        parcel.writeString(langue)
     }
 
     override fun describeContents(): Int = 0
@@ -67,7 +74,8 @@ public class RequeteRendu(
             other.dossierRes == dossierRes &&
             other.genre == genre &&
             other.profil == profil &&
-            other.nuit == nuit
+            other.nuit == nuit &&
+            other.langue == langue
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -75,6 +83,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + genre.hashCode()
         resultat = 31 * resultat + profil.hashCode()
         resultat = 31 * resultat + if (nuit) 1 else 0
+        resultat = 31 * resultat + (langue?.hashCode() ?: 0)
         return resultat
     }
 
