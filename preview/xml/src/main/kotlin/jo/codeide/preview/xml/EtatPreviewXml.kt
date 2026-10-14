@@ -1,6 +1,7 @@
 package jo.codeide.preview.xml
 
 import android.graphics.Bitmap
+import android.view.View
 
 /**
  * État du panneau de preview XML (flux d'état du [MoteurPreviewXml]).
@@ -14,15 +15,15 @@ public sealed interface EtatPreviewXml {
     public object Inactif : EtatPreviewXml
 
     /**
-     * Rendu valide : le bitmap off-screen dessiné, avec ses métriques
-     * (durée du rendu, nombre de vues, dimensions réellement mesurées) et
-     * l'arbre APLATI des vues rendues (PE3, P6 : bounds absolus + span
-     * source de chaque vue — le hit-test de l'UI sélectionne dans
-     * l'éditeur, la sélection de l'éditeur surligne la vue).
+     * Rendu valide : vue (direct view rendering) ou bitmap (repli AIDL)
+     * avec ses métriques et l'arbre APLATI des vues rendues (PE3, P6).
      */
+    @Suppress("LongParameterList")
     public class RenduValide(
-        /** Bitmap ARGB_8888 du rendu — propriété du panneau, recyclé au rendu suivant. */
-        public val bitmap: Bitmap,
+        /** Vue rendue (direct view rendering) — prioritaire sur bitmap. */
+        public val vue: View?,
+        /** Bitmap (repli AIDL / PE2) — null en mode direct view. */
+        public val bitmap: Bitmap?,
         /** Durée du rendu complet (validation → dessin), en millisecondes. */
         public val dureeMs: Long,
         /** Nombre de vues de l'arbre inflaté (ou entrées de values — PE3). */
