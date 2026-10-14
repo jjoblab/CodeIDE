@@ -267,6 +267,7 @@ class ControleurPreviewXml(
      * l'éditeur. Le hit-test ne DEVINE jamais : aucune vue spanée →
      * rien (drawables, values, includes non résolus).
      */
+    @Suppress("UnusedPrivateMember")
     private fun selectionnerVueSous(
         x: Float,
         y: Float,
