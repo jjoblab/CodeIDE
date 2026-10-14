@@ -43,7 +43,6 @@
                     style="@style/Widget.CodeIDE.Toolbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:menu="@menu/menu_indexation"
                     app:navigationContentDescription="@string/editor_ouvrir_tiroir_cd"
                     app:navigationIcon="@drawable/ic_menu_tiroir"
                     app:title="@string/editor_title" />
