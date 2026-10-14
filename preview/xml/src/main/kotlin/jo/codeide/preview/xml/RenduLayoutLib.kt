@@ -285,14 +285,17 @@ public class RenduLayoutLib(
         layoutEngine.render(vueRendue, largeur, hauteur)
         val bitmap = dessiner(vueRendue)
         val vues = collecterVues(requete, racine)
+        // v0.133.4 — utiliser vueRendue (chrome) pour les dimensions, pas
+        // racine. Si le chrome enveloppe la racine, c'est le chrome qui est
+        // mesuré par layoutEngine.render — racine n'est qu'un enfant.
         val rendu =
             if (compresser) {
                 ResultatRendu(
                     ok = true,
                     message = null,
-                    largeur = racine.measuredWidth,
-                    hauteur = racine.measuredHeight,
-                    nombreVues = compterVues(racine),
+                    largeur = vueRendue.measuredWidth,
+                    hauteur = vueRendue.measuredHeight,
+                    nombreVues = compterVues(vueRendue),
                     dureeMs = (System.nanoTime() - debut) / 1_000_000,
                     png = compresserPng(bitmap),
                     vues = vues,
@@ -301,8 +304,8 @@ public class RenduLayoutLib(
                 ResultatRendu(
                     ok = true,
                     message = null,
-                    largeur = racine.measuredWidth,
-                    hauteur = racine.measuredHeight,
+                    largeur = vueRendue.measuredWidth,
+                    hauteur = vueRendue.measuredHeight,
                     nombreVues = compterVues(racine),
                     dureeMs = (System.nanoTime() - debut) / 1_000_000,
                     png = ByteArray(0),
