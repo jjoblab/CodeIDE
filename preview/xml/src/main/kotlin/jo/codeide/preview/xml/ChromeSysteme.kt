@@ -69,8 +69,8 @@ internal class ChromeSysteme(
         contenu: View,
         densite: Float,
     ): View {
-        if (themeResolver == null) return contenu
-
+        // v0.133.2 — TOUJOURS envelopper (même sans themeResolver).
+        // Si themeResolver est null, on utilise les couleurs par défaut.
         // windowNoTitle / windowActionBar : si le thème dit pas d'action
         // bar, on enveloppe juste avec la status bar.
         val avecActionBar = !attrBool("windowNoTitle") && attrBool("windowActionBar", defaut = true)

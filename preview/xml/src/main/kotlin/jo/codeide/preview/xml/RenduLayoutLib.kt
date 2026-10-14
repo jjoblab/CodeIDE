@@ -580,13 +580,12 @@ public class RenduLayoutLib(
 
         // Chemin nominal (v0.130.2) : injection AttachInfo → draw() standard.
         if (AttacheurVue.injecter(racine) { msg -> journal?.w(TAG) { msg } }) {
-            try {
-                racine.draw(canevas)
-            } catch (t: Throwable) {
-                journal?.w(TAG) { "draw() après AttachInfo échoué : ${t.message}, fallback manuel" }
-                canevas.drawColor(android.graphics.Color.WHITE)
-                dessinerVue(racine, canevas)
-            }
+            // v0.133.2 — NE PAS catcher les erreurs de draw() ici. Si le
+            // draw échoue, l'erreur se propage au rendu() qui retourne
+            // ok=false avec le message — l'utilisateur voit l'erreur au
+            // lieu d'un bitmap blanc silencieux. Le fallback dessinerVue
+            // reste utilisé seulement si AttacheurVue.injecter échoue.
+            racine.draw(canevas)
         } else {
             // Réflexion échouée — dessin manuel (récursion + bg.draw explicite).
             dessinerVue(racine, canevas)
@@ -741,17 +740,18 @@ public class RenduLayoutLib(
      * la racine dans un LinearLayout vertical (status bar + action bar +
      * contenu). Les couleurs viennent du ThemeResolver.
      */
-    @Suppress("ReturnCount") // 3 gardes = 3 issues distinctes (pas de theme, pas de resolver, ok)
+    @Suppress("ReturnCount")
     private fun envelopperChromeSiNecessaire(
         racine: View,
         densite: Float,
         requete: RequeteRendu,
     ): View {
-        // Pas de thème → pas de chrome (comportement v0.132.x).
+        // v0.133.2 — Chrome activé seulement quand themeName est présent
+        // (manifest résolu par ControleurPreviewXml). Les tests sans
+        // themeName → pas de chrome (comportement v0.132.x).
         if (requete.themeName == null) return racine
-        // Pas de ThemeResolver branché → pas de chrome.
-        val resolver = themeResolver ?: return racine
 
+        val resolver = themeResolver
         val chrome = ChromeSysteme(contexte, resolver, titreActivite = requete.themeName)
         return chrome.envelopper(racine, densite)
     }

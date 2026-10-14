@@ -252,10 +252,13 @@ class ControleurPreviewXml(
 
     /** Cherche AndroidManifest.xml dans les chemins standards. */
     private fun trouverManifeste(racineProjet: String): String? {
+        val base = racineProjet.trimEnd('/')
         val candidats =
             listOf(
-                "$racineProjet/app/src/main/AndroidManifest.xml",
-                "$racineProjet/src/main/AndroidManifest.xml",
+                "$base/app/src/main/AndroidManifest.xml",
+                "$base/src/main/AndroidManifest.xml",
+                "$base/AndroidManifest.xml",
+                "$base/../AndroidManifest.xml",
             )
         return candidats.firstOrNull { java.io.File(it).isFile }
     }
