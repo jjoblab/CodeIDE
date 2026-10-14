@@ -20,6 +20,7 @@ public sealed interface EtatPreviewXml {
      * source de chaque vue — le hit-test de l'UI sélectionne dans
      * l'éditeur, la sélection de l'éditeur surligne la vue).
      */
+    @Suppress("LongParameterList")
     public class RenduValide(
         /** Bitmap ARGB_8888 du rendu — propriété du panneau, recyclé au rendu suivant. */
         public val bitmap: Bitmap,
@@ -33,6 +34,10 @@ public sealed interface EtatPreviewXml {
         public val hauteur: Int,
         /** Vues rendues en pré-ordre (vide hors LAYOUT — pas de sélection). */
         public val vues: List<InfoVueRendu> = emptyList(),
+        /** v0.133.5 — décalage Y du chrome (status bar + action bar) en
+         *  pixels. Les coordonnées InfoVueRendu sont relatives au contenu,
+         *  pas au bitmap. Le hit-test doit soustraire ce décalage. */
+        public val decalageChromeY: Int = 0,
     ) : EtatPreviewXml
 
     /**

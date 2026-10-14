@@ -312,7 +312,10 @@ class ControleurPreviewXml(
         y: Float,
     ) {
         if (ferme || !visible) return
-        val cible = SelectionPreview.vueSelectableEn(vue.vuesRendues, x, y) ?: return
+        // v0.133.5 — compenser le décalage du chrome (status bar + action bar).
+        // Les bounds InfoVueRendu sont relatives au contenu, pas au bitmap.
+        val yContenu = y - decalageChromeY
+        val cible = SelectionPreview.vueSelectableEn(vue.vuesRendues, x, yContenu) ?: return
         val session = sessionEcoutee ?: return
         val texte = session.text
         val debut = cible.debutElement.coerceIn(0, texte.length)
@@ -335,13 +338,31 @@ class ControleurPreviewXml(
         ecouteurSession = null
     }
 
+    /** v0.133.5 — décalage Y du chrome (status bar + action bar) en pixels.
+     *  Mis à jour à chaque rendu, utilisé par selectionnerVueSous pour
+     *  compenser le décalage entre les coordonnées du bitmap (qui inclut
+     *  le chrome) et les bounds InfoVueRendu (qui sont relatives au contenu). */
+    private var decalageChromeY: Int = 0
+
     /** Applique un état du moteur à la vue (collecte sur le scope du hôte = thread UI). */
     private fun appliquerEtat(etat: EtatPreviewXml) {
         when (etat) {
-            is EtatPreviewXml.RenduValide -> vue.afficherRendu(etat.bitmap, etat.vues)
-            is EtatPreviewXml.ErreurRendu -> vue.afficherErreur(etat.message)
-            EtatPreviewXml.EnEdition -> vue.afficherEnEdition()
-            EtatPreviewXml.Inactif -> vue.reinitialiser()
+            is EtatPreviewXml.RenduValide -> {
+                decalageChromeY = etat.decalageChromeY
+                vue.afficherRendu(etat.bitmap, etat.vues)
+            }
+
+            is EtatPreviewXml.ErreurRendu -> {
+                vue.afficherErreur(etat.message)
+            }
+
+            EtatPreviewXml.EnEdition -> {
+                vue.afficherEnEdition()
+            }
+
+            EtatPreviewXml.Inactif -> {
+                vue.reinitialiser()
+            }
         }
     }
 
