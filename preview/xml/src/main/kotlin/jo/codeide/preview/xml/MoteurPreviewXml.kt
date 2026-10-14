@@ -84,6 +84,12 @@ public class MoteurPreviewXml(
     private var travailleur: Job? = null
     private val verrouRendu = Mutex()
     private var dossierRes: String? = null
+
+    /** v0.133.1 — G2/G5 : thème activité (null = pas de chrome). */
+    private var themeNameCourant: String? = null
+
+    /** v0.133.1 — G1 : classpath projet pour vues custom (vide = repli). */
+    private var classpathCourant: List<EntreeClasspath> = emptyList()
     private var ferme = false
 
     /** Genre du document actif (PE3 — dispatch du pipeline). */
@@ -136,6 +142,29 @@ public class MoteurPreviewXml(
      */
     public fun definirDossierRes(chemin: String?) {
         dossierRes = chemin
+    }
+
+    /**
+     * v0.133.1 — G2/G5 : Définit le thème activité pour la preview.
+     * Null = pas de chrome système (status bar + action bar).
+     * Un changement relance un rendu immédiat.
+     */
+    public fun definirThemeName(themeName: String?) {
+        if (ferme || themeName == themeNameCourant) return
+        themeNameCourant = themeName
+        relancerSiTexte()
+    }
+
+    /**
+     * v0.133.1 — G1 : Définit le classpath projet pour les vues custom.
+     * Vide = pas de vues custom (repli ViewFactory par défaut + MockView).
+     * Un changement relance un rendu immédiat (le cache survit si
+     * signature inchangée).
+     */
+    public fun definirClasspath(entries: List<EntreeClasspath>) {
+        if (ferme || entries == classpathCourant) return
+        classpathCourant = entries
+        relancerSiTexte()
     }
 
     /**
@@ -231,6 +260,8 @@ public class MoteurPreviewXml(
                     profil = profilCourant,
                     nuit = nuitCourant,
                     langue = langueCourante,
+                    themeName = themeNameCourant,
+                    classpath = classpathCourant,
                 )
             journal?.i(TAG_PREVIEW) {
                 "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +
