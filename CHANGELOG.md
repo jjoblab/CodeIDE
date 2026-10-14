@@ -1,5 +1,60 @@
 # Journal des modifications
 
+## [0.125.1] – 2026-10-14
+
+### Changements
+
+- **Montée LayoutLib v2.2.0 → v3.0.0** (PE4, ADR 0116 mis à jour) :
+  les 3 limitations prioritaires P0/P1/P2 identifiées dans l'audit
+  v0.122.2 sont **résolues côté LayoutLib v3.0.0** par l'auteur du
+  dépôt frère (3 PRs fusionnées, +166 tests JVM, 600 total).
+  - **P0 (layer-list/ripple/inset/bitmap)** : nouveaux parsers
+    `LayerListParser`, `RippleParser`, `InsetParser`, `BitmapParser` +
+    `DrawableXmlFragments` (re-sérialisation des sous-arbres XML
+    inline) + câblage `DrawableResolverImpl.create*` avec résolution
+    récursive. +83 tests. Les fonds complexes (layer-list) et le
+    feedback tactile (ripple) ne produisent plus de trou noir dans la
+    preview.
+  - **P1 (qualifiers de langue values-fr/values-en)** :
+    `ResourceQualifier` étendu (parsing ISO 639 + région ISO 3166,
+    BCP47 toléré), sémantique de repli Android (locale > région >
+    nuit > orientation > API), `ResourceResolver.setLanguage()`/
+    `setLocale()` avec invalidation du cache. +41 tests. La preview
+    peut désormais basculer les chaînes FR/EN.
+  - **P2 (ConstraintLayout Cassowary)** : `ConstraintSpec` (instantané
+    immuable des 12 ancres + baseline + biais + pourcentages + ratios
+    + chaînes + poids + marges + guidelines + barriers +
+    match_constraint 0dp) + `ConstraintSolver` réécrit avec le solver
+    Cassowary complet (ancres REQUIRED, biais STRONG, ratios
+    cross-axe, chaînes détectées dans la topologie, barrières en 2
+    passes, repli `solveLegacy` si le système échoue) + `BridgeInflater`
+    capture les contraintes au START_TAG (bug latent corrigé) +
+    `RenderService` ÉTAPE 3bis `applyConstraintLayouts`. +42 tests
+    (600 total). Le rendu ConstraintLayout n'est plus approximatif.
+  - **Limitations restantes** : P3 (`applyCustomAttributes` stub),
+    P4 (adaptive icons), P5 (animated-vector), P6
+    (LayoutInflater.Factory2, LayoutTransition, ViewTreeObserver) —
+    toutes négligeables en preview statique, non bloquantes.
+  - **Fichiers mis à jour** :
+    - `gradle/libs.versions.toml` : `layoutlib = "3.0.0"`
+    - `settings.gradle.kts` : commentaire tag v3.0.0
+    - `.github/workflows/ci.yml` : clone `--branch v3.0.0`
+    - `docs/PREVIEW.md` §PE4 : statut P0/P1/P2 résolus + détails
+    - `docs/TESTS_MANUELS.md` §« Limitations LayoutLib v3.0.0 » : table
+      mise à jour avec colonne « Statut v3.0.0 »
+    - `docs/adr/0116-pe4-limitations-layoutlib-v2-2-0-et-priorisation.md`
+      : statut `accepté et mis à jour (v0.125.1)`
+  - **Vérification locale incrémentale** :
+    `:preview:xml:compileDebugKotlin` ✅ (LayoutLib v3.0.0 en build
+    composite compile avec CodeIDE),
+    `:feature:editor:compileDebugKotlin` ✅ (consommateur non cassé),
+    `:feature:editor:spotlessCheck` ✅, `checkModuleDependencies` ✅.
+  - **Note** : la nouvelle API `ResourceResolver.setLanguage()` de P1
+    n'est pas encore exposée côté CodeIDE (bouton de bascule langue
+    dans la barre de réglages de l'aperçu XML — à livrer dans un lot
+    PE5+ dédié). Le résolveur utilise par défaut la locale du système
+    Android.
+
 ## [0.125.0] – 2026-10-14
 
 ### Ajouté
