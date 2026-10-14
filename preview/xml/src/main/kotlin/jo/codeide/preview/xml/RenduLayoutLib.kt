@@ -116,6 +116,29 @@ public class RenduLayoutLib(
 
     init {
         layoutEngine.setFontScale(echellePolice())
+        // v0.130.1 — TOUJOURS installer un AttributeApplier, même sans
+        // dossier res/ (sinon BridgeInflater.applyBaseAttributes est
+        // utilisé — repli qui ne gère QUE id/visibility/padding, donc
+        // background et orientation sont perdus). Le DimensionConverter
+        // natif (densité courante) suffit : les attributs #hex, dp, sp
+        // passent sans résolveur projet.
+        installerAttributeApplierParDefaut()
+    }
+
+    /**
+     * Installe un AttributeApplier par défaut (densité courante, pas de
+     * résolveur projet). Permet à `background`, `orientation`, `textColor`,
+     * `text`, `gravity`… d'être appliqués MÊME quand l'utilisateur teste
+     * un layout sans projet/res/ attaché. Sera remplacé par un applier
+     * plus riche quand `reconfigurerSiNecessaire` trouve un dossier res/.
+     */
+    private fun installerAttributeApplierParDefaut() {
+        val echellePolice = echellePolice()
+        val xdpi = contexte.resources.displayMetrics.xdpi
+        val densite = densiteCourante()
+        val convertisseur = DimensionConverter(densite, echellePolice, xdpi)
+        val applier = AttributeApplier(contexte, convertisseur)
+        inflater.setAttributeApplier(applier)
     }
 
     /**
@@ -190,10 +213,14 @@ public class RenduLayoutLib(
         reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
-        // v0.127.2 : LayoutLib ne pose pas toujours le background des vues
-        // (AttributeApplier ne gère pas android:background sur toutes les
-        // vues). On applique manuellement le background de la racine depuis
-        // le XML brut — sinon le bitmap reste blanc même avec un background.
+        // v0.130.1 : l'AttributeApplier (installé par défaut dès init{})
+        // gère android:background, android:orientation, android:textColor,
+        // android:text, android:gravity… directement via les setters natifs
+        // Android — plus besoin du hack appliquerBackgroundRacine pour le
+        // chemin nominal.
+        // CAS DE REPLI : si l'applier n'a pas posé le background (par ex.
+        // valeur non reconnue, frappe en cours), on l'applique manuellement
+        // depuis le XML brut — le hack reste en filet de sécurité.
         appliquerBackgroundRacine(racine, requete.texte)
         if (racine.layoutParams == null) {
             racine.setLayoutParams(
@@ -589,12 +616,15 @@ public class RenduLayoutLib(
         langueConfigure = langue
     }
 
-    /** Passe en repli natif (aucun résolveur projet). */
+    /** Passe en repli natif (aucun résolveur projet) — mais GARDE un
+     *  AttributeApplier natif (sinon background/orientation/etc. cessent
+     *  d'être appliqués — v0.130.1). */
     private fun repliNatif() {
         ressources = null
         themeResolver = null
         drawableResolver = null
         convertisseurCourant = null
+        installerAttributeApplierParDefaut()
     }
 
     /** Enregistre themes.xml (jour/nuit) et styles.xml du projet, au mieux. */
