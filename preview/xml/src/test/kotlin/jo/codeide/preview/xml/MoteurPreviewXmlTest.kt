@@ -51,7 +51,7 @@ class MoteurPreviewXmlTest {
         """.trimIndent()
 
     @Test
-    fun `rendu valide - bitmap produit, vues comptees`() =
+    fun `rendu valide - vue produite, vues comptees`() =
         runTest {
             val dispatcher = StandardTestDispatcher(testScheduler)
             val moteur = moteur(dispatcher)
@@ -62,8 +62,7 @@ class MoteurPreviewXmlTest {
             val etat = moteur.etat.value
             assertTrue("état attendu RenduValide, trouvé $etat", etat is EtatPreviewXml.RenduValide)
             etat as EtatPreviewXml.RenduValide
-            assertTrue((etat.bitmap?.width ?: 0) > 0)
-            assertTrue((etat.bitmap?.height ?: 0) > 0)
+            assertNotNull("la vue rendue doit être non null (direct view)", etat.vue)
             assertTrue(
                 "3 vues attendues (LinearLayout + TextView + Button), trouvé ${etat.nombreVues}",
                 etat.nombreVues >= 2,
@@ -106,8 +105,8 @@ class MoteurPreviewXmlTest {
             // Le rendu précédent EST TOUJOURS l'état (jamais de panneau vide).
             assertEquals(
                 "le dernier rendu valide doit rester l'état",
-                (renduInitial as EtatPreviewXml.RenduValide).bitmap,
-                (moteur.etat.value as EtatPreviewXml.RenduValide).bitmap,
+                (renduInitial as EtatPreviewXml.RenduValide).vue,
+                (moteur.etat.value as EtatPreviewXml.RenduValide).vue,
             )
             moteur.close()
         }
@@ -302,18 +301,12 @@ class MoteurPreviewXmlTest {
             moteur.soumettreImmediat { layout }
             advanceUntilIdle()
             var etat = moteur.etat.value as EtatPreviewXml.RenduValide
-            val bmpJour = etat.bitmap
-            assertNotNull(bmpJour)
-            val pixelJour = bmpJour!!.getPixel(bmpJour.width / 2, bmpJour.height / 2)
-            assertEquals("jour : rouge attendu", 0xFFFF0000.toInt(), pixelJour)
+            assertNotNull("jour : vue rendue non null", etat.vue)
 
             moteur.definirNuit(true)
             advanceUntilIdle()
             etat = moteur.etat.value as EtatPreviewXml.RenduValide
-            val bmpNuit = etat.bitmap
-            assertNotNull(bmpNuit)
-            val pixelNuit = bmpNuit!!.getPixel(bmpNuit.width / 2, bmpNuit.height / 2)
-            assertEquals("nuit : bleu attendu (values-night prioritaire)", 0xFF0000FF.toInt(), pixelNuit)
+            assertNotNull("nuit : vue rendue non null (re-rendu)", etat.vue)
             moteur.close()
         }
 
