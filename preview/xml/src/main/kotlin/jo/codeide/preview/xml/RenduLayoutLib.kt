@@ -108,6 +108,9 @@ public class RenduLayoutLib(
     /** Régime nuit courant (les résolveurs ne le stockent pas de façon queryable). */
     private var nuitConfigure = false
 
+    /** Langue courante (PE5a — null = défaut système). */
+    private var langueConfigure: String? = null
+
     /** Densité du dernier rendu (reconfiguration des résolveurs au changement). */
     private var densiteConfigure = -1f
 
@@ -184,7 +187,7 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit)
+        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
         if (racine.layoutParams == null) {
@@ -235,7 +238,7 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit)
+        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
         val resolver = drawableResolver
         val drawable =
             if (resolver != null) {
@@ -416,9 +419,10 @@ public class RenduLayoutLib(
         chemin: String?,
         densiteProfil: Float,
         nuit: Boolean,
+        langue: String?,
     ) {
         val dossier = chemin
-        if (configurationInchangee(dossier, densiteProfil, nuit)) {
+        if (configurationInchangee(dossier, densiteProfil, nuit, langue)) {
             return
         }
         if (dossier != null && File(dossier).isDirectory) {
@@ -430,6 +434,10 @@ public class RenduLayoutLib(
                 val nouvellesRessources = ResourceResolverImpl(dossier)
                 nouvellesRessources.setDimensionConverter(convertisseur)
                 nouvellesRessources.setNightMode(nuit)
+                // PE5a : langue (LayoutLib v3.0.0 P1 résolu).
+                if (langue != null) {
+                    nouvellesRessources.setLanguage(langue)
+                }
                 inflater.setResourceResolver(nouvellesRessources)
 
                 val applier = AttributeApplier(contexte, convertisseur, nouvellesRessources)
@@ -456,6 +464,7 @@ public class RenduLayoutLib(
         dossierResConfigure = dossier
         densiteConfigure = densiteProfil
         nuitConfigure = nuit
+        langueConfigure = langue
     }
 
     /** Passe en repli natif (aucun résolveur projet). */
@@ -507,10 +516,12 @@ public class RenduLayoutLib(
         dossier: String?,
         densiteProfil: Float,
         nuit: Boolean,
+        langue: String?,
     ): Boolean =
         dossier == dossierResConfigure &&
             densiteProfil == densiteConfigure &&
             nuit == nuitConfigure &&
+            langue == langueConfigure &&
             ressources != null
 
     /** Densité du PROFIL (dpi/DPI_PAR_UNITE) — PE3 : le rendu vit au profil, pas à la machine. */

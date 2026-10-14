@@ -224,13 +224,29 @@ silencieusement les tags légers : prompt Vérification-1, section 2.5) ;
 rapport remis (format section 14, avec la **durée réelle** de chaque commande
 de vérification — Vérification-1, section 2.4) puis attente du « GO ».
 
-## Workflow d'agent IA asynchrone (directive du 14/10/2026, v0.122.2)
+## Workflow d'agent IA asynchrone (directive du 14/10/2026, v0.122.2 — mise à jour v0.126.0)
 
-Cette directive s'ajoute à la « Définition de terminé » ci-dessus et la
-**précise** pour les sessions menées par un agent IA sans chaîne locale
-complète (pas de SDK Android ni de Gradle disponibles dans l'environnement
-de l'agent). Elle s'applique **en plus** des directives précédentes
-(v0.79.0, v0.120.1, v0.121.1) — en cas de conflit, la plus récente prime.
+Cette directive est le **STANDARD de travail** pour toutes les sessions
+d'agent IA sur le dépôt CodeIDE. Elle s'applique **en plus** des
+directives précédentes (v0.79.0, v0.120.1, v0.121.1) — en cas de
+conflit, la plus récente prime.
+
+### 0. Environnement de build
+
+- L'environnement de build Android (JDK Temurin 21 + Android SDK +
+  Gradle 9.7.1 via wrapper) est installé via `scripts/setup-env.sh`
+  (idempotent). LayoutLib est cloné en checkout frère `../LayoutLib`
+  pour le build composite.
+- Avant tout travail : `source scripts/env.sh` pour positionner
+  `JAVA_HOME`, `ANDROID_HOME` et `PATH`.
+- L'environnement a 4 Go de RAM — le daemon Gradle peut OOM avec le
+  heap par défaut (2536m). Utiliser `-Dorg.gradle.jvmargs="-Xmx1536m
+  -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=384m"` si nécessaire, et
+  arrêter les daemons entre les builds (`pkill -f gradle; sleep 3`).
+- Les vérifications se font **module par module** (incrémental), pas
+  sur tout le projet d'un coup — `./gradlew :module:spotlessCheck
+  :module:detekt :module:compileDebugKotlin :module:lintDebug
+  :module:testDebugUnitTest`.
 
 ### 1. Push dès que la vérification locale hors-`assembleDebug` est verte
 
