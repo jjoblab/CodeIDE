@@ -926,14 +926,16 @@ class EditorActivity :
      */
     private fun brancherPastilleIndexation() {
         val pastille = VuePointIndexation(this)
+        // LayoutParams WRAP_CONTENT + gravity END — la pastille se
+        // mesure à 48 dp (onMeasure force la taille) et se place à
+        // droite de la toolbar, au centre vertical.
         val params =
             androidx.appcompat.widget.Toolbar.LayoutParams(
                 androidx.appcompat.widget.Toolbar.LayoutParams.WRAP_CONTENT,
                 androidx.appcompat.widget.Toolbar.LayoutParams.WRAP_CONTENT,
             )
         params.gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
-        pastille.layoutParams = params
-        liaison.toolbarEditeur.addView(pastille)
+        liaison.toolbarEditeur.addView(pastille, params)
         vuePointIndexation = pastille
         pastille.setOnClickListener {
             ouvrirPanneauDetailIndexation()
