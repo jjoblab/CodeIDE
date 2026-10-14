@@ -42,7 +42,13 @@ import java.lang.reflect.Proxy
  * **Robustesse** : si la réflexion échoue (signature différente sur une
  * future version d'Android), `injecter()` retourne `false` et l'appelant
  * retombe sur le dessin manuel [RenduLayoutLib.dessinerVue].
+ *
+ * **Lint PrivateApi** : l'accès à `View.AttachInfo` (package-private) via
+ * réflexion est flagué par lint `PrivateApi`. C'est DELIBÉRÉ — c'est
+ * l'approche d'Android Studio lui-même (RenderSessionImpl fait exactement
+ * la même chose). Supprimé au niveau de la classe.
  */
+@Suppress("PrivateApi") // Reflection sur View.AttachInfo — approche Android Studio RenderSessionImpl.
 internal object AttacheurVue {
     /**
      * Tente d'injecter un faux [AttachInfo] sur l'arbre [racine].
@@ -109,7 +115,14 @@ internal object AttacheurVue {
      *
      * Le Proxy répond `false`/`null`/`0` à toutes les méthodes de
      * `ViewParent` — aucune action n'a de sens en preview hors-processus.
+     *
+     * Lint `SoonBlockedPrivateApi` : l'accès réflexif à `mParent` lèvera en
+     * API 37+ — mais l'app cible `targetSdk=28` (ADR 0045), donc la réflection
+     * fonctionne sur tous les appareils compatibles. Si l'app monte un jour à
+     * `targetSdk≥37`, il faudra passer par un `FrameLayout` conteneur
+     * (`addView` pose `mParent` naturellement sans réflexion).
      */
+    @Suppress("SoonBlockedPrivateApi") // targetSdk=28 — réflexion safe (ADR 0045).
     private fun poserFauxParent(racine: View) {
         val fauxParent =
             Proxy.newProxyInstance(
