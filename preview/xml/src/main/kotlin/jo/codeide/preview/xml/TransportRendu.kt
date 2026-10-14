@@ -3,6 +3,9 @@ package jo.codeide.preview.xml
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import jo.codeide.core.domain.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +66,13 @@ public class ProcessusIndisponible(
  * Transport LOCAL (repli) — le pipeline PE1 tel quel, appelé sur le fil
  * de l'appelant (dispatcher dédié du moteur) : le repli a la MÊME
  * garantie de fond que le régime isolé quant au thread (jamais l'UI).
+ *
+ * v0.131.0 (G4) — HandlerThread + Looper : les vues Material (ProgressBar
+ * indéterminé, SwipeRefreshLayout) démarrent des animators en
+ * `onAttachedToWindow` (déclenché par `AttacheurVue`). `Animator.start()`
+ * lève `RuntimeException: Animators may only be run on Looper threads`
+ * sans Looper. On wrappe donc le rendu sur un `HandlerThread` dédié qui
+ * A un Looper — c'est le motif de CodeAssist (`AndroidRealViewRuntime`).
  */
 public class TransportRenduLocal(
     contexte: Context,
@@ -70,10 +80,43 @@ public class TransportRenduLocal(
 ) : TransportRendu {
     private val pipeline = RenduLayoutLib(contexte, journal)
 
-    override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
-        val resultat = pipeline.rendre(requete, compresser = false)
-        return depuisPipeline(resultat)
+    /** Thread de rendu dédié avec Looper (G4) — les animators le nécessitent. */
+    private val threadRendu: HandlerThread by lazy {
+        HandlerThread("preview-render").apply { start() }
     }
+
+    /** Handler sur le thread de rendu. */
+    private val handlerRendu: Handler by lazy { Handler(threadRendu.looper) }
+
+    override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
+        // Si on est déjà sur un thread avec Looper (rare mais possible),
+        // on exécute inline — sinon on bloque sur le HandlerThread.
+        return if (Looper.myLooper() != null) {
+            val resultat = pipeline.rendre(requete, compresser = false)
+            depuisPipeline(resultat)
+        } else {
+            rendreSurLooper(requete)
+        }
+    }
+
+    /** Exécute le rendu sur le HandlerThread dédié (avec Looper). */
+    private suspend fun rendreSurLooper(requete: RequeteRendu): ResultatTransport =
+        suspendCancellableCoroutine { cont ->
+            val runnable =
+                Runnable {
+                    try {
+                        val resultat = pipeline.rendre(requete, compresser = false)
+                        cont.resume(dansPipeline(resultat))
+                    } catch (t: Throwable) {
+                        cont.resume(ResultatTransport.Erreur(t.message ?: "rendu échoué"))
+                    }
+                }
+            handlerRendu.post(runnable)
+            cont.invokeOnCancellation { handlerRendu.removeCallbacks(runnable) }
+        }
+
+    /** Adaptateur pour suspendCancellableCoroutine (nom court pour lisibilité). */
+    private fun dansPipeline(resultat: RenduLayoutLib.ResultatPipeline): ResultatTransport = depuisPipeline(resultat)
 
     private fun depuisPipeline(resultat: RenduLayoutLib.ResultatPipeline): ResultatTransport =
         if (resultat.rendu.ok && resultat.bitmap != null) {
@@ -90,7 +133,8 @@ public class TransportRenduLocal(
         }
 
     override fun close() {
-        // Rien à couper (pas de processus, pas de fil possédé).
+        // Couper le HandlerThread proprement (G4).
+        threadRendu.quitSafely()
     }
 }
 

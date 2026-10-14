@@ -112,8 +112,11 @@ class MoteurPreviewXmlTest {
         }
 
     @Test
-    fun `tag inconnu - erreur semantique lisible`() =
+    fun `tag inconnu degrade vers MockView (G15 v0_131_0)`() =
         runTest {
+            // v0.131.0 (G15) : un tag inconnu ne lève PLUS InflateException.
+            // Il dégrade vers un MockView ambre — la preview rend, l'utilisateur
+            // voit un rectangle placeholder au lieu d'une page d'erreur.
             val dispatcher = StandardTestDispatcher(testScheduler)
             val moteur = moteur(dispatcher)
             moteur.soumettre { "<MachinChoseInconnu/>" }
@@ -121,8 +124,8 @@ class MoteurPreviewXmlTest {
             advanceUntilIdle()
 
             val etat = moteur.etat.value
-            assertTrue("état attendu ErreurRendu, trouvé $etat", etat is EtatPreviewXml.ErreurRendu)
-            assertTrue((etat as EtatPreviewXml.ErreurRendu).message.isNotEmpty())
+            // Le rendu RÉUSSIT (MockView) — l'état est RenduValide, pas ErreurRendu.
+            assertTrue("état attendu RenduValide (MockView fallback), trouvé $etat", etat is EtatPreviewXml.RenduValide)
             moteur.close()
         }
 

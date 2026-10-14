@@ -15,6 +15,7 @@ import android.os.Parcelable
  * le transport LOCAL la consomme telle quelle. L'échec reste en DONNÉE
  * dans [ResultatRendu], jamais en exception à travers Binder.
  */
+@Suppress("LongParameterList") // RequeteRendu porte TOUS les paramètres du rendu — AIDL + Parcelable
 public class RequeteRendu(
     /** Texte du document (aucune hypothèse de validité — validé au pipeline). */
     public val texte: String,
@@ -31,6 +32,12 @@ public class RequeteRendu(
      *  Le résolveur `ResourceResolverImpl.setLanguage()` bascule les
      *  chaînes `values-fr` / `values-en`. */
     public val langue: String? = null,
+    /** Nom du thème activité à appliquer (v0.131.0 / G2) — ex. :
+     *  `"Theme.AppCompat.DayNight.NoActionBar"` ou `"@style/Theme.MyApp"`.
+     *  `null` = thème système (repli). Le `ThemeResolver` résout les
+     *  `?attr/colorPrimary` etc. en marchant la chaîne d'héritage du
+     *  style nommé. Le préfixe `@style/` est optionnel (strippé). */
+    public val themeName: String? = null,
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -49,6 +56,7 @@ public class RequeteRendu(
             ),
         nuit = parcel.readByte() != 0.toByte(),
         langue = parcel.readString(),
+        themeName = parcel.readString(),
     )
 
     override fun writeToParcel(
@@ -64,6 +72,7 @@ public class RequeteRendu(
         parcel.writeInt(profil.densiteDpi)
         parcel.writeByte(if (nuit) 1 else 0)
         parcel.writeString(langue)
+        parcel.writeString(themeName)
     }
 
     override fun describeContents(): Int = 0
@@ -75,7 +84,8 @@ public class RequeteRendu(
             other.genre == genre &&
             other.profil == profil &&
             other.nuit == nuit &&
-            other.langue == langue
+            other.langue == langue &&
+            other.themeName == themeName
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -84,6 +94,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + profil.hashCode()
         resultat = 31 * resultat + if (nuit) 1 else 0
         resultat = 31 * resultat + (langue?.hashCode() ?: 0)
+        resultat = 31 * resultat + (themeName?.hashCode() ?: 0)
         return resultat
     }
 
