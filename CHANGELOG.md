@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.126.1] – 2026-10-14
+
+### Corrigé
+
+- **Preview XML — bitmap invisible** : deux bugs corrigés dans
+  `VuePreviewXml` qui empêchaient le bitmap rendu de s'afficher malgré
+  un rendu réussi (« rendu OK : 1080x2340 » dans les logs).
+  - **Bug 1** : `onSizeChanged` appelait `ajusterALaVue()` pour recalculer
+    le zoom/pan quand la vue recevait ses dimensions, mais OUBLIAIT
+    d'appeler `invalidate()` — le bitmap était recalibré mais jamais
+    redessiné. Corrigé : `invalidate()` ajouté après `ajusterALaVue()`.
+  - **Bug 2** : `afficherRendu` appelait `ajusterALaVue()` même quand la
+    vue n'avait pas encore été mesurée (width=0, height=0) — l'échelle
+    devenait 0, le bitmap était dessiné à taille nulle (invisible).
+    Corrigé : si `width == 0 || height == 0`, l'ajustement est reporté à
+    `onSizeChanged` (qui le déclenchera + `invalidate()`). Une échelle
+    de repli (0.1f) évite le dessin à échelle nulle en attendant.
+
+### Changements
+
+- **Preview XML — redesign plein écran** : l'aperçu XML passe du split
+  50/50 (éditeur + preview côte à côte) à un **overlay plein écran**.
+  Quand l'utilisateur active « Aperçu XML », le preview couvre TOUT
+  l'éditeur (pleine largeur, pleine hauteur) avec sa barre de réglages
+  (profil, jour/nuit, langue) et un **bouton fermer** (✕) pour revenir à
+  l'éditeur.
+  - `activity_editor.xml` : `zone_edition_partagee` (LinearLayout
+    horizontal 50/50) SUPPRIMÉE — l'éditeur et l'overlay preview sont
+    désormais des enfants directs de `conteneur_editeur` (FrameLayout).
+    Quand `colonne_apercu` est VISIBLE, il couvre l'éditeur (match_parent).
+  - Nouveau `bouton_fermer_apercu` (IconButton avec icône ✕) dans la barre
+    de réglages — ferme l'aperçu et retourne à l'éditeur plein écran.
+  - Nouveau drawable `ic_fermer.xml` (vector close icon).
+  - `EditorActivity.brancherApercu()` : le bouton fermer appelle
+    `controleurApercu.bascule()` + `majMenuApercu()`.
+
+## [0.126.0] – 2026-10-14
 ## [0.126.0] – 2026-10-14
 
 ### Ajouté
