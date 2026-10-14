@@ -14,9 +14,9 @@ import java.security.MessageDigest
  * SIGNATURE de classpath (content hash) — le cache survit aux rendus
  * successifs tant que le classpath ne change pas.
  *
- * **Pattern CodeAssist** (`AndroidRealViewRuntime.kt:260-294`) : la
- * signature est un hash du contenu des jars + mtime+taille des dossiers
- * de `.class`. On reprend la même stratégie.
+ * **Stratégie de signature** : la signature est un hash du contenu
+ * des jars + mtime+taille des dossiers de `.class`. On reprend
+ * la stratégie standard de cache par contenu (content-hash).
  *
  * **Thread-safety** : `synchronized(verrou)` — le rendu est sérialisé
  * par `ServicePreview` ou le HandlerThread de `TransportRenduLocal`,
@@ -26,7 +26,7 @@ import java.security.MessageDigest
  * **Parent classloader** : le BOOT classloader (`View::class.java.classLoader`),
  * PAS le classloader de l'IDE. Sinon les `androidx.*` du projet
  * retomberaient sur la version bundled par l'IDE (mauvaise version).
- * C'est le pattern CodeAssist (`VmViewFactory.kt:51-52`).
+ * C'est le bon choix de parentage pour éviter la pollution `androidx.*`.
  *
  * **Sur device** : `PathClassLoader` est l'API publique pour charger
  * des `.dex`/`.jar` dexés. Sur Robolectric (tests JVM), il est émulé.
@@ -76,8 +76,8 @@ public class CacheClasspath {
      *
      * **Stabilité** : deux builds identiques (même contenu) → même
      * signature, même si les mtimes ont changé. C'est crucial pour
-     * éviter le re-dex à chaque rebuild Gradle (CodeAssist's
-     * `SharedLibraryDexer.contentHashes` pattern, `.hashcache` sidecar).
+     * éviter le re-dex à chaque rebuild Gradle (stratégie de cache
+     * par contenu — les builds identiques réutilisent le même .dex).
      */
     private fun calculerSignature(entries: List<EntreeClasspath>): String {
         val condense = MessageDigest.getInstance("SHA-256")

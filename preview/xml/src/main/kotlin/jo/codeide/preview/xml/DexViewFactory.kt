@@ -22,8 +22,7 @@ import java.lang.reflect.InvocationTargetException
  * PROJET (construit à partir des `.class`/`.jar` du classpath Gradle).
  * Le classloader est parenté au BOOT classloader (`View::class.java.classLoader`),
  * PAS au classloader de l'IDE — sinon les `androidx.*` du projet retomberaient
- * sur ceux de l'IDE (mauvaise version). C'est le pattern CodeAssist
- * (`VmViewFactory.kt:51-52`).
+ * sur ceux de l'IDE (mauvaise version).
  *
  * **Contract AOSP `LayoutInflater.Factory2`** :
  * - `onCreateView(parent, name, ctx, attrs)` retourne la vue ou `null`.

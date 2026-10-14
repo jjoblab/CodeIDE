@@ -72,7 +72,7 @@ public class ProcessusIndisponible(
  * `onAttachedToWindow` (déclenché par `AttacheurVue`). `Animator.start()`
  * lève `RuntimeException: Animators may only be run on Looper threads`
  * sans Looper. On wrappe donc le rendu sur un `HandlerThread` dédié qui
- * A un Looper — c'est le motif de CodeAssist (`AndroidRealViewRuntime`).
+ * A un Looper — c'est le motif standard pour le rendu de vues Android.
  */
 public class TransportRenduLocal(
     contexte: Context,
