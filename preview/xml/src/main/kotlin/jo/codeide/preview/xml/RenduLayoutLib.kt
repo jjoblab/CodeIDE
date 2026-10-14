@@ -178,23 +178,25 @@ public class RenduLayoutLib(
     public class ResultatPipeline(
         public val rendu: ResultatRendu,
         public val bitmap: Bitmap?,
+        /** Vue rendue (direct view rendering) — prioritaire sur bitmap quand
+         *  non-null. La vue est déjà mesurée et layoutée, prête à être
+         *  ajoutée à la hiérarchie par l'UI. */
+        public val vue: View? = null,
     )
 
-    /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
+    /** LAYOUT : inflation → mesure/layout → retourne la VUE (direct view rendering).
+     *  v0.129.0 : la vue est retournée directement, pas dessinée dans un bitmap.
+     *  L'UI l'ajoute à la hiérarchie (addView) — elle se dessine elle-même
+     *  car elle est attachée à une fenêtre réelle. Tous les attributs passent. */
     private fun rendreLayout(
         requete: RequeteRendu,
-        compresser: Boolean,
+        @Suppress("UnusedParameter") compresser: Boolean,
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
-        // v0.127.2 : LayoutLib ne pose pas toujours le background des vues
-        // (AttributeApplier ne gère pas android:background sur toutes les
-        // vues). On applique manuellement le background de la racine depuis
-        // le XML brut — sinon le bitmap reste blanc même avec un background.
-        appliquerBackgroundRacine(racine, requete.texte)
         if (racine.layoutParams == null) {
             racine.setLayoutParams(
                 ViewGroup.LayoutParams(
@@ -207,33 +209,21 @@ public class RenduLayoutLib(
         val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
         layoutEngine.setDensity(densite)
         layoutEngine.render(racine, largeur, hauteur)
-        val bitmap = dessiner(racine)
         val vues = collecterVues(requete, racine)
         val rendu =
-            if (compresser) {
-                ResultatRendu(
-                    ok = true,
-                    message = null,
-                    largeur = racine.measuredWidth,
-                    hauteur = racine.measuredHeight,
-                    nombreVues = compterVues(racine),
-                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                    png = compresserPng(bitmap),
-                    vues = vues,
-                )
-            } else {
-                ResultatRendu(
-                    ok = true,
-                    message = null,
-                    largeur = racine.measuredWidth,
-                    hauteur = racine.measuredHeight,
-                    nombreVues = compterVues(racine),
-                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                    png = ByteArray(0),
-                    vues = vues,
-                )
-            }
-        return ResultatPipeline(rendu, if (compresser) null else bitmap)
+            ResultatRendu(
+                ok = true,
+                message = null,
+                largeur = racine.measuredWidth,
+                hauteur = racine.measuredHeight,
+                nombreVues = compterVues(racine),
+                dureeMs = (System.nanoTime() - debut) / 1_000_000,
+                png = ByteArray(0),
+                vues = vues,
+            )
+        // Direct view rendering : on retourne la vue mesurée + layoutée.
+        // Plus de bitmap — l'UI fait addView(vue) et la vue se dessine.
+        return ResultatPipeline(rendu, bitmap = null, vue = racine)
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
@@ -395,116 +385,6 @@ public class RenduLayoutLib(
      *  ne le pose pas toujours (AttributeApplier ne gère pas android:background
      *  sur toutes les vues). On parse le XML pour extraire android:background
      *  et le poser manuellement. */
-    private fun appliquerBackgroundRacine(
-        racine: View,
-        xml: String,
-    ) {
-        // Si la vue a déjà un background, ne rien faire.
-        if (racine.background != null) return
-        // Extraire android:background="..." du premier tag (la racine).
-        val regex = Regex("""android:background\s*=\s*"([^"]+)"""")
-        val match = regex.find(xml) ?: return
-        val valeur = match.groupValues[1]
-        try {
-            val drawable = parseBackground(valeur)
-            if (drawable != null) {
-                racine.background = drawable
-            }
-        } catch (_: Throwable) {
-            // Background illisible — la vue reste sans fond (blanc par défaut).
-        }
-    }
-
-    /** Parse une valeur android:background en Drawable. */
-    private fun parseBackground(valeur: String): Drawable? =
-        when {
-            // Couleur hex (#RRGGBB, #AARRGGBB, #RGB)
-            valeur.startsWith("#") -> {
-                try {
-                    android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor(valeur))
-                } catch (_: Throwable) {
-                    null
-                }
-            }
-
-            // @color/... → résolveur projet si branché
-            valeur.startsWith("@color/") && ressources != null -> {
-                try {
-                    val nom = valeur.removePrefix("@color/")
-                    val couleurInt = ressources?.getColor(nom) ?: return null
-                    android.graphics.drawable.ColorDrawable(couleurInt)
-                } catch (_: Throwable) {
-                    null
-                }
-            }
-
-            // @android:color/... → ressources système
-            valeur.startsWith("@android:color/") -> {
-                try {
-                    val nom = valeur.removePrefix("@android:color/")
-                    val id = android.R.color::class.java.getField(nom).getInt(null)
-                    android.graphics.drawable.ColorDrawable(
-                        contexte.getColor(id),
-                    )
-                } catch (_: Throwable) {
-                    null
-                }
-            }
-
-            // @drawable/... → résolution drawable par nom non disponible dans
-            // l'API publique actuelle de DrawableResolver — laissé pour un
-            // lot futur. Les couleurs @color et #hex fonctionnent déjà.
-            valeur.startsWith("@drawable/") && drawableResolver != null -> {
-                null
-            }
-
-            else -> {
-                null
-            }
-        }
-
-    /** Dessine la racine mesurée dans un bitmap off-screen (P4).
-     *
-     *  v0.128.0 : APPROCHE DIRECTE — on ajoute la vue rendue à un
-     *  FrameLayout temporaire attaché au contexte, ce qui force le
-     *  système de rendu Android à dessiner correctement la vue et ses
-     *  enfants (backgrounds, texte, etc.). Le bitmap est créé à partir
-     *  du FrameLayout qui contient la vue. C'est l'approche utilisée
-     *  par le demo LayoutLib et la bibliothèque de référence privée.
-     *
-     *  Avant : on appelait racine.draw(canevas) directement sur la vue
-     *  non attachée — View.draw() était un no-op car la vue n'était pas
-     *  attachée à une fenêtre, et le bitmap restait vide. */
-    private fun dessiner(racine: View): Bitmap {
-        val largeur = racine.measuredWidth.coerceAtLeast(1)
-        val hauteur = racine.measuredHeight.coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
-        val canevas = Canvas(bitmap)
-        canevas.drawColor(android.graphics.Color.WHITE)
-
-        // Attacher temporairement la vue à un FrameLayout pour forcer
-        // le dessin (les vues non attachées ne dessinent pas).
-        val conteneurTemp = android.widget.FrameLayout(contexte)
-        val parentAncien = racine.parent
-        if (parentAncien is ViewGroup) {
-            parentAncien.removeView(racine)
-        }
-        // Forcer la taille du FrameLayout aux dimensions déjà mesurées
-        // par layoutEngine — ne PAS re-mesurer (ça perd les dimensions).
-        val lp = ViewGroup.LayoutParams(largeur, hauteur)
-        conteneurTemp.addView(racine, lp)
-        conteneurTemp.measure(
-            View.MeasureSpec.makeMeasureSpec(largeur, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(hauteur, View.MeasureSpec.EXACTLY),
-        )
-        conteneurTemp.layout(0, 0, largeur, hauteur)
-        conteneurTemp.draw(canevas)
-        conteneurTemp.removeAllViews()
-
-        return bitmap
-    }
-
-    /** Dessine un drawable (PE3) sur damier implicite — la vue UI le pose dessous. */
     private fun dessinerDrawable(
         drawable: Drawable,
         largeur: Int,

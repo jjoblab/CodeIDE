@@ -160,11 +160,12 @@
                                 app:iconTint="?attr/colorOnSurface" />
                         </LinearLayout>
 
-                        <jo.codeide.preview.xml.VuePreviewXml
+                        <FrameLayout
                             android:id="@+id/vue_preview"
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
+                            android:background="@android:color/white"
                             tools:ignore="NestedWeights" />
                     </LinearLayout>
 

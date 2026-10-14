@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.view.View
 import jo.codeide.core.domain.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,9 +39,13 @@ public interface TransportRendu : AutoCloseable {
 
 /** Résultat d'un rendu transporté (donnée, jamais une exception). */
 public sealed interface ResultatTransport {
-    /** Rendu valide : bitmap + métriques + vues (hit-test P6, PE3). */
+    /** Rendu valide : vue (direct view) ou bitmap (repli AIDL) + métriques. */
+    @Suppress("LongParameterList")
     public class Succes(
-        public val bitmap: Bitmap,
+        /** Bitmap (repli AIDL / PE2) — null en mode direct view. */
+        public val bitmap: Bitmap?,
+        /** Vue rendue (direct view rendering) — prioritaire sur bitmap. */
+        public val vue: View?,
         public val dureeMs: Long,
         public val nombreVues: Int,
         public val largeur: Int,
@@ -48,7 +53,7 @@ public sealed interface ResultatTransport {
         public val vues: List<InfoVueRendu> = emptyList(),
     ) : ResultatTransport
 
-    /** Rendu échoué (XML malformé → [m[message] = [XML_MALFORME]). */
+    /** Rendu échoué (XML malformé → [message] = [XML_MALFORME]). */
     public class Erreur(
         public val message: String,
     ) : ResultatTransport
@@ -76,9 +81,10 @@ public class TransportRenduLocal(
     }
 
     private fun depuisPipeline(resultat: RenduLayoutLib.ResultatPipeline): ResultatTransport =
-        if (resultat.rendu.ok && resultat.bitmap != null) {
+        if (resultat.rendu.ok) {
             ResultatTransport.Succes(
                 bitmap = resultat.bitmap,
+                vue = resultat.vue,
                 dureeMs = resultat.rendu.dureeMs,
                 nombreVues = resultat.rendu.nombreVues,
                 largeur = resultat.rendu.largeur,
@@ -144,6 +150,7 @@ internal class TransportRenduProcess(
                 ?: return ResultatTransport.Erreur("PNG du :preview illisible")
         return ResultatTransport.Succes(
             bitmap = bitmap,
+            vue = null,
             dureeMs = brut.dureeMs,
             nombreVues = brut.nombreVues,
             largeur = brut.largeur,
