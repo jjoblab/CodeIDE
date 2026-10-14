@@ -192,11 +192,15 @@ public class MoteurPreviewXml(
     private suspend fun traiter(fournisseur: () -> String) {
         verrouRendu.withLock {
             val texte = withContext(dispatchers.default) { fournisseur() }
-            if (texte.isBlank()) return
+            if (texte.isBlank()) {
+                journal?.w(TAG_PREVIEW) { "rendu annulé : texte vide" }
+                return
+            }
             if (!jo.codeide.preview.xml
                     .xmlBienForme(texte)
             ) {
                 // Frappe en cours : signal discret, le rendu précédent reste.
+                journal?.d(TAG_PREVIEW) { "rendu annulé : XML malformé (frappe en cours)" }
                 if (etatInterne.value !is EtatPreviewXml.RenduValide) {
                     etatInterne.value = EtatPreviewXml.EnEdition
                 }
@@ -210,7 +214,24 @@ public class MoteurPreviewXml(
                     profil = profilCourant,
                     nuit = nuitCourant,
                 )
+            journal?.i(TAG_PREVIEW) {
+                "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +
+                    "profil=$profilCourant, nuit=$nuitCourant, " +
+                    "res=${dossierRes ?: "null"}"
+            }
             val resultat = withContext(dispatchers.default) { transport.rendre(requete) }
+            when (resultat) {
+                is ResultatTransport.Succes -> {
+                    journal?.i(TAG_PREVIEW) {
+                        "rendu OK : ${resultat.largeur}x${resultat.hauteur}, " +
+                            "${resultat.nombreVues} vue(s), ${resultat.dureeMs}ms"
+                    }
+                }
+
+                is ResultatTransport.Erreur -> {
+                    journal?.w(TAG_PREVIEW) { "rendu ÉCHEC : ${resultat.message}" }
+                }
+            }
             etatInterne.value = etatDe(resultat)
         }
     }
@@ -236,5 +257,6 @@ public class MoteurPreviewXml(
 
     private companion object {
         private const val DEBOUNCE_MS = 400L
+        private const val TAG_PREVIEW = "MoteurPreviewXml"
     }
 }
