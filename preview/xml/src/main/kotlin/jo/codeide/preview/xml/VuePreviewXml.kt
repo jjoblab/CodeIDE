@@ -184,7 +184,7 @@ public class VuePreviewXml : View {
             // onSizeChanged re-appellera ajusterALaVue() + invalidate().
             // En attendant, on met une échelle de repli pour ne pas
             // dessiner à échelle 0 (invisible).
-            echelle = 0.1f
+            echelle = ECHELLE_REPLI
             decalageX = 0f
             decalageY = 0f
         }
@@ -416,6 +416,7 @@ public class VuePreviewXml : View {
         private const val TAILLE_TEXTE_BANDEAU_DP = 13f
         private const val HAUTEUR_BANDEAU_DP = 36f
         private const val SUFFIXE_TRONQUE = "…"
+        private const val ECHELLE_REPLI = 0.1f
 
         /** Largeur du trait de surlignage en dp (épaisseur ÉCRAN constante au zoom). */
         private const val LARGEUR_TRAIT_SURLIGNAGE = 2f
