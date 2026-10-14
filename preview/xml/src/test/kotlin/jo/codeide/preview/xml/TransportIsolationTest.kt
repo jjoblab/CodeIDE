@@ -49,6 +49,7 @@ class TransportIsolationTest {
             }
             return ResultatTransport.Succes(
                 bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888),
+                vue = null,
                 dureeMs = 1,
                 nombreVues = 1,
                 largeur = 2,

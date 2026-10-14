@@ -86,7 +86,7 @@ class TransportRenduProcessTest {
             val resultat = transport.rendre(requete())
             assertTrue("succès attendu, trouvé $resultat", resultat is ResultatTransport.Succes)
             resultat as ResultatTransport.Succes
-            assertTrue(resultat.bitmap.width > 0)
+            assertTrue(resultat.bitmap?.width ?: 0 > 0)
             assertEquals(1, liaison.liaisons)
             transport.close()
         }
