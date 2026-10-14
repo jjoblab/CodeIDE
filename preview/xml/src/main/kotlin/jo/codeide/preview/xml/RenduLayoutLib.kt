@@ -490,31 +490,52 @@ public class RenduLayoutLib(
             }
         }
 
-    /** Dessine la racine mesurée dans un bitmap off-screen (P4).
-     *  Le bitmap est pré-rempli avec une couleur de fond (blanc par défaut)
-     *  car Bitmap.createBitmap(ARGB_8888) crée un bitmap TRANSPARENT —
-     *  si la racine n'a pas de android:background, le draw() ne dessine
-     *  rien et le bitmap reste invisible.
+    /**
+     * Dessine la racine mesurée dans un bitmap off-screen (P4).
      *
-     *  v0.127.2 : la racine et ses enfants sont dessinés MANUELLEMENT
-     *  (background + draw du contenu) car View.draw() peut être un no-op
-     *  si la vue n'est pas attachée à une fenêtre (cas en preview hors
-     *  processus — les vues créées par réflexion n'ont pas de fenêtre). */
+     * v0.130.2 — Approche propre (Android Studio) : on injecte un faux
+     * `AttachInfo` sur l'arbre via [AttacheurVue.injecter]. Si ça réussit,
+     * `racine.draw(canvas)` dessine TOUT correctement (background + contenu
+     * + enfants via `dispatchDraw`). C'est le pipeline standard d'Android.
+     *
+     * Fallback : si la réflexion échoue (Android version différente), on
+     * retombe sur [dessinerVue] (récursion manuelle + bg.draw manuel) —
+     * c'est le workaround historique de v0.127.2.
+     *
+     * Le bitmap est pré-rempli avec blanc car `Bitmap.createBitmap` crée
+     * un bitmap transparent — si la racine n'a pas de background, le
+     * fond reste blanc (pas transparent).
+     */
     private fun dessiner(racine: View): Bitmap {
         val largeur = racine.measuredWidth.coerceAtLeast(1)
         val hauteur = racine.measuredHeight.coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
         val canevas = Canvas(bitmap)
-        // Pré-remplir avec blanc.
         canevas.drawColor(android.graphics.Color.WHITE)
-        // Dessiner récursivement : background + draw de chaque vue.
-        dessinerVue(racine, canevas)
+
+        // Chemin nominal (v0.130.2) : injection AttachInfo → draw() standard.
+        if (AttacheurVue.injecter(racine) { msg -> journal?.w(TAG) { msg } }) {
+            try {
+                racine.draw(canevas)
+            } catch (t: Throwable) {
+                journal?.w(TAG) { "draw() après AttachInfo échoué : ${t.message}, fallback manuel" }
+                canevas.drawColor(android.graphics.Color.WHITE)
+                dessinerVue(racine, canevas)
+            }
+        } else {
+            // Réflexion échouée — dessin manuel (récursion + bg.draw explicite).
+            dessinerVue(racine, canevas)
+        }
         return bitmap
     }
 
-    /** Dessine une vue et ses enfants récursivement — background d'abord,
-     *  puis contenu. Contourne le no-op de View.draw() quand la vue
-     *  n'est pas attachée à une fenêtre. */
+    /** Fallback de dessin (v0.127.2) — utilisé quand [AttacheurVue.injecter]
+     *  échoue (réflexion cassée sur une version d'Android différente).
+     *
+     *  Dessine manuellement : background d'abord (bg.draw explicite car
+     *  View.draw() skip drawBackground() sur vues opaques sans AttachInfo),
+     *  puis contenu (vue.draw), puis récursion sur les enfants
+     *  (dispatchDraw() est partiellement no-op sans AttachInfo). */
     private fun dessinerVue(
         vue: View,
         canevas: Canvas,
