@@ -24,6 +24,10 @@
     <string name="editor_tiroir_actualiser_cd">Revérifier l\'accès au projet et recharger l\'arborescence</string>
     <string name="editor_tiroir_fermer_projet">Fermer le projet</string>
     <string name="editor_parametres">Paramètres</string>
+    <!-- CE3 (B10) + CE7 (B14) : recherche et pliage. -->
+    <string name="editor_rechercher">Rechercher</string>
+    <string name="editor_tout_replier">Tout replier</string>
+    <string name="editor_tout_deplier">Tout déplier</string>
     <string name="editor_explorateur_vide">Dossier vide</string>
 
     <!-- Carte d\'aperçu du terminal du tiroir (T6, section 8 du prompt Terminal-1). -->
