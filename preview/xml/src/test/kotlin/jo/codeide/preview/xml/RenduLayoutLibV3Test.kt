@@ -253,4 +253,97 @@ class RenduLayoutLibV3Test {
         val resultat = pipeline.rendre(requete, compresser = false).rendu
         assertTrue("le rendu avec langue=en doit réussir", resultat.ok)
     }
+
+    // ============================================================
+    // v0.127.2 — appliquerBackgroundRacine + dessinerVue
+    // ============================================================
+
+    @Test
+    fun `rendu avec background hex rouge produit des pixels non blancs`() {
+        val xml =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#FF0000"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hello"
+                    android:textColor="#000000" />
+            </LinearLayout>
+            """.trimIndent()
+        val resultat =
+            pipeline.rendre(
+                RequeteRendu(
+                    texte = xml,
+                    dossierRes = null,
+                    genre = GenrePreview.LAYOUT,
+                    profil = ProfilPeripherique.PAR_DEFAUT,
+                    nuit = false,
+                ),
+                compresser = false,
+            )
+        assertTrue("le rendu doit réussir", resultat.rendu.ok)
+        val bitmap = resultat.bitmap
+        assertTrue("le bitmap doit être non null", bitmap != null)
+        if (bitmap != null) {
+            var pixelsNonBlancs = 0
+            val pas = 10
+            for (y in 0 until bitmap.height step pas) {
+                for (x in 0 until bitmap.width step pas) {
+                    if (bitmap.getPixel(x, y) != android.graphics.Color.WHITE) {
+                        pixelsNonBlancs++
+                    }
+                }
+            }
+            assertTrue(
+                "le bitmap doit contenir des pixels non blancs (background rouge), trouvé $pixelsNonBlancs",
+                pixelsNonBlancs > 0,
+            )
+        }
+    }
+
+    @Test
+    fun `rendu sans background produit un bitmap blanc valide`() {
+        val xml =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Test" />
+            </LinearLayout>
+            """.trimIndent()
+        val resultat = rendre(xml)
+        assertTrue("le rendu sans background doit réussir", resultat.ok)
+        assertTrue("largeur > 0", resultat.largeur > 0)
+        assertTrue("hauteur > 0", resultat.hauteur > 0)
+    }
+
+    @Test
+    fun `rendu avec android background white sur LinearLayout`() {
+        val xml =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/white"
+                android:orientation="vertical">
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Clic" />
+            </LinearLayout>
+            """.trimIndent()
+        val resultat = rendre(xml)
+        assertTrue("le rendu avec @android:color/white doit réussir", resultat.ok)
+    }
 }
