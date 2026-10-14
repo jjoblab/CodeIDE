@@ -111,6 +111,9 @@ public class RenduLayoutLib(
     /** Langue courante (PE5a — null = défaut système). */
     private var langueConfigure: String? = null
 
+    /** Nom du thème activité courant (v0.131.0 / G2 — null = repli système). */
+    private var themeNameConfigure: String? = null
+
     /** Densité du dernier rendu (reconfiguration des résolveurs au changement). */
     private var densiteConfigure = -1f
 
@@ -210,7 +213,7 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
+        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue, requete.themeName)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
         // v0.130.1 : l'AttributeApplier (installé par défaut dès init{})
@@ -270,7 +273,7 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
+        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue, requete.themeName)
         val resolver = drawableResolver
         val drawable =
             if (resolver != null) {
@@ -443,6 +446,7 @@ public class RenduLayoutLib(
     }
 
     /** Parse une valeur android:background en Drawable. */
+    @Suppress("CyclomaticComplexMethod") // parseBackground = un when exhaustif par type de valeur
     private fun parseBackground(valeur: String): Drawable? =
         when {
             // Couleur hex (#RRGGBB, #AARRGGBB, #RGB)
@@ -478,11 +482,26 @@ public class RenduLayoutLib(
                 }
             }
 
-            // @drawable/... → résolution drawable par nom non disponible dans
-            // l'API publique actuelle de DrawableResolver — laissé pour un
-            // lot futur. Les couleurs @color et #hex fonctionnent déjà.
+            // @drawable/... → v0.131.0 (G3) : résolution via DrawableResolverImpl.
+            // Le résolveur gère les shapes, selectors, vectors, bitmaps, etc.
+            // depuis le dossier res/drawable*/ du projet.
             valeur.startsWith("@drawable/") && drawableResolver != null -> {
-                null
+                try {
+                    drawableResolver?.resolve(valeur, contexte)
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+
+            // @android:drawable/... → ressources système framework
+            valeur.startsWith("@android:drawable/") -> {
+                try {
+                    val nom = valeur.removePrefix("@android:drawable/")
+                    val id = android.R.drawable::class.java.getField(nom).getInt(null)
+                    contexte.getDrawable(id)
+                } catch (_: Throwable) {
+                    null
+                }
             }
 
             else -> {
@@ -590,9 +609,10 @@ public class RenduLayoutLib(
         densiteProfil: Float,
         nuit: Boolean,
         langue: String?,
+        themeName: String?,
     ) {
         val dossier = chemin
-        if (configurationInchangee(dossier, densiteProfil, nuit, langue)) {
+        if (configurationInchangee(dossier, densiteProfil, nuit, langue, themeName)) {
             return
         }
         if (dossier != null && File(dossier).isDirectory) {
@@ -616,6 +636,14 @@ public class RenduLayoutLib(
                 val themeResolverNeuf = ThemeResolverImpl(nouvellesRessources, convertisseur)
                 enregistrerThemes(themeResolverNeuf, dossier)
                 themeResolverNeuf.setNightMode(nuit)
+                // v0.131.0 (G2) : poser le thème ACTIVITY sur le ThemeResolver.
+                // Sans cette ligne, ?attr/colorPrimary retombe sur le thème IDE
+                // (mauvaises couleurs Material). Le thème vient de RequeteRendu
+                // (parse depuis AndroidManifest.xml côté CodeIDE).
+                if (themeName != null) {
+                    val nomSimple = themeName.removePrefix("@style/").removePrefix("@android:style/")
+                    themeResolverNeuf.setTheme(nomSimple)
+                }
                 applier.setThemeResolver(themeResolverNeuf)
                 inflater.setAttributeApplier(applier)
 
@@ -635,6 +663,7 @@ public class RenduLayoutLib(
         densiteConfigure = densiteProfil
         nuitConfigure = nuit
         langueConfigure = langue
+        themeNameConfigure = themeName
     }
 
     /** Passe en repli natif (aucun résolveur projet) — mais GARDE un
@@ -690,11 +719,13 @@ public class RenduLayoutLib(
         densiteProfil: Float,
         nuit: Boolean,
         langue: String?,
+        themeName: String?,
     ): Boolean =
         dossier == dossierResConfigure &&
             densiteProfil == densiteConfigure &&
             nuit == nuitConfigure &&
             langue == langueConfigure &&
+            themeName == themeNameConfigure &&
             ressources != null
 
     /** Densité du PROFIL (dpi/DPI_PAR_UNITE) — PE3 : le rendu vit au profil, pas à la machine. */
