@@ -85,6 +85,19 @@ public class RenduLayoutLib(
     /** Inflater LayoutLib — construit une fois, réinitialisé par rendu. */
     private val inflater: BridgeInflater = BridgeInflater(contexte, ViewTagRegistry(false))
 
+    /**
+     * Factory2 pour vues custom du projet — G1 / Phase 2 (v0.132.0).
+     *
+     * Consultée par `BridgeInflater.onCreateViewFromFactory` pour chaque
+     * tag. Les tags dotted (`com.example.FooView`) sont chargés via
+     * `loader` (un classloader projet mis à jour par
+     * `reconfigurerClasspathSiNecessaire`).
+     *
+     * Factory2 est ONE-SHOT (contract AOSP) — on l'installe UNE FOIS à la
+     * construction. Le `loader` à l'intérieur est mutable (`@Volatile`).
+     */
+    private val dexViewFactory = DexViewFactory()
+
     /** Moteur de mesure/layout LayoutLib. */
     private val layoutEngine = LayoutEngineImpl()
 
@@ -117,6 +130,12 @@ public class RenduLayoutLib(
     /** Densité du dernier rendu (reconfiguration des résolveurs au changement). */
     private var densiteConfigure = -1f
 
+    /** Cache de classloader projet (G1 / Phase 2 — v0.132.0). */
+    private val cacheClasspath = CacheClasspath()
+
+    /** Signature du classpath courant (null = jamais configuré). */
+    private var classpathConfigure: String? = null
+
     init {
         layoutEngine.setFontScale(echellePolice())
         // v0.130.1 — TOUJOURS installer un AttributeApplier, même sans
@@ -126,6 +145,24 @@ public class RenduLayoutLib(
         // natif (densité courante) suffit : les attributs #hex, dp, sp
         // passent sans résolveur projet.
         installerAttributeApplierParDefaut()
+        // v0.132.0 — G1 : installer DexViewFactory (Factory2 hook).
+        // ONE-SHOT selon le contract AOSP — appelé UNE FOIS à la
+        // construction. Le `loader` à l'intérieur est mis à jour par
+        // reconfigurerClasspathSiNecessaire quand le classpath change.
+        // Sans classpath (loader=null), la factory retourne null pour
+        // tous les tags dotted → ViewFactory par défaut → G15 MockView
+        // fallback si classe introuvable.
+        // NOTE : BridgeInflater appelle factory2.onCreateView avec
+        // attrs=null (LayoutLib pattern — les attributs sont appliqués
+        // APRÈS par AttributeApplier). La factory doit donc accepter
+        // un attrs null sans planter — l'implémentation Kotlin gère ça
+        // via le paramètre platform type.
+        try {
+            inflater.setFactory2(dexViewFactory)
+        } catch (_: IllegalStateException) {
+            // Déjà installée — ignore (peut arriver si l'inflater est
+            // réutilisé, bien que le pattern soit de le recréer).
+        }
     }
 
     /**
@@ -214,6 +251,10 @@ public class RenduLayoutLib(
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue, requete.themeName)
+        // G1 / v0.132.0 : reconfigurer le classloader de DexViewFactory
+        // si le classpath a changé. Le cache (CacheClasspath) survit entre
+        // rendus — signature inchangée → pas de reconstruction.
+        reconfigurerClasspathSiNecessaire(requete.classpath)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
         // v0.130.1 : l'AttributeApplier (installé par défaut dès init{})
@@ -664,6 +705,24 @@ public class RenduLayoutLib(
         nuitConfigure = nuit
         langueConfigure = langue
         themeNameConfigure = themeName
+    }
+
+    /**
+     * Reconfigure le classloader de `DexViewFactory` si le classpath a
+     * changé — G1 / Phase 2 (v0.132.0).
+     *
+     * Le `CacheClasspath` calcule une signature content-hash des entrées
+     * (jars hashés par contenu, dossiers par chemin+t Réellement+taille).
+     * Si la signature est inchangée, on ne reconstruit PAS le classloader
+     * (économise ~500ms-2s sur un grand classpath).
+     *
+     * Si [entries] est vide : on met `dexViewFactory.loader = null` (la
+     * factory dégrade vers `null` → ViewFactory par défaut + G15 MockView).
+     */
+    private fun reconfigurerClasspathSiNecessaire(entries: List<EntreeClasspath>) {
+        val loader = cacheClasspath.classloader(entries)
+        dexViewFactory.loader = loader
+        classpathConfigure = entries.takeIf { it.isNotEmpty() }?.let { cacheClasspath.toString() }
     }
 
     /** Passe en repli natif (aucun résolveur projet) — mais GARDE un

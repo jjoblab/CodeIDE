@@ -38,6 +38,11 @@ public class RequeteRendu(
      *  `?attr/colorPrimary` etc. en marchant la chaîne d'héritage du
      *  style nommé. Le préfixe `@style/` est optionnel (strippé). */
     public val themeName: String? = null,
+    /** Classpath projet pour vues custom (v0.132.0 / G1) — liste des
+     *  entrées (JAR, AAR, DOSSIER, MODULE) à donner au `DexViewFactory`.
+     *  Vide = pas de vues custom (repli ViewFactory par défaut + G15
+     *  MockView fallback pour classes introuvables). */
+    public val classpath: List<EntreeClasspath> = emptyList(),
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -57,6 +62,7 @@ public class RequeteRendu(
         nuit = parcel.readByte() != 0.toByte(),
         langue = parcel.readString(),
         themeName = parcel.readString(),
+        classpath = parcel.createTypedArrayList(EntreeClasspath.CREATOR) ?: emptyList(),
     )
 
     override fun writeToParcel(
@@ -73,6 +79,7 @@ public class RequeteRendu(
         parcel.writeByte(if (nuit) 1 else 0)
         parcel.writeString(langue)
         parcel.writeString(themeName)
+        parcel.writeTypedList(classpath)
     }
 
     override fun describeContents(): Int = 0
@@ -85,7 +92,8 @@ public class RequeteRendu(
             other.profil == profil &&
             other.nuit == nuit &&
             other.langue == langue &&
-            other.themeName == themeName
+            other.themeName == themeName &&
+            other.classpath == classpath
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -95,6 +103,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + if (nuit) 1 else 0
         resultat = 31 * resultat + (langue?.hashCode() ?: 0)
         resultat = 31 * resultat + (themeName?.hashCode() ?: 0)
+        resultat = 31 * resultat + classpath.hashCode()
         return resultat
     }
 
