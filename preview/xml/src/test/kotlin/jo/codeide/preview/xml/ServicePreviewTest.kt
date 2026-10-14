@@ -4,7 +4,9 @@ import android.graphics.BitmapFactory
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -111,6 +113,93 @@ class ServicePreviewTest {
         } finally {
             parcel.recycle()
         }
+    }
+
+    @Test
+    fun `requete parcel - themeName survit au round-trip AIDL (G2 v0_131_0)`() {
+        // v0.131.0 (G2) : themeName voyage à travers la frontière AIDL.
+        val source =
+            RequeteRendu(
+                texte = "<LinearLayout/>",
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                langue = "fr",
+                themeName = "Theme.AppCompat.DayNight.NoActionBar",
+            )
+        val parcel = android.os.Parcel.obtain()
+        try {
+            source.writeToParcel(parcel, 0)
+            parcel.setDataPosition(0)
+            val relu = RequeteRendu.CREATOR.createFromParcel(parcel)
+            assertEquals(source.themeName, relu.themeName)
+            assertEquals(source.langue, relu.langue)
+            assertEquals(source.texte, relu.texte)
+            assertEquals(source.nuit, relu.nuit)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
+    fun `requete parcel - themeName null aussi (repli système)`() {
+        val source =
+            RequeteRendu(
+                texte = "<LinearLayout/>",
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                langue = null,
+                themeName = null,
+            )
+        val parcel = android.os.Parcel.obtain()
+        try {
+            source.writeToParcel(parcel, 0)
+            parcel.setDataPosition(0)
+            val relu = RequeteRendu.CREATOR.createFromParcel(parcel)
+            assertNull(relu.themeName)
+            assertNull(relu.langue)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
+    fun `requete equals hashCode - themeName casse l egalite (G2)`() {
+        // Deux requetes identiques sauf themeName doivent être différentes.
+        val a =
+            RequeteRendu(
+                texte = "<X/>",
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                themeName = "Theme.A",
+            )
+        val b =
+            RequeteRendu(
+                texte = "<X/>",
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                themeName = "Theme.B",
+            )
+        assertNotEquals(a, b)
+        assertNotEquals(a.hashCode(), b.hashCode())
+        // Même themeName → égalité.
+        val aPrime =
+            RequeteRendu(
+                texte = "<X/>",
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                themeName = "Theme.A",
+            )
+        assertEquals(a, aPrime)
     }
 
     /** Requête de test (PE3) : layout simple, repli natif. */
