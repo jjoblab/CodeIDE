@@ -274,11 +274,16 @@ public class RenduLayoutLib(
                 ),
             )
         }
+        // v0.133.0 — G5 : envelopper dans le chrome système (status bar +
+        // action bar) si un thème est configuré. La vue racine devient le
+        // conteneur chrome (LinearLayout vertical). Si pas de thème, on
+        // garde la racine telle quelle (comportement v0.132.x).
+        val vueRendue = envelopperChromeSiNecessaire(racine, densite, requete)
         val largeur = requete.profil.versDeviceProfile().getWidthPx(densite)
         val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
         layoutEngine.setDensity(densite)
-        layoutEngine.render(racine, largeur, hauteur)
-        val bitmap = dessiner(racine)
+        layoutEngine.render(vueRendue, largeur, hauteur)
+        val bitmap = dessiner(vueRendue)
         val vues = collecterVues(requete, racine)
         val rendu =
             if (compresser) {
@@ -723,6 +728,32 @@ public class RenduLayoutLib(
         val loader = cacheClasspath.classloader(entries)
         dexViewFactory.loader = loader
         classpathConfigure = entries.takeIf { it.isNotEmpty() }?.let { cacheClasspath.toString() }
+    }
+
+    /**
+     * v0.133.0 — G5 : Enveloppe la racine dans le chrome système si un
+     * thème est configuré.
+     *
+     * Si [RequeteRendu.themeName] est null (pas de thème activité), on
+     * retourne la racine telle quelle — pas de chrome.
+     *
+     * Si un thème est configuré, on crée un [ChromeSysteme] qui enveloppe
+     * la racine dans un LinearLayout vertical (status bar + action bar +
+     * contenu). Les couleurs viennent du ThemeResolver.
+     */
+    @Suppress("ReturnCount") // 3 gardes = 3 issues distinctes (pas de theme, pas de resolver, ok)
+    private fun envelopperChromeSiNecessaire(
+        racine: View,
+        densite: Float,
+        requete: RequeteRendu,
+    ): View {
+        // Pas de thème → pas de chrome (comportement v0.132.x).
+        if (requete.themeName == null) return racine
+        // Pas de ThemeResolver branché → pas de chrome.
+        val resolver = themeResolver ?: return racine
+
+        val chrome = ChromeSysteme(contexte, resolver, titreActivite = requete.themeName)
+        return chrome.envelopper(racine, densite)
     }
 
     /** Passe en repli natif (aucun résolveur projet) — mais GARDE un
