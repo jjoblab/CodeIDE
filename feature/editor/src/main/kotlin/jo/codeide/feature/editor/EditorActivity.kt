@@ -961,7 +961,9 @@ class EditorActivity :
         }
     }
 
-    /** Onglets de fichiers : sélection, fermeture, menu contextuel (étape 15). */
+    /** Onglets de fichiers : sélection, fermeture, menu contextuel (étape 15).
+     *  CE3 (recherche) + CE7 (pliage) ajoutés en v0.127.0. */
+    @Suppress("LongMethod")
     private fun brancherOnglets() {
         liaison.toolbarEditeur.inflateMenu(R.menu.menu_editeur)
         liaison.toolbarEditeur.setOnMenuItemClickListener { item ->
@@ -1012,6 +1014,25 @@ class EditorActivity :
 
                 R.id.action_executer -> {
                     viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+                    true
+                }
+
+                // CE3 (B10) : ouvrir la barre de recherche/remplacement.
+                R.id.action_rechercher -> {
+                    liaison.barreRecherche.open()
+                    true
+                }
+
+                // CE7 (B14) : pliage de masse.
+                R.id.action_tout_replier -> {
+                    liaison.vueEditeur.getSession()?.collapseAllFolds()
+                    liaison.vueEditeur.invalidate()
+                    true
+                }
+
+                R.id.action_tout_deplier -> {
+                    liaison.vueEditeur.getSession()?.expandAllFolds()
+                    liaison.vueEditeur.invalidate()
                     true
                 }
 
@@ -1268,8 +1289,11 @@ class EditorActivity :
         editeur.setLayerType(View.LAYER_TYPE_HARDWARE, null)
     }
 
-    /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
-    private fun brancherEditeur() = Unit
+    /** L'éditeur : branchement de la barre de recherche (CE3) + pill (CE6). */
+    private fun brancherEditeur() {
+        // CE3 (B10) : barre de recherche/remplacement.
+        liaison.barreRecherche.bind(liaison.vueEditeur)
+    }
 
     /**
      * Mission « Previews » PE3 : la barre de réglages de l'aperçu (profil
@@ -1929,6 +1953,15 @@ class EditorActivity :
         if (session != null && liaison.vueEditeur.getSession() !== session) {
             liaison.vueEditeur.setSession(session)
             liaison.vueEditeur.setFileName(onglet.nom)
+            // CE5 (B12) : clé de zoom par type de fichier — le zoom est
+            // mémorisé par extension (.java, .kt, .xml…), pas par fichier.
+            val extension = onglet.cheminRelatif.substringAfterLast('.', "")
+            liaison.vueEditeur.setZoomMemoryKey(extension)
+            // CE8 (B15) : vider le registre des gutter actions au changement
+            // de fichier (les points d'arrêt du fichier précédent ne sont
+            // plus pertinents — CodeIDE n'a pas encore de débogueur, mais
+            // le registre doit être propre).
+            liaison.vueEditeur.gutterActions.clear()
         }
         liaison.vueEditeur.setTheme(themeActuel())
     }
@@ -1955,6 +1988,12 @@ class EditorActivity :
         vue.setShowNonPrintable(optionsEditeur.courants.editorCaracteresNonImprimables)
         vue.setFontLigatures(optionsEditeur.courants.editorLigatures)
         vue.setDiagnosticChipsEnabled(optionsEditeur.courants.editorChipsDiagnostics)
+        // CE6 (B13) : item ✥ Move de la pill — permet de déplacer un bloc
+        // en le glissant après sélection + appui long.
+        vue.addSelectionAction(
+            jo.codeeditor.view.BuiltinSelectionActions
+                .blockDrag(vue),
+        )
     }
 
     // ------------------------------------------------------------------

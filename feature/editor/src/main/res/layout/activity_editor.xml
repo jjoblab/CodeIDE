@@ -83,6 +83,15 @@
                         android:layout_height="match_parent"
                         android:visibility="gone" />
 
+                    <!-- CE3 (B10) : barre de recherche/remplacement —
+                         GONE par défaut, ouverte par Ctrl+F ou menu.
+                         Se pose entre l'en-tête et l'éditeur. -->
+                    <jo.codeeditor.view.chrome.EditorSearchBar
+                        android:id="@+id/barre_recherche"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
                     <!-- Aperçu XML OVERLAY plein écran (PE1 → PE5) :
                          couvre TOUT l'éditeur quand visible, GONE par
                          défaut. Bitmap off-screen rendu par le moteur

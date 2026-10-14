@@ -51,6 +51,22 @@
         android:visible="false"
         app:showAsAction="never" />
 
+    <!-- CE3 (B10) : recherche/remplacement dans le fichier. -->
+    <item
+        android:id="@+id/action_rechercher"
+        android:title="@string/editor_rechercher"
+        app:showAsAction="never" />
+
+    <!-- CE7 (B14) : pliage de masse — tout replier / tout déplier. -->
+    <item
+        android:id="@+id/action_tout_replier"
+        android:title="@string/editor_tout_replier"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_tout_deplier"
+        android:title="@string/editor_tout_deplier"
+        app:showAsAction="never" />
+
     <!-- Fermeture de l'espace de travail (étape 31) : l'action vivait
          dans l'entête v1 du tiroir, elle rejoint le débordement de la
          toolbar depuis l'architecture à fragments. -->
