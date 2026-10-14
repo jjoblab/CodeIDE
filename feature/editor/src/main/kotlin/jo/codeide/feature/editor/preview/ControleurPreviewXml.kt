@@ -200,7 +200,7 @@ class ControleurPreviewXml(
 
     override fun close() = fermer()
 
-    /** Suit le projet courant : résout `res/` via FUSE, une fois par projet. */
+    /** Suit le projet courant : résout `res/` + thème activité via FUSE. */
     private fun suivreProjet(etat: EtatEditor) {
         val uriDocument =
             etat.projet?.location?.documentUri ?: run {
@@ -208,6 +208,7 @@ class ControleurPreviewXml(
                 if (uriProjetSuivi != null) {
                     uriProjetSuivi = null
                     moteur.definirDossierRes(null)
+                    moteur.definirThemeName(null)
                 }
                 return
             }
@@ -219,7 +220,44 @@ class ControleurPreviewXml(
                 val racine = resolveurChemin.resoudreEntree(uriDocument)
                 val cheminRes = racine?.let { "${it.trimEnd('/')}/res" }
                 moteur.definirDossierRes(cheminRes)
+                // v0.133.1 — G2/G5 : résoudre le thème activité depuis
+                // AndroidManifest.xml. Le thème est dans l'attribut
+                // android:theme de <application> ou <activity>.
+                val themeName = racine?.let { resoudreThemeActivite(it) }
+                moteur.definirThemeName(themeName)
             }
+    }
+
+    /**
+     * v0.133.1 — G2/G5 : Résout le thème activité depuis AndroidManifest.xml.
+     *
+     * Lit le fichier `app/src/main/AndroidManifest.xml` (ou
+     * `src/main/AndroidManifest.xml`) et extrait l'attribut
+     * `android:theme` de la balise `<application>`. Si non trouvé,
+     * retourne null (pas de chrome système).
+     */
+    private fun resoudreThemeActivite(racineProjet: String): String? {
+        val manifeste = trouverManifeste(racineProjet) ?: return null
+        val contenu =
+            try {
+                java.io.File(manifeste).readText()
+            } catch (_: Throwable) {
+                return null
+            }
+        // Regex simple : android:theme="@style/..."
+        val regex = Regex("""android:theme\s*=\s*"(@style/[^"]+|@android:style/[^"]+)"""")
+        val match = regex.find(contenu) ?: return null
+        return match.groupValues[1]
+    }
+
+    /** Cherche AndroidManifest.xml dans les chemins standards. */
+    private fun trouverManifeste(racineProjet: String): String? {
+        val candidats =
+            listOf(
+                "$racineProjet/app/src/main/AndroidManifest.xml",
+                "$racineProjet/src/main/AndroidManifest.xml",
+            )
+        return candidats.firstOrNull { java.io.File(it).isFile }
     }
 
     /** Rebranche l'écoute de frappe sur l'onglet actif, et le classifie. */
