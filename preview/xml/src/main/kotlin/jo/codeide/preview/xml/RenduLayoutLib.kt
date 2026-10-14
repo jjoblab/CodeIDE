@@ -464,57 +464,44 @@ public class RenduLayoutLib(
         }
 
     /** Dessine la racine mesurée dans un bitmap off-screen (P4).
-     *  Le bitmap est pré-rempli avec une couleur de fond (blanc par défaut)
-     *  car Bitmap.createBitmap(ARGB_8888) crée un bitmap TRANSPARENT —
-     *  si la racine n'a pas de android:background, le draw() ne dessine
-     *  rien et le bitmap reste invisible.
      *
-     *  v0.127.2 : la racine et ses enfants sont dessinés MANUELLEMENT
-     *  (background + draw du contenu) car View.draw() peut être un no-op
-     *  si la vue n'est pas attachée à une fenêtre (cas en preview hors
-     *  processus — les vues créées par réflexion n'ont pas de fenêtre). */
+     *  v0.128.0 : APPROCHE DIRECTE — on ajoute la vue rendue à un
+     *  FrameLayout temporaire attaché au contexte, ce qui force le
+     *  système de rendu Android à dessiner correctement la vue et ses
+     *  enfants (backgrounds, texte, etc.). Le bitmap est créé à partir
+     *  du FrameLayout qui contient la vue. C'est l'approche utilisée
+     *  par le demo LayoutLib et la bibliothèque de référence privée.
+     *
+     *  Avant : on appelait racine.draw(canevas) directement sur la vue
+     *  non attachée — View.draw() était un no-op car la vue n'était pas
+     *  attachée à une fenêtre, et le bitmap restait vide. */
     private fun dessiner(racine: View): Bitmap {
         val largeur = racine.measuredWidth.coerceAtLeast(1)
         val hauteur = racine.measuredHeight.coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
         val canevas = Canvas(bitmap)
-        // Pré-remplir avec blanc.
         canevas.drawColor(android.graphics.Color.WHITE)
-        // Dessiner récursivement : background + draw de chaque vue.
-        dessinerVue(racine, canevas)
-        return bitmap
-    }
 
-    /** Dessine une vue et ses enfants récursivement — background d'abord,
-     *  puis contenu. Contourne le no-op de View.draw() quand la vue
-     *  n'est pas attachée à une fenêtre. */
-    private fun dessinerVue(
-        vue: View,
-        canevas: Canvas,
-    ) {
-        canevas.save()
-        canevas.translate(vue.left.toFloat(), vue.top.toFloat())
-        // 1. Dessiner le background (s'il existe).
-        val bg = vue.background
-        if (bg != null) {
-            bg.setBounds(0, 0, vue.width, vue.height)
-            bg.draw(canevas)
+        // Attacher temporairement la vue à un FrameLayout pour forcer
+        // le dessin (les vues non attachées ne dessinent pas).
+        val conteneurTemp = android.widget.FrameLayout(contexte)
+        val parentAncien = racine.parent
+        if (parentAncien is ViewGroup) {
+            parentAncien.removeView(racine)
         }
-        // 2. Dessiner le contenu de la vue elle-même (texte, etc.).
-        //    On appelle draw() directement — sous Robolectric et sur
-        //    appareil, certaines vues dessinent même sans fenêtre.
-        try {
-            vue.draw(canevas)
-        } catch (_: Throwable) {
-            // Une vue qui crash au draw ne doit pas casser le rendu.
-        }
-        // 3. Dessiner les enfants récursivement.
-        if (vue is ViewGroup) {
-            for (i in 0 until vue.childCount) {
-                dessinerVue(vue.getChildAt(i), canevas)
-            }
-        }
-        canevas.restore()
+        // Forcer la taille du FrameLayout aux dimensions déjà mesurées
+        // par layoutEngine — ne PAS re-mesurer (ça perd les dimensions).
+        val lp = ViewGroup.LayoutParams(largeur, hauteur)
+        conteneurTemp.addView(racine, lp)
+        conteneurTemp.measure(
+            View.MeasureSpec.makeMeasureSpec(largeur, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(hauteur, View.MeasureSpec.EXACTLY),
+        )
+        conteneurTemp.layout(0, 0, largeur, hauteur)
+        conteneurTemp.draw(canevas)
+        conteneurTemp.removeAllViews()
+
+        return bitmap
     }
 
     /** Dessine un drawable (PE3) sur damier implicite — la vue UI le pose dessous. */
