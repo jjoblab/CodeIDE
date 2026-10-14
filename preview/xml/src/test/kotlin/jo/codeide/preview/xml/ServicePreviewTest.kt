@@ -68,10 +68,12 @@ class ServicePreviewTest {
     }
 
     @Test
-    fun `erreur sémantique - message lisible en donnée`() {
+    fun `erreur semantique MockView fallback (G15 v0_131_0)`() {
+        // v0.131.0 (G15) : un tag inconnu ne lève PLUS — il dégrade vers
+        // MockView. Le rendu RÉUSSIT, le service rend ok=true avec un
+        // MockView ambre dans l'arbre.
         val resultat = binder().rendre(requete("<TagInconnu />"))
-        assertFalse(resultat.ok)
-        assertTrue(resultat.message.orEmpty().isNotEmpty())
+        assertTrue("rendu doit réussir (MockView fallback), trouvé ok=${resultat.ok}", resultat.ok)
     }
 
     @Test
