@@ -588,21 +588,24 @@ Reporter ici, à chaque montée de LayoutLib : nombre de layouts OK /
 (PREVIEW.md §2.3) se lisent dans le diff entre versions. **Aucune
 exécution à ce jour (pas d'appareil dans l'environnement de build).**
 
-### Limitations LayoutLib v2.2.0 connues — PE4 audit v0.122.2 (ADR 0116)
+### Limitations LayoutLib v3.0.0 connues — PE4 audit v0.122.2 + montée v0.125.1 (ADR 0116)
 
 Comportement **attendu** (pas un bug) — le pipeline de preview reste
 tolérant (placeholder neutre, dernier rendu valide conservé, philosophie
 PE1 X4). Ne pas rapporter comme défauts appareil.
 
-| Priorité | Limitation | Manifestation en preview |
-| --- | --- | --- |
-| **P0** | `<layer-list>`, `<ripple>`, `<inset>`, `<bitmap>` non implémentés | Placeholder neutre à la place du drawable. Fréquent dans les fonds complexes (layer-list) et feedback tactile (ripple). |
-| **P1** | Qualifiers de langue `values-fr/`, `values-en/` non supportés | La preview ne bascule pas de langue — seul le défaut `values/` est lu. |
-| **P2** | ConstraintLayout : solver Cassowary non câblé (solver maison partiel) | Layouts ConstraintLayout avec chaînes, barrières, guidelines, dimension ratios complexes → rendu approximatif (positions calculées par heuristique sans solver). |
-| **P3** | `applyCustomAttributes` stub (attributs `app:*` ignorés) | Attributs custom des bibliothèques tierces (DataBinding, ViewBinding custom) silencieusement ignorés. |
-| **P4** | `<adaptive-icon>` non supporté | Placeholder à la place de l'icône adaptive. |
-| **P5** | `<animated-vector>` non supporté | Placeholder statique (première frame non affichée — l'animation n'a de toute façon pas de sens en preview statique). |
-| **P6** | `LayoutInflater.Factory2`, `LayoutTransition`, `ViewTreeObserver` | Aucun impact en preview statique. |
+**v0.125.1** : montée LayoutLib v2.2.0 → **v3.0.0**. Les 3 limitations
+prioritaires P0/P1/P2 sont **résolues** par l'auteur du dépôt frère :
+
+| Priorité | Limitation | Statut v3.0.0 | Manifestation en preview |
+| --- | --- | --- | --- |
+| ~~P0~~ ✅ | `<layer-list>`, `<ripple>`, `<inset>`, `<bitmap>` | **Résolu** (parsers dédiés + résolution récursive, +83 tests) | Les fonds complexes (layer-list) et le feedback tactile (ripple) sont désormais rendus. |
+| ~~P1~~ ✅ | Qualifiers de langue `values-fr/`, `values-en/` | **Résolu** (`ResourceQualifier` ISO 639/3166 + `setLanguage()`/`setLocale()`, +41 tests) | La preview peut basculer les chaînes FR/EN (à exposer côté CodeIDE — bouton de bascule PE5+). |
+| ~~P2~~ ✅ | ConstraintLayout : solver Cassowary non câblé | **Résolu** (`ConstraintSpec` + `ConstraintSolver` Cassowary complet + `BridgeInflater` capture + `RenderService` étape 3bis, +42 tests, 600 total) | Le rendu ConstraintLayout n'est plus approximatif — chaînes, barrières, guidelines, ratios complexes correctement résolus. |
+| **P3** | `applyCustomAttributes` stub (attributs `app:*` ignorés) | Toujours présent | Attributs custom des bibliothèques tierces (DataBinding, ViewBinding custom) silencieusement ignorés. |
+| **P4** | `<adaptive-icon>` non supporté | Toujours absent | Placeholder à la place de l'icône adaptive. |
+| **P5** | `<animated-vector>` non supporté | Toujours absent | Placeholder statique (première frame non affichée — l'animation n'a de toute façon pas de sens en preview statique). |
+| **P6** | `LayoutInflater.Factory2`, `LayoutTransition`, `ViewTreeObserver` | Toujours absent | Aucun impact en preview statique. |
 
 Reporter toute limitation nouvelle observée sur appareil : indiquer le
 layout, la version LayoutLib (`./gradlew :preview:xml:dependencies |
