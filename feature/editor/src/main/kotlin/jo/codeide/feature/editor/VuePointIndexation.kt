@@ -95,12 +95,24 @@ internal class VuePointIndexation
 
         init {
             // Cible tactile 48 dp (règle d'accessibilité — cible ≥ 48 dp).
-            val densite = resources.displayMetrics.density
-            val taille = (TAILLE_CIBLE_TACTUELLE_DP * densite).toInt()
-            layoutParams = android.view.ViewGroup.LayoutParams(taille, taille)
             isClickable = true
             isFocusable = true
             contentDescription = contexte.getString(R.string.editor_indexation_pastille_cd_pret)
+        }
+
+        /**
+         * Mesure la vue à la taille fixe [TAILLE_CIBLE_TACTUELLE_DP] (48 dp).
+         * Sans cette surcharge, Android donne à la vue TOUTE la place
+         * disponible (match_parent par défaut dans un ViewGroup) — la
+         * pastille occupait tout l'écran.
+         */
+        override fun onMeasure(
+            widthMeasureSpec: Int,
+            heightMeasureSpec: Int,
+        ) {
+            val densite = resources.displayMetrics.density
+            val taillePx = (TAILLE_CIBLE_TACTUELLE_DP * densite).toInt()
+            setMeasuredDimension(taillePx, taillePx)
         }
 
         /**
