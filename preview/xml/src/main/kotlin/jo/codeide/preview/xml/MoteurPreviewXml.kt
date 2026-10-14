@@ -259,7 +259,6 @@ public class MoteurPreviewXml(
         when (resultat) {
             is ResultatTransport.Succes -> {
                 EtatPreviewXml.RenduValide(
-                    vue = resultat.vue,
                     bitmap = resultat.bitmap,
                     dureeMs = resultat.dureeMs,
                     nombreVues = resultat.nombreVues,
