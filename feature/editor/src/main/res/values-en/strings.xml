@@ -19,6 +19,9 @@
     <string name="editor_tiroir_actualiser_cd">Recheck project access and reload the file tree</string>
     <string name="editor_tiroir_fermer_projet">Close project</string>
     <string name="editor_parametres">Settings</string>
+    <string name="editor_rechercher">Search</string>
+    <string name="editor_tout_replier">Collapse all</string>
+    <string name="editor_tout_deplier">Expand all</string>
     <string name="editor_explorateur_vide">Empty folder</string>
 
     <!-- Terminal drawer preview card (T6, Terminal-1 prompt section 8). -->

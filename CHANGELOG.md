@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.127.0] – 2026-10-14
+
+### Ajouté
+
+- **CE1-CE8 : améliorations code-editor 3.69.0** (guide
+  MISE-A-JOUR-CODEIDE.md §4.8-4.15). 6 améliorations consommées côté
+  CodeIDE, chacune en quelques lignes de code :
+  - **CE3 (B10) — Barre de recherche/remplacement** :
+    `EditorSearchBar` posée dans le layout au-dessus de l'éditeur,
+    branchée via `bind(vueEditeur)`. Ouverture par menu « Rechercher ».
+    GONE par défaut, ouverte/fermée à la demande.
+  - **CE5 (B12) — Zoom persistant par type** :
+    `setZoomMemoryKey(extension)` à l'ouverture du fichier — le zoom
+    est mémorisé par extension (.java, .kt, .xml…), pas par fichier.
+  - **CE6 (B13) — Item ✥ Move de la pill** :
+    `addSelectionAction(BuiltinSelectionActions.blockDrag(vue))` —
+    permet de déplacer un bloc en le glissant après sélection.
+  - **CE7 (B14) — Pliage de masse** : deux entrées de menu
+    « Tout replier » et « Tout déplier » qui appellent
+    `collapseAllFolds()` / `expandAllFolds()` + `invalidate()`.
+  - **CE8 (B15) — Gutter actions** : `gutterActions.clear()` au
+    changement de fichier — le registre est propre pour les futurs
+    points d'arrêt (débogueur pas encore implémenté).
+
+### Non implémenté (CE1/CE2/CE4)
+
+- **CE1 (B5) — Barre de fil d'Ariane à actions** : nécessite un
+  `BreadcrumbBar` dans le layout + `addEditorActions()`. Reporté —
+  la barre de réglages de l'aperçu XML occupe déjà l'espace au-dessus
+  de l'éditeur.
+- **CE2 (B6) — Trois actions d'IDE** : `addEditorActions()` sur le
+  `BreadcrumbBar`. Dépend de CE1.
+- **CE4 (B11) — Bande d'erreurs** : `setErrorStripeEnabled(false)`.
+  Non nécessaire — la bande est utile et gratuite (4 dp).
+
+## [0.126.2] – 2026-10-14
+
 ## [0.126.2] – 2026-10-14
 
 ### Corrigé
