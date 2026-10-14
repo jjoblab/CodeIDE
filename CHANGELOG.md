@@ -1,5 +1,31 @@
 # Journal des modifications
 
+## [0.126.2] – 2026-10-14
+
+### Corrigé
+
+- **Preview XML — bitmap transparent** : le bitmap créé par
+  `RenduLayoutLib.dessiner()` était initialisé avec `ARGB_8888`
+  (transparent) et `View.draw()` ne dessinait rien si le layout racine
+  n'avait pas de `android:background`. Corrigé : le bitmap est pré-rempli
+  avec `Color.WHITE` avant `draw()` — le rendu est désormais visible
+  même pour les layouts sans background explicite.
+- **Pastille d'indexation invisible** : l'approche `actionViewClass`
+  dans un menu ne fonctionne pas avec `MaterialToolbar`. Corrigé : la
+  pastille `VuePointIndexation` est ajoutée DIRECTEMENT comme enfant de
+  la toolbar par `addView()` au lieu d'un menu item.
+- **Bottom sheet — shrink de l'éditeur restauré** : le shrink
+  progressif (100% → 87%) pendant l'expansion du sheet est RÉACTIVÉ.
+  Le pivot est en haut à gauche (0, 0) au lieu du centre pour éviter
+  le décalage visuel — l'éditeur rétrécit depuis le coin haut-gauche.
+- **Clavier — transition restaurée** : l'approche `translationY` (qui
+  causait un saut brusque entre header et SymbolBarView) est remplacée
+  par l'approche originale `isVisible = false/true` + restauration de
+  l'état du sheet via `restaurerEtatPanneau()`.
+- `restaurerEtatPanneau()` restauré (supprimé en E5 v0.124.4).
+
+## [0.126.1] – 2026-10-14
+
 ## [0.126.1] – 2026-10-14
 
 ### Corrigé

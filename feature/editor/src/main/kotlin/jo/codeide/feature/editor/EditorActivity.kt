@@ -919,15 +919,23 @@ class EditorActivity :
 
     /**
      * Pastille d'indexation de la toolbar (Phase B prompt 2, ADR 0117
-     * §4.4 — lot B5+B7). Récupère l'`actionView` de l'item
-     * `action_indexation` du menu `menu_indexation` (déclaré dans le
-     * layout de la toolbar). L'appui sur la pastille ouvre le panneau
-     * de détail (bottom sheet `FragmentDetailIndexation`, lot B6).
+     * §4.4). Ajoutée DIRECTEMENT comme enfant de la MaterialToolbar
+     * (pas via un menu — l'approche actionViewClass ne fonctionne pas
+     * de manière fiable avec MaterialToolbar). L'appui ouvre le panneau
+     * de détail (bottom sheet `FragmentDetailIndexation`).
      */
     private fun brancherPastilleIndexation() {
-        val item = liaison.toolbarEditeur.menu.findItem(R.id.action_indexation) ?: return
-        vuePointIndexation = item.actionView as? VuePointIndexation
-        vuePointIndexation?.setOnClickListener {
+        val pastille = VuePointIndexation(this)
+        val params =
+            androidx.appcompat.widget.Toolbar.LayoutParams(
+                androidx.appcompat.widget.Toolbar.LayoutParams.WRAP_CONTENT,
+                androidx.appcompat.widget.Toolbar.LayoutParams.WRAP_CONTENT,
+            )
+        params.gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL
+        pastille.layoutParams = params
+        liaison.toolbarEditeur.addView(pastille)
+        vuePointIndexation = pastille
+        pastille.setOnClickListener {
             ouvrirPanneauDetailIndexation()
         }
     }
@@ -1177,22 +1185,14 @@ class EditorActivity :
         val edition = sessionActive() != null
         if (clavier) {
             // Clavier ouvert : la barre de symboles se colle au clavier
-            // via le padding IME — le sheet est TRANSLATÉ hors champ.
+            // via le padding IME — le sheet est masqué (patron ADR 0056).
             liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
-            // E5 : translationY piloté par la progression IME (cf.
-            // onProgress du WindowInsetsAnimationCompat.Callback).
-            // L'animation continue pendant l'ouverture ET la fermeture.
-            liaison.panneauInferieur.translationY = hauteurIme.toFloat()
+            liaison.panneauInferieur.isVisible = false
         } else {
-            // Clavier fermé : la réserve du panneau reprend le bas
-            // (B3 : l'éditeur ne passe plus sous le sheet replié).
+            // Clavier fermé : la réserve du panneau reprend le bas.
             appliquerReservePanneau()
-            // E5 : translationY remis à 0 — le sheet reprend sa place.
-            // Aucune écriture de comportementPanneau.state ici : l'état
-            // du ViewModel est préservé, le sheet est resté à sa position
-            // (COLLAPSED/HALF_EXPANDED/EXPANDED) pendant toute la durée
-            // du cycle clavier.
-            liaison.panneauInferieur.translationY = 0f
+            liaison.panneauInferieur.isVisible = true
+            restaurerEtatPanneau()
         }
         liaison.barreSymboles.isVisible = clavier && edition
     }
@@ -1221,6 +1221,21 @@ class EditorActivity :
         gestionnaireInsets?.appliquerReservePanneau()
     }
 
+    /** Replace le panneau dans l'état du ViewModel après le clavier :
+     *  le comportement peut avoir dérivé pendant qu'il était masqué. */
+    private fun restaurerEtatPanneau() {
+        if (clavierVisible) return
+        val cible =
+            when (viewModel.etat.value.etatPanneau) {
+                EtatPanneau.REPLIE -> BottomSheetBehavior.STATE_COLLAPSED
+                EtatPanneau.MI_HAUTEUR -> BottomSheetBehavior.STATE_HALF_EXPANDED
+                EtatPanneau.ETENDU -> BottomSheetBehavior.STATE_EXPANDED
+            }
+        if (comportementPanneau.state != cible) {
+            comportementPanneau.state = cible
+        }
+    }
+
     /**
      * E3 (ADR 0093) : met à l'échelle le conteneur de l'éditeur quand le
      * bottom sheet glisse. Échelle de 100% (replié) → 87% (étendu), avec
@@ -1228,31 +1243,29 @@ class EditorActivity :
      * ~93,5%. Couche matérielle activée pendant le glissement pour la
      * fluidité, désactivée au repos.
      *
-     * v0.124.5 (E1b Phase B prompt 1, ADR 0118 brouillon) : la mise à
-     * l'échelle est DÉSACTIVÉE. Constat #1b de l'audit v0.124.1 :
-     * `scaleX`/`scaleY` partent du CENTRE de la vue (pivot par défaut
-     * Android 50 %, 50 %), les popups et poignées de sélection de la
-     * bibliothèque `code-editor` ne suivent pas (ils vivent dans leur
-     * propre hiérarchie), et la zone visible ne correspond plus à la
-     * réserve calculée (qui reste `peekHeight + insetNavigation`
-     * constant). Le coût visuel (éditeur qui rétrécit pendant le
-     * glissement) ne justifiait pas les désalignements — le sheet se
-     * pose désormais PAR-DESSUS l'éditeur à taille constante (décision
-     * v0.80.2 déjà en place pour l'état vide). La fonction est gardée
-     * pour ne pas casser le site d'appel (`onSlide` du
-     * `BottomSheetCallback`), mais ne fait rien. La constante
-     * `ECHELLE_SHEET_ETENDU` est conservée pour traçabilité.
-     */
+     * v0.126.3 : RÉACTIVÉ à la demande de l'utilisateur (le shrink
+     * progressif de l'éditeur pendant l'expansion du sheet était
+     * attendu). Le pivot est en HAUT à GAUCHE (0, 0) au lieu du centre
+     * pour éviter le décalage visuel — l'éditeur rétrécit depuis le
+     * coin haut-gauche, pas depuis le centre. La barre de symboles et
+     * la toolbar restent en haut, stables. */
     private fun appliquerEchelleSheet(glissement: Float) {
-        // E1b (v0.124.5) : aucune mise à l'échelle — voir KDoc ci-dessus.
-        // La signature est conservée pour ne pas casser le site d'appel
-        // (onSlide du BottomSheetCallback). À l'avenir, si une échelle
-        // est réintroduite, elle devra : (1) partir du coin haut-gauche
-        // (pivot 0, 0), (2) être coordonnée avec la bibliothèque
-        // code-editor pour que ses popups suivent, (3) recalculer la
-        // réserve en fonction de l'échelle courante.
-        @Suppress("UNUSED_PARAMETER")
-        val sansEffet = glissement
+        val editeur = liaison.vueEditeur ?: return
+        if (glissement <= 0f) {
+            editeur.scaleX = 1f
+            editeur.scaleY = 1f
+            editeur.pivotX = 0f
+            editeur.pivotY = 0f
+            editeur.setLayerType(View.LAYER_TYPE_NONE, null)
+            return
+        }
+        val echelleMin = ECHELLE_SHEET_ETENDU
+        val echelle = 1f - (1f - echelleMin) * glissement
+        editeur.pivotX = 0f
+        editeur.pivotY = 0f
+        editeur.scaleX = echelle
+        editeur.scaleY = echelle
+        editeur.setLayerType(View.LAYER_TYPE_HARDWARE, null)
     }
 
     /** L'éditeur : rien à brancher — la session arrive par l'état (ADR 0028). */
