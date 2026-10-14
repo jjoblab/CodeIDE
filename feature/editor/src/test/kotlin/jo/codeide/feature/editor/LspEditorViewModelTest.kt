@@ -300,13 +300,28 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
                 Thread(runnable, "io-anr").apply { isDaemon = true }
             }
 
+        /**
+         * Verrou d'arrêt : une fois posé, le répartiteur d'E/S ne planifie
+         * PLUS de nouvelles tâches (les blocs en cours achèvent leur run,
+         * mais la coroutine sous-jacente — déjà annulée par la fin du test —
+         * ne peut plus reprendre sur `Dispatchers.Main` qui a été reset).
+         * Évite le test-isolation flaky « Dispatchers.Main was accessed
+         * when the platform dispatcher was absent » (v0.129.8+ — la session
+         * XML s'ouvrait pendant que l'executor ANR du test précédent
+         * finissait son bloc).
+         */
+        @Volatile
+        private var arrete: Boolean = false
+
         override val io: kotlinx.coroutines.CoroutineDispatcher =
             object : kotlinx.coroutines.CoroutineDispatcher() {
                 override fun dispatch(
                     context: kotlin.coroutines.CoroutineContext,
                     block: Runnable,
                 ) {
+                    if (arrete) return
                     executeur.execute {
+                        if (arrete) return@execute
                         threads.add(Thread.currentThread().name)
                         block.run()
                     }
@@ -319,9 +334,19 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
         override val main: kotlinx.coroutines.CoroutineDispatcher =
             kotlinx.coroutines.Dispatchers.Unconfined
 
-        /** Arrête le thread dédié (le test rend ses ressources). */
+        /**
+         * Arrête le thread dédié : plus aucune nouvelle tâche n'est planifiée
+         * (verrou `arrete`), les tâches déjà en queue sont annulées
+         * (`shutdownNow`) et l'on attend borné que le thread se termine.
+         */
         fun arreter() {
-            executeur.shutdown()
+            arrete = true
+            executeur.shutdownNow()
+            try {
+                executeur.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
         }
     }
 
