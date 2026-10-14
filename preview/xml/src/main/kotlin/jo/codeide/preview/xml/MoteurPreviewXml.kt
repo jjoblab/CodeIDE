@@ -129,14 +129,14 @@ public class MoteurPreviewXml(
     /**
      * Soumet un rendu immédiat (ouverture du panneau, bascule d'onglet) :
      * PAS de debounce — mais TOUJOURS le mutex de rendu (single-flight).
-     * v0.133.4 — reset du cache anti-boucle : un changement d'onglet
-     * implique un nouveau fournisseur de texte → le même texte peut
-     * provenir d'un layout différent, il faut le re-rendre.
+     * v0.133.5 — NE PAS reset dernierTexteRendu : un changement d'onglet
+     * peut fournir un nouveau fournisseur avec le même texte. L'anti-boucle
+     * reste active. Le seul bypass légitime est parametresChanges (changement
+     * de profil/nuit/etc.) géré par relancerSiTexte.
      */
     public fun soumettreImmediat(fournisseur: () -> String) {
         if (ferme) return
         fournisseurTexte = fournisseur
-        dernierTexteRendu = null // nouveau fournisseur → autoriser le rendu
         scope.launch { traiter(fournisseur) }
     }
 
@@ -236,18 +236,22 @@ public class MoteurPreviewXml(
     }
 
     /** Relance un rendu immédiat si un texte est branché (changement de paramètre).
-     *  v0.133.4 — reset du cache anti-boucle : un changement de paramètre
-     *  (profil, nuit, langue, thème, classpath) justifie un re-rendu même
-     *  si le texte est identique. */
+     *  v0.133.5 — NE PAS reset dernierTexteRendu : on pose le flag
+     *  parametresChanges à la place. L'anti-boucle bypassera le check
+     *  si le flag est posé, puis le reset. */
     private fun relancerSiTexte() {
         val fournisseur = fournisseurTexte ?: return
-        dernierTexteRendu = null // autoriser le re-rendu
+        parametresChanges = true
         soumettreImmediat(fournisseur)
     }
 
     /** v0.133.3 — anti-boucle : hash du dernier texte rendu (évite de
      *  re-rendre le même texte si relancerSiTexte est appelé en boucle). */
     private var dernierTexteRendu: String? = null
+
+    /** v0.133.5 — flag pour bypasser l'anti-boucle quand les paramètres ont
+     *  changé (profil, nuit, langue, thème, classpath). Reset après usage. */
+    private var parametresChanges = false
 
     @Suppress("ReturnCount") // v0.133.3 — anti-boucle + 4 gardes = 4 issues naturelles
     private suspend fun traiter(fournisseur: () -> String) {
@@ -257,15 +261,15 @@ public class MoteurPreviewXml(
                 journal?.w(TAG_PREVIEW) { "rendu annulé : texte vide" }
                 return
             }
-            // v0.133.3 — anti-boucle : skip si le texte est IDENTIQUE au
-            // dernier rendu. Évite les boucles infinies de rendu (que ce
-            // soit en succès ou en échec) qui gelait l'app (ANR).
-            // v0.133.4 — étendu à TOUS les états (pas seulement ErreurRendu) :
-            // un rendu 0x0 en succès bouclait aussi.
-            if (texte == dernierTexteRendu) {
+            // v0.133.5 — anti-boucle : skip si le texte est IDENTIQUE au
+            // dernier rendu ET les paramètres n'ont pas changé. Le flag
+            // parametresChanges est posé par relancerSiTexte (changement
+            // de profil/nuit/etc.) et consommé ici.
+            if (texte == dernierTexteRendu && !parametresChanges) {
                 journal?.d(TAG_PREVIEW) { "rendu annulé : texte inchangé, rendu précédent conservé" }
                 return
             }
+            parametresChanges = false
             if (!jo.codeide.preview.xml
                     .xmlBienForme(texte)
             ) {
@@ -321,6 +325,7 @@ public class MoteurPreviewXml(
                     largeur = resultat.largeur,
                     hauteur = resultat.hauteur,
                     vues = resultat.vues,
+                    decalageChromeY = resultat.decalageChromeY,
                 )
             }
 

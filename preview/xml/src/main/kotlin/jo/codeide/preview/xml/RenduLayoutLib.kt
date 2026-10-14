@@ -241,6 +241,8 @@ public class RenduLayoutLib(
     public class ResultatPipeline(
         public val rendu: ResultatRendu,
         public val bitmap: Bitmap?,
+        /** v0.133.5 — décalage Y du chrome en pixels (0 si pas de chrome). */
+        public val decalageChromeY: Int = 0,
     )
 
     /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
@@ -279,6 +281,9 @@ public class RenduLayoutLib(
         // conteneur chrome (LinearLayout vertical). Si pas de thème, on
         // garde la racine telle quelle (comportement v0.132.x).
         val vueRendue = envelopperChromeSiNecessaire(racine, densite, requete)
+        // v0.133.5 — calculer le décalage Y du chrome (status bar + action bar)
+        // pour que le hit-test de la sélection P6 compense ce décalage.
+        val decalageChromeY = calculerDecalageChrome(vueRendue, racine)
         val largeur = requete.profil.versDeviceProfile().getWidthPx(densite)
         val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
         layoutEngine.setDensity(densite)
@@ -312,7 +317,7 @@ public class RenduLayoutLib(
                     vues = vues,
                 )
             }
-        return ResultatPipeline(rendu, if (compresser) null else bitmap)
+        return ResultatPipeline(rendu, if (compresser) null else bitmap, decalageChromeY)
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
@@ -732,17 +737,19 @@ public class RenduLayoutLib(
         classpathConfigure = entries.takeIf { it.isNotEmpty() }?.let { cacheClasspath.toString() }
     }
 
-    /**
-     * v0.133.0 — G5 : Enveloppe la racine dans le chrome système si un
-     * thème est configuré.
-     *
-     * Si [RequeteRendu.themeName] est null (pas de thème activité), on
-     * retourne la racine telle quelle — pas de chrome.
-     *
-     * Si un thème est configuré, on crée un [ChromeSysteme] qui enveloppe
-     * la racine dans un LinearLayout vertical (status bar + action bar +
-     * contenu). Les couleurs viennent du ThemeResolver.
-     */
+    /** v0.133.5 — Calcule le décalage Y du chrome (status bar + action bar). */
+    private fun calculerDecalageChrome(
+        vueRendue: View,
+        racine: View,
+    ): Int {
+        // Pas de chrome → pas de décalage.
+        if (vueRendue === racine) return 0
+        // Le chrome est un LinearLayout vertical. La racine est dans un
+        // FrameLayout (conteneurContenu) qui est le 3e enfant. Le décalage
+        // = hauteur de la status bar + hauteur de l'action bar = racine.top.
+        return racine.top
+    }
+
     @Suppress("ReturnCount")
     private fun envelopperChromeSiNecessaire(
         racine: View,

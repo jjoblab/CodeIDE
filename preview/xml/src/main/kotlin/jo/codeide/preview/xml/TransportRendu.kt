@@ -42,6 +42,7 @@ public interface TransportRendu : AutoCloseable {
 /** Résultat d'un rendu transporté (donnée, jamais une exception). */
 public sealed interface ResultatTransport {
     /** Rendu valide : bitmap + métriques + vues (hit-test P6, PE3). */
+    @Suppress("LongParameterList")
     public class Succes(
         public val bitmap: Bitmap,
         public val dureeMs: Long,
@@ -49,6 +50,8 @@ public sealed interface ResultatTransport {
         public val largeur: Int,
         public val hauteur: Int,
         public val vues: List<InfoVueRendu> = emptyList(),
+        /** v0.133.5 — décalage Y du chrome (0 si pas de chrome). */
+        public val decalageChromeY: Int = 0,
     ) : ResultatTransport
 
     /** Rendu échoué (XML malformé → [m[message] = [XML_MALFORME]). */
@@ -85,22 +88,39 @@ public class TransportRenduLocal(
         HandlerThread("preview-render").apply { start() }
     }
 
-    /** Handler sur le thread de rendu. */
-    private val handlerRendu: Handler by lazy { Handler(threadRendu.looper) }
+    /** Handler sur le thread de rendu. v0.133.5 — null-safe : si le thread
+     *  a été fermé (close()), on retourne null et le rendu se fait inline. */
+    private val handlerRendu: Handler? by lazy {
+        if (threadRendu.isAlive) Handler(threadRendu.looper) else null
+    }
+
+    /** v0.133.5 — flag pour savoir si le transport a été fermé. */
+    @Volatile
+    private var ferme = false
 
     override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
-        // Si on est déjà sur un thread avec Looper (rare mais possible),
-        // on exécute inline — sinon on bloque sur le HandlerThread.
+        // v0.133.5 — si fermé ou HandlerThread mort, rendu inline.
+        if (ferme) return ResultatTransport.Erreur("transport fermé")
         return if (Looper.myLooper() != null) {
             val resultat = pipeline.rendre(requete, compresser = false)
             depuisPipeline(resultat)
         } else {
-            rendreSurLooper(requete)
+            val handler = handlerRendu
+            if (handler != null) {
+                rendreSurLooper(handler, requete)
+            } else {
+                // HandlerThread mort — rendu inline sur le thread courant.
+                val resultat = pipeline.rendre(requete, compresser = false)
+                depuisPipeline(resultat)
+            }
         }
     }
 
     /** Exécute le rendu sur le HandlerThread dédié (avec Looper). */
-    private suspend fun rendreSurLooper(requete: RequeteRendu): ResultatTransport =
+    private suspend fun rendreSurLooper(
+        handler: Handler,
+        requete: RequeteRendu,
+    ): ResultatTransport =
         suspendCancellableCoroutine { cont ->
             val runnable =
                 Runnable {
@@ -111,8 +131,8 @@ public class TransportRenduLocal(
                         cont.resume(ResultatTransport.Erreur(t.message ?: "rendu échoué"))
                     }
                 }
-            handlerRendu.post(runnable)
-            cont.invokeOnCancellation { handlerRendu.removeCallbacks(runnable) }
+            handler.post(runnable)
+            cont.invokeOnCancellation { handler.removeCallbacks(runnable) }
         }
 
     /** Adaptateur pour suspendCancellableCoroutine (nom court pour lisibilité). */
@@ -127,14 +147,21 @@ public class TransportRenduLocal(
                 largeur = resultat.rendu.largeur,
                 hauteur = resultat.rendu.hauteur,
                 vues = resultat.rendu.vues.toList(),
+                decalageChromeY = resultat.decalageChromeY,
             )
         } else {
             ResultatTransport.Erreur(resultat.rendu.message ?: "rendu échoué")
         }
 
     override fun close() {
-        // Couper le HandlerThread proprement (G4).
-        threadRendu.quitSafely()
+        ferme = true
+        // Couper le HandlerThread proprement (G4) — il peut ne pas avoir
+        // été initialisé (lazy) si aucun rendu n'a eu lieu.
+        try {
+            threadRendu.quitSafely()
+        } catch (_: Throwable) {
+            // lazy non-init
+        }
     }
 }
 
