@@ -178,25 +178,23 @@ public class RenduLayoutLib(
     public class ResultatPipeline(
         public val rendu: ResultatRendu,
         public val bitmap: Bitmap?,
-        /** Vue rendue (direct view rendering) — prioritaire sur bitmap quand
-         *  non-null. La vue est déjà mesurée et layoutée, prête à être
-         *  ajoutée à la hiérarchie par l'UI. */
-        public val vue: View? = null,
     )
 
-    /** LAYOUT : inflation → mesure/layout → retourne la VUE (direct view rendering).
-     *  v0.129.0 : la vue est retournée directement (compresser=false).
-     *  Quand compresser=true (AIDL/PE2), on dessine la vue dans un bitmap
-     *  via un FrameLayout temporaire puis on compresse en PNG. */
+    /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
     private fun rendreLayout(
         requete: RequeteRendu,
-        @Suppress("UnusedParameter") compresser: Boolean,
+        compresser: Boolean,
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue)
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
+        // v0.127.2 : LayoutLib ne pose pas toujours le background des vues
+        // (AttributeApplier ne gère pas android:background sur toutes les
+        // vues). On applique manuellement le background de la racine depuis
+        // le XML brut — sinon le bitmap reste blanc même avec un background.
+        appliquerBackgroundRacine(racine, requete.texte)
         if (racine.layoutParams == null) {
             racine.setLayoutParams(
                 ViewGroup.LayoutParams(
@@ -209,23 +207,33 @@ public class RenduLayoutLib(
         val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
         layoutEngine.setDensity(densite)
         layoutEngine.render(racine, largeur, hauteur)
+        val bitmap = dessiner(racine)
         val vues = collecterVues(requete, racine)
-
-        // Direct view rendering : on retourne la vue. Pour l'AIDL
-        // (compresser=true), le service dessinera lui-même la vue dans
-        // un bitmap via le FrameLayout temporaire.
         val rendu =
-            ResultatRendu(
-                ok = true,
-                message = null,
-                largeur = racine.measuredWidth,
-                hauteur = racine.measuredHeight,
-                nombreVues = compterVues(racine),
-                dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                png = ByteArray(0),
-                vues = vues,
-            )
-        return ResultatPipeline(rendu, bitmap = null, vue = racine)
+            if (compresser) {
+                ResultatRendu(
+                    ok = true,
+                    message = null,
+                    largeur = racine.measuredWidth,
+                    hauteur = racine.measuredHeight,
+                    nombreVues = compterVues(racine),
+                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
+                    png = compresserPng(bitmap),
+                    vues = vues,
+                )
+            } else {
+                ResultatRendu(
+                    ok = true,
+                    message = null,
+                    largeur = racine.measuredWidth,
+                    hauteur = racine.measuredHeight,
+                    nombreVues = compterVues(racine),
+                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
+                    png = ByteArray(0),
+                    vues = vues,
+                )
+            }
+        return ResultatPipeline(rendu, if (compresser) null else bitmap)
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
@@ -387,6 +395,129 @@ public class RenduLayoutLib(
      *  ne le pose pas toujours (AttributeApplier ne gère pas android:background
      *  sur toutes les vues). On parse le XML pour extraire android:background
      *  et le poser manuellement. */
+    private fun appliquerBackgroundRacine(
+        racine: View,
+        xml: String,
+    ) {
+        // Si la vue a déjà un background, ne rien faire.
+        if (racine.background != null) return
+        // Extraire android:background="..." du premier tag (la racine).
+        val regex = Regex("""android:background\s*=\s*"([^"]+)"""")
+        val match = regex.find(xml) ?: return
+        val valeur = match.groupValues[1]
+        try {
+            val drawable = parseBackground(valeur)
+            if (drawable != null) {
+                racine.background = drawable
+            }
+        } catch (_: Throwable) {
+            // Background illisible — la vue reste sans fond (blanc par défaut).
+        }
+    }
+
+    /** Parse une valeur android:background en Drawable. */
+    private fun parseBackground(valeur: String): Drawable? =
+        when {
+            // Couleur hex (#RRGGBB, #AARRGGBB, #RGB)
+            valeur.startsWith("#") -> {
+                try {
+                    android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor(valeur))
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+
+            // @color/... → résolveur projet si branché
+            valeur.startsWith("@color/") && ressources != null -> {
+                try {
+                    val nom = valeur.removePrefix("@color/")
+                    val couleurInt = ressources?.getColor(nom) ?: return null
+                    android.graphics.drawable.ColorDrawable(couleurInt)
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+
+            // @android:color/... → ressources système
+            valeur.startsWith("@android:color/") -> {
+                try {
+                    val nom = valeur.removePrefix("@android:color/")
+                    val id = android.R.color::class.java.getField(nom).getInt(null)
+                    android.graphics.drawable.ColorDrawable(
+                        contexte.getColor(id),
+                    )
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+
+            // @drawable/... → résolution drawable par nom non disponible dans
+            // l'API publique actuelle de DrawableResolver — laissé pour un
+            // lot futur. Les couleurs @color et #hex fonctionnent déjà.
+            valeur.startsWith("@drawable/") && drawableResolver != null -> {
+                null
+            }
+
+            else -> {
+                null
+            }
+        }
+
+    /** Dessine la racine mesurée dans un bitmap off-screen (P4).
+     *  Le bitmap est pré-rempli avec une couleur de fond (blanc par défaut)
+     *  car Bitmap.createBitmap(ARGB_8888) crée un bitmap TRANSPARENT —
+     *  si la racine n'a pas de android:background, le draw() ne dessine
+     *  rien et le bitmap reste invisible.
+     *
+     *  v0.127.2 : la racine et ses enfants sont dessinés MANUELLEMENT
+     *  (background + draw du contenu) car View.draw() peut être un no-op
+     *  si la vue n'est pas attachée à une fenêtre (cas en preview hors
+     *  processus — les vues créées par réflexion n'ont pas de fenêtre). */
+    private fun dessiner(racine: View): Bitmap {
+        val largeur = racine.measuredWidth.coerceAtLeast(1)
+        val hauteur = racine.measuredHeight.coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
+        val canevas = Canvas(bitmap)
+        // Pré-remplir avec blanc.
+        canevas.drawColor(android.graphics.Color.WHITE)
+        // Dessiner récursivement : background + draw de chaque vue.
+        dessinerVue(racine, canevas)
+        return bitmap
+    }
+
+    /** Dessine une vue et ses enfants récursivement — background d'abord,
+     *  puis contenu. Contourne le no-op de View.draw() quand la vue
+     *  n'est pas attachée à une fenêtre. */
+    private fun dessinerVue(
+        vue: View,
+        canevas: Canvas,
+    ) {
+        canevas.save()
+        canevas.translate(vue.left.toFloat(), vue.top.toFloat())
+        // 1. Dessiner le background (s'il existe).
+        val bg = vue.background
+        if (bg != null) {
+            bg.setBounds(0, 0, vue.width, vue.height)
+            bg.draw(canevas)
+        }
+        // 2. Dessiner le contenu de la vue elle-même (texte, etc.).
+        //    On appelle draw() directement — sous Robolectric et sur
+        //    appareil, certaines vues dessinent même sans fenêtre.
+        try {
+            vue.draw(canevas)
+        } catch (_: Throwable) {
+            // Une vue qui crash au draw ne doit pas casser le rendu.
+        }
+        // 3. Dessiner les enfants récursivement.
+        if (vue is ViewGroup) {
+            for (i in 0 until vue.childCount) {
+                dessinerVue(vue.getChildAt(i), canevas)
+            }
+        }
+        canevas.restore()
+    }
+
+    /** Dessine un drawable (PE3) sur damier implicite — la vue UI le pose dessous. */
     private fun dessinerDrawable(
         drawable: Drawable,
         largeur: Int,

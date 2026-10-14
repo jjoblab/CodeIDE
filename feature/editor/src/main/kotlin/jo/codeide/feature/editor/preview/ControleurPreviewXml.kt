@@ -1,7 +1,6 @@
 package jo.codeide.feature.editor.preview
 
 import android.view.View
-import android.view.ViewGroup
 import jo.codeeditor.document.Selection
 import jo.codeeditor.session.EditorSession
 import jo.codeide.core.domain.AppLogger
@@ -11,10 +10,10 @@ import jo.codeide.feature.editor.EtatEditor
 import jo.codeide.preview.xml.ClassificateurPreview
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.GenrePreview
-import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.SelectionPreview
+import jo.codeide.preview.xml.VuePreviewXml
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +58,7 @@ import kotlinx.coroutines.launch
  */
 @Suppress("TooManyFunctions", "ReturnCount")
 class ControleurPreviewXml(
-    private val conteneurRendu: ViewGroup,
+    private val vue: VuePreviewXml,
     private val colonneApercu: View,
     dispatchers: DispatcherProvider,
     private val journal: AppLogger,
@@ -68,16 +67,13 @@ class ControleurPreviewXml(
 ) : AutoCloseable {
     private val moteur =
         MoteurPreviewXml(
-            contexte = conteneurRendu.context,
+            contexte = vue.context,
             dispatchers = dispatchers,
             journal = journal,
             scope = scope,
         )
 
     private val genreActifInterne = MutableStateFlow<GenrePreview?>(null)
-
-    /** Dernières vues rendues (pour P6 hit-test — temporairement inutilisé). */
-    private val dernieresVues: List<InfoVueRendu> get() = emptyList()
 
     /** Genre de l'onglet actif (null = pas previewable) — l'activité règle le menu dessus. */
     val genreActif: StateFlow<GenrePreview?> = genreActifInterne.asStateFlow()
@@ -105,8 +101,7 @@ class ControleurPreviewXml(
                 moteur.etat.collect { etat -> appliquerEtat(etat) }
             }
         // P6 : tap confirmé sur le rendu → hit-test → sélection éditeur.
-        // P6 : tap sur le rendu — désactivé temporairement (sera recâblé
-        // avec un overlay une fois le rendu direct view stabilisé).
+        vue.auTap = { x, y -> selectionnerVueSous(x, y) }
     }
 
     /**
@@ -138,7 +133,7 @@ class ControleurPreviewXml(
                         "session pas prête ou onglet non previewable " +
                         "(genre=${genreActifInterne.value})"
                 }
-                conteneurRendu.removeAllViews()
+                vue.reinitialiser()
             }
         }
         return visible
@@ -185,22 +180,22 @@ class ControleurPreviewXml(
         fin: Int,
     ) {
         if (ferme || !visible) return
-        val vues = dernieresVues
+        val vues = vue.vuesRendues
         val offset = if (debut == fin) debut else debut
         val indice = SelectionPreview.indiceVuePourSpan(vues, offset)
-        // P6 surlignage — désactivé temporairement
+        vue.surlignerVue(indice)
     }
 
     /** Ferme moteur et écoutes (onDestroy de l'activité). Idempotent. */
     fun fermer() {
         if (ferme) return
         ferme = true
-        // P6 tap cleanup — désactivé temporairement
+        vue.auTap = null
         detacherEcouteSession()
         collecteEtat?.cancel()
         suiviProjet?.cancel()
         moteur.close()
-        conteneurRendu.removeAllViews()
+        vue.reinitialiser()
     }
 
     override fun close() = fermer()
@@ -246,7 +241,7 @@ class ControleurPreviewXml(
         if (session === sessionEcoutee) return
         detacherEcouteSession()
         if (session == null || genre == null) {
-            if (visible) conteneurRendu.removeAllViews()
+            if (visible) vue.reinitialiser()
             return
         }
         val sessionCapturee = session
@@ -267,13 +262,12 @@ class ControleurPreviewXml(
      * l'éditeur. Le hit-test ne DEVINE jamais : aucune vue spanée →
      * rien (drawables, values, includes non résolus).
      */
-    @Suppress("UnusedPrivateMember")
     private fun selectionnerVueSous(
         x: Float,
         y: Float,
     ) {
         if (ferme || !visible) return
-        val cible = SelectionPreview.vueSelectableEn(dernieresVues, x, y) ?: return
+        val cible = SelectionPreview.vueSelectableEn(vue.vuesRendues, x, y) ?: return
         val session = sessionEcoutee ?: return
         val texte = session.text
         val debut = cible.debutElement.coerceIn(0, texte.length)
@@ -282,7 +276,7 @@ class ControleurPreviewXml(
         // Le surlignage suit immédiatement (la sélection programmatique
         // déclenche onSelectionEditeur via l'écouteur de l'activité, mais
         // pas de dépendance à ce chemin : le retour visuel est direct).
-        // P6 surlignage — désactivé temporairement
+        vue.surlignerVue(vue.vuesRendues.indexOf(cible))
     }
 
     /** Détache l'écoute de la session précédente (bascule d'onglet). */
@@ -299,30 +293,10 @@ class ControleurPreviewXml(
     /** Applique un état du moteur à la vue (collecte sur le scope du hôte = thread UI). */
     private fun appliquerEtat(etat: EtatPreviewXml) {
         when (etat) {
-            is EtatPreviewXml.RenduValide -> {
-                // Direct view rendering : on ajoute la vue au conteneur.
-                conteneurRendu.removeAllViews()
-                val vueRendue = etat.vue
-                if (vueRendue != null) {
-                    // La vue est déjà mesurée + layoutée par LayoutLib.
-                    // On l'ajoute directement — elle se dessine elle-même.
-                    val parent = vueRendue.parent
-                    if (parent is ViewGroup) parent.removeView(vueRendue)
-                    conteneurRendu.addView(vueRendue)
-                }
-            }
-
-            is EtatPreviewXml.ErreurRendu -> {
-                // Garder le dernier rendu — l'erreur est journalisée.
-            }
-
-            EtatPreviewXml.EnEdition -> {
-                // Garder le dernier rendu — frappe en cours.
-            }
-
-            EtatPreviewXml.Inactif -> {
-                conteneurRendu.removeAllViews()
-            }
+            is EtatPreviewXml.RenduValide -> vue.afficherRendu(etat.bitmap, etat.vues)
+            is EtatPreviewXml.ErreurRendu -> vue.afficherErreur(etat.message)
+            EtatPreviewXml.EnEdition -> vue.afficherEnEdition()
+            EtatPreviewXml.Inactif -> vue.reinitialiser()
         }
     }
 

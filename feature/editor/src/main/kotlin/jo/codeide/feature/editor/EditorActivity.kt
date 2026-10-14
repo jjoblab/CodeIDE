@@ -186,7 +186,7 @@ class EditorActivity :
      *  onDestroy. */
     private val controleurApercu by lazy {
         ControleurPreviewXml(
-            conteneurRendu = liaison.vuePreview,
+            vue = liaison.vuePreview,
             colonneApercu = liaison.colonneApercu,
             dispatchers = dispatchers,
             journal = journalLsp,

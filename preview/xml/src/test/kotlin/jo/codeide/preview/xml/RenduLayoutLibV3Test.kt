@@ -289,11 +289,27 @@ class RenduLayoutLibV3Test {
                 compresser = false,
             )
         assertTrue("le rendu doit réussir", resultat.rendu.ok)
-        // Direct view rendering : la vue est retournée, pas le bitmap.
-        assertNotNull("la vue rendue doit être non null", resultat.vue)
+        val bitmap = resultat.bitmap
+        assertNotNull("le bitmap doit être non null", bitmap)
+        if (bitmap == null) return
+        val pixels = compterPixelsNonBlancs(bitmap)
+        assertTrue(
+            "le bitmap doit contenir des pixels non blancs (background rouge), trouvé $pixels",
+            pixels > 0,
+        )
     }
 
     /** Compte les pixels non-blancs par échantillonnage (pas 10). */
+    private fun compterPixelsNonBlancs(bitmap: Bitmap): Int {
+        var count = 0
+        val pas = 10
+        for (y in 0 until bitmap.height step pas) {
+            for (x in 0 until bitmap.width step pas) {
+                if (bitmap.getPixel(x, y) != android.graphics.Color.WHITE) count++
+            }
+        }
+        return count
+    }
 
     @Test
     fun `rendu sans background produit un bitmap blanc valide`() {
