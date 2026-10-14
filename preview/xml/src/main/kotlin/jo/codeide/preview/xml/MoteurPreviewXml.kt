@@ -142,6 +142,9 @@ public class MoteurPreviewXml(
      */
     public fun definirDossierRes(chemin: String?) {
         dossierRes = chemin
+        // v0.133.3 — reset du cache anti-boucle quand le contexte change
+        // (nouveau projet → nouveau res/ → le même texte peut rendre différemment).
+        dernierTexteRendu = null
     }
 
     /**
@@ -234,12 +237,23 @@ public class MoteurPreviewXml(
         soumettreImmediat(fournisseur)
     }
 
-    /** Traite une soumission (debouncée ou immédiate) : validation puis rendu, en single-flight. */
+    /** v0.133.3 — anti-boucle : hash du dernier texte rendu (évite de
+     *  re-rendre le même texte si relancerSiTexte est appelé en boucle). */
+    private var dernierTexteRendu: String? = null
+
+    @Suppress("ReturnCount") // v0.133.3 — anti-boucle + 4 gardes = 4 issues naturelles
     private suspend fun traiter(fournisseur: () -> String) {
         verrouRendu.withLock {
             val texte = withContext(dispatchers.default) { fournisseur() }
             if (texte.isBlank()) {
                 journal?.w(TAG_PREVIEW) { "rendu annulé : texte vide" }
+                return
+            }
+            // v0.133.3 — anti-boucle : skip si le texte est IDENTIQUE au
+            // dernier rendu (même hash). Évite 3416 rendus du même XML
+            // en échec qui gelait l'app (ANR).
+            if (texte == dernierTexteRendu && etatInterne.value is EtatPreviewXml.ErreurRendu) {
+                journal?.d(TAG_PREVIEW) { "rendu annulé : texte inchangé, erreur précédente conservée" }
                 return
             }
             if (!jo.codeide.preview.xml
@@ -252,6 +266,7 @@ public class MoteurPreviewXml(
                 }
                 return
             }
+            dernierTexteRendu = texte
             val requete =
                 RequeteRendu(
                     texte = texte,

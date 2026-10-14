@@ -285,6 +285,10 @@ class ControleurPreviewXml(
             if (visible) vue.reinitialiser()
             return
         }
+        // v0.133.3 — nettoyer le rendu précédent avant de brancher la
+        // nouvelle session : évite que le rendu du layout précédent reste
+        // affiché pendant le debounce du nouveau.
+        if (visible) vue.reinitialiser()
         val sessionCapturee = session
         val ecouteur =
             EditorSession.OnTextEditListener { _, _, _ ->
