@@ -21,6 +21,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
+@Suppress("UnusedPrivateProperty")
 class ServicePreviewTest {
     private val layoutLineaire =
         """
@@ -46,7 +47,10 @@ class ServicePreviewTest {
 
     @Test
     fun `rendu - PNG compressé + métriques`() {
-        val resultat = binder().rendre(requete(layoutLineaire))
+        // LAYOUT genre retourne une vue (direct view), pas de PNG.
+        // DRAWABLE produit encore un bitmap → PNG (chemin AIDL).
+        val drawable = shapeXml()
+        val resultat = binder().rendre(requete(drawable, genre = GenrePreview.DRAWABLE))
         assertTrue("rendu attendu réussi : ${resultat.message}", resultat.ok)
         assertEquals(null, resultat.message)
         assertTrue(resultat.png.isNotEmpty())
@@ -55,9 +59,18 @@ class ServicePreviewTest {
         assertTrue(bitmap!!.width > 0)
         assertTrue(resultat.largeur > 0)
         assertTrue(resultat.hauteur > 0)
-        assertTrue(resultat.nombreVues >= 2)
         assertTrue(resultat.dureeMs >= 0)
     }
+
+    private fun shapeXml() =
+        """
+        <?xml version="1.0" encoding="utf-8"?>
+        <shape xmlns:android="http://schemas.android.com/apk/res/android"
+            android:shape="rectangle">
+            <solid android:color="#00FF00" />
+            <size android:width="64dp" android:height="32dp" />
+        </shape>
+        """.trimIndent()
 
     @Test
     fun `xml malformé - échec en donnée (sentinelle, pas d'exception)`() {

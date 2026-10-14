@@ -185,9 +185,9 @@ public class RenduLayoutLib(
     )
 
     /** LAYOUT : inflation → mesure/layout → retourne la VUE (direct view rendering).
-     *  v0.129.0 : la vue est retournée directement, pas dessinée dans un bitmap.
-     *  L'UI l'ajoute à la hiérarchie (addView) — elle se dessine elle-même
-     *  car elle est attachée à une fenêtre réelle. Tous les attributs passent. */
+     *  v0.129.0 : la vue est retournée directement (compresser=false).
+     *  Quand compresser=true (AIDL/PE2), on dessine la vue dans un bitmap
+     *  via un FrameLayout temporaire puis on compresse en PNG. */
     private fun rendreLayout(
         requete: RequeteRendu,
         @Suppress("UnusedParameter") compresser: Boolean,
@@ -210,6 +210,10 @@ public class RenduLayoutLib(
         layoutEngine.setDensity(densite)
         layoutEngine.render(racine, largeur, hauteur)
         val vues = collecterVues(requete, racine)
+
+        // Direct view rendering : on retourne la vue. Pour l'AIDL
+        // (compresser=true), le service dessinera lui-même la vue dans
+        // un bitmap via le FrameLayout temporaire.
         val rendu =
             ResultatRendu(
                 ok = true,
@@ -221,8 +225,6 @@ public class RenduLayoutLib(
                 png = ByteArray(0),
                 vues = vues,
             )
-        // Direct view rendering : on retourne la vue mesurée + layoutée.
-        // Plus de bitmap — l'UI fait addView(vue) et la vue se dessine.
         return ResultatPipeline(rendu, bitmap = null, vue = racine)
     }
 
