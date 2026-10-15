@@ -241,8 +241,6 @@ public class RenduLayoutLib(
     public class ResultatPipeline(
         public val rendu: ResultatRendu,
         public val bitmap: Bitmap?,
-        /** v0.133.5 — décalage Y du chrome en pixels (0 si pas de chrome). */
-        public val decalageChromeY: Int = 0,
     )
 
     /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
@@ -281,15 +279,21 @@ public class RenduLayoutLib(
         // conteneur chrome (LinearLayout vertical). Si pas de thème, on
         // garde la racine telle quelle (comportement v0.132.x).
         val vueRendue = envelopperChromeSiNecessaire(racine, densite, requete)
-        // v0.133.5 — calculer le décalage Y du chrome (status bar + action bar)
-        // pour que le hit-test de la sélection P6 compense ce décalage.
-        val decalageChromeY = calculerDecalageChrome(vueRendue, racine)
         val largeur = requete.profil.versDeviceProfile().getWidthPx(densite)
         val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
         layoutEngine.setDensity(densite)
         layoutEngine.render(vueRendue, largeur, hauteur)
         val bitmap = dessiner(vueRendue)
-        val vues = collecterVues(requete, racine)
+        // v0.134.2 — offset du CONTENU dans l'arbre rendu, calculé APRÈS le
+        // layout (les positions left/top ne valent rien avant). Les bounds
+        // ViewInfoCollector sont relatives à la racine passée ; on les
+        // translate dans l'espace du BITMAP dès la collecte — invariant
+        // CodeAssist : draw, hit-test et surlignage partagent LE MÊME espace
+        // de coordonnées, aucune compensation en aval (le décalage chrome
+        // v0.133.5 compensait en aval, une direction sur deux, et ne
+        // traversait pas la frontière AIDL).
+        val (decalageGauche, decalageHaut) = decalageContenuDansArbreRendu(racine)
+        val vues = collecterVues(requete, racine, decalageGauche, decalageHaut)
         // v0.133.4 — utiliser vueRendue (chrome) pour les dimensions, pas
         // racine. Si le chrome enveloppe la racine, c'est le chrome qui est
         // mesuré par layoutEngine.render — racine n'est qu'un enfant.
@@ -311,13 +315,13 @@ public class RenduLayoutLib(
                     message = null,
                     largeur = vueRendue.measuredWidth,
                     hauteur = vueRendue.measuredHeight,
-                    nombreVues = compterVues(racine),
+                    nombreVues = compterVues(vueRendue),
                     dureeMs = (System.nanoTime() - debut) / 1_000_000,
                     png = ByteArray(0),
                     vues = vues,
                 )
             }
-        return ResultatPipeline(rendu, if (compresser) null else bitmap, decalageChromeY)
+        return ResultatPipeline(rendu, if (compresser) null else bitmap)
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
@@ -396,15 +400,25 @@ public class RenduLayoutLib(
     }
 
     /**
-     * Collecte l'arbre rendu (ViewInfoCollector — bounds ABSOLUS) et
-     * l'aligne aux éléments du texte original ([AligneurElementsXml]) :
-     * chaque vue aplatie porte le span de SON élément (P6). Un écart de
-     * séquence (défense : miroir imparfait de l'inflater) désarme TOUTE
-     * la sélection — jamais de faux span (X4).
+     * Collecte l'arbre rendu (ViewInfoCollector — bounds relatives à la
+     * racine passée) et l'aligne aux éléments du texte original
+     * ([AligneurElementsXml]) : chaque vue aplatie porte le span de SON
+     * élément (P6). Un écart de séquence (défense : miroir imparfait de
+     * l'inflater) désarme TOUTE la sélection — jamais de faux span (X4).
+     *
+     * v0.134.2 — les bounds sont TRANSLATÉES par
+     * ([decalageGauche], [decalageHaut]) : l'offset du contenu dans l'arbre
+     * rendu (le chrome G5 le décale vers le bas). Les `InfoVueRendu`
+     * produites sont donc ABSOLUES dans le BITMAP — le contrat documenté
+     * de [InfoVueRendu] — quel que soit le régime de transport (local OU
+     * processus :preview, la translation vit dans les données, pas dans un
+     * champ parallèle à faire voyager).
      */
     private fun collecterVues(
         requete: RequeteRendu,
         racine: View,
+        decalageGauche: Int = 0,
+        decalageHaut: Int = 0,
     ): Array<InfoVueRendu> {
         val infos = aplatir(ViewInfoCollector.collect(racine))
         val resolveur =
@@ -417,12 +431,17 @@ public class RenduLayoutLib(
                 "alignement sélection désarmé : ${infos.size} vues vs ${elements.size} éléments"
             }
             return Array(infos.size) { indice ->
-                infos[indice].versInfoVue(InfoVueRendu.SANS_ELEMENT, InfoVueRendu.SANS_ELEMENT)
+                infos[indice].versInfoVue(
+                    InfoVueRendu.SANS_ELEMENT,
+                    InfoVueRendu.SANS_ELEMENT,
+                    decalageGauche,
+                    decalageHaut,
+                )
             }
         }
         return Array(infos.size) { indice ->
             val element = elements[indice]
-            infos[indice].versInfoVue(element.debut, element.fin)
+            infos[indice].versInfoVue(element.debut, element.fin, decalageGauche, decalageHaut)
         }
     }
 
@@ -454,12 +473,14 @@ public class RenduLayoutLib(
         fun versInfoVue(
             debutElement: Int,
             finElement: Int,
+            decalageGauche: Int = 0,
+            decalageHaut: Int = 0,
         ): InfoVueRendu =
             InfoVueRendu(
-                gauche = info.left,
-                haut = info.top,
-                droite = info.right,
-                bas = info.bottom,
+                gauche = info.left + decalageGauche,
+                haut = info.top + decalageHaut,
+                droite = info.right + decalageGauche,
+                bas = info.bottom + decalageHaut,
                 libelle = info.simpleName + (info.idName?.let { nom -> " @$nom" } ?: ""),
                 debutElement = debutElement,
                 finElement = finElement,
@@ -737,17 +758,31 @@ public class RenduLayoutLib(
         classpathConfigure = entries.takeIf { it.isNotEmpty() }?.let { cacheClasspath.toString() }
     }
 
-    /** v0.133.5 — Calcule le décalage Y du chrome (status bar + action bar). */
-    private fun calculerDecalageChrome(
-        vueRendue: View,
-        racine: View,
-    ): Int {
-        // Pas de chrome → pas de décalage.
-        if (vueRendue === racine) return 0
-        // Le chrome est un LinearLayout vertical. La racine est dans un
-        // FrameLayout (conteneurContenu) qui est le 3e enfant. Le décalage
-        // = hauteur de la status bar + hauteur de l'action bar = racine.top.
-        return racine.top
+    /**
+     * v0.134.2 — Offset de [racine] dans l'arbre RENDU (espace bitmap).
+     *
+     * `ViewInfoCollector.collect(racine)` produit des bounds relatives à
+     * la racine passée (elles incluent `racine.left/top`). Quand le chrome
+     * système enveloppe le contenu (G5), la racine vit dans un
+     * FrameLayout lui-même empilé SOUS la status bar + action bar du
+     * LinearLayout decor : les bounds sont alors décalées d'autant par
+     * rapport au bitmap dessiné. La remontée de la chaîne des parents
+     * cumule les positions (left/top) en défaquant le scroll
+     * (scrollX/scrollY) — miroir du ViewHierarchyCapture de CodeAssist :
+     * les bounds s'alignent 1:1 sur le bitmap par CONSTRUCTION. Sans
+     * chrome, la racine n'a pas de parent Vue : l'offset est (0, 0) et le
+     * comportement v0.132.x est inchangé.
+     */
+    private fun decalageContenuDansArbreRendu(racine: View): Pair<Int, Int> {
+        var gauche = 0
+        var haut = 0
+        var parent = racine.parent as? View
+        while (parent != null) {
+            gauche += parent.left - parent.scrollX
+            haut += parent.top - parent.scrollY
+            parent = parent.parent as? View
+        }
+        return Pair(gauche, haut)
     }
 
     @Suppress("ReturnCount")

@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.134.2] – 2026-10-15
+
+### Corrigé
+
+- **Preview XML — décalage de la sélection depuis le chrome système (G5)**
+  (retour utilisateur : « avec l'ajout du rendu chrome statusbar/appbar il y
+  a un décalage qui se fait »). Depuis v0.133.0, le bitmap est dessiné depuis
+  l'arbre CHROME (status bar + action bar + contenu) mais les bounds de
+  sélection étaient collectées depuis la racine CONTENU : toutes les bounds
+  `InfoVueRendu` étaient décalées vers le haut de (24dp + 56dp) × densité —
+  le tap sélectionnait la vue du dessous, le surlignage éditeur → preview
+  flottait au-dessus de la vraie vue. La tentative v0.133.5
+  (`decalageChromeY` = `racine.top`) était un no-op : calculée AVANT le
+  layout (top toujours 0), source incorrecte (parent direct, pas la racine
+  rendue), une seule direction compensée sur deux, et jamais transportée à
+  travers la frontière AIDL (`ResultatRendu` n'avait pas le champ — le
+  régime nominal `:preview` perdait la compensation).
+  - **Correctif (invariant CodeAssist, miroir `ViewHierarchyCapture`)** :
+    l'offset du contenu dans l'arbre rendu est calculé APRÈS le layout
+    (remontée de la chaîne des parents, cumul left/top, scroll défaqué) et
+    les bounds sont TRANSLATÉES à la collecte dans
+    `RenduLayoutLib.collecterVues` — draw, hit-test et surlignage partagent
+    LE MÊME espace de coordonnées (le bitmap), zéro compensation en aval,
+    dans les DEUX régimes de transport (local et processus `:preview`).
+  - **Retrait de la plomberie `decalageChromeY`** (tentative v0.133.5) :
+    `ResultatPipeline`, `ResultatTransport.Succes`,
+    `EtatPreviewXml.RenduValide`, `MoteurPreviewXml.etatDe`,
+    `TransportRenduLocal.depuisPipeline`, champ + compensation de
+    `ControleurPreviewXml` — la translation vit dans les données, plus dans
+    un champ parallèle à faire voyager.
+  - **Cohérence `nombreVues`** : les deux branches (compressée/service et
+    locale) comptent désormais `vueRendue` — la métrique ne dépend plus du
+    régime de transport (complète le correctif v0.133.4).
+  - **Tests de non-régression** (`RenduLayoutLibV3Test`) : la racine
+    utilisateur démarre SOUS le chrome (bounds bitmap) avec `themeName`,
+    et reste à 0 sans chrome (comportement v0.132.x inchangé).
+
 ## [0.129.9] – 2026-10-14
 
 ### Ajouté
