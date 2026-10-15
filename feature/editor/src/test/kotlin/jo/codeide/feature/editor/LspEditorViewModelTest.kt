@@ -264,6 +264,101 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
             )
         }
 
+    // ------------------------------------------------------------------
+    // v0.134.13 — KP5 (audit Kotlin §6.3-1, §8.7) : voie de repli quand
+    // la session Java est absente (fenêtre de découplage — refus du
+    // registre à l'ouverture). CETTE fenêtre n'est pas reproductible en
+    // test unitaire (course de concurrence) : la LOGIQUE des deux voies
+    // de repli est verrouillée ICI sur des sessions Kotlin RÉELLES — le
+    // régime « vue null » du moteur est déjà couvert côté hôte
+    // (SessionLspKotlinTest).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `KP5 session Kotlin nourrie du brut sans session Java`() =
+        runTest {
+            val id = ajouterProjet("ProjetSeul")
+            // Résolveur muet : AUCUNE session ne s'ouvre (l'état
+            // « Java absente » du repli) — la session Kotlin du repli
+            // est fournie par le test, comme le ferait la fenêtre de
+            // découplage.
+            val viewModel = viewModel(id, ResolveurCheminFuse { null })
+            avancer()
+            assertNull(viewModel.sessionLsp.value)
+            val racine = Files.createTempDirectory("codeide-kotlin-seul").toFile()
+            val brut =
+                ClasspathResult(
+                    id = "kp5",
+                    protocolVersion = 8,
+                    projectDir = racine.absolutePath,
+                    modules = emptyList(),
+                )
+            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+                viewModel.nourrirKotlinProjetSeul(sessionKotlin, brut)
+                assertTrue(
+                    "le journal doit porter le contrat minimum de l'audit (régime projet seul)",
+                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+                )
+            }
+        }
+
+    @Test
+    fun `KP5 silence quand aucune session Kotlin`() =
+        runTest {
+            val id = ajouterProjet("KotlinAbsent")
+            val viewModel = viewModel(id, ResolveurCheminFuse { null })
+            avancer()
+            val brut =
+                ClasspathResult(
+                    id = "kp5",
+                    protocolVersion = 8,
+                    projectDir = "/fuse/projets/KotlinAbsent",
+                    modules = emptyList(),
+                )
+            viewModel.nourrirKotlinProjetSeul(null, brut)
+            assertFalse(
+                "aucun journal de nourrissage sans session Kotlin",
+                journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+            )
+        }
+
+    @Test
+    fun `KP5 session Kotlin nourrie du modele persiste sans session Java`() =
+        runTest {
+            val id = ajouterProjet("ProjetSeulCache")
+            val viewModel = viewModel(id, ResolveurCheminFuse { null })
+            avancer()
+            val racine = Files.createTempDirectory("codeide-kotlin-seul-cache").toFile()
+            persisterModeleSous(racine)
+            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+                viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
+                assertTrue(
+                    "le repli réouverture doit journaliser le régime projet seul",
+                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+                )
+                assertTrue(
+                    "le journal doit dire QUELLE source a nourri (modèle persisté)",
+                    journalViewModel.entries.any { it.message.contains("modèle persisté") },
+                )
+            }
+        }
+
+    @Test
+    fun `KP5 silence sans modele persiste sous la racine`() =
+        runTest {
+            val id = ajouterProjet("ProjetSeulVide")
+            val viewModel = viewModel(id, ResolveurCheminFuse { null })
+            avancer()
+            val racine = Files.createTempDirectory("codeide-kotlin-seul-vide").toFile()
+            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+                viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
+                assertFalse(
+                    "aucun nourrissage annoncé sans modèle persisté",
+                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+                )
+            }
+        }
+
     /** Construit le ViewModel sur un résolveur FUSE résolvant (h2). */
     private fun viewModel(
         id: ProjectId,
