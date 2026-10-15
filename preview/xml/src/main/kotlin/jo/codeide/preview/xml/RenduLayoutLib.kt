@@ -818,9 +818,10 @@ public class RenduLayoutLib(
      * Exemption detekt ciblée (règle 16) : ReturnCount — chaque sortie
      * porte une DÉCISION de repli DISTINCTE (label littéral, chaîne du
      * projet, chaîne native paquet, chaîne native framework, themeName).
+     * Exemption lint DiscouragedApi : la preview résout les ressources du
+     * PROJET UTILISATEUR par nom à l'exécution — R.foo.bar est impossible
+     * hors de son build.
      */
-    // getIdentifier : la preview résout les ressources du PROJET UTILISATEUR
-    // par nom à l'exécution — R.foo.bar est impossible hors de son build.
     @Suppress("ReturnCount", "DiscouragedApi")
     private fun titreActionBar(requete: RequeteRendu): String? {
         val label = requete.labelActivite ?: return requete.themeName
