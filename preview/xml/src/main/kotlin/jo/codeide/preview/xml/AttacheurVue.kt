@@ -62,6 +62,16 @@ internal object AttacheurVue {
      */
     @Volatile
     private var attachInfoCache: Any? = null
+
+    /**
+     * v0.134.4 — cache de l'ÉCHEC aussi : si la réflexion ne peut pas
+     * créer l'AttachInfo (API cachées filtrées par le système selon la
+     * version d'Android), l'échec est définitif POUR CE PROCESSUS —
+     * retenter à chaque rendu spammait les journaux (un avertissement
+     * par rendu, « boucle dans les logs » constatée sur appareil).
+     */
+    @Volatile
+    private var attachInfoNonCreeable = false
     private val attachInfoVerrou = Any()
 
     /**
@@ -99,9 +109,28 @@ internal object AttacheurVue {
     @Suppress("ReturnCount") // Cache + 3 issues naturelles
     private fun obtenirAttachInfo(): Any {
         attachInfoCache?.let { return it }
+        if (attachInfoNonCreeable) {
+            error(
+                "AttachInfo non créable (échec mis en cache — réflexion bloquée sur cet Android)",
+            )
+        }
         synchronized(attachInfoVerrou) {
             attachInfoCache?.let { return it }
-            val info = creerAttachInfo() ?: error("AttachInfo non créable")
+            if (attachInfoNonCreeable) {
+                error(
+                    "AttachInfo non créable (échec mis en cache — réflexion bloquée sur cet Android)",
+                )
+            }
+            val info = creerAttachInfo()
+            if (info == null) {
+                // v0.134.4 — l'échec est DÉFINITIF pour ce processus :
+                // un constructeur filtré par le respect des API cachées ne
+                // réapparaîtra pas au rendu suivant. On ne retente qu'une
+                // fois (plus de spam « AttachInfo injection échouée » à
+                // chaque rendu) ; le repli dessinerVue prend le relais.
+                attachInfoNonCreeable = true
+                error("AttachInfo non créable")
+            }
             activerIgnoreDirtyState(info)
             attachInfoCache = info
             return info

@@ -38,6 +38,12 @@ public class RequeteRendu(
      *  `?attr/colorPrimary` etc. en marchant la chaîne d'héritage du
      *  style nommé. Le préfixe `@style/` est optionnel (strippé). */
     public val themeName: String? = null,
+    /** Titre de l'action bar du chrome (v0.134.4) : `android:label` de
+     *  l'ACTIVITÉ du manifest (à défaut `android:label` de
+     *  l'application) — littéral (`"Ma vue"`) ou référence
+     *  `@string/…` (résolue par le résolveur du projet au rendu).
+     *  `null` = repli sur [themeName] (comportement d'avant v0.134.4). */
+    public val labelActivite: String? = null,
     /** Classpath projet pour vues custom (v0.132.0 / G1) — liste des
      *  entrées (JAR, AAR, DOSSIER, MODULE) à donner au `DexViewFactory`.
      *  Vide = pas de vues custom (repli ViewFactory par défaut + G15
@@ -62,6 +68,7 @@ public class RequeteRendu(
         nuit = parcel.readByte() != 0.toByte(),
         langue = parcel.readString(),
         themeName = parcel.readString(),
+        labelActivite = parcel.readString(),
         classpath = parcel.createTypedArrayList(EntreeClasspath.CREATOR) ?: emptyList(),
     )
 
@@ -79,6 +86,7 @@ public class RequeteRendu(
         parcel.writeByte(if (nuit) 1 else 0)
         parcel.writeString(langue)
         parcel.writeString(themeName)
+        parcel.writeString(labelActivite)
         parcel.writeTypedList(classpath)
     }
 
@@ -93,6 +101,7 @@ public class RequeteRendu(
             other.nuit == nuit &&
             other.langue == langue &&
             other.themeName == themeName &&
+            other.labelActivite == labelActivite &&
             other.classpath == classpath
 
     override fun hashCode(): Int {
@@ -103,6 +112,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + if (nuit) 1 else 0
         resultat = 31 * resultat + (langue?.hashCode() ?: 0)
         resultat = 31 * resultat + (themeName?.hashCode() ?: 0)
+        resultat = 31 * resultat + (labelActivite?.hashCode() ?: 0)
         resultat = 31 * resultat + classpath.hashCode()
         return resultat
     }

@@ -223,8 +223,12 @@ class ControleurPreviewXml(
                 // v0.133.1 — G2/G5 : résoudre le thème activité depuis
                 // AndroidManifest.xml. Le thème est dans l'attribut
                 // android:theme de <application> ou <activity>.
-                val themeName = racine?.let { resoudreThemeActivite(it) }
-                moteur.definirThemeName(themeName)
+                val manifeste = racine?.let { lireManifeste(it) }
+                moteur.definirThemeName(manifeste?.let { resoudreThemeActivite(it) })
+                // v0.134.4 — titre de l'action bar : android:label de
+                // l'activité (à défaut de l'application) au lieu du
+                // themeName brut (retour utilisateur).
+                moteur.definirLabelActivite(manifeste?.let { resoudreLabelActivite(it) })
             }
     }
 
@@ -236,14 +240,38 @@ class ControleurPreviewXml(
      * `android:theme` de la balise `<application>`. Si non trouvé,
      * retourne null (pas de chrome système).
      */
-    private fun resoudreThemeActivite(racineProjet: String): String? {
+    private fun lireManifeste(racineProjet: String): String? {
         val manifeste = trouverManifeste(racineProjet) ?: return null
-        val contenu =
-            try {
-                java.io.File(manifeste).readText()
-            } catch (_: Throwable) {
-                return null
-            }
+        return try {
+            java.io.File(manifeste).readText()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /**
+     * v0.134.4 — Titre de l'action bar : `android:label` de la PREMIÈRE
+     * `<activity>` du manifest (un module n'a qu'une activité principale
+     * en pratique) ; à défaut `android:label` de `<application>`.
+     * Littéral ou référence `@string/…` (résolue au rendu par le
+     * résolveur du projet). `null` si aucun label — le moteur repliera
+     * sur le themeName (comportement d'avant v0.134.4).
+     */
+    private fun resoudreLabelActivite(contenu: String): String? {
+        val regexLabel = Regex("""android:label\s*=\s*"([^"]+)"""")
+        // Attributs de la balise ouvrante <activity …> (le label y vit —
+        // pas dans les intent-filter imbriqués).
+        Regex("""<activity\b[^>]*""").find(contenu)?.let { balise ->
+            regexLabel.find(balise.value)?.let { return it.groupValues[1] }
+        }
+        // Repli : label de l'application.
+        Regex("""<application\b[^>]*""").find(contenu)?.let { balise ->
+            regexLabel.find(balise.value)?.let { return it.groupValues[1] }
+        }
+        return null
+    }
+
+    private fun resoudreThemeActivite(contenu: String): String? {
         // Regex simple : android:theme="@style/..."
         val regex = Regex("""android:theme\s*=\s*"(@style/[^"]+|@android:style/[^"]+)"""")
         val match = regex.find(contenu) ?: return null
