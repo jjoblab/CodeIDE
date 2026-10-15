@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.134.9] – 2026-10-15
+
+### Ajouté
+
+- **LSP Kotlin — S2 pliage + survol riche (plan de stabilisation LSP
+  §3.2)**, miroir Kotlin de l'XP11 XML (v0.134.8) :
+  - **`textDocument/foldingRange`** : les régions repliables du
+    document — chaque corps à accolades (classe/objet via
+    `CLASS_BODY`, blocs, structures de contrôle, lambdas, `when` —
+    plié de sa PREMIÈRE accolade ouvrante à sa DERNIÈRE fermante,
+    jamais du début du nœud), le bloc d'imports ENTIER, les
+    commentaires multi-lignes (KDoc, bloc). Collecte dans
+    `plis/PlisDocumentKotlin` (dédupliquée — `BODY` et son `BLOCK`
+    imbriqué portent les mêmes accolades), méthode SPI `plagesPliables`
+    (défaut vide — contrat d'évolution K3), capacité
+    `foldingRangeProvider` + traduction hôte en `FoldingRange` LSP.
+    Un pli mono-ligne n'est PAS émis (choix documenté, testé) ; une
+    paire d'accolades absente (édition en cours) ne produit jamais de
+    pli.
+  - **Survol riche** : le KDoc de la déclaration survolée accompagne
+    la signature. Extraction du `DOC_COMMENT` porté PAR la déclaration
+    (la politique de liaison du parseur vendoré attache le KDoc comme
+    jeton enfant direct de ce qu'il documente — sondage d'arbre),
+    rendu par le `KDocParser` vendoré JUSQU'ICI INUTILISÉ : sections
+    libres en paragraphes, tags en lignes `@param nom — texte` /
+    `@return texte` (type neutre `ContenuSurvoleKotlin.documentation`).
+    L'hôte enveloppe en MARKDOWN (bloc de code Kotlin + documentation,
+    patron JDT.LS/fwcd) — le survol sans KDoc reste PLAINTEXT.
+    Les déclarations du SCAN (autres fichiers) gardent la signature
+    seule : re-parser un fichier tiers pour son doc n'est pas un coût
+    K3 (choix documenté).
+- Tests : +7 moteur de pliage, +9 rendu KDoc, +4 session (plages,
+  survol riche), +5 hôte (capacité, pliage, markdown) ; baseline de
+  parité régénérée AVANT le push (directive v0.121.1) : 958 fichiers
+  (+4), digeste recalculé, diff revu.
+
 ## [0.134.8] – 2026-10-15
 
 ### Ajouté
