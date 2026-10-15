@@ -3,6 +3,7 @@ package jo.codeide.feature.editor
 import jo.codeeditor.lsp.LspEditor
 import jo.codeeditor.lsp.LspProject
 import jo.codeeditor.view.EditorView
+import jo.codeeditor.view.LspEditorViewHost
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SessionLspKotlin
@@ -22,6 +23,11 @@ import jo.codeide.lsp.host.SessionLspXml
  * diagnostics, hover, navigation) ; [debrancher] coupe ; [fermer] coupe
  * ET arrête le `LspProject` (à la destruction de l'activité — la
  * SESSION, elle, meurt avec le ViewModel, test de fuite h1).
+ *
+ * Liaison vue — depuis code-editor 3.71.0 (plan 03, inversion cel-lsp →
+ * cel-ui), `LspEditor` ne connaît plus la vue : on pose l'adaptateur de
+ * référence `LspEditorViewHost` (contrat `EditorHost`), l'UNIQUE point
+ * où la couche LSP rencontre la vue Android.
  *
  * L'échec de `connect()` est JOURNALISÉ, jamais propagé : un fichier
  * .java sans serveur retombe sur la coloration lexicale (comportement
@@ -78,7 +84,9 @@ internal class CoordonnateurLsp(
                 journal.w(TAG, t) { "création LspEditor impossible ($cheminFuse) — coloration seule" }
                 return
             }
-        editeur.setEditorView(vue)
+        // cel 3.71.0 (plan 03) : setEditorView(EditorView) cède la place
+        // à setHost(EditorHost) — l'adaptateur cel-ui délègue à la vue.
+        editeur.setHost(LspEditorViewHost(vue))
         // cel (depuis 3.33) : le chemin courant conditionne la
         // reconnaissance des cibles de définition DANS le fichier
         // courant (v0.101.0 : lib montée en 3.49.2 — comportement
