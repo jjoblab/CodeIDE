@@ -2,9 +2,10 @@
 
 > Document de cadrage. Missions démarrées sur « GO » du propriétaire.
 > Sources d'étude : dépôt **jjoblab/LayoutLib** v2.1.0 (commit edd84ff, analyse
-> directe, projet interne du même auteur — intégration licite) et **CodeAssist**
-> (tyron12233, GPL-3.0 — enseignements d'architecture uniquement, zéro code
-> réutilisé).
+> directe, projet interne du même auteur — intégration licite) et un IDE
+> Android tiers sous GPL-3.0 (enseignements d'architecture uniquement, zéro
+> code réutilisé — l'étude comparative est interne, le dépôt n'en cite ni le
+> nom ni les sources : règle « projets tiers » d'AGENTS.md).
 
 ## 1. Objectif et contexte
 
@@ -13,12 +14,12 @@ Le propriétaire demande deux previews pour l'éditeur :
 - **Preview XML** (layout editor) : un rendu fidèle des layouts à côté du
   code, comme l'éditeur visuel d'Android Studio — s'appuyer sur le dépôt
   **jjoblab/LayoutLib**, « pas encore stable à 100 % ».
-- **Preview Compose** : intégrer l'**approche CodeAssist** (interpréteur sur
+- **Preview Compose** : intégrer l'**approche interpréteur** (sur
   l'arbre résolu, rendu interactif hors processus) — après stabilisation du
   LSP Kotlin.
 
 Les deux partagent un problème commun : exécuter du code *du projet édité*
-dans le processus de l'IDE. La réponse CodeAssist à ce problème (processus
+dans le processus de l'IDE. La réponse retenue à ce problème (processus
 `:preview` dédié + repli in-process) est la colonne vertébrale retenue ici.
 
 ## 2. Analyse du dépôt jjoblab/LayoutLib (v2.1.0)
@@ -107,7 +108,7 @@ LSP_XML X4).
 |---|----------|-------|
 | P1 | **LayoutLib est le moteur de rendu XML** de CodeIDE (pas de réécriture, pas d'AOSP layoutlib). | Dépôt de l'auteur, conçu pour, tests fournis. |
 | P2 | **Intégration en SOURCE par build composite** (RÉVISÉE v0.112.0, décision propriétaire 2026-10-13 : LayoutLib est un projet personnel **GitHub-only, aucune publication JitPack**) : `settings.gradle.kts` inclut le checkout frère `../LayoutLib` et SUBSTITUE les coordonnées `com.github.jjoblab.LayoutLib:module-inflater` (les 5 modules frères transitent par les `api(project(...))` du build inclus) ; l'épinglage = REF git check out (tag **v2.2.0**, aligné toolchain CodeIDE — la version du catalogue est un pin informatif, la substitution l'ignore) ; la CI clone le tag ; le build échoue avec instructions si le checkout manque. | Évolution découplée des deux dépôts (bump = ref + catalogue) ; chaque dépôt garde son catalogue et ses conventions ; démon Gradle/caches partagés (mêmes Gradle/AGP/JDK). |
-| P3 | **Isolation processus `:preview`** (motif CodeAssist) : service + AIDL, `DeathRecipient` → « Preview process crashed, retry », **repli in-process** automatique. Le rendu ne tourne **jamais** sur le thread UI de l'IDE. | RenderService rend aujourd'hui sur le thread principal (§2.2) ; une vue peut crasher ou bloquer ; l'IDE doit survivre. |
+| P3 | **Isolation processus `:preview`** : service + AIDL, `DeathRecipient` → « Preview process crashed, retry », **repli in-process** automatique. Le rendu ne tourne **jamais** sur le thread UI de l'IDE. | RenderService rend aujourd'hui sur le thread principal (§2.2) ; une vue peut crasher ou bloquer ; l'IDE doit survivre. |
 | P4 | **Rendu bitmap off-screen** : measure/layout (`LayoutEngineImpl`) à la taille device-profile choisie + `view.draw(canvas)` sur un `Bitmap` ; streaming du bitmap (pas de vue attachée à la hiérarchie de l'IDE). | Découple preview de l'UI CodeIDE ; redimensionnement/vivacité ; même forme que le pipeline Compose §4. |
 | P5 | **Ressources via FUSE + résolveurs LayoutLib** : `ResourceResolverImpl`/`ThemeResolverImpl`/`DrawableResolverImpl` montés sur le chemin FUSE du projet, thème du projet appliqué. | §2.4 ; zéro adaptation LayoutLib. |
 | P6 | **Sélection/inspection** (clic sur une vue du bitmap → sélection dans l'éditeur) : phase 2 — hit-test sur les bounds du layout (les métriques sont dans le callback de rendu). | La parité AS « clic → sélection » est la fonctionnalité qui fait un vrai layout editor. |
@@ -125,7 +126,7 @@ SessionProjet :preview ── RenderService adapté ──▶ Process :preview
 
 Le service `:preview` est démarré paresseusement à la première ouverture
 d'un fichier previewable (layout/drawable/values : classification
-`previewKindOf` à la CodeAssist), arrêté par idle-shutdown (registre de
+`previewKindOf`), arrêté par idle-shutdown (registre de
 fermeture I7 : la fermeture de projet arrête aussi le processus preview).
 
 ### 3.3 Affichage
@@ -154,13 +155,13 @@ le preview consomme le document brut + FUSE). PE2 (livré) a introduit le
 socle `:preview` **réutilisé tel quel par la preview Compose** (§4) — c'est
 la raison de l'avoir fait proprement dès le départ.
 
-## 4. Preview Compose — intégration de l'approche CodeAssist
+## 4. Preview Compose — intégration de l'approche interpréteur
 
-### 4.1 L'approche CodeAssist (constatée)
+### 4.1 L'approche retenue (constatée)
 
 - **Pas de compilation** : un **interpréteur** (tree-walking) marche
-  l'**arbre résolu** de leur propre moteur de symboles (celui du LSP Kotlin
-  maison, §2 de LSP_KOTLIN) et **émet de vrais nœuds Compose** contre le
+  l'**arbre résolu** d'un moteur de symboles maison (celui du LSP Kotlin,
+  §2 de LSP_KOTLIN) et **émet de vrais nœuds Compose** contre le
   **runtime Compose embarqué** dans l'app.
 - **Isolation totale** : le runtime Compose vivant (Composition, Recomposer,
   frame clock, slot table) est **entièrement dans le processus `:preview`**,
@@ -197,7 +198,7 @@ la raison de l'avoir fait proprement dès le départ.
 
 | # | Décision | Motif |
 |---|----------|-------|
-| PC1 | **Voie interpréteur** (CodeAssist), pas voie « compiler+dexer+DexClassLoader par frappe ». | La voie compile coûte D8 par édition (secondes) ; l'interpréteur donne la latence interactive. CodeAssist a documenté le rejet du compilateur par frappe — même logique. |
+| PC1 | **Voie interpréteur**, pas voie « compiler+dexer+DexClassLoader par frappe ». | La voie compile coûte D8 par édition (secondes) ; l'interpréteur donne la latence interactive — le rejet du compilateur par frappe fait partie des enseignements de l'étude comparative (même logique). |
 | PC2 | Preview Compose = **module séparé** (`:preview:compose` ou pack) ne référençant l'UI CodeIDE par rien d'autre que le streaming. | Isolation des dépendances (runtime Compose), distribution pack. |
 | PC3 | **Interactif dès la conception** (entrées + état), mais livré en deux temps : statique d'abord (C1), interactif ensuite (C3). | Le statique valide le rendu ; l'interactif ajoute le forwarding et les garde-fous. |
 | PC4 | Garde-fous **obligatoires avant toute activation** : borne de recomposition, budget de boucles, watchdog de gel avec kill du processus `:preview`, `LocalInspectionMode`, sandbox des APIs (réseau/stockage interdits dans la preview). | Un `@Composable` hostile ou simplement bugué ne doit ni geler ni fuir. |
