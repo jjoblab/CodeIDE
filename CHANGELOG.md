@@ -1,5 +1,21 @@
 # Journal des modifications
 
+## [0.134.8] – 2026-10-15
+
+### Ajouté
+
+- **LSP XML — XP11 `textDocument/foldingRange` (plan de stabilisation
+  LSP §3.3 S2)** : chaque balise fermée est pliable — plages DOM
+  (`plageOuvrante` → `plageFermante`, fermantes implicites de reprise
+  XP14 comprises), collecte dans `plis/PlisDocumentXml`, méthode SPI
+  `plagesPliables` (défaut vide — contrat d'évolution XE2/XE3/XE4),
+  traduction hôte en `FoldingRange` LSP (capacité
+  `foldingRangeProvider` déclarée). Une plage mono-ligne n'est PAS
+  émise (un pli qui ne replie rien n'est que du bruit — choix
+  documenté, testé) ; les auto-fermantes et les éléments en édition ne
+  produisent jamais de pli. XP13 déjà couvert (v0.134.4) — constat
+  vérifié dans le code avant ce lot.
+
 ## [0.134.7] – 2026-10-15
 
 ### Corrigé
