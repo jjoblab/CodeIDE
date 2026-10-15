@@ -1,5 +1,52 @@
 # Journal des modifications
 
+## [0.134.12] – 2026-10-15
+
+### Changé
+
+- **Bibliothèque d'édition code-editor 3.70.1 → 3.71.0** (exécution du plan
+  d'audit 3.69.0 amont, lots L1→L10 ; artefacts JitPack vérifiés — POM
+  cel-ui / cel-lsp / cel-lsp-api résolus HTTP 200 le 2026-10-16) :
+  - **UNE rupture consommée — plan 03 « inversion cel-lsp → cel-ui »** :
+    `LspEditor.setEditorView(EditorView)` cède la place à
+    `setHost(EditorHost)` (nouveau contrat `jo.codeeditor.lang.host.EditorHost`
+    dans `cel-lsp-api` ; le client LSP ne dépend plus de la vue Android).
+    Adaptation : `CoordonnateurLsp.brancher()` pose l'adaptateur de référence
+    cel-ui `LspEditorViewHost(vue)` — l'UNIQUE point où la couche LSP
+    rencontre la vue, inchangé par ailleurs (mêmes ordres `setCurrentFilePath`
+    → `connect()`).
+  - **Compatibilité vérifiée par diff des sources publiques
+    (v3.70.1..v3.71.0)** : plan 01 = extractions d'état d'`EditorView`
+    (`view/state/` — `CompletionState`, `FindState`, `ScrollState`) avec API
+    publique inchangée (`getVOffset`/`getHOffset` délèguent ; les champs
+    internalisés ne sont pas consommés par CodeIDE — vérifié par grep) ;
+    `EditorSession.OnTextEditListener` gagne une variante 4-arg `default`
+    (la variante 3-arg utilisée par `EditorViewModel`/`ControleurPreviewXml`
+    reste exacte) ; `SymbolBarView` = retouche interne accessibilité A-05
+    (`performClick`) sans changement d'API ; `LanguageServerDefinition`
+    gagne `setTimeouts(LspRequestTimeouts)` (additif, non posé — défauts
+    amont conservés) ; D-01 (snippets + `textEdit` + `filterText`/`sortText`)
+    et les gains de fiabilité L1-bis sont transparents côté hôte.
+  - **Licence amont MIT → Apache-2.0** : `docs/THIRD_PARTY_NOTICES.md`
+    resynchronisé (cel-ui 3.41.0 → 3.71.0, ajout des rows cel-lsp et
+    cel-lsp-api ; l'Apache-2.0 annoncée devient exacte, `NOTICE` amont
+    documente le régime EPL-2.0 de la dépendance LSP embarquée).
+  - **Docs resynchronisées** : `lsp/host/README.md` (branchement h2) et
+    `docs/LSP_JAVA.md` §16 reflètent `setHost(LspEditorViewHost(...))`.
+- **Chaîne locale verte** : `:feature:editor` compile + 381 tests unitaires
+  0 échec ; `:preview:xml` compile + tests ; spotless/detekt des deux
+  modules ; `checkModuleDependencies`.
+
+### Corrigé
+
+- **Environnement de build local (sandbox)** : le clone frère LayoutLib était
+  resté sur un état périmé (v2.2.0) — `:preview:xml` n'ayant jamais été
+  compilé localement, le décalage était latent. Re-cloné au tag épinglé par
+  la CI **v3.4.7** (ADR 0116) comme `ci.yml` le prescrit ; les symboles
+  attendus (`BridgeInflater.setFactory2`, `ThemeResolver.getStyleAttribute`,
+  qualifiers de langue) sont de retour. AUCUN changement de code de la part
+  de CodeIDE sur ce point — le dépôt et la CI étaient et restent cohérents.
+
 ## [0.134.11] – 2026-10-15
 
 ### Ajouté
