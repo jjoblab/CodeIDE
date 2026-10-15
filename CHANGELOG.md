@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## [0.134.5] – 2026-10-15
+
+### Corrigé
+
+- **CI** : échec ktlint `no-consecutive-comments` sur v0.134.4 (un
+  commentaire `//` suivant immédiatement un KDoc dans
+  `RenduLayoutLib.titreActionBar`) — la justification lint fusionne
+  dans le KDoc.
+
 ## [0.134.4] – 2026-10-15
 
 ### Corrigé
