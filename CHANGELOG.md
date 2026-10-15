@@ -1,5 +1,70 @@
 # Journal des modifications
 
+## [0.134.15] – 2026-10-15
+
+### Ajouté
+
+- **LSP Kotlin — occurrences S2 : `textDocument/references`,
+  `textDocument/documentHighlight`, `rename` borné + `prepareRename`
+  (plan de stabilisation §3.2, audit rapport-analyse-lsp-kotlin
+  §8.3/§8.4/§11.2)** — le miroir Kotlin du « find usages » et du
+  « rename honnête » Java (lot S0-b v0.134.11), moteur vendoré sans
+  bindings : chaque occurrence est PROUVÉE par des gardes
+  structurelles conservatrices (D3 — une référence non prouvée n'est
+  jamais rendue, les homonymes restent hors liste) :
+  - **contrat SPI neutre** : `references(uri, decalage,
+    inclureDeclaration)`, `surlignagesDocument(uri, decalage)`,
+    `plageRenommable(uri, decalage)` (plage EXACTE du nom + placeholder
+    — nom courant, critère S0-b), `renommage(uri, decalage)` — tous en
+    défaut vide/null (tolérance de version : un pack K3 face à un hôte
+    S2 dégrade honnêtement, jamais d'exception) ; types neutres
+    `PlageSurligneeKotlin` (LECTURE/ECRITURE → DocumentHighlightKind
+    Read/Write) et `PlageRenommableKotlin`.
+  - **moteur `OccurrencesKotlin`** (resolve) : cible résolue par la
+    chaîne des définitions (déclaration vive au curseur — locale
+    classée par régime de portée bloc/lambda, membre classé par chaîne
+    de conteneurs qualifiés paquet — locale en portée, déclaration
+    projet désambiguïsée : UNE candidate, sinon même paquet, sinon
+    REFUS) ; preuve par famille — file-local (locale/paramètre)
+    confinée au fichier déclarant avec preuve par portée au site ;
+    type par FQCN (`fqcnDuNomEcrit` lu avec le contexte d'imports du
+    FICHIER de l'occurrence) ; appelable top-level par visibilité
+    (même paquet, import exact du FQCN, joker) SANS homonyme top-level
+    du fichier d'occurrence et SANS locale ombrageante ; membre par
+    récepteur TYPÉ (`TypageExpression` + chaîne de supertypes) pour
+    les sélecteurs qualifiés, par classe ENGLOBANTE (FQCN qualifié
+    paquet) pour les membres non qualifiés du fichier déclarant ;
+    extension par récepteur résolu dans le fichier d'occurrence ;
+    imports du FQCN cible renommés (segment de nom, forme exacte ou
+    préfixe compagnon).
+  - **balayage multi-fichiers** : documents ouverts d'abord (arbres
+    vivants), fichiers fermés des racines ensuite (re-parsés à la
+    demande, pré-filtre textuel — un fichier qui ne porte pas le nom
+    n'est pas parsé, plafond 2000 du scan partagé) ; la copie DISQUE
+    du fichier déclarant n'est JAMAIS une référence (plage exacte de
+    la cible = déclaration, quelle que soit l'URI du balayage).
+  - **hôte** (`KotlinLanguageServer`) : capacités honnêtes
+    (referencesProvider, documentHighlightProvider, renameProvider en
+    `RenameOptions` prepareProvider=true) ; 4 handlers traduits
+    (Locations, DocumentHighlights, Either3 placeholder, WorkspaceEdit
+    legacy `changes` — le client cel-lsp n'annonce PAS
+    documentChanges, vérifié par décompilation lot S0-b) ; rename sans
+    cible = erreur TYPOÉE RequestFailed -32803 avec data
+    `renommage.sansCible` (leçon I8 Java — jamais d'édition vide
+    silencieuse) ; lecture disque compatible API 26
+    (`futureEnEchec` — `failedFuture` exige l'API 31).
+  - **tests** : `SessionLangageKotlinOccurrencesTest` (14 — locale +
+    ombrage, paramètre, top-level même paquet/import/homonyme refusé,
+    classe via import FQCN, membre qualifié par récepteur typé,
+    highlight écriture/lecture, placeholder exact, renommage
+    multi-fichiers, tolérances inconnu/fermée) ; `KotlinLanguageServerTest`
+    +8 (capacités, traductions Location/Kind/placeholder, WorkspaceEdit
+    groupé par fichier avec lecture disque du tiers, erreur typée
+    -32803, document inconnu).
+  - parité : digeste régénéré (971 fichiers, +2 de LOT 8 maintenus +
+    nouveaux fichiers du lot), contre-vérification SANS flag verte
+    (--rerun-tasks).
+
 ## [0.134.14] – 2026-10-15
 
 ### Ajouté
