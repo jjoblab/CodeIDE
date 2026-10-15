@@ -1,5 +1,68 @@
 # Journal des modifications
 
+## [0.134.10] – 2026-10-15
+
+### Ajouté
+
+- **LSP XML — XP12 genres étendus (plan de stabilisation LSP §3.3 S2)** :
+  la « majorité silencieuse » des dossiers `res/` entre dans le périmètre
+  — sept genres déduits de l'URI (qualifiers compris, `res/color-night`,
+  `res/anim-v24`…) et complétés :
+  - **`res/color*` — COULEUR** : listes d'états de couleur, contributeur
+    `CompletionCouleursXml` qui RÉUTILISE le contributeur drawables (le
+    selector et les états `state_*` d'`item` ne vivent qu'une fois —
+    `CompletionDrawablesXml.attributsItemSelector()`) et ne rajoute QUE la
+    colorisation (`android:color`, `android:alpha` API 26) — `android:drawable`
+    est filtré (une color list n'a pas de drawable enfant) ; X4 : racine
+    autre que `selector` = silence.
+  - **`res/anim*` — ANIMATION** (tween de vue) : racines `set`/`alpha`/
+    `scale`/`translate`/`rotate` (élément isolé légal), attributs de
+    transformation PAR BALISE + timing commun, énumérations (repeatMode,
+    zAdjustment, booléens) et les NEUF interpolateurs du framework en
+    valeur de `android:interpolator` (`@android:anim/…`).
+  - **`res/animator*` — ANIMATEUR** (propriété) : racines `set`/
+    `objectAnimator`/`animator` (`propertyValuesHolder` jamais racine),
+    `ordering` de set, `propertyName`/`valueFrom`/`valueTo`/`valueType`,
+    interpolateurs framework — DISTINCT de ANIMATION (les deux familles
+    n'ont pas de racines communes ; proposer un `objectAnimator` dans un
+    tween ferait un XML qui plante au gonflage).
+  - **`res/xml*` — XML_APP** (configurations d'application) : racines
+    `appwidget-provider` (17 attributs android:), `shortcuts` (shortcut →
+    intent), `paths` (FileProvider — attributs SANS namespace), sécurité
+    réseau (`network-security-config`/`base-config`/`domain-config`/
+    `trust-anchors`/`certificates`) et sauvegardes
+    (`data-extraction-rules`/`full-backup-content`) ; config personnalisée
+    = silence (non devinable).
+  - **`res/navigation*` — NAVIGATION** : graphes Navigation Component —
+    `navigation` (startDestination), destinations `fragment`/`activity`/
+    `dialog`, `include` ; `action` (app:destination, popUpTo…),
+    `argument` (app:argType, defaultValue), `deepLink` (app:uri,
+    autoVerify).
+  - **`res/transition*` — TRANSITION** : `transitionSet` et transitions
+    isolées (fade/slide/explode/changeBounds/…), ciblage (`targets`/
+    `target`), trajectoires (`arcMotion`, `patternPathMotion`) ;
+    énumérations (transitionOrdering, fadingMode, slideEdge, resizeClip).
+  - **`res/font*` — POLICE** : `font-family` → `font` (locales :
+    android:font/fontStyle/fontWeight) et familles téléchargeables
+    (app:fontProvider*).
+  - **Complément DRAWABLE** : `adaptive-icon` (calques background/
+    foreground/monochrome) rejoint les racines du contributeur XE5.
+  - **Règles** : l'exigence `xmlns:android` (XE5) s'étend aux genres qui
+    consomment `android:` — elle ne sonne que si un attribut android: est
+    UTILISÉ (les fichiers sans namespace — FileProvider, sécurité réseau —
+    ne déclenchent rien) ; ids dupliqués restent bornés à layout/menu.
+  - **Couture XP13 élargie** : la portion après `!/` d'un conteneur
+    composite perd son slash de tête — il est restitué, les entrées
+    `…aar!/res/…` relèvent DÉSORMAIS de leur genre (avant : manifest
+    racine seul, le reste tombait AUTRE) ; `GenreDocument` passe à une
+    table ordonnée préfixe → genre (ordre animator/anim préservé).
+- Tests : +15 session XP12 (genres, complétion par famille, énumérations,
+  xmlns manquant + quick-fix couleur, silence X4, AUTRE inchangé) ; deux
+  tests XE5/structure mis à jour (`res/xml` est un genre PROPRE — le
+  silence AUTRE se vérifie sur un dir toujours inconnu) ; baseline de
+  parité régénérée AVANT le push (directive v0.121.1) : 966 fichiers
+  (+8), digeste recalculé, diff revu.
+
 ## [0.134.9] – 2026-10-15
 
 ### Ajouté
