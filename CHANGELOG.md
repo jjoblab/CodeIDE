@@ -1,5 +1,29 @@
 # Journal des modifications
 
+## [0.134.7] – 2026-10-15
+
+### Corrigé
+
+- **LSP Kotlin — KP6 + KP15 (plan de stabilisation LSP §3.2, suite)** :
+  - **KP6** : `ScanProjet` partagé non synchronisé — `racines`/`scannees`
+    deviennent volatils et la paire est mutée SOUS un verrou unique
+    (scan unique, les autres sessions lisent le champ volatil) ;
+    l'asymétrie avec `IndexAppelablesKotlin` (snapshot volatile) est
+    rétablie. Test de concurrence (4 fils, 50 itérations, état total
+    exigé à chaque lecture).
+  - **KP15** : diagnostics Kotlin enrichis — `kt.unusedImport` porte le
+    TAG `Unnecessary` (le client qui le comprend grille la directive) ;
+    `kt.conflictingImport` porte une INFORMATION LIÉE pointant la
+    directive PREMIÈRE (plage + message — les deux directives du conflit
+    sont visibles d'un coup d'œil). Types neutres
+    `TagDiagnosticKotlin`/`InformationLieeKotlin` (D6 : zéro type LSP4J
+    côté moteur), traduction hôte (`:lsp:host`). `codeDescription`
+    délibérément ABSENTE : aucune URL de documentation stable n'existe
+    pour les codes `kt.*` — inventer un lien serait mensonger (D3).
+  - Baseline de parité du corpus régénérée AVANT le push (directive
+    AGENTS.md v0.121.1) : 953 fichiers (+1 = nouveau test), digeste
+    recalculé ; diff revu.
+
 ## [0.134.6] – 2026-10-15
 
 ### Corrigé
