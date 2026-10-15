@@ -35,19 +35,21 @@ jobs:
       # LayoutLib (moteur de rendu des previews XML, jjoblab/LayoutLib —
       # projet personnel du propriétaire) : intégré en SOURCE par build
       # composite (substitution des coordonnées com.github.jjoblab.LayoutLib:*
-      # dans settings.gradle.kts), tag épinglé v3.4.6 (ADR 0116 P0-P7
+      # dans settings.gradle.kts), tag épinglé v3.4.7 (ADR 0116 P0-P7
       # livrés : drawables composites, qualifiers de langue, Cassowary,
       # custom attributes, adaptive-icon, animated-vector, Factory2 +
       # LayoutTransition, ?attr→drawables ; v3.4.5 : MockView fallback,
       # <fragment>/<view>/<ViewStub>/<layout>, cache ViewFactory préservé ;
-      # v3.4.6 : la racine honore layout_width/layout_height déclarés).
+      # v3.4.6 : la racine honore layout_width/layout_height déclarés ;
+      # v3.4.7 : parseDimension résout les références @dimen/ des
+      # LayoutParams — plus d'InflateException « Dimension invalide »).
       # Dépôt PUBLIC : clonage anonyme — AUCUNE publication JitPack,
       # décision propriétaire 2026-10-13 (docs/PREVIEW.md §P2).
       # Le checkout vit HORS de l'espace de travail (../LayoutLib = chemin
       # par défaut résolu par settings.gradle.kts).
-      - name: Récupérer LayoutLib (build composite, tag v3.4.6)
+      - name: Récupérer LayoutLib (build composite, tag v3.4.7)
         run: |
-          git clone --depth 1 --branch v3.4.6 \
+          git clone --depth 1 --branch v3.4.7 \
             https://github.com/jjoblab/LayoutLib.git ../LayoutLib
 
       - name: JDK 21 (Temurin)
