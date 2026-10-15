@@ -76,6 +76,8 @@ import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SessionLspKotlin
 import jo.codeide.lsp.host.SessionLspXml
 import jo.codeide.lsp.host.SourceClasspathLsp
+import jo.codeide.lsp.model.LecteurStatistiquesSysteme
+import jo.codeide.lsp.model.PersistanceModeleLsp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -818,7 +820,22 @@ class EditorViewModel
          * IndexAppelablesKotlin.definir sur « main »).
          */
         private suspend fun nourrirSessionLspDepuisModelePersiste() {
-            val session = sessionLspInterne.value ?: return
+            val session = sessionLspInterne.value
+            if (session == null) {
+                // KP5 (audit Kotlin §6.3-1, §8.7) : la session Java est
+                // absente (fenêtre de découplage — refus du registre à
+                // l'ouverture) mais la session Kotlin peut vivre. Le bail-
+                // early historique laissait le LSP Kotlin indéfiniment en
+                // régime « projet seul » sans même tenter de se nourrir
+                // seul : voie de repli — lecture DIRECTE du modèle
+                // persisté, vue null assumée (régime dégradé documenté
+                // SessionLspKotlin), journal explicite.
+                nourrirKotlinProjetSeulDepuisModelePersiste(
+                    sessionKotlin = sessionLspKotlinInterne.value,
+                    racine = resoudreCheminProjet()?.let(::File),
+                )
+                return
+            }
             // Le verdict du modèle persisté et la publication d'état
             // restent sur le thread courant (léger) ; SEULE la
             // reconstruction des index saute sur l'E/S.
@@ -1518,7 +1535,9 @@ class EditorViewModel
         ) {
             val resultatSync = (resultat as? AppResult.Success)?.value ?: return
             if (!resultatSync.reussie && !resultatSync.partielle) return
-            val session = sessionLspInterne.value ?: return
+            val session = sessionLspInterne.value
+            val sessionKotlin = sessionLspKotlinInterne.value
+            if (session == null && sessionKotlin == null) return
             val brut =
                 sourceClasspathLsp.resoudre(dossier, optionsTooling.argumentsBuild())
                     ?: run {
@@ -1527,6 +1546,16 @@ class EditorViewModel
                         }
                         return
                     }
+            if (session == null) {
+                // KP5 (audit Kotlin §6.3-1, §8.7) : la session Java est
+                // absente mais la session Kotlin vit — nourrissage direct
+                // du BRUT (disponible indépendamment de la session Java),
+                // vue null assumée, journal explicite. Le bail-early
+                // historique isolait une régression Java en dégradation
+                // Kotlin silencieuse.
+                nourrirKotlinProjetSeul(sessionKotlin, brut)
+                return
+            }
             // K5 (ANR e7dd5a7 v0.115.0) : l'application du classpath
             // reconstruit l'index fusion Java + décode l'index des
             // appelables Kotlin — HORS du thread principal, même motif
@@ -1549,6 +1578,65 @@ class EditorViewModel
                 // dans la session Java (un seul budget de cache, D4),
                 // la session XML la consomme par la couture neutre.
                 sessionLspXmlInterne.value?.appliquerClasspath(brut, session.vueNomsXml())
+            }
+        }
+
+        /**
+         * KP5 — voie de repli SYNc : nourrit la session Kotlin SEULE
+         * depuis le résultat brut (session Java absente, fenêtre de
+         * découplage — refus du registre à l'ouverture) ; la vue d'index
+         * fusion vit dans la session Java ABSENTE, elle est donc null
+         * assumé (régime dégradé « symboles projet seuls », toléré et
+         * documenté par [SessionLspKotlin.appliquerClasspath]). Le
+         * journal explicite est le CONTRAT MINIMUM de l'audit (§9.1 S1-5)
+         * — « Kotlin en régime projet seul : session Java absente » — le
+         * silence historique était le défaut.
+         *
+         * `internal` pour le test (la fenêtre de découplage elle-même
+         * n'est pas reproductible en test unitaire — refus du registre
+         * = course de concurrence) : la LOGIQUE est verrouillée ici,
+         * le câblage des deux sites d'appel est celui des chemins de
+         * nourrissage existants.
+         */
+        internal suspend fun nourrirKotlinProjetSeul(
+            sessionKotlin: SessionLspKotlin?,
+            brut: jo.codeide.tooling.protocol.ClasspathResult,
+        ) {
+            if (sessionKotlin == null) return
+            withContext(dispatcheurs.io) {
+                sessionKotlin.appliquerClasspath(brut, vue = null)
+            }
+            journal.i(TAG) {
+                "Kotlin en régime projet seul : session Java absente — " +
+                    "session Kotlin nourrie du classpath brut (projet ${identifiantSuivi()})"
+            }
+        }
+
+        /**
+         * KP5 — voie de repli RÉOUVERTURE : nourrit la session Kotlin
+         * SEULE depuis le modèle persisté `.codeide/local/lsp-modele.json`
+         * (session Java absente — même fenêtre que [nourrirKotlinProjetSeul])
+         * : lecture directe ([PersistanceModeleLsp.lire] — validation des
+         * entrées par le système, refus propre si absent/corrompu/périmé),
+         * vue null assumée, journal explicite. Fichier absent ou Kotlin
+         * absente : silence discret (le nourrissage post-sync prendra le
+         * relais — même contrat que le chemin Java).
+         */
+        internal suspend fun nourrirKotlinProjetSeulDepuisModelePersiste(
+            sessionKotlin: SessionLspKotlin?,
+            racine: File?,
+        ) {
+            if (sessionKotlin == null || racine == null) return
+            val fichier = racine.resolve(".codeide/local/lsp-modele.json")
+            val persiste =
+                PersistanceModeleLsp().lire(fichier, LecteurStatistiquesSysteme()) ?: return
+            withContext(dispatcheurs.io) {
+                sessionKotlin.appliquerModele(persiste.projet, vue = null)
+            }
+            journal.i(TAG) {
+                "Kotlin en régime projet seul : session Java absente — " +
+                    "session Kotlin nourrie du modèle persisté " +
+                    "(${persiste.projet.modules.size} module(s), projet ${identifiantSuivi()})"
             }
         }
 
