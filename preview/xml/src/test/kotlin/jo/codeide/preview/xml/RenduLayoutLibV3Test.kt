@@ -2,7 +2,10 @@ package jo.codeide.preview.xml
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
+import jo.layoutlib.inflater.BridgeInflater
+import jo.layoutlib.inflater.ViewTagRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -356,28 +359,15 @@ class RenduLayoutLibV3Test {
     // ============================================================
     // G5/v0.134.2 — Chrome système : bounds de sélection ABSOLUES
     // dans le bitmap (décalage status bar + action bar compensé à
-    // la COLLECTE, invariant CodeAssist : un seul espace de
-    // coordonnées pour draw, hit-test et surlignage).
+    // la COLLECTE — invariant : un seul espace de coordonnées pour
+    // draw, hit-test et surlignage).
     // ============================================================
 
-    /** Le même layout simple que les tests PE5, rendu AVEC chrome (themeName). */
-    private fun rendreAvecChrome(): ResultatRendu {
-        val xml =
-            """
-            <?xml version="1.0" encoding="utf-8"?>
-            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Hello Chrome" />
-            </LinearLayout>
-            """.trimIndent()
+    /** Le layout passé, rendu AVEC chrome (themeName). */
+    private fun rendreAvecChrome(texte: String): ResultatRendu {
         val requete =
             RequeteRendu(
-                texte = xml,
+                texte = texte,
                 dossierRes = null,
                 genre = GenrePreview.LAYOUT,
                 profil = ProfilPeripherique.PAR_DEFAUT,
@@ -387,9 +377,24 @@ class RenduLayoutLibV3Test {
         return pipeline.rendre(requete, compresser = false).rendu
     }
 
+    /** XML racine LinearLayout vertical + TextView, en match_parent. */
+    private val xmlRacineMatchParent: String =
+        """
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hello Chrome" />
+        </LinearLayout>
+        """.trimIndent()
+
     @Test
     fun `chrome - la racine utilisateur est décalée du chrome dans le bitmap`() {
-        val resultat = rendreAvecChrome()
+        val resultat = rendreAvecChrome(xmlRacineMatchParent)
         assertTrue("le rendu avec chrome doit réussir", resultat.ok)
         assertTrue("des vues attendues pour le hit-test", resultat.vues.isNotEmpty())
         // ChromeSysteme : status bar 24dp + action bar 56dp, à la densité
@@ -428,6 +433,85 @@ class RenduLayoutLibV3Test {
             "sans themeName, pas de chrome : la racine reste à 0 dans le bitmap",
             0,
             resultat.vues.first().haut,
+        )
+    }
+
+    // ============================================================
+    // v0.134.3 — LayoutLib v3.4.6 : la racine honore ses dimensions
+    // DÉCLARÉES (match_parent / wrap_content lus sur le tag racine).
+    // Avant, l'inflater posait un WRAP_CONTENT factice sur la racine
+    // sans parent : sous chrome, le layout match_parent restait tassé
+    // en haut à gauche de la zone de contenu au lieu de la remplir.
+    // ============================================================
+
+    @Test
+    fun `racine sans parent - l inflater honore les dimensions declarees`() {
+        // Robolectric exécute les VRAIES classes android.view : les
+        // LayoutParams produits par l'inflater sont observables (sur
+        // JVM pure, l'android.jar mockable rendrait le constructeur
+        // no-op et les champs illisibles).
+        val inflater = BridgeInflater(contexte, ViewTagRegistry(false))
+        val racine = inflater.inflate(xmlRacineMatchParent)
+        assertEquals(
+            "layout_width déclarée match_parent → MATCH_PARENT",
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            racine.layoutParams.width,
+        )
+        assertEquals(
+            "layout_height déclarée match_parent → MATCH_PARENT",
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            racine.layoutParams.height,
+        )
+    }
+
+    @Test
+    fun `chrome - la racine match_parent remplit la zone de contenu`() {
+        val resultat = rendreAvecChrome(xmlRacineMatchParent)
+        assertTrue("le rendu avec chrome doit réussir", resultat.ok)
+        assertTrue("des vues attendues pour le hit-test", resultat.vues.isNotEmpty())
+        val racine = resultat.vues.first()
+        val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
+        val chromeAttendu = (24 * densite).toInt() + (56 * densite).toInt()
+        // La racine déclarée match_parent × match_parent doit REMPLIR la
+        // zone de contenu : toute la largeur du bitmap, du bas du chrome
+        // jusqu'au bas du bitmap. Avant le correctif, elle restait tassée
+        // en haut à gauche de la zone de contenu (WRAP_CONTENT factice).
+        assertEquals("la racine part du bord gauche du bitmap", 0, racine.gauche)
+        assertEquals("la racine remplit toute la largeur", resultat.largeur, racine.droite)
+        assertEquals("la racine commence sous le chrome", chromeAttendu, racine.haut)
+        assertEquals("la racine descend jusqu'en bas du bitmap", resultat.hauteur, racine.bas)
+    }
+
+    @Test
+    fun `chrome - la racine wrap_content reste compacte (comportement declared)`() {
+        val resultat =
+            rendreAvecChrome(
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Compact" />
+                </LinearLayout>
+                """.trimIndent(),
+            )
+        assertTrue("le rendu avec chrome doit réussir", resultat.ok)
+        assertTrue(resultat.vues.isNotEmpty())
+        val racine = resultat.vues.first()
+        val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
+        val chromeAttendu = (24 * densite).toInt() + (56 * densite).toInt()
+        // Une racine déclarée wrap_content ne doit PAS être étirée : elle
+        // démarre sous le chrome, en haut à gauche de la zone de contenu,
+        // et ses bounds s'arrêtent à son contenu (fidélité au XML déclaré).
+        assertEquals("la racine wrap démarre sous le chrome", chromeAttendu, racine.haut)
+        assertEquals("la racine wrap part de la gauche", 0, racine.gauche)
+        assertTrue(
+            "la racine wrap ne remplit pas la hauteur (bas ${racine.bas} < bitmap ${resultat.hauteur})",
+            racine.bas < resultat.hauteur,
         )
     }
 }

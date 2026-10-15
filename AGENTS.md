@@ -76,7 +76,7 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
 7. Aucun secret ni `local.properties` dans le dépôt ni dans l'archive.
    Exception unique (ADR 0067) : l'identité debug PUBLIQUE
    `config/signature/debug.keystore` est versionnée — identifiants de
-   convention Android, pas un secret, patrons AOSP/CodeAssist — pour que
+   convention Android, pas un secret, patrons AOSP — pour que
    tous les APK debug (CI, contributeurs, machines locales) partagent la
    même signature. Les clés RELEASE restent interdites au dépôt
    (échelle hors dépôt : `keystore.properties` gitignoré → `-PRELEASE_*`
@@ -97,6 +97,20 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
     ne doit jamais lui-même planter ni bloquer : `try/catch` global, garde de
     ré-entrance, délégation au système sur boucle ou échec, aucune injection
     sur le chemin critique, liaison avec `core:logging` par lambdas.
+13. **Aucune mention de projet tiers du même type que CodeIDE dans le
+    dépôt** (décision propriétaire du 2026-10-15) : ni commentaires/KDoc,
+    ni documentation, ni CHANGELOG, ni messages de commit ou tags ne citent
+    le nom d'un autre IDE/éditeur Android, de son dépôt, de ses classes ou
+    de son auteur. L'étude comparative de tels projets reste PERMISE pour
+    choisir une approche (veille, comparaison d'architectures), mais elle
+    reste INTERNE à la session : le dépôt n'en garde AUCUNE trace écrite.
+    Motif : éviter tout problème de licence (attribution ambiguë, dérivée
+    présumée) ; les références aux plateformes et outils (AOSP, SDK
+    Android, JDK, Gradle, dépendances du catalogue) ne sont pas concernées.
+    Les mentions historiques préexistantes (docs anciennes, CHANGELOG,
+    historique git) seront purgées globalement par le propriétaire — les
+    nouvelles contributions doivent être silencieuses sur leurs sources
+    d'inspiration dès maintenant.
 
 ## Architecture (sections 5 et 6 du prompt)
 
@@ -1449,9 +1463,9 @@ conflit, la plus récente prime.
       jjoblab/LayoutLib commit 6c56ab8).
 - v0.109.0 : **cadrage des missions LSP Kotlin / LSP XML / Previews**
       (docs/LSP_KOTLIN.md, docs/LSP_XML.md, docs/PREVIEW.md — décisions
-      propriétaire 2026-10-13) : étude comparative CodeAssist (tyron12233,
-      GPL — enseignements SEULEMENT, zéro code : pas de LSP du tout chez
-      eux, parseur seul + 31k lignes de symboles propres, FIR rejeté par
+      propriétaire 2026-10-13) : étude comparative d'un IDE Android tiers
+      sous GPL (enseignements SEULEMENT, zéro code : pas de LSP du tout
+      chez lui, parseur seul + 31k lignes de symboles propres, FIR rejeté par
       frappe, compilateur K2 forké en VM persistante sur ART + 9 passes
       ASM « compiler-on-ART » + Analysis API réservée à KSP2) ; analyse
       directe jjoblab/LayoutLib v2.1.0 (6 modules, 329 classes, 868 tests
@@ -1471,8 +1485,8 @@ conflit, la plus récente prime.
       XE1–XE4). Previews : P1–P6/PC1–PC4 (XML via LayoutLib dépendance
       Maven versionnée + FUSE + isolation processus :preview AIDL/
       DeathRecipient/repli ; Compose = interpréteur sur l'arbre résolu
-      approche CodeAssist APRÈS stabilisation LSP Kotlin, runtime Compose
-      = bibliothèque de preview, ADR 0002 intact, garde-fous
+      (approche issue du comparatif) APRÈS stabilisation LSP Kotlin,
+      runtime Compose = bibliothèque de preview, ADR 0002 intact, garde-fous
       obligatoires ; PE1–PE3/C0–C3). ROADMAP Phase 5 réécrite
       (5.1 livré, 5.2–5.4 cadrés). Version documentation pure : aucun
       code modifié, suites inchangées.
@@ -1969,8 +1983,8 @@ conflit, la plus récente prime.
       "jo.lspjava.ecj" ; inchangés (table) : RawZipReader, SourceFocuser,
       ClassFileStubBuilder, CancelToken, OperationCanceledException,
       CompilationEnvironment, façades LSP4J, api/*, services/*,
-      jo.lspjava.jdtpatch ; mentions provenance CodeAssist conservées
-      (audit D3) ; lsp:java 277 tests verts.
+      jo.lspjava.jdtpatch ; mentions de provenance du projet source
+      conservées (audit D3) ; lsp:java 277 tests verts.
 - v0.94.0 : **mission « LSP Java » étape 3 (lot A) — shims ART
       réécrits depuis la spécification JDK** (traitement D3 lot 1,
       ADR 0110 §5.3 — « priorité absolue, petit volume » ;
@@ -2083,16 +2097,16 @@ conflit, la plus récente prime.
       « portage », ressemblance textuelle faible 0,08–0,26 MAIS
       constantes identiques CompletionRanker (1000/500/200/120/300/200/
       400) ; ecj-art : passes RelocateTypesInJar/EclipseStreamArtPass
-      retrouvées dans build-logic CodeAssist ; 6 noms de fichiers
+      retrouvées dans le build-logic du projet source ; 6 noms de fichiers
       identiques ; contre-exemple JdtLocateCache (LRU ≠ CLOCK)] ; ADR
       [0108 D1 module vendored Java exempté + couches neuves Kotlin ;
       0109 D2 in-process ART + transport abstrait ; 0110 D3 PROPOSÉ —
       4 options au propriétaire, aucune publication avant règlement ;
-      0111 D4 index disque segments PAR JAR (amélioration vs CodeAssist
-      classpath entier) ; 0112 D5 android.jar seul pour modules
+      0111 D4 index disque segments PAR JAR (amélioration vs le
+      classpath entier du projet source) ; 0112 D5 android.jar seul pour modules
       Android, conformité par module] ; plan de renommage [préfixe Ecj*,
       package jo.lspjava.ecj, shims → ArtCompat* — évite tout nom
-      CodeAssist] ; cibles §9 recalées sur mesures [ouverture < 1,5 s
+      du projet source] ; cibles §9 recalées sur mesures [ouverture < 1,5 s
       inatteignable sans persistance ; types p95 < 100 ms violée dès
       250 jars ; tas < 30 Mo structurellement hors borne] ; étape 1
       repriorisée en conséquence. En ATTENTE : décision D3 du
@@ -2306,9 +2320,9 @@ conflit, la plus récente prime.
       assembleDebug 20,6 Mo.
 - v0.81.0 : **mission « Exécuter » R0+R1 — le bouton Run d'Android
       Studio, sans adb** (compile → installe → lance) : recherche des
-      références mesurée (AndroidIDE : récepteur EXPORTÉ forgeable,
-      aucune relance, aucune gestion de permission ; CodeAssist :
-      permission guidée avec reprise 5 min, récepteur non exporté à
+      références mesurée (un IDE tiers : récepteur EXPORTÉ forgeable,
+      aucune relance, aucune gestion de permission ; un autre : permission
+      guidée avec reprise 5 min, récepteur non exporté à
       action par session, 10×200 ms de relances, lancement relayé au
       process UI ; aucun des deux n'utilise setRequireUserAction) ;
       R0 [ADR 0102 (PackageInstaller : garde canRequestPackageInstalls

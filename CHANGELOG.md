@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.134.3] – 2026-10-15
+
+### Corrigé
+
+- **Preview XML — la racine `match_parent` reste tassée en haut à gauche
+  sous le chrome (G5)** (retour utilisateur : « malgré match_parent en w
+  et h, le parent n'est pas fit, il est resté en haut à gauche »). Depuis
+  G5, la racine du layout vit DANS le conteneur chrome (FrameLayout
+  weight=1 sous status bar + action bar) : ses LayoutParams propres
+  deviennent effectifs. Or l'inflater LayoutLib posait un `WRAP_CONTENT`
+  factice sur toute racine inflatée sans parent (les dimensions déclarées
+  sur le tag racine étaient ignorées) : sans chrome le défaut était
+  invisible (`LayoutEngineImpl.render` mesure la racine en `EXACTLY`),
+  mais sous chrome la racine était mesurée en `AT_MOST` et s'empilait en
+  haut à gauche au lieu de remplir la zone de contenu.
+  - **Correctif (LayoutLib v3.4.6)** : `BridgeInflater.parseElement` lit
+    désormais `android:layout_width`/`android:layout_height` déclarés sur
+    le tag racine (`match_parent`/`wrap_content`/taille fixe, défaut
+    `wrap_content` si absent) — même règle de dimension que
+    `produceLayoutParams` pour les enfants. Épinglage CI et commentaire
+    `settings.gradle.kts` passés au tag `v3.4.6`.
+  - **Tests de non-régression** (`RenduLayoutLibV3Test`, Robolectric) :
+    l'inflater honore les dimensions déclarées ; la racine `match_parent`
+    remplit toute la zone de contenu sous chrome (largeur bitmap complète,
+    du bas du chrome jusqu'en bas du bitmap) ; une racine `wrap_content`
+    reste compacte (fidélité au XML déclaré).
+
+### Modifié
+
+- **Purge des mentions de projets tiers** (décision propriétaire du
+  2026-10-15, règle 13 d'AGENTS.md) : retrait du nom des projets tiers
+  étudiés (comparatifs d'architecture) des fichiers du pipeline preview —
+  KDoc/commentaires de `RenduLayoutLib`, `ServicePreview`, `GenrePreview`,
+  `ControleurPreviewXml`, `RenduLayoutLibV3Test`, `docs/PREVIEW.md` et
+  l'entrée v0.134.2 de ce journal. Les enseignements restent, les noms
+  s'en vont : éviter tout problème de licence. Une purge globale des
+  mentions historiques restantes est prévue par le propriétaire.
+- **AGENTS.md — nouvelle règle impérative 13** : aucune mention de projet
+  tiers du même type que CodeIDE dans les commentaires/KDoc, la
+  documentation, le CHANGELOG, les messages de commit ou les tags ;
+  l'étude comparative reste permise mais muette.
+
 ## [0.134.2] – 2026-10-15
 
 ### Corrigé
@@ -17,8 +59,8 @@
   rendue), une seule direction compensée sur deux, et jamais transportée à
   travers la frontière AIDL (`ResultatRendu` n'avait pas le champ — le
   régime nominal `:preview` perdait la compensation).
-  - **Correctif (invariant CodeAssist, miroir `ViewHierarchyCapture`)** :
-    l'offset du contenu dans l'arbre rendu est calculé APRÈS le layout
+  - **Correctif (invariant un seul espace de coordonnées)** : l'offset
+    du contenu dans l'arbre rendu est calculé APRÈS le layout
     (remontée de la chaîne des parents, cumul left/top, scroll défaqué) et
     les bounds sont TRANSLATÉES à la collecte dans
     `RenduLayoutLib.collecterVues` — draw, hit-test et surlignage partagent

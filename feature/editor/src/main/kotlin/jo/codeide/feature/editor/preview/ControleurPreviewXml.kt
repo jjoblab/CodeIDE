@@ -309,9 +309,9 @@ class ControleurPreviewXml(
      *
      * v0.134.2 — PLUS de compensation d'offset chrome ici : les bounds
      * InfoVueRendu sont ABSOLUES dans le bitmap depuis le pipeline
-     * (translation à la collecte côté RenduLayoutLib, miroir CodeAssist),
-     * le tap arrive déjà en coordonnées bitmap — les DEUX directions du
-     * P6 (tap et surlignage) partagent le même espace.
+     * (translation à la collecte côté RenduLayoutLib), le tap arrive
+     * déjà en coordonnées bitmap — les DEUX directions du P6 (tap et
+     * surlignage) partagent le même espace.
      */
     private fun selectionnerVueSous(
         x: Float,

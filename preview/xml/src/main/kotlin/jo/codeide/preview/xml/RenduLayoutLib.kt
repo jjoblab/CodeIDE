@@ -266,6 +266,10 @@ public class RenduLayoutLib(
         // valeur non reconnue, frappe en cours), on l'applique manuellement
         // depuis le XML brut — le hack reste en filet de sécurité.
         appliquerBackgroundRacine(racine, requete.texte)
+        // Garde défensive (v0.134.3) : l'inflater LayoutLib pose
+        // DÉSORMAIS les dimensions DÉCLARÉES sur la racine (v3.4.6 —
+        // match_parent/wrap_content/taille fixe lus sur le tag racine) ;
+        // ce repli ne sert que si un futur inflater oubliait d'en poser.
         if (racine.layoutParams == null) {
             racine.setLayoutParams(
                 ViewGroup.LayoutParams(
@@ -287,9 +291,9 @@ public class RenduLayoutLib(
         // v0.134.2 — offset du CONTENU dans l'arbre rendu, calculé APRÈS le
         // layout (les positions left/top ne valent rien avant). Les bounds
         // ViewInfoCollector sont relatives à la racine passée ; on les
-        // translate dans l'espace du BITMAP dès la collecte — invariant
-        // CodeAssist : draw, hit-test et surlignage partagent LE MÊME espace
-        // de coordonnées, aucune compensation en aval (le décalage chrome
+        // translate dans l'espace du BITMAP dès la collecte — invariant :
+        // draw, hit-test et surlignage partagent LE MÊME espace de
+        // coordonnées, aucune compensation en aval (le décalage chrome
         // v0.133.5 compensait en aval, une direction sur deux, et ne
         // traversait pas la frontière AIDL).
         val (decalageGauche, decalageHaut) = decalageContenuDansArbreRendu(racine)
@@ -768,10 +772,9 @@ public class RenduLayoutLib(
      * LinearLayout decor : les bounds sont alors décalées d'autant par
      * rapport au bitmap dessiné. La remontée de la chaîne des parents
      * cumule les positions (left/top) en défaquant le scroll
-     * (scrollX/scrollY) — miroir du ViewHierarchyCapture de CodeAssist :
-     * les bounds s'alignent 1:1 sur le bitmap par CONSTRUCTION. Sans
-     * chrome, la racine n'a pas de parent Vue : l'offset est (0, 0) et le
-     * comportement v0.132.x est inchangé.
+     * (scrollX/scrollY) — les bounds s'alignent 1:1 sur le bitmap par
+     * CONSTRUCTION. Sans chrome, la racine n'a pas de parent Vue : l'offset
+     * est (0, 0) et le comportement v0.132.x est inchangé.
      */
     private fun decalageContenuDansArbreRendu(racine: View): Pair<Int, Int> {
         var gauche = 0

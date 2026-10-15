@@ -1,8 +1,8 @@
 package jo.codeide.preview.xml
 
 /**
- * Genre d'un fichier previewable (classification `previewKindOf` à la
- * CodeAssist, PREVIEW.md §3.2 : layout / drawable / valeurs).
+ * Genre d'un fichier previewable (classification `previewKindOf`,
+ * PREVIEW.md §3.2 : layout / drawable / valeurs).
  *
  * PE1 ne REND que [LAYOUT] ; [DRAWABLE] et [VALEURS] sont classifiés dès
  * maintenant (l'activation du panneau et l'état des lieux en parlent déjà)

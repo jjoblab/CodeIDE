@@ -8,8 +8,8 @@ import android.os.IBinder
  * Service de rendu du processus `:preview` (PE2, PREVIEW.md §3 P3 —
  * manifest : `android:process=":preview"`, bound-only, non exporté).
  *
- * Miroir de la leçon CodeAssist (`:preview` + AIDL + DeathRecipient +
- * repli) : le rendu des layouts du PROJET ÉDITÉ vit ICI — une vue
+ * Architecture d'isolation (`:preview` + AIDL + DeathRecipient + repli) :
+ * le rendu des layouts du PROJET ÉDITÉ vit ICI — une vue
  * framework qui crashe (une classe custom, un drawable hostile) tue CE
  * processus, l'éditeur observe la mort par DeathRecipient et reprend
  * (politique [TransportIsolation] côté app).
