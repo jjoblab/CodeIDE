@@ -1,5 +1,30 @@
 # Journal des modifications
 
+## [0.134.18] – 2026-10-16
+
+### Ajouté
+
+- **LSP Java — lot S2-a « confort structurel »** :
+  `textDocument/rangeFormatting` (formater la SÉLECTION — le formateur
+  Eclipse parse l'unité entière mais ne produit d'éditions que dans la
+  plage demandée ; capacité `documentRangeFormattingProvider` déclarée ;
+  source imparsable → aucune édition, jamais de buffer mutilé) et
+  **survol riche javadoc** : signature + documentation de la déclaration
+  (même fichier) en `MarkupContent` MARKDOWN, signature seule en
+  PLAINTEXT — abandon de la forme dépréciée `MarkedString`-string
+  (KP14, miroir du survol Kotlin v0.134.9) ; extraction textuelle du
+  javadoc (le parseur ecj ne monte le nœud `Javadoc` qu'avec
+  `docCommentSupport` — extraction bornée par remontée d'en-tête +
+  nettoyage markdown honnête `{@code}`/`{@link}`/`<p>` ; symboles
+  binaires → signature seule, périmètre assumé).
+
+### Modifié
+
+- `EcjCompilerEngine.hoverAt` : le hover retourne désormais la signature
+  SOUS clôtures (contrat inchangé) via `hoverRicheAt` — `hoverOf` ne
+  pose plus les clôtures lui-même ; `HoverService` expose
+  `survolRicheAt` (signature + documentation) à la place de `hoverAt`.
+
 ## [0.134.17] – 2026-10-16
 
 ### Ajouté
