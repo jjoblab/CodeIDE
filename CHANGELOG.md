@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.134.11] – 2026-10-15
+
+### Ajouté
+
+- **LSP Java — lot S0-a « hygiène protocolaire » + S0-b « rename honnête »
+  (plan de stabilisation §3.1, rapports §6.3 I2/I3/I5/I7/I8/I9 + quick-win
+  I1)** :
+  - **I2 — garde lifecycle centralisée** : `verifierLifecycle()` au sommet
+    de CHAQUE requête de `JavaTextDocumentService` (19 handlers) et de
+    `executeCommand` — rejet `ServerNotInitialized` (-32002) avant
+    `initialized`, `InvalidRequest` (-32600) après `shutdown` (le javadoc
+    documentait ces obligations depuis longtemps, aucun service ne
+    consultait `lifecycleState()`) ; les NOTIFICATIONS (didOpen/didChange/
+    didClose/didSave/didChangeConfiguration/didChangeWatchedFiles) sont
+    IGNORÉES hors fenêtre (spec 3.17 — une notification n'a pas de réponse
+    d'erreur). LSP4J préserve le code et le message
+    (`RemoteEndpoint.DEFAULT_EXCEPTION_HANDLER` déroule la
+    `ResponseErrorException`).
+  - **I3 — initialize réentrant** : un second `initialize` est rejeté en
+    `InvalidRequest` (l'ancien warning re-transitionnait l'état — un client
+    buggé pouvait ré-initialiser un serveur en fin de vie sans le savoir).
+  - **I5 — didSave republie depuis le buffer** : la republication n'est
+    PLUS conditionnelle à `includeText` — le buffer vivant EST la source de
+    vérité ; un document jamais ouvert reste sans publication (l'invalidation
+    du cache suffit) ; le texte sauvegardé divergent (édition externe) est
+    adopté.
+  - **I7 — serverInfo.version injectée** : lue depuis la ressource
+    `jo/lspjava/pack/version.properties` (même convention que les packs
+    lsp:kotlin/lsp:xml, synchronisée à chaque lot) — la version fantôme
+    « 1.2.0 » codée en dur ne peut plus désynchroniser les journaux client ;
+    repli « inconnue » tracé.
+  - **I9 — convention null/vide écrite et appliquée** : règle unique en
+    tête de `JavaTextDocumentService` — `null` = « capacité indisponible ce
+    tour-ci, le client garde son repli » (hover, foldingRange — désormais
+    AUSSI sur moteur occupé/dépassement/échec, pas seulement absent) ;
+    liste/struct vide = « capacité disponible, aucune donnée » (navigation,
+    inlayHint, semanticTokens, completion).
+  - **I8 — rename honnête** : plus aucun échec silencieux — moteur pas
+    prêt, aucune cible au curseur (message FR + `data` structuré
+    `renommage.sansCible` avec uri/ligne/colonne) et échec interne sont des
+    erreurs TYPOÉES `RequestFailed` (-32803) ; `prepareRename` retourne la
+    plage EXACTE du jeton (RenameTarget porte [declStart, declEnd) — un
+    caret au MILIEU du nom donnait une plage décalée) + placeholder exact ;
+    forme versionnée `documentChanges` (VersionedTextDocumentIdentifier)
+    quand le client négocie `workspace.workspaceEdit.documentChanges`,
+    forme héritée `changes` sinon (cel-lsp actuel — décompile vérifié :
+    il consomme les deux formes mais n'annonce pas WorkspaceEditCapabilities).
+  - **I1 — javadoc de ServerCapabilitiesProvider honnête** : le contrat
+    « négociation » promise mais jamais implémentée est réécrit (capabilities
+    stockées et exposées pour la négociation fine — createCapabilities ne
+    consulte pas).
+- **Tests** : +15 (`LifecycleHygieneTest` 10 — I2 avant/après lifecycle,
+  notifications ignorées, I5 avec-sans includeText et document jamais
+  ouvert, I7 version = ressource du dépôt, I9 convention, I8 sans
+  classpath ; `RenameHonneteTest` 5 — placeholder/plage exacts au caret
+  milieu, erreur typée sans cible, nominal forme `changes`, nominal forme
+  `documentChanges` versionnée) ; `InlayHintTest` +
+  `EcjChainedLambdaHintsTest` passent par le lifecycle réel (le garde I2
+  les a rejétés — c'était le but) ; lsp:java 330 tests verts, lsp:host 86.
+
 ## [0.134.10] – 2026-10-15
 
 ### Ajouté
