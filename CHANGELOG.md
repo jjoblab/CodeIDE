@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.134.13] – 2026-10-15
+
+### Changé
+
+- **LSP Kotlin — KP5 « isolation de défaillance » (plan de stabilisation
+  §3.2 S1, audit rapport-analyse-lsp-kotlin §6.3-1/§8.7/§9.1 S1-5)** : les
+  deux chemins de nourrissage de l'espace
+  (`nourrirSessionLspDepuisModelePersiste`, `nourrirSessionLspSiSyncUtile`)
+  bail-early quand la session Java est absente (`sessionLspInterne.value ?:
+  return`) — or la session Kotlin peut VIVRE sans elle (fenêtre de
+  découplage : refus du registre à l'ouverture — la session Java est
+  refermée localement pendant que Kotlin/XML continuent de s'ouvrir) ; une
+  régression Java dégradait donc SILENCIEUSEMENT le LSP Kotlin, resté
+  indéfiniment en régime « projet seul » sans même tenter de se nourrir
+  seul. Voie de repli :
+  - **sync utile** : le `ClasspathResult` BRUT est résolu
+    indépendamment de la session Java — la session Kotlin vivante est
+    nourrie DIRECTEMENT (`appliquerClasspath(brut, vue = null)`, régime
+    dégradé toléré et documenté par `SessionLspKotlin`) ; le cas « aucune
+    session » conserve son silence historique (garde
+    `session == null && sessionKotlin == null` avant toute résolution —
+    comportement inchangé).
+  - **réouverture** : lecture DIRECTE du modèle persisté
+    `.codeide/local/lsp-modele.json` (`PersistanceModeleLsp.lire` —
+    validation des entrées par le système, refus propre si
+    absent/corrompu/périmé) + `appliquerModele(projet, vue = null)`.
+  - **journal explicite = contrat minimum de l'audit** : « Kotlin en
+    régime projet seul : session Java absente — … » (la source de
+    nourrissage est nommée : classpath brut ou modèle persisté).
+  - La fenêtre de découplage elle-même (course de concurrence du
+    registre) n'est pas reproductible en test unitaire : la LOGIQUE des
+    deux voies de repli est verrouillée par 4 tests dédiés sur des
+    sessions Kotlin réelles (`LspEditorViewModelTest`), le régime
+    « vue null » du moteur l'étant déjà côté hôte
+    (`SessionLspKotlinTest`). 385 tests :feature:editor, 0 échec.
+
 ## [0.134.12] – 2026-10-15
 
 ### Changé
