@@ -325,7 +325,6 @@ public class MoteurPreviewXml(
                     largeur = resultat.largeur,
                     hauteur = resultat.hauteur,
                     vues = resultat.vues,
-                    decalageChromeY = resultat.decalageChromeY,
                 )
             }
 

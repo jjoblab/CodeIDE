@@ -16,9 +16,10 @@ public sealed interface EtatPreviewXml {
     /**
      * Rendu valide : le bitmap off-screen dessiné, avec ses métriques
      * (durée du rendu, nombre de vues, dimensions réellement mesurées) et
-     * l'arbre APLATI des vues rendues (PE3, P6 : bounds absolus + span
-     * source de chaque vue — le hit-test de l'UI sélectionne dans
-     * l'éditeur, la sélection de l'éditeur surligne la vue).
+     * l'arbre APLATI des vues rendues (PE3, P6 : bounds absolues dans le
+     * BITMAP — chrome compris, v0.134.2 — + span source de chaque vue :
+     * le hit-test de l'UI sélectionne dans l'éditeur, la sélection de
+     * l'éditeur surligne la vue).
      */
     @Suppress("LongParameterList")
     public class RenduValide(
@@ -34,10 +35,6 @@ public sealed interface EtatPreviewXml {
         public val hauteur: Int,
         /** Vues rendues en pré-ordre (vide hors LAYOUT — pas de sélection). */
         public val vues: List<InfoVueRendu> = emptyList(),
-        /** v0.133.5 — décalage Y du chrome (status bar + action bar) en
-         *  pixels. Les coordonnées InfoVueRendu sont relatives au contenu,
-         *  pas au bitmap. Le hit-test doit soustraire ce décalage. */
-        public val decalageChromeY: Int = 0,
     ) : EtatPreviewXml
 
     /**
