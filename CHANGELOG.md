@@ -1,5 +1,59 @@
 # Journal des modifications
 
+## [0.134.17] – 2026-10-16
+
+### Ajouté
+
+- **LSP Java — lot S1-a « compliance par projet » (protocole v10)** —
+  ferme le lot S1 complet (S0-a/b v0.134.11, S1-b/c/d v0.134.16 ; audit
+  rapport-analyse-lsp-java §11 S1-a, journal détaillé en
+  `docs/LSP_JAVA.md` §19.2) :
+  - **Protocole v10** : `ClasspathModule` gagne
+    `sourceCompatibility`/`targetCompatibility` (optionnels, `null` =
+    niveau indécidable → défaut moteur « 17 ») — le niveau Java du
+    projet (`sourceCompatibility`/`targetCompatibility` des scripts
+    Gradle) voyage avec le classpath : modèle v2 d'AGP
+    (`JavaCompileOptions`) pour les modules Android,
+    `javaLanguageSettings` Idea pour les modules JVM purs ; résolutions
+    protégées (tooling ancien → `null`, jamais d'échec du classpath).
+    `GradleProtocol.PROTOCOL_VERSION` 9 → 10 (handshake égalité exacte,
+    deux bouts dans le même APK) ; les 38 goldens régénérés.
+  - **Descente au modèle** : `ModuleLsp.compatibiliteSource/Cible` —
+    normalisation « 1.8 » → « 8 » à la frontière (empreinte
+    indépendante de la notation du tooling) ; le niveau ENTRE dans
+    l'empreinte du module : changer le niveau d'un script Gradle
+    invalide SON moteur, sans toucher les autres.
+  - **Descente au moteur** : un niveau Java PAR contexte module —
+    `remplacerContexteModule(module, sources, classpath, compliance)` ;
+    la voie historique à 3 arguments CONSERVE le niveau posé, `null`
+    explicite = retour honnête au défaut ; changement de niveau seul →
+    invalidation du moteur du module + notification ; sync redondant
+    (listes ET niveau) = no-op système conservé. Observabilité :
+    `complianceModule(module)` (environnement),
+    `complianceDemandee()` (moteur).
+  - **Hôte** : `OrchestrateurLsp.pousserMoteurs` descend le niveau du
+    module avec ses listes — un module Java 8 reçoit les diagnostics de
+    SON niveau (`var` refusé), un module 21 les siens (records/switch à
+    motifs conformes).
+- **Tests** : critère d'acceptation de l'audit (le même source
+  `var`+record REFUSÉ sous « 8 », switch à motifs CONFORME sous « 21 »)
+  + sémantiques du niveau (moteur) ; AGP v2 (niveaux bruts transportés),
+  modèle (normalisation, empreinte muet ≠ 8 ≠ 21), hôte (descente
+  bout-en-bout, no-op redondant) ; parité régénérée, contre-vérification
+  SANS flag verte.
+
+### Documenté
+
+- **S0-c — décision D3 du propriétaire partiellement actée
+  (16/10/2026)** : réécriture ciblée aux seuls shims niveau A
+  objectivés par l'audit (`RuntimeVersion`, `StackWalker`,
+  `InputStreamCompat`) — la quasi-totalité des fichiers étant de l'auteur
+  (référence CodeAssist consultée pour l'APPROCHE seulement, « pas au
+  mot près ») ; niveau B inchangé, pas de lot G complet. Trace :
+  `docs/adr/0110-lsp-java-provenance-licence.md` (statut « accepté
+  partiellement ») + PV `docs/LSP_JAVA.md` §18.2 ; le protocole de
+  mesure appareil reste en séance dédiée.
+
 ## [0.134.16] – 2026-10-16
 
 ### Ajouté
