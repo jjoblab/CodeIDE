@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.134.16] – 2026-10-16
+
+### Ajouté
+
+- **LSP Java — lot S1 « parité utile JDT.LS » : diagnostics riches
+  (tags), `workspace/symbol`, watched files côté hôte** (plan de
+  stabilisation §3.1, audit rapport-analyse-lsp-java §11 S1-b/S1-c/S1-d,
+  I4 ; journal détaillé en `docs/LSP_JAVA.md` §19.1) :
+  - **S1-b — tags de diagnostics** : `DiagnosticTag.Unnecessary` sur la
+    famille ecj des « never used » (`UnusedImport`,
+    `UnusedPrivate{Type,Field,Method,Constructor}`, `UnusedLabel`,
+    `UnusedTypeParameter`) — l'éditeur cel peint la plage estompée
+    (consommation VIVANTE vérifiée dans `LspDiagnosticsManager`) ;
+    `DiagnosticTag.Deprecated` sur les usages d'un membre déprécié.
+    Mapping PUR depuis l'ID ecj transporté (`ecj:<id>`), aucun tag
+    inventé hors familles connues.
+  - **S1-c — workspace/symbol** : capacité `workspaceSymbolProvider` +
+    handler dans `JavaWorkspaceService` — types par préfixe sur le
+    substrat gradué existant (index disque des jars + sources projet en
+    cache TTL + image jrt, verrou de l'index côté moteur), plafond 64 ;
+    localisation SOURCE réelle (plage du nom déclarant, heuristique
+    textuelle bornée), types binaires sans source ÉCARTÉS (jamais d'URI
+    factice — D3) ; requête vide / moteur non prêt → liste vide (I9).
+  - **S1-d — watched files côté hôte** (I4, remède (a) de l'audit) : la
+    voie protocole n'est plus muette — `SessionLsp` lance un
+    surveillant de fichiers (`SurveillantFichiersHote` : balayage
+    périodique borné du répertoire projet, `.java` seul, plafond 2000,
+    diff mtime en ordre déterministe) qui pousse les `FileEvent` à
+    chaque serveur Java VIVANT (registre avec désinscription par le
+    rappel `aLArret` de shutdown/exit) ; période 5 s par défaut,
+    `surveillanceFichiersMs <= 0` = neutre (tests) ; un git pull /
+    édition externe atteint l'invalidation du cache de parse sans
+    réouverture.
+- **Tests** : `JavaS1RicheTest` (8) + `SurveillantFichiersHoteTest` (5) ;
+  parité régénérée (973 fichiers, contre-vérification SANS flag verte).
+
 ## [0.134.15] – 2026-10-15
 
 ### Ajouté
