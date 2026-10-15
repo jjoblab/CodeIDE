@@ -88,6 +88,13 @@ public class MoteurPreviewXml(
     /** v0.133.1 — G2/G5 : thème activité (null = pas de chrome). */
     private var themeNameCourant: String? = null
 
+    /**
+     * v0.134.4 — label d'activité pour le TITRE de l'action bar du chrome
+     * (`android:label` du manifest — activité, à défaut application).
+     * Null = repli sur le themeName (comportement d'avant v0.134.4).
+     */
+    private var labelActiviteCourant: String? = null
+
     /** v0.133.1 — G1 : classpath projet pour vues custom (vide = repli). */
     private var classpathCourant: List<EntreeClasspath> = emptyList()
     private var ferme = false
@@ -159,6 +166,17 @@ public class MoteurPreviewXml(
     public fun definirThemeName(themeName: String?) {
         if (ferme || themeName == themeNameCourant) return
         themeNameCourant = themeName
+        relancerSiTexte()
+    }
+
+    /**
+     * v0.134.4 — Définit le label d'activité (titre de l'action bar du
+     * chrome). Null = repli sur le themeName. Un changement relance un
+     * rendu immédiat (miroir de [definirThemeName]).
+     */
+    public fun definirLabelActivite(label: String?) {
+        if (ferme || label == labelActiviteCourant) return
+        labelActiviteCourant = label
         relancerSiTexte()
     }
 
@@ -290,6 +308,7 @@ public class MoteurPreviewXml(
                     nuit = nuitCourant,
                     langue = langueCourante,
                     themeName = themeNameCourant,
+                    labelActivite = labelActiviteCourant,
                     classpath = classpathCourant,
                 )
             journal?.i(TAG_PREVIEW) {

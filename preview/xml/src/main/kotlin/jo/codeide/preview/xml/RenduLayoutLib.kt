@@ -800,8 +800,43 @@ public class RenduLayoutLib(
         if (requete.themeName == null) return racine
 
         val resolver = themeResolver
-        val chrome = ChromeSysteme(contexte, resolver, titreActivite = requete.themeName)
+        // v0.134.4 — titre de l'action bar : le LABEL d'activité du
+        // manifest (littéral ou @string/… résolu par le résolveur du
+        // projet) au lieu du themeName brut ; repli themeName si absent
+        // (comportement d'avant v0.134.4).
+        val titre = titreActionBar(requete)
+        val chrome = ChromeSysteme(contexte, resolver, titreActivite = titre)
         return chrome.envelopper(racine, densite)
+    }
+
+    /**
+     * Titre de l'action bar du chrome (v0.134.4) — `labelActivite` de la
+     * requête quand il existe : littéral tel quel, référence `@string/…`
+     * résolue par le résolveur de ressources courant (projet puis natif),
+     * repli final sur [RequeteRendu.themeName] (l'ancien comportement).
+     *
+     * Exemption detekt ciblée (règle 16) : ReturnCount — chaque sortie
+     * porte une DÉCISION de repli DISTINCTE (label littéral, chaîne du
+     * projet, chaîne native paquet, chaîne native framework, themeName).
+     */
+    // getIdentifier : la preview résout les ressources du PROJET UTILISATEUR
+    // par nom à l'exécution — R.foo.bar est impossible hors de son build.
+    @Suppress("ReturnCount", "DiscouragedApi")
+    private fun titreActionBar(requete: RequeteRendu): String? {
+        val label = requete.labelActivite ?: return requete.themeName
+        if (!label.startsWith("@string/")) return label
+        val nom = label.substring("@string/".length)
+        // Résolveur du projet d'abord (values/values-fr du projet).
+        val duProjet = ressources?.getString("@string/$nom")
+        if (!duProjet.isNullOrEmpty()) return duProjet
+        // Repli natif (chaînes système/framework).
+        val id = contexte.resources.getIdentifier(nom, "string", contexte.packageName)
+        if (id != 0) return contexte.resources.getString(id)
+        val idSysteme = contexte.resources.getIdentifier(nom, "string", "android")
+        if (idSysteme != 0) return contexte.resources.getString(idSysteme)
+        // Référence non résolue : le themeName reste plus informatif
+        // qu'une référence brute.
+        return requete.themeName
     }
 
     /** Passe en repli natif (aucun résolveur projet) — mais GARDE un

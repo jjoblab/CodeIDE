@@ -1,5 +1,106 @@
 # Journal des modifications
 
+## [0.134.4] – 2026-10-15
+
+### Corrigé
+
+- **LSP XML — la complétion ne se proposait plus (retour utilisateur :
+  « le LSP XML ne propose plus de complétion depuis le plan de
+  stabilisation »)**. Enquête complète sur la chaîne client → serveur ;
+  TROIS causes cumulées, corrigées ensemble :
+  - **cel-ui 3.70.1 (bibliothèque code-editor, commit poussé + tag
+    `v3.70.1`)** : la porte de contexte du popup de complétion
+    (`isInStringOrComment`, machine à états calibrée pour les littéraux
+    C/Java) rejetait le curseur ENTRE les guillemets d'une valeur
+    d'attribut XML (`android:orientation="|` — LA zone légitime des
+    propositions de valeurs) et, pire, une apostrophe française dans le
+    texte (`Nom d'utilisateur`) ouvrait un « littéral char » jamais
+    refermé : TOUT le fichier en dessous était classé « dans une chaîne »
+    → `dismissCompletion()` systématique. Pour la famille
+    `SyntaxFamily.XML`, la porte chaîne/commentaire est écartée (le
+    serveur LSP XML tranche déjà lui-même les zones muettes) ; la porte
+    LOG et le comportement C-like restent inchangés. Montée du catalogue
+    `code-editor` 3.69.0 → 3.70.1 (aucun changement d'API).
+  - **XP9 corrigé (v0.134.1)** : la négociation de capacités déclarait
+    `definitionProvider` (et hover/codeAction/documentSymbol)
+    UNIQUEMENT si le client les déclarait — or cel-lsp n'envoie pas
+    `textDocument.definition` dans ses `ClientCapabilities` alors qu'il
+    CONSOMME la définition (gate `LspLanguage`) : la définition XML
+    était perdue. Les fournisseurs sont de nouveau déclarés
+    inconditionnellement (sémantique LSP : le serveur annonce ce qu'il
+    sait faire).
+  - **Déclencheur `"` ajouté** : cel-ui n'ouvre le popup à préfixe VIDE
+    qu'après un caractère déclencheur ; sans `"` dans
+    `triggerCharacters`, la complétion de valeur juste après la quote
+    ouvrante n'était jamais demandée.
+  - **XP15 corrigé (perf)** : `ConvertisseurPositions.pour(texte)` était
+    reconstruit à CHAQUE traduction offset↔position (un scan O(n) par
+    diagnostic, par requête) — le convertisseur vit désormais dans le
+    `DocumentLsp` (une construction par version du document), côté XML
+    ET Kotlin (KP13).
+  - **Test de régression bout-en-bout** (`CompletionXmlFluxClientTest`) :
+    flux cel-lsp complet (initialize avec les capacités réelles du
+    client — sans `definition` —, classpath + plateforme, didOpen,
+    didChange full) : balise `<Te` → `TextView`, valeurs
+    `vertical`/`horizontal` ENTRE les guillemets, attribut `android:text`
+    proposé SOUS une apostrophe française, `isIncomplete` honnête.
+
+- **LSP XML — diagnostic `<manifest> sans attribut package` sur tout
+  manifest moderne (retour utilisateur)** : l'attribut `package` est
+  INTERDIT depuis AGP 8 (le namespace vit dans `build.gradle`) — la
+  règle `xml.manifestSansPackage` signalait une ERREUR sur 100 % des
+  manifests corrects. Règle retirée (la constante de code reste pour la
+  compatibilité binaire du pack langue, plus aucune règle ne l'émet) ;
+  `xml.composantSansNom` (composants sans `android:name`) est conservé.
+
+- **Preview XML — `@dimen/spacing_sm` tuait le rendu
+  (« Dimension invalide », retour utilisateur)** : le correctif
+  LayoutLib v3.4.4 ne couvrait que le chemin `AttributeApplier` —
+  `BridgeInflater.parseDimension` (layout_width/height, marges,
+  paddings) levait encore `InflateException` sur toute référence
+  `@dimen/…`. **LayoutLib v3.4.7** (commit poussé + tag) :
+  `parseDimension` résout les références `@…` via le
+  `ResourceResolver` (repli natif par identifiant), non résolue → 0
+  (dégradation visible, jamais fatale). Épinglage CI et catalogue
+  passés à `v3.4.7` ; tests rouge→vert ×4 côté LayoutLib (183 verts).
+
+- **Preview XML — « AttachInfo injection échouée :
+  IllegalStateException: AttachInfo non créable » + boucle dans les
+  journaux (retour utilisateur)** : l'échec de création (API cachées
+  filtrées selon la version d'Android) n'était PAS mis en cache — la
+  réflexion était retentée et journalisée à CHAQUE rendu. L'échec est
+  désormais définitif pour le processus (un seul avertissement), le
+  repli `dessinerVue` prend le relais silencieusement.
+
+- **Preview XML — titre de l'action bar du chrome (accord
+  propriétaire)** : l'action bar affichait le `themeName` brut
+  (`@style/Theme.Material3.…`) au lieu du TITRE de l'activité. Le
+  contrôleur résout désormais `android:label` de la première
+  `<activity>` du manifest (à défaut `android:label` de
+  `<application>`), littéral ou `@string/…` résolu par le résolveur du
+  projet au rendu (repli themeName si absent — comportement d'avant).
+
+- **LSP XML — XP13 : manifest d'AAR à la racine d'un conteneur
+  composite** (`…/x.aar!/AndroidManifest.xml`, sans slash de tête)
+  reconnu comme `MANIFEST` (retombait `AUTRE` — règles génériques
+  seules).
+
+- **Silence projets tiers (règle 13)** : purge des mentions résiduelles
+  dans les fichiers modifiés par les sessions agent — `ParseurXml.kt`
+  (×2), `ReglesReferences.kt` (×1). Les fichiers non touchés par les
+  sessions restent à la purge globale du propriétaire.
+
+### Vérifié
+
+- **Plan de stabilisation LSP XML (rapport d'audit)** — bilan de
+  l'exécution demandé par le propriétaire : P0 (XP1/XP2/XP6) ✅,
+  XP3/XP7/XP8 ✅, XP4 ✅, XP5 ✅, XP10 (documentSymbol) ✅, XP14 ✅,
+  XP15 ✅, XP16 ✅, XP13 ✅ (cette version), XP9 ✅ (corrigé dans cette
+  version). Restent ouverts, non planifiés pour cette version :
+  **XP11** (foldingRanges — S2), **XP12** (genres étendus
+  `res/color|xml|navigation` — S3), KP15 (diagnostics tags — S2) et
+  l'index ressources AAR (XP1 définitif — S3).
+
 ## [0.134.3] – 2026-10-15
 
 ### Corrigé
