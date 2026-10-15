@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -350,5 +351,83 @@ class RenduLayoutLibV3Test {
             """.trimIndent()
         val resultat = rendre(xml)
         assertTrue("le rendu avec @android:color/white doit réussir", resultat.ok)
+    }
+
+    // ============================================================
+    // G5/v0.134.2 — Chrome système : bounds de sélection ABSOLUES
+    // dans le bitmap (décalage status bar + action bar compensé à
+    // la COLLECTE, invariant CodeAssist : un seul espace de
+    // coordonnées pour draw, hit-test et surlignage).
+    // ============================================================
+
+    /** Le même layout simple que les tests PE5, rendu AVEC chrome (themeName). */
+    private fun rendreAvecChrome(): ResultatRendu {
+        val xml =
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hello Chrome" />
+            </LinearLayout>
+            """.trimIndent()
+        val requete =
+            RequeteRendu(
+                texte = xml,
+                dossierRes = null,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                themeName = "Theme.MaterialComponents.DayNight",
+            )
+        return pipeline.rendre(requete, compresser = false).rendu
+    }
+
+    @Test
+    fun `chrome - la racine utilisateur est décalée du chrome dans le bitmap`() {
+        val resultat = rendreAvecChrome()
+        assertTrue("le rendu avec chrome doit réussir", resultat.ok)
+        assertTrue("des vues attendues pour le hit-test", resultat.vues.isNotEmpty())
+        // ChromeSysteme : status bar 24dp + action bar 56dp, à la densité
+        // du PROFIL (Pixel 4 = 440dpi = 2,75x). Les bounds InfoVueRendu
+        // doivent être ABSOLUES dans le bitmap : la racine du layout
+        // utilisateur commence SOUS le chrome, pas à 0.
+        val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
+        val chromeAttendu = (24 * densite).toInt() + (56 * densite).toInt()
+        assertEquals(
+            "la racine doit commencer sous le chrome (bounds bitmap, pas contenu)",
+            chromeAttendu,
+            resultat.vues.first().haut,
+        )
+    }
+
+    @Test
+    fun `sans chrome - les bounds restent inchangées (comportement v0_132_x)`() {
+        val resultat =
+            rendre(
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sans chrome" />
+                </LinearLayout>
+                """.trimIndent(),
+            )
+        assertTrue(resultat.ok)
+        assertTrue(resultat.vues.isNotEmpty())
+        assertEquals(
+            "sans themeName, pas de chrome : la racine reste à 0 dans le bitmap",
+            0,
+            resultat.vues.first().haut,
+        )
     }
 }
