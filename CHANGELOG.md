@@ -1,5 +1,19 @@
 # Journal des modifications
 
+## [0.134.6] – 2026-10-15
+
+### Corrigé
+
+- **CI** : `PariteCorpusDepotTest` rouge sur v0.134.5 — la baseline de
+  parité du corpus (`lsp/kotlin/src/test/resources/parite/
+  digeste-corpus.txt`) n'avait pas été régénérée après la retouche de
+  `RenduLayoutLib.kt` (fusion du commentaire `//` dans le KDoc). Le
+  digeste couvre les offsets de TOUS les jetons de chaque fichier :
+  tout changement de texte, même un commentaire, décale l'empreinte.
+  Régénération délibérée (`-Dparite.majBase=true`, directive
+  AGENTS.md v0.121.1) — même corpus (952 fichiers), digeste recalculé ;
+  diff de baseline revu (une seule ligne modifiée).
+
 ## [0.134.5] – 2026-10-15
 
 ### Corrigé
