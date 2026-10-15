@@ -1,5 +1,77 @@
 # Journal des modifications
 
+## [0.134.14] – 2026-10-15
+
+### Ajouté
+
+- **LSP Kotlin — `textDocument/signatureHelp` (plan de stabilisation §3.2
+  S1, audit rapport-analyse-lsp-kotlin §6.2 « HAUTE — à faire tôt »)** :
+  l'aide à la signature de l'appel ENGLOBANT le curseur, miroir Kotlin de
+  `EcjSignatureHelp` (Java) — l'éditeur cel consomme déjà la requête
+  (`LspSignatureHelpProvider`, déclencheurs « ( » et « , » repris de la
+  même convention que le LSP Java) ; le serveur Kotlin n'avait qu'à la
+  servir :
+  - **contrat SPI neutre** (`AideSignatureKotlin`/`SignatureKotlin`) :
+    étiquettes et libellés de paramètres sont des TEXTES PRÊTS À
+    AFFICHER (l'éditeur ne lit que la forme STRING des libellés — la
+    forme plage du protocole est ignorée côté cel) ; méthode
+    `SessionLangageKotlin.signature(uri, decalage)` en défaut `null` —
+    un pack K3 face à un hôte S1 dégrade honnêtement (tolérance de
+    version, jamais d'exception).
+  - **moteur `SignaturesAppels`** (résolution conservatrice D3 — ce qui
+    n'est pas prouvé n'apparaît pas) : appel le plus PROFOND couvrant le
+    curseur (`foo(bar(|))` interroge `bar`, curseur après la parenthèse
+    fermante = silence) ; candidates par précédence de portée — membre
+    VIF de la classe englobante (paramètres réels de l'arbre), fonctions
+    de premier niveau du projet (arité du contrôle `kt.argumentCount` :
+    défauts élargissent, vararg ouvre, Java sans arité extraite écarté),
+    constructeurs primaires des classes projet, appelables de premier
+    niveau du classpath (index Kotlin — jar stdlib réel, fonctions seules)
+    quand aucune candidate projet n'existe ; appel QUALIFIÉ (`a.b(…)`,
+    `a?.b(…)`) : récepteur typé (`TypageExpression`) → membres du
+    récepteur projet (conteneur ou récepteur d'extension homonyme),
+    méthodes JVM du récepteur (vue JVM, TOUTES les surcharges du
+    premier porteur — `textView.setText(|)` fonctionne), extensions de
+    l'index sur le récepteur (supertypes + variantes de nommage).
+  - **position active** : paramètre sous le curseur (argument contenant
+    le curseur, sinon arguments entièrement avant lui — virgule, parenthèse
+    fermante, lambda final compté comme l'argument suivant) ; signature
+    active = PREMIÈRE candidate d'arité compatible (0 si aucune ne prouve) ;
+    déduplication par étiquette (premier porteur = précédence), plafond
+    12 candidates.
+  - **hôte** : capacité `signatureHelpProvider` déclarée (déclencheurs
+    « ( », « , »), handler traduit l'aide neutre (étiquettes STRING,
+    doc plaintext quand présente, indices bornés — hors bornes : 0 /
+    ≥ 0), replis VIDES sans exception (document inconnu, panne de
+    session) — l'éditeur retombe sur son silence.
+- **Corrigé — faux `kt.argumentCount` sur TOUT constructeur à N arguments**
+  (découvert par la sonde du lot) : `SymbolesProjet.parametresPrimaires`
+  cherchait la liste de paramètres comme ENFANT DIRECTE du nœud CLASS
+  alors que l'arbre la niche SOUS `PRIMARY_CONSTRUCTOR` — les paramètres
+  du constructeur primaire étaient donc TOUJOURS vides (arité 0..0) et
+  `Point(1, 2)` légal était signalé « nombre d'arguments incompatible ».
+  Le test K4 existant ne vérifiait que le cas SIGNALÉ (`Point(1)` sur 2
+  paramètres), d'où un vert de coïncidence depuis K4 ; désormais la liste
+  est lue sous `PRIMARY_CONSTRUCTOR` (chemin direct gardé en repli) et
+  `Point(1, 2)` est silencieux. Baseline de parité régénérée en
+  conséquence (969 fichiers, digeste `e093e64c…` — contre-vérification
+  sans flag verte, `--rerun-tasks` incluse).
+
+### Modifié
+
+- Descripteurs de pack resynchronisés : `jo/lspkotlin/pack` (le contrat
+  SPI s'élargit de `signature()` — premier milestone depuis KP4) et
+  `jo/lspjava/pack` (sa propre en-tête promet la synchronisation à chaque
+  lot — dérive 0.134.11 → 0.134.14 corrigée) ; `jo/lspxml/pack` suit la
+  convention par lot.
+- Tests : `SessionLangageKotlinSignatureTest` (13 — par le SPI, moteur
+  réel : projet, surcharges, défauts, constructeur, membre vif, lambda
+  final, stdlib réelle, récepteur qualifié, imbrication, silences) ;
+  `KotlinLanguageServerTest` (+4 — capacité et déclencheurs, traduction
+  STRING, panne et document inconnu sans exception). Chaîne locale
+  verte : :lsp:kotlin (161 tests, parité), :lsp:host (test/lint/kover),
+  spotless + detekt, checkModuleDependencies.
+
 ## [0.134.13] – 2026-10-15
 
 ### Changé
