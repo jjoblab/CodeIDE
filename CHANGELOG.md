@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## [0.134.27] – 2026-10-16
+
+### Corrigé
+
+- **CI — `:core:datastore:detekt`** : `toAppSettings` dépassait la limite
+  detekt LongMethod (62 lignes > 60) depuis l'ajout des réglages PE7c —
+  la projection est désormais en deux temps : base privée
+  `toBaseAppSettings` (thème → assistant, 54 lignes, l'exemption
+  `CyclomaticComplexMethod` « une branche par champ persisté » la suit,
+  règle 16) puis surcharge des quatre réglages de l'aperçu XML via
+  `AppSettings.copy` dans `toAppSettings` (10 lignes). Sémantique
+  inchangée (mêmes lectures, mêmes retombées sur défaut).
+- **CI — baseline de parité du corpus (`:lsp:kotlin`)** : régénérée
+  délibérément (`-Dparite.majBase=true`, cf. VENDOR.md) après l'ajout des
+  fichiers Kotlin des PE7c/7d/7e — corpus 997 → 1005 fichiers, digeste
+  recalculé ; le sweep « tout le dépôt se parse sans marqueur d'erreur »
+  reste vert. Même opération délibérée que v0.134.22.
+
 ## [0.134.26] – 2026-10-16
 
 ### Corrigé
