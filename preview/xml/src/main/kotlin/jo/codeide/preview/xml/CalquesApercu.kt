@@ -8,8 +8,12 @@ package jo.codeide.preview.xml
  *
  * PE6a « sans nouvelle donnée » : TOUT part des champs existants —
  * bounds absolues, libellé, [InfoVueRendu.indiceParent] (l'arbre est
- * reconstruisible côté app). Les marges/padding/attributs viendront en
- * PE6c ([InfoVueRendu] enrichie), les contraintes en PE6e-f.
+ * reconstruisible côté app).
+ *
+ * PE6b/c : les données enrichies ([InfoVueRendu.margesGauche]…,
+ * [InfoVueRendu.paddingGauche]…) alimentent le box-model, et
+ * [lignesContraintes] calcule les écarts aux bords du parent et au
+ * frère précédent (miroir `drawConstraints` de la maquette).
  */
 public object CalquesApercu {
     /**
@@ -79,6 +83,99 @@ public object CalquesApercu {
         } else {
             -1
         }
+
+    /**
+     * UNE ligne de contrainte à dessiner (calque « Contraintes »,
+     * PE6c — miroir `drawConstraints` de la maquette) : segment en
+     * coordonnées bitmap (px) + valeur de l'écart en dp (affichée).
+     */
+    public data class LigneContrainte(
+        /** Abscisse du début du segment (px bitmap). */
+        val x1: Int,
+        /** Ordonnée du début du segment (px bitmap). */
+        val y1: Int,
+        /** Abscisse de la fin du segment (px bitmap). */
+        val x2: Int,
+        /** Ordonnée de la fin du segment (px bitmap). */
+        val y2: Int,
+        /** Écart mesuré, en dp du profil (affiché dans la pill). */
+        val valeurDp: Int,
+        /** La ligne est-elle verticale (mesure un écart en Y) ? */
+        val verticale: Boolean,
+    )
+
+    /** Seuil px sous lequel un écart n'est PAS tracé (miroir maquette 0,5 dp). */
+    private const val SEUIL_ECART_PX: Int = 1
+
+    /**
+     * Les lignes de contrainte des ENFANTS DIRECTS de la racine
+     * (PE6c — miroir `drawConstraints` : écart au frère précédent en
+     * haut, écarts aux bords gauche/droit de la racine) — géométrie
+     * PURE sur les bounds, aucune donnée hors [InfoVueRendu].
+     *
+     * Frère précédent : en pré-ordre, la DERNIÈRE vue de même parent
+     * rencontrée avant la vue courante (les sous-arbres des frères ont
+     * un autre parent — la propriété pré-ordre garantit l'ordre).
+     */
+    public fun lignesContraintes(
+        vues: List<InfoVueRendu>,
+        densiteDpi: Int,
+    ): List<LigneContrainte> {
+        val racine = vues.firstOrNull { it.indiceParent == -1 }
+        // Densité inconnue : la conversion dp est impossible — rien.
+        if (racine == null || densiteDpi <= 0) return emptyList()
+        val lignes = mutableListOf<LigneContrainte>()
+        var precedent: InfoVueRendu? = null
+        for (vue in vues) {
+            if (vue.indiceParent != 0) continue
+            val centreX = (vue.gauche + vue.droite) / 2
+            val centreY = (vue.haut + vue.bas) / 2
+            // Écart vertical : bas du frère précédent (ou haut de la racine) → haut de la vue.
+            val bordPrecedent = precedent?.bas ?: racine.haut
+            val ecartHaut = vue.haut - bordPrecedent
+            if (ecartHaut >= SEUIL_ECART_PX) {
+                lignes.add(
+                    LigneContrainte(
+                        x1 = centreX,
+                        y1 = bordPrecedent,
+                        x2 = centreX,
+                        y2 = vue.haut,
+                        valeurDp = pxVersDp(ecartHaut, densiteDpi),
+                        verticale = true,
+                    ),
+                )
+            }
+            // Écarts horizontaux : bords gauche/droit de la racine → la vue.
+            val ecartGauche = vue.gauche - racine.gauche
+            if (ecartGauche >= SEUIL_ECART_PX) {
+                lignes.add(
+                    LigneContrainte(
+                        x1 = racine.gauche,
+                        y1 = centreY,
+                        x2 = vue.gauche,
+                        y2 = centreY,
+                        valeurDp = pxVersDp(ecartGauche, densiteDpi),
+                        verticale = false,
+                    ),
+                )
+            }
+            val ecartDroite = racine.droite - vue.droite
+            if (ecartDroite >= SEUIL_ECART_PX) {
+                lignes.add(
+                    LigneContrainte(
+                        x1 = vue.droite,
+                        y1 = centreY,
+                        x2 = racine.droite,
+                        y2 = centreY,
+                        valeurDp = pxVersDp(ecartDroite, densiteDpi),
+                        verticale = false,
+                    ),
+                )
+            }
+            precedent = vue
+        }
+        return lignes
+    }
 
     /** Densité de référence Android (dpi) — le facteur de la conversion dp. */
     private const val DENSITE_REFERENCE: Int = 160

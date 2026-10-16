@@ -3,6 +3,7 @@ package jo.codeide.feature.preview
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.MoteurPreviewXml
+import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.SelectionPreview
 import jo.codeide.preview.xml.VuePreviewXml
@@ -71,12 +72,13 @@ public class ControleurPreviewXml(
     /** Langue courante de l'aperçu (PE5a — null = défaut système). */
     public val langue: String? get() = moteur.langue
 
-    /** Profil device suivant (bouton de réglages, cycle du catalogue). */
-    public fun profilSuivant() {
-        val catalogue = ProfilPeripherique.CATALOGUE
-        val courant = moteur.profil
-        val indice = catalogue.indexOfFirst { it == courant }
-        moteur.definirProfil(catalogue[(indice + 1).mod(catalogue.size)])
+    /**
+     * Profil device EXPLICITE (PE6b — feuille de choix de la maquette :
+     * l'utilisateur pique un appareil dans le catalogue, plus de cycle
+     * à l'aveugle).
+     */
+    public fun definirProfil(profil: ProfilPeripherique) {
+        moteur.definirProfil(profil)
     }
 
     /** Basculer le régime jour/nuit (bouton de réglages). */
@@ -130,7 +132,9 @@ public class ControleurPreviewXml(
         vue.surlignerVue(vue.vuesRendues.indexOf(cible))
     }
 
-    /** Applique un état du moteur à la vue (collecte sur le scope du hôte = thread UI). */
+    /**
+     * Applique un état du moteur à la vue (collecte sur le scope du hôte = thread UI).
+     */
     private fun appliquerEtat(etat: EtatPreviewXml) {
         when (etat) {
             is EtatPreviewXml.RenduValide -> {
@@ -143,6 +147,9 @@ public class ControleurPreviewXml(
                     dureeRenduMs = etat.dureeMs,
                     nbVues = etat.nombreVues,
                 )
+                // PE6c : règles de problèmes (fonctions pures) évaluées
+                // à chaque rendu valide — la vue en tire ses pastilles.
+                vue.afficherProblemes(ProblemesPreview.evaluer(etat.vues, moteur.profil.densiteDpi))
             }
 
             is EtatPreviewXml.ErreurRendu -> {

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Écran dédié de l'aperçu XML (PE6-0, maquette
-  docs/mockups/apercu-xml.html § « Activité dédiée ») : toolbar (titre =
-  fichier affiché, menu sélecteur), puces de réglages (profil, jour/nuit,
-  langue) et panneau de rendu VuePreviewXml — le MÊME panneau que
-  l'ancien overlay d'EditorActivity (calques PE6a : cadre, poignées,
-  étiquette, parent, frères, pastille).
+  docs/mockups/apercu-xml.html § « Activité dédiée » ; chrome PE6b) :
+  toolbar (titre = fichier affiché, menu sélecteur), PUCES défilantes
+  de réglages (appareil → popup radio, jour/nuit, langue, calques →
+  popover), panneau de rendu VuePreviewXml avec HUD de zoom (boutons
+  + / 100 % / ajuster / − de la maquette) — le MOTEUR :preview:xml
+  reste zéro-Material (règle du module).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -23,53 +24,123 @@
         app:navigationIcon="?attr/homeAsUpIndicator"
         app:title="@string/preview_titre" />
 
-    <!-- Puces de réglages (miroir de l'ancienne barre de l'overlay —
-         profil, jour/nuit, langue ; feuille de choix en PE6b). -->
-    <LinearLayout
+    <!-- Puces défilantes de réglages (PE6b, miroir `.chips` de la
+         maquette) : appareil (feuille de choix radio), jour/nuit,
+         langue, calques (popover de calques). Orientation et police
+         arrivent en PE6e-f (RequeteRendu — données du rendu). -->
+    <HorizontalScrollView
         android:id="@+id/barre_reglages_apercu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingStart="@dimen/spacing_sm"
-        android:paddingEnd="@dimen/spacing_sm">
+        android:paddingEnd="@dimen/spacing_sm"
+        android:scrollbars="none">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_profil_apercu"
-            style="@style/Widget.Material3.Button.TextButton"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:contentDescription="@string/preview_profil_cd"
-            android:text="@string/preview_profil" />
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_nuit_apercu"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:contentDescription="@string/preview_nuit_cd"
-            android:text="@string/preview_jour" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_appareil_apercu"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/preview_profil_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_appareil" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_langue_apercu"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:contentDescription="@string/preview_langue_cd"
-            android:text="@string/preview_langue_defaut" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_nuit_apercu"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:checkable="true"
+                android:contentDescription="@string/preview_nuit_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_jour" />
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_langue_apercu"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:contentDescription="@string/preview_langue_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_langue_defaut" />
 
-    <jo.codeide.preview.xml.VuePreviewXml
-        android:id="@+id/vue_preview"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_calques_apercu"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:contentDescription="@string/preview_calques_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_calques" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <jo.codeide.preview.xml.VuePreviewXml
+            android:id="@+id/vue_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- HUD de zoom (PE6b, miroir `.zoom` de la maquette) : colonne
+             bas-droite — zoom avant, 100 %, ajuster, zoom arrière. -->
+        <LinearLayout
+            android:id="@+id/hud_zoom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/spacing_sm"
+            android:background="?attr/colorSurface"
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="2dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_zoom_avant"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/preview_zoom_avant_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_zoom_avant" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_zoom_pct"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/preview_zoom_100_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_zoom_100" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_zoom_ajuster"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/preview_zoom_ajuster_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_zoom_ajuster" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_zoom_arriere"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/preview_zoom_arriere_cd"
+                android:minWidth="0dp"
+                android:text="@string/preview_zoom_arriere" />
+        </LinearLayout>
+    </FrameLayout>
 </LinearLayout>

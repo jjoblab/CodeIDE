@@ -15,11 +15,35 @@ import android.os.Parcelable
  * L'arbre est reconstruisible côté app : [indiceParent] désigne l'indice du
  * parent dans le même tableau aplati (pré-ordre parent-avant-enfants), -1
  * pour la racine.
+ *
+ * PE6c — DONNÉES ENRICHIES (maquette `docs/mockups/apercu-xml.html` §
+ * « Données enrichies pour marges, attributs, problèmes et dépôt ») :
+ * - [classe] : nom simple de la classe rendue (« TextView », « MockView »
+ *   quand l'inflater a dégradé une classe introuvable — G15) ;
+ * - [idRes] : nom d'entrée de la ressource id (« titre » pour
+ *   `@+id/titre`), chaîne vide sans id ;
+ * - [margesGauche]/[margesHaut]/[margesDroite]/[margesBas] : marges du
+ *   LayoutParams (px, rendu) ;
+ * - [paddingGauche]/[paddingHaut]/[paddingDroite]/[paddingBas] : padding
+ *   de la vue (px, rendu) ;
+ * - [cliquable] : la vue déclare être cliquable (règle de problème
+ *   « cible tactile » de [ProblemesPreview]) ;
+ * - [conteneur] : la vue est un ViewGroup (zones de dépôt PE7b) ;
+ * - [orientation] : orientation d'un LinearLayout (constantes
+ *   [ORIENTATION_SANS_OBJET]/[ORIENTATION_HORIZONTALE]/[ORIENTATION_VERTICALE]).
+ *
+ * ⚠ CONTRAT PARCEL (maquette : « les écrire et les lire dans le même
+ * ordre dans le constructeur Parcel et writeToParcel ») : le constructeur
+ * privé et [writeToParcel] lisent/écrivent CHAMP POUR CHAMP dans le MÊME
+ * ordre — toute addition se fait aux DEUX endroits, à la suite.
+ *
  * Exemption detekt ciblée (règle 16) : LongParameterList — miroir
  * PARCELABLE de la frontière AIDL, un CHAMP = un paramètre (le format
- * est le contrat, pas une accumulation — même patron que [ResultatRendu]).
+ * est le contrat, pas une accumulation — même patron que [ResultatRendu]) ;
+ * CyclomaticComplexMethod — equals/hashCode comparent CHAMP POUR CHAMP
+ * les 21 champs du miroir, la complexité EST le contrat de parité.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "CyclomaticComplexMethod")
 public class InfoVueRendu(
     /** Bord gauche absolu dans le bitmap (px). */
     public val gauche: Int,
@@ -39,6 +63,32 @@ public class InfoVueRendu(
     public val indiceParent: Int,
     /** Profondeur dans la hiérarchie (0 = racine). */
     public val profondeur: Int,
+    /** Nom simple de la classe rendue (PE6c — « MockView » = classe introuvable dégradée). */
+    public val classe: String = "",
+    /** Nom d'entrée de la ressource id (PE6c — vide sans `android:id`). */
+    public val idRes: String = "",
+    /** Marge gauche (PE6c, px). */
+    public val margesGauche: Int = 0,
+    /** Marge haute (PE6c, px). */
+    public val margesHaut: Int = 0,
+    /** Marge droite (PE6c, px). */
+    public val margesDroite: Int = 0,
+    /** Marge basse (PE6c, px). */
+    public val margesBas: Int = 0,
+    /** Padding gauche (PE6c, px). */
+    public val paddingGauche: Int = 0,
+    /** Padding haut (PE6c, px). */
+    public val paddingHaut: Int = 0,
+    /** Padding droit (PE6c, px). */
+    public val paddingDroite: Int = 0,
+    /** Padding bas (PE6c, px). */
+    public val paddingBas: Int = 0,
+    /** La vue déclare être cliquable (PE6c — règle « cible tactile »). */
+    public val cliquable: Boolean = false,
+    /** La vue est un ViewGroup (PE6c — zones de dépôt PE7b). */
+    public val conteneur: Boolean = false,
+    /** Orientation d'un LinearLayout (PE6c — [ORIENTATION_SANS_OBJET] ailleurs). */
+    public val orientation: Int = ORIENTATION_SANS_OBJET,
 ) : Parcelable {
     private constructor(parcel: Parcel) : this(
         gauche = parcel.readInt(),
@@ -50,6 +100,19 @@ public class InfoVueRendu(
         finElement = parcel.readInt(),
         indiceParent = parcel.readInt(),
         profondeur = parcel.readInt(),
+        classe = parcel.readString() ?: "",
+        idRes = parcel.readString() ?: "",
+        margesGauche = parcel.readInt(),
+        margesHaut = parcel.readInt(),
+        margesDroite = parcel.readInt(),
+        margesBas = parcel.readInt(),
+        paddingGauche = parcel.readInt(),
+        paddingHaut = parcel.readInt(),
+        paddingDroite = parcel.readInt(),
+        paddingBas = parcel.readInt(),
+        cliquable = parcel.readByte() != 0.toByte(),
+        conteneur = parcel.readByte() != 0.toByte(),
+        orientation = parcel.readInt(),
     )
 
     override fun writeToParcel(
@@ -65,6 +128,20 @@ public class InfoVueRendu(
         parcel.writeInt(finElement)
         parcel.writeInt(indiceParent)
         parcel.writeInt(profondeur)
+        // PE6c — même ordre que le constructeur privé (contrat maquette).
+        parcel.writeString(classe)
+        parcel.writeString(idRes)
+        parcel.writeInt(margesGauche)
+        parcel.writeInt(margesHaut)
+        parcel.writeInt(margesDroite)
+        parcel.writeInt(margesBas)
+        parcel.writeInt(paddingGauche)
+        parcel.writeInt(paddingHaut)
+        parcel.writeInt(paddingDroite)
+        parcel.writeInt(paddingBas)
+        parcel.writeByte(if (cliquable) 1 else 0)
+        parcel.writeByte(if (conteneur) 1 else 0)
+        parcel.writeInt(orientation)
     }
 
     override fun describeContents(): Int = 0
@@ -78,13 +155,26 @@ public class InfoVueRendu(
         y: Int,
     ): Boolean = x >= gauche && x < droite && y >= haut && y < bas
 
+    /** Largeur rendue (px). */
+    public val largeurPx: Int get() = droite - gauche
+
+    /** Hauteur rendue (px). */
+    public val hauteurPx: Int get() = bas - haut
+
     override fun equals(other: Any?): Boolean =
         other is InfoVueRendu &&
             other.gauche == gauche && other.haut == haut &&
             other.droite == droite && other.bas == bas &&
             other.libelle == libelle &&
             other.debutElement == debutElement && other.finElement == finElement &&
-            other.indiceParent == indiceParent && other.profondeur == profondeur
+            other.indiceParent == indiceParent && other.profondeur == profondeur &&
+            other.classe == classe && other.idRes == idRes &&
+            other.margesGauche == margesGauche && other.margesHaut == margesHaut &&
+            other.margesDroite == margesDroite && other.margesBas == margesBas &&
+            other.paddingGauche == paddingGauche && other.paddingHaut == paddingHaut &&
+            other.paddingDroite == paddingDroite && other.paddingBas == paddingBas &&
+            other.cliquable == cliquable && other.conteneur == conteneur &&
+            other.orientation == orientation
 
     override fun hashCode(): Int {
         var resultat = gauche
@@ -96,12 +186,41 @@ public class InfoVueRendu(
         resultat = 31 * resultat + finElement
         resultat = 31 * resultat + indiceParent
         resultat = 31 * resultat + profondeur
+        resultat = 31 * resultat + classe.hashCode()
+        resultat = 31 * resultat + idRes.hashCode()
+        resultat = 31 * resultat + margesGauche
+        resultat = 31 * resultat + margesHaut
+        resultat = 31 * resultat + margesDroite
+        resultat = 31 * resultat + margesBas
+        resultat = 31 * resultat + paddingGauche
+        resultat = 31 * resultat + paddingHaut
+        resultat = 31 * resultat + paddingDroite
+        resultat = 31 * resultat + paddingBas
+        resultat = 31 * resultat + if (cliquable) 1 else 0
+        resultat = 31 * resultat + if (conteneur) 1 else 0
+        resultat = 31 * resultat + orientation
         return resultat
     }
 
     public companion object {
         /** Span « pas d'élément » : la vue n'est pas sélectionnable. */
         public const val SANS_ELEMENT: Int = -1
+
+        /** La vue n'est pas un LinearLayout (PE6c — orientation sans objet). */
+        public const val ORIENTATION_SANS_OBJET: Int = -1
+
+        /** LinearLayout horizontal (miroir de LinearLayout.HORIZONTAL). */
+        public const val ORIENTATION_HORIZONTALE: Int = 0
+
+        /** LinearLayout vertical (miroir de LinearLayout.VERTICAL). */
+        public const val ORIENTATION_VERTICALE: Int = 1
+
+        /**
+         * Classe de remplacement posée par l'inflater (G15) quand la
+         * classe du tag est introuvable — la règle « classe absente » de
+         * [ProblemesPreview] la détecte par ce nom.
+         */
+        public const val CLASSE_REMPLACEMENT: String = "MockView"
 
         @JvmField
         public val CREATOR: Parcelable.Creator<InfoVueRendu> =
