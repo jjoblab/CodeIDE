@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.134.32] – 2026-10-16
+
+### Corrigé
+
+- **LSP XML — `@color/…` sans complétion, res/ invisible, tout
+  diagnostiqué non résolu** : les racines sources livrées par le
+  tooling sont des racines de CODE (`src/main/java`,
+  `src/main/kotlin`) — `IndexRessources.definir` cherchait `res/`
+  DANS la racine (`src/main/java/res`, un dossier qui n'existe
+  JAMAIS) : l'index projet restait vide. Le `res/` de la convention
+  AGP vit sur le SOURCE SET parent (`src/main/res`) — chaque racine
+  teste SES deux candidats (direct puis parent), dédoublonnés ;
+  **2 tests** (convention AGP, dédoublonnement java+kotlin, candidat
+  direct préservé).
+- **LSP Kotlin — l'application se fige à l'ouverture d'un fichier
+  `.kt`** : le scan paresseux des racines parsait TOUT le corpus
+  (jusqu'à 2 000 fichiers .kt/.java) de façon SYNCHRONE à la
+  première requête après la sync — des secondes de CPU + E/S sur le
+  fil de la requête, tous les appels suivants (diagnostics,
+  complétion, survol) bloqués derrière. Deux leviers dans
+  `ScanProjet` :
+  - **amorce WARM** : `definirRacines` lance le scan sur un fil
+    DÉDIÉ (démon) AU MOMENT de la sync — le coût part des secondes
+    avant la première frappe ; les lecteurs S'Y JOIGNENT (jamais de
+    double scan), le filet synchrone historique reste ;
+  - **incrémental par mtime** : un fichier inchangé n'est JAMAIS
+    re-parsé (miroir ADR 0111) — chaque re-définition des racines ne
+    re-parse que les fichiers réellement modifiés, le « scan complet
+    à chaque sync » n'existe plus ;
+  - **3 tests** (chemin WARM, incrémental — le fichier changé
+    re-parse et les autres survivent au cache, concurrents KP6
+    inchangés).
+- **CI — baseline de parité périmée sur 0.134.31** : la baseline avait
+  été régénérée AVANT les corrections lint du fragment (le digeste
+  bouge encore) — régénérée EN DERNIER après tout edit `.kt`
+  (leçon : la régénération ferme la revue, jamais le contraire) ;
+  le diff reste 1 ligne (1010 fichiers).
+
 ## [0.134.31] – 2026-10-16
 
 ### Corrigé
