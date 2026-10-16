@@ -37,9 +37,26 @@ class ActivityPreviewLayoutTest {
         val racine = gonfler()
         assertNotNull(racine.findViewById<MaterialToolbar>(R.id.toolbar_preview))
         assertNotNull(racine.findViewById<View>(R.id.vue_preview))
-        assertNotNull(racine.findViewById<View>(R.id.bouton_profil_apercu))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_appareil_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_nuit_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_langue_apercu))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_calques_apercu))
+    }
+
+    @Test
+    fun `le HUD de zoom se gonfle avec ses quatre boutons (PE6b)`() {
+        val racine = gonfler()
+        assertNotNull(racine.findViewById<View>(R.id.hud_zoom))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_avant))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_pct))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_ajuster))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_arriere))
+        // Les puces à menu portent le caret (miroir `.caret` de la maquette).
+        val appareil =
+            racine.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.bouton_appareil_apercu,
+            )
+        assertTrue("la puce Appareil annonce le menu déroulant", appareil.text.contains("▾"))
     }
 
     @Test

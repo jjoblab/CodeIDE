@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- English strings for :feature:preview (PE6-0). -->
+<!-- English strings for :feature:preview (PE6-0, chrome PE6b). -->
 <resources>
     <string name="preview_titre">XML preview</string>
     <string name="preview_retour_cd">Back to the editor</string>
     <string name="preview_choisir_fichier">Choose file…</string>
     <string name="preview_choisir_titre">Open documents</string>
 
-    <!-- Settings chips (mirror of the old overlay bar PE3/PE5a). -->
-    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
-    <string name="preview_profil_cd">Change the preview device profile</string>
+    <!-- Settings chips (PE6b, mirror of the mockup `.chips`). -->
+    <string name="preview_appareil">Device ▾</string>
+    <string name="preview_appareil_format">%1$s ▾</string>
+    <string name="preview_profil_cd">Choose the preview device profile</string>
     <string name="preview_jour">Day</string>
     <string name="preview_nuit">Night</string>
     <string name="preview_nuit_cd">Toggle the preview between day and night theme</string>
@@ -16,4 +17,25 @@
     <string name="preview_langue_defaut">Default</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
+    <string name="preview_calques">Layers ▾</string>
+    <string name="preview_calques_cd">Show or hide the preview layers</string>
+
+    <!-- Layers popover (PE6b, mirror of the mockup showPop("layers")). -->
+    <string name="preview_calque_parent_freres">Parent and siblings</string>
+    <string name="preview_calque_marges_padding">Margins and padding</string>
+    <string name="preview_calque_contraintes">Constraints</string>
+    <string name="preview_calque_problemes">Problems</string>
+    <string name="preview_calque_bornes">Bounds of all views</string>
+    <string name="preview_calque_grille">8 dp grid</string>
+
+    <!-- Zoom HUD (PE6b, mirror of the mockup `.zoom`). -->
+    <string name="preview_zoom_avant">+</string>
+    <string name="preview_zoom_arriere">−</string>
+    <string name="preview_zoom_ajuster">⤢</string>
+    <string name="preview_zoom_100">100%</string>
+    <string name="preview_zoom_avant_cd">Zoom in</string>
+    <string name="preview_zoom_arriere_cd">Zoom out</string>
+    <string name="preview_zoom_100_cd">Back to 100% zoom</string>
+    <string name="preview_zoom_ajuster_cd">Fit the render to the view</string>
+    <string name="preview_zoom_pct">%1$d%%</string>
 </resources>

@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -91,5 +92,128 @@ class VuePreviewXmlTest {
         // pastille (0 vue, 0 ms), pas de calque (aucune sélection).
         vue.afficherRendu(Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888))
         vue.draw(Canvas(sortie))
+    }
+
+    // ── Zoom exposé (PE6b — boutons + / 100 % / ajuster / − de la maquette) ──
+
+    @Test
+    fun `zoomer - facteur amplifie l'echelle et notifie le HUD`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        // Bitmap deux fois plus petit que la vue : le fit ≈ 2,56 et le
+        // zoom ×1,25 (≈ 3,2) reste SOUS le plafond 6×.
+        vue.afficherRendu(Bitmap.createBitmap(200, 400, Bitmap.Config.ARGB_8888))
+        var notifiee = 0f
+        vue.auChangementEchelle = { echelle -> notifiee = echelle }
+        val avant = vue.echelleCourante
+        vue.zoomer(1.25f)
+        assertEquals(avant * 1.25f, vue.echelleCourante, 0.001f)
+        assertEquals(vue.echelleCourante, notifiee, 0.0001f)
+    }
+
+    @Test
+    fun `zoomer - facteur negatif ou sans bitmap - aucun effet`() {
+        val vue = vue()
+        vue.zoomer(2f) // pas de bitmap : l'échelle initiale (1f) ne bouge pas.
+        assertEquals(1f, vue.echelleCourante, 0.0001f)
+        vue.measure(256, 256)
+        vue.layout(0, 0, 256, 256)
+        vue.afficherRendu(Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888))
+        val avant = vue.echelleCourante
+        vue.zoomer(-2f)
+        assertEquals(avant, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
+    fun `zoomer - borne superieure plafonnee a 6x`() {
+        val vue = vue()
+        vue.measure(256, 256)
+        vue.layout(0, 0, 256, 256)
+        vue.afficherRendu(Bitmap.createBitmap(50, 50, Bitmap.Config.ARGB_8888))
+        repeat(20) { vue.zoomer(1.25f) }
+        assertEquals(6f, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
+    fun `zoomer inverse - revient a l'echelle d'origine (miroir zPct)`() {
+        val vue = vue()
+        vue.measure(256, 256)
+        vue.layout(0, 0, 256, 256)
+        vue.afficherRendu(Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888))
+        val origine = vue.echelleCourante
+        vue.zoomer(2f)
+        // Le bouton « 100 % » : zoom du facteur inverse de l'échelle courante.
+        vue.zoomer(1f / vue.echelleCourante)
+        assertEquals(1f, vue.echelleCourante, 0.0001f)
+        vue.ajuster()
+        assertEquals(origine, vue.echelleCourante, 0.001f)
+    }
+
+    @Test
+    fun `ajuster sans bitmap - aucun lever`() {
+        val vue = vue()
+        vue.ajuster() // pas de bitmap : ne lève pas.
+    }
+
+    // ── Calques à coches (PE6b) + pastilles de problèmes (PE6c) ──
+
+    @Test
+    fun `calques pe6b-c - tous actives avec problemes - aucun lever`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sortie)
+        vue.grilleAffichee = true
+        vue.calquesBornes = true
+        vue.calquesContraintes = true
+        vue.calquesMargesPadding = true
+        vue.calquesProblemes = true
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        vue.surlignerVue(2)
+        vue.afficherProblemes(
+            listOf(
+                ProblemesPreview.ProblemeApercu(
+                    2,
+                    ProblemesPreview.Severite.ERREUR,
+                    ProblemesPreview.GenreProbleme.CLASSE_ABSENTE,
+                ),
+                ProblemesPreview.ProblemeApercu(
+                    2,
+                    ProblemesPreview.Severite.AVERTISSEMENT,
+                    ProblemesPreview.GenreProbleme.CIBLE_TACTILE,
+                ),
+                ProblemesPreview.ProblemeApercu(
+                    1,
+                    ProblemesPreview.Severite.AVERTISSEMENT,
+                    ProblemesPreview.GenreProbleme.CIBLE_TACTILE,
+                ),
+            ),
+        )
+        vue.draw(canvas)
+        // Désactivation en plein dessin : aucun lever non plus.
+        vue.calquesProblemes = false
+        vue.calquesMargesPadding = false
+        vue.draw(canvas)
+    }
+
+    @Test
+    fun `calque parent freres - desactive - aucun lever`() {
+        val vue = vue()
+        vue.measure(256, 256)
+        vue.layout(0, 0, 256, 256)
+        vue.calquesParentFreres = false
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        vue.surlignerVue(1)
+        vue.draw(Canvas(Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)))
     }
 }

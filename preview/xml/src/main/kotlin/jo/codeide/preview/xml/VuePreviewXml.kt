@@ -69,8 +69,61 @@ public class VuePreviewXml : View {
     /** Nombre de vues du dernier rendu (PE6a — pastille d'état). */
     private var nombreVues: Int = 0
 
+    /** Problèmes du dernier rendu (PE6c — pastilles de la maquette). */
+    private var problemes: List<ProblemesPreview.ProblemeApercu> = emptyList()
+
+    // ── Calques activables (PE6b — popover « Calques » de la maquette) ──
+
+    /** Parent pointillés + frères filigrane (PE6a, activables PE6b). */
+    public var calquesParentFreres: Boolean = true
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
+    /** Bornes de TOUTES les vues (PE6b — calque optionnel de la maquette). */
+    public var calquesBornes: Boolean = false
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
+    /** Marges (orange) et padding (vert) de la sélection (PE6c). */
+    public var calquesMargesPadding: Boolean = false
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
+    /** Écarts des enfants de la racine aux bords/frères (PE6c). */
+    public var calquesContraintes: Boolean = false
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
+    /** Pastilles de problèmes aux coins des vues fautives (PE6c). */
+    public var calquesProblemes: Boolean = false
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
+    /** Grille 8 dp du profil, au-dessus du rendu (PE6b). */
+    public var grilleAffichee: Boolean = false
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
     /** Appui simple confirmé, en coordonnées BITMAP (contenu, pas écran). */
     public var auTap: ((x: Float, y: Float) -> Unit)? = null
+
+    /**
+     * Changement d'échelle (PE6b — boutons de zoom, gestes, ajustement) :
+     * l'activité y met à jour le pourcentage affiché dans le HUD.
+     */
+    public var auChangementEchelle: ((echelle: Float) -> Unit)? = null
 
     private val peintDamier =
         Paint().apply {
@@ -94,6 +147,48 @@ public class VuePreviewXml : View {
             isAntiAlias = true
         }
     private val peintTexteEtat =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Grille 8 dp (PE6b) — traits fins au pas du profil. */
+    private val peintGrille =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Bornes de toutes les vues (PE6b) — rect de contour. */
+    private val peintBorne =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Lignes de contrainte (PE6c) — traits pointillés accent. */
+    private val peintContrainte =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Bandes de marges/padding du box-model (PE6c) — remplissage translucide. */
+    private val peintBoxModel =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Contour pointillé des bandes de MARGE (PE6c — miroir `.mg` de la maquette). */
+    private val peintBoxModelContour =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Fond des pastilles de problème (PE6c) — disque ambre/rouge. */
+    private val peintPin =
         Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
@@ -159,6 +254,7 @@ public class VuePreviewXml : View {
                     decalageX = detector.focusX - rapport * (detector.focusX - decalageX)
                     decalageY = detector.focusY - rapport * (detector.focusY - decalageY)
                     bornerPan()
+                    notifierEchelle()
                     invalidate()
                     return true
                 }
@@ -235,6 +331,7 @@ public class VuePreviewXml : View {
         densiteDpi = densiteDpiProfil
         dureeMs = dureeRenduMs
         nombreVues = nbVues
+        problemes = emptyList()
         messageErreur = null
         enEdition = false
         accueilAffiche = false
@@ -250,6 +347,7 @@ public class VuePreviewXml : View {
             decalageX = 0f
             decalageY = 0f
         }
+        notifierEchelle()
         invalidate()
     }
 
@@ -275,9 +373,11 @@ public class VuePreviewXml : View {
         densiteDpi = 0
         dureeMs = 0
         nombreVues = 0
+        problemes = emptyList()
         messageErreur = null
         enEdition = false
         accueilAffiche = true
+        notifierEchelle()
         invalidate()
     }
 
@@ -295,6 +395,53 @@ public class VuePreviewXml : View {
     /** Dernier arbre de vues affiché (le contrôleur y fait son hit-test). */
     public val vuesRendues: List<InfoVueRendu> get() = vues
 
+    /**
+     * Échelle courante (PE6b) — le HUD de zoom affiche le pourcentage.
+     */
+    public val echelleCourante: Float get() = echelle
+
+    /**
+     * Zoome d'un FACTEUR au centre de la vue (PE6b — boutons + / − de
+     * la maquette, miroir `zoomAt(mid)`) : le contenu reste centré,
+     * l'échelle est bornée (0,25× … 6×), le pan suit le point focal.
+     */
+    public fun zoomer(facteur: Float) {
+        if (bitmap == null || facteur <= 0f) return
+        val ancienne = echelle
+        val nouvelle = CalculsVuePreview.bornerEchelle(echelle * facteur)
+        if (nouvelle == ancienne) return
+        val rapport = nouvelle / ancienne
+        val focusX = width / 2f
+        val focusY = height / 2f
+        echelle = nouvelle
+        decalageX = focusX - rapport * (focusX - decalageX)
+        decalageY = focusY - rapport * (focusY - decalageY)
+        bornerPan()
+        notifierEchelle()
+        invalidate()
+    }
+
+    /**
+     * Réajuste le contenu dans la vue (PE6b — bouton ⤢ de la maquette,
+     * même geste que le double-tap).
+     */
+    public fun ajuster() {
+        if (bitmap == null) return
+        ajusterALaVue()
+        invalidate()
+    }
+
+    /** Un seul point de notification du changement d'échelle (PE6b). */
+    private fun notifierEchelle() {
+        auChangementEchelle?.invoke(echelle)
+    }
+
+    /** Remplace la liste des problèmes affichés (PE6c — pastilles). */
+    public fun afficherProblemes(problemes: List<ProblemesPreview.ProblemeApercu>) {
+        this.problemes = problemes
+        invalidate()
+    }
+
     override fun onSizeChanged(
         largeur: Int,
         hauteur: Int,
@@ -304,6 +451,7 @@ public class VuePreviewXml : View {
         super.onSizeChanged(largeur, hauteur, ancienneLargeur, ancienneHauteur)
         if (largeur != ancienneLargeur || hauteur != ancienneHauteur) {
             ajusterALaVue()
+            notifierEchelle()
             invalidate()
         }
     }
@@ -331,11 +479,17 @@ public class VuePreviewXml : View {
         canevas.translate(decalageX, decalageY)
         canevas.scale(echelle, echelle)
         canevas.drawBitmap(bmp, 0f, 0f, null)
-        // PE6a : calques du plus large au plus étroit — frères (filigrane),
-        // parent (pointillés), sélection (cadre, poignées, étiquette).
+        // Calques, du plus large au plus étroit (miroir drawOverlay de la
+        // maquette) : grille, bornes, frères, parent, contraintes,
+        // box-model, sélection, pastilles de problèmes.
+        dessinerGrille(canevas, bmp)
+        dessinerBornes(canevas)
         dessinerFreres(canevas)
         dessinerParent(canevas)
+        dessinerContraintes(canevas)
+        dessinerMargesPadding(canevas)
         dessinerSurlignage(canevas)
+        dessinerPastillesProblemes(canevas)
         canevas.restore()
         if (messageErreur != null) dessinerBandeauErreur(canevas)
         if (enEdition) dessinerSignalEdition(canevas)
@@ -344,6 +498,7 @@ public class VuePreviewXml : View {
 
     /** Calque « frères en filigrane » (PE6a) : fill translucide sur les bounds. */
     private fun dessinerFreres(canevas: Canvas) {
+        if (!calquesParentFreres) return
         if (indiceSurligne !in vues.indices) return
         peintFrere.color = couleurSurlignage
         for (indice in CalquesApercu.indicesFreres(vues, indiceSurligne)) {
@@ -359,9 +514,8 @@ public class VuePreviewXml : View {
 
     /** Calque « parent en pointillés » (PE6a) : trait à épaisseur écran constante. */
     private fun dessinerParent(canevas: Canvas) {
-        val indiceParent = CalquesApercu.indiceParent(vues, indiceSurligne)
-        if (indiceParent < 0 || indiceParent !in vues.indices) return
-        val parent = vues[indiceParent]
+        val indice = if (calquesParentFreres) CalquesApercu.indiceParent(vues, indiceSurligne) else -1
+        val parent = vues.getOrNull(indice) ?: return
         if (parent.droite <= parent.gauche || parent.bas <= parent.haut) return
         peintParent.strokeWidth = LARGEUR_TRAIT_SURLIGNAGE / echelle
         peintParent.color = couleurParent
@@ -370,6 +524,243 @@ public class VuePreviewXml : View {
             RectF(parent.gauche.toFloat(), parent.haut.toFloat(), parent.droite.toFloat(), parent.bas.toFloat()),
             peintParent,
         )
+    }
+
+    /**
+     * Calque « Grille 8 dp » (PE6b, miroir `.screen.grid` de la
+     * maquette) : traits fins au pas de 8 dp DU PROFIL (conversion par
+     * la densité du rendu), au-dessus du bitmap — le pas suit l'écran
+     * simulé, pas l'appareil hôte.
+     */
+    private fun dessinerGrille(
+        canevas: Canvas,
+        bmp: Bitmap,
+    ) {
+        if (!grilleAffichee || densiteDpi <= 0) return
+        val pas = PAS_GRILLE_DP * densiteDpi / DENSITE_REFERENCE
+        if (pas < 2) return
+        peintGrille.color = COULEUR_GRILLE
+        peintGrille.strokeWidth = LARGEUR_TRAIT_GRILLE / echelle
+        var x = 0
+        while (x <= bmp.width) {
+            canevas.drawLine(x.toFloat(), 0f, x.toFloat(), bmp.height.toFloat(), peintGrille)
+            x += pas
+        }
+        var y = 0
+        while (y <= bmp.height) {
+            canevas.drawLine(0f, y.toFloat(), bmp.width.toFloat(), y.toFloat(), peintGrille)
+            y += pas
+        }
+    }
+
+    /** Calque « Bornes de toutes les vues » (PE6b, miroir `.bnd` de la maquette). */
+    private fun dessinerBornes(canevas: Canvas) {
+        if (!calquesBornes) return
+        peintBorne.color = COULEUR_BORNE
+        peintBorne.strokeWidth = LARGEUR_TRAIT_BORNE / echelle
+        for (vue in vues) {
+            if (vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
+            canevas.drawRect(
+                RectF(vue.gauche.toFloat(), vue.haut.toFloat(), vue.droite.toFloat(), vue.bas.toFloat()),
+                peintBorne,
+            )
+        }
+    }
+
+    /** Calque « Contraintes » (PE6c, miroir `drawConstraints` de la maquette). */
+    private fun dessinerContraintes(canevas: Canvas) {
+        if (!calquesContraintes) return
+        peintContrainte.color = COULEUR_CONTRAINTE
+        peintContrainte.strokeWidth = LARGEUR_TRAIT_CONTRAINTE / echelle
+        peintContrainte.pathEffect = EFFET_CONTRAINTE
+        val rayonPoint = RAYON_POINT_CONTRAINTE_DP * echellePolice() / echelle
+        for (ligne in CalquesApercu.lignesContraintes(vues, densiteDpi)) {
+            canevas.drawLine(
+                ligne.x1.toFloat(),
+                ligne.y1.toFloat(),
+                ligne.x2.toFloat(),
+                ligne.y2.toFloat(),
+                peintContrainte,
+            )
+            peintPin.color = COULEUR_CONTRAINTE
+            canevas.drawCircle(ligne.x1.toFloat(), ligne.y1.toFloat(), rayonPoint, peintPin)
+            canevas.drawCircle(ligne.x2.toFloat(), ligne.y2.toFloat(), rayonPoint, peintPin)
+            // Pill « valeur en dp » décalée de la ligne (miroir maquette).
+            val milieuX = (ligne.x1 + ligne.x2) / 2f
+            val milieuY = (ligne.y1 + ligne.y2) / 2f
+            val decalage = DECALAGE_PILL_CONTRAINTE_DP * echellePolice() / echelle
+            if (ligne.verticale) {
+                dessinerPillValeur(canevas, ligne.valeurDp, milieuX + decalage, milieuY)
+            } else {
+                dessinerPillValeur(canevas, ligne.valeurDp, milieuX, milieuY - decalage)
+            }
+        }
+    }
+
+    /**
+     * Calque « Marges et padding » (PE6c, miroir `drawBoxModel` de la
+     * maquette) : bandes ORANGE autour du cadre (marges, contour
+     * pointillé) et bandes VERTES à l'intérieur (padding) de la
+     * sélection, valeurs en dp du profil aux centres.
+     */
+    private fun dessinerMargesPadding(canevas: Canvas) {
+        if (!calquesMargesPadding || indiceSurligne !in vues.indices) return
+        val vue = vues[indiceSurligne]
+        if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return
+        dessinerBandesMarges(canevas, vue)
+        dessinerBandesPadding(canevas, vue)
+    }
+
+    /** Bandes de MARGE autour du cadre — orange, contour pointillé (miroir `.mg`). */
+    private fun dessinerBandesMarges(
+        canevas: Canvas,
+        vue: InfoVueRendu,
+    ) {
+        if (uneBandeSignificative(vue.margesHaut, vue.margesGauche, vue.margesDroite, vue.margesBas)) {
+            val gauche = vue.gauche.toFloat()
+            val haut = vue.haut.toFloat()
+            val droite = vue.droite.toFloat()
+            val bas = vue.bas.toFloat()
+            peintBoxModel.color = COULEUR_MARGE
+            peintBoxModel.alpha = ALPHA_BOXMODEL
+            peintBoxModelContour.color = COULEUR_MARGE
+            peintBoxModelContour.strokeWidth = LARGEUR_TRAIT_BORNE / echelle
+            peintBoxModelContour.pathEffect = EFFET_POINTILLES
+            val bandes =
+                listOf(
+                    // haut, bas, gauche, droite — miroir drawBoxModel.
+                    RectF(gauche - vue.margesGauche, haut - vue.margesHaut, droite + vue.margesDroite, haut),
+                    RectF(gauche - vue.margesGauche, bas, droite + vue.margesDroite, bas + vue.margesBas),
+                    RectF(gauche - vue.margesGauche, haut, gauche, bas),
+                    RectF(droite, haut, droite + vue.margesDroite, bas),
+                )
+            for (bande in bandes) {
+                if (bande.width() <= 0f || bande.height() <= 0f) continue
+                canevas.drawRect(bande, peintBoxModel)
+                canevas.drawRect(bande, peintBoxModelContour)
+                dessinerPillValeur(
+                    canevas,
+                    CalquesApercu.pxVersDp(
+                        maxOf(bande.width(), bande.height()).toInt(),
+                        densiteDpi,
+                    ),
+                    bande.centerX(),
+                    bande.centerY(),
+                )
+            }
+        }
+    }
+
+    /** Bandes de PADDING à l'intérieur du cadre — vertes (miroir `.pd`). */
+    private fun dessinerBandesPadding(
+        canevas: Canvas,
+        vue: InfoVueRendu,
+    ) {
+        if (uneBandeSignificative(vue.paddingHaut, vue.paddingGauche, vue.paddingDroite, vue.paddingBas)) {
+            val gauche = vue.gauche.toFloat()
+            val haut = vue.haut.toFloat()
+            val droite = vue.droite.toFloat()
+            val bas = vue.bas.toFloat()
+            peintBoxModel.color = COULEUR_PADDING
+            peintBoxModel.alpha = ALPHA_BOXMODEL
+            val bandes =
+                listOf(
+                    RectF(gauche, haut, droite, haut + vue.paddingHaut),
+                    RectF(gauche, bas - vue.paddingBas, droite, bas),
+                    RectF(gauche, haut + vue.paddingHaut, gauche + vue.paddingGauche, bas - vue.paddingBas),
+                    RectF(droite - vue.paddingDroite, haut + vue.paddingHaut, droite, bas - vue.paddingBas),
+                )
+            for (bande in bandes) {
+                if (bande.width() <= 0f || bande.height() <= 0f) continue
+                canevas.drawRect(bande, peintBoxModel)
+                dessinerPillValeur(
+                    canevas,
+                    CalquesApercu.pxVersDp(
+                        maxOf(bande.width(), bande.height()).toInt(),
+                        densiteDpi,
+                    ),
+                    bande.centerX(),
+                    bande.centerY(),
+                )
+            }
+        }
+    }
+
+    /** Au moins UNE des quatre bandes (haut/gauche/droite/bas) est non nulle ? */
+    private fun uneBandeSignificative(
+        haut: Int,
+        gauche: Int,
+        droite: Int,
+        bas: Int,
+    ): Boolean = haut > 0 || gauche > 0 || droite > 0 || bas > 0
+
+    /**
+     * Calque « Problèmes » (PE6c, miroir des pins de `drawOverlay`) :
+     * UNE pastille par vue fautive au coin HAUT-DROIT — ambre
+     * (avertissement) ou rouge (erreur), compteur quand plusieurs
+     * problèmes se partagent la vue.
+     */
+    private fun dessinerPastillesProblemes(canevas: Canvas) {
+        if (!calquesProblemes || problemes.isEmpty()) return
+        val comptes = LinkedHashMap<Int, Int>()
+        val indicesErreur = HashSet<Int>()
+        for (probleme in problemes) {
+            comptes[probleme.indiceVue] = (comptes[probleme.indiceVue] ?: 0) + 1
+            if (probleme.severite == ProblemesPreview.Severite.ERREUR) {
+                indicesErreur.add(probleme.indiceVue)
+            }
+        }
+        val rayon = RAYON_PIN_DP * echellePolice() / echelle
+        val lise = LISE_PIN_DP * echellePolice() / echelle
+        peintEtiquette.textSize = TAILLE_TEXTE_PIN_DP * echellePolice() / echelle
+        val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        for ((indice, compte) in comptes) {
+            val vue = vues.getOrNull(indice)
+            if (vue == null || vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
+            val centreX = vue.droite.toFloat()
+            val centreY = vue.haut.toFloat()
+            // Liseré blanc sous le disque (miroir `.pin` : bordure 2 dp).
+            peintPin.color = Color.WHITE
+            canevas.drawCircle(centreX, centreY, rayon + lise, peintPin)
+            peintPin.color = if (indice in indicesErreur) COULEUR_PIN_ERREUR else COULEUR_PIN_AVERTISSEMENT
+            canevas.drawCircle(centreX, centreY, rayon, peintPin)
+            val texte = if (compte > 1) compte.toString() else "!"
+            peintEtiquette.color = Color.WHITE
+            canevas.drawText(
+                texte,
+                centreX - peintEtiquette.measureText(texte) / 2f,
+                centreY - demiHauteur,
+                peintEtiquette,
+            )
+        }
+    }
+
+    /** Pill « valeur » (dp des box-models/contraintes) centrée sur le point. */
+    private fun dessinerPillValeur(
+        canevas: Canvas,
+        valeurDp: Int,
+        centreX: Float,
+        centreY: Float,
+    ) {
+        if (valeurDp <= 0) return
+        val texte = valeurDp.toString()
+        peintEtiquette.textSize = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice() / echelle
+        val largeurTexte = peintEtiquette.measureText(texte)
+        val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        val marge = MARGE_ETIQUETTE_DP * echellePolice() / echelle
+        peintPill.color = COULEUR_CONTRAINTE
+        peintPill.alpha = ALPHA_PILL_ETIQUETTE
+        canevas.drawRoundRect(
+            centreX - largeurTexte / 2f - marge,
+            centreY - demiHauteur - marge,
+            centreX + largeurTexte / 2f + marge,
+            centreY + demiHauteur + marge,
+            demiHauteur + marge,
+            demiHauteur + marge,
+            peintPill,
+        )
+        peintEtiquette.color = couleurSurSelection
+        canevas.drawText(texte, centreX - largeurTexte / 2f, centreY - demiHauteur, peintEtiquette)
     }
 
     /**
@@ -668,6 +1059,65 @@ public class VuePreviewXml : View {
 
         /** Pointillés du parent — 4 px tracés, 4 px troués, à épaisseur écran constante. */
         private val EFFET_POINTILLES = DashPathEffect(floatArrayOf(4f, 4f), 0f)
+
+        // ── Calques PE6b/PE6c (miroir des jetons de la maquette) ──
+
+        /** Densité de référence Android (dpi) — facteur des conversions dp. */
+        private const val DENSITE_REFERENCE = 160
+
+        /** Pas de la grille, en dp du profil (PE6b — « Grille 8 dp »). */
+        private const val PAS_GRILLE_DP = 8
+
+        /** Couleur de la grille (miroir rgba(30,110,200,.18) de la maquette). */
+        private const val COULEUR_GRILLE = 0x2E1E6EC8
+
+        /** Largeur du trait de grille, en dp écran. */
+        private const val LARGEUR_TRAIT_GRILLE = 1f
+
+        /** Couleur des bornes (miroir rgba(30,110,200,.5) — `.bnd`). */
+        private const val COULEUR_BORNE = 0x801E6EC8.toInt()
+
+        /** Largeur du trait des bornes, en dp écran. */
+        private const val LARGEUR_TRAIT_BORNE = 1f
+
+        /** Couleur des lignes de contrainte (miroir `--accent` de la maquette). */
+        private const val COULEUR_CONTRAINTE = 0xFF1E6EC8.toInt()
+
+        /** Largeur du trait de contrainte (miroir 1,5 px de `drawConstraints`). */
+        private const val LARGEUR_TRAIT_CONTRAINTE = 1.5f
+
+        /** Pointillés des contraintes — 5 px tracés, 3 px troués (miroir maquette). */
+        private val EFFET_CONTRAINTE = DashPathEffect(floatArrayOf(5f, 3f), 0f)
+
+        /** Rayon des points d'extrémité de contrainte, en dp écran (miroir 3,5 px). */
+        private const val RAYON_POINT_CONTRAINTE_DP = 3.5f
+
+        /** Décalage de la pill de valeur depuis la ligne, en dp écran (miroir 11-14 px). */
+        private const val DECALAGE_PILL_CONTRAINTE_DP = 12f
+
+        /** Couleur des bandes de MARGE (miroir `--margin` #D9822B de la maquette). */
+        private const val COULEUR_MARGE = 0xFFD9822B.toInt()
+
+        /** Couleur des bandes de PADDING (miroir `--padding` #2E8B4B de la maquette). */
+        private const val COULEUR_PADDING = 0xFF2E8B4B.toInt()
+
+        /** Alpha des bandes du box-model (miroir 38 % de la maquette). */
+        private const val ALPHA_BOXMODEL = 0x61
+
+        /** Couleur des pastilles d'AVERTISSEMENT (miroir `.pin.w` #B8860B). */
+        private const val COULEUR_PIN_AVERTISSEMENT = 0xFFB8860B.toInt()
+
+        /** Couleur des pastilles d'ERREUR (miroir `--err` #BA1A1A). */
+        private const val COULEUR_PIN_ERREUR = 0xFFBA1A1A.toInt()
+
+        /** Rayon d'une pastille de problème, en dp écran (miroir 18 px de diamètre). */
+        private const val RAYON_PIN_DP = 9f
+
+        /** Liseré blanc des pastilles, en dp écran (miroir bordure 2 px). */
+        private const val LISE_PIN_DP = 2f
+
+        /** Taille du texte des pastilles, en dp écran (miroir 11 px). */
+        private const val TAILLE_TEXTE_PIN_DP = 11f
     }
 }
 

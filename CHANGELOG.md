@@ -1,5 +1,76 @@
 # Journal des modifications
 
+## [0.134.24] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE6b : chrome Material de l'activité dédiée** (maquette
+  `docs/mockups/apercu-xml.html` § « Chrome Material dans la nouvelle
+  activité », PREVIEW.md §3.4) :
+  - **puces défilantes** (miroir `.chips`) — `HorizontalScrollView` de
+    `MaterialButton` Outlined : **Appareil ▾** (menu RADIO ancré du
+    catalogue, description `nom · WxHdp · dpi`, entrée courante cochée —
+    plus de cycle à l'aveugle), **Jour/Nuit** (état coché visible),
+    **Langue**, **Calques ▾** (menu à coches des six calques — états
+    relus à l'ouverture, jamais mémorisés en double) ;
+  - **feuille de choix de l'appareil** : `ProfilPeripherique.CATALOGUE`
+    étendu aux cinq appareils de la maquette — + **Tablette 10″**
+    (800×1280dp, 320dpi) et **Petit écran** (320×568dp, 320dpi) ;
+    `DeviceProfile` accepte toute combinaison taille × densité
+    (`versDeviceProfile` construit directement), l'extension n'exige pas
+    de miroir côté LayoutLib ;
+  - **boutons de zoom exposés sur la vue** : `VuePreviewXml.zoomer(facteur)`
+    (zoom au CENTRE, échelle bornée 0,25×…6×, pan suivant le point
+    focal) et `ajuster()` ; **HUD de zoom** dans l'activité (miroir
+    `.zoom`, colonne bas-droite) : + / **100 %** / ⤢ / − — le bouton
+    pourcentage affiche l'échelle réelle et suit TOUT changement
+    (gestes compris) via `VuePreviewXml.auChangementEchelle` ;
+  - **grille 8 dp** (miroir `.screen.grid`) : traits fins au pas du
+    PROFIL (conversion par la densité du rendu), calque coché.
+- **Previews — PE6c : données enrichies + règles de problèmes** (maquette
+  § « Données enrichies pour marges, attributs, problèmes et dépôt ») :
+  - **`InfoVueRendu` enrichie** (13 champs → 22) : `classe` (simpleName —
+    `MockView` quand l'inflater G15 a dégradé une classe introuvable),
+    `idRes` (nom d'entrée de la ressource id), `marges*` / `padding*`
+    (px du rendu), `cliquable`, `conteneur` (ViewGroup), `orientation`
+    (LinearLayout — constantes `ORIENTATION_SANS_OBJET/HORIZONTALE/
+    VERTICALE`) ; **constructeur Parcel et `writeToParcel` dans le MÊME
+    ordre** (avertissement explicite de la maquette) — aller-retour
+    intégral testé, tampon lu JUSQU'AU BOUT ;
+  - **`RenduLayoutLib`** : marche parallèle de l'arbre `View` RÉEL
+    (cliquable, orientation LinearLayout) en pré-ordre STRICTEMENT
+    identique à `ViewInfoCollector` — tout écart dégrade au repli
+    défensif (jamais de faux attribut, X4) ;
+  - **`ProblemesPreview`** (nouveau — fonctions pures, testées comme
+    `SelectionPreview`) : règle **classe absente** (ERREUR — cadre de
+    remplacement G15) et règle **cible tactile** (AVERTISSEMENT — vue
+    cliquable < 47,5 dp, conversion par la densité du PROFIL, se tait
+    sans densité) ; les règles XML-side (texte codé en dur) et de
+    mesure (texte tronqué) suivront avec leurs phases ;
+  - **calques consommateurs** (`VuePreviewXml`, zéro-Material) :
+    **box-model** de la sélection — bandes de MARGE orange (contour
+    pointillé) et de PADDING vert avec pills de valeur en dp (miroir
+    `drawBoxModel`) ; **lignes de contrainte** des enfants directs de
+    la racine — écart au frère précédent et aux bords, segments
+    pointillés à points d'extrémité et pills dp (`CalquesApercu.
+    lignesContraintes`, géométrie pure, miroir `drawConstraints`) ;
+    **pastilles de problèmes** au coin haut-droit des vues fautives —
+    ambre (avertissement) / rouge (erreur), compteur quand plusieurs
+    problèmes se partagent la vue (miroir `.pin`) ; le contrôleur
+    évalue les problèmes à CHAQUE rendu valide.
+
+### Modifié
+
+- **puce Appareil** : libellé = nom du profil (« Pixel 4 ▾ ») au lieu de
+  la description longue (la description vit dans le menu radio) ;
+- `ControleurPreviewXml.profilSuivant()` (cycle) remplacé par
+  `definirProfil(profil)` (sélection explicite — maquette) ; les
+  calques PE6a (parent/frères) deviennent activables.
+
+### Documenté
+
+- PREVIEW.md §3.4 : lignes PE6b/PE6c (livrées v0.134.24).
+
 ## [0.134.23] – 2026-10-16
 
 ### Modifié
