@@ -1,5 +1,113 @@
 # Journal des modifications
 
+## [0.134.25] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE6d : feuille inférieure arbre, attributs, problèmes,
+  source** (maquette `docs/mockups/apercu-xml.html` § « Feuille
+  inférieure : arbre, attributs, problèmes, source », PREVIEW.md §3.4) :
+  - **`FeuilleApercuFragment`** (`:feature:preview`) : BottomSheet
+    Material (poignée de tirage + fil d'Ariane, 4 onglets, volet 224 dp —
+    repliée à 76 dp, miroir `.sheet` 72 px / 300 px) ALIMENTÉE PAR LE
+    MÊME ÉTAT que la vue (moteur du `PreviewViewModel` partagé,
+    `activityViewModels`) ;
+  - **sélection croisée deux voies** : rangée d'arbre, ligne de source
+    et « Voir » d'un problème → `PreviewViewModel.selectionner(indice)`
+    → le SPAN est posé dans la session (l'éditeur le retrouve) et le
+    surlignage suit la SEULE source de vérité (StateFlow partagé) ; le
+    tap du rendu remonte désormais l'INDICE (`ControleurPreviewXml.auSelection`)
+    — le contrôleur ne pose plus le span lui-même ;
+  - **onglet Arbre** : pré-ordre aplati, indentation par profondeur,
+    monogramme, badge « ! n » (problèmes) sinon dimensions en dp ;
+  - **onglet Attributs** LECTURE SEULE (l'édition est PE7d) : groupes
+    Identité / Disposition / Mesuré composés des données mesurées de
+    l'[InfoVueRendu] enrichie (PE6c) ;
+  - **onglet Problèmes** : règles pures évaluées à chaque rendu valide,
+    pastille ambre/rouge, badge compteur sur l'onglet (miroir `nProbs`),
+    libellés localisés FR/EN par genre ;
+  - **onglet Source** : TEXTE VIVANT de la session, lignes numérotées,
+    surlignage des lignes du span de la vue sélectionnée, clic sur une
+    ligne → la vue propriétaire (miroir `ownerOf`), bouton « Ouvrir dans
+    l'éditeur ↗ » (retour à la sélection posée) ;
+  - **`AligneurElementsXml`** : aides publiques `numeroLigne`/`debutLigne`
+    (conversion offset ↔ ligne partagée par la feuille et la sélection) ;
+  - **`FeuilleApercu`** (`:preview:xml`, fonctions pures) :
+    `entreesArbre` / `groupesAttributs` / `entreesProblemes` /
+    `plageSource` / `vueDeLigne` — le fragment ne fait que la mise en
+    forme, la logique est testée sans Android ;
+  - le HUD de zoom remonte au déploiement de la feuille (miroir
+    `applySheet`).
+- **Previews — PE7a : catalogue et insertion XML en fonctions pures**
+  (maquette § « Catalogue et insertion XML, en fonctions pures ») :
+  - **`CataloguePalette`** : les 16 widgets de la maquette (6 catégories,
+    extrait XML prêt à insérer avec identifiant posé, dépendance
+    requise — Material ×2, RecyclerView) + filtres catégorie/recherche
+    (miroir `fillGrid`) ;
+  - **`InsertionXml.inserer(texte, spanParent, index, extrait)`** →
+    UNE édition `(debut, fin, remplacement)` atomique : la position est
+    dérivée en re-marchant le TEXTE vivant ([AligneurElementsXml.aligner] —
+    span périmé, XML malformé, include non résolu → refus `null`, jamais
+    d'écriture hasardeuse X4), indentation du style EXISTANT des frères
+    (repli parent + 4), balise auto-fermante convertie en paire
+    ouvrante/fermante, `xmlns:app` ajouté à la RACINE si l'extrait
+    l'utilise (plage étendue — un seul annuler) ;
+  - **`InsertionXml.renumeroter`** : premier identifiant libre (miroir
+    `nextId`, `@+id/` ET `@id/` bloquent) ; **`contraindre`** : les
+    contraintes `parent` + marges en dp du point de dépôt pour un parent
+    ConstraintLayout (la densité du PROFIL convertit la position —
+    maquette : « calculées avec la densité du profil ») ;
+  - **`InsertionXmlTest`** : l'édition est vérifiée PAR APPLICATION au
+    texte (le résultat reste bienformé, re-marché par l'aligneur).
+- **Previews — PE7b : zones de dépôt et glisser-déposer natif**
+  (maquette § « Zones de dépôt et glisser-déposer natif ») :
+  - **`ZonesDepot`** (`:preview:xml`, pures testées comme
+    `SelectionPreview`) : `cibleSous` (conteneur le plus PROFOND +
+    index entre frères par milieux dépassés — miroir `targetAt`),
+    `emplacement` (la barre d'insertion au milieu des écarts, marges du
+    premier/dernier frère absorbées à moitié — miroir `slotRect`
+    branches verticale ET horizontale), libellés des pills
+    (« Dans LinearLayout · @+id/x », « + Button · 2/3 ») ;
+  - **`VuePreviewXml`** implémente `OnDragListener` : les drags portant
+    `ZonesDepot.ContenuDepot` en localState sont acceptés (les autres
+    passent au travers) — le moteur de glisser-déposer d'Android livre
+    les événements SANS relais (la palette PE7c lancera
+    `startDragAndDrop` puis se masquera) ; zones dessinées en Canvas EN
+    DERNIER (conteneurs pointillés violets, conteneur visé plein, barre
+    + halo, pills — miroir `drawDrop`, violet `--new` #7C3AED) ; les
+    calques de sélection se masquent pendant un glisser (miroir
+    `!S.dropView`), bornes et contraintes restent ; machine d'états
+    interne testée sans `DragEvent` (pas de constructeur public) ;
+  - **câblage au dépôt** (`PreviewViewModel.appliquerDepot`) : cible →
+    identifiant libre → façonnage ConstraintLayout (marges du point de
+    dépôt en dp du profil) → édition unique → `SourceApercu.remplacer`
+    → le rendu repart par le chemin normal (mutation → écouteur →
+    moteur) ; toast de confirmation nommant le conteneur visé, refus
+    silencieux journalisé si le document a changé.
+- **Écran** : `activity_preview.xml` réorganisé en CoordinatorLayout
+  (feuille en BottomSheet) ; layout `fragment_feuille_apercu.xml` ;
+  chaînes PE6d/PE7b FR/EN ; couleurs des pastilles de problèmes.
+
+### Modifié
+
+- **ControleurPreviewXml** : le callback `auSpanTouche` devient
+  `auSelection(indice)` — la pose du SPAN migre au ViewModel
+  (`PreviewViewModel.selectionner`), une seule source de vérité pour la
+  sélection (vue, feuille, dépôt) ;
+- **`AligneurElementsXml`** : exemption detekt `TooManyFunctions` (les
+  aides ligne ↔ ligne vivent au même endroit que la sémantique des
+  spans).
+
+### Vérifié
+
+- Chaîne verte : `:preview:xml` (174 tests — dont `InsertionXmlTest`,
+  `ZonesDepotTest`, `FeuilleApercuTest`, `CataloguePaletteTest` et les
+  tests de drag de `VuePreviewXmlTest`), `:feature:preview` (4 tests de
+  layout/gonflage étendus PE6d), `:feature:editor`, `:core:domain`
+  (kover), `:app:compileDebugKotlin` (graphe Hilt), `lintDebug` ×3,
+  `checkModuleDependencies`, digeste régénérée EN DERNIER sur arbre
+  propre (988 → 997 fichiers) puis contre-vérifiée SANS flag.
+
 ## [0.134.24] – 2026-10-16
 
 ### Ajouté

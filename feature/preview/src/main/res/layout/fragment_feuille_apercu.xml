@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  FEUILLE inférieure de l'aperçu XML (PE6d, maquette
+  docs/mockups/apercu-xml.html § « Feuille inférieure : arbre,
+  attributs, problèmes, source ») : poignée de tirage (miroir `.grab`,
+  tiret + fil d'Ariane), 4 onglets (miroir `.tabs` : Arbre, Attributs,
+  Problèmes + compteur, Source) et le volet (miroir `.pane`).
+  Fermée, la feuille expose poignée + onglets (72 px de la maquette,
+  peekHeight 76 dp) ; déployée, le volet de 224 dp s'ajoute (300 px
+  au total). Le chrome Material vit ICI (:feature:preview) — le
+  contenu vient des modèles purs de :preview:xml (FeuilleApercu).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_feuille"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorSurface"
+    android:clickable="true"
+    android:orientation="vertical"
+    tools:ignore="Overdraw">
+    <!-- Le fond est VITAL : la feuille (BottomSheet) doit être opaque
+         sur le rendu — l'Overdraw signalé est assumé. -->
+
+    <!-- Poignée de tirage (miroir `.grab` : tiret + fil d'Ariane). -->
+    <LinearLayout
+        android:id="@+id/grab_feuille"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_md"
+        android:paddingEnd="@dimen/spacing_md">
+
+        <View
+            android:layout_width="24dp"
+            android:layout_height="4dp"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:background="?attr/colorOutline" />
+
+        <TextView
+            android:id="@+id/fil_ariane"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:text="@string/preview_feuille_sans_selection" />
+    </LinearLayout>
+
+    <!-- Onglets (miroir `.tabs`, rôle tablist). Le badge compteur des
+         problèmes se pose par code (TabLayout.Tab.getOrCreateBadge). -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/onglets_feuille"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:contentDescription="@string/preview_feuille_onglets_cd"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="?attr/colorPrimary"
+        app:tabMode="fixed"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+    <!-- Le volet : les 4 volets superposés (miroir `.pane`), un seul visible. -->
+    <FrameLayout
+        android:id="@+id/volet_feuille"
+        android:layout_width="match_parent"
+        android:layout_height="224dp">
+
+        <ScrollView
+            android:id="@+id/volet_arbre"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:id="@+id/lignes_arbre"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/volet_attributs"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/groupes_attributs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/volet_problemes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/lignes_problemes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <LinearLayout
+            android:id="@+id/volet_source"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/spacing_md"
+                android:paddingEnd="@dimen/spacing_md">
+
+                <TextView
+                    android:id="@+id/plage_source"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:text="@string/preview_feuille_source_entier" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_ouvrir_editeur"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="@string/preview_feuille_ouvrir_editeur" />
+            </LinearLayout>
+
+            <ScrollView
+                android:id="@+id/defile_source"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:id="@+id/lignes_source"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

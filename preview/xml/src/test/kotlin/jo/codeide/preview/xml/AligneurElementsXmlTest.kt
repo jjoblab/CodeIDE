@@ -172,4 +172,41 @@ class AligneurElementsXmlTest {
         assertEquals(doc.indexOf('<'), elements[0].debut)
         assertEquals(doc.length, elements[0].fin)
     }
+
+    // ── Aides de la feuille inférieure (PE6d) : offset ↔ ligne ──
+
+    @Test
+    fun `numeroLigne — 1 plus le nombre de sauts avant l'offset`() {
+        val doc = "<a>\n    <b />\n    <c />\n</a>"
+        assertEquals(1, AligneurElementsXml.numeroLigne(doc, 0))
+        assertEquals(1, AligneurElementsXml.numeroLigne(doc, doc.indexOf("<a>") + 1))
+        assertEquals(2, AligneurElementsXml.numeroLigne(doc, doc.indexOf("<b")))
+        // L'offset APRÈS le saut de ligne appartient à la ligne suivante.
+        assertEquals(2, AligneurElementsXml.numeroLigne(doc, doc.indexOf('\n') + 1))
+        assertEquals(4, AligneurElementsXml.numeroLigne(doc, doc.indexOf("</a>")))
+        // Bornes : jamais d'exception.
+        assertEquals(1, AligneurElementsXml.numeroLigne(doc, -5))
+        assertEquals(1, AligneurElementsXml.numeroLigne(doc, 0))
+        assertEquals(4, AligneurElementsXml.numeroLigne(doc, doc.length + 10))
+    }
+
+    @Test
+    fun `debutLigne — l'offset du premier caractère de la ligne`() {
+        val doc = "<a>\n    <b />\n    <c />\n</a>"
+        assertEquals(0, AligneurElementsXml.debutLigne(doc, 1))
+        assertEquals(doc.indexOf("    <b"), AligneurElementsXml.debutLigne(doc, 2))
+        assertEquals(doc.indexOf("    <c"), AligneurElementsXml.debutLigne(doc, 3))
+        // Bornes : ligne 0 → début du document ; au-delà → fin du texte.
+        assertEquals(0, AligneurElementsXml.debutLigne(doc, 0))
+        assertEquals(doc.length, AligneurElementsXml.debutLigne(doc, 99))
+    }
+
+    @Test
+    fun `offset et ligne se correspondent deux à deux (aller-retour)`() {
+        val doc = "<a>\n    <b />\n</a>"
+        for (ligne in 1..3) {
+            val offset = AligneurElementsXml.debutLigne(doc, ligne)
+            assertEquals(ligne, AligneurElementsXml.numeroLigne(doc, offset))
+        }
+    }
 }

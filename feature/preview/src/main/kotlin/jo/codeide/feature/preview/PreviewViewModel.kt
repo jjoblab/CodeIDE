@@ -11,13 +11,18 @@ import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.RegistreSourcesApercu
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.SourceApercu
+import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.ClassificateurPreview
+import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
+import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 /**
  * ViewModel de l'écran d'aperçu XML (PE6-0, maquette
@@ -36,8 +41,18 @@ import javax.inject.Inject
  *   layouts ouverts — [sourcesPreviewables] (registre) + [ouvrirFichier].
  *
  * Le sens inverse de la sélection (éditeur → preview) DISPARAÎT avec
- * l'overlay : l'éditeur n'est plus visible — la feuille source viendra
- * en PE6d.
+ * l'overlay : l'éditeur n'est plus visible — la FEUILLE inférieure
+ * remplace (PE6d : arbre, attributs, problèmes, source).
+ *
+ * PE6d — SÉLECTION PARTAGÉE : la vue et la feuille consomment la MÊME
+ * sélection ([indiceSelectionne]) ; [selectionner] pose le SPAN dans
+ * la session (l'éditeur le retrouve à son retour) et met à jour l'état.
+ * PE7b — DÉPÔT de la palette : [appliquerDepot] cible le conteneur
+ * ([ZonesDepot.cibleSous]), façonne l'extrait (identifiant libre,
+ * contraintes + marges en dp du point de dépôt pour un parent
+ * ConstraintLayout) et compose l'édition ([InsertionXml]) — UNE écriture
+ * dans la session, le rendu repart par le chemin normal (mutation →
+ * écouteur → moteur).
  *
  * Exemptions detekt ciblées (règle 16) : TooManyFunctions — ViewModel de
  * COUTURE (brancher la source, suivre le projet, sélecteur de fichier,
@@ -83,6 +98,20 @@ public class PreviewViewModel
         /** L'écran doit se terminer (source disparue) — collecté une fois par l'activité. */
         public val finir: StateFlow<Boolean> = finirInterne.asStateFlow()
 
+        /** La sélection PARTAGÉE (vue ↔ feuille) : l'indice dans l'arbre rendu, -1 aucune. */
+        private val selectionInterne = MutableStateFlow(-1)
+
+        /** La sélection partagée (PE6d — la feuille et la vue s'y alignent). */
+        public val indiceSelectionne: StateFlow<Int> = selectionInterne.asStateFlow()
+
+        /** Le DERNIER rendu valide (sélection, dépôt : vues + spans). */
+        public var dernierRendu: EtatPreviewXml.RenduValide? = null
+            private set
+
+        /** La classe du conteneur visé par le DERNIER dépôt RÉUSSI (libellé du toast). */
+        public var dernierParentDepot: String? = null
+            private set
+
         /** URI du fichier affiché (titre + sélecteur). */
         public var uriCourante: String? = null
             private set
@@ -95,6 +124,11 @@ public class PreviewViewModel
 
         init {
             brancher(uriInitial)
+            viewModelScope.launch {
+                moteur.etat.collect { etat ->
+                    if (etat is EtatPreviewXml.RenduValide) dernierRendu = etat
+                }
+            }
         }
 
         /**
@@ -121,6 +155,71 @@ public class PreviewViewModel
             fin: Int,
         ) {
             source?.definirSelection(debut, fin)
+        }
+
+        /**
+         * La SÉLECTION partagée (PE6d) : l'indice de la vue dans l'arbre
+         * rendu — le SPAN suit dans la session (l'éditeur le retrouve),
+         * l'état est publié (la feuille s'aligne ; l'activité re-surligne).
+         * Indice sans vue ou sans span : la sélection SE TAIT (jamais un
+         * faux span — X4), l'indice reste affiché (l'arbre le montre).
+         */
+        public fun selectionner(indice: Int) {
+            val vue = dernierRendu?.vues?.getOrNull(indice)
+            if (vue != null && vue.selectable) {
+                source?.definirSelection(vue.debutElement, vue.finElement)
+            }
+            selectionInterne.value = indice
+        }
+
+        /** Le texte VIVANT du document (onglet Source de la feuille — PE6d). */
+        public fun texteCourant(): String = source?.texte() ?: ""
+
+        /**
+         * Le DÉPÔT de la palette (PE7b) : cible le conteneur sous le
+         * point, façonne l'extrait (identifiant libre — miroir `nextId`,
+         * contraintes + marges en dp calculées avec la densité du PROFIL
+         * pour un parent ConstraintLayout — maquette PE7a), compose
+         * l'ÉDITION UNIQUE ([InsertionXml.inserer]) et l'écrit dans la
+         * session ([SourceApercu.remplacer] — une seule entrée
+         * d'historique). Le rendu repart par le chemin normal (mutation →
+         * écouteur → moteur). Refus silencieux hors cible ou span périmé
+         * (X4 — jamais d'écriture hasardeuse).
+         *
+         * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde
+         * (rendu, source, cible, parent, span, édition) est une issue
+         * DISTINCTE du refus.
+         */
+        @Suppress("ReturnCount")
+        public fun appliquerDepot(
+            contenu: ZonesDepot.ContenuDepot,
+            x: Float,
+            y: Float,
+        ): Boolean {
+            val rendu = dernierRendu ?: return false
+            val sourceBranchee = source ?: return false
+            val vues = rendu.vues
+            val cible = ZonesDepot.cibleSous(vues, x, y) ?: return false
+            val parent = vues.getOrNull(cible.indiceParent) ?: return false
+            if (!parent.selectable) return false
+            val texte = sourceBranchee.texte()
+            var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
+            if (parent.classe.endsWith("ConstraintLayout")) {
+                val densite = moteur.profil.densiteDpi
+                val margeHaut = CalquesApercu.pxVersDp((y - parent.haut).roundToInt().coerceAtLeast(0), densite)
+                val margeStart = CalquesApercu.pxVersDp((x - parent.gauche).roundToInt().coerceAtLeast(0), densite)
+                extrait = InsertionXml.contraindre(extrait, margeHaut, margeStart)
+            }
+            val edition =
+                InsertionXml.inserer(
+                    texte,
+                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                    cible.index,
+                    extrait,
+                ) ?: return false
+            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+            if (ecrit) dernierParentDepot = parent.classe
+            return ecrit
         }
 
         override fun onCleared() {
