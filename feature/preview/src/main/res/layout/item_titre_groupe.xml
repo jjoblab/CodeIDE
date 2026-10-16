@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le TITRE d'un groupe lecture seule (PE9b, miroir les titres de
+     groupes de `renderAttrs` : Disposition, Mesuré…). -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/titre_groupe"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="4dp"
+    android:textAppearance="?attr/textAppearanceTitleSmall"
+    android:textColor="?attr/colorPrimary" />
