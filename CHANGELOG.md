@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.134.33] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE9a, la feuille passe aux fragments + layouts réels**
+  (PE9, retour propriétaire : « Arbre, Attributs, problème, source
+  utiliser de vrai layout, chaqun doit être des fragments ») :
+  - les QUATRE volets de la feuille deviennent des fragments enfants
+    (`VoletArbreFragment`, `VoletAttributsFragment`,
+    `VoletProblemesFragment`, `VoletSourceFragment`) montés UNE fois
+    dans `conteneur_volets` puis montrés/cachés par transactions —
+    `FeuilleApercuFragment` tombe de ~1 690 à ~250 lignes et ne garde
+    que le CHROME (poignée, fil d'Ariane, onglets, badge, conteneur) ;
+  - l'onglet actif est un flux (`FeuilleApercuFragment.ongletActif`)
+    collecté par la base commune `VoletFeuilleFragment` : « l'onglet
+    actif seul se re-marche » est conservé, les champs restent frais ;
+  - Arbre / Problèmes / Source passent en RecyclerView réels
+    (`ListAdapter` + `DiffUtil`, item layouts RÉELS `item_arbre.xml`,
+    `item_probleme.xml`, `item_ligne_source.xml` + drawables
+    `fond_monogramme`, `fond_pastille_probleme`,
+    `fond_ligne_source_surlignee`) — la reconstruction de ~1 500
+    rangées à chaque état disparaît, et la famille du crash 0.134.30
+    (removeAllViews sous focus) n'existe plus sur ces volets ;
+  - le badge compteur de l'onglet Problèmes est tenu par la feuille à
+    CHAQUE rendu valide (il n'attend plus la visite d'un onglet) ;
+  - le volet Source reprend son en-tête (plage + « Ouvrir dans
+    l'éditeur ↗ ») et son défilement épinglé à la plage
+    (`scrollToPositionWithOffset`) ;
+  - aides de style centralisées (`StyleVolet`, `LibellesVolet`) — le
+    chrome référence les ATTRIBUTS du thème, jamais une couleur en dur ;
+  - tests : gonflage Robolectric des 4 volets + 3 items
+    (`VoletsPreviewLayoutTest`, 8 tests) ; baseline de parité
+    régénérée EN DERNIER (1010 → 1018 fichiers, diff relu — 1 ligne).
+
 ## [0.134.32] – 2026-10-16
 
 ### Corrigé

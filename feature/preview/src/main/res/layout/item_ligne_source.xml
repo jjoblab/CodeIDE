@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE LIGNE de l'onglet Source (PE9a, miroir `renderSrc` : numéro en
+  mono à droite sur colonne fixe, texte en mono, surlignage de la plage
+  de la vue sélectionnée posé au liage via fond_ligne_source_surlignee).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/numero_ligne"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="end"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textSize="11sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/texte_ligne"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textSize="11sp"
+        android:textColor="?attr/colorOnSurface" />
+</LinearLayout>

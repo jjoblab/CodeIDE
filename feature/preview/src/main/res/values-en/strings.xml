@@ -45,6 +45,7 @@
     <string name="preview_feuille_onglet_source">Source</string>
     <string name="preview_feuille_onglets_cd">Selected view details: tree, attributes, problems and source</string>
     <string name="preview_feuille_croisement">%1$s › %2$s</string>
+    <string name="preview_feuille_id">\@+id/%1$s</string>
     <string name="preview_feuille_libelle">%1$s · @+id/%2$s</string>
     <string name="preview_feuille_vide">Select a view in the render or in the tree.</string>
     <string name="preview_feuille_aucun_probleme">No problem detected at this size and font scale.</string>

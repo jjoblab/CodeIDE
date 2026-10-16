@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le fond d'une ligne de source SURLIGNÉE (PE9a, miroir le surlignage
+     de `renderSrc` : la plage de la vue sélectionnée). Conteneur
+     secondaire du thème — aucune couleur en dur (règle 3). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSecondaryContainer" />
+</shape>

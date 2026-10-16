@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volet PROBLÈMES de la feuille (PE9a, miroir `.pane` — ancien
+  volet_problemes + lignes_problemes) : les règles pures évaluées à
+  chaque rendu valide, UN RecyclerView réel (pastille + titre + détail,
+  recyclage — miroir le crash 0.134.30 supprimé avec la reconstruction).
+-->
+<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/liste_problemes"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:contentDescription="@string/preview_feuille_onglet_problemes"
+    tools:itemCount="4"
+    tools:listitem="@layout/item_probleme" />

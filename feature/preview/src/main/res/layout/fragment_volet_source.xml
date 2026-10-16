@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volet SOURCE de la feuille (PE9a, miroir `.pane` — ancien
+  volet_source) : l'en-tête (plage affichée + « Ouvrir dans l'éditeur »)
+  puis le TEXTE VIVANT en UN RecyclerView réel (lignes numérotées,
+  recyclage — l'ancien LinearLayout reconstruisait ~1 500 rangées à
+  chaque état).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_md"
+        android:paddingEnd="@dimen/spacing_md">
+
+        <TextView
+            android:id="@+id/plage_source"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:text="@string/preview_feuille_source_entier" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_ouvrir_editeur"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/preview_feuille_ouvrir_editeur" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_source"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="@string/preview_feuille_onglet_source"
+        tools:itemCount="12"
+        tools:listitem="@layout/item_ligne_source" />
+</LinearLayout>
