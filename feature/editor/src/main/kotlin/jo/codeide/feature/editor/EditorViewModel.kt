@@ -41,6 +41,7 @@ import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.PreparerClasspathLspUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
+import jo.codeide.core.domain.RegistreSourcesApercu
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.RestaurerArbreUseCase
 import jo.codeide.core.domain.ResultatExecutionApplication
@@ -113,18 +114,50 @@ import javax.inject.Inject
  * la destruction de l'activité (fuite du thread de restyle sinon, détectée
  * par LeakCanary) ; l'enveloppe rend la libération **observable par test**
  * sans toucher à la classe cel-core.
+ *
+ * PE6-0 (maquette `docs/mockups/apercu-xml.html` § « Partage de la
+ * session ») : la session est AUSSI publiée au registre des sources
+ * d'aperçu (adaptateur [SourceApercuSession], port `:core:domain`) —
+ * l'activité d'aperçu en activity dédiée la consomme sans voir la
+ * bibliothèque d'édition. Enregistrement à la création, libération à la
+ * disposition (MIROIR exact du cycle de la session elle-même : le
+ * registre ne garde jamais une source morte), migration d'URI en place
+ * (déplacement de fichier).
  */
 internal class SessionSuivie(
     val session: EditorSession,
+    uri: String,
+    cheminRelatif: String,
+    private val registre: RegistreSourcesApercu,
 ) {
+    /** La source d'aperçu de CE document (adaptateur publié au registre). */
+    val sourceApercu = SourceApercuSession(session, uri, cheminRelatif)
+
     /** La session a-t-elle été libérée (dispose appelé une fois au plus) ? */
     var liberee: Boolean = false
         private set
+
+    init {
+        registre.enregistrer(sourceApercu)
+    }
+
+    /** Déplacement/renommage : la source change de clé au registre, EN PLACE (écouteurs conservés). */
+    fun migrer(
+        uri: String,
+        cheminRelatif: String,
+    ) {
+        registre.liberer(sourceApercu.uri)
+        sourceApercu.migrer(uri, cheminRelatif)
+        registre.enregistrer(sourceApercu)
+    }
 
     /** Libère la session — sans effet si déjà libérée. */
     fun disposer() {
         if (liberee) return
         liberee = true
+        // Le registre lit l'URI COURANTE de l'adaptateur (migration déjà
+        // passée par ici) — jamais une clé périmée.
+        registre.liberer(sourceApercu.uri)
         session.dispose()
     }
 }
@@ -242,6 +275,12 @@ class EditorViewModel
         // répartiteur d'E/S INJECTÉ, JAMAIS sur le thread principal
         // (règle 5 : dispatchers injectés).
         private val dispatcheurs: DispatcherProvider,
+        // PE6-0 (maquette « Partage de la session ») : chaque session
+        // d'édition OUVERTE est publiée au registre singleton sous le
+        // port SourceApercu — l'aperçu en activity dédiée (:feature:preview)
+        // le consomme ; l'enregistrement vit dans SessionSuivie (création
+        // et disposition au MÊME endroit que le cycle de la session).
+        private val registreSourcesApercu: RegistreSourcesApercu,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val sauvetage = savedStateHandle
@@ -2378,6 +2417,10 @@ class EditorViewModel
                 return
             }
             uriDocumentSuivie = uriDocument
+            // PE6-0 : chaque source d'aperçu porte l'URI document du
+            // projet porteur — l'activité d'aperçu résout `res/` par le
+            // port, sans extra d'intention périmé.
+            sessions.values.forEach { suivie -> suivie.sourceApercu.uriProjet = uriDocument }
             reinitialiser()
             // Mission LSP Java h2 : la session du projet précédent ne
             // survit PAS au changement — moteurs, index en cours et
@@ -3474,7 +3517,13 @@ class EditorViewModel
             if (sessions.containsKey(uri)) return
             val chemin = cheminRelatifDe(uri, sourceOnglet)
             val nom = arbrePour(sourceOnglet).statuts[uri]?.name ?: chemin.substringAfterLast('/')
-            val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
+            val session =
+                SessionSuivie(
+                    EditorSession(EditorDocument.of(texte)),
+                    uri = uri,
+                    cheminRelatif = chemin,
+                    registre = registreSourcesApercu,
+                )
             FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
             sessions[uri] = session
@@ -3524,7 +3573,13 @@ class EditorViewModel
             val onglet = etatInterne.value.onglets.firstOrNull { it.uri == uri } ?: return
             sauvegardesAuto[uri]?.cancel()
             sauvegardesAuto.remove(uri)
-            val session = SessionSuivie(EditorSession(EditorDocument.of(texte)))
+            val session =
+                SessionSuivie(
+                    EditorSession(EditorDocument.of(texte)),
+                    uri = uri,
+                    cheminRelatif = onglet.cheminRelatif,
+                    registre = registreSourcesApercu,
+                )
             FichiersOuverture.langage(onglet.nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
             // E12 (cycle de vie étape C) : l'ancienne session est disposée
@@ -3879,7 +3934,13 @@ class EditorViewModel
                             chemin.substringAfterLast('/').ifBlank {
                                 arbrePour(sourceOnglet).statuts[uri]?.name ?: uri.substringAfterLast('/')
                             }
-                        val session = SessionSuivie(EditorSession(EditorDocument.of(lecture.value)))
+                        val session =
+                            SessionSuivie(
+                                EditorSession(EditorDocument.of(lecture.value)),
+                                uri = uri,
+                                cheminRelatif = chemin,
+                                registre = registreSourcesApercu,
+                            )
                         FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
                         session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
                         sessions[uri] = session
@@ -4674,6 +4735,12 @@ class EditorViewModel
             val session = sessions.remove(ancienneUri) ?: return
             val sauvegardeAuto = sauvegardesAuto.remove(ancienneUri)
             val verrou = verrousEcriture.remove(ancienneUri)
+            // PE6-0 : la source d'aperçu change de clé au registre EN
+            // PLACE (les écouteurs de l'aperçu survivent au déplacement).
+            val nouveauChemin =
+                session.sourceApercu.cheminRelatif.substringBeforeLast('/') +
+                    if (session.sourceApercu.cheminRelatif.contains('/')) "/$nouveauNom" else nouveauNom
+            session.migrer(nouvelleUri, nouveauChemin)
             sessions[nouvelleUri] = session
             sauvegardeAuto?.let { sauvegardesAuto[nouvelleUri] = it }
             verrou?.let { verrousEcriture[nouvelleUri] = it }

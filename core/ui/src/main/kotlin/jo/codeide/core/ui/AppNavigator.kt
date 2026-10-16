@@ -163,6 +163,28 @@ public interface AppNavigator {
      * travail suggéré, ou `null` pour le répertoire général.
      */
     public fun openTerminal(suggestedWorkingDirectory: String?): Unit
+
+    /**
+     * Ouvre l'**aperçu XML en activité dédiée** (PE6-0, maquette
+     * `docs/mockups/apercu-xml.html` § « Activité dédiée ») : l'écran
+     * s'empile au-dessus de l'éditeur, sur le même patron que
+     * [openTerminal] — la session d'édition reste celle du
+     * `EditorViewModel` (partagée via le registre des sources d'aperçu,
+     * `:core:domain`, dont le port porte aussi l'URI du projet).
+     *
+     * Servi par l'action « Aperçu XML » de la toolbar de l'espace de
+     * travail (l'overlay intra-activité est retiré : l'éditeur garde sa
+     * pleine largeur, l'aperçu a son propre écran).
+     *
+     * @param projectId identifiant du projet (piège « mort du
+     * processus » : l'aperçu relance l'éditeur si la source n'existe
+     * plus au registre).
+     * @param uri URI du document à prévisualiser.
+     */
+    public fun openPreview(
+        projectId: String,
+        uri: String,
+    ): Unit
 }
 
 /**

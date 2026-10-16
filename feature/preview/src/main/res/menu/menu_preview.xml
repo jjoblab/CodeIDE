@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Menu de l'aperçu XML (PE6-0) : le titre est un sélecteur —
+     « changement de fichier », piège de la maquette (le preview ne suit
+     plus l'onglet actif de l'éditeur). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_choisir_fichier"
+        android:title="@string/preview_choisir_fichier"
+        app:showAsAction="never" />
+</menu>

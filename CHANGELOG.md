@@ -1,5 +1,84 @@
 # Journal des modifications
 
+## [0.134.21] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE6-0 : l'aperçu XML en activité dédiée** (maquette
+  `docs/mockups/apercu-xml.html` § « Activité dédiée », PREVIEW.md §3.4) :
+  - **module `:feature:preview` (nouveau)** : `PreviewActivity` (toolbar
+    Material, puces de réglages profil/jour-nuit/langue reprises de
+    l'ancien overlay, menu « Choisir le fichier… »), `PreviewViewModel`
+    (moteur `MoteurPreviewXml` rotation-sûr — contexte application,
+    viewModelScope), `ControleurPreviewXml` **déplacé** de
+    `:feature:editor` et adapté (couture moteur ↔ vue, tap → span) ;
+    manifest `exported="false"`, règle de dépendance `:feature:preview`
+    → trio feature + `:preview:xml` (LayoutLib reste confiné) ;
+  - **port `SourceApercu` dans `:core:domain`** : texte, remplacement
+    atomique, sélection lire/poser, annuler/rétablir, écoute de
+    mutation — **aucun type `cel-*` ne traverse** la frontière ; le
+    remplacement refuse les plages hors bornes (`false`, jamais
+    d'exception) ; l'URI projet portée par le port (suivi de l'espace,
+    pas d'extra d'intention périmé) ;
+  - **registre singleton `RegistreSourcesApercu`** (Hilt, `ConcurrentHashMap`)
+    : `EditorViewModel` publie chaque session OUVERTE à sa création
+    (`SessionSuivie` encaisse enregistrement/libération/migration — le
+    registre ne garde jamais une source morte ; déplacement de fichier
+    = re-clé EN PLACE, écouteurs conservés) ; `:feature:preview` lit ;
+  - **navigation** : `AppNavigator.openPreview(projectId, uri)` + impl
+    (`Intent` explicite, extras projectId/uri — le piège « mort du
+    processus » relance l'éditeur via `openEditor(projectId)`) ;
+  - **retrait de l'overlay** : bloc `colonne_apercu` de
+    `activity_editor.xml` supprimé (l'éditeur garde sa pleine largeur),
+    l'action `action_apercu` devient un simple appel au navigateur,
+    visibilité du menu par classification directe ; contrôleur,
+    fonctions `brancherApercu`/`majBarreApercu` et strings de réglages
+    quittent `:feature:editor` ;
+  - **pièges de la maquette traités** : mort du processus (Android ne
+    recrée que l'activité du dessus → registre vide → l'écran se
+    termine et relance l'éditeur, jamais de panneau vide) ; rotation
+    (moteur dans le ViewModel) ; changement de fichier (le titre devient
+    un sélecteur des documents ouverts previewables, fourni par le
+    registre) ; sens inverse de la sélection (l'éditeur n'est plus
+    visible : le tap pose le span dans la session, l'éditeur le
+    retrouve à son retour).
+- **Previews — PE6a : calques de sélection « sans nouvelle donnée »**
+  (maquette § « Calques ») :
+  - cadre de sélection avec **poignées d'angle** (disques liserés) et
+    **étiquette « nom · dimensions en dp »** au-dessus du cadre ;
+  - **parent en pointillés** (DashPathEffect), **frères en filigrane**
+    (fill translucide) — indices calculés depuis
+    `InfoVueRendu.indiceParent` EXISTANT (aucun champ nouveau — PE6c
+    apportera marges/padding/attributs) ;
+  - **pastille d'état** bas-gauche : durée du rendu + nombre de vues
+    (`plurals` fr/en — données déjà là, jamais affichées : § « Constat ») ;
+  - calculs **purs et testés** dans `CalquesApercu` (conversion px → dp
+    par la densité du PROFIL avec repli px, frères, parent, étiquette) ;
+    tous les tracés à épaisseur ÉCRAN constante (patron
+    `LARGEUR_TRAIT_SURLIGNAGE / echelle`), tailles de texte/pill idem.
+- **Tests** : `RegistreSourcesApercuTest` (6 — registre pur),
+  `SourceApercuSessionTest` (9 — adaptateur sur VRAIES `EditorSession`
+  cel-core : aller-retours, annulation = mécanisme de l'éditeur, pont
+  d'écouteur mis en cache, intégration registre/`SessionSuivie`),
+  `CalquesApercuTest` (8 — fonctions pures des calques),
+  `VuePreviewXmlTest` +2 (dessin des calques Robolectric — poignées,
+  étiquette, parent, frères, pastille ; et patron PE1 inchangé),
+  `ActivityPreviewLayoutTest` (2 — gonflage Robolectric du layout du
+  nouvel écran). Corpus de parité régénéré (974 → 984 fichiers).
+
+### Modifié
+
+- `:feature:editor` : retrait du contrôleur d'aperçu (déplacé) et de la
+  colonne overlay ; l'injection `dispatchers`/`resolveurCheminProjet`
+  n'y sert plus (le moteur vit dans le ViewModel de l'écran dédié) ;
+  `SessionSuivie` porte la publication au registre (création
+  `SessionSuivie(session, uri, chemin, registre)`).
+- `:preview:xml` : `VuePreviewXml.afficherRendu` étendu
+  (`densiteDpiProfil`, `dureeRenduMs`, `nbVues` — défauts compatibles
+  PE1) ; strings + plurals de la pastille.
+- Docs : PREVIEW.md §3.4 (lignes PE6-0/PE6a livrées) ; maquette
+  archivée `docs/mockups/apercu-xml.html`.
+
 ## [0.134.20] – 2026-10-16
 
 ### Ajouté

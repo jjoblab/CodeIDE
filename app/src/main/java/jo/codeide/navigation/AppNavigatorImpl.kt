@@ -21,6 +21,8 @@ import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.SectionParametres
 import jo.codeide.feature.editor.ClesEditor
 import jo.codeide.feature.editor.EditorActivity
+import jo.codeide.feature.preview.PreviewActivity
+import jo.codeide.feature.preview.PreviewViewModel
 import jo.codeide.feature.terminal.ClesTerminal
 import jo.codeide.feature.terminal.TerminalActivity
 import java.io.File
@@ -343,6 +345,23 @@ internal class AppNavigatorImpl
             val intention =
                 Intent(activity, TerminalActivity::class.java)
                     .putExtra(ClesTerminal.EXTRA_REPERTOIRE, suggestedWorkingDirectory)
+            activity.startActivity(intention)
+        }
+
+        override fun openPreview(
+            projectId: String,
+            uri: String,
+        ) {
+            // Previews PE6-0 (maquette « Activité dédiée ») : activité
+            // empilée par-dessus l'éditeur — la session d'édition reste
+            // celle du EditorViewModel (partagée par le registre des
+            // sources d'aperçu), les extras pilotent la source initiale
+            // et la relance de l'éditeur si le processus est mort.
+            logger.d(TAG) { "ouverture de l'écran d'aperçu XML" }
+            val intention =
+                Intent(activity, PreviewActivity::class.java)
+                    .putExtra(PreviewViewModel.CLE_PROJET, projectId)
+                    .putExtra(PreviewViewModel.CLE_URI, uri)
             activity.startActivity(intention)
         }
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Module :feature:preview — chaînes de l'écran d'aperçu XML (PE6-0).
+     Français par défaut (convention du dépôt), l'anglais vit dans values-en/.
+     Les libellés de rendu (accueil, erreur) restent dans :preview:xml. -->
+<resources>
+    <string name="preview_titre">Aperçu XML</string>
+    <string name="preview_retour_cd">Retour à l\'éditeur</string>
+    <string name="preview_choisir_fichier">Choisir le fichier…</string>
+    <string name="preview_choisir_titre">Documents ouverts</string>
+
+    <!-- Puces de réglages (miroir de l\'ancienne barre de l\'overlay PE3/PE5a). -->
+    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
+    <string name="preview_profil_cd">Changer le profil d\'appareil de l\'aperçu</string>
+    <string name="preview_jour">Jour</string>
+    <string name="preview_nuit">Nuit</string>
+    <string name="preview_nuit_cd">Basculer l\'aperçu entre thème de jour et de nuit</string>
+    <string name="preview_langue_cd">Basculer la langue de l\'aperçu (défaut / français / anglais)</string>
+    <string name="preview_langue_defaut">Défaut</string>
+    <string name="preview_langue_fr">FR</string>
+    <string name="preview_langue_en">EN</string>
+</resources>
