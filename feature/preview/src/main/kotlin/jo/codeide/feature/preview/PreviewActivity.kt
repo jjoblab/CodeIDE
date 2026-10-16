@@ -1,5 +1,6 @@
 package jo.codeide.feature.preview
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -8,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -21,16 +21,20 @@ import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
+import jo.codeide.feature.preview.databinding.PopoverMenuAppareilBinding
+import jo.codeide.feature.preview.databinding.PopoverMenuCalquesBinding
 import jo.codeide.preview.xml.CataloguePalette
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.RequeteRendu
+import jo.codeide.preview.xml.VuePreviewXml
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Écran DÉDIÉ de l'aperçu XML (PE6-0, maquette
@@ -106,6 +110,9 @@ public class PreviewActivity : AppCompatActivity() {
 
     /** Le popup de placement (PE7c) — créée paresseusement, une seule fois. */
     private var popupPlacement: PopupPlacement? = null
+
+    /** Les POPOVERS MENUS translucides (PE9c) — calques, appareil. */
+    private val menuApercu: PopoverMenuApercu by lazy { PopoverMenuApercu(liaison.root) }
 
     /** Le widget en placement par popup (miroir `S.place.w`). */
     private var widgetEnPlacement: ZonesDepot.ContenuDepot? = null
@@ -516,24 +523,35 @@ public class PreviewActivity : AppCompatActivity() {
      * courante est cochée.
      */
     private fun ouvrirFeuilleAppareil() {
-        val popup = PopupMenu(this, liaison.boutonAppareilApercu)
-        val catalogue = ProfilPeripherique.CATALOGUE
-        val courant = controleur?.profil
-        catalogue.forEachIndexed { indice, profil ->
-            val item = popup.menu.add(GROUPE_APPAREIL, indice, indice, profil.description())
-            item.isCheckable = true
-            item.isChecked = profil == courant
+        if (menuApercu.estOuvert) {
+            menuApercu.masquer()
+            return
         }
-        popup.menu.setGroupCheckable(GROUPE_APPAREIL, true, true)
-        popup.setOnMenuItemClickListener { item ->
-            catalogue.getOrNull(item.itemId)?.let { profil ->
-                controleur?.definirProfil(profil)
-                majReglages()
-                majTitre()
+        menuApercu.montrer(R.layout.popover_menu_appareil, liaison.boutonAppareilApercu) { vue ->
+            val popover = PopoverMenuAppareilBinding.bind(vue)
+            // L'ordre des rangées du XML suit ProfilPeripherique.CATALOGUE.
+            val ranges =
+                listOf(
+                    popover.appareilPixel4,
+                    popover.appareilPixel7Pro,
+                    popover.appareilGalaxyS24,
+                    popover.appareilTablette,
+                    popover.appareilPetit,
+                )
+            val courant = controleur?.profil
+            ProfilPeripherique.CATALOGUE.forEachIndexed { indice, profil ->
+                val rangee = ranges[indice]
+                rangee.libelleAppareil.text = profil.description()
+                rangee.radioAppareil.isChecked = profil == courant
+                rangee.rangeeAppareil.setOnClickListener {
+                    rangee.radioAppareil.isChecked = true
+                    controleur?.definirProfil(profil)
+                    menuApercu.masquer()
+                    majReglages()
+                    majTitre()
+                }
             }
-            true
         }
-        popup.show()
     }
 
     /**
@@ -542,42 +560,75 @@ public class PreviewActivity : AppCompatActivity() {
      * la vue (états relus à l'ouverture, jamais mémorisés en double).
      */
     private fun ouvrirPopoverCalques() {
-        val vue = liaison.vuePreview
-        val calques =
+        if (menuApercu.estOuvert) {
+            menuApercu.masquer()
+            return
+        }
+        menuApercu.montrer(R.layout.popover_menu_calques, liaison.boutonCalquesApercu) { vue ->
+            lierCalques(PopoverMenuCalquesBinding.bind(vue))
+        }
+    }
+
+    /** Les SIX entrées du menu Calques (titre, état lu à la volée, pose). */
+    private fun entreesCalques(vueRendu: VuePreviewXml): List<EntreeCalque> =
+        listOf(
+            EntreeCalque(R.string.preview_calque_parent_freres, { vueRendu.calquesParentFreres }, {
+                vueRendu.calquesParentFreres =
+                    it
+            }),
+            EntreeCalque(R.string.preview_calque_marges_padding, { vueRendu.calquesMargesPadding }, {
+                vueRendu.calquesMargesPadding =
+                    it
+            }),
+            EntreeCalque(R.string.preview_calque_contraintes, { vueRendu.calquesContraintes }, {
+                vueRendu.calquesContraintes =
+                    it
+            }),
+            EntreeCalque(
+                R.string.preview_calque_problemes,
+                { vueRendu.calquesProblemes },
+                { vueRendu.calquesProblemes = it },
+            ),
+            EntreeCalque(R.string.preview_calque_bornes, { vueRendu.calquesBornes }, { vueRendu.calquesBornes = it }),
+            EntreeCalque(R.string.preview_calque_grille, { vueRendu.grilleAffichee }, { vueRendu.grilleAffichee = it }),
+        )
+
+    /**
+     * Lie les SIX calques aux rangées du popover (PE9c) — l'accent
+     * COLORÉ de chaque calque est un rôle sémantique du thème (canaux
+     * tooling, erreur, succès, info), la rangée bascule le commutateur.
+     */
+    private fun lierCalques(popover: PopoverMenuCalquesBinding) {
+        val calques = entreesCalques(liaison.vuePreview)
+        val accents =
             listOf(
-                EntreeCalque(R.string.preview_calque_parent_freres, { vue.calquesParentFreres }, {
-                    vue.calquesParentFreres =
-                        it
-                }),
-                EntreeCalque(R.string.preview_calque_marges_padding, { vue.calquesMargesPadding }, {
-                    vue.calquesMargesPadding =
-                        it
-                }),
-                EntreeCalque(R.string.preview_calque_contraintes, { vue.calquesContraintes }, {
-                    vue.calquesContraintes =
-                        it
-                }),
-                EntreeCalque(
-                    R.string.preview_calque_problemes,
-                    { vue.calquesProblemes },
-                    { vue.calquesProblemes = it },
-                ),
-                EntreeCalque(R.string.preview_calque_bornes, { vue.calquesBornes }, { vue.calquesBornes = it }),
-                EntreeCalque(R.string.preview_calque_grille, { vue.grilleAffichee }, { vue.grilleAffichee = it }),
+                RUi.attr.colorCanalSync,
+                RUi.attr.colorCanalTaches,
+                RUi.attr.colorCanalBuild,
+                androidx.appcompat.R.attr.colorError,
+                RUi.attr.colorSucces,
+                RUi.attr.colorInfo,
             )
-        val popup = PopupMenu(this, liaison.boutonCalquesApercu)
+        val ranges =
+            listOf(
+                popover.calqueParentFreres,
+                popover.calqueMargesPadding,
+                popover.calqueContraintes,
+                popover.calqueProblemes,
+                popover.calqueBornes,
+                popover.calqueGrille,
+            )
         calques.forEachIndexed { indice, calque ->
-            val item = popup.menu.add(GROUPE_CALQUES, indice, indice, calque.titreRes)
-            item.isCheckable = true
-            item.isChecked = calque.estActif()
-        }
-        popup.setOnMenuItemClickListener { item ->
-            calques.getOrNull(item.itemId)?.let { calque ->
-                calque.poser(!calque.estActif())
+            val rangee = ranges[indice]
+            rangee.pastilleCalque.backgroundTintList =
+                ColorStateList.valueOf(StyleVolet.couleur(this, accents[indice]))
+            rangee.libelleCalque.setText(calque.titreRes)
+            rangee.basculeCalque.isChecked = calque.estActif()
+            rangee.rangeeCalque.setOnClickListener { rangee.basculeCalque.toggle() }
+            rangee.basculeCalque.setOnCheckedChangeListener { _, coche ->
+                calque.poser(coche)
             }
-            true
         }
-        popup.show()
     }
 
     /**
@@ -712,12 +763,6 @@ public class PreviewActivity : AppCompatActivity() {
 
         /** Conversion échelle → pourcentage affiché (2,56 = 256 %). */
         private const val POURCENTAGE: Int = 100
-
-        /** Identifiant du groupe radio du menu Appareil. */
-        private const val GROUPE_APPAREIL: Int = 1
-
-        /** Identifiant du groupe à coches du menu Calques. */
-        private const val GROUPE_CALQUES: Int = 2
 
         /** Retrait autour du HUD de zoom, en dp (réserve de la bulle). */
         private const val RETRAIT_HUD_DP: Int = 16

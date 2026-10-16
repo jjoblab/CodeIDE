@@ -176,6 +176,7 @@
     <string name="preview_contrainte_fin">Fin</string>
     <string name="preview_contrainte_haut">Haut</string>
     <string name="preview_contrainte_bas">Bas</string>
+    <string name="preview_menu_cible_titre">Cible de l\'ancre</string>
     <string name="preview_contrainte_aucune">Aucune</string>
     <string name="preview_contrainte_marge">marge (dp)</string>
     <string name="preview_contrainte_cible_cd">Cible de la contrainte %1$s</string>

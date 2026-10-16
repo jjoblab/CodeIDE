@@ -17,6 +17,10 @@
     <color name="preview_bulle_icone">#FFFFFF</color>
     <color name="preview_palette_icone">#7C3AED</color>
 
+    <!-- Coque translucide des menus de l'aperçu (PE9c — « popups un
+         peu transparent » : la surface du thème atténuée, clair/nuit). -->
+    <color name="preview_menu_fond">#F2F9F9FF</color>
+
     <!-- Badge « n définis » des sections de l'éditeur (PE7e, miroir
          `summary small` : le violet « new » sur son fond pâle). -->
     <color name="preview_section_badge_texte">#7C3AED</color>

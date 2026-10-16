@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Le POPOVER CALQUES (PE9c, miroir `showPop("layers")` rendu maison —
+  le menu système opaque laisse place à un popover translucide coloré,
+  patron du popover de l'explorateur) : titre + les SIX calques (rangées
+  item_menu_calque incluses — la liste est FIXE, le XML est la source),
+  chaque rangée porte son accent sémantique teinté au liage.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popover_calques"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/fond_menu_apercu"
+    android:orientation="vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/titre_menu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="14dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="4dp"
+        android:text="@string/preview_calques"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="?attr/colorOnSurface" />
+
+    <include
+        android:id="@+id/calque_parent_freres"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_marges_padding"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_contraintes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_problemes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_bornes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_grille"
+        layout="@layout/item_menu_calque" />
+</LinearLayout>
