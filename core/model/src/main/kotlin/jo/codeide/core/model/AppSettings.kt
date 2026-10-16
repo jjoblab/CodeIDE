@@ -109,10 +109,25 @@ public data class AppSettings(
      *  la prochaine ouverture. */
     public val retentionHistorique: RetentionHistorique = RetentionHistorique.JOURS_5,
     public val isSetupCompleted: Boolean = false,
+    /** Aperçu XML (PE7c) : la BULLE de palette est FIXE (côté gauche) —
+     *  `false` = flottante, déplaçable aux deux bords. */
+    public val apercuBulleFixe: Boolean = false,
+    /** Aperçu XML (PE7c) : le CÔTÉ de la bulle — `true` = droite,
+     *  `false` = gauche (défaut de la maquette, miroir `bub.side`). */
+    public val apercuBulleADroite: Boolean = false,
+    /** Aperçu XML (PE7c) : la position VERTICALE normalisée de la bulle
+     *  (0 = haut, 1 = bas — miroir `bub.y`, bornée à la lecture). */
+    public val apercuBulleY: Float = BULLE_Y_DEFAUT,
+    /** Aperçu XML (PE7c) : le MODE d'insertion de la palette —
+     *  `true` = Placer par popup, `false` = Glisser-déposer (miroir
+     *  `palMode`). */
+    public val apercuPaletteParPopup: Boolean = false,
 ) {
     public companion object {
-        /**
-         * Valeurs par défaut d'une installation neuve.
+        /** Position verticale par défaut de la bulle (miroir `bub.y = .42`). */
+        public const val BULLE_Y_DEFAUT: Float = 0.42f
+
+        /** Valeurs par défaut d'une installation neuve.
          *
          * Seule la verbosité de journalisation dépend du type de build
          * (section 5.7 : défaut `NORMAL`, mais `DEBUG` en build debug pour

@@ -69,4 +69,154 @@
     <!-- Dépôt de la palette (PE7b, miroir toast d\'insertAt). -->
     <string name="preview_toast_depot_ok">%1$s ajouté dans %2$s</string>
     <string name="preview_toast_depot_ko">Dépôt impossible ici : le document a changé depuis le rendu.</string>
+    <!-- Orientation et police de l'aperçu (PE6e-f, miroir `.chips` de la
+         maquette : Portrait/Paysage et Police ×n). -->
+    <string name="preview_orientation_cd">Basculer l\'aperçu entre portrait et paysage</string>
+    <string name="preview_portrait">Portrait</string>
+    <string name="preview_paysage">Paysage</string>
+    <string name="preview_police_cd">Cycler l\'échelle de police de l\'aperçu (×1,0 / ×1,3 / ×2,0)</string>
+    <string name="preview_police_format">Police ×%1$s</string>
+
+    <!-- Libellé de langue avec préfixe (miroir `lblLang` de la maquette :
+         « Langue : défaut / FR / EN »). -->
+    <string name="preview_langue_format">Langue : %1$s</string>
+
+    <!-- Sous-titre de la barre de titre (miroir `.ttl span` : « res/layout
+         · rendu en Pixel 4 »). -->
+    <string name="preview_sous_titre_format">%1$s · rendu en %2$s</string>
+
+    <!-- Bulle de palette (PE7c, miroir `.bubble` + `placeBubble`). -->
+    <string name="preview_bulle_cd">Palette de widgets</string>
+    <string name="preview_bulle_flottante">Bulle flottante</string>
+    <string name="preview_bulle_fixe">Bulle fixe</string>
+    <string name="preview_bulle_fixee_toast">Bulle fixée à gauche.</string>
+    <string name="preview_bulle_flottante_toast">Bulle flottante : glissez-la sur un bord.</string>
+
+    <!-- Palette (PE7c, miroir `.pop.pal`). -->
+    <string name="preview_palette_titre">Palette</string>
+    <string name="preview_palette_fermer_cd">Fermer la palette</string>
+    <string name="preview_palette_mode_titre">Mode d\'insertion</string>
+    <string name="preview_palette_mode_drag">Glisser-déposer</string>
+    <string name="preview_palette_mode_drag_detail">Maintenez, lâchez sur l\'aperçu</string>
+    <string name="preview_palette_mode_popup">Placer par popup</string>
+    <string name="preview_palette_mode_popup_detail">Touchez, puis choisissez où</string>
+    <string name="preview_palette_recherche_cd">Rechercher un widget</string>
+    <string name="preview_palette_recherche_indice">Rechercher un widget</string>
+    <string name="preview_palette_recents">Récents</string>
+    <string name="preview_palette_tous_widgets">Tous les widgets</string>
+    <string name="preview_palette_vide">Aucun widget ne correspond à « %1$s ».</string>
+    <string name="preview_palette_dependance_absente">dépendance absente</string>
+    <string name="preview_palette_toast_drag">Maintenez et glissez le widget sur l\'aperçu, ou choisissez « Placer par popup ».</string>
+
+    <!-- Popup de placement (PE7c, miroir `.pop.bot` + drawPlace). -->
+    <string name="preview_placement_titre">Où placer %1$s ?</string>
+    <string name="preview_placement_fermer_cd">Fermer le popup de placement</string>
+    <string name="preview_placement_arbre_cd">Vue de référence</string>
+    <string name="preview_placement_avant">Avant</string>
+    <string name="preview_placement_dedans">Dedans</string>
+    <string name="preview_placement_apres">Après</string>
+    <string name="preview_placement_resume">Dans %1$s, position %2$d/%3$d</string>
+    <string name="preview_placement_confirmer">Placer ici</string>
+    <string name="preview_prefixe_id">\@+id/%1$s</string>
+    <string name="preview_placement_repere_cd">Repère d\'insertion en direct sur l\'aperçu</string>
+
+    <!-- Barre d'édition (PE7d, miroir `.edit` de la maquette). -->
+    <string name="preview_edition_annuler_cd">Annuler</string>
+    <string name="preview_edition_retablir_cd">Rétablir</string>
+    <string name="preview_edition_dupliquer_cd">Dupliquer la vue</string>
+    <string name="preview_edition_supprimer_cd">Supprimer la vue</string>
+    <string name="preview_edition_annulee_toast">Modification annulée</string>
+    <string name="preview_edition_retablie_toast">Modification rétablie</string>
+    <string name="preview_edition_rien_annuler_toast">Rien à annuler dans l\'historique.</string>
+    <string name="preview_edition_rien_retablir_toast">Rien à rétablir.</string>
+    <string name="preview_edition_dupliquee_toast">%1$s dupliqué</string>
+    <string name="preview_edition_supprimee_toast">%1$s supprimé</string>
+    <string name="preview_edition_impossible_toast">Édition impossible : le document a changé depuis le rendu.</string>
+
+    <!-- Volet Modifier de l'onglet Attributs (PE7d/PE7e, miroir
+         `renderEditor` + `sectionsFor` : « les @string restent en lecture
+         seule » ; sections selon le type de vue, étiquettes de contrôles). -->
+    <string name="preview_modifier_titre">Modifier</string>
+    <string name="preview_modifier_classe">Modifier · %1$s</string>
+    <string name="preview_modifier_texte">text</string>
+    <string name="preview_modifier_hint">hint</string>
+    <string name="preview_modifier_reference">%1$s = « %2$s »</string>
+    <string name="preview_modifier_reference_cd">Référence de ressource, lecture seule</string>
+    <string name="preview_modifier_largeur">largeur</string>
+    <string name="preview_modifier_hauteur">hauteur</string>
+    <string name="preview_modifier_wrap">wrap</string>
+    <string name="preview_modifier_match">match</string>
+    <string name="preview_modifier_fixe">fixe</string>
+    <string name="preview_modifier_dimension_cd">Dimension en dp</string>
+    <string name="preview_modifier_applique_toast">Attribut mis à jour.</string>
+    <string name="preview_edition_perimee_toast">Le fichier a changé, rouvrez la sélection.</string>
+
+    <!-- Titres des SECTIONS de l'éditeur (PE7e, miroir `sectionsFor`). -->
+    <string name="preview_section_texte">Texte</string>
+    <string name="preview_section_saisie">Saisie</string>
+    <string name="preview_section_champ">Champ</string>
+    <string name="preview_section_bouton">Bouton</string>
+    <string name="preview_section_etat">État</string>
+    <string name="preview_section_image">Image</string>
+    <string name="preview_section_conteneur">Conteneur</string>
+    <string name="preview_section_progression">Progression</string>
+    <string name="preview_section_liste">Liste</string>
+    <string name="preview_section_contraintes">Contraintes</string>
+    <string name="preview_section_dans_parent">Dans le parent</string>
+    <string name="preview_section_disposition">Disposition</string>
+    <string name="preview_section_affichage">Affichage</string>
+    <string name="preview_section_ouverte">▴</string>
+    <string name="preview_section_fermee">▾</string>
+    <string name="preview_section_contraintes_vide">Aucune contrainte.</string>
+    <string name="preview_section_lecture_seule">lecture seule, édition à prévoir</string>
+
+    <!-- Étiquettes des CONTRÔLES de l'éditeur (miroir les `label` de `sectionsFor`). -->
+    <string name="preview_etiquette_texte">text</string>
+    <string name="preview_etiquette_taille">taille (sp)</string>
+    <string name="preview_etiquette_style">style</string>
+    <string name="preview_etiquette_gravite">gravity</string>
+    <string name="preview_etiquette_couleur">couleur</string>
+    <string name="preview_etiquette_type_saisie">inputType</string>
+    <string name="preview_etiquette_lignes_max">lignes max</string>
+    <string name="preview_etiquette_libelle">libellé</string>
+    <string name="preview_etiquette_fond">fond</string>
+    <string name="preview_etiquette_icone_fin">icône de fin</string>
+    <string name="preview_etiquette_arrondi">arrondi (dp)</string>
+    <string name="preview_etiquette_elevation">élévation (dp)</string>
+    <string name="preview_etiquette_icone">icône</string>
+    <string name="preview_etiquette_coche">checked</string>
+    <string name="preview_etiquette_source">src</string>
+    <string name="preview_etiquette_type_echelle">scaleType</string>
+    <string name="preview_etiquette_orientation">orientation</string>
+    <string name="preview_etiquette_maximum">max</string>
+    <string name="preview_etiquette_progression">progress</string>
+    <string name="preview_etiquette_indetermine">indeterminate</string>
+    <string name="preview_etiquette_item_liste">listitem</string>
+    <string name="preview_etiquette_gestionnaire">layoutManager</string>
+    <string name="preview_etiquette_poids">layout_weight</string>
+    <string name="preview_etiquette_gravite_parent">layout_gravity</string>
+    <string name="preview_etiquette_marges">marges</string>
+    <string name="preview_etiquette_padding">padding</string>
+    <string name="preview_etiquette_visibilite">visibility</string>
+    <string name="preview_etiquette_alpha">alpha</string>
+    <string name="preview_etiquette_actif">enabled</string>
+    <string name="preview_etiquette_description">contentDescription</string>
+
+    <!-- Les quatre CÔTÉS d'une marge/padding (miroir `.mrow`). -->
+    <string name="preview_cote_haut">haut</string>
+    <string name="preview_cote_droite">droite</string>
+    <string name="preview_cote_bas">bas</string>
+    <string name="preview_cote_gauche">gauche</string>
+    <string name="preview_cote_cd">%1$s côté %2$s</string>
+
+    <!-- Le TRI-ÉTAT (défaut = l'attribut est retiré ; true/false techniques). -->
+    <string name="preview_choix_defaut">défaut</string>
+    <string name="preview_choix_vrai">true</string>
+    <string name="preview_choix_faux">false</string>
+
+    <!-- Le badge de section (quantité d'attributs définis). -->
+    <plurals name="preview_section_definis">
+        <item quantity="one">%1$d défini</item>
+        <item quantity="other">%1$d définis</item>
+    </plurals>
 </resources>

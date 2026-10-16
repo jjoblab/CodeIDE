@@ -337,6 +337,15 @@ td code{display:inline-block;margin:1px 0}
 .seg2 button{border:0;background:transparent;color:var(--muted);font:500 12px/1 var(--font-b);padding:7px 9px;border-radius:7px;cursor:pointer}
 .seg2 button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
 .dimrow input{width:64px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 8px;font:400 12px/1 var(--font-m)}
+.sec2{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.sec2>summary{display:flex;align-items:center;gap:8px;padding:9px 11px;font:600 12px/1 var(--font-b);cursor:pointer;list-style:none}
+.sec2>summary::-webkit-details-marker{display:none}
+.sec2>summary::after{content:"▾";color:var(--muted);margin-left:auto}
+.sec2[open]>summary::after{content:"▴"}
+.sec2>summary small{font:500 10px/1 var(--font-m);color:var(--new);background:var(--new-c);padding:3px 6px;border-radius:5px}
+.sec2>div{display:flex;flex-direction:column;gap:9px;padding:2px 11px 11px}
+.sec2 .seg2{flex-wrap:wrap}
+.mrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .openrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 4px 8px}
 .openrow span{font-size:12px;color:var(--muted)}
 .linkbtn{border:1px solid var(--line);background:transparent;color:var(--accent);border-radius:8px;padding:6px 10px;font:500 12px/1 var(--font-b);cursor:pointer;white-space:nowrap}
@@ -556,7 +565,7 @@ td code{display:inline-block;margin:1px 0}
       <tr><td>Palette de widgets</td><td>Absente</td><td>Bulle flottante ou fixe, popup à catégories, recherche, récents</td><td><span class="tag new">Nouveau</span></td></tr>
       <tr><td>Insertion par glisser-déposer</td><td>Absente</td><td><code>startDragAndDrop</code> natif, zones de dépôt et barre d'insertion dessinées sur l'aperçu</td><td><span class="tag new">Nouveau</span></td></tr>
       <tr><td>Insertion par popup</td><td>Absente</td><td>Second popup : référence dans l'arbre, Avant, Dedans ou Après, repère en direct</td><td><span class="tag new">Nouveau</span></td></tr>
-      <tr><td>Édition</td><td>Lecture seule</td><td>Annuler, rétablir, dupliquer, supprimer, attributs texte et dimensions, tout via la session</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Édition</td><td>Lecture seule</td><td>Annuler, rétablir, dupliquer, supprimer, attributs en sections selon le type de vue, tout via la session</td><td><span class="tag new">Nouveau</span></td></tr>
       <tr><td>Réglages</td><td>3 boutons texte qui cyclent</td><td>Puces défilantes, feuille de choix pour l'appareil, orientation, police, calques</td><td><span class="tag rework">Refonte</span></td></tr>
       <tr><td>Sélection et calques</td><td>Rectangle 2 dp, sans texte</td><td>Cadre, poignées, nom, dimensions, parent, frères, marges, contraintes, bornes</td><td><span class="tag rework">Refonte</span></td></tr>
       <tr><td>Arbre, attributs, source</td><td>L'éditeur est caché sous l'overlay</td><td>Feuille à 4 onglets, sélection croisée avec le rendu</td><td><span class="tag new">Nouveau</span></td></tr>
@@ -576,7 +585,7 @@ td code{display:inline-block;margin:1px 0}
     <thead><tr><th>Idée</th><th>Pourquoi</th><th>Appui dans le code</th><th>Effort</th><th>État</th></tr></thead>
     <tbody>
       <tr><td><b>Annuler et rétablir</b></td><td>Une insertion mal placée doit se défaire d'un geste, et l'historique reste celui de l'éditeur.</td><td>Transaction unique dans <code>EditorSession</code>, exposée par le port</td><td>Faible</td><td><span class="tag dn">Maquette</span></td></tr>
-      <tr><td><b>Édition d'attributs</b></td><td>Changer un texte ou une dimension sans retourner au code.</td><td>Même édition de texte que la palette ; les <code>@string</code> restent en lecture seule</td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
+      <tr><td><b>Édition d'attributs</b></td><td>Changer les attributs d'une vue sans retourner au code : l'onglet propose les sections propres à sa classe (texte, saisie, image, conteneur, contraintes, affichage).</td><td>Même édition de texte que la palette ; les <code>@string</code> restent en lecture seule</td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
       <tr><td><b>Extraire en ressource</b></td><td>Les widgets déposés ont un texte codé en dur, signalé dans Problèmes. Une action le déplace dans <code>values/strings.xml</code> et <code>values-en/</code>.</td><td>Projet FR/EN, <code>RequeteRendu.langue</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
       <tr><td><b>Vues du projet dans la palette</b></td><td>Les vues personnalisées apparaissent à côté des widgets standard, avec leur dépendance vérifiée.</td><td><code>RequeteRendu.classpath</code>, <code>CacheClasspath.classloader</code> puis <code>loadClass</code>, <code>DexViewFactory</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
       <tr><td><b>Poignées de redimensionnement</b></td><td>Tirer un coin pour changer largeur et hauteur, avec aimantation sur 8 dp.</td><td>Bounds de <code>InfoVueRendu</code>, conversion px vers dp par la densité du profil</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
@@ -631,6 +640,10 @@ td code{display:inline-block;margin:1px 0}
       <h3>Édition d'attributs, annuler, dupliquer, supprimer</h3>
       <p>Chaque action produit une édition de texte passée à <code>SourceApercu.remplacer</code>, donc une seule entrée dans l'historique de l'éditeur. Après chaque édition, rendu immédiat par <code>soumettreImmediat</code>, comme à l'ouverture du panneau.</p>
       <div class="files"><code>SourceApercu.kt</code><code>ControleurPreviewXml.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE7e</div><div>
+      <h3>Attributs en sections selon le type de vue</h3>
+      <p><code>CatalogueAttributs</code> décrit, par classe de vue et par type de parent (ConstraintLayout, LinearLayout), des sections et des contrôles : texte, nombre avec unité, choix, tri-état, lecture seule. <code>EditionAttributsXml.definir(texte, spanElement, nom, valeur)</code> renvoie une édition <code>(debut, fin, remplacement)</code> qui remplace, ajoute au bon endroit ou retire l'attribut, et ajoute <code>xmlns:app</code> ou <code>xmlns:tools</code> à la racine si besoin. Les <code>@string</code> restent en lecture seule. L'onglet Attributs construit ses sections depuis le catalogue pour la vue sélectionnée.</p>
+      <div class="files"><code>CatalogueAttributs.kt</code><code>EditionAttributsXml.kt</code><code>EditionAttributsXmlTest.kt</code><code>FeuilleApercuFragment.kt</code></div></div></article>
     <article class="ph"><div class="id">PE6e–f</div><div>
       <h3>Orientation, échelle de police, contraintes</h3>
       <p>Ajouter <code>orientation</code> et <code>echellePolice</code> à <code>RequeteRendu</code>. L'échelle de police et la remontée des contraintes dépendent de LayoutLib v3 : à confirmer avant de les promettre dans l'interface.</p>
@@ -989,20 +1002,7 @@ function renderTree(pane) {
     pane.appendChild(r);
   });
 }
-function renderEditor(pane, v) {
-  const ed = el('div', 'ed'); ed.appendChild(el('h5', '', 'Modifier'));
-  const field = (id, lab, val, on) => {
-    const f = el('div', 'fld'), l = el('label', '', lab); l.htmlFor = id;
-    const i = el('input'); i.type = 'text'; i.id = id; i.value = val; i.onchange = () => on(i.value);
-    f.append(l, i); ed.appendChild(f);
-  };
-  if (v.kind === 'edit') field('fHint', 'hint', v.hint || '', x => mutate(() => { v.hint = x; }));
-  else if (v.lit != null && v.kind !== 'group') field('fText', 'text', v.lit, x => mutate(() => { v.lit = x; }));
-  else if (v.txt) {
-    const f = el('div', 'fld'); f.appendChild(el('label', '', 'text'));
-    f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »'));
-    ed.appendChild(f);
-  }
+function dimRows(ed, v) {
   const q = S.b[v.rid];
   [['w', 'largeur'], ['h', 'hauteur']].forEach(([key, lab]) => {
     const cur = v[key], mode = cur === 'w' ? 'w' : cur === 'm' ? 'm' : 'f';
@@ -1017,12 +1017,72 @@ function renderEditor(pane, v) {
     if (mode === 'f') { const n = el('input'); n.type = 'number'; n.min = 1; n.id = 'dim_' + key; n.value = cur; n.setAttribute('aria-label', lab + ' en dp'); n.onchange = () => mutate(() => { v[key] = Math.max(1, +n.value || 1); }); row.appendChild(n); }
     ed.appendChild(row);
   });
+}
+const ex = (v, n) => { const a = (v.extra || []).find(x => x[0] === n); return a ? a[1] : ''; };
+function setEx(v, n, val) { v.extra = (v.extra || []).filter(x => x[0] !== n); if (val !== '') v.extra.push([n, val]); }
+const GR = ['start', 'center', 'end'], TRI = ['défaut', 'true', 'false'];
+function sectionsFor(v, par) {
+  const k = v.kind, s = [];
+  if (['text', 'link', 'btn', 'check', 'switch'].includes(k)) s.push(['Texte', [['lit', 'text'], ['size', 'taille (sp)'], ['seg', 'style', 'android:textStyle', ['normal', 'bold', 'italic']], ['seg', 'gravity', 'android:gravity', GR], ['str', 'couleur', 'android:textColor']]]);
+  if (k === 'edit') s.push(['Saisie', [['hint', 'hint'], ['seg', 'inputType', 'android:inputType', ['text', 'textEmailAddress', 'textPassword', 'number']], ['num', 'lignes max', 'android:maxLines', '']]]);
+  if (k === 'field') s.push(['Champ', [['lit', 'libellé'], ['seg', 'fond', 'app:boxBackgroundMode', ['outline', 'filled']], ['seg', 'icône de fin', 'app:endIconMode', ['none', 'password_toggle', 'clear_text']]]]);
+  if (k === 'btn') s.push(['Bouton', [['num', 'arrondi (dp)', 'app:cornerRadius', 'dp'], ['str', 'icône', 'app:icon']]]);
+  if (k === 'check' || k === 'switch') s.push(['État', [['seg', 'checked', 'android:checked', TRI]]]);
+  if (k === 'image') s.push(['Image', [['str', 'src', 'android:src'], ['seg', 'scaleType', 'android:scaleType', ['fitCenter', 'centerCrop', 'centerInside', 'fitXY']]]]);
+  if (k === 'group') s.push(['Conteneur', [['orient', 'orientation'], ['seg', 'gravity', 'android:gravity', GR]].concat(v.card ? [['num', 'arrondi (dp)', 'app:cardCornerRadius', 'dp'], ['num', 'élévation (dp)', 'app:cardElevation', 'dp']] : [])]);
+  if (k === 'progress' || k === 'seek') s.push(['Progression', [['num', 'max', 'android:max', ''], ['num', 'progress', 'android:progress', '']].concat(k === 'progress' ? [['seg', 'indeterminate', 'android:indeterminate', TRI]] : [])]);
+  if (k === 'recycler') s.push(['Liste', [['str', 'listitem', 'tools:listitem'], ['str', 'layoutManager', 'app:layoutManager']]]);
+  if (par && par.rid === 'root') s.push(['Contraintes', [['con', 'dans le ConstraintLayout']]]);
+  else if (par && par.kind === 'group') s.push(['Dans le parent', [['num', 'layout_weight', 'android:layout_weight', ''], ['seg', 'layout_gravity', 'android:layout_gravity', GR]]]);
+  s.push(['Disposition', [['dims'], ['sides', 'marges', 'm'], ['sides', 'padding', 'p']]]);
+  s.push(['Affichage', [['seg', 'visibility', 'android:visibility', ['visible', 'invisible', 'gone']], ['num', 'alpha', 'android:alpha', ''], ['seg', 'enabled', 'android:enabled', TRI], ['str', 'contentDescription', 'android:contentDescription']]]);
+  return s;
+}
+function segBtns(f, opts, cur, on) {
+  const g = el('div', 'seg2');
+  opts.forEach(x => { const b = el('button', '', x); b.type = 'button'; b.setAttribute('aria-pressed', String(x === cur)); b.onclick = () => { if (x !== cur) mutate(() => on(x)); }; g.appendChild(b); });
+  f.appendChild(g);
+}
+function ctl(box, c, v, par) {
+  const t = c[0], lab = c[1], a = c[2], o = c[3];
+  if (t === 'dims') { dimRows(box, v); return; }
+  const id = 'a_' + (a || lab).replace(/\W/g, ''), f = el('div', 'fld'), l = el('label', '', lab); l.htmlFor = id; f.appendChild(l);
+  const inp = (type, val, on) => { const i = el('input'); i.type = type; i.id = id; if (type === 'number') i.step = 'any'; i.value = val; i.onchange = () => mutate(() => on(i.value)); f.appendChild(i); };
+  if (t === 'lit') { if (v.txt) f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »')); else inp('text', v.lit || '', x => { v.lit = x; }); }
+  else if (t === 'hint') inp('text', v.hint || '', x => { v.hint = x; });
+  else if (t === 'size') inp('number', v.size || '', x => { v.size = Math.max(1, +x || 1); });
+  else if (t === 'str') inp('text', ex(v, a), x => setEx(v, a, x.trim()));
+  else if (t === 'num') inp('number', parseFloat(ex(v, a)) || '', x => setEx(v, a, x === '' ? '' : x + o));
+  else if (t === 'orient') segBtns(f, ['vertical', 'horizontal'], v.orient === 'h' ? 'horizontal' : 'vertical', x => { v.orient = x === 'horizontal' ? 'h' : 'v'; });
+  else if (t === 'seg') segBtns(f, o, ex(v, a) || o[0], x => setEx(v, a, x === o[0] ? '' : x));
+  else if (t === 'con') {
+    const i = par.children.indexOf(v), cl = attrsOf(v, par, i > 0 ? par.children[i - 1] : null).filter(x => /layout_constraint/.test(x[0])), d = el('div', 'ro');
+    d.innerHTML = cl.map(x => esc(x[0].replace('app:layout_constraint', '')) + ' = ' + esc(x[1])).join('<br>') + '<br><i>lecture seule, édition à prévoir</i>'; f.appendChild(d);
+  } else if (t === 'sides') {
+    const m = o === 'm', K = m ? ['mt', 'mr', 'mb', 'ml'] : [1, 2, 3, 0], g = el('div', 'mrow');
+    ['haut', 'droite', 'bas', 'gauche'].forEach((n, j) => {
+      const i = el('input'); i.type = 'number'; i.min = 0; i.placeholder = n; i.setAttribute('aria-label', lab + ' ' + n);
+      i.value = (m ? v[K[j]] : (v.pad || [])[K[j]]) || '';
+      i.onchange = () => mutate(() => { const x = Math.max(0, +i.value || 0); if (m) v[K[j]] = x; else { v.pad = v.pad || [0, 0, 0, 0]; v.pad[K[j]] = x; } });
+      g.appendChild(i);
+    }); f.appendChild(g);
+  }
+  box.appendChild(f);
+}
+function renderEditor(pane, v, par) {
+  const ed = el('div', 'ed'); ed.appendChild(el('h5', '', 'Modifier · ' + v.cls)); S.so = S.so || {};
+  sectionsFor(v, par).forEach(([t, cs], i) => {
+    const d = el('details', 'sec2'), sm = el('summary', '', t), b = el('div'), n = cs.filter(c => c[2] && ex(v, c[2])).length;
+    d.open = S.so[t] != null ? S.so[t] : i < 2; d.ontoggle = () => { S.so[t] = d.open; };
+    if (n) sm.appendChild(el('small', '', n + (n > 1 ? ' définis' : ' défini')));
+    cs.forEach(c => ctl(b, c, v, par)); d.append(sm, b); ed.appendChild(d);
+  });
   pane.appendChild(ed);
 }
 function renderAttrs(pane) {
   const f = S.sel ? find(S.sel) : null, v = f && f.n, q = v ? S.b[v.rid] : null;
   if (!v || !q) { pane.appendChild(el('p', 'empty', 'Sélectionnez une vue dans le rendu ou dans l’arbre.')); return; }
-  if (S.sel !== 'root') renderEditor(pane, v);
+  if (S.sel !== 'root') renderEditor(pane, v, f.p);
   const mg = [v.mt||0, v.mr||0, v.mb||0, v.ml||0], p = v.pad || [0,0,0,0];
   const bx = el('div', 'box');
   bx.innerHTML = '<div class="bm"><small class="t1">'+mg[0]+'</small><small class="r1">'+mg[1]+'</small><small class="b1">'+mg[2]+'</small><small class="l1">'+mg[3]+'</small>' +

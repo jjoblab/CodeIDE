@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -20,36 +21,50 @@ import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
+import jo.codeide.preview.xml.CataloguePalette
+import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProfilPeripherique
+import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.ZonesDepot
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
 /**
  * Écran DÉDIÉ de l'aperçu XML (PE6-0, maquette
- * `docs/mockups/apercu-xml.html` § « Activité dédiée » ; chrome PE6b
- * § « Chrome Material dans la nouvelle activité ») : le panneau quitte
- * l'overlay d'`EditorActivity` et s'empile au-dessus — même patron que
- * l'écran du terminal ([AppNavigator.openPreview], activité
- * `exported="false"` déclarée dans le manifest du module).
+ * `docs/mockups/apercu-xml.html` § « Activité dédiée » ; chrome PE6b ;
+ * feuille PE6d) : le panneau quitte l'overlay d'`EditorActivity` et
+ * s'empile au-dessus — même patron que l'écran du terminal
+ * ([AppNavigator.openPreview], activité `exported="false"` déclarée dans
+ * le manifest du module).
  *
  * Répartition (maquette § « Ce qui change dans le dépôt ») :
  * - [PreviewViewModel] : moteur (rotation sûre), source du registre,
- *   projet (`res/` FUSE, thème, label) ;
+ *   projet (`res/` FUSE, thème, label), réglages persistés (PE7c) ;
  * - [ControleurPreviewXml] : couture moteur ↔ vue + tap → span ;
- * - CETTE activité : chrome Material — toolbar, PUCES défilantes
- *   (feuille de choix de l'appareil, jour/nuit, langue, popover
- *   Calques), HUD de zoom (+ / 100 % / ajuster / −) ; le module porte
- *   le chrome, le moteur `:preview:xml` reste zéro-Material (règle du
- *   module).
+ * - CETTE activité : chrome Material — toolbar (SOUS-TITRE « res/layout
+ *   · rendu en X », miroir `.ttl span`), PUCES défilantes (miroir
+ *   `.chips` : appareil ▾, portrait/paysage PE6e-f, jour, langue,
+ *   police PE6e-f, calques ▾), HUD de zoom, BARRE D'ÉDITION (PE7d,
+ *   miroir `.edit` : annuler, rétablir | dupliquer, supprimer), BULLE
+ *   + PALETTE + POPUP DE PLACEMENT (PE7c, miroirs `.bubble`/`.pop.pal`/
+ *   `.pop.bot`) — le module porte le chrome, le moteur `:preview:xml`
+ *   reste zéro-Material (règle du module).
  *
- * PE6b (maquette § « Réglages » : « Puces défilantes, feuille de choix
- * pour l'appareil ») : la puce Appareil ouvre un menu RADIO du catalogue
- * étendu (tablette et petit écran inclus) — plus de cycle à l'aveugle ;
- * la puce Calques ouvre le popover à COCHES des calques (parent/frères,
- * marges et padding, contraintes, problèmes, bornes, grille 8 dp) ;
- * le HUD de zoom expose [VuePreviewXml.zoomer]/[VuePreviewXml.ajuster].
+ * PE7c — PALETTE COMME VUE : la palette est une VUE de l'activité (le
+ * popover de l'explorateur, jamais une fenêtre de dialogue — le dépôt
+ * doit passer) ; le glisser d'une tuile lance le drag NATIF
+ * (`startDragAndDrop` — le moteur d'Android livre les événements à la
+ * vue d'aperçu, PE7b) puis la palette SE MASQUE (miroir
+ * `.phone.dragging .bubble`) ; le placement par popup pose le repère EN
+ * DIRECT sur l'aperçu (miroir `S.dropView`) via la même machine PE7b.
+ *
+ * PE7d — ÉDITION : chaque action de la barre produit une ÉDITION DE
+ * TEXTE unique ([PreviewViewModel] → port `SourceApercu.remplacer`,
+ * « une seule entrée dans l'historique de l'éditeur »), le rendu repart
+ * immédiatement.
  *
  * Pièges traités (maquette § « Pièges à traiter ») :
  * - **mort du processus** : le registre est vide → l'écran se termine
@@ -60,8 +75,11 @@ import kotlin.math.roundToInt
  * - **sens inverse de la sélection** : l'éditeur n'est plus visible —
  *   le tap pose le span dans la session (l'éditeur le retrouve), le
  *   calque surligne immédiatement (retour visuel direct).
+ *
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions — chrome de
+ * l'écran : chaque menu/popup a SA méthode (même patron que l'éditeur).
  */
-@Suppress("TooManyFunctions") // Chrome de l'écran : chaque menu a SA méthode (règle 16 — même patron que l'éditeur).
+@Suppress("TooManyFunctions")
 @AndroidEntryPoint
 public class PreviewActivity : AppCompatActivity() {
     private val viewModel: PreviewViewModel by viewModels()
@@ -83,6 +101,24 @@ public class PreviewActivity : AppCompatActivity() {
     /** Couture moteur ↔ vue (créée à la [onCreate], coupée au [onDestroy]). */
     private var controleur: ControleurPreviewXml? = null
 
+    /** La palette (PE7c) — créée paresseusement, une seule fois. */
+    private var palette: PalettePopover? = null
+
+    /** Le popup de placement (PE7c) — créée paresseusement, une seule fois. */
+    private var popupPlacement: PopupPlacement? = null
+
+    /** Le widget en placement par popup (miroir `S.place.w`). */
+    private var widgetEnPlacement: ZonesDepot.ContenuDepot? = null
+
+    /** La référence du placement (miroir `S.place.ref`). */
+    private var indiceReferencePlacement: Int = 0
+
+    /** La position du placement (miroir `S.place.pos`). */
+    private var positionPlacement: PlacementPopup.Position = PlacementPopup.Position.DEDANS
+
+    /** La cible dérivée (miroir `placeTarget`) — le repère suit. */
+    private var ciblePlacement: ZonesDepot.CibleDepot? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -95,9 +131,30 @@ public class PreviewActivity : AppCompatActivity() {
         liaison.toolbarPreview.setNavigationOnClickListener { navigateur.goBack() }
 
         brancherSelectionEtDepot()
+        brancherPucesReglages()
+        brancherHudZoom()
+        brancherBarreEdition()
+        brancherBullePalette()
 
-        // Puces de réglages (PE6b, miroir `.chips` de la maquette).
+        // Piège « mort du processus » : source absente du registre → se
+        // terminer et relancer l'éditeur, jamais un panneau vide.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                brancherCollections()
+            }
+        }
+        monterFeuille()
+        majTitre()
+        majBarreEdition()
+    }
+
+    /** Les puces de réglages (PE6b + PE6e-f, miroir `.chips` de la maquette). */
+    private fun brancherPucesReglages() {
         liaison.boutonAppareilApercu.setOnClickListener { ouvrirFeuilleAppareil() }
+        liaison.boutonOrientationApercu.setOnClickListener {
+            viewModel.definirPaysage(!viewModel.paysage)
+            majReglages()
+        }
         liaison.boutonNuitApercu.setOnClickListener {
             controleur?.basculerNuit()
             majReglages()
@@ -106,11 +163,17 @@ public class PreviewActivity : AppCompatActivity() {
             controleur?.basculerLangue()
             majReglages()
         }
+        liaison.boutonPoliceApercu.setOnClickListener {
+            viewModel.cyclerEchellePolice()
+            majReglages()
+        }
         liaison.boutonCalquesApercu.setOnClickListener { ouvrirPopoverCalques() }
         majReglages()
+    }
 
-        // HUD de zoom (PE6b, miroir `.zoom` de la maquette) : les boutons
-        // exposent zoomer/ajuster de la VUE (spécification PE6b).
+    /** Le HUD de zoom (PE6b, miroir `.zoom` de la maquette). */
+    private fun brancherHudZoom() {
+        // Les boutons exposent zoomer/ajuster de la VUE (spécification PE6b).
         liaison.boutonZoomAvant.setOnClickListener { liaison.vuePreview.zoomer(FACTEUR_ZOOM) }
         liaison.boutonZoomArriere.setOnClickListener { liaison.vuePreview.zoomer(1f / FACTEUR_ZOOM) }
         liaison.boutonZoomPct.setOnClickListener {
@@ -121,26 +184,71 @@ public class PreviewActivity : AppCompatActivity() {
         // Le % affiché suit TOUT changement d'échelle (gestes compris).
         liaison.vuePreview.auChangementEchelle = { echelle -> majPourcentageZoom(echelle) }
         majPourcentageZoom(liaison.vuePreview.echelleCourante)
+    }
 
-        // Piège « mort du processus » : source absente du registre → se
-        // terminer et relancer l'éditeur, jamais un panneau vide.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.finir.collect { finir ->
-                    if (finir) rouvrirEditeur()
-                }
+    /** La barre d'édition (PE7d, miroir `.edit` de la maquette). */
+    private fun brancherBarreEdition() {
+        liaison.boutonAnnuler.setOnClickListener {
+            if (!viewModel.annuler()) toast(R.string.preview_edition_rien_annuler_toast)
+        }
+        liaison.boutonRetablir.setOnClickListener {
+            if (!viewModel.retablir()) toast(R.string.preview_edition_rien_retablir_toast)
+        }
+        liaison.boutonDupliquer.setOnClickListener { dupliquer() }
+        liaison.boutonSupprimer.setOnClickListener { supprimer() }
+    }
+
+    /** La bulle de palette (PE7c) : tap → palette, glisser → aimantation + persistance. */
+    private fun brancherBullePalette() {
+        // Le tap ouvre/ferme la palette, le glisser re-aimante et PERSISTE
+        // (miroir `bindBubble`).
+        liaison.bullePalette.auTap = { basculerPalette() }
+        liaison.bullePalette.auDeplace = { aDroite, y -> viewModel.poserBulle(aDroite, y) }
+    }
+
+    /** Les collections STARTED (miroirs `load()`/`render*` de la maquette). */
+    private fun CoroutineScope.brancherCollections() {
+        launch {
+            viewModel.finir.collect { finir ->
+                if (finir) rouvrirEditeur()
             }
         }
-
-        monterFeuille()
-        majTitre()
+        launch {
+            viewModel.indiceSelectionne.collect { indice ->
+                liaison.vuePreview.surlignerVue(indice)
+                majBarreEdition()
+            }
+        }
+        launch {
+            // PE7c : les réglages persistés (bulle + mode) pilotent
+            // la vue (miroir `load()` au démarrage + `placeBubble`).
+            viewModel.reglagesApercu.collect { reglages ->
+                liaison.bullePalette.aDroite = reglages.bulleADroite
+                liaison.bullePalette.yNormalise = reglages.bulleY
+                liaison.bullePalette.fixe = reglages.bulleFixe
+                liaison.bullePalette.reposer()
+                palette?.definirBulleFixe(reglages.bulleFixe)
+                palette?.definirMode(reglages.paletteParPopup, notifier = false)
+            }
+        }
+        launch {
+            // Les RÉCENTS de la palette (miroir `recents`).
+            viewModel.recents.collect { recents ->
+                palette?.definirRecents(recents)
+            }
+        }
+        launch {
+            // PE6e-f + sous-titre : chaque rendu met le titre à jour
+            // (profil, orientation — miroir `ttlProfile`/`lblOrient`).
+            viewModel.moteur.etat.collect { majTitre() }
+        }
     }
 
     /**
      * La feuille inférieure (PE6d) : le fragment porte son contenu —
-     * l'activité pose le BottomSheetBehavior et le HUD de zoom REMONTE
-     * au déploiement (miroir `applySheet` : `status/zoom .bottom` suive
-     * la feuille).
+     * l'activité pose le BottomSheetBehavior, le HUD de zoom REMONTE au
+     * déploiement (miroir `applySheet` : `status/zoom .bottom` suive la
+     * feuille) et la bulle ÉVITE la zone déployée.
      */
     private fun monterFeuille() {
         supportFragmentManager
@@ -148,8 +256,10 @@ public class PreviewActivity : AppCompatActivity() {
             .replace(R.id.conteneur_feuille, FeuilleApercuFragment())
             .commit()
         supportFragmentManager.executePendingTransactions()
-        val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
-        val comportement = BottomSheetBehavior.from(feuille)
+        // Le comportement vit sur le CONTENEUR (enfant direct du
+        // CoordinatorLayout, app:layout_behavior du XML) — PAS sur la
+        // vue du fragment (enfant du conteneur : from() planterait).
+        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
         comportement.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(
@@ -161,8 +271,14 @@ public class PreviewActivity : AppCompatActivity() {
                     vue: View,
                     decalage: Float,
                 ) {
+                    val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
                     val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
                     liaison.hudZoom.translationY = -delta * decalage
+                    // La bulle ne glisse pas SOUS la feuille déployée
+                    // (miroir le `hi` de `placeBubble` qui suit `S.open`).
+                    liaison.bullePalette.reserveBas =
+                        (liaison.hudZoom.height + dp(RETRAIT_HUD_DP)) + (delta * decalage).toInt()
+                    liaison.bullePalette.reposer()
                 }
             },
         )
@@ -185,30 +301,190 @@ public class PreviewActivity : AppCompatActivity() {
                 scope = lifecycleScope,
                 auSelection = { indice -> viewModel.selectionner(indice) },
             )
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.indiceSelectionne.collect { indice ->
-                    liaison.vuePreview.surlignerVue(indice)
-                }
-            }
-        }
         liaison.vuePreview.auDepot = { contenu, x, y ->
             val ok = viewModel.appliquerDepot(contenu, x, y)
-            Toast
-                .makeText(
-                    this,
-                    if (ok) {
-                        getString(R.string.preview_toast_depot_ok, contenu.nomAffiche, nomConteneur())
-                    } else {
-                        getString(R.string.preview_toast_depot_ko)
-                    },
-                    Toast.LENGTH_SHORT,
-                ).show()
+            if (ok) {
+                toast(getString(R.string.preview_toast_depot_ok, contenu.nomAffiche, nomConteneur()))
+            } else {
+                toast(getString(R.string.preview_toast_depot_ko))
+            }
         }
     }
 
-    /** Le conteneur visé du DERNIER dépôt réussi (libellé du toast, miroir `par.cls`). */
-    private fun nomConteneur(): String = viewModel.dernierParentDepot ?: ""
+    // ── Palette et popup de placement (PE7c) ─────────────────────────────
+
+    /** Ouvre/FERME la palette (miroir `showPalette` : re-tap = fermer). */
+    private fun basculerPalette() {
+        val paletteCourante = palette
+        if (paletteCourante == null || !estAffichee(paletteCourante)) {
+            ouvrirPalette()
+        } else {
+            masquerPalette()
+        }
+    }
+
+    /** La palette est-elle à l'écran ? (extension KTX — lint UseKtx) */
+    private fun estAffichee(vue: View): Boolean = vue.isVisible
+
+    /** Construit (une fois) et OUVERT la palette (miroir `showPalette`). */
+    private fun ouvrirPalette() {
+        masquerPlacement()
+        val paletteCourante = palette ?: PalettePopover(context = this).also { palette = it }
+        if (paletteCourante.parent == null) {
+            liaison.conteneurPalette.addView(paletteCourante)
+        }
+        paletteCourante.auFermer = { masquerPalette() }
+        paletteCourante.auBulleFixe = { fixe ->
+            viewModel.poserBulleFixe(fixe)
+            toast(if (fixe) R.string.preview_bulle_fixee_toast else R.string.preview_bulle_flottante_toast)
+        }
+        paletteCourante.auModeChange = { parPopup -> viewModel.poserModePalette(parPopup) }
+        paletteCourante.auTapIndique = { entree -> toast(R.string.preview_palette_toast_drag) }
+        paletteCourante.auTuilePlace = { entree -> ouvrirPlacement(entree) }
+        paletteCourante.auGlisser = { entree, vueTuile -> lancerDrag(entree, vueTuile) }
+        liaison.conteneurPalette.visibility = View.VISIBLE
+    }
+
+    /** Masque la palette (miroir `hidePop` : les expanded tombent). */
+    private fun masquerPalette() {
+        liaison.conteneurPalette.visibility = View.GONE
+    }
+
+    /**
+     * Le glisser d'une tuile (PE7c — miroir `beginDrag` : « la palette
+     * lance `View.startDragAndDrop` puis se masque ») : le contenu
+     * voyage en localState (contrat PE7b — [ZonesDepot.ContenuDepot]),
+     * l'ombre porte la tuile ; la palette SE MASQUE le temps du drag.
+     */
+    private fun lancerDrag(
+        entree: CataloguePalette.EntreePalette,
+        vueTuile: View,
+    ) {
+        val contenu = ZonesDepot.ContenuDepot(entree.extraitXml, entree.nomAffiche, entree.id)
+        masquerPalette()
+        vueTuile.startDragAndDrop(null, View.DragShadowBuilder(vueTuile), contenu, 0)
+    }
+
+    /**
+     * Ouvre le POPUP de placement (miroir `showPlace`) : la référence
+     * part de la SÉLECTION (ou de la racine), la position par DÉFAUT suit
+     * [PlacementPopup.positionInitiale], le repère EN DIRECT s'allume
+     * (miroir `S.dropView = {w, target}`).
+     */
+    private fun ouvrirPlacement(entree: CataloguePalette.EntreePalette) {
+        val vues = viewModel.dernierRendu?.vues
+        if (vues.isNullOrEmpty()) {
+            toast(R.string.preview_edition_impossible_toast)
+            return
+        }
+        masquerPalette()
+        widgetEnPlacement = ZonesDepot.ContenuDepot(entree.extraitXml, entree.nomAffiche, entree.id)
+        val popupCourante = popupPlacement ?: PopupPlacement(context = this).also { popupPlacement = it }
+        if (popupCourante.parent == null) {
+            liaison.conteneurPlacement.addView(popupCourante)
+        }
+        popupCourante.auFermer = { masquerPlacement() }
+        popupCourante.auReference = { indice -> majPlacement(reference = indice) }
+        popupCourante.auPosition = { position -> majPlacement(position = position) }
+        popupCourante.auConfirmer = { confirmerPlacement() }
+        liaison.conteneurPlacement.visibility = View.VISIBLE
+
+        indiceReferencePlacement = viewModel.indiceSelectionne.value.takeIf { it in vues.indices } ?: 0
+        positionPlacement =
+            PlacementPopup.positionInitiale(vues, indiceReferencePlacement) ?: PlacementPopup.Position.APRES
+        majPlacement()
+    }
+
+    /**
+     * RE-MARCHE le placement (miroir `drawPlace`) : la position tombe
+     * dans les AUTORISÉES de la référence (miroir `normPos`), la cible se
+     * dérive ([PlacementPopup.cible]), le popup se redessine et le
+     * REPÈRE EN DIRECT suit la cible (zones de dépôt PE7b — un calque).
+     *
+     * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde est
+     * une issue DISTINCTE du refus (X4 : pas de rendu, popup fermé,
+     * widget absent).
+     */
+    @Suppress("ReturnCount")
+    private fun majPlacement(
+        reference: Int? = null,
+        position: PlacementPopup.Position? = null,
+    ) {
+        val vues = viewModel.dernierRendu?.vues ?: return
+        val popupCourante = popupPlacement ?: return
+        val widget = widgetEnPlacement ?: return
+        if (reference != null) indiceReferencePlacement = reference
+        if (position != null) positionPlacement = position
+        // Position non autorisée pour la nouvelle référence → repli
+        // déterministe (miroir `normPos` : feuille → after, racine → in).
+        val autorisees = PlacementPopup.positionsAutorisees(vues, indiceReferencePlacement)
+        if (positionPlacement !in autorisees) {
+            positionPlacement =
+                PlacementPopup.positionInitiale(vues, indiceReferencePlacement)
+                    ?: PlacementPopup.Position.APRES
+        }
+        ciblePlacement = PlacementPopup.cible(vues, indiceReferencePlacement, positionPlacement)
+        popupCourante.definirTitre(widget.nomAffiche)
+        popupCourante.afficher(vues, indiceReferencePlacement, positionPlacement, ciblePlacement)
+        liaison.vuePreview.montrerApercuPlacement(widget)
+        liaison.vuePreview.cibleDepot = ciblePlacement
+    }
+
+    /** « Placer ici » (miroir `ok.onclick` → `insertAt`) — le toast suit le dépôt. */
+    private fun confirmerPlacement() {
+        val widget = widgetEnPlacement
+        val cible = ciblePlacement
+        if (widget == null || cible == null) return
+        val ok = viewModel.appliquerPlacement(widget, cible)
+        toast(
+            if (ok) {
+                getString(R.string.preview_toast_depot_ok, widget.nomAffiche, nomConteneur())
+            } else {
+                getString(R.string.preview_toast_depot_ko)
+            },
+        )
+        masquerPlacement()
+    }
+
+    /** Ferme le popup de placement et ÉTEINT le repère (miroir `hidePop`). */
+    private fun masquerPlacement() {
+        liaison.conteneurPlacement.visibility = View.GONE
+        widgetEnPlacement = null
+        ciblePlacement = null
+        liaison.vuePreview.masquerApercuPlacement()
+    }
+
+    // ── Barre d'édition (PE7d) ───────────────────────────────────────────
+
+    /** Duplique la vue sélectionnée (miroir `dupSel` — toast au libellé). */
+    private fun dupliquer() {
+        val indice = viewModel.indiceSelectionne.value
+        if (!viewModel.dupliquerSelection()) {
+            toast(R.string.preview_edition_impossible_toast)
+            return
+        }
+        toast(R.string.preview_edition_dupliquee_toast, viewModel.libelleVue(indice))
+    }
+
+    /** Supprime la vue sélectionnée (miroir `delSel`). */
+    private fun supprimer() {
+        val libelle = viewModel.libelleVue(viewModel.indiceSelectionne.value)
+        if (!viewModel.supprimerSelection()) {
+            toast(R.string.preview_edition_impossible_toast)
+            return
+        }
+        toast(R.string.preview_edition_supprimee_toast, libelle)
+        majBarreEdition()
+    }
+
+    /** L'état des boutons dupliquer/supprimer (miroir `updateEditBar`). */
+    private fun majBarreEdition() {
+        val editable = viewModel.selectionEditable()
+        liaison.boutonDupliquer.isEnabled = editable
+        liaison.boutonSupprimer.isEnabled = editable
+    }
+
+    // ── Chrome PE6b + PE6e-f ─────────────────────────────────────────────
 
     override fun onDestroy() {
         controleur?.fermer()
@@ -253,6 +529,7 @@ public class PreviewActivity : AppCompatActivity() {
             catalogue.getOrNull(item.itemId)?.let { profil ->
                 controleur?.definirProfil(profil)
                 majReglages()
+                majTitre()
             }
             true
         }
@@ -325,10 +602,14 @@ public class PreviewActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Libellés des puces de réglages : appareil, jour/nuit, langue (PE6b). */
+    /** Libellés des puces de réglages (miroir `updateChips` de la maquette). */
     private fun majReglages() {
         val controleur = controleur ?: return
         liaison.boutonAppareilApercu.text = getString(R.string.preview_appareil_format, controleur.profil.nom)
+        liaison.boutonOrientationApercu.setText(
+            if (viewModel.paysage) R.string.preview_paysage else R.string.preview_portrait,
+        )
+        liaison.boutonOrientationApercu.isChecked = viewModel.paysage
         liaison.boutonNuitApercu.setText(
             if (controleur.nuit) {
                 R.string.preview_nuit
@@ -337,13 +618,19 @@ public class PreviewActivity : AppCompatActivity() {
             },
         )
         liaison.boutonNuitApercu.isChecked = controleur.nuit
-        liaison.boutonLangueApercu.setText(
+        val langueAffichee =
             when (controleur.langue) {
-                "fr" -> R.string.preview_langue_fr
-                "en" -> R.string.preview_langue_en
-                else -> R.string.preview_langue_defaut
-            },
-        )
+                "fr" -> getString(R.string.preview_langue_fr)
+                "en" -> getString(R.string.preview_langue_en)
+                else -> getString(R.string.preview_langue_defaut)
+            }
+        // Miroir `lblLang` : « Langue : défaut / FR / EN » (préfixe).
+        liaison.boutonLangueApercu.text = getString(R.string.preview_langue_format, langueAffichee)
+        // Miroir `lblFont` : « Police ×1,0 » (virgule décimale FR).
+        val echelle = viewModel.echellePolice
+        val echelleFormatee = String.format(Locale.FRANCE, "%.1f", echelle)
+        liaison.boutonPoliceApercu.text = getString(R.string.preview_police_format, echelleFormatee)
+        liaison.boutonPoliceApercu.isChecked = echelle != RequeteRendu.ECHELLE_POLICE_DEFAUT
     }
 
     /** Le bouton « 100 % » affiche l'échelle RÉELLE (PE6b — miroir `zPct`). */
@@ -351,10 +638,47 @@ public class PreviewActivity : AppCompatActivity() {
         liaison.boutonZoomPct.text = getString(R.string.preview_zoom_pct, (echelle * POURCENTAGE).roundToInt())
     }
 
-    /** Titre de la toolbar : le nom du fichier affiché (sélecteur via le menu). */
+    /**
+     * Le titre + le SOUS-TITRE de la toolbar (miroir `.ttl` de la
+     * maquette : le fichier en gras mono, « res/layout · rendu en Pixel
+     * 4 » dessous) — audit design : le sous-titre MANQUAIT au code.
+     */
     private fun majTitre() {
         val nom = viewModel.nomFichierCourant()
         supportActionBar?.title = nom.ifBlank { getString(R.string.preview_titre) }
+        supportActionBar?.subtitle =
+            getString(
+                R.string.preview_sous_titre_format,
+                dossierSource(),
+                controleur?.profil?.nom ?: "",
+            )
+        majReglages()
+    }
+
+    /** Le dossier source affiché (miroir « res/layout » — le dossier de la ressource). */
+    private fun dossierSource(): String {
+        val chemin = viewModel.source?.cheminRelatif ?: return ""
+        val dossier = chemin.substringBeforeLast('/')
+        val apresRes = dossier.substringAfter("/res/", "")
+        return if (apresRes.isNotEmpty()) "res/$apresRes" else dossier
+    }
+
+    /** Le conteneur visé du DERNIER dépôt réussi (libellé du toast, miroir `par.cls`). */
+    private fun nomConteneur(): String = viewModel.dernierParentDepot ?: ""
+
+    private fun toast(resId: Int) {
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toast(texte: String) {
+        Toast.makeText(this, texte, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toast(
+        resId: Int,
+        argument: String,
+    ) {
+        Toast.makeText(this, getString(resId, argument), Toast.LENGTH_SHORT).show()
     }
 
     /**
@@ -370,6 +694,8 @@ public class PreviewActivity : AppCompatActivity() {
         }
         finish()
     }
+
+    private fun dp(valeur: Int): Int = (valeur * resources.displayMetrics.density).toInt()
 
     /** UNE entrée du popover Calques : titre, état lu à la volée, pose. */
     private data class EntreeCalque(
@@ -392,5 +718,8 @@ public class PreviewActivity : AppCompatActivity() {
 
         /** Identifiant du groupe à coches du menu Calques. */
         private const val GROUPE_CALQUES: Int = 2
+
+        /** Retrait autour du HUD de zoom, en dp (réserve de la bulle). */
+        private const val RETRAIT_HUD_DP: Int = 16
     }
 }

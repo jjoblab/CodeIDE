@@ -1,0 +1,16 @@
+<!-- Sélecteur des boutons de POSITION du popup de placement (miroir
+     `.pos button[aria-checked]` : fond surface sur l'entrée choisie). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurface" />
+            <corners android:radius="9dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="9dp" />
+        </shape>
+    </item>
+</selector>

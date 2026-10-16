@@ -69,6 +69,10 @@ public object ZonesDepot {
     public data class ContenuDepot(
         val extraitXml: String,
         val nomAffiche: String,
+        /** L'identifiant catalogue du widget ([CataloguePalette.EntreePalette.id]) —
+         *  la liste des RÉCENTS de la palette (PE7c, miroir `recents`) ;
+         *  `null` = contenu hors catalogue (jamais produit à ce jour). */
+        val idWidget: String? = null,
     )
 
     /** Densité de repli (mdpi) quand le profil n'en fournit pas — conversion des constantes dp. */

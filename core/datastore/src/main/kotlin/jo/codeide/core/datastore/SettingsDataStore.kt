@@ -157,6 +157,11 @@ public class SettingsDataStore(
         internal val RETENTION_HISTORIQUE: Preferences.Key<String> =
             stringPreferencesKey("local_history_retention_days")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
+        internal val APERCU_BULLE_FIXE: Preferences.Key<Boolean> = booleanPreferencesKey("preview_bubble_fixed")
+        internal val APERCU_BULLE_A_DROITE: Preferences.Key<Boolean> = booleanPreferencesKey("preview_bubble_right")
+        internal val APERCU_BULLE_Y: Preferences.Key<String> = stringPreferencesKey("preview_bubble_y")
+        internal val APERCU_PALETTE_PAR_POPUP: Preferences.Key<Boolean> =
+            booleanPreferencesKey("preview_palette_tap_mode")
     }
 }
 
@@ -223,6 +228,15 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
                 ?.let(RetentionHistorique.Companion::fromPersistedName)
                 ?: defaults.retentionHistorique,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
+        apercuBulleFixe = this[SettingsDataStore.Cles.APERCU_BULLE_FIXE] ?: defaults.apercuBulleFixe,
+        apercuBulleADroite = this[SettingsDataStore.Cles.APERCU_BULLE_A_DROITE] ?: defaults.apercuBulleADroite,
+        apercuBulleY =
+            this[SettingsDataStore.Cles.APERCU_BULLE_Y]
+                ?.toFloatOrNull()
+                ?.coerceIn(0f, 1f)
+                ?: defaults.apercuBulleY,
+        apercuPaletteParPopup =
+            this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
     )
 
 /** Reconstitue l'emplacement du dossier de travail, ou `null` si incomplet. */
@@ -268,6 +282,10 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.INJECTION_APPLOG, reglage.injectionAppLog)
     set(SettingsDataStore.Cles.RETENTION_HISTORIQUE, reglage.retentionHistorique.name)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
+    set(SettingsDataStore.Cles.APERCU_BULLE_FIXE, reglage.apercuBulleFixe)
+    set(SettingsDataStore.Cles.APERCU_BULLE_A_DROITE, reglage.apercuBulleADroite)
+    set(SettingsDataStore.Cles.APERCU_BULLE_Y, reglage.apercuBulleY.toString())
+    set(SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP, reglage.apercuPaletteParPopup)
 
     val dossier = reglage.workspace
     if (dossier == null) {

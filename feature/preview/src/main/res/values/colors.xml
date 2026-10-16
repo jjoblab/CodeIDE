@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Couleurs des problèmes de l'aperçu (PE6c/PE6d — miroir des pastilles
+<!-- Couleurs des problèmes de l'aperçu (PE6c/PE6d, miroir des pastilles
      de la maquette : ambre de la pastille d'avertissement, rouge de
      l'erreur, gris neutre du badge sans problème). -->
 <resources>
     <color name="preview_probleme_erreur">#BA1A1A</color>
     <color name="preview_probleme_avertissement">#B8860B</color>
     <color name="preview_probleme_neutre">#5B5C66</color>
+
+    <!-- Couleurs PE7c/PE7d (miroir des jetons v2 de la maquette :
+         la bulle et les tuiles de la palette portent le VIOLET
+         « nouveau/modifiable » (#7C3AED, nuit #C4A8FF), le halo suit
+         new_soft, l'icône sur la bulle suit on_new (#FFFFFF clair,
+         #1B0B3D nuit)). -->
+    <color name="preview_bulle_fond">#7C3AED</color>
+    <color name="preview_bulle_halo">#247C3AED</color>
+    <color name="preview_bulle_icone">#FFFFFF</color>
+    <color name="preview_palette_icone">#7C3AED</color>
+
+    <!-- Badge « n définis » des sections de l'éditeur (PE7e, miroir
+         `summary small` : le violet « new » sur son fond pâle). -->
+    <color name="preview_section_badge_texte">#7C3AED</color>
+    <color name="preview_section_badge_fond">#EDE5FF</color>
 </resources>

@@ -15,6 +15,12 @@ dependencies {
     // reste zéro-Material).
     implementation(project(":preview:xml"))
 
+    // Persistance de la bulle et du mode de la palette (PE7c — maquette
+    // docs/mockups/apercu-xml.html § « Bulle, palette et popup de
+    // placement » : « son mode et sa position sont enregistrés dans
+    // SettingsDataStore »).
+    implementation(project(":core:datastore"))
+
     // Tests unitaires du ViewModel (branches SourceApercu du registre).
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
