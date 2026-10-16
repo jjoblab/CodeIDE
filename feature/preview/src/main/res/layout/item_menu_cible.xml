@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE RANGÉE du menu CIBLE de contrainte (PE9c, miroir `showPop` rendu
+  maison) : le libellé (Aucune / parent / @id/<frère>) et le point de
+  sélection (teinté primaire, visible sur la cible courante).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_cible"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/libelle_cible"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurface" />
+
+    <View
+        android:id="@+id/coche_cible"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/fond_pastille_menu"
+        android:visibility="gone" />
+</LinearLayout>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE RANGÉE du menu CALQUES (PE9c, miroir `showPop("layers")` rendu
+  maison) : pastille colorée (accent sémantique du calque, teintée au
+  liage), libellé et MaterialSwitch — la rangée entière bascule.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_calque"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="8dp">
+
+    <View
+        android:id="@+id/pastille_calque"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/fond_pastille_menu" />
+
+    <TextView
+        android:id="@+id/libelle_calque"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurface" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/bascule_calque"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp" />
+</LinearLayout>

@@ -166,6 +166,7 @@
     <string name="preview_contrainte_fin">End</string>
     <string name="preview_contrainte_haut">Top</string>
     <string name="preview_contrainte_bas">Bottom</string>
+    <string name="preview_menu_cible_titre">Anchor target</string>
     <string name="preview_contrainte_aucune">None</string>
     <string name="preview_contrainte_marge">margin (dp)</string>
     <string name="preview_contrainte_cible_cd">%1$s constraint target</string>

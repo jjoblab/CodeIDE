@@ -8,6 +8,9 @@
     <color name="preview_bulle_icone">#1B0B3D</color>
     <color name="preview_palette_icone">#C4A8FF</color>
 
+    <!-- Coque translucide des menus (nuit : surface sombre atténuée). -->
+    <color name="preview_menu_fond">#F0111318</color>
+
     <!-- Badge « n définis » (nuit : le violet clair sur un violet sombre
          translucide, même lisibilité que le clair). -->
     <color name="preview_section_badge_texte">#C4A8FF</color>

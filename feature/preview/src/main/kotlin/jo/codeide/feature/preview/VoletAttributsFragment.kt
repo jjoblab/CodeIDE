@@ -29,8 +29,10 @@ import jo.codeide.feature.preview.databinding.ItemCoteBinding
 import jo.codeide.feature.preview.databinding.ItemDimensionBinding
 import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
 import jo.codeide.feature.preview.databinding.ItemLibelleBinding
+import jo.codeide.feature.preview.databinding.ItemMenuCibleBinding
 import jo.codeide.feature.preview.databinding.ItemSegmentBinding
 import jo.codeide.feature.preview.databinding.ItemTitreGroupeBinding
+import jo.codeide.feature.preview.databinding.PopoverMenuCibleBinding
 import jo.codeide.feature.preview.databinding.SaisieNombreBinding
 import jo.codeide.feature.preview.databinding.SaisieTexteBinding
 import jo.codeide.feature.preview.databinding.SeparateurEditeurBinding
@@ -827,27 +829,55 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         return rangee.root
     }
 
-    /** Le menu de CIBLE d'une ancre : Aucune, parent, puis les frères à id. */
+    /** Le popover CIBLE translucide (PE9c) — un seul menu à la fois. */
+    private val menuCiblePopover: PopoverMenuApercu by lazy { PopoverMenuApercu(liaison.root) }
+
+    /** Le menu de CIBLE d'une ancre (popover_menu_cible.xml — Aucune,
+     * parent, puis les frères à id ; la cible courante est marquée). */
     private fun menuCible(
         ancre: View,
         lue: EditionAttributsXml.ContrainteLue,
     ) {
-        val menu = androidx.appcompat.widget.PopupMenu(requireContext(), ancre)
-        val itemAucune = menu.menu.add(getString(R.string.preview_contrainte_aucune))
-        val itemParent = menu.menu.add(VALEUR_PARENT)
-        viewModel.ciblesContrainteSelection().forEach { identifiant ->
-            menu.menu.add("@id/$identifiant")
+        if (menuCiblePopover.estOuvert) {
+            menuCiblePopover.masquer()
+            return
         }
-        menu.setOnMenuItemClickListener { item ->
-            val cible =
-                when (item.itemId) {
-                    itemAucune.itemId -> EditionAttributsXml.CibleContrainte.Aucune
-                    itemParent.itemId -> EditionAttributsXml.CibleContrainte.Parent
-                    else -> EditionAttributsXml.CibleContrainte.Vue(item.title.toString().removePrefix("@id/"))
+        val cibleCourante = lue.cible
+        menuCiblePopover.montrer(R.layout.popover_menu_cible, ancre, LARGEUR_MENU_CIBLE_DP) { vue ->
+            val popover = PopoverMenuCibleBinding.bind(vue)
+            // Les entrées portent la VALEUR BRUTE (miroir ContrainteLue.cible :
+            // "parent", "@id/x" ou null = ancre absente).
+            val entrees: List<Pair<String, String?>> =
+                listOf(
+                    getString(R.string.preview_contrainte_aucune) to null,
+                    VALEUR_PARENT to VALEUR_PARENT,
+                ) +
+                    viewModel.ciblesContrainteSelection().map { identifiant ->
+                        "@id/$identifiant" to "@id/$identifiant"
+                    }
+            entrees.forEach { (libelle, valeur) ->
+                val rangee = ItemMenuCibleBinding.inflate(gonfleur(), popover.listeCibles, false)
+                rangee.libelleCible.text = libelle
+                rangee.cocheCible.isVisible = cibleCourante == valeur
+                if (cibleCourante == valeur) {
+                    rangee.cocheCible.backgroundTintList =
+                        android.content.res.ColorStateList.valueOf(
+                            StyleVolet.couleur(requireContext(), StyleVolet.couleurPrimaire),
+                        )
                 }
-            editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, cible, null) }
+                rangee.rangeeCible.setOnClickListener {
+                    menuCiblePopover.masquer()
+                    val cible =
+                        when {
+                            valeur == null -> EditionAttributsXml.CibleContrainte.Aucune
+                            valeur == VALEUR_PARENT -> EditionAttributsXml.CibleContrainte.Parent
+                            else -> EditionAttributsXml.CibleContrainte.Vue(valeur.removePrefix("@id/"))
+                        }
+                    editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, cible, null) }
+                }
+                popover.listeCibles.addView(rangee.root)
+            }
         }
-        menu.show()
     }
 
     /** Le libellé localisé d'une ancre (Début/Fin/Haut/Bas). */
@@ -882,6 +912,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
         /** Transparence du séparateur du volet Modifier (0-1). */
         private const val SEPARATEUR_ALPHA: Float = 0.25f
+
+        /** Largeur du popover CIBLE, en dp (les cibles tiennent en courte). */
+        private const val LARGEUR_MENU_CIBLE_DP: Int = 232
 
         // ── Attributs de dimension du volet Modifier (PE7d) ──
         private const val ATTR_LARGEUR: String = "android:layout_width"
