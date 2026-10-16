@@ -76,20 +76,10 @@
     <string name="editor_onglet_fermer_cd">Close this tab</string>
     <string name="editor_onglet_sale_cd">%1$s — unsaved changes</string>
     <string name="editor_enregistrer">Save</string>
-    <!-- Mission « Previews » PE1 : XML preview panel toggle (LayoutLib). -->
+    <!-- Mission « Previews » PE1 → PE6-0 : dedicated preview screen
+         (:feature:preview) — its settings (profile, day/night, language)
+         live with it. -->
     <string name="editor_action_apercu">XML preview</string>
-    <string name="editor_action_apercu_fermer">Hide preview</string>
-    <!-- Mission « Previews » PE3 : panel settings (profile, day/night). -->
-    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
-    <string name="preview_profil_cd">Change the preview device profile</string>
-    <string name="preview_jour">Day</string>
-    <string name="preview_nuit">Night</string>
-    <string name="preview_nuit_cd">Toggle the preview between day and night theme</string>
-    <!-- PE5a : language toggle button (LayoutLib v3.0.0 P1 resolved). -->
-    <string name="preview_langue_cd">Toggle the preview language (default / French / English)</string>
-    <string name="preview_langue_defaut">Default</string>
-    <string name="preview_langue_fr">FR</string>
-    <string name="preview_langue_en">EN</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
     <string name="editor_menu_fermer_tout">Close all</string>

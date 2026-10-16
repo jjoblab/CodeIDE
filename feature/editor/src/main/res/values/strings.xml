@@ -83,20 +83,10 @@
     <string name="editor_onglet_fermer_cd">Fermer cet onglet</string>
     <string name="editor_onglet_sale_cd">%1$s — modifications non enregistrées</string>
     <string name="editor_enregistrer">Enregistrer</string>
-    <!-- Mission « Previews » PE1 : bascule du panneau d'aperçu XML (LayoutLib). -->
+    <!-- Mission « Previews » PE1 → PE6-0 : ouverture de l'écran d'aperçu
+         dédié (:feature:preview) — les réglages de l'aperçu (profil,
+         jour/nuit, langue) vivent avec lui. -->
     <string name="editor_action_apercu">Aperçu XML</string>
-    <string name="editor_action_apercu_fermer">Masquer l\'aperçu</string>
-    <!-- Mission « Previews » PE3 : réglages du panneau (profil, jour/nuit). -->
-    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
-    <string name="preview_profil_cd">Changer le profil d\'appareil de l\'aperçu</string>
-    <string name="preview_jour">Jour</string>
-    <string name="preview_nuit">Nuit</string>
-    <string name="preview_nuit_cd">Basculer l\'aperçu entre thème de jour et de nuit</string>
-    <!-- PE5a : bouton bascule langue (LayoutLib v3.0.0 P1 résolu). -->
-    <string name="preview_langue_cd">Basculer la langue de l\'aperçu (défaut / français / anglais)</string>
-    <string name="preview_langue_defaut">Défaut</string>
-    <string name="preview_langue_fr">FR</string>
-    <string name="preview_langue_en">EN</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
     <string name="editor_menu_fermer_tout">Fermer tout</string>

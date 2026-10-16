@@ -41,10 +41,11 @@
         android:visible="false"
         app:showAsAction="never" />
 
-    <!-- Mission « Previews » PE1 (PREVIEW.md §3.4) : bascule du panneau
-         d'aperçu XML — visible quand l'onglet actif est previewable
-         (res/layout ou racine de layout) ; le rendu vit dans :preview:xml
-         (LayoutLib, fil dédié, bitmap off-screen). -->
+    <!-- Mission « Previews » PE1 → PE6-0 : ouverture de l'écran d'aperçu
+         DÉDIÉ (:feature:preview, maquette docs/mockups/apercu-xml.html) —
+         visible quand l'onglet actif est previewable (res/layout ou
+         racine de layout) ; le rendu vit dans :preview:xml (LayoutLib,
+         fil dédié, bitmap off-screen). -->
     <item
         android:id="@+id/action_apercu"
         android:title="@string/editor_action_apercu"

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English strings for :feature:preview (PE6-0). -->
+<resources>
+    <string name="preview_titre">XML preview</string>
+    <string name="preview_retour_cd">Back to the editor</string>
+    <string name="preview_choisir_fichier">Choose file…</string>
+    <string name="preview_choisir_titre">Open documents</string>
+
+    <!-- Settings chips (mirror of the old overlay bar PE3/PE5a). -->
+    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
+    <string name="preview_profil_cd">Change the preview device profile</string>
+    <string name="preview_jour">Day</string>
+    <string name="preview_nuit">Night</string>
+    <string name="preview_nuit_cd">Toggle the preview between day and night theme</string>
+    <string name="preview_langue_cd">Toggle the preview language (default / French / English)</string>
+    <string name="preview_langue_defaut">Default</string>
+    <string name="preview_langue_fr">FR</string>
+    <string name="preview_langue_en">EN</string>
+</resources>

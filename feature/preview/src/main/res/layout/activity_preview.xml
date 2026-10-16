@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Écran dédié de l'aperçu XML (PE6-0, maquette
+  docs/mockups/apercu-xml.html § « Activité dédiée ») : toolbar (titre =
+  fichier affiché, menu sélecteur), puces de réglages (profil, jour/nuit,
+  langue) et panneau de rendu VuePreviewXml — le MÊME panneau que
+  l'ancien overlay d'EditorActivity (calques PE6a : cadre, poignées,
+  étiquette, parent, frères, pastille).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/racine_preview"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_preview"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/preview_retour_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/preview_titre" />
+
+    <!-- Puces de réglages (miroir de l'ancienne barre de l'overlay —
+         profil, jour/nuit, langue ; feuille de choix en PE6b). -->
+    <LinearLayout
+        android:id="@+id/barre_reglages_apercu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/spacing_sm">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_profil_apercu"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:contentDescription="@string/preview_profil_cd"
+            android:text="@string/preview_profil" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_nuit_apercu"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:contentDescription="@string/preview_nuit_cd"
+            android:text="@string/preview_jour" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_langue_apercu"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:contentDescription="@string/preview_langue_cd"
+            android:text="@string/preview_langue_defaut" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <jo.codeide.preview.xml.VuePreviewXml
+        android:id="@+id/vue_preview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

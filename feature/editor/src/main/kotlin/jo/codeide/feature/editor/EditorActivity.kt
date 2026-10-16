@@ -42,9 +42,7 @@ import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.AppLogger
-import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.InfoTache
-import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.ProjectAccessState
@@ -65,9 +63,9 @@ import jo.codeide.core.ui.couleurSurSurface
 import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
-import jo.codeide.feature.editor.preview.ControleurPreviewXml
 import jo.codeide.lsp.host.EtatIndexation
 import jo.codeide.lsp.host.PhaseIndexation
+import jo.codeide.preview.xml.ClassificateurPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flatMapLatest
@@ -164,36 +162,11 @@ class EditorActivity :
     @Inject
     lateinit var journalLsp: AppLogger
 
-    /** Dispatchers injectés (règle 5) — la preview XML y rend sur fil dédié. */
-    @Inject
-    lateinit var dispatchers: DispatcherProvider
-
-    /** Résolveur SAF → FUSE (ADR 0038) : `res/` du projet rejoint le moteur
-     *  de preview XML par le MÊME chemin que la session LSP et le terminal. */
-    @Inject
-    lateinit var resolveurCheminProjet: ResoudreRepertoireProjet
-
     private lateinit var liaison: ActivityEditorBinding
 
     /** Coordonnateur LSP Java (mission « LSP Java » h2) : LspProject +
      *  LspEditor cel-lsp de l'onglet actif — see [brancherLspSiNecessaire]. */
     private val coordonnateurLsp by lazy { CoordonnateurLsp(journalLsp) }
-
-    /** Contrôleur de la preview XML (mission « Previews » PE1 → PE3) : branche le
-     *  moteur :preview:xml sur l'onglet actif et le projet — bascule du
-     *  panneau par le menu (colonne réglages + rendu), profils device et
-     *  jour/nuit (PE3), sélection bidirectionnelle P6, fermeture au
-     *  onDestroy. */
-    private val controleurApercu by lazy {
-        ControleurPreviewXml(
-            vue = liaison.vuePreview,
-            colonneApercu = liaison.colonneApercu,
-            dispatchers = dispatchers,
-            journal = journalLsp,
-            scope = lifecycleScope,
-            resolveurChemin = resolveurCheminProjet,
-        )
-    }
 
     private lateinit var comportementPanneau: BottomSheetBehavior<*>
 
@@ -336,7 +309,6 @@ class EditorActivity :
         brancherPastilleIndexation()
         brancherVueVide()
         brancherEditeur()
-        brancherApercu()
         brancherPanneauInferieur()
         brancherBarreSymboles()
         onBackPressedDispatcher.addCallback(this, retourEspace)
@@ -350,13 +322,10 @@ class EditorActivity :
             // Mission LSP Java h2 (§16.2) : le branchement suit le rendu —
             // async (résolution FUSE suspendante), gardé par URI.
             brancherLspSiNecessaire(etat)
-            // Mission « Previews » PE1 : le contrôleur suit l'onglet actif
-            // (classification + écoute des frappes) et le projet (res/ FUSE).
-            val sessionActive =
-                etat.onglets.getOrNull(etat.indexOngletActif)?.let { onglet ->
-                    viewModel.sessionDe(onglet.uri)
-                }
-            controleurApercu.onEtat(etat, sessionActive)
+            // PE6-0 : l'action « Aperçu XML » vit dans l'écran dédié
+            // (:feature:preview, via [navigateur]) — l'activité ne suit
+            // plus que la VISIBILITÉ du menu (classification directe de
+            // l'onglet actif ; la session est au registre des sources).
             majMenuApercu()
         }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
@@ -988,16 +957,17 @@ class EditorActivity :
                 }
 
                 R.id.action_apercu -> {
-                    // Mission « Previews » PE1 : bascule du panneau d'aperçu
-                    // XML — le titre suit l'état (ouvrir / masquer).
-                    val visible = controleurApercu.bascule()
-                    item.setTitle(
-                        if (visible) {
-                            R.string.editor_action_apercu_fermer
-                        } else {
-                            R.string.editor_action_apercu
-                        },
-                    )
+                    // PE6-0 : l'aperçu s'ouvre en ACTIVITÉ DÉDIÉE (maquette
+                    // « Sortir le preview d'EditorActivity ») — un simple
+                    // appel au navigateur ; la session d'édition reste au
+                    // registre des sources (partage explicite), l'URI du
+                    // projet voyage PAR le port (jamais d'extra périmé).
+                    val etatCourant = viewModel.etat.value
+                    val onglet = etatCourant.onglets.getOrNull(etatCourant.indexOngletActif)
+                    val idProjet = intent.getStringExtra(ClesEditor.EXTRA_PROJECT_ID)
+                    if (onglet != null && idProjet != null) {
+                        navigateur.openPreview(idProjet, onglet.uri)
+                    }
                     true
                 }
 
@@ -1295,58 +1265,6 @@ class EditorActivity :
     private fun brancherEditeur() {
         // CE3 (B10) : barre de recherche/remplacement.
         liaison.barreRecherche.bind(liaison.vueEditeur)
-    }
-
-    /**
-     * Mission « Previews » PE3 : la barre de réglages de l'aperçu (profil
-     * device, jour/nuit) et la sélection BIDIRECTIONNELLE (P6) — le tap
-     * sur le rendu est traité par le contrôleur, la sélection de l'ÉDITEUR
-     * est observée ici (l'écouteur vit sur [jo.codeeditor.view.EditorView])
-     * et remise au contrôleur pour le surlignage de la vue correspondante.
-     */
-    private fun brancherApercu() {
-        liaison.boutonProfilApercu.setOnClickListener {
-            controleurApercu.profilSuivant()
-            majBarreApercu()
-        }
-        liaison.boutonNuitApercu.setOnClickListener {
-            controleurApercu.basculerNuit()
-            majBarreApercu()
-        }
-        // PE5a : bouton bascule langue (LayoutLib v3.0.0 P1 résolu).
-        liaison.boutonLangueApercu.setOnClickListener {
-            controleurApercu.basculerLangue()
-            majBarreApercu()
-        }
-        // Bouton fermer l'aperçu — retour à l'éditeur plein écran.
-        liaison.boutonFermerApercu.setOnClickListener {
-            controleurApercu.bascule()
-            majMenuApercu()
-        }
-        liaison.vueEditeur.addOnSelectionChangedListener { debut, fin, _ ->
-            controleurApercu.onSelectionEditeur(debut, fin)
-        }
-        majBarreApercu()
-    }
-
-    /** Libellés de la barre de réglages : profil, jour/nuit, langue. */
-    private fun majBarreApercu() {
-        liaison.boutonProfilApercu.text = controleurApercu.profil.description()
-        liaison.boutonNuitApercu.setText(
-            if (controleurApercu.nuit) {
-                R.string.preview_nuit
-            } else {
-                R.string.preview_jour
-            },
-        )
-        // PE5a : libellé du bouton langue.
-        liaison.boutonLangueApercu.setText(
-            when (controleurApercu.langue) {
-                "fr" -> R.string.preview_langue_fr
-                "en" -> R.string.preview_langue_en
-                else -> R.string.preview_langue_defaut
-            },
-        )
     }
 
     /**
@@ -1783,20 +1701,20 @@ class EditorActivity :
     }
 
     /**
-     * Mission « Previews » PE1 : visibilité et titre de l'action d'aperçu —
-     * visible si l'onglet actif est previewable (classification du
-     * contrôleur), le titre suit l'état ouvert/masqué du panneau.
+     * Mission « Previews » PE1 → PE6-0 : VISIBILITÉ de l'action d'aperçu —
+     * visible si l'onglet actif est previewable (classification directe
+     * : l'écran d'aperçu classifie à son tour depuis la source du
+     * registre). Le titre est fixe (ouvrir l'écran dédié, pas une
+     * bascule intra-activité depuis PE6-0).
      */
     private fun majMenuApercu() {
         val action = liaison.toolbarEditeur.menu.findItem(R.id.action_apercu) ?: return
-        action.isVisible = controleurApercu.genreActif.value != null
-        action.setTitle(
-            if (controleurApercu.visible) {
-                R.string.editor_action_apercu_fermer
-            } else {
-                R.string.editor_action_apercu
-            },
-        )
+        val etatCourant = viewModel.etat.value
+        val onglet = etatCourant.onglets.getOrNull(etatCourant.indexOngletActif)
+        val previewable =
+            onglet != null &&
+                ClassificateurPreview.genreDe(onglet.cheminRelatif, viewModel.sessionDe(onglet.uri)?.text ?: "") != null
+        action.isVisible = previewable
     }
 
     /** Crée l'onglet graphique (vue personnalisée) pour [onglet]. */
@@ -2161,9 +2079,6 @@ class EditorActivity :
      */
     override fun onDestroy() {
         coordonnateurLsp.fermer()
-        // Mission « Previews » PE1 : moteur et écoute d'onglet coupés avec
-        // l'écran (PE2 déplacera le rendu dans le processus :preview).
-        controleurApercu.fermer()
         super.onDestroy()
     }
 

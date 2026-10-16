@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -29,6 +30,14 @@ import kotlin.math.min
  * la vue sélectionnée dans l'éditeur se dessine en overlay (rect pleins
  * bords sur les bounds de la vue).
  *
+ * PE6a — CALQUES (maquette `docs/mockups/apercu-xml.html` § « Calques »,
+ * « sans nouvelle donnée ») : cadre de sélection avec POIGNÉES d'angle,
+ * NOM et DIMENSIONS en dp (densité du PROFIL — conversion pure
+ * [CalquesApercu]); PARENT en pointillés; FRÈRES en filigrane; PASTILLE
+ * d'état (durée du rendu, nombre de vues). Tous les tracés gardent une
+ * épaisseur ÉCRAN constante au zoom (le patron LARGEUR_TRAIT_SURLIGNAGE
+ * / echelle existant).
+ *
  * Le bitmap n'est jamais recyclé par la vue (le moteur peut en émettre un
  * nouveau pendant un dessin) : le GC d'ART collecte.
  *
@@ -50,6 +59,15 @@ public class VuePreviewXml : View {
 
     /** Indice de la vue surlignée (sélection éditeur → preview, -1 aucune). */
     private var indiceSurligne: Int = -1
+
+    /** Densité du profil de rendu (PE6a — conversion px → dp des libellés). */
+    private var densiteDpi: Int = 0
+
+    /** Durée du dernier rendu (PE6a — pastille d'état). */
+    private var dureeMs: Long = 0
+
+    /** Nombre de vues du dernier rendu (PE6a — pastille d'état). */
+    private var nombreVues: Int = 0
 
     /** Appui simple confirmé, en coordonnées BITMAP (contenu, pas écran). */
     public var auTap: ((x: Float, y: Float) -> Unit)? = null
@@ -92,6 +110,40 @@ public class VuePreviewXml : View {
     private val peintFondSurlignage =
         Paint().apply {
             style = Paint.Style.FILL
+        }
+
+    /** Parent de la sélection — pointillés (PE6a). */
+    private val peintParent =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Frères de la sélection — filigrane (PE6a). */
+    private val peintFrere =
+        Paint().apply {
+            style = Paint.Style.FILL
+        }
+
+    /** Poignées d'angle de la sélection — disque plein liseré surface (PE6a). */
+    private val peintPoignee =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Fond des étiquettes (nom · dimensions, pastille) — pill semi-opaque (PE6a). */
+    private val peintPill =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Texte de l'étiquette de sélection (nom · dimensions). */
+    private val peintEtiquette =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
         }
 
     private val detecteurZoom =
@@ -166,13 +218,23 @@ public class VuePreviewXml : View {
     /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom).
      *  Si la vue n'a pas encore ses dimensions (width/height = 0 — layout
      *  pas encore passé), l'ajustement est reporté au prochain layout via
-     *  [onSizeChanged]. */
+     *  [onSizeChanged].
+     *
+     *  PE6a : [densiteDpiProfil] (conversion dp des libellés de calques,
+     *  0 = repli px), [dureeRenduMs] et [nbVues] (pastille d'état —
+     *  données déjà là, jamais affichées : maquette § « Constat »). */
     public fun afficherRendu(
         bitmap: Bitmap,
         vuesRendues: List<InfoVueRendu> = emptyList(),
+        densiteDpiProfil: Int = 0,
+        dureeRenduMs: Long = 0,
+        nbVues: Int = 0,
     ) {
         this.bitmap = bitmap
         this.vues = vuesRendues
+        densiteDpi = densiteDpiProfil
+        dureeMs = dureeRenduMs
+        nombreVues = nbVues
         messageErreur = null
         enEdition = false
         accueilAffiche = false
@@ -210,6 +272,9 @@ public class VuePreviewXml : View {
         bitmap = null
         vues = emptyList()
         indiceSurligne = -1
+        densiteDpi = 0
+        dureeMs = 0
+        nombreVues = 0
         messageErreur = null
         enEdition = false
         accueilAffiche = true
@@ -266,13 +331,52 @@ public class VuePreviewXml : View {
         canevas.translate(decalageX, decalageY)
         canevas.scale(echelle, echelle)
         canevas.drawBitmap(bmp, 0f, 0f, null)
+        // PE6a : calques du plus large au plus étroit — frères (filigrane),
+        // parent (pointillés), sélection (cadre, poignées, étiquette).
+        dessinerFreres(canevas)
+        dessinerParent(canevas)
         dessinerSurlignage(canevas)
         canevas.restore()
         if (messageErreur != null) dessinerBandeauErreur(canevas)
         if (enEdition) dessinerSignalEdition(canevas)
+        dessinerPastille(canevas)
     }
 
-    /** Overlay de sélection P6 : rect sur les bounds de la vue surlignée. */
+    /** Calque « frères en filigrane » (PE6a) : fill translucide sur les bounds. */
+    private fun dessinerFreres(canevas: Canvas) {
+        if (indiceSurligne !in vues.indices) return
+        peintFrere.color = couleurSurlignage
+        for (indice in CalquesApercu.indicesFreres(vues, indiceSurligne)) {
+            val frere = vues[indice]
+            if (frere.droite <= frere.gauche || frere.bas <= frere.haut) continue
+            peintFrere.alpha = ALPHA_FRERE
+            canevas.drawRect(
+                RectF(frere.gauche.toFloat(), frere.haut.toFloat(), frere.droite.toFloat(), frere.bas.toFloat()),
+                peintFrere,
+            )
+        }
+    }
+
+    /** Calque « parent en pointillés » (PE6a) : trait à épaisseur écran constante. */
+    private fun dessinerParent(canevas: Canvas) {
+        val indiceParent = CalquesApercu.indiceParent(vues, indiceSurligne)
+        if (indiceParent < 0 || indiceParent !in vues.indices) return
+        val parent = vues[indiceParent]
+        if (parent.droite <= parent.gauche || parent.bas <= parent.haut) return
+        peintParent.strokeWidth = LARGEUR_TRAIT_SURLIGNAGE / echelle
+        peintParent.color = couleurParent
+        peintParent.pathEffect = EFFET_POINTILLES
+        canevas.drawRect(
+            RectF(parent.gauche.toFloat(), parent.haut.toFloat(), parent.droite.toFloat(), parent.bas.toFloat()),
+            peintParent,
+        )
+    }
+
+    /**
+     * Overlay de sélection (P6, étendu PE6a) : cadre sur les bounds de
+     * la vue surlignée, POIGNÉES d'angle, étiquette « nom · dimensions
+     * en dp » au-dessus — tout à épaisseur/taille ÉCRAN constante.
+     */
     private fun dessinerSurlignage(canevas: Canvas) {
         if (indiceSurligne !in vues.indices) return
         val vue = vues[indiceSurligne]
@@ -289,7 +393,97 @@ public class VuePreviewXml : View {
         peintFondSurlignage.color =
             (couleurSurlignage and MASQUE_COULEUR_RGB) or (COULEUR_ALPHA_SURLIGNAGE shl DECALAGE_ALPHA)
         canevas.drawRect(rect, peintFondSurlignage)
+        dessinerPoignees(canevas, rect)
+        dessinerEtiquette(canevas, rect, vue)
     }
+
+    /** Poignées d'angle (PE6a) : disques pleins au couleur de sélection, liseré surface. */
+    private fun dessinerPoignees(
+        canevas: Canvas,
+        rect: RectF,
+    ) {
+        val rayon = RAYON_POIGNEE_DP * echellePolice() / echelle
+        peintPoignee.color = couleurSurlignage
+        for (coin in COINS) {
+            val x = if (coin.first) rect.left else rect.right
+            val y = if (coin.second) rect.top else rect.bottom
+            // Liseré : un disque SURFACE légèrement plus grand sous le plein.
+            peintPill.color = couleurSurface
+            canevas.drawCircle(x, y, rayon + RAYON_LISE_POIGNEE * echellePolice() / echelle, peintPill)
+            canevas.drawCircle(x, y, rayon, peintPoignee)
+        }
+    }
+
+    /** Étiquette « nom · dimensions en dp » (PE6a) au-dessus du cadre, bornée au contenu. */
+    private fun dessinerEtiquette(
+        canevas: Canvas,
+        rect: RectF,
+        vue: InfoVueRendu,
+    ) {
+        val texte =
+            CalquesApercu.libelleSelection(
+                vue.libelle,
+                CalquesApercu.dimensions(vue.droite - vue.gauche, vue.bas - vue.haut, densiteDpi),
+            )
+        if (texte.isBlank()) return
+        peintEtiquette.textSize = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice() / echelle
+        val marge = MARGE_ETIQUETTE_DP * echellePolice() / echelle
+        val largeurTexte = peintEtiquette.measureText(texte)
+        val demiHauteurTexte = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        // Pill au-dessus du cadre (décalée d'un rayon de poignée), bornée à gauche.
+        val xPill = (rect.left - marge).coerceAtLeast(0f)
+        val yPill = (rect.top - rayonPoigneeEnContenu() * 2f).coerceAtLeast(0f)
+        peintPill.color = couleurSurlignage
+        peintPill.alpha = ALPHA_PILL_ETIQUETTE
+        canevas.drawRoundRect(
+            xPill,
+            yPill - demiHauteurTexte - marge,
+            xPill + largeurTexte + 2 * marge,
+            yPill + demiHauteurTexte + marge,
+            (demiHauteurTexte + marge),
+            (demiHauteurTexte + marge),
+            peintPill,
+        )
+        peintEtiquette.color = couleurSurSelection
+        canevas.drawText(texte, xPill + marge, yPill - demiHauteurTexte, peintEtiquette)
+    }
+
+    /** Rayon d'une poignée rapporté à l'espace CONTENU (taille écran constante). */
+    private fun rayonPoigneeEnContenu(): Float = RAYON_POIGNEE_DP * echellePolice() / echelle
+
+    /** Pastille d'état (PE6a) : durée du rendu et nombre de vues — coins bas-gauche, écran constant. */
+    private fun dessinerPastille(canevas: Canvas) {
+        if (nombreVues <= 0 && dureeMs <= 0) return
+        val texte =
+            resources.getQuantityString(
+                R.plurals.preview_pastille_vues,
+                nombreVues,
+                nombreVues,
+                dureeMs,
+            )
+        val taille = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice()
+        peintEtiquette.textSize = taille
+        val marge = MARGE_PASTILLE_DP * echellePolice()
+        val largeurTexte = peintEtiquette.measureText(texte)
+        val demiHauteurTexte = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        val yPill = height - marge - hauteurBandeauSiPresent()
+        peintPill.color = couleurSurface
+        peintPill.alpha = ALPHA_PILL_PASTILLE
+        canevas.drawRoundRect(
+            marge,
+            yPill - demiHauteurTexte - marge,
+            marge + largeurTexte + 2 * marge,
+            yPill + demiHauteurTexte + marge,
+            demiHauteurTexte + marge,
+            demiHauteurTexte + marge,
+            peintPill,
+        )
+        peintEtiquette.color = couleurTheme(android.R.attr.textColorPrimary)
+        canevas.drawText(texte, marge + marge, yPill - demiHauteurTexte, peintEtiquette)
+    }
+
+    /** La pastille ne glisse pas SOUS le bandeau d'erreur quand il est présent. */
+    private fun hauteurBandeauSiPresent(): Float = if (messageErreur == null) 0f else hauteurBandeau()
 
     /** Hauteur disponible au contenu : le bandeau d'erreur la grignote. */
     private fun hauteurZoneContenu(): Float =
@@ -406,6 +600,15 @@ public class VuePreviewXml : View {
     /** Couleur du surlignage : la couleur primaire du thème de l'IDE. */
     private val couleurSurlignage: Int by lazy { couleurTheme(android.R.attr.colorPrimary) }
 
+    /** Couleur du parent pointillé : texte secondaire (PE6a — discret). */
+    private val couleurParent: Int by lazy { couleurTheme(android.R.attr.textColorSecondary) }
+
+    /** Couleur des liserés/pill : surface du thème (PE6a). */
+    private val couleurSurface: Int by lazy { couleurTheme(android.R.attr.colorBackground) }
+
+    /** Couleur du texte sur pill de sélection : blanc (sur primaire). */
+    private val couleurSurSelection: Int = Color.WHITE
+
     public companion object {
         private const val COULEUR_DAMIER_A = 0xFFE8E8EC.toInt()
         private const val COULEUR_DAMIER_B = 0xFFF6F6F9.toInt()
@@ -429,6 +632,42 @@ public class VuePreviewXml : View {
 
         /** Position du canal alpha dans un ARGB int. */
         private const val DECALAGE_ALPHA = 24
+
+        /** Alpha du filigrane des frères (0-255) — discret, le rendu reste lisible. */
+        private const val ALPHA_FRERE = 0x18
+
+        /** Alpha du fond de l'étiquette de sélection (0-255). */
+        private const val ALPHA_PILL_ETIQUETTE = 0xE6
+
+        /** Alpha du fond de la pastille d'état (0-255). */
+        private const val ALPHA_PILL_PASTILLE = 0xB8
+
+        /** Rayon des poignées d'angle, en dp écran (PE6a). */
+        private const val RAYON_POIGNEE_DP = 4f
+
+        /** Liseré des poignées, en dp écran (PE6a). */
+        private const val RAYON_LISE_POIGNEE = 1.5f
+
+        /** Taille du texte de l'étiquette / pastille, en dp écran (PE6a). */
+        private const val TAILLE_TEXTE_ETIQUETTE_DP = 12f
+
+        /** Marge interne des pills, en dp écran (PE6a). */
+        private const val MARGE_ETIQUETTE_DP = 4f
+
+        /** Marge de la pastille aux bords de l'écran, en dp écran (PE6a). */
+        private const val MARGE_PASTILLE_DP = 8f
+
+        /** Les quatre coins d'une poignée (haut-gauche, haut-droit, bas-gauche, bas-droit). */
+        private val COINS =
+            listOf(
+                true to true,
+                false to true,
+                true to false,
+                false to false,
+            )
+
+        /** Pointillés du parent — 4 px tracés, 4 px troués, à épaisseur écran constante. */
+        private val EFFET_POINTILLES = DashPathEffect(floatArrayOf(4f, 4f), 0f)
     }
 }
 

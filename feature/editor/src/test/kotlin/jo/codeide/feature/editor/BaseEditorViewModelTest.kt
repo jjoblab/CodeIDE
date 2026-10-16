@@ -350,6 +350,12 @@ abstract class BaseEditorViewModelTest {
             porteeFermetureSession = porteeFermetureSessionTest,
             orchestrateurInstallation = parcoursInstallationTest,
             dispatcheurs = dispatcheurs,
+            // PE6-0 : registre RÉEL des sources d'aperçu (contrat pur —
+            // SessionSuivie s'y publie/libère ; le test observe via
+            // sessionSuivieDe(uri)?.sourceApercu si besoin).
+            registreSourcesApercu =
+                jo.codeide.core.domain
+                    .RegistreSourcesApercu(),
             savedStateHandle = sauvetage,
         )
 

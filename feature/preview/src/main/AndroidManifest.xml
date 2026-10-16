@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Aperçu XML en écran dédié (PE6-0, maquette
+         docs/mockups/apercu-xml.html § « Activité dédiée ») : activité
+         séparée de l'éditeur, jamais exposée hors de l'application —
+         ouverte par AppNavigator.openPreview (patron openTerminal).
+         La session d'édition reste celle du EditorViewModel : elle est
+         partagée par le registre des sources d'aperçu (:core:domain). -->
+    <application android:supportsRtl="true">
+        <activity
+            android:name="jo.codeide.feature.preview.PreviewActivity"
+            android:exported="false"
+            android:label="@string/preview_titre" />
+    </application>
+
+</manifest>
