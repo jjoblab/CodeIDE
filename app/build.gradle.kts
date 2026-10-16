@@ -37,6 +37,8 @@ dependencies {
     // Espace de travail de l'éditeur (étape 13) : EditorActivity séparée.
     implementation(project(":feature:editor"))
     implementation(project(":feature:install"))
+    // Previews PE6-0 : écran d'aperçu XML dédié (AppNavigator.openPreview).
+    implementation(project(":feature:preview"))
 
     // Journalisation maison (étape 2) : AppLogger, initialisation,
     // FileProvider des exports.
