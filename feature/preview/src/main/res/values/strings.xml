@@ -41,4 +41,32 @@
     <string name="preview_zoom_100_cd">Revenir au zoom 100 %</string>
     <string name="preview_zoom_ajuster_cd">Ajuster le rendu à la vue</string>
     <string name="preview_zoom_pct">%1$d%%</string>
+
+
+    <!-- Feuille inférieure (PE6d, miroir `.sheet` de la maquette). -->
+    <string name="preview_feuille_sans_selection">Aucune vue sélectionnée. Touchez le rendu.</string>
+    <string name="preview_feuille_onglet_arbre">Arbre</string>
+    <string name="preview_feuille_onglet_attributs">Attributs</string>
+    <string name="preview_feuille_onglet_problemes">Problèmes</string>
+    <string name="preview_feuille_onglet_source">Source</string>
+    <string name="preview_feuille_onglets_cd">Détails de la vue sélectionnée : arbre, attributs, problèmes et source</string>
+    <string name="preview_feuille_croisement">%1$s › %2$s</string>
+    <string name="preview_feuille_libelle">%1$s · @+id/%2$s</string>
+    <string name="preview_feuille_vide">Sélectionnez une vue dans le rendu ou dans l\'arbre.</string>
+    <string name="preview_feuille_aucun_probleme">Aucun problème détecté à cette taille et à cette police.</string>
+    <string name="preview_feuille_source_entier">Document entier</string>
+    <string name="preview_feuille_source_lignes">Lignes %1$d à %2$d</string>
+    <string name="preview_feuille_ouvrir_editeur">Ouvrir dans l\'éditeur ↗</string>
+    <string name="preview_feuille_ligne_numero">%1$d</string>
+
+    <!-- Problèmes (miroir computeProblems de la maquette). -->
+    <string name="preview_probleme_classe_absente_titre">Classe introuvable : %1$s</string>
+    <string name="preview_probleme_classe_absente_message">Vérifiez le nom de la classe et la dépendance du module — l\'aperçu affiche un cadre de remplacement.</string>
+    <string name="preview_probleme_cible_tactile_titre">Cible tactile trop petite</string>
+    <string name="preview_probleme_cible_tactile_message">Mesure %1$d × %2$d dp, minimum recommandé 48 × 48.</string>
+    <string name="preview_probleme_cible_tactile_message_sans_mesure">Mesure la cible en dp, minimum recommandé 48 × 48.</string>
+
+    <!-- Dépôt de la palette (PE7b, miroir toast d\'insertAt). -->
+    <string name="preview_toast_depot_ok">%1$s ajouté dans %2$s</string>
+    <string name="preview_toast_depot_ko">Dépôt impossible ici : le document a changé depuis le rendu.</string>
 </resources>
