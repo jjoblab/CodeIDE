@@ -203,9 +203,11 @@ public class EditionAttributsXmlTest {
         )
         assertEquals("@+id/titre", attrs.first().valeur)
         assertEquals("Bonjour", attrs[3].valeur)
-        // Les plages sont ABSOLUES et coïncident avec le texte réel.
+        // Les plages sont ABSOLUES, coïncident avec le texte réel et
+        // couvrent l'ATTRIBUT COMPLET (nom + « = » + valeur — PE8b : les
+        // insertions après ancre exigent la fin réelle de l'attribut).
         for (attr in attrs) {
-            assertEquals(attr.nom, formate.substring(attr.debut, attr.fin))
+            assertEquals("""${attr.nom}="${attr.valeur}"""", formate.substring(attr.debut, attr.fin))
         }
     }
 
@@ -360,5 +362,39 @@ public class EditionAttributsXmlTest {
             EditionAttributsXml.definir(formate, spanTexte(), "android:text", "Déjà « vu » → ünïcode")!!
         val resultat = appliquer(formate, edition)
         assertTrue(resultat.contains("Déjà « vu » → ünïcode"))
+    }
+
+    @Test
+    fun `definir ajoute sans corrompre la balise ancre`() {
+        // RÉGRESSION PE8b : l'insertion après ancre partait de la FIN DU
+        // NOM de l'attribut ancre — la valeur de l'ancre se soudait à
+        // l'attribut inséré (document corrompu, jamais re-marché par les
+        // tests PE7e). La plage couvre désormais l'ATTRIBUT COMPLET.
+        val edition =
+            EditionAttributsXml.definir(formate, spanTexte(), "android:textSize", "14sp")!!
+        val resultat = appliquer(formate, edition)
+        // L'ancre garde SA valeur soudée à SON nom.
+        assertTrue(resultat.contains("""android:paddingHorizontal="16dp""""))
+        assertFalse(resultat.contains("android:paddingHorizontal\n"))
+        // Le document reste bien formé (re-marche de l'aligneur).
+        assertEquals(3, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `eclater un raccourci ne laisse pas de valeur residuelle`() {
+        // Même régression, voie [ecrireCote] : le raccourci éclaté était
+        // remplacé par son NOM seul — son ="16dp" restait en trailing.
+        val edition =
+            EditionAttributsXml.ecrireCote(
+                formate,
+                spanTexte(),
+                "android:padding",
+                EditionAttributsXml.Cote.DEBUT,
+                8,
+            )!!
+        val resultat = appliquer(formate, edition)
+        assertFalse("valeur résiduelle sans nom", resultat.contains("=\"16dp\"\n"))
+        assertTrue(resultat.contains("""android:paddingStart="8dp""""))
+        assertEquals(3, AligneurElementsXml.aligner(resultat, null).size)
     }
 }
