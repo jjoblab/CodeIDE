@@ -129,9 +129,13 @@ internal class SessionSuivie(
     uri: String,
     cheminRelatif: String,
     private val registre: RegistreSourcesApercu,
+    /** URI document du projet porteur AU MOMENT de l'ouverture (0.134.31 :
+     *  les sessions nées après l'arrivée du projet connaissent leur
+     *  porteur — l'aperçu résout res/ dès le premier branchement). */
+    uriProjet: String? = null,
 ) {
     /** La source d'aperçu de CE document (adaptateur publié au registre). */
-    val sourceApercu = SourceApercuSession(session, uri, cheminRelatif)
+    val sourceApercu = SourceApercuSession(session, uri, cheminRelatif, uriProjet)
 
     /** La session a-t-elle été libérée (dispose appelé une fois au plus) ? */
     var liberee: Boolean = false
@@ -3523,6 +3527,7 @@ class EditorViewModel
                     uri = uri,
                     cheminRelatif = chemin,
                     registre = registreSourcesApercu,
+                    uriProjet = uriDocumentSuivie,
                 )
             FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
@@ -3579,6 +3584,7 @@ class EditorViewModel
                     uri = uri,
                     cheminRelatif = onglet.cheminRelatif,
                     registre = registreSourcesApercu,
+                    uriProjet = uriDocumentSuivie,
                 )
             FichiersOuverture.langage(onglet.nom)?.let { session.session.setLanguage(it) }
             session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }
@@ -3940,6 +3946,7 @@ class EditorViewModel
                                 uri = uri,
                                 cheminRelatif = chemin,
                                 registre = registreSourcesApercu,
+                                uriProjet = uriDocumentSuivie,
                             )
                         FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
                         session.session.addOnTextEditListener { _, _, _ -> marquerModifie(uri) }

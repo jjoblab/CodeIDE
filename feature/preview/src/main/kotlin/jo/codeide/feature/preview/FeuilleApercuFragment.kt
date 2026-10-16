@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.isEmpty
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -241,6 +242,28 @@ public class FeuilleApercuFragment : Fragment() {
         return if (idNom.isEmpty()) vue.classe else getString(R.string.preview_feuille_libelle, vue.classe, idNom)
     }
 
+    /**
+     * Vide un conteneur reconstruit (arbre, attributs, problèmes, source)
+     * — le crash du rapport 0.134.30 NPE `mViewFlags` (rapport
+     * c8f6ffeb) vivait ICI : `removeAllViews` sur un panneau dont un
+     * contrôle éditable (EditText de la section MODIFIER) tenait le
+     * focus lance la recherche d'un SUCCESSEUR au focus au MILIEU de la
+     * suppression (`removeAllViewsInLayout` → `rootViewRequestFocus` →
+     * `FocusFinder` → `addFocusables` lit un enfant déjà null). Le
+     * protocole focus-sûr : le focus est RETIRÉ d'abord, la descente de
+     * focus est BLOQUÉE pendant la suppression (FOCUS_BLOCK_DESCENDANTS
+     * — `addFocusables` saute alors le sous-arbre entier), puis
+     * rétablie.
+     */
+    private fun viderConteneur(conteneur: ViewGroup) {
+        if (conteneur.isEmpty()) return
+        conteneur.findFocus()?.clearFocus()
+        val descentePrecedente = conteneur.descendantFocusability
+        conteneur.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        conteneur.removeAllViews()
+        conteneur.descendantFocusability = descentePrecedente
+    }
+
     /** Re-marche le volet ACTIF (les autres attendent leur onglet). */
     private fun majVolets() {
         when (ongletActif) {
@@ -255,7 +278,7 @@ public class FeuilleApercuFragment : Fragment() {
     private fun majArbre() {
         montrerVolet(liaison.voletArbre)
         val vues = renduCourant?.vues
-        liaison.lignesArbre.removeAllViews()
+        viderConteneur(liaison.lignesArbre)
         if (vues.isNullOrEmpty()) {
             liaison.lignesArbre.addView(texteSimple(getString(R.string.preview_feuille_vide)))
             return
@@ -305,7 +328,7 @@ public class FeuilleApercuFragment : Fragment() {
     private fun majAttributs() {
         montrerVolet(liaison.voletAttributs)
         val vue = renduCourant?.vues?.getOrNull(selectionCourante)
-        liaison.groupesAttributs.removeAllViews()
+        viderConteneur(liaison.groupesAttributs)
         if (vue == null) {
             liaison.groupesAttributs.addView(texteSimple(getString(R.string.preview_feuille_vide)))
             return
@@ -1348,7 +1371,7 @@ public class FeuilleApercuFragment : Fragment() {
     private fun majProblemes() {
         montrerVolet(liaison.voletProblemes)
         val vues = renduCourant?.vues
-        liaison.lignesProblemes.removeAllViews()
+        viderConteneur(liaison.lignesProblemes)
         if (vues == null) return
         val problemes = ProblemesPreview.evaluer(vues, viewModel.moteur.profil.densiteDpi)
         majBadgeProblemes(problemes)
@@ -1412,7 +1435,7 @@ public class FeuilleApercuFragment : Fragment() {
             } else {
                 getString(R.string.preview_feuille_source_entier)
             }
-        liaison.lignesSource.removeAllViews()
+        viderConteneur(liaison.lignesSource)
         val lignes = texte.split('\n')
         lignes.forEachIndexed { indiceLigne, contenuLigne ->
             val numero = indiceLigne + 1

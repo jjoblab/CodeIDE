@@ -713,6 +713,17 @@ public class PreviewViewModel
          * Suit le projet porteur (PE5/G2/G5, repris du contrôleur PE1) :
          * `res/` résolu FUSE, thème activité et label du manifest — le
          * rendu reprend le chrome du vrai appareil.
+         *
+         * CORRECTIF 0.134.31 (rapport 0.134.30, journal « res=null ») :
+         * 1) le dossier `res/` n'est PLUS deviné `<racine>/res` (les
+         * projets des modèles vivent en `app/src/main/res`) — il est
+         * DÉRIVÉ du chemin du layout édité (`…/res/<famille>/f.xml` →
+         * `…/res`, la même vérité que [cheminStringsDe] PE8c), avec
+         * repli sur les candidats standards ; 2) le PREMIER rendu part
+         * AVANT la résolution FUSE (soumettreImmediat de [brancher]) —
+         * quand `res/` est résolu APRÈS lui, un re-rendu immédiat
+         * s'impose (sinon `@color/…` reste non résolu jusqu'à la
+         * prochaine frappe).
          */
         private fun suivreProjet(sourceBranchee: SourceApercu) {
             suiviProjet?.cancel()
@@ -726,13 +737,40 @@ public class PreviewViewModel
             }
             suiviProjet =
                 viewModelScope.launch {
-                    val racine = resolveurChemin.resoudreEntree(uriProjet)
-                    val cheminRes = racine?.let { "${it.trimEnd('/')}/res" }
+                    val racine = resolveurChemin.resoudreEntree(uriProjet) ?: return@launch
+                    val cheminRes = dossierResProjet(racine, sourceBranchee.cheminRelatif)
+                    if (cheminRes == null) return@launch
                     moteur.definirDossierRes(cheminRes)
-                    val manifeste = racine?.let { lireManifeste(it) }
+                    val manifeste = lireManifeste(racine)
                     moteur.definirThemeName(manifeste?.let { resoudreThemeActivite(it) })
                     moteur.definirLabelActivite(manifeste?.let { resoudreLabelActivite(it) })
+                    // Le premier rendu a pu partir avec res=null (course
+                    // soumettreImmediat ↔ résolution FUSE) : re-rendu
+                    // (definirDossierRes a réarmé l'anti-boucle).
+                    moteur.soumettreImmediat { sourceBranchee.texte() }
                 }
+        }
+
+        /**
+         * Le dossier `res/` du projet, DÉRIVÉ du chemin relatif du
+         * document édité (`…/res/<famille>/f.xml` → `…/res`) puis des
+         * candidats standards — le MÊME ordre que [trouverManifeste].
+         * `null` = aucun dossier réellement présent (repli natif).
+         */
+        private fun dossierResProjet(
+            racineProjet: String,
+            cheminRelatif: String,
+        ): String? {
+            val marqueur = "/res/"
+            val debut = cheminRelatif.indexOf(marqueur)
+            if (debut > 0) {
+                val relatif = cheminRelatif.substring(0, debut + marqueur.length - 1)
+                val candidat = racineProjet.trimEnd('/') + "/" + relatif
+                if (java.io.File(candidat).isDirectory) return candidat
+            }
+            val base = racineProjet.trimEnd('/')
+            return listOf("$base/app/src/main/res", "$base/src/main/res", "$base/res")
+                .firstOrNull { java.io.File(it).isDirectory }
         }
 
         /** Lit le manifest d'application (chemins standards) — null si absent/illisible. */
