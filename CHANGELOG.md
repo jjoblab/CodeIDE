@@ -1,5 +1,55 @@
 # Journal des modifications
 
+## [0.134.19] – 2026-10-16
+
+### Ajouté
+
+- **LSP Java — lot S2-b « confort structurel restant »** (plan §3.1 S2
+  terminé) :
+  - `textDocument/selectionRange` — la chaîne des nœuds AST englobant
+    chaque position, du jeton nom le plus intérieur à l'unité de
+    compilation (expansion progressive de la sélection) ; les déclarations
+    portent DEUX niveaux (jeton nom puis déclaration complète — ecj :
+    `sourceStart/End` d'une locale = le nom seul, la plage utile vit dans
+    `declarationSourceStart/End`) ; réponse alignée sur `positions[]`
+    (contracte LSP 3.17) ;
+  - `textDocument/onTypeFormatting` — le caractère venant d'être fermé
+    délimite la construction à reformater : `}` → le bloc/corps qui se
+    termine à l'accolade, `;` → la déclaration dont
+    `declarationSourceEnd` est le point-virgule ; éditions DANS la plage
+    cible seulement (même contrat de sûreté que rangeFormatting) ;
+  - `textDocument/codeLens` + `codeLens/resolve` — une lens « références »
+    par déclaration porteuse (types, méthodes, constructeurs, champs) ;
+    comptage paresseux par le substrat du renommage (bindings ecj,
+    homonymes exclus, overlay des tampons ouverts, déclaration exclue ;
+    annulation coopérative 12 s) ;
+  - hiérarchies d'appels (`prepareCallHierarchy` + incoming/outgoing) et
+    de types (`prepareTypeHierarchy` + supertypes/subtypes) — généralisation
+    de `findSuper`/`findImplementations` : éléments localisés dans les
+    SOURCES du projet uniquement (types binaires écartés — D3, jamais
+    d'URI factice) ; appels entrants groupés par méthode appelante avec
+    les plages des sites d'appel, résolution EXACTE de la déclaration
+    (conservateur : les appels transitant par un supertype ne sont pas
+    attribués) ; balayage borné (400 fichiers / 8 s, résultat partiel) ;
+  - `filterText` des items de complétion (I12) — posé EXPLICITEMENT sur la
+    clé matchée par le serveur (le label) : le re-filtrage client
+    (cel-lsp filtre sur `filterText` quand présent) reste aligné, les
+    candidats camel-hump ne sont plus éjectables par un préfixe strict.
+- Capacités annoncées : `selectionRangeProvider`,
+  `documentOnTypeFormattingProvider` (déclencheurs `}` + `;`),
+  `codeLensProvider` (resolve), `callHierarchyProvider`,
+  `typeHierarchyProvider`.
+
+### Documenté
+
+- `ServerCapabilitiesProvider` : état de consommation client honnête —
+  cel-lsp consomme les providers qu'il connaît ; les capacités S2-b
+  (selectionRange, onTypeFormatting, codeLens, hiérarchies) sont annoncées
+  pour les clients LSP tiers, cel n'a pas (encore) d'UI pour elles.
+- `docs/LSP_JAVA.md` §19.4 : journal du lot S2-b (pièges ecj : corps de
+  méthode SANS nœud Block, `LocalDeclaration` = nom seul, parse
+  tolérant-aux-fautes ; chaîne LSP construite extérieur → intérieur).
+
 ## [0.134.18] – 2026-10-16
 
 ### Ajouté
