@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Le POPOVER APPAREIL (PE9c, miroir `showPop("device")` rendu maison) :
+  titre + les CINQ profils du catalogue (rangées item_menu_appareil
+  incluses — le catalogue est FIXE, l'ordre du XML suit
+  ProfilPeripherique.CATALOGUE).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popover_appareil"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/fond_menu_apercu"
+    android:orientation="vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/titre_menu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="14dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="4dp"
+        android:text="@string/preview_appareil"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="?attr/colorOnSurface" />
+
+    <include
+        android:id="@+id/appareil_pixel_4"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_pixel_7_pro"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_galaxy_s24"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_tablette"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_petit"
+        layout="@layout/item_menu_appareil" />
+</LinearLayout>
