@@ -1,5 +1,61 @@
 # Journal des modifications
 
+## [0.134.20] – 2026-10-16
+
+### Ajouté
+
+- **LSP XML — lot P3 « index des ressources de dépendances » (racine de
+  XP1, LSP_XML.md §5 XE6)** :
+  - les `res/` des **AAR des dépendances** (Material, AppCompat, AndroidX,
+    AAR maison) sont indexés depuis les **conteneurs ZIP mêmes**
+    (`IndexRessources.definirAar`) : listage + parse à la volée du texte
+    des `res/values*.xml` avec notre parseur tolérant, ressources de
+    dossier (layout, drawable… qualifier compris) par simple nommage ;
+    budget chemin+mtime — un AAR inchangé n'est **jamais** re-décodé,
+    un AAR disparu purge ses entrées (l'index ne ment jamais) ;
+  - **fidélité aapt** dans le values des bibliothèques : le TAG décide le
+    type, un `<attr>` porté par un `declare-styleable` est une ressource
+    attr RÉELLE, un `<item type="…" name="…">` au niveau `resources`
+    crée la ressource du type nommé (les attrs Material/AppCompat sont
+    enfin connus — miroir appliqué au scan projet, même sémantique) ;
+  - **cartes séparées projet/bibliothèque** : le projet PRIME (résolution,
+    survol, complétion, définitions), la bibliothèque COMBLE l'existence
+    et porte son détail — survol « style « Theme.Material3.DayNight » —
+    bibliothèque, material-1.12.0.aar » ;
+  - **complétion des dépendances** : types `@…/` fusionnés (projet ∪
+    bibliothèques, détail « — bibliothèques »), noms `@type/…` projet
+    puis bibliothèque (dédup — le projet gagne), `?attr/…` projet puis
+    bibliothèque, `parent=` des styles : projet puis **bibliothèque**
+    (les thèmes `Theme.Material3.*` sont enfin proposés) puis framework ;
+  - `ClasspathXml` étendu du champ `racinesAar` (défaut vide —
+    rétrocompatible) ; la façade `SessionLspXml` collecte la provenance
+    v8 `ClasspathEntry.aar` sur tous les modules actifs (épurée des
+    disparus, dédoublonnée, triée) et la pousse aux sessions ;
+  - **préparations S0-c** : `docs/PROTOCOLE_MESURE_APPAREIL.md` — la
+    séance dédiée de mesure sur appareil (dernier jalon Java restant) est
+    désormais exécutable telle quelle (matériel, sept séquences, commandes
+    de capture, cibles §9, modèle de PV, check-list) ; LSP_JAVA.md §18.2
+    pointe le protocole.
+
+### Modifié
+
+- **`xml.referenceNonResolue` remonte à ERREUR légitime** (ADR 0120 —
+  décision D-X1 de l'audit XML assumée) : les trois sources de vérité
+  (projet, bibliothèques, framework) sont couvertes, une référence
+  résolue nulle est un VRAI positif ; le message devient « introuvable
+  (projet, bibliothèques et framework) » ; garde dumb mode (index froid =
+  silence) et références déclarantes (`@+id`) inchangées ; **exception
+  honnête** : si un AAR est illisible (doute X4), la gravité redescend en
+  AVERTISSEMENT tant que le doute dure.
+- les définitions restent PROJET seul (D3 conservateur — jamais d'URI
+  factice vers un conteneur AAR).
+
+### Documenté
+
+- ADR 0120 (gravité de `xml.referenceNonResolue` — retour à l'ERREUR
+  après l'index AAR), LSP_XML.md §5 XE6, PLAN_STABILISATION_LSP.md
+  (S3 XML : index AAR livré), pack `lsp/xml` 0.134.20.
+
 ## [0.134.19] – 2026-10-16
 
 ### Ajouté
