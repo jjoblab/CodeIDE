@@ -31,6 +31,7 @@ internal class SourceApercuSession(
     private val session: EditorSession,
     uri: String,
     cheminRelatif: String,
+    uriProjet: String? = null,
 ) : SourceApercu {
     /** URI courant (clé du registre) — mis à jour par la migration d'onglet. */
     @Volatile
@@ -42,9 +43,17 @@ internal class SourceApercuSession(
     override var cheminRelatif: String = cheminRelatif
         private set
 
-    /** URI document du projet porteur — suivi de l'espace par le ViewModel. */
+    /** URI document du projet porteur — suivi de l'espace par le ViewModel.
+     *
+     * CORRECTIF 0.134.31 : la valeur d'ORIGINE vient du CONSTRUCTEUR
+     * (le projet suivi au moment de l'ouverture du fichier) — laisser
+     * null et compter sur `suivre(projet)` était un raté : les sessions
+     * créées APRÈS l'arrivée du projet ne le connaissaient JAMAIS
+     * (l'aperçu résolvait `res/` à null → `@color/…` jamais rendu,
+     * rapport 0.134.30). `suivre` reste l'écouteur des changements
+     * ultérieurs (relocalisation). */
     @Volatile
-    override var uriProjet: String? = null
+    override var uriProjet: String? = uriProjet
 
     /** Mise à jour après déplacement/renommage du fichier (migration d'onglet). */
     public fun migrer(
