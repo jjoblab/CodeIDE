@@ -12,9 +12,9 @@ import org.robolectric.annotation.Config
  * Contrat du CATALOGUE des attributs (PE7e, maquette § « Attributs en
  * sections selon le type de vue » — miroir `sectionsFor`) : chaque widget
  * de [CataloguePalette] reçoit des sections NON VIDES et SANS DOUBLON
- * d'attribut, une classe inconnue ne reçoit que les sections GÉNÉRIQUES
- * (miroir piège § 5 du prompt PE7e), et les valeurs d'énumération
- * correspondent à la LISTE DE RÉFÉRENCE figée de la plateforme.
+ * d'attribut, une classe inconnue ne reçoit que l'IDENTITÉ (PE8a) et les
+ * sections GÉNÉRIQUES (miroir piège § 5 du prompt PE7e), et les valeurs
+ * d'énumération correspondent à la LISTE DE RÉFÉRENCE figée de la plateforme.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
@@ -23,6 +23,8 @@ public class CatalogueAttributsTest {
     private fun noms(section: CatalogueAttributs.SectionAttributs): List<String> =
         section.controles.mapNotNull { controle ->
             when (controle) {
+                is CatalogueAttributs.ControleAttribut.Identifiant -> controle.nom
+
                 is CatalogueAttributs.ControleAttribut.Texte -> controle.nom
 
                 is CatalogueAttributs.ControleAttribut.Nombre -> controle.nom
@@ -85,15 +87,16 @@ public class CatalogueAttributsTest {
     fun `chaque widget reconnu recoit sa section propre`() {
         // Le miroir `sectionsFor` : Texte pour TextView, Saisie pour EditText,
         // Champ pour TextInputLayout, Image pour ImageView, etc.
-        assertEquals(CatalogueAttributs.TitreSection.TEXTE, titrePropre("TextView"))
-        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titrePropre("EditText"))
-        assertEquals(CatalogueAttributs.TitreSection.CHAMP, titrePropre("TextInputLayout"))
-        assertEquals(CatalogueAttributs.TitreSection.BOUTON, titrePropre("Button", indice = 1))
-        assertEquals(CatalogueAttributs.TitreSection.ETAT, titrePropre("CheckBox", indice = 1))
-        assertEquals(CatalogueAttributs.TitreSection.IMAGE, titrePropre("ImageView"))
-        assertEquals(CatalogueAttributs.TitreSection.CONTENEUR, titrePropre("LinearLayout"))
-        assertEquals(CatalogueAttributs.TitreSection.PROGRESSION, titrePropre("ProgressBar"))
-        assertEquals(CatalogueAttributs.TitreSection.LISTE, titrePropre("RecyclerView"))
+        assertEquals(CatalogueAttributs.TitreSection.IDENTITE, titrePropre("TextView"))
+        assertEquals(CatalogueAttributs.TitreSection.TEXTE, titrePropre("TextView", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titrePropre("EditText", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.CHAMP, titrePropre("TextInputLayout", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.BOUTON, titrePropre("Button", indice = 2))
+        assertEquals(CatalogueAttributs.TitreSection.ETAT, titrePropre("CheckBox", indice = 2))
+        assertEquals(CatalogueAttributs.TitreSection.IMAGE, titrePropre("ImageView", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.CONTENEUR, titrePropre("LinearLayout", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.PROGRESSION, titrePropre("ProgressBar", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.LISTE, titrePropre("RecyclerView", indice = 1))
     }
 
     @Test
@@ -113,7 +116,7 @@ public class CatalogueAttributsTest {
                 listOf(CatalogueAttributs.TitreSection.TEXTE, CatalogueAttributs.TitreSection.ETAT),
             ),
         )
-        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titres("TextInputEditText").first())
+        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titres("TextInputEditText").get(1))
     }
 
     @Test
@@ -134,11 +137,12 @@ public class CatalogueAttributsTest {
     // ── Classe inconnue et parents ───────────────────────────────────────
 
     @Test
-    fun `une classe inconnue ne recoit que les sections generiques`() {
+    fun `une classe inconnue ne recoit que l'identite et les sections generiques`() {
         val sections =
             CatalogueAttributs.sections("MockView", CatalogueAttributs.GenreParent.AUTRE).map { it.titre }
         assertEquals(
             listOf(
+                CatalogueAttributs.TitreSection.IDENTITE,
                 CatalogueAttributs.TitreSection.DISPOSITION,
                 CatalogueAttributs.TitreSection.AFFICHAGE,
             ),

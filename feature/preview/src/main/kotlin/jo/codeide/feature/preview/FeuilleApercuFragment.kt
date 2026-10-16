@@ -34,6 +34,7 @@ import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.ProblemesPreview.GenreProbleme
+import jo.codeide.preview.xml.RenommageIdentifiant
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.google.android.material.R as RMaterial
@@ -381,25 +382,9 @@ public class FeuilleApercuFragment : Fragment() {
             setPadding(dp(16), dp(12), dp(8), dp(6))
         }
 
-    /** Le titre localisé d'une section (clé sémantique → ressource). */
-    private fun titreSectionRes(titre: CatalogueAttributs.TitreSection): String =
-        getString(
-            when (titre) {
-                CatalogueAttributs.TitreSection.TEXTE -> R.string.preview_section_texte
-                CatalogueAttributs.TitreSection.SAISIE -> R.string.preview_section_saisie
-                CatalogueAttributs.TitreSection.CHAMP -> R.string.preview_section_champ
-                CatalogueAttributs.TitreSection.BOUTON -> R.string.preview_section_bouton
-                CatalogueAttributs.TitreSection.ETAT -> R.string.preview_section_etat
-                CatalogueAttributs.TitreSection.IMAGE -> R.string.preview_section_image
-                CatalogueAttributs.TitreSection.CONTENEUR -> R.string.preview_section_conteneur
-                CatalogueAttributs.TitreSection.PROGRESSION -> R.string.preview_section_progression
-                CatalogueAttributs.TitreSection.LISTE -> R.string.preview_section_liste
-                CatalogueAttributs.TitreSection.CONTRAINTES -> R.string.preview_section_contraintes
-                CatalogueAttributs.TitreSection.DANS_PARENT -> R.string.preview_section_dans_parent
-                CatalogueAttributs.TitreSection.DISPOSITION -> R.string.preview_section_disposition
-                CatalogueAttributs.TitreSection.AFFICHAGE -> R.string.preview_section_affichage
-            },
-        )
+    /** Le titre localisé d'une section (clé sémantique → ressource — table
+     * unique, miroir [ETIQUETTES_RES]). */
+    private fun titreSectionRes(titre: CatalogueAttributs.TitreSection): String = getString(TITRES_RES.getValue(titre))
 
     /** L'étiquette localisée d'un contrôle (clé sémantique → ressource). */
     private fun etiquetteRes(etiquette: CatalogueAttributs.Etiquette): String =
@@ -418,6 +403,8 @@ public class FeuilleApercuFragment : Fragment() {
     /** Le nom d'attribut d'un contrôle (Dimensions/Contraintes : rien à compter). */
     private fun nomDuControle(controle: CatalogueAttributs.ControleAttribut): String? =
         when (controle) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> controle.nom
+
             is CatalogueAttributs.ControleAttribut.Texte -> controle.nom
 
             is CatalogueAttributs.ControleAttribut.Nombre -> controle.nom
@@ -542,6 +529,7 @@ public class FeuilleApercuFragment : Fragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View =
         when (controle) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> controleIdentifiant(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Texte -> controleTexte(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Nombre -> controleNombre(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Choix -> controleChoix(controle, attrs)
@@ -579,6 +567,99 @@ public class FeuilleApercuFragment : Fragment() {
             )
         }
         return bloc
+    }
+
+    /** Un contrôle IDENTIFIANT (PE8a) : valeur courante en mono, champ
+     * « nouveau nom » validé à l'IME/à la perte de focus — le renommage
+     * couvre la déclaration ET les références du fichier (une édition) ;
+     * hors périmètre signalé (code R.id, autres fichiers). */
+    private fun controleIdentifiant(
+        controle: CatalogueAttributs.ControleAttribut.Identifiant,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        bloc.addView(rangeeLibelle(etiquetteRes(CatalogueAttributs.Etiquette.IDENTIFIANT)))
+        val brut = valeurDe(controle.nom, attrs)
+        bloc.addView(
+            blocLectureSeule(brut ?: getString(R.string.preview_identite_absent)),
+        )
+        val champ = TextInputEditText(requireContext())
+        champ.hint = getString(R.string.preview_identite_nouveau)
+        champ.setSingleLine(true)
+        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        champ.background = fondChampLectureSeule()
+        champ.setPadding(dp(10), dp(8), dp(10), dp(8))
+        champ.contentDescription = getString(R.string.preview_identite_nouveau)
+        champ.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commiterRenommage(champ, controle, attrs)) champ.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        champ.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commiterRenommage(champ, controle, attrs)
+        }
+        bloc.addView(
+            champ,
+            LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                marginStart = dp(16)
+                marginEnd = dp(16)
+                topMargin = dp(4)
+            },
+        )
+        // Le périmètre du renommage, signalé (prompt PE7e § 3) : ce fichier
+        // seul — le code (R.id.…) et les autres layouts ne sont pas touchés.
+        val note = texteLibelle(getString(R.string.preview_identite_hors_perimetre), stylePetit, couleur(couleurNeutre))
+        note.setPadding(dp(16), dp(4), dp(16), dp(2))
+        bloc.addView(note)
+        return bloc
+    }
+
+    /** Le nom SANS préfixe d'une valeur d'id (`@+id/x`/`@id/x` → `x`), sinon la valeur brute. */
+    private fun nomCourant(valeur: String): String =
+        when {
+            valeur.startsWith("@+id/") -> valeur.removePrefix("@+id/")
+            valeur.startsWith("@id/") -> valeur.removePrefix("@id/")
+            else -> valeur
+        }
+
+    /** Le commit d'un RENOMMAGE (miroir `committerNombre`) : vide = rien,
+     * nom invalide/identique = retour visuel, sinon l'édition — un refus
+     * porte le message PROPRE au renommage (nom déjà pris dans le fichier). */
+    private fun commiterRenommage(
+        champ: TextInputEditText,
+        controle: CatalogueAttributs.ControleAttribut.Identifiant,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): Boolean {
+        val saisie =
+            champ.text
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+        return when {
+            // Vide = jamais un renommage (miroir les champs PE7e).
+            saisie.isEmpty() -> {
+                false
+            }
+
+            // Nom invalide ou IDENTIQUE au courant : retour immédiat (le
+            // champ se vide, pas de toast pour un no-op).
+            !RenommageIdentifiant.nomValide(saisie) ||
+                saisie == valeurDe(controle.nom, attrs)?.let { nomCourant(it) } -> {
+                champ.setText("")
+                false
+            }
+
+            else -> {
+                if (viewModel.renommerIdentifiantSelection(saisie)) {
+                    true
+                } else {
+                    editerOuRecharger(R.string.preview_identite_refuse) { false }
+                }
+            }
+        }
     }
 
     /** Un contrôle NOMBRE avec unité (saisie refusée proprement si non numérique). */
@@ -882,12 +963,14 @@ public class FeuilleApercuFragment : Fragment() {
             setStroke(dp(1), couleur(couleurContour))
         }
 
-    /** L'édition SÉCURISÉE : un refus recharge le volet depuis le texte vivant. */
-    private fun editerOuRecharger(action: () -> Boolean): Boolean {
+    /** L'édition ou le RECHARGEMENT : un refus → toast (surchargeable pour
+     * un refus spécialisé, ex. renommage) + volet relu depuis le texte vivant. */
+    private fun editerOuRecharger(
+        message: Int = R.string.preview_edition_perimee_toast,
+        action: () -> Boolean,
+    ): Boolean {
         if (action()) return true
-        Toast
-            .makeText(requireContext(), R.string.preview_edition_perimee_toast, Toast.LENGTH_SHORT)
-            .show()
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         majAttributs()
         return false
     }
@@ -1320,9 +1403,29 @@ public class FeuilleApercuFragment : Fragment() {
         /** Transparence du séparateur du volet Modifier (0-1). */
         private const val SEPARATEUR_ALPHA: Float = 0.25f
 
+        /** La table des titres de sections (clé sémantique → ressource — une seule voie). */
+        private val TITRES_RES: Map<CatalogueAttributs.TitreSection, Int> =
+            mapOf(
+                CatalogueAttributs.TitreSection.IDENTITE to R.string.preview_section_identite,
+                CatalogueAttributs.TitreSection.TEXTE to R.string.preview_section_texte,
+                CatalogueAttributs.TitreSection.SAISIE to R.string.preview_section_saisie,
+                CatalogueAttributs.TitreSection.CHAMP to R.string.preview_section_champ,
+                CatalogueAttributs.TitreSection.BOUTON to R.string.preview_section_bouton,
+                CatalogueAttributs.TitreSection.ETAT to R.string.preview_section_etat,
+                CatalogueAttributs.TitreSection.IMAGE to R.string.preview_section_image,
+                CatalogueAttributs.TitreSection.CONTENEUR to R.string.preview_section_conteneur,
+                CatalogueAttributs.TitreSection.PROGRESSION to R.string.preview_section_progression,
+                CatalogueAttributs.TitreSection.LISTE to R.string.preview_section_liste,
+                CatalogueAttributs.TitreSection.CONTRAINTES to R.string.preview_section_contraintes,
+                CatalogueAttributs.TitreSection.DANS_PARENT to R.string.preview_section_dans_parent,
+                CatalogueAttributs.TitreSection.DISPOSITION to R.string.preview_section_disposition,
+                CatalogueAttributs.TitreSection.AFFICHAGE to R.string.preview_section_affichage,
+            )
+
         /** La table des étiquettes (clé sémantique → ressource — une seule voie). */
         private val ETIQUETTES_RES: Map<CatalogueAttributs.Etiquette, Int> =
             mapOf(
+                CatalogueAttributs.Etiquette.IDENTIFIANT to R.string.preview_etiquette_identifiant,
                 CatalogueAttributs.Etiquette.TEXTE to R.string.preview_etiquette_texte,
                 CatalogueAttributs.Etiquette.TAILLE_SP to R.string.preview_etiquette_taille,
                 CatalogueAttributs.Etiquette.STYLE to R.string.preview_etiquette_style,

@@ -155,12 +155,22 @@
     <string name="preview_section_dans_parent">In parent</string>
     <string name="preview_section_disposition">Layout</string>
     <string name="preview_section_affichage">Display</string>
+    <string name="preview_section_identite">Identity</string>
     <string name="preview_section_ouverte">▴</string>
     <string name="preview_section_fermee">▾</string>
     <string name="preview_section_contraintes_vide">No constraint.</string>
     <string name="preview_section_lecture_seule">read only, editing to come</string>
 
+    <!-- Identifier renaming (PE8a — the “renaming: to come” of prompt
+         PE7e § 3: declaration + references of THIS file; code R.id and
+         other files stay out of scope, surfaced in the UI). -->
+    <string name="preview_identite_absent">— no id —</string>
+    <string name="preview_identite_nouveau">New name</string>
+    <string name="preview_identite_hors_perimetre">Renames the declaration and the @id/… references of THIS file; code (R.id.…) and other files are untouched.</string>
+    <string name="preview_identite_refuse">Rename refused: invalid name or already taken in this file.</string>
+
     <!-- CONTROL labels of the editor (mirror the sectionsFor labels). -->
+    <string name="preview_etiquette_identifiant">id</string>
     <string name="preview_etiquette_texte">text</string>
     <string name="preview_etiquette_taille">size (sp)</string>
     <string name="preview_etiquette_style">style</string>
