@@ -1,0 +1,1576 @@
+<title>CodeIDE Preview XML</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@500;700&display=swap">
+<style>
+/* Concept : une page de revue en deux temps. À gauche une maquette interactive
+   du panneau d'aperçu (cadre téléphone, calques réels, feuille inférieure),
+   à droite la lecture des calques ; dessous le constat tiré du code et le plan.
+   Jetons = palette réelle de core/ui (colors.xml / values-night). */
+:root{
+  --bg:#F9F9FF; --surface:#FFFFFF; --surface2:#EEEEF7; --fg:#1A1B21; --muted:#5B5C66;
+  --line:#D6D5E0; --primary:#43559E; --on-primary:#FFFFFF; --primary-c:#DCE1FF; --on-primary-c:#001159;
+  --accent:#1E6EC8; --accent-soft:rgba(30,110,200,.14);
+  --ok:#2E7D32; --warn:#9A6700; --err:#BA1A1A; --err-c:#FFDAD6;
+  --margin:#D9822B; --padding:#2E8B4B; --new:#7C3AED; --new-c:#EDE5FF;
+  --font-d:"Schibsted Grotesk","IBM Plex Sans",system-ui,sans-serif;
+  --font-b:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-m:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111318; --surface:#1A1E25; --surface2:#20252E; --fg:#E2E1E9; --muted:#A3A3AE;
+  --line:#2C323D; --primary:#BAC4FF; --on-primary:#0C2264; --primary-c:#293D8F; --on-primary-c:#DCE1FF;
+  --accent:#7AB8F5; --accent-soft:rgba(122,184,245,.18);
+  --ok:#81C995; --warn:#FDD663; --err:#FFB4AB; --err-c:#93000A;
+  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111318; --surface:#1A1E25; --surface2:#20252E; --fg:#E2E1E9; --muted:#A3A3AE;
+  --line:#2C323D; --primary:#BAC4FF; --on-primary:#0C2264; --primary-c:#293D8F; --on-primary-c:#DCE1FF;
+  --accent:#7AB8F5; --accent-soft:rgba(122,184,245,.18);
+  --ok:#81C995; --warn:#FDD663; --err:#FFB4AB; --err-c:#93000A;
+  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-b);font-size:15px;line-height:1.55;
+  padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--font-d);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,5vw,42px);letter-spacing:-.01em}
+h2{font-size:24px;letter-spacing:-.005em}
+h3{font-size:16px}
+p{margin:0}
+code,.mono{font-family:var(--font-m);font-size:.86em}
+code{background:var(--surface2);padding:1px 6px;border-radius:5px;overflow-wrap:anywhere}
+.eyebrow{font:500 12px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{max-width:68ch;color:var(--muted);font-size:16px}
+header.top{display:flex;flex-direction:column;gap:14px}
+.sec{display:flex;flex-direction:column;gap:20px;min-width:0}
+.sec-head{display:flex;flex-direction:column;gap:6px;max-width:72ch}
+
+/* étiquettes de statut */
+.tag{display:inline-flex;align-items:center;gap:4px;font:500 11px/1 var(--font-m);padding:4px 7px;border-radius:5px;
+  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.tag.old{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.tag.new{background:var(--new-c);color:var(--new)}
+.tag.rework{background:var(--accent-soft);color:var(--accent)}
+
+/* constat */
+.found{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.fnd{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fnd h3{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fnd p{font-size:14px;color:var(--muted)}
+.fnd .src{font:400 12px/1.4 var(--font-m);color:var(--muted)}
+
+/* scène */
+.stage{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:32px;align-items:start}
+@media(max-width:900px){.stage{grid-template-columns:minmax(0,1fr)}}
+.phone{position:relative;width:100%;max-width:420px;height:812px;margin:0 auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 18px 50px rgba(10,14,40,.18)}
+.appbar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
+.ib{width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--fg);display:grid;place-items:center;cursor:pointer;flex:none}
+.ib:hover{background:var(--surface2)}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ttl{display:flex;flex-direction:column;min-width:0;flex:1}
+.ttl b{font:600 13px/1.2 var(--font-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl span{font-size:11px;color:var(--muted)}
+.seg{display:flex;background:var(--surface2);border-radius:999px;padding:3px;flex:none}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 12px/1 var(--font-b);padding:7px 10px;border-radius:999px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--primary);color:var(--on-primary)}
+.chips{display:flex;gap:6px;padding:8px 10px;overflow-x:auto;border-bottom:1px solid var(--line);flex:none;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);
+  font:500 12px/1 var(--font-b);padding:8px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;flex:none}
+.chip:hover{background:var(--surface2)}
+.chip[aria-pressed="true"],.chip[aria-expanded="true"]{background:var(--primary-c);border-color:transparent;color:var(--on-primary-c)}
+.chip .caret{font-size:9px;opacity:.7}
+.canvas{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:grab;
+  background-color:var(--surface2);
+  background-image:linear-gradient(45deg,rgba(128,128,150,.13) 25%,transparent 25%,transparent 75%,rgba(128,128,150,.13) 75%),
+                   linear-gradient(45deg,rgba(128,128,150,.13) 25%,transparent 25%,transparent 75%,rgba(128,128,150,.13) 75%);
+  background-size:16px 16px;background-position:0 0,8px 8px}
+.canvas.drag{cursor:grabbing}
+.world{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;gap:40px;align-items:flex-start;will-change:transform}
+.board{position:relative}
+.board .cap{position:absolute;left:0;top:-22px;font:500 11px/1 var(--font-m);color:var(--muted);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+.screen{position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.18),0 6px 24px rgba(0,0,0,.22);
+  background:var(--s-bg);color:var(--s-fg);font-family:Roboto,"IBM Plex Sans",system-ui,sans-serif;
+  --s-bg:#FFFBFE;--s-fg:#1C1B1F;--s-muted:#49454F;--s-pri:#43559E;--s-onpri:#fff;--s-outline:#79747E;--s-surf:#F3EDF7;--s-dark:#2B2F7A;--s-sys:#1C1B1F}
+.screen.night{--s-bg:#141218;--s-fg:#E6E0E9;--s-muted:#CAC4D0;--s-pri:#BAC4FF;--s-onpri:#0C2264;--s-outline:#938F99;--s-surf:#211F26;--s-dark:#0C1030;--s-sys:#000}
+.screen.bp{background:transparent;--s-fg:var(--accent);--s-muted:var(--accent)}
+.screen.bp .v{background:transparent!important;border:1px dashed var(--accent)!important;color:var(--accent)!important;box-shadow:none!important}
+.screen.bp .v *{color:var(--accent)!important;border-color:transparent!important}
+.screen.bp .chrome{background:transparent!important;border-bottom:1px dashed var(--accent)}
+.screen.grid{background-image:linear-gradient(rgba(30,110,200,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(30,110,200,.18) 1px,transparent 1px);background-size:8px 8px}
+.chrome{display:flex;align-items:center;flex:none}
+.sbar{height:24px;background:var(--s-dark);color:#fff;font:500 11px/1 Roboto,sans-serif;justify-content:space-between;padding:0 12px}
+.abar{height:56px;background:var(--s-pri);color:var(--s-onpri);font:500 20px/1 Roboto,sans-serif;padding:0 16px}
+.nbar{height:48px;background:var(--s-sys);justify-content:center;gap:56px;margin-top:auto}
+.nbar i{width:14px;height:14px;border:2px solid #cfcfd6;display:block;border-radius:3px}
+.nbar i:nth-child(2){border-radius:50%}
+.nbar i:nth-child(1){border-radius:0;border-width:0 0 2px 2px;transform:rotate(45deg) scale(.8);}
+.root{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.v{position:relative;display:flex;flex:none}
+.v .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ov{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.ov *{pointer-events:none}
+.sel{position:absolute;border:calc(2px/var(--z,1)) solid var(--accent);background:var(--accent-soft)}
+.sel .h{position:absolute;width:calc(9px/var(--z,1));height:calc(9px/var(--z,1));background:var(--surface);border:calc(2px/var(--z,1)) solid var(--accent);border-radius:2px}
+.par{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--accent);opacity:.75}
+.sib{position:absolute;border:calc(1px/var(--z,1)) solid var(--accent);opacity:.35}
+.bnd{position:absolute;border:calc(1px/var(--z,1)) solid rgba(30,110,200,.5)}
+.mg{position:absolute;background:color-mix(in srgb,var(--margin) 38%,transparent);outline:calc(1px/var(--z,1)) dashed var(--margin)}
+.pd{position:absolute;background:color-mix(in srgb,var(--padding) 38%,transparent)}
+.lab{position:absolute;white-space:nowrap;font:500 calc(11px/var(--z,1))/1 var(--font-m);padding:calc(3px/var(--z,1)) calc(6px/var(--z,1));border-radius:calc(4px/var(--z,1));
+  background:var(--accent);color:#fff}
+.lab.dim{background:var(--fg);color:var(--bg)}
+.pin{position:absolute;width:calc(18px/var(--z,1));height:calc(18px/var(--z,1));border-radius:50%;display:grid;place-items:center;
+  font:700 calc(11px/var(--z,1))/1 var(--font-b);color:#fff;border:calc(2px/var(--z,1)) solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pin.w{background:#B8860B}.pin.e{background:#BA1A1A}
+.hud{position:absolute;display:flex;gap:6px;align-items:center}
+.zoom{right:10px;bottom:10px;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.16)}
+.zoom button{width:36px;height:34px;border:0;background:transparent;color:var(--fg);border-radius:10px;font:500 13px/1 var(--font-m);cursor:pointer}
+.zoom button:hover{background:var(--surface2)}
+.status{left:10px;bottom:10px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 11px;
+  font:500 11px/1 var(--font-m);color:var(--muted);box-shadow:0 4px 14px rgba(0,0,0,.12);transition:opacity .2s}
+.status b{color:var(--fg);font-weight:500}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px}
+.status.edit .dot{background:var(--warn)}.status.err .dot{background:var(--err)}
+.banner{left:0;right:0;top:0;background:var(--err-c);color:var(--err);border-bottom:1px solid var(--err);padding:9px 12px;align-items:flex-start;gap:10px;font-size:12px}
+.banner[hidden]{display:none!important}
+.banner b{font-weight:600}.banner .msg{flex:1;min-width:0;line-height:1.4}
+.banner .msg.clip{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.banner button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:5px 9px;font:500 11px/1 var(--font-b);cursor:pointer;white-space:nowrap}
+.toast{left:50%;top:14px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:12px;padding:8px 12px;border-radius:10px;
+  max-width:88%;opacity:0;pointer-events:none;transition:opacity .2s;z-index:7}
+.toast.on{opacity:1}
+
+/* feuille inférieure */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+  box-shadow:0 -8px 28px rgba(0,0,0,.2);height:72px;transition:height .25s ease;display:flex;flex-direction:column;z-index:5}
+.sheet.open{height:300px}
+.grab{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 14px 6px;cursor:pointer;border:0;background:transparent;color:inherit;width:100%;text-align:left}
+.grab i{width:36px;height:4px;border-radius:2px;background:var(--line)}
+.crumb{display:flex;align-items:center;gap:6px;width:100%;font:500 12px/1.2 var(--font-m);overflow:hidden;white-space:nowrap}
+.crumb span{color:var(--muted)}.crumb b{color:var(--accent);font-weight:500}
+.tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);flex:none}
+.tabs button{border:0;background:transparent;color:var(--muted);font:500 13px/1 var(--font-b);padding:10px 10px;cursor:pointer;border-bottom:2px solid transparent;display:flex;gap:6px;align-items:center}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabs .n{font:500 10px/1 var(--font-m);background:var(--warn);color:var(--bg);border-radius:9px;padding:2px 5px}
+.pane{flex:1;min-height:0;overflow:auto;padding:8px 10px 14px}
+.row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font:400 12.5px/1.2 var(--font-m);min-width:0}
+.row:hover{background:var(--surface2)}
+.row.on{background:var(--accent-soft)}
+.row .k{width:20px;height:20px;border-radius:5px;background:var(--surface2);display:grid;place-items:center;font:600 10px/1 var(--font-m);color:var(--primary);flex:none}
+.row .id{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.row .badge{margin-left:auto;flex:none;font-size:10px;padding:2px 5px;border-radius:4px;background:var(--surface2);color:var(--muted)}
+.row .badge.w{background:var(--warn);color:var(--bg)}
+.box{margin:6px auto 10px;width:230px;max-width:100%;font:500 10px/1 var(--font-m);text-align:center}
+.box>div{padding:14px;border-radius:8px;position:relative}
+.box .bm{background:color-mix(in srgb,var(--margin) 30%,transparent);border:1px dashed var(--margin)}
+.box .bp{background:color-mix(in srgb,var(--padding) 30%,transparent)}
+.box .bc{background:var(--surface);border:1px solid var(--line);padding:10px 4px;color:var(--muted)}
+.box small{position:absolute;font-size:10px}
+.box .t1{top:3px;left:50%;transform:translateX(-50%)}.box .b1{bottom:3px;left:50%;transform:translateX(-50%)}
+.box .l1{left:5px;top:50%;transform:translateY(-50%)}.box .r1{right:5px;top:50%;transform:translateY(-50%)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:2px 10px;font:400 12px/1.5 var(--font-m)}
+.kv dt{color:var(--muted);overflow:hidden;text-overflow:ellipsis}.kv dd{margin:0;overflow-wrap:anywhere}
+.kv dt.g,.grp{grid-column:1/-1;font:600 10px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.prob{display:flex;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;align-items:flex-start}
+.prob:hover{background:var(--surface2)}
+.prob .sev{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--warn)}
+.prob .sev.e{background:var(--err)}
+.prob b{font:600 13px/1.3 var(--font-b);display:block}
+.prob span{font-size:12px;color:var(--muted)}
+.prob .go{margin-left:auto;font:500 11px/1 var(--font-m);color:var(--accent);white-space:nowrap}
+.src{font:400 12px/1.65 var(--font-m);padding:4px 0}
+.src div{display:flex;gap:10px;padding:0 8px;white-space:pre;cursor:pointer;border-radius:4px}
+.src div:hover{background:var(--surface2)}
+.src div.hl{background:var(--accent-soft)}
+.src div.hl2{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.src .ln{color:var(--muted);width:24px;text-align:right;flex:none;user-select:none}
+.src .tg{color:var(--primary)}.src .at{color:var(--padding)}.src .vl{color:var(--margin)}
+.empty{color:var(--muted);font-size:13px;padding:18px 10px;text-align:center}
+
+/* popovers */
+.pop{position:absolute;left:10px;right:10px;top:122px;z-index:8;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 14px 40px rgba(0,0,0,.28);padding:8px;max-height:430px;overflow:auto}
+.pop[hidden]{display:none!important}
+.pop h4{margin:8px 10px 6px;font:600 10px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.opt{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--fg);text-align:left;padding:10px;border-radius:10px;font:400 13px/1.3 var(--font-b);cursor:pointer}
+.opt:hover{background:var(--surface2)}
+.opt[aria-checked="true"]{background:var(--accent-soft)}
+.opt small{display:block;color:var(--muted);font:400 11px/1.3 var(--font-m)}
+.opt .grow{flex:1;min-width:0}
+.sw{width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.opt[aria-checked="true"] .sw{background:var(--accent)}
+.opt[aria-checked="true"] .sw::after{transform:translateX(14px)}
+
+/* légende (colonne de droite) */
+.aside{display:flex;flex-direction:column;gap:20px;min-width:0}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.key{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.key .sym{width:34px;height:34px;flex:none;border-radius:7px;position:relative;background:var(--surface2)}
+.key b{font:600 13px/1.3 var(--font-b);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.key p{font-size:13px;color:var(--muted);margin-top:3px}
+.sym.s1::after{content:"";position:absolute;inset:6px;border:2px solid var(--accent);background:var(--accent-soft)}
+.sym.s2::after{content:"";position:absolute;inset:5px;border:1.5px dashed var(--accent)}
+.sym.s2::before{content:"";position:absolute;inset:11px;border:1px solid var(--accent);opacity:.5}
+.sym.s3::after{content:"";position:absolute;inset:6px;background:color-mix(in srgb,var(--margin) 40%,transparent);border:1px dashed var(--margin)}
+.sym.s3::before{content:"";position:absolute;inset:12px;background:color-mix(in srgb,var(--padding) 45%,transparent);z-index:1}
+.sym.s4::after{content:"";position:absolute;left:5px;right:5px;top:16px;border-top:2px dashed var(--accent)}
+.sym.s4::before{content:"";position:absolute;left:5px;top:12px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.sym.s5::after{content:"!";position:absolute;inset:7px;border-radius:50%;background:#B8860B;color:#fff;display:grid;place-items:center;font:700 13px/1 var(--font-b)}
+.sym.s6::after{content:"";position:absolute;inset:4px;background-image:linear-gradient(var(--accent) 1px,transparent 1px),linear-gradient(90deg,var(--accent) 1px,transparent 1px);background-size:6px 6px;opacity:.45}
+.try{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.try ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--muted)}
+.try li b{color:var(--fg);font-weight:500}
+
+/* états et plan */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line)}
+th{font:500 11px/1 var(--font-m);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--surface2)}
+tr:last-child td{border-bottom:0}
+td .stack{display:flex;flex-direction:column;gap:5px}
+td code{display:inline-block;margin:1px 0}
+.phases{display:flex;flex-direction:column;gap:12px}
+.ph{display:grid;grid-template-columns:76px minmax(0,1fr);gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+@media(max-width:600px){.ph{grid-template-columns:minmax(0,1fr);gap:8px}}
+.ph .id{font:600 14px/1.2 var(--font-m);color:var(--primary)}
+.ph h3{margin-bottom:6px}
+.ph p{font-size:14px;color:var(--muted)}
+.ph .files{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.note{border-left:3px solid var(--accent);background:var(--surface);padding:12px 16px;border-radius:0 10px 10px 0;font-size:14px;color:var(--muted);max-width:78ch}
+.note b{color:var(--fg);font-weight:500}
+.foot{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:20px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+/* ---- v2 : palette, dépôt, édition, activité dédiée ---- */
+:root{--on-new:#FFFFFF;--new-soft:rgba(124,58,237,.14)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--on-new:#1B0B3D;--new-soft:rgba(196,168,255,.2)}}
+:root[data-theme="dark"]{--on-new:#1B0B3D;--new-soft:rgba(196,168,255,.2)}
+
+.phone-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.phone-cap{display:flex;align-items:center;gap:8px;justify-content:center;font:500 12px/1 var(--font-m);color:var(--muted);letter-spacing:.04em}
+.phone-cap b{color:var(--fg);font-weight:500}
+
+/* bulle de palette */
+.bubble{position:absolute;z-index:6;width:50px;height:50px;border-radius:17px;border:0;background:var(--new);color:var(--on-new);display:grid;place-items:center;
+  cursor:grab;touch-action:none;box-shadow:0 8px 20px rgba(60,20,140,.34),0 0 0 4px var(--new-soft);transition:left .2s,right .2s,top .2s,opacity .15s}
+.bubble.moving{transition:opacity .15s;cursor:grabbing}
+.bubble.fixed{cursor:pointer}
+.bubble svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.bubble[aria-expanded="true"]{background:var(--fg);color:var(--bg)}
+.phone.dragging .bubble,.phone.dragging .edit{opacity:.2;pointer-events:none}
+
+/* barre d'édition */
+.edit{left:50%;top:10px;transform:translateX(-50%);display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;
+  box-shadow:0 4px 14px rgba(0,0,0,.16);transition:top .2s}
+.edit.shift{top:64px}
+.edit .sep{width:1px;background:var(--line);margin:4px 3px}
+.edit button{width:34px;height:34px;border:0;background:transparent;color:var(--fg);border-radius:10px;display:grid;place-items:center;cursor:pointer}
+.edit button:hover:not(:disabled){background:var(--surface2)}
+.edit button:disabled{opacity:.32;cursor:default}
+.edit svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* popups */
+.pop.pal{top:122px;max-height:min(600px,calc(100% - 134px));display:flex;flex-direction:column;gap:10px;padding:12px}
+.pop.bot{top:auto;bottom:10px;max-height:340px;display:flex;flex-direction:column;gap:10px;padding:12px;box-shadow:0 -10px 34px rgba(0,0,0,.3)}
+.ph-head{display:flex;align-items:center;gap:8px}
+.ph-head b{font:600 15px/1.2 var(--font-d);flex:1;min-width:0}
+.ph-head .chip{padding:7px 10px}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);border-radius:12px;padding:4px}
+.mode button{border:0;background:transparent;color:var(--muted);font:500 12px/1.25 var(--font-b);padding:9px 8px;border-radius:9px;cursor:pointer;display:flex;flex-direction:column;gap:2px;text-align:left}
+.mode button small{font:400 11px/1.25 var(--font-b);opacity:.85}
+.mode button[aria-checked="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.search{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:9px 12px;font:400 13px/1.2 var(--font-b)}
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cats .chip{padding:7px 10px}
+.tiles{overflow-y:auto;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px}
+.sub{grid-column:1/-1;font:600 10px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.tile{display:flex;flex-direction:column;gap:6px;align-items:flex-start;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px;
+  cursor:grab;text-align:left;min-width:0;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.tile:hover{border-color:var(--new);background:var(--new-soft)}
+.tile.tapmode{cursor:pointer}
+.tile svg{width:24px;height:24px;fill:none;stroke:var(--new);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tile b{font:600 12px/1.2 var(--font-b);overflow-wrap:anywhere}
+.tile small{font:400 10.5px/1.2 var(--font-m);color:var(--muted);overflow-wrap:anywhere}
+.tile .tag{margin-top:auto}
+.hint{font-size:12px;color:var(--muted);line-height:1.4}
+.ghost{position:fixed;z-index:1000;pointer-events:none;display:flex;align-items:center;gap:8px;background:var(--new);color:var(--on-new);padding:8px 12px;border-radius:12px;
+  font:600 12px/1 var(--font-b);box-shadow:0 10px 26px rgba(0,0,0,.35);transform:translate(-50%,-130%);white-space:nowrap}
+.ghost svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ghost small{font:500 11px/1 var(--font-m);opacity:.9}
+
+/* placement par popup */
+.mini{overflow-y:auto;min-height:0;max-height:150px;border:1px solid var(--line);border-radius:10px;padding:4px;flex:none}
+.mini .row{padding:6px 8px}
+.pos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface2);border-radius:12px;padding:4px;flex:none}
+.pos button{border:0;background:transparent;color:var(--muted);font:500 12.5px/1 var(--font-b);padding:10px 6px;border-radius:9px;cursor:pointer}
+.pos button[aria-checked="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.pos button:disabled{opacity:.35;cursor:default}
+.res{font:400 12px/1.4 var(--font-m);color:var(--muted)}
+.res b{color:var(--new);font-weight:500}
+.prim{border:0;background:var(--new);color:var(--on-new);font:600 13px/1 var(--font-b);padding:12px 14px;border-radius:12px;cursor:pointer;flex:none}
+.prim:hover{filter:brightness(1.06)}
+
+/* zones de dépôt (calque dessiné dans l'aperçu) */
+.dz{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--new);opacity:.75}
+.dz.on{background:var(--new-soft);border-style:solid;opacity:1}
+.slot{position:absolute;background:var(--new);border-radius:calc(3px/var(--z,1));box-shadow:0 0 0 calc(3px/var(--z,1)) var(--new-soft)}
+.lab.nw{background:var(--new);color:var(--on-new)}
+
+/* édition d'attributs */
+.ed{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.ed h5{margin:0;font:600 10px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font:500 11px/1 var(--font-m);color:var(--muted)}
+.fld input[type=text],.fld input[type=number]{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 10px;font:400 13px/1.2 var(--font-b);width:100%;min-width:0}
+.fld .ro{font:400 12px/1.4 var(--font-m);color:var(--fg);background:var(--surface2);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere}
+.dimrow{display:flex;align-items:center;gap:8px}
+.dimrow .dl{width:56px;font:500 11px/1 var(--font-m);color:var(--muted);flex:none}
+.seg2{display:flex;background:var(--surface2);border-radius:9px;padding:2px;flex:none}
+.seg2 button{border:0;background:transparent;color:var(--muted);font:500 12px/1 var(--font-b);padding:7px 9px;border-radius:7px;cursor:pointer}
+.seg2 button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+.dimrow input{width:64px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 8px;font:400 12px/1 var(--font-m)}
+.openrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 4px 8px}
+.openrow span{font-size:12px;color:var(--muted)}
+.linkbtn{border:1px solid var(--line);background:transparent;color:var(--accent);border-radius:8px;padding:6px 10px;font:500 12px/1 var(--font-b);cursor:pointer;white-space:nowrap}
+.linkbtn:hover{background:var(--surface2)}
+.src div.ins{background:color-mix(in srgb,var(--ok) 26%,transparent)}
+
+.tag.wr{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+.toast{top:62px}
+.sym.s7::after{content:"";position:absolute;inset:5px;border:1.5px dashed var(--new)}
+.sym.s7::before{content:"";position:absolute;left:9px;right:9px;top:15px;height:4px;border-radius:2px;background:var(--new);z-index:1}
+/* activité dédiée : schéma */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1fr);gap:0;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;position:relative}
+.flow .col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.node{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0}
+.node b{display:block;font:600 13px/1.3 var(--font-m);overflow-wrap:anywhere}
+.node span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.node.nu{border-color:var(--new);background:var(--new-soft)}
+.node.mid{border-style:dashed}
+.arr{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:500 11px/1.3 var(--font-m);color:var(--muted);padding:0 10px;text-align:center}
+.arr i{font-style:normal;font-size:18px;color:var(--accent);line-height:1}
+.flow3{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:0;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+@media(max-width:820px){.flow3{grid-template-columns:minmax(0,1fr)}.flow3 .arr{padding:8px 0;flex-direction:row}.flow3 .arr i{transform:rotate(90deg)}}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.card li b,.card li code{color:var(--fg)}
+.card p{font-size:14px;color:var(--muted)}
+.tag.dn{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.tag.td{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+</style>
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">jjoblab/CodeIDE · module preview/xml · commit c9b28d3 · v2 de la maquette</span>
+  <h1>Aperçu XML : un éditeur de layout dans son propre écran</h1>
+  <p class="lede">Le panneau devient une activité dédiée. Une bulle ouvre la palette de widgets, que l'on glisse sur l'aperçu ou que l'on place par un second popup. Les calques d'Android Studio et la feuille arbre, attributs, problèmes et source restent. Tout ce qui est interactif ci-dessous fonctionne.</p>
+</header>
+
+<section class="sec" id="constat">
+  <div class="sec-head">
+    <span class="eyebrow">Constat</span>
+    <h2>Ce que le code fait déjà, et ce qui manque</h2>
+    <p class="lede">Lu dans <code>VuePreviewXml</code>, <code>ControleurPreviewXml</code>, <code>EditorActivity</code>, <code>EditorViewModel</code>, <code>AppNavigatorImpl</code>, <code>ModuleRulesPlugin</code> et <code>docs/PREVIEW.md</code>.</p>
+  </div>
+  <div class="found">
+    <article class="fnd">
+      <h3>Un moteur solide <span class="tag old">Existant</span></h3>
+      <p>Rendu LayoutLib hors processus (<code>:preview</code>, repli local), validation XML silencieuse, dernier rendu valide conservé, jour/nuit, langue FR/EN, drawables et values. Un tap sélectionne le span source, le curseur de l'éditeur surligne la vue.</p>
+      <span class="src">MoteurPreviewXml · RenduLayoutLib · SelectionPreview</span>
+    </article>
+    <article class="fnd">
+      <h3>Le preview est collé à EditorActivity <span class="tag rework">Refonte</span></h3>
+      <p>Le contrôleur est créé dans <code>EditorActivity</code> avec <code>liaison.vuePreview</code> et la colonne <code>colonne_apercu</code>. Une douzaine de points de contact : champ, <code>brancherApercu</code>, <code>majBarreApercu</code>, <code>majMenuApercu</code>, action de menu, fermeture, plus le bloc XML de l'overlay.</p>
+      <span class="src">EditorActivity.kt · activity_editor.xml · menu_editeur.xml</span>
+    </article>
+    <article class="fnd">
+      <h3>La session d'édition est privée au ViewModel <span class="tag rework">Refonte</span></h3>
+      <p>Les <code>EditorSession</code> vivent dans une <code>LinkedHashMap</code> privée de <code>EditorViewModel</code>, lue par <code>sessionDe(uri)</code>. Une autre activité ne peut pas la récupérer avec <code>by viewModels()</code> : il faut un point de partage explicite.</p>
+      <span class="src">EditorViewModel.kt:480 et :1173</span>
+    </article>
+    <article class="fnd">
+      <h3>Trois boutons texte et un seul calque <span class="tag rework">Refonte</span></h3>
+      <p>Appareil, jour/nuit et langue sont des boutons qui passent à la valeur suivante. <code>dessinerSurlignage</code> trace un rectangle sans nom, sans dimensions, sans parent ni marges. Le bandeau d'erreur tient sur une ligne tronquée.</p>
+      <span class="src">VuePreviewXml.dessinerSurlignage · barre_reglages_apercu</span>
+    </article>
+    <article class="fnd">
+      <h3>Aucune écriture depuis l'aperçu <span class="tag new">Nouveau</span></h3>
+      <p>Le preview lit le texte de la session et sélectionne un span, mais ne modifie jamais le document. La palette est la première fonction qui écrit : elle doit passer par la session pour rester annulable dans l'éditeur.</p>
+      <span class="src">ControleurPreviewXml.selectionnerVueSous</span>
+    </article>
+    <article class="fnd">
+      <h3>Des données déjà là, jamais affichées <span class="tag rework">Refonte</span></h3>
+      <p><code>InfoVueRendu</code> porte bounds absolus, profondeur, parent et libellé, ce qui suffit pour calculer des zones de dépôt entre frères. <code>dureeMs</code> et <code>nombreVues</code> arrivent au contrôleur sans être montrés.</p>
+      <span class="src">InfoVueRendu · EtatPreviewXml</span>
+    </article>
+  </div>
+</section>
+
+<section class="sec" id="maquette">
+  <div class="sec-head">
+    <span class="eyebrow">Maquette interactive</span>
+    <h2>Le panneau d'aperçu, dans son activité</h2>
+    <p class="lede">Touchez la bulle violette pour ouvrir la palette. Glissez un widget sur l'aperçu, ou passez en mode « Placer par popup » : un second popup demande où le mettre. Le XML se met à jour dans l'onglet Source.</p>
+  </div>
+  <div class="stage">
+
+    <div class="phone-col">
+      <div class="phone-cap"><b>PreviewActivity</b> · écran dédié</div>
+      <div class="phone" id="phone">
+        <header class="appbar">
+          <button class="ib" id="btnClose" aria-label="Retour à l'éditeur"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <div class="ttl"><b>activity_login.xml</b><span>res/layout · rendu en <span id="ttlProfile">Pixel 4</span></span></div>
+          <div class="seg" id="segMode" role="tablist" aria-label="Mode d'affichage">
+            <button role="tab" data-mode="design" aria-selected="true">Design</button>
+            <button role="tab" data-mode="bp" aria-selected="false">Plan</button>
+            <button role="tab" data-mode="both" aria-selected="false">Les deux</button>
+          </div>
+          <button class="ib" id="btnMore" aria-label="Plus d'actions" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </header>
+
+        <div class="chips" id="chips">
+          <button class="chip" id="chDevice" aria-expanded="false"><span id="lblDevice">Pixel 4</span><span class="caret">▼</span></button>
+          <button class="chip" id="chOrient" aria-pressed="false"><span id="lblOrient">Portrait</span></button>
+          <button class="chip" id="chNight" aria-pressed="false"><span id="lblNight">Jour</span></button>
+          <button class="chip" id="chLang" aria-pressed="false"><span id="lblLang">Langue : défaut</span></button>
+          <button class="chip" id="chFont" aria-pressed="false"><span id="lblFont">Police ×1,0</span></button>
+          <button class="chip" id="chLayers" aria-expanded="false">Calques <span class="caret">▼</span></button>
+        </div>
+
+        <div class="canvas" id="canvas">
+          <div class="world" id="world"></div>
+          <div class="hud banner" id="banner" hidden></div>
+          <div class="hud edit" id="edit" role="toolbar" aria-label="Édition">
+            <button id="eUndo" aria-label="Annuler" title="Annuler"><svg viewBox="0 0 24 24"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 010 12" transform="translate(0 -5)"/></svg></button>
+            <button id="eRedo" aria-label="Rétablir" title="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H10a6 6 0 000 12" transform="translate(0 -5)"/></svg></button>
+            <span class="sep"></span>
+            <button id="eDup" aria-label="Dupliquer la vue" title="Dupliquer"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg></button>
+            <button id="eDel" aria-label="Supprimer la vue" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>
+          </div>
+          <div class="hud toast" id="toast" role="status"></div>
+          <div class="hud status" id="status"></div>
+          <div class="hud zoom" id="zoom">
+            <button id="zIn" aria-label="Zoom avant">+</button>
+            <button id="zPct" aria-label="Revenir à 100 %">100%</button>
+            <button id="zFit" aria-label="Ajuster à la vue">⤢</button>
+            <button id="zOut" aria-label="Zoom arrière">−</button>
+          </div>
+          <button class="bubble" id="bubble" aria-label="Palette de widgets" aria-haspopup="dialog" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13.5v6M13.5 16.5h6"/></svg>
+          </button>
+        </div>
+
+        <section class="sheet" id="sheet" aria-label="Détails de la vue sélectionnée">
+          <button class="grab" id="grab" aria-expanded="false" aria-controls="pane"><i></i><span class="crumb" id="crumb"></span></button>
+          <div class="tabs" id="tabs" role="tablist">
+            <button role="tab" data-tab="tree" aria-selected="true">Arbre</button>
+            <button role="tab" data-tab="attrs" aria-selected="false">Attributs</button>
+            <button role="tab" data-tab="probs" aria-selected="false">Problèmes <span class="n" id="nProbs">0</span></button>
+            <button role="tab" data-tab="src" aria-selected="false">Source</button>
+          </div>
+          <div class="pane" id="pane" role="tabpanel"></div>
+        </section>
+
+        <div class="pop" id="pop" hidden></div>
+      </div>
+    </div>
+
+    <div class="aside">
+      <div class="keys" aria-label="Légende des calques">
+        <div class="key"><span class="sym s1"></span><div><b>Sélection <span class="tag rework">Refonte</span></b><p>Cadre, poignées d'angle, nom et dimensions en dp.</p></div></div>
+        <div class="key"><span class="sym s2"></span><div><b>Parent et frères <span class="tag new">Nouveau</span></b><p>Le parent en pointillés, les frères en filigrane.</p></div></div>
+        <div class="key"><span class="sym s3"></span><div><b>Marges et padding <span class="tag new">Nouveau</span></b><p>Orange pour les marges, vert pour le padding, valeurs en dp.</p></div></div>
+        <div class="key"><span class="sym s4"></span><div><b>Contraintes <span class="tag new">Nouveau</span></b><p>Ancres et distances aux bords et aux voisins.</p></div></div>
+        <div class="key"><span class="sym s5"></span><div><b>Problèmes <span class="tag new">Nouveau</span></b><p>Pastilles : cible tactile, texte codé en dur, classe introuvable, texte tronqué.</p></div></div>
+        <div class="key"><span class="sym s7"></span><div><b>Zones de dépôt <span class="tag new">Nouveau</span></b><p>Pendant un glisser ou un placement : conteneurs en violet, conteneur visé plein, barre d'insertion entre les frères.</p></div></div>
+      </div>
+      <div class="try">
+        <h3>À essayer</h3>
+        <ul>
+          <li>Touchez la <b>bulle</b>, restez en <b>Glisser-déposer</b>, maintenez un widget et lâchez-le dans la carte ou entre deux champs.</li>
+          <li>Passez en <b>Placer par popup</b>, touchez <b>LinearLayout (H)</b>, placez-le <b>Après</b> le champ mot de passe, puis insérez un <b>Button</b> <b>Dedans</b>.</li>
+          <li>Ajoutez un <b>RecyclerView</b> : la dépendance manque dans le projet d'exemple, l'aperçu montre un cadre de remplacement et un problème apparaît.</li>
+          <li>Dans l'onglet <b>Attributs</b>, changez le texte ou la largeur d'une vue ajoutée, puis <b>Annuler</b> avec la barre du haut.</li>
+          <li>Glissez la <b>bulle</b> sur l'autre bord, ou fixez-la depuis l'en-tête de la palette.</li>
+        </ul>
+      </div>
+      <p class="note"><b>Limite de la maquette.</b> Le rendu est du HTML et le XML est généré depuis un arbre en mémoire. Dans l'application, le texte du document reste la seule source : la palette écrit une édition dans la session, et le rendu repart par le chemin normal.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="activite">
+  <div class="sec-head">
+    <span class="eyebrow">Activité dédiée</span>
+    <h2>Sortir le preview d'EditorActivity</h2>
+    <p class="lede">Le schéma suit le même patron que le terminal : l'éditeur demande au navigateur d'ouvrir l'écran, qui s'empile au-dessus. Le point dur est la session d'édition, qui n'est pas partageable aujourd'hui.</p>
+  </div>
+  <div class="flow3" role="group" aria-label="Schéma des modules">
+    <div class="node"><b>EditorActivity</b><span><code>:feature:editor</code>. Garde les sessions et enregistre chacune dans le registre. Reste dans la pile, donc vivante.</span></div>
+    <div class="arr"><i>→</i>AppNavigator<br>openPreview(uri)</div>
+    <div class="node nu"><b>PreviewActivity</b><span><code>:feature:preview</code> (nouveau). Vue, puces, feuille, palette, <code>PreviewViewModel</code>.</span></div>
+    <div class="arr"><i>↔</i>port<br>SourceApercu</div>
+    <div class="node mid"><b>SourceApercu</b><span><code>:core:domain</code>. Texte, remplacement atomique, sélection, annuler et rétablir. Aucun type de la bibliothèque d'édition.</span></div>
+  </div>
+  <div class="cols2">
+    <div class="card">
+      <h3>Ce qui change dans le dépôt</h3>
+      <ul>
+        <li><b>Module.</b> <code>include(":feature:preview")</code> et une ligne dans <code>ModuleRulesPlugin</code> : <code>:core:ui</code>, <code>:core:domain</code>, <code>:core:model</code>, <code>:preview:xml</code>, comme pour <code>:feature:editor</code>.</li>
+        <li><b>Navigation.</b> <code>AppNavigator.openPreview(uri)</code> et son implémentation dans <code>AppNavigatorImpl</code>, sur le modèle de <code>openTerminal</code> (<code>Intent</code> explicite, <code>exported="false"</code>).</li>
+        <li><b>Partage de la session.</b> Un registre singleton <code>RegistreSourcesApercu</code> (Hilt) où <code>EditorViewModel</code> enregistre et libère chaque source, au même endroit que son suivi de session actuel.</li>
+        <li><b>Retrait.</b> Le bloc <code>colonne_apercu</code> de <code>activity_editor.xml</code>, l'action <code>action_apercu</code> devient un simple appel au navigateur, <code>controleurApercu</code> et les fonctions <code>brancherApercu</code>, <code>majBarreApercu</code> et <code>majMenuApercu</code> quittent <code>EditorActivity</code>.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Pièges à traiter</h3>
+      <ul>
+        <li><b>Mort du processus.</b> Android ne recrée que l'activité du dessus : le registre est vide. <code>PreviewActivity</code> doit se terminer et relancer l'éditeur plutôt que d'afficher un panneau vide.</li>
+        <li><b>Rotation.</b> Le moteur et le dernier bitmap vivent dans un <code>PreviewViewModel</code>, sinon chaque rotation relance une inflation LayoutLib.</li>
+        <li><b>Changement de fichier.</b> Le preview ne suit plus l'onglet actif. Le titre devient un sélecteur des layouts ouverts, fournis par le port.</li>
+        <li><b>Sens inverse de la sélection.</b> L'éditeur n'est plus visible : la sélection éditeur vers preview disparaît, l'onglet Source de la feuille la remplace.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>Variante moins coûteuse.</b> Garder <code>PreviewActivity</code> dans <code>:feature:editor</code> évite le module, la règle et le port : l'activité lirait le <code>EditorViewModel</code> par un singleton. Elle est plus rapide à faire, mais elle ajoute du code à un module qui porte déjà une activité de plus de 2 600 lignes. Je recommande le module séparé.</p>
+</section>
+
+<section class="sec" id="refonte">
+  <div class="sec-head">
+    <span class="eyebrow">Comparaison</span>
+    <h2>Aujourd'hui et après la refonte</h2>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Élément</th><th>Aujourd'hui</th><th>Refonte</th><th>Statut</th></tr></thead>
+    <tbody>
+      <tr><td>Écran</td><td>Overlay plein écran dans <code>EditorActivity</code></td><td><code>PreviewActivity</code> dans <code>:feature:preview</code>, ouverte par <code>AppNavigator</code></td><td><span class="tag rework">Refonte</span></td></tr>
+      <tr><td>Palette de widgets</td><td>Absente</td><td>Bulle flottante ou fixe, popup à catégories, recherche, récents</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Insertion par glisser-déposer</td><td>Absente</td><td><code>startDragAndDrop</code> natif, zones de dépôt et barre d'insertion dessinées sur l'aperçu</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Insertion par popup</td><td>Absente</td><td>Second popup : référence dans l'arbre, Avant, Dedans ou Après, repère en direct</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Édition</td><td>Lecture seule</td><td>Annuler, rétablir, dupliquer, supprimer, attributs texte et dimensions, tout via la session</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Réglages</td><td>3 boutons texte qui cyclent</td><td>Puces défilantes, feuille de choix pour l'appareil, orientation, police, calques</td><td><span class="tag rework">Refonte</span></td></tr>
+      <tr><td>Sélection et calques</td><td>Rectangle 2 dp, sans texte</td><td>Cadre, poignées, nom, dimensions, parent, frères, marges, contraintes, bornes</td><td><span class="tag rework">Refonte</span></td></tr>
+      <tr><td>Arbre, attributs, source</td><td>L'éditeur est caché sous l'overlay</td><td>Feuille à 4 onglets, sélection croisée avec le rendu</td><td><span class="tag new">Nouveau</span></td></tr>
+      <tr><td>Erreur de rendu et repli</td><td>Bandeau d'une ligne tronquée, texte discret</td><td>Bandeau déployable avec « Aller à la ligne », pastille d'état unique</td><td><span class="tag rework">Refonte</span></td></tr>
+      <tr><td>Zoom, chrome, plan</td><td>Gestes, barre d'état et d'action</td><td>Boutons de zoom, barre de navigation, mode Plan</td><td><span class="tag new">Nouveau</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="suggestions">
+  <div class="sec-head">
+    <span class="eyebrow">Suggestions</span>
+    <h2>Ce que je proposerais d'ajouter</h2>
+    <p class="lede">Classées par rapport entre effort et gain. Les deux premières sont déjà dans la maquette.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Idée</th><th>Pourquoi</th><th>Appui dans le code</th><th>Effort</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td><b>Annuler et rétablir</b></td><td>Une insertion mal placée doit se défaire d'un geste, et l'historique reste celui de l'éditeur.</td><td>Transaction unique dans <code>EditorSession</code>, exposée par le port</td><td>Faible</td><td><span class="tag dn">Maquette</span></td></tr>
+      <tr><td><b>Édition d'attributs</b></td><td>Changer un texte ou une dimension sans retourner au code.</td><td>Même édition de texte que la palette ; les <code>@string</code> restent en lecture seule</td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
+      <tr><td><b>Extraire en ressource</b></td><td>Les widgets déposés ont un texte codé en dur, signalé dans Problèmes. Une action le déplace dans <code>values/strings.xml</code> et <code>values-en/</code>.</td><td>Projet FR/EN, <code>RequeteRendu.langue</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Vues du projet dans la palette</b></td><td>Les vues personnalisées apparaissent à côté des widgets standard, avec leur dépendance vérifiée.</td><td><code>RequeteRendu.classpath</code>, <code>CacheClasspath.classloader</code> puis <code>loadClass</code>, <code>DexViewFactory</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Poignées de redimensionnement</b></td><td>Tirer un coin pour changer largeur et hauteur, avec aimantation sur 8 dp.</td><td>Bounds de <code>InfoVueRendu</code>, conversion px vers dp par la densité du profil</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Données d'exemple</b></td><td><code>tools:text</code> et <code>tools:listitem</code> remplissent une liste ou un champ vide pour juger le rendu.</td><td><code>XmlPreprocessor</code> de LayoutLib convertit déjà <code>tools:*</code></td><td>Faible</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Comparer appareils et thèmes</b></td><td>Pixel, tablette et petit écran côte à côte, jour et nuit, mise en page RTL.</td><td>Précédent du mode « Les deux » ; <code>supportsRtl</code> est déjà actif</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Capture d'écran</b></td><td>Exporter le rendu en PNG pour une revue ou une issue.</td><td>Le bitmap existe déjà, écriture par SAF</td><td>Faible</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Entourer de…</b></td><td>Envelopper la sélection dans un LinearLayout, une carte ou un ScrollView.</td><td>Même moteur d'édition XML que l'insertion</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="plan">
+  <div class="sec-head">
+    <span class="eyebrow">Implémentation</span>
+    <h2>Ordre de travail dans le dépôt</h2>
+    <p class="lede">La règle du module reste : <code>preview/xml</code> n'utilise pas Material. Les calques, les zones de dépôt et les fonctions pures de calcul y vivent ; le chrome Material, la palette et la feuille vivent dans <code>:feature:preview</code>.</p>
+  </div>
+  <div class="phases">
+    <article class="ph"><div class="id">PE6-0</div><div>
+      <h3>Extraire <code>PreviewActivity</code></h3>
+      <p>À faire en premier, car tout le reste s'y installe. Créer <code>:feature:preview</code>, le port <code>SourceApercu</code> dans <code>:core:domain</code> et le registre, brancher <code>EditorViewModel</code>, ajouter <code>AppNavigator.openPreview</code>, déplacer <code>ControleurPreviewXml</code> et retirer l'overlay de <code>activity_editor.xml</code>.</p>
+      <div class="files"><code>settings.gradle.kts</code><code>ModuleRulesPlugin.kt</code><code>AppNavigator.kt</code><code>AppNavigatorImpl.kt</code><code>EditorViewModel.kt</code><code>EditorActivity.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE6a</div><div>
+      <h3>Calques sans nouvelle donnée</h3>
+      <p>Sélection avec nom et dimensions, parent, frères, bornes, tracés à épaisseur d'écran constante comme <code>LARGEUR_TRAIT_SURLIGNAGE / echelle</code> aujourd'hui. Pastille d'état avec <code>dureeMs</code> et <code>nombreVues</code>.</p>
+      <div class="files"><code>VuePreviewXml.kt</code><code>EtatPreviewXml.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE6b</div><div>
+      <h3>Chrome Material dans la nouvelle activité</h3>
+      <p>Puces, feuille de choix de l'appareil, boutons de zoom exposés sur la vue (<code>zoomer</code>, <code>ajuster</code>), catalogue d'appareils étendu à la tablette et au petit écran.</p>
+      <div class="files"><code>activity_preview.xml</code><code>ProfilPeripherique.kt</code><code>strings.xml (fr, en)</code></div></div></article>
+    <article class="ph"><div class="id">PE6c</div><div>
+      <h3>Données enrichies pour marges, attributs, problèmes et dépôt</h3>
+      <p>Ajouter à <code>InfoVueRendu</code> : <code>classe</code>, <code>idRes</code>, <code>marges</code>, <code>padding</code>, <code>cliquable</code>, <code>conteneur</code> et <code>orientation</code>. Les écrire et les lire dans le même ordre dans le constructeur Parcel et <code>writeToParcel</code>. Les règles de problèmes sont des fonctions pures, testées comme <code>SelectionPreview</code>.</p>
+      <div class="files"><code>InfoVueRendu.kt</code><code>RenduLayoutLib.kt</code><code>ProblemesPreview.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE6d</div><div>
+      <h3>Feuille inférieure : arbre, attributs, problèmes, source</h3>
+      <p>Alimentée par le même état que la vue. L'onglet Source surligne les lignes d'après les spans d'<code>AligneurElementsXml</code>, et un bouton ramène à l'éditeur à la ligne choisie.</p>
+      <div class="files"><code>FeuilleApercuFragment.kt</code><code>AligneurElementsXml.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE7a</div><div>
+      <h3>Catalogue et insertion XML, en fonctions pures</h3>
+      <p><code>CataloguePalette</code> décrit chaque widget : classe, extrait XML, dépendance requise. <code>InsertionXml.inserer(texte, spanParent, index, extrait)</code> renvoie une édition <code>(debut, fin, remplacement)</code> : indentation du parent, balise auto-fermante convertie en paire ouvrante et fermante, <code>xmlns:app</code> ajouté à la racine si l'extrait l'utilise. Dans un ConstraintLayout, le point de dépôt donne <code>layout_constraintTop_toTopOf="parent"</code> et des marges en dp, calculées avec la densité du profil.</p>
+      <div class="files"><code>CataloguePalette.kt</code><code>InsertionXml.kt</code><code>InsertionXmlTest.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE7b</div><div>
+      <h3>Zones de dépôt et glisser-déposer natif</h3>
+      <p><code>ZonesDepot</code> calcule, depuis la liste de <code>InfoVueRendu</code>, les conteneurs, les emplacements entre frères et la cible sous un point. <code>VuePreviewXml</code> dessine les zones en Canvas et implémente <code>OnDragListener</code>. La palette lance <code>View.startDragAndDrop</code> puis se masque : le moteur de glisser-déposer d'Android livre les événements à la vue d'aperçu sans qu'il faille les relayer à la main. La palette doit donc être une vue de l'activité, comme le popover de l'explorateur (<code>fond_popover</code>), et non une fenêtre de dialogue qui bloquerait le dépôt.</p>
+      <div class="files"><code>ZonesDepot.kt</code><code>VuePreviewXml.kt</code><code>ZonesDepotTest.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE7c</div><div>
+      <h3>Bulle, palette et popup de placement</h3>
+      <p>Bulle déplaçable avec aimantation aux bords, ou fixe ; son mode et sa position sont enregistrés dans <code>SettingsDataStore</code>. La palette gère le mode Glisser-déposer ou Placer par popup. Le popup de placement affiche l'arbre des vues rendues, les positions Avant, Dedans, Après, et dessine le repère en direct sur l'aperçu. Une tuile dont la dépendance manque est signalée ; le moteur affiche déjà un cadre de remplacement pour les classes introuvables.</p>
+      <div class="files"><code>PalettePopover.kt</code><code>BulleFlottante.kt</code><code>SettingsDataStore.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE7d</div><div>
+      <h3>Édition d'attributs, annuler, dupliquer, supprimer</h3>
+      <p>Chaque action produit une édition de texte passée à <code>SourceApercu.remplacer</code>, donc une seule entrée dans l'historique de l'éditeur. Après chaque édition, rendu immédiat par <code>soumettreImmediat</code>, comme à l'ouverture du panneau.</p>
+      <div class="files"><code>SourceApercu.kt</code><code>ControleurPreviewXml.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE6e–f</div><div>
+      <h3>Orientation, échelle de police, contraintes</h3>
+      <p>Ajouter <code>orientation</code> et <code>echellePolice</code> à <code>RequeteRendu</code>. L'échelle de police et la remontée des contraintes dépendent de LayoutLib v3 : à confirmer avant de les promettre dans l'interface.</p>
+      <div class="files"><code>RequeteRendu.kt</code><code>ProfilPeripherique.kt</code><code>RenduLayoutLib.kt</code></div></div></article>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Couleurs de l'interface : jetons de <code>core/ui/src/main/res/values/colors.xml</code> et <code>values-night</code>. Le violet est réservé à ce qui est nouveau ou modifiable. La maquette ne modifie pas le dépôt, cloné en lecture seule.</p>
+  <p>Fichiers lus en plus de la première version : <code>EditorActivity.kt</code> (blocs preview), <code>EditorViewModel.kt</code> (sessions), <code>AppNavigator.kt</code>, <code>AppNavigatorImpl.kt</code>, <code>ModuleRulesPlugin.kt</code>, <code>feature/editor/AndroidManifest.xml</code>, <code>CacheClasspath.kt</code>.</p>
+</footer>
+
+</div>
+<style>
+button.row,button.prob{border:0;background:transparent;color:inherit;width:100%;text-align:left}
+button.row{font:400 12.5px/1.2 var(--font-m)}
+.row .ind{flex:none}
+</style>
+<script>
+/* ---------- Données : appareils, textes, arbre de vues ---------- */
+const DEVICES = [
+  {id:'p4',  name:'Pixel 4',      w:393, h:851,  dpi:440, old:true},
+  {id:'p7',  name:'Pixel 7 Pro',  w:412, h:892,  dpi:420, old:true},
+  {id:'s24', name:'Galaxy S24',   w:360, h:780,  dpi:480, old:true},
+  {id:'tab', name:'Tablette 10"', w:800, h:1280, dpi:320, old:false},
+  {id:'sm',  name:'Petit écran',  w:320, h:568,  dpi:320, old:false}
+];
+const STR = {
+  fr:{appbar:'Connexion', titre:'Bon retour', sous:'Connectez-vous pour reprendre votre projet', email:'Adresse e-mail', mdp:'Mot de passe', souvenir:'Se souvenir de moi', btn:'Se connecter'},
+  en:{appbar:'Sign in',   titre:'Welcome back', sous:'Sign in to pick up your project',           email:'Email address', mdp:'Password',     souvenir:'Remember me',        btn:'Sign in'}
+};
+const ROOT = {rid:'root', cls:'ConstraintLayout', fq:'androidx.constraintlayout.widget.ConstraintLayout', k:'C', kind:'root', children:[
+  {rid:'logo', cls:'ImageView', k:'I', kind:'logo', w:88, h:88, mt:32, center:true, extra:[['android:src','@drawable/ic_logo']]},
+  {rid:'titre', cls:'TextView', k:'T', kind:'text', w:'m', h:'w', mt:24, ml:24, mr:24, size:28, txt:'titre', extra:[['android:textStyle','bold']]},
+  {rid:'sous_titre', cls:'TextView', k:'T', kind:'text', w:'m', h:'w', mt:4, ml:24, mr:24, size:14, txt:'sous', muted:true},
+  {rid:'champ_email', cls:'TextInputLayout', fq:'com.google.android.material.textfield.TextInputLayout', k:'Ti', kind:'field', w:'m', h:56, mt:28, ml:24, mr:24, pad:[16,8,16,8], txt:'email', val:'jo@codeide.dev'},
+  {rid:'champ_mdp', cls:'TextInputLayout', fq:'com.google.android.material.textfield.TextInputLayout', k:'Ti', kind:'field', w:'m', h:56, mt:16, ml:24, mr:24, pad:[16,8,16,8], txt:'mdp', val:'••••••••'},
+  {rid:'souvenir', cls:'CheckBox', k:'Cb', kind:'check', w:'m', h:48, mt:8, ml:24, mr:24, size:16, txt:'souvenir', click:true},
+  {rid:'btn_connexion', cls:'Button', k:'B', kind:'btn', w:'m', h:48, mt:20, ml:24, mr:24, pad:[24,0,24,0], size:14, txt:'btn', click:true},
+  {rid:'lien_oublie', cls:'TextView', k:'T', kind:'link', w:'w', h:'w', mt:16, center:true, pad:[8,6,8,6], size:14, lit:'Mot de passe oublié ?', click:true}
+]};
+const SHEET_OPEN = 300;
+const S = {
+  dev:0, land:false, night:false, lang:null, fs:1, mode:'design', nav:true,
+  layers:{par:true, mg:true, con:false, bnd:false, prob:true, grid:false},
+  sel:'btn_connexion', tab:'tree', open:false, sim:null, autofit:true, pop:null,
+  z:1, tx:0, ty:0, W:393, H:851, b:{}, chrome:[], probs:[], boards:[],
+  palMode:'drag', palCat:'Tous', palQ:'', recents:[], bub:{side:'l', y:.42, fixed:false},
+  hist:[], redo:[], flash:null, dropView:null, place:null, drag:null, errLine:0
+};
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const r0 = n => Math.round(n);
+const dim = () => { const d = DEVICES[S.dev]; return S.land ? {w:d.h, h:d.w} : {w:d.w, h:d.h}; };
+const label = v => v.cls + ' · @+id/' + v.rid;
+
+/* arbre : parcours en pré-ordre, comme l'arbre aplati d'InfoVueRendu */
+function walk(n, fn, p, d, i) { fn(n, p || null, d || 0, i || 0); (n.children || []).forEach((c, k) => walk(c, fn, n, (d || 0) + 1, k)); }
+function flat() { const out = []; walk(ROOT, (n, p, d, i) => out.push({n, p, d, i})); return out; }
+const nodes = () => flat().slice(1).map(x => x.n);
+const find = rid => flat().find(x => x.n.rid === rid) || null;
+const viewOf = rid => { const f = find(rid); return f ? f.n : null; };
+function nextId(cls) {
+  const base = cls.charAt(0).toLowerCase() + cls.slice(1), used = new Set(nodes().map(n => n.rid));
+  let i = 1; while (used.has(base + i)) i++; return base + i;
+}
+
+/* ---------- Rendu d'une vue (équivalent HTML du bitmap LayoutLib) ---------- */
+function mkView(v, t, po) {
+  const e = el('div', 'v'); e.dataset.rid = v.rid;
+  const s = e.style, fs = S.fs;
+  s.margin = (v.mt||0)+'px '+(v.mr||0)+'px '+(v.mb||0)+'px '+(v.ml||0)+'px';
+  if (po === 'h') { s.alignSelf = 'center'; if (v.w === 'm') s.flex = '1 1 0'; else if (v.w !== 'w') s.width = v.w+'px'; }
+  else if (v.w !== 'm') { s.alignSelf = v.center ? 'center' : 'flex-start'; if (v.w !== 'w') s.width = v.w+'px'; }
+  if (v.h !== 'w') s.height = (v.h === 'm' ? '100%' : v.h + 'px');
+  if (v.minH) s.minHeight = v.minH + 'px';
+  if (v.pad) s.padding = v.pad[1]+'px '+v.pad[2]+'px '+v.pad[3]+'px '+v.pad[0]+'px';
+  const text = v.lit != null ? v.lit : (v.txt && t[v.txt]);
+  const tx = (str, size, extra) => { const n = el('span', 't', str); n.style.fontSize = (size*fs)+'px'; if (extra) Object.assign(n.style, extra); return n; };
+  const bar = (css) => { const b = el('span'); b.style.cssText = css; return b; };
+  if (v.mock) {
+    s.border = '1px dashed var(--s-outline)'; s.alignItems = 'center'; s.justifyContent = 'center'; s.minHeight = '48px';
+    s.background = 'repeating-linear-gradient(45deg,rgba(128,128,128,.2) 0 6px,transparent 6px 12px)';
+    e.appendChild(tx(v.cls, 11, {fontFamily:'var(--font-m)', color:'var(--s-muted)'}));
+    return e;
+  }
+  switch (v.kind) {
+    case 'logo':
+      s.borderRadius = '50%'; s.background = 'color-mix(in srgb,var(--s-pri) 16%,transparent)'; s.alignItems = 'center'; s.justifyContent = 'center';
+      e.appendChild(tx('{ }', 30, {color:'var(--s-pri)', fontFamily:'var(--font-m)', fontWeight:'600'})); break;
+    case 'image':
+      s.borderRadius = '8px'; s.background = 'color-mix(in srgb,var(--s-pri) 14%,transparent)'; s.alignItems = 'center'; s.justifyContent = 'center';
+      e.appendChild(tx('▲', 18, {color:'var(--s-pri)'})); break;
+    case 'text':
+      s.alignItems = 'center'; e.appendChild(tx(text, v.size, {fontWeight: v.size > 20 ? '700' : '400', color: v.muted ? 'var(--s-muted)' : 'var(--s-fg)'})); break;
+    case 'link':
+      s.alignItems = 'center'; e.appendChild(tx(text, v.size, {color:'var(--s-pri)', textDecoration:'underline'})); break;
+    case 'field':
+      s.border = '1px solid var(--s-outline)'; s.borderRadius = '6px'; s.flexDirection = 'column'; s.justifyContent = 'center'; s.overflow = 'hidden';
+      e.appendChild(tx(text, 12, {color:'var(--s-muted)'}));
+      if (v.val) e.appendChild(tx(v.val, 16, {marginTop:'2px'})); break;
+    case 'edit':
+      s.borderBottom = '2px solid var(--s-outline)'; s.alignItems = 'center'; s.padding = '0 4px';
+      e.appendChild(tx(v.hint || '', 16, {color:'var(--s-muted)'})); break;
+    case 'check': {
+      s.alignItems = 'center'; s.gap = '12px';
+      e.append(bar('width:18px;height:18px;border:2px solid var(--s-pri);border-radius:3px;flex:none;background:var(--s-pri)'), tx(text, v.size, {flex:'1'})); break; }
+    case 'switch': {
+      s.alignItems = 'center'; s.gap = '16px';
+      const tr = bar('width:36px;height:20px;border-radius:10px;background:var(--s-pri);position:relative;flex:none');
+      tr.appendChild(bar('position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--s-onpri)'));
+      e.append(tx(text, v.size || 16, {flex:'1'}), tr); break; }
+    case 'btn':
+      s.background = 'var(--s-pri)'; s.borderRadius = '24px'; s.alignItems = 'center'; s.justifyContent = 'center';
+      e.appendChild(tx(text, v.size, {fontWeight:'500', color:'var(--s-onpri)'})); break;
+    case 'progress':
+      s.alignItems = 'center'; e.appendChild(bar('flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--s-pri) 60%,color-mix(in srgb,var(--s-pri) 22%,transparent) 60%)')); break;
+    case 'seek': {
+      s.alignItems = 'center'; s.position = 'relative';
+      e.appendChild(bar('flex:1;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--s-pri) 40%,color-mix(in srgb,var(--s-pri) 22%,transparent) 40%)'));
+      const kb = bar('position:absolute;left:40%;top:50%;width:18px;height:18px;border-radius:50%;background:var(--s-pri);transform:translate(-50%,-50%)'); e.appendChild(kb); break; }
+    case 'divider': s.background = 'var(--s-outline)'; s.opacity = '.45'; break;
+    case 'space': break;
+    case 'recycler':
+      s.flexDirection = 'column'; s.overflow = 'hidden';
+      for (let i = 0; i < 4; i++) {
+        const row = el('div'); row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid color-mix(in srgb,var(--s-outline) 35%,transparent);flex:none';
+        row.append(bar('width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--s-pri) 22%,transparent);flex:none'),
+          bar('flex:1;height:8px;border-radius:4px;background:color-mix(in srgb,var(--s-fg) 22%,transparent)'));
+        e.appendChild(row);
+      } break;
+    case 'group':
+      s.flexDirection = v.orient === 'h' ? 'row' : 'column';
+      if (v.orient === 'h') s.alignItems = 'center';
+      if (v.card) { s.background = 'var(--s-surf)'; s.borderRadius = '12px'; s.boxShadow = '0 1px 4px rgba(0,0,0,.28)'; s.border = '1px solid color-mix(in srgb,var(--s-outline) 40%,transparent)'; }
+      (v.children || []).forEach(c => e.appendChild(mkView(c, t, v.orient || 'v'))); break;
+  }
+  return e;
+}
+function buildScreen(bp) {
+  const {w, h} = dim(), t = STR[S.lang || 'fr'];
+  const sc = el('div', 'screen' + (S.night ? ' night' : '') + (bp ? ' bp' : '') + (S.layers.grid ? ' grid' : ''));
+  sc.style.cssText += 'width:'+w+'px;height:'+h+'px;display:flex;flex-direction:column';
+  const sb = el('div', 'chrome sbar'); sb.dataset.chrome = '1';
+  sb.append(el('span', '', '9:41'), el('span', '', '5G  ▮▮▮ 100%'));
+  const ab = el('div', 'chrome abar', t.appbar); ab.dataset.chrome = '1';
+  const root = el('div', 'root v'); root.dataset.rid = 'root';
+  root.style.alignItems = 'stretch'; root.style.flexDirection = 'column'; root.style.flex = '1 1 0';
+  ROOT.children.forEach(v => root.appendChild(mkView(v, t, 'v')));
+  sc.append(sb, ab, root);
+  if (S.nav) { const nb = el('div', 'chrome nbar'); nb.dataset.chrome = '1'; nb.append(el('i'), el('i'), el('i')); sc.appendChild(nb); }
+  return sc;
+}
+
+/* ---------- Mesure des bornes (équivalent InfoVueRendu) et règles de problèmes ---------- */
+function measure(sc) {
+  const sr = sc.getBoundingClientRect(), r = sr.width / sc.offsetWidth || 1;
+  const b = {}, chrome = [], trunc = new Set();
+  sc.querySelectorAll('[data-rid]').forEach(n => {
+    const q = n.getBoundingClientRect();
+    b[n.dataset.rid] = {x:(q.left-sr.left)/r, y:(q.top-sr.top)/r, w:q.width/r, h:q.height/r};
+    n.querySelectorAll(':scope > .t').forEach(c => { if (c.scrollWidth > c.clientWidth + 1) trunc.add(n.dataset.rid); });
+    if (n.dataset.rid !== 'root' && !n.querySelector('[data-rid]') && n.scrollHeight > n.clientHeight + 1) trunc.add(n.dataset.rid);
+  });
+  sc.querySelectorAll('[data-chrome]').forEach(n => {
+    const q = n.getBoundingClientRect();
+    chrome.push({x:(q.left-sr.left)/r, y:(q.top-sr.top)/r, w:q.width/r, h:q.height/r});
+  });
+  return {b, chrome, trunc};
+}
+function computeProblems(trunc) {
+  const p = [];
+  nodes().forEach(v => {
+    const q = S.b[v.rid];
+    if (v.mock) p.push({rid:v.rid, sev:'e', title:'Classe introuvable : ' + v.cls, msg:'Ajoutez ' + v.dep + ' au module. En attendant, l’aperçu affiche un cadre de remplacement.'});
+    if ((v.kind === 'logo' || v.kind === 'image') && !v.cd) p.push({rid:v.rid, sev:'w', title:v.cls + ' sans contentDescription', msg:'Un lecteur d’écran ne sait pas annoncer cette image.'});
+    if (v.lit) p.push({rid:v.rid, sev:'w', title:'Texte codé en dur', msg: S.lang === 'en' ? 'Ce texte reste identique en anglais : il n’est pas dans values-en.' : 'Utilisez @string/ pour que values-en le traduise.'});
+    if (v.click && q && Math.min(q.w, q.h) < 47.5) p.push({rid:v.rid, sev:'w', title:'Cible tactile trop petite', msg:'Mesure ' + r0(q.w) + ' × ' + r0(q.h) + ' dp, minimum recommandé 48 × 48.'});
+    if (trunc.has(v.rid)) p.push({rid:v.rid, sev:'e', title:'Texte tronqué', msg:'Le contenu dépasse la vue à la police ×' + String(S.fs).replace('.', ',') + '.'});
+  });
+  return p;
+}
+
+/* ---------- Source XML généré depuis l'arbre ---------- */
+function attrsOf(v, par, prev) {
+  const inRoot = par && par.rid === 'root';
+  const a = [['android:id', '@+id/' + v.rid],
+    ['android:layout_width', v.w === 'm' ? (inRoot ? '0dp' : 'match_parent') : v.w === 'w' ? 'wrap_content' : v.w + 'dp'],
+    ['android:layout_height', v.h === 'w' ? 'wrap_content' : v.h === 'm' ? 'match_parent' : v.h + 'dp']];
+  if (inRoot) {
+    a.push(prev ? ['app:layout_constraintTop_toBottomOf', '@id/' + prev.rid] : ['app:layout_constraintTop_toTopOf', 'parent']);
+    a.push(['app:layout_constraintStart_toStartOf', 'parent'], ['app:layout_constraintEnd_toEndOf', 'parent']);
+  }
+  if (v.mt) a.push(['android:layout_marginTop', v.mt + 'dp']);
+  if (v.mb) a.push(['android:layout_marginBottom', v.mb + 'dp']);
+  if (v.ml && v.ml === v.mr) a.push(['android:layout_marginHorizontal', v.ml + 'dp']);
+  else { if (v.ml) a.push(['android:layout_marginStart', v.ml + 'dp']); if (v.mr) a.push(['android:layout_marginEnd', v.mr + 'dp']); }
+  if (v.pad) {
+    if (v.pad[0] === v.pad[2] && v.pad[0]) a.push(['android:paddingHorizontal', v.pad[0] + 'dp']);
+    if (v.pad[1] === v.pad[3] && v.pad[1]) a.push(['android:paddingVertical', v.pad[1] + 'dp']);
+  }
+  if (v.kind === 'group') a.push(['android:orientation', v.orient === 'h' ? 'horizontal' : 'vertical']);
+  if (v.minH) a.push(['android:minHeight', v.minH + 'dp']);
+  if (v.hint) a.push(['android:hint', v.hint]);
+  if (v.lit) a.push(['android:text', v.lit]); else if (v.txt) a.push(['android:text', '@string/login_' + v.txt]);
+  if (v.kind === 'edit') a.push(['android:inputType', 'text']);
+  if (v.size) a.push(['android:textSize', v.size + 'sp']);
+  (v.extra || []).forEach(x => a.push(x));
+  return a;
+}
+let SRC = {L:[], span:{}};
+function buildSrc() {
+  const L = [], span = {};
+  L.push('<?xml version="1.0" encoding="utf-8"?>');
+  const rs = L.length;
+  L.push('<' + ROOT.fq);
+  L.push('    xmlns:android="http://schemas.android.com/apk/res/android"');
+  L.push('    xmlns:app="http://schemas.android.com/apk/res-auto"');
+  L.push('    android:id="@+id/root"');
+  L.push('    android:layout_width="match_parent"');
+  L.push('    android:layout_height="match_parent">');
+  const emit = (v, par, prev, ind) => {
+    const pad = ' '.repeat(ind), st = L.length, a = attrsOf(v, par, prev), tag = v.mock ? v.fq : (v.fq || v.cls);
+    L.push(pad + '<' + tag);
+    a.forEach((x, i) => L.push(pad + '    ' + x[0] + '="' + x[1] + '"' + (i === a.length - 1 ? (v.children ? '>' : ' />') : '')));
+    if (v.children) { let pv = null; v.children.forEach(c => { emit(c, v, pv, ind + 4); pv = c; }); L.push(pad + '</' + tag + '>'); }
+    span[v.rid] = [st, L.length - 1];
+  };
+  let pv = null; ROOT.children.forEach(c => { emit(c, ROOT, pv, 4); pv = c; });
+  L.push('</' + ROOT.fq + '>');
+  span.root = [rs, L.length - 1];
+  SRC = {L, span};
+}
+const fmt = t => esc(t)
+  .replace(/(&lt;\/?)([\w.]+)/, '$1<span class="tg">$2</span>')
+  .replace(/([\w:]+)=&quot;(.*?)&quot;/g, '<span class="at">$1</span>=<span class="vl">&quot;$2&quot;</span>');
+function ownerOf(i) {
+  let best = null, size = 1e9;
+  nodes().forEach(v => { const s = SRC.span[v.rid]; if (s && i >= s[0] && i <= s[1] && s[1] - s[0] < size) { size = s[1] - s[0]; best = v.rid; } });
+  const r = SRC.span.root;
+  return best || (i >= r[0] && i <= r[1] ? 'root' : S.sel);
+}
+</script>
+<style>
+.pane{position:relative}
+.status,.zoom{transition:bottom .25s ease}
+</style>
+<script>
+/* ---------- Calques dessinés sur le rendu (équivalent Canvas de VuePreviewXml) ---------- */
+function box(cls, x, y, w, h, parent) { const e = el('div', cls); e.style.cssText = 'left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px'; parent.appendChild(e); return e; }
+function chip(parent, cls, text, x, y, center) { const e = el('div', 'lab ' + cls, text); e.style.left = x+'px'; e.style.top = y+'px'; if (center) e.style.transform = 'translate(-50%,-50%)'; parent.appendChild(e); return e; }
+
+function drawBoxModel(ov, v, q) {
+  const mt = v.mt||0, mb = v.mb||0, ml = v.ml||0, mr = v.mr||0, p = v.pad || [0,0,0,0];
+  if (mt) { box('mg', q.x-ml, q.y-mt, q.w+ml+mr, mt, ov); chip(ov, 'dim', mt, q.x+q.w/2, q.y-mt/2, true); }
+  if (mb) { box('mg', q.x-ml, q.y+q.h, q.w+ml+mr, mb, ov); chip(ov, 'dim', mb, q.x+q.w/2, q.y+q.h+mb/2, true); }
+  if (ml) { box('mg', q.x-ml, q.y, ml, q.h, ov); chip(ov, 'dim', ml, q.x-ml/2, q.y+q.h/2, true); }
+  if (mr) { box('mg', q.x+q.w, q.y, mr, q.h, ov); chip(ov, 'dim', mr, q.x+q.w+mr/2, q.y+q.h/2, true); }
+  if (p[1]) { box('pd', q.x, q.y, q.w, p[1], ov); chip(ov, 'dim', p[1], q.x+q.w/2, q.y+p[1]/2, true); }
+  if (p[3]) { box('pd', q.x, q.y+q.h-p[3], q.w, p[3], ov); chip(ov, 'dim', p[3], q.x+q.w/2, q.y+q.h-p[3]/2, true); }
+  if (p[0]) { box('pd', q.x, q.y+p[1], p[0], q.h-p[1]-p[3], ov); chip(ov, 'dim', p[0], q.x+p[0]/2, q.y+q.h/2, true); }
+  if (p[2]) { box('pd', q.x+q.w-p[2], q.y+p[1], p[2], q.h-p[1]-p[3], ov); chip(ov, 'dim', p[2], q.x+q.w-p[2]/2, q.y+q.h/2, true); }
+}
+function drawConstraints(ov) {
+  const z = S.z, ns = 'http://www.w3.org/2000/svg', kids = ROOT.children;
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'ov'); svg.setAttribute('width', S.W); svg.setAttribute('height', S.H);
+  const line = (x1, y1, x2, y2) => {
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.style.cssText = 'stroke:var(--accent);stroke-width:' + (1.5/z) + ';stroke-dasharray:' + (5/z) + ' ' + (3/z);
+    svg.appendChild(l);
+    [[x1,y1],[x2,y2]].forEach(c => { const d = document.createElementNS(ns, 'circle'); d.setAttribute('cx', c[0]); d.setAttribute('cy', c[1]); d.setAttribute('r', 3.5/z); d.style.fill = 'var(--accent)'; svg.appendChild(d); });
+  };
+  const labels = [], ab = S.chrome[1], top0 = ab ? ab.y + ab.h : 0;
+  kids.forEach((v, i) => {
+    const q = S.b[v.rid]; if (!q) return;
+    const pq = i === 0 ? null : S.b[kids[i-1].rid], prev = pq ? pq.y + pq.h : top0;
+    const cx = q.x + q.w/2, cy = q.y + q.h/2, dv = q.y - prev, dl = q.x, dr = S.W - (q.x + q.w);
+    if (dv > 0.5) { line(cx, prev, cx, q.y); labels.push([dv, cx + 14/z, prev + dv/2]); }
+    if (dl > 0.5) { line(0, cy, q.x, cy); labels.push([dl, dl/2, cy - 11/z]); }
+    if (dr > 0.5) { line(q.x + q.w, cy, S.W, cy); labels.push([dr, q.x + q.w + dr/2, cy - 11/z]); }
+  });
+  ov.appendChild(svg);
+  labels.forEach(l => chip(ov, 'dim', r0(l[0]), l[1], l[2], true));
+}
+function drawOverlay(bd) {
+  const ov = bd.ov, b = S.b, L = S.layers, sel = S.sel, z = S.z;
+  ov.replaceChildren(); ov.style.width = S.W + 'px'; ov.style.height = S.H + 'px';
+  const f = sel ? find(sel) : null, v = f && f.n, q = v && b[v.rid];
+  if (L.bnd) nodes().forEach(x => { const s = b[x.rid]; if (s) box('bnd', s.x, s.y, s.w, s.h, ov); });
+  if (L.par && f && sel !== 'root' && !S.dropView) {
+    (f.p.children || []).forEach(x => { if (x.rid !== sel && b[x.rid]) box('sib', b[x.rid].x, b[x.rid].y, b[x.rid].w, b[x.rid].h, ov); });
+    const pq = b[f.p.rid]; if (pq) box('par', pq.x, pq.y, pq.w, pq.h, ov);
+  }
+  if (L.con) drawConstraints(ov);
+  if (L.mg && v && q && sel !== 'root' && !S.dropView) drawBoxModel(ov, v, q);
+  if (v && q && !S.dropView) {
+    const s = box('sel', q.x, q.y, q.w, q.h, ov);
+    [[0,0],[1,0],[0,1],[1,1]].forEach(c => { const h = el('i', 'h'); h.style.left = 'calc(' + (c[0]*100) + '% - ' + (5.5/z) + 'px)'; h.style.top = 'calc(' + (c[1]*100) + '% - ' + (5.5/z) + 'px)'; s.appendChild(h); });
+    chip(ov, '', label(v), q.x, q.y - 24/z >= 0 ? q.y - 24/z : q.y + 4/z);
+    chip(ov, 'dim', r0(q.w) + ' × ' + r0(q.h) + ' dp', q.x, q.y + q.h + 4/z);
+  }
+  if (L.prob && !S.dropView) {
+    const seen = {};
+    S.probs.forEach(p => { const s = seen[p.rid] || (seen[p.rid] = {n:0, sev:'w'}); s.n++; if (p.sev === 'e') s.sev = 'e'; });
+    Object.keys(seen).forEach(id => {
+      const s = b[id]; if (!s) return;
+      const pin = el('div', 'pin ' + seen[id].sev, seen[id].n > 1 ? String(seen[id].n) : '!');
+      pin.style.left = (s.x + s.w - 9/z) + 'px'; pin.style.top = (s.y - 9/z) + 'px'; ov.appendChild(pin);
+    });
+  }
+  if (S.dropView && bd === S.boards[0]) drawDrop(ov, S.dropView);
+}
+const redraw = () => S.boards.forEach(drawOverlay);
+
+/* ---------- Historique : annuler, rétablir (dans l'application : session d'édition) ---------- */
+const snap = () => JSON.stringify(ROOT.children);
+function pushHist() { S.hist.push(snap()); if (S.hist.length > 60) S.hist.shift(); S.redo.length = 0; }
+function restore(json) { ROOT.children = JSON.parse(json); if (S.sel && !find(S.sel)) S.sel = null; render(); }
+function undo() { if (!S.hist.length) return; S.redo.push(snap()); restore(S.hist.pop()); toast('Modification annulée'); }
+function redoOp() { if (!S.redo.length) return; S.hist.push(snap()); restore(S.redo.pop()); toast('Modification rétablie'); }
+function mutate(fn, msg) { pushHist(); fn(); render(); if (msg) toast(msg); }
+function cloneNode(n) { const c = JSON.parse(JSON.stringify(n)); const re = x => { x.rid = nextId(x.cls); (x.children || []).forEach(re); }; re(c); return c; }
+function dupSel() {
+  const f = S.sel && find(S.sel); if (!f || !f.p) return;
+  const c = cloneNode(f.n); pushHist(); f.p.children.splice(f.i + 1, 0, c); S.sel = c.rid; render(); toast(label(c) + ' dupliqué');
+}
+function delSel() {
+  const f = S.sel && find(S.sel); if (!f || !f.p) return;
+  const name = label(f.n); pushHist(); f.p.children.splice(f.i, 1); S.sel = null; render(); toast(name + ' supprimé');
+}
+function updateEditBar() {
+  const f = S.sel && find(S.sel), can = !!(f && f.p);
+  $('eUndo').disabled = !S.hist.length; $('eRedo').disabled = !S.redo.length; $('eDup').disabled = !can; $('eDel').disabled = !can;
+  $('edit').classList.toggle('shift', !$('banner').hidden);
+}
+
+/* ---------- Feuille inférieure ---------- */
+function renderCrumb() {
+  const c = $('crumb'), f = S.sel ? find(S.sel) : null;
+  c.replaceChildren();
+  if (!f) { c.appendChild(el('span', '', 'Aucune vue sélectionnée. Touchez le rendu.')); return; }
+  if (S.sel === 'root') { c.appendChild(el('b', '', label(ROOT))); return; }
+  c.append(el('span', '', f.p.cls), el('span', '', '›'), el('b', '', f.n.cls), el('span', '', '@+id/' + f.n.rid));
+}
+function renderTree(pane) {
+  flat().forEach(x => {
+    const v = x.n, r = el('button', 'row' + (S.sel === v.rid ? ' on' : '')); r.type = 'button';
+    r.style.paddingLeft = (8 + x.d * 16) + 'px';
+    r.append(el('span', 'k', v.k), el('span', '', v.cls), el('span', 'id', '@+id/' + v.rid));
+    const n = S.probs.filter(p => p.rid === v.rid).length, q = S.b[v.rid];
+    if (n) r.appendChild(el('span', 'badge w', '! ' + n)); else if (q) r.appendChild(el('span', 'badge', r0(q.w) + '×' + r0(q.h)));
+    r.onclick = () => select(v.rid, true);
+    pane.appendChild(r);
+  });
+}
+function renderEditor(pane, v) {
+  const ed = el('div', 'ed'); ed.appendChild(el('h5', '', 'Modifier'));
+  const field = (id, lab, val, on) => {
+    const f = el('div', 'fld'), l = el('label', '', lab); l.htmlFor = id;
+    const i = el('input'); i.type = 'text'; i.id = id; i.value = val; i.onchange = () => on(i.value);
+    f.append(l, i); ed.appendChild(f);
+  };
+  if (v.kind === 'edit') field('fHint', 'hint', v.hint || '', x => mutate(() => { v.hint = x; }));
+  else if (v.lit != null && v.kind !== 'group') field('fText', 'text', v.lit, x => mutate(() => { v.lit = x; }));
+  else if (v.txt) {
+    const f = el('div', 'fld'); f.appendChild(el('label', '', 'text'));
+    f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »'));
+    ed.appendChild(f);
+  }
+  const q = S.b[v.rid];
+  [['w', 'largeur'], ['h', 'hauteur']].forEach(([key, lab]) => {
+    const cur = v[key], mode = cur === 'w' ? 'w' : cur === 'm' ? 'm' : 'f';
+    const row = el('div', 'dimrow'), seg = el('div', 'seg2');
+    row.appendChild(el('span', 'dl', lab));
+    [['w', 'wrap'], ['m', 'match'], ['f', 'fixe']].forEach(([m, t]) => {
+      const b = el('button', '', t); b.type = 'button'; b.setAttribute('aria-pressed', String(mode === m));
+      b.onclick = () => { if (m === mode) return; mutate(() => { v[key] = m === 'f' ? Math.max(8, q ? r0(key === 'w' ? q.w : q.h) : 48) : m; }); };
+      seg.appendChild(b);
+    });
+    row.appendChild(seg);
+    if (mode === 'f') { const n = el('input'); n.type = 'number'; n.min = 1; n.id = 'dim_' + key; n.value = cur; n.setAttribute('aria-label', lab + ' en dp'); n.onchange = () => mutate(() => { v[key] = Math.max(1, +n.value || 1); }); row.appendChild(n); }
+    ed.appendChild(row);
+  });
+  pane.appendChild(ed);
+}
+function renderAttrs(pane) {
+  const f = S.sel ? find(S.sel) : null, v = f && f.n, q = v ? S.b[v.rid] : null;
+  if (!v || !q) { pane.appendChild(el('p', 'empty', 'Sélectionnez une vue dans le rendu ou dans l’arbre.')); return; }
+  if (S.sel !== 'root') renderEditor(pane, v);
+  const mg = [v.mt||0, v.mr||0, v.mb||0, v.ml||0], p = v.pad || [0,0,0,0];
+  const bx = el('div', 'box');
+  bx.innerHTML = '<div class="bm"><small class="t1">'+mg[0]+'</small><small class="r1">'+mg[1]+'</small><small class="b1">'+mg[2]+'</small><small class="l1">'+mg[3]+'</small>' +
+    '<div class="bp" style="padding:14px;position:relative;border-radius:6px"><small class="t1">'+p[1]+'</small><small class="r1">'+p[2]+'</small><small class="b1">'+p[3]+'</small><small class="l1">'+p[0]+'</small>' +
+    '<div class="bc">'+r0(q.w)+' × '+r0(q.h)+'</div></div></div>';
+  pane.appendChild(bx);
+  const attrs = v.rid === 'root'
+    ? [['android:id','@+id/root'],['android:layout_width','match_parent'],['android:layout_height','match_parent']]
+    : attrsOf(v, f.p, f.i > 0 ? f.p.children[f.i - 1] : null);
+  const groups = {'Identité':[], 'Disposition':[], 'Texte':[], 'Autres':[]};
+  attrs.forEach(a => { const n = a[0]; groups[n === 'android:id' ? 'Identité' : /layout_|padding|orientation|minHeight/.test(n) ? 'Disposition' : /text|hint/i.test(n) ? 'Texte' : 'Autres'].push(a); });
+  groups['Mesuré'] = [['position', r0(q.x) + ', ' + r0(q.y) + ' dp'], ['cliquable', v.click ? 'oui' : 'non']];
+  const dl = el('dl', 'kv');
+  Object.keys(groups).forEach(g => {
+    if (!groups[g].length) return;
+    dl.appendChild(el('dt', 'g', g));
+    groups[g].forEach(a => { dl.appendChild(el('dt', '', a[0].replace('android:', ''))); dl.appendChild(el('dd', '', a[1])); });
+  });
+  pane.appendChild(dl);
+}
+function renderProbs(pane) {
+  if (!S.probs.length) { pane.appendChild(el('p', 'empty', 'Aucun problème détecté à cette taille et à cette police.')); return; }
+  S.probs.forEach(p => {
+    const d = el('button', 'prob'); d.type = 'button';
+    const bd = el('div'); bd.innerHTML = '<b>' + esc(p.title) + '</b><span>' + esc(label(viewOf(p.rid))) + '<br>' + esc(p.msg) + '</span>';
+    d.append(el('i', 'sev' + (p.sev === 'e' ? ' e' : '')), bd, el('span', 'go', 'Voir'));
+    d.onclick = () => select(p.rid, true);
+    pane.appendChild(d);
+  });
+}
+function renderSrc(pane) {
+  const head = el('div', 'openrow'), sp = S.sel ? SRC.span[S.sel] : null;
+  head.appendChild(el('span', '', sp && S.sel !== 'root' ? 'Lignes ' + (sp[0] + 1) + ' à ' + (sp[1] + 1) : 'Document entier'));
+  const go = el('button', 'linkbtn', 'Ouvrir dans l’éditeur ↗'); go.type = 'button';
+  go.onclick = () => toast('Dans l’application : retour à l’éditeur, sélection sur ' + (sp && S.sel !== 'root' ? 'la ligne ' + (sp[0] + 1) : 'le document') + '.');
+  head.appendChild(go); pane.appendChild(head);
+  const w = el('div', 'src');
+  const flashSp = S.flash ? SRC.span[S.flash] : null;
+  SRC.L.forEach((t, i) => {
+    const on = sp && i >= sp[0] && i <= sp[1], ins = flashSp && i >= flashSp[0] && i <= flashSp[1];
+    const d = el('div', (on ? (S.sel === 'root' ? 'hl' : 'hl2') : '') + (ins ? ' ins' : ''));
+    d.innerHTML = '<span class="ln">' + (i + 1) + '</span><span>' + fmt(t) + '</span>';
+    d.onclick = () => select(ownerOf(i), true);
+    w.appendChild(d);
+  });
+  pane.appendChild(w);
+  const target = flashSp || (sp && S.sel !== 'root' ? sp : null);
+  if (target) pane.scrollTop = Math.max(0, w.children[target[0]].offsetTop - 70);
+}
+function renderPane() {
+  const pane = $('pane'), keep = pane.scrollTop; pane.replaceChildren();
+  document.querySelectorAll('#tabs button').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === S.tab)));
+  $('nProbs').textContent = S.probs.length; $('nProbs').hidden = !S.probs.length;
+  ({tree:renderTree, attrs:renderAttrs, probs:renderProbs, src:renderSrc})[S.tab](pane);
+  if (S.tab !== 'src') pane.scrollTop = keep;
+}
+function select(rid, reveal) { S.sel = rid; redraw(); renderCrumb(); renderPane(); updateEditBar(); if (reveal) revealSel(); }
+function applySheet() {
+  $('sheet').classList.toggle('open', S.open);
+  $('grab').setAttribute('aria-expanded', String(S.open));
+  const h = (S.open ? SHEET_OPEN : 72) + 10;
+  $('status').style.bottom = h + 'px'; $('zoom').style.bottom = h + 'px';
+  if (S.autofit) fit();
+  placeBubble();
+}
+
+/* ---------- Pastille d'état, bandeau, toast ---------- */
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
+function renderStatus() {
+  const st = $('status'), bn = $('banner'), n = nodes().length + 1;
+  st.className = 'hud status' + (S.sim === 'edit' ? ' edit' : S.sim ? ' err' : '');
+  st.innerHTML = '<span class="dot"></span>' + (
+    S.sim === 'edit' ? '<b>XML en cours de frappe</b> · dernier rendu conservé' :
+    S.sim === 'err' ? '<b>Dernier rendu valide</b> conservé' :
+    S.sim === 'crash' ? '<b>Mode local dégradé</b> · processus :preview arrêté' :
+    '<b>Rendu</b> · <span title="Valeur d’exemple dans la maquette">142 ms</span> · ' + n + ' vues · ' + S.W + '×' + S.H + ' dp');
+  bn.hidden = !(S.sim === 'err' || S.sim === 'crash');
+  if (S.sim === 'err') {
+    const ln = SRC.span.btn_connexion ? SRC.span.btn_connexion[0] + 1 : 1;
+    bn.innerHTML = '<div class="msg clip" id="bmsg"><b>Erreur de rendu</b> · Classe introuvable : com.exemple.CarteProfil. Vérifiez le nom de la classe et la dépendance du module.</div><button type="button" id="bGo">Ligne ' + ln + '</button><button type="button" id="bMore">Détails</button>';
+    $('bGo').onclick = () => { S.open = true; S.tab = 'src'; applySheet(); select('btn_connexion', true); };
+    $('bMore').onclick = () => { const m = $('bmsg'); const c = m.classList.toggle('clip'); $('bMore').textContent = c ? 'Détails' : 'Réduire'; };
+  } else if (S.sim === 'crash') {
+    bn.innerHTML = '<div class="msg"><b>Le processus :preview a cessé de répondre.</b> Le rendu passe en local, plus lent. Une reprise automatique a déjà eu lieu.</div><button type="button" id="bRetry">Réessayer</button>';
+    $('bRetry').onclick = () => { S.sim = null; renderStatus(); };
+  }
+  updateEditBar();
+  if (S.autofit) fit();
+}
+
+/* ---------- Menus de la barre ---------- */
+function opt(label2, sub, checked, role, fn, tagHtml) {
+  const o = el('button', 'opt'); o.type = 'button'; o.setAttribute('role', role); o.setAttribute('aria-checked', String(!!checked));
+  const g = el('div', 'grow'); g.innerHTML = esc(label2) + (sub ? '<small>' + esc(sub) + '</small>' : ''); o.appendChild(g);
+  if (tagHtml) o.insertAdjacentHTML('beforeend', tagHtml);
+  if (role === 'menuitemcheckbox') o.appendChild(el('span', 'sw'));
+  o.onclick = () => fn(o); return o;
+}
+function hidePop() {
+  const wasPlace = S.pop === 'place';
+  S.pop = null; S.place = null; $('pop').hidden = true; $('pop').className = 'pop';
+  ['chDevice', 'chLayers', 'btnMore', 'bubble'].forEach(i => $(i).setAttribute('aria-expanded', 'false'));
+  if (S.dropView && !S.drag) { S.dropView = null; redraw(); }
+  if (wasPlace) { S.autofit = true; fit(); }
+}
+function showPop(kind, openerId) {
+  if (S.pop === kind) { hidePop(); return; }
+  hidePop(); S.pop = kind; const pop = $('pop'); pop.replaceChildren(); $(openerId).setAttribute('aria-expanded', 'true');
+  const h4 = t => pop.appendChild(el('h4', '', t));
+  if (kind === 'device') {
+    h4('Appareil');
+    DEVICES.forEach((d, i) => pop.appendChild(opt(d.name, d.w + '×' + d.h + ' dp · ' + d.dpi + ' dpi', i === S.dev, 'menuitemradio',
+      () => { S.dev = i; S.autofit = true; hidePop(); render(); }, '<span class="tag ' + (d.old ? 'old">Existant' : 'new">Nouveau') + '</span>')));
+  } else if (kind === 'layers') {
+    h4('Calques');
+    [['par', 'Parent et frères'], ['mg', 'Marges et padding'], ['con', 'Contraintes'], ['prob', 'Problèmes'], ['bnd', 'Bornes de toutes les vues'], ['grid', 'Grille 8 dp']].forEach(a =>
+      pop.appendChild(opt(a[1], '', S.layers[a[0]], 'menuitemcheckbox', o => { S.layers[a[0]] = !S.layers[a[0]]; o.setAttribute('aria-checked', String(S.layers[a[0]])); render(); })));
+    h4('Chrome système');
+    pop.appendChild(opt('Barre de navigation', '', S.nav, 'menuitemcheckbox', o => { S.nav = !S.nav; o.setAttribute('aria-checked', String(S.nav)); render(); }));
+  } else {
+    h4('Simuler un état du panneau');
+    [['err', 'Erreur de rendu', 'Classe introuvable, dernier rendu conservé'], ['edit', 'Frappe en cours', 'XML malformé, aucun rendu remplacé'],
+     ['crash', 'Processus :preview arrêté', 'Repli en rendu local'], [null, 'Rendu normal', '']].forEach(a =>
+      pop.appendChild(opt(a[1], a[2], S.sim === a[0], 'menuitemradio', () => { S.sim = a[0]; hidePop(); renderStatus(); })));
+  }
+  pop.hidden = false;
+}
+
+/* ---------- Zoom, déplacement, sélection au toucher ---------- */
+let lastZ = -1;
+function applyT() {
+  const w = $('world');
+  w.style.transform = 'translate(' + S.tx + 'px,' + S.ty + 'px) scale(' + S.z + ')';
+  w.style.setProperty('--z', S.z);
+  $('zPct').textContent = Math.round(S.z * 100) + '%';
+  if (S.z !== lastZ) { lastZ = S.z; redraw(); }
+}
+function fit() {
+  const cv = $('canvas'), w = $('world'), cw = cv.clientWidth, ch = cv.clientHeight, ww = w.offsetWidth, wh = w.offsetHeight;
+  if (!ww || !wh || !cw) return;
+  const top = (S.sim === 'err' || S.sim === 'crash') ? 62 : 56, bottom = ch - (S.open ? SHEET_OPEN : 72) - 10, uw = cw - 24, uh = bottom - top - 8;
+  let z = Math.min(uw / ww, uh / wh, 1.4);
+  if (S.open) z = Math.max(z, Math.min(uw / ww, .5));
+  z = Math.max(0.08, z); S.z = z; S.tx = (cw - ww * z) / 2;
+  const q = S.sel && S.b[S.sel];
+  if (wh * z <= uh) S.ty = top + (uh - wh * z) / 2;
+  else { const ty = q ? top + uh / 2 - (26 + q.y + q.h / 2) * z : top; S.ty = Math.min(top, Math.max(top + uh - wh * z, ty)); }
+  applyT();
+}
+function revealSel() {
+  const q = S.sel && S.b[S.sel]; if (!q) return;
+  const ch = $('canvas').clientHeight, top = 56, bottom = ch - (S.open ? SHEET_OPEN : 72) - 10;
+  const y0 = S.ty + (26 + q.y) * S.z, y1 = S.ty + (26 + q.y + q.h) * S.z;
+  if (y0 < top || y1 > bottom) { S.ty += (top + bottom) / 2 - (y0 + y1) / 2; S.autofit = false; applyT(); }
+}
+function zoomAt(cx, cy, f) {
+  const r = $('canvas').getBoundingClientRect(), px = cx - r.left, py = cy - r.top, nz = Math.max(0.1, Math.min(6, S.z * f));
+  S.tx = px - (px - S.tx) * (nz / S.z); S.ty = py - (py - S.ty) * (nz / S.z); S.z = nz; S.autofit = false; applyT();
+}
+/* point écran -> coordonnées de l'écran rendu (dp) ; null hors du rendu */
+function toDesign(cx, cy) {
+  const bd = S.boards[0]; if (!bd) return null;
+  const sr = bd.sc.getBoundingClientRect(), r = sr.width / bd.sc.offsetWidth;
+  const sh = $('sheet').getBoundingClientRect(), cv = $('canvas').getBoundingClientRect();
+  if (cx < cv.left || cx > cv.right || cy < cv.top || cy > Math.min(cv.bottom, sh.top)) return null;
+  const x = (cx - sr.left) / r, y = (cy - sr.top) / r;
+  return x < 0 || y < 0 || x > S.W || y > S.H ? null : {x, y};
+}
+function hit(cx, cy) {
+  const d = toDesign(cx, cy); if (!d) return {};
+  const x = d.x, y = d.y;
+  if (S.layers.prob) {
+    for (const p of S.probs) { const q = S.b[p.rid]; if (q && Math.hypot(x - (q.x + q.w), y - q.y) < 14 / S.z) return {rid:p.rid, pin:true}; }
+  }
+  let best = null;
+  nodes().forEach(v => { const q = S.b[v.rid]; if (q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h) best = v.rid; });
+  if (best) return {rid:best};
+  const q = S.b.root;
+  if (q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h) return {rid:'root'};
+  return {chrome:true};
+}
+function bindCanvas() {
+  const cv = $('canvas'), pts = new Map(); let moved = 0, t0 = 0, pinch = 0, lastTap = {t:0, x:0, y:0};
+  const span = () => { const a = [...pts.values()]; return {d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2}; };
+  cv.addEventListener('pointerdown', e => {
+    if (e.target.closest('.hud button, .banner, .bubble')) return;
+    cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if (pts.size === 1) { moved = 0; t0 = Date.now(); } else if (pts.size === 2) pinch = span().d;
+    cv.classList.add('drag');
+  });
+  cv.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    if (pts.size === 1) { S.tx += e.clientX - p.x; S.ty += e.clientY - p.y; moved += Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y); S.autofit = false; p.x = e.clientX; p.y = e.clientY; applyT(); }
+    else if (pts.size === 2) { p.x = e.clientX; p.y = e.clientY; const s = span(); if (pinch) zoomAt(s.x, s.y, s.d / pinch); pinch = s.d; moved = 99; }
+  });
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId); pinch = 0;
+    if (pts.size) return;
+    cv.classList.remove('drag');
+    if (e.type !== 'pointerup' || moved > 6 || Date.now() - t0 > 450) return;
+    const now = Date.now();
+    if (now - lastTap.t < 300 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 24) { S.autofit = true; fit(); lastTap.t = 0; return; }
+    lastTap = {t:now, x:e.clientX, y:e.clientY};
+    if (S.pop && S.pop !== 'place') hidePop();
+    const h = hit(e.clientX, e.clientY);
+    if (S.pop === 'place') { if (h.rid && !h.pin) setPlaceRef(h.rid); return; }
+    if (h.pin) { S.open = true; S.tab = 'probs'; applySheet(); select(h.rid); }
+    else if (h.rid) select(h.rid);
+    else if (h.chrome) toast('Barre système : aucune balise XML à sélectionner.');
+    else select(null);
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, {passive:false});
+  const mid = () => { const r = cv.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  $('zIn').onclick = () => zoomAt(...mid(), 1.25);
+  $('zOut').onclick = () => zoomAt(...mid(), 1 / 1.25);
+  $('zPct').onclick = () => { const m = mid(); zoomAt(m[0], m[1], 1 / S.z); };
+  $('zFit').onclick = () => { S.autofit = true; fit(); };
+}
+</script>
+<script>
+/* ---------- Catalogue de la palette ---------- */
+const ICO = {
+  tv:'<path d="M5 7h14M12 7v11M9 18h6"/>',
+  et:'<rect x="4" y="8" width="16" height="8" rx="1.5"/><path d="M8 11v2"/>',
+  til:'<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 12h6"/>',
+  btn:'<rect x="4" y="8" width="16" height="8" rx="4"/>',
+  ib:'<circle cx="12" cy="12" r="7"/><path d="M9 14l2-3 2 2 2-3"/>',
+  cb:'<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
+  sw:'<rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="16" cy="12" r="2.5"/>',
+  llv:'<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 9h8M8 12h8M8 15h8"/>',
+  llh:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9 8v8M12 8v8M15 8v8"/>',
+  card:'<rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16"/>',
+  iv:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 16l5-5 4 4 3-3 4 4"/>',
+  rv:'<rect x="5" y="4" width="14" height="4" rx="1"/><rect x="5" y="10" width="14" height="4" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/>',
+  pb:'<rect x="4" y="10" width="16" height="4" rx="2"/><path d="M4 12h9"/>',
+  sk:'<path d="M4 12h16"/><circle cx="10" cy="12" r="3"/>',
+  dv:'<path d="M4 12h16" stroke-dasharray="2 3"/>',
+  sp:'<path d="M5 9v6M19 9v6M5 12h14"/>'
+};
+const svg = k => '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>';
+const MAT = 'com.google.android.material:material';
+const CATS = ['Texte', 'Boutons', 'Conteneurs', 'Médias', 'Listes', 'Autres'];
+const WIDGETS = [
+  {id:'tv',  name:'TextView',         cls:'TextView',   cat:'Texte',      ico:'tv',  make:() => ({cls:'TextView', k:'T', kind:'text', w:'w', h:'w', size:16, lit:'TextView'})},
+  {id:'et',  name:'Plain Text',       cls:'EditText',   cat:'Texte',      ico:'et',  make:() => ({cls:'EditText', k:'E', kind:'edit', w:'m', h:48, size:16, hint:'Nom', lit:''})},
+  {id:'til', name:'TextInputLayout',  cls:'Material',   cat:'Texte',      ico:'til', dep:MAT, make:() => ({cls:'TextInputLayout', fq:'com.google.android.material.textfield.TextInputLayout', k:'Ti', kind:'field', w:'m', h:56, pad:[16,8,16,8], lit:'Libellé', val:''})},
+  {id:'btn', name:'Button',           cls:'Button',     cat:'Boutons',    ico:'btn', make:() => ({cls:'Button', k:'B', kind:'btn', w:'w', h:48, pad:[24,0,24,0], size:14, lit:'Button', click:true})},
+  {id:'ib',  name:'ImageButton',      cls:'ImageButton',cat:'Boutons',    ico:'ib',  make:() => ({cls:'ImageButton', k:'Ib', kind:'image', w:48, h:48, click:true})},
+  {id:'cb',  name:'CheckBox',         cls:'CheckBox',   cat:'Boutons',    ico:'cb',  make:() => ({cls:'CheckBox', k:'Cb', kind:'check', w:'w', h:48, size:16, lit:'CheckBox', click:true})},
+  {id:'sw',  name:'Switch',           cls:'Switch',     cat:'Boutons',    ico:'sw',  make:() => ({cls:'Switch', k:'Sw', kind:'switch', w:'w', h:48, size:16, lit:'Switch', click:true})},
+  {id:'llv', name:'LinearLayout (V)', cls:'Vertical',   cat:'Conteneurs', ico:'llv', make:() => ({cls:'LinearLayout', k:'Ll', kind:'group', orient:'v', w:'m', h:'w', minH:96, children:[]})},
+  {id:'llh', name:'LinearLayout (H)', cls:'Horizontal', cat:'Conteneurs', ico:'llh', make:() => ({cls:'LinearLayout', k:'Ll', kind:'group', orient:'h', w:'m', h:'w', minH:96, children:[]})},
+  {id:'card',name:'MaterialCardView', cls:'Material',   cat:'Conteneurs', ico:'card',dep:MAT, make:() => ({cls:'MaterialCardView', fq:'com.google.android.material.card.MaterialCardView', k:'Cv', kind:'group', card:true, orient:'v', w:'m', h:'w', minH:96, pad:[16,16,16,16], children:[]})},
+  {id:'iv',  name:'ImageView',        cls:'ImageView',  cat:'Médias',     ico:'iv',  make:() => ({cls:'ImageView', k:'I', kind:'image', w:96, h:96})},
+  {id:'rv',  name:'RecyclerView',     cls:'AndroidX',   cat:'Listes',     ico:'rv',  dep:'androidx.recyclerview:recyclerview', missing:true,
+    make:() => ({cls:'RecyclerView', fq:'androidx.recyclerview.widget.RecyclerView', k:'Rv', kind:'recycler', w:'m', h:160, mock:true, dep:'androidx.recyclerview:recyclerview'})},
+  {id:'pb',  name:'ProgressBar',      cls:'ProgressBar',cat:'Autres',     ico:'pb',  make:() => ({cls:'ProgressBar', k:'P', kind:'progress', w:'m', h:'w', extra:[['style','?android:attr/progressBarStyleHorizontal']]})},
+  {id:'sk',  name:'SeekBar',          cls:'SeekBar',    cat:'Autres',     ico:'sk',  make:() => ({cls:'SeekBar', k:'Sk', kind:'seek', w:'m', h:48})},
+  {id:'dv',  name:'Séparateur',       cls:'View',       cat:'Autres',     ico:'dv',  make:() => ({cls:'View', k:'V', kind:'divider', w:'m', h:1})},
+  {id:'sp',  name:'Space',            cls:'Space',      cat:'Autres',     ico:'sp',  make:() => ({cls:'Space', k:'Sp', kind:'space', w:'m', h:16})}
+];
+const wById = id => WIDGETS.find(w => w.id === id);
+
+/* ---------- Zones de dépôt : cible sous un point, repère d'insertion ---------- */
+function targetAt(x, y) {
+  const rq = S.b.root;
+  if (!rq || x < rq.x || x >= rq.x + rq.w || y < rq.y || y >= rq.y + rq.h) return null;
+  let best = ROOT, bd = 0;
+  flat().forEach(f => {
+    if (!f.n.children) return;
+    const q = S.b[f.n.rid];
+    if (q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h && f.d >= bd) { best = f.n; bd = f.d; }
+  });
+  const horiz = best.orient === 'h'; let idx = 0;
+  best.children.forEach(c => { const q = S.b[c.rid]; if (!q) return; const mid = horiz ? q.x + q.w / 2 : q.y + q.h / 2; if ((horiz ? x : y) > mid) idx++; });
+  return {parentRid: best.rid, index: idx};
+}
+function slotRect(par, i) {
+  const pq = S.b[par.rid], kids = par.children, qs = kids.map(c => S.b[c.rid]), th = 4 / S.z, n = kids.length;
+  if (par.orient !== 'h') {
+    let y;
+    if (!n) y = pq.y + pq.h / 2;
+    else if (i === 0) y = qs[0].y - Math.min(kids[0].mt || 0, 12) / 2;
+    else if (i >= n) y = qs[n-1].y + qs[n-1].h + Math.min(kids[n-1].mb || 0, 8) / 2 + 2;
+    else y = (qs[i-1].y + qs[i-1].h + qs[i].y) / 2;
+    return {x: pq.x + 8, y: y - th / 2, w: Math.max(8, pq.w - 16), h: th};
+  }
+  let x;
+  if (!n) x = pq.x + pq.w / 2;
+  else if (i === 0) x = qs[0].x - Math.min(kids[0].ml || 0, 12) / 2;
+  else if (i >= n) x = qs[n-1].x + qs[n-1].w + 4;
+  else x = (qs[i-1].x + qs[i-1].w + qs[i].x) / 2;
+  return {x: x - th / 2, y: pq.y + 8, w: th, h: Math.max(8, pq.h - 16)};
+}
+function drawDrop(ov, dv) {
+  const z = S.z;
+  flat().forEach(f => { if (!f.n.children) return; const q = S.b[f.n.rid]; if (q) box('dz', q.x, q.y, q.w, q.h, ov); });
+  const t = dv.target; if (!t) return;
+  const par = viewOf(t.parentRid), pq = par && S.b[par.rid]; if (!pq) return;
+  box('dz on', pq.x, pq.y, pq.w, pq.h, ov);
+  chip(ov, 'nw', 'Dans ' + label(par), pq.x, pq.y - 24 / z >= 0 ? pq.y - 24 / z : pq.y + 4 / z);
+  const s = slotRect(par, t.index); box('slot', s.x, s.y, s.w, s.h, ov);
+  chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + (t.index + 1) + '/' + (par.children.length + 1), s.x, s.y + s.h + 6 / z);
+}
+function ensureVisible(y) {
+  const pop = $('pop'); if (pop.hidden) return;
+  const pr = pop.getBoundingClientRect(), cr = $('canvas').getBoundingClientRect(), limit = pr.top - cr.top - 26, sy = S.ty + y * S.z;
+  if (sy > limit) { S.ty -= (sy - limit); S.autofit = false; applyT(); }
+}
+
+/* ---------- Insertion (dans l'application : édition de texte passée à la session) ---------- */
+function insertAt(w, parentRid, index) {
+  const par = viewOf(parentRid); if (!par || !par.children) return;
+  const n = w.make(); n.rid = nextId(n.cls);
+  if (par.rid === 'root') { n.mt = 16; if (n.w === 'm') { n.ml = 24; n.mr = 24; } else n.center = true; }
+  else if (par.orient === 'h' && n.w === 'm') n.w = 'w';
+  pushHist(); par.children.splice(Math.min(index, par.children.length), 0, n);
+  S.recents = [w.id].concat(S.recents.filter(x => x !== w.id)).slice(0, 4); save();
+  S.sel = n.rid; S.flash = n.rid; clearTimeout(insertAt.t);
+  insertAt.t = setTimeout(() => { S.flash = null; if (S.tab === 'src') renderPane(); }, 2600);
+  render(); revealSel();
+  toast(w.name + ' ajouté dans ' + par.cls + (par.rid === 'root' ? '' : ' @+id/' + par.rid) + (n.mock ? '. Dépendance manquante.' : ''));
+}
+
+/* ---------- Placement par popup ---------- */
+function normPos() { const p = S.place, n = viewOf(p.ref); if (p.ref === 'root') p.pos = 'in'; else if (!n.children && p.pos === 'in') p.pos = 'after'; }
+function placeTarget() {
+  const p = S.place, f = find(p.ref);
+  if (p.pos === 'in') return {parentRid: p.ref, index: f.n.children.length};
+  const i = f.p.children.indexOf(f.n); return {parentRid: f.p.rid, index: p.pos === 'before' ? i : i + 1};
+}
+function setPlaceRef(rid) {
+  if (!S.place) return; const n = viewOf(rid); if (!n) return;
+  S.place.ref = rid; if (n.children) S.place.pos = 'in'; drawPlace();
+}
+function showPlace(w) {
+  hidePop(); S.pop = 'place'; $('pop').className = 'pop bot'; $('pop').hidden = false;
+  const ref = S.sel && find(S.sel) ? S.sel : 'root';
+  S.place = {w, ref, pos: viewOf(ref).children ? 'in' : 'after'}; drawPlace();
+}
+function drawPlace() {
+  normPos();
+  const pop = $('pop'), old = pop.querySelector('.mini'), keep = old ? old.scrollTop : 0; pop.replaceChildren();
+  const p = S.place, w = p.w, refN = viewOf(p.ref);
+  const hd = el('div', 'ph-head'); hd.appendChild(el('b', '', 'Où placer ' + w.name + ' ?'));
+  const x = el('button', 'ib'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.onclick = hidePop; hd.appendChild(x);
+  const mini = el('div', 'mini'); mini.setAttribute('aria-label', 'Vue de référence');
+  flat().forEach(f => {
+    const r = el('button', 'row' + (f.n.rid === p.ref ? ' on' : '')); r.type = 'button'; r.style.paddingLeft = (8 + f.d * 16) + 'px';
+    r.append(el('span', 'k', f.n.k), el('span', '', f.n.cls), el('span', 'id', '@+id/' + f.n.rid)); r.onclick = () => setPlaceRef(f.n.rid); mini.appendChild(r);
+  });
+  const pos = el('div', 'pos'); pos.setAttribute('role', 'radiogroup'); pos.setAttribute('aria-label', 'Position par rapport à la vue de référence');
+  [['before', 'Avant'], ['in', 'Dedans'], ['after', 'Après']].forEach(([m, t]) => {
+    const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(p.pos === m));
+    b.disabled = (m === 'in' && !refN.children) || (m !== 'in' && p.ref === 'root');
+    b.onclick = () => { p.pos = m; drawPlace(); }; pos.appendChild(b);
+  });
+  const t = placeTarget(), par = viewOf(t.parentRid);
+  const res = el('div', 'res'); res.innerHTML = 'Dans <b>' + esc(label(par)) + '</b>, position <b>' + (t.index + 1) + '</b> sur ' + (par.children.length + 1);
+  const ok = el('button', 'prim', 'Placer ici'); ok.type = 'button';
+  ok.onclick = () => { const tt = placeTarget(); hidePop(); insertAt(w, tt.parentRid, tt.index); };
+  pop.append(hd, mini, pos, res, ok); mini.scrollTop = keep;
+  const cur = mini.querySelector('.row.on'); if (cur) mini.scrollTop = Math.max(0, cur.offsetTop - mini.clientHeight / 2 + cur.offsetHeight / 2);
+  S.dropView = {w, target: t}; redraw();
+  const s = slotRect(par, t.index); ensureVisible(s.y + s.h / 2);
+}
+
+/* ---------- Palette ---------- */
+function save() { try { localStorage.setItem('codeide.preview.v2', JSON.stringify({palMode:S.palMode, bub:S.bub, recents:S.recents})); } catch (_) {} }
+function load() {
+  try {
+    const j = JSON.parse(localStorage.getItem('codeide.preview.v2') || 'null'); if (!j) return;
+    if (j.palMode === 'drag' || j.palMode === 'tap') S.palMode = j.palMode;
+    if (j.bub && (j.bub.side === 'l' || j.bub.side === 'r')) S.bub = {side:j.bub.side, y:Math.min(1, Math.max(0, +j.bub.y || .42)), fixed:!!j.bub.fixed};
+    if (Array.isArray(j.recents)) S.recents = j.recents.filter(wById).slice(0, 4);
+  } catch (_) {}
+}
+function depTag(w) {
+  if (w.missing) return '<span class="tag wr">dépendance absente</span>';
+  return w.dep ? '<span class="tag old">Material</span>' : '';
+}
+function tile(w) {
+  const b = el('button', 'tile' + (S.palMode === 'tap' ? ' tapmode' : '')); b.type = 'button';
+  b.innerHTML = svg(w.ico) + '<b>' + esc(w.name) + '</b><small>' + esc(w.cls) + '</small>' + depTag(w);
+  b.onpointerdown = e => startTileDrag(e, w);
+  b.onclick = e => {
+    if (S.justDragged) return;
+    if (S.palMode === 'tap' || e.detail === 0) showPlace(w);
+    else toast('Maintenez et glissez le widget sur l’aperçu, ou choisissez « Placer par popup ».');
+  };
+  return b;
+}
+function fillGrid() {
+  const g = $('tiles'); g.replaceChildren();
+  const q = S.palQ.trim().toLowerCase();
+  const list = WIDGETS.filter(w => (S.palCat === 'Tous' || w.cat === S.palCat) && (!q || (w.name + ' ' + w.cls).toLowerCase().includes(q)));
+  const rec = (!q && S.palCat === 'Tous') ? S.recents.map(wById).filter(Boolean) : [];
+  if (rec.length) { g.appendChild(el('div', 'sub', 'Récents')); rec.forEach(w => g.appendChild(tile(w))); g.appendChild(el('div', 'sub', 'Tous les widgets')); }
+  if (!list.length) { const p = el('p', 'empty', 'Aucun widget ne correspond à « ' + S.palQ + ' ».'); p.style.gridColumn = '1/-1'; g.appendChild(p); }
+  list.forEach(w => g.appendChild(tile(w)));
+}
+function showPalette() {
+  if (S.pop === 'pal') { hidePop(); return; }
+  hidePop(); S.pop = 'pal'; $('bubble').setAttribute('aria-expanded', 'true');
+  const pop = $('pop'); pop.className = 'pop pal'; pop.replaceChildren(); pop.hidden = false;
+  const hd = el('div', 'ph-head'); hd.appendChild(el('b', '', 'Palette'));
+  const pin = el('button', 'chip'); pin.type = 'button';
+  const pinUp = () => { pin.textContent = S.bub.fixed ? 'Bulle fixe' : 'Bulle flottante'; pin.setAttribute('aria-pressed', String(S.bub.fixed)); };
+  pinUp(); pin.onclick = () => { S.bub.fixed = !S.bub.fixed; save(); pinUp(); placeBubble(); toast(S.bub.fixed ? 'Bulle fixée à gauche.' : 'Bulle flottante : glissez-la sur un bord.'); };
+  const x = el('button', 'ib'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer la palette'); x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.onclick = hidePop;
+  hd.append(pin, x);
+  const mode = el('div', 'mode'); mode.setAttribute('role', 'radiogroup'); mode.setAttribute('aria-label', 'Mode d’insertion');
+  [['drag', 'Glisser-déposer', 'Maintenez, lâchez sur l’aperçu'], ['tap', 'Placer par popup', 'Touchez, puis choisissez où']].forEach(([m, t, d]) => {
+    const b = el('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(S.palMode === m));
+    b.innerHTML = '<span>' + t + '</span><small>' + d + '</small>';
+    b.onclick = () => { S.palMode = m; save(); mode.querySelectorAll('button').forEach(o => o.setAttribute('aria-checked', String(o === b))); fillGrid(); };
+    mode.appendChild(b);
+  });
+  const q = el('input', 'search'); q.type = 'search'; q.id = 'palQ'; q.placeholder = 'Rechercher un widget'; q.value = S.palQ; q.setAttribute('aria-label', 'Rechercher un widget');
+  q.oninput = () => { S.palQ = q.value; fillGrid(); };
+  const cats = el('div', 'cats');
+  ['Tous'].concat(CATS).forEach(c => {
+    const b = el('button', 'chip', c); b.type = 'button'; b.setAttribute('aria-pressed', String(S.palCat === c));
+    b.onclick = () => { S.palCat = c; cats.querySelectorAll('.chip').forEach(o => o.setAttribute('aria-pressed', String(o === b))); fillGrid(); };
+    cats.appendChild(b);
+  });
+  const grid = el('div', 'tiles'); grid.id = 'tiles';
+  pop.append(hd, mode, q, cats, grid); fillGrid();
+}
+
+/* ---------- Glisser depuis la palette ---------- */
+function startTileDrag(e, w) {
+  if (S.palMode !== 'drag' || e.button > 0) return;
+  const id = e.pointerId, touch = e.pointerType !== 'mouse', sx = e.clientX, sy = e.clientY, cur = {x:sx, y:sy};
+  let started = false, timer = 0;
+  const cleanup = () => { clearTimeout(timer); document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up); };
+  const begin = () => { started = true; beginDrag(w, cur.x, cur.y); };
+  const mv = ev => {
+    if (ev.pointerId !== id) return; cur.x = ev.clientX; cur.y = ev.clientY;
+    if (started) { moveDrag(cur.x, cur.y); return; }
+    if (Math.hypot(cur.x - sx, cur.y - sy) > (touch ? 10 : 5)) { if (touch) cleanup(); else begin(); }
+  };
+  const up = ev => { if (ev.pointerId !== id) return; cleanup(); if (started) endDrag(cur.x, cur.y, ev.type === 'pointerup'); };
+  document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+  if (touch) timer = setTimeout(begin, 220);
+}
+function beginDrag(w, x, y) {
+  S.drag = {w, key:''}; S.dropView = {w, target:null};
+  $('pop').style.visibility = 'hidden'; $('phone').classList.add('dragging');
+  const g = el('div', 'ghost'); g.id = 'ghost'; g.innerHTML = svg(w.ico) + '<span>' + esc(w.name) + '</span><small id="ghostT"></small>'; document.body.appendChild(g);
+  moveDrag(x, y);
+}
+function moveDrag(x, y) {
+  if (!S.drag) return;
+  const g = $('ghost'); g.style.left = x + 'px'; g.style.top = y + 'px';
+  const d = toDesign(x, y), t = d ? targetAt(d.x, d.y) : null, key = t ? t.parentRid + ':' + t.index : '';
+  $('ghostT').textContent = t ? '→ ' + viewOf(t.parentRid).cls : '';
+  if (key === S.drag.key) return;
+  S.drag.key = key; S.dropView.target = t; redraw();
+}
+function endDrag(x, y, ok) {
+  if (!S.drag) return;
+  const w = S.drag.w, t = S.dropView && S.dropView.target;
+  const g = $('ghost'); if (g) g.remove();
+  $('phone').classList.remove('dragging'); $('pop').style.visibility = '';
+  S.drag = null; S.dropView = null; S.justDragged = true; setTimeout(() => { S.justDragged = false; }, 120);
+  hidePop();
+  if (ok && t) insertAt(w, t.parentRid, t.index); else { redraw(); toast('Dépôt annulé : relâchez sur l’écran de l’aperçu.'); }
+}
+document.addEventListener('touchmove', e => { if (S.drag) e.preventDefault(); }, {passive:false});
+
+/* ---------- Bulle flottante ou fixe ---------- */
+function placeBubble() {
+  const b = $('bubble'), cv = $('canvas'), cw = cv.clientWidth, ch = cv.clientHeight; if (!cw || !b) return;
+  const sh = (S.open ? SHEET_OPEN : 72) + 10, left = S.bub.side === 'l', lo = 64, hi = Math.max(lo, ch - sh - (left ? 90 : 170)), y = S.bub.fixed ? .42 : S.bub.y;
+  b.style.top = (lo + y * (hi - lo)) + 'px'; b.style.left = left ? '10px' : 'auto'; b.style.right = left ? 'auto' : '10px';
+  b.classList.toggle('fixed', S.bub.fixed);
+}
+function bindBubble() {
+  const b = $('bubble'); let st = null;
+  b.addEventListener('pointerdown', e => { if (S.bub.fixed) return; st = {x:e.clientX, y:e.clientY, l:b.offsetLeft, t:b.offsetTop, moved:false}; b.setPointerCapture(e.pointerId); });
+  b.addEventListener('pointermove', e => {
+    if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    if (!st.moved && Math.hypot(dx, dy) > 6) { st.moved = true; b.classList.add('moving'); b.style.right = 'auto'; }
+    if (st.moved) { b.style.left = (st.l + dx) + 'px'; b.style.top = (st.t + dy) + 'px'; }
+  });
+  const end = e => {
+    if (!st) return; const s = st; st = null; b.classList.remove('moving');
+    if (s.moved) {
+      const cv = $('canvas'), cw = cv.clientWidth, ch = cv.clientHeight, sh = (S.open ? SHEET_OPEN : 72) + 10;
+      S.bub.side = b.offsetLeft + 25 < cw / 2 ? 'l' : 'r';
+      const lo = 64, hi = Math.max(lo, ch - sh - (S.bub.side === 'l' ? 90 : 170));
+      S.bub.y = Math.min(1, Math.max(0, (b.offsetTop - lo) / (hi - lo))); save(); placeBubble();
+    } else if (e.type === 'pointerup') showPalette();
+  };
+  b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end);
+  b.addEventListener('click', e => { if (S.bub.fixed || e.detail === 0) showPalette(); });
+}
+
+/* ---------- Assemblage ---------- */
+function buildBoards() {
+  const w = $('world'); w.replaceChildren(); S.boards = []; lastZ = -1;
+  const d = dim(); S.W = d.w; S.H = d.h; w.style.padding = '26px 20px 0';
+  (S.mode === 'design' ? [false] : S.mode === 'bp' ? [true] : [false, true]).forEach(bp => {
+    const bd = el('div', 'board'); bd.appendChild(el('span', 'cap', bp ? 'Plan' : 'Design · ' + DEVICES[S.dev].name));
+    const sc = buildScreen(bp), ov = el('div', 'ov'); bd.append(sc, ov); w.appendChild(bd);
+    S.boards.push({bd, sc, ov, bp});
+  });
+  const m = measure(S.boards[0].sc); S.b = m.b; S.chrome = m.chrome; S.probs = computeProblems(m.trunc);
+}
+function updateChips() {
+  const d = DEVICES[S.dev], f = String(S.fs).replace('.', ',');
+  $('lblDevice').textContent = d.name; $('ttlProfile').textContent = d.name;
+  $('lblOrient').textContent = S.land ? 'Paysage' : 'Portrait'; $('chOrient').setAttribute('aria-pressed', String(S.land));
+  $('lblNight').textContent = S.night ? 'Nuit' : 'Jour'; $('chNight').setAttribute('aria-pressed', String(S.night));
+  $('lblLang').textContent = 'Langue : ' + (S.lang ? S.lang.toUpperCase() : 'défaut'); $('chLang').setAttribute('aria-pressed', String(!!S.lang));
+  $('lblFont').textContent = 'Police ×' + f; $('chFont').setAttribute('aria-pressed', String(S.fs !== 1));
+  document.querySelectorAll('#segMode button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === S.mode)));
+}
+function render() {
+  buildSrc(); buildBoards(); updateChips();
+  if (S.autofit) fit(); else applyT();
+  renderCrumb(); renderPane(); renderStatus(); applySheet();
+}
+function init() {
+  load(); bindCanvas(); bindBubble();
+  $('segMode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.mode = b.dataset.mode; S.autofit = true; render(); });
+  $('chDevice').onclick = () => showPop('device', 'chDevice');
+  $('chLayers').onclick = () => showPop('layers', 'chLayers');
+  $('btnMore').onclick = () => showPop('more', 'btnMore');
+  $('chOrient').onclick = () => { S.land = !S.land; S.autofit = true; render(); };
+  $('chNight').onclick = () => { S.night = !S.night; render(); };
+  $('chLang').onclick = () => { S.lang = S.lang === null ? 'fr' : S.lang === 'fr' ? 'en' : null; render(); };
+  $('chFont').onclick = () => { S.fs = S.fs === 1 ? 1.3 : S.fs === 1.3 ? 2 : 1; render(); };
+  $('btnClose').onclick = () => toast('Dans l’application : retour à l’éditeur, qui est resté dans la pile.');
+  $('eUndo').onclick = undo; $('eRedo').onclick = redoOp; $('eDup').onclick = dupSel; $('eDel').onclick = delSel;
+  $('grab').onclick = () => { S.open = !S.open; applySheet(); };
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; if (!S.open) { S.open = true; applySheet(); } renderPane(); });
+  document.addEventListener('pointerdown', e => { if (S.pop && S.pop !== 'place' && !S.drag && !e.target.closest('#pop, #chDevice, #chLayers, #btnMore, #bubble')) hidePop(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (S.drag) endDrag(0, 0, false); else if (S.pop) hidePop();
+  });
+  if (window.ResizeObserver) new ResizeObserver(() => { if (S.autofit) fit(); placeBubble(); }).observe($('canvas'));
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+}
+init();
+</script>
