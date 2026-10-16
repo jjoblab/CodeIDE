@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## [0.134.22] – 2026-10-16
+
+### Corrigé
+
+- **CI** : `PariteCorpusDepotTest` rouge sur v0.134.21 (main + tag) — la
+  baseline de parité du corpus (`lsp/kotlin/src/test/resources/parite/
+  digeste-corpus.txt`) avait été régénérée depuis un état de travail
+  périmé : des sources `.kt` ont encore bougé APRÈS la régénération
+  (finitions du lot PE6-0/PE6a), donc le digeste commité (`d0d7f33a…`)
+  ne correspondait pas à l'arbre livré (CI : `3f9bbb74…`, reproduction
+  locale exacte sur l'arbre propre `368a04ea`). Même nombre de fichiers
+  (984 — la divergence portait sur la forme d'un ou plusieurs arbres,
+  pas sur l'inventaire). Régénération délibérée sur l'arbre propre
+  (`-Dparite.majBase=true`), contre-vérification SANS flag (vert, 174
+  tests) ; diff de baseline revu (une seule ligne modifiée). Leçon
+  consignée : la contre-vérification digeste doit être LA DERNIÈRE
+  étape locale avant commit — jamais avant les finitions de code.
+
 ## [0.134.21] – 2026-10-16
 
 ### Ajouté
