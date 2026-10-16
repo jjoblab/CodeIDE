@@ -1,5 +1,45 @@
 # Journal des modifications
 
+## [0.134.31] – 2026-10-16
+
+### Corrigé
+
+- **Previews — crash NPE de la feuille d'aperçu** (rapport
+  c8f6ffeb, 0.134.30, `FeuilleApercuFragment.majAttributs:308`) :
+  `removeAllViews` sur un panneau dont un contrôle éditable
+  (EditText de la section MODIFIER) tenait le focus lançait la
+  recherche d'un SUCCESSEUR au focus AU MILIEU de la suppression
+  (`removeAllViewsInLayout` → `rootViewRequestFocus` → `FocusFinder`
+  → `addFocusables` lit un enfant déjà null — NPE `mViewFlags`) ;
+  nouveau protocole `viderConteneur` : le focus est RETIRÉ d'abord,
+  la descente de focus est BLOQUÉE pendant la suppression
+  (`FOCUS_BLOCK_DESCENDANTS`), puis rétablie — appliqué aux QUATRE
+  conteneurs reconstruits (arbre, attributs, problèmes, source).
+- **Previews — `@color/…` jamais rendu avec la couleur du projet**
+  (journal « res=null ») — DEUX causes corrigées :
+  - `uriProjet` n'était posé QUE par le suivi du changement de projet
+    (`EditorViewModel.suivre`) : toute session de document née APRÈS
+    l'arrivée du projet restait à `null` POUR TOUJOURS → l'aperçu
+    résolvait `res/` à null. La valeur d'ORIGINE vient désormais du
+    CONSTRUCTEUR (`SessionSuivie`/`SourceApercuSession` — les 3 sites
+    de création portent le projet suivi courant) ; `suivre` reste
+    l'écouteur des relocalisations.
+  - le dossier `res/` était DEVINÉ `<racine>/res` — faux pour les
+    modèles (`app/src/main/res`) ; il est DÉRIVÉ du chemin relatif du
+    layout édité (`…/res/<famille>/f.xml` → `…/res`, même vérité que
+    l'extraction PE8c) avec repli sur les candidats standards ;
+    et le PREMIER rendu partant AVANT la résolution FUSE, un
+    RE-RENDU immédiat suit la résolution (sinon la couleur n'arrive
+    qu'à la prochaine frappe).
+
+### Ajouté
+
+- **Previews — PE9 noté** (PREVIEW.md §3.4, « à séquencer ») : refonte
+  du panneau d'aperçu en layouts XML RÉELS (volets, fiches
+  d'attributs, bulle/palette/popup) au lieu des vues construites
+  programmatiquement — retour propriétaire « le design ne ressemble
+  pas à la maquette ».
+
 ## [0.134.30] – 2026-10-16
 
 ### Ajouté
