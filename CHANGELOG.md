@@ -1,5 +1,31 @@
 # Journal des modifications
 
+## [0.134.30] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE8c : extraction en ressource** (le troisième « à
+  prévoir » du prompt PE7e § 3) :
+  - **`ExtractionRessource`** (`:preview:xml`, pures) : le LITTÉRAL de
+    la vue sélectionnée devient `@string/nom` ([extraire] — remplacement
+    de la valeur seule, le `@` initial reste une référence grâce à la
+    nouvelle `EditionAttributsXml.definirReference`, sans l'échappement
+    des littéraux) et l'entrée `<string name="nom">…</string>` rejoint
+    le fichier de valeurs ([entreeStrings] — indentation détectée,
+    échappement Android/XML : `&` `<` `'` `"` et `\n`) ;
+  - le nom suit la CONVENTION minuscule (`[a-z][a-z0-9_]*`) et se
+    PRÉ-REMPLIT par un pliage du littéral (`nomPropose` — accents en
+    underscores, chiffre initial préfixé) ;
+  - **onglet Attributs** : sous les champs `text`/`hint`/
+    `contentDescription` littéraux, le bouton « Extraire en ressource »
+    révèle le champ nommé + « Extraire » — offert SEULEMENT quand la
+    session `res/values/strings.xml` du même projet est ouverte (le
+    registre ne connaît que les documents ouverts) ; `Aucune
+    référence orpheline` : l'ENTRÉE part d'abord, la référence ensuite ;
+    deux documents = deux entrées d'historique (documenté) ;
+  - **7 tests** (`ExtractionRessourceTest`, les deux documents vérifiés
+    par application).
+
 ## [0.134.29] – 2026-10-16
 
 ### Ajouté

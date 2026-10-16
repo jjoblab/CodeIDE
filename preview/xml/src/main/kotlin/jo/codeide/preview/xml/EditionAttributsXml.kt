@@ -219,7 +219,29 @@ public object EditionAttributsXml {
         span: InsertionXml.SpanParent,
         nom: String,
         valeur: String,
+    ): EditionAttributsXmlResultat? = definirInterne(texte, span, nom, valeur, echappee = true)
+
+    /**
+     * DÉFINIT une RÉFÉRENCE (`@string/x`, `@color/y`… — PE8c) : identique
+     * à [definir] SANS l'échappement des littéraux — le `@` initial reste
+     * une référence au lieu d'être neutralisé en `\@`.
+     */
+    public fun definirReference(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        nom: String,
+        valeur: String,
+    ): EditionAttributsXmlResultat? = definirInterne(texte, span, nom, valeur, echappee = false)
+
+    /** Le CORPS commun de [definir]/[definirReference] (échappement au choix). */
+    private fun definirInterne(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        nom: String,
+        valeur: String,
+        echappee: Boolean,
     ): EditionAttributsXmlResultat? {
+        val valeurFinale = if (echappee) echapper(valeur) else valeur
         val localise = localiser(texte, span) ?: return null
         val balise = texte.substring(localise.debut, localise.chevron + 1)
         val attrs = analyserAttributs(balise, localise.debut)
@@ -235,11 +257,11 @@ public object EditionAttributsXml {
 
             existant != null -> {
                 if (valeur == existant.valeur) return null
-                remplacerValeur(balise, localise, existant, echapper(valeur))
+                remplacerValeur(balise, localise, existant, valeurFinale)
             }
 
             else -> {
-                ajouterAttribut(texte, localise, nom, echapper(valeur), attrs)
+                ajouterAttribut(texte, localise, nom, valeurFinale, attrs)
             }
         }
     }

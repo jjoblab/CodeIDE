@@ -18,6 +18,7 @@ import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.ClassificateurPreview
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
@@ -505,6 +506,72 @@ public class PreviewViewModel
             editerSelection { rendu, span ->
                 EditionAttributsXml.ecrireContrainte(rendu, span, cote, cible, margeDp)
             }
+
+        /**
+         * La session strings.xml OUVERTE du même projet (PE8c — le
+         * registre ne connaît que les documents OUVERTS) : même racine
+         * projet, chemin `res/values/strings.xml` dérivé de celui du
+         * layout édité. `null` = fermée (l'extraction est masquée).
+         */
+        private fun sourceStringsOuverte(): SourceApercu? {
+            val courant = source ?: return null
+            val projet = courant.uriProjet ?: return null
+            val cheminStrings = cheminStringsDe(courant.cheminRelatif) ?: return null
+            return registre.sources().firstOrNull {
+                it.uriProjet == projet && it.cheminRelatif == cheminStrings
+            }
+        }
+
+        /** `…/res/<qualifier>/x.xml` → `…/res/values/strings.xml` (même arbre res). */
+        private fun cheminStringsDe(chemin: String): String? {
+            val marqueur = "/res/"
+            val debut = chemin.indexOf(marqueur)
+            if (debut < 0) return null
+            return chemin.substring(0, debut + marqueur.length) + "values/strings.xml"
+        }
+
+        /**
+         * L'EXTRACTION est POSSIBLE (PE8c) : le littéral courant est
+         * éditable (non vide, pas déjà une référence) ET la session
+         * strings.xml du projet est ouverte.
+         */
+        public fun extractionPossible(nomAttribut: String): Boolean {
+            val valeur = valeurAttributSelection(nomAttribut) ?: return false
+            if (valeur.isEmpty() || valeur.startsWith("@") || valeur.startsWith("?")) return false
+            return sourceStringsOuverte() != null
+        }
+
+        /**
+         * EXTRAIT le littéral de la sélection vers `@string/nomRessource`
+         * (PE8c) : l'ENTRÉE part d'abord dans strings.xml (jamais de
+         * référence orpheline si l'entrée échoue), puis la RÉFÉRENCE
+         * remplace le littéral dans le layout — rendu immédiat. Deux
+         * documents = deux entrées d'historique (documenté dans PREVIEW.md).
+         */
+        public fun extraireEnRessource(
+            nomAttribut: String,
+            nomRessource: String,
+        ): Boolean {
+            val sourceStrings = sourceStringsOuverte() ?: return false
+            val rendu = dernierRendu ?: return false
+            val sourceBranchee = source ?: return false
+            val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
+            if (!vue.selectable) return false
+            val texte = sourceBranchee.texte()
+            val span = InsertionXml.SpanParent(vue.debutElement, vue.finElement)
+            val valeurLitterale =
+                EditionAttributsXml.valeurAttribut(texte, span, nomAttribut) ?: return false
+            // 1) L'ENTRÉE d'abord, avec la valeur d'ORIGINE.
+            val entree =
+                ExtractionRessource.entreeStrings(sourceStrings.texte(), nomRessource, valeurLitterale)
+                    ?: return false
+            if (!sourceStrings.remplacer(entree.debut, entree.fin, entree.remplacement)) return false
+            // 2) La RÉFÉRENCE dans le layout (une seule édition, rendu immédiat).
+            val reference = ExtractionRessource.extraire(texte, span, nomAttribut, nomRessource) ?: return false
+            if (!sourceBranchee.remplacer(reference.debut, reference.fin, reference.remplacement)) return false
+            moteur.soumettreImmediat { sourceBranchee.texte() }
+            return true
+        }
 
         /**
          * Les attributs BRUTS de la sélection (PE7e — miroir `attrsOf` :

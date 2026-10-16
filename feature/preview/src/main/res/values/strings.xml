@@ -180,6 +180,13 @@
     <string name="preview_contrainte_cible_cd">Cible de la contrainte %1$s</string>
     <string name="preview_contrainte_marge_cd">Marge de la contrainte %1$s en dp</string>
 
+    <!-- Extraction en ressource (PE8c — le littéral devient @string/nom,
+         l\'entrée rejoint res/values/strings.xml s\'il est ouvert). -->
+    <string name="preview_extraire_bouton">Extraire en ressource</string>
+    <string name="preview_extraire_nom">nom de ressource</string>
+    <string name="preview_extraire_valider">Extraire</string>
+    <string name="preview_extraire_refuse">Extraction refusée : nom invalide ou déjà pris.</string>
+
     <!-- Renommage d'identifiant (PE8a — le « renommage : à prévoir » du
          prompt PE7e § 3 : déclaration + références de CE fichier ; le code
          R.id et les autres fichiers restent hors périmètre, signalé). -->

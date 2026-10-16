@@ -123,10 +123,16 @@ public object CatalogueAttributs {
             val nom: String,
         ) : ControleAttribut()
 
-        /** Un texte libre (`android:text`, `contentDescription`…). */
+        /**
+         * Un texte libre (`android:text`, `contentDescription`…) —
+         * [extrayable] : le littéral peut être EXTRAIT vers `@string/…`
+         * (PE8c — réservé aux libellés, jamais aux références de
+         * drawable/enum).
+         */
         public data class Texte(
             val nom: String,
             val etiquette: Etiquette,
+            val extrayable: Boolean = false,
         ) : ControleAttribut()
 
         /** Un nombre avec unité (`"dp"`, `"sp"` ou `""` — alpha sans unité). */
@@ -270,7 +276,7 @@ public object CatalogueAttributs {
             SectionAttributs(
                 TitreSection.TEXTE,
                 listOf(
-                    ControleAttribut.Texte("android:text", Etiquette.TEXTE),
+                    ControleAttribut.Texte("android:text", Etiquette.TEXTE, extrayable = true),
                     ControleAttribut.Nombre("android:textSize", Etiquette.TAILLE_SP, "sp"),
                     ControleAttribut.Choix("android:textStyle", Etiquette.STYLE, STYLES),
                     ControleAttribut.Choix("android:gravity", Etiquette.GRAVITE, GRAVITES),
@@ -287,7 +293,7 @@ public object CatalogueAttributs {
             SectionAttributs(
                 TitreSection.SAISIE,
                 listOf(
-                    ControleAttribut.Texte("android:hint", Etiquette.HINT),
+                    ControleAttribut.Texte("android:hint", Etiquette.HINT, extrayable = true),
                     ControleAttribut.Choix("android:inputType", Etiquette.TYPE_SAISIE, TYPES_SAISIE),
                     ControleAttribut.Nombre("android:maxLines", Etiquette.LIGNES_MAX, ""),
                 ),
@@ -422,7 +428,7 @@ public object CatalogueAttributs {
                     ControleAttribut.Choix("android:visibility", Etiquette.VISIBILITE, VISIBILITES),
                     ControleAttribut.Nombre("android:alpha", Etiquette.ALPHA, ""),
                     ControleAttribut.TriEtat("android:enabled", Etiquette.ACTIF),
-                    ControleAttribut.Texte("android:contentDescription", Etiquette.DESCRIPTION),
+                    ControleAttribut.Texte("android:contentDescription", Etiquette.DESCRIPTION, extrayable = true),
                 ),
             ),
         )
