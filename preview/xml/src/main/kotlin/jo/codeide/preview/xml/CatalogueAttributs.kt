@@ -61,6 +61,7 @@ public object CatalogueAttributs {
 
     /** Les TITRES de sections (clés sémantiques — traduites au chrome). */
     public enum class TitreSection {
+        IDENTITE,
         TEXTE,
         SAISIE,
         CHAMP,
@@ -78,6 +79,7 @@ public object CatalogueAttributs {
 
     /** Les ÉTIQUETTES de contrôles (clés sémantiques — traduites au chrome). */
     public enum class Etiquette {
+        IDENTIFIANT,
         TEXTE,
         TAILLE_SP,
         STYLE,
@@ -113,6 +115,11 @@ public object CatalogueAttributs {
 
     /** UN contrôle de l'éditeur (variante scellée — miroir § 4.1). */
     public sealed class ControleAttribut {
+        /** L'identifiant de la vue (PE8a : renommage déclaration + références). */
+        public data class Identifiant(
+            val nom: String,
+        ) : ControleAttribut()
+
         /** Un texte libre (`android:text`, `contentDescription`…). */
         public data class Texte(
             val nom: String,
@@ -206,8 +213,18 @@ public object CatalogueAttributs {
                     emptyList()
                 }
             }
-        return propres + duParent + generiques()
+        // L'IDENTITÉ ouvre TOUTE fiche (PE8a) : le renommage est
+        // indépendant de la classe — la racine y a droit aussi (l'édit de
+        // la racine reste borné à Identité/Disposition/Affichage).
+        return listOf(sectionIdentite()) + propres + duParent + generiques()
     }
+
+    /** La section IDENTITÉ (PE8a : le seul contrôle de renommage). */
+    private fun sectionIdentite(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.IDENTITE,
+            listOf(ControleAttribut.Identifiant("android:id")),
+        )
 
     /** Le GENRE de parent dérivé du nom de classe (purs — ViewModel fournit les faits). */
     public fun genreParent(

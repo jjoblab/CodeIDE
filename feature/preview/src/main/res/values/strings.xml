@@ -165,12 +165,22 @@
     <string name="preview_section_dans_parent">Dans le parent</string>
     <string name="preview_section_disposition">Disposition</string>
     <string name="preview_section_affichage">Affichage</string>
+    <string name="preview_section_identite">Identité</string>
     <string name="preview_section_ouverte">▴</string>
     <string name="preview_section_fermee">▾</string>
     <string name="preview_section_contraintes_vide">Aucune contrainte.</string>
     <string name="preview_section_lecture_seule">lecture seule, édition à prévoir</string>
 
+    <!-- Renommage d'identifiant (PE8a — le « renommage : à prévoir » du
+         prompt PE7e § 3 : déclaration + références de CE fichier ; le code
+         R.id et les autres fichiers restent hors périmètre, signalé). -->
+    <string name="preview_identite_absent">— sans identifiant —</string>
+    <string name="preview_identite_nouveau">Nouveau nom</string>
+    <string name="preview_identite_hors_perimetre">Renomme la déclaration et les références @id/… de CE fichier ; le code (R.id.…) et les autres fichiers ne sont pas touchés.</string>
+    <string name="preview_identite_refuse">Renommage refusé : nom invalide ou déjà pris dans ce fichier.</string>
+
     <!-- Étiquettes des CONTRÔLES de l'éditeur (miroir les `label` de `sectionsFor`). -->
+    <string name="preview_etiquette_identifiant">id</string>
     <string name="preview_etiquette_texte">text</string>
     <string name="preview_etiquette_taille">taille (sp)</string>
     <string name="preview_etiquette_style">style</string>

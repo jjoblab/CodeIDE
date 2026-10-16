@@ -1,5 +1,30 @@
 # Journal des modifications
 
+## [0.134.28] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE8a : renommage d'identifiant** (le « renommage : à
+  prévoir » laissé par le prompt PE7e § 3) :
+  - **`RenommageIdentifiant`** (`:preview:xml`, fonctions pures sur le
+    texte vivant) : la déclaration `android:id="@+id/x"` de la vue
+    sélectionnée ET toutes les références `@id/x` du MÊME fichier
+    (contraintes `app:layout_constraint*_to*_Of` comprises) deviennent
+    le nouveau nom en UNE édition — un seul geste d'annulation ; refus
+    nets (X4) : nom invalide (aapt2 : lettre d'abord), identique à
+    l'actuel, DÉJÀ PRIS dans le fichier, span périmé, vue sans
+    identifiant, plateforme `@android:id/…` ; les frontières sont
+    respectées (`@id/titre2` n'est jamais emporté pour `titre`) ;
+  - **section Identité** en tête de TOUTE fiche de l'onglet Attributs
+    (racine comprise) : valeur courante en mono + champ « nouveau nom »
+    validé à l'IME/à la perte de focus (jamais à la frappe) ; le hors
+    périmètre est SIGNALÉ dans l'interface — le code (`R.id.x`) et les
+    autres fichiers de layout ne sont pas touchés (prompt PE7e § 3) ;
+  - **9 tests** (`RenommageIdentifiantTest`, éditions vérifiées PAR
+    APPLICATION au texte, document re-marché par l'aligneur).
+- Refactor : la table des titres de sections rejoint la table des
+  étiquettes (une seule voie clé sémantique → ressource).
+
 ## [0.134.27] – 2026-10-16
 
 ### Corrigé
