@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un contrôle DIMENSIONS (PE9b, miroir `dimrow` × 2 : les deux axes
+  Largeur/Hauteur, chacun libellé + segments wrap/match/fixe + champ dp
+  quand le mode est FIXE) — les rangées sont les item_dimension inclus.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_dimensions"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/largeur"
+        layout="@layout/item_dimension" />
+
+    <include
+        android:id="@+id/hauteur"
+        layout="@layout/item_dimension" />
+</LinearLayout>

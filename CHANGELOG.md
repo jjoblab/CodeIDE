@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## [0.134.34] – 2026-10-16
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.134.33] – 2026-10-16
 
 ### Ajouté

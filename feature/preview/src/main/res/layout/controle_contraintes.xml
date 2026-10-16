@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un contrôle CONTRAINTES (PE9b, PE8b) : le conteneur des QUATRE rangées
+  d'ancre (controle_contrainte gonflé quatre fois — Début/Fin/Haut/Bas),
+  ou le bloc lecture seule quand le span de la sélection est périmé.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_contraintes"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical" />
