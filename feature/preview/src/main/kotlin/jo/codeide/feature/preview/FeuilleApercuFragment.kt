@@ -30,6 +30,7 @@ import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
@@ -545,7 +546,8 @@ public class FeuilleApercuFragment : Fragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): String? = attrs.firstOrNull { it.nom == nom }?.valeur
 
-    /** Un contrôle TEXTE : littéral éditable, référence en lecture seule (miroir `.ro`). */
+    /** Un contrôle TEXTE : littéral éditable, référence en lecture seule
+     * (miroir `.ro`), EXTRACTION en ressource offerte aux libellés (PE8c). */
     private fun controleTexte(
         controle: CatalogueAttributs.ControleAttribut.Texte,
         attrs: List<EditionAttributsXml.AttributSource>,
@@ -565,9 +567,87 @@ public class FeuilleApercuFragment : Fragment() {
                     editerOuRecharger { viewModel.definirAttributSelection(controle.nom, nouvelle) }
                 },
             )
+            // L'EXTRACTION (PE8c) : littéral + session strings.xml ouverte.
+            if (controle.extrayable && viewModel.extractionPossible(controle.nom)) {
+                bloc.addView(rangeeExtraction(controle, attrs))
+            }
         }
         return bloc
     }
+
+    /** La rangée d'EXTRACTION (PE8c) : le bouton révèle le champ du nom
+     * (pré-rempli par [ExtractionRessource.nomPropose]) et le valider. */
+    private fun rangeeExtraction(
+        controle: CatalogueAttributs.ControleAttribut.Texte,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val rangee =
+            LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(16), dp(2), dp(16), dp(2))
+            }
+        val bouton = boutonMini(getString(R.string.preview_extraire_bouton))
+        val champ = TextInputEditText(requireContext())
+        champ.hint = getString(R.string.preview_extraire_nom)
+        champ.setSingleLine(true)
+        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        champ.background = fondChampLectureSeule()
+        champ.setPadding(dp(8), dp(6), dp(8), dp(6))
+        champ.visibility = View.GONE
+        champ.contentDescription = getString(R.string.preview_extraire_nom)
+        val valider = boutonMini(getString(R.string.preview_extraire_valider))
+        valider.visibility = View.GONE
+        bouton.setOnClickListener {
+            val reveler = champ.visibility != View.VISIBLE
+            champ.visibility = if (reveler) View.VISIBLE else View.GONE
+            valider.visibility = if (reveler) View.VISIBLE else View.GONE
+            if (reveler) {
+                champ.setText(ExtractionRessource.nomPropose(valeurDe(controle.nom, attrs) ?: ""))
+            }
+        }
+        valider.setOnClickListener {
+            val nom =
+                champ.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            if (!viewModel.extraireEnRessource(controle.nom, nom)) {
+                editerOuRecharger(R.string.preview_extraire_refuse) { false }
+            }
+        }
+        rangee.addView(bouton, LinearLayout.LayoutParams(WRAP, WRAP))
+        rangee.addView(
+            champ,
+            LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginStart = dp(8) },
+        )
+        rangee.addView(
+            valider,
+            LinearLayout.LayoutParams(WRAP, WRAP).apply { marginStart = dp(8) },
+        )
+        return rangee
+    }
+
+    /** Le PETIT bouton outline de la feuille (miroir les `.chips` — PE8b/PE8c). */
+    private fun boutonMini(texte: String): com.google.android.material.button.MaterialButton =
+        com.google.android.material.button
+            .MaterialButton(
+                requireContext(),
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle,
+            ).apply {
+                this.text = texte
+                isAllCaps = false
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                minWidth = 0
+                insetLeft = 0
+                insetRight = 0
+                insetTop = 0
+                insetBottom = 0
+                minimumHeight = dp(32)
+                setPadding(dp(8), 0, dp(8), 0)
+                contentDescription = texte
+            }
 
     /** Un contrôle IDENTIFIANT (PE8a) : valeur courante en mono, champ
      * « nouveau nom » validé à l'IME/à la perte de focus — le renommage
