@@ -168,14 +168,34 @@ public class SettingsDataStore(
 /**
  * Projette les préférences vers [AppSettings], en retombant sur [defaults].
  *
+ * La base commune est projetée par [toBaseAppSettings] ; les réglages de
+ * l'aperçu XML (PE7c) la surchargent via [AppSettings.copy] — chaque
+ * fonction reste sous la limite detekt LongMethod (60 lignes).
+ */
+internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
+    toBaseAppSettings(defaults).copy(
+        apercuBulleFixe = this[SettingsDataStore.Cles.APERCU_BULLE_FIXE] ?: defaults.apercuBulleFixe,
+        apercuBulleADroite = this[SettingsDataStore.Cles.APERCU_BULLE_A_DROITE] ?: defaults.apercuBulleADroite,
+        apercuBulleY =
+            this[SettingsDataStore.Cles.APERCU_BULLE_Y]?.toFloatOrNull()?.coerceIn(0f, 1f)
+                ?: defaults.apercuBulleY,
+        apercuPaletteParPopup =
+            this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
+    )
+
+/**
+ * Projette les réglages hors aperçu vers [AppSettings], en retombant sur
+ * [defaults] (les réglages de l'aperçu XML sont appliqués ensuite par
+ * [toAppSettings] via [AppSettings.copy]).
+ *
  * Exemption detekt ciblée (règle 16 du prompt maître) :
- * CyclomaticComplexMethod — une branche par champ persisté (24 réglages,
- * ADR 0059), chacune retombant sur son défaut : c'est une projection
+ * CyclomaticComplexMethod — une branche par champ persisté (25 réglages,
+ * ADR 0059 + PE7c), chacune retombant sur son défaut : c'est une projection
  * plate, l'éclater en sous-fonctions déplacerait le problème sans rien
  * clarifier.
  */
 @Suppress("CyclomaticComplexMethod")
-internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
+private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings =
     AppSettings(
         themeMode =
             ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
@@ -228,15 +248,6 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
                 ?.let(RetentionHistorique.Companion::fromPersistedName)
                 ?: defaults.retentionHistorique,
         isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
-        apercuBulleFixe = this[SettingsDataStore.Cles.APERCU_BULLE_FIXE] ?: defaults.apercuBulleFixe,
-        apercuBulleADroite = this[SettingsDataStore.Cles.APERCU_BULLE_A_DROITE] ?: defaults.apercuBulleADroite,
-        apercuBulleY =
-            this[SettingsDataStore.Cles.APERCU_BULLE_Y]
-                ?.toFloatOrNull()
-                ?.coerceIn(0f, 1f)
-                ?: defaults.apercuBulleY,
-        apercuPaletteParPopup =
-            this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
     )
 
 /** Reconstitue l'emplacement du dossier de travail, ou `null` si incomplet. */
