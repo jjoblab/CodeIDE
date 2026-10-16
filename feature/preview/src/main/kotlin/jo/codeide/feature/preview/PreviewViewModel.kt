@@ -21,6 +21,7 @@ import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
+import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -437,6 +438,18 @@ public class PreviewViewModel
         ): Boolean =
             editerSelection(autoriserRacine = true) { rendu, span ->
                 EditionAttributsXml.definir(rendu, span, nomAttribut, valeur)
+            }
+
+        /**
+         * RENOMME l'identifiant de la sélection (PE8a) : déclaration
+         * `@+id/x` + TOUTES les références `@id/x` du fichier en UNE
+         * édition — la racine y a droit aussi. Le code (`R.id.x`) et les
+         * autres fichiers ne sont pas touchés (périmètre du prompt PE7e
+         * § 3, signalé dans l'interface).
+         */
+        public fun renommerIdentifiantSelection(nouveau: String): Boolean =
+            editerSelection(autoriserRacine = true) { rendu, span ->
+                RenommageIdentifiant.renommer(rendu, span, nouveau)
             }
 
         /** Écrit UN CÔTÉ de marge/padding sur la sélection (PE7e — miroir `.mrow`). */
