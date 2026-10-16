@@ -170,6 +170,13 @@
     <string name="preview_contrainte_cible_cd">%1$s constraint target</string>
     <string name="preview_contrainte_marge_cd">%1$s constraint margin in dp</string>
 
+    <!-- Extract to resource (PE8c — the literal becomes @string/name,
+         the entry joins res/values/strings.xml when it is open). -->
+    <string name="preview_extraire_bouton">Extract to resource</string>
+    <string name="preview_extraire_nom">resource name</string>
+    <string name="preview_extraire_valider">Extract</string>
+    <string name="preview_extraire_refuse">Extract refused: invalid or already-taken name.</string>
+
     <!-- Identifier renaming (PE8a — the “renaming: to come” of prompt
          PE7e § 3: declaration + references of THIS file; code R.id and
          other files stay out of scope, surfaced in the UI). -->
