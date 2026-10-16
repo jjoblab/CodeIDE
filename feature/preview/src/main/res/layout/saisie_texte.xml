@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le champ TEXTE de l'éditeur (PE9b) : littéral éditable, commit sur
+     IME_DONE + perte de focus (posé au liage). -->
+<com.google.android.material.textfield.TextInputEditText xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/champ_saisie"
+    android:importantForAutofill="no"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="2dp"
+    android:layout_marginEnd="16dp"
+    android:background="@drawable/fond_champ"
+    android:paddingStart="10dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="8dp"
+    android:singleLine="true"
+    android:textAppearance="?attr/textAppearanceLabelSmall"
+    android:textSize="13sp"
+    android:textColor="?attr/colorOnSurface" 
+    tools:ignore="LabelFor" />

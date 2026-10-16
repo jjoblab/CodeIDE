@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Un bloc LECTURE SEULE (PE9b, miroir `.ro` de la maquette : surface
+     2 arrondie, mono) — une référence se MONTRE, jamais écrasée. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/texte_lecture_seule"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="2dp"
+    android:layout_marginEnd="16dp"
+    android:background="@drawable/fond_champ"
+    android:fontFamily="monospace"
+    android:paddingStart="10dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="8dp"
+    android:textAppearance="?attr/textAppearanceLabelSmall"
+    android:textSize="12sp"
+    android:textColor="?attr/colorOnSurface" />

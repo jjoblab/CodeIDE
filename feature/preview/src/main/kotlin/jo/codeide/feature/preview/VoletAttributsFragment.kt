@@ -1,11 +1,6 @@
 package jo.codeide.feature.preview
 
-import android.graphics.Typeface
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,10 +9,31 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isEmpty
+import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.feature.preview.databinding.CarteSectionBinding
+import jo.codeide.feature.preview.databinding.ControleContrainteBinding
+import jo.codeide.feature.preview.databinding.ControleContraintesBinding
+import jo.codeide.feature.preview.databinding.ControleCotesBinding
+import jo.codeide.feature.preview.databinding.ControleDimensionsBinding
+import jo.codeide.feature.preview.databinding.ControleExtractionBinding
+import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
+import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
+import jo.codeide.feature.preview.databinding.ControleTexteBinding
+import jo.codeide.feature.preview.databinding.EnteteEditeurBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
+import jo.codeide.feature.preview.databinding.ItemAttributBinding
+import jo.codeide.feature.preview.databinding.ItemCoteBinding
+import jo.codeide.feature.preview.databinding.ItemDimensionBinding
+import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
+import jo.codeide.feature.preview.databinding.ItemLibelleBinding
+import jo.codeide.feature.preview.databinding.ItemSegmentBinding
+import jo.codeide.feature.preview.databinding.ItemTitreGroupeBinding
+import jo.codeide.feature.preview.databinding.SaisieNombreBinding
+import jo.codeide.feature.preview.databinding.SaisieTexteBinding
+import jo.codeide.feature.preview.databinding.SeparateurEditeurBinding
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.ExtractionRessource
@@ -26,25 +42,26 @@ import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.RenommageIdentifiant
 
 /**
- * Le volet ATTRIBUTS de la feuille (PE9a, miroir `renderAttrs` +
- * `renderEditor` — ancien `majAttributs` de [FeuilleApercuFragment],
- * migré tel quel) : la section MODIFIER (PE7e — le catalogue pur
+ * Le volet ATTRIBUTS de la feuille (PE9b, miroir `renderAttrs` +
+ * `renderEditor`) : la section MODIFIER (le catalogue pur
  * [CatalogueAttributs] décrit les SECTIONS selon la classe de la vue et
- * le genre de son parent — cartes repliables, état mémorisé par titre)
- * puis les groupes LECTURE SEULE (identité, disposition, mesuré).
+ * le genre de son parent — cartes repliables `carte_section.xml`, état
+ * mémorisé par titre) puis les groupes LECTURE SEULE — TOUTES les vues
+ * viennent d'ITEM LAYOUTS RÉELS (un par type de contrôle, miroir `ctl` :
+ * texte, identifiant, nombre, segments, cotes, dimensions, contraintes)
+ * gonflés au liage ; le catalogue reste la source de vérité.
  *
  * UN SEUL CHEMIN d'édition : chaque contrôle passe au ViewModel (UNE
  * écriture au port, rendu immédiat) ; un refus recharge le volet depuis
  * le texte vivant ([editerOuRecharger]). Les `@string` restent en
  * lecture seule (miroir `.ro`).
  *
- * Exemption detekt ciblée (règle 16) : TooManyFunctions + MagicNumber +
- * LargeClass — chaque contrôle a SA fonction (miroir `ctl` : un type =
- * un contrôle), la mise en forme des contrôles reste EN CODE jusqu'à
- * PE9b (les item layouts réels par type de contrôle), les dimensions dp
- * y sont littérales (patron render* de la maquette).
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions + LargeClass —
+ * chaque contrôle a SA fonction de liage (un type = un item layout) ;
+ * les MagicNumber de PE9a ont disparu avec les dimensions en code
+ * (elles vivent dans les layouts).
  */
-@Suppress("TooManyFunctions", "MagicNumber", "LargeClass")
+@Suppress("TooManyFunctions", "LargeClass")
 @AndroidEntryPoint
 internal class VoletAttributsFragment : VoletFeuilleFragment() {
     override val onglet: Int = FeuilleApercuFragment.ONGLET_ATTRIBUTS
@@ -57,28 +74,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      */
     private val etatSections: MutableMap<String, Boolean> = mutableMapOf()
 
-    // ── Aides de style (délégation à StyleVolet — un seul endroit) ──
-    private val styleMoyen: Int get() = StyleVolet.styleMoyen
-    private val stylePetit: Int get() = StyleVolet.stylePetit
-    private val styleTitre: Int get() = StyleVolet.styleTitre
-    private val styleCorps: Int get() = StyleVolet.styleCorps
-    private val couleurPrimaire: Int get() = StyleVolet.couleurPrimaire
-    private val couleurContenu: Int get() = StyleVolet.couleurContenu
-    private val couleurNeutre: Int get() = StyleVolet.couleurNeutre
-    private val couleurSurface: Int get() = StyleVolet.couleurSurface
-    private val couleurContour: Int get() = StyleVolet.couleurContour
-    private val couleurAccentViolet: Int get() = StyleVolet.couleurAccentViolet
-    private val couleurAccentVioletFond: Int get() = StyleVolet.couleurAccentVioletFond
-
-    private fun dp(valeur: Int): Int = StyleVolet.dp(requireContext(), valeur)
-
-    private fun couleur(attribut: Int): Int = StyleVolet.couleur(requireContext(), attribut)
-
-    private fun texteLibelle(
-        texte: String,
-        apparence: Int,
-        couleurValeur: Int,
-    ): TextView = StyleVolet.texteLibelle(requireContext(), texte, apparence, couleurValeur)
+    private fun gonfleur(): LayoutInflater = LayoutInflater.from(requireContext())
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -94,22 +90,13 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         majAttributs()
     }
 
-    /** Un TextView simple de volet vide (miroir `texteSimple` de l'ancien fragment). */
-    private fun texteSimple(texte: String): TextView =
-        StyleVolet.texteLibelle(requireContext(), texte, styleMoyen, couleur(couleurNeutre)).apply {
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-        }
-
     /**
-     * Vide le conteneur reconstruit (seul volet encore LinearLayout en
-     * PE9a) — le crash du rapport 0.134.30 NPE `mViewFlags` (rapport
-     * c8f6ffeb) vivait ICI : `removeAllViews` sur un panneau dont un
-     * contrôle éditable (EditText de la section MODIFIER) tenait le
-     * focus lance la recherche d'un SUCCESSEUR au focus au MILIEU de la
-     * suppression. Le protocole focus-sûr : le focus est RETIRÉ d'abord,
-     * la descente de focus est BLOQUÉE pendant la suppression
-     * (FOCUS_BLOCK_DESCENDANTS), puis rétablie. (PE9b remplacera la
-     * reconstruction par les item layouts réels.)
+     * Vide le conteneur reconstruit (seul volet en LinearLayout) — le
+     * crash du rapport 0.134.30 NPE `mViewFlags` (rapport c8f6ffeb)
+     * vivait ICI : le protocole focus-sûr RETIRE le focus d'abord, BLOQUE
+     * la descente de focus pendant la suppression (FOCUS_BLOCK_DESCENDANTS),
+     * puis rétablit. (Un passage RecyclerView de ce volet reste possible
+     * mais les cartes repliables avec état éclatent le diff pour rien.)
      */
     private fun viderConteneur(conteneur: ViewGroup) {
         if (conteneur.isEmpty()) return
@@ -122,89 +109,61 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
     /**
      * L'onglet Attributs (miroir `renderAttrs`) : la section MODIFIER
-     * (PE7d — texte/hint littéraux, dimensions wrap/match/fixe, « les
-     * `@string` restent en lecture seule ») puis les groupes LECTURE
-     * SEULE (identité, disposition, mesuré — PE6d).
+     * (cartes repliables) puis les groupes LECTURE SEULE (identité,
+     * disposition, mesuré — item_titre_groupe + item_attribut).
      */
     private fun majAttributs() {
         val vue = renduCourant?.vues?.getOrNull(selectionCourante)
         viderConteneur(liaison.groupesAttributs)
         if (vue == null) {
-            liaison.groupesAttributs.addView(texteSimple(getString(R.string.preview_feuille_vide)))
+            liaison.groupesAttributs.addView(texteVide(getString(R.string.preview_feuille_vide)))
             return
         }
         majSectionModifier(vue)
         for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
-            val titre =
-                texteLibelle(groupe.titre, styleTitre, couleur(couleurPrimaire)).apply {
-                    setPadding(dp(16), dp(12), dp(8), dp(4))
-                }
-            liaison.groupesAttributs.addView(titre)
+            val titre = ItemTitreGroupeBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
+            titre.titreGroupe.text = groupe.titre
+            liaison.groupesAttributs.addView(titre.root)
             for (entree in groupe.entrees) {
-                val rangee =
-                    LinearLayout(requireContext()).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        setPadding(dp(16), dp(2), dp(8), dp(2))
-                        val libelle = texteLibelle(entree.libelle, stylePetit, couleur(couleurNeutre))
-                        addView(libelle, LinearLayout.LayoutParams(dp(160), StyleVolet.WRAP))
-                        addView(texteLibelle(entree.valeur, styleCorps, couleur(couleurContenu)))
-                    }
-                liaison.groupesAttributs.addView(rangee)
+                val rangee = ItemAttributBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
+                rangee.libelleAttribut.text = entree.libelle
+                rangee.valeurAttribut.text = entree.valeur
+                liaison.groupesAttributs.addView(rangee.root)
             }
         }
     }
 
+    /** Un TextView simple de volet vide (miroir `texteSimple` des volets). */
+    private fun texteVide(texte: String): TextView = StyleVolet.texteVide(requireContext(), texte)
+
     /**
      * La section MODIFIER (PE7e, miroir `renderEditor` + `sectionsFor`) :
-     * le catalogue PUR ([CatalogueAttributs]) décrit les SECTIONS selon la
-     * classe de la vue et le genre de son parent — cartes repliables
-     * (miroir `.sec2` : titre, badge « n définis », flèche), les DEUX
-     * PREMIÈRES ouvertes par défaut, l'état de repli mémorisé par TITRE
-     * pendant la session. UN SEUL CHEMIN d'édition : chaque contrôle passe
-     * au ViewModel (UNE écriture au port, rendu immédiat — miroir
-     * `soumettreImmediat`) ; un refus recharge le volet depuis le texte
-     * vivant. Les `@string` restent en lecture seule (miroir `.ro`).
+     * l'en-tête (« MODIFIER · CLASSE »), les cartes repliables des
+     * sections, le séparateur de fin — un span périmé retombe en LECTURE
+     * SEULE avec explication (miroir piège § 6 du prompt).
      */
     private fun majSectionModifier(vue: InfoVueRendu) {
         val classe = viewModel.classeSelection() ?: vue.classe
         val genreParent =
             viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
-        val editeur = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        editeur.addView(titreEditeur(classe))
+        val entete = EnteteEditeurBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
+        entete.titreEditeur.text = getString(R.string.preview_modifier_classe, classe)
+        liaison.groupesAttributs.addView(entete.root)
         val attrs = viewModel.attributsSelection()
         if (attrs == null) {
-            // Span périmé (include/merge, document changé) : le volet passe
-            // en LECTURE SEULE avec explication (miroir piège § 6 du prompt).
-            editeur.addView(blocLectureSeule(getString(R.string.preview_edition_impossible_toast)))
-            liaison.groupesAttributs.addView(editeur)
+            liaison.groupesAttributs.addView(
+                blocLectureSeule(liaison.groupesAttributs, getString(R.string.preview_edition_impossible_toast)),
+            )
             return
         }
         val sections = CatalogueAttributs.sections(classe, genreParent)
         sections.forEachIndexed { position, section ->
-            editeur.addView(carteSection(section, attrs, position))
+            liaison.groupesAttributs.addView(carteSection(section, attrs, position))
         }
-        // Séparateur de fin (miroir le border-bottom de `.ed`).
-        val separateur = View(requireContext())
-        separateur.setBackgroundColor(couleur(couleurNeutre))
-        separateur.alpha = SEPARATEUR_ALPHA
-        editeur.addView(
-            separateur,
-            LinearLayout.LayoutParams(StyleVolet.WRAP, dp(1)).apply { topMargin = dp(10) },
-        )
-        liaison.groupesAttributs.addView(editeur)
+        val separateur = SeparateurEditeurBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
+        separateur.separateurEditeur.alpha = SEPARATEUR_ALPHA
+        liaison.groupesAttributs.addView(separateur.root)
     }
-
-    /** Le titre de l'éditeur (miroir `.ed h5` : « MODIFIER · CLASSE », mono, caps). */
-    private fun titreEditeur(classe: String): TextView =
-        TextView(requireContext()).apply {
-            text = getString(R.string.preview_modifier_classe, classe)
-            typeface = Typeface.MONOSPACE
-            textSize = 10f
-            letterSpacing = 0.08f
-            setAllCaps(true)
-            setTextColor(couleur(couleurNeutre))
-            setPadding(dp(16), dp(12), dp(8), dp(6))
-        }
 
     /** Le titre localisé d'une section (clé sémantique → ressource — table
      * unique, miroir [ETIQUETTES_RES]). */
@@ -244,113 +203,56 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
 
     /**
-     * UNE CARTE de section repliable (miroir `.sec2` : contour 1, coins
-     * 10, en-tête 9×11 avec flèche, corps 2×11) — le tap sur l'en-tête
-     * replie/déploie et MÉMORISE l'état par titre ([etatSections]).
+     * UNE CARTE de section repliable (`carte_section.xml`) — le tap sur
+     * l'en-tête replie/déploie et MÉMORISE l'état par titre
+     * ([etatSections]) ; la flèche suit l'état de la fermeture locale.
      */
     private fun carteSection(
         section: CatalogueAttributs.SectionAttributs,
         attrs: List<EditionAttributsXml.AttributSource>,
         position: Int,
     ): View {
-        val ouverte = etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
-        val fleche = TextView(requireContext())
-        val corps =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(11), dp(2), dp(11), dp(11))
-                visibility = if (ouverte) View.VISIBLE else View.GONE
-            }
+        var ouverte = etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
+        val carte = CarteSectionBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
+        carte.titreSection.text = titreSectionRes(section.titre)
+        majBadgeDefinis(carte, nombreDefinis(section, attrs))
+        majFleche(carte.flecheSection, ouverte)
+        carte.corpsSection.visibility = visibiliteOuverte(ouverte)
         section.controles.forEach { controle ->
-            corps.addView(controleSection(controle, attrs))
+            carte.corpsSection.addView(controleSection(controle, attrs))
         }
-        val carte =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                background = fondCarte()
-                addView(
-                    enteteSection(section, attrs, ouverte, fleche) { nouvelleOuverture ->
-                        etatSections[section.titre.name] = nouvelleOuverture
-                        corps.visibility = if (nouvelleOuverture) View.VISIBLE else View.GONE
-                        fleche.text =
-                            getString(
-                                if (nouvelleOuverture) {
-                                    R.string.preview_section_ouverte
-                                } else {
-                                    R.string.preview_section_fermee
-                                },
-                            )
-                    },
-                )
-                addView(corps)
-            }
-        carte.layoutParams =
-            LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply {
-                topMargin = dp(8)
-                marginStart = dp(12)
-                marginEnd = dp(12)
-            }
-        return carte
+        carte.enteteSection.setOnClickListener {
+            ouverte = !ouverte
+            etatSections[section.titre.name] = ouverte
+            majFleche(carte.flecheSection, ouverte)
+            carte.corpsSection.visibility = visibiliteOuverte(ouverte)
+        }
+        return carte.root
     }
 
-    /** L'en-tête d'une carte : titre + badge « n définis » + flèche (cible 48 dp). */
-    private fun enteteSection(
-        section: CatalogueAttributs.SectionAttributs,
-        attrs: List<EditionAttributsXml.AttributSource>,
-        ouverte: Boolean,
+    /** Le badge « n défini(s) » (violet sur violet pâle), caché à zéro. */
+    private fun majBadgeDefinis(
+        carte: CarteSectionBinding,
+        nombre: Int,
+    ) {
+        carte.badgeDefinis.isVisible = nombre > 0
+        carte.badgeDefinis.text =
+            resources.getQuantityString(R.plurals.preview_section_definis, nombre, nombre)
+    }
+
+    /** Le libellé de flèche d'une carte (« ▴ ouverte » / « ▾ fermée »). */
+    private fun majFleche(
         fleche: TextView,
-        basculer: (Boolean) -> Unit,
-    ): View {
-        val entete =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(11), dp(9), dp(11), dp(9))
-                minimumHeight = dp(48)
-                isClickable = true
-                isFocusable = true
-                background = StyleVolet.fondReactif(requireContext())
-            }
-        entete.addView(
-            texteLibelle(titreSectionRes(section.titre), styleMoyen, couleur(couleurContenu)),
-            LinearLayout.LayoutParams(0, StyleVolet.WRAP, 1f),
-        )
-        val nombre = nombreDefinis(section, attrs)
-        if (nombre > 0) {
-            entete.addView(
-                badgeDefinis(nombre),
-                LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply { marginEnd = dp(8) },
-            )
-        }
-        fleche.text = getString(if (ouverte) R.string.preview_section_ouverte else R.string.preview_section_fermee)
-        fleche.setTextColor(couleur(couleurNeutre))
-        entete.addView(fleche)
-        entete.setOnClickListener { basculer(corpsFerme(fleche)) }
-        return entete
+        ouverte: Boolean,
+    ) {
+        fleche.text =
+            getString(if (ouverte) R.string.preview_section_ouverte else R.string.preview_section_fermee)
     }
 
-    /** L'état OPPOSÉ lu sur la flèche (source unique du visuel). */
-    private fun corpsFerme(fleche: TextView): Boolean = fleche.text == getString(R.string.preview_section_ouverte)
+    /** La visibilité d'un corps replié. */
+    private fun visibiliteOuverte(ouverte: Boolean): Int = if (ouverte) View.VISIBLE else View.GONE
 
-    /** Le badge « n défini(s) » (miroir `summary small` : violet sur violet pâle). */
-    private fun badgeDefinis(nombre: Int): TextView =
-        TextView(requireContext()).apply {
-            text = resources.getQuantityString(R.plurals.preview_section_definis, nombre, nombre)
-            typeface = Typeface.MONOSPACE
-            textSize = 10f
-            setTextColor(couleurRessource(couleurAccentViolet))
-            background =
-                GradientDrawable().apply {
-                    cornerRadius = dp(5).toFloat()
-                    setColor(couleurRessource(couleurAccentVioletFond))
-                }
-            setPadding(dp(6), dp(3), dp(6), dp(3))
-        }
-
-    /** La couleur d'un JETON du module (ressource `preview_*`). */
-    private fun couleurRessource(ressource: Int): Int = StyleVolet.couleurRessource(requireContext(), ressource)
-
-    /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un contrôle). */
+    /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un item layout). */
     private fun controleSection(
         controle: CatalogueAttributs.ControleAttribut,
         attrs: List<EditionAttributsXml.AttributSource>,
@@ -372,69 +274,103 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): String? = attrs.firstOrNull { it.nom == nom }?.valeur
 
-    /** Un contrôle TEXTE : littéral éditable, référence en lecture seule
-     * (miroir `.ro`), EXTRACTION en ressource offerte aux libellés (PE8c). */
+    /** Un bloc LECTURE SEULE (item_lecture_seule.xml — mono sur surface 2). */
+    private fun blocLectureSeule(
+        parent: ViewGroup,
+        texte: String,
+    ): TextView =
+        ItemLectureSeuleBinding
+            .inflate(gonfleur(), parent, false)
+            .apply {
+                texteLectureSeule.text = texte
+            }.texteLectureSeule
+
+    /** Un contrôle TEXTE (controle_texte.xml) : littéral éditable ou
+     * référence en lecture seule (miroir `.ro`), EXTRACTION offerte (PE8c). */
     private fun controleTexte(
         controle: CatalogueAttributs.ControleAttribut.Texte,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        val bloc = ControleTexteBinding.inflate(gonfleur())
         val libelle = etiquetteRes(controle.etiquette)
-        bloc.addView(rangeeLibelle(libelle))
+        bloc.libelleControle.text = libelle
         val valeur = valeurDe(controle.nom, attrs)
         if (valeur != null && (valeur.startsWith("@") || valeur.startsWith("?"))) {
             // Une référence se MONTRE, jamais écrasée (miroir la ligne `.ro`).
-            bloc.addView(
-                blocLectureSeule(getString(R.string.preview_modifier_reference, valeur, "")),
+            bloc.conteneurSaisie.addView(
+                blocLectureSeule(
+                    bloc.conteneurSaisie,
+                    getString(R.string.preview_modifier_reference, valeur, ""),
+                ),
             )
-        } else {
-            bloc.addView(
-                champTexte(libelle, valeur ?: "") { nouvelle ->
-                    editerOuRecharger { viewModel.definirAttributSelection(controle.nom, nouvelle) }
-                },
-            )
-            // L'EXTRACTION (PE8c) : littéral + session strings.xml ouverte.
-            if (controle.extrayable && viewModel.extractionPossible(controle.nom)) {
-                bloc.addView(rangeeExtraction(controle, attrs))
+            return bloc.root
+        }
+        val saisie = SaisieTexteBinding.inflate(gonfleur(), bloc.conteneurSaisie, false)
+        saisie.champSaisie.setText(valeur ?: "")
+        saisie.champSaisie.hint = libelle
+        saisie.champSaisie.contentDescription = libelle
+        val commettre = {
+            commiterTexte(saisie.champSaisie) { nouvelle ->
+                viewModel.definirAttributSelection(controle.nom, nouvelle)
             }
         }
-        return bloc
+        saisie.champSaisie.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                commettre()
+                saisie.champSaisie.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        saisie.champSaisie.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        bloc.conteneurSaisie.addView(saisie.champSaisie)
+        // L'EXTRACTION (PE8c) : littéral + session strings.xml ouverte.
+        if (controle.extrayable && viewModel.extractionPossible(controle.nom)) {
+            bloc.root.addView(rangeeExtraction(controle, attrs))
+        }
+        return bloc.root
     }
 
-    /** La rangée d'EXTRACTION (PE8c) : le bouton révèle le champ du nom
-     * (pré-rempli par [ExtractionRessource.nomPropose]) et le valider. */
+    /** Le commit d'un champ TEXTE : vide = rien (miroir les champs PE7e). */
+    private fun commiterTexte(
+        champ: EditText,
+        action: (String) -> Boolean,
+    ) {
+        val saisie =
+            champ.text
+                ?.toString()
+                .orEmpty()
+        if (saisie.isNotEmpty()) editerOuRecharger { action(saisie) }
+    }
+
+    /** La rangée d'EXTRACTION (controle_extraction.xml, PE8c) : le bouton
+     * révèle le champ du nom (pré-rempli par [ExtractionRessource.nomPropose])
+     * et le valider. */
     private fun rangeeExtraction(
         controle: CatalogueAttributs.ControleAttribut.Texte,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val rangee =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(2), dp(16), dp(2))
-            }
-        val bouton = boutonMini(getString(R.string.preview_extraire_bouton))
-        val champ = TextInputEditText(requireContext())
-        champ.hint = getString(R.string.preview_extraire_nom)
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(8), dp(6), dp(8), dp(6))
-        champ.visibility = View.GONE
-        champ.contentDescription = getString(R.string.preview_extraire_nom)
-        val valider = boutonMini(getString(R.string.preview_extraire_valider))
-        valider.visibility = View.GONE
-        bouton.setOnClickListener {
-            val reveler = champ.visibility != View.VISIBLE
-            champ.visibility = if (reveler) View.VISIBLE else View.GONE
-            valider.visibility = if (reveler) View.VISIBLE else View.GONE
+        val rangee = ControleExtractionBinding.inflate(gonfleur())
+        rangee.boutonExtraire.text = getString(R.string.preview_extraire_bouton)
+        rangee.boutonValiderExtraction.text = getString(R.string.preview_extraire_valider)
+        rangee.champNomRessource.hint = getString(R.string.preview_extraire_nom)
+        rangee.champNomRessource.contentDescription = getString(R.string.preview_extraire_nom)
+        rangee.boutonExtraire.setOnClickListener {
+            val reveler = rangee.champNomRessource.isVisible.not()
+            rangee.champNomRessource.isVisible = reveler
+            rangee.boutonValiderExtraction.isVisible = reveler
             if (reveler) {
-                champ.setText(ExtractionRessource.nomPropose(valeurDe(controle.nom, attrs) ?: ""))
+                rangee.champNomRessource.setText(
+                    ExtractionRessource.nomPropose(valeurDe(controle.nom, attrs) ?: ""),
+                )
             }
         }
-        valider.setOnClickListener {
+        rangee.boutonValiderExtraction.setOnClickListener {
             val nom =
-                champ.text
+                rangee.champNomRessource.text
                     ?.toString()
                     ?.trim()
                     .orEmpty()
@@ -442,85 +378,42 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 editerOuRecharger(R.string.preview_extraire_refuse) { false }
             }
         }
-        rangee.addView(bouton, LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP))
-        rangee.addView(
-            champ,
-            LinearLayout.LayoutParams(0, StyleVolet.WRAP, 1f).apply { marginStart = dp(8) },
-        )
-        rangee.addView(
-            valider,
-            LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply { marginStart = dp(8) },
-        )
-        return rangee
+        return rangee.root
     }
 
-    /** Le PETIT bouton outline de la feuille (miroir les `.chips` — PE8b/PE8c). */
-    private fun boutonMini(texte: String): com.google.android.material.button.MaterialButton =
-        com.google.android.material.button
-            .MaterialButton(
-                requireContext(),
-                null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle,
-            ).apply {
-                this.text = texte
-                isAllCaps = false
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                minWidth = 0
-                insetLeft = 0
-                insetRight = 0
-                insetTop = 0
-                insetBottom = 0
-                minimumHeight = dp(32)
-                setPadding(dp(8), 0, dp(8), 0)
-                contentDescription = texte
-            }
-
-    /** Un contrôle IDENTIFIANT (PE8a) : valeur courante en mono, champ
-     * « nouveau nom » validé à l'IME/à la perte de focus — le renommage
-     * couvre la déclaration ET les références du fichier (une édition) ;
-     * hors périmètre signalé (code R.id, autres fichiers). */
+    /** Un contrôle IDENTIFIANT (controle_identifiant.xml, PE8a) : valeur
+     * courante en mono, champ « nouveau nom » validé à l'IME/à la perte
+     * de focus — le renommage couvre la déclaration ET les références du
+     * fichier (une édition) ; hors périmètre signalé (code R.id, autres
+     * fichiers). */
     private fun controleIdentifiant(
         controle: CatalogueAttributs.ControleAttribut.Identifiant,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeLibelle(etiquetteRes(CatalogueAttributs.Etiquette.IDENTIFIANT)))
+        val bloc = ControleIdentifiantBinding.inflate(gonfleur())
+        bloc.libelleControle.text = etiquetteRes(CatalogueAttributs.Etiquette.IDENTIFIANT)
         val brut = valeurDe(controle.nom, attrs)
-        bloc.addView(
-            blocLectureSeule(brut ?: getString(R.string.preview_identite_absent)),
+        bloc.conteneurCourant.addView(
+            blocLectureSeule(
+                bloc.conteneurCourant,
+                brut ?: getString(R.string.preview_identite_absent),
+            ),
         )
-        val champ = TextInputEditText(requireContext())
-        champ.hint = getString(R.string.preview_identite_nouveau)
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(10), dp(8), dp(10), dp(8))
-        champ.contentDescription = getString(R.string.preview_identite_nouveau)
-        champ.setOnEditorActionListener { _, action, _ ->
+        bloc.champNouveauNom.hint = getString(R.string.preview_identite_nouveau)
+        bloc.champNouveauNom.contentDescription = getString(R.string.preview_identite_nouveau)
+        val commettre = { commiterRenommage(bloc.champNouveauNom, controle, attrs) }
+        bloc.champNouveauNom.setOnEditorActionListener { _, action, _ ->
             if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                if (commiterRenommage(champ, controle, attrs)) champ.clearFocus()
+                if (commettre()) bloc.champNouveauNom.clearFocus()
                 true
             } else {
                 false
             }
         }
-        champ.setOnFocusChangeListener { _, aFocus ->
-            if (!aFocus) commiterRenommage(champ, controle, attrs)
+        bloc.champNouveauNom.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
         }
-        bloc.addView(
-            champ,
-            LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply {
-                marginStart = dp(16)
-                marginEnd = dp(16)
-                topMargin = dp(4)
-            },
-        )
-        // Le périmètre du renommage, signalé (prompt PE7e § 3) : ce fichier
-        // seul — le code (R.id.…) et les autres layouts ne sont pas touchés.
-        val note = texteLibelle(getString(R.string.preview_identite_hors_perimetre), stylePetit, couleur(couleurNeutre))
-        note.setPadding(dp(16), dp(4), dp(16), dp(2))
-        bloc.addView(note)
-        return bloc
+        return bloc.root
     }
 
     /** Le nom SANS préfixe d'une valeur d'id (`@+id/x`/`@id/x` → `x`), sinon la valeur brute. */
@@ -568,48 +461,34 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
     }
 
-    /** Un contrôle NOMBRE avec unité (saisie refusée proprement si non numérique). */
+    /** Un contrôle NOMBRE (saisie_nombre.xml) avec unité — saisie refusée
+     * proprement (repli visuel) si non numérique. */
     private fun controleNombre(
         controle: CatalogueAttributs.ControleAttribut.Nombre,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        val bloc = SaisieNombreBinding.inflate(gonfleur())
         val libelle = etiquetteRes(controle.etiquette)
-        bloc.addView(rangeeLibelle(libelle))
-        val champ = EditText(requireContext())
-        champ.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-        champ.setText(valeurDe(controle.nom, attrs)?.trimEnd('d', 'p', 's'))
-        champ.hint = libelle
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(10), dp(8), dp(10), dp(8))
-        champ.contentDescription = libelle
-        champ.setOnEditorActionListener { _, action, _ ->
+        bloc.champNombre.setText(valeurDe(controle.nom, attrs)?.trimEnd('d', 'p', 's'))
+        bloc.champNombre.hint = libelle
+        bloc.champNombre.contentDescription = libelle
+        val commettre = { commiterNombre(bloc.champNombre, controle, attrs) }
+        bloc.champNombre.setOnEditorActionListener { _, action, _ ->
             if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                val ecrit = committerNombre(champ, controle, attrs)
-                if (ecrit) champ.clearFocus()
+                if (commettre()) bloc.champNombre.clearFocus()
                 true
             } else {
                 false
             }
         }
-        champ.setOnFocusChangeListener { _, aFocus ->
-            if (!aFocus) committerNombre(champ, controle, attrs)
+        bloc.champNombre.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
         }
-        bloc.addView(
-            champ,
-            LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply {
-                marginStart = dp(16)
-                marginEnd = dp(16)
-                topMargin = dp(2)
-            },
-        )
-        return bloc
+        return bloc.root
     }
 
     /** Le commit d'un NOMBRE : vide = rien, non numérique = refus visuel (repli). */
-    private fun committerNombre(
+    private fun commiterNombre(
         champ: EditText,
         controle: CatalogueAttributs.ControleAttribut.Nombre,
         attrs: List<EditionAttributsXml.AttributSource>,
@@ -641,69 +520,86 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun formaterNombre(nombre: Float): String =
         if (nombre == nombre.toLong().toFloat()) nombre.toLong().toString() else nombre.toString()
 
-    /** Un contrôle CHOIX segmenté — le PREMIER choix est le défaut (retrait). */
+    /** Un contrôle CHOIX (controle_segments.xml) — le PREMIER choix est
+     * le défaut (retrait de l'attribut). */
     private fun controleChoix(
         controle: CatalogueAttributs.ControleAttribut.Choix,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeLibelle(etiquetteRes(controle.etiquette)))
+        val bloc = ControleSegmentsBinding.inflate(gonfleur())
+        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
         val courant = valeurDe(controle.nom, attrs) ?: controle.valeurs.first()
-        bloc.addView(
-            segmentes(
-                controle.valeurs,
-                courant,
-                etiquetteRes(controle.etiquette),
-            ) { choix ->
-                val valeur = if (choix == controle.valeurs.first()) "" else choix
-                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
-            },
-        )
-        return bloc
+        segmentes(bloc.rangeeSegments, controle.valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
+            val valeur = if (choix == controle.valeurs.first()) "" else choix
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+        }
+        return bloc.root
     }
 
-    /** Un contrôle TRI-ÉTAT (défaut / true / false — défaut = retrait). */
+    /** Un contrôle TRI-ÉTAT (controle_segments.xml partagé — défaut =
+     * retrait). */
     private fun controleTriEtat(
         controle: CatalogueAttributs.ControleAttribut.TriEtat,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeLibelle(etiquetteRes(controle.etiquette)))
+        val bloc = ControleSegmentsBinding.inflate(gonfleur())
+        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
         val valeurs =
             listOf(
                 getString(R.string.preview_choix_defaut),
                 getString(R.string.preview_choix_vrai),
                 getString(R.string.preview_choix_faux),
             )
-        val brut = valeurDe(controle.nom, attrs)
         val courant =
-            when (brut) {
+            when (valeurDe(controle.nom, attrs)) {
                 "true" -> getString(R.string.preview_choix_vrai)
                 "false" -> getString(R.string.preview_choix_faux)
                 else -> getString(R.string.preview_choix_defaut)
             }
-        bloc.addView(
-            segmentes(valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
-                val valeur =
-                    when (choix) {
-                        getString(R.string.preview_choix_vrai) -> "true"
-                        getString(R.string.preview_choix_faux) -> "false"
-                        else -> ""
-                    }
-                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
-            },
-        )
-        return bloc
+        segmentes(bloc.rangeeSegments, valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
+            val valeur =
+                when (choix) {
+                    getString(R.string.preview_choix_vrai) -> "true"
+                    getString(R.string.preview_choix_faux) -> "false"
+                    else -> ""
+                }
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+        }
+        return bloc.root
     }
 
-    /** Les quatre CÔTÉS d'une marge/padding (miroir `.mrow` : grille de 4 champs). */
+    /**
+     * La rangée de SEGMENTS (miroir `.seg2` — item_segment.xml gonflé
+     * dans la rangée donnée) : le tap valide (pas de frappe
+     * intermédiaire), le bouton coché suit `isSelected`.
+     */
+    private fun segmentes(
+        rangee: LinearLayout,
+        valeurs: List<String>,
+        courant: String,
+        description: String,
+        onChoix: (String) -> Unit,
+    ) {
+        valeurs.forEach { valeur ->
+            val segment = ItemSegmentBinding.inflate(gonfleur(), rangee, false)
+            segment.segment.text = valeur
+            segment.segment.isSelected = valeur == courant
+            segment.segment.contentDescription = "$description : $valeur"
+            segment.segment.setOnClickListener {
+                if (valeur != courant) onChoix(valeur)
+            }
+            rangee.addView(segment.root)
+        }
+    }
+
+    /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs
+     * item_cote gonflés, miroir `.mrow`). */
     private fun controleCotes(
         controle: CatalogueAttributs.ControleAttribut.Cotes,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeLibelle(etiquetteRes(controle.etiquette)))
-        val rangee = LinearLayout(requireContext()).apply { orientation = LinearLayout.HORIZONTAL }
+        val bloc = ControleCotesBinding.inflate(gonfleur())
+        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
         val cotes =
             listOf(
                 EditionAttributsXml.Cote.HAUT to R.string.preview_cote_haut,
@@ -712,37 +608,27 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 EditionAttributsXml.Cote.DEBUT to R.string.preview_cote_gauche,
             )
         cotes.forEach { (cote, libelleRes) ->
-            val libelleCote = getString(libelleRes)
-            rangee.addView(
-                champCote(controle, cote, libelleCote, attrs),
-                LinearLayout.LayoutParams(0, StyleVolet.WRAP, 1f),
-            )
+            bloc.rangeeCotes.addView(champCote(controle, cote, getString(libelleRes), attrs, bloc.rangeeCotes))
         }
-        rangee.setPadding(dp(16), dp(2), dp(16), dp(0))
-        bloc.addView(rangee)
-        return bloc
+        return bloc.root
     }
 
-    /** UN champ de côté (commit IME/perte de focus — pas à chaque frappe). */
+    /** UN champ de côté (item_cote.xml — commit IME/perte de focus). */
     private fun champCote(
         controle: CatalogueAttributs.ControleAttribut.Cotes,
         cote: EditionAttributsXml.Cote,
         libelleCote: String,
         attrs: List<EditionAttributsXml.AttributSource>,
-    ): EditText {
-        val champ = EditText(requireContext())
-        champ.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        champ.setText(EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp"))
-        champ.hint = libelleCote
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        champ.setTextAlignment(View.TEXT_ALIGNMENT_CENTER)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(6), dp(8), dp(6), dp(8))
-        champ.contentDescription = getString(R.string.preview_cote_cd, etiquetteRes(controle.etiquette), libelleCote)
+        parent: ViewGroup,
+    ): View {
+        val champ = ItemCoteBinding.inflate(gonfleur(), parent, false)
+        champ.champCote.setText(EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp"))
+        champ.champCote.hint = libelleCote
+        champ.champCote.contentDescription =
+            getString(R.string.preview_cote_cd, etiquetteRes(controle.etiquette), libelleCote)
         val commettre = {
             val saisie =
-                champ.text
+                champ.champCote.text
                     ?.toString()
                     ?.trim()
                     .orEmpty()
@@ -753,7 +639,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 }
 
                 nombre == null || nombre < 0 -> {
-                    champ.setText(EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp") ?: "")
+                    champ.champCote.setText(
+                        EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp") ?: "",
+                    )
                     false
                 }
 
@@ -764,333 +652,50 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 }
             }
         }
-        champ.setOnEditorActionListener { _, action, _ ->
+        champ.champCote.setOnEditorActionListener { _, action, _ ->
             if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                if (commettre()) champ.clearFocus()
+                if (commettre()) champ.champCote.clearFocus()
                 true
             } else {
                 false
             }
         }
-        champ.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
-        return champ
+        champ.champCote.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
+        return champ.root
     }
 
-    /** Les DIMENSIONS (PE7d repris — les deux rangées wrap/match/fixe). */
+    /** Un contrôle DIMENSIONS (controle_dimensions.xml — les DEUX axes
+     * Largeur/Hauteur, PE7d repris). */
     private fun controleDimensions(): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeDimension(EditionAttributsXml.Axe.LARGEUR, getString(R.string.preview_modifier_largeur)))
-        bloc.addView(rangeeDimension(EditionAttributsXml.Axe.HAUTEUR, getString(R.string.preview_modifier_hauteur)))
-        return bloc
+        val bloc = ControleDimensionsBinding.inflate(gonfleur())
+        rangeeDimension(
+            bloc.largeur,
+            EditionAttributsXml.Axe.LARGEUR,
+            getString(R.string.preview_modifier_largeur),
+        )
+        rangeeDimension(
+            bloc.hauteur,
+            EditionAttributsXml.Axe.HAUTEUR,
+            getString(R.string.preview_modifier_hauteur),
+        )
+        return bloc.root
     }
 
     /**
-     * La section CONTRAINTES (PE8b — ÉDITABLE) : les QUATRE ancres du
-     * ConstraintLayout parent, chacune un bouton CIBLE (menu Aucune /
-     * parent / frères à id) et un champ MARGE en dp — chaque geste = UNE
-     * édition au port. Un span périmé retombe en lecture seule (miroir PE7e).
-     */
-    private fun controleContraintes(): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        val lues = viewModel.lireContraintesSelection()
-        if (lues == null) {
-            bloc.addView(blocLectureSeule(getString(R.string.preview_edition_impossible_toast)))
-            return bloc
-        }
-        lues.forEach { lue -> bloc.addView(rangeeContrainte(lue)) }
-        return bloc
-    }
-
-    /** Une RANGÉE d'ancre (miroir `.crow`) : libellé, bouton cible, champ marge. */
-    private fun rangeeContrainte(lue: EditionAttributsXml.ContrainteLue): View {
-        val rangee =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(2), dp(16), dp(2))
-            }
-        val libelle = libelleAncre(lue.cote)
-        rangee.addView(
-            texteLibelle(libelle, stylePetit, couleur(couleurContenu)),
-            LinearLayout.LayoutParams(dp(64), StyleVolet.WRAP),
-        )
-        val bouton =
-            com.google.android.material.button.MaterialButton(
-                requireContext(),
-                null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle,
-            )
-        bouton.text = lue.cible ?: getString(R.string.preview_contrainte_aucune)
-        bouton.isAllCaps = false
-        bouton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        bouton.isFocusable = true
-        bouton.minWidth = 0
-        bouton.insetLeft = 0
-        bouton.insetRight = 0
-        bouton.insetTop = 0
-        bouton.insetBottom = 0
-        bouton.minimumHeight = dp(32)
-        bouton.setPadding(dp(10), 0, dp(10), 0)
-        bouton.contentDescription = getString(R.string.preview_contrainte_cible_cd, libelle)
-        bouton.setOnClickListener { menuCible(bouton, lue) }
-        rangee.addView(bouton, LinearLayout.LayoutParams(0, StyleVolet.WRAP, 1f))
-        rangee.addView(champMargeContrainte(lue), LinearLayout.LayoutParams(dp(72), StyleVolet.WRAP))
-        return rangee
-    }
-
-    /** Le champ MARGE d'une ancre (commit IME/perte de focus — miroir `champCote`). */
-    private fun champMargeContrainte(lue: EditionAttributsXml.ContrainteLue): EditText {
-        val champ = EditText(requireContext())
-        champ.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        champ.setText(lue.margeDp?.toString() ?: "")
-        champ.hint = getString(R.string.preview_contrainte_marge)
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        champ.setTextAlignment(View.TEXT_ALIGNMENT_CENTER)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(6), dp(8), dp(6), dp(8))
-        champ.contentDescription =
-            getString(R.string.preview_contrainte_marge_cd, libelleAncre(lue.cote))
-        val commettre = {
-            val saisie =
-                champ.text
-                    ?.toString()
-                    ?.trim()
-                    .orEmpty()
-            val nombre = saisie.toIntOrNull()
-            when {
-                saisie.isEmpty() -> {
-                    false
-                }
-
-                nombre == null || nombre < 0 -> {
-                    champ.setText(lue.margeDp?.toString() ?: "")
-                    false
-                }
-
-                else -> {
-                    editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, null, nombre) }
-                }
-            }
-        }
-        champ.setOnEditorActionListener { _, action, _ ->
-            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                if (commettre()) champ.clearFocus()
-                true
-            } else {
-                false
-            }
-        }
-        champ.setOnFocusChangeListener { _, aFocus ->
-            if (!aFocus) commettre()
-        }
-        return champ
-    }
-
-    /** Le menu de CIBLE d'une ancre : Aucune, parent, puis les frères à id. */
-    private fun menuCible(
-        ancre: View,
-        lue: EditionAttributsXml.ContrainteLue,
-    ) {
-        val menu = androidx.appcompat.widget.PopupMenu(requireContext(), ancre)
-        val itemAucune = menu.menu.add(getString(R.string.preview_contrainte_aucune))
-        val itemParent = menu.menu.add(VALEUR_PARENT)
-        viewModel.ciblesContrainteSelection().forEach { identifiant ->
-            menu.menu.add("@id/$identifiant")
-        }
-        menu.setOnMenuItemClickListener { item ->
-            val cible =
-                when (item.itemId) {
-                    itemAucune.itemId -> EditionAttributsXml.CibleContrainte.Aucune
-                    itemParent.itemId -> EditionAttributsXml.CibleContrainte.Parent
-                    else -> EditionAttributsXml.CibleContrainte.Vue(item.title.toString().removePrefix("@id/"))
-                }
-            editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, cible, null) }
-        }
-        menu.show()
-    }
-
-    /** Le libellé localisé d'une ancre (Début/Fin/Haut/Bas). */
-    private fun libelleAncre(cote: EditionAttributsXml.Cote): String =
-        getString(
-            when (cote) {
-                EditionAttributsXml.Cote.DEBUT -> R.string.preview_contrainte_debut
-                EditionAttributsXml.Cote.FIN -> R.string.preview_contrainte_fin
-                EditionAttributsXml.Cote.HAUT -> R.string.preview_contrainte_haut
-                EditionAttributsXml.Cote.BAS -> R.string.preview_contrainte_bas
-            },
-        )
-
-    /** Un bloc LECTURE SEULE (miroir `.ro` : surface 2 arrondie, mono). */
-    private fun blocLectureSeule(texte: String): TextView =
-        TextView(requireContext()).apply {
-            this.text = texte
-            typeface = Typeface.MONOSPACE
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(couleur(couleurContenu))
-            background = fondChampLectureSeule()
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            val params = LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP)
-            params.marginStart = dp(16)
-            params.marginEnd = dp(16)
-            params.topMargin = dp(2)
-            layoutParams = params
-        }
-
-    /**
-     * La rangée de SEGMENTS (miroir `.seg2` : fond surface 2, bouton
-     * coché PRIMAIRE) — le tap valide (pas de frappe intermédiaire).
-     */
-    private fun segmentes(
-        valeurs: List<String>,
-        courant: String,
-        description: String,
-        onChoix: (String) -> Unit,
-    ): View {
-        val rangee =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                background = fondChampLectureSeule()
-                setPadding(dp(2), dp(2), dp(2), dp(2))
-            }
-        val paramsRangee = LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP)
-        paramsRangee.marginStart = dp(16)
-        paramsRangee.marginEnd = dp(16)
-        paramsRangee.topMargin = dp(2)
-        valeurs.forEach { valeur ->
-            val bouton =
-                com.google.android.material.button.MaterialButton(
-                    requireContext(),
-                    null,
-                    com.google.android.material.R.attr.materialButtonOutlinedStyle,
-                )
-            bouton.text = valeur
-            bouton.isAllCaps = false
-            bouton.minWidth = 0
-            bouton.insetLeft = 0
-            bouton.insetRight = 0
-            bouton.insetTop = 0
-            bouton.insetBottom = 0
-            bouton.setPadding(dp(9), dp(7), dp(9), dp(7))
-            bouton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            bouton.isSelected = valeur == courant
-            bouton.contentDescription = "$description : $valeur"
-            bouton.setOnClickListener {
-                if (valeur != courant) onChoix(valeur)
-            }
-            rangee.addView(bouton)
-        }
-        rangee.layoutParams = paramsRangee
-        return rangee
-    }
-
-    /** Le fond d'une CARTE de section (miroir `.sec2` : contour, coins 10). */
-    private fun fondCarte(): Drawable =
-        GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(10).toFloat()
-            setColor(couleur(couleurSurface))
-            setStroke(dp(1), couleur(couleurContour))
-        }
-
-    /** L'édition ou le RECHARGEMENT : un refus → toast (surchargeable pour
-     * un refus spécialisé, ex. renommage) + volet relu depuis le texte vivant. */
-    private fun editerOuRecharger(
-        message: Int = R.string.preview_edition_perimee_toast,
-        action: () -> Boolean,
-    ): Boolean {
-        if (action()) return true
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-        majAttributs()
-        return false
-    }
-
-    /** Un champ texte avec son libellé (commit sur IME_DONE + perte de focus). */
-    private fun champTexte(
-        libelle: String,
-        valeur: String,
-        commit: (String) -> Unit,
-    ): View {
-        val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        bloc.addView(rangeeLibelle(libelle))
-        val champ = TextInputEditText(requireContext())
-        champ.setText(valeur)
-        champ.hint = libelle
-        champ.setSingleLine(true)
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        champ.background = fondChampLectureSeule()
-        champ.setPadding(dp(10), dp(8), dp(10), dp(8))
-        champ.setOnEditorActionListener { _, action, _ ->
-            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                commit(champ.text?.toString() ?: "")
-                champ.clearFocus()
-                true
-            } else {
-                false
-            }
-        }
-        champ.setOnFocusChangeListener { _, aFocus ->
-            if (!aFocus) commit(champ.text?.toString() ?: "")
-        }
-        bloc.addView(
-            champ,
-            LinearLayout.LayoutParams(StyleVolet.WRAP, StyleVolet.WRAP).apply {
-                marginStart = dp(16)
-                marginEnd = dp(16)
-                topMargin = dp(2)
-            },
-        )
-        return bloc
-    }
-
-    /** La rangée label au-dessus d'un champ (miroir `fld label`). */
-    private fun rangeeLibelle(libelle: String): TextView =
-        texteLibelle(libelle, stylePetit, couleur(couleurNeutre)).apply {
-            setPadding(dp(16), dp(4), dp(8), dp(2))
-        }
-
-    /**
-     * La rangée d'une DIMENSION (miroir `dimrow`) : label + segment
-     * wrap/match/fixe + champ dp quand le mode est FIXE.
+     * Le LIAGE d'une rangée de DIMENSION (item_dimension.xml, miroir
+     * `dimrow`) : segments wrap/match/fixe + champ dp révélé quand le
+     * mode est FIXE (le champ prend le relais sans valeur).
      */
     private fun rangeeDimension(
+        rangee: ItemDimensionBinding,
         axe: EditionAttributsXml.Axe,
         libelle: String,
-    ): View {
+    ) {
         val nomAttribut = if (axe == EditionAttributsXml.Axe.LARGEUR) ATTR_LARGEUR else ATTR_HAUTEUR
         val valeur = viewModel.valeurAttributSelection(nomAttribut) ?: ""
         val (modeCourant, valeurFixe) = modeDimensionDe(valeur)
-
-        val rangee =
-            LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(4), dp(16), dp(4))
-            }
-        val label = texteLibelle(libelle, stylePetit, couleur(couleurNeutre))
-        rangee.addView(label, LinearLayout.LayoutParams(dp(56), StyleVolet.WRAP))
-
-        rangee.addView(segmentsDimension(axe, modeCourant, valeurFixe))
-
-        if (modeCourant == EditionAttributsXml.ModeDimension.FIXE) {
-            rangee.addView(
-                champDimensionFixe(axe, valeurFixe),
-                LinearLayout.LayoutParams(dp(64), StyleVolet.WRAP).apply { marginStart = dp(8) },
-            )
-        }
-        return rangee
-    }
-
-    /**
-     * La rangée de SEGMENTS wrap/match/fixe d'une dimension (miroir `seg2`
-     * — la SEULE implémentation de segments reste [segmentes]) : le tap
-     * écrit le mode (FIXE sans valeur → le champ dp prend le relais).
-     */
-    private fun segmentsDimension(
-        axe: EditionAttributsXml.Axe,
-        modeCourant: EditionAttributsXml.ModeDimension,
-        valeurFixe: Int?,
-    ): View {
+        rangee.libelleAxe.text = libelle
+        rangee.champFixe.isVisible = modeCourant == EditionAttributsXml.ModeDimension.FIXE
         val valeurs =
             listOf(
                 EditionAttributsXml.ModeDimension.WRAP to getString(R.string.preview_modifier_wrap),
@@ -1101,34 +706,20 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             valeurs.firstOrNull { it.first == modeCourant }?.second
                 ?: getString(R.string.preview_modifier_fixe)
         val description = getString(R.string.preview_modifier_dimension_cd)
-        return segmentes(valeurs.map { it.second }, courant, description) { texteChoix ->
+        segmentes(rangee.rangeeSegmentsDimension, valeurs.map { it.second }, courant, description) { texteChoix ->
             val mode =
                 valeurs.firstOrNull { it.second == texteChoix }?.first
                     ?: EditionAttributsXml.ModeDimension.FIXE
+            rangee.champFixe.isVisible = mode == EditionAttributsXml.ModeDimension.FIXE
             ecrireDimension(axe, mode, valeurFixe)
         }
-    }
-
-    /** Le champ dp d'une dimension FIXE (miroir l'input number de `dimrow`). */
-    private fun champDimensionFixe(
-        axe: EditionAttributsXml.Axe,
-        valeurFixe: Int?,
-    ): EditText {
-        val champ = EditText(requireContext())
-        champ.setText(valeurFixe?.toString() ?: "")
-        champ.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        champ.setTypeface(Typeface.MONOSPACE)
-        champ.contentDescription = getString(R.string.preview_modifier_dimension_cd)
-        champ.setPadding(dp(8), dp(6), dp(8), dp(6))
-        champ.background = fondChampLectureSeule()
-        champ.doAfterTextChanged { texte ->
+        rangee.champFixe.setText(valeurFixe?.toString() ?: "")
+        rangee.champFixe.doAfterTextChanged { texte ->
             val nombre = texte?.toString()?.toIntOrNull() ?: return@doAfterTextChanged
             if (nombre > 0 && nombre != valeurFixe) {
                 ecrireDimension(axe, EditionAttributsXml.ModeDimension.FIXE, nombre)
             }
         }
-        return champ
     }
 
     /** Le mode + la valeur fixe d'une dimension courante (miroir `mode`). */
@@ -1165,13 +756,122 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         editerOuRecharger { viewModel.ecrireDimensionSelection(axe, mode, valeurDp) }
     }
 
-    /** Le fond doux des champs (miroir `.fld input` : surface 2 arrondie). */
-    private fun fondChampLectureSeule(): Drawable =
-        GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(8).toFloat()
-            setColor(couleur(StyleVolet.couleurFondSecondaire))
+    /**
+     * La section CONTRAINTES (controle_contraintes.xml, PE8b — ÉDITABLE) :
+     * les QUATRE ancres du ConstraintLayout parent, chacune un bouton
+     * CIBLE (menu Aucune / parent / frères à id) et un champ MARGE en dp
+     * — chaque geste = UNE édition au port. Un span périmé retombe en
+     * lecture seule (miroir PE7e).
+     */
+    private fun controleContraintes(): View {
+        val bloc = ControleContraintesBinding.inflate(gonfleur())
+        val lues = viewModel.lireContraintesSelection()
+        if (lues == null) {
+            bloc.root.addView(
+                blocLectureSeule(bloc.root, getString(R.string.preview_edition_impossible_toast)),
+            )
+            return bloc.root
         }
+        lues.forEach { lue -> bloc.root.addView(rangeeContrainte(lue, bloc.root)) }
+        return bloc.root
+    }
+
+    /** Le LIAGE d'une rangée d'ancre (controle_contrainte.xml, miroir `.crow`). */
+    private fun rangeeContrainte(
+        lue: EditionAttributsXml.ContrainteLue,
+        parent: ViewGroup,
+    ): View {
+        val rangee = ControleContrainteBinding.inflate(gonfleur(), parent, false)
+        val libelle = libelleAncre(lue.cote)
+        rangee.libelleAncre.text = libelle
+        rangee.boutonCible.text = lue.cible ?: getString(R.string.preview_contrainte_aucune)
+        rangee.boutonCible.contentDescription = getString(R.string.preview_contrainte_cible_cd, libelle)
+        rangee.boutonCible.setOnClickListener { menuCible(rangee.boutonCible, lue) }
+        rangee.champMarge.setText(lue.margeDp?.toString() ?: "")
+        rangee.champMarge.hint = getString(R.string.preview_contrainte_marge)
+        rangee.champMarge.contentDescription =
+            getString(R.string.preview_contrainte_marge_cd, libelle)
+        val commettre = {
+            val saisie =
+                rangee.champMarge.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            val nombre = saisie.toIntOrNull()
+            when {
+                saisie.isEmpty() -> {
+                    false
+                }
+
+                nombre == null || nombre < 0 -> {
+                    rangee.champMarge.setText(lue.margeDp?.toString() ?: "")
+                    false
+                }
+
+                else -> {
+                    editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, null, nombre) }
+                }
+            }
+        }
+        rangee.champMarge.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) rangee.champMarge.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        rangee.champMarge.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        return rangee.root
+    }
+
+    /** Le menu de CIBLE d'une ancre : Aucune, parent, puis les frères à id. */
+    private fun menuCible(
+        ancre: View,
+        lue: EditionAttributsXml.ContrainteLue,
+    ) {
+        val menu = androidx.appcompat.widget.PopupMenu(requireContext(), ancre)
+        val itemAucune = menu.menu.add(getString(R.string.preview_contrainte_aucune))
+        val itemParent = menu.menu.add(VALEUR_PARENT)
+        viewModel.ciblesContrainteSelection().forEach { identifiant ->
+            menu.menu.add("@id/$identifiant")
+        }
+        menu.setOnMenuItemClickListener { item ->
+            val cible =
+                when (item.itemId) {
+                    itemAucune.itemId -> EditionAttributsXml.CibleContrainte.Aucune
+                    itemParent.itemId -> EditionAttributsXml.CibleContrainte.Parent
+                    else -> EditionAttributsXml.CibleContrainte.Vue(item.title.toString().removePrefix("@id/"))
+                }
+            editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, cible, null) }
+        }
+        menu.show()
+    }
+
+    /** Le libellé localisé d'une ancre (Début/Fin/Haut/Bas). */
+    private fun libelleAncre(cote: EditionAttributsXml.Cote): String =
+        getString(
+            when (cote) {
+                EditionAttributsXml.Cote.DEBUT -> R.string.preview_contrainte_debut
+                EditionAttributsXml.Cote.FIN -> R.string.preview_contrainte_fin
+                EditionAttributsXml.Cote.HAUT -> R.string.preview_contrainte_haut
+                EditionAttributsXml.Cote.BAS -> R.string.preview_contrainte_bas
+            },
+        )
+
+    /** L'édition ou le RECHARGEMENT : un refus → toast (surchargeable pour
+     * un refus spécialisé, ex. renommage) + volet relu depuis le texte vivant. */
+    private fun editerOuRecharger(
+        message: Int = R.string.preview_edition_perimee_toast,
+        action: () -> Boolean,
+    ): Boolean {
+        if (action()) return true
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        majAttributs()
+        return false
+    }
 
     private companion object {
         /** Les DEUX PREMIÈRES sections de l'éditeur s'ouvrent par défaut (miroir `i < 2`). */

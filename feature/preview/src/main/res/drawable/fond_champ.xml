@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le fond doux des champs et blocs de l'éditeur (PE9b, miroir
+     `.fld input` : surface 2 arrondie, coins 8 dp). Remplace le
+     GradientDrawable construit en code. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSecondaryContainer" />
+    <corners android:radius="8dp" />
+</shape>

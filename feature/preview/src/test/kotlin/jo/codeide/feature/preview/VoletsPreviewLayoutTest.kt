@@ -91,4 +91,75 @@ class VoletsPreviewLayoutTest {
             probleme.background != null,
         )
     }
+
+    // ── PE9b : les fiches d'attributs en item layouts réels ──
+
+    @Test
+    fun `la carte de section porte son en-tête son badge sa flèche et son corps`() {
+        val carte = gonfler(R.layout.carte_section)
+        assertNotNull(carte.findViewById<View>(R.id.entete_section))
+        assertNotNull(carte.findViewById<View>(R.id.titre_section))
+        assertNotNull(carte.findViewById<View>(R.id.badge_definis))
+        assertNotNull(carte.findViewById<View>(R.id.fleche_section))
+        assertNotNull(carte.findViewById<View>(R.id.corps_section))
+    }
+
+    @Test
+    fun `le contrôle texte porte son libellé et son conteneur de saisie`() {
+        val controle = gonfler(R.layout.controle_texte)
+        assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
+        assertNotNull(controle.findViewById<View>(R.id.conteneur_saisie))
+    }
+
+    @Test
+    fun `le contrôle segments porte sa rangée (choix et tri-état partagés)`() {
+        val controle = gonfler(R.layout.controle_segments)
+        assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
+        assertNotNull(controle.findViewById<View>(R.id.rangee_segments))
+    }
+
+    @Test
+    fun `le contrôle cotes porte sa grille de quatre`() {
+        val controle = gonfler(R.layout.controle_cotes)
+        assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
+        assertNotNull(controle.findViewById<View>(R.id.rangee_cotes))
+    }
+
+    @Test
+    fun `le contrôle dimensions déplie ses deux axes`() {
+        val controle = gonfler(R.layout.controle_dimensions)
+        assertNotNull(controle.findViewById<View>(R.id.largeur))
+        assertNotNull(controle.findViewById<View>(R.id.hauteur))
+    }
+
+    @Test
+    fun `la rangée de contrainte porte son bouton cible et sa marge`() {
+        val rangee = gonfler(R.layout.controle_contrainte)
+        assertNotNull(rangee.findViewById<View>(R.id.libelle_ancre))
+        assertNotNull(rangee.findViewById<View>(R.id.bouton_cible))
+        assertNotNull(rangee.findViewById<View>(R.id.champ_marge))
+    }
+
+    @Test
+    fun `le contrôle identifiant porte le champ nouveau nom et la note de périmètre`() {
+        val controle = gonfler(R.layout.controle_identifiant)
+        assertNotNull(controle.findViewById<View>(R.id.conteneur_courant))
+        assertNotNull(controle.findViewById<View>(R.id.champ_nouveau_nom))
+        assertNotNull(controle.findViewById<View>(R.id.note_perimetre))
+    }
+
+    @Test
+    fun `les petits items de l'éditeur se gonflent (extraction lecture seule saisies segment cote)`() {
+        assertNotNull(gonfler(R.layout.controle_extraction).findViewById<View>(R.id.bouton_extraire))
+        assertNotNull(gonfler(R.layout.item_lecture_seule).findViewById<View>(R.id.texte_lecture_seule))
+        assertNotNull(gonfler(R.layout.saisie_texte).findViewById<View>(R.id.champ_saisie))
+        assertNotNull(gonfler(R.layout.saisie_nombre).findViewById<View>(R.id.champ_nombre))
+        assertNotNull(gonfler(R.layout.item_segment).findViewById<View>(R.id.segment))
+        assertNotNull(gonfler(R.layout.item_cote).findViewById<View>(R.id.champ_cote))
+        assertNotNull(gonfler(R.layout.item_libelle).findViewById<View>(R.id.libelle_controle))
+        assertNotNull(gonfler(R.layout.item_titre_groupe).findViewById<View>(R.id.titre_groupe))
+        assertNotNull(gonfler(R.layout.item_attribut).findViewById<View>(R.id.libelle_attribut))
+        assertNotNull(gonfler(R.layout.entete_editeur).findViewById<View>(R.id.titre_editeur))
+        assertNotNull(gonfler(R.layout.separateur_editeur).findViewById<View>(R.id.separateur_editeur))
+    }
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le fond du badge « n définis » des sections de l'éditeur (PE9b,
+     miroir `summary small` : le violet « new » sur son fond pâle —
+     jetons preview_section_badge_*, déclinaison nuit existante). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/preview_section_badge_fond" />
+    <corners android:radius="5dp" />
+</shape>
