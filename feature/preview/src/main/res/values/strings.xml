@@ -51,6 +51,7 @@
     <string name="preview_feuille_onglet_source">Source</string>
     <string name="preview_feuille_onglets_cd">Détails de la vue sélectionnée : arbre, attributs, problèmes et source</string>
     <string name="preview_feuille_croisement">%1$s › %2$s</string>
+    <string name="preview_feuille_id">\@+id/%1$s</string>
     <string name="preview_feuille_libelle">%1$s · @+id/%2$s</string>
     <string name="preview_feuille_vide">Sélectionnez une vue dans le rendu ou dans l\'arbre.</string>
     <string name="preview_feuille_aucun_probleme">Aucun problème détecté à cette taille et à cette police.</string>

@@ -337,6 +337,44 @@ conflit, la plus récente prime.
   pour reprendre le travail. La directive ci-dessus s'applique à chaque
   session sans modification.
 
+### 7. Chaîne de push en SÉRIE de chantiers (directive du 17/10/2026, v0.134.33 — retour v0.134.27/v0.134.31)
+
+Cette directive consolide la séquence de push d'un chantier et la boucle
+de travail en série. Elle PRIME sur « les vérifications se font module
+par module » (§0) lorsque la chaîne prépare un push.
+
+- **La chaîne locale de push se lance à la RACINE du dépôt (tous
+  modules), JAMAIS module par module** :
+  `./gradlew spotlessCheck detekt checkModuleDependencies lintDebug testDebugUnitTest koverVerify --stacktrace`
+  — exactement la chaîne CI MOINS `assembleDebug` (la CI l'exécute).
+  Leçon v0.134.27 : c'est le detekt/test RACINE qui attrape ce que la
+  chaîne par-module laisse passer (ex. `SettingsDataStore.toAppSettings`
+  62 lignes, détecté par le detekt racine seulement) — un push sur la
+  foi d'une chaîne par-module vert N'EST PAS vert.
+- **La baseline de parité se régénère EN DERNIER, après tout edit
+  `.kt`, et ferme la revue du diff** :
+  `./gradlew :lsp:kotlin:test -Dparite.majBase=true`. Leçon
+  v0.134.31 : une baseline régénérée AVANT une correction `.kt`
+  postérieure (lint, formatage) est PÉRIMÉE — CI rouge sur
+  `PariteCorpusDepotTest`. Le diff de baseline attendu est UNE ligne
+  (le compteur de fichiers) ; tout autre diff se lit avant push.
+- **Séquence d'un chantier** (répétable) :
+  1. chaîne locale RACINE verte (hors `assembleDebug`) ;
+  2. parité EN DERNIER + revue du diff (une ligne) ;
+  3. version incrémentée (`scripts/bump-version.sh patch`) +
+     `CHANGELOG.md` à jour ;
+  4. commit (`feat(...)`/`fix(...)`, identité jjoblab) ;
+  5. push sur `origin/main` ;
+  6. **CI surveillée** (§2, toutes les ~5 min) ;
+  7. **le chantier suivant démarre IMMÉDIATEMENT en parallèle** —
+     l'agent ne reste JAMAIS inactif devant une CI en vol.
+- **CI rouge en série** : le correctif part DANS le chantier en cours
+  (ou en commit `fix(ci)` isolé si le chantier en cours est indépendant),
+  en cascade — l'erreur est lue via l'API (§3) puis corrigée SANS
+  abandonner le travail déjà commencé sur le chantier suivant. Le
+  chantier suivant re-base si nécessaire (`git pull --rebase`) avant
+  son propre push.
+
 ## État d'avancement
 
 - [x] Étape 0 — Environnement, squelette, outillage → v0.1.0

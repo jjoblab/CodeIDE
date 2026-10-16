@@ -75,17 +75,14 @@ class ActivityPreviewLayoutTest {
     }
 
     @Test
-    fun `le layout de la feuille se gonfle avec ses quatre volets (PE6d)`() {
+    fun `le layout de la feuille se gonfle avec son conteneur de volets (PE6d + PE9a)`() {
         val base = ApplicationProvider.getApplicationContext<Context>()
         val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
         val feuille = LayoutInflater.from(contexte).inflate(R.layout.fragment_feuille_apercu, null)
         assertNotNull(feuille.findViewById<View>(R.id.racine_feuille))
         assertNotNull(feuille.findViewById<View>(R.id.grab_feuille))
         assertNotNull(feuille.findViewById<View>(R.id.onglets_feuille))
-        assertNotNull(feuille.findViewById<View>(R.id.volet_arbre))
-        assertNotNull(feuille.findViewById<View>(R.id.volet_attributs))
-        assertNotNull(feuille.findViewById<View>(R.id.volet_problemes))
-        assertNotNull(feuille.findViewById<View>(R.id.volet_source))
-        assertNotNull(feuille.findViewById<View>(R.id.bouton_ouvrir_editeur))
+        // PE9a : UN conteneur porte les quatre fragments de volet.
+        assertNotNull(feuille.findViewById<View>(R.id.conteneur_volets))
     }
 }

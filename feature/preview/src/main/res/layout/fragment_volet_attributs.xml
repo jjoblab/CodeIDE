@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volet ATTRIBUTS de la feuille (PE9a, miroir `.pane` — ancien
+  volet_attributs + groupes_attributs) : la section MODIFIER (cartes
+  repliables de l'éditeur) puis les groupes LECTURE SEULE — le défilement
+  reste un ScrollView (les cartes sont peu nombreuses), le contenu
+  migre vers les item layouts réels à PE9b.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/volet_attributs"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/groupes_attributs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+</ScrollView>

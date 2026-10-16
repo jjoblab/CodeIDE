@@ -60,93 +60,13 @@
         app:tabMode="fixed"
         xmlns:app="http://schemas.android.com/apk/res-auto" />
 
-    <!-- Le volet : les 4 volets superposés (miroir `.pane`), un seul visible. -->
+    <!-- Le volet : UN conteneur portant les QUATRE fragments de volet
+         (PE9a — VoletArbreFragment, VoletAttributsFragment,
+         VoletProblemesFragment, VoletSourceFragment, ajoutés puis
+         montrés/cachés par transactions ; miroir `.pane` à un seul
+         volet visible). -->
     <FrameLayout
-        android:id="@+id/volet_feuille"
+        android:id="@+id/conteneur_volets"
         android:layout_width="match_parent"
-        android:layout_height="224dp">
-
-        <ScrollView
-            android:id="@+id/volet_arbre"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <LinearLayout
-                android:id="@+id/lignes_arbre"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </ScrollView>
-
-        <ScrollView
-            android:id="@+id/volet_attributs"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/groupes_attributs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </ScrollView>
-
-        <ScrollView
-            android:id="@+id/volet_problemes"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:id="@+id/lignes_problemes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </ScrollView>
-
-        <LinearLayout
-            android:id="@+id/volet_source"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="@dimen/spacing_md"
-                android:paddingEnd="@dimen/spacing_md">
-
-                <TextView
-                    android:id="@+id/plage_source"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAppearance="?attr/textAppearanceLabelMedium"
-                    android:text="@string/preview_feuille_source_entier" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_ouvrir_editeur"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_feuille_ouvrir_editeur" />
-            </LinearLayout>
-
-            <ScrollView
-                android:id="@+id/defile_source"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <LinearLayout
-                    android:id="@+id/lignes_source"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
-        </LinearLayout>
-    </FrameLayout>
+        android:layout_height="224dp" />
 </LinearLayout>
