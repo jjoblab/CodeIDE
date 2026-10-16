@@ -158,6 +158,27 @@ public class VuePreviewXml :
      */
     public var auDepot: ((contenu: ZonesDepot.ContenuDepot, x: Float, y: Float) -> Unit)? = null
 
+    /**
+     * Le REPÈRE EN DIRECT du popup de placement (PE7c, miroir
+     * `S.dropView = {w, target}` de la maquette) : le contenu porte le
+     * nom de la pill « + Widget · i/n », les zones de dépôt restent
+     * affichées jusqu'à [masquerApercuPlacement], la CIBLE suit le choix
+     * de référence/position via [cibleDepot] — le même calque que le
+     * drag PE7b dessine le tout (conteneurs violets, barre d'insertion).
+     */
+    public fun montrerApercuPlacement(contenu: ZonesDepot.ContenuDepot) {
+        contenuGlisse = contenu
+        zonesDepotAffichees = true
+        cibleDepot = null
+    }
+
+    /** Efface le repère de placement (fermeture du popup, dépôt, annulation). */
+    public fun masquerApercuPlacement() {
+        if (!zonesDepotAffichees) return
+        zonesDepotAffichees = false
+        contenuGlisse = null
+    }
+
     /** Le contenu glissé courant (localState du drag natif — PE7b). */
     private var contenuGlisse: ZonesDepot.ContenuDepot? = null
 
@@ -302,6 +323,13 @@ public class VuePreviewXml :
 
     /** Texte de l'étiquette de sélection (nom · dimensions). */
     private val peintEtiquette =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Point d'état de la pastille (PE6a fix design — miroir `.status .dot`). */
+    private val peintPointEtat =
         Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
@@ -1080,6 +1108,18 @@ public class VuePreviewXml :
     /** Rayon d'une poignée rapporté à l'espace CONTENU (taille écran constante). */
     private fun rayonPoigneeEnContenu(): Float = RAYON_POIGNEE_DP * echellePolice() / echelle
 
+    /**
+     * La COULEUR du point d'état de la pastille (PE6a fix design — miroir
+     * `.status .dot` de la maquette : vert rendu OK, ambre frappe en
+     * cours, rouge erreur ; `.dot` fait 7 px et précède le texte).
+     */
+    private fun couleurPointEtat(): Int =
+        when {
+            messageErreur != null -> COULEUR_POINT_ERREUR
+            enEdition -> COULEUR_POINT_EDITION
+            else -> COULEUR_POINT_OK
+        }
+
     /** Pastille d'état (PE6a) : durée du rendu et nombre de vues — coins bas-gauche, écran constant. */
     private fun dessinerPastille(canevas: Canvas) {
         if (nombreVues <= 0 && dureeMs <= 0) return
@@ -1093,6 +1133,10 @@ public class VuePreviewXml :
         val taille = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice()
         peintEtiquette.textSize = taille
         val marge = MARGE_PASTILLE_DP * echellePolice()
+        // PE6a fix design : le POINT coloré précède le texte (miroir
+        // `.status .dot` de la maquette — 7 px, vert/ambre/rouge).
+        val rayonPoint = RAYON_POINT_ETAT_DP * echellePolice()
+        val espacePoint = rayonPoint * 2f + marge
         val largeurTexte = peintEtiquette.measureText(texte)
         val demiHauteurTexte = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
         val yPill = height - marge - hauteurBandeauSiPresent()
@@ -1101,14 +1145,22 @@ public class VuePreviewXml :
         canevas.drawRoundRect(
             marge,
             yPill - demiHauteurTexte - marge,
-            marge + largeurTexte + 2 * marge,
+            marge + espacePoint + largeurTexte + 2 * marge,
             yPill + demiHauteurTexte + marge,
             demiHauteurTexte + marge,
             demiHauteurTexte + marge,
             peintPill,
         )
+        // Le point : centré verticalement, à gauche du texte (miroir .dot).
+        peintPointEtat.color = couleurPointEtat()
+        canevas.drawCircle(
+            marge + marge + rayonPoint,
+            yPill,
+            rayonPoint,
+            peintPointEtat,
+        )
         peintEtiquette.color = couleurTheme(android.R.attr.textColorPrimary)
-        canevas.drawText(texte, marge + marge, yPill - demiHauteurTexte, peintEtiquette)
+        canevas.drawText(texte, marge + espacePoint + marge, yPill - demiHauteurTexte, peintEtiquette)
     }
 
     /** La pastille ne glisse pas SOUS le bandeau d'erreur quand il est présent. */
@@ -1285,6 +1337,18 @@ public class VuePreviewXml :
 
         /** Marge de la pastille aux bords de l'écran, en dp écran (PE6a). */
         private const val MARGE_PASTILLE_DP = 8f
+
+        /** Rayon du point d'état de la pastille, en dp écran (miroir 7 px de `.dot`). */
+        private const val RAYON_POINT_ETAT_DP = 3.5f
+
+        /** Point d'état VERT — rendu OK (miroir `--ok` #2E7D32 de la maquette). */
+        private const val COULEUR_POINT_OK = 0xFF2E7D32.toInt()
+
+        /** Point d'état AMBRE — frappe en cours (miroir `.status.edit` #9A6700). */
+        private const val COULEUR_POINT_EDITION = 0xFF9A6700.toInt()
+
+        /** Point d'état ROUGE — erreur de rendu (miroir `.status.err` #BA1A1A). */
+        private const val COULEUR_POINT_ERREUR = 0xFFBA1A1A.toInt()
 
         /** Les quatre coins d'une poignée (haut-gauche, haut-droit, bas-gauche, bas-droit). */
         private val COINS =

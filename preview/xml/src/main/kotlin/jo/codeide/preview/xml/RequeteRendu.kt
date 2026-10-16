@@ -49,6 +49,15 @@ public class RequeteRendu(
      *  Vide = pas de vues custom (repli ViewFactory par défaut + G15
      *  MockView fallback pour classes introuvables). */
     public val classpath: List<EntreeClasspath> = emptyList(),
+    /** Orientation PAYSAGE du rendu (PE6e-f — puce Portrait/Paysage de la
+     *  maquette, miroir `S.land` : les dimensions du profil sont PERMUTÉES
+     *  et le qualifieur `values-land` priorisé). `false` = portrait. */
+    public val paysage: Boolean = false,
+    /** Échelle de police de l'aperçu (PE6e-f — puce « Police ×1,0 » de la
+     *  maquette, miroir `S.fs` : ×1,0 / ×1,3 / ×2,0). Vaut pour le
+     *  `scaledDensity` du rendu (convertisseur dp→px et moteur de mesure —
+     *  LayoutLib v3 `setFontScale`). Borne : > 0. */
+    public val echellePolice: Float = ECHELLE_POLICE_DEFAUT,
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -70,6 +79,8 @@ public class RequeteRendu(
         themeName = parcel.readString(),
         labelActivite = parcel.readString(),
         classpath = parcel.createTypedArrayList(EntreeClasspath.CREATOR) ?: emptyList(),
+        paysage = parcel.readByte() != 0.toByte(),
+        echellePolice = parcel.readFloat(),
     )
 
     override fun writeToParcel(
@@ -88,6 +99,8 @@ public class RequeteRendu(
         parcel.writeString(themeName)
         parcel.writeString(labelActivite)
         parcel.writeTypedList(classpath)
+        parcel.writeByte(if (paysage) 1 else 0)
+        parcel.writeFloat(echellePolice)
     }
 
     override fun describeContents(): Int = 0
@@ -102,7 +115,9 @@ public class RequeteRendu(
             other.langue == langue &&
             other.themeName == themeName &&
             other.labelActivite == labelActivite &&
-            other.classpath == classpath
+            other.classpath == classpath &&
+            other.paysage == paysage &&
+            other.echellePolice == echellePolice
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -114,10 +129,15 @@ public class RequeteRendu(
         resultat = 31 * resultat + (themeName?.hashCode() ?: 0)
         resultat = 31 * resultat + (labelActivite?.hashCode() ?: 0)
         resultat = 31 * resultat + classpath.hashCode()
+        resultat = 31 * resultat + if (paysage) 1 else 0
+        resultat = 31 * resultat + echellePolice.hashCode()
         return resultat
     }
 
     public companion object {
+        /** Échelle de police nominale (miroir `S.fs = 1` de la maquette). */
+        public const val ECHELLE_POLICE_DEFAUT: Float = 1f
+
         @JvmField
         public val CREATOR: Parcelable.Creator<RequeteRendu> =
             object : Parcelable.Creator<RequeteRendu> {

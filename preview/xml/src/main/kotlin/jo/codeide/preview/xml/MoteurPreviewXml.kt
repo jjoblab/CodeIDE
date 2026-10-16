@@ -111,6 +111,12 @@ public class MoteurPreviewXml(
     /** Langue courante de l'aperçu (PE5a — null = défaut système). */
     private var langueCourante: String? = null
 
+    /** Orientation paysage courante (PE6e-f — dimensions permutées + `values-land`). */
+    private var paysageCourant: Boolean = false
+
+    /** Échelle de police courante (PE6e-f — ×1,0 / ×1,3 / ×2,0 de la maquette). */
+    private var echellePoliceCourante: Float = RequeteRendu.ECHELLE_POLICE_DEFAUT
+
     /** Fournisseur de texte courant (dernier onglet branché). */
     private var fournisseurTexte: (() -> String)? = null
 
@@ -238,6 +244,32 @@ public class MoteurPreviewXml(
         relancerSiTexte()
     }
 
+    /** Orientation paysage courante (PE6e-f). */
+    public val paysage: Boolean get() = paysageCourant
+
+    /** Échelle de police courante (PE6e-f). */
+    public val echellePolice: Float get() = echellePoliceCourante
+
+    /** Définit l'orientation de l'aperçu (PE6e-f — puce Portrait/Paysage de
+     *  la maquette) : un CHANGEMENT relance un rendu immédiat (dimensions
+     *  du profil permutées + qualifieur `values-land`). */
+    public fun definirPaysage(paysage: Boolean) {
+        if (ferme || paysage == paysageCourant) return
+        paysageCourant = paysage
+        relancerSiTexte()
+    }
+
+    /** Définit l'échelle de police de l'aperçu (PE6e-f — puce « Police ×n »
+     *  de la maquette) : un CHANGEMENT relance un rendu immédiat (le
+     *  `scaledDensity` du moteur et du convertisseur suivent). Valeurs
+     *  hors borne (≤ 0) refusées silencieusement — la puce ne propose que
+     *  des échelles valides, le contrat reste défensif. */
+    public fun definirEchellePolice(echelle: Float) {
+        if (ferme || echelle <= 0f || echelle == echellePoliceCourante) return
+        echellePoliceCourante = echelle
+        relancerSiTexte()
+    }
+
     /** Profil courant (observable par l'UI pour libeller le sélecteur). */
     public val profil: ProfilPeripherique get() = profilCourant
 
@@ -310,6 +342,8 @@ public class MoteurPreviewXml(
                     themeName = themeNameCourant,
                     labelActivite = labelActiviteCourant,
                     classpath = classpathCourant,
+                    paysage = paysageCourant,
+                    echellePolice = echellePoliceCourante,
                 )
             journal?.i(TAG_PREVIEW) {
                 "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +

@@ -1,0 +1,18 @@
+<!-- Fond de tuile de la palette (miroir `.tile` : surface, bordure 1 dp,
+     rayon 12 dp) — l'état pressé/hover passe par le sélecteur. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/preview_bulle_halo" />
+            <stroke android:width="1dp" android:color="@color/preview_bulle_fond" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurfaceContainerHighest" />
+            <stroke android:width="1dp" android:color="?attr/colorOutlineVariant" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</selector>

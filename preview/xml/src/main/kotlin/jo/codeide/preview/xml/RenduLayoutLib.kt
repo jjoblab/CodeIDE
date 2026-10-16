@@ -125,6 +125,12 @@ public class RenduLayoutLib(
     /** Langue courante (PE5a — null = défaut système). */
     private var langueConfigure: String? = null
 
+    /** Orientation paysage courante (PE6e-f). */
+    private var paysageConfigure: Boolean = false
+
+    /** Échelle de police courante — FACTEUR utilisateur (PE6e-f). */
+    private var echellePoliceConfigure: Float = RequeteRendu.ECHELLE_POLICE_DEFAUT
+
     /** Nom du thème activité courant (v0.131.0 / G2 — null = repli système). */
     private var themeNameConfigure: String? = null
 
@@ -251,7 +257,15 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue, requete.themeName)
+        reconfigurerSiNecessaire(
+            requete.dossierRes,
+            densite,
+            requete.nuit,
+            requete.langue,
+            requete.themeName,
+            requete.paysage,
+            requete.echellePolice,
+        )
         // G1 / v0.132.0 : reconfigurer le classloader de DexViewFactory
         // si le classpath a changé. Le cache (CacheClasspath) survit entre
         // rendus — signature inchangée → pas de reconstruction.
@@ -284,9 +298,15 @@ public class RenduLayoutLib(
         // conteneur chrome (LinearLayout vertical). Si pas de thème, on
         // garde la racine telle quelle (comportement v0.132.x).
         val vueRendue = envelopperChromeSiNecessaire(racine, densite, requete)
-        val largeur = requete.profil.versDeviceProfile().getWidthPx(densite)
-        val hauteur = requete.profil.versDeviceProfile().getHeightPx(densite)
-        layoutEngine.setDensity(densite)
+        // PE6e-f : l'échelle de police de la REQUÊTE pilote le moteur de
+        // mesure (LayoutLib v3 `setFontScale` — `scaledDensity = density ×
+        // échelle`) ; les dimensions du profil sont PERMUTÉES en paysage
+        // (miroir `dim()` de la maquette : `{w: d.h, h: d.w}`).
+        layoutEngine.setFontScale(requete.echellePolice)
+        val largeurPortrait = requete.profil.versDeviceProfile().getWidthPx(densite)
+        val hauteurPortrait = requete.profil.versDeviceProfile().getHeightPx(densite)
+        val largeur = if (requete.paysage) hauteurPortrait else largeurPortrait
+        val hauteur = if (requete.paysage) largeurPortrait else hauteurPortrait
         layoutEngine.render(vueRendue, largeur, hauteur)
         val bitmap = dessiner(vueRendue)
         // v0.134.2 — offset du CONTENU dans l'arbre rendu, calculé APRÈS le
@@ -336,7 +356,15 @@ public class RenduLayoutLib(
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
-        reconfigurerSiNecessaire(requete.dossierRes, densite, requete.nuit, requete.langue, requete.themeName)
+        reconfigurerSiNecessaire(
+            requete.dossierRes,
+            densite,
+            requete.nuit,
+            requete.langue,
+            requete.themeName,
+            requete.paysage,
+            requete.echellePolice,
+        )
         val resolver = drawableResolver
         val drawable =
             if (resolver != null) {
@@ -388,7 +416,11 @@ public class RenduLayoutLib(
                         ),
                     bitmap = null,
                 )
-        val largeur = requete.profil.versDeviceProfile().getWidthPx(densite)
+        // PE6e-f : le tableau de valeurs suit l'orientation (largeur
+        // permutée en paysage — cohérence avec le rendu LAYOUT).
+        val largeurPortrait = requete.profil.versDeviceProfile().getWidthPx(densite)
+        val hauteurPortrait = requete.profil.versDeviceProfile().getHeightPx(densite)
+        val largeur = if (requete.paysage) hauteurPortrait else largeurPortrait
         val bitmap = renduValeurs.dessiner(entrees, largeur, requete.nuit)
         val rendu =
             ResultatRendu(
@@ -758,25 +790,39 @@ public class RenduLayoutLib(
      * ressources (values*), drawables, thèmes (values + values-night).
      * PE3 : la densité du CONVERTISSEUR est celle du PROFIL, le régime
      * NUIT s'applique aux résolveurs (thèmes + ressources qualifiées).
+     * PE6e-f : l'échelle de police du PROFIL utilisateur pilote le
+     * `scaledDensity` du convertisseur, et le qualifieur
+     * `values-land`/`values-port` suit [paysage].
      * Échec (dossier absent/projet sans res/) : journal + repli natif —
      * le rendu continue, l'éditeur n'est jamais bloqué.
+     *
+     * Exemption detekt ciblée (règle 16) : LongParameterList — les 7
+     * dimensions SONT la configuration du rendu (miroir des champs de
+     * [RequeteRendu], PE6e-f : paysage + échelle de police en plus) ;
+     * les regrouper dans une data class dupliquerait la requête.
      */
+    @Suppress("LongParameterList")
     private fun reconfigurerSiNecessaire(
         chemin: String?,
         densiteProfil: Float,
         nuit: Boolean,
         langue: String?,
         themeName: String?,
+        paysage: Boolean,
+        echellePolice: Float,
     ) {
         val dossier = chemin
-        if (configurationInchangee(dossier, densiteProfil, nuit, langue, themeName)) {
+        if (configurationInchangee(dossier, densiteProfil, nuit, langue, themeName, paysage, echellePolice)) {
             return
         }
         if (dossier != null && File(dossier).isDirectory) {
             try {
-                val echellePolice = echellePolice()
+                // PE6e-f : scaledDensity = densité du PROFIL × échelle de
+                // police de l'utilisateur (miroir de l'ancien scaledDensity,
+                // la requête porte le FACTEUR, jamais une densité).
+                val echelleAbsolute = densiteProfil * echellePolice
                 val xdpi = contexte.resources.displayMetrics.xdpi
-                val convertisseur = DimensionConverter(densiteProfil, echellePolice, xdpi)
+                val convertisseur = DimensionConverter(densiteProfil, echelleAbsolute, xdpi)
 
                 val nouvellesRessources = ResourceResolverImpl(dossier)
                 nouvellesRessources.setDimensionConverter(convertisseur)
@@ -785,6 +831,9 @@ public class RenduLayoutLib(
                 if (langue != null) {
                     nouvellesRessources.setLanguage(langue)
                 }
+                // PE6e-f : qualifieur d'orientation (LayoutLib v3 —
+                // `values-land` / `values-port` priorisés).
+                nouvellesRessources.setLandscape(paysage)
                 inflater.setResourceResolver(nouvellesRessources)
 
                 val applier = AttributeApplier(contexte, convertisseur, nouvellesRessources)
@@ -821,6 +870,8 @@ public class RenduLayoutLib(
         nuitConfigure = nuit
         langueConfigure = langue
         themeNameConfigure = themeName
+        paysageConfigure = paysage
+        echellePoliceConfigure = echellePolice
     }
 
     /**
@@ -966,19 +1017,27 @@ public class RenduLayoutLib(
         return if (message.isNotEmpty()) message else t.javaClass.simpleName
     }
 
-    /** La configuration courante des résolveurs couvre-t-elle déjà la demande ? */
+    /** La configuration courante des résolveurs couvre-t-elle déjà la demande ?
+     * Exemption detekt ciblée (règle 16) : LongParameterList — même raison
+     * que [reconfigurerSiNecessaire] (les 7 dimensions de configuration).
+     */
+    @Suppress("LongParameterList")
     private fun configurationInchangee(
         dossier: String?,
         densiteProfil: Float,
         nuit: Boolean,
         langue: String?,
         themeName: String?,
+        paysage: Boolean,
+        echellePolice: Float,
     ): Boolean =
         dossier == dossierResConfigure &&
             densiteProfil == densiteConfigure &&
             nuit == nuitConfigure &&
             langue == langueConfigure &&
             themeName == themeNameConfigure &&
+            paysage == paysageConfigure &&
+            echellePolice == echellePoliceConfigure &&
             ressources != null
 
     /** Densité du PROFIL (dpi/DPI_PAR_UNITE) — PE3 : le rendu vit au profil, pas à la machine. */

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La PALETTE de widgets (PE7c, miroir `.pop.pal` de la maquette) :
+  en-tête (titre, puce bulle fixe/flottante, fermer), MODE d'insertion
+  (Glisser-déposer / Placer par popup), recherche, puces de catégories,
+  grille de tuiles (Récents puis Tous les widgets). La palette est une
+  VUE de l'activité — le popover de l'explorateur, pas une fenêtre de
+  dialogue qui bloquerait le dépôt (maquette PE7b).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="10dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="10dp"
+    android:background="@drawable/fond_popover_apercu"
+    android:elevation="8dp"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- En-tête : « Palette », puce bulle (fixe/flottante), fermer. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/titre_palette"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/preview_palette_titre"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_bulle"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:text="@string/preview_bulle_flottante"
+            android:textSize="12sp" />
+
+        <ImageButton
+            android:id="@+id/bouton_fermer_palette"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="@string/preview_palette_fermer_cd"
+            android:src="@drawable/ic_fermer" />
+    </LinearLayout>
+
+    <!-- Mode d'insertion : deux boutons radio (titre + description). -->
+    <LinearLayout
+        android:id="@+id/groupe_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:layout_marginTop="10dp"
+        android:background="?attr/colorSurfaceContainerHighest"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <LinearLayout
+            android:id="@+id/mode_drag"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:orientation="vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="9dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_palette_mode_drag"
+                android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_palette_mode_drag_detail"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/mode_popup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:orientation="vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="9dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_palette_mode_popup"
+                android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_palette_mode_popup_detail"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Recherche (miroir `.search`). -->
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/champ_recherche"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="?attr/colorSurfaceContainerHighest"
+        android:hint="@string/preview_palette_recherche_indice"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="9dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+    <!-- Puces de catégories (miroir `.cats` : Tous + 6 catégories). -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/rangee_categories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="2dp" />
+    </HorizontalScrollView>
+
+    <!-- Grille de tuiles (3 colonnes — miroir `.tiles`, Récents puis
+         « Tous les widgets », sous-titres posés par l'adaptateur). -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/grille_tuiles"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1"
+        android:minHeight="120dp"
+        android:overScrollMode="ifContentScrolls" />
+</LinearLayout>
