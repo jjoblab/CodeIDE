@@ -6,16 +6,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jo.codeide.core.datastore.SettingsDataStore
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.RegistreSourcesApercu
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.SourceApercu
+import jo.codeide.core.model.AppSettings
 import jo.codeide.preview.xml.CalquesApercu
+import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.ClassificateurPreview
+import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
+import jo.codeide.preview.xml.PlacementPopup
+import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,17 +59,33 @@ import kotlin.math.roundToInt
  * ConstraintLayout) et compose l'édition ([InsertionXml]) — UNE écriture
  * dans la session, le rendu repart par le chemin normal (mutation →
  * écouteur → moteur).
+ * PE7c — PLACEMENT PAR POPUP : [appliquerPlacement] reprend le MÊME
+ * façonnage pour une cible EXPLICITE ([PlacementPopup.cible] — Avant,
+ * Dedans, Après) et enregistre le widget dans les RÉCENTS de la palette ;
+ * les réglages de la bulle et du mode se PERSISTENT dans
+ * `SettingsDataStore` (maquette : « son mode et sa position sont
+ * enregistrés dans SettingsDataStore »).
+ * PE7d — ÉDITION : chaque action ([definirAttributSelection],
+ * [ecrireCoteSelection], [ecrireDimensionSelection], [dupliquerSelection],
+ * [supprimerSelection]) compose UNE édition de texte ([EditionAttributsXml])
+ * passée à [SourceApercu.remplacer] — « une seule entrée dans l'historique
+ * de l'éditeur » — puis rend immédiatement ([MoteurPreviewXml.soumettreImmediat]).
  *
  * Exemptions detekt ciblées (règle 16) : TooManyFunctions — ViewModel de
  * COUTURE (brancher la source, suivre le projet, sélecteur de fichier,
- * réglages du moteur, relance éditeur : chaque face a SA méthode,
- * précédent CoordonnateurLsp) ; ReturnCount de [resoudreLabelActivite] —
- * chaque garde (activité → application) est une issue DISTINCTE du
- * contrat (reprise telle quelle du contrôleur PE1).
+ * réglages du moteur, dépôt/placement, éditions PE7d, relance éditeur :
+ * chaque face a SA méthode, précédent CoordonnateurLsp) ; ReturnCount de
+ * [resoudreLabelActivite] et des actions d'édition — chaque garde est
+ * une issue DISTINCTE du refus (X4).
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "ReturnCount")
 @HiltViewModel
 public class PreviewViewModel
+    // Exemption detekt ciblée (règle 16) : LongParameterList — les 8
+    // dépendances HILT du ViewModel (PE6e-f ajoute SettingsDataStore pour
+    // les réglages persistés bulle/mode/PE6e-f) ; les regrouper masquerait
+    // l'injection.
+    @Suppress("LongParameterList")
     @Inject
     constructor(
         @param:ApplicationContext private val contexte: Context,
@@ -71,6 +93,7 @@ public class PreviewViewModel
         private val journal: AppLogger,
         private val registre: RegistreSourcesApercu,
         private val resolveurChemin: ResoudreRepertoireProjet,
+        private val reglagesDataStore: SettingsDataStore,
         sauvegarde: SavedStateHandle,
     ) : ViewModel() {
         /** Identifiant du projet (piège « mort du processus » : relance de l'éditeur). */
@@ -127,6 +150,19 @@ public class PreviewViewModel
             viewModelScope.launch {
                 moteur.etat.collect { etat ->
                     if (etat is EtatPreviewXml.RenduValide) dernierRendu = etat
+                }
+            }
+            // PE7c : les réglages persistés de la bulle et du mode de la
+            // palette (DataStore tolérant — la lecture retombe sur les défauts).
+            viewModelScope.launch {
+                reglagesDataStore.observe().collect { reglage ->
+                    reglagesApercuInterne.value =
+                        ReglagesApercu(
+                            bulleFixe = reglage.apercuBulleFixe,
+                            bulleADroite = reglage.apercuBulleADroite,
+                            bulleY = reglage.apercuBulleY,
+                            paletteParPopup = reglage.apercuPaletteParPopup,
+                        )
                 }
             }
         }
@@ -218,8 +254,293 @@ public class PreviewViewModel
                     extrait,
                 ) ?: return false
             val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
-            if (ecrit) dernierParentDepot = parent.classe
+            if (ecrit) {
+                dernierParentDepot = parent.classe
+                marquerRecent(contenu.idWidget)
+            }
             return ecrit
+        }
+
+        // ── PE6e-f : orientation et échelle de police ────────────────────
+
+        /** Orientation paysage courante (libellé de la puce). */
+        public val paysage: Boolean get() = moteur.paysage
+
+        /** Échelle de police courante (libellé de la puce). */
+        public val echellePolice: Float get() = moteur.echellePolice
+
+        /** Bascule l'orientation (puce Portrait/Paysage — rendu immédiat). */
+        public fun definirPaysage(paysage: Boolean) {
+            moteur.definirPaysage(paysage)
+        }
+
+        /** Cycler l'échelle de police (puce Police ×n : 1,0 → 1,3 → 2,0 → 1,0). */
+        public fun cyclerEchellePolice(): Float {
+            val suivante =
+                when {
+                    moteur.echellePolice <= 1f -> ECHELLE_POLICE_MOYENNE
+                    moteur.echellePolice <= ECHELLE_POLICE_MOYENNE -> ECHELLE_POLICE_GRANDE
+                    else -> RequeteRendu.ECHELLE_POLICE_DEFAUT
+                }
+            moteur.definirEchellePolice(suivante)
+            return suivante
+        }
+
+        // ── PE7c : réglages persistés (bulle, mode), récents, placement ──
+
+        /** Les réglages persistés de l'aperçu (bulle + mode de la palette). */
+        public data class ReglagesApercu(
+            val bulleFixe: Boolean,
+            val bulleADroite: Boolean,
+            val bulleY: Float,
+            val paletteParPopup: Boolean,
+        )
+
+        /** L'état courant des réglages (lu depuis le DataStore). */
+        private val reglagesApercuInterne =
+            MutableStateFlow(
+                ReglagesApercu(
+                    bulleFixe = false,
+                    bulleADroite = false,
+                    bulleY = AppSettings.BULLE_Y_DEFAUT,
+                    paletteParPopup = false,
+                ),
+            )
+
+        /** Les réglages observables (la bulle et la palette s'y alignent). */
+        public val reglagesApercu: StateFlow<ReglagesApercu> = reglagesApercuInterne.asStateFlow()
+
+        /** La puce bulle a basculé fixe ↔ flottante (persistance immédiate). */
+        public fun poserBulleFixe(fixe: Boolean) {
+            viewModelScope.launch {
+                reglagesDataStore.update { it.copy(apercuBulleFixe = fixe) }
+            }
+        }
+
+        /** La bulle a été reposée (aimantation — côté + hauteur persistés). */
+        public fun poserBulle(
+            aDroite: Boolean,
+            yNormalise: Float,
+        ) {
+            viewModelScope.launch {
+                reglagesDataStore.update {
+                    it.copy(
+                        apercuBulleADroite = aDroite,
+                        apercuBulleY = yNormalise.coerceIn(0f, 1f),
+                    )
+                }
+            }
+        }
+
+        /** Le mode d'insertion de la palette a changé (persistance immédiate). */
+        public fun poserModePalette(parPopup: Boolean) {
+            viewModelScope.launch {
+                reglagesDataStore.update { it.copy(apercuPaletteParPopup = parPopup) }
+            }
+        }
+
+        /**
+         * Les RÉCENTS de la palette (miroir `recents`, SESSION COURANTE —
+         * la persistance reste celle de la maquette, ici en mémoire).
+         */
+        private val recentsInterne = MutableStateFlow<List<String>>(emptyList())
+
+        /** Les récents observables (la grille de la palette s'y aligne). */
+        public val recents: StateFlow<List<String>> = recentsInterne.asStateFlow()
+
+        /** Note un widget au TÊTE des récents (4 max — miroir `insertAt`). */
+        private fun marquerRecent(idWidget: String?) {
+            if (idWidget == null) return
+            val suivant = (listOf(idWidget) + recentsInterne.value.filter { it != idWidget }).take(RECENTS_MAX)
+            recentsInterne.value = suivant
+        }
+
+        /**
+         * Le PLACEMENT PAR POPUP (PE7c — miroir `insertAt(w, parentRid,
+         * index)`) : la cible vient de [PlacementPopup.cible] (Avant,
+         * Dedans, Après) — le MÊME façonnage que le dépôt PE7b
+         * ([renumeroter] + [contraindre] pour un parent ConstraintLayout,
+         * marges par DÉFAUT de la maquette : `mt=16`, `ml/mr=24` à la
+         * racine) et l'édition UNIQUE passe par le port. Refus hors
+         * cible/span périmé (X4 — jamais d'écriture hasardeuse).
+         */
+        public fun appliquerPlacement(
+            contenu: ZonesDepot.ContenuDepot,
+            cible: ZonesDepot.CibleDepot,
+        ): Boolean {
+            val rendu = dernierRendu ?: return false
+            val sourceBranchee = source ?: return false
+            val parent = rendu.vues.getOrNull(cible.indiceParent) ?: return false
+            if (!parent.selectable) return false
+            val texte = sourceBranchee.texte()
+            var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
+            if (parent.classe.endsWith("ConstraintLayout")) {
+                extrait =
+                    InsertionXml.contraindre(
+                        extrait,
+                        MARGE_PLACEMENT_HAUT_DP,
+                        MARGE_PLACEMENT_COTE_DP,
+                    )
+            }
+            val edition =
+                InsertionXml.inserer(
+                    texte,
+                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                    cible.index,
+                    extrait,
+                ) ?: return false
+            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+            if (ecrit) {
+                dernierParentDepot = parent.classe
+                marquerRecent(contenu.idWidget)
+            }
+            return ecrit
+        }
+
+        // ── PE7d : éditions d'attributs, dupliquer, supprimer, annuler ──
+
+        /** Le libellé d'une vue éditée (toasts — miroir `label(v)`). */
+        public fun libelleVue(indice: Int): String {
+            val vue = dernierRendu?.vues?.getOrNull(indice) ?: return ""
+            val idNom = vue.idRes.substringAfterLast('/')
+            return if (idNom.isEmpty()) vue.classe else vue.classe + " · @+id/" + idNom
+        }
+
+        /** La vue sélectionnée est-elle éditable (ni racine, ni hors arbre) ? */
+        public fun selectionEditable(): Boolean {
+            val indice = selectionInterne.value
+            if (indice <= 0) return false
+            val vue = dernierRendu?.vues?.getOrNull(indice) ?: return false
+            return vue.selectable && vue.indiceParent >= 0
+        }
+
+        /** La valeur ACTUELLE d'un attribut de la vue sélectionnée (volet Modifier). */
+        public fun valeurAttributSelection(nomAttribut: String): String? {
+            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+            val sourceBranchee = source ?: return null
+            return EditionAttributsXml.valeurAttribut(
+                sourceBranchee.texte(),
+                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+                nomAttribut,
+            )
+        }
+
+        /**
+         * DÉFINIT un attribut sur la sélection (PE7e — la voie générale :
+         * remplacement, ajout à la position conventionnelle, retrait si
+         * valeur vide, xmlns posé au besoin). La RACINE reste éditable
+         * (Disposition/Affichage — miroir piège § 5 du prompt PE7e).
+         */
+        public fun definirAttributSelection(
+            nomAttribut: String,
+            valeur: String,
+        ): Boolean =
+            editerSelection(autoriserRacine = true) { rendu, span ->
+                EditionAttributsXml.definir(rendu, span, nomAttribut, valeur)
+            }
+
+        /** Écrit UN CÔTÉ de marge/padding sur la sélection (PE7e — miroir `.mrow`). */
+        public fun ecrireCoteSelection(
+            base: String,
+            cote: EditionAttributsXml.Cote,
+            valeurDp: Int,
+        ): Boolean =
+            editerSelection(autoriserRacine = true) { rendu, span ->
+                EditionAttributsXml.ecrireCote(rendu, span, base, cote, valeurDp)
+            }
+
+        /**
+         * Les attributs BRUTS de la sélection (PE7e — miroir `attrsOf` :
+         * contraintes lecture seule, valeurs courantes des côtés).
+         * `null` = span périmé (le volet passe en lecture seule).
+         */
+        public fun attributsSelection(): List<EditionAttributsXml.AttributSource>? {
+            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+            val sourceBranchee = source ?: return null
+            return EditionAttributsXml.lire(
+                sourceBranchee.texte(),
+                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+            )
+        }
+
+        /** La CLASSE de la vue sélectionnée (le catalogue en dérive les sections). */
+        public fun classeSelection(): String? = dernierRendu?.vues?.getOrNull(selectionInterne.value)?.classe
+
+        /**
+         * Le GENRE du parent de la sélection (le catalogue en dérive les
+         * sections Contraintes / Dans le parent) — `null` sans rendu.
+         */
+        public fun genreParentSelection(): CatalogueAttributs.GenreParent? {
+            val rendu = dernierRendu ?: return null
+            val indice = selectionInterne.value
+            val vue = rendu.vues.getOrNull(indice) ?: return null
+            if (vue.indiceParent < 0) return CatalogueAttributs.GenreParent.AUCUN
+            val parent = rendu.vues.getOrNull(vue.indiceParent)
+            return CatalogueAttributs.genreParent(parent?.classe, parentEstRacine = vue.indiceParent == 0)
+        }
+
+        /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
+        public fun ecrireDimensionSelection(
+            axe: EditionAttributsXml.Axe,
+            mode: EditionAttributsXml.ModeDimension,
+            valeurDp: Int?,
+        ): Boolean =
+            editerSelection { rendu, span ->
+                EditionAttributsXml.ecrireDimension(rendu, span, axe, mode, valeurDp)
+            }
+
+        /** DUPLIQUE la vue sélectionnée (miroir `dupSel`) — le libellé de la copie. */
+        public fun dupliquerSelection(): Boolean =
+            editerSelection { rendu, span ->
+                EditionAttributsXml.dupliquer(rendu, span)
+            }
+
+        /** SUPPRIME la vue sélectionnée (miroir `delSel`). */
+        public fun supprimerSelection(): Boolean {
+            val ok =
+                editerSelection { rendu, span ->
+                    EditionAttributsXml.supprimer(rendu, span)
+                }
+            if (ok) selectionInterne.value = -1
+            return ok
+        }
+
+        /** Annule la DERNIÈRE édition (port — l'historique reste celui de l'éditeur). */
+        public fun annuler(): Boolean = source?.annuler() ?: false
+
+        /** Rétablit la dernière édition annulée (port). */
+        public fun retablir(): Boolean = source?.retablir() ?: false
+
+        /**
+         * Le CORPS commun des éditions PE7d : la vue sélectionnée doit
+         * rester ALIGNÉE au texte VIVANT (re-marche de l'aligneur dans
+         * chaque fonction pure) — l'édition passe au port
+         * ([SourceApercu.remplacer], une seule entrée d'historique) puis
+         * le rendu repart IMMÉDIATEMENT (miroir `soumettreImmediat` de la
+         * maquette PE7d).
+         */
+        private fun editerSelection(
+            autoriserRacine: Boolean = false,
+            composer: (texte: String, span: InsertionXml.SpanParent) ->
+            EditionAttributsXml.EditionAttributsXmlResultat?,
+        ): Boolean {
+            val rendu = dernierRendu ?: return false
+            val sourceBranchee = source ?: return false
+            val indice = selectionInterne.value
+            val vue = rendu.vues.getOrNull(indice) ?: return false
+            // PE7e : la RACINE reste éditable pour ses attributs
+            // (Disposition/Affichage) — pas pour dupliquer/supprimer.
+            if (!vue.selectable || (!autoriserRacine && vue.indiceParent < 0)) return false
+            val texte = sourceBranchee.texte()
+            val edition =
+                composer(texte, InsertionXml.SpanParent(vue.debutElement, vue.finElement)) ?: return false
+            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+            if (!ecrit) return false
+            // Le rendu repart IMMÉDIATEMENT (l'écouteur de mutation ne
+            // re-soumet qu'après le debounce — le même texte sera skippé
+            // par l'anti-boucle du moteur).
+            moteur.soumettreImmediat { sourceBranchee.texte() }
+            return true
         }
 
         override fun onCleared() {
@@ -342,5 +663,20 @@ public class PreviewViewModel
 
             /** Extra d'intention : URI du document à prévisualiser. */
             public const val CLE_URI: String = "jo.codeide.preview.URI"
+
+            /** Échelle de police MOYENNE du cycle (miroir `S.fs = 1.3`). */
+            public const val ECHELLE_POLICE_MOYENNE: Float = 1.3f
+
+            /** Échelle de police GRANDE du cycle (miroir `S.fs = 2`). */
+            public const val ECHELLE_POLICE_GRANDE: Float = 2f
+
+            /** Marge haute PAR DÉFAUT d'un placement à la racine (miroir `n.mt = 16`). */
+            private const val MARGE_PLACEMENT_HAUT_DP: Int = 16
+
+            /** Marge latérale PAR DÉFAUT à la racine (miroir `ml/mr = 24`). */
+            private const val MARGE_PLACEMENT_COTE_DP: Int = 24
+
+            /** Taille de la liste des récents (miroir `slice(0, 4)`). */
+            private const val RECENTS_MAX: Int = 4
         }
     }

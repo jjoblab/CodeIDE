@@ -63,4 +63,150 @@
     <!-- Palette drop (PE7b, mirror of the insertAt toast). -->
     <string name="preview_toast_depot_ok">%1$s added to %2$s</string>
     <string name="preview_toast_depot_ko">Drop not possible here: the document changed since the render.</string>
+    <!-- Orientation and font scale (PE6e-f). -->
+    <string name="preview_orientation_cd">Toggle the preview between portrait and landscape</string>
+    <string name="preview_portrait">Portrait</string>
+    <string name="preview_paysage">Landscape</string>
+    <string name="preview_police_cd">Cycle the preview font scale (×1.0 / ×1.3 / ×2.0)</string>
+    <string name="preview_police_format">Font ×%1$s</string>
+
+    <!-- Language chip label (mockup `lblLang` mirror). -->
+    <string name="preview_langue_format">Language: %1$s</string>
+
+    <!-- Toolbar subtitle (mockup `.ttl span`). -->
+    <string name="preview_sous_titre_format">%1$s · rendering as %2$s</string>
+
+    <!-- Widget palette bubble (PE7c). -->
+    <string name="preview_bulle_cd">Widget palette</string>
+    <string name="preview_bulle_flottante">Floating bubble</string>
+    <string name="preview_bulle_fixe">Pinned bubble</string>
+    <string name="preview_bulle_fixee_toast">Bubble pinned to the left.</string>
+    <string name="preview_bulle_flottante_toast">Floating bubble: drag it to either edge.</string>
+
+    <!-- Palette popover (PE7c). -->
+    <string name="preview_palette_titre">Palette</string>
+    <string name="preview_palette_fermer_cd">Close the palette</string>
+    <string name="preview_palette_mode_titre">Insertion mode</string>
+    <string name="preview_palette_mode_drag">Drag and drop</string>
+    <string name="preview_palette_mode_drag_detail">Hold, drop onto the preview</string>
+    <string name="preview_palette_mode_popup">Place by popup</string>
+    <string name="preview_palette_mode_popup_detail">Tap, then choose where</string>
+    <string name="preview_palette_recherche_cd">Search a widget</string>
+    <string name="preview_palette_recherche_indice">Search a widget</string>
+    <string name="preview_palette_recents">Recent</string>
+    <string name="preview_palette_tous_widgets">All widgets</string>
+    <string name="preview_palette_vide">No widget matches “%1$s”.</string>
+    <string name="preview_palette_dependance_absente">missing dependency</string>
+    <string name="preview_palette_toast_drag">Hold and drag the widget onto the preview, or choose “Place by popup”.</string>
+
+    <!-- Placement popup (PE7c). -->
+    <string name="preview_placement_titre">Where to place %1$s?</string>
+    <string name="preview_placement_fermer_cd">Close the placement popup</string>
+    <string name="preview_placement_arbre_cd">Reference view</string>
+    <string name="preview_placement_avant">Before</string>
+    <string name="preview_placement_dedans">Inside</string>
+    <string name="preview_placement_apres">After</string>
+    <string name="preview_placement_resume">In %1$s, position %2$d/%3$d</string>
+    <string name="preview_placement_confirmer">Place here</string>
+    <string name="preview_prefixe_id">\@+id/%1$s</string>
+    <string name="preview_placement_repere_cd">Live insertion marker on the preview</string>
+
+    <!-- Edit bar (PE7d). -->
+    <string name="preview_edition_annuler_cd">Undo</string>
+    <string name="preview_edition_retablir_cd">Redo</string>
+    <string name="preview_edition_dupliquer_cd">Duplicate view</string>
+    <string name="preview_edition_supprimer_cd">Delete view</string>
+    <string name="preview_edition_annulee_toast">Change undone</string>
+    <string name="preview_edition_retablie_toast">Change redone</string>
+    <string name="preview_edition_rien_annuler_toast">Nothing to undo.</string>
+    <string name="preview_edition_rien_retablir_toast">Nothing to redo.</string>
+    <string name="preview_edition_dupliquee_toast">%1$s duplicated</string>
+    <string name="preview_edition_supprimee_toast">%1$s deleted</string>
+    <string name="preview_edition_impossible_toast">Cannot edit: the document changed since the render.</string>
+
+    <!-- Edit section of the Attributes tab (PE7d/PE7e): @string stay read
+         only; sections per view type, control labels mirror sectionsFor. -->
+    <string name="preview_modifier_titre">Edit</string>
+    <string name="preview_modifier_classe">Edit · %1$s</string>
+    <string name="preview_modifier_texte">text</string>
+    <string name="preview_modifier_hint">hint</string>
+    <string name="preview_modifier_reference">%1$s = “%2$s”</string>
+    <string name="preview_modifier_reference_cd">Resource reference, read only</string>
+    <string name="preview_modifier_largeur">width</string>
+    <string name="preview_modifier_hauteur">height</string>
+    <string name="preview_modifier_wrap">wrap</string>
+    <string name="preview_modifier_match">match</string>
+    <string name="preview_modifier_fixe">fixed</string>
+    <string name="preview_modifier_dimension_cd">Dimension in dp</string>
+    <string name="preview_modifier_applique_toast">Attribute updated.</string>
+    <string name="preview_edition_perimee_toast">The file changed, reopen the selection.</string>
+
+    <!-- Editor SECTION titles (PE7e, mirror sectionsFor). -->
+    <string name="preview_section_texte">Text</string>
+    <string name="preview_section_saisie">Input</string>
+    <string name="preview_section_champ">Field</string>
+    <string name="preview_section_bouton">Button</string>
+    <string name="preview_section_etat">State</string>
+    <string name="preview_section_image">Image</string>
+    <string name="preview_section_conteneur">Container</string>
+    <string name="preview_section_progression">Progress</string>
+    <string name="preview_section_liste">List</string>
+    <string name="preview_section_contraintes">Constraints</string>
+    <string name="preview_section_dans_parent">In parent</string>
+    <string name="preview_section_disposition">Layout</string>
+    <string name="preview_section_affichage">Display</string>
+    <string name="preview_section_ouverte">▴</string>
+    <string name="preview_section_fermee">▾</string>
+    <string name="preview_section_contraintes_vide">No constraint.</string>
+    <string name="preview_section_lecture_seule">read only, editing to come</string>
+
+    <!-- CONTROL labels of the editor (mirror the sectionsFor labels). -->
+    <string name="preview_etiquette_texte">text</string>
+    <string name="preview_etiquette_taille">size (sp)</string>
+    <string name="preview_etiquette_style">style</string>
+    <string name="preview_etiquette_gravite">gravity</string>
+    <string name="preview_etiquette_couleur">color</string>
+    <string name="preview_etiquette_type_saisie">inputType</string>
+    <string name="preview_etiquette_lignes_max">max lines</string>
+    <string name="preview_etiquette_libelle">label</string>
+    <string name="preview_etiquette_fond">background</string>
+    <string name="preview_etiquette_icone_fin">end icon</string>
+    <string name="preview_etiquette_arrondi">corner (dp)</string>
+    <string name="preview_etiquette_elevation">elevation (dp)</string>
+    <string name="preview_etiquette_icone">icon</string>
+    <string name="preview_etiquette_coche">checked</string>
+    <string name="preview_etiquette_source">src</string>
+    <string name="preview_etiquette_type_echelle">scaleType</string>
+    <string name="preview_etiquette_orientation">orientation</string>
+    <string name="preview_etiquette_maximum">max</string>
+    <string name="preview_etiquette_progression">progress</string>
+    <string name="preview_etiquette_indetermine">indeterminate</string>
+    <string name="preview_etiquette_item_liste">listitem</string>
+    <string name="preview_etiquette_gestionnaire">layoutManager</string>
+    <string name="preview_etiquette_poids">layout_weight</string>
+    <string name="preview_etiquette_gravite_parent">layout_gravity</string>
+    <string name="preview_etiquette_marges">margins</string>
+    <string name="preview_etiquette_padding">padding</string>
+    <string name="preview_etiquette_visibilite">visibility</string>
+    <string name="preview_etiquette_alpha">alpha</string>
+    <string name="preview_etiquette_actif">enabled</string>
+    <string name="preview_etiquette_description">contentDescription</string>
+
+    <!-- The four SIDES of a margin/padding (mirror .mrow). -->
+    <string name="preview_cote_haut">top</string>
+    <string name="preview_cote_droite">right</string>
+    <string name="preview_cote_bas">bottom</string>
+    <string name="preview_cote_gauche">left</string>
+    <string name="preview_cote_cd">%1$s side %2$s</string>
+
+    <!-- The TRI-STATE (default = the attribute is removed). -->
+    <string name="preview_choix_defaut">default</string>
+    <string name="preview_choix_vrai">true</string>
+    <string name="preview_choix_faux">false</string>
+
+    <!-- Section badge (count of defined attributes). -->
+    <plurals name="preview_section_definis">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d set</item>
+    </plurals>
 </resources>

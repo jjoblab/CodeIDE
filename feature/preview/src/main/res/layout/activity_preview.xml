@@ -2,11 +2,13 @@
 <!--
   Écran dédié de l'aperçu XML (PE6-0, maquette
   docs/mockups/apercu-xml.html § « Activité dédiée » ; chrome PE6b ;
-  feuille PE6d) : CoordinatorLayout racine — la colonne (toolbar,
-  PUCES défilantes de réglages, panneau de rendu VuePreviewXml avec HUD
-  de zoom) et la FEUILLE inférieure en BottomSheet (arbre, attributs,
-  problèmes, source — miroir `.sheet`). Le MOTEUR :preview:xml reste
-  zéro-Material (règle du module) : le chrome vit ici.
+  feuille PE6d ; PE7c bulle/palette/popup de placement ; PE7d barre
+  d'édition) : CoordinatorLayout racine — la colonne (toolbar, PUCES
+  défilantes de réglages, panneau de rendu VuePreviewXml avec barre
+  d'édition, popovers et bulle de palette, HUD de zoom) et la FEUILLE
+  inférieure en BottomSheet (arbre, attributs, problèmes, source —
+  miroir `.sheet`). Le MOTEUR :preview:xml reste zéro-Material (règle
+  du module) : le chrome vit ici.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -29,10 +31,9 @@
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:title="@string/preview_titre" />
 
-        <!-- Puces défilantes de réglages (PE6b, miroir `.chips` de la
-             maquette) : appareil (feuille de choix radio), jour/nuit,
-             langue, calques (popover de calques). Orientation et police
-             arrivent en PE6e-f (RequeteRendu — données du rendu). -->
+        <!-- Puces défilantes de réglages (PE6b + PE6e-f, miroir `.chips` de
+             la maquette — MÊME ORDRE : appareil ▾, portrait/paysage, jour,
+             langue, police, calques ▾). -->
         <HorizontalScrollView
             android:id="@+id/barre_reglages_apercu"
             android:layout_width="match_parent"
@@ -56,6 +57,17 @@
                     android:text="@string/preview_appareil" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_orientation_apercu"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:checkable="true"
+                    android:contentDescription="@string/preview_orientation_cd"
+                    android:minWidth="0dp"
+                    android:text="@string/preview_portrait" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_nuit_apercu"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
@@ -75,6 +87,16 @@
                     android:contentDescription="@string/preview_langue_cd"
                     android:minWidth="0dp"
                     android:text="@string/preview_langue_defaut" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_police_apercu"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:contentDescription="@string/preview_police_cd"
+                    android:minWidth="0dp"
+                    android:text="@string/preview_police_format" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_calques_apercu"
@@ -98,6 +120,61 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
+            <!-- Barre d'édition (PE7d, miroir `.edit` de la maquette) :
+                 annuler, rétablir | dupliquer, supprimer — en haut-centre,
+                 désactivée sans vue sélectionnée. -->
+            <LinearLayout
+                android:id="@+id/barre_edition"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:background="@drawable/fond_barre_edition"
+                android:elevation="4dp"
+                android:orientation="horizontal"
+                android:padding="4dp">
+
+                <ImageButton
+                    android:id="@+id/bouton_annuler"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:contentDescription="@string/preview_edition_annuler_cd"
+                    android:src="@drawable/ic_edition_annuler" />
+
+                <ImageButton
+                    android:id="@+id/bouton_retablir"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:contentDescription="@string/preview_edition_retablir_cd"
+                    android:src="@drawable/ic_edition_retablir" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginVertical="6dp"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="?attr/colorOutlineVariant" />
+
+                <ImageButton
+                    android:id="@+id/bouton_dupliquer"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:contentDescription="@string/preview_edition_dupliquer_cd"
+                    android:src="@drawable/ic_edition_dupliquer" />
+
+                <ImageButton
+                    android:id="@+id/bouton_supprimer"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:contentDescription="@string/preview_edition_supprimer_cd"
+                    android:src="@drawable/ic_edition_supprimer" />
+            </LinearLayout>
+
             <!-- HUD de zoom (PE6b, miroir `.zoom` de la maquette) : colonne
                  bas-droite — zoom avant, 100 %, ajuster, zoom arrière. Il
                  remonte au déploiement de la feuille (miroir applySheet). -->
@@ -107,10 +184,10 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
                 android:layout_margin="@dimen/spacing_sm"
-                android:background="?attr/colorSurface"
+                android:background="@drawable/fond_barre_edition"
                 android:elevation="4dp"
                 android:orientation="vertical"
-                android:padding="2dp">
+                android:padding="4dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_zoom_avant"
@@ -148,11 +225,43 @@
                     android:minWidth="0dp"
                     android:text="@string/preview_zoom_arriere" />
             </LinearLayout>
+
+            <!-- La PALETTE de widgets (PE7c, miroir `.pop.pal`) : VUE de
+                 l'activité (jamais une fenêtre de dialogue — le dépôt doit
+                 passer), posée au-dessus de l'aperçu, masquée pendant un
+                 glisser (miroir `.phone.dragging .bubble`). -->
+            <FrameLayout
+                android:id="@+id/conteneur_palette"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:visibility="gone" />
+
+            <!-- Le POPUP de placement (PE7c, miroir `.pop.bot`) : l'arbre
+                 des vues rendues, Avant/Dedans/Après, le résumé, le bouton
+                 violet — et le repère en direct sur l'aperçu. -->
+            <FrameLayout
+                android:id="@+id/conteneur_placement"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:visibility="gone" />
+
+            <!-- La BULLE de palette (PE7c, miroir `.bubble`) : 50 dp,
+                 coins 17 dp, fond violet, déplaçable aux bords gauche et
+                 droit (aimantation), position persistée (SettingsDataStore). -->
+            <jo.codeide.feature.preview.BulleFlottante
+                android:id="@+id/bulle_palette"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginStart="10dp"
+                android:contentDescription="@string/preview_bulle_cd"
+                android:elevation="8dp" />
         </FrameLayout>
     </LinearLayout>
 
     <!-- La feuille inférieure (PE6d) : le fragment la porte — le
-         BottomSheetBehavior se pose par code (hauteur repliée 76 dp). -->
+         BottomSheetBehavior se pose par code (hauteur repliée 72 dp). -->
     <FrameLayout
         android:id="@+id/conteneur_feuille"
         android:layout_width="match_parent"

@@ -1,5 +1,79 @@
 # Journal des modifications
 
+## [0.134.26] – 2026-10-16
+
+### Corrigé
+
+- **Previews — plantage au démarrage de l'aperçu** (« The view is not a
+  child of CoordinatorLayout ») : `FeuilleApercuFragment` demandait
+  `BottomSheetBehavior.from()` sur sa PROPRE racine, alors que le
+  comportement vit sur le CONTENEUR `conteneur_feuille` (enfant direct du
+  CoordinatorLayout, `app:layout_behavior` du XML) — la racine du
+  fragment en est séparée par le conteneur. Résolution du comportement
+  depuis le parent (garde null-safe), même correction pour le callback de
+  l'activité (`monterFeuille`), jamais de crash bloquant même si la
+  hiérarchie n'est pas prête.
+
+### Ajouté
+
+- **Previews — PE7c : bulle, palette et popup de placement** (maquette
+  `docs/mockups/apercu-xml.html` v2 § « Bulle, palette et popup de
+  placement ») :
+  - **`BulleFlottante`** : bouton violet 50 dp aimanté aux bords
+    (fonctions pures `PlacementBulle`), tap → palette, glisser →
+    re-aimantation + persistance (`SettingsDataStore` : côté, position
+    normalisée, mode fixe) ;
+  - **`PalettePopover`** (vue de l'activité — jamais une dialog) : modes
+    Glisser-déposer (`startDragAndDrop` natif, palette masquée pendant le
+    glisser) et Placer par popup, recherche, catégories, RÉCENTS (4),
+    grille de 16 tuiles avec tags de dépendance ;
+  - **`PopupPlacement` + `PlacementPopup`** (pures) : arbre de référence,
+    positions Avant/Dedans/Après, résumé, « Placer ici » — repère en
+    direct via les zones de dépôt PE7b, insertion via `InsertionXml` ;
+  - **PE6e-f** : puce orientation (paysage via `setLandscape`) et puce
+    échelle de police (×1,0 → ×1,8 via `scaledDensity`), persistées ;
+    sous-titre « res/layout · rendu en {profil} ».
+
+- **Previews — PE7d : édition, dupliquer, supprimer** (maquette §
+  « Édition d'attributs, annuler, dupliquer, supprimer ») :
+  - barre d'édition flottante (annuler, rétablir, dupliquer, supprimer) ;
+  - `EditionAttributsXml` : écriture de la valeur seule, dimensions
+    wrap/match/fixe, duplication renumérotée, suppression de bloc —
+    UNE édition par action (une seule entrée d'historique), refus `null`
+    sur span périmé.
+
+- **Previews — PE7e : attributs en sections selon le type de vue**
+  (maquette v2 § « Attributs en sections selon le type de vue », prompt
+  PE7e) :
+  - `CatalogueAttributs` (pures, sans Android) : familles par héritage,
+    sections par classe (Texte/Saisie/Champ/Bouton/État/Image/
+    Conteneur/Progression/Liste), sections du parent (Contraintes
+    lecture seule, layout_weight/layout_gravity), sections génériques
+    (Disposition, Affichage) ; classe inconnue → générique seul ;
+  - `EditionAttributsXml.lire/definir/ecrireCote` : lecture avec plages,
+    définition (remplacement, ajout à la position conventionnelle,
+    retrait propre), xmlns:app/tools dans la même édition composée,
+    échappement XML et références, éclatement des raccourcis de
+    marges/padding en côtés explicites ;
+  - onglet Attributs : cartes repliables avec badge « n définis »,
+    contrôles (texte, nombre avec unité, choix segmenté, tri-état,
+    quatre côtés, contraintes lecture seule), validation à l'IME et à la
+    perte de focus, @string en lecture seule, racine éditable pour
+    Disposition/Affichage, refus → message unique + rechargement ;
+  - **34 tests** (`EditionAttributsXmlTest`, `CatalogueAttributsTest`)
+    vérifiant les éditions par application au texte vivant.
+
+### Modifié
+
+- **Maquette de référence** : `docs/mockups/apercu-xml.html` remplacé par
+  la **v2** (sections d'attributs par type de vue, `sectionsFor`,
+  `.sec2`). Écarts documentés dans PREVIEW.md (carte sans
+  orientation/gravity ; racine éditable).
+- `PreviewViewModel` : voie d'édition unique (`definirAttributSelection`,
+  `ecrireCoteSelection`, `ecrireDimensionSelection`) — l'ancienne
+  `ecrireAttributSelection` est retirée ; la RACINE reste éditable pour
+  ses attributs de disposition/affichage.
+
 ## [0.134.25] – 2026-10-16
 
 ### Ajouté
