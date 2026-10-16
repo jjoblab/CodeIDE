@@ -158,8 +158,17 @@
     <string name="preview_section_identite">Identity</string>
     <string name="preview_section_ouverte">▴</string>
     <string name="preview_section_fermee">▾</string>
-    <string name="preview_section_contraintes_vide">No constraint.</string>
-    <string name="preview_section_lecture_seule">read only, editing to come</string>
+
+    <!-- Constraint editing (PE8b — ConstraintLayout anchors: parent or
+         sibling target + margin per anchor, one edit per gesture). -->
+    <string name="preview_contrainte_debut">Start</string>
+    <string name="preview_contrainte_fin">End</string>
+    <string name="preview_contrainte_haut">Top</string>
+    <string name="preview_contrainte_bas">Bottom</string>
+    <string name="preview_contrainte_aucune">None</string>
+    <string name="preview_contrainte_marge">margin (dp)</string>
+    <string name="preview_contrainte_cible_cd">%1$s constraint target</string>
+    <string name="preview_contrainte_marge_cd">%1$s constraint margin in dp</string>
 
     <!-- Identifier renaming (PE8a — the “renaming: to come” of prompt
          PE7e § 3: declaration + references of THIS file; code R.id and

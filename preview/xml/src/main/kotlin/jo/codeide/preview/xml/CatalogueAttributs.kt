@@ -49,13 +49,16 @@ public object CatalogueAttributs {
         /** La vue EST la racine : ni contraintes, ni « dans le parent ». */
         AUCUN,
 
-        /** Le parent direct est le ConstraintLayout RACINE : contraintes lecture seule. */
+        /** Le parent direct est le ConstraintLayout RACINE : contraintes éditables (PE8b). */
         CONSTRAINT_RACINE,
+
+        /** Le parent direct est un ConstraintLayout NON racine : mêmes contraintes (PE8b). */
+        CONSTRAINT,
 
         /** Le parent est un LinearLayout : layout_weight/layout_gravity. */
         LINEAR,
 
-        /** Tout autre parent (ConstraintLayout non racine, FrameLayout…). */
+        /** Tout autre parent (FrameLayout…). */
         AUTRE,
     }
 
@@ -155,7 +158,8 @@ public object CatalogueAttributs {
         /** Les dimensions wrap/match/fixe (PE7d — miroir `dimrow`). */
         public object Dimensions : ControleAttribut()
 
-        /** Les contraintes du ConstraintLayout racine (LECTURE SEULE en PE7e). */
+        /** Les contraintes du ConstraintLayout parent (ÉDITABLES — PE8b :
+         * cible parent/frère + marge par ancre). */
         public object Contraintes : ControleAttribut()
     }
 
@@ -188,7 +192,7 @@ public object CatalogueAttributs {
         val propres = sectionsPropres(classe)
         val duParent =
             when (genreParent) {
-                GenreParent.CONSTRAINT_RACINE -> {
+                GenreParent.CONSTRAINT_RACINE, GenreParent.CONSTRAINT -> {
                     listOf(
                         SectionAttributs(
                             TitreSection.CONTRAINTES,
@@ -234,6 +238,7 @@ public object CatalogueAttributs {
         when {
             classeParente == null -> GenreParent.AUCUN
             classeParente == "ConstraintLayout" && parentEstRacine -> GenreParent.CONSTRAINT_RACINE
+            classeParente == "ConstraintLayout" -> GenreParent.CONSTRAINT
             classeParente == "LinearLayout" -> GenreParent.LINEAR
             else -> GenreParent.AUTRE
         }

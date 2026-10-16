@@ -168,8 +168,17 @@
     <string name="preview_section_identite">Identité</string>
     <string name="preview_section_ouverte">▴</string>
     <string name="preview_section_fermee">▾</string>
-    <string name="preview_section_contraintes_vide">Aucune contrainte.</string>
-    <string name="preview_section_lecture_seule">lecture seule, édition à prévoir</string>
+
+    <!-- Édition des contraintes (PE8b — les ancres du ConstraintLayout :
+         cible parent/frère + marge par ancre, chaque geste = une édition). -->
+    <string name="preview_contrainte_debut">Début</string>
+    <string name="preview_contrainte_fin">Fin</string>
+    <string name="preview_contrainte_haut">Haut</string>
+    <string name="preview_contrainte_bas">Bas</string>
+    <string name="preview_contrainte_aucune">Aucune</string>
+    <string name="preview_contrainte_marge">marge (dp)</string>
+    <string name="preview_contrainte_cible_cd">Cible de la contrainte %1$s</string>
+    <string name="preview_contrainte_marge_cd">Marge de la contrainte %1$s en dp</string>
 
     <!-- Renommage d'identifiant (PE8a — le « renommage : à prévoir » du
          prompt PE7e § 3 : déclaration + références de CE fichier ; le code

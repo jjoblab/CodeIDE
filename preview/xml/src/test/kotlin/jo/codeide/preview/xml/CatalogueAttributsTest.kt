@@ -151,7 +151,7 @@ public class CatalogueAttributsTest {
     }
 
     @Test
-    fun `le parent constraint racine ajoute les contraintes en lecture seule`() {
+    fun `le parent constraint ajoute les contraintes editables`() {
         val sections =
             CatalogueAttributs
                 .sections("TextView", CatalogueAttributs.GenreParent.CONSTRAINT_RACINE)
@@ -164,6 +164,13 @@ public class CatalogueAttributsTest {
         assertEquals(
             CatalogueAttributs.ControleAttribut.Contraintes,
             contraintes.controles.single(),
+        )
+        // PE8b : un parent ConstraintLayout NON racine donne la MÊME section.
+        assertTrue(
+            CatalogueAttributs
+                .sections("TextView", CatalogueAttributs.GenreParent.CONSTRAINT)
+                .map { it.titre }
+                .contains(CatalogueAttributs.TitreSection.CONTRAINTES),
         )
     }
 
@@ -206,7 +213,7 @@ public class CatalogueAttributsTest {
             CatalogueAttributs.genreParent("ConstraintLayout", parentEstRacine = true),
         )
         assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
+            CatalogueAttributs.GenreParent.CONSTRAINT,
             CatalogueAttributs.genreParent("ConstraintLayout", parentEstRacine = false),
         )
         assertEquals(

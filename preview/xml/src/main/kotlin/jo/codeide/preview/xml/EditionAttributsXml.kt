@@ -28,12 +28,13 @@ package jo.codeide.preview.xml
  *   suite — l'élément doit posséder sa ligne (document indenté) ;
  * - [supprimer] retire le bloc de l'élément avec SA ligne.
  *
- * Exemption detekt ciblée (règle 16) : TooManyFunctions + ReturnCount —
- * la surface de dérivation (localisation, chevron, attribut, valeur)
- * vit au COMPLET dans ce seul objet ; chaque garde est une issue
- * DISTINCTE du refus X4.
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions + ReturnCount +
+ * LargeClass — la surface de dérivation (localisation, chevron,
+ * attribut, valeur) vit au COMPLET dans ce seul objet (« un seul chemin
+ * d'édition », PE7e) ; l'éclater exposerait ses internes ou les
+ * dupliquerait. Chaque garde est une issue DISTINCTE du refus X4.
  */
-@Suppress("TooManyFunctions", "ReturnCount")
+@Suppress("TooManyFunctions", "ReturnCount", "LargeClass")
 public object EditionAttributsXml {
     /** Axe d'une dimension éditée (miroir `largeur`/`hauteur` du volet). */
     public enum class Axe {
@@ -311,6 +312,329 @@ public object EditionAttributsXml {
         return ajouterAttribut(texte, localise, nomCible, echapper(valeur), attrs)
     }
 
+    // ── Contraintes (PE8b — l'édition des ancres du ConstraintLayout) ────
+
+    /**
+     * La CIBLE d'une ancre de contrainte : le parent, une vue FRÈRE par
+     * son identifiant, ou AUCUNE (l'ancre se retire).
+     */
+    public sealed class CibleContrainte {
+        /** Le parent du ConstraintLayout (`"parent"` — valeur de plateforme). */
+        public object Parent : CibleContrainte()
+
+        /** Un frère par son identifiant (sans préfixe). */
+        public data class Vue(
+            val nom: String,
+        ) : CibleContrainte()
+
+        /** Aucune — l'attribut de cible part avec sa marge si demandé. */
+        public object Aucune : CibleContrainte()
+    }
+
+    /** L'état LU d'une ancre (cible courante + marge courante). */
+    public data class ContrainteLue(
+        val cote: Cote,
+        /** `"parent"`, `"@id/x"` ou `null` (ancre absente). */
+        val cible: String?,
+        /** La marge de l'ancre en dp (l'attribut absent → `null`). */
+        val margeDp: Int?,
+    )
+
+    /**
+     * Lit les QUATRE ancres de la vue au span (toujours 4 entrées, dans
+     * l'ordre Début/Fin/Haut/Bas — miroir `.crow` de la maquette) :
+     * cible courante + marge courante, `null` quand l'attribut est absent.
+     * `null` = span périmé ou XML illisible.
+     */
+    public fun lireContraintes(
+        texte: String,
+        span: InsertionXml.SpanParent,
+    ): List<ContrainteLue>? {
+        val localise = localiser(texte, span) ?: return null
+        val balise = texte.substring(localise.debut, localise.chevron + 1)
+        val attrs = analyserAttributs(balise, localise.debut)
+        return listOf(Cote.DEBUT, Cote.FIN, Cote.HAUT, Cote.BAS).map { cote ->
+            val ancre = nomAncre(cote)
+            // N'IMPORTE QUELLE variante cible (`Top_toBottomOf` licite —
+            // la cible peut viser un côté différent de l'ancre).
+            val cible =
+                attrs.firstOrNull { regexCibleContrainte(ancre).matches(it.nom) }?.valeur
+            val marge =
+                attrs
+                    .firstOrNull { it.nom == nomMargeContrainte(ancre) }
+                    ?.valeur
+                    ?.removeSuffix("dp")
+                    ?.toIntOrNull()
+            ContrainteLue(cote, cible, marge)
+        }
+    }
+
+    /**
+     * Écrit l'ANCRE [cote] de la vue au span : la [cible] et/ou la
+     * [margeDp] — UNE ÉDITION même quand les deux attributs bougent
+     * ([composerEdition], xmlns:app posé au besoin). `null` en paramètre
+     * = l'aspect n'est pas touché ; `Aucune` retire l'attribut de cible ;
+     * marge `0` retire l'attribut (défaut plateforme). Une cible posée
+     * sur une ancre DÉJÀ contrainte remplace la VALEUR (le CÔTÉ visé
+     * reste — topologie minimale) ; une ancre neuve se pose même-côté
+     * (`Top_toTopOf`). `null` en retour = refus (span périmé, nom de
+     * frère invalide, auto-contrainte, aucune modification, marge
+     * négative — X4, jamais d'écriture hasardeuse).
+     */
+    public fun ecrireContrainte(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        cote: Cote,
+        cible: CibleContrainte?,
+        margeDp: Int?,
+    ): EditionAttributsXmlResultat? {
+        if (cible == null && margeDp == null) return null
+        if (margeDp != null && margeDp < 0) return null
+        val localise = localiser(texte, span) ?: return null
+        val ancre = nomAncre(cote)
+        val nomCible = nomCibleContrainte(ancre)
+        val nomMarge = nomMargeContrainte(ancre)
+        val balise = texte.substring(localise.debut, localise.chevron + 1)
+        val contexte =
+            ContexteContrainte(
+                texte = texte,
+                balise = balise,
+                localise = localise,
+                attrs = analyserAttributs(balise, localise.debut),
+            )
+        val plan = PlanContrainte()
+        if (cible != null) {
+            val valeurDemandee = valeurCible(cible, contexte.texte, span) ?: return null
+            if (!planifierCible(contexte, ancre, nomCible, valeurDemandee, plan)) return null
+        }
+        if (margeDp != null) planifierMarge(contexte, nomMarge, margeDp, plan)
+        if (plan.vide) return null
+        if (plan.insertions.isNotEmpty()) {
+            plan.edits += insertionContrainte(contexte.texte, localise, contexte.attrs, plan.insertions)
+        }
+        if (plan.xmlnsRequis) xmlnsManquant(texte, nomCible)?.let { plan.edits += it }
+        return composerEdition(texte, plan.edits)
+    }
+
+    /** Le contexte d'UNE contrainte : texte, balise ouvrante, localisation, attributs. */
+    private class ContexteContrainte(
+        val texte: String,
+        val balise: String,
+        val localise: ElementLocalise,
+        val attrs: List<AttributSource>,
+    )
+
+    /** Le collecteur des éditions partielles d'UNE contrainte (PE8b). */
+    private class PlanContrainte {
+        val edits = mutableListOf<EditionPartielle>()
+        val insertions = mutableListOf<Pair<String, String>>()
+
+        var xmlnsRequis: Boolean = false
+
+        val vide: Boolean
+            get() = edits.isEmpty() && insertions.isEmpty()
+    }
+
+    /**
+     * Planifie l'aspect CIBLE : valeur vide = retrait de TOUTES les
+     * variantes (`Aucune`) ; ancre neuve = insertion même-côté (xmlns
+     * requis) ; ancre existante = remplacement de la VALEUR (le côté
+     * visé reste — topologie minimale). `false` = refus défensif.
+     */
+    private fun planifierCible(
+        contexte: ContexteContrainte,
+        ancre: String,
+        nomCible: String,
+        valeur: String,
+        plan: PlanContrainte,
+    ): Boolean {
+        val variantes = contexte.attrs.filter { regexCibleContrainte(ancre).matches(it.nom) }
+        return when {
+            valeur.isEmpty() -> {
+                // Aucune : TOUTES les variantes cible de l'ancre partent.
+                variantes.forEach { attr -> plan.edits += versPartielle(retirerAttribut(contexte.texte, attr)) }
+                true
+            }
+
+            variantes.isEmpty() -> {
+                // Ancre neuve : insertion même-côté, xmlns requis.
+                plan.xmlnsRequis = true
+                plan.insertions += nomCible to valeur
+                true
+            }
+
+            variantes.any { it.valeur == valeur } -> {
+                // Déjà lié à cette cible : no-op (idempotence).
+                true
+            }
+
+            else -> {
+                // La CIBLE change, le côté visé reste (topologie minimale).
+                val remplacee = remplacerValeur(contexte.balise, contexte.localise, variantes.first(), valeur)
+                if (remplacee == null) return false
+                plan.edits += versPartielle(remplacee)
+                true
+            }
+        }
+    }
+
+    /** Planifie l'aspect MARGE : `0` = retrait, sinon écriture idempotente. */
+    private fun planifierMarge(
+        contexte: ContexteContrainte,
+        nomMarge: String,
+        margeDp: Int,
+        plan: PlanContrainte,
+    ) {
+        val valeur = if (margeDp == 0) "" else "${margeDp}dp"
+        val existant = contexte.attrs.firstOrNull { it.nom == nomMarge }
+        when {
+            existant == null && valeur.isEmpty() -> {
+                // Rien à retirer : déjà absent (no-op pour cet aspect).
+            }
+
+            existant == null -> {
+                plan.xmlnsRequis = true
+                plan.insertions += nomMarge to valeur
+            }
+
+            valeur.isEmpty() -> {
+                plan.edits += versPartielle(retirerAttribut(contexte.texte, existant))
+            }
+
+            existant.valeur == valeur -> {
+                // Identique : no-op pour cet aspect (idempotence).
+            }
+
+            else -> {
+                val remplacee = remplacerValeur(contexte.balise, contexte.localise, existant, valeur)
+                if (remplacee != null) plan.edits += versPartielle(remplacee)
+            }
+        }
+    }
+
+    /** La valeur de cible (`parent`, `@id/x`) — refus défensifs en `null`. */
+    private fun valeurCible(
+        cible: CibleContrainte,
+        texte: String,
+        span: InsertionXml.SpanParent,
+    ): String? {
+        return when (cible) {
+            is CibleContrainte.Parent -> {
+                "parent"
+            }
+
+            is CibleContrainte.Vue -> {
+                // Le nom de ressource suit la règle aapt (une seule voie
+                // avec [RenommageIdentifiant.nomValide]) ; se contraindre
+                // SOI-MÊME n'a aucun sens.
+                if (!RenommageIdentifiant.nomValide(cible.nom)) return null
+                if (cible.nom == identifiantDe(texte, span)) return null
+                "@id/${cible.nom}"
+            }
+
+            is CibleContrainte.Aucune -> {
+                ""
+            }
+        }
+    }
+
+    /** L'identifiant PROPRE de la vue au span (sans préfixe), `null` sinon. */
+    private fun identifiantDe(
+        texte: String,
+        span: InsertionXml.SpanParent,
+    ): String? {
+        val brut = valeurAttribut(texte, span, "android:id") ?: return null
+        return when {
+            brut.startsWith("@+id/") -> brut.removePrefix("@+id/")
+            brut.startsWith("@id/") -> brut.removePrefix("@id/")
+            else -> null
+        }
+    }
+
+    /**
+     * L'INSERTION des attributs de contrainte demandés (un ou deux) —
+     * après le dernier attribut du seau layout ([ordreAttribut]), sinon
+     * avant le premier ; propre ligne en balise multi-lignes. Deux
+     * attributs s'empilent dans la MÊME partielle (cible d'abord —
+     * l'ordre conventionnel).
+     */
+    private fun insertionContrainte(
+        texte: String,
+        localise: ElementLocalise,
+        attrs: List<AttributSource>,
+        insertions: List<Pair<String, String>>,
+    ): EditionPartielle {
+        val multiLignes = texte.substring(localise.debut, localise.chevron).contains('\n')
+        val ancre = attrs.lastOrNull { ordreAttribut(it.nom) <= SEAU_LAYOUT }
+        val injections = insertions.map { (nom, valeur) -> "$nom=\"$valeur\"" }
+        val injection =
+            if (multiLignes) {
+                val indent =
+                    (ancre ?: attrs.firstOrNull())
+                        ?.let { indentationDeLigne(texte, it.debut) }
+                        ?: PAS_INDENTATION
+                injections.joinToString("\n$indent")
+            } else {
+                injections.joinToString(" ")
+            }
+        return when {
+            ancre != null -> {
+                EditionPartielle(
+                    ancre.fin,
+                    ancre.fin,
+                    if (multiLignes) {
+                        "\n${indentationDeLigne(texte, ancre.debut)}$injection"
+                    } else {
+                        " $injection"
+                    },
+                )
+            }
+
+            attrs.isNotEmpty() -> {
+                // Aucun attribut de seau layout : AVANT le premier —
+                // propre ligne en multi-lignes (miroir [insererAttributPartielle]).
+                EditionPartielle(
+                    attrs.first().debut,
+                    attrs.first().debut,
+                    if (multiLignes) {
+                        "$injection\n${indentationDeLigne(texte, attrs.first().debut)}"
+                    } else {
+                        "$injection "
+                    },
+                )
+            }
+
+            else -> {
+                val position = positionInsertion(texte, localise)
+                EditionPartielle(position, position, texteInsertionSimple(texte, position, injection))
+            }
+        }
+    }
+
+    /** `app:layout_constraint{Ancre}_to{Ancre}Of` — l'attribut de cible
+     * MÊME-CÔTÉ (l'insertion d'une ancre neuve). */
+    private fun nomCibleContrainte(ancre: String): String = "app:layout_constraint${ancre}_to${ancre}Of"
+
+    /** TOUTE variante cible d'une ancre (`Top_toTopOf`, `Top_toBottomOf`,
+     * `Top_toBaselineOf`… — la cible peut viser un autre côté). */
+    private fun regexCibleContrainte(ancre: String): Regex = Regex("app:layout_constraint${ancre}_to[A-Za-z]+Of")
+
+    /** `app:layout_constraint{Ancre}_margin` — l'attribut de marge. */
+    private fun nomMargeContrainte(ancre: String): String = "app:layout_constraint${ancre}_margin"
+
+    /** Le nom d'ANCRE d'un côté (Start/End/Top/Bottom — même règle que les marges). */
+    private fun nomAncre(cote: Cote): String =
+        when (cote) {
+            Cote.DEBUT -> "Start"
+            Cote.FIN -> "End"
+            Cote.HAUT -> "Top"
+            Cote.BAS -> "Bottom"
+        }
+
+    /** Une édition composée redevient une partielle (même forme). */
+    private fun versPartielle(edition: EditionAttributsXmlResultat): EditionPartielle =
+        EditionPartielle(edition.debut, edition.fin, edition.remplacement)
+
     // ── Détails PE7e (purs, privés) ──────────────────────────────────────
 
     /** Le nom canonique d'un côté (Start/End préféré — RTL actif). */
@@ -361,7 +685,10 @@ public object EditionAttributsXml {
             else -> SEAU_RESTE
         }
 
-    /** Les attributs d'une balise ouvrante (plages ABSOLUES, base = début). */
+    /** Les attributs d'une balise ouvrante (plages ABSOLUES couvrant
+     * l'ATTRIBUT COMPLET : nom + « = » + valeur + guillemets — PE8b : les
+     * insertions après ancre et l'éclatement des raccourcis exigent la
+     * fin RÉELLE de l'attribut, pas celle du nom). */
     private fun analyserAttributs(
         balise: String,
         base: Int,
@@ -372,8 +699,8 @@ public object EditionAttributsXml {
                 AttributSource(
                     nom = match.groupValues[1],
                     valeur = match.groupValues[2],
-                    debut = base + match.groups[1]!!.range.first,
-                    fin = base + match.groups[1]!!.range.last + 1,
+                    debut = base + match.range.first,
+                    fin = base + match.range.last + 1,
                 )
         }
         return resultat
@@ -407,22 +734,15 @@ public object EditionAttributsXml {
 
     /**
      * Le retrait PROPRE : l'attribut COMPLET (nom, « = », valeur et
-     * guillemets) part — seul sur sa ligne, il part AVEC elle ; en ligne,
-     * un séparateur part avec lui (pas de `="x"` résiduel).
+     * guillemets — la plage d'[AttributSource] le couvre depuis PE8b)
+     * part ; seul sur sa ligne, il part AVEC elle ; en ligne, un
+     * séparateur part avec lui (pas de `="x"` résiduel).
      */
     private fun retirerAttribut(
         texte: String,
         attr: AttributSource,
     ): EditionAttributsXmlResultat {
-        // De la fin du NOM jusqu'au guillemet FERMANT (la valeur ne porte
-        // pas de guillemet brut — garanti par le parseur).
-        var curseur = attr.fin
-        var guillemets = 0
-        while (curseur < texte.length && guillemets < 2) {
-            if (texte[curseur] == '"') guillemets += 1
-            curseur += 1
-        }
-        val finComplete = curseur.coerceAtMost(texte.length)
+        val finComplete = attr.fin.coerceAtMost(texte.length)
         val debutLigne = texte.lastIndexOf('\n', (attr.debut - 1).coerceAtLeast(0)) + 1
         val finLigne = texte.indexOf('\n', finComplete).let { if (it < 0) texte.length else it }
         val seulSurLigne =
@@ -453,49 +773,63 @@ public object EditionAttributsXml {
         valeur: String,
         attrs: List<AttributSource>,
     ): EditionAttributsXmlResultat? {
+        val edits = mutableListOf(insererAttributPartielle(texte, localise, nom, valeur, attrs))
+        val xmlns = xmlnsManquant(texte, nom)
+        if (xmlns != null) edits += xmlns
+        return composerEdition(texte, edits)
+    }
+
+    /**
+     * Le CŒUR d'insertion d'un attribut (sans composition xmlns — PE8b
+     * compose plusieurs attributs lui-même) : à la position
+     * conventionnelle ([ordreAttribut]), propre ligne en balise
+     * multi-lignes, en ligne sinon.
+     */
+    private fun insererAttributPartielle(
+        texte: String,
+        localise: ElementLocalise,
+        nom: String,
+        valeur: String,
+        attrs: List<AttributSource>,
+    ): EditionPartielle {
         val injection = "$nom=\"$valeur\""
         val seau = ordreAttribut(nom)
         val ancre = attrs.lastOrNull { ordreAttribut(it.nom) <= seau }
         val multiLignes = texte.substring(localise.debut, localise.chevron).contains('\n')
-        val edit =
-            when {
-                ancre != null -> {
-                    // Après l'ancre : propre ligne en multi-lignes (miroir
-                    // [ecrireAttribut]), en ligne sinon.
-                    EditionPartielle(
-                        ancre.fin,
-                        ancre.fin,
-                        if (multiLignes) {
-                            "\n${indentationDeLigne(texte, ancre.debut)}$injection"
-                        } else {
-                            " $injection"
-                        },
-                    )
-                }
-
-                attrs.isEmpty() -> {
-                    val position = positionInsertion(texte, localise)
-                    EditionPartielle(position, position, texteInsertionSimple(texte, position, injection))
-                }
-
-                else -> {
-                    // Aucun attribut de seau inférieur (id sans id…) : AVANT
-                    // le premier attribut — propre ligne en multi-lignes.
-                    EditionPartielle(
-                        attrs.first().debut,
-                        attrs.first().debut,
-                        if (multiLignes) {
-                            "$injection\n${indentationDeLigne(texte, attrs.first().debut)}"
-                        } else {
-                            "$injection "
-                        },
-                    )
-                }
+        return when {
+            ancre != null -> {
+                // Après l'ancre : propre ligne en multi-lignes (miroir
+                // [ecrireAttribut]), en ligne sinon.
+                EditionPartielle(
+                    ancre.fin,
+                    ancre.fin,
+                    if (multiLignes) {
+                        "\n${indentationDeLigne(texte, ancre.debut)}$injection"
+                    } else {
+                        " $injection"
+                    },
+                )
             }
-        val edits = mutableListOf(edit)
-        val xmlns = xmlnsManquant(texte, nom)
-        if (xmlns != null) edits += xmlns
-        return composerEdition(texte, edits)
+
+            attrs.isEmpty() -> {
+                val position = positionInsertion(texte, localise)
+                EditionPartielle(position, position, texteInsertionSimple(texte, position, injection))
+            }
+
+            else -> {
+                // Aucun attribut de seau inférieur (id sans id…) : AVANT
+                // le premier attribut — propre ligne en multi-lignes.
+                EditionPartielle(
+                    attrs.first().debut,
+                    attrs.first().debut,
+                    if (multiLignes) {
+                        "$injection\n${indentationDeLigne(texte, attrs.first().debut)}"
+                    } else {
+                        "$injection "
+                    },
+                )
+            }
+        }
     }
 
     /** La position d'insertion sans ancre (avant le `/` auto-fermant, sinon le chevron). */

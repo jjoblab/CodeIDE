@@ -536,7 +536,7 @@ public class FeuilleApercuFragment : Fragment() {
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
-            CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes(attrs)
+            CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
         }
 
     /** La valeur courante d'un contrôle nommé (lecture dans les attributs lus). */
@@ -875,21 +875,142 @@ public class FeuilleApercuFragment : Fragment() {
         return bloc
     }
 
-    /** Les CONTRAINTES du ConstraintLayout racine (LECTURE SEULE — PE7e). */
-    private fun controleContraintes(attrs: List<EditionAttributsXml.AttributSource>): View {
+    /**
+     * La section CONTRAINTES (PE8b — ÉDITABLE) : les QUATRE ancres du
+     * ConstraintLayout parent, chacune un bouton CIBLE (menu Aucune /
+     * parent / frères à id) et un champ MARGE en dp — chaque geste = UNE
+     * édition au port. Un span périmé retombe en lecture seule (miroir PE7e).
+     */
+    private fun controleContraintes(): View {
         val bloc = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        val contraintes = attrs.filter { it.nom.startsWith(PREFIXE_CONTRAINTE) }
-        val texte =
-            if (contraintes.isEmpty()) {
-                getString(R.string.preview_section_contraintes_vide)
-            } else {
-                contraintes.joinToString("\n") { attr ->
-                    attr.nom.removePrefix(PREFIXE_CONTRAINTE) + " = " + attr.valeur
-                } + "\n" + getString(R.string.preview_section_lecture_seule)
-            }
-        bloc.addView(blocLectureSeule(texte))
+        val lues = viewModel.lireContraintesSelection()
+        if (lues == null) {
+            bloc.addView(blocLectureSeule(getString(R.string.preview_edition_impossible_toast)))
+            return bloc
+        }
+        lues.forEach { lue -> bloc.addView(rangeeContrainte(lue)) }
         return bloc
     }
+
+    /** Une RANGÉE d'ancre (miroir `.crow`) : libellé, bouton cible, champ marge. */
+    private fun rangeeContrainte(lue: EditionAttributsXml.ContrainteLue): View {
+        val rangee =
+            LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(16), dp(2), dp(16), dp(2))
+            }
+        val libelle = libelleAncre(lue.cote)
+        rangee.addView(
+            texteLibelle(libelle, stylePetit, couleur(couleurContenu)),
+            LinearLayout.LayoutParams(dp(64), WRAP),
+        )
+        val bouton =
+            com.google.android.material.button.MaterialButton(
+                requireContext(),
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle,
+            )
+        bouton.text = lue.cible ?: getString(R.string.preview_contrainte_aucune)
+        bouton.isAllCaps = false
+        bouton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        bouton.isFocusable = true
+        bouton.minWidth = 0
+        bouton.insetLeft = 0
+        bouton.insetRight = 0
+        bouton.insetTop = 0
+        bouton.insetBottom = 0
+        bouton.minimumHeight = dp(32)
+        bouton.setPadding(dp(10), 0, dp(10), 0)
+        bouton.contentDescription = getString(R.string.preview_contrainte_cible_cd, libelle)
+        bouton.setOnClickListener { menuCible(bouton, lue) }
+        rangee.addView(bouton, LinearLayout.LayoutParams(0, WRAP, 1f))
+        rangee.addView(champMargeContrainte(lue), LinearLayout.LayoutParams(dp(72), WRAP))
+        return rangee
+    }
+
+    /** Le champ MARGE d'une ancre (commit IME/perte de focus — miroir `champCote`). */
+    private fun champMargeContrainte(lue: EditionAttributsXml.ContrainteLue): EditText {
+        val champ = EditText(requireContext())
+        champ.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        champ.setText(lue.margeDp?.toString() ?: "")
+        champ.hint = getString(R.string.preview_contrainte_marge)
+        champ.setSingleLine(true)
+        champ.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        champ.setTextAlignment(View.TEXT_ALIGNMENT_CENTER)
+        champ.background = fondChampLectureSeule()
+        champ.setPadding(dp(6), dp(8), dp(6), dp(8))
+        champ.contentDescription =
+            getString(R.string.preview_contrainte_marge_cd, libelleAncre(lue.cote))
+        val commettre = {
+            val saisie =
+                champ.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            val nombre = saisie.toIntOrNull()
+            when {
+                saisie.isEmpty() -> {
+                    false
+                }
+
+                nombre == null || nombre < 0 -> {
+                    champ.setText(lue.margeDp?.toString() ?: "")
+                    false
+                }
+
+                else -> {
+                    editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, null, nombre) }
+                }
+            }
+        }
+        champ.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) champ.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        champ.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        return champ
+    }
+
+    /** Le menu de CIBLE d'une ancre : Aucune, parent, puis les frères à id. */
+    private fun menuCible(
+        ancre: View,
+        lue: EditionAttributsXml.ContrainteLue,
+    ) {
+        val menu = androidx.appcompat.widget.PopupMenu(requireContext(), ancre)
+        val itemAucune = menu.menu.add(getString(R.string.preview_contrainte_aucune))
+        val itemParent = menu.menu.add(VALEUR_PARENT)
+        viewModel.ciblesContrainteSelection().forEach { identifiant ->
+            menu.menu.add("@id/$identifiant")
+        }
+        menu.setOnMenuItemClickListener { item ->
+            val cible =
+                when (item.itemId) {
+                    itemAucune.itemId -> EditionAttributsXml.CibleContrainte.Aucune
+                    itemParent.itemId -> EditionAttributsXml.CibleContrainte.Parent
+                    else -> EditionAttributsXml.CibleContrainte.Vue(item.title.toString().removePrefix("@id/"))
+                }
+            editerOuRecharger { viewModel.ecrireContrainteSelection(lue.cote, cible, null) }
+        }
+        menu.show()
+    }
+
+    /** Le libellé localisé d'une ancre (Début/Fin/Haut/Bas). */
+    private fun libelleAncre(cote: EditionAttributsXml.Cote): String =
+        getString(
+            when (cote) {
+                EditionAttributsXml.Cote.DEBUT -> R.string.preview_contrainte_debut
+                EditionAttributsXml.Cote.FIN -> R.string.preview_contrainte_fin
+                EditionAttributsXml.Cote.HAUT -> R.string.preview_contrainte_haut
+                EditionAttributsXml.Cote.BAS -> R.string.preview_contrainte_bas
+            },
+        )
 
     /** Un bloc LECTURE SEULE (miroir `.ro` : surface 2 arrondie, mono). */
     private fun blocLectureSeule(texte: String): TextView =
@@ -1387,8 +1508,8 @@ public class FeuilleApercuFragment : Fragment() {
         /** Les DEUX PREMIÈRES sections de l'éditeur s'ouvrent par défaut (miroir `i < 2`). */
         private const val DEFAUT_OUVERTES: Int = 2
 
-        /** Le préfixe des contraintes lecture seule (miroir `layout_constraint`). */
-        private const val PREFIXE_CONTRAINTE: String = "app:layout_constraint"
+        /** La valeur de plateforme pour cibler le PARENT (code, pas UI). */
+        private const val VALEUR_PARENT: String = "parent"
 
         /** Hauteur repliée de la feuille : poignée + onglets (miroir 72 px). */
         private const val PEEK_DP: Int = 72

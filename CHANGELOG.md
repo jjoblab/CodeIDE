@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.134.29] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE8b : édition des contraintes** (le « lecture seule,
+  édition à prévoir » du prompt PE7e § 3) :
+  - **`EditionAttributsXml.lireContraintes`** : les QUATRE ancres
+    (Début/Fin/Haut/Bas) lues dans le texte vivant — cible courante
+    (`parent`, `@id/x`, TOUTE variante `to…Of` licite) + marge dp ;
+  - **`EditionAttributsXml.ecrireContrainte`** : cible (parent / frère /
+    Aucune) et/ou marge en UNE ÉDITION (xmlns:app posé au besoin,
+    cible+marge empilés, retrait propre à `0`) ; la cible change, le
+    CÔTÉ visé reste (topologie minimale) ; refus X4 (nom invalide,
+    auto-contrainte, marge négative, no-op) ;
+  - **onglet Attributs** : la carte Contraintes passe du bloc lecture
+    seule à 4 rangées éditables (bouton cible → menu Aucune/parent/
+    frères à id, champ marge validé IME/perte de focus) — un parent
+    ConstraintLayout NON racine y a désormais droit aussi
+    (`GenreParent.CONSTRAINT`) ;
+  - **12 tests** (`ContraintesXmlTest`, éditions vérifiées PAR
+    APPLICATION et document re-marché).
+
+### Corrigé
+
+- **Corruption latente PE7e (attributs)** : la plage d'un attribut
+  couvrait son NOM SEUL — l'insertion après ancre (`definir` ajout) et
+  l'éclatement d'un raccourci (`ecrireCote`) soudaient l'attribut inséré
+  à la valeur de l'ancre (`android:paddingHorizontal="16dp"="…"`),
+  document CORROMPU à l'écran comme au fichier ; les tests PE7e ne
+  re-marchaient pas le XML après ces voies. Les plages couvrent
+  désormais l'ATTRIBUT COMPLET (nom + « = » + valeur + guillemets) ;
+  deux tests de régression (ajout, éclatement) vérifient le document
+  re-marché, et le test de lecture épine la plage complète.
+
 ## [0.134.28] – 2026-10-16
 
 ### Ajouté

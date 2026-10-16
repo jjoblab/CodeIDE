@@ -463,6 +463,50 @@ public class PreviewViewModel
             }
 
         /**
+         * Les QUATRE ancres de contrainte de la sélection (PE8b — lecture
+         * dans le texte vivant : cible + marge courantes). `null` = span
+         * périmé (le volet affiche la lecture seule).
+         */
+        public fun lireContraintesSelection(): List<EditionAttributsXml.ContrainteLue>? {
+            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+            val sourceBranchee = source ?: return null
+            return EditionAttributsXml.lireContraintes(
+                sourceBranchee.texte(),
+                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+            )
+        }
+
+        /**
+         * Les identifiants DISPONIBLES comme cible de contrainte (PE8b) :
+         * les FRÈRES de la sélection qui portent un id (le parent se
+         * cible par la valeur plateforme `parent`). Le CONTENEUR de
+         * contrainte du rendu est la vérité (miroir l'aligneur).
+         */
+        public fun ciblesContrainteSelection(): List<String> {
+            val rendu = dernierRendu ?: return emptyList()
+            val indice = selectionInterne.value
+            val vue = rendu.vues.getOrNull(indice) ?: return emptyList()
+            return rendu.vues
+                .withIndex()
+                .filter { (i, v) -> v.indiceParent == vue.indiceParent && i != indice && v.idRes.isNotBlank() }
+                .map { it.value.idRes }
+        }
+
+        /**
+         * Écrit l'ANCRE [cote] de la sélection (PE8b) : [cible] et/ou
+         * [margeDp] (`null` = aspect intouché, `0` = marge retirée) —
+         * UNE édition au port, rendu immédiat.
+         */
+        public fun ecrireContrainteSelection(
+            cote: EditionAttributsXml.Cote,
+            cible: EditionAttributsXml.CibleContrainte?,
+            margeDp: Int?,
+        ): Boolean =
+            editerSelection { rendu, span ->
+                EditionAttributsXml.ecrireContrainte(rendu, span, cote, cible, margeDp)
+            }
+
+        /**
          * Les attributs BRUTS de la sélection (PE7e — miroir `attrsOf` :
          * contraintes lecture seule, valeurs courantes des côtés).
          * `null` = span périmé (le volet passe en lecture seule).
