@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import jo.codeide.core.domain.AppLogger
 import jo.layoutlib.drawables.DrawableResolverImpl
 import jo.layoutlib.inflater.AttributeApplier
@@ -425,6 +426,12 @@ public class RenduLayoutLib(
         decalageHaut: Int = 0,
     ): Array<InfoVueRendu> {
         val infos = aplatir(ViewInfoCollector.collect(racine))
+        // PE6c : attributs VIVANTS que ViewInfoCollector ne porte pas
+        // (cliquable, orientation) — marche PARALLÈLE de l'arbre réel,
+        // MÊME ordre pré-ordre que le collecteur (enfants ViewGroup,
+        // getChildAt dans l'ordre, null sautés) ; la fermeture par
+        // INDICE reste valable tant que les deux arbres coïncident.
+        val attributs = collecterAttributsVues(racine, infos.size)
         val resolveur =
             ressources?.let { r ->
                 AligneurElementsXml.ResolveurLayout { reference -> r.getLayout(reference) }
@@ -440,13 +447,67 @@ public class RenduLayoutLib(
                     InfoVueRendu.SANS_ELEMENT,
                     decalageGauche,
                     decalageHaut,
+                    attributs[indice],
                 )
             }
         }
         return Array(infos.size) { indice ->
             val element = elements[indice]
-            infos[indice].versInfoVue(element.debut, element.fin, decalageGauche, decalageHaut)
+            infos[indice].versInfoVue(element.debut, element.fin, decalageGauche, decalageHaut, attributs[indice])
         }
+    }
+
+    /**
+     * Attributs vivants d'une vue rendue que ViewInfoCollector ne
+     * porte pas (PE6c) : cliquable et orientation LinearLayout.
+     */
+    private data class AttributsVue(
+        val cliquable: Boolean,
+        val orientation: Int,
+    ) {
+        companion object {
+            /** Repli défensif (écart de marche — jamais de faux attribut). */
+            val PAR_DEFAUT: AttributsVue = AttributsVue(false, InfoVueRendu.ORIENTATION_SANS_OBJET)
+        }
+    }
+
+    /**
+     * Marche parallèle de l'arbre RÉEL (PE6c) — pré-ordre STRICTEMENT
+     * identique à `ViewInfoCollector.collectInternal` (la vue, puis les
+     * enfants du ViewGroup via `getChildAt` dans l'ordre, null sautés) :
+     * l'indice dans le résultat correspond à l'indice dans la liste
+     * aplatie du collecteur. Un écart (impossible en synchrone, défense
+     * X4) dégrade TOUT au repli — jamais de faux attribut.
+     */
+    private fun collecterAttributsVues(
+        racine: View,
+        attendu: Int,
+    ): List<AttributsVue> {
+        val resultat = mutableListOf<AttributsVue>()
+
+        fun parcourir(vue: View) {
+            val orientation =
+                if (vue is LinearLayout) {
+                    vue.orientation
+                } else {
+                    InfoVueRendu.ORIENTATION_SANS_OBJET
+                }
+            resultat.add(AttributsVue(cliquable = vue.isClickable, orientation = orientation))
+            if (vue is ViewGroup) {
+                for (i in 0 until vue.childCount) {
+                    val enfant = vue.getChildAt(i) ?: continue
+                    parcourir(enfant)
+                }
+            }
+        }
+        parcourir(racine)
+        if (resultat.size != attendu) {
+            journal?.w(TAG) {
+                "marche attributs désalignée : ${resultat.size} nœuds vs $attendu vues — repli"
+            }
+            return List(attendu) { AttributsVue.PAR_DEFAUT }
+        }
+        return resultat
     }
 
     /** Aplatit l'arbre ViewInfo en pré-ordre (parent avant enfants), avec indice de parent. */
@@ -479,6 +540,7 @@ public class RenduLayoutLib(
             finElement: Int,
             decalageGauche: Int = 0,
             decalageHaut: Int = 0,
+            attributs: AttributsVue,
         ): InfoVueRendu =
             InfoVueRendu(
                 gauche = info.left + decalageGauche,
@@ -490,6 +552,23 @@ public class RenduLayoutLib(
                 finElement = finElement,
                 indiceParent = indiceParent,
                 profondeur = profondeur,
+                // PE6c — données enrichies (maquette) : classe (simpleName,
+                // « MockView » quand G15 a dégradé), id de ressource,
+                // marges/padding du rendu (px), cliquable/conteneur,
+                // orientation LinearLayout.
+                classe = info.simpleName,
+                idRes = info.idName ?: "",
+                margesGauche = info.marginLeft,
+                margesHaut = info.marginTop,
+                margesDroite = info.marginRight,
+                margesBas = info.marginBottom,
+                paddingGauche = info.paddingLeft,
+                paddingHaut = info.paddingTop,
+                paddingDroite = info.paddingRight,
+                paddingBas = info.paddingBottom,
+                cliquable = attributs.cliquable,
+                conteneur = info.isViewGroup,
+                orientation = attributs.orientation,
             )
     }
 

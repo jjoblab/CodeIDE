@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Module :feature:preview — chaînes de l'écran d'aperçu XML (PE6-0).
-     Français par défaut (convention du dépôt), l'anglais vit dans values-en/.
-     Les libellés de rendu (accueil, erreur) restent dans :preview:xml. -->
+<!-- Module :feature:preview — chaînes de l'écran d'aperçu XML (PE6-0,
+     chrome PE6b). Français par défaut (convention du dépôt), l'anglais
+     vit dans values-en/. Les libellés de rendu (accueil, erreur)
+     restent dans :preview:xml. -->
 <resources>
     <string name="preview_titre">Aperçu XML</string>
     <string name="preview_retour_cd">Retour à l\'éditeur</string>
     <string name="preview_choisir_fichier">Choisir le fichier…</string>
     <string name="preview_choisir_titre">Documents ouverts</string>
 
-    <!-- Puces de réglages (miroir de l\'ancienne barre de l\'overlay PE3/PE5a). -->
-    <string name="preview_profil">Pixel 4 · 393×851dp · 440dpi</string>
-    <string name="preview_profil_cd">Changer le profil d\'appareil de l\'aperçu</string>
+    <!-- Puces de réglages (PE6b, miroir `.chips` de la maquette). -->
+    <string name="preview_appareil">Appareil ▾</string>
+    <string name="preview_appareil_format">%1$s ▾</string>
+    <string name="preview_profil_cd">Choisir le profil d\'appareil de l\'aperçu</string>
     <string name="preview_jour">Jour</string>
     <string name="preview_nuit">Nuit</string>
     <string name="preview_nuit_cd">Basculer l\'aperçu entre thème de jour et de nuit</string>
@@ -18,4 +20,25 @@
     <string name="preview_langue_defaut">Défaut</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
+    <string name="preview_calques">Calques ▾</string>
+    <string name="preview_calques_cd">Afficher ou masquer les calques de l\'aperçu</string>
+
+    <!-- Popover Calques (PE6b, miroir showPop("layers") de la maquette). -->
+    <string name="preview_calque_parent_freres">Parent et frères</string>
+    <string name="preview_calque_marges_padding">Marges et padding</string>
+    <string name="preview_calque_contraintes">Contraintes</string>
+    <string name="preview_calque_problemes">Problèmes</string>
+    <string name="preview_calque_bornes">Bornes de toutes les vues</string>
+    <string name="preview_calque_grille">Grille 8 dp</string>
+
+    <!-- HUD de zoom (PE6b, miroir `.zoom` de la maquette). -->
+    <string name="preview_zoom_avant">+</string>
+    <string name="preview_zoom_arriere">−</string>
+    <string name="preview_zoom_ajuster">⤢</string>
+    <string name="preview_zoom_100">100%</string>
+    <string name="preview_zoom_avant_cd">Zoom avant</string>
+    <string name="preview_zoom_arriere_cd">Zoom arrière</string>
+    <string name="preview_zoom_100_cd">Revenir au zoom 100 %</string>
+    <string name="preview_zoom_ajuster_cd">Ajuster le rendu à la vue</string>
+    <string name="preview_zoom_pct">%1$d%%</string>
 </resources>

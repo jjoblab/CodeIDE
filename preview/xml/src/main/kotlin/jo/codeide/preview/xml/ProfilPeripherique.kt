@@ -86,8 +86,26 @@ public class ProfilPeripherique(
         /** Galaxy S24 — 360×780dp, 480dpi (miroir de DeviceProfile.GALAXY_S24). */
         public val GALAXY_S24: ProfilPeripherique = ProfilPeripherique("Galaxy S24", 360, 780, 480)
 
-        /** Catalogue du sélecteur (miroir de DeviceProfile.DEFAULTS). */
-        public val CATALOGUE: List<ProfilPeripherique> = listOf(PIXEL_4, PIXEL_7_PRO, GALAXY_S24)
+        /**
+         * Tablette 10″ — 800×1280dp, 320dpi (PE6b — extension maquette
+         * `docs/mockups/apercu-xml.html` § « Maquette interactive »,
+         * catalogue `DEVICES` : juger un layout aux dimensions d'une
+         * tablette). [DeviceProfile] accepte toute combinaison
+         * taille × densité ([versDeviceProfile] construit directement) —
+         * l'extension du catalogue n'exige pas de miroir côté LayoutLib.
+         */
+        public val TABLETTE_10_POUCES: ProfilPeripherique =
+            ProfilPeripherique("Tablette 10\"", 800, 1280, 320)
+
+        /** Petit écran — 320×568dp, 320dpi (PE6b — extension maquette, catalogue `DEVICES`). */
+        public val PETIT_ECRAN: ProfilPeripherique = ProfilPeripherique("Petit écran", 320, 568, 320)
+
+        /**
+         * Catalogue du sélecteur (PE6b : miroir de `DeviceProfile.DEFAULTS`
+         * + extension maquette — tablette et petit écran).
+         */
+        public val CATALOGUE: List<ProfilPeripherique> =
+            listOf(PIXEL_4, PIXEL_7_PRO, GALAXY_S24, TABLETTE_10_POUCES, PETIT_ECRAN)
 
         /** Profil par défaut du moteur (PE1 : PIXEL_4, inchangé). */
         public val PAR_DEFAUT: ProfilPeripherique = PIXEL_4

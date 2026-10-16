@@ -3,9 +3,11 @@ package jo.codeide.feature.preview
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -16,23 +18,35 @@ import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
+import jo.codeide.preview.xml.ProfilPeripherique
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 /**
  * Écran DÉDIÉ de l'aperçu XML (PE6-0, maquette
- * `docs/mockups/apercu-xml.html` § « Activité dédiée ») : le panneau
- * quitte l'overlay d'`EditorActivity` et s'empile au-dessus — même
- * patron que l'écran du terminal ([AppNavigator.openPreview], activité
+ * `docs/mockups/apercu-xml.html` § « Activité dédiée » ; chrome PE6b
+ * § « Chrome Material dans la nouvelle activité ») : le panneau quitte
+ * l'overlay d'`EditorActivity` et s'empile au-dessus — même patron que
+ * l'écran du terminal ([AppNavigator.openPreview], activité
  * `exported="false"` déclarée dans le manifest du module).
  *
  * Répartition (maquette § « Ce qui change dans le dépôt ») :
  * - [PreviewViewModel] : moteur (rotation sûre), source du registre,
  *   projet (`res/` FUSE, thème, label) ;
  * - [ControleurPreviewXml] : couture moteur ↔ vue + tap → span ;
- * - CETTE activité : chrome Material (toolbar, puces de réglages,
- *   sélecteur de fichier dans le menu) — le module porte le chrome, le
- *   moteur `:preview:xml` reste zéro-Material (règle du module).
+ * - CETTE activité : chrome Material — toolbar, PUCES défilantes
+ *   (feuille de choix de l'appareil, jour/nuit, langue, popover
+ *   Calques), HUD de zoom (+ / 100 % / ajuster / −) ; le module porte
+ *   le chrome, le moteur `:preview:xml` reste zéro-Material (règle du
+ *   module).
+ *
+ * PE6b (maquette § « Réglages » : « Puces défilantes, feuille de choix
+ * pour l'appareil ») : la puce Appareil ouvre un menu RADIO du catalogue
+ * étendu (tablette et petit écran inclus) — plus de cycle à l'aveugle ;
+ * la puce Calques ouvre le popover à COCHES des calques (parent/frères,
+ * marges et padding, contraintes, problèmes, bornes, grille 8 dp) ;
+ * le HUD de zoom expose [VuePreviewXml.zoomer]/[VuePreviewXml.ajuster].
  *
  * Pièges traités (maquette § « Pièges à traiter ») :
  * - **mort du processus** : le registre est vide → l'écran se termine
@@ -44,6 +58,7 @@ import javax.inject.Inject
  *   le tap pose le span dans la session (l'éditeur le retrouve), le
  *   calque surligne immédiatement (retour visuel direct).
  */
+@Suppress("TooManyFunctions") // Chrome de l'écran : chaque menu a SA méthode (règle 16 — même patron que l'éditeur).
 @AndroidEntryPoint
 public class PreviewActivity : AppCompatActivity() {
     private val viewModel: PreviewViewModel by viewModels()
@@ -88,12 +103,8 @@ public class PreviewActivity : AppCompatActivity() {
                 auSpanTouche = { debut, fin -> viewModel.definirSelection(debut, fin) },
             )
 
-        // Puces de réglages (miroir de l'ancienne barre de l'overlay —
-        // profil, jour/nuit, langue ; feuille de choix en PE6b).
-        liaison.boutonProfilApercu.setOnClickListener {
-            controleur?.profilSuivant()
-            majReglages()
-        }
+        // Puces de réglages (PE6b, miroir `.chips` de la maquette).
+        liaison.boutonAppareilApercu.setOnClickListener { ouvrirFeuilleAppareil() }
         liaison.boutonNuitApercu.setOnClickListener {
             controleur?.basculerNuit()
             majReglages()
@@ -102,7 +113,21 @@ public class PreviewActivity : AppCompatActivity() {
             controleur?.basculerLangue()
             majReglages()
         }
+        liaison.boutonCalquesApercu.setOnClickListener { ouvrirPopoverCalques() }
         majReglages()
+
+        // HUD de zoom (PE6b, miroir `.zoom` de la maquette) : les boutons
+        // exposent zoomer/ajuster de la VUE (spécification PE6b).
+        liaison.boutonZoomAvant.setOnClickListener { liaison.vuePreview.zoomer(FACTEUR_ZOOM) }
+        liaison.boutonZoomArriere.setOnClickListener { liaison.vuePreview.zoomer(1f / FACTEUR_ZOOM) }
+        liaison.boutonZoomPct.setOnClickListener {
+            val echelle = liaison.vuePreview.echelleCourante
+            if (echelle > 0f) liaison.vuePreview.zoomer(1f / echelle)
+        }
+        liaison.boutonZoomAjuster.setOnClickListener { liaison.vuePreview.ajuster() }
+        // Le % affiché suit TOUT changement d'échelle (gestes compris).
+        liaison.vuePreview.auChangementEchelle = { echelle -> majPourcentageZoom(echelle) }
+        majPourcentageZoom(liaison.vuePreview.echelleCourante)
 
         // Piège « mort du processus » : source absente du registre → se
         // terminer et relancer l'éditeur, jamais un panneau vide.
@@ -141,6 +166,76 @@ public class PreviewActivity : AppCompatActivity() {
         }
 
     /**
+     * Feuille de choix de l'appareil (PE6b, miroir `showPop("device")`
+     * de la maquette) : menu RADIO ancré à la puce — chaque entrée porte
+     * la description courte du profil (nom · WxHdp · dpi), l'entrée
+     * courante est cochée.
+     */
+    private fun ouvrirFeuilleAppareil() {
+        val popup = PopupMenu(this, liaison.boutonAppareilApercu)
+        val catalogue = ProfilPeripherique.CATALOGUE
+        val courant = controleur?.profil
+        catalogue.forEachIndexed { indice, profil ->
+            val item = popup.menu.add(GROUPE_APPAREIL, indice, indice, profil.description())
+            item.isCheckable = true
+            item.isChecked = profil == courant
+        }
+        popup.menu.setGroupCheckable(GROUPE_APPAREIL, true, true)
+        popup.setOnMenuItemClickListener { item ->
+            catalogue.getOrNull(item.itemId)?.let { profil ->
+                controleur?.definirProfil(profil)
+                majReglages()
+            }
+            true
+        }
+        popup.show()
+    }
+
+    /**
+     * Popover Calques (PE6b, miroir `showPop("layers")` de la maquette) :
+     * menu à COCHES ancré à la puce — chaque entrée bascule un calque de
+     * la vue (états relus à l'ouverture, jamais mémorisés en double).
+     */
+    private fun ouvrirPopoverCalques() {
+        val vue = liaison.vuePreview
+        val calques =
+            listOf(
+                EntreeCalque(R.string.preview_calque_parent_freres, { vue.calquesParentFreres }, {
+                    vue.calquesParentFreres =
+                        it
+                }),
+                EntreeCalque(R.string.preview_calque_marges_padding, { vue.calquesMargesPadding }, {
+                    vue.calquesMargesPadding =
+                        it
+                }),
+                EntreeCalque(R.string.preview_calque_contraintes, { vue.calquesContraintes }, {
+                    vue.calquesContraintes =
+                        it
+                }),
+                EntreeCalque(
+                    R.string.preview_calque_problemes,
+                    { vue.calquesProblemes },
+                    { vue.calquesProblemes = it },
+                ),
+                EntreeCalque(R.string.preview_calque_bornes, { vue.calquesBornes }, { vue.calquesBornes = it }),
+                EntreeCalque(R.string.preview_calque_grille, { vue.grilleAffichee }, { vue.grilleAffichee = it }),
+            )
+        val popup = PopupMenu(this, liaison.boutonCalquesApercu)
+        calques.forEachIndexed { indice, calque ->
+            val item = popup.menu.add(GROUPE_CALQUES, indice, indice, calque.titreRes)
+            item.isCheckable = true
+            item.isChecked = calque.estActif()
+        }
+        popup.setOnMenuItemClickListener { item ->
+            calques.getOrNull(item.itemId)?.let { calque ->
+                calque.poser(!calque.estActif())
+            }
+            true
+        }
+        popup.show()
+    }
+
+    /**
      * Piège « changement de fichier » : le titre devient un sélecteur —
      * le menu liste les documents ouverts previewables (registre des
      * sources, classification conservatrice).
@@ -162,10 +257,10 @@ public class PreviewActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Libellés des puces de réglages : profil, jour/nuit, langue. */
+    /** Libellés des puces de réglages : appareil, jour/nuit, langue (PE6b). */
     private fun majReglages() {
         val controleur = controleur ?: return
-        liaison.boutonProfilApercu.text = controleur.profil.description()
+        liaison.boutonAppareilApercu.text = getString(R.string.preview_appareil_format, controleur.profil.nom)
         liaison.boutonNuitApercu.setText(
             if (controleur.nuit) {
                 R.string.preview_nuit
@@ -173,6 +268,7 @@ public class PreviewActivity : AppCompatActivity() {
                 R.string.preview_jour
             },
         )
+        liaison.boutonNuitApercu.isChecked = controleur.nuit
         liaison.boutonLangueApercu.setText(
             when (controleur.langue) {
                 "fr" -> R.string.preview_langue_fr
@@ -180,6 +276,11 @@ public class PreviewActivity : AppCompatActivity() {
                 else -> R.string.preview_langue_defaut
             },
         )
+    }
+
+    /** Le bouton « 100 % » affiche l'échelle RÉELLE (PE6b — miroir `zPct`). */
+    private fun majPourcentageZoom(echelle: Float) {
+        liaison.boutonZoomPct.text = getString(R.string.preview_zoom_pct, (echelle * POURCENTAGE).roundToInt())
     }
 
     /** Titre de la toolbar : le nom du fichier affiché (sélecteur via le menu). */
@@ -202,7 +303,26 @@ public class PreviewActivity : AppCompatActivity() {
         finish()
     }
 
+    /** UNE entrée du popover Calques : titre, état lu à la volée, pose. */
+    private data class EntreeCalque(
+        val titreRes: Int,
+        val estActif: () -> Boolean,
+        val poser: (Boolean) -> Unit,
+    )
+
     private companion object {
         private const val TAG: String = "PreviewActivity"
+
+        /** Facteur des boutons de zoom (miroir maquette `zoomAt(…, 1.25)`). */
+        private const val FACTEUR_ZOOM: Float = 1.25f
+
+        /** Conversion échelle → pourcentage affiché (2,56 = 256 %). */
+        private const val POURCENTAGE: Int = 100
+
+        /** Identifiant du groupe radio du menu Appareil. */
+        private const val GROUPE_APPAREIL: Int = 1
+
+        /** Identifiant du groupe à coches du menu Calques. */
+        private const val GROUPE_CALQUES: Int = 2
     }
 }
