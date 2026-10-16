@@ -22,10 +22,11 @@ import kotlinx.coroutines.launch
  * [PreviewViewModel] — rotation sûre) et la vue [VuePreviewXml] :
  * - l'état du moteur → la vue (rendu, erreur, édition, accueil) ;
  * - le tap confirmé sur le rendu → hit-test ([SelectionPreview],
- *   coordonnées bitmap) → remontée à l'ancêtre sélectionnable → le SPAN
- *   source est posé DANS la session par le port (callback [auSpanTouche]
- *   — l'activité le branche sur le ViewModel, l'éditeur retrouvera la
- *   sélection à son retour).
+ *   coordonnées bitmap) → remontée à l'ancêtre sélectionnable → le
+ *   callback [auSelection] remonte l'INDICE de la vue : le ViewModel
+ *   pose le SPAN dans la session (l'éditeur retrouvera la sélection à
+ *   son retour) et partage l'état avec la FEUILLE (PE6d) ; le
+ *   surlignage suit la seule source de vérité (StateFlow).
  *
  * PE6a (calques) : les rendus passent à la vue avec la DENSITÉ du
  * profil — le nom et les dimensions de la sélection s'affichent en dp.
@@ -47,7 +48,7 @@ public class ControleurPreviewXml(
     private val moteur: MoteurPreviewXml,
     private val journal: AppLogger,
     scope: CoroutineScope,
-    private val auSpanTouche: (debut: Int, fin: Int) -> Unit,
+    private val auSelection: (indice: Int) -> Unit,
 ) : AutoCloseable {
     private var collecteEtat: Job? = null
     private var ferme = false
@@ -111,8 +112,10 @@ public class ControleurPreviewXml(
 
     /**
      * Tap sur le rendu (P6) : hit-test sur les vues du dernier état,
-     * remonte à l'ancêtre sélectionnable, pose le SPAN source dans la
-     * session (via [auSpanTouche]). Le hit-test ne DEVINE jamais :
+     * remonte à l'ancêtre sélectionnable, remonte l'INDICE via
+     * [auSelection] (le ViewModel pose le span dans la session et
+     * partage la sélection avec la feuille) + surlignage IMMÉDIAT
+     * (retour visuel direct). Le hit-test ne DEVINE jamais :
      * aucune vue spanée → rien (drawables, values, includes non
      * résolus).
      *
@@ -126,10 +129,11 @@ public class ControleurPreviewXml(
     ) {
         if (ferme) return
         val cible = SelectionPreview.vueSelectableEn(vue.vuesRendues, x, y) ?: return
-        auSpanTouche(cible.debutElement, cible.finElement)
+        val indice = vue.vuesRendues.indexOf(cible)
+        auSelection(indice)
         // Le surlignage suit immédiatement (retour visuel direct — la
         // sélection de session ne fait pas rebondir l'aperçu).
-        vue.surlignerVue(vue.vuesRendues.indexOf(cible))
+        vue.surlignerVue(indice)
     }
 
     /**

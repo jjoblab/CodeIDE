@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +12,7 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
@@ -19,6 +21,7 @@ import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
 import jo.codeide.preview.xml.ProfilPeripherique
+import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -91,17 +94,7 @@ public class PreviewActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         liaison.toolbarPreview.setNavigationOnClickListener { navigateur.goBack() }
 
-        // Couture moteur ↔ vue : le tap sur le rendu pose le SPAN source
-        // dans la session (port SourceApercu — l'éditeur retrouvera la
-        // sélection à son retour dans l'onglet).
-        controleur =
-            ControleurPreviewXml(
-                vue = liaison.vuePreview,
-                moteur = viewModel.moteur,
-                journal = journal,
-                scope = lifecycleScope,
-                auSpanTouche = { debut, fin -> viewModel.definirSelection(debut, fin) },
-            )
+        brancherSelectionEtDepot()
 
         // Puces de réglages (PE6b, miroir `.chips` de la maquette).
         liaison.boutonAppareilApercu.setOnClickListener { ouvrirFeuilleAppareil() }
@@ -139,8 +132,83 @@ public class PreviewActivity : AppCompatActivity() {
             }
         }
 
+        monterFeuille()
         majTitre()
     }
+
+    /**
+     * La feuille inférieure (PE6d) : le fragment porte son contenu —
+     * l'activité pose le BottomSheetBehavior et le HUD de zoom REMONTE
+     * au déploiement (miroir `applySheet` : `status/zoom .bottom` suive
+     * la feuille).
+     */
+    private fun monterFeuille() {
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.conteneur_feuille, FeuilleApercuFragment())
+            .commit()
+        supportFragmentManager.executePendingTransactions()
+        val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
+        val comportement = BottomSheetBehavior.from(feuille)
+        comportement.addBottomSheetCallback(
+            object : BottomSheetBehavior.BottomSheetCallback() {
+                override fun onStateChanged(
+                    vue: View,
+                    etat: Int,
+                ) = Unit
+
+                override fun onSlide(
+                    vue: View,
+                    decalage: Float,
+                ) {
+                    val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
+                    liaison.hudZoom.translationY = -delta * decalage
+                }
+            },
+        )
+    }
+
+    /**
+     * La couture SÉLECTION/DÉPÔT (PE6d + PE7b) : le contrôleur remonte
+     * l'indice de la vue touchée, la sélection partagée pilote le
+     * SURLIGNAGE (la source de vérité est le StateFlow — tap, feuille et
+     * dépôt s'y alignent) et le dépôt de la palette écrit par le
+     * ViewModel ([PreviewViewModel.appliquerDepot] — InsertionXml → port
+     * `SourceApercu.remplacer`, le rendu repart par le chemin normal).
+     */
+    private fun brancherSelectionEtDepot() {
+        controleur =
+            ControleurPreviewXml(
+                vue = liaison.vuePreview,
+                moteur = viewModel.moteur,
+                journal = journal,
+                scope = lifecycleScope,
+                auSelection = { indice -> viewModel.selectionner(indice) },
+            )
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.indiceSelectionne.collect { indice ->
+                    liaison.vuePreview.surlignerVue(indice)
+                }
+            }
+        }
+        liaison.vuePreview.auDepot = { contenu, x, y ->
+            val ok = viewModel.appliquerDepot(contenu, x, y)
+            Toast
+                .makeText(
+                    this,
+                    if (ok) {
+                        getString(R.string.preview_toast_depot_ok, contenu.nomAffiche, nomConteneur())
+                    } else {
+                        getString(R.string.preview_toast_depot_ko)
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+        }
+    }
+
+    /** Le conteneur visé du DERNIER dépôt réussi (libellé du toast, miroir `par.cls`). */
+    private fun nomConteneur(): String = viewModel.dernierParentDepot ?: ""
 
     override fun onDestroy() {
         controleur?.fermer()

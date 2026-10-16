@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
+import kotlin.math.min
 
 /**
  * Alignement éléments XML ↔ vues inflatées (PE3, PREVIEW.md §3.1 P6 :
@@ -39,9 +40,11 @@ import java.io.StringReader
  *
  * Exemption detekt ciblée (règle 16) : ReturnCount — chaque ISSUE de
  * [traiterElement] (include, merge, balise sautée, élément producteur)
- * est une sémantique DISTINCTE de l'inflater, un retour par branche.
+ * est une sémantique DISTINCTE de l'inflater, un retour par branche ;
+ * TooManyFunctions — les aides ligne ↔ ligne de la feuille (PE6d) vivent
+ * au même endroit que la sémantique des spans.
  */
-@Suppress("ReturnCount")
+@Suppress("ReturnCount", "TooManyFunctions")
 internal object AligneurElementsXml {
     /**
      * Un élément producteur de vue : span source (offsets dans le TEXTE
@@ -306,4 +309,52 @@ internal object AligneurElementsXml {
 
     /** Profondeur maximale d'imbrication des includes (garde-fou anti-cycle). */
     private const val LIMITE_INCLUDES: Int = 8
+
+    // ── Aides de la feuille inférieure (PE6d, maquette § « Feuille
+    //    inférieure : arbre, attributs, problèmes, source » : l'onglet
+    //    Source « surligne les lignes d'après les spans » — la conversion
+    //    offset ↔ ligne vient ICI, au même endroit que la sémantique des
+    //    spans, pour que la feuille et la sélection partagent LA MÊME
+    //    définition d'une ligne) ──
+
+    /**
+     * Le numéro de ligne (1-based) d'un offset dans [texte] — l'onglet
+     * Source de la feuille convertit les spans (offsets) en lignes
+     * affichées. Sémantique : `1 + nombre de '\n' avant l'offset` (offset
+     * exclu). Offset borné (≤ 0 → ligne 1, au-delà du texte → la ligne
+     * qui suivrait la dernière) : jamais d'exception, le surlignage reste
+     * affichable.
+     */
+    public fun numeroLigne(
+        texte: String,
+        offset: Int,
+    ): Int {
+        if (offset <= 0) return 1
+        var ligne = 1
+        val fin = min(offset, texte.length)
+        for (i in 0 until fin) {
+            if (texte[i] == '\n') ligne += 1
+        }
+        return ligne
+    }
+
+    /**
+     * L'offset du PREMIER caractère de la ligne [ligne] (1-based) — le
+     * défilement de l'onglet Source cible le début du span sélectionné.
+     * Ligne bornée au document (≤ 1 → 0 ; au-delà → la fin du texte),
+     * jamais d'exception.
+     */
+    public fun debutLigne(
+        texte: String,
+        ligne: Int,
+    ): Int {
+        if (ligne <= 1) return 0
+        var numero = 1
+        for ((offset, caractere) in texte.withIndex()) {
+            if (caractere != '\n') continue
+            numero += 1
+            if (numero == ligne) return offset + 1
+        }
+        return texte.length
+    }
 }

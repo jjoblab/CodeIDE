@@ -4,7 +4,7 @@ import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.LinearLayout
+import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.appbar.MaterialToolbar
 import org.junit.Assert.assertNotNull
@@ -20,16 +20,18 @@ import jo.codeide.core.ui.R as RUi
  * miroir [jo.codeide.feature.editor.ActivityEditorLayoutTest]) :
  * `activity_preview.xml` se gonfle sous le thème réel de l'application,
  * la vue de rendu :preview:xml, la toolbar et les puces de réglages se
- * trouvent par identifiant.
+ * trouvent par identifiant. PE6d : la racine est un CoordinatorLayout
+ * (la feuille inférieure en BottomSheet) et le layout du fragment de
+ * feuille se gonfle aussi.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
 class ActivityPreviewLayoutTest {
     /** Gonfle le layout sous le thème réel de l'application. */
-    private fun gonfler(): LinearLayout {
+    private fun gonfler(): ViewGroup {
         val base = ApplicationProvider.getApplicationContext<Context>()
         val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
-        return LayoutInflater.from(contexte).inflate(R.layout.activity_preview, null) as LinearLayout
+        return LayoutInflater.from(contexte).inflate(R.layout.activity_preview, null) as ViewGroup
     }
 
     @Test
@@ -41,6 +43,8 @@ class ActivityPreviewLayoutTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_nuit_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_langue_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_calques_apercu))
+        // PE6d : le conteneur de la feuille inférieure (BottomSheet).
+        assertNotNull(racine.findViewById<View>(R.id.conteneur_feuille))
     }
 
     @Test
@@ -68,5 +72,20 @@ class ActivityPreviewLayoutTest {
         // en selon la locale de test, Robolectric tourne en en-US) : on
         // épingle la PRÉSENCE, pas la langue.
         assertNotNull("le panneau porte la description du moteur", vue.contentDescription)
+    }
+
+    @Test
+    fun `le layout de la feuille se gonfle avec ses quatre volets (PE6d)`() {
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val feuille = LayoutInflater.from(contexte).inflate(R.layout.fragment_feuille_apercu, null)
+        assertNotNull(feuille.findViewById<View>(R.id.racine_feuille))
+        assertNotNull(feuille.findViewById<View>(R.id.grab_feuille))
+        assertNotNull(feuille.findViewById<View>(R.id.onglets_feuille))
+        assertNotNull(feuille.findViewById<View>(R.id.volet_arbre))
+        assertNotNull(feuille.findViewById<View>(R.id.volet_attributs))
+        assertNotNull(feuille.findViewById<View>(R.id.volet_problemes))
+        assertNotNull(feuille.findViewById<View>(R.id.volet_source))
+        assertNotNull(feuille.findViewById<View>(R.id.bouton_ouvrir_editeur))
     }
 }

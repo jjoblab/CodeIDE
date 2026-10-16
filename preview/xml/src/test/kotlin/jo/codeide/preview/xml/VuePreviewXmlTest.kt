@@ -2,9 +2,13 @@ package jo.codeide.preview.xml
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.view.DragEvent
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -215,5 +219,114 @@ class VuePreviewXmlTest {
         )
         vue.surlignerVue(1)
         vue.draw(Canvas(Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)))
+    }
+
+    // ── PE7b — zones de dépôt et glisser-déposer natif ──
+
+    @Test
+    fun `drag pe7b - started accepte le contenu, drop remonte le depot, ended remet a zero`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        // La racine doit être un CONTENEUR (pe7b : cible de dépôt).
+        val arbre =
+            listOf(
+                InfoVueRendu(0, 0, 100, 200, "FrameLayout", 0, 40, -1, 0, classe = "FrameLayout", conteneur = true),
+                InfoVueRendu(10, 80, 90, 120, "Button @+id/envoyer", 24, 38, 0, 1, classe = "Button"),
+            )
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = arbre,
+            densiteDpiProfil = 440,
+        )
+        val contenu = ZonesDepot.ContenuDepot(extraitXml = "<Button />", nomAffiche = "Button")
+        // STARTED : accepté, les zones se révèlent.
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_STARTED, 0f, 0f, contenu))
+        assertTrue(vue.zonesDepotAffichees)
+        // LOCATION : la cible suit le point (30, 100 → Button de l'arbre).
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_LOCATION, 30f, 100f, contenu)
+        assertNotNull(vue.cibleDepot)
+        // DROP : le contenu remonte avec les coordonnées BITMAP (zoom/pan inversés).
+        var recu: ZonesDepot.ContenuDepot? = null
+        var pointX = Float.NaN
+        var pointY = Float.NaN
+        vue.auDepot = { c, x, y ->
+            recu = c
+            pointX = x
+            pointY = y
+        }
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DROP, 30f, 100f, contenu))
+        assertEquals("Button", recu?.nomAffiche)
+        assertEquals(30f, pointX * vue.echelleCourante, 0.05f)
+        assertEquals(100f, pointY * vue.echelleCourante, 0.05f)
+        // ENDED : tout remise à zéro.
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_ENDED, 0f, 0f, contenu))
+        assertFalse(vue.zonesDepotAffichees)
+        assertNull(vue.cibleDepot)
+    }
+
+    @Test
+    fun `drag pe7b - localState etranger refuse, sans bitmap refuse`() {
+        val vue = vue()
+        // LocalState étranger (un autre drag) : la vue passe au travers.
+        assertFalse(vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_STARTED, 0f, 0f, "texte"))
+        // Sans rendu affiché : pas de zones de dépôt.
+        assertFalse(
+            vue.traiterEvenementDrag(
+                DragEvent.ACTION_DRAG_STARTED,
+                0f,
+                0f,
+                ZonesDepot.ContenuDepot("<Button />", "Button"),
+            ),
+        )
+        assertFalse(vue.zonesDepotAffichees)
+    }
+
+    @Test
+    fun `drag pe7b - drop hors cible ne remonte rien, exited efface la cible`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        val contenu = ZonesDepot.ContenuDepot(extraitXml = "<Button />", nomAffiche = "Button")
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_STARTED, 0f, 0f, contenu))
+        var appelle = false
+        vue.auDepot = { _, _, _ -> appelle = true }
+        // Hors de l'écran rendu (au-delà des bounds de la racine) : cible nulle.
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_LOCATION, 511f, 1023f, contenu)
+        // La racine couvre tout l'écran (0..100×200)… l'écran SIMULÉ est
+        // plus petit que la vue : le point (511, 1023) en bitmap = (99,9;199,8)
+        // reste DANS la racine. On passe par EXITED pour effacer.
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_EXITED, 0f, 0f, contenu)
+        assertNull(vue.cibleDepot)
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DROP, 30f, 100f, contenu))
+        assertFalse(appelle)
+    }
+
+    @Test
+    fun `zones de depot pe7b - dessin sans lever avec cible et pill`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sortie)
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        val contenu = ZonesDepot.ContenuDepot(extraitXml = "<Button />", nomAffiche = "Button")
+        assertTrue(vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_STARTED, 0f, 0f, contenu))
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_LOCATION, 30f, 100f, contenu)
+        vue.draw(canvas)
+        // Exited puis re-dessin : les zones restent, la pill disparaît.
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_EXITED, 0f, 0f, contenu)
+        vue.draw(canvas)
+        vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_ENDED, 0f, 0f, contenu)
+        vue.draw(canvas)
     }
 }

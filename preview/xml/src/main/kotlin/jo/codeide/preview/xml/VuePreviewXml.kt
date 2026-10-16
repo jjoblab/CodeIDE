@@ -8,6 +8,7 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.DragEvent
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -38,6 +39,18 @@ import kotlin.math.min
  * épaisseur ÉCRAN constante au zoom (le patron LARGEUR_TRAIT_SURLIGNAGE
  * / echelle existant).
  *
+ * PE7b — ZONES DE DÉPÔT (maquette § « Zones de dépôt et glisser-déposer
+ * natif ») : la vue dessine les zones en Canvas (conteneurs en violet,
+ * conteneur visé plein, barre d'insertion entre les frères) et
+ * implémente [OnDragListener] : la palette (PE7c) lance
+ * `View.startDragAndDrop` puis se masque — le moteur de glisser-déposer
+ * d'Android livre les événements ICI sans relais à la main ; le dépôt
+ * remonte par [auDepot] en coordonnées BITMAP (l'écriture passe par
+ * [InsertionXml] et le port `SourceApercu.remplacer`). Pendant un
+ * glisser, les calques de sélection (parent/frères, box-model,
+ * surlignage, pastilles) se MASENT (miroir `!S.dropView` de la maquette),
+ * les bornes et contraintes restent.
+ *
  * Le bitmap n'est jamais recyclé par la vue (le moteur peut en émettre un
  * nouveau pendant un dessin) : le GC d'ART collecte.
  *
@@ -45,7 +58,9 @@ import kotlin.math.min
  * (fonctions pures, testées sans Android).
  */
 @Suppress("TooManyFunctions", "LargeClass") // Vue auto-dessinée : un panneau UNE vue.
-public class VuePreviewXml : View {
+public class VuePreviewXml :
+    View,
+    View.OnDragListener {
     private var bitmap: Bitmap? = null
     private var echelle = 1f
     private var decalageX = 0f
@@ -116,6 +131,36 @@ public class VuePreviewXml : View {
             invalidate()
         }
 
+    // ── Zones de dépôt (PE7b — miroir drawDrop de la maquette) ──
+
+    /** Les zones de dépôt sont affichées (un glisser portant [ZonesDepot.ContenuDepot] est en cours). */
+    public var zonesDepotAffichees: Boolean = false
+        set(valeur) {
+            field = valeur
+            if (!valeur) fieldCibleDepot = null
+            invalidate()
+        }
+
+    /** Le conteneur visé + l'index entre frères (change au survol). */
+    public var cibleDepot: ZonesDepot.CibleDepot?
+        get() = fieldCibleDepot
+        set(valeur) {
+            if (valeur == fieldCibleDepot) return
+            fieldCibleDepot = valeur
+            invalidate()
+        }
+    private var fieldCibleDepot: ZonesDepot.CibleDepot? = null
+
+    /**
+     * Le DÉPÔT confirmé (ACTION_DROP) : contenu glissé + point en
+     * coordonnées BITMAP — le contrôleur compose l'édition ([InsertionXml])
+     * et l'écrit dans la session (port `SourceApercu.remplacer`).
+     */
+    public var auDepot: ((contenu: ZonesDepot.ContenuDepot, x: Float, y: Float) -> Unit)? = null
+
+    /** Le contenu glissé courant (localState du drag natif — PE7b). */
+    private var contenuGlisse: ZonesDepot.ContenuDepot? = null
+
     /** Appui simple confirmé, en coordonnées BITMAP (contenu, pas écran). */
     public var auTap: ((x: Float, y: Float) -> Unit)? = null
 
@@ -175,6 +220,27 @@ public class VuePreviewXml : View {
 
     /** Bandes de marges/padding du box-model (PE6c) — remplissage translucide. */
     private val peintBoxModel =
+        Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
+    /** Contour pointillé des CONTENEURS (PE7b — miroir `.dz` de la maquette). */
+    private val peintZone =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Conteneur VISÉ (PE7b — miroir `.dz.on` : fond violet doux, bord solide). */
+    private val peintZoneCible =
+        Paint().apply {
+            style = Paint.Style.FILL_AND_STROKE
+            isAntiAlias = true
+        }
+
+    /** Barre d'insertion + halo (PE7b — miroir `.slot`). */
+    private val peintBarreDepot =
         Paint().apply {
             style = Paint.Style.FILL
             isAntiAlias = true
@@ -309,6 +375,9 @@ public class VuePreviewXml : View {
         peintTexteEtat.textSize = echellePolice() * TAILLE_TEXTE_ETAT_DP
         peintTexteEtat.color = couleurTheme(android.R.attr.textColorSecondary)
         contentDescription = contexte.getString(R.string.preview_cd)
+        // PE7b : le drag natif d'Android livre ses événements ICI
+        // (la palette lance startDragAndDrop, la vue reçoit).
+        setOnDragListener(this)
     }
 
     /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom).
@@ -467,6 +536,68 @@ public class VuePreviewXml : View {
 
     override fun performClick(): Boolean = super.performClick()
 
+    // ── Glisser-déposer natif (PE7b, miroir du flux beginDrag/moveDrag/endDrag) ──
+
+    /**
+     * Le moteur de glisser-déposer d'Android livre ses événements ICI
+     * (« sans qu'il faille les relayer à la main », maquette PE7b) :
+     * seuls les drags portant un [ZonesDepot.ContenuDepot] en localState
+     * sont acceptés (les autres — internes au système — passent au travers).
+     */
+    override fun onDrag(
+        vue: View?,
+        evenement: DragEvent,
+    ): Boolean = traiterEvenementDrag(evenement.action, evenement.x, evenement.y, evenement.localState)
+
+    /**
+     * La MACHINE d'états du drag (internal : testée sans [DragEvent],
+     * qui n'a pas de constructeur public) : STARTED accepte et révèle
+     * les zones, LOCATION suit le point (cible recalculée), EXITED
+     * efface la cible, DROP remonte [auDepot], ENDED remet tout à zéro.
+     */
+    @Suppress("ReturnCount") // Chaque action du drag (refus, refus sans bitmap, remise à zéro) est une issue DISTINCTE.
+    internal fun traiterEvenementDrag(
+        action: Int,
+        xVue: Float,
+        yVue: Float,
+        localState: Any?,
+    ): Boolean {
+        val contenu = localState as? ZonesDepot.ContenuDepot ?: return false
+        when (action) {
+            DragEvent.ACTION_DRAG_STARTED -> {
+                if (bitmap == null) return false
+                contenuGlisse = contenu
+                zonesDepotAffichees = true
+                cibleDepot = null
+            }
+
+            DragEvent.ACTION_DRAG_LOCATION -> {
+                if (!zonesDepotAffichees) return true
+                val (x, y) = CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                cibleDepot = ZonesDepot.cibleSous(vues, x, y)
+            }
+
+            DragEvent.ACTION_DRAG_EXITED -> {
+                cibleDepot = null
+            }
+
+            DragEvent.ACTION_DROP -> {
+                val cible = cibleDepot
+                if (cible != null) {
+                    val (x, y) = CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                    auDepot?.invoke(contenu, x, y)
+                }
+            }
+
+            DragEvent.ACTION_DRAG_ENDED -> {
+                contenuGlisse = null
+                zonesDepotAffichees = false
+                cibleDepot = null
+            }
+        }
+        return true
+    }
+
     override fun onDraw(canevas: Canvas) {
         super.onDraw(canevas)
         val bmp = bitmap
@@ -490,6 +621,9 @@ public class VuePreviewXml : View {
         dessinerMargesPadding(canevas)
         dessinerSurlignage(canevas)
         dessinerPastillesProblemes(canevas)
+        // Zones de dépôt EN DERNIER (miroir drawDrop de la maquette : les
+        // zones recouvrent les calques de sélection masqués au drag).
+        dessinerZonesDepot(canevas)
         canevas.restore()
         if (messageErreur != null) dessinerBandeauErreur(canevas)
         if (enEdition) dessinerSignalEdition(canevas)
@@ -498,7 +632,7 @@ public class VuePreviewXml : View {
 
     /** Calque « frères en filigrane » (PE6a) : fill translucide sur les bounds. */
     private fun dessinerFreres(canevas: Canvas) {
-        if (!calquesParentFreres) return
+        if (!calquesParentFreres || zonesDepotAffichees) return
         if (indiceSurligne !in vues.indices) return
         peintFrere.color = couleurSurlignage
         for (indice in CalquesApercu.indicesFreres(vues, indiceSurligne)) {
@@ -513,7 +647,9 @@ public class VuePreviewXml : View {
     }
 
     /** Calque « parent en pointillés » (PE6a) : trait à épaisseur écran constante. */
+    @Suppress("ReturnCount") // Les gardes (masqué au drag, pas de parent, vue dégénérée) sont des issues DISTINCTES.
     private fun dessinerParent(canevas: Canvas) {
+        if (zonesDepotAffichees) return
         val indice = if (calquesParentFreres) CalquesApercu.indiceParent(vues, indiceSurligne) else -1
         val parent = vues.getOrNull(indice) ?: return
         if (parent.droite <= parent.gauche || parent.bas <= parent.haut) return
@@ -604,7 +740,7 @@ public class VuePreviewXml : View {
      * sélection, valeurs en dp du profil aux centres.
      */
     private fun dessinerMargesPadding(canevas: Canvas) {
-        if (!calquesMargesPadding || indiceSurligne !in vues.indices) return
+        if (!calquesMargesPadding || zonesDepotAffichees || indiceSurligne !in vues.indices) return
         val vue = vues[indiceSurligne]
         if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return
         dessinerBandesMarges(canevas, vue)
@@ -701,7 +837,7 @@ public class VuePreviewXml : View {
      * problèmes se partagent la vue.
      */
     private fun dessinerPastillesProblemes(canevas: Canvas) {
-        if (!calquesProblemes || problemes.isEmpty()) return
+        if (!calquesProblemes || zonesDepotAffichees || problemes.isEmpty()) return
         val comptes = LinkedHashMap<Int, Int>()
         val indicesErreur = HashSet<Int>()
         for (probleme in problemes) {
@@ -733,6 +869,107 @@ public class VuePreviewXml : View {
                 peintEtiquette,
             )
         }
+    }
+
+    // ── Zones de dépôt : dessin Canvas (PE7b, miroir drawDrop) ──
+
+    /**
+     * Les zones de dépôt (calque EN DERNIER, miroir `drawDrop`) : TOUS
+     * les conteneurs en contour pointillé violet (`.dz`), le conteneur
+     * visé plein violet doux (`.dz.on`) avec sa pill « Dans X », la
+     * BARRE d'insertion violette (`.slot`) avec sa pill « + Nom · i/n ».
+     * Tracés à épaisseur ÉCRAN constante (patron `/ echelle`).
+     *
+     * Exemption detekt ciblée (règle 16) : ReturnCount — chaque absence
+     * (calque coupé, cible, contenu, barre) est une issue DISTINCTE ;
+     * MagicNumber — les alphas reproduisent le miroir CSS de la maquette.
+     */
+    @Suppress("ReturnCount", "MagicNumber")
+    private fun dessinerZonesDepot(canevas: Canvas) {
+        if (!zonesDepotAffichees || vues.isEmpty()) return
+        // 1. Tous les conteneurs : contour pointillé violet (miroir `.dz`, opacity .75).
+        peintZone.color = COULEUR_ZONE_DEPOT
+        peintZone.alpha = 0xBF
+        peintZone.pathEffect = EFFET_POINTILLES
+        for (vue in vues) {
+            if (!vue.conteneur || vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
+            peintZone.strokeWidth = LARGEUR_TRAIT_ZONE_DP * echellePolice() / echelle
+            canevas.drawRect(
+                RectF(vue.gauche.toFloat(), vue.haut.toFloat(), vue.droite.toFloat(), vue.bas.toFloat()),
+                peintZone,
+            )
+        }
+        val cible = cibleDepot ?: return
+        // 2. Le conteneur visé : fond violet doux + bordure SOLIDE (miroir `.dz.on`).
+        val parent = vues.getOrNull(cible.indiceParent) ?: return
+        peintZoneCible.color = COULEUR_ZONE_DEPOT_DOUX
+        canevas.drawRect(
+            RectF(parent.gauche.toFloat(), parent.haut.toFloat(), parent.droite.toFloat(), parent.bas.toFloat()),
+            peintZoneCible,
+        )
+        peintZone.pathEffect = null
+        peintZone.alpha = 0xFF
+        peintZone.strokeWidth = LARGEUR_TRAIT_ZONE_DP * echellePolice() / echelle
+        canevas.drawRect(
+            RectF(parent.gauche.toFloat(), parent.haut.toFloat(), parent.droite.toFloat(), parent.bas.toFloat()),
+            peintZone,
+        )
+        // 3. La pill « Dans X » (miroir chip `nw` : au-dessus du conteneur, sinon sous).
+        val auDessus = parent.haut - TAILLE_TEXTE_ETIQUETTE_DP * echellePolice() >= 0f
+        dessinerPillViolette(
+            canevas,
+            ZonesDepot.libelleCible(vues, cible),
+            parent.gauche.toFloat(),
+            if (auDessus) parent.haut.toFloat() else parent.bas.toFloat(),
+            auDessus,
+        )
+        // 4. La BARRE d'insertion (miroir `.slot` : halo doux PUIS barre pleine)
+        //    + pill « + Nom · i/n » sous la barre.
+        val contenu = contenuGlisse ?: return
+        val epaisseur = EPAISSEUR_BARRE_DP * echellePolice() / echelle
+        val barre = ZonesDepot.emplacement(vues, cible, densiteDpi, epaisseur) ?: return
+        val halo = HALO_BARRE_DP * echellePolice() / echelle
+        peintBarreDepot.color = COULEUR_ZONE_DEPOT_DOUX
+        val rectHalo = RectF(barre.gauche - halo, barre.haut - halo, barre.droite + halo, barre.bas + halo)
+        canevas.drawRect(rectHalo, peintBarreDepot)
+        peintBarreDepot.color = COULEUR_ZONE_DEPOT
+        canevas.drawRect(RectF(barre.gauche, barre.haut, barre.droite, barre.bas), peintBarreDepot)
+        dessinerPillViolette(
+            canevas,
+            ZonesDepot.libelleInsertion(vues, cible, contenu.nomAffiche),
+            barre.gauche,
+            barre.bas + DECALAGE_PILL_BARRE_DP * echellePolice() / echelle,
+            auDessus = false,
+        )
+    }
+
+    /** Pill violette (miroir `.lab.nw` : fond violet, texte blanc), ancrée au bord gauche. */
+    private fun dessinerPillViolette(
+        canevas: Canvas,
+        texte: String,
+        gaucheX: Float,
+        bordY: Float,
+        auDessus: Boolean,
+    ) {
+        if (texte.isEmpty()) return
+        peintEtiquette.textSize = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice() / echelle
+        val largeurTexte = peintEtiquette.measureText(texte)
+        val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        val marge = MARGE_ETIQUETTE_DP * echellePolice() / echelle
+        val centreY = if (auDessus) bordY - demiHauteur * 2f - marge * 2f else bordY + demiHauteur + marge
+        peintPill.color = COULEUR_ZONE_DEPOT
+        peintPill.alpha = ALPHA_PILL_ETIQUETTE
+        canevas.drawRoundRect(
+            gaucheX - marge,
+            centreY - demiHauteur - marge,
+            gaucheX + largeurTexte + marge * 2f,
+            centreY + demiHauteur + marge,
+            demiHauteur + marge,
+            demiHauteur + marge,
+            peintPill,
+        )
+        peintEtiquette.color = couleurSurSelection
+        canevas.drawText(texte, gaucheX, centreY - demiHauteur, peintEtiquette)
     }
 
     /** Pill « valeur » (dp des box-models/contraintes) centrée sur le point. */
@@ -769,6 +1006,7 @@ public class VuePreviewXml : View {
      * en dp » au-dessus — tout à épaisseur/taille ÉCRAN constante.
      */
     private fun dessinerSurlignage(canevas: Canvas) {
+        if (zonesDepotAffichees) return
         if (indiceSurligne !in vues.indices) return
         val vue = vues[indiceSurligne]
         val rect =
@@ -1059,6 +1297,26 @@ public class VuePreviewXml : View {
 
         /** Pointillés du parent — 4 px tracés, 4 px troués, à épaisseur écran constante. */
         private val EFFET_POINTILLES = DashPathEffect(floatArrayOf(4f, 4f), 0f)
+
+        // ── Zones de dépôt PE7b (miroir des jetons de la maquette) ──
+
+        /** Couleur VIOLETTE des zones (miroir `--new` #7C3AED). */
+        private const val COULEUR_ZONE_DEPOT = 0xFF7C3AED.toInt()
+
+        /** Fond doux du conteneur visé (miroir `--new-soft` rgba(124,58,237,.14)). */
+        private const val COULEUR_ZONE_DEPOT_DOUX = 0x247C3AED
+
+        /** Largeur du trait des zones, en dp écran (miroir 1,5 px de `.dz`). */
+        private const val LARGEUR_TRAIT_ZONE_DP = 1.5f
+
+        /** Épaisseur de la barre d'insertion, en dp écran (miroir 4 px de `slotRect`). */
+        private const val EPAISSEUR_BARRE_DP = 4f
+
+        /** Halo de la barre (miroir box-shadow 3 px de `.slot`). */
+        private const val HALO_BARRE_DP = 3f
+
+        /** Décalage de la pill d'insertion sous la barre, en dp écran (miroir 6 px). */
+        private const val DECALAGE_PILL_BARRE_DP = 6f
 
         // ── Calques PE6b/PE6c (miroir des jetons de la maquette) ──
 
