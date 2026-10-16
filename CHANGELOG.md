@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.134.23] – 2026-10-16
+
+### Modifié
+
+- **code-editor 3.71.0 → 3.72.0** (JitPack build « ok », dépôt frère mis à
+  jour — 51 commits : multi-langages ADR-002 chantiers C1→C3→C2/C4 +
+  correctifs retour terrain démo) :
+  - **TEXTMATE NON CONSOMMÉ** (consigne propriétaire : pas encore
+    stable) — le module amont `:cel-textmate` et ses grammaires
+    embarquées (Kotlin/CSS/JS/Python…) restent HORS du graphe CodeIDE :
+    CodeIDE ne consomme que `cel-ui` + `cel-lsp`/`cel-lsp-api` et aucune
+    bascule vers la voie « grammaires » n'est câblée côté hôte ; la
+    coloration reste 100 % voie intégrée ;
+  - **C4 — palette EditorTheme étendue** (additif) : 8 clés syntax.*
+    virtuelles (docComment, keywordControl, keywordModifier, char,
+    stringRaw, namespace, entity, emphasis) en plus des 15 champs
+    dédiés — les deux voies de tokénisation convergent vers ces types,
+    thèmes existants inchangés (clés de repli) ;
+  - **C1 — porte de complétion devenue donnée du profil**
+    (`CompletionGate` dans `LanguageProfile`) : XML = porte
+    chaîne/commentaire écartée (préservé), LOG = jamais (préservé) ;
+    comportement hôte identique, la politique descend dans le profil
+    au lieu d'un switch famille dans l'UI ;
+  - **correctifs retour terrain** consommés passivement : classes POSIX
+    `[:alpha:]`/`[:alnum:]` traduites même sans accolade (RegexCompat),
+    captures vides non gonflées + captures imbriquées (l'interne
+    l'emporte), porte de 5 000 caractères par ligne pour la délégation
+    TextMate (sans objet tant que TextMate est exclu, mais le garde-fou
+    existe) ;
+  - vérification : `:app:assembleDebug` vert (5 m 40 s, graphe Hilt +
+    ressources), `:feature:editor:testDebugUnitTest` +
+    `:lsp:host:testDebugUnitTest` verts (2 m 11 s) ; aucune rupture
+    d'API 3.71.0 → 3.72.0 (cel-ui = `EditorTheme` + `EditorCompletionPopup`
+    seulement ; cel-lsp/cel-lsp-api = README) ;
+  - notices tierces : les trois artefacts code-editor passent à 3.72.0
+    (licences Apache-2.0 inchangées).
+
 ## [0.134.22] – 2026-10-16
 
 ### Corrigé
