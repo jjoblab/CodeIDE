@@ -27,18 +27,25 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Bibliothèque d'édition code-editor (prompt compagnon, section 2.2) :
-        // JitPack pour un build autonome sans jeton — GitHub Packages resterait
-        // l'alternative documentée pour un usage local. FILTRE STRICT
-        // (2026-10-17) : JitPack suit la convention com.github.<user>.<repo>
-        // et matche donc AUSSI les coordonnées des dépôts frères
-        // (codeide-tooling/lsp, LayoutLib) — sans filtre, la résolution
-        // binaire partait en timeout sur jitpack.io (JitPack tente de
-        // builder le dépôt à la volée) avant d'atteindre le registre
-        // Packages. Seul code-editor vient d'ici.
+        // Bibliothèque d'édition code-editor (prompt compagnon, section 2.2)
+        // et terminal Termux (ADR 0036) : JitPack pour un build autonome
+        // sans jeton — GitHub Packages resterait l'alternative documentée
+        // pour un usage local. FILTRE STRICT (2026-10-17) : JitPack suit
+        // la convention com.github.<user>.<repo> et matche donc AUSSI les
+        // coordonnées des dépôts frères (codeide-tooling/lsp, LayoutLib) —
+        // sans filtre, la résolution binaire partait en timeout sur
+        // jitpack.io (JitPack tente de builder le dépôt à la volée) avant
+        // d'atteindre le registre Packages.
         maven {
             url = uri("https://jitpack.io")
-            content { includeGroup("com.github.jjoblab.code-editor") }
+            content {
+                // Seuls ces DEUX groupes viennent de JitPack (inventaire du
+                // 2026-10-17 — tout autre com.github.* = registre Packages
+                // des frères). La liste doit être tenue à jour : tout
+                // nouveau groupe JitPack s'ajoute ici.
+                includeGroup("com.github.jjoblab.code-editor")
+                includeGroup("com.github.termux.termux-app")
+            }
         }
         // Tooling Gradle (G2) : org.gradle:gradle-tooling-api ne vit que sur le
         // dépôt officiel de Gradle — les métadonnées Maven Central de cette

@@ -1,6 +1,6 @@
 # Journal des modifications
 
-## [0.134.42] – 2026-10-17
+## [0.134.43] – 2026-10-17
 
 ### Ajouté
 
@@ -35,6 +35,10 @@
   sa convention `com.github.<user>.<repo>` matchait aussi les
   coordonnées des frères — la résolution binaire partait en timeout sur
   jitpack.io (build à la volée) avant d'atteindre le registre Packages.
+- **Filtre JitPack complété (échec CI sur la première poussée)** :
+  `com.github.termux.termux-app` (terminal-view/terminal-emulator,
+  consommés par :feature:terminal) vient AUSSI de JitPack — l'inventaire
+  des groupes est consigné dans settings.gradle.kts.
 - README : section « Dépôts frères : mode composite ou binaire ».
 
 ## [0.134.41] – 2026-10-17
