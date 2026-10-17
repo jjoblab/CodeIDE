@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission IA — maquettes d'écran (ADR 0126)</title>
+<!--
+  Maquette HTML ancrée sur les VRAIES ressources de CodeIDE
+  (core/ui/src/main/res/values/colors.xml et values-night/colors.xml).
+  Aucune couleur inventée : les #... ci-dessous sont des tokens CodeIDE.
+  Écrans : E1 Chat · E2 Agent · E3 Éditeur (« Demander à l'IA » + carte de diff)
+  · E4 Paramètres → IA · E5 Consentement et états d'erreur
+  · E6 Historique.
+  Spécification : docs/IA_SPEC_ECRANS.md.
+-->
+<style>
+:root{
+  --primary:#43559E;--on-primary:#FFFFFF;--pc:#DCE1FF;--on-pc:#001159;
+  --bg:#F9F9FF;--on-bg:#1A1B21;--sv:#E2E1EC;--on-sv:#46464F;
+  --outline:#767680;--ov:#C6C5D0;
+  --ok:#2E7D32;--ok-c:#DDEFE0;--warn:#9A6700;--warn-c:#F6E7C1;--on-warn-c:#7A5200;--err:#BA1A1A;
+  --kt:#7F52FF;
+}
+.dark{
+  --primary:#BAC4FF;--on-primary:#0C2264;--pc:#293D8F;--on-pc:#DCE1FF;
+  --bg:#111318;--on-bg:#E2E1E9;--sv:#46464F;--on-sv:#C6C5D0;
+  --outline:#90909A;--ov:#46464F;
+  --ok:#81C995;--ok-c:#1F3A1F;--warn:#FDD663;--warn-c:#5A3D56;--on-warn-c:#FFD7F3;--err:#FFB4AB;
+  --kt:#B39AFF;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 4px}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.top p{margin:0;color:var(--on-sv);font-size:12px}
+button{font:inherit;cursor:pointer}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:4px 12px}
+.wrap{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:12px;font-weight:600;color:var(--on-sv)}
+.ph{width:340px;height:640px;border:2px solid var(--outline);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ov);font-weight:600}
+.bar .sp{flex:1}
+.tabs{display:flex;border-bottom:1px solid var(--ov);font-size:12px}
+.tabs span{padding:9px 10px;color:var(--on-sv)}
+.tabs .on{color:var(--primary);border-bottom:2px solid var(--primary);font-weight:600}
+.tabs .soon{opacity:.5}
+.body{flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.u{align-self:flex-end;max-width:85%;background:var(--pc);color:var(--on-pc);padding:8px 12px;border-radius:16px 16px 4px 16px}
+.a{background:var(--sv);color:var(--on-bg);padding:8px 12px;border-radius:4px 16px 16px 16px}
+.a small{color:var(--on-sv)}
+pre{margin:6px 0 0;background:var(--bg);border:1px solid var(--ov);border-radius:8px;padding:0;overflow:hidden;font:11px/1.45 ui-monospace,monospace}
+.ch{display:flex;gap:10px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--ov);font:11px system-ui;color:var(--on-sv)}
+.ch b{color:var(--kt)}.ch .sp{flex:1}
+pre code{display:block;padding:6px 8px;white-space:pre}
+.cur{display:inline-block;width:7px;height:13px;background:var(--primary);vertical-align:-2px}
+.chips{display:flex;gap:6px;padding:0 12px 6px;flex-wrap:wrap}
+.chip{border:1px solid var(--ov);color:var(--on-sv);border-radius:8px;padding:3px 8px;font-size:11px}
+.comp{display:flex;gap:6px;align-items:center;padding:8px 12px;border-top:1px solid var(--ov)}
+.in{flex:1;border:1px solid var(--outline);border-radius:20px;padding:10px 14px;color:var(--on-sv);font-size:13px}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:0;color:var(--on-primary);background:var(--primary);font-size:16px}
+.ib.g{background:none;color:var(--on-sv);border:1px solid var(--ov)}
+.rail{display:flex;border-top:1px solid var(--ov);background:var(--bg)}
+.rail div{flex:1;text-align:center;padding:6px 0;font-size:10px;color:var(--on-sv)}
+.rail i{display:block;font-style:normal;font-size:15px;margin-bottom:1px}
+.rail .on{color:var(--primary);font-weight:600}
+.rail .on i{background:var(--pc);border-radius:12px;margin:0 8px 2px}
+.card{border:1px solid var(--ov);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.card h4{margin:0 0 4px;font-size:13px}
+.card p{margin:0;color:var(--on-sv);font-size:12px}
+.row{display:flex;align-items:center;gap:8px}
+.row .sp{flex:1}
+.st{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:none}
+.st.ok{background:var(--ok-c);color:var(--ok)}.st.run{border:2px solid var(--primary);border-top-color:transparent}.st.w{border:2px solid var(--ov)}
+.btn{border:1px solid var(--outline);background:none;color:var(--primary);border-radius:18px;padding:6px 12px;font-size:12px}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.warn{background:var(--warn-c);color:var(--on-warn-c);border-color:transparent}
+.sw{width:36px;height:20px;border-radius:10px;background:var(--primary);position:relative;flex:none}
+.sw:after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--on-primary)}
+.sw.off{background:var(--sv)}.sw.off:after{right:auto;left:3px;background:var(--outline)}
+.fld{border:1px solid var(--outline);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:6px}
+.fld small{display:block;color:var(--on-sv);font-size:10px}
+.code{flex:1;overflow:hidden;font:11px/1.6 ui-monospace,monospace;padding:6px 0}
+.code div{display:flex;white-space:pre}
+.code em{width:30px;text-align:right;padding-right:8px;color:var(--outline);font-style:normal;flex:none}
+.code .sel{background:var(--pc);color:var(--on-pc)}
+.pill{align-self:flex-start;margin:2px 0 0 40px;display:flex;border-radius:18px;background:var(--sv);font:11px system-ui;box-shadow:0 2px 6px #0003}
+.pill span{padding:7px 9px}.pill .ia{color:var(--primary);font-weight:700}
+.df{font:11px/1.5 ui-monospace,monospace;border-radius:6px;overflow:hidden;margin:6px 0}
+.df div{padding:0 8px;white-space:pre}
+.df .add{background:var(--ok-c);color:var(--ok)}.df .del{background:#ba1a1a22;color:var(--err)}
+.sym{display:flex;gap:2px;border-top:1px solid var(--ov);padding:6px;font:12px ui-monospace,monospace;color:var(--on-sv)}
+.sym span{flex:1;text-align:center}
+.dlg{background:var(--bg);border-radius:20px;padding:14px;box-shadow:0 4px 16px #0004;border:1px solid var(--ov)}
+.dlg h4{margin:0 0 6px}
+.right{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><h1>Mission IA — maquettes d'écran</h1>
+  <p>Tokens réels de CodeIDE · ADR 0121–0126 · spécification : docs/IA_SPEC_ECRANS.md</p></div>
+  <button class="tg" onclick="document.body.classList.toggle('dark')">Clair / Sombre</button>
+</div>
+
+<div class="wrap">
+
+<!-- E1 -->
+<div class="col"><div class="cap">E1 · Tiroir › IA › Chat</div>
+<div class="ph">
+  <div class="bar">Assistant IA<span class="sp"></span>⋮</div>
+  <div class="tabs"><span class="on">Chat</span><span>Agent</span><span>Historique</span><span class="soon">Recherche · bientôt</span></div>
+  <div class="body">
+    <div class="u">Pourquoi ce test échoue ?</div>
+    <div class="a">Le mock renvoie <code>null</code> avant l'initialisation. Initialisez-le dans <code>setUp()</code> :
+      <pre><div class="ch"><b>kotlin</b><span class="sp"></span><span>Copier</span><span>Insérer au curseur</span></div><code>@Before
+fun setUp() {
+    repo = FakeRepo()
+}</code></pre>
+      <small>Basé sur Main.kt et 3 diagnostics</small> <span class="cur"></span>
+    </div>
+  </div>
+  <div class="chips"><span class="chip">Main.kt ×</span><span class="chip">Sélection 12 l. ×</span><span class="chip">Diagnostics 3 ×</span></div>
+  <div class="comp"><button class="ib g">@</button><div class="in">Demander à l'IA…</div><button class="ib">■</button></div>
+  <div class="rail"><div><i>▤</i>Fichiers</div><div><i>⌕</i>Recherche</div><div><i>◫</i>Projet</div><div><i>⎇</i>Git</div><div><i>&gt;_</i>Terminal</div><div class="on"><i>✦</i>IA</div></div>
+</div></div>
+
+<!-- E2 -->
+<div class="col"><div class="cap">E2 · Tiroir › IA › Agent</div>
+<div class="ph">
+  <div class="bar">Assistant IA<span class="sp"></span>⋮</div>
+  <div class="tabs"><span>Chat</span><span class="on">Agent</span><span>Historique</span><span class="soon">Recherche · bientôt</span></div>
+  <div class="body">
+    <div class="card"><h4>Objectif</h4><p>Ajouter la validation du nom de projet et les tests associés.</p></div>
+    <div class="row" style="font-size:12px;color:var(--on-sv)">7/25 étapes · 18 k jetons · 02:14<span class="sp"></span><button class="btn">Arrêter</button></div>
+    <div class="row"><span class="st ok">✓</span>Lire NomProjet.kt<span class="sp"></span><small>0,4 s</small></div>
+    <div class="row"><span class="st ok">✓</span>Rechercher « validerNom »<span class="sp"></span><small>0,7 s</small></div>
+    <div class="row"><span class="st run"></span>Proposer des modifications…</div>
+    <div class="card warn"><h4>Autoriser cette action ?</h4>
+      <p style="color:inherit"><b>run_gradle</b> · testDebugUnitTest<br>Raison : vérifier les nouveaux tests.</p>
+      <div class="right"><button class="btn">Refuser</button><button class="btn p">Autoriser une fois</button></div></div>
+    <div class="card"><h4>Changements proposés</h4><p>4 fichiers · <b style="color:var(--ok)">+37</b> <b style="color:var(--err)">−12</b></p>
+      <div class="right"><button class="btn">Examiner</button><button class="btn p">Tout appliquer</button></div></div>
+    <p style="font-size:11px;color:var(--on-sv);margin:0">L'agent ne modifie rien sans votre validation.</p>
+  </div>
+  <div class="rail"><div><i>▤</i>Fichiers</div><div><i>⌕</i>Recherche</div><div><i>◫</i>Projet</div><div><i>⎇</i>Git</div><div><i>&gt;_</i>Terminal</div><div class="on"><i>✦</i>IA</div></div>
+</div></div>
+
+<!-- E3 -->
+<div class="col"><div class="cap">E3 · Éditeur › Demander à l'IA + carte de diff</div>
+<div class="ph">
+  <div class="bar">≡ NomProjet.kt<span class="sp"></span>⋮</div>
+  <div class="code">
+    <div><em>12</em>fun valider(nom: String): Boolean {</div>
+    <div class="sel"><em>13</em>    if (nom.isEmpty()) return false</div>
+    <div class="sel"><em>14</em>    return nom.all { it.isLetter() }</div>
+    <div><em>15</em>}</div>
+    <div class="pill"><span>Copier</span><span>Couper</span><span class="ia">✦ IA</span><span>⋯</span></div>
+  </div>
+  <div style="padding:0 10px 6px">
+    <div class="card" style="padding:8px 10px">
+      <div class="row"><b style="font-size:13px">Proposition</b><span class="sp"></span><small style="color:var(--on-sv)">+2 −1</small></div>
+      <div class="df"><div class="del">-    return nom.all { it.isLetter() }</div><div class="add">+    return nom.isNotBlank() &amp;&amp;</div><div class="add">+        nom.all { it.isLetterOrDigit() }</div></div>
+      <div class="row"><button class="btn">Rejeter</button><button class="btn">Réessayer ▾</button><span class="sp"></span><button class="btn p">Accepter</button></div>
+    </div>
+  </div>
+  <div class="chips" style="padding-top:0"><span class="chip">Expliquer</span><span class="chip">Corriger</span><span class="chip">Documenter</span><span class="chip">Tests</span><span class="chip">Simplifier</span></div>
+  <div class="sym"><span>⇥</span><span>{ }</span><span>( )</span><span>[ ]</span><span>;</span><span>"</span><span>=</span></div>
+</div></div>
+
+<!-- E4 -->
+<div class="col"><div class="cap">E4 · Paramètres › IA</div>
+<div class="ph">
+  <div class="bar">← IA</div>
+  <div class="body" style="gap:10px">
+    <div class="card"><div class="row"><div><h4>Activer l'assistant IA</h4><p>Ce qui est envoyé ›</p></div><span class="sp"></span><span class="sw"></span></div></div>
+    <div class="card"><h4>Fournisseur</h4>
+      <div class="row" style="margin-top:4px">Anthropic<span class="sp"></span><span class="chip" style="color:var(--ok)">clé OK</span></div>
+      <div class="row" style="margin-top:4px">Compatible OpenAI<span class="sp"></span><span class="chip">à saisir</span></div>
+      <div class="fld">••••••••••••a3f9<small>Clé masquée — jamais affichée</small></div>
+      <div class="right" style="justify-content:flex-start"><button class="btn p">Tester la connexion</button><button class="btn">Remplacer</button></div></div>
+    <div class="card"><h4>Modèle</h4><div class="fld">Identifiant du modèle<small>Saisie libre · « Actualiser la liste » depuis le fournisseur</small></div></div>
+    <div class="card"><h4>Confidentialité</h4>
+      <div class="row" style="margin-top:4px">Fichier actif<span class="sp"></span><span class="sw"></span></div>
+      <div class="row" style="margin-top:6px">Liste des chemins du projet<span class="sp"></span><span class="sw"></span></div>
+      <div class="row" style="margin-top:6px">Diagnostics<span class="sp"></span><span class="sw off"></span></div></div>
+    <div class="card"><div class="row"><div><h4>Autoriser l'agent</h4><p>Désactivé = lecture seule</p></div><span class="sp"></span><span class="sw"></span></div></div>
+  </div>
+</div></div>
+
+<!-- E5 -->
+<div class="col"><div class="cap">E5 · Consentement et états d'erreur</div>
+<div class="ph">
+  <div class="bar">Avant d'activer l'IA</div>
+  <div class="body" style="gap:8px">
+    <p style="margin:0;font-size:12px">L'IA envoie des extraits de votre code au fournisseur <b>que vous avez choisi</b>. CodeIDE n'a aucun serveur et ne collecte rien.</p>
+    <div class="card"><h4>Ce qui est envoyé</h4><p>Fichier actif · sélection · diagnostics · fichiers <b>@mentionnés</b></p></div>
+    <div class="card"><h4>Jamais envoyé</h4><p>Secrets · chemins de l'appareil · identité git · fichiers exclus (.env, *.jks…)</p></div>
+    <div class="right"><button class="btn">Pas maintenant</button><button class="btn p">Activer</button></div>
+    <div class="dlg"><h4>Secret détecté</h4><p style="margin:0;font-size:12px;color:var(--on-sv)">Ce contexte semble contenir une clé ou un jeton (<code>sk-••••••</code>).</p>
+      <div class="right"><button class="btn">Annuler</button><button class="btn p">Envoyer sans</button></div></div>
+    <div class="card warn"><h4>Clé refusée par le fournisseur</h4><p style="color:inherit">Vérifiez la clé dans les réglages.</p>
+      <div class="right"><button class="btn">Détails ▾</button><button class="btn p">Ouvrir les réglages</button></div></div>
+  </div>
+</div></div>
+
+<!-- E6 -->
+<div class="col"><div class="cap">E6 · Tiroir › IA › Historique</div>
+<div class="ph">
+  <div class="bar">Assistant IA<span class="sp"></span>⋮</div>
+  <div class="tabs"><span>Chat</span><span>Agent</span><span class="on">Historique</span><span class="soon">Recherche · bientôt</span></div>
+  <div class="body" style="gap:6px">
+    <div class="in" style="flex:none;padding:8px 14px">⌕  Rechercher une conversation</div>
+    <div style="font-size:11px;color:var(--on-sv);margin-top:4px">Aujourd'hui</div>
+    <div class="card"><h4>Pourquoi ce test échoue ?</h4><p>Il y a 12 min · 6 messages · Chat</p></div>
+    <div class="card"><h4>Ajouter la validation du nom de projet</h4><p>Il y a 2 h · 14 étapes · Agent · <span style="color:var(--ok)">4 fichiers appliqués</span></p></div>
+    <div style="font-size:11px;color:var(--on-sv);margin-top:4px">Cette semaine</div>
+    <div class="card"><h4>Expliquer l'erreur Gradle 9.7</h4><p>Hier · 4 messages · Chat</p></div>
+    <div class="card"><h4>Documenter EditorViewModel</h4><p>Mar. · 9 messages · Chat</p></div>
+    <div class="row card warn" style="margin-top:auto"><span>Conversation supprimée</span><span class="sp"></span><b>Rétablir</b></div>
+    <p style="font-size:11px;color:var(--on-sv);margin:0">Balayer = supprimer · ⋮ = Renommer, Exporter en Markdown, Tout effacer · Rétention : 30 jours</p>
+  </div>
+  <div class="rail"><div><i>▤</i>Fichiers</div><div><i>⌕</i>Recherche</div><div><i>◫</i>Projet</div><div><i>⎇</i>Git</div><div><i>&gt;_</i>Terminal</div><div class="on"><i>✦</i>IA</div></div>
+</div></div>
+
+</div>
+</body>
+</html>

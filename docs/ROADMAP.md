@@ -1,22 +1,29 @@
-# CodeIDE — Roadmap v0.46.0+
+# CodeIDE — Roadmap
 
-> Dernière mise à jour : 2026-10-01
-> Version courante : 0.45.0
+> Dernière mise à jour : 2026-10-18
+> Version courante : **0.134.44** (source de vérité : `version.properties`)
+> Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
+> décrit l'état réel courant et ce qui reste — les phases achevées sont
+> gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.45.0)
+## État actuel (v0.134.44)
 
 ### Fonctionnel ✅
-- **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module, progress circulaire (AnneauTournant 16dp)
-- **Console hybride** (v0.42.0, ADR 0074) : zone structurée (RecyclerView : étapes, tâches, synthèse) + zone texte (lignes brutes par append O(1), loties par trame, tampon borné 2 000) — un build de 725 ms s'affiche en < 1 s
-- **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln (BuildInput + champ saisie), println → console
-- **Templates** (v0.45.0, ADR 0076/0077) : kotlin-jvm, java, android-app (variantes `projectType` empty/no/basic-activity + `language` kotlin/java + sections `minSdk`/`targetSdk`/`applicationId` + 5 dépendances au choix), android-library (.aar), spring-boot (4 dépendances au choix), kotlin-multiplatform (3 dépendances au choix), gradle-plugin — tous vérifiés par `scripts/verify-templates.sh` (**37 combinaisons**, build réel, tests, exécution, APK, AAR, publication + consommation E2E du plugin, renommage de l'aperçu) ; package `com.example.<app|artefact>` par convention, chemins `{{packageName|packagePath}}`, Android riche (strings/colors/themes/proguard/tests, tiroir Material 3, KSP 2.3.12 + Room + Hilt avec le Kotlin intégré AGP), Spring Boot 4.1.1, KMP (actual câblé), plugin Gradle `kotlin-dsl` (compilateur embarqué, testkit ProjectBuilder)
-- **Éditeur** : code-editor 3.41.0, coloration syntaxique, auto-sauvegarde, onglets, explorateur
-- **Terminal** : Termux, sessions shell, pty, pont SAF/FUSE
-- **Diagnostics** : parseur javac/kotlinc, onglet Problèmes, inline dans l'éditeur
-- **Wizard enrichi** (v0.45.0, ADR 0077) : rendu 100 % dynamique depuis les manifestes (visibleWhen, defaultFrom, validator), sections Android (`minSdk`/`targetSdk`/`applicationId`), interrupteurs de dépendances, **aperçu de l'arborescence renommable** avant création (dry-run = écriture, renommages par identité originale, survie à la mort du processus)
+- **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
+- **LSP Java/Kotlin/XML + previews** : indexation disque, greffes, inline diagnostics, écran d'indexation — moteurs déplacés dans le dépôt frère [`codeide-lsp`](https://github.com/jjoblab/codeide-lsp) (v1.0.2, Phase 5 livrée v0.91.0 → v0.120.0)
+- **Dépôts frères en binaire** (v0.134.41 → v0.134.44) : séparation des dépôts, publication de 18 paquets publics sur GitHub Packages, consommation **binaire par défaut** (mavenLocal puis Packages, `scripts/bump-frere.sh`), composite en opt-in `-Pfreres.sources`, CI sans clone + garde-fou composite nocturne
+- **Console hybride** (v0.42.0, ADR 0074) : zone structurée + zone texte — un build de 725 ms s'affiche en < 1 s
+- **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln, installer/lancer un APK sans adb (ADR 0102)
+- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable
+- **Installation** (Phase R, E1–E6, v0.55.0 → v0.65.0) : JDK 17/21 + outils Android installés sur l'appareil, orchestration quatre phases, migration des installations
+- **Terminal** (ADR 0035/0036/0053) : Termux, sessions, tiroir, pont SAF/FUSE, cartes d'aperçu
+- **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports
+- **Git** : socle livré — moteur CLI (ADR 0092, G0 v0.70.0), clonage depuis l'accueil (ADR 0101, v0.80.x), initialisation, détection de dépôt
+- **Recherche/paramètres/explorateur** : Material You + paramètres deux niveaux (ADR 0059/0064), explorateur v2 (ADR 0052), recherche/remplacement dans l'éditeur (B10)
 
 ### Problèmes connus ❌
-- (aucun ouvert — le renommage de l'aperçu livré en phase 4 clôt le dernier point connu)
+- **Chantier IA (lot IA-0)** — quatre points bloquants identifiés par `docs/IA_REVUE_DEPOT.md` : permission `INTERNET` à justifier par ADR (0121), sauvegarde automatique non maîtrisée (pas de `dataExtractionRules`), `LogRedactor` sans motif de clé/jeton, absence de coffre de secrets (Keystore)
+- Recherche globale multi-fichiers : spec prête (`docs/RECHERCHE.md`, ADR 0094), onglet réservé dans le tiroir — livraison après la mission IA
 
 ---
 
@@ -225,25 +232,29 @@ Fichiers livrés :
 
 ## Phase 6 — Fonctionnalités IDE
 
-### 6.1 Recherche globale
+### 6.1 Recherche globale ⬜ non livrée
 - Recherche de texte dans tous les fichiers du projet
 - Remplacement multi-fichiers
+- Statut : spec prête (`docs/RECHERCHE.md`, ADR 0094), onglet **réservé** dans le tiroir (l'assistant IA l'utilisera pour la recherche sémantique) — livraison planifiée après la mission IA
 
-### 6.2 Git intégré
-- **G0 (v0.70.0)** : investigation moteur, ADR 0092 (git CLI via NativeProcessLauncher), port `MoteurGit` dans `core:domain`, spec `docs/GIT.md`, maquette `docs/preview/git.html`
-- Statut des fichiers (modifié/ajouté/supprimé)
-- Diff visuel
-- Commit/Push depuis l'app
+### 6.2 Git intégré 🔶 socle livré
+- **G0 (v0.70.0)** ✅ : investigation moteur, ADR 0092 (git CLI via NativeProcessLauncher), port `MoteurGit` dans `core:domain`, spec `docs/GIT.md`, maquette `docs/preview/git.html`
+- **Livré** ✅ : clonage depuis l'accueil avec rollback (ADR 0101, v0.80.x), initialisation d'un dépôt, détection du statut (pas un dépôt / dépôt propre / modifications)
+- ⬜ Statut des fichiers par ressource (modifié/ajouté/supprimé) en UI complète
+- ⬜ Diff visuel
+- ⬜ Commit/Push depuis l'app
 
-### 6.3 Refactoring
+### 6.3 Refactoring ⬜
 - Renommer (symbole → toutes les références)
 - Extraire (méthode, variable)
 - Importer automatiquement
+- Statut : non commencé ; s'appuiera sur les index LSP (codeide-lsp)
 
-### 6.4 Build variants (Android)
+### 6.4 Build variants (Android) ⬜
 - Sélection debug/release
 - Product flavors
 - Build types
+- Statut : non commencé
 
 ---
 
@@ -313,6 +324,30 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
   (environnement injecté par session, scripts anciens laissés en place) ;
   ADR 0082/0083 marquées **remplacées** ; **fin de la phase R**.
 
+## Phase IA — Assistant « apporte ta clé » (BYOK) ⬜ PLAN
+
+> Mission du 2026-10-17 : ADR **0121–0126** (statut « proposé », à accepter
+> par le propriétaire avant le lot IA-0). Documents opérationnels :
+> [`IA_PLAN_EXECUTION.md`](IA_PLAN_EXECUTION.md) (lots, règles, critères),
+> [`IA_REVUE_DEPOT.md`](IA_REVUE_DEPOT.md) (audit préalable),
+> [`IA_SPEC_ECRANS.md`](IA_SPEC_ECRANS.md) et maquette
+> `docs/mockups/ia/ia-ecrans.html`.
+
+| Lot | Version | Titre | Statut |
+|---|---|---|---|
+| IA-0 | 0.135.0 | Préalables et garde-fous (réseau explicite, sauvegarde, `LogRedactor`, 4 modules vides) | ⬜ |
+| IA-1 | 0.136.0 | Domaine IA et fournisseurs (Anthropic + compatible OpenAI, streaming testé) | ⬜ |
+| IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ⬜ |
+| IA-3 | 0.138.0 | Chat dans le tiroir (streaming, Markdown) | ⬜ |
+| IA-4 | 0.139.0 | Contexte et confidentialité (`@fichiers`, exclusions, détection de secrets) | ⬜ |
+| IA-5 | 0.140.0 | Intégration éditeur (carte de diff, actions Problèmes/Console) | ⬜ |
+| IA-6 | 0.141.0 | Historique des conversations (Room v2, migration testée) | ⬜ |
+| IA-7 | 0.142.0 | Agent, outils, approbations (`ChangeSet`, restauration) | ⬜ |
+| IA-9 | 0.143.0 | Durcissement et release (tests d'architecture, accessibilité, perf) | ⬜ |
+
+Optionnels : IA-5b (diff en ligne `ViewZone` — chantier `jjoblab/code-editor`),
+IA-8 (complétion « texte fantôme », ADR propre).
+
 ## Priorisation
 
 | Phase | Priorité | Effort | Impact utilisateur |
@@ -321,5 +356,7 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 | 2 — Fix templates | **Haute** ✅ livré v0.43.0 (ADR 0075) | Faible | Haut — les templates marchent |
 | 3 — Templates avancés | **Haute** ✅ livré v0.44.0 (ADR 0076) | Moyen | Moyen — plus de choix |
 | 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
-| 5 — LSP | Basse | Très haut | Très haut — transforme en IDE |
-| 6 — Fonctionnalités IDE | Basse | Très haut | Très haut — fonctionnalités pro |
+| 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
+| R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
+| **IA — Assistant BYOK** | **PROCHAINE** (ADR 0121–0126 à accepter) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |

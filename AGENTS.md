@@ -211,7 +211,7 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # régénération fait échouer la CI sur PariteCorpusDepotTest (constat
 # v0.121.0 : XE5 a ajouté 50 fichiers, digeste divergé, build rouge).
 #
-# BASCULE 2026-10-17 (séparation des dépôts, docs/PLAN_SEPARATION_DEPOTS.md
+# BASCULE 2026-10-17 (séparation des dépôts, docs/archive/PLAN_SEPARATION_DEPOTS.md
 # §9) : la suite de parité vivait dans :lsp:kotlin — le module a rejoint le
 # dépôt séparé jjoblab/codeide-lsp. DANS CE DÉPÔT, il n'y a plus AUCUN test
 # de parité : la règle « parité EN DERNIER » s'applique désormais dans
