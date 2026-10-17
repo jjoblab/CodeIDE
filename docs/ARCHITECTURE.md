@@ -5,6 +5,26 @@ les patrons applicatifs. Les décisions structurantes sont consignées dans les
 ADR (`docs/adr/`). Le document complet de référence est le prompt maître,
 sections 5 et 6.
 
+## Séparation des dépôts (v0.134.41)
+
+Depuis la bascule v0.134.41, l'écosystème est réparti sur **trois dépôts**
+(recette et bilan dans `docs/PLAN_SEPARATION_DEPOTS.md`) :
+
+- **codeide-tooling** (`jjoblab/codeide-tooling`) : `tooling:protocol`,
+  `tooling:api`, `tooling:server`, `tooling:testing` — publiés en paquets
+  Maven publics `com.github.jjoblab.codeide-tooling:*` (tag v1.0.0) ;
+- **codeide-lsp** (`jjoblab/codeide-lsp`) : les huit modules `lsp:*`
+  (`model`, `index`, `java`, `ecj-art`, `testing`, `kotlin`, `xml`,
+  `host`) ;
+- **CodeIDE** (ce dépôt) : l'application, `tooling:client` et
+  `tooling:daemon`.
+
+En développement, les modules externes sont branchés par **composite
+build** (`tooling.dir` / `lsp.dir`, miroir LayoutLib) ; en binaire, ils
+arrivent par les coordonnées Maven (`libs.tooling.*`, `libs.lsp.host`).
+Les tableaux ci-dessous décrivent l'ensemble de l'écosystème — les
+modules déplacés portent leur dépôt d'origine entre crochets.
+
 ## Vue d'ensemble
 
 ```
@@ -55,22 +75,22 @@ sections 5 et 6.
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
 | `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) ; fragment Terminal du tiroir (rendu réel, split view — ADR 0053) |
-| `tooling:protocol` | Protocole du tooling Gradle : framing, catalogue de messages JSON, fichiers dorés (ADR 0039) |
-| `tooling:api` | Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
-| `tooling:server` | Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
+| `tooling:protocol` | **[codeide-tooling]** Protocole du tooling Gradle : framing, catalogue de messages JSON, fichiers dorés (ADR 0039) |
+| `tooling:api` | **[codeide-tooling]** Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
+| `tooling:server` | **[codeide-tooling]** Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
 | `tooling:client` | Client Android du tooling : écoute du socket (l'app est le serveur), handshake au secret, façade `GradleToolingRepository` du domaine, diffusion non conflatante (ADR 0041) |
 | `tooling:daemon` | Daemon du tooling : déploiement du JAR (marqueur de version), lancement du process orchestrateur sur `NativeProcessLauncher`, health check ping/pong, relances bornées, stderr → journal `gradle-server` (ADR 0042) |
-| `tooling:testing` | Fixtures du tooling : mini-projets Gradle réels (pur JVM + fixture ANDROID `android-simple` depuis v0.92.0), dépendance de test uniquement |
+| `tooling:testing` | **[codeide-tooling]** Fixtures du tooling : mini-projets Gradle réels (pur JVM + fixture ANDROID `android-simple` depuis v0.92.0), dépendance de test uniquement |
 | `feature:editor` | Espace de travail : tiroir (explorateur + fragments Recherche/Git ; fragment Terminal via fabrique Hilt, ADR 0053), onglets, panneau inférieur ; session LSP Java de l'espace (hôte `:lsp:host` : branchement cel-lsp de l'éditeur, état d'indexation, réindexation — mission « LSP Java » h2) |
 | `tools:generateur` | Harnais CLI de génération sur disque (vérification des modèles, ADR 0019) |
-| `lsp:model` | Kotlin JVM pur — modèle de projet LSP : conversion `ClasspathResult` → snapshots immuables empreintés, persistance versionnée validée (mission « LSP Java » étape 1, ADR 0113) |
-| `lsp:index` | Kotlin JVM pur — index disque en segments par jar : clés de contenu W6, fusion LSM à la requête, construction en arrière-plan bornée (mission « LSP Java » étape 2, ADR 0111) |
-| `lsp:java` | Moteur LSP Java vendored (ecj/JDT patché pour ART) — exempté de « Kotlin 100 % » par l'ADR 0108, sources intactes de l'archive, tests JUnit 5 en suite de non-régression |
-| `lsp:ecj-art` | Patcher ASM build-time d'ecj pour ART (jamais dans l'APK, ADR 0108) |
-| `lsp:testing` | Suite d'intégration moteur ↔ index (v0.96.3) : les tests du branchement réel vivent AU-DESSUS de `lsp:java` et `lsp:index` (pattern `tooling:testing`, dépendances de test uniquement) |
-| `lsp:host` | Hôte LSP (étape 4, ADR 0109 D2) : `SessionLsp` (transport abstrait — in-process ART par défaut, branchement cel-lsp), orchestrateur sync → modèle → index → moteurs par module (lot E), adaptateur de production de la SPI `IndexNoms`, état d'indexation pour l'UI ; depuis K2/XE1 il porte AUSSI les adaptateurs LSP4J Kotlin (`KotlinLanguageServer`) et XML (`SessionLspXml`/`XmlLanguageServer`) — les moteurs restent autonomes et découplables |
-| `lsp:kotlin` | Moteur LSP Kotlin (K1–K5, LSP_KOTLIN.md) : grammaire du compilateur vendorée (ADR 0115), session, diagnostics syntaxiques et sémantiques, complétion/survol/définition, quick-fixes d'import ; Kotlin JVM pur, découplable en « pack langue » (l'adaptateur LSP4J vit dans `lsp:host`) |
-| `lsp:xml` | Moteur LSP XML maison (XE1–XE4, LSP_XML.md) : parseur tolérant écrit main, DOM neutre, règles conservatoires, catalogue plateforme + index ressources projet, complétion balises/attributs/valeurs, survol/définition, quick-fixes ; Kotlin JVM pur zéro dépendance, découplable en « pack langue » (la façade vit dans `lsp:host`) |
+| `lsp:model` | **[codeide-lsp]** Kotlin JVM pur — modèle de projet LSP : conversion `ClasspathResult` → snapshots immuables empreintés, persistance versionnée validée (mission « LSP Java » étape 1, ADR 0113) |
+| `lsp:index` | **[codeide-lsp]** Kotlin JVM pur — index disque en segments par jar : clés de contenu W6, fusion LSM à la requête, construction en arrière-plan bornée (mission « LSP Java » étape 2, ADR 0111) |
+| `lsp:java` | **[codeide-lsp]** Moteur LSP Java vendored (ecj/JDT patché pour ART) — exempté de « Kotlin 100 % » par l'ADR 0108, sources intactes de l'archive, tests JUnit 5 en suite de non-régression |
+| `lsp:ecj-art` | **[codeide-lsp]** Patcher ASM build-time d'ecj pour ART (jamais dans l'APK, ADR 0108) |
+| `lsp:testing` | **[codeide-lsp]** Suite d'intégration moteur ↔ index (v0.96.3) : les tests du branchement réel vivent AU-DESSUS de `lsp:java` et `lsp:index` (pattern `tooling:testing`, dépendances de test uniquement) |
+| `lsp:host` | **[codeide-lsp]** Hôte LSP (étape 4, ADR 0109 D2) : `SessionLsp` (transport abstrait — in-process ART par défaut, branchement cel-lsp), orchestrateur sync → modèle → index → moteurs par module (lot E), adaptateur de production de la SPI `IndexNoms`, état d'indexation pour l'UI ; depuis K2/XE1 il porte AUSSI les adaptateurs LSP4J Kotlin (`KotlinLanguageServer`) et XML (`SessionLspXml`/`XmlLanguageServer`) — les moteurs restent autonomes et découplables |
+| `lsp:kotlin` | **[codeide-lsp]** Moteur LSP Kotlin (K1–K5, LSP_KOTLIN.md) : grammaire du compilateur vendorée (ADR 0115), session, diagnostics syntaxiques et sémantiques, complétion/survol/définition, quick-fixes d'import ; Kotlin JVM pur, découplable en « pack langue » (l'adaptateur LSP4J vit dans `lsp:host`) |
+| `lsp:xml` | **[codeide-lsp]** Moteur LSP XML maison (XE1–XE4, LSP_XML.md) : parseur tolérant écrit main, DOM neutre, règles conservatoires, catalogue plateforme + index ressources projet, complétion balises/attributs/valeurs, survol/définition, quick-fixes ; Kotlin JVM pur zéro dépendance, découplable en « pack langue » (la façade vit dans `lsp:host`) |
 
 Chaque module possède un `README.md` (responsabilité, dépendances autorisées,
 API prévue) et un `Module.md` (page Dokka).
@@ -94,12 +114,12 @@ toute dépendance non autorisée **fait échouer le build**.
 | `core:ui` | `core:model` | `core:domain`, `core:data`, features |
 | `feature:*` | `core:ui`, `core:domain`, `core:model` | `core:data`, sources de données, `core:crash`, `core:logging`, **autres features** |
 | `feature:terminal`, `feature:install` | `core:ui`, `core:domain`, `core:model`, `core:terminal-runtime` | — (exception v0.54.0, ADR 0083 : le journal live de l'installation est un mini TerminalView intégré) |
-| `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
+| `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` (coordonnée codeide-lsp) | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
 | `tooling:protocol` | rien | tout module interne (pur JVM) |
 | `tooling:api` | `tooling:protocol` | autre chose (pur JVM) |
 | `tooling:server` | `tooling:protocol`, `tooling:api` | Android, domaine (pur JVM, ADR 0040) |
-| `tooling:client` | `tooling:protocol`, `tooling:api`, `core:domain` | `tooling:server`, features |
-| `tooling:daemon` | `tooling:protocol`, `core:domain`, `tooling:client` | `tooling:server` (production — voir ci-dessous), features |
+| `tooling:client` | `core:domain` + coordonnées `tooling:protocol`, `tooling:api` | `tooling:server`, features |
+| `tooling:daemon` | `core:domain`, `tooling:client` + coordonnées `tooling:protocol` (+ `tooling:server`/`tooling:testing` en test) | `tooling:server` (production — voir ci-dessous), features |
 | `lsp:model` | `tooling:protocol` | Android, moteur `lsp:java` (extractibilité — ADR 0113) |
 | `lsp:index` | `lsp:model`, `tooling:protocol` | Android, moteur `lsp:java`, tout autre module interne (couche SOUS le moteur — ADR 0111) |
 | `lsp:java` | rien (module vendored autonome) | tout module interne, test compris (extractibilité, ADR 0108 — la suite d'intégration vit dans `lsp:testing`) |
@@ -111,16 +131,26 @@ toute dépendance non autorisée **fait échouer le build**.
 | `app` | tout (assemblage) | — |
 | `core:testing` | `core:model`, `core:domain` | — (consommé en `testImplementation` seulement) |
 
-Règles additionnellement vérifiées : `core:testing` et `tooling:testing` ne
-peuvent apparaître que dans les configurations de test ; `core:model`,
-`core:domain`, `tooling:protocol`, `tooling:api` et `tooling:server` ne
-peuvent appliquer aucun plugin Android (modules JVM purs — `lsp:model`,
-`lsp:index`, `lsp:java`, `lsp:ecj-art`, `lsp:testing`, `lsp:kotlin` et
-`lsp:xml` suivent la même règle) ;
+Depuis la séparation v0.134.41 : les dépendances `tooling:protocol`/`api`
+de `tooling:client`/`daemon` et la dépendance `lsp:host` de `app` et
+`feature:editor` sont des **coordonnées Maven externes**
+(`com.github.jjoblab.codeide-tooling:*`, `com.github.jjoblab.codeide-lsp:*`)
+— volontairement hors de l'audit `ProjectDependency` du plugin
+`codeide.module-rules` ; en dev, le composite les substitue par les projets
+des dépôts frères (`tooling.dir`/`lsp.dir`, mêmes coordonnées). Les règles
+des lignes des modules déplacés (`tooling:protocol`/`api`/`server`/`testing`
+et tout `lsp:*`) sont appliquées par les builds de codeide-tooling et
+codeide-lsp eux-mêmes.
+
+Règles additionnellement vérifiées : `core:testing` (et `tooling:testing`,
+désormais une coordonnée) ne peuvent apparaître que dans les configurations
+de test ; `core:model` et `core:domain` ne peuvent appliquer aucun plugin
+Android (modules JVM purs — les règles jumelles de `tooling:protocol`/`api`
+et de tout `lsp:*` sont appliquées par leurs dépôts respectifs) ;
 **`tooling:server` n'entre dans `tooling:daemon` qu'en configuration de
 test** (bout-en-bout §7.4 : le VRAI orchestrateur relancé en sous-processus
 depuis la JVM de test, ADR 0042 — en production, le daemon ne voit du
-serveur que le JAR déployé).
+serveur que le JAR mince des assets).
 
 ## Patron de présentation : MVVM + flux unidirectionnel (UDF)
 

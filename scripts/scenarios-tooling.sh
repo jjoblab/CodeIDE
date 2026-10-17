@@ -3,7 +3,9 @@
 #
 # Exécute des scénarios Gradle réels contre des fixtures et capture les
 # sorties brutes pour observer les événements réellement émis par Gradle
-# (et donc par le SyncHandler du tooling:server).
+# (et donc par le SyncHandler du tooling:server — désormais VÉHICULÉ PAR
+# LE DÉPÔT jjoblab/codeide-tooling depuis la séparation v0.134.41 ; ce
+# script reste ici car il alimente docs/tooling-scenarios/ de ce dépôt).
 #
 # Usage : ./scripts/scenarios-tooling.sh [--offline]
 #
@@ -13,14 +15,14 @@
 
 set -eu
 
-ROOT="/home/z/my-project/CodeIDE"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCEN_DIR="$ROOT/docs/tooling-scenarios"
 SORTIES="$SCEN_DIR/sorties"
 FIXTURES="$SCEN_DIR/fixtures"
 GRADLE_USER_HOME="${GRADLE_USER_HOME:-/home/z/.gradle}"
 
-export JAVA_HOME="${JAVA_HOME:-/home/z/my-project/jdk-extracted/usr/lib/jvm/java-21-openjdk-amd64}"
-export ANDROID_HOME="${ANDROID_HOME:-/home/z/my-project/android-sdk}"
+export JAVA_HOME="${JAVA_HOME:-/home/z/jdks/jdk-21.0.12.1+1}"
+export ANDROID_HOME="${ANDROID_HOME:-/home/z/android-sdk}"
 export GRADLE_USER_HOME
 export PATH="$JAVA_HOME/bin:$PATH"
 
@@ -87,7 +89,8 @@ run_scenario() {
 }
 
 # ---------------------------------------------------------------------------
-# Fixtures : on réutilise celles de tooling:testing et on en génère quelques-unes.
+# Fixtures : on en génère quelques-unes dans le même esprit que celles de
+# :tooling:testing (dépôt codeide-tooling depuis la séparation).
 # ---------------------------------------------------------------------------
 
 # Fixture : projet Kotlin/JVM pur sans dépendances
