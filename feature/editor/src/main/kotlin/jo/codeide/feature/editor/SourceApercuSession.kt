@@ -26,7 +26,12 @@ import jo.codeide.core.domain.SourceApercu
  * fichier (migration d'onglet du ViewModel) met à jour l'adaptateur EN
  * PLACE — le registre libère l'ancienne clé et ré-enregistre la
  * nouvelle, l'instance reste la même (aucune déliaison d'écouteur).
+ *
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions — l'adaptateur
+ * 1:1 du port : chaque opération a SA délégation (PE10c ajoute les deux
+ * requêtes d'historique peutAnnuler/peutRetablir).
  */
+@Suppress("TooManyFunctions")
 internal class SourceApercuSession(
     private val session: EditorSession,
     uri: String,
@@ -100,6 +105,12 @@ internal class SourceApercuSession(
     override fun annuler(): Boolean = session.undo()
 
     override fun retablir(): Boolean = session.redo()
+
+    /** PE10c : l'état de la pile d'annulation de la session (le MÊME historique). */
+    override fun peutAnnuler(): Boolean = session.undoManager.canUndo()
+
+    /** PE10c : au moins une édition annulée reste rétablissable. */
+    override fun peutRetablir(): Boolean = session.undoManager.canRedo()
 
     override fun ajouterEcouteur(ecouteur: SourceApercu.EcouteurMutation) {
         session.addOnTextEditListener(pontDe(ecouteur))

@@ -5,13 +5,11 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -26,6 +24,8 @@ import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuAppareilBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuCalquesBinding
 import jo.codeide.preview.xml.CataloguePalette
+import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.ModeApercu
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.RequeteRendu
@@ -141,6 +141,7 @@ public class PreviewActivity : AppCompatActivity() {
 
         brancherSelectionEtDepot()
         brancherPucesReglages()
+        brancherModeApercu()
         brancherHudZoom()
         brancherBarreEdition()
         brancherBullePalette()
@@ -177,12 +178,25 @@ public class PreviewActivity : AppCompatActivity() {
             majReglages()
         }
         liaison.boutonCalquesApercu.setOnClickListener { ouvrirPopoverCalques() }
-        // L'option « compacter l'aperçu » (PE9d) — persistance immédiate.
-        liaison.boutonCompacterApercu.setOnClickListener {
-            viewModel.poserCompacterApercu(!viewModel.reglagesApercu.value.compacterApercu)
-            majReglages()
-        }
         majReglages()
+    }
+
+    /**
+     * La PASTILLE segmented Design/Plan/Les deux (PE10d/e, miroir
+     * `segMode` de la maquette) : le mode vit dans la VUE — le fit se
+     * recalcule (Les deux double la largeur) et le rendu suit.
+     */
+    private fun brancherModeApercu() {
+        liaison.groupeModeApercu.addOnButtonCheckedListener { _, checkedId, coche ->
+            if (!coche) return@addOnButtonCheckedListener
+            liaison.vuePreview.modeAffichage =
+                when (checkedId) {
+                    R.id.mode_plan -> ModeApercu.PLAN
+                    R.id.mode_les_deux -> ModeApercu.LES_DEUX
+                    else -> ModeApercu.DESIGN
+                }
+            liaison.vuePreview.ajuster()
+        }
     }
 
     /** Le HUD de zoom (PE6b, miroir `.zoom` de la maquette). */
@@ -237,10 +251,6 @@ public class PreviewActivity : AppCompatActivity() {
             // PE7c : les réglages persistés (bulle + mode) pilotent
             // la vue (miroir `load()` au démarrage + `placeBubble`).
             viewModel.reglagesApercu.collect { reglages ->
-                liaison.boutonCompacterApercu.isChecked = reglages.compacterApercu
-                // L'option vient de basculer : la compaction se recalcule
-                // à l'état COURANT de la feuille (déployée ou non).
-                majCompactionSiPosee()
                 liaison.bullePalette.aDroite = reglages.bulleADroite
                 liaison.bullePalette.yNormalise = reglages.bulleY
                 liaison.bullePalette.fixe = reglages.bulleFixe
@@ -256,9 +266,18 @@ public class PreviewActivity : AppCompatActivity() {
             }
         }
         launch {
-            // PE6e-f + sous-titre : chaque rendu met le titre à jour
-            // (profil, orientation — miroir `ttlProfile`/`lblOrient`).
-            viewModel.moteur.etat.collect { majTitre() }
+            // PE10c : la barre d'édition suit l'HISTORIQUE (les icônes
+            // annuler/rétablir se désactivent quand la pile est épuisée).
+            viewModel.historiqueEdition.collect { majBarreEdition() }
+        }
+        launch {
+            // PE6e-f + sous-titre + PASTILLE d'état (PE10a) : chaque état
+            // du moteur met le chrome à jour (profil, orientation, durée,
+            // vues — miroir `ttlProfile`/`lblOrient`/`renderStatus`).
+            viewModel.moteur.etat.collect { etat ->
+                majTitre()
+                majPastilleEtat(etat)
+            }
         }
     }
 
@@ -284,13 +303,14 @@ public class PreviewActivity : AppCompatActivity() {
                     vue: View,
                     etat: Int,
                 ) {
-                    // PE9d : à l'état posé, le rendu s'AJUSTE au viewport
-                    // compacté (le design reste lisible au-dessus de la feuille).
-                    if (etat == BottomSheetBehavior.STATE_EXPANDED &&
-                        viewModel.reglagesApercu.value.compacterApercu
-                    ) {
-                        liaison.vuePreview.ajuster()
-                    }
+                    // PE10 : plus de compaction — la feuille recouvre le
+                    // rendu (miroir applySheet) ; les états posés fixent
+                    // la glissade (expanded = tout déployé, sinon repli).
+                    val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
+                    val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
+                    majGlissadeFeuille(
+                        if (etat == BottomSheetBehavior.STATE_EXPANDED) delta else 0f,
+                    )
                 }
 
                 override fun onSlide(
@@ -299,38 +319,88 @@ public class PreviewActivity : AppCompatActivity() {
                 ) {
                     val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
                     val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-                    majCompaction(delta * decalage)
+                    majGlissadeFeuille(delta * decalage)
                 }
             },
         )
     }
 
     /**
-     * La COMPACTION de l'aperçu pendant la glissade (PE9d) : option
-     * ACTIVE — le viewport se rétrécit (marge basse = la part déployée
-     * de la feuille ; le HUD et la bulle suivent le conteneur) ; option
-     * INACTIVE — le comportement PE6d (recouvrement, HUD qui glisse).
+     * La GLISSADE de la feuille (PE10a — miroir `applySheet` de la
+     * maquette : `status/zoom .bottom` suivent la feuille) : le HUD de
+     * zoom et la PASTILLE D'ÉTAT glissent au-dessus de la part déployée
+     * (jamais recouverts par le peek), la bulle ÉVITE la zone déployée.
      */
-    private fun majCompaction(deployeePx: Float) {
+    private fun majGlissadeFeuille(deployeePx: Float) {
         val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
         val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
         val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-        if (viewModel.reglagesApercu.value.compacterApercu) {
-            // Le viewport SE RÉTRÉCIT : la marge basse = la part déployée.
-            liaison.conteneurRendu.updateLayoutParams<LinearLayout.LayoutParams> {
-                bottomMargin = deployeePx.toInt()
-            }
-            liaison.hudZoom.translationY = 0f
-        } else {
-            // Comportement PE6d : recouvrement, le HUD de zoom glisse seul.
-            val decalage = if (delta > 0f) deployeePx / delta else 0f
-            liaison.hudZoom.translationY = -delta * decalage
-        }
+        val decalage = if (delta > 0f) deployeePx / delta else 0f
+        liaison.hudZoom.translationY = -delta * decalage
+        liaison.pastilleEtat.translationY = -delta * decalage
         // La bulle ne glisse pas SOUS la feuille déployée
         // (miroir le `hi` de `placeBubble` qui suit `S.open`).
         liaison.bullePalette.reserveBas =
             (liaison.hudZoom.height + dp(RETRAIT_HUD_DP)) + deployeePx.toInt()
         liaison.bullePalette.reposer()
+    }
+
+    /**
+     * La PASTILLE D'ÉTAT (PE10a, miroir `renderStatus` de la maquette) :
+     * point coloré + « Rendu · X ms · N vues · W×H dp » (rendu valide),
+     * ambre « XML en cours de frappe » (miroir `.status.edit`), rouge
+     * « Dernier rendu valide conservé » (miroir `.status.err`), masquée
+     * sans document (miroir l'état inactif).
+     */
+    private fun majPastilleEtat(etat: EtatPreviewXml) {
+        when (etat) {
+            is EtatPreviewXml.RenduValide -> {
+                val profil = viewModel.moteur.profil
+                val dimensions =
+                    getString(
+                        R.string.preview_pastille_dimensions,
+                        if (viewModel.paysage) profil.hauteurDp else profil.largeurDp,
+                        if (viewModel.paysage) profil.largeurDp else profil.hauteurDp,
+                    )
+                liaison.pastilleEtatTexte.text =
+                    resources.getQuantityString(
+                        R.plurals.preview_pastille_rendu,
+                        etat.nombreVues,
+                        etat.nombreVues,
+                        etat.dureeMs,
+                        dimensions,
+                    )
+                teinterPastille(RUi.attr.colorSucces)
+            }
+
+            is EtatPreviewXml.ErreurRendu -> {
+                liaison.pastilleEtatTexte.setText(R.string.preview_pastille_erreur)
+                teinterPastille(androidx.appcompat.R.attr.colorError)
+            }
+
+            EtatPreviewXml.EnEdition -> {
+                liaison.pastilleEtatTexte.setText(R.string.preview_pastille_edition)
+                // L'ambre de la maquette (`.status.edit` #9A6700) est le
+                // jeton journal_warn du thème — pas d'attribut sémantique.
+                teinterPastilleRessource(RUi.color.codeide_journal_warn)
+            }
+
+            EtatPreviewXml.Inactif -> {
+                liaison.pastilleEtat.isVisible = false
+            }
+        }
+    }
+
+    /** La COULEUR du point de la pastille (jeton sémantique du thème). */
+    private fun teinterPastille(attribut: Int) {
+        liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleur(this, attribut))
+        liaison.pastilleEtat.isVisible = true
+    }
+
+    /** La couleur du point via un JETON couleur (l'ambre n'a pas d'attribut). */
+    private fun teinterPastilleRessource(ressource: Int) {
+        liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleurRessource(this, ressource))
+        liaison.pastilleEtat.isVisible = true
     }
 
     /**
@@ -528,8 +598,11 @@ public class PreviewActivity : AppCompatActivity() {
         majBarreEdition()
     }
 
-    /** L'état des boutons dupliquer/supprimer (miroir `updateEditBar`). */
+    /** L'état des QUATRE boutons d'édition (PE10c — miroir `updateEditBar` : historique + sélection). */
     private fun majBarreEdition() {
+        val historique = viewModel.historiqueEdition.value
+        liaison.boutonAnnuler.isEnabled = historique.peutAnnuler
+        liaison.boutonRetablir.isEnabled = historique.peutRetablir
         val editable = viewModel.selectionEditable()
         liaison.boutonDupliquer.isEnabled = editable
         liaison.boutonSupprimer.isEnabled = editable
@@ -726,15 +799,6 @@ public class PreviewActivity : AppCompatActivity() {
         val echelleFormatee = String.format(Locale.FRANCE, "%.1f", echelle)
         liaison.boutonPoliceApercu.text = getString(R.string.preview_police_format, echelleFormatee)
         liaison.boutonPoliceApercu.isChecked = echelle != RequeteRendu.ECHELLE_POLICE_DEFAUT
-        liaison.boutonCompacterApercu.isChecked = viewModel.reglagesApercu.value.compacterApercu
-    }
-
-    /** La compaction recalculée à l'état POSÉ de la feuille (0 si repliée). */
-    private fun majCompactionSiPosee() {
-        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
-        if (comportement.state != BottomSheetBehavior.STATE_EXPANDED) {
-            majCompaction(0f)
-        }
     }
 
     /** Le bouton « 100 % » affiche l'échelle RÉELLE (PE6b — miroir `zPct`). */

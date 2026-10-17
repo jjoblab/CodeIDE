@@ -20,10 +20,27 @@
     <string name="preview_langue_defaut">Défaut</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
-    <string name="preview_compacter">Compacter</string>
-    <string name="preview_compacter_cd">Compacter l\'aperçu pendant le déploiement de la feuille</string>
     <string name="preview_calques">Calques ▾</string>
     <string name="preview_calques_cd">Afficher ou masquer les calques de l\'aperçu</string>
+
+    <!-- Pastille segmented de la toolbar (PE10d/e, miroir `.segMode`). -->
+    <string name="preview_mode_design">Design</string>
+    <string name="preview_mode_plan">Plan</string>
+    <string name="preview_mode_les_deux">Les deux</string>
+    <string name="preview_mode_cd">Mode d\'affichage du panneau (design, plan, les deux)</string>
+
+    <!-- La PASTILLE D'ÉTAT (PE10a, miroir `.status` de la maquette) :
+         une VUE de la couche HUD — point coloré + rendu · durée · vues ·
+         dimensions du profil. Elle quitte le Canvas du moteur. -->
+    <plurals name="preview_pastille_rendu">
+        <item quantity="one">Rendu · %2$d ms · %1$d vue · %3$s</item>
+        <item quantity="other">Rendu · %2$d ms · %1$d vues · %3$s</item>
+    </plurals>
+    <string name="preview_pastille_dimensions">%1$d×%2$d dp</string>
+    <string name="preview_pastille_edition">XML en cours de frappe · dernier rendu conservé</string>
+    <string name="preview_pastille_erreur">Dernier rendu valide conservé</string>
+    <string name="preview_pastille_point_rendu_cd">Rendu à jour</string>
+    <string name="preview_pastille_cd">État du dernier rendu (durée, nombre de vues, dimensions)</string>
 
     <!-- Popover Calques (PE6b, miroir showPop("layers") de la maquette). -->
     <string name="preview_calque_parent_freres">Parent et frères</string>

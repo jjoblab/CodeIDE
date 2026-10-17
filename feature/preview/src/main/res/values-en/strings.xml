@@ -17,10 +17,23 @@
     <string name="preview_langue_defaut">Default</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
-    <string name="preview_compacter">Compact</string>
-    <string name="preview_compacter_cd">Compact the preview while the sheet expands</string>
     <string name="preview_calques">Layers ▾</string>
     <string name="preview_calques_cd">Show or hide the preview layers</string>
+
+    <string name="preview_mode_design">Design</string>
+    <string name="preview_mode_plan">Wireframe</string>
+    <string name="preview_mode_les_deux">Both</string>
+    <string name="preview_mode_cd">Panel display mode (design, wireframe, both)</string>
+
+    <plurals name="preview_pastille_rendu">
+        <item quantity="one">Rendered · %2$d ms · %1$d view · %3$s</item>
+        <item quantity="other">Rendered · %2$d ms · %1$d views · %3$s</item>
+    </plurals>
+    <string name="preview_pastille_dimensions">%1$d×%2$d dp</string>
+    <string name="preview_pastille_edition">XML being typed · last render kept</string>
+    <string name="preview_pastille_erreur">Last valid render kept</string>
+    <string name="preview_pastille_point_rendu_cd">Render up to date</string>
+    <string name="preview_pastille_cd">Last render status (duration, view count, dimensions)</string>
 
     <string name="preview_calque_parent_freres">Parent and siblings</string>
     <string name="preview_calque_marges_padding">Margins and padding</string>

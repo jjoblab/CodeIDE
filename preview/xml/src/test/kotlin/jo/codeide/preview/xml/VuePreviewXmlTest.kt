@@ -60,42 +60,69 @@ class VuePreviewXmlTest {
         )
 
     @Test
-    fun `calques pe6a - selection poignees etiquette parent freres pastille - aucun lever`() {
+    fun `calques pe6a - selection poignees etiquette parent freres - aucun lever`() {
         val vue = vue()
         vue.measure(512, 512)
         vue.layout(0, 0, 512, 1024)
         val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(sortie)
-        // PE6a : rendu AVEC métriques (densité du profil, durée, vues) —
-        // le calque surligne la vue 1 (frères = 2, parent = 0), l'étiquette
-        // porte nom · dimensions, la pastille porte durée + vues.
+        // PE6a : rendu AVEC la densité du profil — le calque surligne la
+        // vue 1 (frères = 2, parent = 0), l'étiquette porte nom ·
+        // dimensions. PE10a : durée et vues partent à la pastille-VUE du
+        // chrome (le Canvas du moteur ne les dessine plus).
         vue.afficherRendu(
             Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
             vuesRendues = vues(),
             densiteDpiProfil = 440,
-            dureeRenduMs = 132,
-            nbVues = 3,
         )
         vue.surlignerVue(1)
         vue.draw(canvas)
         // Zoom et pan en plein calque : les tracés restent écran constants.
         vue.surlignerVue(0)
         vue.draw(canvas)
-        // Pastille seule (rendu sans vues sélectionnées).
         vue.surlignerVue(-1)
         vue.draw(canvas)
     }
 
     @Test
-    fun `calques pe6a - metriques par defaut - pastille absente, aucun lever`() {
+    fun `calques pe6a - metriques par defaut - aucun lever`() {
         val vue = vue()
         vue.measure(256, 256)
         vue.layout(0, 0, 256, 256)
         val sortie = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         // Ancien patron (bitmap seul — tests PE1 inchangés) : pas de
-        // pastille (0 vue, 0 ms), pas de calque (aucune sélection).
+        // calque (aucune sélection).
         vue.afficherRendu(Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888))
         vue.draw(Canvas(sortie))
+    }
+
+    // ── Mode d'affichage (PE10d/e — Design, Plan, Les deux) ──
+
+    @Test
+    fun `modes d'affichage - plan et les deux se dessinent sans lever`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sortie)
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        vue.surlignerVue(1)
+        // PLAN : le squelette remplace le bitmap (miroir `.screen.bp`).
+        vue.modeAffichage = ModeApercu.PLAN
+        vue.draw(canvas)
+        // LES_DEUX : deux planches côte à côte, le fit double la largeur.
+        vue.modeAffichage = ModeApercu.LES_DEUX
+        vue.draw(canvas)
+        // Le zoom reste borné au contenu COMPOSÉ.
+        vue.zoomer(1.25f)
+        vue.draw(canvas)
+        // Retour Design : l'échelle se recalcule sur UNE planche.
+        vue.modeAffichage = ModeApercu.DESIGN
+        vue.draw(canvas)
     }
 
     // ── Zoom exposé (PE6b — boutons + / 100 % / ajuster / − de la maquette) ──

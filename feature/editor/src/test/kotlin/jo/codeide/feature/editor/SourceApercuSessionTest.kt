@@ -48,6 +48,26 @@ class SourceApercuSessionTest {
     }
 
     @Test
+    fun `peut annuler peut retablir - l etat de la pile suit les editions (PE10c)`() {
+        val source = adaptateur("<TextView/>")
+        // Historique vide : les deux icônes sont DÉSACTIVÉES.
+        assertFalse(source.peutAnnuler())
+        assertFalse(source.peutRetablir())
+        assertTrue(source.remplacer(0, 10, "<Button/>"))
+        // Une édition : annuler s'allume, rétablir reste éteint.
+        assertTrue(source.peutAnnuler())
+        assertFalse(source.peutRetablir())
+        assertTrue(source.annuler())
+        // Annulation : rétablir s'allume, annuler reste allumé (l'étape
+        // d'origine reste consommable — miroir updateEditBar).
+        assertTrue(source.peutRetablir())
+        assertTrue(source.retablir())
+        // Rétablissement : la pile redo est épuisée de nouveau.
+        assertFalse(source.peutRetablir())
+        assertTrue(source.peutAnnuler())
+    }
+
+    @Test
     fun `selection - aller-retour`() {
         val source = adaptateur("<TextView/>")
         source.definirSelection(1, 9)
