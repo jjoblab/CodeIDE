@@ -345,13 +345,21 @@ Recette exécutée intégrale :
    déclenchée côté tooling : SUCCESS, 4 paquets Maven publics).
 
 Suivis (non bloquants, à arbitrer plus tard) :
-- `scripts/scenarios-tooling.sh` (documentation des scénarios §7.2)
-  invoque `:tooling:server` du dépôt principal — à repointer vers le
-  dépôt codeide-tooling lors de la prochaine régénération des scénarios ;
-- `scripts/lsp-index/` (jeux du banc ADR 0111) — recettes versionnées,
-  la cible `:lsp:index` vit désormais dans codeide-lsp ;
-- `docs/ARCHITECTURE.md` : les graphes de modules mentionnent encore
-  :lsp:* / :tooling:protocol — passage docs à faire ;
+
+**Réglés (passage docs/scripts post-bascule) :**
+- `scripts/scenarios-tooling.sh` : ROOT relatif au script (plus de chemin
+  codé en dur), JAVA_HOME/ANDROID_HOME à jour, en-tête annoté (le
+  SyncHandler vit dans codeide-tooling ; le script reste ici car il
+  alimente docs/tooling-scenarios/ de ce dépôt) ;
+- `scripts/lsp-index/construire-jeux.sh` : JAVA_HOME à jour, en-tête
+  annoté (la cible du banc `:lsp:index` vit dans codeide-lsp ; le jeu
+  « moyen » résout toujours le classpath de :app local) ;
+- `docs/ARCHITECTURE.md` : section « Séparation des dépôts (v0.134.41) »
+  en tête, modules déplacés marqués **[codeide-tooling]** /
+  **[codeide-lsp]** dans les tableaux, sémantique coordonnées/composite
+  documentée après les règles de dépendance.
+
+**Restant (arbitrage propriétaire) :**
 - publication binaire (Packages/JitPack) des consommateurs : passer de
   la consommation composite à `maven.pkg.github.com` quand arbitrée
   (PAT read:packages côté CI CodeIDE).

@@ -2,6 +2,12 @@
 # CodeIDE — recette VERSIONNÉE des jeux du banc lsp:index (ADR 0111 :
 # « banc avant/après sur les trois jeux », reconstitution reproductible).
 #
+# NB séparation (v0.134.41) : la CIBLE du banc — :lsp:index — vit
+# désormais dans le dépôt jjoblab/codeide-lsp (composite ../codeide-lsp
+# en dev) ; ce script reste ici car le jeu « moyen » résout le classpath
+# de :app de CE dépôt (gradlew local) et alimente le banc via les
+# manifestes de build/lsp-index/jeux/.
+#
 # Jeux (docs/LSP_JAVA.md §12 — compositions calquées sur l'étude) :
 #  - petit  : android.jar + 19 jars androidx du moyen (20 entrées) ;
 #  - moyen  : classpath debugCompileClasspath RÉEL de :app (≈73 entrées) ;
@@ -16,7 +22,7 @@
 set -euo pipefail
 
 # Environnement de build (JDK Temurin, SDK Android) — cf. scripts/env.sh.
-export JAVA_HOME="${JAVA_HOME:-/home/z/tools/jdk-21}"
+export JAVA_HOME="${JAVA_HOME:-/home/z/jdks/jdk-21.0.12.1+1}"
 export ANDROID_HOME="${ANDROID_HOME:-/home/z/android-sdk}"
 
 RACINE="$(cd "$(dirname "$0")/../.." && pwd)"
