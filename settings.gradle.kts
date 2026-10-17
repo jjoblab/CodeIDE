@@ -182,7 +182,7 @@ if (modeSources && dossierLayoutLib.resolve("settings.gradle.kts").isFile) {
 }
 
 // Tooling Gradle (dépôt jjoblab/codeide-tooling — bascule du 2026-10-17,
-// docs/PLAN_SEPARATION_DEPOTS.md §9) : protocol, api, server et testing
+// docs/archive/docs/archive/PLAN_SEPARATION_DEPOTS.md §9) : protocol, api, server et testing
 // consommés en COORDONNÉES EXTERNES com.github.jjoblab.codeide-tooling:*
 // (publication Packages v1.0.0, workflow publish.yml) — miroir exact du
 // mécanisme LayoutLib ci-dessus. MODE BINAIRE PAR DÉFAUT (arbitrage du

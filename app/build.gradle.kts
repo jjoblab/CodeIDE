@@ -105,7 +105,7 @@ dependencies {
 // ---------------------------------------------------------------------------
 // Tooling Gradle (G2, §4.7 du prompt Tooling) : le JAR orchestrateur est un
 // ARTEFACT DE BUILD — il vit dans le dépôt séparé jjoblab/codeide-tooling
-// depuis la bascule du 2026-10-17 (docs/PLAN_SEPARATION_DEPOTS.md §9).
+// depuis la bascule du 2026-10-17 (docs/archive/docs/archive/PLAN_SEPARATION_DEPOTS.md §9).
 // Deux sources selon le MODE résolu par settings.gradle.kts (arbitrage
 // du 2026-10-18 : BINAIRE PAR DÉFAUT) :
 //  - BINAIRE (défaut) : la coordonnée

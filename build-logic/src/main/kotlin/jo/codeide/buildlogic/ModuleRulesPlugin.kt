@@ -79,7 +79,7 @@ class ModuleRulesPlugin : Plugin<Project> {
          * Les modules purs tooling (protocol/api/server/testing) et lsp
          * (model/index/java/ecj-art/testing/host/kotlin/xml) ont rejoint
          * les dépôts séparés jjoblab/codeide-tooling et jjoblab/codeide-lsp
-         * (bascule du 2026-10-17, docs/PLAN_SEPARATION_DEPOTS.md §9) — leurs
+         * (bascule du 2026-10-17, docs/archive/docs/archive/PLAN_SEPARATION_DEPOTS.md §9) — leurs
          * règles vivent désormais dans le ModuleRulesPlugin de chaque dépôt
          * neuf ; côté CodeIDE, ils sont consommés en coordonnées externes
          * (composite en dev, binaire sinon) et n'apparaissent plus comme
