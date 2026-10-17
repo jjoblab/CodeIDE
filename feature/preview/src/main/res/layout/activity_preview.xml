@@ -107,10 +107,25 @@
                     android:contentDescription="@string/preview_calques_cd"
                     android:minWidth="0dp"
                     android:text="@string/preview_calques" />
+
+                <!-- L'option « compacter l'aperçu » (PE9d) : quand elle est
+                     active, le viewport SE RÉTRÉCIT au fil de la glissade
+                     de la feuille (réglage persisté SettingsDataStore). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_compacter_apercu"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:checkable="true"
+                    android:contentDescription="@string/preview_compacter_cd"
+                    android:minWidth="0dp"
+                    android:text="@string/preview_compacter" />
             </LinearLayout>
         </HorizontalScrollView>
 
         <FrameLayout
+            android:id="@+id/conteneur_rendu"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">

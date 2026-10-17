@@ -17,6 +17,8 @@
     <string name="preview_langue_defaut">Default</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
+    <string name="preview_compacter">Compact</string>
+    <string name="preview_compacter_cd">Compact the preview while the sheet expands</string>
     <string name="preview_calques">Layers ▾</string>
     <string name="preview_calques_cd">Show or hide the preview layers</string>
 

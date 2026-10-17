@@ -5,11 +5,13 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -175,6 +177,11 @@ public class PreviewActivity : AppCompatActivity() {
             majReglages()
         }
         liaison.boutonCalquesApercu.setOnClickListener { ouvrirPopoverCalques() }
+        // L'option « compacter l'aperçu » (PE9d) — persistance immédiate.
+        liaison.boutonCompacterApercu.setOnClickListener {
+            viewModel.poserCompacterApercu(!viewModel.reglagesApercu.value.compacterApercu)
+            majReglages()
+        }
         majReglages()
     }
 
@@ -230,6 +237,10 @@ public class PreviewActivity : AppCompatActivity() {
             // PE7c : les réglages persistés (bulle + mode) pilotent
             // la vue (miroir `load()` au démarrage + `placeBubble`).
             viewModel.reglagesApercu.collect { reglages ->
+                liaison.boutonCompacterApercu.isChecked = reglages.compacterApercu
+                // L'option vient de basculer : la compaction se recalcule
+                // à l'état COURANT de la feuille (déployée ou non).
+                majCompactionSiPosee()
                 liaison.bullePalette.aDroite = reglages.bulleADroite
                 liaison.bullePalette.yNormalise = reglages.bulleY
                 liaison.bullePalette.fixe = reglages.bulleFixe
@@ -272,7 +283,15 @@ public class PreviewActivity : AppCompatActivity() {
                 override fun onStateChanged(
                     vue: View,
                     etat: Int,
-                ) = Unit
+                ) {
+                    // PE9d : à l'état posé, le rendu s'AJUSTE au viewport
+                    // compacté (le design reste lisible au-dessus de la feuille).
+                    if (etat == BottomSheetBehavior.STATE_EXPANDED &&
+                        viewModel.reglagesApercu.value.compacterApercu
+                    ) {
+                        liaison.vuePreview.ajuster()
+                    }
+                }
 
                 override fun onSlide(
                     vue: View,
@@ -280,15 +299,38 @@ public class PreviewActivity : AppCompatActivity() {
                 ) {
                     val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
                     val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-                    liaison.hudZoom.translationY = -delta * decalage
-                    // La bulle ne glisse pas SOUS la feuille déployée
-                    // (miroir le `hi` de `placeBubble` qui suit `S.open`).
-                    liaison.bullePalette.reserveBas =
-                        (liaison.hudZoom.height + dp(RETRAIT_HUD_DP)) + (delta * decalage).toInt()
-                    liaison.bullePalette.reposer()
+                    majCompaction(delta * decalage)
                 }
             },
         )
+    }
+
+    /**
+     * La COMPACTION de l'aperçu pendant la glissade (PE9d) : option
+     * ACTIVE — le viewport se rétrécit (marge basse = la part déployée
+     * de la feuille ; le HUD et la bulle suivent le conteneur) ; option
+     * INACTIVE — le comportement PE6d (recouvrement, HUD qui glisse).
+     */
+    private fun majCompaction(deployeePx: Float) {
+        val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
+        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
+        val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
+        if (viewModel.reglagesApercu.value.compacterApercu) {
+            // Le viewport SE RÉTRÉCIT : la marge basse = la part déployée.
+            liaison.conteneurRendu.updateLayoutParams<LinearLayout.LayoutParams> {
+                bottomMargin = deployeePx.toInt()
+            }
+            liaison.hudZoom.translationY = 0f
+        } else {
+            // Comportement PE6d : recouvrement, le HUD de zoom glisse seul.
+            val decalage = if (delta > 0f) deployeePx / delta else 0f
+            liaison.hudZoom.translationY = -delta * decalage
+        }
+        // La bulle ne glisse pas SOUS la feuille déployée
+        // (miroir le `hi` de `placeBubble` qui suit `S.open`).
+        liaison.bullePalette.reserveBas =
+            (liaison.hudZoom.height + dp(RETRAIT_HUD_DP)) + deployeePx.toInt()
+        liaison.bullePalette.reposer()
     }
 
     /**
@@ -682,6 +724,15 @@ public class PreviewActivity : AppCompatActivity() {
         val echelleFormatee = String.format(Locale.FRANCE, "%.1f", echelle)
         liaison.boutonPoliceApercu.text = getString(R.string.preview_police_format, echelleFormatee)
         liaison.boutonPoliceApercu.isChecked = echelle != RequeteRendu.ECHELLE_POLICE_DEFAUT
+        liaison.boutonCompacterApercu.isChecked = viewModel.reglagesApercu.value.compacterApercu
+    }
+
+    /** La compaction recalculée à l'état POSÉ de la feuille (0 si repliée). */
+    private fun majCompactionSiPosee() {
+        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
+        if (comportement.state != BottomSheetBehavior.STATE_EXPANDED) {
+            majCompaction(0f)
+        }
     }
 
     /** Le bouton « 100 % » affiche l'échelle RÉELLE (PE6b — miroir `zPct`). */

@@ -122,6 +122,9 @@ public data class AppSettings(
      *  `true` = Placer par popup, `false` = Glisser-déposer (miroir
      *  `palMode`). */
     public val apercuPaletteParPopup: Boolean = false,
+    /** Aperçu XML (PE9d) : l'aperçu SE COMPACTE au fil de la glissade
+     *  de la feuille (le viewport se rétrécit au lieu d'être recouvert) */
+    public val apercuCompacterApercu: Boolean = false,
 ) {
     public companion object {
         /** Position verticale par défaut de la bulle (miroir `bub.y = .42`). */
