@@ -339,9 +339,10 @@ Recette exécutée intégrale :
    tooling/lsp retirées, coordonnées externes hors audit) ;
 6. chaîne RACINE locale verte (spotless, detekt, règles, tests,
    koverVerify, lintDebug) + sonde composite
-   (`:feature:editor:compileDebugKotlin`) → bump 0.134.41 → push → CI
-   surveillée. Pré-requis remplis : **tags v1.0.0 des deux dépôts neufs
-   poussés** (publication Packages déclenchée côté tooling).
+   (`:feature:editor:compileDebugKotlin`) → bump 0.134.41 → push →
+   **CI e315ecee SUCCESS (~25 min)**. Pré-requis remplis : **tags
+   v1.0.0 des deux dépôts neufs poussés** (publication Packages
+   déclenchée côté tooling : SUCCESS, 4 paquets Maven publics).
 
 Suivis (non bloquants, à arbitrer plus tard) :
 - `scripts/scenarios-tooling.sh` (documentation des scénarios §7.2)
