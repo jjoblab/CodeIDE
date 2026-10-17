@@ -130,25 +130,25 @@ gradle-tooling-api = "9.7.1"
 # Divers.
 javax-inject = "1"
 # Previews (PE1, PREVIEW.md P2 révisée 2026-10-13) : moteur de rendu XML
-# LayoutLib — dépôt personnel jjoblab/LayoutLib du propriétaire, GitHub-only
-# (AUCUNE publication JitPack, décision propriétaire). Intégration en SOURCE
-# par build composite : les coordonnées com.github.jjoblab.LayoutLib:* sont
-# SUBSTITUÉES par les projets du checkout frère (settings.gradle.kts). La
-# version = PIN INFORMATIF du ref git attendu (tag v3.0.0, ADR 0116 P0/P1/P2
-# livrés : drawables composites <layer-list>/<ripple>/<inset>/<bitmap>,
-# qualifiers de langue values-fr/values-en, solver Cassowary câblé à
-# ConstraintLayout) ; la substitution ignore la version déclarée — la mise
-# à jour = bump ici + ref du clonage CI.
+# LayoutLib — dépôt personnel jjoblab/LayoutLib du propriétaire. MODE
+# HYBRIDE (arbitrage 2026-10-17) : composite en dev (substitution des
+# coordonnées com.github.jjoblab.LayoutLib:* par le checkout frère,
+# settings.gradle.kts) ; en BINAIRE, GitHub Packages (publication 3.4.7,
+# workflow publish.yml du dépôt — jeton de lecture requis ; JitPack reste
+# écarté, décision maintenue). La version = PIN du ref git attendu (tag
+# v3.4.7, ADR 0116 P0/P1/P2 livrés) en composite, de la publication en
+# binaire — la substitution ignore la version déclarée ; la mise à jour =
+# bump ici + ref du clonage CI.
 layoutlib = "3.4.7"
 
 # Dépôts séparés (bascule 2026-10-17, PLAN_SEPARATION_DEPOTS.md §9) :
 # protocol/api/server/testing (codeide-tooling) et les 8 modules lsp
-# (codeide-lsp) consommés en coordonnées externes — intégrés en SOURCE
-# par build composite en dev (substitution, settings.gradle.kts),
-# binaires (GitHub Packages puis JitPack) ensuite. Version = PIN
-# INFORMATIF du ref git attendu (tag v1.0.0 des dépôts neufs) ; la
-# substitution ignore la version déclarée — la mise à jour = bump ici +
-# ref du clonage CI.
+# (codeide-lsp) consommés en coordonnées externes — composite en dev
+# (substitution, settings.gradle.kts), BINAIRE depuis GitHub Packages
+# (workflows publish.yml des deux dépôts ; JitPack reste l'alternative
+# documentée). Version = PIN du ref git attendu (tags v1.0.0) en
+# composite, de la publication en binaire ; la substitution ignore la
+# version déclarée — la mise à jour = bump ici + ref du clonage CI.
 codeide-tooling = "1.0.0"
 codeide-lsp = "1.0.0"
 

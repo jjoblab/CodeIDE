@@ -359,7 +359,29 @@ Suivis (non bloquants, à arbitrer plus tard) :
   **[codeide-lsp]** dans les tableaux, sémantique coordonnées/composite
   documentée après les règles de dépendance.
 
-**Restant (arbitrage propriétaire) :**
-- publication binaire (Packages/JitPack) des consommateurs : passer de
-  la consommation composite à `maven.pkg.github.com` quand arbitrée
-  (PAT read:packages côté CI CodeIDE).
+**Arbitrage levé (17/10, avec le propriétaire) — MODE HYBRIDE adopté :**
+- publication binaire COMPLÈTE : `publish.yml` ajouté à codeide-lsp
+  (8 modules — composant java + RELEASE pour host, dispatch sur main
+  car le tag v1.0.0 est antérieur au workflow) et à LayoutLib (6 modules
+  — composant release, `version.properties` 3.4.7). **18 paquets
+  publics** au total (tooling 4 + lsp 8 + LayoutLib 6), workflows SUCCESS ;
+- AGP 9 (leçon de mise en place) : le SoftwareComponent « release »
+  n'est créé qu'en `afterEvaluate` (et après
+  `android.publishing.singleVariant("release")`) — la publication des
+  modules Android est déclarée DANS `afterEvaluate` ;
+- CodeIDE en MODE HYBRIDE : composite par défaut quand les frères sont
+  clonés (substitution, aucune auth), sinon coordonnées résolues depuis
+  GitHub Packages avec le jeton `CODEIDE_PACKAGES_PAT` /
+  `github.packages.pat` (registres filtrés par groupe ; JitPack désormais
+  filtré STRICTEMENT sur code-editor — il matchait la convention
+  com.github.* des frères et timeoutait la résolution binaire) ;
+- le JAR orchestrateur des assets a une DOUBLE source (`:app`) :
+  shadowJar du frère en composite, coordonnée `server` publiée en
+  binaire (copie renommée `gradle-server.jar`) ;
+- VALIDÉ EN RÉEL : frères masqués + jeton → configuration, résolution du
+  JAR serveur (8,0 Mo, 5453 entrées) et compilation de
+  `:feature:editor` contre les AAR publiés (lsp:host + LayoutLib) —
+  verts ; frères restaurés → chaîne composite inchangée ;
+- CI CodeIDE inchangée : elle clonne les frères (composite, sans jeton) ;
+  le mode binaire sert les builds autonomes (contribuuteur, autre
+  machine) documentés dans README « Dépôts frères ».

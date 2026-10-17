@@ -106,15 +106,19 @@ dependencies {
 // Tooling Gradle (G2, §4.7 du prompt Tooling) : le JAR orchestrateur est un
 // ARTEFACT DE BUILD — il vit dans le dépôt séparé jjoblab/codeide-tooling
 // depuis la bascule du 2026-10-17 (docs/PLAN_SEPARATION_DEPOTS.md §9).
-// Liaison par TÂCHE INTER-BUILDS : le shadowJar du build composite frère
-// est construit puis recopié vers assets/tooling (répertoire gitignoré,
-// régénéré à chaque build) ; la tâche de contrôle fait échouer le
-// packaging s'il est absent ou vide. Pas de dépendance de module : l'app
-// ne consomme le tooling que via l'interface du domaine (règle §2.2).
+// Deux sources selon le MODE résolu par settings.gradle.kts :
+//  - COMPOSITE (frère présent) : tâche inter-builds — le shadowJar du
+//    build inclus est construit puis recopié vers assets/tooling
+//    (répertoire gitignoré, régénéré à chaque build) ;
+//  - BINAIRE (frère absent, jeton Packages fourni) : la coordonnée
+//    com.github.jjoblab.codeide-tooling:server résout le JAR orchestrateur
+//    PUBLIÉ (composant shadow = gradle-server.jar, artefact principal
+//    « -all » du registre) et la copie le renomme. Pas de dépendance de
+//    module : l'app ne consomme le tooling que via l'interface du domaine
+//    (règle §2.2).
 // ---------------------------------------------------------------------------
 // Même résolution que settings.gradle.kts (propriété tooling.dir → env
-// CODEIDE_TOOLING_DIR → défaut ../codeide-tooling) ; settings a déjà
-// validé l'existence du dossier.
+// CODEIDE_TOOLING_DIR → défaut ../codeide-tooling).
 val dossierTooling: File =
     providers.gradleProperty("tooling.dir")
         .orElse(providers.environmentVariable("CODEIDE_TOOLING_DIR"))
@@ -122,7 +126,7 @@ val dossierTooling: File =
         .orElse(rootDir.resolve("../codeide-tooling"))
         .get()
 
-val copierJarServeur =
+if (dossierTooling.resolve("settings.gradle.kts").isFile) {
     tasks.register<Copy>("copierJarServeurAssets") {
         group = "build"
         description =
@@ -131,11 +135,36 @@ val copierJarServeur =
         into(rootProject.file("app/src/main/assets/tooling"))
         dependsOn(gradle.includedBuild("codeide-tooling").task(":tooling:server:shadowJar"))
     }
+} else {
+    // Mode binaire : configuration de COPIE dédiée (non transitive — le
+    // JAR shadow est autosuffisant), résolue depuis GitHub Packages par le
+    // registre configuré dans settings.gradle.kts.
+    val configurationJarServeur = configurations.create("jarServeurAssets") {
+        description = "JAR orchestrateur du tooling (mode binaire — GitHub Packages)."
+        isTransitive = false
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
+    dependencies {
+        add("jarServeurAssets", libs.tooling.server)
+    }
+    tasks.register<Copy>("copierJarServeurAssets") {
+        group = "build"
+        description =
+            "Recopie le JAR orchestrateur (résolu du registre Packages) vers les assets (§4.7 du prompt Tooling)."
+        from(configurationJarServeur)
+        into(rootProject.file("app/src/main/assets/tooling"))
+        rename { "gradle-server.jar" }
+    }
+}
 
 tasks.register("controlerJarServeur") {
     group = "verification"
     description = "Contrôle §4.7 : le JAR orchestrateur (codeide-tooling) est présent et non vide dans les assets."
-    dependsOn(copierJarServeur)
+    // Référence PAR NOM : la tâche est enregistrée par les DEUX branches
+    // (composite et binaire) — la val locale de chaque branche est hors
+    // de portée ici.
+    dependsOn("copierJarServeurAssets")
     val cible = rootProject.file("app/src/main/assets/tooling/gradle-server.jar")
     doLast {
         if (!cible.isFile) {
