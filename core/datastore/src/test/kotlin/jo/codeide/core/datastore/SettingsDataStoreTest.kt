@@ -116,11 +116,13 @@ class SettingsDataStoreTest {
                     toolingHorsLigne = true,
                     toolingArguments = "--stacktrace --info",
                     isSetupCompleted = true,
+                    apercuCompacterApercu = true,
                 )
             }
 
             val relu = source.current().succes()
 
+            assertEquals(true, relu.apercuCompacterApercu)
             assertEquals(ThemeMode.DARK, relu.themeMode)
             assertEquals(false, relu.useDynamicColor)
             assertEquals(PaletteCouleur.VERT, relu.paletteCouleur)

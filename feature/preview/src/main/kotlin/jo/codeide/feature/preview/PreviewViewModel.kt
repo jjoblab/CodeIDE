@@ -290,12 +290,13 @@ public class PreviewViewModel
 
         // ── PE7c : réglages persistés (bulle, mode), récents, placement ──
 
-        /** Les réglages persistés de l'aperçu (bulle + mode de la palette). */
+        /** Les réglages persistés de l'aperçu (bulle, mode, compaction). */
         public data class ReglagesApercu(
             val bulleFixe: Boolean,
             val bulleADroite: Boolean,
             val bulleY: Float,
             val paletteParPopup: Boolean,
+            val compacterApercu: Boolean = false,
         )
 
         /** L'état courant des réglages (lu depuis le DataStore). */
@@ -338,6 +339,13 @@ public class PreviewViewModel
         public fun poserModePalette(parPopup: Boolean) {
             viewModelScope.launch {
                 reglagesDataStore.update { it.copy(apercuPaletteParPopup = parPopup) }
+            }
+        }
+
+        /** L'option « compacter l'aperçu » a basculé (persistance immédiate). */
+        public fun poserCompacterApercu(valeur: Boolean) {
+            viewModelScope.launch {
+                reglagesDataStore.update { it.copy(apercuCompacterApercu = valeur) }
             }
         }
 

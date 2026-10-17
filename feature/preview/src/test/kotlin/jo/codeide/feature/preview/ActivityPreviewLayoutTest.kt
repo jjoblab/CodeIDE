@@ -43,6 +43,9 @@ class ActivityPreviewLayoutTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_nuit_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_langue_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_calques_apercu))
+        // PE9d : la puce « Compacter l'aperçu » (option persistée).
+        assertNotNull(racine.findViewById<View>(R.id.bouton_compacter_apercu))
+        assertNotNull(racine.findViewById<View>(R.id.conteneur_rendu))
         // PE6d : le conteneur de la feuille inférieure (BottomSheet).
         assertNotNull(racine.findViewById<View>(R.id.conteneur_feuille))
     }
