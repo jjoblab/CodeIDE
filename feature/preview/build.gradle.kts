@@ -24,6 +24,10 @@ dependencies {
     // Tests unitaires du ViewModel (branches SourceApercu du registre).
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Le ViewModel construit une SettingsDataStore RÉELLE sur un fichier
+    // temporaire (miroir SettingsDataStoreTest) : l'artefact DataStore est
+    // `implementation` dans :core:datastore — invisible en test ici.
+    testImplementation(libs.androidx.datastore)
     testImplementation(project(":core:testing"))
 
     // Régression du layout (miroir :feature:editor) : gonfler le vrai
