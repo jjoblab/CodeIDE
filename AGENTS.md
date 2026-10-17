@@ -375,6 +375,35 @@ par module » (§0) lorsque la chaîne prépare un push.
   chantier suivant re-base si nécessaire (`git pull --rebase`) avant
   son propre push.
 
+### 7.1 Vérification incrémentale par type de changement (directive du 17/10/2026, v0.134.40)
+
+La chaîne RACINE de la §7 reste LA référence pour tout ce qui dépasse
+un module. Pour un chantier MONO-module, la reprendre en entier est un
+gaspillage : la CI exécute la chaîne complète à chaque push et sert de
+filet — la chaîne locale n'existe que pour éviter un aller-retour CI
+évident. Principe : **la vérification locale couvre ce que le
+changement peut casser, rien de plus.**
+
+Règle de choix — « mono-module » = aucun fichier HORS du module touché
+ne dépend de ce qui change (signature, port, API exportée). En cas de
+doute → §7 (chaîne racine).
+
+| Changement | Vérification locale minimale |
+| --- | --- |
+| Fix ou feature MONO-module, API du module inchangée | `:mod:spotlessCheck :mod:detekt :mod:lintDebug :mod:testDebugUnitTest` (koverVerify si couverture touchée) + `checkModuleDependencies` RACINE (graphe de dépendances) |
+| Signature ou port public d'un module consommé ailleurs (ex. :core:*) | §7 — chaîne RACINE complète (les consommateurs doivent compiler, tester, passer detekt — leçon v0.134.27) |
+| Ressources seules (xml/layout/drawable, pas de .kt) | `:mod:lintDebug` + tests UI du module si concernés |
+| `build.gradle.kts`, catalogue de versions, dépendances, plugins, CI | §7 — chaîne RACINE complète |
+| Release, multi-modules, refactor transversal | §7 — chaîne RACINE complète |
+| TOUT edit `.kt` (dans tous les cas) | parité EN DERNIER `./gradlew :lsp:kotlin:test -Dparite.majBase=true` + revue du diff (une ligne) — jamais avant le dernier edit |
+
+Précédent fondateur : v0.134.40 (hotfix NPE de l'aperçu, rapport
+9774dd61) — chaîne ciblée :feature:preview + `checkModuleDependencies`
+racine + parité EN DERNIER : push du premier coup, CI verte (~10 min).
+La leçon v0.134.27 (detekt racine a attrapé :core:datastore) reste
+valable et fonde la ligne « signature/port partagé » : c'est
+exactement le cas où une chaîne par-module N'EST PAS suffisante.
+
 ## État d'avancement
 
 - [x] Étape 0 — Environnement, squelette, outillage → v0.1.0
