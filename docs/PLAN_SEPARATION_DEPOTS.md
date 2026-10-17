@@ -301,6 +301,21 @@ restant inchangé côté code.
   `git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0` — le
   workflow fait le reste.
 
+### Bilan de la nuit (17/10, ~08:40 UTC) — TOUT VERT, RIEN EN VOL
+
+CI confirmées SUCCESS (API GitHub, PAT lecture) :
+
+| Dépôt | Commit | CI | Contenu |
+|---|---|---|---|
+| codeide-lsp | 1376c46d | SUCCESS | chaîne complète + assembleRelease |
+| codeide-tooling | 9cef4633 + 8b19f8c3 | SUCCESS ×2 | chaîne JVM + publication |
+| CodeIDE | 162c4845 | SUCCESS | docs seulement (§8/§9) |
+
+État final de la directive « tout sauf la bascule » : **EXÉCUTÉ EN
+TOTALITÉ**. Les trois dépôts sont autosuffisants (code + historique +
+CI + docs sur GitHub — survivent à tout reset d'environnement). Seule
+la bascule (§9) reste, volontairement, pour une session monitorée.
+
 ## 9. LA SEULE ÉTAPE RESTANTE : la bascule de CodeIDE (à faire AVEC le propriétaire)
 
 Tout le reste est livré et poussé ; CodeIDE n'a PAS été modifié
