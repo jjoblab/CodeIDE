@@ -8,7 +8,7 @@ sections 5 et 6.
 ## Séparation des dépôts (v0.134.41)
 
 Depuis la bascule v0.134.41, l'écosystème est réparti sur **trois dépôts**
-(recette et bilan dans `docs/PLAN_SEPARATION_DEPOTS.md`) :
+(recette et bilan dans `docs/archive/PLAN_SEPARATION_DEPOTS.md`) :
 
 - **codeide-tooling** (`jjoblab/codeide-tooling`) : `tooling:protocol`,
   `tooling:api`, `tooling:server`, `tooling:testing` — publiés en paquets

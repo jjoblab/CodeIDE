@@ -5,12 +5,12 @@
 # sorties brutes pour observer les événements réellement émis par Gradle
 # (et donc par le SyncHandler du tooling:server — désormais VÉHICULÉ PAR
 # LE DÉPÔT jjoblab/codeide-tooling depuis la séparation v0.134.41 ; ce
-# script reste ici car il alimente docs/tooling-scenarios/ de ce dépôt).
+# script reste ici car il alimente docs/archive/tooling-scenarios/ de ce dépôt).
 #
 # Usage : ./scripts/scenarios-tooling.sh [--offline]
 #
-# Sortie : docs/tooling-scenarios/sorties/<scenario>.log pour chaque
-# scénario, plus docs/tooling-scenarios/RAPPORT.md construit à la main
+# Sortie : docs/archive/tooling-scenarios/sorties/<scenario>.log pour chaque
+# scénario, plus docs/archive/tooling-scenarios/RAPPORT.md construit à la main
 # après analyse.
 
 set -eu

@@ -3,19 +3,19 @@
 **Un environnement de développement pour Android, sur Android.**
 
 CodeIDE est un IDE embarquant un éditeur, un terminal et un système de création de
-projets directement sur téléphone ou tablette. La **Phase 1** (en cours) pose les
-fondations : interface et navigation, configuration de l'application, gestion des
-projets, diagnostic (journalisation et plantages) et création de projet via un
-assistant avec des modèles **Kotlin** et **Java**.
+projets directement sur téléphone ou tablette.
 
-> État actuel : **étape 11 terminée** (fondations, journalisation et plantages,
-> couche données, onboarding, paramètres, accueil, moteur de templates avec
-> modèles Kotlin/Java **validés réellement** (builds/tests/exécutions des
-> projets générés), et wizard de création **complet** — cadre, machine à
-> états, rendu dynamique, cinq étapes (Modèle, Configuration, Informations,
-> Fichiers, Récapitulatif), écran de création avec progression/rollback et
-> mise en évidence du projet créé à l'accueil) — v0.12.0.
-> Voir `docs/ROADMAP.md` pour le détail des étapes et `CHANGELOG.md` pour l'historique.
+> État actuel : **v0.134.44** — IDE fonctionnel : tooling Gradle réel (sync,
+> console hybride, exécution), wizard de création enrichi, LSP Java/Kotlin/XML
+> avec indexation et previews (moteurs du dépôt frère [`codeide-lsp`](https://github.com/jjoblab/codeide-lsp)),
+> terminal (Termux, tiroir), refonte complète du parcours d'installation
+> (E1–E6, ADR 0082–0091), historique local, Git (clonage, statut),
+> paramètres Material 3. Les trois dépendances majeures (LayoutLib, tooling,
+> lsp) vivent dans des **dépôts frères** publiés sur GitHub Packages —
+> 18 paquets publics, consommés **en binaire par défaut** (voir
+> « Dépôts frères » ci-dessous). Prochaine mission : l'assistant IA
+> « apporte ta clé » (ADR 0121–0126, `docs/IA_PLAN_EXECUTION.md`).
+> Voir `docs/ROADMAP.md` pour le détail des phases et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide
 
@@ -82,7 +82,7 @@ Trois dépendances vivent dans des dépôts séparés : [`jjoblab/LayoutLib`](ht
 
 - **Binaire (défaut)** : les coordonnées `com.github.jjoblab.*` résolvent
   de `~/.m2` (d'abord) puis de **GitHub Packages** (LayoutLib 3.4.7,
-  tooling et lsp 1.0.0). GitHub Packages exige une authentification même
+  tooling 1.0.0, lsp 1.0.2). GitHub Packages exige une authentification même
   pour un paquet public : fournir un PAT `read:packages` via
   `CODEIDE_PACKAGES_PAT` ou la propriété Gradle `github.packages.pat`.
   Sans jeton, des artefacts déjà publiés en local suffisent ; sans jeton

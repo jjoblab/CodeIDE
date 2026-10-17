@@ -1,5 +1,27 @@
 # Journal des modifications
 
+## [Non publié]
+
+### Documentation (pas de changement de code — version inchangée)
+
+- **Archivage** : plans et rapports achevés déplacés dans `docs/archive/`
+  (index et justification dans `docs/archive/README.md`) —
+  `PLAN_SEPARATION_DEPOTS.md` (séparation terminée : 18 paquets, binaire par
+  défaut), `PLAN_STABILISATION_LSP.md` (stabilisation achevée, moteurs dans
+  `codeide-lsp`), `PLAN_PROCHAINES_ETAPES.md` (supplanté par `ROADMAP.md`),
+  `docs/audit/` (5 rapports de phase) et `docs/tooling-scenarios/` (le
+  générateur `scripts/scenarios-tooling.sh` écrit désormais dans l'archive).
+  Les références vivantes (AGENTS, ARCHITECTURE, sources, scripts) sont
+  repointées ; les mentions historiques (CHANGELOG, ADR, maquettes) restent
+  inchangées.
+- **Mission IA intégrée** : ADR 0121–0126 (statut « proposé »),
+  `docs/IA_PLAN_EXECUTION.md`, `docs/IA_REVUE_DEPOT.md`,
+  `docs/IA_SPEC_ECRANS.md`, maquette `docs/mockups/ia/ia-ecrans.html`.
+- **Mise à jour honnête** : `README.md` (état réel v0.134.44 au lieu de
+  « étape 11, v0.12.0 » ; versions des frères à jour : tooling 1.0.0,
+  lsp 1.0.2), `docs/ROADMAP.md` (état actuel réel, statuts Phase 6
+  différenciés, phase IA ajoutée, priorisation actualisée).
+
 ## [0.134.44] – 2026-10-18
 
 ### Modifié

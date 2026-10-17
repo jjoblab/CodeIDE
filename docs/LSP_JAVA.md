@@ -1810,8 +1810,8 @@ générées présentes ; paquet homonyme non déclassé.
 > Reprise du journal (audit §6.3 I15 : « un serveur stabilisé dont le
 > journal s'arrête deux mois plus tôt n'est pas auditable »). Une entrée
 > brève par lot LSP Java à partir du plan de stabilisation
-> (`docs/PLAN_STABILISATION_LSP.md` §3.1, audit
-> `docs/audit/rapport-analyse-lsp-java-codeide.md`).
+> (`docs/archive/PLAN_STABILISATION_LSP.md` §3.1, audit
+> `docs/archive/audit/rapport-analyse-lsp-java-codeide.md`).
 
 ### 18.1 v0.134.11 — lot S0-a « hygiène protocolaire » + S0-b « rename honnête »
 

@@ -148,5 +148,5 @@ consigné ; CI re-vérifiée si une correction découle de la séance.
 - ADR 0110 (décision D3 — partiellement actée 16/10/2026)
 - ADR 0109 (transport — plan B socket), ADR 0111 (index par segments),
   ADR 0117 (écran d'indexation)
-- `docs/audit/rapport-analyse-lsp-java-codeide.md` §11.2 (S0-c), §16.3
+- `docs/archive/audit/rapport-analyse-lsp-java-codeide.md` §11.2 (S0-c), §16.3
   (report sans échéance — celui que cette préparation lève)
