@@ -411,7 +411,9 @@ public class PreviewActivity : AppCompatActivity() {
     ) {
         val contenu = ZonesDepot.ContenuDepot(entree.extraitXml, entree.nomAffiche, entree.id)
         masquerPalette()
-        vueTuile.startDragAndDrop(null, View.DragShadowBuilder(vueTuile), contenu, 0)
+        // PE9e : le GHOST stylé (pill violette icône + nom — miroir `.ghost`)
+        // remplace l'ombre par défaut de la tuile.
+        vueTuile.startDragAndDrop(null, GhostPaletteDragShadowBuilder(this, entree), contenu, 0)
     }
 
     /**

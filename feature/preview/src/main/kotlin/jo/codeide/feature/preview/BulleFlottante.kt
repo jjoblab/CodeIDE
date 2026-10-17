@@ -1,13 +1,15 @@
 package jo.codeide.feature.preview
 
 import android.content.Context
-import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import jo.codeide.core.model.AppSettings
+import jo.codeide.feature.preview.databinding.BullePaletteBinding
 import kotlin.math.abs
 
 /**
@@ -28,22 +30,22 @@ import kotlin.math.abs
  *
  * La logique de placement est une fonction PURE ([placementPour]) —
  * testée sans [MotionEvent] (patron machine d'états PE7b).
+ *
+ * PE9e : la bulle est un layout GONFLÉ (`bulle_palette.xml` — l'icône
+ * vectorielle centrée vient du XML ; le fond violet `fond_bulle` et
+ * l'élévation restent portés par la vue/tag du layout de l'activité).
  */
-public class BulleFlottante : View {
+public class BulleFlottante : FrameLayout {
     public constructor(context: Context) : this(context, null)
 
     public constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
+        BullePaletteBinding.inflate(LayoutInflater.from(context), this)
         background = ContextCompat.getDrawable(context, R.drawable.fond_bulle)
         elevation = ELEVATION_DP * resources.displayMetrics.density
-        // L'icône est un dessin VECTORIEL centré (miroir `.bubble svg`).
-        icone = ContextCompat.getDrawable(context, R.drawable.ic_bulle_palette)?.mutate()
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         isClickable = true
         isFocusable = true
     }
-
-    /** L'icône violette (grille + plus — miroir du SVG de la maquette). */
-    private val icone: android.graphics.drawable.Drawable?
 
     /**
      * Le tap ouvre la palette (miroir `showPalette` — un glisser n'est
@@ -202,24 +204,11 @@ public class BulleFlottante : View {
         if (largeur > 0) reposer()
     }
 
-    override fun onDraw(canevas: Canvas) {
-        super.onDraw(canevas)
-        // L'icône (24 dp) centrée dans le carré (miroir place-items:center).
-        val dessin = icone ?: return
-        val taille = dp(TAILLE_ICONE_DP)
-        val gauche = (width - taille) / 2f
-        val haut = (height - taille) / 2f
-        dessin.setBounds(gauche.toInt(), haut.toInt(), (gauche + taille).toInt(), (haut + taille).toInt())
-        dessin.draw(canevas)
-    }
-
     /** L'accessibilité pose le clic (patron ClickableViewAccessibility). */
     override fun performClick(): Boolean {
         auTap?.invoke()
         return super.performClick()
     }
-
-    private fun dp(valeur: Float): Int = (valeur * resources.displayMetrics.density).toInt()
 
     private companion object {
         /** Seuil du glisser (px — miroir `> 6` de la maquette). */
@@ -227,9 +216,6 @@ public class BulleFlottante : View {
 
         /** Élévation de la bulle (dp — miroir `box-shadow` de `.bubble`). */
         private const val ELEVATION_DP: Float = 8f
-
-        /** Taille de l'icône (dp — miroir le `svg 24` de la maquette). */
-        private const val TAILLE_ICONE_DP: Float = 24f
     }
 }
 
