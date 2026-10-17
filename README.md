@@ -72,6 +72,24 @@ Jetpack Compose (ADR 0002). Langues : français (défaut) + anglais.
 Chaque étape validée produit dans `dist/` une archive complète, l'APK debug et les
 empreintes SHA-256 (`scripts/package.sh`), vérifiées par `scripts/verify-archive.sh`.
 
+## Dépôts frères : mode composite ou binaire
+
+Trois dépendances vivent dans des dépôts séparés : [`jjoblab/LayoutLib`](https://github.com/jjoblab/LayoutLib)
+(moteur de rendu des previews XML), [`jjoblab/codeide-tooling`](https://github.com/jjoblab/codeide-tooling)
+(protocol/api/server/testing du tooling Gradle) et [`jjoblab/codeide-lsp`](https://github.com/jjoblab/codeide-lsp)
+(moteurs Java/Kotlin/XML + hôte LSP). Le build choisit automatiquement :
+
+- **Mode composite (défaut)** : si les checkouts frères sont présents à côté du
+  clone (`../LayoutLib`, `../codeide-tooling`, `../codeide-lsp`), ils sont
+  intégrés en SOURCE par build composite (substitution des coordonnées) —
+  itération instantanée sur les trois dépôts, aucun jeton requis.
+- **Mode binaire (fallback)** : sans frères, les coordonnées
+  `com.github.jjoblab.*` résolvent depuis **GitHub Packages** (LayoutLib 3.4.7,
+  tooling et lsp 1.0.0). GitHub Packages exige une authentification même pour
+  un paquet public : fournir un PAT `read:packages` via la variable
+  `CODEIDE_PACKAGES_PAT` ou la propriété Gradle `github.packages.pat`.
+  Sans frères ET sans jeton, la configuration échoue avec un message explicite.
+
 ## Licence
 
 Projet personnel — tous droits réservés pour l'instant. Le choix de licence sera

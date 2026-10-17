@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.134.42] – 2026-10-17
+
+### Ajouté
+
+- **MODE HYBRIDE pour les dépôts frères (arbitrage propriétaire —
+  PLAN_SEPARATION_DEPOTS.md §9)** : le build de CodeIDE choisit
+  automatiquement sa source pour LayoutLib, codeide-tooling et
+  codeide-lsp —
+  - composite (source) par défaut quand les checkouts frères sont
+    présents (comportement antérieur, inchangé — aucun jeton requis) ;
+  - **binaire en fallback** : sans frères, les coordonnées
+    `com.github.jjoblab.*` résolvent depuis GitHub Packages via le jeton
+    `CODEIDE_PACKAGES_PAT` / `github.packages.pat` (registres filtrés
+    par groupe ; sans frères ET sans jeton, erreur explicite) ;
+  - le JAR orchestrateur des assets (`:app`) a une double source :
+    shadowJar du frère en composite, coordonnée `server` PUBLIÉE en
+    binaire (copie renommée `gradle-server.jar` — configuration
+    `jarServeurAssets` non transitive) ;
+  - validation en réel : frères masqués + jeton → configuration,
+    résolution du JAR serveur et compilation de `:feature:editor`
+    contre les AAR publiés — verts ; frères restaurés → composite
+    inchangé.
+
+### Modifié
+
+- **Publications GitHub Packages complétées** : `publish.yml` ajouté à
+  codeide-lsp (8 modules, composant java + RELEASE pour host) et
+  LayoutLib (6 modules AAR, `version.properties` 3.4.7) — **18 paquets
+  publics** au total. Leçon AGP 9 consignée dans les build files : le
+  SoftwareComponent « release » n'existe qu'en `afterEvaluate` (après
+  `android.publishing.singleVariant("release")`).
+- **JitPack filtré strictement** sur `com.github.jjoblab.code-editor` :
+  sa convention `com.github.<user>.<repo>` matchait aussi les
+  coordonnées des frères — la résolution binaire partait en timeout sur
+  jitpack.io (build à la volée) avant d'atteindre le registre Packages.
+- README : section « Dépôts frères : mode composite ou binaire ».
+
 ## [0.134.41] – 2026-10-17
 
 ### Modifié

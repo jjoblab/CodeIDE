@@ -11,6 +11,17 @@ pluginManagement {
     }
 }
 
+// Dépôts frères en BINAIRE (fallback du mode composite) : GitHub Packages
+// exige une authentification MÊME pour un paquet public (vérifié le
+// 2026-10-17 : 401 sans jeton). Les filtres de contenu sont stricts —
+// aucun lookup pour les autres groupes — et le bloc est ABSENT tant qu'
+// aucun jeton n'est fourni : le mode composite (frères clonés, la
+// convention CI et sandbox) n'en a jamais besoin.
+val jetonPackages: String? =
+    providers.gradleProperty("github.packages.pat")
+        .orElse(providers.environmentVariable("CODEIDE_PACKAGES_PAT"))
+        .orNull
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -18,8 +29,17 @@ dependencyResolutionManagement {
         mavenCentral()
         // Bibliothèque d'édition code-editor (prompt compagnon, section 2.2) :
         // JitPack pour un build autonome sans jeton — GitHub Packages resterait
-        // l'alternative documentée pour un usage local.
-        maven { url = uri("https://jitpack.io") }
+        // l'alternative documentée pour un usage local. FILTRE STRICT
+        // (2026-10-17) : JitPack suit la convention com.github.<user>.<repo>
+        // et matche donc AUSSI les coordonnées des dépôts frères
+        // (codeide-tooling/lsp, LayoutLib) — sans filtre, la résolution
+        // binaire partait en timeout sur jitpack.io (JitPack tente de
+        // builder le dépôt à la volée) avant d'atteindre le registre
+        // Packages. Seul code-editor vient d'ici.
+        maven {
+            url = uri("https://jitpack.io")
+            content { includeGroup("com.github.jjoblab.code-editor") }
+        }
         // Tooling Gradle (G2) : org.gradle:gradle-tooling-api ne vit que sur le
         // dépôt officiel de Gradle — les métadonnées Maven Central de cette
         // coordonnée sont périmées (7.3-snapshot de 2021). Vérifié le
@@ -44,6 +64,32 @@ dependencyResolutionManagement {
                 includeModuleByRegex("org\\.jetbrains", "lang-syntax.*")
             }
         }
+        if (jetonPackages != null) {
+            maven {
+                url = uri("https://maven.pkg.github.com/jjoblab/LayoutLib")
+                content { includeGroup("com.github.jjoblab.LayoutLib") }
+                credentials {
+                    username = "jjoblab"
+                    password = jetonPackages
+                }
+            }
+            maven {
+                url = uri("https://maven.pkg.github.com/jjoblab/codeide-tooling")
+                content { includeGroup("com.github.jjoblab.codeide-tooling") }
+                credentials {
+                    username = "jjoblab"
+                    password = jetonPackages
+                }
+            }
+            maven {
+                url = uri("https://maven.pkg.github.com/jjoblab/codeide-lsp")
+                content { includeGroup("com.github.jjoblab.codeide-lsp") }
+                credentials {
+                    username = "jjoblab"
+                    password = jetonPackages
+                }
+            }
+        }
     }
 }
 
@@ -51,40 +97,48 @@ dependencyResolutionManagement {
 includeBuild("build-logic")
 
 // LayoutLib (github.com/jjoblab/LayoutLib — projet personnel du
-// propriétaire) : moteur de rendu des previews XML, consommé en SOURCE
-// par build composite — décision propriétaire 2026-10-13 : le dépôt reste
-// GitHub-only, AUCUNE publication JitPack (docs/PREVIEW.md §P2 révisée).
-// Le dossier est résolu dans cet ordre : propriété Gradle `layoutLib.dir`,
-// variable d'environnement CODEIDE_LAYOUTLIB_DIR, puis défaut
-// `../LayoutLib` (checkout frère — convention de la CI et de la sandbox).
-// La SUBSTITUTION remplace les coordonnées com.github.jjoblab.LayoutLib:*
-// par les projets du build inclus : chaque dépôt garde son catalogue et
-// ses conventions, :preview:xml garde une dépendance « externe » (aucune
-// règle de pureté inter-modules impliquée) ; l'épinglage de VERSION se
-// fait par le ref git check out (tag v3.4.7 = version du catalogue — la
-// substitution ignore la version déclarée).
+// propriétaire) : moteur de rendu des previews XML. MODE HYBRIDE
+// (arbitrage propriétaire 2026-10-17) : COMPOSITE (source) par défaut
+// quand le checkout frère est présent — décision GitHub-only maintenue
+// pour le dev (AUCUNE publication JitPack) ; sinon COORDONNÉES BINAIRES
+// com.github.jjoblab.LayoutLib:* résolues depuis GitHub Packages
+// (publication v3.4.7 — workflow publish.yml du dépôt), qui exigent le
+// jeton de lecture (voir jetonPackages plus haut). Le dossier est
+// résolu dans cet ordre : propriété Gradle `layoutLib.dir`, variable
+// d'environnement CODEIDE_LAYOUTLIB_DIR, puis défaut `../LayoutLib`
+// (convention de la CI et de la sandbox). En composite, la
+// SUBSTITUTION remplace les coordonnées par les projets du build inclus
+// et ignore la version déclarée : l'épinglage = ref git (tag v3.4.7 =
+// version du catalogue) ; en binaire, l'épinglage = version du
+// catalogue.
 val dossierLayoutLib: File =
     providers.gradleProperty("layoutLib.dir")
         .orElse(providers.environmentVariable("CODEIDE_LAYOUTLIB_DIR"))
         .map(rootDir::resolve)
         .orElse(rootDir.resolve("../LayoutLib"))
         .get()
-if (!dossierLayoutLib.resolve("settings.gradle.kts").isFile) {
+if (dossierLayoutLib.resolve("settings.gradle.kts").isFile) {
+    includeBuild(dossierLayoutLib) {
+        dependencySubstitution {
+            substitute(module("com.github.jjoblab.LayoutLib:module-inflater")).using(project(":module-inflater"))
+            substitute(module("com.github.jjoblab.LayoutLib:module-resources")).using(project(":module-resources"))
+            substitute(module("com.github.jjoblab.LayoutLib:module-drawables")).using(project(":module-drawables"))
+            substitute(module("com.github.jjoblab.LayoutLib:module-themes")).using(project(":module-themes"))
+            substitute(module("com.github.jjoblab.LayoutLib:module-attributes")).using(project(":module-attributes"))
+            substitute(module("com.github.jjoblab.LayoutLib:module-layout")).using(project(":module-layout"))
+        }
+    }
+} else if (jetonPackages == null) {
     throw GradleException(
         "LayoutLib introuvable : $dossierLayoutLib\n" +
-            "Cloner le dépôt frère (git clone https://github.com/jjoblab/LayoutLib.git ../LayoutLib) " +
-            "ou pointer la propriété Gradle layoutLib.dir — docs/PREVIEW.md §P2.",
+            "Deux options : cloner le dépôt frère (git clone " +
+            "https://github.com/jjoblab/LayoutLib.git ../LayoutLib) ou pointer " +
+            "la propriété Gradle layoutLib.dir — mode composite ; OU fournir " +
+            "un jeton GitHub read:packages (propriété github.packages.pat ou " +
+            "variable CODEIDE_PACKAGES_PAT) pour résoudre les coordonnées " +
+            "com.github.jjoblab.LayoutLib:* depuis GitHub Packages — " +
+            "docs/PREVIEW.md §P2.",
     )
-}
-includeBuild(dossierLayoutLib) {
-    dependencySubstitution {
-        substitute(module("com.github.jjoblab.LayoutLib:module-inflater")).using(project(":module-inflater"))
-        substitute(module("com.github.jjoblab.LayoutLib:module-resources")).using(project(":module-resources"))
-        substitute(module("com.github.jjoblab.LayoutLib:module-drawables")).using(project(":module-drawables"))
-        substitute(module("com.github.jjoblab.LayoutLib:module-themes")).using(project(":module-themes"))
-        substitute(module("com.github.jjoblab.LayoutLib:module-attributes")).using(project(":module-attributes"))
-        substitute(module("com.github.jjoblab.LayoutLib:module-layout")).using(project(":module-layout"))
-    }
 }
 
 // Tooling Gradle (dépôt jjoblab/codeide-tooling — bascule du 2026-10-17,
@@ -93,28 +147,36 @@ includeBuild(dossierLayoutLib) {
 // intégrés en SOURCE par build composite en dev — miroir exact du mécanisme
 // LayoutLib ci-dessus (propriété Gradle `tooling.dir`, variable
 // d'environnement CODEIDE_TOOLING_DIR, puis défaut `../codeide-tooling`).
-// La substitution ignore la version déclarée : l'épinglage = ref git du
-// checkout (CI : tag v1.0.0).
+// MODE HYBRIDE : composite quand le frère est présent ; sinon binaire
+// (publication Packages v1.0.0, workflow publish.yml — jeton de lecture
+// requis). L'épinglage : ref git en composite, version du catalogue en
+// binaire.
 val dossierTooling: File =
     providers.gradleProperty("tooling.dir")
         .orElse(providers.environmentVariable("CODEIDE_TOOLING_DIR"))
         .map(rootDir::resolve)
         .orElse(rootDir.resolve("../codeide-tooling"))
         .get()
-if (!dossierTooling.resolve("settings.gradle.kts").isFile) {
+if (dossierTooling.resolve("settings.gradle.kts").isFile) {
+    includeBuild(dossierTooling) {
+        dependencySubstitution {
+            substitute(module("com.github.jjoblab.codeide-tooling:protocol")).using(project(":tooling:protocol"))
+            substitute(module("com.github.jjoblab.codeide-tooling:api")).using(project(":tooling:api"))
+            substitute(module("com.github.jjoblab.codeide-tooling:server")).using(project(":tooling:server"))
+            substitute(module("com.github.jjoblab.codeide-tooling:testing")).using(project(":tooling:testing"))
+        }
+    }
+} else if (jetonPackages == null) {
     throw GradleException(
         "codeide-tooling introuvable : $dossierTooling\n" +
-            "Cloner le dépôt frère (git clone https://github.com/jjoblab/codeide-tooling.git ../codeide-tooling) " +
-            "ou pointer la propriété Gradle tooling.dir.",
+            "Deux options : cloner le dépôt frère (git clone " +
+            "https://github.com/jjoblab/codeide-tooling.git ../codeide-tooling) " +
+            "ou pointer la propriété Gradle tooling.dir — mode composite ; OU " +
+            "fournir un jeton GitHub read:packages (propriété " +
+            "github.packages.pat ou variable CODEIDE_PACKAGES_PAT) pour " +
+            "résoudre les coordonnées com.github.jjoblab.codeide-tooling:* " +
+            "depuis GitHub Packages.",
     )
-}
-includeBuild(dossierTooling) {
-    dependencySubstitution {
-        substitute(module("com.github.jjoblab.codeide-tooling:protocol")).using(project(":tooling:protocol"))
-        substitute(module("com.github.jjoblab.codeide-tooling:api")).using(project(":tooling:api"))
-        substitute(module("com.github.jjoblab.codeide-tooling:server")).using(project(":tooling:server"))
-        substitute(module("com.github.jjoblab.codeide-tooling:testing")).using(project(":tooling:testing"))
-    }
 }
 
 // Dépôt jjoblab/codeide-lsp (bascule du 2026-10-17, même recette) : les
@@ -123,30 +185,37 @@ includeBuild(dossierTooling) {
 // com.github.jjoblab.codeide-lsp:*, intégrés en SOURCE par build
 // composite en dev (propriété Gradle `lsp.dir`, variable
 // d'environnement CODEIDE_LSP_DIR, puis défaut `../codeide-lsp`).
+// MODE HYBRIDE : composite quand le frère est présent ; sinon binaire
+// (publication Packages 1.0.0 — jeton de lecture requis).
 val dossierLsp: File =
     providers.gradleProperty("lsp.dir")
         .orElse(providers.environmentVariable("CODEIDE_LSP_DIR"))
         .map(rootDir::resolve)
         .orElse(rootDir.resolve("../codeide-lsp"))
         .get()
-if (!dossierLsp.resolve("settings.gradle.kts").isFile) {
+if (dossierLsp.resolve("settings.gradle.kts").isFile) {
+    includeBuild(dossierLsp) {
+        dependencySubstitution {
+            substitute(module("com.github.jjoblab.codeide-lsp:model")).using(project(":lsp:model"))
+            substitute(module("com.github.jjoblab.codeide-lsp:index")).using(project(":lsp:index"))
+            substitute(module("com.github.jjoblab.codeide-lsp:java")).using(project(":lsp:java"))
+            substitute(module("com.github.jjoblab.codeide-lsp:ecj-art")).using(project(":lsp:ecj-art"))
+            substitute(module("com.github.jjoblab.codeide-lsp:testing")).using(project(":lsp:testing"))
+            substitute(module("com.github.jjoblab.codeide-lsp:host")).using(project(":lsp:host"))
+            substitute(module("com.github.jjoblab.codeide-lsp:kotlin")).using(project(":lsp:kotlin"))
+            substitute(module("com.github.jjoblab.codeide-lsp:xml")).using(project(":lsp:xml"))
+        }
+    }
+} else if (jetonPackages == null) {
     throw GradleException(
         "codeide-lsp introuvable : $dossierLsp\n" +
-            "Cloner le dépôt frère (git clone https://github.com/jjoblab/codeide-lsp.git ../codeide-lsp) " +
-            "ou pointer la propriété Gradle lsp.dir.",
+            "Deux options : cloner le dépôt frère (git clone " +
+            "https://github.com/jjoblab/codeide-lsp.git ../codeide-lsp) ou " +
+            "pointer la propriété Gradle lsp.dir — mode composite ; OU fournir " +
+            "un jeton GitHub read:packages (propriété github.packages.pat ou " +
+            "variable CODEIDE_PACKAGES_PAT) pour résoudre les coordonnées " +
+            "com.github.jjoblab.codeide-lsp:* depuis GitHub Packages.",
     )
-}
-includeBuild(dossierLsp) {
-    dependencySubstitution {
-        substitute(module("com.github.jjoblab.codeide-lsp:model")).using(project(":lsp:model"))
-        substitute(module("com.github.jjoblab.codeide-lsp:index")).using(project(":lsp:index"))
-        substitute(module("com.github.jjoblab.codeide-lsp:java")).using(project(":lsp:java"))
-        substitute(module("com.github.jjoblab.codeide-lsp:ecj-art")).using(project(":lsp:ecj-art"))
-        substitute(module("com.github.jjoblab.codeide-lsp:testing")).using(project(":lsp:testing"))
-        substitute(module("com.github.jjoblab.codeide-lsp:host")).using(project(":lsp:host"))
-        substitute(module("com.github.jjoblab.codeide-lsp:kotlin")).using(project(":lsp:kotlin"))
-        substitute(module("com.github.jjoblab.codeide-lsp:xml")).using(project(":lsp:xml"))
-    }
 }
 
 rootProject.name = "CodeIDE"
