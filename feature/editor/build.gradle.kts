@@ -20,7 +20,10 @@ dependencies {
     // :lsp:host (sa dépendance cel-lsp est `api` — traversée documentée
     // §16.1 : « la DefinitionServeurLspJava traverse la surface
     // publique, branchement LspProject côté feature à l'étape 4 h2 »).
-    implementation(project(":lsp:host"))
+    // L'hôte vit dans le dépôt séparé jjoblab/codeide-lsp depuis la
+    // bascule du 2026-10-17 (plan §9) : composite en dev (substitution),
+    // binaire sinon.
+    implementation(libs.lsp.host)
 
     // Contrat de session de projet (mission « Cycle de vie » étape C,
     // ADR 0114) : la feature branche ses ressources (session LSP, flush

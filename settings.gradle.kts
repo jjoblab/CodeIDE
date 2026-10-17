@@ -87,6 +87,68 @@ includeBuild(dossierLayoutLib) {
     }
 }
 
+// Tooling Gradle (dépôt jjoblab/codeide-tooling — bascule du 2026-10-17,
+// docs/PLAN_SEPARATION_DEPOTS.md §9) : protocol, api, server et testing
+// consommés en COORDONNÉES EXTERNES com.github.jjoblab.codeide-tooling:*,
+// intégrés en SOURCE par build composite en dev — miroir exact du mécanisme
+// LayoutLib ci-dessus (propriété Gradle `tooling.dir`, variable
+// d'environnement CODEIDE_TOOLING_DIR, puis défaut `../codeide-tooling`).
+// La substitution ignore la version déclarée : l'épinglage = ref git du
+// checkout (CI : tag v1.0.0).
+val dossierTooling: File =
+    providers.gradleProperty("tooling.dir")
+        .orElse(providers.environmentVariable("CODEIDE_TOOLING_DIR"))
+        .map(rootDir::resolve)
+        .orElse(rootDir.resolve("../codeide-tooling"))
+        .get()
+if (!dossierTooling.resolve("settings.gradle.kts").isFile) {
+    throw GradleException(
+        "codeide-tooling introuvable : $dossierTooling\n" +
+            "Cloner le dépôt frère (git clone https://github.com/jjoblab/codeide-tooling.git ../codeide-tooling) " +
+            "ou pointer la propriété Gradle tooling.dir.",
+    )
+}
+includeBuild(dossierTooling) {
+    dependencySubstitution {
+        substitute(module("com.github.jjoblab.codeide-tooling:protocol")).using(project(":tooling:protocol"))
+        substitute(module("com.github.jjoblab.codeide-tooling:api")).using(project(":tooling:api"))
+        substitute(module("com.github.jjoblab.codeide-tooling:server")).using(project(":tooling:server"))
+        substitute(module("com.github.jjoblab.codeide-tooling:testing")).using(project(":tooling:testing"))
+    }
+}
+
+// Dépôt jjoblab/codeide-lsp (bascule du 2026-10-17, même recette) : les
+// 8 modules du domaine lsp (model, index, java vendored, ecj-art,
+// testing, host, kotlin, xml) consommés en COORDONNÉES EXTERNES
+// com.github.jjoblab.codeide-lsp:*, intégrés en SOURCE par build
+// composite en dev (propriété Gradle `lsp.dir`, variable
+// d'environnement CODEIDE_LSP_DIR, puis défaut `../codeide-lsp`).
+val dossierLsp: File =
+    providers.gradleProperty("lsp.dir")
+        .orElse(providers.environmentVariable("CODEIDE_LSP_DIR"))
+        .map(rootDir::resolve)
+        .orElse(rootDir.resolve("../codeide-lsp"))
+        .get()
+if (!dossierLsp.resolve("settings.gradle.kts").isFile) {
+    throw GradleException(
+        "codeide-lsp introuvable : $dossierLsp\n" +
+            "Cloner le dépôt frère (git clone https://github.com/jjoblab/codeide-lsp.git ../codeide-lsp) " +
+            "ou pointer la propriété Gradle lsp.dir.",
+    )
+}
+includeBuild(dossierLsp) {
+    dependencySubstitution {
+        substitute(module("com.github.jjoblab.codeide-lsp:model")).using(project(":lsp:model"))
+        substitute(module("com.github.jjoblab.codeide-lsp:index")).using(project(":lsp:index"))
+        substitute(module("com.github.jjoblab.codeide-lsp:java")).using(project(":lsp:java"))
+        substitute(module("com.github.jjoblab.codeide-lsp:ecj-art")).using(project(":lsp:ecj-art"))
+        substitute(module("com.github.jjoblab.codeide-lsp:testing")).using(project(":lsp:testing"))
+        substitute(module("com.github.jjoblab.codeide-lsp:host")).using(project(":lsp:host"))
+        substitute(module("com.github.jjoblab.codeide-lsp:kotlin")).using(project(":lsp:kotlin"))
+        substitute(module("com.github.jjoblab.codeide-lsp:xml")).using(project(":lsp:xml"))
+    }
+}
+
 rootProject.name = "CodeIDE"
 
 include(":app")
@@ -141,57 +203,18 @@ include(":feature:preview")
 include(":tools:generateur")
 
 // Phase 2 — tooling Gradle client-serveur (prompt compagnon Tooling,
-// section 2.1) : G1 pose protocol et testing ; G2 ajoute api (modèles
-// partagés) et server (orchestrateur Tooling API, JAR unique exécutable) ;
-// G3 le client Android, G4 le daemon (déploiement du JAR, lancement du
-// process, health check, relances bornées).
-include(":tooling:protocol")
-include(":tooling:api")
-include(":tooling:server")
+// section 2.1) : protocol, api, server et testing ont rejoint le dépôt
+// séparé jjoblab/codeide-tooling (bascule du 2026-10-17, recette §9 du
+// plan) — seuls le client (G3) et le daemon (G4) restent ici, liés à
+// :core:domain (audit de frontière §8 du plan).
 include(":tooling:client")
 include(":tooling:daemon")
-include(":tooling:testing")
 
-// Mission « LSP Java » (prompt 2, section 7 et ADR 0108-0112) :
-// :lsp:model — modèle de projet LSP en Kotlin JVM pur (étape 1 :
-// conversion ClasspathResult → snapshots immuables empreintés,
-// persistance versionnée validée) ; :lsp:index — index disque en
-// segments par jar (étape 2, ADR 0111 : clés de contenu, fusion LSM à
-// la requête, format binaire versionné, construction en arrière-plan) ;
-// :lsp:java — moteur vendored Java
-// (ecj patché pour ART, exemption Kotlin documentée par l'ADR 0108) ;
-// :lsp:ecj-art — patcher ASM build-time (jamais dans l'APK) ;
-// :lsp:testing — suite d'intégration moteur ↔ index (v0.96.3, pattern
-// :tooling:testing : les tests du branchement vivent AU-DESSUS des deux
-// modules — le moteur vendored ne dépend d'AUCUN module interne, test
-// compris, ADR 0108, vérifié par checkModuleDependencies).
-include(":lsp:model")
-include(":lsp:index")
-include(":lsp:java")
-include(":lsp:ecj-art")
-include(":lsp:testing")
-// :lsp:host (étape 4, ADR 0109) : l'HÔTE — SessionLsp (transport abstrait
-// D2, in-process ART par défaut), orchestrateur sync → modèle → index →
-// moteurs par module (API qualifiée lot E), adaptateur production de la
-// SPI IndexNoms, état d'indexation pour l'UI. Point unique de changement
-// de transport.
-include(":lsp:host")
-// :lsp:kotlin (mission « LSP Kotlin », LSP_KOTLIN.md étape K1, ADR 0115) :
-// moteur d'analyse Kotlin in-process — grammaire multiplateforme du
-// compilateur Kotlin VENDORÉE (Apache 2.0, lsp/kotlin/src/main/vendor,
-// zéro modification locale) + façade Kt* + suite de parité. Indépendant de
-// tout module interne (pack « langue » téléchargeable différé — D6 : SPI
-// ServiceLoader jo.lspkotlin.api.MoteurLangageKotlin seul visible).
-include(":lsp:kotlin")
-// :lsp:xml (mission « LSP XML », LSP_XML.md XE1, décision X1) : moteur
-// d'analyse XML Android in-process — parseur TOLÉRANT écrit main (pile
-// de noms ouverts, reprise sur buffer à moitié tapé), DOM neutre,
-// règles de structure pures + coutures conservatrices (X4), zéro
-// dépendance (pas de Lemminx, pas de XSD — la sémantique Android vit
-// dans les données de plateforme et l'index ressources, pas dans un
-// schéma). Indépendant de tout module interne (SPI ServiceLoader
-// jo.lspxml.api.MoteurLangageXml seul visible, miroir :lsp:kotlin).
-include(":lsp:xml")
+// Mission « LSP » (moteurs Java/Kotlin/XML, hôte, index, modèle) : les
+// 8 modules :lsp:* ont rejoint le dépôt séparé jjoblab/codeide-lsp
+// (bascule du 2026-10-17, recette §9 du plan — composite en dev,
+// coordonnées com.github.jjoblab.codeide-lsp:*). L'app et
+// feature:editor ne voient que :lsp:host — désormais externe.
 // :preview:xml (mission « Previews », PREVIEW.md étape PE1, P1–P5) :
 // moteur de preview XML sur LayoutLib (jjoblab, build composite en source
 // — la substitution des coordonnées com.github.jjoblab.LayoutLib:* vit

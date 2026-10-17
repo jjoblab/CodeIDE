@@ -316,23 +316,41 @@ TOTALITÉ**. Les trois dépôts sont autosuffisants (code + historique +
 CI + docs sur GitHub — survivent à tout reset d'environnement). Seule
 la bascule (§9) reste, volontairement, pour une session monitorée.
 
-## 9. LA SEULE ÉTAPE RESTANTE : la bascule de CodeIDE (à faire AVEC le propriétaire)
+## 9. LA BASCULE de CodeIDE — FAIT (17/10, avec le propriétaire, v0.134.41)
 
-Tout le reste est livré et poussé ; CodeIDE n'a PAS été modifié
-(volontairement — voir §8). La bascule est un chantier « chaîne
-RACINE » (settings.gradle.kts + deps modifiés) :
+Recette exécutée intégrale :
 
 1. `:tooling:protocol`/`:tooling:api` consommés par :tooling:client et
    :tooling:daemon → coordonnées `com.github.jjoblab.codeide-tooling:protocol/api`
-   (composite `tooling.dir` en dev d'abord, binaire ensuite) ;
-2. le `gradle-server.jar` des assets → consommé de la publication (ou
-   copie depuis le composite) ;
-3. retrait des chemins `tooling/{protocol,api,server,testing}` +
-   `include(...)` correspondants de settings.gradle.kts ;
-4. `:lsp:*` idem vers `codeide-lsp` (composite `lsp.dir` en dev d'abord) ;
-5. **baseline parité CodeIDE à régénérer** (le corpus .kt du dépôt
-   principal rétrécit) + `checkModuleDependencies` : graphes des deux
-   dépôts externes ;
-6. chaîne RACINE verte → bump → push → CI surveillée (§7).
-   Pré-requis de publication binaire : tag v1.0.0 des dépôts neufs
-   (workflow publish) + PAT read:packages côté CI CodeIDE.
+   (libs.tooling.*) — composite `tooling.dir` en dev, binaire ensuite ;
+2. le `gradle-server.jar` des assets → tâches inter-builds
+   `copierJarServeurAssets`/`controlerJarServeur` dans :app (shadowJar du
+   frère, copie vers assets/tooling, contrôle §4.7) — validé par
+   `:app:controlerJarServeur` (8,0 Mo recopiés) ;
+3. retrait des chemins `tooling/{protocol,api,server,testing}` + includes
+   correspondants (client/daemon CONSERVÉS) + convention plugin
+   `codeide.tooling.server` supprimé (dead code) + entrée shadow des
+   catalogues retirée + config detekt du serveur partie ;
+4. `:lsp:*` → `codeide-lsp` : répertoire lsp/ retiré (git rm), app +
+   feature:editor en `libs.lsp.host`, composite `lsp.dir` ;
+5. **plus de parité dans CodeIDE** (la suite vivait dans :lsp:kotlin —
+   désormais responsabilité du dépôt codeide-lsp ; AGENTS.md §7 annoté) ;
+   checkModuleDependencies élagué (MODULES_PURS = trio core, branches
+   tooling/lsp retirées, coordonnées externes hors audit) ;
+6. chaîne RACINE locale verte (spotless, detekt, règles, tests,
+   koverVerify, lintDebug) + sonde composite
+   (`:feature:editor:compileDebugKotlin`) → bump 0.134.41 → push → CI
+   surveillée. Pré-requis remplis : **tags v1.0.0 des deux dépôts neufs
+   poussés** (publication Packages déclenchée côté tooling).
+
+Suivis (non bloquants, à arbitrer plus tard) :
+- `scripts/scenarios-tooling.sh` (documentation des scénarios §7.2)
+  invoque `:tooling:server` du dépôt principal — à repointer vers le
+  dépôt codeide-tooling lors de la prochaine régénération des scénarios ;
+- `scripts/lsp-index/` (jeux du banc ADR 0111) — recettes versionnées,
+  la cible `:lsp:index` vit désormais dans codeide-lsp ;
+- `docs/ARCHITECTURE.md` : les graphes de modules mentionnent encore
+  :lsp:* / :tooling:protocol — passage docs à faire ;
+- publication binaire (Packages/JitPack) des consommateurs : passer de
+  la consommation composite à `maven.pkg.github.com` quand arbitrée
+  (PAT read:packages côté CI CodeIDE).

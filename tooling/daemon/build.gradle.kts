@@ -22,9 +22,13 @@ dependencies {
 
     // Test du lancement réel §7.4 : le VRAI orchestrateur tourne dans un
     // sous-processus java lancé depuis la JVM de test — dépendance de TEST
-    // uniquement (exception documentée dans ModuleRulesPlugin, ADR 0042).
-    testImplementation(project(":tooling:server"))
-    testImplementation(project(":tooling:testing"))
+    // uniquement (ADR 0042). Le serveur vit dans le dépôt séparé
+    // jjoblab/codeide-tooling depuis la bascule du 2026-10-17 (plan §9) :
+    // composite en dev (substitution settings.gradle.kts racine), binaire
+    // sinon. NB : en composite, la substitution fournit le JAR MINCE du
+    // projet — les tests §7.4 sont écrits pour (classpath, pas shadowJar).
+    testImplementation(libs.tooling.server)
+    testImplementation(libs.tooling.testing)
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

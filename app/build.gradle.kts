@@ -76,8 +76,10 @@ dependencies {
     // de l'hôte LSP (SourceClasspathLsp sur l'accesseur protocole BRUT de
     // tooling:client + DossierIndexLsp sur filesDir/codeide/lsp/index) —
     // l'app est le SEUL point où tooling et hôte se rencontrent (règle
-    // §2.2 : les features ne voient que les types de :lsp:host).
-    implementation(project(":lsp:host"))
+    // §2.2 : les features ne voient que les types de :lsp:host). L'hôte
+    // vit dans le dépôt séparé jjoblab/codeide-lsp depuis la bascule du
+    // 2026-10-17 (plan §9) : composite en dev (substitution), binaire sinon.
+    implementation(libs.lsp.host)
 
     implementation(libs.androidx.appcompat)
     // enableEdgeToEdge() — contenu tendu sous les barres système.
@@ -102,13 +104,53 @@ dependencies {
 
 // ---------------------------------------------------------------------------
 // Tooling Gradle (G2, §4.7 du prompt Tooling) : le JAR orchestrateur est un
-// ARTEFACT DE BUILD régénéré par :tooling:server (shadowJar → copie vers
-// assets/tooling) — la tâche de contrôle fait échouer le packaging s'il est
-// absent ou vide. Liaison par TÂCHE (pas de dépendance de module : l'app ne
-// consomme le tooling que via l'interface du domaine, règle §2.2).
+// ARTEFACT DE BUILD — il vit dans le dépôt séparé jjoblab/codeide-tooling
+// depuis la bascule du 2026-10-17 (docs/PLAN_SEPARATION_DEPOTS.md §9).
+// Liaison par TÂCHE INTER-BUILDS : le shadowJar du build composite frère
+// est construit puis recopié vers assets/tooling (répertoire gitignoré,
+// régénéré à chaque build) ; la tâche de contrôle fait échouer le
+// packaging s'il est absent ou vide. Pas de dépendance de module : l'app
+// ne consomme le tooling que via l'interface du domaine (règle §2.2).
 // ---------------------------------------------------------------------------
+// Même résolution que settings.gradle.kts (propriété tooling.dir → env
+// CODEIDE_TOOLING_DIR → défaut ../codeide-tooling) ; settings a déjà
+// validé l'existence du dossier.
+val dossierTooling: File =
+    providers.gradleProperty("tooling.dir")
+        .orElse(providers.environmentVariable("CODEIDE_TOOLING_DIR"))
+        .map(rootDir::resolve)
+        .orElse(rootDir.resolve("../codeide-tooling"))
+        .get()
+
+val copierJarServeur =
+    tasks.register<Copy>("copierJarServeurAssets") {
+        group = "build"
+        description =
+            "Recopie le JAR orchestrateur du dépôt frère codeide-tooling vers les assets (§4.7 du prompt Tooling)."
+        from(dossierTooling.resolve("tooling/server/build/libs/gradle-server.jar"))
+        into(rootProject.file("app/src/main/assets/tooling"))
+        dependsOn(gradle.includedBuild("codeide-tooling").task(":tooling:server:shadowJar"))
+    }
+
+tasks.register("controlerJarServeur") {
+    group = "verification"
+    description = "Contrôle §4.7 : le JAR orchestrateur (codeide-tooling) est présent et non vide dans les assets."
+    dependsOn(copierJarServeur)
+    val cible = rootProject.file("app/src/main/assets/tooling/gradle-server.jar")
+    doLast {
+        if (!cible.isFile) {
+            throw GradleException(
+                "JAR orchestrateur absent des assets : $cible (construit par le dépôt frère codeide-tooling)",
+            )
+        }
+        if (cible.length() == 0L) {
+            throw GradleException("JAR orchestrateur vide dans les assets : $cible")
+        }
+    }
+}
+
 tasks.named("preBuild") {
-    dependsOn(":tooling:server:controlerJarAssets")
+    dependsOn("controlerJarServeur")
     // Mission « Exécuter » R2 (ADR 0103) : jamais d'APK sans la bibliothèque
     // applog-runtime non plus — elle voyage dans les assets et devient le
     // dépôt maven local du daemon.

@@ -75,19 +75,18 @@ class ModuleRulesPlugin : Plugin<Project> {
             "kspAndroidTest",
         )
 
-        /** Modules Kotlin JVM purs (section 5.1 ; Tooling, section 2.1/2.2 ;
-         * LSP Java, prompt 2 §7 — lsp:model, lsp:index et lsp:testing en
-         * Kotlin/Java JVM purs, lsp:java et lsp:ecj-art modules JVM
-         * vendored Java, ADR 0108 ; LSP Kotlin, LSP_KOTLIN.md K1 — lsp:kotlin
-         * en Kotlin JVM pur, grammaire du compilateur vendorée, ADR 0115 ;
-         * LSP XML, LSP_XML.md XE1 — lsp:xml en Kotlin JVM pur, moteur
-         * maison zéro dépendance, décision X1). */
+        /** Modules Kotlin JVM purs (section 5.1 ; Cycle de vie ADR 0114).
+         * Les modules purs tooling (protocol/api/server/testing) et lsp
+         * (model/index/java/ecj-art/testing/host/kotlin/xml) ont rejoint
+         * les dépôts séparés jjoblab/codeide-tooling et jjoblab/codeide-lsp
+         * (bascule du 2026-10-17, docs/PLAN_SEPARATION_DEPOTS.md §9) — leurs
+         * règles vivent désormais dans le ModuleRulesPlugin de chaque dépôt
+         * neuf ; côté CodeIDE, ils sont consommés en coordonnées externes
+         * (composite en dev, binaire sinon) et n'apparaissent plus comme
+         * ProjectDependency. */
         val MODULES_PURS =
             setOf(
                 ":core:model", ":core:domain", ":core:session",
-                ":tooling:protocol", ":tooling:api", ":tooling:server",
-                ":lsp:model", ":lsp:index", ":lsp:java", ":lsp:ecj-art",
-                ":lsp:testing", ":lsp:kotlin", ":lsp:xml",
             )
 
         /** Plugins Android interdits aux modules purs. */
@@ -123,60 +122,14 @@ class ModuleRulesPlugin : Plugin<Project> {
         //    rend qu'une session de pty vivante).
         chemin == ":feature:terminal" || chemin == ":feature:install" ->
             setOf(":core:ui", ":core:domain", ":core:model", ":core:terminal-runtime")
-        // Tooling (prompt compagnon Tooling, section 2.2) : aucun doublon
-        // des interfaces du prompt Terminal — protocol ne dépend de rien
-        // d'interne, api l'enrichit, server consomme les deux.
-        chemin == ":tooling:protocol" -> emptySet()
-        chemin == ":tooling:api" -> setOf(":tooling:protocol")
-        chemin == ":tooling:server" -> setOf(":tooling:protocol", ":tooling:api")
-        chemin == ":tooling:client" ->
-            setOf(":tooling:protocol", ":tooling:api", ":core:domain")
-        chemin == ":tooling:daemon" ->
-            setOf(":tooling:protocol", ":core:domain", ":tooling:client")
-        chemin == ":tooling:testing" -> setOf(":tooling:protocol", ":tooling:api")
-        // Mission « LSP Java » (prompt 2 §7) : lsp:model ne dépend que du
-        // protocole (conversion pure ClasspathResult → snapshots, extractibilité
-        // du moteur préservée) ; lsp:index (ADR 0111) consomme les clés et les
-        // entrées empreintées du modèle (segments par jar) ; lsp:java (vendored)
-        // et lsp:ecj-art (patcher build-time) ne dépendent d'AUCUN module
-        // interne — extractibilité bibliothèque indépendante (ADR 0108/0110).
-        chemin == ":lsp:model" -> setOf(":tooling:protocol")
-        chemin == ":lsp:index" -> setOf(":lsp:model", ":tooling:protocol")
-        chemin == ":lsp:java" -> emptySet()
-        chemin == ":lsp:ecj-art" -> emptySet()
-        // Mission « LSP Kotlin » (LSP_KOTLIN.md, ADR 0115) : le moteur
-        // vendé (grammaire du compilateur) ne dépend d'AUCUN module
-        // interne — c'est la condition du découplage futur en « pack
-        // langue » téléchargeable (§6, décision D6 : découpage différé,
-        // architecture préservée dès K1 ; l'app ne voit que le SPI
-        // jo.lspkotlin.api.MoteurLangageKotlin par ServiceLoader).
-        chemin == ":lsp:kotlin" -> emptySet()
-        // Étape 3 lot C (v0.96.3) : la suite d'intégration moteur ↔ index
-        // vit AU-DESSUS des deux modules qu'elle éprouve (pattern
-        // :tooling:testing — dépendance de test uniquement) : :lsp:testing
-        // consomme le moteur vendored ET l'index disque à travers la SPI
-        // publique IndexNoms. La CI a rejeté le testImplementation posé
-        // DANS :lsp:java au lot C (section 5.2, ADR 0108 — le module
-        // vendored ne dépend d'AUCUN module interne, test compris) ;
-        // l'adaptateur de production suivra le même schéma (:lsp:host,
-        // étape 4).
-        chemin == ":lsp:testing" -> setOf(":lsp:java", ":lsp:index", ":lsp:model")
-        // Étape 4 (ADR 0109) : l'HÔTE consomme le moteur vendored (le
-        // branche, ne le modifie pas), l'index disque (adaptateur de
-        // production de la SPI IndexNoms) et le modèle (conversion
-        // ClasspathResult v8, ADR 0113/0058) — c'est le point UNIQUE de
-        // changement de transport D2 (in-process par défaut, cel-lsp).
-        // K2 (LSP_KOTLIN.md §5) : + :lsp:kotlin — l'adaptateur LSP4J de la
-        // session Kotlin vit dans l'hôte, le moteur ne voit que le SPI
-        // MoteurLangageKotlin (D6 : api, jamais l'implémentation — le pack
-        // « langue » futur reste découplable).
-        // XE1 (LSP_XML.md §5) : + :lsp:xml — même frontière, la façade
-        // SessionLspXml et l'adaptateur LSP4J XmlLanguageServer vivent
-        // dans l'hôte, le moteur ne voit que le SPI MoteurLangageXml
-        // (X2 : api, jamais l'implémentation — le pack « langue » XML
-        // futur reste découplable, miroir :lsp:kotlin).
-        chemin == ":lsp:host" ->
-            setOf(":lsp:java", ":lsp:index", ":lsp:model", ":lsp:kotlin", ":lsp:xml")
+        // Tooling (prompt compagnon Tooling, section 2.2) : le client et
+        // le daemon restent dans CodeIDE (liés au domaine) ; protocol,
+        // api, server et testing ont rejoint le dépôt séparé
+        // codeide-tooling (bascule du 2026-10-17, plan §9) — ils y sont
+        // consommés en coordonnées EXTERNES (libs.tooling.*), donc hors
+        // audit : cet audit ne voit que les ProjectDependency.
+        chemin == ":tooling:client" -> setOf(":core:domain")
+        chemin == ":tooling:daemon" -> setOf(":core:domain", ":tooling:client")
         // Étape 4 lot h2 (§16.2) : l'ÉDITEUR consomme l'hôte LSP
         // (SessionLsp + définition cel-lsp — la surface publique de
         // :lsp:host, ADR 0109) pour brancher l'EditorView sur le serveur
@@ -184,12 +137,15 @@ class ModuleRulesPlugin : Plugin<Project> {
         // « Réindexer ». Exception feature EXPLICITE au trio
         // core:ui/domain/model — même esprit que feature:terminal →
         // core:terminal-runtime (le plein écran consomme le runtime des
-        // sessions ; l'éditeur consomme l'hôte du langage).
+        // sessions ; l'éditeur consomme l'hôte du langage). L'hôte vit
+        // dans le dépôt séparé codeide-lsp depuis la bascule du
+        // 2026-10-17 (plan §9) : coordonnées externes (libs.lsp.host),
+        // hors audit ProjectDependency.
         // Cycle de vie étape C (ADR 0114) : + :core:session — l'éditeur
         // BRANCHE ses ressources (session LSP, flush I7) sur le contrat
         // de session de projet (Kotlin JVM pur, même famille core).
         chemin == ":feature:editor" ->
-            setOf(":core:ui", ":core:domain", ":core:model", ":lsp:host", ":core:session", ":preview:xml")
+            setOf(":core:ui", ":core:domain", ":core:model", ":core:session", ":preview:xml")
         // Previews PE6-0 (maquette docs/mockups/apercu-xml.html) : l'écran
         // d'aperçu dédié consomme le moteur :preview:xml (le moteur de
         // rendu y reste confiné — la feature ne voit JAMAIS LayoutLib en
@@ -237,31 +193,18 @@ class ModuleRulesPlugin : Plugin<Project> {
                     val cible = dependance.path
                     if (cible == chemin) continue
 
-                    if (cible == ":core:testing" || cible == ":tooling:testing") {
-                        // `core:testing` et `tooling:testing` sont consommables
-                        // par les tests de n'importe quel module (section 5.2
-                        // et prompt Tooling section 2.2 : « dépendance de test
-                        // uniquement, jamais en implementation ») : la liste
-                        // d'autorisation décrit les dépendances de
-                        // production, pas les doubles de test.
+                    if (cible == ":core:testing") {
+                        // `core:testing` est consommable par les tests de
+                        // n'importe quel module (section 5.2 : « dépendance
+                        // de test uniquement, jamais en implementation ») :
+                        // la liste d'autorisation décrit les dépendances de
+                        // production, pas les doubles de test. (Le double
+                        // du tooling, :tooling:testing, vit dans le dépôt
+                        // séparé codeide-tooling depuis la bascule du
+                        // 2026-10-17 — plan §9.)
                         if (configuration.name !in CONFIGS_TEST) {
                             problems += "$chemin utilise $cible dans '${configuration.name}' " +
                                 "(réservé aux configurations de test)"
-                        }
-                        continue
-                    }
-
-                    // G4 (ADR 0042) : le VRAI orchestrateur (:tooling:server)
-                    // n'entre dans :tooling:daemon qu'en configuration de
-                    // TEST — le bout-en-bout §7.4 relance le process réel
-                    // (ServerMain) depuis la JVM de test pour éprouver le
-                    // dialogue complet du daemon ; en production, le daemon
-                    // ne voit du serveur que le JAR déployé (aucune dépendance
-                    // de code).
-                    if (cible == ":tooling:server" && chemin == ":tooling:daemon") {
-                        if (configuration.name !in CONFIGS_TEST) {
-                            problems += "$chemin utilise $cible dans '${configuration.name}' " +
-                                "(réservé aux configurations de test — bout-en-bout §7.4, ADR 0042)"
                         }
                         continue
                     }
