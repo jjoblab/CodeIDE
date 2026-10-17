@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -81,6 +82,12 @@ public class FeuilleApercuFragment : Fragment() {
         // est déjà rattaché quand onViewCreated est appelé (Fragment 1.6+).
         comportementFeuille()?.peekHeight = StyleVolet.dp(requireContext(), PEEK_DP)
         monterVolets()
+        // PE9d — la feuille déployée monte PLUS HAUT : le volet porte à
+        // RATIO_VOLET de l'écran (le ratio suit l'écran — la hauteur ne
+        // peut pas être un layout statique ; posée une fois, à la vue).
+        liaison.conteneurVolets.updateLayoutParams {
+            height = (resources.displayMetrics.heightPixels * RATIO_VOLET).toInt()
+        }
         // Un onglet touché DÉPLOYE la feuille (miroir maquette : « if
         // (!S.open) S.open = true »).
         liaison.ongletsFeuille.addOnTabSelectedListener(
@@ -253,6 +260,9 @@ public class FeuilleApercuFragment : Fragment() {
 
         /** Hauteur repliée de la feuille : poignée + onglets (miroir 72 px). */
         private const val PEEK_DP: Int = 72
+
+        /** Le volet déployé en part de l'écran (PE9d — « expand plus haut »). */
+        private const val RATIO_VOLET: Float = 0.48f
 
         /** Les tags des volets (retrouvés par [childFragmentManager]). */
         private const val TAG_ARBRE: String = "volet_arbre"

@@ -20,6 +20,8 @@
     <string name="preview_langue_defaut">Défaut</string>
     <string name="preview_langue_fr">FR</string>
     <string name="preview_langue_en">EN</string>
+    <string name="preview_compacter">Compacter</string>
+    <string name="preview_compacter_cd">Compacter l\'aperçu pendant le déploiement de la feuille</string>
     <string name="preview_calques">Calques ▾</string>
     <string name="preview_calques_cd">Afficher ou masquer les calques de l\'aperçu</string>
 
