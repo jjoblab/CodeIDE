@@ -5,9 +5,4 @@
     <string name="preview_accueil">Open an XML layout to see its preview</string>
     <string name="preview_en_edition">XML being typed — last render kept</string>
 
-    <!-- PE6a : render status pill (duration, view count). -->
-    <plurals name="preview_pastille_vues">
-        <item quantity="one">%1$d view · %2$d ms</item>
-        <item quantity="other">%1$d views · %2$d ms</item>
-    </plurals>
 </resources>

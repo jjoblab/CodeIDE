@@ -51,6 +51,22 @@ import kotlin.math.min
  * surlignage, pastilles) se MASENT (miroir `!S.dropView` de la maquette),
  * les bornes et contraintes restent.
  *
+ * PE10d/e — MODE D'AFFICHAGE (maquette § « Comparaison » : « boutons de
+ * zoom, barre de navigation, mode Plan ») : [modeAffichage] suit la
+ * pastille segmented de la toolbar — DESIGN dessine le bitmap, PLAN
+ * dessine le SQUELETTE des vues rendues (contours pointillés accent sur
+ * le damier, miroir `.screen.bp`), LES_DEUX pose les deux planches CÔTE
+ * À CÔTE (miroir `buildBoards` : deux `.board`, écart 40 px). Le hit
+ * (tap, drag) se RE-MAPPE sur la planche frappée (miroir `toDesign` qui
+ * vise toujours la planche [0]).
+ *
+ * PE10a — L'ombre « flottante » : l'écran rendu FLOTTE sur le damier
+ * (miroir `.screen{box-shadow:0 0 0 1px rgba(0,0,0,.18),0 6px 24px …}`)
+ * — halos concentriques à épaisseur ÉCRAN constante + liseré 1 px.
+ * La PASTILLE d'état (durée, vues) QUITTE ce Canvas : elle devient une
+ * vue du chrome (`:feature:preview` — PE10a, la règle zéro-Material du
+ * module retrouve tout son sens).
+ *
  * Le bitmap n'est jamais recyclé par la vue (le moteur peut en émettre un
  * nouveau pendant un dessin) : le GC d'ART collecte.
  *
@@ -78,11 +94,18 @@ public class VuePreviewXml :
     /** Densité du profil de rendu (PE6a — conversion px → dp des libellés). */
     private var densiteDpi: Int = 0
 
-    /** Durée du dernier rendu (PE6a — pastille d'état). */
-    private var dureeMs: Long = 0
-
-    /** Nombre de vues du dernier rendu (PE6a — pastille d'état). */
-    private var nombreVues: Int = 0
+    /**
+     * Le mode d'affichage (PE10d/e — pastille Design/Plan/Les deux de la
+     * toolbar) : changer de mode RE-AJUSTE le contenu (Les deux double
+     * la largeur) puis redessine.
+     */
+    public var modeAffichage: ModeApercu = ModeApercu.DESIGN
+        set(valeur) {
+            if (field == valeur) return
+            field = valeur
+            if (width > 0 && height > 0) ajusterALaVue()
+            invalidate()
+        }
 
     /** Problèmes du dernier rendu (PE6c — pastilles de la maquette). */
     private var problemes: List<ProblemesPreview.ProblemeApercu> = emptyList()
@@ -328,11 +351,23 @@ public class VuePreviewXml :
             isAntiAlias = true
         }
 
-    /** Point d'état de la pastille (PE6a fix design — miroir `.status .dot`). */
-    private val peintPointEtat =
+    /** Squelette PLAN (PE10d) — contour pointillé accent. */
+    private val peintPlan =
+        Paint().apply {
+            style = Paint.Style.STROKE
+            isAntiAlias = true
+        }
+
+    /** Halos de l'ombre « flottante » (PE10a). */
+    private val peintOmbre =
         Paint().apply {
             style = Paint.Style.FILL
-            isAntiAlias = true
+        }
+
+    /** Liseré du contour de l'écran rendu (PE10a — miroir 0 0 0 1px). */
+    private val peintLisere =
+        Paint().apply {
+            style = Paint.Style.STROKE
         }
 
     private val detecteurZoom =
@@ -388,7 +423,15 @@ public class VuePreviewXml :
                             decalageY = decalageY,
                             echelle = echelle,
                         )
-                    auTap?.invoke(xContenu, yContenu)
+                    // PE10e : le tap sur la planche Plan (Les deux) se
+                    // re-mappe sur la planche design (même arbre rendu).
+                    val (xPlanche, yPlanche) =
+                        CalculsVuePreview.coordonneesPlanche(
+                            xContenu,
+                            yContenu,
+                            decalagePlancheHit(),
+                        )
+                    auTap?.invoke(xPlanche, yPlanche)
                     return true
                 }
             },
@@ -414,20 +457,16 @@ public class VuePreviewXml :
      *  [onSizeChanged].
      *
      *  PE6a : [densiteDpiProfil] (conversion dp des libellés de calques,
-     *  0 = repli px), [dureeRenduMs] et [nbVues] (pastille d'état —
-     *  données déjà là, jamais affichées : maquette § « Constat »). */
+     *  0 = repli px). PE10a : la durée et le nombre de vues partent à la
+     *  PASTILLE-VUE du chrome (couche HUD de l'activité). */
     public fun afficherRendu(
         bitmap: Bitmap,
         vuesRendues: List<InfoVueRendu> = emptyList(),
         densiteDpiProfil: Int = 0,
-        dureeRenduMs: Long = 0,
-        nbVues: Int = 0,
     ) {
         this.bitmap = bitmap
         this.vues = vuesRendues
         densiteDpi = densiteDpiProfil
-        dureeMs = dureeRenduMs
-        nombreVues = nbVues
         problemes = emptyList()
         messageErreur = null
         enEdition = false
@@ -468,8 +507,6 @@ public class VuePreviewXml :
         vues = emptyList()
         indiceSurligne = -1
         densiteDpi = 0
-        dureeMs = 0
-        nombreVues = 0
         problemes = emptyList()
         messageErreur = null
         enEdition = false
@@ -601,7 +638,12 @@ public class VuePreviewXml :
 
             DragEvent.ACTION_DRAG_LOCATION -> {
                 if (!zonesDepotAffichees) return true
-                val (x, y) = CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                val (xContenu, yContenu) =
+                    CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                // PE10e : un dépôt sur la planche Plan (Les deux) vise la
+                // même position sur la planche design.
+                val (x, y) =
+                    CalculsVuePreview.coordonneesPlanche(xContenu, yContenu, decalagePlancheHit())
                 cibleDepot = ZonesDepot.cibleSous(vues, x, y)
             }
 
@@ -612,7 +654,10 @@ public class VuePreviewXml :
             DragEvent.ACTION_DROP -> {
                 val cible = cibleDepot
                 if (cible != null) {
-                    val (x, y) = CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                    val (xContenu, yContenu) =
+                        CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+                    val (x, y) =
+                        CalculsVuePreview.coordonneesPlanche(xContenu, yContenu, decalagePlancheHit())
                     auDepot?.invoke(contenu, x, y)
                 }
             }
@@ -637,7 +682,19 @@ public class VuePreviewXml :
         canevas.save()
         canevas.translate(decalageX, decalageY)
         canevas.scale(echelle, echelle)
-        canevas.drawBitmap(bmp, 0f, 0f, null)
+        // PE10a : l'écran rendu FLOTTE sur le damier (ombre + liseré).
+        dessinerOmbrePlanche(canevas, 0f, bmp.width.toFloat(), bmp.height.toFloat())
+        if (modeAffichage != ModeApercu.PLAN) {
+            canevas.drawBitmap(bmp, 0f, 0f, null)
+        }
+        if (modeAffichage != ModeApercu.DESIGN) {
+            // PE10d : la planche PLAN — squelette pointillé des vues
+            // rendues (miroir `.screen.bp`), sélection en creux.
+            canevas.translate(decalagePlanche().toFloat(), 0f)
+            dessinerOmbrePlanche(canevas, 0f, bmp.width.toFloat(), bmp.height.toFloat())
+            dessinerPlan(canevas)
+            canevas.translate(-decalagePlanche().toFloat(), 0f)
+        }
         // Calques, du plus large au plus étroit (miroir drawOverlay de la
         // maquette) : grille, bornes, frères, parent, contraintes,
         // box-model, sélection, pastilles de problèmes.
@@ -655,7 +712,92 @@ public class VuePreviewXml :
         canevas.restore()
         if (messageErreur != null) dessinerBandeauErreur(canevas)
         if (enEdition) dessinerSignalEdition(canevas)
-        dessinerPastille(canevas)
+    }
+
+    // ── Mode d'affichage (PE10d/e, miroir buildBoards/toDesign) ──
+
+    /** La largeur d'une planche (px contenu — le bitmap rendu). */
+    private fun largeurPlanche(): Int = bitmap?.width ?: 0
+
+    /** Le décalage de la planche Plan (px contenu — planche + écart du monde). */
+    private fun decalagePlanche(): Int = largeurPlanche() + ECART_PLANCHES
+
+    /** Le décalage de re-mappage du HIT (0 = mode à une planche). */
+    private fun decalagePlancheHit(): Float =
+        if (modeAffichage == ModeApercu.LES_DEUX) decalagePlanche().toFloat() else 0f
+
+    /** La largeur TOTALE du contenu selon le mode (fit et pan s'y alignent). */
+    private fun largeurContenu(): Int =
+        if (modeAffichage == ModeApercu.LES_DEUX) largeurPlanche() * 2 + ECART_PLANCHES else largeurPlanche()
+
+    /**
+     * Le squelette PLAN (PE10d, miroir `.screen.bp` : tous les contours
+     * en pointillés accent, le reste transparent — le damier se lit
+     * dessous) ; la sélection y dessine son cadre plein (miroir le
+     * surlignage accent qui traverse les deux planches).
+     */
+    private fun dessinerPlan(canevas: Canvas) {
+        peintPlan.color = COULEUR_PLAN
+        peintPlan.pathEffect = EFFET_PLAN
+        peintPlan.strokeWidth = LARGEUR_TRAIT_PLAN / echelle
+        for (vue in vues) {
+            if (vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
+            canevas.drawRect(
+                RectF(vue.gauche.toFloat(), vue.haut.toFloat(), vue.droite.toFloat(), vue.bas.toFloat()),
+                peintPlan,
+            )
+        }
+        if (indiceSurligne in vues.indices) {
+            val vue = vues[indiceSurligne]
+            val rect =
+                RectF(
+                    vue.gauche.toFloat(),
+                    vue.haut.toFloat(),
+                    vue.droite.toFloat(),
+                    vue.bas.toFloat(),
+                )
+            peintPlan.pathEffect = null
+            peintPlan.strokeWidth = LARGEUR_TRAIT_SURLIGNAGE / echelle
+            peintPlan.color = couleurSurlignage
+            canevas.drawRect(rect, peintPlan)
+            peintFondSurlignage.color =
+                (couleurSurlignage and MASQUE_COULEUR_RGB) or (COULEUR_ALPHA_SURLIGNAGE shl DECALAGE_ALPHA)
+            canevas.drawRect(rect, peintFondSurlignage)
+        }
+    }
+
+    /**
+     * L'OMBRE « flottante » sous une planche (PE10a, miroir le
+     * box-shadow de `.screen`) : trois halos noirs concentriques à
+     * épaisseur ÉCRAN constante, puis le LISÉRÉ 1 px du contour.
+     *
+     * Exemption detekt ciblée (règle 16) : MagicNumber — les alphas
+     * reproduisent le miroir CSS de la maquette (0,18 cumulé).
+     */
+    @Suppress("MagicNumber")
+    private fun dessinerOmbrePlanche(
+        canevas: Canvas,
+        gauche: Float,
+        droite: Float,
+        bas: Float,
+    ) {
+        val rayon = RAYON_OMBRE_DP * echellePolice() / echelle
+        val descente = DESCENTE_OMBRE_DP * echellePolice() / echelle
+        peintOmbre.color = Color.BLACK
+        for (pas in PASSES_OMBRE downTo 1) {
+            val croissance = rayon * pas / PASSES_OMBRE
+            peintOmbre.alpha = ALPHA_OMBRE_PAS
+            canevas.drawRoundRect(
+                RectF(gauche - croissance, -croissance + descente, droite + croissance, bas + croissance + descente),
+                croissance,
+                croissance,
+                peintOmbre,
+            )
+        }
+        // Le liseré (miroir `0 0 0 1px rgba(0,0,0,.18)`).
+        peintLisere.color = COULEUR_LISERE
+        peintLisere.strokeWidth = 1f / echelle
+        canevas.drawRect(RectF(gauche, 0f, droite, bas), peintLisere)
     }
 
     /** Calque « frères en filigrane » (PE6a) : fill translucide sur les bounds. */
@@ -1108,64 +1250,6 @@ public class VuePreviewXml :
     /** Rayon d'une poignée rapporté à l'espace CONTENU (taille écran constante). */
     private fun rayonPoigneeEnContenu(): Float = RAYON_POIGNEE_DP * echellePolice() / echelle
 
-    /**
-     * La COULEUR du point d'état de la pastille (PE6a fix design — miroir
-     * `.status .dot` de la maquette : vert rendu OK, ambre frappe en
-     * cours, rouge erreur ; `.dot` fait 7 px et précède le texte).
-     */
-    private fun couleurPointEtat(): Int =
-        when {
-            messageErreur != null -> COULEUR_POINT_ERREUR
-            enEdition -> COULEUR_POINT_EDITION
-            else -> COULEUR_POINT_OK
-        }
-
-    /** Pastille d'état (PE6a) : durée du rendu et nombre de vues — coins bas-gauche, écran constant. */
-    private fun dessinerPastille(canevas: Canvas) {
-        if (nombreVues <= 0 && dureeMs <= 0) return
-        val texte =
-            resources.getQuantityString(
-                R.plurals.preview_pastille_vues,
-                nombreVues,
-                nombreVues,
-                dureeMs,
-            )
-        val taille = TAILLE_TEXTE_ETIQUETTE_DP * echellePolice()
-        peintEtiquette.textSize = taille
-        val marge = MARGE_PASTILLE_DP * echellePolice()
-        // PE6a fix design : le POINT coloré précède le texte (miroir
-        // `.status .dot` de la maquette — 7 px, vert/ambre/rouge).
-        val rayonPoint = RAYON_POINT_ETAT_DP * echellePolice()
-        val espacePoint = rayonPoint * 2f + marge
-        val largeurTexte = peintEtiquette.measureText(texte)
-        val demiHauteurTexte = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
-        val yPill = height - marge - hauteurBandeauSiPresent()
-        peintPill.color = couleurSurface
-        peintPill.alpha = ALPHA_PILL_PASTILLE
-        canevas.drawRoundRect(
-            marge,
-            yPill - demiHauteurTexte - marge,
-            marge + espacePoint + largeurTexte + 2 * marge,
-            yPill + demiHauteurTexte + marge,
-            demiHauteurTexte + marge,
-            demiHauteurTexte + marge,
-            peintPill,
-        )
-        // Le point : centré verticalement, à gauche du texte (miroir .dot).
-        peintPointEtat.color = couleurPointEtat()
-        canevas.drawCircle(
-            marge + marge + rayonPoint,
-            yPill,
-            rayonPoint,
-            peintPointEtat,
-        )
-        peintEtiquette.color = couleurTheme(android.R.attr.textColorPrimary)
-        canevas.drawText(texte, marge + espacePoint + marge, yPill - demiHauteurTexte, peintEtiquette)
-    }
-
-    /** La pastille ne glisse pas SOUS le bandeau d'erreur quand il est présent. */
-    private fun hauteurBandeauSiPresent(): Float = if (messageErreur == null) 0f else hauteurBandeau()
-
     /** Hauteur disponible au contenu : le bandeau d'erreur la grignote. */
     private fun hauteurZoneContenu(): Float =
         if (messageErreur == null) {
@@ -1220,24 +1304,24 @@ public class VuePreviewXml :
         peintTexteEtat.textAlign = Paint.Align.LEFT
     }
 
-    /** Réajuste zoom et décalage pour que le bitmap tienne dans la vue. */
+    /** Réajuste zoom et décalage pour que le contenu tienne dans la vue (Les deux : les DEUX planches). */
     private fun ajusterALaVue() {
         val bmp = bitmap ?: return
         echelle =
             CalculsVuePreview.echelleAjustee(
-                largeurContenu = bmp.width,
+                largeurContenu = largeurContenu(),
                 hauteurContenu = bmp.height,
                 largeurVue = width,
                 hauteurVue = height,
             )
-        decalageX = (width - bmp.width * echelle) / 2f
+        decalageX = (width - largeurContenu() * echelle) / 2f
         decalageY = (height - bmp.height * echelle) / 2f
     }
 
     /** Maintient le contenu visible pendant le pan. */
     private fun bornerPan() {
         val bmp = bitmap ?: return
-        decalageX = CalculsVuePreview.bornerDecalage(decalageX, width.toFloat(), bmp.width * echelle)
+        decalageX = CalculsVuePreview.bornerDecalage(decalageX, width.toFloat(), largeurContenu() * echelle)
         decalageY = CalculsVuePreview.bornerDecalage(decalageY, height.toFloat(), bmp.height * echelle)
     }
 
@@ -1320,9 +1404,6 @@ public class VuePreviewXml :
         /** Alpha du fond de l'étiquette de sélection (0-255). */
         private const val ALPHA_PILL_ETIQUETTE = 0xE6
 
-        /** Alpha du fond de la pastille d'état (0-255). */
-        private const val ALPHA_PILL_PASTILLE = 0xB8
-
         /** Rayon des poignées d'angle, en dp écran (PE6a). */
         private const val RAYON_POIGNEE_DP = 4f
 
@@ -1335,21 +1416,6 @@ public class VuePreviewXml :
         /** Marge interne des pills, en dp écran (PE6a). */
         private const val MARGE_ETIQUETTE_DP = 4f
 
-        /** Marge de la pastille aux bords de l'écran, en dp écran (PE6a). */
-        private const val MARGE_PASTILLE_DP = 8f
-
-        /** Rayon du point d'état de la pastille, en dp écran (miroir 7 px de `.dot`). */
-        private const val RAYON_POINT_ETAT_DP = 3.5f
-
-        /** Point d'état VERT — rendu OK (miroir `--ok` #2E7D32 de la maquette). */
-        private const val COULEUR_POINT_OK = 0xFF2E7D32.toInt()
-
-        /** Point d'état AMBRE — frappe en cours (miroir `.status.edit` #9A6700). */
-        private const val COULEUR_POINT_EDITION = 0xFF9A6700.toInt()
-
-        /** Point d'état ROUGE — erreur de rendu (miroir `.status.err` #BA1A1A). */
-        private const val COULEUR_POINT_ERREUR = 0xFFBA1A1A.toInt()
-
         /** Les quatre coins d'une poignée (haut-gauche, haut-droit, bas-gauche, bas-droit). */
         private val COINS =
             listOf(
@@ -1361,6 +1427,37 @@ public class VuePreviewXml :
 
         /** Pointillés du parent — 4 px tracés, 4 px troués, à épaisseur écran constante. */
         private val EFFET_POINTILLES = DashPathEffect(floatArrayOf(4f, 4f), 0f)
+
+        // ── Mode d'affichage PE10d/e (miroir .screen.bp / world gap) ──
+
+        /** L'écart entre les planches Design et Plan, en px contenu (miroir gap 40 px du monde). */
+        private const val ECART_PLANCHES = 40
+
+        /** Couleur du squelette PLAN (miroir `--accent` de la maquette). */
+        private const val COULEUR_PLAN = 0xFF1E6EC8.toInt()
+
+        /** Largeur du trait du squelette, en dp écran (miroir 1,5 px de `.bp .v`). */
+        private const val LARGEUR_TRAIT_PLAN = 1.5f
+
+        /** Pointillés du squelette — 6 px tracés, 4 px troués. */
+        private val EFFET_PLAN = DashPathEffect(floatArrayOf(6f, 4f), 0f)
+
+        // ── Ombre « flottante » PE10a (miroir box-shadow de `.screen`) ──
+
+        /** Rayon maximal de l'ombre, en dp écran (miroir blur 24 px). */
+        private const val RAYON_OMBRE_DP = 12f
+
+        /** Descente verticale de l'ombre, en dp écran (miroir dy 6 px). */
+        private const val DESCENTE_OMBRE_DP = 3f
+
+        /** Le nombre de halos concentriques (dégradé discret). */
+        private const val PASSES_OMBRE = 3
+
+        /** L'alpha de chaque halo (3 × 0x14 ≈ l'opacité du box-shadow). */
+        private const val ALPHA_OMBRE_PAS = 0x14
+
+        /** Liseré du contour de l'écran rendu (miroir rgba(0,0,0,.18)). */
+        private const val COULEUR_LISERE = 0x2E000000.toInt()
 
         // ── Zones de dépôt PE7b (miroir des jetons de la maquette) ──
 
@@ -1480,6 +1577,24 @@ internal object CalculsVuePreview {
 
     /** Échelle bornée (pincement) : 0,25× … 6×. */
     internal fun bornerEchelle(echelle: Float): Float = echelle.coerceIn(ECHELLE_MINIMALE_PINCEMENT, ECHELLE_MAXIMALE)
+
+    /**
+     * Le re-mappage PLANCHE (PE10e — miroir `toDesign` qui vise toujours
+     * la planche [0]) : un point au-delà de [decalagePlanche] (la planche
+     * Plan des « Les deux ») revient au MÊME point de la planche design —
+     * l'arbre rendu est identique. `decalagePlanche <= 0` : mode à une
+     * planche, aucune conversion.
+     */
+    internal fun coordonneesPlanche(
+        xContenu: Float,
+        yContenu: Float,
+        decalagePlanche: Float,
+    ): Pair<Float, Float> =
+        if (decalagePlanche > 0f && xContenu >= decalagePlanche) {
+            Pair(xContenu - decalagePlanche, yContenu)
+        } else {
+            Pair(xContenu, yContenu)
+        }
 
     /**
      * Décalage borné : le contenu ne fuit pas hors de la vue — contenu

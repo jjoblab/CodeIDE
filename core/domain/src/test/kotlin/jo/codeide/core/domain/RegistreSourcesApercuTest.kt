@@ -36,6 +36,10 @@ class RegistreSourcesApercuTest {
 
         override fun retablir(): Boolean = false
 
+        override fun peutAnnuler(): Boolean = false
+
+        override fun peutRetablir(): Boolean = false
+
         override fun ajouterEcouteur(ecouteur: SourceApercu.EcouteurMutation) = Unit
 
         override fun retirerEcouteur(ecouteur: SourceApercu.EcouteurMutation) = Unit

@@ -116,13 +116,15 @@ class SettingsDataStoreTest {
                     toolingHorsLigne = true,
                     toolingArguments = "--stacktrace --info",
                     isSetupCompleted = true,
-                    apercuCompacterApercu = true,
                 )
             }
 
             val relu = source.current().succes()
 
-            assertEquals(true, relu.apercuCompacterApercu)
+            // Les réglages de l'aperçu (bulle, palette par popup) gardent
+            // ici leur valeur par défaut — le stock vide ci-dessus
+            // garantit déjà le retour aux défauts (PE10 : l'option
+            // « compacter » quitte le DataStore).
             assertEquals(ThemeMode.DARK, relu.themeMode)
             assertEquals(false, relu.useDynamicColor)
             assertEquals(PaletteCouleur.VERT, relu.paletteCouleur)

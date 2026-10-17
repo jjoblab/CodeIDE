@@ -160,8 +160,6 @@ public class SettingsDataStore(
         internal val APERCU_BULLE_FIXE: Preferences.Key<Boolean> = booleanPreferencesKey("preview_bubble_fixed")
         internal val APERCU_BULLE_A_DROITE: Preferences.Key<Boolean> = booleanPreferencesKey("preview_bubble_right")
         internal val APERCU_BULLE_Y: Preferences.Key<String> = stringPreferencesKey("preview_bubble_y")
-        internal val APERCU_COMPACTER_APERCU: Preferences.Key<Boolean> =
-            booleanPreferencesKey("preview_sheet_compact")
         internal val APERCU_PALETTE_PAR_POPUP: Preferences.Key<Boolean> =
             booleanPreferencesKey("preview_palette_tap_mode")
     }
@@ -183,8 +181,6 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
                 ?: defaults.apercuBulleY,
         apercuPaletteParPopup =
             this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
-        apercuCompacterApercu =
-            this[SettingsDataStore.Cles.APERCU_COMPACTER_APERCU] ?: defaults.apercuCompacterApercu,
     )
 
 /**
@@ -301,7 +297,6 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.APERCU_BULLE_A_DROITE, reglage.apercuBulleADroite)
     set(SettingsDataStore.Cles.APERCU_BULLE_Y, reglage.apercuBulleY.toString())
     set(SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP, reglage.apercuPaletteParPopup)
-    set(SettingsDataStore.Cles.APERCU_COMPACTER_APERCU, reglage.apercuCompacterApercu)
 
     val dossier = reglage.workspace
     if (dossier == null) {

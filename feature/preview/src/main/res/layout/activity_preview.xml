@@ -3,12 +3,14 @@
   Écran dédié de l'aperçu XML (PE6-0, maquette
   docs/mockups/apercu-xml.html § « Activité dédiée » ; chrome PE6b ;
   feuille PE6d ; PE7c bulle/palette/popup de placement ; PE7d barre
-  d'édition) : CoordinatorLayout racine — la colonne (toolbar, PUCES
-  défilantes de réglages, panneau de rendu VuePreviewXml avec barre
-  d'édition, popovers et bulle de palette, HUD de zoom) et la FEUILLE
-  inférieure en BottomSheet (arbre, attributs, problèmes, source —
-  miroir `.sheet`). Le MOTEUR :preview:xml reste zéro-Material (règle
-  du module) : le chrome vit ici.
+  d'édition ; PE10 pastille segmented + chips + pastille d'état) :
+  CoordinatorLayout racine — la colonne (toolbar COMPACTE avec la
+  PASTILLE Design/Plan/Les deux, CHIPS Material défilantes, panneau de
+  rendu VuePreviewXml avec PASTILLE D'ÉTAT + barre d'édition, popovers
+  et bulle de palette, HUD de zoom) et la FEUILLE inférieure en
+  BottomSheet (arbre, attributs, problèmes, source — miroir `.sheet`).
+  Le MOTEUR :preview:xml reste zéro-Material (règle du module) : le
+  chrome vit ici.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -22,18 +24,79 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Appbar COMPACTE (PE10 — l'appbar était trop grosse face à la
+             maquette : hauteur 52 dp, titre 14 sp, sous-titre 11 sp) et
+             PASTILLE segmented (miroir `.segMode` : Design, Plan, Les
+             deux — le mode d'affichage du panneau). -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar_preview"
             style="@style/Widget.CodeIDE.Toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="52dp"
             app:navigationContentDescription="@string/preview_retour_cd"
             app:navigationIcon="?attr/homeAsUpIndicator"
-            app:title="@string/preview_titre" />
+            app:subtitleTextAppearance="@style/TextAppearance.CodeIDE.PreviewSousTitre"
+            app:title="@string/preview_titre"
+            app:titleTextAppearance="@style/TextAppearance.CodeIDE.PreviewTitre">
 
-        <!-- Puces défilantes de réglages (PE6b + PE6e-f, miroir `.chips` de
-             la maquette — MÊME ORDRE : appareil ▾, portrait/paysage, jour,
-             langue, police, calques ▾). -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/groupe_mode_apercu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="44dp"
+                app:checkedButton="@id/mode_design"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_design"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:insetTop="4dp"
+                    android:insetBottom="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/preview_mode_design"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_plan"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:insetTop="4dp"
+                    android:insetBottom="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/preview_mode_plan"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_les_deux"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:insetTop="4dp"
+                    android:insetBottom="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/preview_mode_les_deux"
+                    android:textSize="11sp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+        </com.google.android.material.appbar.MaterialToolbar>
+
+        <!-- Chips défilantes de réglages (PE10b, miroir `.chips` de la
+             maquette — MÊME ORDRE : appareil ▾, portrait/paysage, jour,
+             langue, police, calques ▾ ; l'option « Compacter » (PE9d)
+             QUITTE la rangée — décision propriétaire PE10). -->
         <HorizontalScrollView
             android:id="@+id/barre_reglages_apercu"
             android:layout_width="match_parent"
@@ -47,80 +110,62 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <com.google.android.material.button.MaterialButton
+                <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_appareil_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Chip.Assist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/preview_profil_cd"
-                    android:minWidth="0dp"
                     android:text="@string/preview_appareil" />
 
-                <com.google.android.material.button.MaterialButton
+                <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_orientation_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/spacing_xs"
                     android:checkable="true"
                     android:contentDescription="@string/preview_orientation_cd"
-                    android:minWidth="0dp"
                     android:text="@string/preview_portrait" />
 
-                <com.google.android.material.button.MaterialButton
+                <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_nuit_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/spacing_xs"
                     android:checkable="true"
                     android:contentDescription="@string/preview_nuit_cd"
-                    android:minWidth="0dp"
                     android:text="@string/preview_jour" />
 
-                <com.google.android.material.button.MaterialButton
+                <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_langue_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:contentDescription="@string/preview_langue_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_langue_defaut" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_police_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:contentDescription="@string/preview_police_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_police_format" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_calques_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:contentDescription="@string/preview_calques_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_calques" />
-
-                <!-- L'option « compacter l'aperçu » (PE9d) : quand elle est
-                     active, le viewport SE RÉTRÉCIT au fil de la glissade
-                     de la feuille (réglage persisté SettingsDataStore). -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_compacter_apercu"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/spacing_xs"
                     android:checkable="true"
-                    android:contentDescription="@string/preview_compacter_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_compacter" />
+                    android:contentDescription="@string/preview_langue_cd"
+                    android:text="@string/preview_langue_defaut" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/bouton_police_apercu"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:checkable="true"
+                    android:contentDescription="@string/preview_police_cd"
+                    android:text="@string/preview_police_format" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/bouton_calques_apercu"
+                    style="@style/Widget.Material3.Chip.Assist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:contentDescription="@string/preview_calques_cd"
+                    android:text="@string/preview_calques" />
             </LinearLayout>
         </HorizontalScrollView>
 
@@ -137,7 +182,7 @@
 
             <!-- Barre d'édition (PE7d, miroir `.edit` de la maquette) :
                  annuler, rétablir | dupliquer, supprimer — en haut-centre,
-                 désactivée sans vue sélectionnée. -->
+                 DÉSACTIVÉE selon l'historique et la sélection (PE10c). -->
             <LinearLayout
                 android:id="@+id/barre_edition"
                 android:layout_width="wrap_content"
@@ -188,6 +233,43 @@
                     android:layout_height="40dp"
                     android:contentDescription="@string/preview_edition_supprimer_cd"
                     android:src="@drawable/ic_edition_supprimer" />
+            </LinearLayout>
+
+            <!-- La PASTILLE d'état (PE10a, miroir `.status` de la
+                 maquette) : point coloré + « Rendu · 142 ms · 9 vues ·
+                 393×851 dp » — une VUE de la couche HUD (elle glisse avec
+                 la feuille, jamais recouverte par le peek) ; elle QUITTE
+                 le Canvas du moteur (zéro-Material respecté). -->
+            <LinearLayout
+                android:id="@+id/pastille_etat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="@dimen/spacing_sm"
+                android:background="@drawable/fond_barre_edition"
+                android:elevation="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone">
+
+                <View
+                    android:id="@+id/pastille_point"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/fond_point_pastille" />
+
+                <TextView
+                    android:id="@+id/pastille_etat_texte"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:singleLine="true"
+                    android:textAppearance="@style/TextAppearance.CodeIDE.LabelMedium"
+                    android:textColor="?android:attr/textColorPrimary" />
             </LinearLayout>
 
             <!-- HUD de zoom (PE6b, miroir `.zoom` de la maquette) : colonne

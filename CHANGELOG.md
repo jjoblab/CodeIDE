@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.134.39] – 2026-10-17
+
+### Ajouté
+
+- **Previews — PE10, le retour propriétaire livré « d'un seul coup »**
+  (maquette `docs/mockups/apercu-xml.html`, 5 étapes + appbar + couches) :
+  - **PE10a — pastille d'état en vraie vue** : « Rendu · X ms · N vues ·
+    W×H dp » quitte le Canvas de `VuePreviewXml` (zéro-Material du moteur
+    retrouvé) et rejoint la couche HUD de l'activité (`pastille_etat`,
+    point `fond_point_pastille` teinté succès/ambre/erreur selon l'état) ;
+    elle GLISSE avec la feuille (`majGlissadeFeuille`, miroir `applySheet`)
+    — elle n'est plus jamais recouverte par le peek ;
+  - **PE10b — chips Material 3** : les 7 boutons Outlined de la rangée de
+    réglages deviennent 6 `Chip` (Assist Appareil ▾/Calques ▾, Filter
+    Portrait/Nuit/Langue/Police — l'état coché remplit le conteneur
+    primaire, miroir `aria-pressed` de la maquette) ;
+  - **PE10c — undo/redo réactifs** : le port `SourceApercu` expose
+    `peutAnnuler()/peutRetablir()` (pile réelle de la session via
+    `UndoManager`), `PreviewViewModel.historiqueEdition` le republie à
+    chaque mutation (undo/redo notifient les écouteurs) et
+    `majBarreEdition` pilote les QUATRE boutons (miroir `updateEditBar`) ;
+  - **PE10d/e — mode d'affichage Design/Plan/Les deux** :
+    `MaterialButtonToggleGroup` dans la toolbar, `ModeApercu` dans le
+    moteur — Plan dessine le SQUELETTE pointillé accent des vues rendues
+    (miroir `.screen.bp`), Les deux pose les DEUX planches côte à côte
+    (miroir `buildBoards`), le hit tap/drag se re-mappe sur la planche
+    design (`CalculsVuePreview.coordonneesPlanche`, miroir `toDesign`) ;
+  - **couches de la maquette** : l'écran rendu « flotte » sur le damier
+    (ombre 3 halos + liseré 1 px, miroir le box-shadow de `.screen`) ;
+  - **appbar compacte** : 52 dp, titre 14 sp, sous-titre 11 sp
+    (`TextAppearance.CodeIDE.PreviewTitre/PreviewSousTitre`) —
+    l'appbar était « trop grosse » face à la maquette.
+
+### Modifié
+
+- **Suppression de l'option « Compacter »** (PE9d retirée à la demande du
+  propriétaire) : la puce quitte la rangée de réglages, la clé
+  `preview_sheet_compact` quitte le `SettingsDataStore`/`AppSettings`,
+  la branche de compaction quitte l'activité — la feuille recouvre le
+  rendu au déploiement, comme la maquette (seuls le HUD de zoom et la
+  pastille d'état glissent au-dessus d'elle).
+
 ## [0.134.38] – 2026-10-16
 
 ### Ajouté

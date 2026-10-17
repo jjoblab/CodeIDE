@@ -9,6 +9,17 @@ import org.junit.Test
  */
 class CalculsVuePreviewTest {
     @Test
+    fun `coordonnees planche - les deux se remappent sur la planche design (PE10e)`() {
+        // Planche de 400 px + écart 40 : un point à x=500 (planche Plan)
+        // revient à x=60 sur la planche design (même arbre rendu).
+        assertEquals(60f to 25f, CalculsVuePreview.coordonneesPlanche(500f, 25f, 440f))
+        // Un point AVANT le décalage (planche Design) passe inchangé.
+        assertEquals(120f to 25f, CalculsVuePreview.coordonneesPlanche(120f, 25f, 440f))
+        // Décalage nul (mode à une planche) : aucune conversion.
+        assertEquals(500f to 25f, CalculsVuePreview.coordonneesPlanche(500f, 25f, 0f))
+    }
+
+    @Test
     fun `echelle ajustee - le contenu entier tient`() {
         // Contenu 1080×1920 dans une vue 540×800 : borné par la hauteur.
         val echelle = CalculsVuePreview.echelleAjustee(1080, 1920, 540, 800)
