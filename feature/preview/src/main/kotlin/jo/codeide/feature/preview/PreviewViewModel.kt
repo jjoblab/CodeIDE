@@ -147,6 +147,30 @@ public class PreviewViewModel
         /** Job du suivi projet (résolution FUSE suspendante — annulé au changement). */
         private var suiviProjet: kotlinx.coroutines.Job? = null
 
+        // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
+        // ⚠️ DÉCLARÉ AVANT le bloc init — CONTRAT d'ordre d'initialisation :
+        // `init { brancher(uriInitial) }` s'exécute AU CONSTRUCTEUR et
+        // écrit cet état via [delierSource]/[majHistorique] ; une
+        // déclaration placée APRÈS l'init valait null au premier appel
+        // (crash 0.134.39, rapport 9774dd61 : NPE sur setValue pendant
+        // <init> — l'aperçu ne s'ouvrait plus du tout).
+
+        /**
+         * L'état des piles d'annulation de la source branchée (PE10c —
+         * miroir `updateEditBar` de la maquette : les icônes
+         * annuler/rétablir se mettent à jour avec l'historique).
+         */
+        public data class HistoriqueEdition(
+            val peutAnnuler: Boolean,
+            val peutRetablir: Boolean,
+        )
+
+        /** L'état interne de l'historique (relu à chaque mutation). */
+        private val historiqueInterne = MutableStateFlow(HistoriqueEdition(false, false))
+
+        /** L'historique observables (la barre d'édition s'y aligne). */
+        public val historiqueEdition: StateFlow<HistoriqueEdition> = historiqueInterne.asStateFlow()
+
         init {
             brancher(uriInitial)
             viewModelScope.launch {
@@ -340,24 +364,6 @@ public class PreviewViewModel
                 reglagesDataStore.update { it.copy(apercuPaletteParPopup = parPopup) }
             }
         }
-
-        // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
-
-        /**
-         * L'état des piles d'annulation de la source branchée (PE10c —
-         * miroir `updateEditBar` de la maquette : les icônes
-         * annuler/rétablir se mettent à jour avec l'historique).
-         */
-        public data class HistoriqueEdition(
-            val peutAnnuler: Boolean,
-            val peutRetablir: Boolean,
-        )
-
-        /** L'état interne de l'historique (relu à chaque mutation). */
-        private val historiqueInterne = MutableStateFlow(HistoriqueEdition(false, false))
-
-        /** L'historique observables (la barre d'édition s'y aligne). */
-        public val historiqueEdition: StateFlow<HistoriqueEdition> = historiqueInterne.asStateFlow()
 
         /** Re-lit l'état des piles de la source (mutation, annulation, déliaison). */
         private fun majHistorique() {

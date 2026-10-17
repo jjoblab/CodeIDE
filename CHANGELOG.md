@@ -1,5 +1,24 @@
 # Journal des modifications
 
+## [0.134.40] – 2026-10-17
+
+### Corrigé
+
+- **Previews — crash bloquant à l'ouverture de l'aperçu (v0.134.39, rapport
+  9774dd61)** : `NullPointerException` sur `MutableStateFlow.setValue`
+  pendant `<init>` — `PreviewViewModel` exécute `init { brancher(uriInitial) }`
+  qui écrit l'état d'historique PE10c (`delierSource` → `majHistorique`) ;
+  `historiqueInterne` était déclarée APRÈS le bloc `init` et valait donc
+  `null` au premier appel (ordre d'initialisation Kotlin, de haut en bas).
+  Reproductible à CHAQUE ouverture de l'aperçu depuis l'éditeur — l'écran
+  entier était mort. Le correctif remonte la section PE10c
+  (`HistoriqueEdition` + les deux flows) AU-DESSUS de l'`init`, avec un
+  commentaire « CONTRAT d'ordre d'initialisation » qui verrouille la règle ;
+  un nouveau test Robolectric (`PreviewViewModelConstructionTest`) construit
+  le ViewModel par le MÊME chemin que Hilt (source au registre + registre
+  vide) — il reproduit le NPE exact du rapport (751 → 724 → 151) sans le
+  correctif et verrouille les deux voies du constructeur désormais.
+
 ## [0.134.39] – 2026-10-17
 
 ### Ajouté
