@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.134.44] – 2026-10-18
+
+### Modifié
+
+- **CONSOMMATION BINAIRE EN PREMIER (arbitrage propriétaire — mode
+  « 3 vitesses »)** : l'ordre de résolution des dépôts frères est
+  inversé —
+  - **binaire par défaut** : les coordonnées `com.github.jjoblab.*`
+    résolvent de `mavenLocal` (d'abord) puis GitHub Packages, MÊME quand
+    les checkouts frères traînent sur le disque — plus de configuration
+    des trois builds frères à chaque invocation ;
+  - **itération locale (~30 s)** : un frère modifié est republié via
+    `publishToMavenLocal` et consommé immédiatement (registre
+    `mavenLocal` filtré sur les trois groupes, déclaré en tête) —
+    sans attendre la CI ;
+  - **stabilisation (une commande)** : `scripts/bump-frere.sh
+    <tooling|lsp|layoutlib> [patch|minor|major]` — version suivante →
+    tag → CI publish.yml → vérification du registre
+    (`maven-metadata.xml`) → mise à jour de la ligne du catalogue
+    `gradle/libs.versions.toml` → push ;
+  - **composite en opt-in** : `-Pfreres.sources` (ou
+    `CODEIDE_FRERES_SOURCES=1`) avec les checkouts présents — réservé
+    à la chirurgie croisée multi-dépôts ;
+  - `app/build.gradle.kts` reflète la décision (miroir strict de
+    `settings.gradle.kts`) pour la double source du JAR orchestrateur.
+
+### Ajouté
+
+- **CI en binaire + garde-fou composite nocturne** : le job principal
+  ne clone plus les frères (secret `CODEIDE_PACKAGES_PAT` créé sur le
+  dépôt) ; un job `garde-fou-composite` (cron 03:00 UTC + dispatch)
+  clone les frères aux versions épinglées du catalogue et construit
+  avec `-Pfreres.sources` — les sources des 4 dépôts restent prouvées
+  assemblables.
+- Erreurs de configuration à trois options (jeton Packages,
+  `publishToMavenLocal`, composite opt-in) quand aucun chemin binaire
+  n'est disponible.
+
 ## [0.134.43] – 2026-10-17
 
 ### Ajouté
