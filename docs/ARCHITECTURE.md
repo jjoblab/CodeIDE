@@ -74,6 +74,9 @@ modules déplacés portent leur dépôt d'origine entre crochets.
 | `core:terminal-runtime` | Sessions shell réelles : registre global + service foreground (ADR 0035) |
 | `core:ui` | Thème Material 3, classes de base, composants réutilisables |
 | `core:testing` | Fakes et utilitaires de test (testImplementation seulement) |
+| `core:ai` | **Mission IA** — Kotlin JVM pur, `explicitApi()` : modèle IA (`AiMessage`, `AiEvent`, `ToolSpec`…), ports (`AiProvider`, `AiTool`, `ApprovalGate`), cas d'usage, assemblage du contexte, budget de jetons, boucle d'agent (ADR 0122) ; contenu au lot IA-1 |
+| `ai:providers` | **Mission IA** — Kotlin JVM pur : `AiHttpTransport` (HttpURLConnection, UNIQUE point de sortie réseau IA — ADR 0121), parseur SSE, adaptateurs Anthropic et « compatible OpenAI » (ADR 0123) ; transport au lot IA-1 |
+| `core:ai-storage` | **Mission IA** — `KeyVault` (Android Keystore, AES-256-GCM, blobs dans `noBackupFilesDir`, ADR 0124 §1) et `AiSettingsStore` (DataStore dédié) ; coffre au lot IA-2 |
 | `feature:onboarding` | Assistant de premier lancement |
 | `feature:home` | Liste des projets |
 | `feature:newproject` | Wizard de création de projet |
@@ -81,6 +84,7 @@ modules déplacés portent leur dépôt d'origine entre crochets.
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
 | `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) ; fragment Terminal du tiroir (rendu réel, split view — ADR 0053) |
+| `feature:ai` | **Mission IA** — tiroir IA (Chat / Agent / Historique), écrans Paramètres → IA, consentement, rendu Markdown ; EXCEPTION feature explicite `→ core:ai` (ADR 0122) ; fragment du tiroir au lot IA-3 |
 | `tooling:protocol` | **[codeide-tooling]** Protocole du tooling Gradle : framing, catalogue de messages JSON, fichiers dorés (ADR 0039) |
 | `tooling:api` | **[codeide-tooling]** Modèles partagés du tooling : lignes de sortie, états, tâches, diagnostics, projets + mappers protocol → api (ADR 0040) |
 | `tooling:server` | **[codeide-tooling]** Orchestrateur JVM du tooling : Tooling API, JAR unique exécutable embarqué dans les assets (ADR 0040) |
@@ -103,8 +107,11 @@ API prévue) et un `Module.md` (page Dokka).
 
 ## Règles de dépendance (section 5.2)
 
-> Permission : `INTERNET` depuis l'étape T3 (ADR 0034) — unique usage
-> réseau, l'installateur du bootstrap.
+> Permission : `INTERNET` depuis l'étape T3 (ADR 0034) — **deux usages**
+> réseau (ADR 0121) : l'installateur du bootstrap ; le fournisseur IA
+> choisi par l'utilisateur (BYOK, un seul point de sortie : `AiHttpTransport`).
+> Trafic en clair interdit par défaut (`network_security_config.xml`, IA-0) —
+> exception unique : boucle locale.
 
 Ces règles sont **vérifiées automatiquement** par la tâche Gradle
 `checkModuleDependencies` (plugin `codeide.module-rules` de `build-logic`) :
@@ -121,6 +128,10 @@ toute dépendance non autorisée **fait échouer le build**.
 | `feature:*` | `core:ui`, `core:domain`, `core:model` | `core:data`, sources de données, `core:crash`, `core:logging`, **autres features** |
 | `feature:terminal`, `feature:install` | `core:ui`, `core:domain`, `core:model`, `core:terminal-runtime` | — (exception v0.54.0, ADR 0083 : le journal live de l'installation est un mini TerminalView intégré) |
 | `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` (coordonnée codeide-lsp) | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
+| `core:ai` | `core:model`, `core:domain` | Android, réseau, tout autre module (module pur — ADR 0122) |
+| `ai:providers` | `core:ai`, `core:model`, `core:domain` | Android, bibliothèque réseau tierce (`HttpURLConnection` JDK — ADR 0123) |
+| `core:ai-storage` | `core:ai`, `core:model`, `core:domain`, `core:datastore` (+ `core:database` lot IA-6) | features, réseau, `core:ui` |
+| `feature:ai` | `core:ui`, `core:domain`, `core:model`, `core:ai` | — (exception IA-0, ADR 0122 : le tiroir IA consomme le domaine IA comme feature:terminal consomme le runtime des sessions ; JAMAIS `feature:editor` → `feature:ai` — l'éditeur passe par `PontIaEditeur`/`PortEditeurActif`) |
 | `tooling:protocol` | rien | tout module interne (pur JVM) |
 | `tooling:api` | `tooling:protocol` | autre chose (pur JVM) |
 | `tooling:server` | `tooling:protocol`, `tooling:api` | Android, domaine (pur JVM, ADR 0040) |

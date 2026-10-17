@@ -144,6 +144,79 @@ class LogRedactorTest {
         assertEquals("(content://auth/h-${hacher("/tree/x1")})", epure)
     }
 
+    // ----- Secrets (IA-0, ADR 0124 §3) ------------------------------------
+
+    @Test
+    fun `masque une clé sk de 30 caractères (critère d'acceptation IA-0)`() {
+        val cle = "sk-" + "aB3xY9zQ1mNoPqRsTuVwXyZ0123456" // sk- + 30 caractères
+
+        assertEquals("clé : <secret>", LogRedactor.redact("clé : $cle"))
+    }
+
+    @Test
+    fun `masque un en-tête Authorization Bearer (schéma et jeton ensemble)`() {
+        assertEquals(
+            "échec : <secret>",
+            LogRedactor.redact("échec : Authorization: Bearer sk-abcdefghij0123456789"),
+        )
+    }
+
+    @Test
+    fun `masque x-api-key avec deux-points ou signe égal`() {
+        assertEquals("t1 <secret>", LogRedactor.redact("t1 x-api-key: sk-abcdefghij0123456789"))
+        assertEquals("t2 <secret> quelconque", LogRedactor.redact("t2 X-API-KEY = valeur quelconque"))
+    }
+
+    @Test
+    fun `masque une clé Google AIza`() {
+        assertEquals(
+            "quota : <secret>",
+            LogRedactor.redact("quota : AIza0123456789abcdefghijklmnopqr"),
+        )
+    }
+
+    @Test
+    fun `un Bearer isolé hors en-tête est masqué`() {
+        assertEquals("req <secret> refusée", LogRedactor.redact("req Bearer abcdef123456 refusée"))
+    }
+
+    @Test
+    fun `l'expurgation des secrets est idempotente`() {
+        val epure = LogRedactor.redact("Authorization: Bearer sk-abcdefghij0123456789")
+
+        assertEquals(epure, LogRedactor.redact(epure))
+    }
+
+    @Test
+    fun `les faux positifs survivent — identifiants Gradle, urls, versions`() {
+        val message =
+            "réindexation : com.github.jjoblab.codeide-lsp:host-1.0.2 " +
+                "https://maven.pkg.github.com tag v1.0.2 résolu"
+
+        assertEquals(message, LogRedactor.redact(message))
+    }
+
+    @Test
+    fun `un fragment de clé trop court n'est pas masqué comme sk`() {
+        // 16 caractères requis après « sk- » : un identifiant court légitime survit.
+        assertEquals("id sk-1234 conservé", LogRedactor.redact("id sk-1234 conservé"))
+    }
+
+    @Test
+    fun `redactTransportIa masque le jeton générique de 32 caractères et plus`() {
+        val jeton = "aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789" // 36 caractères
+
+        assertEquals("session <secret> close", LogRedactor.redactTransportIa("session $jeton close"))
+    }
+
+    @Test
+    fun `redactTransportIa laisse intact un identifiant de 31 caractères`() {
+        val identifiant = "aBcDeFgHiJkLmNoPqRsTuVwXyZ01234" // 31 caractères : sous le seuil
+
+        // Les empreintes courtes légitimes survivent au filtre renforcé.
+        assertEquals("empreinte $identifiant ok", LogRedactor.redactTransportIa("empreinte $identifiant ok"))
+    }
+
     /** Hachage de référence recalculé selon le même algorithme SHA-256 tronqué.
      * Le reste haché commence par le « / » séparateur de l'autorité. */
     private fun hacher(reste: String): String =

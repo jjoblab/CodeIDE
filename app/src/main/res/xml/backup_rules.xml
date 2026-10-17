@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Règles de sauvegarde (API ≤ 30, lot IA-0, ADR 0124 §2) — miroir exact
+  de data_extraction_rules.xml : le coffre de clés et les réglages IA
+  restent locaux. La sauvegarde automatique Android reste active pour le
+  reste de l'application (préférences de réglages non sensibles).
+-->
+<full-backup-content>
+    <exclude domain="root" path="no_backup" />
+    <exclude domain="file" path="no_backup" />
+    <exclude domain="file" path="datastore/ai_settings.preferences_pb" />
+</full-backup-content>

@@ -15,6 +15,14 @@ import java.security.MessageDigest
  *   indistinguablement masquées ;
  * - les chemins absolus et les URI `file://` → `<chemin>`.
  *
+ * Motifs de SECRETS (IA-0, ADR 0124 §3) — ajoutés **avant** que la moindre
+ * donnée IA ne transite par le dépôt : clés `sk-…` (fournisseurs), jetons
+ * Google `AIza…`, en-têtes `Authorization`/`Bearer`/`x-api-key` → `<secret>`.
+ * Le motif **générique** de long jeton (32 caractères et plus) n'est PAS
+ * appliqué ici — il n'irait que dans [redactTransportIa], réservé aux
+ * messages issus du transport IA : l'appliquer globalement déformerait des
+ * identifiants légitimes (hachages `/h-…`, notations Gradle).
+ *
  * L'expurgation est appliquée **à l'écriture** (pipeline de journalisation),
  * pas seulement à l'export : ce qui est sur disque est déjà propre. Elle est
  * idempotente — réexpurger un texte déjà masqué ne le déforme pas (le
@@ -28,6 +36,7 @@ import java.security.MessageDigest
 public object LogRedactor {
     private const val MASK_COURRIEL = "<courriel>"
     private const val MASK_CHEMIN = "<chemin>"
+    private const val MASK_SECRET = "<secret>"
     private const val PREFIXE_HACHE = "/h-"
 
     /** Nombre de caractères hexadécimaux de l'identifiant haché. */
@@ -50,6 +59,34 @@ public object LogRedactor {
     /** Trace d'une URI `content://` déjà expurgée (idempotence). */
     private val regexHachage = Regex("""/h-[0-9a-f]{$TAILLE_HACHAGE}""")
 
+    // ----- Secrets (ADR 0124 §3) ------------------------------------------
+
+    /**
+     * En-tête `Authorization` : schéma + identifiant (« Bearer xyz »,
+     * « Basic xyz »…) masqués ensemble — masquer seulement le schéma
+     * laisserait deviner le type de jeton.
+     */
+    private val regexAuthorization = Regex("""\bAuthorization\s*[:=]\s*\S+(\s+\S+)?""", RegexOption.IGNORE_CASE)
+
+    /** Jeton `Bearer` hors en-tête `Authorization` (déjà masqué par le motif ci-dessus). */
+    private val regexBearer = Regex("""\bBearer\s+\S+""", RegexOption.IGNORE_CASE)
+
+    /** Clé Anthropic en en-tête ou paramètre (`x-api-key: …`). */
+    private val regexCleApi = Regex("""\bx-api-key\s*[:=]\s*\S+""", RegexOption.IGNORE_CASE)
+
+    /** Clés de fournisseurs « sk- » (OpenAI, Anthropic, agrégateurs…). */
+    private val regexCleSk = Regex("""\bsk-[A-Za-z0-9_-]{16,}""")
+
+    /** Clés Google/AI Studio (`AIza…`, 20 caractères et plus). */
+    private val regexCleAiza = Regex("""\bAIza[0-9A-Za-z_-]{20,}""")
+
+    /**
+     * Jeton générique (32 caractères et plus) — UNIQUEMENT dans
+     * [redactTransportIa], jamais dans [redact] : un filtre global
+     * déformerait identifiants Gradle, empreintes et hachages légitimes.
+     */
+    private val regexLongJeton = Regex("""\b[A-Za-z0-9_-]{32,}\b""")
+
     /**
      * Expurge un texte en une passe.
      *
@@ -63,6 +100,24 @@ public object LogRedactor {
             .replace(regexUriContenu) { correspondance -> epurerUriContenu(correspondance) }
             .replace(regexUriFichier) { "file://$MASK_CHEMIN" }
             .replace(regexCheminAbsolu, MASK_CHEMIN)
+            .replace(regexAuthorization, MASK_SECRET)
+            .replace(regexBearer, MASK_SECRET)
+            .replace(regexCleApi, MASK_SECRET)
+            .replace(regexCleSk, MASK_SECRET)
+            .replace(regexCleAiza, MASK_SECRET)
+
+    /**
+     * Expurgation RENFORCÉE pour les messages issus du transport IA
+     * (ADR 0124 §3) : [redact] PUIS le motif générique de long jeton —
+     * un fragment de clé tronqué, un identifiant de session fournisseur
+     * ou tout autre jeton opaque est masqué par prudence. Le transport
+     * journalise de toute façon méthode/hôte/statut/durée — jamais
+     * en-têtes ni corps ; cette fonction est le second filet.
+     *
+     * @param text message produit par `AiHttpTransport` (hors en-têtes
+     * et corps, qui ne sont jamais journalisés).
+     */
+    public fun redactTransportIa(text: String): String = redact(text).replace(regexLongJeton, MASK_SECRET)
 
     /**
      * Remplace une URI `content://` par sa forme autorité + identifiant

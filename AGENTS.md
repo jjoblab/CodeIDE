@@ -29,7 +29,12 @@ l'utilisateur à chaque fin d'étape (« GO étape N+1 »).
 - Langues de l'interface : français (`values/`, défaut) + anglais (`values-en/`).
 - Stockage des projets : SAF (URI, jamais `File`) — ADR 0003.
 - SemVer : `0.N.0` par étape validée, `0.N.M` par correction.
-- Aucune permission `INTERNET` ni `MANAGE_EXTERNAL_STORAGE` en Phase 1.
+- Permission `INTERNET` : **deux usages réseau** (ADR 0121, étend ADR 0034) —
+  l'installateur du bootstrap ; le fournisseur IA choisi par l'utilisateur
+  (BYOK, un seul point de sortie : `AiHttpTransport`, `:ai:providers`).
+  Trafic en clair interdit par défaut (`network_security_config.xml`, IA-0) —
+  exception unique : boucle locale. Stockage partagé OPT-IN (ADR 0047) ;
+  aucune autre permission.
 
 ## Identité Git (règle permanente — v0.34.2)
 
@@ -128,6 +133,24 @@ Tableau des dépendances autorisées : `docs/ARCHITECTURE.md`. Patron de
 présentation : MVVM + flux unidirectionnel (UiState/Action/Effect via
 StateFlow/Channel). Navigation inter-features via `AppNavigator` (interface
 dans `core:ui`, implémentée dans `app`).
+
+## Mission IA (arbitrage du 2026-10-17 — ADR 0121 à 0126 acceptées)
+
+Assistant « apporte ta clé » (BYOK) : chat contextuel, édition assistée,
+agent sous contrôle (ADR 0125). **Document opérationnel :
+`docs/IA_PLAN_EXECUTION.md`** (lots IA-0 → IA-9, règles, critères,
+gabarit de rapport) — lire aussi `docs/IA_REVUE_DEPOT.md`,
+`docs/IA_SPEC_ECRANS.md` et la maquette `docs/mockups/ia/ia-ecrans.html`.
+
+Modules dédiés (ADR 0122) : `core:ai` (JVM pur), `ai:providers`
+(JVM pur, UNIQUE point de sortie réseau IA), `core:ai-storage`
+(Keystore/DataStore), `feature:ai` (tiroir, exception explicite →
+`core:ai`). L'éditeur ne les voit JAMAIS directement : contrats
+`PontIaEditeur`/`FabriqueFragmentIaTiroir`/`ControleurIaTiroir`
+(`core:ui`) et `PortEditeurActif` + `RegistrePortEditeurActif`
+(`core:domain`). Garde-fous IA-0 : sauvegarde exclue pour les réglages IA
+(`data_extraction_rules.xml`/`backup_rules.xml`), `LogRedactor` masque
+toute clé (`<secret>`), IA désactivée par défaut (opt-in, consentement).
 
 ## Chaîne de build (vérifiée — voir ADR 0007 et docs/ENVIRONNEMENT.md)
 

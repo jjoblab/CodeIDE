@@ -1,12 +1,12 @@
 # CodeIDE — Roadmap
 
 > Dernière mise à jour : 2026-10-18
-> Version courante : **0.134.44** (source de vérité : `version.properties`)
+> Version courante : **0.135.0** (source de vérité : `version.properties`)
 > Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.134.44)
+## État actuel (v0.135.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -20,9 +20,13 @@
 - **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports
 - **Git** : socle livré — moteur CLI (ADR 0092, G0 v0.70.0), clonage depuis l'accueil (ADR 0101, v0.80.x), initialisation, détection de dépôt
 - **Recherche/paramètres/explorateur** : Material You + paramètres deux niveaux (ADR 0059/0064), explorateur v2 (ADR 0052), recherche/remplacement dans l'éditeur (B10)
+- **Mission IA — garde-fous** (IA-0, v0.135.0, ADR 0121–0126 acceptées) : `network_security_config.xml` (https obligatoire, boucle locale seule exception), sauvegarde gouvernée (`data_extraction_rules.xml`/`backup_rules.xml`), `LogRedactor` masque les clés (`<secret>`), 4 modules IA échafaudés, contrats d'accroche (`PontIaEditeur`, `PortEditeurActif`)
 
 ### Problèmes connus ❌
-- **Chantier IA (lot IA-0)** — quatre points bloquants identifiés par `docs/IA_REVUE_DEPOT.md` : permission `INTERNET` à justifier par ADR (0121), sauvegarde automatique non maîtrisée (pas de `dataExtractionRules`), `LogRedactor` sans motif de clé/jeton, absence de coffre de secrets (Keystore)
+- (aucun ouvert — les quatre bloquants IA identifiés par `docs/IA_REVUE_DEPOT.md`
+  sont traités au lot IA-0 : ADR 0121 acceptée, sauvegarde gouvernée par
+  `data_extraction_rules.xml`/`backup_rules.xml`, `LogRedactor` masque les
+  clés, coffre de clés prévu au lot IA-2)
 - Recherche globale multi-fichiers : spec prête (`docs/RECHERCHE.md`, ADR 0094), onglet réservé dans le tiroir — livraison après la mission IA
 
 ---
@@ -335,7 +339,7 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 
 | Lot | Version | Titre | Statut |
 |---|---|---|---|
-| IA-0 | 0.135.0 | Préalables et garde-fous (réseau explicite, sauvegarde, `LogRedactor`, 4 modules vides) | ⬜ |
+| IA-0 | 0.135.0 | Préalables et garde-fous (réseau explicite, sauvegarde, `LogRedactor`, 4 modules vides) | ✅ v0.135.0 |
 | IA-1 | 0.136.0 | Domaine IA et fournisseurs (Anthropic + compatible OpenAI, streaming testé) | ⬜ |
 | IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ⬜ |
 | IA-3 | 0.138.0 | Chat dans le tiroir (streaming, Markdown) | ⬜ |
@@ -358,5 +362,5 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
 | R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
-| **IA — Assistant BYOK** | **PROCHAINE** (ADR 0121–0126 à accepter) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| **IA — Assistant BYOK** | **EN COURS** — IA-0 livré v0.135.0 (ADR 0121–0126 acceptées) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
 | 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |
