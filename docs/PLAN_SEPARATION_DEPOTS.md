@@ -1,10 +1,9 @@
 # Plan de séparation des dépôts (lsp, tooling) — publication AAR/JAR
 
-Statut : **PLAN préparé, NON exécuté** — v0.134.40, 2026-10-17.
-Exécution reportée à la décision du propriétaire, quand les frontières
-sont stables (critères de GO en §7). Ce document répond aux trois
-questions posées : quoi vérifier sans gaspillage (voir AGENTS.md §7.1),
-comment séparer, et historique git vs ré-création (§6).
+Statut : **EN EXÉCUTION** — Phase 0 + Phase 1 (codeide-tooling) FAITES le
+2026-10-17, journal en §8. Ce document répond aux trois questions posées :
+quoi vérifier sans gaspillage (voir AGENTS.md §7.1), comment séparer, et
+historique git vs ré-création (§6).
 
 ## 1. Objectif et périmètre
 
@@ -204,3 +203,61 @@ Estimation honnête, un domaine à la fois :
   consommable par la CI CodeIDE ;
 - fenêtre sans chantier en vol (l'extraction touche settings.gradle.kts
   + CI — c'est un chantier « chaîne racine » au sens AGENTS.md §7).
+
+## 8. Journal d'exécution (2026-10-17)
+
+### Phase 0 — audit de frontière (conclusions)
+
+- `tooling:client` et `tooling:daemon` dépendent de **`:core:domain`**
+  (et `:core:testing` en test) → ils ne peuvent pas être extraits tant
+  que les modules `core:*` ne sont pas publiés en binaire. **Ils
+  restent dans CodeIDE** — leur historique vit déjà dans le dépôt
+  tooling filtré, leur retour futur se fera par restauration de
+  chemins.
+- `lsp:model` dépend de **`:tooling:protocol`** → l'extraction lsp
+  exige que protocol soit publié en binaire AVANT.
+- `protocol`, `api`, `server`, `testing` : **zéro dépendance hors
+  tooling** — extraction immédiate possible.
+- lsp (8 modules) : **aucune dépendance `core:*`** — frontière propre,
+  extraction possible dès protocol publié.
+- `.gh-token` : absent de l'historique (vérifié).
+
+Séquencement CORRIGÉ (remplace « lsp d'abord » de §3) : **tooling JVM
+pur d'abord** (le plus simple) → publication protocol/api → bascule
+CodeIDE → **lsp** (consommera le binaire protocol).
+
+### Phase 1 — codeide-tooling : FAIT
+
+- Dépôts **jjoblab/codeide-tooling** et **jjoblab/codeide-lsp** créés
+  via API (publics, auto_init=false, descriptions FR) — le PAT du
+  propriétaire suffit, aucune action manuelle requise.
+- Clone neuf de CodeIDE → `git filter-repo` multi-chemins (tooling/,
+  build-logic/, gradle/, fichiers racine de build) → **315 commits
+  conservés** sur 475. La mécanique D2 (filter-repo, historique
+  conservé) est donc VALIDÉE en conditions réelles.
+- 4 commits d'adaptation : settings tooling-only (retrait du bloc
+  LayoutLib composite et des dépôts app), retrait client/daemon
+  (restent dans CodeIDE), config detekt partagée importée,
+  config/signature retirée (JVM pur), README + CHANGELOG 1.0.0 +
+  workflow CI JVM (JDK 21, sans SDK Android).
+- Versionnement indépendant : **1.0.0** (VERSION_CODE 10000).
+- Push : 319 commits sur `main`.
+- Vérification locale (dépôt autonome, JAVA_HOME 21, tas borné) :
+  spotless + detekt + checkModuleDependencies verts ; **146 tests, 0
+  échec** ; `gradle-server.jar` **7,7 Mo** reconstruit.
+- Leçon mémoire : le démon Gradle peut mourir en chaîne unique sur
+  cette machine — découper en étapes (spotless/detekt → test →
+  shadowJar), comme pour CodeIDE.
+
+### Reste à faire
+
+1. CI du nouveau dépôt à confirmer verte (workflow JVM en place).
+2. Publication : `maven-publish` (protocol/api JAR, server shadowJar
+   classifier) + workflow Packages (tag → release, dispatch →
+   SNAPSHOT) + secret PAT.
+3. Bascule CodeIDE (chantier « chaîne racine ») : client/daemon passent
+   sur les binaires protocol/api ; le jar server consommé depuis la
+   publication ; mode composite `tooling.dir` en dev (miroir
+   layoutLib.dir).
+4. Extraction lsp (consommera protocol en binaire) — Phase 0 lsp déjà
+   verte (aucune dépendance core).
