@@ -13,7 +13,10 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import jo.codeide.feature.preview.databinding.ItemPuceCategorieBinding
+import jo.codeide.feature.preview.databinding.ItemSousTitrePaletteBinding
 import jo.codeide.feature.preview.databinding.ItemTuilePaletteBinding
+import jo.codeide.feature.preview.databinding.ItemVidePaletteBinding
 import jo.codeide.feature.preview.databinding.PopoverPaletteBinding
 import jo.codeide.preview.xml.CataloguePalette
 
@@ -188,25 +191,19 @@ public class PalettePopover(
         remplirGrille()
     }
 
-    /** Les puces de catégories (« Tous » + les 6 du catalogue). */
+    /** Les puces de catégories (« Tous » + les 6 du catalogue) — item
+     * layout réel (item_puce_categorie.xml), la sélection reste
+     * `isSelected` posé par [majPucesCategories]. */
     private fun construireCategories() {
         val categories = listOf(CataloguePalette.TOUTES) + CataloguePalette.CATEGORIES
         categories.forEach { nom ->
-            val puce =
-                MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                    text = nom
-                    isAllCaps = false
-                    minWidth = 0
-                    insetLeft = 0
-                    insetRight = 0
-                    setPadding(dp(10), dp(7), dp(10), dp(7))
-                    setOnClickListener {
-                        definirCategorie(nom)
-                        auCategorie?.invoke(nom)
-                    }
-                }
-            liaison.rangeeCategories.addView(puce)
-            (puce.layoutParams as? MarginLayoutParams)?.marginEnd = dp(6)
+            val puce = ItemPuceCategorieBinding.inflate(LayoutInflater.from(context), liaison.rangeeCategories, false)
+            puce.puceCategorie.text = nom
+            puce.puceCategorie.setOnClickListener {
+                definirCategorie(nom)
+                auCategorie?.invoke(nom)
+            }
+            liaison.rangeeCategories.addView(puce.puceCategorie)
         }
         majPucesCategories()
     }
@@ -240,8 +237,6 @@ public class PalettePopover(
         liste.forEach { items.add(ItemTuile.Tuile(it)) }
         adaptateur.submitList(items)
     }
-
-    private fun dp(valeur: Int): Int = (valeur * resources.displayMetrics.density).toInt()
 
     private companion object {
         /** Colonnes de la grille (miroir `repeat(3, …)` de `.tiles`). */
@@ -290,23 +285,15 @@ public class TuilesPaletteAdapter(
         val gonfleur = LayoutInflater.from(parent.context)
         return when (viewType) {
             TYPE_SOUS_TITRE -> {
-                val texte = android.widget.TextView(parent.context)
-                texte.setPadding(dp(parent, 2), dp(parent, 4), dp(parent, 2), dp(parent, 4))
-                texte.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelSmall)
-                texte.setTextColor(
-                    androidx.core.content.ContextCompat.getColor(
-                        parent.context,
-                        com.google.android.material.R.color.material_on_surface_emphasis_medium,
-                    ),
-                )
-                object : RecyclerView.ViewHolder(texte) {}
+                object : RecyclerView.ViewHolder(
+                    ItemSousTitrePaletteBinding.inflate(gonfleur, parent, false).sousTitrePalette,
+                ) {}
             }
 
             TYPE_VIDE -> {
-                val texte = android.widget.TextView(parent.context)
-                texte.setPadding(dp(parent, 2), dp(parent, 8), dp(parent, 2), dp(parent, 8))
-                texte.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
-                object : RecyclerView.ViewHolder(texte) {}
+                object : RecyclerView.ViewHolder(
+                    ItemVidePaletteBinding.inflate(gonfleur, parent, false).messageVidePalette,
+                ) {}
             }
 
             else -> {
@@ -428,11 +415,6 @@ public class TuilesPaletteAdapter(
             nouvelle: ItemTuile,
         ): Boolean = ancienne == nouvelle
     }
-
-    private fun dp(
-        parent: ViewGroup,
-        valeur: Int,
-    ): Int = (valeur * parent.resources.displayMetrics.density).toInt()
 
     private companion object {
         private const val TYPE_SOUS_TITRE: Int = 0
