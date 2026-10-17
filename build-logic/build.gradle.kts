@@ -34,10 +34,6 @@ gradlePlugin {
             id = "codeide.module-rules"
             implementationClass = "jo.codeide.buildlogic.ModuleRulesPlugin"
         }
-        register("toolingServer") {
-            id = "codeide.tooling.server"
-            implementationClass = "jo.codeide.buildlogic.ToolingServerConventionPlugin"
-        }
     }
 }
 
@@ -49,5 +45,4 @@ dependencies {
     compileOnly(libs.detekt.gradlePlugin)
     compileOnly(libs.spotless.gradlePlugin)
     compileOnly(libs.kover.gradlePlugin)
-    compileOnly(libs.shadow.gradlePlugin)
 }

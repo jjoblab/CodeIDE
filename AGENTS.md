@@ -210,6 +210,13 @@ source scripts/env.sh                      # JAVA_HOME, ANDROID_HOME, PATH
 # diff de baseline fait partie de la revue (VENDOR.md) ; un push sans
 # régénération fait échouer la CI sur PariteCorpusDepotTest (constat
 # v0.121.0 : XE5 a ajouté 50 fichiers, digeste divergé, build rouge).
+#
+# BASCULE 2026-10-17 (séparation des dépôts, docs/PLAN_SEPARATION_DEPOTS.md
+# §9) : la suite de parité vivait dans :lsp:kotlin — le module a rejoint le
+# dépôt séparé jjoblab/codeide-lsp. DANS CE DÉPÔT, il n'y a plus AUCUN test
+# de parité : la règle « parité EN DERNIER » s'applique désormais dans
+# codeide-lsp (y lancer ./gradlew :lsp:kotlin:test -Dparite.majBase=true).
+# Les edits .kt de CodeIDE n'exigent plus de régénération locale.
 ./gradlew spotlessApply                    # formatage avant commit
 scripts/bump-version.sh minor|patch        # incrémente la version
                                             # (patch = correction après retour utilisateur)
@@ -395,7 +402,7 @@ doute → §7 (chaîne racine).
 | Ressources seules (xml/layout/drawable, pas de .kt) | `:mod:lintDebug` + tests UI du module si concernés |
 | `build.gradle.kts`, catalogue de versions, dépendances, plugins, CI | §7 — chaîne RACINE complète |
 | Release, multi-modules, refactor transversal | §7 — chaîne RACINE complète |
-| TOUT edit `.kt` (dans tous les cas) | parité EN DERNIER `./gradlew :lsp:kotlin:test -Dparite.majBase=true` + revue du diff (une ligne) — jamais avant le dernier edit |
+| TOUT edit `.kt` (dans tous les cas) | parité EN DERNIER + revue du diff (une ligne) — DEPUIS la bascule 2026-10-17, ce rituel vit dans le dépôt codeide-lsp (`:lsp:kotlin`) : CodeIDE n'a plus de baseline de parité à régénérer |
 
 Précédent fondateur : v0.134.40 (hotfix NPE de l'aperçu, rapport
 9774dd61) — chaîne ciblée :feature:preview + `checkModuleDependencies`
