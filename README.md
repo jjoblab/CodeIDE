@@ -72,23 +72,35 @@ Jetpack Compose (ADR 0002). Langues : français (défaut) + anglais.
 Chaque étape validée produit dans `dist/` une archive complète, l'APK debug et les
 empreintes SHA-256 (`scripts/package.sh`), vérifiées par `scripts/verify-archive.sh`.
 
-## Dépôts frères : mode composite ou binaire
+## Dépôts frères : binaire en premier, composite en opt-in
 
 Trois dépendances vivent dans des dépôts séparés : [`jjoblab/LayoutLib`](https://github.com/jjoblab/LayoutLib)
 (moteur de rendu des previews XML), [`jjoblab/codeide-tooling`](https://github.com/jjoblab/codeide-tooling)
 (protocol/api/server/testing du tooling Gradle) et [`jjoblab/codeide-lsp`](https://github.com/jjoblab/codeide-lsp)
-(moteurs Java/Kotlin/XML + hôte LSP). Le build choisit automatiquement :
+(moteurs Java/Kotlin/XML + hôte LSP). Le mode par défaut est **BINAIRE**
+(arbitrage du 2026-10-18) — trois vitesses :
 
-- **Mode composite (défaut)** : si les checkouts frères sont présents à côté du
-  clone (`../LayoutLib`, `../codeide-tooling`, `../codeide-lsp`), ils sont
-  intégrés en SOURCE par build composite (substitution des coordonnées) —
-  itération instantanée sur les trois dépôts, aucun jeton requis.
-- **Mode binaire (fallback)** : sans frères, les coordonnées
-  `com.github.jjoblab.*` résolvent depuis **GitHub Packages** (LayoutLib 3.4.7,
-  tooling et lsp 1.0.0). GitHub Packages exige une authentification même pour
-  un paquet public : fournir un PAT `read:packages` via la variable
+- **Binaire (défaut)** : les coordonnées `com.github.jjoblab.*` résolvent
+  de `~/.m2` (d'abord) puis de **GitHub Packages** (LayoutLib 3.4.7,
+  tooling et lsp 1.0.0). GitHub Packages exige une authentification même
+  pour un paquet public : fournir un PAT `read:packages` via
   `CODEIDE_PACKAGES_PAT` ou la propriété Gradle `github.packages.pat`.
-  Sans frères ET sans jeton, la configuration échoue avec un message explicite.
+  Sans jeton, des artefacts déjà publiés en local suffisent ; sans jeton
+  ET sans artefacts locaux, la configuration échoue avec un message à
+  trois options.
+- **Itération (~30 s, sans CI)** : un frère modifié est republié en
+  local — `publishToMavenLocal` dans le dépôt frère — et consommé
+  immédiatement par CodeIDE (registre `mavenLocal` filtré sur les trois
+  groupes).
+- **Stabilisation (une commande)** : `scripts/bump-frere.sh
+  <tooling|lsp|layoutlib> [patch|minor|major]` — version suivante → tag
+  → la CI du frère publie → vérification du registre → ligne
+  `gradle/libs.versions.toml` mise à jour → push.
+- **Composite (opt-in)** : `-Pfreres.sources` (ou
+  `CODEIDE_FRERES_SOURCES=1`) avec les checkouts présents à côté du
+  clone — réservé aux sessions de chirurgie croisée multi-dépôts. La CI
+  nocturne (`garde-fou-composite`) prouve en continu que ce chemin
+  source reste assemblable.
 
 ## Licence
 

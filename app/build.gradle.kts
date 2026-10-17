@@ -106,16 +106,18 @@ dependencies {
 // Tooling Gradle (G2, §4.7 du prompt Tooling) : le JAR orchestrateur est un
 // ARTEFACT DE BUILD — il vit dans le dépôt séparé jjoblab/codeide-tooling
 // depuis la bascule du 2026-10-17 (docs/PLAN_SEPARATION_DEPOTS.md §9).
-// Deux sources selon le MODE résolu par settings.gradle.kts :
-//  - COMPOSITE (frère présent) : tâche inter-builds — le shadowJar du
-//    build inclus est construit puis recopié vers assets/tooling
-//    (répertoire gitignoré, régénéré à chaque build) ;
-//  - BINAIRE (frère absent, jeton Packages fourni) : la coordonnée
+// Deux sources selon le MODE résolu par settings.gradle.kts (arbitrage
+// du 2026-10-18 : BINAIRE PAR DÉFAUT) :
+//  - BINAIRE (défaut) : la coordonnée
 //    com.github.jjoblab.codeide-tooling:server résout le JAR orchestrateur
 //    PUBLIÉ (composant shadow = gradle-server.jar, artefact principal
-//    « -all » du registre) et la copie le renomme. Pas de dépendance de
-//    module : l'app ne consomme le tooling que via l'interface du domaine
-//    (règle §2.2).
+//    « -all » de mavenLocal ou du registre Packages) et la copie le
+//    renomme. Pas de dépendance de module : l'app ne consomme le tooling
+//    que via l'interface du domaine (règle §2.2) ;
+//  - COMPOSITE (opt-in `freres.sources`, checkout frère présent) : tâche
+//    inter-builds — le shadowJar du build inclus est construit puis
+//    recopié vers assets/tooling (répertoire gitignoré, régénéré à
+//    chaque build).
 // ---------------------------------------------------------------------------
 // Même résolution que settings.gradle.kts (propriété tooling.dir → env
 // CODEIDE_TOOLING_DIR → défaut ../codeide-tooling).
@@ -126,7 +128,15 @@ val dossierTooling: File =
         .orElse(rootDir.resolve("../codeide-tooling"))
         .get()
 
-if (dossierTooling.resolve("settings.gradle.kts").isFile) {
+// MIROIR STRICT de la décision de settings.gradle.kts : composite
+// seulement sur opt-in `freres.sources` (ou CODEIDE_FRERES_SOURCES) ET
+// avec le checkout frère présent — sinon binaire. Les deux fichiers
+// doivent rester alignés, faute de quoi includedBuild lève en binaire.
+val modeSources: Boolean =
+    providers.gradleProperty("freres.sources").isPresent ||
+        providers.environmentVariable("CODEIDE_FRERES_SOURCES").isPresent
+
+if (modeSources && dossierTooling.resolve("settings.gradle.kts").isFile) {
     tasks.register<Copy>("copierJarServeurAssets") {
         group = "build"
         description =
@@ -136,11 +146,12 @@ if (dossierTooling.resolve("settings.gradle.kts").isFile) {
         dependsOn(gradle.includedBuild("codeide-tooling").task(":tooling:server:shadowJar"))
     }
 } else {
-    // Mode binaire : configuration de COPIE dédiée (non transitive — le
-    // JAR shadow est autosuffisant), résolue depuis GitHub Packages par le
-    // registre configuré dans settings.gradle.kts.
+    // Mode binaire (défaut) : configuration de COPIE dédiée (non
+    // transitive — le JAR shadow est autosuffisant), résolue par le
+    // chemin binaire de settings.gradle.kts (mavenLocal d'abord —
+    // publishToMavenLocal du frère — puis GitHub Packages).
     val configurationJarServeur = configurations.create("jarServeurAssets") {
-        description = "JAR orchestrateur du tooling (mode binaire — GitHub Packages)."
+        description = "JAR orchestrateur du tooling (mode binaire — mavenLocal ou Packages)."
         isTransitive = false
         isCanBeConsumed = false
         isCanBeResolved = true
@@ -151,7 +162,7 @@ if (dossierTooling.resolve("settings.gradle.kts").isFile) {
     tasks.register<Copy>("copierJarServeurAssets") {
         group = "build"
         description =
-            "Recopie le JAR orchestrateur (résolu du registre Packages) vers les assets (§4.7 du prompt Tooling)."
+            "Recopie le JAR orchestrateur (résolu du chemin binaire mavenLocal/Packages) vers les assets (§4.7 du prompt Tooling)."
         from(configurationJarServeur)
         into(rootProject.file("app/src/main/assets/tooling"))
         rename { "gradle-server.jar" }

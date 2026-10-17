@@ -385,3 +385,26 @@ Suivis (non bloquants, à arbitrer plus tard) :
 - CI CodeIDE inchangée : elle clonne les frères (composite, sans jeton) ;
   le mode binaire sert les builds autonomes (contribuuteur, autre
   machine) documentés dans README « Dépôts frères ».
+
+**Arbitrage FINAL (18/10, avec le propriétaire) — BINAIRE EN PREMIER :**
+- ordre de résolution INVERSÉ (v0.134.44) : binaire par défaut —
+  `mavenLocal` d'abord (filtré strictement sur les trois groupes frères)
+  puis GitHub Packages — même quand les checkouts frères sont clonés ;
+  le composite ne reste qu'un opt-in `-Pfreres.sources` /
+  `CODEIDE_FRERES_SOURCES` (chirurgie croisée multi-dépôts) ;
+- trois vitesses : `publishToMavenLocal` du frère (itération ~30 s,
+  sans CI) ; `scripts/bump-frere.sh <tooling|lsp|layoutlib>
+  [patch|minor|major]` (stabilisation — version suivante → tag → CI
+  publish.yml → registre vérifié via maven-metadata.xml → ligne
+  catalogue `gradle/libs.versions.toml` mise à jour → push) ; composite
+  opt-in (debug multi-repos) ;
+- CI CodeIDE en binaire : plus AUCUN clone frère — le secret
+  `CODEIDE_PACKAGES_PAT` (créé le 18/10) alimente les registres ;
+  garde-fou composite nocturne (job `garde-fou-composite`, 03:00 UTC,
+  clones aux versions épinglées du catalogue + `-Pfreres.sources`) —
+  les sources restent prouvées assemblables ;
+- erreurs de configuration explicites à TROIS options (jeton,
+  publishToMavenLocal, composite opt-in) quand aucun chemin binaire
+  n'est disponible ;
+- `app/build.gradle.kts` reflète la décision en miroir strict de
+  `settings.gradle.kts` (double source du JAR orchestrateur).

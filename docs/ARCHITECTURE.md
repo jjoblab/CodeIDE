@@ -19,9 +19,15 @@ Depuis la bascule v0.134.41, l'écosystème est réparti sur **trois dépôts**
 - **CodeIDE** (ce dépôt) : l'application, `tooling:client` et
   `tooling:daemon`.
 
-En développement, les modules externes sont branchés par **composite
-build** (`tooling.dir` / `lsp.dir`, miroir LayoutLib) ; en binaire, ils
-arrivent par les coordonnées Maven (`libs.tooling.*`, `libs.lsp.host`).
+Depuis le 2026-10-18 (v0.134.44), le défaut est la **consommation
+binaire** : coordonnées Maven (`libs.tooling.*`, `libs.lsp.host`)
+résolues de `mavenLocal` puis GitHub Packages — un frère modifié est
+republié (`publishToMavenLocal` pour itérer, `scripts/bump-frere.sh`
+pour stabiliser le tag et le catalogue). Le **composite build**
+(`tooling.dir` / `lsp.dir` / `layoutLib.dir`, opt-in `-Pfreres.sources`)
+reste disponible pour la chirurgie croisée multi-dépôts, et la CI
+nocturne (`garde-fou-composite`) prouve que les sources des 4 dépôts
+s'assemblent toujours.
 Les tableaux ci-dessous décrivent l'ensemble de l'écosystème — les
 modules déplacés portent leur dépôt d'origine entre crochets.
 
