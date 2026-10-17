@@ -52,4 +52,19 @@
         <item name="android:minHeight">@dimen/touch_target_min</item>
     </style>
 
+    <!-- Appbar COMPACTE de l'aperçu XML (PE10, miroir `.ttl` de la
+         maquette : le fichier en 13 px gras, le sous-titre en 11 px) —
+         la toolbar passe de TitleLarge (22 sp) à 14 sp + 11 sp. -->
+    <style name="TextAppearance.CodeIDE.PreviewTitre" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.CodeIDE.PreviewSousTitre" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
 </resources>

@@ -63,6 +63,17 @@ public interface SourceApercu {
     /** Rétablit la dernière édition annulée (`false` = rien à rétablir). */
     public fun retablir(): Boolean
 
+    /**
+     * L'historique porte au moins UNE édition annulable (PE10c — miroir
+     * `updateEditBar` de la maquette : les icônes annuler/rétablir se
+     * désactivent quand la pile est épuisée). `false` = épuisé ou
+     * indisponible.
+     */
+    public fun peutAnnuler(): Boolean
+
+    /** Au moins une édition annulée reste rétablissable (PE10c). */
+    public fun peutRetablir(): Boolean
+
     /** Enregistre un écouteur de mutation (frappes, éditions de la palette) — le moteur de l'aperçu se re-soumet. */
     public fun ajouterEcouteur(ecouteur: EcouteurMutation)
 

@@ -6,10 +6,4 @@
     <string name="preview_accueil">Ouvrez un layout XML pour voir son aperçu</string>
     <string name="preview_en_edition">XML en cours de frappe — dernier rendu conservé</string>
 
-    <!-- PE6a : pastille d\'état du rendu (durée, nombre de vues) —
-         données déjà là, jamais affichées (maquette § « Constat »). -->
-    <plurals name="preview_pastille_vues">
-        <item quantity="one">%1$d vue · %2$d ms</item>
-        <item quantity="other">%1$d vues · %2$d ms</item>
-    </plurals>
 </resources>

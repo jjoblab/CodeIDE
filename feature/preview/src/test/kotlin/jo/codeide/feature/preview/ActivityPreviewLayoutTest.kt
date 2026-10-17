@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.appbar.MaterialToolbar
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,8 +44,12 @@ class ActivityPreviewLayoutTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_nuit_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_langue_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_calques_apercu))
-        // PE9d : la puce « Compacter l'aperçu » (option persistée).
-        assertNotNull(racine.findViewById<View>(R.id.bouton_compacter_apercu))
+        // PE10 : l'option « Compacter » QUITTE la rangée (décision
+        // propriétaire) ; la pastille d'état rejoint la couche HUD
+        // (l'id bouton_compacter_apercu n'existe plus).
+        assertNotNull(racine.findViewById<View>(R.id.pastille_etat))
+        assertNotNull(racine.findViewById<View>(R.id.pastille_point))
+        assertNotNull(racine.findViewById<View>(R.id.pastille_etat_texte))
         assertNotNull(racine.findViewById<View>(R.id.conteneur_rendu))
         // PE6d : le conteneur de la feuille inférieure (BottomSheet).
         assertNotNull(racine.findViewById<View>(R.id.conteneur_feuille))
@@ -60,10 +65,25 @@ class ActivityPreviewLayoutTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_arriere))
         // Les puces à menu portent le caret (miroir `.caret` de la maquette).
         val appareil =
-            racine.findViewById<com.google.android.material.button.MaterialButton>(
+            racine.findViewById<com.google.android.material.chip.Chip>(
                 R.id.bouton_appareil_apercu,
             )
         assertTrue("la puce Appareil annonce le menu déroulant", appareil.text.contains("▾"))
+    }
+
+    @Test
+    fun `la pastille segmented Design Plan Les deux se gonfle (PE10de)`() {
+        val racine = gonfler()
+        val groupe =
+            racine.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(
+                R.id.groupe_mode_apercu,
+            )
+        assertNotNull(groupe)
+        assertNotNull(racine.findViewById<View>(R.id.mode_design))
+        assertNotNull(racine.findViewById<View>(R.id.mode_plan))
+        assertNotNull(racine.findViewById<View>(R.id.mode_les_deux))
+        // Design est le mode par défaut (miroir `S.mode = 'design'`).
+        assertEquals(R.id.mode_design, groupe.checkedButtonId)
     }
 
     @Test

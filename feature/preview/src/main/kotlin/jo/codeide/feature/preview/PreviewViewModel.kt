@@ -290,13 +290,12 @@ public class PreviewViewModel
 
         // ── PE7c : réglages persistés (bulle, mode), récents, placement ──
 
-        /** Les réglages persistés de l'aperçu (bulle, mode, compaction). */
+        /** Les réglages persistés de l'aperçu (bulle, mode). */
         public data class ReglagesApercu(
             val bulleFixe: Boolean,
             val bulleADroite: Boolean,
             val bulleY: Float,
             val paletteParPopup: Boolean,
-            val compacterApercu: Boolean = false,
         )
 
         /** L'état courant des réglages (lu depuis le DataStore). */
@@ -342,11 +341,33 @@ public class PreviewViewModel
             }
         }
 
-        /** L'option « compacter l'aperçu » a basculé (persistance immédiate). */
-        public fun poserCompacterApercu(valeur: Boolean) {
-            viewModelScope.launch {
-                reglagesDataStore.update { it.copy(apercuCompacterApercu = valeur) }
-            }
+        // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
+
+        /**
+         * L'état des piles d'annulation de la source branchée (PE10c —
+         * miroir `updateEditBar` de la maquette : les icônes
+         * annuler/rétablir se mettent à jour avec l'historique).
+         */
+        public data class HistoriqueEdition(
+            val peutAnnuler: Boolean,
+            val peutRetablir: Boolean,
+        )
+
+        /** L'état interne de l'historique (relu à chaque mutation). */
+        private val historiqueInterne = MutableStateFlow(HistoriqueEdition(false, false))
+
+        /** L'historique observables (la barre d'édition s'y aligne). */
+        public val historiqueEdition: StateFlow<HistoriqueEdition> = historiqueInterne.asStateFlow()
+
+        /** Re-lit l'état des piles de la source (mutation, annulation, déliaison). */
+        private fun majHistorique() {
+            val sourceBranchee = source
+            historiqueInterne.value =
+                if (sourceBranchee == null) {
+                    HistoriqueEdition(false, false)
+                } else {
+                    HistoriqueEdition(sourceBranchee.peutAnnuler(), sourceBranchee.peutRetablir())
+                }
         }
 
         /**
@@ -638,10 +659,18 @@ public class PreviewViewModel
         }
 
         /** Annule la DERNIÈRE édition (port — l'historique reste celui de l'éditeur). */
-        public fun annuler(): Boolean = source?.annuler() ?: false
+        public fun annuler(): Boolean {
+            val ok = source?.annuler() ?: false
+            majHistorique()
+            return ok
+        }
 
         /** Rétablit la dernière édition annulée (port). */
-        public fun retablir(): Boolean = source?.retablir() ?: false
+        public fun retablir(): Boolean {
+            val ok = source?.retablir() ?: false
+            majHistorique()
+            return ok
+        }
 
         /**
          * Le CORPS commun des éditions PE7d : la vue sélectionnée doit
@@ -695,10 +724,14 @@ public class PreviewViewModel
             delierSource()
             source = nouvelleSource
             uriCourante = uri
+            majHistorique()
             val ecouteurNouveau =
                 SourceApercu.EcouteurMutation {
                     // Fournisseur paresseux : le texte n'est tiré qu'après debounce.
                     moteur.soumettre { nouvelleSource.texte() }
+                    // PE10c : toute mutation (frappe, édition de la palette,
+                    // annulation) met la barre d'édition à jour.
+                    majHistorique()
                 }
             ecouteur = ecouteurNouveau
             nouvelleSource.ajouterEcouteur(ecouteurNouveau)
@@ -715,6 +748,7 @@ public class PreviewViewModel
                 ancienne.retirerEcouteur(ancienEcouteur)
             }
             ecouteur = null
+            historiqueInterne.value = HistoriqueEdition(false, false)
         }
 
         /**

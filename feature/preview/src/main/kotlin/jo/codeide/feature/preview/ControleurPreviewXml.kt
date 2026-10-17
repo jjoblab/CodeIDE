@@ -143,13 +143,12 @@ public class ControleurPreviewXml(
         when (etat) {
             is EtatPreviewXml.RenduValide -> {
                 // PE6a : la vue reçoit la densité du PROFIL (px → dp pour
-                // les libellés des calques) + les métriques de la pastille.
+                // les libellés des calques). PE10a : durée et vues partent
+                // à la PASTILLE-VUE du chrome (l'activité collecte l'état).
                 vue.afficherRendu(
                     bitmap = etat.bitmap,
                     vuesRendues = etat.vues,
                     densiteDpiProfil = moteur.profil.densiteDpi,
-                    dureeRenduMs = etat.dureeMs,
-                    nbVues = etat.nombreVues,
                 )
                 // PE6c : règles de problèmes (fonctions pures) évaluées
                 // à chaque rendu valide — la vue en tire ses pastilles.

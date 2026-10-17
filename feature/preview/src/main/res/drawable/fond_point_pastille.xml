@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le POINT d'état de la pastille de rendu (PE10a, miroir `.status
+     .dot` de la maquette) : un simple disque — la couleur (vert rendu
+     OK, ambre frappe en cours, rouge erreur) suit en backgroundTintList. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#2E7D32" />
+    <size
+        android:width="8dp"
+        android:height="8dp" />
+</shape>
