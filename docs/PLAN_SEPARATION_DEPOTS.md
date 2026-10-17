@@ -251,13 +251,73 @@ CodeIDE → **lsp** (consommera le binaire protocol).
 
 ### Reste à faire
 
-1. CI du nouveau dépôt à confirmer verte (workflow JVM en place).
-2. Publication : `maven-publish` (protocol/api JAR, server shadowJar
-   classifier) + workflow Packages (tag → release, dispatch →
-   SNAPSHOT) + secret PAT.
-3. Bascule CodeIDE (chantier « chaîne racine ») : client/daemon passent
-   sur les binaires protocol/api ; le jar server consommé depuis la
-   publication ; mode composite `tooling.dir` en dev (miroir
-   layoutLib.dir).
-4. Extraction lsp (consommera protocol en binaire) — Phase 0 lsp déjà
-   verte (aucune dépendance core).
+**Tout est livré** (extraction tooling + lsp, publication configurée,
+CI en place) — il ne reste que LA BASCULE de CodeIDE : recette complète
+en §9, à exécuter avec le propriétaire.
+
+### Phase 1 — codeide-lsp : FAIT (nuit du 17/10, hors monitoring propriétaire)
+
+Suite à la directive « fais toutes les séparations, sauf le branchement
+à CodeIDE » — tout ce qui suit est ADDITIF (nouveaux dépôts), CodeIDE
+restant inchangé côté code.
+
+- Extraction : clone neuf → filter-repo multi-chemins (lsp/,
+  build-logic/, gradle/, config/detekt/, docs/adr/, docs LSP,
+  THIRD_PARTY_NOTICES, fichiers racine de build) → **339 commits
+  conservés** + 2 commits d'adaptation = 341 pushés.
+- Adaptations : settings lsp-only (8 modules ; JitPack conservé pour
+  cel-lsp/:lsp:host, cache-redirector JetBrains conservé pour
+  syntax-api/:lsp:kotlin) ; **:lsp:model → coordonnées externes
+  `com.github.jjoblab.codeide-tooling:protocol:1.0.0`** avec composite
+  `tooling.dir` en dev (miroir LayoutLib, GradleException explicite) ;
+  version 1.0.0 ; baseline de parité régénérée pour le corpus du
+  nouveau dépôt (1022 → 208 fichiers, diff = 1 ligne, rituel relu).
+- Vérification locale INTÉGRALE (étapes séparées, démon OOM écarté) :
+  spotless + detekt + checkModuleDependencies verts ; **1527 tests, 0
+  échec** (model/index/xml 336, kotlin 176 dont parité, java+host+testing
+  1015) ; koverVerify + lintDebug verts ; assembleRelease —
+  `host-release.aar` + jars des 8 modules construits.
+- CI complète en place (miroir CodeIDE sans l'app : clone frère
+  codeide-tooling hors workspace, SDK, chaîne spotless→koverVerify +
+  assembleRelease). Publication du dépôt : différée (coordonnées
+  com.github.jjoblab.codeide-lsp:*), quand stabilisé.
+- Enseignement : `:lsp:java` est un `java-library` PUR (android.jar en
+  dépendance, ADR 0112) — pas de variante debug ; ses tests = `test`,
+  ceux de :lsp:host = `testDebugUnitTest`. `koverVerify` racine est ce
+  qui tire les tests des modules JVM dans la chaîne CI.
+
+### Publication codeide-tooling : CONFIGURÉE (nuit du 17/10)
+
+- `maven-publish` sur les 4 modules ; coordonnées convention JitPack
+  multi-modules `com.github.jjoblab.codeide-tooling:<module>` — la
+  consommation composite (dev) et binaire (Packages/JitPack) partage
+  les MÊMES coordonnées ; `server` publie le composant SHADOW
+  (gradle-server.jar).
+- Workflow `publish.yml` : tag `v*` → `./gradlew publish` avec le
+  GITHUB_TOKEN du dépôt (packages:write) — AUCUN secret à créer.
+  **Vérifié** : `publishToMavenLocal` vert, 4 artefacts en 1.0.0.
+- CI verte sur les deux pushes (runs 9cef4633, 8b19f8c3).
+- Pour publier PLUS TARD (décision propriétaire, dépôt stable) :
+  `git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0` — le
+  workflow fait le reste.
+
+## 9. LA SEULE ÉTAPE RESTANTE : la bascule de CodeIDE (à faire AVEC le propriétaire)
+
+Tout le reste est livré et poussé ; CodeIDE n'a PAS été modifié
+(volontairement — voir §8). La bascule est un chantier « chaîne
+RACINE » (settings.gradle.kts + deps modifiés) :
+
+1. `:tooling:protocol`/`:tooling:api` consommés par :tooling:client et
+   :tooling:daemon → coordonnées `com.github.jjoblab.codeide-tooling:protocol/api`
+   (composite `tooling.dir` en dev d'abord, binaire ensuite) ;
+2. le `gradle-server.jar` des assets → consommé de la publication (ou
+   copie depuis le composite) ;
+3. retrait des chemins `tooling/{protocol,api,server,testing}` +
+   `include(...)` correspondants de settings.gradle.kts ;
+4. `:lsp:*` idem vers `codeide-lsp` (composite `lsp.dir` en dev d'abord) ;
+5. **baseline parité CodeIDE à régénérer** (le corpus .kt du dépôt
+   principal rétrécit) + `checkModuleDependencies` : graphes des deux
+   dépôts externes ;
+6. chaîne RACINE verte → bump → push → CI surveillée (§7).
+   Pré-requis de publication binaire : tag v1.0.0 des dépôts neufs
+   (workflow publish) + PAT read:packages côté CI CodeIDE.
