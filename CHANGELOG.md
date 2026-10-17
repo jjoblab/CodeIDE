@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.134.41] – 2026-10-17
+
+### Modifié
+
+- **Séparation des dépôts — BASCULE (docs/PLAN_SEPARATION_DEPOTS.md §9,
+  chantier RACINE avec le propriétaire)** : CodeIDE consomme désormais les
+  deux dépôts séparés créés la veille —
+  - `:tooling:{protocol,api,server,testing}` → coordonnées externes
+    `com.github.jjoblab.codeide-tooling:*` (tag v1.0.0), intégrés en
+    SOURCE par build composite en dev (miroir exact du mécanisme
+    LayoutLib : propriété `tooling.dir` → env `CODEIDE_TOOLING_DIR` →
+    défaut `../codeide-tooling`) ; le JAR orchestrateur des assets est
+    recopié du shadowJar du frère par les tâches inter-builds
+    `copierJarServeurAssets`/`controlerJarServeur` (branchées sur
+    `preBuild` de l'app — l'artefact reste un build, jamais une source) ;
+  - les 8 modules `:lsp:*` → coordonnées externes
+    `com.github.jjoblab.codeide-lsp:*` (tag v1.0.0), composite en dev
+    (`lsp.dir` → env `CODEIDE_LSP_DIR` → défaut `../codeide-lsp`) ; l'app
+    et `:feature:editor` ne voient que `:lsp:host`, inchangé côté code ;
+  - 52k lignes quittent le dépôt (lsp + tooling JVM) ; `:tooling:client`
+    et `:tooling:daemon` RESTENT ici (liés à :core:domain, audit de
+    frontière §8) et passent en coordonnées externes ;
+  - convention plugin `codeide.tooling.server` retiré (dead code — le
+    shadowJar vit dans le dépôt tooling) ; entrée shadow des catalogues
+    retirée ; config detekt du serveur partie avec lui ;
+  - **plus aucun test de parité dans CodeIDE** — la suite vivait dans
+    `:lsp:kotlin`, elle est désormais la responsabilité du dépôt
+    codeide-lsp (AGENTS.md §7.1 mis à jour) ;
+  - CI : les deux frères sont clonés en source, tag v1.0.0 épinglé
+    (même mécanique que LayoutLib).
+- Chaîne RACINE locale intégrale verte (spotless, detekt,
+  checkModuleDependencies, testDebugUnitTest, koverVerify, lintDebug) +
+  sonde de substitution (`:feature:editor:compileDebugKotlin` sur le
+  frère lsp) + validation du câblage JAR (`:app:controlerJarServeur`).
+
 ## [0.134.40] – 2026-10-17
 
 ### Corrigé

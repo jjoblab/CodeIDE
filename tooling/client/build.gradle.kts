@@ -18,9 +18,13 @@ dependencies {
     // messages de l'orchestrateur vers ces modèles.
     api(project(":core:domain"))
 
-    // Protocole (framing, messages) et modèles partagés du tooling.
-    api(project(":tooling:protocol"))
-    api(project(":tooling:api"))
+    // Protocole (framing, messages) et modèles partagés du tooling —
+    // dépôt séparé jjoblab/codeide-tooling (bascule 2026-10-17, plan §9) :
+    // en dev, ces coordonnées sont SUBSTITUÉES par le build composite
+    // frère (settings.gradle.kts racine) ; en binaire, résolues depuis
+    // GitHub Packages/JitPack (même coordonnées dans les deux modes).
+    api(libs.tooling.protocol)
+    api(libs.tooling.api)
 
     // Tests : session factice (§7.3 — SocketClient fake), temps virtuel.
     testImplementation(libs.junit4)

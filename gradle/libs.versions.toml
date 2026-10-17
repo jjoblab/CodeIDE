@@ -123,10 +123,9 @@ dokka = "2.2.0"
 # gradle-tooling-api 9.7.1 = dernière stable, ALIGNÉE sur le Gradle du wrapper —
 # les métadonnées Maven Central de cette coordonnée sont périmées (7.3-snapshot
 # de 2021) : le dépôt de référence est repo.gradle.org/gradle/libs-releases,
-# ajouté à settings.gradle.kts. shadow 9.6.1 = successeur maintenu de
-# johnrengelman (fin de vie), vérifié sur le portail de plugins Gradle.
+# ajouté à settings.gradle.kts. (Le plugin shadow est parti avec
+# codeide-tooling — bascule 2026-10-17 : il vit dans le catalogue de ce dépôt.)
 gradle-tooling-api = "9.7.1"
-shadow = "9.6.1"
 
 # Divers.
 javax-inject = "1"
@@ -141,6 +140,17 @@ javax-inject = "1"
 # ConstraintLayout) ; la substitution ignore la version déclarée — la mise
 # à jour = bump ici + ref du clonage CI.
 layoutlib = "3.4.7"
+
+# Dépôts séparés (bascule 2026-10-17, PLAN_SEPARATION_DEPOTS.md §9) :
+# protocol/api/server/testing (codeide-tooling) et les 8 modules lsp
+# (codeide-lsp) consommés en coordonnées externes — intégrés en SOURCE
+# par build composite en dev (substitution, settings.gradle.kts),
+# binaires (GitHub Packages puis JitPack) ensuite. Version = PIN
+# INFORMATIF du ref git attendu (tag v1.0.0 des dépôts neufs) ; la
+# substitution ignore la version déclarée — la mise à jour = bump ici +
+# ref du clonage CI.
+codeide-tooling = "1.0.0"
+codeide-lsp = "1.0.0"
 
 # Interface ViewBinding pour core:ui (même version que l'AGP, vérifié sur Google Maven ;
 # AGP l'ajoute automatiquement aux modules qui activent viewBinding, core:ui la déclare explicitement).
@@ -247,6 +257,13 @@ kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-
 # transitent par les api(project(...)) du build inclus).
 layoutlib-inflater = { group = "com.github.jjoblab.LayoutLib", name = "module-inflater", version.ref = "layoutlib" }
 
+# Dépôts séparés (bascule 2026-10-17) — voir la section versions.
+tooling-protocol = { group = "com.github.jjoblab.codeide-tooling", name = "protocol", version.ref = "codeide-tooling" }
+tooling-api = { group = "com.github.jjoblab.codeide-tooling", name = "api", version.ref = "codeide-tooling" }
+tooling-server = { group = "com.github.jjoblab.codeide-tooling", name = "server", version.ref = "codeide-tooling" }
+tooling-testing = { group = "com.github.jjoblab.codeide-tooling", name = "testing", version.ref = "codeide-tooling" }
+lsp-host = { group = "com.github.jjoblab.codeide-lsp", name = "host", version.ref = "codeide-lsp" }
+
 # Tests unitaires JVM.
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "androidx-test-core" }
@@ -265,7 +282,6 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

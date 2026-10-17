@@ -52,6 +52,25 @@ jobs:
           git clone --depth 1 --branch v3.4.7 \
             https://github.com/jjoblab/LayoutLib.git ../LayoutLib
 
+      # Dépôts séparés (bascule 2026-10-17, docs/PLAN_SEPARATION_DEPOTS.md
+      # §9) : codeide-tooling (protocol/api/server/testing consommés par
+      # tooling:client/daemon + JAR orchestrateur des assets — tâche
+      # copierJarServeurAssets) et codeide-lsp (les 8 modules :lsp:*,
+      # l'app et feature:editor ne voient que :lsp:host). Intégrés en
+      # SOURCE par build composite (substitution dans settings.gradle.kts),
+      # clonés dans les frères attendus, tag v1.0.0 épinglé — même
+      # mécanique que LayoutLib ci-dessus. Dépôts PUBLICS : clonage
+      # anonyme.
+      - name: Récupérer codeide-tooling (build composite, tag v1.0.0)
+        run: |
+          git clone --depth 1 --branch v1.0.0 \
+            https://github.com/jjoblab/codeide-tooling.git ../codeide-tooling
+
+      - name: Récupérer codeide-lsp (build composite, tag v1.0.0)
+        run: |
+          git clone --depth 1 --branch v1.0.0 \
+            https://github.com/jjoblab/codeide-lsp.git ../codeide-lsp
+
       - name: JDK 21 (Temurin)
         uses: actions/setup-java@v4
         with:
