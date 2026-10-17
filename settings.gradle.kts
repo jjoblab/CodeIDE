@@ -182,7 +182,7 @@ if (modeSources && dossierLayoutLib.resolve("settings.gradle.kts").isFile) {
 }
 
 // Tooling Gradle (dépôt jjoblab/codeide-tooling — bascule du 2026-10-17,
-// docs/archive/docs/archive/PLAN_SEPARATION_DEPOTS.md §9) : protocol, api, server et testing
+// docs/archive/PLAN_SEPARATION_DEPOTS.md §9) : protocol, api, server et testing
 // consommés en COORDONNÉES EXTERNES com.github.jjoblab.codeide-tooling:*
 // (publication Packages v1.0.0, workflow publish.yml) — miroir exact du
 // mécanisme LayoutLib ci-dessus. MODE BINAIRE PAR DÉFAUT (arbitrage du
@@ -285,9 +285,15 @@ include(":core:domain")
 // Kotlin JVM PUR — les adaptateurs des ressources réelles vivront en
 // étape C (feature:editor) et D (tooling).
 include(":core:session")
+// Mission IA (ADR 0122) : domaine IA — Kotlin JVM PUR, explicitApi ; les
+// livrables (AiMessage, ports AiProvider, cas d'usage) arrivent au lot IA-1.
+include(":core:ai")
 include(":core:data")
 include(":core:database")
 include(":core:datastore")
+// Mission IA (ADR 0122) : stockage IA — KeyVault (Keystore) et
+// AiSettingsStore (DataStore dédié), lot IA-2 (ADR 0124 §1).
+include(":core:ai-storage")
 include(":core:storage")
 include(":core:logging")
 include(":core:crash")
@@ -315,6 +321,15 @@ include(":feature:terminal")
 // terminal (AppNavigator.openPreview, session partagée par le port
 // SourceApercu de :core:domain).
 include(":feature:preview")
+// Mission IA (ADR 0122) : tiroir IA (Chat/Agent/Historique), écrans
+// Paramètres → IA, consentement — exception feature explicite :feature:ai
+// → :core:ai. Échafaudage IA-0 ; fragment du tiroir au lot IA-3.
+include(":feature:ai")
+
+// Mission IA (ADR 0122/0123) : transport IA — Kotlin JVM PUR, UNIQUE
+// point de sortie réseau IA (AiHttpTransport, HttpURLConnection) ;
+// adaptateurs Anthropic et « compatible OpenAI » au lot IA-1.
+include(":ai:providers")
 
 // Outils (hors application — étape 9, ADR 0019 : harnais de vérification).
 include(":tools:generateur")

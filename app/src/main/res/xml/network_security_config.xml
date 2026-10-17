@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuration réseau explicite (lot IA-0, ADR 0121 point 6).
+
+  - base-config : trafic en clair INTERDIT partout (https obligatoire
+    pour tout fournisseur IA distant ; le bootstrap et la résolution
+    Maven joignent déjà leurs services en https).
+  - Exception unique et explicite : la boucle locale (localhost,
+    127.0.0.1) — un serveur compatible OpenAI servi SUR l'appareil
+    (environnement PRoot) est un fournisseur comme un autre (ADR 0121
+    point 5). Les domaines sont listés sans sous-domaines : un hôte du
+    réseau local doit être joint en https.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

@@ -1,6 +1,6 @@
 # ADR 0125 — IA : agent, outils, approbations et réversibilité
 
-- **Statut** : proposé
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0122, 0123, 0124. **S'appuie sur** : historique local (ADR 0104-0106,

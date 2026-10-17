@@ -1,26 +1,69 @@
 # Journal des modifications
 
-## [Non publié]
+## [0.135.0] – 2026-10-18
 
-### Documentation (pas de changement de code — version inchangée)
+### Mission IA — lot IA-0 « Préalables et garde-fous » (ADR 0121–0126 acceptées)
 
-- **Archivage** : plans et rapports achevés déplacés dans `docs/archive/`
-  (index et justification dans `docs/archive/README.md`) —
-  `PLAN_SEPARATION_DEPOTS.md` (séparation terminée : 18 paquets, binaire par
-  défaut), `PLAN_STABILISATION_LSP.md` (stabilisation achevée, moteurs dans
-  `codeide-lsp`), `PLAN_PROCHAINES_ETAPES.md` (supplanté par `ROADMAP.md`),
-  `docs/audit/` (5 rapports de phase) et `docs/tooling-scenarios/` (le
-  générateur `scripts/scenarios-tooling.sh` écrit désormais dans l'archive).
-  Les références vivantes (AGENTS, ARCHITECTURE, sources, scripts) sont
-  repointées ; les mentions historiques (CHANGELOG, ADR, maquettes) restent
-  inchangées.
-- **Mission IA intégrée** : ADR 0121–0126 (statut « proposé »),
-  `docs/IA_PLAN_EXECUTION.md`, `docs/IA_REVUE_DEPOT.md`,
-  `docs/IA_SPEC_ECRANS.md`, maquette `docs/mockups/ia/ia-ecrans.html`.
-- **Mise à jour honnête** : `README.md` (état réel v0.134.44 au lieu de
-  « étape 11, v0.12.0 » ; versions des frères à jour : tooling 1.0.0,
-  lsp 1.0.2), `docs/ROADMAP.md` (état actuel réel, statuts Phase 6
-  différenciés, phase IA ajoutée, priorisation actualisée).
+### Ajouté
+
+- **ADR 0121–0126 passées en « accepté »** (GO du propriétaire,
+  2026-10-18) : périmètre réseau/BYOK, architecture des modules,
+  fournisseurs/streaming, secrets/confidentialité, agent/approbations,
+  intégration éditeur.
+- **Garde-fous réseau (ADR 0121 point 6)** :
+  `app/src/main/res/xml/network_security_config.xml` — trafic en clair
+  interdit par défaut, exception `domain-config` limitée à la boucle
+  locale (`localhost`, `127.0.0.1`) ; référence
+  `android:networkSecurityConfig` dans le manifeste. Le commentaire de
+  permission du manifeste et `AGENTS.md` documentent les **deux usages**
+  réseau (bootstrap ADR 0034 ; fournisseur IA BYOK).
+- **Garde-fous de sauvegarde (ADR 0124 §2)** :
+  `data_extraction_rules.xml` (API 31+, cloud + transfert d'appareil) et
+  `backup_rules.xml` (API ≤ 30) excluant le répertoire `no_backup` et le
+  futur DataStore des réglages IA (`ai_settings.preferences_pb`, nom
+  contractuel) ; manifeste : `android:allowBackup="true"` gouverné par
+  ces règles + `android:dataExtractionRules` + `android:fullBackupContent`.
+- **Quatre modules IA (ADR 0122)**, échafaudage vide compilable :
+  - `:core:ai` — Kotlin JVM pur, `explicitApi()`, Kover ≥ 80 % ; domaine
+    IA (livrables IA-1) ;
+  - `:ai:providers` — Kotlin JVM pur, Kover ≥ 80 % ; UNIQUE point de
+    sortie réseau IA (livrables IA-1) ;
+  - `:core:ai-storage` — bibliothèque Android ; KeyVault + réglages IA
+    (lot IA-2) ;
+  - `:feature:ai` — feature Android ; tiroir IA (lot IA-3), exception
+    explicite `→ :core:ai`.
+  Règles ajoutées au `ModuleRulesPlugin` et vérifiées par
+  `checkModuleDependencies` (test négatif consigné : ajouter volontairement
+  `:feature:editor → :feature:ai` fait ÉCHOUER la tâche) ; includes dans
+  `settings.gradle.kts` ; `README.md` + `Module.md` par module.
+- **Contrats d'accroche (ADR 0122)** : `core:ui` —
+  `FabriqueFragmentIaTiroir` (miroir ADR 0053), `ControleurIaTiroir`,
+  `PontIaEditeur` (KDoc complet, implémentations aux lots IA-3/IA-5) ;
+  `core:domain` — port `PortEditeurActif` (fichier actif, sélection,
+  diagnostics, révision, remplacement ATOMIQUE un pas d'annulation),
+  types `SelectionEditeur`/`DiagnosticEditeur`/`GraviteDiagnostic`,
+  registre singleton `RegistrePortEditeurActif` (+ tests, esprit
+  `RegistreSourcesApercu`).
+- `AGENTS.md` : section « Mission IA » (document opérationnel, modules,
+  contrats, garde-fous).
+
+### Modifié
+
+- **`LogRedactor` (ADR 0124 §3)** : cinq motifs de secrets masqués →
+  `<secret>` — en-têtes `Authorization` (schéma+jeton ensemble),
+  `Bearer` isolé, `x-api-key`, clés `sk-…` (16+ caractères), clés
+  `AIza…` (20+) ; nouvelle fonction `redactTransportIa()` qui ajoute le
+  motif générique de long jeton (32+, UNIQUEMENT pour les messages du
+  transport IA — le filtre global déformerait identifiants Gradle et
+  empreintes). Tests : un cas par motif, idempotence, faux positifs
+  (hachages protégés, notations Gradle, fragments courts), critère
+  d'acceptation IA-0 (`sk-` + 30 caractères masqué).
+- **Docs** (chantier précédent, livré avec ce lot) : archivage des plans
+  et rapports achevés dans `docs/archive/` (index justifié) ; mission IA
+  intégrée (ADR 0121–0126, plan d'exécution, revue du dépôt, spec
+  d'écrans, maquette) ; `README.md`/`docs/ROADMAP.md` ramenés à l'état
+  réel ; `docs/ARCHITECTURE.md` (4 modules IA + règles + deux usages
+  réseau) ; références vivantes repointées.
 
 ## [0.134.44] – 2026-10-18
 

@@ -1,6 +1,6 @@
 # ADR 0126 — IA : intégration à l'éditeur et à l'interface
 
-- **Statut** : proposé
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0122 (modules), 0125 (agent). **S'appuie sur** : ADR 0052/0053 (tiroir à

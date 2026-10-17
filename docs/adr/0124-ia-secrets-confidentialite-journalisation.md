@@ -1,6 +1,6 @@
 # ADR 0124 — IA : clés d'API, confidentialité des données et journalisation
 
-- **Statut** : proposé
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0121. **Contraint par** : règle 7 (aucun secret dans le dépôt),
