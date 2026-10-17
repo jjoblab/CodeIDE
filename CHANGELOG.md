@@ -1,5 +1,24 @@
 # Journal des modifications
 
+## [0.134.38] – 2026-10-16
+
+### Ajouté
+
+- **Previews — PE9f, passe finale tokens + clôture PE9** :
+  - le mini-arbre du popup de PLACEMENT passe à l'item layout réel
+    (`item_rangee_placement.xml` + fond de monogramme violet
+    `fond_monogramme_placement`) — plus aucun GradientDrawable ni
+    TextView construit en code dans les popovers de l'aperçu ;
+  - **écarts PE9 vs maquette documentés** (PREVIEW.md § 3.4.1) :
+    popups translucides colorées, volet 48 %, puce Compacter,
+    RecyclerView, badge frais, ghost violet — tous INTENTIONNELS
+    (retour propriétaire du 17-10) ;
+  - bilan de la série : 6 versions (0.134.33 → 0.134.38), 24 layouts
+    réels + 8 drawables XML, `FeuilleApercuFragment` ~1 690 → ~260
+    lignes (chrome seul), 4 fragments de volet, les familles du crash
+    0.134.30 éliminées, tout le chrome sur les ATTRIBUTS du thème
+    (aucune couleur en dur hors jetons preview_* clair/nuit).
+
 ## [0.134.37] – 2026-10-17
 
 ### Ajouté

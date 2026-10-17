@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNE RANGÉE du mini-arbre du popup de PLACEMENT (PE9f, miroir
+     `.mini` de la maquette : monogramme violet + classe + id) — le
+     monogramme reçoit le fond violet des jetons de la bulle ; la
+     sélection suit `isSelected` (fond `preview_bulle_halo`). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_placement"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
+
+    <TextView
+        android:id="@+id/monogramme_placement"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/fond_monogramme_placement"
+        android:contentDescription="@null"
+        android:gravity="center"
+        android:fontFamily="monospace"
+        android:textSize="11sp"
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/libelle_classe_placement"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurface" />
+
+    <TextView
+        android:id="@+id/libelle_id_placement"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textSize="11sp"
+        android:textColor="@color/preview_probleme_neutre"
+        android:visibility="gone" />
+</LinearLayout>

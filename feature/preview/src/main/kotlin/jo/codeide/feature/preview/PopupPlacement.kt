@@ -3,7 +3,6 @@ package jo.codeide.feature.preview
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -13,7 +12,9 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
+import jo.codeide.feature.preview.databinding.ItemRangeePlacementBinding
 import jo.codeide.feature.preview.databinding.PopoverPlacementBinding
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
@@ -108,50 +109,35 @@ public class PopupPlacement(
         if (vues.isEmpty()) return
         val entrees = FeuilleApercu.entreesArbre(vues, problemes = emptyList(), densiteDpi = 0)
         for (entree in entrees) {
+            // PE9f : la rangée vient de l'item layout réel (miroir `.mini`).
             val rangee =
-                LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(dp(entree.indentation + 8), dp(6), dp(8), dp(6))
-                    isSelected = entree.indice == indiceReference
-                    setBackgroundColor(
-                        if (entree.indice == indiceReference) {
-                            // Miroir `.row.on` : le fond doux de la sélection.
-                            ContextCompat.getColor(context, R.color.preview_bulle_halo)
-                        } else {
-                            Color.TRANSPARENT
-                        },
-                    )
-                    val monogramme = TextView(context)
-                    monogramme.text = entree.monogramme
-                    monogramme.typeface = Typeface.MONOSPACE
-                    monogramme.textSize = 10f
-                    monogramme.gravity = Gravity.CENTER
-                    monogramme.setTextColor(ContextCompat.getColor(context, android.R.color.white))
-                    val fondMono = GradientDrawable()
-                    fondMono.shape = GradientDrawable.RECTANGLE
-                    fondMono.cornerRadius = dp(5).toFloat()
-                    fondMono.setColor(ContextCompat.getColor(context, R.color.preview_bulle_fond))
-                    monogramme.background = fondMono
-                    addView(
-                        monogramme,
-                        LinearLayout.LayoutParams(dp(20), dp(20)).apply { marginEnd = dp(8) },
-                    )
-                    val classeVue = TextView(context)
-                    classeVue.text = entree.classe
-                    classeVue.textSize = 12.5f
-                    addView(classeVue)
-                    if (entree.idNom.isNotEmpty()) {
-                        val idVue = TextView(context)
-                        idVue.text = context.getString(R.string.preview_prefixe_id, entree.idNom)
-                        idVue.typeface = Typeface.MONOSPACE
-                        idVue.textSize = 10f
-                        idVue.setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray))
-                        addView(idVue, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginStart = dp(6) })
-                    }
-                    setOnClickListener { auReference?.invoke(entree.indice) }
-                }
-            liaison.lignesArbrePlacement.addView(rangee)
+                ItemRangeePlacementBinding.inflate(
+                    LayoutInflater.from(context),
+                    liaison.lignesArbrePlacement,
+                    false,
+                )
+            rangee.rangeePlacement.isSelected = entree.indice == indiceReference
+            rangee.rangeePlacement.setBackgroundColor(
+                if (entree.indice == indiceReference) {
+                    // Miroir `.row.on` : le fond doux de la sélection.
+                    ContextCompat.getColor(context, R.color.preview_bulle_halo)
+                } else {
+                    Color.TRANSPARENT
+                },
+            )
+            // L'indentation de profondeur suit l'arbre (paddingStart dynamique).
+            rangee.rangeePlacement.setPadding(
+                dp(entree.indentation + 8),
+                rangee.rangeePlacement.paddingTop,
+                rangee.rangeePlacement.paddingEnd,
+                rangee.rangeePlacement.paddingBottom,
+            )
+            rangee.monogrammePlacement.text = entree.monogramme
+            rangee.libelleClassePlacement.text = entree.classe
+            rangee.libelleIdPlacement.isVisible = entree.idNom.isNotEmpty()
+            rangee.libelleIdPlacement.text = context.getString(R.string.preview_prefixe_id, entree.idNom)
+            rangee.rangeePlacement.setOnClickListener { auReference?.invoke(entree.indice) }
+            liaison.lignesArbrePlacement.addView(rangee.rangeePlacement)
         }
         defilerVersSelection(entrees.size, indiceReference)
     }
@@ -217,8 +203,4 @@ public class PopupPlacement(
     }
 
     private fun dp(valeur: Int): Int = (valeur * resources.displayMetrics.density).toInt()
-
-    private companion object {
-        private const val WRAP: Int = ViewGroup.LayoutParams.WRAP_CONTENT
-    }
 }
