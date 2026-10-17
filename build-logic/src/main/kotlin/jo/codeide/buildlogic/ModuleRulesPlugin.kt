@@ -79,7 +79,7 @@ class ModuleRulesPlugin : Plugin<Project> {
          * Les modules purs tooling (protocol/api/server/testing) et lsp
          * (model/index/java/ecj-art/testing/host/kotlin/xml) ont rejoint
          * les dépôts séparés jjoblab/codeide-tooling et jjoblab/codeide-lsp
-         * (bascule du 2026-10-17, docs/archive/docs/archive/PLAN_SEPARATION_DEPOTS.md §9) — leurs
+         * (bascule du 2026-10-17, docs/archive/PLAN_SEPARATION_DEPOTS.md §9) — leurs
          * règles vivent désormais dans le ModuleRulesPlugin de chaque dépôt
          * neuf ; côté CodeIDE, ils sont consommés en coordonnées externes
          * (composite en dev, binaire sinon) et n'apparaissent plus comme
@@ -87,6 +87,10 @@ class ModuleRulesPlugin : Plugin<Project> {
         val MODULES_PURS =
             setOf(
                 ":core:model", ":core:domain", ":core:session",
+                // Mission IA (ADR 0122) : le domaine IA et le transport IA
+                // sont Kotlin JVM PUR — aucun plugin Android, aucun réseau
+                // hors AiHttpTransport (HttpURLConnection JDK).
+                ":core:ai", ":ai:providers",
             )
 
         /** Plugins Android interdits aux modules purs. */
@@ -104,6 +108,19 @@ class ModuleRulesPlugin : Plugin<Project> {
         // AppLogger/TimeProvider (core:domain) — même famille que
         // core:database/core:bootstrap.
         chemin == ":core:session" -> setOf(":core:model", ":core:domain")
+        // Mission IA (ADR 0122) : le domaine IA ne connaît que le socle
+        // model/domain — Android INTERDIT (module pur), réseau INTERDIT
+        // (le seul point de sortie IA est :ai:providers, ADR 0121).
+        chemin == ":core:ai" -> setOf(":core:model", ":core:domain")
+        // Mission IA (ADR 0122) : le transport IA implémente les ports de
+        // :core:ai — HttpURLConnection JDK, aucune bibliothèque réseau
+        // tierce (ADR 0033/0123), Android INTERDIT (module pur).
+        chemin == ":ai:providers" -> setOf(":core:ai", ":core:model", ":core:domain")
+        // Mission IA (ADR 0122) : le stockage IA persiste le domaine IA
+        // (KeyVault/AiSettingsStore, ADR 0124) — :core:database autorisé
+        // pour le stockage des conversations (lot IA-6).
+        chemin == ":core:ai-storage" ->
+            setOf(":core:ai", ":core:model", ":core:domain", ":core:datastore", ":core:database")
         chemin in setOf(":core:database", ":core:datastore", ":core:storage", ":core:logging") ->
             setOf(":core:model", ":core:domain")
         // Terminal-1, section 2.3 : localisation des outils + environnement.
@@ -156,6 +173,15 @@ class ModuleRulesPlugin : Plugin<Project> {
         // (maquette § « Bulle, palette et popup de placement »).
         chemin == ":feature:preview" ->
             setOf(":core:ui", ":core:domain", ":core:model", ":core:datastore", ":preview:xml")
+        // Mission IA (ADR 0122) : EXCEPTION FEATURE EXPLICITE au trio —
+        // :feature:ai consomme le domaine IA :core:ai (cas d'usage, ports)
+        // même esprit que :feature:terminal → :core:terminal-runtime et
+        // :feature:editor → lsp:host. JAMAIS de feature → feature :
+        // l'éditeur passe par PontIaEditeur (core:ui) / PortEditeurActif
+        // (core:domain) — un test négatif (IA-0) prouve que
+        // :feature:editor → :feature:ai est rejeté.
+        chemin == ":feature:ai" ->
+            setOf(":core:ui", ":core:domain", ":core:model", ":core:ai")
         // Mission « Previews » (PREVIEW.md PE1, P1–P5) : le moteur de
         // preview XML ne dépend que des contrats du domaine (dispatchers,
         // journal) — la dépendance LayoutLib y est confinée. PE2 ajoutera

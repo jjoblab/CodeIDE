@@ -1,6 +1,6 @@
 # ADR 0121 — IA : périmètre réseau, permission INTERNET et modèle « apporte ta clé »
 
-- **Statut** : proposé (à accepter par le propriétaire avant le lot IA-0)
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab (propriétaire du dépôt)
 - **Étend** : ADR 0034 (« INTERNET : unique usage réseau = installateur du bootstrap »).

@@ -1,6 +1,6 @@
 # ADR 0122 — IA : architecture des modules et frontières
 
-- **Statut** : proposé
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0121 (réseau/BYOK). **Contraint par** : règles 1, 2, 4, 5, 6 d'`AGENTS.md`,

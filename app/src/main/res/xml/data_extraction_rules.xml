@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Règles d'extraction des données (API 31+, lot IA-0, ADR 0124 §2) :
+  sauvegarde cloud ET transfert d'appareil. Les réglages IA et le coffre
+  de clés ne quittent JAMAIS l'appareil.
+
+  - no_backup : le coffre (Context.noBackupFilesDir) est déjà exclu par
+    construction Android ; l'exclusion explicite documente l'intention
+    et couvre tout fichier sensible futur qui y serait ajouté.
+  - datastore/ai_settings.preferences_pb : le DataStore des réglages IA
+    (nom contractuel fixé ici — IA-2 doit créer `AiSettingsStore` sous
+    ce nom exact, l'ADR interdit un store parallèle).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="no_backup" />
+        <exclude domain="file" path="no_backup" />
+        <exclude domain="file" path="datastore/ai_settings.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="no_backup" />
+        <exclude domain="file" path="no_backup" />
+        <exclude domain="file" path="datastore/ai_settings.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

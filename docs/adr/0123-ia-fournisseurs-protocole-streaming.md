@@ -1,6 +1,6 @@
 # ADR 0123 — IA : fournisseurs, protocole HTTP et streaming
 
-- **Statut** : proposé
+- **Statut** : accepté (propriétaire, 2026-10-18 — « GO lot IA-0 »)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0121, ADR 0122. **Cohérent avec** : ADR 0033 (client `HttpURLConnection`,
