@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ACTIONS RAPIDES (maquette `.qa`) : rangée qui renvoie à la ligne de boutons « lien » à contour
+  (26 dp, rayon 8, texte accent), écart 6 dp. Pas d'étiquette.
+-->
+<com.google.android.material.chip.ChipGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_action"
+    style="@style/Widget.CodeIDE.Apercu.GroupeDrapeaux"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:chipSpacingHorizontal="@dimen/apercu_couleur_gap"
+    app:chipSpacingVertical="@dimen/apercu_couleur_gap"
+    xmlns:app="http://schemas.android.com/apk/res-auto" />

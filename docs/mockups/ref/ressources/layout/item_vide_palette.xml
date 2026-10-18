@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  « Aucun widget ne correspond » (.empty) — RÉFÉRENCE (ADR 0134). Pleine largeur, centré, gris doux.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/message_vide_palette"
+    style="@style/Widget.CodeIDE.Apercu.Vide"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />

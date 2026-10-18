@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bandeau surface + trait 1 dp EN BAS (.tabs, .ed-tools, .ed : border-bottom 1px var(line)).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle"><solid android:color="?attr/apercuTrait" /></shape>
+    </item>
+    <item android:bottom="@dimen/apercu_trait_epaisseur">
+        <shape android:shape="rectangle"><solid android:color="?attr/apercuSurface" /></shape>
+    </item>
+</layer-list>

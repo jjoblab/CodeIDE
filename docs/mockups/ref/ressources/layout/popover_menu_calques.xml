@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Menu CALQUES — RÉFÉRENCE (ADR 0134). Deux groupes : « CALQUES » (6 interrupteurs) et « CHROME SYSTÈME »
+  (barre de navigation, ajouté par la maquette — absent du code actuel). Coque translucide (écart voulu
+  PE9c) et pastilles colorées conservées (écart voulu PE9c) ; l'interrupteur 34 x 20 remplace le
+  MaterialSwitch.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popover_calques"
+    style="@style/Widget.CodeIDE.Apercu.Menu"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/titre_menu"
+        style="@style/Widget.CodeIDE.Apercu.MenuTitre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_menu_titre_marge_haut"
+        android:layout_marginBottom="@dimen/apercu_menu_titre_marge_bas"
+        android:text="@string/preview_calques_titre" />
+
+    <include
+        android:id="@+id/calque_parent_freres"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_marges_padding"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_contraintes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_problemes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_bornes"
+        layout="@layout/item_menu_calque" />
+
+    <include
+        android:id="@+id/calque_grille"
+        layout="@layout/item_menu_calque" />
+
+    <TextView
+        android:id="@+id/titre_menu_systeme"
+        style="@style/Widget.CodeIDE.Apercu.MenuTitre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_menu_titre_marge_haut"
+        android:layout_marginBottom="@dimen/apercu_menu_titre_marge_bas"
+        android:text="@string/preview_chrome_systeme_titre" />
+
+    <include
+        android:id="@+id/calque_navigation"
+        layout="@layout/item_menu_calque" />
+</LinearLayout>

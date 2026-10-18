@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Toast (.toast) : fond = texte, texte = fond (inversé). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuTexte" />
+    <corners android:radius="@dimen/apercu_toast_rayon" />
+</shape>

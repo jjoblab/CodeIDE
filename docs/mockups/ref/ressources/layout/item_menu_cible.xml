@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une option du menu CIBLE (.opt) — RÉFÉRENCE (ADR 0134) : libellé 13 sp ; la cible courante est
+  SÉLECTIONNÉE (isSelected, fond accent doux) ; plus de point de coche.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_cible"
+    style="@style/Widget.CodeIDE.Apercu.Option"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/libelle_cible"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Option" />
+</LinearLayout>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne d'en-tête commune à TOUS les contrôles (maquette `.fl`) : étiquette mono 11 sp, puis
+  pastille d'espace de noms « app » / « tools » (cachée si android:), puis bouton ↺ (caché tant
+  que l'attribut n'est pas défini). Hauteur mini 18 dp, écart 6 dp.
+  La pastille prend Widget…Pastille.App ou .Tools selon l'espace de noms (setTextAppearance
+  + background par le liage, ou deux vues cachées — au choix de l'implémentation).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/entete_champ"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/apercu_champ_entete_hauteur_min"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/libelle_controle"
+        style="@style/Widget.CodeIDE.Apercu.Etiquette"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/pastille_espace_noms"
+        style="@style/Widget.CodeIDE.Apercu.Pastille"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_champ_entete_gap"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/bouton_reinitialiser"
+        style="@style/Widget.CodeIDE.Apercu.Reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_champ_entete_gap"
+        android:contentDescription="@string/preview_attr_reset_desc"
+        android:gravity="center"
+        android:minWidth="24dp"
+        android:minHeight="24dp"
+        android:text="@string/preview_attr_reset_glyphe"
+        android:visibility="gone" />
+</LinearLayout>

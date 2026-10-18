@@ -218,10 +218,31 @@ Tout gain doit venir de lui.
   L'ADR 0130 corrige par options CLI (gradle.properties inchangé),
   et la chaîne est éclatée en 3 jobs parallèles.
 
-### 6.5 Avant / après (ÉTAPE 3 — mise à jour au premier run ADR 0130)
+### 6.5 Avant / après (ÉTAPE 3 — premier run ADR 0130, 2026-10-19)
 
-*(réservé : chiffres du premier run en 3 jobs — statique / tests /
-lint+assemble — insérés ici après mesure)*
+| | Avant (chaîne séquentielle, 1 job) | Après (3 jobs parallèles, ADR 0130) |
+|---|---|---|
+| Durée murale, run `main` | 29,8 min (run 39158064126) | **5,8 min** (run 39162386499) |
+| Durée murale, run tag | 21,7 min (run 39158063958) | **5,1 min** (run 39162388597, v0.145.1) |
+| Découpage | 1 job — `spotlessCheck detekt checkModuleDependencies lintDebug testDebugUnitTest koverVerify assembleDebug` | 3 jobs en vol simultané |
+| Durées par job | « Vérification complète » : 26m34s | statique **2,5 min** / tests **5,7 min** / lint+assemble **5,0 min** |
+| Premier signal en cas de push sale | après ~20-30 min (fin de chaîne) | **~2,5 min** (job statique) |
+
+- **Gain mesuré : -80 %** — le MÊME commit (`68a061e1`, IA-8b) a servi de
+  cas d'étude : 29,8 min en séquentiel (run du 2026-10-18) contre
+  5,8 min en trois jobs parallèles (run du 2026-10-19). Médiane des dix
+  runs avant : 21,6 min → les runs v0.145.1 passent sous 6 minutes.
+- Les deux runs (main + tag v0.145.1) sont verts du premier coup,
+  sans OOM : `workers.max=3` + tas 6g tiennent confortablement dans
+  les 16 Go (marge confirmée ; l'option `-Xmx8g+` reste inutile).
+- Écart statique 2,5 min (main) vs 4,7 min (tag) : les deux runs ont
+  démarré à quelques secondes d'intervalle et se disputaient
+  l'écriture initiale du cache — les runs suivants convergent vers le
+  chiffre bas.
+- Lecture pour la suite : le goulot résiduel est le job **tests**
+  (5,7 min — exécution réelle des JVM de test, non compressible par
+  cache). Un chantier futur (hors périmètre) pourrait envisager une
+  matrice de sharding de tests si les lots redeviennent lourds.
 
 ### 6.6 Leçon
 

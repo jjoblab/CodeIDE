@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dimensions de l'APERÇU (ADR 0131/0128). 1 px de la maquette = 1 dp ; les polices sont dans
+  styles.xml (px → sp). Chaque ligne cite le sélecteur CSS source. Quand la maquette a une
+  bordure CSS EXTÉRIEURE au padding, la valeur Android ajoute l'épaisseur du trait (le trait
+  d'un <shape> est dessiné À L'INTÉRIEUR de la vue).
+-->
+<resources>
+
+    <!-- Feuille inférieure (.sheet, .grab) -->
+    <dimen name="apercu_feuille_rayon">18dp</dimen>  <!-- border-radius 18px 18px 0 0 -->
+    <dimen name="apercu_feuille_elevation">8dp</dimen>  <!-- box-shadow 0 -8px 28px rgba(0,0,0,.2) -->
+    <dimen name="apercu_feuille_rayon_interne">17dp</dimen>  <!-- rayon 18 − trait 1 (couche interne) -->
+    <dimen name="apercu_poignee_largeur">36dp</dimen>  <!-- .grab i -->
+    <dimen name="apercu_poignee_hauteur">4dp</dimen>  <!-- .grab i -->
+    <dimen name="apercu_poignee_rayon">2dp</dimen>  <!-- .grab i -->
+    <dimen name="apercu_poignee_pad_haut">8dp</dimen>  <!-- .grab padding-top -->
+    <dimen name="apercu_poignee_pad_bas">6dp</dimen>  <!-- .grab padding-bottom -->
+    <dimen name="apercu_poignee_pad_h">14dp</dimen>  <!-- .grab padding -->
+    <dimen name="apercu_poignee_gap">6dp</dimen>  <!-- .grab gap -->
+
+    <!-- Onglets (.tabs) -->
+    <dimen name="apercu_onglets_pad_h">10dp</dimen>  <!-- .tabs padding -->
+    <dimen name="apercu_onglets_gap">2dp</dimen>  <!-- .tabs gap -->
+    <dimen name="apercu_onglet_pad">10dp</dimen>  <!-- .tabs button padding -->
+    <dimen name="apercu_onglet_indicateur">2dp</dimen>  <!-- border-bottom du bouton -->
+    <dimen name="apercu_onglet_gap">6dp</dimen>  <!-- gap libellé ↔ badge -->
+    <dimen name="apercu_onglet_badge_pad_v">2dp</dimen>  <!-- .tabs .n -->
+    <dimen name="apercu_onglet_badge_pad_h">5dp</dimen>  <!-- .tabs .n -->
+    <dimen name="apercu_onglet_badge_rayon">9dp</dimen>  <!-- .tabs .n -->
+
+    <!-- Volet et cartes (.pane, .sec2) -->
+    <dimen name="apercu_trait_epaisseur">1dp</dimen>  <!-- toutes les bordures -->
+    <dimen name="apercu_pane_pad_h">10dp</dimen>  <!-- .pane padding -->
+    <dimen name="apercu_pane_pad_haut">8dp</dimen>  <!-- .pane padding-top -->
+    <dimen name="apercu_pane_pad_bas">14dp</dimen>  <!-- .pane padding-bottom -->
+    <dimen name="apercu_gap_sections">10dp</dimen>  <!-- .secs gap -->
+    <dimen name="apercu_gap_controles">9dp</dimen>  <!-- .sec2>div gap -->
+    <dimen name="apercu_gap_etiquette">4dp</dimen>  <!-- .fld gap -->
+    <dimen name="apercu_section_rayon">10dp</dimen>  <!-- .sec2 radius -->
+    <dimen name="apercu_section_entete_pad_v">9dp</dimen>  <!-- summary padding vertical -->
+    <dimen name="apercu_section_entete_pad_h">11dp</dimen>  <!-- summary padding horizontal -->
+    <dimen name="apercu_section_corps_pad_haut">2dp</dimen>  <!-- .sec2>div padding-top -->
+    <dimen name="apercu_section_corps_pad_bas">11dp</dimen>  <!-- .sec2>div padding-bottom -->
+    <dimen name="apercu_section_gap_entete">8dp</dimen>  <!-- summary gap -->
+    <dimen name="apercu_badge_defini_pad_v">3dp</dimen>  <!-- .sec2 small -->
+    <dimen name="apercu_badge_defini_pad_h">6dp</dimen>  <!-- .sec2 small -->
+    <dimen name="apercu_badge_defini_rayon">5dp</dimen>  <!-- .sec2 small -->
+
+    <!-- Barre d'outils collante (.ed-tools) -->
+    <dimen name="apercu_barre_pad_v">8dp</dimen>  <!-- .ed-tools padding -->
+    <dimen name="apercu_barre_pad_h">10dp</dimen>  <!-- .ed-tools padding -->
+    <dimen name="apercu_barre_gap">8dp</dimen>  <!-- .row2 gap -->
+    <dimen name="apercu_barre_pad_bas">9dp</dimen>  <!-- 8 (css) + 1 (trait bas) -->
+    <dimen name="apercu_titre_editeur_pad_haut">8dp</dimen>  <!-- espace avant le titre (pane 8) -->
+    <dimen name="apercu_titre_editeur_pad_bas">10dp</dimen>  <!-- .ed gap 10 -->
+
+    <!-- Champs (.fld input, .search) -->
+    <dimen name="apercu_champ_rayon">8dp</dimen>  <!-- border-radius 8px -->
+    <dimen name="apercu_recherche_rayon">10dp</dimen>  <!-- .search radius -->
+    <dimen name="apercu_champ_hauteur_min">34dp</dimen>  <!-- 33.6 mesuré -->
+    <dimen name="apercu_recherche_hauteur_min">36dp</dimen>  <!-- 35.6 mesuré -->
+    <dimen name="apercu_champ_pad_h">11dp</dimen>  <!-- 10 (css) + 1 (trait) -->
+    <dimen name="apercu_champ_pad_v">9dp</dimen>  <!-- 8 (css) + 1 (trait) -->
+    <dimen name="apercu_recherche_pad_h">13dp</dimen>  <!-- 12 (css) + 1 (trait) -->
+    <dimen name="apercu_recherche_pad_v">10dp</dimen>  <!-- 9 (css) + 1 (trait) -->
+    <dimen name="apercu_champ_lecture_pad_h">10dp</dimen>  <!-- .fld .ro padding (sans trait) -->
+    <dimen name="apercu_champ_lecture_pad_v">8dp</dimen>  <!-- .fld .ro padding (sans trait) -->
+    <dimen name="apercu_champ_num_pad_h">9dp</dimen>  <!-- 8 + 1 -->
+    <dimen name="apercu_champ_num_pad_v">7dp</dimen>  <!-- 6 + 1 -->
+    <dimen name="apercu_champ_num_largeur">64dp</dimen>  <!-- .dimrow input -->
+    <dimen name="apercu_champ_num_hauteur">28dp</dimen>  <!-- .dimrow input -->
+    <dimen name="apercu_curseur_champ_largeur">72dp</dimen>  <!-- .sld colonne droite -->
+    <dimen name="apercu_curseur_gap">10dp</dimen>  <!-- .sld gap -->
+
+    <!-- Segments, drapeaux, boutons -->
+    <dimen name="apercu_segments_pad">2dp</dimen>  <!-- .seg2 padding -->
+    <dimen name="apercu_segments_rayon">9dp</dimen>  <!-- .seg2 radius -->
+    <dimen name="apercu_segment_rayon">7dp</dimen>  <!-- .seg2 button radius -->
+    <dimen name="apercu_segment_hauteur">26dp</dimen>  <!-- 12 + 7 + 7 -->
+    <dimen name="apercu_segment_pad_h">9dp</dimen>  <!-- .seg2 button padding -->
+    <dimen name="apercu_drapeau_rayon">7dp</dimen>  <!-- .flg button radius -->
+    <dimen name="apercu_drapeau_hauteur">25dp</dimen>  <!-- 11 + 6 + 6 + 2 trait -->
+    <dimen name="apercu_drapeau_pad_h">8dp</dimen>  <!-- .flg button padding -->
+    <dimen name="apercu_drapeaux_gap">5dp</dimen>  <!-- .flg gap -->
+    <dimen name="apercu_bouton_rayon">8dp</dimen>  <!-- .linkbtn / .prim2 radius -->
+    <dimen name="apercu_bouton_lien_hauteur">26dp</dimen>  <!-- mesuré 61.3×26 -->
+    <dimen name="apercu_bouton_lien_pad_h">10dp</dimen>  <!-- .linkbtn padding -->
+    <dimen name="apercu_bouton_lien_large_pad_v">9dp</dimen>  <!-- .linkbtn.wide padding-v -->
+
+    <!-- Couleur, dimensions, côtés, ratio -->
+    <dimen name="apercu_pastille_couleur">34dp</dimen>  <!-- .sw2 -->
+    <dimen name="apercu_pastille_couleur_rayon">8dp</dimen>  <!-- .sw2 radius -->
+    <dimen name="apercu_couleur_gap">6dp</dimen>  <!-- .colr gap -->
+    <dimen name="apercu_palette_pad">8dp</dimen>  <!-- .cpal padding -->
+    <dimen name="apercu_palette_gap">6dp</dimen>  <!-- .cpal gap -->
+    <dimen name="apercu_palette_pastille">28dp</dimen>  <!-- .cpal button -->
+    <dimen name="apercu_damier_cellule">10dp</dimen>  <!-- tuile du damier -->
+    <dimen name="apercu_dim_etiquette_largeur">56dp</dimen>  <!-- .dimrow .dl -->
+    <dimen name="apercu_dim_gap">8dp</dimen>  <!-- .dimrow gap -->
+    <dimen name="apercu_cotes_gap">6dp</dimen>  <!-- .mrow gap -->
+    <dimen name="apercu_ratio_gap">6dp</dimen>  <!-- .ratio gap -->
+
+    <!-- Étiquettes d'espace de noms, réinitialisation, correctifs -->
+    <dimen name="apercu_ns_pad_v">2dp</dimen>  <!-- .ns -->
+    <dimen name="apercu_ns_pad_h">5dp</dimen>  <!-- .ns -->
+    <dimen name="apercu_ns_rayon">4dp</dimen>  <!-- .ns -->
+    <dimen name="apercu_champ_entete_gap">6dp</dimen>  <!-- .fl gap -->
+    <dimen name="apercu_champ_entete_hauteur_min">18dp</dimen>  <!-- .fl min-height -->
+    <dimen name="apercu_reset_pad_v">3dp</dimen>  <!-- .rst -->
+    <dimen name="apercu_reset_pad_h">6dp</dimen>  <!-- .rst -->
+    <dimen name="apercu_reset_rayon">6dp</dimen>  <!-- .rst -->
+    <dimen name="apercu_correctif_pad_v">9dp</dimen>  <!-- .fix padding -->
+    <dimen name="apercu_correctif_pad_h">11dp</dimen>  <!-- .fix padding -->
+    <dimen name="apercu_correctif_rayon">10dp</dimen>  <!-- .fix radius -->
+    <dimen name="apercu_correctif_gap">10dp</dimen>  <!-- .fix gap -->
+    <dimen name="apercu_correctifs_gap">6dp</dimen>  <!-- .fixes gap -->
+
+    <!-- Lecture seule (.kv) -->
+    <dimen name="apercu_kv_gap_ligne">2dp</dimen>  <!-- .kv row gap -->
+    <dimen name="apercu_kv_gap_colonne">10dp</dimen>  <!-- .kv column gap -->
+    <dimen name="apercu_kv_groupe_marge_haut">8dp</dimen>  <!-- dt.g margin-top -->
+</resources>

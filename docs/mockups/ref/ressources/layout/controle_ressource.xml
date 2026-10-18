@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle RESSOURCE (maquette `t:'res'`, `<datalist>`) : champ 13 sp + suggestions @type/nom ;
+  une saisie « nom » seule est complétée en @type/nom ; une ressource absente = message avertissement
+  (jamais bloquant). AutoCompleteTextView, mêmes cotes que le champ.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_ressource"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+        android:id="@+id/champ_ressource"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:imeOptions="actionDone"
+        android:inputType="textNoSuggestions" />
+
+    <TextView
+        android:id="@+id/message_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+</LinearLayout>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contenu de la bulle (.bubble svg) : l'icône 24 dp centrée — RÉFÉRENCE (ADR 0134). Le fond (violet + halo
+  EXTÉRIEUR) est `@drawable/apercu_bulle_fond`, porté par la VUE de 58 dp (activity_preview).
+  Teinte de l'icône : « sur-nouveau » (blanc en clair, #1B0B3D en nuit) ; bulle OUVERTE : fond
+  `apercu_bulle_fond_ouverte` + teinte « fond ».
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <ImageView
+        android:id="@+id/icone_bulle"
+        android:layout_width="@dimen/apercu_bulle_icone"
+        android:layout_height="@dimen/apercu_bulle_icone"
+        android:layout_gravity="center"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:src="@drawable/apercu_ic_bulle"
+        tools:ignore="UseAppTint" />
+</merge>

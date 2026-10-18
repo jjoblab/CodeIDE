@@ -1,5 +1,38 @@
 # Journal des modifications
 
+## [0.145.2] – 2026-10-19
+
+### Lot « design exact de tous les écrans de l'aperçu » (docs) + mesures CI
+
+#### Ajouté
+
+- **`docs/PREVIEW_UI.md`** (normatif, partie I — ADR 0131-0133) :
+  écran Attributs, jetons exacts (`apercu_*`), thème dédié, table
+  typographique, conversion dp/sp ; règle d'or « indiscernable de la
+  maquette, capture contre capture, clair et nuit ».
+- **`docs/PREVIEW_UI_ECRANS.md`** (normatif, partie II — ADR 0134) :
+  écran principal, palette, placement, menus, onglets Arbre /
+  Problèmes / Source — cotes, comportements, contrat du moteur,
+  recette.
+- **`docs/adr/0131` à `0134`** : ADR du lot renumérotés (0127-0130
+  pris) — fidélité maquette/jetons/thème (0131, accepté), écran
+  Attributs layouts/styles/RecyclerView (0132, accepté),
+  typographie/unités/cibles tactiles (0133, **proposé** — dérogation
+  cibles tactiles à confirmer), écrans principal/palette/arbre/
+  problèmes/source (0134, **proposé**). Toutes les références
+  croisées du lot mises à jour.
+- **`docs/mockups/apercu-xml.html`** : maquette v5 (remplace la
+  version précédente).
+- **`docs/mockups/ref/`** (153 fichiers) : captures clair/nuit
+  (écrans complets + composants : bouton, TextView, TextInputLayout,
+  checkbox, ConstraintLayout), mesures `meas_*.json`, 140 ressources
+  Android de référence (layout/values/drawable/color) — à copier dans
+  `:feature:preview` lors des lots PE11 ; rien n'écrase du code.
+- **Mesures CI avant/après** (`STRATEGIE_VERIFICATION.md` §6.5) :
+  29,8 min séquentiel → **5,8 min en 3 jobs** sur le même commit
+  (**-80 %**) ; tag 21,7 → 5,1 min ; jobs mesurés : statique 2,5 min,
+  tests 5,7, lint+assemble 5,0 — verts du premier coup.
+
 ## [0.145.1] – 2026-10-19
 
 ### Stratégie de vérification et de collaboration multi-agents

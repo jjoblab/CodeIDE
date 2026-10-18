@@ -12,6 +12,7 @@
   --accent:#1E6EC8; --accent-soft:rgba(30,110,200,.14);
   --ok:#2E7D32; --warn:#9A6700; --err:#BA1A1A; --err-c:#FFDAD6;
   --margin:#D9822B; --padding:#2E8B4B; --new:#7C3AED; --new-c:#EDE5FF;
+  --checker:rgba(128,128,150,.13); --pin-warn:#B8860B; --pin-err:#BA1A1A; --bounds:rgba(30,110,200,.5); --screen-ring:rgba(0,0,0,.18); --screen-shadow:rgba(0,0,0,.22); --on-overlay:#FFFFFF; --tag-wr:rgba(154,103,0,.22); --ins:rgba(46,125,50,.26); --hl2:rgba(30,110,200,.3); --margin-fill:rgba(217,130,43,.38); --padding-fill:rgba(46,139,75,.38);
   --font-d:"Schibsted Grotesk","IBM Plex Sans",system-ui,sans-serif;
   --font-b:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-m:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -21,13 +22,13 @@
   --line:#2C323D; --primary:#BAC4FF; --on-primary:#0C2264; --primary-c:#293D8F; --on-primary-c:#DCE1FF;
   --accent:#7AB8F5; --accent-soft:rgba(122,184,245,.18);
   --ok:#81C995; --warn:#FDD663; --err:#FFB4AB; --err-c:#93000A;
-  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; color-scheme:dark}}
+  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; --checker:rgba(128,128,150,.13); --pin-warn:#B8860B; --pin-err:#BA1A1A; --bounds:rgba(30,110,200,.5); --screen-ring:rgba(0,0,0,.18); --screen-shadow:rgba(0,0,0,.22); --on-overlay:#FFFFFF; --tag-wr:rgba(253,214,99,.22); --ins:rgba(129,201,149,.26); --hl2:rgba(122,184,245,.3); --margin-fill:rgba(240,163,90,.38); --padding-fill:rgba(111,196,122,.38); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#111318; --surface:#1A1E25; --surface2:#20252E; --fg:#E2E1E9; --muted:#A3A3AE;
   --line:#2C323D; --primary:#BAC4FF; --on-primary:#0C2264; --primary-c:#293D8F; --on-primary-c:#DCE1FF;
   --accent:#7AB8F5; --accent-soft:rgba(122,184,245,.18);
   --ok:#81C995; --warn:#FDD663; --err:#FFB4AB; --err-c:#93000A;
-  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; color-scheme:dark}
+  --margin:#F0A35A; --padding:#6FC47A; --new:#C4A8FF; --new-c:#3A2A66; --checker:rgba(128,128,150,.13); --pin-warn:#B8860B; --pin-err:#BA1A1A; --bounds:rgba(30,110,200,.5); --screen-ring:rgba(0,0,0,.18); --screen-shadow:rgba(0,0,0,.22); --on-overlay:#FFFFFF; --tag-wr:rgba(253,214,99,.22); --ins:rgba(129,201,149,.26); --hl2:rgba(122,184,245,.3); --margin-fill:rgba(240,163,90,.38); --padding-fill:rgba(111,196,122,.38); color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-b);font-size:15px;line-height:1.55;
@@ -85,14 +86,14 @@ header.top{display:flex;flex-direction:column;gap:14px}
 .chip .caret{font-size:9px;opacity:.7}
 .canvas{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:grab;
   background-color:var(--surface2);
-  background-image:linear-gradient(45deg,rgba(128,128,150,.13) 25%,transparent 25%,transparent 75%,rgba(128,128,150,.13) 75%),
-                   linear-gradient(45deg,rgba(128,128,150,.13) 25%,transparent 25%,transparent 75%,rgba(128,128,150,.13) 75%);
+  background-image:linear-gradient(45deg,var(--checker) 25%,transparent 25%,transparent 75%,var(--checker) 75%),
+                   linear-gradient(45deg,var(--checker) 25%,transparent 25%,transparent 75%,var(--checker) 75%);
   background-size:16px 16px;background-position:0 0,8px 8px}
 .canvas.drag{cursor:grabbing}
 .world{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;gap:40px;align-items:flex-start;will-change:transform}
 .board{position:relative}
 .board .cap{position:absolute;left:0;top:-22px;font:500 11px/1 var(--font-m);color:var(--muted);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
-.screen{position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.18),0 6px 24px rgba(0,0,0,.22);
+.screen{position:relative;overflow:hidden;box-shadow:0 0 0 1px var(--screen-ring),0 6px 24px var(--screen-shadow);
   background:var(--s-bg);color:var(--s-fg);font-family:Roboto,"IBM Plex Sans",system-ui,sans-serif;
   --s-bg:#FFFBFE;--s-fg:#1C1B1F;--s-muted:#49454F;--s-pri:#43559E;--s-onpri:#fff;--s-outline:#79747E;--s-surf:#F3EDF7;--s-dark:#2B2F7A;--s-sys:#1C1B1F}
 .screen.night{--s-bg:#141218;--s-fg:#E6E0E9;--s-muted:#CAC4D0;--s-pri:#BAC4FF;--s-onpri:#0C2264;--s-outline:#938F99;--s-surf:#211F26;--s-dark:#0C1030;--s-sys:#000}
@@ -117,15 +118,15 @@ header.top{display:flex;flex-direction:column;gap:14px}
 .sel .h{position:absolute;width:calc(9px/var(--z,1));height:calc(9px/var(--z,1));background:var(--surface);border:calc(2px/var(--z,1)) solid var(--accent);border-radius:2px}
 .par{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--accent);opacity:.75}
 .sib{position:absolute;border:calc(1px/var(--z,1)) solid var(--accent);opacity:.35}
-.bnd{position:absolute;border:calc(1px/var(--z,1)) solid rgba(30,110,200,.5)}
-.mg{position:absolute;background:color-mix(in srgb,var(--margin) 38%,transparent);outline:calc(1px/var(--z,1)) dashed var(--margin)}
-.pd{position:absolute;background:color-mix(in srgb,var(--padding) 38%,transparent)}
+.bnd{position:absolute;border:calc(1px/var(--z,1)) solid var(--bounds)}
+.mg{position:absolute;background:var(--margin-fill);outline:calc(1px/var(--z,1)) dashed var(--margin)}
+.pd{position:absolute;background:var(--padding-fill)}
 .lab{position:absolute;white-space:nowrap;font:500 calc(11px/var(--z,1))/1 var(--font-m);padding:calc(3px/var(--z,1)) calc(6px/var(--z,1));border-radius:calc(4px/var(--z,1));
-  background:var(--accent);color:#fff}
+  background:var(--accent);color:var(--on-overlay)}
 .lab.dim{background:var(--fg);color:var(--bg)}
 .pin{position:absolute;width:calc(18px/var(--z,1));height:calc(18px/var(--z,1));border-radius:50%;display:grid;place-items:center;
-  font:700 calc(11px/var(--z,1))/1 var(--font-b);color:#fff;border:calc(2px/var(--z,1)) solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.pin.w{background:#B8860B}.pin.e{background:#BA1A1A}
+  font:700 calc(11px/var(--z,1))/1 var(--font-b);color:var(--on-overlay);border:calc(2px/var(--z,1)) solid var(--on-overlay);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pin.w{background:var(--pin-warn)}.pin.e{background:var(--pin-err)}
 .hud{position:absolute;display:flex;gap:6px;align-items:center}
 .zoom{right:10px;bottom:10px;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.16)}
 .zoom button{width:36px;height:34px;border:0;background:transparent;color:var(--fg);border-radius:10px;font:500 13px/1 var(--font-m);cursor:pointer}
@@ -186,7 +187,7 @@ header.top{display:flex;flex-direction:column;gap:14px}
 .src div{display:flex;gap:10px;padding:0 8px;white-space:pre;cursor:pointer;border-radius:4px}
 .src div:hover{background:var(--surface2)}
 .src div.hl{background:var(--accent-soft)}
-.src div.hl2{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.src div.hl2{background:var(--hl2)}
 .src .ln{color:var(--muted);width:24px;text-align:right;flex:none;user-select:none}
 .src .tg{color:var(--primary)}.src .at{color:var(--padding)}.src .vl{color:var(--margin)}
 .empty{color:var(--muted);font-size:13px;padding:18px 10px;text-align:center}
@@ -220,7 +221,7 @@ header.top{display:flex;flex-direction:column;gap:14px}
 .sym.s3::before{content:"";position:absolute;inset:12px;background:color-mix(in srgb,var(--padding) 45%,transparent);z-index:1}
 .sym.s4::after{content:"";position:absolute;left:5px;right:5px;top:16px;border-top:2px dashed var(--accent)}
 .sym.s4::before{content:"";position:absolute;left:5px;top:12px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
-.sym.s5::after{content:"!";position:absolute;inset:7px;border-radius:50%;background:#B8860B;color:#fff;display:grid;place-items:center;font:700 13px/1 var(--font-b)}
+.sym.s5::after{content:"!";position:absolute;inset:7px;border-radius:50%;background:var(--pin-warn);color:var(--on-overlay);display:grid;place-items:center;font:700 13px/1 var(--font-b)}
 .sym.s6::after{content:"";position:absolute;inset:4px;background-image:linear-gradient(var(--accent) 1px,transparent 1px),linear-gradient(90deg,var(--accent) 1px,transparent 1px);background-size:6px 6px;opacity:.45}
 .try{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
 .try ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--muted)}
@@ -345,14 +346,62 @@ td code{display:inline-block;margin:1px 0}
 .sec2>summary small{font:500 10px/1 var(--font-m);color:var(--new);background:var(--new-c);padding:3px 6px;border-radius:5px}
 .sec2>div{display:flex;flex-direction:column;gap:9px;padding:2px 11px 11px}
 .sec2 .seg2{flex-wrap:wrap}
+/* ---- attributs, deuxième vague ---- */
+.ed-tools{position:sticky;top:-8px;z-index:3;background:var(--surface);margin:-8px -10px 0;padding:8px 10px;border-bottom:1px solid var(--line)}
+.ed-tools .row2{display:flex;gap:8px;align-items:center}
+.ed-tools .search{flex:1;min-width:0}
+.fl{display:flex;align-items:center;gap:6px;min-height:18px}
+.fl label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ns{font:500 9px/1 var(--font-m);padding:2px 5px;border-radius:4px;background:var(--surface2);color:var(--muted);cursor:help}
+.ns.app{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.ns.tools{background:var(--new-c);color:var(--new)}
+.rst{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:3px 6px;border-radius:6px}
+.rst:hover{background:var(--surface2);color:var(--fg)}
+.fld select,.other input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 10px;font:400 13px/1.2 var(--font-b);width:100%;min-width:0}
+.fld .bad,.other .bad{border-color:var(--err)!important}
+.sld{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:10px;align-items:center}
+.sld input[type=range]{width:100%;accent-color:var(--new);min-width:0}
+.sld input[type=number],.ratio input,.mrow input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:7px 8px;font:400 12px/1 var(--font-m);width:100%;min-width:0}
+.flg{display:flex;flex-wrap:wrap;gap:5px}
+.flg button{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:7px;padding:6px 8px;font:500 11px/1 var(--font-m);cursor:pointer}
+.flg button[aria-pressed="true"]{background:var(--new-c);color:var(--new);border-color:var(--new)}
+.flg button:disabled{opacity:.4;cursor:default}
+.colr{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px;align-items:center}
+.colr input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 10px;font:400 12px/1.2 var(--font-m);min-width:0;width:100%}
+.sw2{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:linear-gradient(var(--c,transparent),var(--c,transparent)),repeating-conic-gradient(#bbb 0 25%,#fff 0 50%) 0 0/10px 10px}
+.cpal{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border-radius:8px}
+.cpal button{width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);outline:1px solid var(--line);cursor:pointer;background:linear-gradient(var(--c),var(--c)),repeating-conic-gradient(#bbb 0 25%,#fff 0 50%) 0 0/8px 8px}
+.ratio{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;align-items:center}
+.fmsg{font:400 11px/1.35 var(--font-b)}.fmsg.err{color:var(--err)}.fmsg.warn{color:var(--warn)}
+.note2{font-size:11px;line-height:1.4;color:var(--muted)}
+.other{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;align-items:center}
+.other code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.other.add{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
+.qa{display:flex;flex-wrap:wrap;gap:6px}
+.linkbtn.wide{width:100%;text-align:center;padding:9px 10px}
+.fixes{display:flex;flex-direction:column;gap:6px}
+.fixes h5{margin:0;font:600 10px/1 var(--font-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fix{display:flex;gap:10px;align-items:center;padding:9px 11px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 9%,var(--surface));border-radius:10px}
+.fix .m{flex:1;min-width:0;font-size:12px;line-height:1.35;color:var(--muted)}.fix .m b{display:block;color:var(--fg);font-weight:600}
+.prim2{border:0;background:var(--new);color:var(--on-new);border-radius:8px;padding:8px 10px;font:600 12px/1.1 var(--font-b);cursor:pointer;flex:none;max-width:42%}
+.secs{display:flex;flex-direction:column;gap:10px}
+.v .dr{flex:none;font-size:10px;color:var(--s-pri)}
+.gtbl td:first-child{white-space:nowrap}
+.swts{display:flex;flex-wrap:wrap;gap:8px}
+.swt{display:inline-flex;align-items:center;gap:6px;font:500 11px/1 var(--font-m);color:var(--muted)}
+.swt i{width:18px;height:18px;border-radius:5px;border:1px solid var(--line);flex:none}
+.swt b{font-weight:500;color:var(--fg)}
+.swt code{background:transparent;padding:0;font-size:11px}
+.dkc{background:#1A1E25;border-color:#2C323D}.dkc h3{color:#E2E1E9}.dkc .swt,.dkc .swt b{color:#E2E1E9}.dkc .swt i{border-color:#2C323D}
+
 .mrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .openrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 4px 8px}
 .openrow span{font-size:12px;color:var(--muted)}
 .linkbtn{border:1px solid var(--line);background:transparent;color:var(--accent);border-radius:8px;padding:6px 10px;font:500 12px/1 var(--font-b);cursor:pointer;white-space:nowrap}
 .linkbtn:hover{background:var(--surface2)}
-.src div.ins{background:color-mix(in srgb,var(--ok) 26%,transparent)}
+.src div.ins{background:var(--ins)}
 
-.tag.wr{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+.tag.wr{background:var(--tag-wr);color:var(--warn)}
 .toast{top:62px}
 .sym.s7::after{content:"";position:absolute;inset:5px;border:1.5px dashed var(--new)}
 .sym.s7::before{content:"";position:absolute;left:9px;right:9px;top:15px;height:4px;border-radius:2px;background:var(--new);z-index:1}
@@ -379,9 +428,9 @@ td code{display:inline-block;margin:1px 0}
 <div class="wrap">
 
 <header class="top">
-  <span class="eyebrow">jjoblab/CodeIDE · module preview/xml · commit c9b28d3 · v2 de la maquette</span>
+  <span class="eyebrow">jjoblab/CodeIDE · module preview/xml · lu au commit 0ad3cab (v0.134.38), dépôt vérifié à 6a9325b (v0.135.0) · v4 de la maquette</span>
   <h1>Aperçu XML : un éditeur de layout dans son propre écran</h1>
-  <p class="lede">Le panneau devient une activité dédiée. Une bulle ouvre la palette de widgets, que l'on glisse sur l'aperçu ou que l'on place par un second popup. Les calques d'Android Studio et la feuille arbre, attributs, problèmes et source restent. Tout ce qui est interactif ci-dessous fonctionne.</p>
+  <p class="lede">Le panneau devient une activité dédiée. Une bulle ouvre la palette de widgets, que l'on glisse sur l'aperçu ou que l'on place par un second popup. Les calques de l'éditeur visuel et la feuille arbre, attributs, problèmes et source restent. Tout ce qui est interactif ci-dessous fonctionne. La v3 ajoute un onglet Attributs plus riche : des sections selon le type de la vue, de la recherche et des corrections rapides.</p>
 </header>
 
 <section class="sec" id="constat">
@@ -508,13 +557,135 @@ td code{display:inline-block;margin:1px 0}
           <li>Touchez la <b>bulle</b>, restez en <b>Glisser-déposer</b>, maintenez un widget et lâchez-le dans la carte ou entre deux champs.</li>
           <li>Passez en <b>Placer par popup</b>, touchez <b>LinearLayout (H)</b>, placez-le <b>Après</b> le champ mot de passe, puis insérez un <b>Button</b> <b>Dedans</b>.</li>
           <li>Ajoutez un <b>RecyclerView</b> : la dépendance manque dans le projet d'exemple, l'aperçu montre un cadre de remplacement et un problème apparaît.</li>
-          <li>Dans l'onglet <b>Attributs</b>, changez le texte ou la largeur d'une vue ajoutée, puis <b>Annuler</b> avec la barre du haut.</li>
+          <li>Dans l'onglet <b>Attributs</b>, passez en <b>Tous</b>, changez une couleur, un drapeau de <b>gravity</b> ou l'<b>alpha</b>, puis <b>Annuler</b> avec la barre du haut.</li>
+          <li>Sur <b>lien_oublie</b>, utilisez les <b>corrections rapides</b>. Cherchez <b>bias</b> ou <b>ellipsize</b> dans la recherche.</li>
           <li>Glissez la <b>bulle</b> sur l'autre bord, ou fixez-la depuis l'en-tête de la palette.</li>
         </ul>
       </div>
       <p class="note"><b>Limite de la maquette.</b> Le rendu est du HTML et le XML est généré depuis un arbre en mémoire. Dans l'application, le texte du document reste la seule source : la palette écrit une édition dans la session, et le rendu repart par le chemin normal.</p>
     </div>
   </div>
+</section>
+
+<section class="sec" id="attributs">
+  <div class="sec-head">
+    <span class="eyebrow">Attributs · deuxième vague</span>
+    <h2>Un écran Attributs qui suit le type de la vue</h2>
+    <p class="lede">Le dépôt contient déjà <code>CatalogueAttributs</code> : 14 sections, 8 sortes de contrôles, livrés en PE7e et PE9. Cette vague le prolonge. Dans la maquette, sélectionnez une vue, ouvrez <b>Attributs</b>, puis passez de <b>Courants</b> à <b>Tous</b> ou cherchez un nom d'attribut.</p>
+  </div>
+
+  <div class="found">
+    <article class="fnd">
+      <h3>Courants et Tous <span class="tag new">Nouveau</span></h3>
+      <p>« Courants » garde l'écran court : 6 à 8 sections, les attributs que l'on change vraiment. « Tous » montre chaque section en entier. La recherche ignore ce réglage et ouvre les sections qui correspondent.</p>
+      <span class="src">curé à la main · lisible sur téléphone</span>
+    </article>
+    <article class="fnd">
+      <h3>Tous, dérivé du catalogue plateforme <span class="tag rework">Refonte</span></h3>
+      <p><code>CataloguePlateforme</code> (<code>lsp/xml</code>) connaît déjà, pour chaque attribut, ses <code>formats</code>, ses <code>enumerations</code> et ses <code>fanions</code>, lus dans <code>attrs.xml</code>. On en déduit le contrôle au lieu d'écrire 300 lignes de Kotlin : ce qui n'est pas curé apparaît quand même, sans maintenance.</p>
+      <span class="src">AttrCatalogue · BaliseCatalogue.superieurs</span>
+    </article>
+    <article class="fnd">
+      <h3>Corrections rapides <span class="tag new">Nouveau</span></h3>
+      <p>Les problèmes de la vue deviennent des boutons en haut de l'onglet : porter une cible à 48 dp, extraire un texte en <code>@string</code>, autoriser 2 lignes, ajouter la dépendance. Une seule édition, un seul annuler.</p>
+      <span class="src">ProblemesPreview · ExtractionRessource</span>
+    </article>
+  </div>
+
+  <div class="tbl"><table class="gtbl">
+    <thead><tr><th>Vue</th><th>Déjà dans le dépôt</th><th>Ajouté dans la maquette</th></tr></thead>
+    <tbody>
+      <tr><td><b>TextView, Button, CheckBox, Switch</b></td><td>Texte : <code>text</code>, <code>textSize</code>, <code>textStyle</code>, <code>gravity</code>, <code>textColor</code></td><td><div class="stack"><span><b>Typographie</b> : <code>fontFamily</code>, <code>textFontWeight</code>, <code>textAllCaps</code>, <code>letterSpacing</code>, <code>lineSpacingExtra</code>, <code>lineSpacingMultiplier</code></span><span><b>Lignes et débordement</b> : <code>maxLines</code>, <code>minLines</code>, <code>ellipsize</code>, <code>autoLink</code>, <code>autoSizeTextType</code></span><span><b>Icônes du texte</b> : <code>drawableStart</code>, <code>drawableEnd</code>, <code>drawablePadding</code>, <code>drawableTint</code></span><span><code>textAlignment</code>, <code>textAppearance</code></span></div></td></tr>
+      <tr><td><b>EditText</b></td><td>Saisie : <code>hint</code>, <code>inputType</code>, <code>maxLines</code></td><td><code>inputType</code> en base + modificateurs, <code>imeOptions</code>, <code>maxLength</code>, <code>digits</code>, <code>autofillHints</code>, <code>importantForAutofill</code>, <code>selectAllOnFocus</code>, <code>textColorHint</code></td></tr>
+      <tr><td><b>TextInputLayout</b></td><td>Champ : <code>hint</code>, <code>boxBackgroundMode</code>, <code>endIconMode</code></td><td><div class="stack"><span><b>Aides et compteur</b> : <code>helperText</code>, <code>errorEnabled</code>, <code>counterEnabled</code>, <code>counterMaxLength</code>, <code>placeholderText</code>, <code>prefixText</code>, <code>suffixText</code></span><span><b>Icônes</b> : <code>startIconDrawable</code>, <code>endIconTint</code></span><span><b>Contour</b> : <code>boxStrokeColor</code>, <code>boxStrokeWidth</code>, quatre coins, <code>boxBackgroundColor</code></span></div></td></tr>
+      <tr><td><b>Button</b></td><td><code>cornerRadius</code>, <code>icon</code></td><td>Variante (<code>style</code> Material 3), <code>backgroundTint</code>, <code>iconGravity</code>, <code>iconPadding</code>, <code>iconTint</code>, <code>iconSize</code>, <code>strokeColor</code>, <code>strokeWidth</code>, <code>rippleColor</code>, <code>insetTop</code>, <code>insetBottom</code></td></tr>
+      <tr><td><b>CheckBox, Switch</b></td><td><code>checked</code></td><td><code>buttonTint</code> ; <code>thumbTint</code>, <code>trackTint</code>, <code>showText</code>, <code>textOn</code>, <code>textOff</code></td></tr>
+      <tr><td><b>ImageView, ImageButton</b></td><td><code>src</code>, <code>scaleType</code></td><td><code>srcCompat</code>, <code>adjustViewBounds</code>, <code>tint</code>, <code>tintMode</code>, <code>cropToPadding</code>, <code>maxWidth</code>, <code>maxHeight</code>, <code>tools:src</code></td></tr>
+      <tr><td><b>LinearLayout</b></td><td><code>orientation</code>, <code>gravity</code></td><td><code>baselineAligned</code>, <code>weightSum</code>, <code>showDividers</code>, <code>divider</code>, <code>dividerPadding</code>, <code>measureWithLargestChild</code>, <code>clipChildren</code>, <code>clipToPadding</code>, <code>animateLayoutChanges</code></td></tr>
+      <tr><td><b>MaterialCardView</b></td><td><code>cardCornerRadius</code>, <code>cardElevation</code></td><td><code>cardBackgroundColor</code>, <code>strokeColor</code>, <code>strokeWidth</code>, <code>rippleColor</code>, <code>contentPadding</code>, <code>cardUseCompatPadding</code>, <code>cardPreventCornerOverlap</code>, <code>checkable</code>, variante</td></tr>
+      <tr><td><b>ProgressBar, SeekBar</b></td><td><code>max</code>, <code>progress</code>, <code>indeterminate</code></td><td><code>min</code>, <code>secondaryProgress</code>, <code>progressTint</code>, <code>progressBackgroundTint</code>, <code>indeterminateTint</code> ; <code>thumb</code>, <code>thumbTint</code>, <code>splitTrack</code>, <code>tickMark</code></td></tr>
+      <tr><td><b>RecyclerView</b></td><td><code>tools:listitem</code>, <code>layoutManager</code></td><td><code>orientation</code>, <code>spanCount</code>, <code>reverseLayout</code>, <code>stackFromEnd</code>, <code>scrollbars</code>, <code>overScrollMode</code>, <code>nestedScrollingEnabled</code>, <code>tools:itemCount</code> (change le nombre de lignes du rendu)</td></tr>
+      <tr><td><b>Enfant d'un ConstraintLayout</b></td><td>Contraintes (lecture et écriture)</td><td>Biais horizontal, largeur en pourcentage, ratio, largeur min et max. Le biais vertical reste grisé tant qu'il n'y a pas de contrainte en bas.</td></tr>
+      <tr><td><b>Enfant d'un LinearLayout</b></td><td><code>layout_weight</code>, <code>layout_gravity</code></td><td>Action « Remplir l'espace restant »</td></tr>
+      <tr><td><b>Toutes les vues</b></td><td>Disposition, Affichage (visibilité, alpha, enabled, <code>contentDescription</code>)</td><td><div class="stack"><span><b>Apparence</b> : <code>background</code>, <code>backgroundTint</code>, <code>foreground</code>, <code>elevation</code>, <code>clipToOutline</code>, <code>theme</code></span><span><b>Transformation</b> : <code>rotation</code>, <code>scaleX</code>, <code>scaleY</code>, <code>translationX</code>, <code>translationY</code>, <code>translationZ</code></span><span><b>Interaction</b> : <code>clickable</code>, <code>focusable</code>, <code>longClickable</code>, <code>onClick</code></span><span><b>Accessibilité</b> : <code>importantForAccessibility</code>, <code>accessibilityHeading</code>, <code>labelFor</code>, <code>tooltipText</code></span><span><b>Aperçu uniquement</b> (<code>tools:</code>), <b>Autres attributs</b>, renommage de l'<code>id</code>, <code>tag</code></span></div></td></tr>
+      <tr><td><b>Racine</b></td><td>Aucune édition</td><td><code>tools:context</code>, <code>background</code>, padding, <code>fitsSystemWindows</code>, <code>clipToPadding</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="sec-head"><h3>Dix contrôles de plus, tous décidés par le format de l'attribut</h3>
+    <p class="lede">Les 8 contrôles existants (<code>Identifiant</code>, <code>Texte</code>, <code>Nombre</code>, <code>Choix</code>, <code>TriEtat</code>, <code>Cotes</code>, <code>Dimensions</code>, <code>Contraintes</code>) restent. Les nouveaux sont des cas de <code>ControleAttribut</code>, avec chacun son <code>controle_*.xml</code>.</p></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Contrôle</th><th>Format dans <code>attrs.xml</code></th><th>Sert à</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td><b>Liste</b></td><td><code>enum</code> de plus de 4 valeurs</td><td><code>scaleType</code>, <code>ellipsize</code>, <code>fontFamily</code>, <code>imeOptions</code></td><td>Liste déroulante ; « par défaut » retire l'attribut. Un enum de 4 valeurs ou moins reste en <code>Choix</code>.</td></tr>
+      <tr><td><b>Drapeaux</b></td><td><code>flag</code></td><td><code>gravity</code>, <code>layout_gravity</code>, <code>showDividers</code>, <code>autoLink</code>, <code>textStyle</code></td><td>Puces à bascule ; l'écriture joint par <code>|</code> dans l'ordre du catalogue, et garde les mots inconnus déjà présents.</td></tr>
+      <tr><td><b>Couleur</b></td><td><code>color</code></td><td><code>textColor</code>, <code>background</code>, <code>backgroundTint</code>, <code>strokeColor</code></td><td>Pastille, champ, palette des <code>@color</code> du projet. Accepte <code>#RGB</code> à <code>#AARRGGBB</code>, <code>@color/</code>, <code>?attr/</code>. Une valeur invalide n'est pas écrite.</td></tr>
+      <tr><td><b>Ressource</b></td><td><code>reference</code></td><td><code>src</code>, <code>icon</code>, <code>drawableStart</code>, <code>listitem</code>, <code>divider</code></td><td>Saisie avec complétion depuis l'index des ressources ; un nom nu devient <code>@drawable/nom</code> ; une référence introuvable est écrite avec un avertissement.</td></tr>
+      <tr><td><b>Curseur</b></td><td><code>float</code> borné</td><td><code>alpha</code>, <code>rotation</code>, <code>scaleX</code>, <code>elevation</code>, biais</td><td>Curseur et champ liés ; l'édition n'est écrite qu'au relâchement. La valeur par défaut retire l'attribut.</td></tr>
+      <tr><td><b>Ratio</b></td><td><code>string</code> (<code>W,16:9</code>)</td><td><code>layout_constraintDimensionRatio</code></td><td>Deux nombres, préréglages 1:1, 4:3, 16:9, 3:4, côté W ou H.</td></tr>
+      <tr><td><b>Type de saisie</b></td><td><code>flag</code> à deux niveaux</td><td><code>inputType</code></td><td>Une base (texte, nombre, mot de passe…) et des modificateurs réservés aux bases texte.</td></tr>
+      <tr><td><b>Coins</b></td><td>quatre <code>dimension</code></td><td><code>boxCornerRadius*</code></td><td>Quatre champs, un attribut par coin.</td></tr>
+      <tr><td><b>Référence d'id</b></td><td><code>reference</code> à un id</td><td><code>labelFor</code></td><td>Liste des <code>@id/</code> de l'arbre.</td></tr>
+      <tr><td><b>Attribut libre</b></td><td>tout le reste</td><td>Ce que le catalogue ne connaît pas</td><td>Section « Autres attributs » : les attributs présents dans le XML mais hors catalogue, modifiables et supprimables ; un champ nom avec complétion en ajoute.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="sec-head"><h3>Garde-fous</h3></div>
+  <div class="found">
+    <article class="fnd">
+      <h3>Rendu non garanti pour <code>app:</code> <span class="tag wr">P3</span></h3>
+      <p>LayoutLib v3 stubbe <code>applyCustomAttributes</code> (ADR 0116) : un attribut <code>app:</code> peut s'écrire dans le XML sans changer le rendu. Chaque champ <code>app:</code> porte une puce jaune explicative. La maquette applique ces effets, l'application doit vérifier sur chaque attribut Material avant de promettre un aperçu.</p>
+    </article>
+    <article class="fnd">
+      <h3>Une édition, un annuler</h3>
+      <p>Chaque contrôle produit une seule édition passée à <code>SourceApercu.remplacer</code>, comme la palette. Les valeurs par défaut retirent l'attribut au lieu de l'écrire. <code>xmlns:tools</code> et <code>xmlns:app</code> s'ajoutent à la racine si besoin, comme aujourd'hui.</p>
+    </article>
+    <article class="fnd">
+      <h3>Validation avant écriture</h3>
+      <p>Bornes numériques, couleur, référence, nom de méthode pour <code>onClick</code>, <code>snake_case</code> et unicité pour <code>@+id</code>. Une erreur s'affiche sous le champ et rien n'est écrit ; un avertissement (ressource introuvable) écrit quand même.</p>
+    </article>
+    <article class="fnd">
+      <h3>Vue absente du rendu</h3>
+      <p>Avec <code>visibility = gone</code>, la vue n'a plus de bornes : l'arbre et les attributs restent utilisables, le cadre de sélection disparaît.</p>
+    </article>
+  </div>
+  <p class="note"><b>À essayer.</b> Sélectionnez <b>lien_oublie</b> et touchez « Passer à 48 dp », puis « Extraire en @string ». Sur <b>btn_connexion</b>, choisissez la variante <b>OutlinedButton</b>, une couleur de texte et <b>gravity</b> <b>center</b>. Cherchez <b>bias</b> sur un enfant de la racine. Sur <b>champ_email</b>, ouvrez <b>Aides et compteur</b>. Ajoutez un <b>RecyclerView</b>, corrigez la dépendance, puis réglez <code>tools:itemCount</code>.</p>
+</section>
+
+<section class="sec" id="fidelite">
+  <div class="sec-head">
+    <span class="eyebrow">Design exact · spécification pour l'agent</span>
+    <h2>Pourquoi l'écran actuel ne ressemble pas à la maquette, et comment le corriger</h2>
+    <p class="lede">La maquette a ses propres neutres (surface blanche, trait, gris doux, violet « nouveau »). Le module les approche par les rôles du thème de l'app, et chaque layout répète ses valeurs en dur. Le correctif : un thème dédié enfant de celui de l'app, des jetons exacts, un layout et un style par contrôle, et un test qui garde la parité.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Élément</th><th>Maquette</th><th>Code actuel (v0.135.0)</th></tr></thead>
+    <tbody>
+      <tr><td>Champs</td><td>fond « fond » + trait 1 dp, rayon 8</td><td><code>colorSecondaryContainer</code>, sans trait</td></tr>
+      <tr><td>Segments</td><td>bascule plate dans un conteneur surface 2, coché = primaire plein</td><td>un <code>MaterialButton</code> contouré par segment</td></tr>
+      <tr><td>Carte de section</td><td>surface <code>#FFFFFF</code>, trait <code>#D6D5E0</code>, en-tête 30 dp</td><td><code>#F9F9FF</code>, <code>#C6C5D0</code>, en-tête 48 dp</td></tr>
+      <tr><td>Étiquettes</td><td>mono 11 sp / 500</td><td>sans, <code>LabelSmall</code></td></tr>
+      <tr><td>Valeurs de style</td><td>un jeton par valeur</td><td>~70 littéraux <code>dp</code> dans les layouts de contrôles</td></tr>
+      <tr><td>Jetons <code>preview_*</code></td><td>ambre <code>#9A6700</code>, badge nuit <code>#3A2A66</code></td><td><code>#B8860B</code>, badge translucide, pas de variante nuit</td></tr>
+    </tbody>
+  </table></div>
+  <div class="cols2">
+    <article class="card"><h3>Jetons, clair</h3><div class="swts"><span class="swt"><i style="background:#F9F9FF"></i><b>fond</b><code>#F9F9FF</code></span><span class="swt"><i style="background:#FFFFFF"></i><b>surface</b><code>#FFFFFF</code></span><span class="swt"><i style="background:#EEEEF7"></i><b>surface2</b><code>#EEEEF7</code></span><span class="swt"><i style="background:#D6D5E0"></i><b>trait</b><code>#D6D5E0</code></span><span class="swt"><i style="background:#5B5C66"></i><b>texte_doux</b><code>#5B5C66</code></span><span class="swt"><i style="background:#43559E"></i><b>primaire</b><code>#43559E</code></span><span class="swt"><i style="background:#1E6EC8"></i><b>accent</b><code>#1E6EC8</code></span><span class="swt"><i style="background:#9A6700"></i><b>avert</b><code>#9A6700</code></span><span class="swt"><i style="background:#BA1A1A"></i><b>erreur</b><code>#BA1A1A</code></span><span class="swt"><i style="background:#7C3AED"></i><b>nouveau</b><code>#7C3AED</code></span><span class="swt"><i style="background:#EDE5FF"></i><b>nouveau_fond</b><code>#EDE5FF</code></span><span class="swt"><i style="background:#F6F1E8"></i><b>correctif_fond</b><code>#F6F1E8</code></span></div></article>
+    <article class="card dkc"><h3>Jetons, nuit</h3><div class="swts"><span class="swt"><i style="background:#111318"></i><b>fond</b><code>#111318</code></span><span class="swt"><i style="background:#1A1E25"></i><b>surface</b><code>#1A1E25</code></span><span class="swt"><i style="background:#20252E"></i><b>surface2</b><code>#20252E</code></span><span class="swt"><i style="background:#2C323D"></i><b>trait</b><code>#2C323D</code></span><span class="swt"><i style="background:#A3A3AE"></i><b>texte_doux</b><code>#A3A3AE</code></span><span class="swt"><i style="background:#BAC4FF"></i><b>primaire</b><code>#BAC4FF</code></span><span class="swt"><i style="background:#7AB8F5"></i><b>accent</b><code>#7AB8F5</code></span><span class="swt"><i style="background:#FDD663"></i><b>avert</b><code>#FDD663</code></span><span class="swt"><i style="background:#FFB4AB"></i><b>erreur</b><code>#FFB4AB</code></span><span class="swt"><i style="background:#C4A8FF"></i><b>nouveau</b><code>#C4A8FF</code></span><span class="swt"><i style="background:#3A2A66"></i><b>nouveau_fond</b><code>#3A2A66</code></span><span class="swt"><i style="background:#2E2F2B"></i><b>correctif_fond</b><code>#2E2F2B</code></span></div></article>
+  </div>
+  <div class="cols2">
+    <article class="card"><h3>Ce que reçoit l'agent</h3>
+      <ul><li><b>PREVIEW_UI.md</b> : règle d'or, constat, jetons, typographie, cotes, anatomie, états, conventions XML, recette.</li>
+      <li><b>ADR 0131 à 0129</b> : fidélité et thème, refonte de l'écran, typographie et cibles tactiles.</li>
+      <li><b>ressources/</b> : 66 fichiers Android prêts à copier (attributs, couleurs clair et nuit, dimensions, styles, drawables, 30 layouts), XML vérifié.</li>
+      <li><b>ref/</b> : 110+ captures clair et nuit, deux planches annotées, mesures calculées, jetons en JSON.</li></ul></article>
+    <article class="card"><h3>Comment la fidélité est gardée</h3>
+      <ul><li>Un test JVM compare chaque couleur au fichier de la maquette.</li>
+      <li>Un test Robolectric mesure chaque layout contre les cotes relevées dans le navigateur.</li>
+      <li>Chaque chantier joint des paires de captures maquette | application, en clair et en nuit.</li>
+      <li>Une dérogation au design s'écrit dans <code>PREVIEW.md</code> avec sa date et son motif.</li></ul></article>
+  </div>
+  <p class="note"><b>À confirmer.</b> Les cibles tactiles du volet Attributs descendent à 24 dp (critère WCAG 2.2) pour tenir les cotes de la maquette ; le reste de l'application garde 48 dp. C'est l'objet de l'ADR 0133, proposé et non accepté.</p>
 </section>
 
 <section class="sec" id="activite">
@@ -585,11 +756,11 @@ td code{display:inline-block;margin:1px 0}
     <thead><tr><th>Idée</th><th>Pourquoi</th><th>Appui dans le code</th><th>Effort</th><th>État</th></tr></thead>
     <tbody>
       <tr><td><b>Annuler et rétablir</b></td><td>Une insertion mal placée doit se défaire d'un geste, et l'historique reste celui de l'éditeur.</td><td>Transaction unique dans <code>EditorSession</code>, exposée par le port</td><td>Faible</td><td><span class="tag dn">Maquette</span></td></tr>
-      <tr><td><b>Édition d'attributs</b></td><td>Changer les attributs d'une vue sans retourner au code : l'onglet propose les sections propres à sa classe (texte, saisie, image, conteneur, contraintes, affichage).</td><td>Même édition de texte que la palette ; les <code>@string</code> restent en lecture seule</td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
-      <tr><td><b>Extraire en ressource</b></td><td>Les widgets déposés ont un texte codé en dur, signalé dans Problèmes. Une action le déplace dans <code>values/strings.xml</code> et <code>values-en/</code>.</td><td>Projet FR/EN, <code>RequeteRendu.langue</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Édition d'attributs</b></td><td>Changer les attributs d'une vue sans retourner au code : l'onglet propose les sections propres à sa classe, en mode Courants ou Tous, avec recherche, rétablissement et validation (détail dans la section Attributs).</td><td>Même édition de texte que la palette ; les <code>@string</code> restent en lecture seule</td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
+      <tr><td><b>Extraire en ressource</b></td><td>Les widgets déposés ont un texte codé en dur, signalé dans Problèmes. Une action le déplace dans <code>values/strings.xml</code> et <code>values-en/</code>.</td><td>Projet FR/EN, <code>RequeteRendu.langue</code></td><td>Moyen</td><td><span class="tag dn">Maquette</span></td></tr>
       <tr><td><b>Vues du projet dans la palette</b></td><td>Les vues personnalisées apparaissent à côté des widgets standard, avec leur dépendance vérifiée.</td><td><code>RequeteRendu.classpath</code>, <code>CacheClasspath.classloader</code> puis <code>loadClass</code>, <code>DexViewFactory</code></td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
       <tr><td><b>Poignées de redimensionnement</b></td><td>Tirer un coin pour changer largeur et hauteur, avec aimantation sur 8 dp.</td><td>Bounds de <code>InfoVueRendu</code>, conversion px vers dp par la densité du profil</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
-      <tr><td><b>Données d'exemple</b></td><td><code>tools:text</code> et <code>tools:listitem</code> remplissent une liste ou un champ vide pour juger le rendu.</td><td><code>XmlPreprocessor</code> de LayoutLib convertit déjà <code>tools:*</code></td><td>Faible</td><td><span class="tag td">À prévoir</span></td></tr>
+      <tr><td><b>Données d'exemple</b></td><td><code>tools:text</code> et <code>tools:listitem</code> remplissent une liste ou un champ vide pour juger le rendu.</td><td><code>XmlPreprocessor</code> de LayoutLib convertit déjà <code>tools:*</code></td><td>Faible</td><td><span class="tag dn">Maquette</span></td></tr>
       <tr><td><b>Comparer appareils et thèmes</b></td><td>Pixel, tablette et petit écran côte à côte, jour et nuit, mise en page RTL.</td><td>Précédent du mode « Les deux » ; <code>supportsRtl</code> est déjà actif</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
       <tr><td><b>Capture d'écran</b></td><td>Exporter le rendu en PNG pour une revue ou une issue.</td><td>Le bitmap existe déjà, écriture par SAF</td><td>Faible</td><td><span class="tag td">À prévoir</span></td></tr>
       <tr><td><b>Entourer de…</b></td><td>Envelopper la sélection dans un LinearLayout, une carte ou un ScrollView.</td><td>Même moteur d'édition XML que l'insertion</td><td>Moyen</td><td><span class="tag td">À prévoir</span></td></tr>
@@ -644,6 +815,38 @@ td code{display:inline-block;margin:1px 0}
       <h3>Attributs en sections selon le type de vue</h3>
       <p><code>CatalogueAttributs</code> décrit, par classe de vue et par type de parent (ConstraintLayout, LinearLayout), des sections et des contrôles : texte, nombre avec unité, choix, tri-état, lecture seule. <code>EditionAttributsXml.definir(texte, spanElement, nom, valeur)</code> renvoie une édition <code>(debut, fin, remplacement)</code> qui remplace, ajoute au bon endroit ou retire l'attribut, et ajoute <code>xmlns:app</code> ou <code>xmlns:tools</code> à la racine si besoin. Les <code>@string</code> restent en lecture seule. L'onglet Attributs construit ses sections depuis le catalogue pour la vue sélectionnée.</p>
       <div class="files"><code>CatalogueAttributs.kt</code><code>EditionAttributsXml.kt</code><code>EditionAttributsXmlTest.kt</code><code>FeuilleApercuFragment.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11a</div><div>
+      <h3>Jetons, thème et test de parité</h3>
+      <p>Les 27 jetons de couleur de la maquette deviennent des attributs de thème (<code>apercuSurface</code>, <code>apercuTrait</code>, <code>apercuNouveau</code>…), câblés par <code>Theme.CodeIDE.Apercu</code>, enfant du thème de l'app. Les jetons <code>preview_*</code> fautifs sont migrés. <code>JetonsMaquetteTest</code> compare les couleurs au fichier de la maquette : un écart casse la chaîne.</p>
+      <div class="files"><code>attrs.xml</code><code>colors.xml</code><code>themes.xml</code><code>JetonsMaquetteTest.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11b</div><div>
+      <h3>Refonte visuelle de l'existant, à l'identique</h3>
+      <p>Styles, drawables et layouts de la spécification visuelle remplacent les valeurs locales : cartes à 30 dp, champs encadrés, segments plats, étiquettes en mono, <code>RecyclerView</code> au lieu du <code>ScrollView</code>, barre collante épinglée. Test de cotes Robolectric et paires de captures maquette | application.</p>
+      <div class="files"><code>PREVIEW_UI.md</code><code>carte_section.xml</code><code>controle_segments.xml</code><code>volet_attributs.xml</code></div></div></article>
+    <article class="ph"><div class="id">PE11c</div><div>
+      <h3>Contrôles et formats, en fonctions pures</h3>
+      <p>Ajouter à <code>ControleAttribut</code> les cas <code>Liste</code>, <code>Drapeaux</code>, <code>Couleur</code>, <code>Ressource</code>, <code>Curseur</code>, <code>Ratio</code>, <code>TypeSaisie</code>, <code>Coins</code>, <code>ReferenceId</code>, <code>ActionRapide</code>, plus une fonction pure <code>controlePourFormat(description)</code> qui choisit le contrôle depuis <code>formats</code>, <code>enumerations</code> et <code>fanions</code>. Validateurs purs (<code>ValidationAttribut</code>) testés cas par cas. Aucun accès à <code>:lsp:xml</code> : une petite classe de données <code>DescriptionAttribut</code> suffit.</p>
+      <div class="files"><code>CatalogueAttributs.kt</code><code>FormatsAttributs.kt</code><code>ValidationAttribut.kt</code><code>FormatsAttributsTest.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11d</div><div>
+      <h3>Catalogue curé, deuxième vague</h3>
+      <p>Nouvelles sections par famille de vue (voir le tableau plus haut), un indicateur <code>courant</code> par contrôle, les enfants de FrameLayout et la racine. Les valeurs par défaut sont décidées comme aujourd'hui : première valeur = attribut retiré.</p>
+      <div class="files"><code>CatalogueAttributs.kt</code><code>CatalogueAttributsTest.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11e</div><div>
+      <h3>Tous : dérivation depuis le catalogue plateforme</h3>
+      <p>Un port dans <code>:core:domain</code> expose les attributs d'une classe de vue avec leurs formats (hiérarchie via <code>BaliseCatalogue.superieurs</code> puis <code>StyleableCatalogue</code>). <code>:feature:preview</code> l'adapte depuis <code>CataloguePlateforme</code> et alimente « Tous » et la section « Autres attributs ». À vérifier : <code>ModuleRulesPlugin</code> et le chargement du catalogue quand les plateformes ne sont pas installées (repli sur le seul catalogue curé).</p>
+      <div class="files"><code>CataloguePlateforme.kt</code><code>PortAttributsPlateforme.kt</code><code>ModuleRulesPlugin.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11f</div><div>
+      <h3>Interface : recherche, Courants ou Tous, rétablir, validation</h3>
+      <p>Barre collante en haut de <code>VoletAttributsFragment</code> (recherche, bascule), bouton ↺ par champ, message sous le champ, puce <code>app</code> ou <code>tools</code>. Un layout <code>controle_*.xml</code> par nouveau contrôle, chaînes en <code>fr</code> et <code>en</code>, aucune chaîne en dur. La feuille passe à environ 420 dp sur l'onglet Attributs. Le rendu de la liste évite de reconstruire les sections pendant la frappe.</p>
+      <div class="files"><code>VoletAttributsFragment.kt</code><code>controle_liste.xml</code><code>controle_drapeaux.xml</code><code>controle_couleur.xml</code><code>controle_curseur.xml</code><code>strings.xml</code></div></div></article>
+    <article class="ph"><div class="id">PE11g</div><div>
+      <h3>Corrections rapides depuis les problèmes</h3>
+      <p>Pour la vue sélectionnée, un bouton par problème corrigible : cible à 48 dp (<code>minWidth</code> et <code>minHeight</code>), extraction en <code>@string</code> via <code>ExtractionRessource</code>, <code>maxLines</code>, focus sur <code>contentDescription</code>, ajout de la dépendance Gradle.</p>
+      <div class="files"><code>ProblemesPreview.kt</code><code>ExtractionRessource.kt</code><code>VoletAttributsFragment.kt</code></div></div></article>
+    <article class="ph"><div class="id">PE11h</div><div>
+      <h3>Classes supplémentaires</h3>
+      <p>ConstraintLayout (racine), FrameLayout, ScrollView, Chip, FloatingActionButton, MaterialToolbar, Guideline : d'abord par la dérivation de PE11e, puis une section curée pour celles qui le méritent. À mesurer : la part des attributs <code>app:</code> qui change vraiment le rendu (P3).</p>
+      <div class="files"><code>CatalogueAttributs.kt</code><code>CataloguePalette.kt</code></div></div></article>
     <article class="ph"><div class="id">PE6e–f</div><div>
       <h3>Orientation, échelle de police, contraintes</h3>
       <p>Ajouter <code>orientation</code> et <code>echellePolice</code> à <code>RequeteRendu</code>. L'échelle de police et la remontée des contraintes dépendent de LayoutLib v3 : à confirmer avant de les promettre dans l'interface.</p>
@@ -653,7 +856,7 @@ td code{display:inline-block;margin:1px 0}
 
 <footer class="foot">
   <p>Couleurs de l'interface : jetons de <code>core/ui/src/main/res/values/colors.xml</code> et <code>values-night</code>. Le violet est réservé à ce qui est nouveau ou modifiable. La maquette ne modifie pas le dépôt, cloné en lecture seule.</p>
-  <p>Fichiers lus en plus de la première version : <code>EditorActivity.kt</code> (blocs preview), <code>EditorViewModel.kt</code> (sessions), <code>AppNavigator.kt</code>, <code>AppNavigatorImpl.kt</code>, <code>ModuleRulesPlugin.kt</code>, <code>feature/editor/AndroidManifest.xml</code>, <code>CacheClasspath.kt</code>.</p>
+  <p>Fichiers lus en plus de la première version : <code>EditorActivity.kt</code> (blocs preview), <code>EditorViewModel.kt</code> (sessions), <code>AppNavigator.kt</code>, <code>AppNavigatorImpl.kt</code>, <code>ModuleRulesPlugin.kt</code>, <code>feature/editor/AndroidManifest.xml</code>, <code>CacheClasspath.kt</code>. Pour la v3 : <code>CatalogueAttributs.kt</code>, <code>EditionAttributsXml.kt</code>, <code>VoletAttributsFragment.kt</code> et <code>CataloguePlateforme.kt</code> (<code>lsp/xml</code>).</p>
 </footer>
 
 </div>
@@ -681,18 +884,18 @@ const ROOT = {rid:'root', cls:'ConstraintLayout', fq:'androidx.constraintlayout.
   {rid:'sous_titre', cls:'TextView', k:'T', kind:'text', w:'m', h:'w', mt:4, ml:24, mr:24, size:14, txt:'sous', muted:true},
   {rid:'champ_email', cls:'TextInputLayout', fq:'com.google.android.material.textfield.TextInputLayout', k:'Ti', kind:'field', w:'m', h:56, mt:28, ml:24, mr:24, pad:[16,8,16,8], txt:'email', val:'jo@codeide.dev'},
   {rid:'champ_mdp', cls:'TextInputLayout', fq:'com.google.android.material.textfield.TextInputLayout', k:'Ti', kind:'field', w:'m', h:56, mt:16, ml:24, mr:24, pad:[16,8,16,8], txt:'mdp', val:'••••••••'},
-  {rid:'souvenir', cls:'CheckBox', k:'Cb', kind:'check', w:'m', h:48, mt:8, ml:24, mr:24, size:16, txt:'souvenir', click:true},
+  {rid:'souvenir', cls:'CheckBox', k:'Cb', kind:'check', w:'m', h:48, mt:8, ml:24, mr:24, size:16, txt:'souvenir', click:true, extra:[['android:checked','true']]},
   {rid:'btn_connexion', cls:'Button', k:'B', kind:'btn', w:'m', h:48, mt:20, ml:24, mr:24, pad:[24,0,24,0], size:14, txt:'btn', click:true},
   {rid:'lien_oublie', cls:'TextView', k:'T', kind:'link', w:'w', h:'w', mt:16, center:true, pad:[8,6,8,6], size:14, lit:'Mot de passe oublié ?', click:true}
 ]};
-const SHEET_OPEN = 300;
+let SHEET_OPEN = 300;
 const S = {
   dev:0, land:false, night:false, lang:null, fs:1, mode:'design', nav:true,
   layers:{par:true, mg:true, con:false, bnd:false, prob:true, grid:false},
   sel:'btn_connexion', tab:'tree', open:false, sim:null, autofit:true, pop:null,
   z:1, tx:0, ty:0, W:393, H:851, b:{}, chrome:[], probs:[], boards:[],
   palMode:'drag', palCat:'Tous', palQ:'', recents:[], bub:{side:'l', y:.42, fixed:false},
-  hist:[], redo:[], flash:null, dropView:null, place:null, drag:null, errLine:0
+  attrMode:'c', attrQ:'', so:{}, focusAttr:null, hist:[], redo:[], flash:null, dropView:null, place:null, drag:null, errLine:0
 };
 const $ = id => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -722,7 +925,7 @@ function mkView(v, t, po) {
   if (v.h !== 'w') s.height = (v.h === 'm' ? '100%' : v.h + 'px');
   if (v.minH) s.minHeight = v.minH + 'px';
   if (v.pad) s.padding = v.pad[1]+'px '+v.pad[2]+'px '+v.pad[3]+'px '+v.pad[0]+'px';
-  const text = v.lit != null ? v.lit : (v.txt && t[v.txt]);
+  const text = ex(v, 'tools:text') || (v.lit != null ? v.lit : (v.txt && t[v.txt]));
   const tx = (str, size, extra) => { const n = el('span', 't', str); n.style.fontSize = (size*fs)+'px'; if (extra) Object.assign(n.style, extra); return n; };
   const bar = (css) => { const b = el('span'); b.style.cssText = css; return b; };
   if (v.mock) {
@@ -739,7 +942,7 @@ function mkView(v, t, po) {
       s.borderRadius = '8px'; s.background = 'color-mix(in srgb,var(--s-pri) 14%,transparent)'; s.alignItems = 'center'; s.justifyContent = 'center';
       e.appendChild(tx('▲', 18, {color:'var(--s-pri)'})); break;
     case 'text':
-      s.alignItems = 'center'; e.appendChild(tx(text, v.size, {fontWeight: v.size > 20 ? '700' : '400', color: v.muted ? 'var(--s-muted)' : 'var(--s-fg)'})); break;
+      s.alignItems = 'center'; e.appendChild(tx(text, v.size, {fontWeight: '400', color: v.muted ? 'var(--s-muted)' : 'var(--s-fg)'})); break;
     case 'link':
       s.alignItems = 'center'; e.appendChild(tx(text, v.size, {color:'var(--s-pri)', textDecoration:'underline'})); break;
     case 'field':
@@ -770,7 +973,8 @@ function mkView(v, t, po) {
     case 'space': break;
     case 'recycler':
       s.flexDirection = 'column'; s.overflow = 'hidden';
-      for (let i = 0; i < 4; i++) {
+      const nRows = Math.min(12, Math.max(1, parseInt(ex(v, 'tools:itemCount')) || 4));
+      for (let i = 0; i < nRows; i++) {
         const row = el('div'); row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid color-mix(in srgb,var(--s-outline) 35%,transparent);flex:none';
         row.append(bar('width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--s-pri) 22%,transparent);flex:none'),
           bar('flex:1;height:8px;border-radius:4px;background:color-mix(in srgb,var(--s-fg) 22%,transparent)'));
@@ -782,6 +986,7 @@ function mkView(v, t, po) {
       if (v.card) { s.background = 'var(--s-surf)'; s.borderRadius = '12px'; s.boxShadow = '0 1px 4px rgba(0,0,0,.28)'; s.border = '1px solid color-mix(in srgb,var(--s-outline) 40%,transparent)'; }
       (v.children || []).forEach(c => e.appendChild(mkView(c, t, v.orient || 'v'))); break;
   }
+  applyFx(e, v, po);
   return e;
 }
 function buildScreen(bp) {
@@ -793,6 +998,7 @@ function buildScreen(bp) {
   const ab = el('div', 'chrome abar', t.appbar); ab.dataset.chrome = '1';
   const root = el('div', 'root v'); root.dataset.rid = 'root';
   root.style.alignItems = 'stretch'; root.style.flexDirection = 'column'; root.style.flex = '1 1 0';
+  { const rb = colorCss(ex(ROOT, 'android:background')); if (rb) root.style.background = rb; if (ROOT.pad) root.style.padding = ROOT.pad[1] + 'px ' + ROOT.pad[2] + 'px ' + ROOT.pad[3] + 'px ' + ROOT.pad[0] + 'px'; }
   ROOT.children.forEach(v => root.appendChild(mkView(v, t, 'v')));
   sc.append(sb, ab, root);
   if (S.nav) { const nb = el('div', 'chrome nbar'); nb.dataset.chrome = '1'; nb.append(el('i'), el('i'), el('i')); sc.appendChild(nb); }
@@ -804,6 +1010,7 @@ function measure(sc) {
   const sr = sc.getBoundingClientRect(), r = sr.width / sc.offsetWidth || 1;
   const b = {}, chrome = [], trunc = new Set();
   sc.querySelectorAll('[data-rid]').forEach(n => {
+    if (!n.getClientRects().length) return;
     const q = n.getBoundingClientRect();
     b[n.dataset.rid] = {x:(q.left-sr.left)/r, y:(q.top-sr.top)/r, w:q.width/r, h:q.height/r};
     n.querySelectorAll(':scope > .t').forEach(c => { if (c.scrollWidth > c.clientWidth + 1) trunc.add(n.dataset.rid); });
@@ -847,7 +1054,7 @@ function attrsOf(v, par, prev) {
     if (v.pad[1] === v.pad[3] && v.pad[1]) a.push(['android:paddingVertical', v.pad[1] + 'dp']);
   }
   if (v.kind === 'group') a.push(['android:orientation', v.orient === 'h' ? 'horizontal' : 'vertical']);
-  if (v.minH) a.push(['android:minHeight', v.minH + 'dp']);
+  if (v.minH && !ex(v, 'android:minHeight')) a.push(['android:minHeight', v.minH + 'dp']);
   if (v.hint) a.push(['android:hint', v.hint]);
   if (v.lit) a.push(['android:text', v.lit]); else if (v.txt) a.push(['android:text', '@string/login_' + v.txt]);
   if (v.kind === 'edit') a.push(['android:inputType', 'text']);
@@ -863,9 +1070,12 @@ function buildSrc() {
   L.push('<' + ROOT.fq);
   L.push('    xmlns:android="http://schemas.android.com/apk/res/android"');
   L.push('    xmlns:app="http://schemas.android.com/apk/res-auto"');
-  L.push('    android:id="@+id/root"');
-  L.push('    android:layout_width="match_parent"');
-  L.push('    android:layout_height="match_parent">');
+  const usesTools = [ROOT].concat(nodes()).some(n => (n.extra || []).some(x => x[0].indexOf('tools:') === 0));
+  if (usesTools) L.push('    xmlns:tools="http://schemas.android.com/tools"');
+  const ra = [['android:id', '@+id/root'], ['android:layout_width', 'match_parent'], ['android:layout_height', 'match_parent']];
+  if (ROOT.pad) { const p = ROOT.pad; if (p[0] === p[2] && p[0]) ra.push(['android:paddingHorizontal', p[0] + 'dp']); if (p[1] === p[3] && p[1]) ra.push(['android:paddingVertical', p[1] + 'dp']); }
+  (ROOT.extra || []).forEach(x => ra.push(x));
+  ra.forEach((x, i) => L.push('    ' + x[0] + '="' + x[1] + '"' + (i === ra.length - 1 ? '>' : '')));
   const emit = (v, par, prev, ind) => {
     const pad = ' '.repeat(ind), st = L.length, a = attrsOf(v, par, prev), tag = v.mock ? v.fq : (v.fq || v.cls);
     L.push(pad + '<' + tag);
@@ -962,9 +1172,9 @@ function drawOverlay(bd) {
 const redraw = () => S.boards.forEach(drawOverlay);
 
 /* ---------- Historique : annuler, rétablir (dans l'application : session d'édition) ---------- */
-const snap = () => JSON.stringify(ROOT.children);
+const snap = () => JSON.stringify({c:ROOT.children, x:ROOT.extra || [], p:ROOT.pad || null});
 function pushHist() { S.hist.push(snap()); if (S.hist.length > 60) S.hist.shift(); S.redo.length = 0; }
-function restore(json) { ROOT.children = JSON.parse(json); if (S.sel && !find(S.sel)) S.sel = null; render(); }
+function restore(json) { const j = JSON.parse(json); ROOT.children = j.c; ROOT.extra = j.x; ROOT.pad = j.p; if (S.sel && !find(S.sel)) S.sel = null; render(); }
 function undo() { if (!S.hist.length) return; S.redo.push(snap()); restore(S.hist.pop()); toast('Modification annulée'); }
 function redoOp() { if (!S.redo.length) return; S.hist.push(snap()); restore(S.redo.pop()); toast('Modification rétablie'); }
 function mutate(fn, msg) { pushHist(); fn(); render(); if (msg) toast(msg); }
@@ -1018,71 +1228,516 @@ function dimRows(ed, v) {
     ed.appendChild(row);
   });
 }
+/* ---------- Attributs : catalogue par type de vue, contrôles, recherche, corrections ---------- */
 const ex = (v, n) => { const a = (v.extra || []).find(x => x[0] === n); return a ? a[1] : ''; };
 function setEx(v, n, val) { v.extra = (v.extra || []).filter(x => x[0] !== n); if (val !== '') v.extra.push([n, val]); }
-const GR = ['start', 'center', 'end'], TRI = ['défaut', 'true', 'false'];
+const TRI = ['défaut', 'true', 'false'];
+const dpv = s => { const x = parseFloat(s); return isNaN(x) ? null : x; };
+
+/* Ressources du projet d'exemple (dans l'application : index des ressources du modèle v2) */
+const RES = {
+  color: {primary:'#43559E', surface:'#FFFFFF', on_surface:'#1A1B21', accent:'#1E6EC8', success:'#2E7D32', warning:'#F9A825', error:'#BA1A1A', divider:'#D6D5E0'},
+  drawable: ['ic_logo', 'ic_search', 'ic_close', 'ic_user', 'ic_arrow_back', 'bg_card', 'bg_gradient'],
+  layout: ['item_projet', 'item_fichier'],
+  dimen: ['spacing_s', 'spacing_m', 'spacing_l'],
+  font: ['inter', 'jetbrains_mono'],
+  style: ['Widget.Material3.Button', 'Widget.Material3.Button.OutlinedButton', 'Widget.Material3.Button.TextButton', 'Widget.Material3.Button.TonalButton', 'Widget.Material3.Button.ElevatedButton',
+    'Widget.Material3.CardView.Elevated', 'Widget.Material3.CardView.Filled', 'Widget.Material3.CardView.Outlined',
+    'Widget.Material3.TextInputLayout.OutlinedBox', 'Widget.Material3.TextInputLayout.FilledBox', 'Widget.Material3.TextInputLayout.OutlinedBox.Dense']
+};
+const ATTR_CSS = {colorPrimary:'var(--s-pri)', colorOnPrimary:'var(--s-onpri)', colorSurface:'var(--s-surf)', colorOnSurface:'var(--s-fg)', colorOutline:'var(--s-outline)', colorError:'#BA1A1A'};
+const ANDROID_COL = {white:'#FFFFFF', black:'#000000', transparent:'transparent'};
+function colorCss(x) {
+  if (!x) return null; let m;
+  if ((m = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(x))) {
+    let h = m[1]; if (h.length <= 4) h = h.split('').map(c => c + c).join('');
+    if (h.length === 8) h = h.slice(2) + h.slice(0, 2);
+    return '#' + h;
+  }
+  if ((m = /^@color\/(\w+)$/.exec(x))) return RES.color[m[1]] || null;
+  if ((m = /^@android:color\/(\w+)$/.exec(x))) return ANDROID_COL[m[1]] || null;
+  if ((m = /^\?(?:android:)?attr\/(\w+)$/.exec(x))) return ATTR_CSS[m[1]] || null;
+  return null;
+}
+function vCol(x) {
+  if (!x || colorCss(x)) return {};
+  if (/^@color\/\w+$/.test(x)) return {warn:'@color introuvable dans res/values/colors.xml.'};
+  if (/^@drawable\/\w+$/.test(x)) return RES.drawable.includes(x.split('/')[1]) ? {} : {warn:'@drawable introuvable dans res/.'};
+  if (/^\?(android:)?attr\/\w+$/.test(x) || /^@android:/.test(x)) return {};
+  return {err:'Couleur invalide : #RRGGBB, #AARRGGBB, @color/nom ou ?attr/nom.'};
+}
+function vRes(x, ty) {
+  if (!x || /^\?(android:)?attr\/\w+$/.test(x)) return {};
+  const m = /^@(\w+)\/([\w.]+)$/.exec(x);
+  if (!m) return {err:'Référence attendue : @' + ty[0] + '/nom.'};
+  if (!ty.includes(m[1])) return {err:'Type @' + m[1] + ' refusé ici, attendu : ' + ty.map(t => '@' + t).join(', ') + '.'};
+  const set = m[1] === 'string' ? Object.keys(STR.fr).map(k => 'login_' + k) : (Array.isArray(RES[m[1]]) ? RES[m[1]] : RES[m[1]] ? Object.keys(RES[m[1]]) : null);
+  return set && !set.includes(m[2]) ? {warn:'@' + m[1] + '/' + m[2] + ' introuvable dans res/.'} : {};
+}
+
+/* Fabriques de contrôles. c:1 = affiché dans « Courants ». Le premier choix d'un seg est la valeur par défaut : l'attribut est alors retiré. */
+const C = {
+  seg:(a, l, o, c) => ({t:'seg', a, l, o, c}),
+  tri:(a, l, c) => ({t:'seg', a, l, o:TRI, c}),
+  list:(a, l, o, c) => ({t:'list', a, l, o, c}),
+  flg:(a, l, o, c) => ({t:'flags', a, l, o, c}),
+  col:(a, l, c) => ({t:'col', a, l, c}),
+  res:(a, l, ty, c) => ({t:'res', a, l, ty, c}),
+  num:(a, l, u, c, min, max) => ({t:'num', a, l, u:u || '', c, min, max}),
+  sld:(a, l, min, max, step, u, c, def) => ({t:'sld', a, l, min, max, step, u:u || '', c, def}),
+  str:(a, l, c, pat, msg) => ({t:'str', a, l, c, pat, msg})
+};
+const GRAV = ['start', 'end', 'top', 'bottom', 'center_horizontal', 'center_vertical', 'center', 'fill'];
+const FONTS = ['sans-serif', 'sans-serif-medium', 'sans-serif-light', 'serif', 'monospace', 'cursive'];
+const WEIGHTS = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
+const APPEAR = ['?attr/textAppearanceHeadlineLarge', '?attr/textAppearanceHeadlineMedium', '?attr/textAppearanceTitleLarge', '?attr/textAppearanceTitleMedium', '?attr/textAppearanceBodyLarge', '?attr/textAppearanceBodyMedium', '?attr/textAppearanceLabelLarge'];
+const IN_BASE = ['text', 'textEmailAddress', 'textPassword', 'textUri', 'textPersonName', 'textMultiLine', 'number', 'numberDecimal', 'numberSigned', 'numberPassword', 'phone', 'datetime'];
+const IN_MOD = ['textCapSentences', 'textCapWords', 'textCapCharacters', 'textAutoCorrect', 'textNoSuggestions'];
+const IME = ['actionNone', 'actionGo', 'actionSearch', 'actionSend', 'actionNext', 'actionDone'];
+const AUTOFILL = ['emailAddress', 'username', 'password', 'newPassword', 'name', 'phone', 'postalAddress', 'postalCode', 'smsOTPCode'];
+const SCALE = ['matrix', 'fitXY', 'fitStart', 'fitCenter', 'fitEnd', 'center', 'centerCrop', 'centerInside'];
+const LMGR = ['androidx.recyclerview.widget.LinearLayoutManager', 'androidx.recyclerview.widget.GridLayoutManager', 'androidx.recyclerview.widget.StaggeredGridLayoutManager'];
+const PRE = 'app:layout_constraint';
+
 function sectionsFor(v, par) {
-  const k = v.kind, s = [];
-  if (['text', 'link', 'btn', 'check', 'switch'].includes(k)) s.push(['Texte', [['lit', 'text'], ['size', 'taille (sp)'], ['seg', 'style', 'android:textStyle', ['normal', 'bold', 'italic']], ['seg', 'gravity', 'android:gravity', GR], ['str', 'couleur', 'android:textColor']]]);
-  if (k === 'edit') s.push(['Saisie', [['hint', 'hint'], ['seg', 'inputType', 'android:inputType', ['text', 'textEmailAddress', 'textPassword', 'number']], ['num', 'lignes max', 'android:maxLines', '']]]);
-  if (k === 'field') s.push(['Champ', [['lit', 'libellé'], ['seg', 'fond', 'app:boxBackgroundMode', ['outline', 'filled']], ['seg', 'icône de fin', 'app:endIconMode', ['none', 'password_toggle', 'clear_text']]]]);
-  if (k === 'btn') s.push(['Bouton', [['num', 'arrondi (dp)', 'app:cornerRadius', 'dp'], ['str', 'icône', 'app:icon']]]);
-  if (k === 'check' || k === 'switch') s.push(['État', [['seg', 'checked', 'android:checked', TRI]]]);
-  if (k === 'image') s.push(['Image', [['str', 'src', 'android:src'], ['seg', 'scaleType', 'android:scaleType', ['fitCenter', 'centerCrop', 'centerInside', 'fitXY']]]]);
-  if (k === 'group') s.push(['Conteneur', [['orient', 'orientation'], ['seg', 'gravity', 'android:gravity', GR]].concat(v.card ? [['num', 'arrondi (dp)', 'app:cardCornerRadius', 'dp'], ['num', 'élévation (dp)', 'app:cardElevation', 'dp']] : [])]);
-  if (k === 'progress' || k === 'seek') s.push(['Progression', [['num', 'max', 'android:max', ''], ['num', 'progress', 'android:progress', '']].concat(k === 'progress' ? [['seg', 'indeterminate', 'android:indeterminate', TRI]] : [])]);
-  if (k === 'recycler') s.push(['Liste', [['str', 'listitem', 'tools:listitem'], ['str', 'layoutManager', 'app:layoutManager']]]);
-  if (par && par.rid === 'root') s.push(['Contraintes', [['con', 'dans le ConstraintLayout']]]);
-  else if (par && par.kind === 'group') s.push(['Dans le parent', [['num', 'layout_weight', 'android:layout_weight', ''], ['seg', 'layout_gravity', 'android:layout_gravity', GR]]]);
-  s.push(['Disposition', [['dims'], ['sides', 'marges', 'm'], ['sides', 'padding', 'p']]]);
-  s.push(['Affichage', [['seg', 'visibility', 'android:visibility', ['visible', 'invisible', 'gone']], ['num', 'alpha', 'android:alpha', ''], ['seg', 'enabled', 'android:enabled', TRI], ['str', 'contentDescription', 'android:contentDescription']]]);
+  const k = v.kind, out = [], sec = (t, cs, o) => out.push(Object.assign({t, cs}, o || {}));
+  const T = ['text', 'link', 'btn', 'check', 'switch'].includes(k), isRoot = v.rid === 'root';
+  const genre = isRoot ? 'none' : par && par.rid === 'root' ? 'cons' : par && par.card ? 'frame' : 'lin';
+  sec('Identité', [{t:'id', a:'android:id', l:'identifiant', c:0, ro:isRoot}, C.str('android:tag', 'tag')]);
+  if (isRoot) {
+    sec('Racine', [C.str('tools:context', 'tools:context', 1, /^[.\w]+$/, 'Nom d’activité attendu, par exemple .MainActivity.'), C.col('android:background', 'background', 1),
+      {t:'sides', k:'p', l:'padding', c:1}, C.tri('android:fitsSystemWindows', 'fitsSystemWindows'), C.tri('android:clipToPadding', 'clipToPadding'), C.num('android:minHeight', 'minHeight', 'dp')]);
+    return out;
+  }
+  /* ----- spécifiques à la classe ----- */
+  if (T) sec('Texte', [{t:'lit', a:'android:text', l:'texte', c:1}, {t:'size', a:'android:textSize', l:'taille (sp)', c:1},
+    C.flg('android:textStyle', 'style', ['bold', 'italic'], 1), C.col('android:textColor', 'couleur', 1), C.flg('android:gravity', 'gravity', GRAV, 1),
+    C.list('android:textAlignment', 'textAlignment', ['gravity', 'textStart', 'center', 'textEnd', 'viewStart', 'viewEnd']), C.list('android:textAppearance', 'textAppearance', APPEAR)]);
+  if (T || k === 'edit') sec('Typographie', [C.list('android:fontFamily', 'fontFamily', FONTS), C.list('android:textFontWeight', 'textFontWeight', WEIGHTS), C.tri('android:textAllCaps', 'textAllCaps'),
+    C.sld('android:letterSpacing', 'letterSpacing (em)', -0.1, 0.5, 0.01, '', 0, 0), C.num('android:lineSpacingExtra', 'lineSpacingExtra', 'dp', 0, 0), C.num('android:lineSpacingMultiplier', 'lineSpacingMultiplier', '', 0, 0.5, 3), C.tri('android:includeFontPadding', 'includeFontPadding')]);
+  if (T || k === 'edit') sec('Lignes et débordement', [C.num('android:maxLines', 'maxLines', '', 0, 1, 50), C.num('android:minLines', 'minLines', '', 0, 1, 50),
+    C.list('android:ellipsize', 'ellipsize', ['none', 'start', 'middle', 'end', 'marquee']), C.flg('android:autoLink', 'autoLink', ['web', 'email', 'phone', 'map', 'all']), C.tri('android:textIsSelectable', 'textIsSelectable'),
+    C.seg('android:autoSizeTextType', 'autoSizeTextType', ['none', 'uniform']), C.num('android:autoSizeMinTextSize', 'autoSizeMinTextSize', 'sp', 0, 1), C.num('android:autoSizeMaxTextSize', 'autoSizeMaxTextSize', 'sp', 0, 1)]);
+  if (T && k !== 'switch' || k === 'edit') sec('Icônes du texte', [C.res('android:drawableStart', 'drawableStart', ['drawable']), C.res('android:drawableEnd', 'drawableEnd', ['drawable']),
+    C.res('android:drawableTop', 'drawableTop', ['drawable']), C.res('android:drawableBottom', 'drawableBottom', ['drawable']), C.num('android:drawablePadding', 'drawablePadding', 'dp', 0, 0), C.col('android:drawableTint', 'drawableTint')]);
+  if (k === 'edit') sec('Saisie', [{t:'hint', a:'android:hint', l:'hint', c:1}, {t:'input', a:'android:inputType', l:'inputType', c:1}, C.list('android:imeOptions', 'imeOptions', IME, 1),
+    C.num('android:maxLength', 'maxLength', '', 1, 1), C.str('android:digits', 'digits'), C.list('android:autofillHints', 'autofillHints', AUTOFILL), C.list('android:importantForAutofill', 'importantForAutofill', ['auto', 'yes', 'no', 'noExcludeDescendants']),
+    C.tri('android:selectAllOnFocus', 'selectAllOnFocus'), C.tri('android:cursorVisible', 'cursorVisible'), C.col('android:textColorHint', 'textColorHint')]);
+  if (k === 'field') {
+    sec('Champ', [{t:'lit', a:'android:hint', l:'libellé', c:1}, C.seg('app:boxBackgroundMode', 'fond', ['outline', 'filled', 'none'], 1), C.list('style', 'style', RES.style.filter(s => /TextInputLayout/.test(s)).map(s => '@style/' + s)),
+      C.tri('app:hintEnabled', 'hintEnabled')]);
+    sec('Aides et compteur', [C.str('app:helperText', 'helperText', 1), C.tri('app:errorEnabled', 'errorEnabled'), C.tri('app:counterEnabled', 'counterEnabled'), C.num('app:counterMaxLength', 'counterMaxLength', '', 0, 1),
+      C.str('app:placeholderText', 'placeholderText'), C.str('app:prefixText', 'prefixText'), C.str('app:suffixText', 'suffixText')]);
+    sec('Icônes', [C.res('app:startIconDrawable', 'startIconDrawable', ['drawable'], 1), C.list('app:endIconMode', 'endIconMode', ['none', 'password_toggle', 'clear_text', 'custom', 'dropdown_menu'], 1), C.col('app:endIconTint', 'endIconTint')]);
+    sec('Contour', [C.col('app:boxStrokeColor', 'boxStrokeColor'), C.num('app:boxStrokeWidth', 'boxStrokeWidth', 'dp', 0, 0), C.col('app:boxBackgroundColor', 'boxBackgroundColor'),
+      {t:'corners', l:'coins (dp)', a:'app:boxCornerRadiusTopStart', also:['app:boxCornerRadiusTopEnd', 'app:boxCornerRadiusBottomEnd', 'app:boxCornerRadiusBottomStart']}]);
+  }
+  if (k === 'btn') sec('Bouton', [C.list('style', 'variante', RES.style.filter(s => /Button/.test(s)).map(s => '@style/' + s), 1), C.num('app:cornerRadius', 'arrondi', 'dp', 1, 0), C.col('app:backgroundTint', 'backgroundTint', 1),
+    C.res('app:icon', 'icône', ['drawable'], 1), C.list('app:iconGravity', 'iconGravity', ['start', 'textStart', 'end', 'textEnd', 'top', 'textTop']), C.num('app:iconPadding', 'iconPadding', 'dp', 0, 0), C.col('app:iconTint', 'iconTint'),
+    C.num('app:iconSize', 'iconSize', 'dp', 0, 0), C.col('app:strokeColor', 'strokeColor'), C.num('app:strokeWidth', 'strokeWidth', 'dp', 0, 0), C.col('app:rippleColor', 'rippleColor'),
+    C.num('android:insetTop', 'insetTop', 'dp', 0), C.num('android:insetBottom', 'insetBottom', 'dp', 0)]);
+  if (k === 'check' || k === 'switch') sec('État', [C.tri('android:checked', 'checked', 1)].concat(k === 'check'
+    ? [C.col('app:buttonTint', 'buttonTint', 1), C.res('android:button', 'button', ['drawable'])]
+    : [C.col('android:thumbTint', 'thumbTint', 1), C.col('android:trackTint', 'trackTint', 1), C.tri('android:showText', 'showText'), C.str('android:textOn', 'textOn'), C.str('android:textOff', 'textOff')]));
+  if (k === 'image' || k === 'logo') sec('Image', [C.res('android:src', 'src', ['drawable'], 1), C.res('app:srcCompat', 'srcCompat', ['drawable']), C.list('android:scaleType', 'scaleType', SCALE, 1), C.tri('android:adjustViewBounds', 'adjustViewBounds'),
+    C.col('app:tint', 'tint'), C.list('android:tintMode', 'tintMode', ['src_in', 'src_atop', 'multiply', 'screen', 'add']), C.tri('android:cropToPadding', 'cropToPadding'), C.num('android:maxWidth', 'maxWidth', 'dp', 0, 0), C.num('android:maxHeight', 'maxHeight', 'dp', 0, 0)]);
+  if (k === 'group') {
+    sec('Conteneur', [{t:'orient', a:'android:orientation', l:'orientation', c:1}, C.flg('android:gravity', 'gravity', GRAV, 1), C.tri('android:baselineAligned', 'baselineAligned'), C.num('android:weightSum', 'weightSum', '', 0, 0),
+      C.flg('android:showDividers', 'showDividers', ['beginning', 'middle', 'end']), C.res('android:divider', 'divider', ['drawable']), C.num('android:dividerPadding', 'dividerPadding', 'dp', 0, 0),
+      C.tri('android:measureWithLargestChild', 'measureWithLargestChild'), C.tri('android:clipChildren', 'clipChildren'), C.tri('android:clipToPadding', 'clipToPadding'), C.tri('android:animateLayoutChanges', 'animateLayoutChanges')]);
+    if (v.card) sec('Carte', [C.col('app:cardBackgroundColor', 'cardBackgroundColor', 1), C.num('app:cardCornerRadius', 'arrondi', 'dp', 1, 0), C.num('app:cardElevation', 'élévation', 'dp', 1, 0),
+      C.list('style', 'style', RES.style.filter(s => /CardView/.test(s)).map(s => '@style/' + s)), C.col('app:strokeColor', 'strokeColor'), C.num('app:strokeWidth', 'strokeWidth', 'dp', 0, 0), C.col('app:rippleColor', 'rippleColor'),
+      C.num('app:contentPadding', 'contentPadding', 'dp', 0, 0), C.tri('app:cardUseCompatPadding', 'cardUseCompatPadding'), C.tri('app:cardPreventCornerOverlap', 'cardPreventCornerOverlap'), C.tri('android:checkable', 'checkable')]);
+  }
+  if (k === 'progress' || k === 'seek') {
+    const cs = [C.num('android:max', 'max', '', 1, 1), C.sld('android:progress', 'progress', 0, Math.max(1, dpv(ex(v, 'android:max')) || 100), 1, '', 1, 0), C.num('android:min', 'min', '', 0, 0), C.num('android:secondaryProgress', 'secondaryProgress', '', 0, 0)];
+    if (k === 'progress') cs.push(C.tri('android:indeterminate', 'indeterminate', 1), C.col('android:progressTint', 'progressTint', 1), C.col('android:progressBackgroundTint', 'progressBackgroundTint'), C.col('android:indeterminateTint', 'indeterminateTint'));
+    else cs.push(C.col('android:thumbTint', 'thumbTint', 1), C.col('android:progressTint', 'progressTint', 1), C.res('android:thumb', 'thumb', ['drawable']), C.tri('android:splitTrack', 'splitTrack'), C.res('android:tickMark', 'tickMark', ['drawable']));
+    sec('Progression', cs);
+  }
+  if (k === 'recycler') sec('Liste', [C.res('tools:listitem', 'listitem', ['layout'], 1), C.list('app:layoutManager', 'layoutManager', LMGR, 1), C.seg('android:orientation', 'orientation', ['vertical', 'horizontal']),
+    C.num('app:spanCount', 'spanCount', '', 0, 1, 12), C.tri('app:reverseLayout', 'reverseLayout'), C.tri('app:stackFromEnd', 'stackFromEnd'), C.tri('android:clipToPadding', 'clipToPadding'),
+    C.flg('android:scrollbars', 'scrollbars', ['vertical', 'horizontal']), C.list('android:overScrollMode', 'overScrollMode', ['always', 'ifContentScrolls', 'never']), C.tri('android:nestedScrollingEnabled', 'nestedScrollingEnabled')]);
+  /* ----- dans le parent ----- */
+  if (genre === 'cons') {
+    const both = true;
+    sec('Contraintes', [{t:'con', l:'dans le ConstraintLayout', c:1},
+      C.sld(PRE + 'Horizontal_bias', 'bias horizontal', 0, 1, 0.05, '', 1, 0.5),
+      Object.assign(C.sld(PRE + 'Vertical_bias', 'bias vertical', 0, 1, 0.05, '', 0, 0.5), {en:!both, why:'Demande une contrainte en haut ET en bas : ici seule la contrainte du haut existe.'}),
+      C.sld(PRE + 'Width_percent', 'largeur en pourcentage', 0.1, 1, 0.05, '', 0, 1), {t:'ratio', a:PRE + 'DimensionRatio', l:'ratio', c:0},
+      C.num(PRE + 'Width_min', 'largeur min', 'dp', 0, 0), C.num(PRE + 'Width_max', 'largeur max', 'dp', 0, 0)]);
+  } else if (genre === 'lin') {
+    sec('Dans le parent', [C.num('android:layout_weight', 'layout_weight', '', 1, 0), C.flg('android:layout_gravity', 'layout_gravity', GRAV, 1),
+      {t:'quick', l:'Actions', c:1, items:[['Remplir l’espace restant', () => { setEx(v, 'android:layout_weight', '1'); if (par.orient === 'h') v.w = 'm'; else v.h = 'm'; }]]}]);
+  } else if (genre === 'frame') {
+    sec('Dans le parent', [C.flg('android:layout_gravity', 'layout_gravity', GRAV, 1)]);
+  }
+  /* ----- communs ----- */
+  sec('Disposition', [{t:'dims', c:1}, {t:'sides', k:'m', l:'marges', c:1}, {t:'sides', k:'p', l:'padding', c:1},
+    {t:'minh', a:'android:minHeight', l:'minHeight', u:'dp', c:0}, C.num('android:minWidth', 'minWidth', 'dp', 0, 0), C.num('android:maxWidth', 'maxWidth', 'dp', 0, 0), C.num('android:maxHeight', 'maxHeight', 'dp', 0, 0)].filter(c => !((k === 'image' || k === 'logo') && /max/.test(c.a || ''))));
+  sec('Apparence', [C.col('android:background', 'background'), C.col('android:backgroundTint', 'backgroundTint'), C.res('android:foreground', 'foreground', ['drawable']),
+    C.sld('android:elevation', 'elevation', 0, 24, 1, 'dp', 0, 0), C.tri('android:clipToOutline', 'clipToOutline'), C.res('android:theme', 'theme', ['style'])]);
+  sec('Affichage', [C.seg('android:visibility', 'visibility', ['visible', 'invisible', 'gone'], 1), C.sld('android:alpha', 'alpha', 0, 1, 0.05, '', 1, 1)]);
+  sec('Transformation', [C.sld('android:rotation', 'rotation', -180, 180, 1, '', 0, 0), C.sld('android:scaleX', 'scaleX', 0.1, 3, 0.05, '', 0, 1), C.sld('android:scaleY', 'scaleY', 0.1, 3, 0.05, '', 0, 1),
+    C.sld('android:translationX', 'translationX', -100, 100, 1, 'dp', 0, 0), C.sld('android:translationY', 'translationY', -100, 100, 1, 'dp', 0, 0), C.sld('android:translationZ', 'translationZ', 0, 24, 1, 'dp', 0, 0)]);
+  sec('Interaction', [C.tri('android:enabled', 'enabled', 1), C.tri('android:clickable', 'clickable'), C.tri('android:focusable', 'focusable'), C.tri('android:focusableInTouchMode', 'focusableInTouchMode'),
+    C.tri('android:longClickable', 'longClickable'), C.str('android:onClick', 'onClick', 1, /^[A-Za-z_$][\w$]*$/, 'Nom de méthode Java attendu, par exemple onConnexion.')]);
+  sec('Accessibilité', [C.str('android:contentDescription', 'contentDescription', 1), C.list('android:importantForAccessibility', 'importantForAccessibility', ['auto', 'yes', 'no', 'noHideDescendants']),
+    C.tri('android:accessibilityHeading', 'accessibilityHeading'), {t:'idref', a:'android:labelFor', l:'labelFor'}, C.str('android:tooltipText', 'tooltipText'), C.tri('android:screenReaderFocusable', 'screenReaderFocusable')]);
+  const tl = [];
+  if (T) tl.push(C.str('tools:text', 'tools:text', 1));
+  if (k === 'image' || k === 'logo') tl.push(C.res('tools:src', 'tools:src', ['drawable'], 1));
+  if (k === 'recycler') tl.push(C.num('tools:itemCount', 'tools:itemCount', '', 1, 1, 12));
+  tl.push(C.seg('tools:visibility', 'tools:visibility', ['visible', 'invisible', 'gone']), C.str('tools:ignore', 'tools:ignore'));
+  sec('Aperçu uniquement', tl, {note:'Attributs tools: lus par l’aperçu et l’éditeur, absents de l’APK.'});
+  sec('Autres attributs', [], {other:true});
+  return out;
+}
+function knownNames(v, par) {
+  const s = new Set();
+  sectionsFor(v, par).forEach(sc => sc.cs.forEach(c => { if (c.a) s.add(c.a); (c.also || []).forEach(x => s.add(x)); }));
+  ['android:id', 'android:layout_width', 'android:layout_height', 'android:layout_margin', 'android:padding'].forEach(x => s.add(x));
   return s;
 }
-function segBtns(f, opts, cur, on) {
-  const g = el('div', 'seg2');
+const FREE_NAMES = ['android:tag', 'android:textDirection', 'android:layoutDirection', 'android:fadingEdge', 'android:saveEnabled', 'android:soundEffectsEnabled', 'android:hapticFeedbackEnabled', 'android:keepScreenOn', 'android:requiresFadingEdge', 'android:transitionName', 'app:layout_goneMarginTop', 'app:layout_constraintHorizontal_chainStyle'];
+
+function segBtns(f, opts, cur, on, lab) {
+  const g = el('div', 'seg2'); g.setAttribute('role', 'group'); if (lab) g.setAttribute('aria-label', lab);
   opts.forEach(x => { const b = el('button', '', x); b.type = 'button'; b.setAttribute('aria-pressed', String(x === cur)); b.onclick = () => { if (x !== cur) mutate(() => on(x)); }; g.appendChild(b); });
   f.appendChild(g);
 }
+function showMsg(f, m) {
+  let d = f.querySelector('.fmsg');
+  if (!m || (!m.err && !m.warn)) { if (d) d.remove(); return; }
+  if (!d) { d = el('div'); d.setAttribute('role', 'alert'); f.appendChild(d); }
+  d.className = 'fmsg ' + (m.err ? 'err' : 'warn'); d.textContent = m.err || m.warn;
+}
+const fid = c => 'a_' + (c.a || c.l).replace(/\W/g, '');
+function fieldBox(c, v) {
+  const f = el('div', 'fld'), head = el('div', 'fl'), l = el('label', '', c.l); l.htmlFor = fid(c); head.appendChild(l);
+  const ns = c.a && /^(app|tools):/.exec(c.a);
+  if (ns) { const n = el('span', 'ns ' + ns[1], ns[1]); n.title = ns[1] === 'app' ? 'Attribut app: : le rendu LayoutLib peut l’ignorer (limite P3, ADR 0116). Vérifiez sur l’appareil.' : 'Attribut tools: : aperçu seulement.'; head.appendChild(n); }
+  const names = c.a ? [c.a].concat(c.also || []) : [];
+  if (names.some(n => ex(v, n) !== '')) {
+    const r = el('button', 'rst', '↺'); r.type = 'button'; r.title = 'Rétablir la valeur par défaut'; r.setAttribute('aria-label', 'Rétablir ' + c.l);
+    r.onclick = () => mutate(() => names.forEach(n => setEx(v, n, '')), c.l + ' rétabli');
+    head.appendChild(r);
+  }
+  f.appendChild(head); return f;
+}
 function ctl(box, c, v, par) {
-  const t = c[0], lab = c[1], a = c[2], o = c[3];
+  const t = c.t;
   if (t === 'dims') { dimRows(box, v); return; }
-  const id = 'a_' + (a || lab).replace(/\W/g, ''), f = el('div', 'fld'), l = el('label', '', lab); l.htmlFor = id; f.appendChild(l);
-  const inp = (type, val, on) => { const i = el('input'); i.type = type; i.id = id; if (type === 'number') i.step = 'any'; i.value = val; i.onchange = () => mutate(() => on(i.value)); f.appendChild(i); };
-  if (t === 'lit') { if (v.txt) f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »')); else inp('text', v.lit || '', x => { v.lit = x; }); }
-  else if (t === 'hint') inp('text', v.hint || '', x => { v.hint = x; });
-  else if (t === 'size') inp('number', v.size || '', x => { v.size = Math.max(1, +x || 1); });
-  else if (t === 'str') inp('text', ex(v, a), x => setEx(v, a, x.trim()));
-  else if (t === 'num') inp('number', parseFloat(ex(v, a)) || '', x => setEx(v, a, x === '' ? '' : x + o));
-  else if (t === 'orient') segBtns(f, ['vertical', 'horizontal'], v.orient === 'h' ? 'horizontal' : 'vertical', x => { v.orient = x === 'horizontal' ? 'h' : 'v'; });
-  else if (t === 'seg') segBtns(f, o, ex(v, a) || o[0], x => setEx(v, a, x === o[0] ? '' : x));
-  else if (t === 'con') {
-    const i = par.children.indexOf(v), cl = attrsOf(v, par, i > 0 ? par.children[i - 1] : null).filter(x => /layout_constraint/.test(x[0])), d = el('div', 'ro');
-    d.innerHTML = cl.map(x => esc(x[0].replace('app:layout_constraint', '')) + ' = ' + esc(x[1])).join('<br>') + '<br><i>lecture seule, édition à prévoir</i>'; f.appendChild(d);
+  if (t === 'quick') {
+    const f = el('div', 'fld'), g = el('div', 'qa');
+    c.items.forEach(([lab, fn]) => { const b = el('button', 'linkbtn', lab); b.type = 'button'; b.onclick = () => mutate(fn, lab); g.appendChild(b); });
+    f.appendChild(g); box.appendChild(f); return;
+  }
+  const f = fieldBox(c, v), id = fid(c), cur = c.a ? ex(v, c.a) : '';
+  const inp = (type, val, on) => { const i = el('input'); i.type = type; i.id = id; if (type === 'number') i.step = 'any'; i.value = val; i.onchange = () => on(i.value, i); f.appendChild(i); return i; };
+  if (t === 'lit') {
+    if (v.txt) f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »'));
+    else inp('text', v.lit || '', x => mutate(() => { v.lit = x; }));
+  } else if (t === 'hint') inp('text', v.hint || '', x => mutate(() => { v.hint = x; }));
+  else if (t === 'size') inp('number', v.size || '', x => mutate(() => { v.size = Math.max(1, +x || 1); }));
+  else if (t === 'orient') segBtns(f, ['vertical', 'horizontal'], v.orient === 'h' ? 'horizontal' : 'vertical', x => { v.orient = x === 'horizontal' ? 'h' : 'v'; }, c.l);
+  else if (t === 'id') {
+    if (c.ro) f.appendChild(el('div', 'ro', '@+id/root'));
+    else inp('text', v.rid, (x, i) => {
+      x = x.trim();
+      if (x === v.rid) return;
+      if (!/^[a-z][a-z0-9_]*$/.test(x)) { i.classList.add('bad'); showMsg(f, {err:'snake_case attendu : lettres minuscules, chiffres et _.'}); return; }
+      if (find(x) || x === 'root') { i.classList.add('bad'); showMsg(f, {err:'@+id/' + x + ' existe déjà.'}); return; }
+      mutate(() => { const old = v.rid; v.rid = x; S.sel = x; if (S.flash === old) S.flash = x; }, 'Renommé en @+id/' + x);
+    });
+    if (!c.ro) f.appendChild(el('div', 'note2', 'Renomme aussi les références @id/… du document (RenommageIdentifiant).'));
+  } else if (t === 'str') {
+    const i = inp('text', cur, x => {
+      x = x.trim();
+      if (x && c.pat && !c.pat.test(x)) { i.classList.add('bad'); showMsg(f, {err:c.msg || 'Valeur invalide.'}); return; }
+      mutate(() => setEx(v, c.a, x));
+    });
+  } else if (t === 'num') {
+    const i = inp('number', parseFloat(cur) || (cur === '0' ? 0 : ''), x => {
+      if (x === '') { mutate(() => setEx(v, c.a, '')); return; }
+      const n = +x; let err = null;
+      if (isNaN(n)) err = 'Nombre attendu.'; else if (c.min != null && n < c.min) err = 'Minimum ' + c.min + '.'; else if (c.max != null && n > c.max) err = 'Maximum ' + c.max + '.';
+      if (err) { i.classList.add('bad'); showMsg(f, {err}); return; }
+      mutate(() => setEx(v, c.a, x + c.u));
+    });
+    if (c.u) i.setAttribute('aria-label', c.l + ' en ' + c.u);
+  } else if (t === 'minh') {
+    const i = inp('number', parseFloat(cur) || v.minH || '', x => mutate(() => { v.minH = 0; setEx(v, c.a, x === '' ? '' : Math.max(0, +x || 0) + 'dp'); }));
+    i.setAttribute('aria-label', 'minHeight en dp');
+  } else if (t === 'sld') {
+    const val = cur === '' ? c.def : (dpv(cur) ?? c.def), row = el('div', 'sld'), r = el('input'), n = el('input');
+    r.type = 'range'; r.min = c.min; r.max = c.max; r.step = c.step; r.value = val; r.id = id; r.setAttribute('aria-label', c.l);
+    n.type = 'number'; n.step = c.step; n.value = val; n.setAttribute('aria-label', c.l + ' (valeur)');
+    if (c.en === false) { r.disabled = true; n.disabled = true; f.appendChild(el('div', 'note2', c.why)); }
+    r.oninput = () => { n.value = r.value; };
+    const commit = x => { const num = +x; if (isNaN(num) || num < c.min || num > c.max) { n.classList.add('bad'); showMsg(f, {err:'Valeur entre ' + c.min + ' et ' + c.max + '.'}); return; } mutate(() => setEx(v, c.a, num === c.def ? '' : num + c.u)); };
+    r.onchange = () => commit(r.value); n.onchange = () => commit(n.value);
+    row.append(r, n); f.appendChild(row);
+  } else if (t === 'seg') segBtns(f, c.o, cur || c.o[0], x => setEx(v, c.a, x === c.o[0] ? '' : x), c.l);
+  else if (t === 'list') {
+    const s = el('select'); s.id = id; const opts = c.o.slice(); if (cur && !opts.includes(cur)) opts.push(cur);
+    const o0 = el('option', '', 'par défaut'); o0.value = ''; s.appendChild(o0);
+    opts.forEach(x => { const o = el('option', '', x.replace(/^.*[./]/, '')); o.value = x; if (x === cur) o.selected = true; s.appendChild(o); });
+    s.onchange = () => mutate(() => setEx(v, c.a, s.value)); f.appendChild(s);
+  } else if (t === 'flags') {
+    const g = el('div', 'flg'), parts = cur.split('|').filter(Boolean), opts = c.o.concat(parts.filter(p => !c.o.includes(p)));
+    g.setAttribute('role', 'group'); g.setAttribute('aria-label', c.l);
+    opts.forEach(x => {
+      const b = el('button', '', x); b.type = 'button'; b.setAttribute('aria-pressed', String(parts.includes(x)));
+      b.onclick = () => mutate(() => { const n = parts.includes(x) ? parts.filter(p => p !== x) : parts.concat(x); setEx(v, c.a, opts.filter(o => n.includes(o)).join('|')); }); g.appendChild(b);
+    }); f.appendChild(g);
+  } else if (t === 'col') {
+    const row = el('div', 'colr'), sw = el('span', 'sw2'), pb = el('button', 'linkbtn', 'Palette'); pb.type = 'button'; pb.setAttribute('aria-expanded', 'false');
+    sw.style.setProperty('--c', colorCss(cur) || 'transparent'); sw.setAttribute('role', 'img'); sw.setAttribute('aria-label', 'Aperçu de la couleur');
+    const i = el('input'); i.type = 'text'; i.id = id; i.value = cur; i.placeholder = '#RRGGBB ou @color/…';
+    i.onchange = () => { const x = i.value.trim(), m = vCol(x); if (m.err) { i.classList.add('bad'); showMsg(f, m); return; } mutate(() => setEx(v, c.a, x)); };
+    row.append(sw, i, pb); f.appendChild(row);
+    const m0 = vCol(cur); if (m0.warn) showMsg(f, m0);
+    let pal = null;
+    pb.onclick = () => {
+      if (pal) { pal.remove(); pal = null; pb.setAttribute('aria-expanded', 'false'); return; }
+      pal = el('div', 'cpal'); pb.setAttribute('aria-expanded', 'true');
+      Object.keys(RES.color).map(n => ['@color/' + n, RES.color[n]]).concat([['@android:color/white', '#FFFFFF'], ['@android:color/black', '#000000'], ['@android:color/transparent', 'transparent'], ['?attr/colorPrimary', 'var(--s-pri)'], ['?attr/colorError', '#BA1A1A']]).forEach(([n, css]) => {
+        const b = el('button'); b.type = 'button'; b.title = n; b.setAttribute('aria-label', n); b.style.setProperty('--c', css); b.onclick = () => mutate(() => setEx(v, c.a, n)); pal.appendChild(b);
+      });
+      f.appendChild(pal);
+    };
+  } else if (t === 'res') {
+    const dl = el('datalist'); dl.id = 'dl_' + id;
+    c.ty.forEach(ty => { const set = Array.isArray(RES[ty]) ? RES[ty] : Object.keys(RES[ty] || {}); set.forEach(n => { const o = el('option'); o.value = '@' + ty + '/' + n; dl.appendChild(o); }); });
+    const i = inp('text', cur, x => {
+      x = x.trim(); if (x && /^[\w.]+$/.test(x)) x = '@' + c.ty[0] + '/' + x;
+      const m = vRes(x, c.ty); if (m.err) { i.classList.add('bad'); showMsg(f, m); return; } mutate(() => setEx(v, c.a, x));
+    });
+    i.setAttribute('list', dl.id); i.placeholder = '@' + c.ty[0] + '/nom'; f.appendChild(dl);
+    const m0 = vRes(cur, c.ty); if (m0.warn) showMsg(f, m0);
+  } else if (t === 'input') {
+    const parts = cur.split('|').filter(Boolean), base = parts.find(p => IN_BASE.includes(p)) || 'text', mods = parts.filter(p => IN_MOD.includes(p));
+    const write = (b, ms) => setEx(v, c.a, (b === 'text' && !ms.length) ? '' : [b].concat(ms).join('|'));
+    const s = el('select'); s.id = id; IN_BASE.forEach(x => { const o = el('option', '', x); o.value = x; if (x === base) o.selected = true; s.appendChild(o); });
+    s.onchange = () => mutate(() => write(s.value, mods)); f.appendChild(s);
+    const g = el('div', 'flg'); g.setAttribute('role', 'group'); g.setAttribute('aria-label', 'Options de saisie');
+    IN_MOD.forEach(x => { const b = el('button', '', x.replace('text', '')); b.type = 'button'; b.title = x; b.setAttribute('aria-pressed', String(mods.includes(x)));
+      b.disabled = !base.startsWith('text'); b.onclick = () => mutate(() => write(base, mods.includes(x) ? mods.filter(m => m !== x) : mods.concat(x))); g.appendChild(b); });
+    f.appendChild(g);
+  } else if (t === 'ratio') {
+    const m = /^(?:([WH]),)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(cur) || [], lock = m[1] || '', a = m[2] || '', b = m[3] || '';
+    const row = el('div', 'ratio'), A = el('input'), B = el('input');
+    [A, B].forEach(i => { i.type = 'number'; i.min = 0; i.step = 'any'; }); A.value = a; B.value = b; A.id = id; A.setAttribute('aria-label', 'ratio, largeur'); B.setAttribute('aria-label', 'ratio, hauteur');
+    const put = (lk, x, y) => { if (!x && !y) { mutate(() => setEx(v, c.a, '')); return; } if (!(+x > 0 && +y > 0)) { A.classList.add('bad'); showMsg(f, {err:'Deux nombres positifs, par exemple 16 et 9.'}); return; } mutate(() => setEx(v, c.a, (lk ? lk + ',' : '') + x + ':' + y)); };
+    A.onchange = B.onchange = () => put(lock, A.value, B.value);
+    row.append(A, el('span', '', ':'), B); f.appendChild(row);
+    const pr = el('div', 'flg'); [['1', '1'], ['4', '3'], ['16', '9'], ['3', '4']].forEach(([x, y]) => { const q = el('button', '', x + ':' + y); q.type = 'button'; q.setAttribute('aria-pressed', String(a === x && b === y)); q.onclick = () => put(lock, x, y); pr.appendChild(q); });
+    f.appendChild(pr); segBtns(f, ['aucun', 'W', 'H'], lock || 'aucun', x => { if (a && b) setEx(v, c.a, (x === 'aucun' ? '' : x + ',') + a + ':' + b); });
+    f.appendChild(el('div', 'note2', 'Nécessite une dimension à 0dp (match constraint). W ou H désigne le côté calculé.'));
+  } else if (t === 'corners') {
+    const names = [c.a].concat(c.also), g = el('div', 'mrow');
+    ['haut g.', 'haut d.', 'bas d.', 'bas g.'].forEach((n, j) => {
+      const i = el('input'); i.type = 'number'; i.min = 0; i.placeholder = n; i.setAttribute('aria-label', 'coin ' + n); i.value = parseFloat(ex(v, names[j])) || '';
+      i.onchange = () => mutate(() => setEx(v, names[j], i.value === '' || +i.value <= 0 ? '' : Math.max(0, +i.value) + 'dp')); g.appendChild(i);
+    }); f.appendChild(g);
+  } else if (t === 'idref') {
+    const s = el('select'); s.id = id; const o0 = el('option', '', 'aucun'); o0.value = ''; s.appendChild(o0);
+    nodes().filter(n => n.rid !== v.rid).forEach(n => { const o = el('option', '', '@id/' + n.rid); o.value = '@id/' + n.rid; if (cur === o.value) o.selected = true; s.appendChild(o); });
+    s.onchange = () => mutate(() => setEx(v, c.a, s.value)); f.appendChild(s);
   } else if (t === 'sides') {
-    const m = o === 'm', K = m ? ['mt', 'mr', 'mb', 'ml'] : [1, 2, 3, 0], g = el('div', 'mrow');
+    const m = c.k === 'm', K = m ? ['mt', 'mr', 'mb', 'ml'] : [1, 2, 3, 0], g = el('div', 'mrow');
     ['haut', 'droite', 'bas', 'gauche'].forEach((n, j) => {
-      const i = el('input'); i.type = 'number'; i.min = 0; i.placeholder = n; i.setAttribute('aria-label', lab + ' ' + n);
+      const i = el('input'); i.type = 'number'; i.min = 0; i.placeholder = n; i.setAttribute('aria-label', c.l + ' ' + n);
       i.value = (m ? v[K[j]] : (v.pad || [])[K[j]]) || '';
       i.onchange = () => mutate(() => { const x = Math.max(0, +i.value || 0); if (m) v[K[j]] = x; else { v.pad = v.pad || [0, 0, 0, 0]; v.pad[K[j]] = x; } });
       g.appendChild(i);
     }); f.appendChild(g);
+  } else if (t === 'con') {
+    const i = par.children.indexOf(v), cl = attrsOf(v, par, i > 0 ? par.children[i - 1] : null).filter(x => /layout_constraint/.test(x[0])), d = el('div', 'ro');
+    d.innerHTML = cl.map(x => esc(x[0].replace('app:layout_constraint', '')) + ' = ' + esc(x[1])).join('<br>') + '<br><i>ancres déduites de l’ordre dans la maquette ; dans l’application : contrôle Contraintes existant</i>'; f.appendChild(d);
   }
   box.appendChild(f);
 }
+
+/* ---------- Corrections rapides, tirées des problèmes de la vue ---------- */
+function extractStr(v) { const key = v.rid.replace(/[^a-z0-9_]/g, '_'); STR.fr[key] = v.lit; STR.en[key] = v.lit; v.txt = key; delete v.lit; }
+function quickFixes(v) {
+  const out = [];
+  S.probs.filter(p => p.rid === v.rid).forEach(p => {
+    let fx = null;
+    if (/Cible tactile/.test(p.title)) fx = {b:'Passer à 48 dp', run:() => {
+      if (typeof v.w === 'number') v.w = Math.max(v.w, 48); else setEx(v, 'android:minWidth', '48dp');
+      if (typeof v.h === 'number') v.h = Math.max(v.h, 48); else { v.minH = 0; setEx(v, 'android:minHeight', '48dp'); } }, msg:'Cible portée à 48 dp'};
+    else if (/contentDescription/.test(p.title)) fx = {b:'Renseigner', go:() => { S.attrQ = ''; S.so['Accessibilité'] = true; S.focusAttr = 'android:contentDescription'; renderPane(); }};
+    else if (/codé en dur/.test(p.title)) fx = {b:'Extraire en @string', run:() => extractStr(v), msg:'Texte extrait dans values/strings.xml et values-en/'};
+    else if (/tronqué/.test(p.title)) fx = {b:'Autoriser 2 lignes', run:() => { setEx(v, 'android:maxLines', '2'); }, msg:'maxLines = 2'};
+    else if (/Classe introuvable/.test(p.title)) fx = {b:'Ajouter la dépendance', run:() => { v.mock = false; }, msg:'Dépendance ajoutée à build.gradle (simulé), puis synchronisation'};
+    if (fx) out.push({p, fx});
+  });
+  return out;
+}
+
 function renderEditor(pane, v, par) {
   const ed = el('div', 'ed'); ed.appendChild(el('h5', '', 'Modifier · ' + v.cls)); S.so = S.so || {};
-  sectionsFor(v, par).forEach(([t, cs], i) => {
-    const d = el('details', 'sec2'), sm = el('summary', '', t), b = el('div'), n = cs.filter(c => c[2] && ex(v, c[2])).length;
-    d.open = S.so[t] != null ? S.so[t] : i < 2; d.ontoggle = () => { S.so[t] = d.open; };
-    if (n) sm.appendChild(el('small', '', n + (n > 1 ? ' définis' : ' défini')));
-    cs.forEach(c => ctl(b, c, v, par)); d.append(sm, b); ed.appendChild(d);
-  });
-  pane.appendChild(ed);
+  const tools = el('div', 'ed-tools'), r1 = el('div', 'row2'), q = el('input', 'search'), md = el('div', 'seg2');
+  q.type = 'search'; q.id = 'attrQ'; q.placeholder = 'Rechercher un attribut'; q.value = S.attrQ; q.setAttribute('aria-label', 'Rechercher un attribut');
+  [['c', 'Courants'], ['t', 'Tous']].forEach(([m, t]) => { const b = el('button', '', t); b.type = 'button'; b.dataset.m = m; b.setAttribute('aria-pressed', String(S.attrMode === m)); b.onclick = () => { S.attrMode = m; md.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o === b))); fill(); }; md.appendChild(b); });
+  r1.append(q, md); tools.appendChild(r1); ed.appendChild(tools);
+  const fixes = quickFixes(v);
+  if (fixes.length) {
+    const fw = el('div', 'fixes'); fw.appendChild(el('h5', '', 'Corrections rapides'));
+    fixes.forEach(({p, fx}) => {
+      const r = el('div', 'fix'), m = el('div', 'm'), b = el('button', 'prim2', fx.b); b.type = 'button'; m.append(el('b', '', p.title), el('span', '', p.msg));
+      b.onclick = () => fx.go ? fx.go() : mutate(fx.run, fx.msg); r.append(m, b); fw.appendChild(r);
+    });
+    ed.appendChild(fw);
+  }
+  const body = el('div', 'secs'); ed.appendChild(body);
+  const known = knownNames(v, par);
+  function fill() {
+    body.replaceChildren();
+    const qq = S.attrQ.trim().toLowerCase(), secs = sectionsFor(v, par); let shown = 0, hid = 0, opened = 0;
+    secs.forEach((sc, i) => {
+      if (sc.other) {
+        const rows = (v.extra || []).filter(x => !known.has(x[0]) && (!qq || x[0].toLowerCase().includes(qq)));
+        if (!rows.length && !(S.attrMode === 't' && !qq)) return;
+        shown++; const d = el('details', 'sec2'), sm = el('summary', '', sc.t), b = el('div');
+        d.open = qq ? true : S.so[sc.t] != null ? S.so[sc.t] : rows.length > 0; d.ontoggle = () => { if (!qq) S.so[sc.t] = d.open; };
+        const nOth = (v.extra || []).filter(x => !known.has(x[0])).length; if (nOth) sm.appendChild(el('small', '', nOth + (nOth > 1 ? ' définis' : ' défini')));
+        rows.forEach(([n, val]) => {
+          const r = el('div', 'other'), a = el('code', '', n), i2 = el('input'), x = el('button', 'rst', '✕'); i2.type = 'text'; i2.value = val; i2.setAttribute('aria-label', n);
+          i2.onchange = () => mutate(() => setEx(v, n, i2.value.trim())); x.type = 'button'; x.setAttribute('aria-label', 'Supprimer ' + n); x.onclick = () => mutate(() => setEx(v, n, ''), n + ' supprimé'); r.append(a, i2, x); b.appendChild(r);
+        });
+        if (S.attrMode === 't') {
+          const r = el('div', 'other add'), n = el('input'), val = el('input'), go = el('button', 'linkbtn', 'Ajouter'), dl = el('datalist'); dl.id = 'dl_free';
+          [...FREE_NAMES, ...[...known]].filter(x => !ex(v, x)).forEach(x => { const o = el('option'); o.value = x; dl.appendChild(o); });
+          n.type = 'text'; n.placeholder = 'android:nom'; n.setAttribute('list', 'dl_free'); n.setAttribute('aria-label', 'Nom de l’attribut'); n.value = /^(android|app|tools):\w+$/.test(S.attrQ.trim()) ? S.attrQ.trim() : '';
+          val.type = 'text'; val.placeholder = 'valeur'; val.setAttribute('aria-label', 'Valeur'); go.type = 'button';
+          go.onclick = () => {
+            const nm = n.value.trim(), vl = val.value.trim();
+            if (!/^(android|app|tools):[A-Za-z_]\w*$/.test(nm)) { n.classList.add('bad'); toast('Nom attendu : android:…, app:… ou tools:…'); return; }
+            if (!vl) { val.classList.add('bad'); toast('Valeur manquante'); return; }
+            mutate(() => setEx(v, nm, vl), nm + ' ajouté');
+          };
+          r.append(n, val, go, dl); b.appendChild(r);
+        }
+        d.append(sm, b); body.appendChild(d); return;
+      }
+      const all = sc.cs; let cs = qq ? all.filter(c => ((c.l || '') + ' ' + (c.a || '') + ' ' + sc.t).toLowerCase().includes(qq)) : S.attrMode === 'c' ? all.filter(c => c.c) : all;
+      if (!qq) hid += all.length - cs.length;
+      if (!cs.length) return;
+      shown++;
+      const d = el('details', 'sec2'), sm = el('summary', '', sc.t), b = el('div'), n = all.filter(c => c.a && [c.a].concat(c.also || []).some(x => ex(v, x) !== '')).length;
+      d.open = qq ? true : S.so[sc.t] != null ? S.so[sc.t] : (sc.t !== 'Identité' && ++opened <= 2); d.ontoggle = () => { if (!qq) S.so[sc.t] = d.open; };
+      if (n) sm.appendChild(el('small', '', n + (n > 1 ? ' définis' : ' défini')));
+      if (sc.note) b.appendChild(el('div', 'note2', sc.note));
+      cs.forEach(c => ctl(b, c, v, par)); d.append(sm, b); body.appendChild(d);
+    });
+    if (!shown) {
+      const p = el('p', 'empty', 'Aucun attribut ne correspond à « ' + S.attrQ + ' ».'); body.appendChild(p);
+      if (/^(android|app|tools):\w+$/.test(S.attrQ.trim())) { const b = el('button', 'linkbtn', 'Ajouter ' + S.attrQ.trim() + ' comme attribut libre'); b.type = 'button'; b.onclick = () => { S.attrMode = 't'; fill(); const n = body.querySelector('.other.add input'); if (n) n.focus(); }; body.appendChild(b); }
+    } else if (S.attrMode === 'c' && !qq && hid) {
+      const b = el('button', 'linkbtn wide', 'Afficher les ' + hid + ' autres attributs de ' + v.cls); b.type = 'button';
+      b.onclick = () => { S.attrMode = 't'; md.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o.dataset.m === 't'))); fill(); }; body.appendChild(b);
+    }
+  }
+  q.oninput = () => { S.attrQ = q.value; fill(); };
+  fill(); pane.appendChild(ed);
+  if (S.focusAttr) { const i = document.getElementById('a_' + S.focusAttr.replace(/\W/g, '')); S.focusAttr = null; if (i) { i.scrollIntoView({block:'center'}); i.focus(); } }
 }
+
+/* ---------- Effets visibles dans le rendu (sous-ensemble d'attributs) ---------- */
+function applyFx(e, v, po) {
+  const s = e.style, X = n => ex(v, n), N = n => dpv(X(n));
+  const vis = X('tools:visibility') || X('android:visibility');
+  if (vis === 'invisible') s.visibility = 'hidden'; else if (vis === 'gone') s.display = 'none';
+  const al = N('android:alpha'); if (al != null) s.opacity = al;
+  const tr = [], tx = N('android:translationX'), ty = N('android:translationY'), rot = N('android:rotation'), sx = N('android:scaleX'), sy = N('android:scaleY');
+  if (tx || ty) tr.push('translate(' + (tx || 0) + 'px,' + (ty || 0) + 'px)'); if (rot) tr.push('rotate(' + rot + 'deg)'); if (sx != null || sy != null) tr.push('scale(' + (sx == null ? 1 : sx) + ',' + (sy == null ? 1 : sy) + ')');
+  if (tr.length) s.transform = tr.join(' ');
+  [['minWidth', 'android:minWidth'], ['minHeight', 'android:minHeight'], ['maxWidth', 'android:maxWidth'], ['maxHeight', 'android:maxHeight']].forEach(([p, a]) => { const x = N(a); if (x != null) s[p] = x + 'px'; });
+  const bg = colorCss(X('android:background')); if (bg) s.background = bg;
+  const tint = colorCss(X('app:backgroundTint') || X('android:backgroundTint')); if (tint && v.kind === 'btn') s.background = tint;
+  const elv = N('android:elevation'); if (elv) s.boxShadow = '0 ' + Math.min(elv / 2, 8) + 'px ' + elv + 'px rgba(0,0,0,.3)';
+  const wt = N('android:layout_weight'); if (wt) { if (po === 'h') s.flex = wt + ' 1 0'; else s.flexGrow = wt; }
+  const wp = N(PRE + 'Width_percent'); if (wp) { s.width = (wp * 100) + '%'; s.flex = 'none'; s.alignSelf = v.center ? 'center' : 'flex-start'; }
+  const rt = /^(?:[WH],)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(X(PRE + 'DimensionRatio')); if (rt) { s.aspectRatio = rt[1] + ' / ' + rt[2]; s.height = 'auto'; }
+  const gv = new Set(X('android:gravity').split('|')), lg = new Set(X('android:layout_gravity').split('|'));
+  const hA = g => g.has('center') || g.has('center_horizontal') ? 'center' : g.has('end') ? 'flex-end' : g.has('start') ? 'flex-start' : null, vA = g => g.has('center') || g.has('center_vertical') ? 'center' : g.has('bottom') ? 'flex-end' : g.has('top') ? 'flex-start' : null;
+  if (po !== 'h' && hA(lg)) s.alignSelf = hA(lg);
+  if (po === 'h' && vA(lg)) s.alignSelf = vA(lg);
+  const spans = [...e.querySelectorAll(':scope > .t')];
+  const col = colorCss(X('android:textColor')), st = X('android:textStyle').split('|'), ff = X('android:fontFamily'), fw = X('android:textFontWeight'), ta = X('android:textAlignment');
+  const ml = N('android:maxLines') || N('android:lines'), ell = X('android:ellipsize');
+  spans.forEach((sp, idx) => {
+    if (v.kind === 'field' && idx === 0 && !col) { /* libellé flottant : couleur du thème */ } else if (col && v.kind !== 'edit') sp.style.color = col;
+    if (st.includes('bold')) sp.style.fontWeight = '700'; if (st.includes('italic')) sp.style.fontStyle = 'italic';
+    if (fw) sp.style.fontWeight = fw;
+    if (ff) { sp.style.fontFamily = ff.includes('serif') && !ff.startsWith('sans') ? 'Georgia,serif' : ff === 'monospace' ? 'var(--font-m)' : ff === 'cursive' ? 'cursive' : ''; if (ff === 'sans-serif-light') sp.style.fontWeight = '300'; if (ff === 'sans-serif-medium') sp.style.fontWeight = '500'; }
+    if (X('android:textAllCaps') === 'true') sp.style.textTransform = 'uppercase';
+    const ls = N('android:letterSpacing'); if (ls) sp.style.letterSpacing = ls + 'em';
+    const lm = N('android:lineSpacingMultiplier'), le = N('android:lineSpacingExtra'); if (lm || le) sp.style.lineHeight = ((lm || 1) * 1.25 * (v.size || 16) * S.fs + (le || 0)) + 'px';
+    if (ml >= 2) { sp.style.whiteSpace = 'normal'; sp.style.display = '-webkit-box'; sp.style.webkitBoxOrient = 'vertical'; sp.style.webkitLineClamp = String(ml); }
+    if (ell === 'none') sp.style.textOverflow = 'clip'; else if (ell === 'start' || ell === 'middle') sp.style.textOverflow = 'ellipsis';
+    if (ta && ta !== 'gravity') { sp.style.flex = '1'; sp.style.textAlign = ta === 'center' ? 'center' : (ta === 'textEnd' || ta === 'viewEnd') ? 'right' : 'left'; }
+  });
+  if (v.kind === 'edit') { const hc = colorCss(X('android:textColorHint')); if (hc && spans[0]) spans[0].style.color = hc; }
+  if (['text', 'link', 'btn', 'check', 'switch'].includes(v.kind) && !ta) { const h = hA(gv); if (h && v.kind !== 'check' && v.kind !== 'switch') s.justifyContent = h; if (vA(gv)) s.alignItems = vA(gv); }
+  const dr = n => X('android:' + n) || (n === 'drawableStart' ? X('app:icon') : '');
+  if (['text', 'link', 'btn', 'edit'].includes(v.kind)) {
+    const pad = (N('android:drawablePadding') || 4) + 'px', mk = (g) => { const i = el('span', 'dr', g); i.style.marginInline = '0 ' + pad; return i; };
+    if (dr('drawableStart') && spans[0]) { const i = mk('◆'); e.insertBefore(i, spans[0]); if (X('app:iconGravity').includes('end')) { e.appendChild(i); i.style.marginInline = pad + ' 0'; } }
+    if (dr('drawableEnd')) { const i = mk('◆'); i.style.marginInline = pad + ' 0'; e.appendChild(i); }
+  }
+  switch (v.kind) {
+    case 'btn': {
+      const sty = X('style'), cr = N('app:cornerRadius'); if (cr != null) s.borderRadius = cr + 'px';
+      if (/OutlinedButton/.test(sty)) { if (!tint) s.background = 'transparent'; s.border = '1px solid var(--s-outline)'; spans.forEach(x => { if (!col) x.style.color = 'var(--s-pri)'; }); }
+      else if (/TextButton/.test(sty)) { if (!tint) s.background = 'transparent'; spans.forEach(x => { if (!col) x.style.color = 'var(--s-pri)'; }); }
+      else if (/Tonal/.test(sty)) { if (!tint) s.background = 'color-mix(in srgb,var(--s-pri) 22%,var(--s-bg))'; spans.forEach(x => { if (!col) x.style.color = 'var(--s-pri)'; }); }
+      else if (/Elevated/.test(sty)) { if (!tint) s.background = 'var(--s-surf)'; s.boxShadow = '0 2px 4px rgba(0,0,0,.3)'; spans.forEach(x => { if (!col) x.style.color = 'var(--s-pri)'; }); }
+      const sw = N('app:strokeWidth'), sc = colorCss(X('app:strokeColor')); if (sw || sc) s.border = (sw || 1) + 'px solid ' + (sc || 'var(--s-outline)');
+      break; }
+    case 'check': {
+      const bx = e.firstElementChild, on = X('android:checked') === 'true', tc = colorCss(X('app:buttonTint')) || 'var(--s-pri)';
+      bx.style.borderColor = tc; bx.style.background = on ? tc : 'transparent'; bx.textContent = on ? '✓' : ''; bx.style.color = 'var(--s-onpri)'; bx.style.fontSize = '12px'; bx.style.display = 'grid'; bx.style.placeItems = 'center'; bx.style.lineHeight = '1'; break; }
+    case 'switch': {
+      const tk = e.lastElementChild, th = tk.firstElementChild, on = X('android:checked') === 'true', tc = colorCss(X('android:trackTint')), hc = colorCss(X('android:thumbTint'));
+      tk.style.background = on ? (tc || 'var(--s-pri)') : 'var(--s-outline)'; th.style.right = on ? '2px' : 'auto'; th.style.left = on ? 'auto' : '2px'; if (hc) th.style.background = hc; break; }
+    case 'progress': case 'seek': {
+      const bar = e.firstElementChild, mx = N('android:max') || 100, pr = Math.min(100, Math.max(0, (N('android:progress') != null ? N('android:progress') : (v.kind === 'seek' ? 40 : 60) * mx / 100) / mx * 100));
+      const tc = colorCss(X('android:progressTint')) || 'var(--s-pri)';
+      bar.style.background = X('android:indeterminate') === 'true' ? 'repeating-linear-gradient(45deg,' + tc + ' 0 8px,color-mix(in srgb,' + tc + ' 30%,transparent) 8px 16px)' : 'linear-gradient(90deg,' + tc + ' ' + pr + '%,color-mix(in srgb,' + tc + ' 22%,transparent) ' + pr + '%)';
+      if (v.kind === 'seek') { const kb = e.lastElementChild; kb.style.left = pr + '%'; const th = colorCss(X('android:thumbTint')); if (th) kb.style.background = th; }
+      break; }
+    case 'group': {
+      if (v.card) {
+        const cb = colorCss(X('app:cardBackgroundColor')); if (cb) s.background = cb;
+        const cr = N('app:cardCornerRadius'); if (cr != null) s.borderRadius = cr + 'px';
+        const ce = N('app:cardElevation'); if (ce != null) s.boxShadow = '0 ' + Math.min(ce, 6) + 'px ' + (ce * 2) + 'px rgba(0,0,0,.3)';
+        const sw = N('app:strokeWidth'), sc = colorCss(X('app:strokeColor')); if (sw || sc) s.border = (sw || 1) + 'px solid ' + (sc || 'var(--s-outline)');
+        if (/Outlined/.test(X('style'))) s.boxShadow = 'none';
+      }
+      if (gv.size && X('android:gravity')) { const col2 = v.orient !== 'h'; const h = hA(gv), vv = vA(gv); if (col2) { if (h) s.alignItems = h; if (vv) s.justifyContent = vv; } else { if (h) s.justifyContent = h; if (vv) s.alignItems = vv; } }
+      break; }
+    case 'logo': case 'image': { const tc = colorCss(X('app:tint')); if (tc && e.firstElementChild) e.firstElementChild.style.color = tc; break; }
+  }
+}
+function applyBias(sc) {
+  sc.querySelectorAll('[data-rid]').forEach(n => {
+    const v = viewOf(n.dataset.rid); if (!v || !n.parentElement || n.parentElement.dataset.rid !== 'root') return;
+    const b = parseFloat(ex(v, PRE + 'Horizontal_bias')); if (isNaN(b)) return;
+    const cs = getComputedStyle(n.parentElement), pw = n.parentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), free = pw - n.offsetWidth - (v.ml || 0) - (v.mr || 0);
+    if (free > 0) { n.style.alignSelf = 'flex-start'; n.style.marginLeft = ((v.ml || 0) + free * b) + 'px'; }
+  });
+}
+
 function renderAttrs(pane) {
   const f = S.sel ? find(S.sel) : null, v = f && f.n, q = v ? S.b[v.rid] : null;
-  if (!v || !q) { pane.appendChild(el('p', 'empty', 'Sélectionnez une vue dans le rendu ou dans l’arbre.')); return; }
-  if (S.sel !== 'root') renderEditor(pane, v, f.p);
+  if (!v) { pane.appendChild(el('p', 'empty', 'Sélectionnez une vue dans le rendu ou dans l’arbre.')); return; }
+  renderEditor(pane, v, f.p);
+  if (!q) { pane.appendChild(el('p', 'note2', 'Cette vue est absente du rendu (visibility = gone) : aucune mesure à afficher.')); return; }
   const mg = [v.mt||0, v.mr||0, v.mb||0, v.ml||0], p = v.pad || [0,0,0,0];
   const bx = el('div', 'box');
   bx.innerHTML = '<div class="bm"><small class="t1">'+mg[0]+'</small><small class="r1">'+mg[1]+'</small><small class="b1">'+mg[2]+'</small><small class="l1">'+mg[3]+'</small>' +
@@ -1141,6 +1796,7 @@ function renderPane() {
 }
 function select(rid, reveal) { S.sel = rid; redraw(); renderCrumb(); renderPane(); updateEditBar(); if (reveal) revealSel(); }
 function applySheet() {
+  SHEET_OPEN = S.tab === 'attrs' ? 420 : 300; $('sheet').style.height = S.open ? SHEET_OPEN + 'px' : '';
   $('sheet').classList.toggle('open', S.open);
   $('grab').setAttribute('aria-expanded', String(S.open));
   const h = (S.open ? SHEET_OPEN : 72) + 10;
@@ -1590,7 +2246,7 @@ function buildBoards() {
   const d = dim(); S.W = d.w; S.H = d.h; w.style.padding = '26px 20px 0';
   (S.mode === 'design' ? [false] : S.mode === 'bp' ? [true] : [false, true]).forEach(bp => {
     const bd = el('div', 'board'); bd.appendChild(el('span', 'cap', bp ? 'Plan' : 'Design · ' + DEVICES[S.dev].name));
-    const sc = buildScreen(bp), ov = el('div', 'ov'); bd.append(sc, ov); w.appendChild(bd);
+    const sc = buildScreen(bp), ov = el('div', 'ov'); bd.append(sc, ov); w.appendChild(bd); applyBias(sc);
     S.boards.push({bd, sc, ov, bp});
   });
   const m = measure(S.boards[0].sc); S.b = m.b; S.chrome = m.chrome; S.probs = computeProblems(m.trunc);
@@ -1622,7 +2278,7 @@ function init() {
   $('btnClose').onclick = () => toast('Dans l’application : retour à l’éditeur, qui est resté dans la pile.');
   $('eUndo').onclick = undo; $('eRedo').onclick = redoOp; $('eDup').onclick = dupSel; $('eDel').onclick = delSel;
   $('grab').onclick = () => { S.open = !S.open; applySheet(); };
-  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; if (!S.open) { S.open = true; applySheet(); } renderPane(); });
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; S.open = true; applySheet(); renderPane(); });
   document.addEventListener('pointerdown', e => { if (S.pop && S.pop !== 'place' && !S.drag && !e.target.closest('#pop, #chDevice, #chLayers, #btnMore, #bubble')) hidePop(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;

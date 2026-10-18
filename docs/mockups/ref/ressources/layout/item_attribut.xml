@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne clé/valeur en LECTURE SEULE (maquette `.kv`) : deux colonnes 1fr | 1.1fr, écart 10 dp,
+  mono 12 sp / interligne 18 ; clé grise tronquée, valeur pleine qui se replie. Écart de ligne 2 dp.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_attribut"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/apercu_kv_gap_ligne"
+    android:weightSum="2.1">
+
+    <TextView
+        android:id="@+id/cle_attribut"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/apercu_kv_gap_colonne"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.KvCle" />
+
+    <TextView
+        android:id="@+id/valeur_attribut"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.1"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.KvValeur" />
+</LinearLayout>

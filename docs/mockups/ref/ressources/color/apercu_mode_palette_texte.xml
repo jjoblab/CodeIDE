@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Titre des boutons de mode de la palette et des positions : sélectionné = texte plein, sinon doux. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true" android:color="?attr/apercuTexte" />
+    <item android:color="?attr/apercuTexteDoux" />
+</selector>

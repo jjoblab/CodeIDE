@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une option du menu CALQUES (.opt + .sw) — RÉFÉRENCE (ADR 0134) : pastille colorée 12 dp (écart voulu
+  PE9c, teinte posée au liage), libellé 13 sp, interrupteur 34 x 20 à droite. La rangée entière bascule ;
+  l'interrupteur n'est pas cliquable (clickable=false).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_calque"
+    style="@style/Widget.CodeIDE.Apercu.Option"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/pastille_calque"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_marginEnd="@dimen/apercu_option_gap"
+        android:background="@drawable/apercu_pastille_menu" />
+
+    <TextView
+        android:id="@+id/libelle_calque"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Option" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/bascule_calque"
+        style="@style/Widget.CodeIDE.Apercu.Interrupteur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_option_gap"
+        android:clickable="false"
+        android:focusable="false" />
+</LinearLayout>

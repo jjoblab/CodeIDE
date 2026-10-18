@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UN segment (maquette `.seg2 button`) : 54.9×26 pour « visible ». Coché = fond primaire.
+-->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/segment"
+    style="@style/Widget.CodeIDE.Apercu.Segment"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content" />

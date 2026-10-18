@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carte de correctif rapide (.fix) : mélange ambre 9 % / surface, trait ambre 45 % / trait, rayon 10. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuCorrectifFond" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuCorrectifTrait" />
+    <corners android:radius="@dimen/apercu_correctif_rayon" />
+</shape>

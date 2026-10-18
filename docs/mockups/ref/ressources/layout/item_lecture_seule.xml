@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Valeur en lecture seule (maquette `.fld .ro`) : fond surface 2, rayon 8, mono 12 sp, interligne 17 sp,
+  sans trait. 374×32.8 pour une ligne.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/valeur_lecture_seule"
+    style="@style/Widget.CodeIDE.Apercu.LectureSeule"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Menu APPAREIL — RÉFÉRENCE (ADR 0134). Géométrie `.pop` : 10 dp de chaque bord, 8 dp sous la rangée de
+  puces, padding 8, hauteur max 430 dp. Coque TRANSLUCIDE (écart voulu PE9c, PREVIEW.md 3.4.1).
+  Titre de groupe « APPAREIL » (mono 10 capitales) puis 5 options (item_menu_appareil). Les tags
+  « Existant » / « Nouveau » de la maquette sont des annotations de REVUE : ils ne se portent pas.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popover_appareil"
+    style="@style/Widget.CodeIDE.Apercu.Menu"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/titre_menu"
+        style="@style/Widget.CodeIDE.Apercu.MenuTitre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_menu_titre_marge_haut"
+        android:layout_marginBottom="@dimen/apercu_menu_titre_marge_bas"
+        android:text="@string/preview_appareil_titre" />
+
+    <include
+        android:id="@+id/appareil_pixel_4"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_pixel_7_pro"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_galaxy_s24"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_tablette"
+        layout="@layout/item_menu_appareil" />
+
+    <include
+        android:id="@+id/appareil_petit"
+        layout="@layout/item_menu_appareil" />
+</LinearLayout>

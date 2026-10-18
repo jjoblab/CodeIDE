@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle TEXTE / NOMBRE / IDENTIFIANT (maquette `.fld` + input text|number) : étiquette, puis
+  SOIT le champ éditable, SOIT le bloc lecture seule (valeur @string/… : « une référence se
+  montre, jamais écrasée »), puis note (`.note2`) et message de validation (`.fmsg`).
+  Le liage gonfle `saisie_texte` ou `item_lecture_seule` dans `conteneur_saisie`.
+  Erreur de validation : champ.background = apercu_champ_fond_erreur + message visible.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_texte"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <FrameLayout
+        android:id="@+id/conteneur_saisie"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+
+    <TextView
+        android:id="@+id/note_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/message_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
+</LinearLayout>

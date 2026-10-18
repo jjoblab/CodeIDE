@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thème de l'APERÇU (ADR 0131). Enfant de Theme.CodeIDE : même famille Material 3, mêmes couleurs de
+  marque, mais les RÔLES lus par les composants Material (chips, toolbar, boutons, surfaces)
+  sont recâblés sur les jetons de la maquette — c'est ce qui rend les chips, la barre et la
+  feuille identiques au rendu de référence sans une ligne de code.
+
+  À poser sur PreviewActivity : android:theme="@style/Theme.CodeIDE.Apercu" (AndroidManifest
+  de :feature:preview). Les couleurs dynamiques (Android 12+) NE s'appliquent PAS à l'aperçu :
+  PreviewActivity n'appelle pas applyDynamicColorsIfAvailable() (ADR 0131 § Conséquences).
+-->
+<resources>
+    <style name="Theme.CodeIDE.Apercu" parent="Theme.CodeIDE">
+        <!-- 1. Un attribut par jeton de la maquette (lus par layouts / drawables / styles). -->
+        <item name="apercuFond">@color/apercu_fond</item>
+        <item name="apercuSurface">@color/apercu_surface</item>
+        <item name="apercuSurface2">@color/apercu_surface2</item>
+        <item name="apercuTexte">@color/apercu_texte</item>
+        <item name="apercuTexteDoux">@color/apercu_texte_doux</item>
+        <item name="apercuTrait">@color/apercu_trait</item>
+        <item name="apercuPrimaire">@color/apercu_primaire</item>
+        <item name="apercuSurPrimaire">@color/apercu_sur_primaire</item>
+        <item name="apercuPrimaireConteneur">@color/apercu_primaire_conteneur</item>
+        <item name="apercuSurPrimaireConteneur">@color/apercu_sur_primaire_conteneur</item>
+        <item name="apercuAccent">@color/apercu_accent</item>
+        <item name="apercuAccentDoux">@color/apercu_accent_doux</item>
+        <item name="apercuSucces">@color/apercu_succes</item>
+        <item name="apercuAvert">@color/apercu_avert</item>
+        <item name="apercuErreur">@color/apercu_erreur</item>
+        <item name="apercuErreurConteneur">@color/apercu_erreur_conteneur</item>
+        <item name="apercuMarge">@color/apercu_marge</item>
+        <item name="apercuRemplissage">@color/apercu_remplissage</item>
+        <item name="apercuNouveau">@color/apercu_nouveau</item>
+        <item name="apercuNouveauFond">@color/apercu_nouveau_fond</item>
+        <item name="apercuSurNouveau">@color/apercu_sur_nouveau</item>
+        <item name="apercuNouveauDoux">@color/apercu_nouveau_doux</item>
+        <item name="apercuDamierCase">@color/apercu_damier_case</item>
+        <item name="apercuEpingleAvert">@color/apercu_epingle_avert</item>
+        <item name="apercuEpingleErreur">@color/apercu_epingle_erreur</item>
+        <item name="apercuBornes">@color/apercu_bornes</item>
+        <item name="apercuAvertTag">@color/apercu_avert_tag</item>
+        <item name="apercuEcranTrait">@color/apercu_ecran_trait</item>
+        <item name="apercuEcranOmbre">@color/apercu_ecran_ombre</item>
+        <item name="apercuSurCalque">@color/apercu_sur_calque</item>
+        <item name="apercuSourceInsere">@color/apercu_source_insere</item>
+        <item name="apercuSourceVue">@color/apercu_source_vue</item>
+        <item name="apercuMargeFond">@color/apercu_marge_fond</item>
+        <item name="apercuRemplissageFond">@color/apercu_remplissage_fond</item>
+        <item name="apercuCorrectifFond">@color/apercu_correctif_fond</item>
+        <item name="apercuCorrectifTrait">@color/apercu_correctif_trait</item>
+        <item name="apercuAvertDoux">@color/apercu_avert_doux</item>
+
+        <!-- 2. Rôles Material 3 recâblés (chips, toolbar, boutons, menus, feuilles). -->
+        <item name="android:colorBackground">@color/apercu_fond</item>
+        <item name="colorSurface">@color/apercu_surface</item>
+        <item name="colorOnSurface">@color/apercu_texte</item>
+        <item name="colorSurfaceVariant">@color/apercu_surface2</item>
+        <item name="colorOnSurfaceVariant">@color/apercu_texte_doux</item>
+        <item name="colorOutline">@color/apercu_trait</item>
+        <item name="colorOutlineVariant">@color/apercu_trait</item>
+        <item name="colorSecondaryContainer">@color/apercu_surface2</item>
+        <item name="colorOnSecondaryContainer">@color/apercu_texte</item>
+        <item name="colorPrimary">@color/apercu_primaire</item>
+        <item name="colorOnPrimary">@color/apercu_sur_primaire</item>
+        <item name="colorPrimaryContainer">@color/apercu_primaire_conteneur</item>
+        <item name="colorOnPrimaryContainer">@color/apercu_sur_primaire_conteneur</item>
+        <item name="colorError">@color/apercu_erreur</item>
+        <item name="colorErrorContainer">@color/apercu_erreur_conteneur</item>
+        <item name="android:windowBackground">@color/apercu_fond</item>
+    </style>
+</resources>

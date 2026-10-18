@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une rangée de l'onglet PROBLÈMES (.prob) — RÉFÉRENCE (ADR 0134). Point de sévérité 8 dp (avert ;
+  erreur = backgroundTintList « erreur »), aligné sur la première ligne (marge haute 6) ; titre 13 / 600 ;
+  détail 12 gris doux sur deux lignes (libellé de la vue, puis message) ; « Voir » mono 11 en accent à droite.
+  Hauteur 63 dp pour un titre + deux lignes. Remplace le détail à 18 dp de retrait : le texte est dans UNE
+  colonne alignée sur le titre.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_probleme"
+    style="@style/Widget.CodeIDE.Apercu.Probleme"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/pastille_probleme"
+        android:layout_width="@dimen/apercu_probleme_point"
+        android:layout_height="@dimen/apercu_probleme_point"
+        android:layout_marginTop="@dimen/apercu_probleme_point_haut"
+        android:layout_marginEnd="@dimen/apercu_probleme_gap"
+        android:background="@drawable/apercu_probleme_point" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/titre_probleme"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ProblemeTitre" />
+
+        <TextView
+            android:id="@+id/detail_probleme"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ProblemeDetail" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/voir_probleme"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_probleme_gap"
+        android:text="@string/preview_probleme_voir"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ProblemeVoir" />
+</LinearLayout>

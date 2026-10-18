@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Couleurs des ÉCRANS qui ne sont PAS des jetons de la maquette : écart voulu PE9c (menus translucides).
+  Le test de parité ne les lit pas. Surface du thème à ~95 % d'alpha.
+-->
+<resources>
+    <color name="apercu_menu_fond">#F2FFFFFF</color>  <!-- surface à 95 % -->
+</resources>

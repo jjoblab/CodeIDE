@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Liste déroulante (maquette `.fld select`, `idref`) : même habillage que le champ, hauteur 36,
+  chevron à droite. Implémentation : AutoCompleteTextView SANS saisie (inputType none) + adaptateur ;
+  la première entrée « par défaut » retire l'attribut.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_liste"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+        android:id="@+id/liste_deroulante"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:drawableEnd="@drawable/apercu_fleche_deroulant"
+        android:inputType="none"
+        android:minHeight="36dp" />
+</LinearLayout>

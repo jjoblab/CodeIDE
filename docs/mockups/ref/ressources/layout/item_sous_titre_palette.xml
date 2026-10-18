@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sous-titre de la grille (.sub : « Récents », « Tous les widgets ») — RÉFÉRENCE (ADR 0134). Titre de
+  groupe mono 10 / 600 capitales, marge haute 4 ; pleine largeur (SpanSizeLookup = 3).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sous_titre_palette"
+    style="@style/Widget.CodeIDE.Apercu.TitreGroupe"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="@dimen/apercu_sous_titre_haut" />

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une rangée « autre attribut » existant (maquette `.other`) : nom (mono, tronqué), valeur, ↺.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_attribut_libre"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/nom_attribut_libre"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="monospace"
+        android:singleLine="true"
+        android:textSize="12sp" />
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/valeur_attribut_libre"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_couleur_gap"
+        android:layout_weight="1"
+        android:imeOptions="actionDone" />
+
+    <TextView
+        android:id="@+id/bouton_retirer_attribut_libre"
+        style="@style/Widget.CodeIDE.Apercu.Reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_couleur_gap"
+        android:contentDescription="@string/preview_attr_reset_desc"
+        android:gravity="center"
+        android:minWidth="24dp"
+        android:minHeight="24dp"
+        android:text="@string/preview_attr_reset_glyphe" />
+</LinearLayout>
