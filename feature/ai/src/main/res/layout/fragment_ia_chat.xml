@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onglet Chat du tiroir IA (mission IA, lot IA-3 — spec E1) : liste des
+  messages (DiffUtil), états transverses (IA non activée / vide), et
+  compositeur (saisie multi-ligne + Envoyer/Arrêter — le bouton bascule
+  pendant la génération). Les puces de contexte et le sélecteur @
+  arrivent au lot IA-4 (ContextAssembler).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/zone_chat"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_messages"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/spacing_sm"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/ligne_message_assistant" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:elevation="1dp"
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="?attr/textInputOutlinedDenseStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/ia_chat_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/saisie_ia"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:maxLines="4" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_envoyer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:contentDescription="@string/ia_envoyer_cd"
+                android:minWidth="88dp"
+                android:text="@string/ia_envoyer" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_arreter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:contentDescription="@string/ia_arreter_cd"
+                android:minWidth="88dp"
+                android:text="@string/ia_arreter"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- État transverse : IA non activée (consentement) ou conversation vide. -->
+    <LinearLayout
+        android:id="@+id/etat_transverse"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/colorSurface"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_lg">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_smart_toy"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/etat_titre"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/etat_texte"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_consentement"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/ia_ia_inactive_bouton"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+</FrameLayout>

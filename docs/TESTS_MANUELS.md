@@ -676,3 +676,42 @@ E1-E12 qui échoue.
 6. **Consentement** — désactiver l'assistant dans les réglages, tenter un
    envoi depuis l'IA (après IA-3) : aucune requête réseau ne part (vérifier
    `adb logcat` ou un mandataire) ; l'UI oriente vers le consentement.
+
+## Mission IA — chat du tiroir (lot IA-3 → v0.138.0, ADR 0122)
+
+> Le streaming, l'annulation et l'insertion au curseur sont couverts en
+> JVM/Robolectric ; cette procédure valide ce qu'un test ne peut pas
+> voir : le rail à 6 éléments, les insets et TalkBack.
+
+1. **Rail à 6 destinations** — ouvrir un projet puis le tiroir à 45 % et
+   à 98 %, écran 360 dp : le rail reste lisible (libellé « IA » 10 sp,
+   zones tactiles ≥ 48 dp), l'entrée IA porte l'icône étincelle ; la
+   sélection marque l'encoche et l'accent comme les cinq autres.
+2. **Onglets « bientôt »** — passer Chat → Agent → Historique →
+   Recherche puis revenir sur Chat : les messages saisis et la
+   conversation sont INTACTS (le fragment enfant est ré-attaché, jamais
+   recréé), l'état « bientôt » ne se superpose jamais au chat.
+3. **Streaming réel** — clé d'API valide, envoyer « Explique ce
+   fichier » : la réponse s'accumule delta par delta, le bloc de code
+   non fermé s'allonge au fil du flux (bloc provisoire), le bouton
+   bascule Envoyer ↔ Arrêter pendant la génération puis revient à
+   Envoyer après la fin comme après une erreur.
+4. **Arrêt de la génération** — taper « Arrêter » en plein flux : la
+   réponse se fige, AUCUN delta tardif n'apparaît (la requête est
+   fermée côté transport — vérifiable à `adb logcat` : la socket est
+   coupée, pas seulement l'affichage).
+5. **Insérer au curseur** — ouvrir un fichier dans l'éditeur, poser le
+   curseur, insérer un bloc de code depuis le chat : le code remplace
+   la sélection courante, UN SEUL « Annuler » restaure l'état
+   précédent ; sans onglet ouvert, le message « Ouvrez un fichier dans
+   l'éditeur » s'affiche (aucun effet silencieux).
+6. **Insets** — clavier ouvert/fermé et panneau inférieur étendu : le
+   compositeur reste au-dessus du clavier, aucune régression par
+   rapport au tiroir terminal (`GestionnaireInsetsEditeur` réutilisé).
+7. **TalkBack** — chaque message est annoncé avec son rôle (« Vous :
+   … » / « Assistant : … »), les boutons Envoyer et Arrêter portent
+   leur `contentDescription`, les blocs de code annoncent Copier /
+   Insérer.
+8. **Lien Markdown** — toucher un lien `[texte](url)` d'une réponse :
+   le navigateur s'ouvre (initiative utilisateur explicite, ADR 0121) ;
+   sans navigateur sur l'appareil, rien ne plante.

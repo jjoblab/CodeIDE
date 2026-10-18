@@ -76,6 +76,35 @@
     <string name="ia_consentement_activer">Activate the assistant</string>
     <string name="ia_consentement_pas_maintenant">Not now</string>
 
+    <!-- Chat drawer (lot IA-3) -->
+    <string name="ia_editeur_absent">Open a file in the editor to insert the block</string>
+    <string name="ia_bloc_insere">Code block inserted at the cursor</string>
+    <string name="ia_chat_hint">Ask your question…</string>
+    <string name="ia_envoyer">Send</string>
+    <string name="ia_envoyer_cd">Send the message to the assistant</string>
+    <string name="ia_arreter">Stop</string>
+    <string name="ia_arreter_cd">Stop the running generation</string>
+    <string name="ia_tiroir_titre">AI assistant</string>
+    <string name="ia_onglet_chat">Chat</string>
+    <string name="ia_onglet_agent">Agent</string>
+    <string name="ia_onglet_historique">History</string>
+    <string name="ia_onglet_recherche">Search</string>
+    <string name="ia_ia_inactive_titre">Assistant not activated</string>
+    <string name="ia_ia_inactive_texte">Review the consent to activate the AI assistant.</string>
+    <string name="ia_ia_inactive_bouton">Review the consent</string>
+    <string name="ia_chat_vide_titre">No message</string>
+    <string name="ia_chat_vide_texte">Ask a question about your project.</string>
+    <string name="ia_message_cd_utilisateur">You: %1$s</string>
+    <string name="ia_message_cd_assistant">Assistant: %1$s</string>
+    <string name="ia_copier">Copy</string>
+    <string name="ia_copier_cd">Copy the code block</string>
+    <string name="ia_inserer">Insert</string>
+    <string name="ia_inserer_cd">Insert the code block at the cursor</string>
+    <string name="ia_copie_effectuee">Copied to the clipboard</string>
+    <string name="ia_bientot_agent">The agent arrives with lot IA-7 — it will change nothing without your approval.</string>
+    <string name="ia_bientot_historique">Conversation history arrives with lot IA-6.</string>
+    <string name="ia_bientot_recherche">Semantic search is reserved — see the roadmap.</string>
+
     <!-- Errors (mapped from AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Key missing or rejected by the provider</string>
     <string name="ia_erreur_quota">Rate limit reached — try again in %1$d s</string>
