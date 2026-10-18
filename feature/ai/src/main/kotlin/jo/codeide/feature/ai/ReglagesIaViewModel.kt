@@ -7,8 +7,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.ai.ListerModelesIaUseCase
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.CoffreClesIa
+import jo.codeide.core.domain.ConversationStore
 import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.domain.ReglagesIaRepository
+import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +55,7 @@ public data class EtatReglagesIa(
     public val envoyerFichierActif: Boolean = true,
     public val envoyerListeChemins: Boolean = true,
     public val envoyerDiagnostics: Boolean = true,
+    public val retentionConversations: RetentionIa = RetentionIa.JOURS_30,
     public val actualisationEnCours: Boolean = false,
 )
 
@@ -74,6 +77,20 @@ public sealed interface ActionReglagesIa {
     public data class OuvrirFournisseur(
         public val identifiant: String,
     ) : ActionReglagesIa
+
+    /**
+     * Rétention de l'historique des conversations (lot IA-6, ADR 0124
+     * §5) : 7 j / 30 j / illimitée — appliquée dès la prochaine purge.
+     */
+    public data class ChoisirRetention(
+        public val retention: RetentionIa,
+    ) : ActionReglagesIa
+
+    /**
+     * Tout effacer dans l'historique (lot IA-6) — confirmation
+     * préalable côté fragment (jamais d'effet silencieux).
+     */
+    public data object ToutEffacerHistorique : ActionReglagesIa
 
     /** Sélectionne le fournisseur actif (routeur IA). */
     public data class ChoisirFournisseur(
@@ -144,6 +161,7 @@ public class ReglagesIaViewModel
         private val reglages: ReglagesIaRepository,
         private val coffre: CoffreClesIa,
         private val listerModeles: ListerModelesIaUseCase,
+        private val historique: ConversationStore,
     ) : ViewModel() {
         private val etatInterne = MutableStateFlow(EtatReglagesIa())
 
@@ -181,6 +199,17 @@ public class ReglagesIaViewModel
                 is ActionReglagesIa.ChoisirFournisseur -> {
                     if (action.identifiant in FOURNISSEURS_CONNUS) {
                         ecrire { it.copy(fournisseurActif = action.identifiant) }
+                    }
+                }
+
+                is ActionReglagesIa.ChoisirRetention -> {
+                    ecrire { it.copy(retentionConversations = action.retention) }
+                }
+
+                ActionReglagesIa.ToutEffacerHistorique -> {
+                    viewModelScope.launch {
+                        historique.toutSupprimer()
+                        emettre(EffetReglagesIa.Message(R.string.ia_reglages_historique_purge))
                     }
                 }
 
@@ -284,6 +313,7 @@ public class ReglagesIaViewModel
                 envoyerFichierActif = courant.envoyerFichierActif,
                 envoyerListeChemins = courant.envoyerListeChemins,
                 envoyerDiagnostics = courant.envoyerDiagnostics,
+                retentionConversations = courant.retentionConversations,
                 actualisationEnCours = etatInterne.value.actualisationEnCours,
             )
 

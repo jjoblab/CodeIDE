@@ -9,9 +9,11 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.FournisseursIa
+import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
@@ -99,6 +101,8 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         brancherInterrupteur(binding.interrupteurConfChemins, AspectConfidentialite.LISTE_CHEMINS)
         brancherInterrupteur(binding.interrupteurConfDiagnostics, AspectConfidentialite.DIAGNOSTICS)
 
+        brancherHistorique()
+
         binding.champMaxJetons.setOnFocusChangeListener { _, aLeFocus ->
             if (aLeFocus) return@setOnFocusChangeListener
             viewModel.onAction(ActionReglagesIa.ChangerMaxJetons(texteVersEntier(binding.champMaxJetons.text)))
@@ -106,6 +110,37 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         binding.champDelai.setOnFocusChangeListener { _, aLeFocus ->
             if (aLeFocus) return@setOnFocusChangeListener
             viewModel.onAction(ActionReglagesIa.ChangerDelai(texteVersEntier(binding.champDelai.text)))
+        }
+    }
+
+    /** Historique (lot IA-6) : rétention + tout effacer. */
+    private fun brancherHistorique() {
+        binding.boutonRetentionHistorique.setOnClickListener {
+            val retenues = listOf(RetentionIa.JOURS_7, RetentionIa.JOURS_30, RetentionIa.ILLIMITEE)
+            val courante = viewModel.etat.value.retentionConversations
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ia_carte_historique_titre)
+                .setSingleChoiceItems(
+                    arrayOf(
+                        getString(R.string.ia_retention_libelle_7j),
+                        getString(R.string.ia_retention_libelle_30j),
+                        getString(R.string.ia_retention_libelle_illimitee),
+                    ),
+                    retenues.indexOf(courante),
+                ) { dialogue, choix ->
+                    viewModel.onAction(ActionReglagesIa.ChoisirRetention(retenues[choix]))
+                    dialogue.dismiss()
+                }.setNegativeButton(R.string.ia_historique_annuler, null)
+                .show()
+        }
+        binding.boutonToutEffacerHistorique.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ia_historique_tout_effacer_titre)
+                .setMessage(R.string.ia_historique_tout_effacer_message)
+                .setPositiveButton(R.string.ia_historique_confirmer) { _, _ ->
+                    viewModel.onAction(ActionReglagesIa.ToutEffacerHistorique)
+                }.setNegativeButton(R.string.ia_historique_annuler, null)
+                .show()
         }
     }
 
@@ -141,6 +176,13 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         binding.interrupteurConfFichier.isChecked = etat.envoyerFichierActif
         binding.interrupteurConfChemins.isChecked = etat.envoyerListeChemins
         binding.interrupteurConfDiagnostics.isChecked = etat.envoyerDiagnostics
+
+        binding.boutonRetentionHistorique.text =
+            when (etat.retentionConversations) {
+                RetentionIa.JOURS_7 -> getString(R.string.ia_retention_libelle_7j)
+                RetentionIa.ILLIMITEE -> getString(R.string.ia_retention_libelle_illimitee)
+                RetentionIa.JOURS_30 -> getString(R.string.ia_retention_libelle_30j)
+            }
 
         binding.champMaxJetons.setText(
             String.format(java.util.Locale.getDefault(), "%d", etat.maxJetonsReponse),

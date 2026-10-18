@@ -146,4 +146,32 @@
     <string name="ia_diff_plage_absente">Sélectionnez d\'abord la plage du fichier à remplacer</string>
     <string name="ia_consigne_corriger">Corrige cette erreur dans %1$s :\n</string>
     <string name="ia_consigne_expliquer_sortie">Explique cette sortie et ses causes probables :\n</string>
+
+    <!-- Lot IA-6 : historique des conversations. -->
+    <string name="ia_historique_recherche_hint">Rechercher une conversation</string>
+    <string name="ia_historique_vide">Aucune conversation</string>
+    <string name="ia_historique_meta">%1$s · %2$s</string>
+    <string name="ia_historique_menu_renommer">Renommer</string>
+    <string name="ia_historique_menu_supprimer">Supprimer</string>
+    <string name="ia_historique_menu_cd">Actions de la conversation</string>
+    <string name="ia_historique_ligne_cd">%1$s — rouvrir dans le chat</string>
+    <string name="ia_historique_renommer_titre">Renommer la conversation</string>
+    <string name="ia_historique_renommer_hint">Nouveau titre</string>
+    <string name="ia_historique_suppression_titre">Supprimer la conversation</string>
+    <string name="ia_historique_suppression_message">Supprimer « %1$s » et tous ses messages ?</string>
+    <string name="ia_historique_tout_effacer">Tout effacer</string>
+    <string name="ia_historique_tout_effacer_titre">Tout effacer</string>
+    <string name="ia_historique_tout_effacer_message">Supprimer TOUTES les conversations et leurs messages ?</string>
+    <string name="ia_historique_confirmer">Confirmer</string>
+    <string name="ia_historique_annuler">Annuler</string>
+    <string name="ia_historique_renommee">Conversation renommée</string>
+    <string name="ia_historique_supprimee">Conversation supprimée</string>
+    <string name="ia_historique_purgee">Historique effacé</string>
+    <string name="ia_reglages_historique_purge">Historique effacé</string>
+    <string name="ia_carte_historique_titre">Historique</string>
+    <string name="ia_carte_historique_message">Les conversations restent sur cet appareil. Rétention configurable, purge à l\'ouverture.</string>
+    <string name="ia_retention_libelle_7j">Conserver 7 jours</string>
+    <string name="ia_retention_libelle_30j">Conserver 30 jours</string>
+    <string name="ia_retention_libelle_illimitee">Conserver indéfiniment</string>
+    <string name="ia_bientot_historique_ancien">L\'historique des conversations arrive au lot IA-6.</string>
 </resources>

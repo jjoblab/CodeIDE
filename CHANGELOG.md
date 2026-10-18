@@ -1,5 +1,56 @@
 # Journal des modifications
 
+## [0.141.0] – 2026-10-18
+
+### Mission IA — lot IA-6 « Historique des conversations » (ADR 0124 §5, spec E6)
+
+#### Ajouté
+
+- **Room v2** : tables `ai_conversations` (titre, modèle, dates) et
+  `ai_messages` (texte finalisé, FK CASCADE) — migration 1→2
+  ([Migration1a2]) **testée sur le schéma v1 exporté** et appliquée sans
+  fallback destructif ; schéma 2.json committé.
+- **Port `ConversationStore`** (`core:domain`) + implémentation Room
+  (`:core:database`, liaison Hilt) : liste observée, recherche par TITRE
+  seulement (jamais le contenu), insertion transactionnelle (titre auto
+  = premier message tronqué), renommage, suppression en CASCADE, tout
+  effacer, purge de rétention lue à chaque appel.
+- **Chat persisté** : le message utilisateur est enregistré dès l'envoi,
+  la réponse au `Done` (jamais le streaming ni un échec) ;
+  « Nouvelle conversation » referme la conversation locale ;
+  `OuvrirConversation` recharge les messages (aucune duplication).
+- **Écran Historique** (onglet réel du tiroir IA, remplaçant « bientôt ») :
+  recherche débounce 250 ms, liste (titre, date relative, modèle), menu
+  Renommer/Supprimer par ligne (confirmations explicites), tout effacer,
+  état vide honnête ; appui = rouvre dans le chat.
+- **Réglages IA** — carte « Historique » : rétention 7 j / 30 j /
+  illimitée (`RetentionIa`, persistance DataStore, lecture tolérante) et
+  « Tout effacer » ; purge de rétention exécutée à l'ouverture du tiroir.
+
+#### Tests
+
+- `Migration1a2Test` : migration sur base v1 NON VIDE (registre des
+  projets préservé, tables IA créées, insertion validée).
+- `ConversationStoreRoomTest` (8) : titre auto, cascade, recherche par
+  titre jamais sur le contenu, renommage, tout effacer, purge rétention,
+  troncature du titre.
+- `ChatViewModelTest` +2 : persistance à l'envoi, purge à l'ouverture.
+- `PontIaEditeurImplTest`, `ReglagesIaViewModelTest` : doubles mis à jour.
+
+#### Écarts au plan (honnêtes)
+
+- Pas de balayage latéral de suppression (aucun précédent ItemTouchHelper
+  dans le dépôt) : suppression par menu de ligne avec confirmation.
+- Pas d'« Exporter en Markdown » (nécessiterait SAF/écriture disque —
+  hors périmètre v1) ; méta de liste = date + modèle (sans compteur de
+  messages, éviterait N requêtes par ligne).
+
+## [0.141.0] – 2026-10-18
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.140.0] – 2026-10-18
 
 ### Mission IA — lot IA-5 « Intégration éditeur » (ADR 0126, spec E3)

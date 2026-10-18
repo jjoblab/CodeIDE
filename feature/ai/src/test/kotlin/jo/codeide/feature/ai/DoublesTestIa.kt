@@ -7,7 +7,12 @@ import jo.codeide.core.ai.AiRequest
 import jo.codeide.core.ai.FabriqueFournisseurIa
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.CoffreClesIa
+import jo.codeide.core.domain.ConversationIa
+import jo.codeide.core.domain.ConversationStore
+import jo.codeide.core.domain.MessageConversationIa
 import jo.codeide.core.domain.ReglagesIaRepository
+import jo.codeide.core.domain.RetentionIa
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.Flow
@@ -136,4 +141,90 @@ internal class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteP
     }
 
     override suspend fun lireIaIgnore(): List<String> = iaIgnore
+}
+
+/** Horloge figée : temps contrôlé (exigence section 12.5). */
+internal val HorlogeFixe = TimeProvider { 1_000_000L }
+
+/**
+ * Historique en mémoire (IA-6) : conversations et messages listés,
+ * opérations comptées — cascade simulée (supprimer vide la conversation
+ * ET ses messages), purge bornée appliquée sur les dates.
+ */
+internal class FauxConversationStore : ConversationStore {
+    val conversations = mutableMapOf<String, ConversationIa>()
+    val messagesParConversation = mutableMapOf<String, MutableList<MessageConversationIa>>()
+    var purges = 0
+    var retentionDerniere: RetentionIa? = null
+
+    override fun conversations(recherche: String): Flow<List<ConversationIa>> =
+        kotlinx.coroutines.flow.flow {
+            val liste =
+                conversations.values
+                    .filter { recherche.isBlank() || it.titre.contains(recherche, ignoreCase = true) }
+                    .sortedByDescending { it.modifieA }
+            emit(liste)
+        }
+
+    override suspend fun messages(conversationId: String): List<MessageConversationIa> =
+        messagesParConversation[conversationId].orEmpty()
+
+    override suspend fun nombreMessages(conversationId: String): Int =
+        messagesParConversation[conversationId].orEmpty().size
+
+    override suspend fun ajouterMessage(
+        conversationId: String,
+        modele: String,
+        message: MessageConversationIa,
+    ) {
+        if (conversationId !in conversations) {
+            conversations[conversationId] =
+                ConversationIa(
+                    identifiant = conversationId,
+                    titre = message.texte.take(60),
+                    modele = modele,
+                    creeA = message.creeA,
+                    modifieA = message.creeA,
+                )
+            messagesParConversation[conversationId] = mutableListOf()
+        }
+        messagesParConversation.getValue(conversationId).add(message)
+        conversations[conversationId] =
+            conversations.getValue(conversationId).copy(modifieA = message.creeA)
+    }
+
+    override suspend fun renommer(
+        conversationId: String,
+        titre: String,
+    ): Int {
+        val existante = conversations[conversationId] ?: return 0
+        conversations[conversationId] = existante.copy(titre = titre)
+        return 1
+    }
+
+    override suspend fun supprimer(conversationId: String): Int {
+        val retiree = conversations.remove(conversationId)
+        messagesParConversation.remove(conversationId)
+        return if (retiree == null) 0 else 1
+    }
+
+    override suspend fun toutSupprimer() {
+        conversations.clear()
+        messagesParConversation.clear()
+    }
+
+    override suspend fun purgerPerimees(retention: RetentionIa) {
+        purges++
+        retentionDerniere = retention
+        if (retention.jours <= 0) return
+        val borne = System.currentTimeMillis() - retention.jours * 24L * 60 * 60 * 1000
+        conversations
+            .filterValues { it.modifieA < borne }
+            .keys
+            .toList()
+            .forEach { id ->
+                conversations.remove(id)
+                messagesParConversation.remove(id)
+            }
+    }
 }

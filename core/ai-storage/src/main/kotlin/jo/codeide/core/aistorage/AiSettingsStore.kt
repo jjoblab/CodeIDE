@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.FournisseursIa
+import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.Flow
@@ -87,6 +88,7 @@ internal object ClesAi {
     val envoyerFichierActif = booleanPreferencesKey("ia_conf_fichier_actif")
     val envoyerListeChemins = booleanPreferencesKey("ia_conf_liste_chemins")
     val envoyerDiagnostics = booleanPreferencesKey("ia_conf_diagnostics")
+    val retentionConversations = stringPreferencesKey("ia_retention_conversations")
 }
 
 /** Le fournisseur persisté n'est lu que s'il est encore connu (liste fermée). */
@@ -113,6 +115,7 @@ internal fun Preferences.toAiSettings(): AiSettings =
         envoyerFichierActif = this[ClesAi.envoyerFichierActif] ?: true,
         envoyerListeChemins = this[ClesAi.envoyerListeChemins] ?: true,
         envoyerDiagnostics = this[ClesAi.envoyerDiagnostics] ?: true,
+        retentionConversations = retentionLisible(this[ClesAi.retentionConversations]),
     )
 
 /** Liste ↔ chaîne multiligne (ordre conservé, entrées vides ignorées). */
@@ -137,4 +140,9 @@ internal fun MutablePreferences.ecrire(reglages: AiSettings) {
     this[ClesAi.envoyerFichierActif] = reglages.envoyerFichierActif
     this[ClesAi.envoyerListeChemins] = reglages.envoyerListeChemins
     this[ClesAi.envoyerDiagnostics] = reglages.envoyerDiagnostics
+    this[ClesAi.retentionConversations] = reglages.retentionConversations.name
 }
+
+/** La rétention persistée n'est lue que si le nom d'énumération est connu. */
+private fun retentionLisible(nom: String?): RetentionIa =
+    RetentionIa.entries.firstOrNull { it.name == nom } ?: RetentionIa.JOURS_30

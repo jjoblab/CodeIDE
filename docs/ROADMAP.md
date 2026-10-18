@@ -6,7 +6,7 @@
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.140.0)
+## État actuel (v0.141.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -399,6 +399,6 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
 | R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
-| **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs), IA-2 v0.137.0 (coffre + réglages), IA-3 v0.138.0 (chat du tiroir), IA-4 v0.139.0 (contexte et confidentialité), IA-5 v0.140.0 (intégration éditeur) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs), IA-2 v0.137.0 (coffre + réglages), IA-3 v0.138.0 (chat du tiroir), IA-4 v0.139.0 (contexte et confidentialité), IA-5 v0.140.0 (intégration éditeur), IA-6 v0.141.0 (historique des conversations) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
 | **UI/LSP — cohérence + réglages** | **PROPOSÉ** — ADR 0127/0128 en attente d'acceptation ; UI-1/UI-2 prérequis des écrans IA et LSP | Haut | Haut — unité visuelle, réglages LSP réels |
 | 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |
