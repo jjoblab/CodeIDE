@@ -8,9 +8,10 @@ import kotlinx.coroutines.flow.Flow
  * l'ouverture du tiroir IA.
  *
  * @property jours nombre de jours de conservation (`0` = illimitée).
+ *
+ * Les valeurs SONT les constantes sémantiques de l'énumération (7 / 30 /
+ * illimitée) — la règle MagicNumber ne s'applique pas à un domaine fermé.
  */
-// Les valeurs SONT les constantes sémantiques de l'énumération (7 / 30 /
-// illimitée) — la règle MagicNumber ne s'applique pas à un domaine fermé.
 @Suppress("MagicNumber")
 public enum class RetentionIa(
     public val jours: Int,

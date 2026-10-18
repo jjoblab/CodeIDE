@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## [0.143.1] – 2026-10-18
+
+### Mission IA — filet de qualité : CI reverte au vert (IA-6/7a/8)
+
+#### Corrigé
+
+- **CI rouge sur v0.141.0 / v0.142.0 / v0.143.0** (`:core:domain` et
+  `:core:ai` spotlessKotlinCheck) : réformatage ktlint complet
+  (`spotlessApply`), suppression du paramètre inutilisé
+  `changeSet` du constructeur `AgentRunnerIa` (les outils d'écriture
+  détiennent déjà le ChangeSet), suppressions detekt justifiées
+  (`ReturnCount` — résultats modélisés ADR 0125 ; `SwallowedException`
+  — incidents convertis en messages typés) et éclatement du schéma JSON
+  de `run_gradle` sur plusieurs lignes.
+- **CHANGELOG** : les trois sections vides dupliquées « (à compléter) »
+  laissées par le script de bump sous 0.141.0/0.142.0/0.143.0 sont
+  supprimées ; coquille « modifi proposée » → « modification proposée ».
+
 ## [0.143.0] – 2026-10-18
 
 ### Mission IA — lot IA-8 (amorce) : ADR 0129 « complétion texte fantôme »
@@ -22,12 +40,6 @@ tests) reste À LIVRER : l'ADR 0129 en fixe d'abord le cadre de coût et
 de confidentialité (le plan IA-8 exige « ADR propre d'abord ») ; la
 fonction n'existe encore nulle part dans l'application.
 
-
-## [0.143.0] – 2026-10-18
-
-### Ajouté
-
-- (à compléter)
 
 ## [0.142.0] – 2026-10-18
 
@@ -77,12 +89,6 @@ tests de sécurité sont le socle préalable — aucun disque n'est touché
 avant l'écran de revue.
 
 
-## [0.142.0] – 2026-10-18
-
-### Ajouté
-
-- (à compléter)
-
 ## [0.141.0] – 2026-10-18
 
 ### Mission IA — lot IA-6 « Historique des conversations » (ADR 0124 §5, spec E6)
@@ -127,12 +133,6 @@ avant l'écran de revue.
 - Pas d'« Exporter en Markdown » (nécessiterait SAF/écriture disque —
   hors périmètre v1) ; méta de liste = date + modèle (sans compteur de
   messages, éviterait N requêtes par ligne).
-
-## [0.141.0] – 2026-10-18
-
-### Ajouté
-
-- (à compléter)
 
 ## [0.140.0] – 2026-10-18
 
