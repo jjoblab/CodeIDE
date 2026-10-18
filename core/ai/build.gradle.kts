@@ -27,6 +27,9 @@ dependencies {
     api(project(":core:domain"))
     // Flow<AiEvent> : la signature du port AiProvider (ADR 0123 point 1).
     api(libs.kotlinx.coroutines.core)
+    // @Inject des cas d'usage (javax.inject, pure JVM — même usage que
+    // :core:domain, version 1 du catalogue).
+    implementation(libs.javax.inject)
 
     testImplementation(libs.kotlinx.coroutines.test)
 }

@@ -1,0 +1,9 @@
+data: {"id":"c2","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"appel_9","type":"function","function":{"name":"lire_fichier","arguments":""}}]},"finish_reason":null}]}
+
+data: {"id":"c2","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"chemin\":"}}]},"finish_reason":null}]}
+
+data: {"id":"c2","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"src/Main.kt\"}"}}]},"finish_reason":null}]}
+
+data: {"id":"c2","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+
+data: [DONE]

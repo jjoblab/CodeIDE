@@ -87,4 +87,46 @@ class AppErrorTest {
         assertNotEquals(ioAvecDetails, ioSansDetails)
         assertNotEquals(AppError.Validation() as AppError, AppError.Template() as AppError)
     }
+
+    @Test
+    fun `la variante IA porte la raison, les détails et le Retry-After (ADR 0123)`() {
+        val quota =
+            AppError.Ai(
+                AppError.AiReason.QuotaExceeded,
+                "HTTP 429",
+                retryAfterSeconds = 12L,
+            )
+
+        assertEquals(AppError.AiReason.QuotaExceeded, quota.reason)
+        assertEquals("HTTP 429", quota.details)
+        assertEquals(12L, quota.retryAfterSeconds)
+        assertEquals(
+            quota,
+            AppError.Ai(AppError.AiReason.QuotaExceeded, "HTTP 429", retryAfterSeconds = 12L),
+        )
+        assertNotEquals(quota, AppError.Ai(AppError.AiReason.QuotaExceeded, "HTTP 429"))
+    }
+
+    @Test
+    fun `les six raisons IA existent et le Retry-After est absent par défaut`() {
+        val raisons = AppError.AiReason.entries.map { it.name }
+
+        assertEquals(
+            listOf(
+                "Authentication",
+                "QuotaExceeded",
+                "ServiceUnavailable",
+                "Offline",
+                "Timeout",
+                "MalformedResponse",
+            ),
+            raisons,
+        )
+        assertEquals(null, AppError.Ai(AppError.AiReason.Timeout).retryAfterSeconds)
+        assertEquals("", AppError.Ai(AppError.AiReason.Timeout).details)
+        assertNotEquals(
+            AppError.Ai(AppError.AiReason.Authentication) as AppError,
+            AppError.Ai(AppError.AiReason.Timeout) as AppError,
+        )
+    }
 }
