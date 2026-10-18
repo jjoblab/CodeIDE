@@ -123,6 +123,17 @@ class LayoutsIaTest {
     }
 
     @Test
+    fun `la puce de contexte et le sélecteur de fichiers se gonflent`() {
+        val puce = gonfler(R.layout.ligne_puce_contexte)
+        assertNotNull(puce.findViewById<View>(R.id.libelle_puce))
+        assertNotNull(puce.findViewById<View>(R.id.croix_puce))
+
+        val selecteur = gonfler(R.layout.vue_selecteur_fichiers_ia)
+        assertNotNull(selecteur.findViewById<View>(R.id.recherche_fichiers))
+        assertNotNull(selecteur.findViewById<View>(R.id.liste_fichiers))
+    }
+
+    @Test
     fun `la vue « bientôt » se gonfle avec son texte`() {
         val racine = gonfler(R.layout.vue_ia_bientot)
 

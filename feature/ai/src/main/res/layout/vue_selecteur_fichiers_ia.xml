@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sélecteur `@` (mission IA, lot IA-4) : recherche de fichiers du
+     projet (liste bornée fournie par le lecteur), tap = mentionner. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingTop="@dimen/spacing_md">
+
+    <com.google.android.material.textfield.TextInputLayout
+        style="?attr/textInputOutlinedDenseStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/ia_selecteur_recherche">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/recherche_fichiers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <ListView
+        android:id="@+id/liste_fichiers"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:layout_marginTop="@dimen/spacing_sm" />
+</LinearLayout>

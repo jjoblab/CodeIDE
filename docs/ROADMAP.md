@@ -6,7 +6,7 @@
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.138.0)
+## État actuel (v0.139.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -23,6 +23,7 @@
 - **Mission IA — domaine et fournisseurs** (IA-1, v0.136.0, ADR 0123) : `:core:ai` (port `AiProvider`, `AiEvent` normalisés, `TokenBudget`, `SendMessageUseCase`), `:ai:providers` (transport `HttpURLConnection`, parseur SSE maison, adaptateurs Anthropic Messages et « compatible OpenAI », reprise bornée 429/5xx avant premier jeton, annulation coopérative < 1 s, HTTP en clair refusé hors boucle locale), `AppError.Ai` modélisée avec traductions UI ; aucun nom de modèle codé en dur, aucune clé dans les journaux.
 - **Mission IA — garde-fous** (IA-0, v0.135.0, ADR 0121–0126 acceptées) : `network_security_config.xml` (https obligatoire, boucle locale seule exception), sauvegarde gouvernée (`data_extraction_rules.xml`/`backup_rules.xml`), `LogRedactor` masque les clés (`<secret>`), 4 modules IA échafaudés, contrats d'accroche (`PontIaEditeur`, `PortEditeurActif`)
 - **Mission IA — coffre et réglages** (IA-2, v0.137.0, ADR 0122/0124) : `CoffreClesKeystore` (AES-256-GCM Keystore, blobs `noBackupFilesDir`, perte de clé → « Clé à ressaisir » sans plantage), `AiSettingsStore` (DataStore dédié hors `AppSettings`), routeur `FournisseurIaActif` (**sans consentement, aucune requête réseau IA**, testé), écrans Paramètres → IA (fournisseurs, modèle, confidentialité, limites) et consentement de premier usage ; la clé n'apparaît jamais dans un état, un `Bundle` ou un journal.
+- **Mission IA — contexte et confidentialité** (IA-4, v0.139.0, ADR 0124 §4) : `AssemblerContexte` pur (`:core:ai`) — puces de contexte retirable qui reflètent EXACTEMENT ce qui part, exclusions par défaut + `.codeide/ia-ignore`, balayage de secrets bloquant (« Envoyer sans / Annuler » — l'étiquette du motif, jamais la valeur), sélecteur `@` de fichiers, budget de jetons visible, encadrement neutre « contenu non fiable », chemins relatifs garantis (absolu et `../` refusés, testé).
 - **Mission IA — chat du tiroir** (IA-3, v0.138.0, ADR 0122) : 6ᵉ destination du rail de l'éditeur (`IaTiroirFragment`, onglets Chat / Agent / Historique / Recherche), chat en **streaming** (DiffUtil, bascule Envoyer ↔ Arrêter — l'annulation ferme la requête —, Régénérer, erreurs inline), rendu **Markdown minimal maison** (titres, listes, blocs de code provisoires au fil du flux, gras/italique, code en ligne, liens — aucune WebView, ADR 0002), actions de bloc **Copier / Insérer au curseur** via le port `PortEditeurActif` publié par l'éditeur (remplacement atomique, un seul pas d'annulation).
 
 ### Problèmes connus ❌
@@ -347,7 +348,7 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 |      |        | `:core:ai` (AiMessage/AiEvent/AiProvider/TokenBudget) + `:ai:providers` (HttpURLConnection + SSE maison + 2 adaptateurs, reprise bornée, annulation < 1 s, fichiers dorés, Kover ≥ 80 %) | |
 | IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ✅ v0.137.0 |
 | IA-3 | 0.138.0 | Chat dans le tiroir (streaming, Markdown) | ✅ v0.138.0 |
-| IA-4 | 0.139.0 | Contexte et confidentialité (`@fichiers`, exclusions, détection de secrets) | ⬜ |
+| IA-4 | 0.139.0 | Contexte et confidentialité (`@fichiers`, exclusions, détection de secrets) | ✅ v0.139.0 |
 | IA-5 | 0.140.0 | Intégration éditeur (carte de diff, actions Problèmes/Console) | ⬜ |
 | IA-6 | 0.141.0 | Historique des conversations (Room v2, migration testée) | ⬜ |
 | IA-7 | 0.142.0 | Agent, outils, approbations (`ChangeSet`, restauration) | ⬜ |
@@ -397,6 +398,6 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
 | R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
-| **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs), IA-2 v0.137.0 (coffre + réglages), IA-3 v0.138.0 (chat du tiroir) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs), IA-2 v0.137.0 (coffre + réglages), IA-3 v0.138.0 (chat du tiroir), IA-4 v0.139.0 (contexte et confidentialité) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
 | **UI/LSP — cohérence + réglages** | **PROPOSÉ** — ADR 0127/0128 en attente d'acceptation ; UI-1/UI-2 prérequis des écrans IA et LSP | Haut | Haut — unité visuelle, réglages LSP réels |
 | 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |

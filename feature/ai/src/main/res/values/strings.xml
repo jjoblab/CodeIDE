@@ -106,6 +106,26 @@
     <string name="ia_bientot_historique">L\'historique des conversations arrive au lot IA-6.</string>
     <string name="ia_bientot_recherche">La recherche sémantique est réservée — voir la feuille de route.</string>
 
+    <!-- Contexte et confidentialité (lot IA-4) -->
+    <string name="ia_puce_fichier_actif">Fichier : %1$s</string>
+    <string name="ia_puce_selection">Sélection</string>
+    <string name="ia_puce_diagnostics">Diagnostics</string>
+    <string name="ia_puce_chemins">Chemins du projet</string>
+    <string name="ia_jetons_contexte">Jetons de contexte ≈ %1$d</string>
+    <string name="ia_ajouter_mention">@ Fichier</string>
+    <string name="ia_ajouter_mention_cd">Mentionner un fichier du projet</string>
+    <string name="ia_retirer_puce_cd">Retirer cette pièce du contexte envoyé</string>
+    <string name="ia_selecteur_titre">Mentionner un fichier</string>
+    <string name="ia_selecteur_recherche">Filtrer les fichiers…</string>
+    <string name="ia_selecteur_vide">Aucun fichier trouvé</string>
+    <string name="ia_mention_refusee">« %1$s » ignoré — fichier exclu (liste d\'exclusion)</string>
+    <string name="ia_mention_illisible">« %1$s » illisible</string>
+    <string name="ia_mention_hors_projet">« %1$s » ignoré — hors du projet</string>
+    <string name="ia_secret_titre">Ce contexte semble contenir un secret</string>
+    <string name="ia_secret_texte">Motif détecté : %1$s. Envoyer quand même ? Préférez retirer la pièce en cause.</string>
+    <string name="ia_secret_envoyer">Envoyer sans</string>
+    <string name="ia_secret_annuler">Annuler</string>
+
     <!-- Erreurs (mappées depuis AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Clé absente ou refusée par le fournisseur</string>
     <string name="ia_erreur_quota">Limite de débit atteinte — réessayez dans %1$d s</string>
