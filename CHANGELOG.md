@@ -1,5 +1,26 @@
 # Journal des modifications
 
+## [Non publié]
+
+### Documentation — mission UI/LSP intégrée
+
+- Intégration des documents de la mission « cohérence visuelle et réglages LSP »
+  (aucun changement de code, ADR au statut **proposé**) :
+  [`UI_AUDIT_COHERENCE.md`](docs/UI_AUDIT_COHERENCE.md) — audit mesuré par script
+  sur les 10 modules à layouts (constats C1–C10 : ~623 `dp` et 117 `textSize`
+  littéraux, 4 recettes de cartes, 15 `Toast`) ;
+  [`adr/0127-ui-coherence-design-system-garde-fous.md`](docs/adr/0127-ui-coherence-design-system-garde-fous.md) —
+  composants partagés `core:ui` et garde-fou `checkUiTokens` à cliquet ;
+  [`LSP_REVUE_REGLAGES.md`](docs/LSP_REVUE_REGLAGES.md) — revue du LSP v1.0.2 et
+  plan des réglages (constats L1–L7, capacités par moteur) ;
+  [`adr/0128-lsp-reglages-configuration-capacites.md`](docs/adr/0128-lsp-reglages-configuration-capacites.md) —
+  `ConfigurationLsp` côté dépôt frère, stockage hors `AppSettings`, interrupteurs
+  dérivés des capacités annoncées ;
+  [`LSP_SPEC_ECRANS.md`](docs/LSP_SPEC_ECRANS.md) + maquette
+  `docs/mockups/lsp/lsp-reglages.html` — écrans « Intelligence du code » L1–L5.
+- `ROADMAP.md` : section « Mission UI/LSP » (lots UI-1 → UI-7 et LSP-0 → LSP-4),
+  règle d'ordonnancement UI-1/UI-2 d'abord ; état rafraîchi à v0.136.0.
+
 ## [0.136.0] – 2026-10-18
 
 ### Mission IA — lot IA-1 « Domaine IA et fournisseurs » (ADR 0123 livrée)
