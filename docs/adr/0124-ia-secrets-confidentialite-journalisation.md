@@ -107,5 +107,5 @@ JVM via une implémentation de remplacement du Keystore et testée sur appareil 
 1. [ ] `data_extraction_rules.xml` + `backup_rules.xml` + manifeste (lot IA-0).
 2. [ ] Extension de `LogRedactor` + tests (lot IA-0, **avant** tout code réseau).
 3. [x] `KeyVault` + tests + procédure manuelle appareil (lot IA-2, v0.137.0 — `CoffreClesKeystore`, `docs/TESTS_MANUELS.md`).
-4. [ ] `ContextAssembler` : exclusions, détection de secrets, réécriture des chemins (lot IA-4).
+4. [x] `ContextAssembler` : exclusions, détection de secrets, réécriture des chemins (lot IA-4, v0.139.0 — `AssemblerContexte` + `ExclusionsIa` + `DetecteurSecrets`, garde `estRelatifSur`).
 5. [ ] Test d'architecture : aucun log ne reçoit un en-tête `Authorization` (lot IA-9).

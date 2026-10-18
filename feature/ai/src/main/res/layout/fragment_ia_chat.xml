@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Onglet Chat du tiroir IA (mission IA, lot IA-3 — spec E1) : liste des
-  messages (DiffUtil), états transverses (IA non activée / vide), et
-  compositeur (saisie multi-ligne + Envoyer/Arrêter — le bouton bascule
-  pendant la génération). Les puces de contexte et le sélecteur @
-  arrivent au lot IA-4 (ContextAssembler).
+  Onglet Chat du tiroir IA (mission IA, lots IA-3 et IA-4 — spec E1) :
+  liste des messages (DiffUtil), rangée de PUCES de contexte (ce qui
+  part — retirable, sélecteur @, budget de jetons), états transverses
+  (IA non activée / vide), et compositeur (saisie multi-ligne +
+  Envoyer/Arrêter — le bouton bascule pendant la génération).
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -27,6 +27,27 @@
             android:paddingBottom="@dimen/spacing_sm"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/ligne_message_assistant" />
+
+        <!-- Rangée de puces de contexte (IA-4) : ce qui part EST ce qui
+             est affiché — puce retirable (×), puce « @ Fichier » (sélec-
+             teur), puce budget (jetons estimés). Masquée sans pièce. -->
+        <HorizontalScrollView
+            android:id="@+id/rangee_puces"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:scrollbars="none"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:id="@+id/conteneur_puces"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/spacing_sm"
+                android:paddingVertical="@dimen/spacing_xs" />
+        </HorizontalScrollView>
 
         <LinearLayout
             android:layout_width="match_parent"

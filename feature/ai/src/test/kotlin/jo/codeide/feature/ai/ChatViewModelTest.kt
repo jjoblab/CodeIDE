@@ -7,6 +7,7 @@ import jo.codeide.core.ai.AiRequest
 import jo.codeide.core.ai.AiRole
 import jo.codeide.core.ai.AiStopReason
 import jo.codeide.core.ai.SendMessageUseCase
+import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.DiagnosticEditeur
 import jo.codeide.core.domain.PortEditeurActif
@@ -51,7 +52,12 @@ class ChatViewModelTest {
         runTest {
             val fournisseur = FauxFournisseurFlux()
             val modele =
-                ChatViewModel(SendMessageUseCase(fournisseur), FakeReglagesIa(), RegistrePortEditeurActif())
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    FakeReglagesIa(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Bonjour"))
@@ -70,7 +76,13 @@ class ChatViewModelTest {
     fun `l'envoi ajoute le message utilisateur et il ne part qu'UNE fois dans la requête`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("  Bonjour le projet  "))
@@ -107,7 +119,13 @@ class ChatViewModelTest {
     fun `les deltas s'accumulent puis Done finalise le message et l'écran`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Q"))
@@ -152,7 +170,13 @@ class ChatViewModelTest {
     fun `Failure affiche l'erreur inline et clôt la génération`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Q"))
@@ -180,7 +204,13 @@ class ChatViewModelTest {
     fun `Arrêter annule le job — plus aucun delta appliqué après`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Q"))
@@ -213,7 +243,13 @@ class ChatViewModelTest {
     fun `Régénérer retire la réponse précédente et relance la génération`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Q"))
@@ -253,7 +289,8 @@ class ChatViewModelTest {
             val port = FauxPortEditeur()
             val registre = RegistrePortEditeurActif()
             registre.enregistrer(port)
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), registre)
+            val modele =
+                ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), registre, FauxFournisseurContexte())
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.InsererBlocCode("val x = 1"))
@@ -267,7 +304,13 @@ class ChatViewModelTest {
     fun `Insérer sans port émet le message « éditeur absent » et n'insère rien`() =
         runTest {
             val fournisseur = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), RegistrePortEditeurActif())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.InsererBlocCode("val x = 1"))
@@ -280,13 +323,201 @@ class ChatViewModelTest {
     fun `CopierBlocCode émet l'effet presse-papiers avec le code du bloc`() =
         runTest {
             val modele =
-                ChatViewModel(SendMessageUseCase(FauxFournisseurFlux()), reglagesActifs(), RegistrePortEditeurActif())
+                ChatViewModel(
+                    SendMessageUseCase(FauxFournisseurFlux()),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.CopierBlocCode("code bloc"))
             advanceUntilIdle()
 
             assertEquals(EffetChatIa.Copier("code bloc"), modele.effets.first())
+        }
+
+    // ------------------------------------------------------------------
+    // Contexte et confidentialité (mission IA, lot IA-4, ADR 0124).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `le contexte part en message système et les puces reflètent les pièces`() =
+        runTest {
+            val registre = RegistrePortEditeurActif()
+            registre.enregistrer(FauxPortEditeur())
+            val contexte = FauxFournisseurContexte()
+            contexte.fichiers["src/main/java/MainActivity.kt"] = "class MainActivity"
+            val fournisseurFlux = FauxFournisseurFlux()
+            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.ChangerSaisie("Explique"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            val requete = fournisseurFlux.requetes.single()
+            assertEquals(AiRole.System, requete.messages[0].role)
+            assertTrue(
+                requete.messages[0]
+                    .blocks
+                    .first()
+                    .toString()
+                    .contains("src/main/java/MainActivity.kt"),
+            )
+            assertTrue(
+                requete.messages[0]
+                    .blocks
+                    .first()
+                    .toString()
+                    .contains("class MainActivity"),
+            )
+            // Les puces affichent EXACTEMENT les pièces envoyées.
+            assertEquals(
+                listOf(TypePieceContexte.FichierActif, TypePieceContexte.Selection),
+                modele.etat.value.pieces
+                    .map { it.type },
+            )
+            assertTrue(modele.etat.value.jetonsContexte > 0)
+        }
+
+    @Test
+    fun `une mention env est refusée avec message et ne part jamais`() =
+        runTest {
+            val contexte = FauxFournisseurContexte()
+            contexte.fichiers[".env"] = "CLE=valeur-ordinaire"
+            val fournisseurFlux = FauxFournisseurFlux()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    contexte,
+                )
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.AjouterMention(".env"))
+            modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            assertEquals(
+                EffetChatIa.Message(R.string.ia_mention_refusee, ".env"),
+                modele.effets.first(),
+            )
+            // L'envoi du RESTE continue — sans le fichier exclu.
+            assertEquals(1, fournisseurFlux.appels)
+            val corps =
+                fournisseurFlux.requetes
+                    .single()
+                    .messages
+                    .joinToString { it.blocks.toString() }
+            assertFalse(corps.contains(".env"))
+            assertFalse(corps.contains("valeur-ordinaire"))
+        }
+
+    @Test
+    fun `un secret dans le contexte suspend l'envoi — Confirmer transmet`() =
+        runTest {
+            val registre = RegistrePortEditeurActif()
+            registre.enregistrer(FauxPortEditeur())
+            val contexte = FauxFournisseurContexte()
+            contexte.fichiers["src/main/java/MainActivity.kt"] = "val cle = \"sk-factice1234567890abcdef\""
+            val fournisseurFlux = FauxFournisseurFlux()
+            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            // BLOQUÉ : aucun appel, aucun message utilisateur ajouté.
+            assertEquals(0, fournisseurFlux.appels)
+            assertTrue(
+                modele.etat.value.messages
+                    .isEmpty(),
+            )
+            assertTrue(
+                modele.etat.value.alerteSecret
+                    .isNotEmpty(),
+            )
+
+            modele.onAction(ActionChatIa.ConfirmerEnvoiSecret)
+            advanceUntilIdle()
+
+            assertEquals(1, fournisseurFlux.appels)
+            assertTrue(
+                modele.etat.value.alerteSecret
+                    .isEmpty(),
+            )
+            assertEquals(2, modele.etat.value.messages.size)
+            val corps =
+                fournisseurFlux.requetes
+                    .single()
+                    .messages
+                    .joinToString { it.blocks.toString() }
+            assertTrue(corps.contains("sk-factice1234567890abcdef"))
+        }
+
+    @Test
+    fun `AnnulerAlerteSecret restaure le brouillon et n'appelle rien`() =
+        runTest {
+            val registre = RegistrePortEditeurActif()
+            registre.enregistrer(FauxPortEditeur())
+            val contexte = FauxFournisseurContexte()
+            contexte.fichiers["src/main/java/MainActivity.kt"] = "val cle = \"sk-factice1234567890abcdef\""
+            val fournisseurFlux = FauxFournisseurFlux()
+            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.ChangerSaisie("Ma question"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.AnnulerAlerteSecret)
+            advanceUntilIdle()
+
+            assertEquals(0, fournisseurFlux.appels)
+            assertTrue(
+                modele.etat.value.alerteSecret
+                    .isEmpty(),
+            )
+            assertEquals("Ma question", modele.etat.value.saisie)
+            assertTrue(
+                modele.etat.value.messages
+                    .isEmpty(),
+            )
+        }
+
+    @Test
+    fun `RetirerPiece désactive la pièce à l'envoi suivant`() =
+        runTest {
+            val registre = RegistrePortEditeurActif()
+            registre.enregistrer(FauxPortEditeur())
+            val contexte = FauxFournisseurContexte()
+            contexte.fichiers["src/main/java/MainActivity.kt"] = "class MainActivity"
+            val fournisseurFlux = FauxFournisseurFlux()
+            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.RetirerPiece(TypePieceContexte.FichierActif))
+            modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            assertEquals(1, fournisseurFlux.appels)
+            val corps =
+                fournisseurFlux.requetes
+                    .single()
+                    .messages
+                    .joinToString { it.blocks.toString() }
+            assertFalse(corps.contains("<fichier chemin=\"src/main/java/MainActivity.kt\">"))
+            assertFalse(corps.contains("class MainActivity"))
+            assertEquals(
+                listOf(TypePieceContexte.Selection),
+                modele.etat.value.pieces
+                    .map { it.type },
+            )
         }
 }
 

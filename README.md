@@ -5,7 +5,7 @@
 CodeIDE est un IDE embarquant un éditeur, un terminal et un système de création de
 projets directement sur téléphone ou tablette.
 
-> État actuel : **v0.138.0** — IDE fonctionnel : tooling Gradle réel (sync,
+> État actuel : **v0.139.0** — IDE fonctionnel : tooling Gradle réel (sync,
 > console hybride, exécution), wizard de création enrichi, LSP Java/Kotlin/XML
 > avec indexation et previews (moteurs du dépôt frère [`codeide-lsp`](https://github.com/jjoblab/codeide-lsp)),
 > terminal (Termux, tiroir), refonte complète du parcours d'installation
@@ -18,6 +18,8 @@ projets directement sur téléphone ou tablette.
 > sauvegarde, `LogRedactor` ; IA-1 — `:core:ai` + `:ai:providers` ;
 > IA-2 — coffre Keystore, réglages, consentement ; IA-3 — chat en
 > streaming dans le tiroir, Markdown minimal, insertion au curseur ;
+> IA-4 — contexte confidentiel (puces exactes, exclusions +
+> `ia-ignore`, secrets détectés avant envoi, sélecteur `@`) ;
 > ADR 0121–0126, `docs/IA_PLAN_EXECUTION.md`).
 > **Mission UI/LSP en préparation** : audit de cohérence et réglages LSP
 > (ADR 0127/0128 **proposées**, `docs/UI_AUDIT_COHERENCE.md`,

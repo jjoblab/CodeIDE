@@ -113,3 +113,27 @@ internal class FauxFabrique : FabriqueFournisseurIa {
         }
     }
 }
+
+/** Fournisseur de contexte en mémoire (IA-4) : fichiers, chemins et
+ * `ia-ignore` contrôlés par les tests — aucun disque. */
+internal class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteProjet {
+    val fichiers = mutableMapOf<String, String>()
+    var chemins: List<String> = emptyList()
+    var iaIgnore: List<String> = emptyList()
+    var lectures = 0
+    var listages = 0
+
+    override suspend fun lireFichier(cheminRelatif: String): AppResult<String> {
+        lectures++
+        return fichiers[cheminRelatif]
+            ?.let { AppResult.Success(it) }
+            ?: AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "absent"))
+    }
+
+    override suspend fun listerChemins(): AppResult<List<String>> {
+        listages++
+        return AppResult.Success(chemins)
+    }
+
+    override suspend fun lireIaIgnore(): List<String> = iaIgnore
+}

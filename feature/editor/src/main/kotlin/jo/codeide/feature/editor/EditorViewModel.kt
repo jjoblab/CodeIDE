@@ -704,6 +704,7 @@ class EditorViewModel
                 tooling
                     .observeDiagnostics(cheminProjet?.let { chemin -> File(chemin) } ?: File(DOSSIER_ANONYME))
                     .collect { diagnostics ->
+                        diagnosticsRecents = diagnostics
                         serviceGradle.publierDiagnostics(diagnostics)
                         appliquerDiagnosticsAuxSessions(diagnostics)
                     }
@@ -1002,6 +1003,15 @@ class EditorViewModel
 
         /** Dossier FUSE du projet, résolu paresseusement (G5). */
         private var cheminProjet: String? = null
+
+        /** Diagnostics tooling récents (mission IA, IA-4 : port d'éditeur
+         * actif) — relevés à chaque flux, lecture hors fil principal. */
+        @Volatile
+        private var diagnosticsRecents: List<DiagnosticBuild> = emptyList()
+
+        /** Diagnostics visibles (mission IA, IA-4) — lus par le port
+         * d'éditeur actif de l'activité pour alimenter le contexte IA. */
+        public fun diagnosticsEditeur(): List<DiagnosticBuild> = diagnosticsRecents
 
         /**
          * Outils du terminal (v0.37.3) : le flot poussé du domaine alimente
