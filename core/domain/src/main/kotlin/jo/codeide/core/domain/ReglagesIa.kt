@@ -63,6 +63,14 @@ public data class AiSettings(
     public val envoyerDiagnostics: Boolean = true,
     /** Historique (IA-6, ADR 0124 §5) : rétention des conversations. */
     public val retentionConversations: RetentionIa = RetentionIa.JOURS_30,
+    /** Complétion fantôme (IA-8b, ADR 0129) : DÉSACTIVÉE par défaut (opt-in). */
+    public val completionFantomeActive: Boolean = false,
+    /** Complétion fantôme : plafond mensuel de caractères acceptés (ADR 0129 §3). */
+    public val plafondCompletionCaracteres: Int = 200_000,
+    /** Complétion fantôme : caractères acceptés dans le mois courant. */
+    public val completionAccepteesCaracteres: Int = 0,
+    /** Mois du compteur (format aaaaMM) — 0 = jamais compté. */
+    public val completionMoisCompteur: Int = 0,
 ) {
     /** Modèle actif selon le fournisseur choisi (chaîne vide = à choisir). */
     public val modeleActif: String
