@@ -1,5 +1,49 @@
 # Journal des modifications
 
+## [0.145.0] – 2026-10-18
+
+### Mission IA — lot IA-8b « complétion texte fantôme » (ADR 0129)
+
+#### Ajouté
+
+- **Interrupteur opt-in** (Paramètres → IA, carte propre) :
+  **désactivé par défaut**, sous-titre documentant déclenchement,
+  acceptation et plafond de coût (ADR 0129 §1).
+- **Logique pure `CompletionFantomeIa`** (`:core:ai`) : requête chat
+  simple portable (préfixe/suffixe encadrés « contenu non fiable »,
+  consigne « compléter uniquement »), extraction de la suggestion,
+  garde de **plafond mensuel** (200 k caractères par défaut,
+  compteur `aaaaMM`, désactivation au plafond) ; contexte borné
+  (4 000 avant / 2 000 après — confidentialité ADR 0124).
+- **Port `PontCompletionFantomeIa`** (`core:ui`) + implémentation
+  `:feature:ai` : **une requête en vol au maximum** (la nouvelle
+  annule la précédente), garde d'opt-in et de plafond, compteur
+  d'acceptation persisté, journalisation sobre (aucun contenu).
+- **Rendu éditeur** (`FantomeCompletionIa`, `:feature:editor`) :
+  inlay via `EditorDecorationPainter` (gris atténué, après le
+  curseur — aucune vue intercalée), déclenchement après **800 ms**
+  de pause, **annulation à la frappe** (mouvement du curseur =
+  annulation + réarmement), invalidation si le document a bougé
+  pendant la requête, **Tab = acceptation en UN LOT**
+  (`beginBatch/endBatch`), Échap = rejet ; jamais annoncé à TalkBack.
+- Tests : logique pure (encadrement, extraction, plafond) + layout
+  (interrupteur présent, défaut désactivé).
+
+#### Écart documenté (adr 0129)
+
+Tab/Échap sont interceptés par `setOnKeyListener` (clavier matériel et
+IME qui relaie les key events) ; les claviers tactiles qui injectent
+Tab comme texte ne sont pas interceptés V1. Acceptation partielle
+(mot par mot) : différée (ADR 0129 §4). Mode FIM natif : différée
+(négociation par fournisseur, ADR 0129 §5).
+
+
+## [0.145.0] – 2026-10-18
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.144.0] – 2026-10-18
 
 ### Mission IA — lot IA-7b « Agent : écran, approbations, restauration » (ADR 0125)

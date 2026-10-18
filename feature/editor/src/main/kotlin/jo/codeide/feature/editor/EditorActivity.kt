@@ -63,6 +63,7 @@ import jo.codeide.core.ui.ControleurTerminalTiroir
 import jo.codeide.core.ui.FabriqueFragmentIaTiroir
 import jo.codeide.core.ui.FabriqueFragmentTerminalTiroir
 import jo.codeide.core.ui.IconesFichiers
+import jo.codeide.core.ui.PontCompletionFantomeIa
 import jo.codeide.core.ui.PontIaEditeur
 import jo.codeide.core.ui.PropositionDiffIa
 import jo.codeide.core.ui.ThemeHarmonizer
@@ -147,6 +148,10 @@ class EditorActivity :
      *  planté » (R4) vit ici, visible même replié. */
     private val viewModelLogcat: LogcatViewModel by viewModels()
 
+    /** Complétion fantôme (IA-8b, ADR 0129) : rendu inlay + debounce +
+     * annulation à la frappe + Tab/Échap — câblé dans [cacherOuInstallerFantome]. */
+    private var fantomeCompletion: FantomeCompletionIa? = null
+
     /** Navigation inter-features (lien vers l'écran Diagnostic, étape 16). */
     @Inject
     lateinit var navigateur: AppNavigator
@@ -176,6 +181,12 @@ class EditorActivity :
      * `feature:ai` (liaison Hilt) — l'éditeur ne dépend pas du module. */
     @Inject
     lateinit var pontIa: PontIaEditeur
+
+    /** Pont complétion fantôme (mission IA, lot IA-8b, ADR 0129) :
+     * opt-in + plafond côté `feature:ai` — l'éditeur ne voit jamais le
+     * fournisseur (contrat ponts IA, AGENTS). */
+    @Inject
+    lateinit var pontCompletion: PontCompletionFantomeIa
 
     /** Registre du port d'éditeur actif (mission IA, lot IA-3) : le
      * port [PortEditeurActif] de CETTE activité y est publié — le chat
@@ -344,6 +355,7 @@ class EditorActivity :
             statusBarStyle = SystemBarStyle.auto(0x66000000, 0x66000000),
             navigationBarStyle = SystemBarStyle.auto(0x66FFFFFF, 0x66000000),
         )
+        installerFantomeCompletion()
         savedInstanceState?.let {
             largeurTiroirPx = it.getInt(CLE_LARGEUR_TIROIR, 0)
             destinationCourante = it.getInt(CLE_DESTINATION_TIROIR, R.id.destination_explorateur)
@@ -737,6 +749,37 @@ class EditorActivity :
                 getString(R.string.ia_action_selection),
             ) { montrerBarreConsigne() },
         )
+    }
+
+    /** Installe la complétion fantôme (IA-8b) — une seule fois : le
+     * peintre s'applique à l'EditorView unique rebranché sur les onglets. */
+    private fun installerFantomeCompletion() {
+        if (fantomeCompletion != null) return
+        fantomeCompletion =
+            FantomeCompletionIa(
+                pont = pontCompletion,
+                vue = liaison.vueEditeur,
+                session = { sessionActivePourFantome() },
+                chemin = { cheminRelatifPourFantome() },
+                portee = lifecycleScope,
+            )
+        fantomeCompletion?.installer()
+    }
+
+    /** Session d'édition de l'onglet actif (miroir de PortEditeurVue). */
+    private fun sessionActivePourFantome(): EditorSession? {
+        val etat = viewModel.etat.value
+        val uri = etat.onglets.getOrNull(etat.indexOngletActif)?.uri ?: return null
+        return viewModel.sessionDe(uri)
+    }
+
+    /** Chemin relatif de l'onglet actif (journalisation sobre, ADR 0124 §3). */
+    private fun cheminRelatifPourFantome(): String {
+        val etat = viewModel.etat.value
+        return etat.onglets
+            .getOrNull(etat.indexOngletActif)
+            ?.cheminRelatif
+            .orEmpty()
     }
 
     /** Ouvre la pill « IA » : la barre s'affiche avec le contexte exact

@@ -51,6 +51,7 @@ public data class EtatReglagesIa(
     public val modeleActif: String = "",
     public val modelesRecenses: List<String> = emptyList(),
     public val maxJetonsReponse: Int = AiSettings().maxJetonsReponse,
+    public val completionFantomeActive: Boolean = AiSettings().completionFantomeActive,
     public val delaiSecondes: Int = AiSettings().delaiSecondes,
     public val envoyerFichierActif: Boolean = true,
     public val envoyerListeChemins: Boolean = true,
@@ -104,6 +105,11 @@ public sealed interface ActionReglagesIa {
 
     /** Bouton « Actualiser la liste » (listModels du fournisseur actif). */
     public data object ActualiserModeles : ActionReglagesIa
+
+    /** Interrupteur de la complétion fantôme (IA-8b, ADR 0129 : opt-in). */
+    public data class ChangerCompletionFantome(
+        public val active: Boolean,
+    ) : ActionReglagesIa
 
     /** Interrupteur de confidentialité (ADR 0124 §4). */
     public data class ChangerConfidentialite(
@@ -232,6 +238,10 @@ public class ReglagesIaViewModel
                 is ActionReglagesIa.ChangerDelai -> {
                     ecrire { it.copy(delaiSecondes = action.valeur.coerceIn(DELAI_MIN, DELAI_MAX)) }
                 }
+
+                is ActionReglagesIa.ChangerCompletionFantome -> {
+                    ecrire { it.copy(completionFantomeActive = action.active) }
+                }
             }
         }
 
@@ -314,6 +324,7 @@ public class ReglagesIaViewModel
                 envoyerListeChemins = courant.envoyerListeChemins,
                 envoyerDiagnostics = courant.envoyerDiagnostics,
                 retentionConversations = courant.retentionConversations,
+                completionFantomeActive = courant.completionFantomeActive,
                 actualisationEnCours = etatInterne.value.actualisationEnCours,
             )
 
