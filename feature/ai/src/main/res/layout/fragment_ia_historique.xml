@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Écran Historique du tiroir IA (mission IA, lot IA-6, ADR 0124 §5,
+  spec E6) : recherche par titre, liste des conversations (titre auto,
+  date relative), tout effacer. Local uniquement — le contenu des
+  messages n'est jamais affiché ici ni journalisé.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_xs">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.CodeIDE.TextField"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/ia_historique_recherche_hint"
+            app:startIconDrawable="@drawable/ic_recherche">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/champ_recherche_historique"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Tout effacer (confirmation préalable — critère IA-6). -->
+        <ImageButton
+            android:id="@+id/bouton_tout_effacer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ia_historique_tout_effacer"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            android:src="@drawable/ic_supprimer"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_conversations"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/spacing_xs"
+        tools:itemCount="3"
+        tools:listitem="@layout/ligne_conversation" />
+
+    <!-- État vide honnête (spec E6 : « Aucune conversation »). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_historique_vide"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="@dimen/state_padding"
+        android:text="@string/ia_historique_vide"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+</LinearLayout>

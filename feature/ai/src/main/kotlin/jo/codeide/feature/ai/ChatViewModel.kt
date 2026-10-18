@@ -18,9 +18,12 @@ import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.SendMessageUseCase
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
+import jo.codeide.core.domain.ConversationStore
+import jo.codeide.core.domain.MessageConversationIa
 import jo.codeide.core.domain.PortEditeurActif
 import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.ReglagesIaRepository
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.getOrNull
@@ -123,8 +126,17 @@ public sealed interface ActionChatIa {
         public val code: String,
     ) : ActionChatIa
 
-    /** Nouvelle conversation (vide la vue — l'historique Room arrive en IA-6). */
+    /** Nouvelle conversation (vide la vue — la suivante part d'un historique frais). */
     public data object NouvelleConversation : ActionChatIa
+
+    /**
+     * Rouvre une conversation de l'historique (lot IA-6, spec E6) : les
+     * messages persistés remplissent la vue ; l'envoi suivant poursuit
+     * la MÊME conversation (aucune duplication).
+     */
+    public data class OuvrirConversation(
+        public val conversationId: String,
+    ) : ActionChatIa
 
     /** Ouvre le consentement (IA non activée). */
     public data object OuvrirConsentement : ActionChatIa
@@ -206,6 +218,7 @@ public sealed interface EffetChatIa {
 @Suppress("TooManyFunctions")
 @HiltViewModel
 public class ChatViewModel
+    @Suppress("LongParameterList") // injection Hilt : chaque dépendance est un port du domaine.
     @Inject
     constructor(
         private val envoyer: SendMessageUseCase,
@@ -213,6 +226,8 @@ public class ChatViewModel
         private val registreEditeur: RegistrePortEditeurActif,
         private val fournisseurContexte: FournisseurContexteProjet,
         private val signauxExternes: CanalSignauxIa,
+        private val historique: ConversationStore,
+        private val horloge: TimeProvider,
     ) : ViewModel() {
         private val etatInterne = MutableStateFlow(EtatChatIa())
 
@@ -228,6 +243,13 @@ public class ChatViewModel
         private var sequence = 0L
 
         /**
+         * Conversation locale en cours (lot IA-6) : créée au premier
+         * message persisté, poursuivie à l'envoi suivant, refermée par
+         * « Nouvelle conversation ». `null` = rien de persisté encore.
+         */
+        private var conversationId: String? = null
+
+        /**
          * Envoi SUSPENDU par le dialogue bloquant de secret (message,
          * contexte) — tranché par Confirmer/Annuler (ADR 0124 §4).
          */
@@ -235,6 +257,9 @@ public class ChatViewModel
 
         /** Texte de contexte du DERNIER envoi — réutilisé par Régénérer. */
         private var dernierTexteContexte: String = ""
+
+        /** Modèle du DERNIER envoi — étiquette de la conversation (IA-6). */
+        private var dernierModele: String? = null
 
         /** État observable de l'écran. */
         public val etat: StateFlow<EtatChatIa> = etatInterne.asStateFlow()
@@ -251,6 +276,14 @@ public class ChatViewModel
                 reglages.observeAiSettings().collect { courant ->
                     etatInterne.value =
                         etatInterne.value.copy(active = courant.assistantActive && courant.consentementDonne)
+                }
+            }
+            // Purge de rétention a l'ouverture (lot IA-6, critere IA-6) :
+            // le reglage est lu A CHAQUE ouverture (jamais mis en cache).
+            viewModelScope.launch {
+                when (val courants = reglages.courant()) {
+                    is AppResult.Success -> historique.purgerPerimees(courants.value.retentionConversations)
+                    is AppResult.Failure -> Unit
                 }
             }
             // Signaux de l'éditeur (lot IA-5) : consigne de la barre en
@@ -329,6 +362,10 @@ public class ChatViewModel
 
                 ActionChatIa.NouvelleConversation -> {
                     nouvelleConversation()
+                }
+
+                is ActionChatIa.OuvrirConversation -> {
+                    ouvrirConversation(action.conversationId)
                 }
 
                 ActionChatIa.OuvrirConsentement -> {
@@ -444,6 +481,7 @@ public class ChatViewModel
                 )
             dernierMessageUtilisateur = texte
             dernierTexteContexte = contexte.texte
+            persister(utilisateur = true, texte = texte)
             lancerGeneration(contexte.texte)
         }
 
@@ -464,6 +502,7 @@ public class ChatViewModel
             generation =
                 viewModelScope.launch {
                     val courant = reglages.courant().getOrNull() ?: AiSettings()
+                    dernierModele = courant.modeleActif.ifBlank { "modele-a-configurer" }
                     val requete = construireRequete(courant, etatInterne.value.messages, texteContexte)
                     var texte = ""
                     // Le contrat du flux (IA-1) : terminaison PAR Done ou
@@ -480,6 +519,7 @@ public class ChatViewModel
                             is AiEvent.Done -> {
                                 majDernierAssistant(texte = texte, generationEnCours = false)
                                 etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+                                persister(utilisateur = false, texte = texte)
                             }
 
                             is AiEvent.Failure -> {
@@ -564,6 +604,76 @@ public class ChatViewModel
                     ),
                 ),
             )
+        }
+
+        /**
+         * Persiste un message FINALISÉ (lot IA-6, ADR 0124 §5) : la
+         * conversation est créée au premier message (titre auto) et
+         * poursuivie ensuite ; le streaming en cours et les réponses
+         * échouées ne sont JAMAIS persistés. Aucune journalisation du
+         * contenu — l'écriture est silencieuse en cas d'échec de
+         * stockage (l'historique ne doit jamais gêner le chat).
+         */
+        private fun persister(
+            utilisateur: Boolean,
+            texte: String,
+        ) {
+            if (texte.isBlank()) {
+                return
+            }
+            val identifiant =
+                conversationId ?: java.util.UUID
+                    .randomUUID()
+                    .toString()
+            conversationId = identifiant
+            val modeleCourant = dernierModele ?: ""
+            viewModelScope.launch {
+                historique.ajouterMessage(
+                    conversationId = identifiant,
+                    modele = modeleCourant,
+                    message =
+                        MessageConversationIa(
+                            identifiant =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString(),
+                            conversationId = identifiant,
+                            utilisateur = utilisateur,
+                            texte = texte,
+                            creeA = horloge.nowMillis(),
+                        ),
+                )
+            }
+        }
+
+        /** Rouvre une conversation de l'historique (lot IA-6, spec E6). */
+        private fun ouvrirConversation(id: String) {
+            arreter()
+            viewModelScope.launch {
+                val messagesPersistes = historique.messages(id)
+                if (messagesPersistes.isEmpty()) {
+                    return@launch
+                }
+                conversationId = id
+                sequence = 0L
+                dernierMessageUtilisateur =
+                    messagesPersistes.lastOrNull { it.utilisateur }?.texte
+                etatInterne.value =
+                    etatInterne.value.copy(
+                        messages =
+                            messagesPersistes.map { message ->
+                                MessageChatUi(
+                                    identifiant = "ia-h-${sequence++}",
+                                    utilisateur = message.utilisateur,
+                                    texte = message.texte,
+                                )
+                            },
+                        saisie = "",
+                        pieces = emptyList(),
+                        jetonsContexte = 0,
+                        generationEnCours = false,
+                    )
+            }
         }
 
         private fun nouvelleConversation() {

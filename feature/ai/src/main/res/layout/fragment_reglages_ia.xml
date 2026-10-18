@@ -472,6 +472,58 @@
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Carte « Historique » (mission IA, lot IA-6, ADR 0124 §5,
+                 spec E4) : rétention des conversations (7 j / 30 j /
+                 illimitée) + tout effacer. -->
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_sm"
+                android:layout_marginVertical="@dimen/spacing_xs">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_sm">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ia_carte_historique_titre"
+                        android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/ia_carte_historique_message"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- Rétention : sélecteur (dialogue à choix unique). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_retention_historique"
+                        style="@style/Widget.CodeIDE.Button.Outlined.Compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:text="@string/ia_retention_libelle_30j" />
+
+                    <!-- Tout effacer (confirmation préalable). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_tout_effacer_historique"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/ia_historique_tout_effacer"
+                        android:minHeight="@dimen/touch_target_min"
+                        android:text="@string/ia_historique_tout_effacer" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
