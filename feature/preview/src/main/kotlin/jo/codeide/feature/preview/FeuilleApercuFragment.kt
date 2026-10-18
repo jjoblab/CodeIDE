@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * FEUILLE inférieure de l'écran d'aperçu XML (PE6d, maquette
@@ -259,7 +260,9 @@ public class FeuilleApercuFragment : Fragment() {
         val onglet = liaison.ongletsFeuille.getTabAt(ONGLET_PROBLEMES) ?: return
         val pastille = onglet.customView?.findViewById<TextView>(R.id.pastille_onglet) ?: return
         pastille.isVisible = problemes.isNotEmpty()
-        pastille.text = problemes.size.toString()
+        // Le compteur est une suite de CHIFFRES neutres (miroir BadgeDrawable
+        // .number) — Locale.ROOT explicite pour l'outillage i18n.
+        pastille.text = String.format(Locale.ROOT, "%d", problemes.size)
     }
 
     public companion object {
