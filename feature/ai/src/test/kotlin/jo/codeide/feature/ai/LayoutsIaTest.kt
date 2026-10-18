@@ -49,6 +49,10 @@ class LayoutsIaTest {
         assertNotNull(racine.findViewById<View>(R.id.champ_max_jetons))
         assertNotNull(racine.findViewById<View>(R.id.champ_delai))
         assertTrue(racine.findViewById<View>(R.id.interrupteur_ia_active).isEnabled)
+        // IA-8b : complétion fantôme présente et DÉSACTIVÉE par défaut (ADR 0129).
+        val completion = racine.findViewById<View>(R.id.interrupteur_completion_fantome)
+        assertNotNull(completion)
+        assertTrue((completion as com.google.android.material.materialswitch.MaterialSwitch).isChecked.not())
     }
 
     @Test

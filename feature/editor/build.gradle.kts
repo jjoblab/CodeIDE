@@ -49,3 +49,15 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
 }
+// Exception lint ciblée (règle 8 : minimale et commentée) — RestrictedApi
+// ne tient PAS compte des @SuppressLint Kotlin pour les propriétés
+// (comportement lint connu). `EditorView.painterHost` est la voie
+// DOCUMENTÉE du rendu d'inlays (ADR 0129 §4) sur la bibliothèque sœur
+// cel-ui du même éditeur : l'annotation RestrictTo vise les
+// consommateurs EXTERNES, pas l'intégration hôte de CodeIDE. Seul
+// FantomeCompletionIa accède à ce champ.
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
+    lint {
+        disable.add("RestrictedApi")
+    }
+}

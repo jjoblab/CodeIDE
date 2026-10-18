@@ -6,8 +6,10 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jo.codeide.core.ui.FabriqueFragmentIaTiroir
+import jo.codeide.core.ui.PontCompletionFantomeIa
 import jo.codeide.core.ui.PontIaEditeur
 import jo.codeide.feature.ai.IaTiroirFragment
+import jo.codeide.feature.ai.PontCompletionFantomeIaImpl
 import jo.codeide.feature.ai.PontIaEditeurImpl
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +31,10 @@ internal abstract class TiroirIaBindsModule {
     @Binds
     @Singleton
     internal abstract fun lierPontIaEditeur(impl: PontIaEditeurImpl): PontIaEditeur
+
+    @Binds
+    @Singleton
+    internal abstract fun lierPontCompletionFantome(impl: PontCompletionFantomeIaImpl): PontCompletionFantomeIa
 }
 
 /** Implémentation : crée le fragment IA du tiroir, prêt à ajouter. */

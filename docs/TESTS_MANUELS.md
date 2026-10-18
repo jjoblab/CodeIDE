@@ -788,3 +788,26 @@ système ×1,3.
 8. **TalkBack** — chaque étape est annoncée ; la carte d'approbation
    annonce outil + raison ; les lignes de revue annoncent
    « chemin — conflit, non cochable » si applicable.
+
+## Mission IA — complétion fantôme (lot IA-8b → v0.145.0, ADR 0129)
+
+Écran : éditeur (fichier texte) + Paramètres → IA. Fonction DÉSACTIVÉE
+par défaut — vérifier qu'AUCUNE requête ne part sans opt-in (mandataire
+logcat : compteur seulement, ADR 0124 §3).
+
+1. **Opt-in** — activer « Complétion fantôme » : la carte documente le
+   déclenchement, Tab/Échap et le plafond ; l'interrupteur reste OFF
+   après effacement des données.
+2. **Déclenchement** — taper puis s'arrêter 800 ms : une suggestion
+   grisée apparaît APRÈS le curseur (aucun décalage de saisie) ; une
+   seule requête en vol (frapper vite = annulation + réarmement).
+3. **Annulation à la frappe** — tout caractere supprime le fantôme et
+   annule la requête en vol (socket fermée, même contrat que « Arrêter »).
+4. **Tab / Échap** — Tab insère la suggestion en UN LOT (un seul
+   Annuler la restaure) ; Échap la rejette sans écrire.
+5. **Plafond** — régler le plafond bas, accepter des suggestions : au
+   plafond la fonction se désactive avec message ; le compteur repart
+   au mois suivant.
+6. **Confidentialité** — `.env`/`*.jks` exclus : leur contenu n'entre
+   jamais dans le préfixe/suffixe (mêmes exclusions que le chat).
+7. **TalkBack** — le fantôme n'est JAMAIS annoncé (décoration pure).

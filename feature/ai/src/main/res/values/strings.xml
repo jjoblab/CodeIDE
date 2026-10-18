@@ -204,4 +204,6 @@
     <string name="agent_service_texte">L\'agent travaille — il ne modifie rien sans votre validation.</string>
     <string name="agent_service_arreter">Arrêter</string>
     <string name="agent_service_canal">Agent</string>
+    <string name="ia_completion_titre">Complétion fantôme</string>
+    <string name="ia_completion_sous_titre">Désactivée par défaut. Après 800 ms de pause, une suggestion grisée apparaît — Tab accepte, Échap rejette. Plafond mensuel : 200 000 caractères acceptés ; au plafond, la fonction se désactive. Le préfixe/suffixe envoyé suit les mêmes exclusions que le chat.</string>
 </resources>

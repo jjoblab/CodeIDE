@@ -202,4 +202,6 @@
     <string name="agent_service_texte">The agent is working — it changes nothing without your approval.</string>
     <string name="agent_service_arreter">Stop</string>
     <string name="agent_service_canal">Agent</string>
+    <string name="ia_completion_titre">Ghost completion</string>
+    <string name="ia_completion_sous_titre">Off by default. After an 800 ms pause, a grey suggestion appears — Tab accepts, Esc rejects. Monthly cap: 200,000 accepted characters; the feature disables itself at the cap. Sent prefix/suffix follows the same exclusions as chat.</string>
 </resources>

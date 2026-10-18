@@ -69,6 +69,9 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
             if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerActivation(active))
             if (!active) interrupteur.isChecked = false
         }
+        binding.interrupteurCompletionFantome.setOnCheckedChangeListener { _, active ->
+            if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerCompletionFantome(active))
+        }
         binding.ligneConsentement.setOnClickListener { viewModel.onAction(ActionReglagesIa.OuvrirConsentement) }
 
         binding.rangeeFournisseurAnthropic.setOnClickListener {
@@ -156,6 +159,7 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
     private fun rendre(etat: EtatReglagesIa) {
         renduEnCours = true
         binding.interrupteurIaActive.isChecked = etat.active
+        binding.interrupteurCompletionFantome.isChecked = etat.completionFantomeActive
         binding.radioFournisseurAnthropic.isChecked = etat.fournisseurActif == FournisseursIa.ANTHROPIC
         binding.radioFournisseurOpenai.isChecked = etat.fournisseurActif == FournisseursIa.OPENAI_COMPATIBLE
 
