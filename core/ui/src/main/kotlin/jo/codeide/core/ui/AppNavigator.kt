@@ -35,6 +35,27 @@ public interface AppNavigator {
     public fun goBack(): Unit
 
     /**
+     * Ouvre l'**écran de détail d'un fournisseur IA** (mission IA, lot
+     * IA-2 — Paramètres → IA) : URL de base, clé masquée (aperçu
+     * `••••1234`), test de connexion, remplacement/suppression.
+     *
+     * Servi depuis l'écran Réglages IA (`:feature:ai`) ; la destination
+     * concrète vit dans `app` (seul point connaissant les deux modules).
+     *
+     * @param identifiantFournisseur identifiant de
+     * [jo.codeide.core.domain.FournisseursIa].
+     */
+    public fun openAiFournisseur(identifiantFournisseur: String): Unit
+
+    /**
+     * Ouvre l'**écran de consentement IA** (mission IA, lot IA-2, ADR
+     * 0121 point 3) : ce qui est envoyé, ce qui ne l'est jamais,
+     * [Activer / Pas maintenant]. Affiché au premier usage de
+     * l'assistant et accessible depuis les Réglages IA.
+     */
+    public fun openAiConsentement(): Unit
+
+    /**
      * Ouvre le rapport de plantage en **consultation** (section 5.8) :
      * l'écran dédié vit dans un processus séparé, l'implémentation
      * applicative (`app`) seule connaît l'activité sous-jacente.

@@ -645,3 +645,34 @@ E1-E12 qui échoue.
 
 - **Phase 2** : voir le plan détaillé dans `docs/ROADMAP.md` (terminal,
   tooling, plugins, services, autres langages).
+
+## Mission IA — coffre de clés (lot IA-2 → v0.137.0, ADR 0124)
+
+> La logique du coffre (`CoffreClesKeystore`) est couverte en JVM par une
+> clé maître logicielle de remplacement ; le **Keystore réel** ne peut pas
+> être simulé en JVM. Cette procédure valide la partie plateforme.
+
+1. **Saisie de la clé** — Paramètres → IA → Fournisseur (Anthropic) :
+   saisir une clé d'API réelle, « Enregistrer la clé ». Attendu : le champ
+   se vide, l'état devient « Clé enregistrée ••••1234 » (4 derniers
+   caractères), aucun journal ne contient la clé (`adb logcat | grep sk-`
+   ne renvoie rien).
+2. **Persistance** — tuer le processus, rouvrir : l'aperçu demeure, le
+   champ de saisie est vide (rotation comprise — `saveEnabled=false`).
+3. **Test de connexion** — « Tester la connexion » : attendu ✓ « Connexion
+   réussie » (401 attendu si la clé est volontairement fausse, avec le
+   message « Clé absente ou refusée »).
+4. **Restauration de sauvegarde** (API ≤ 30 ou `adb backup`) — restaurer
+   une sauvegarde du `.apk` : le fichier DataStore des réglages IA est
+   exclu (`backup_rules.xml`), les blobs du coffre vivent dans
+   `noBackupFilesDir` (exclu par construction). Attendu après
+   restauration : réglages par défaut, aucune clé — **aucun secret ne
+   voyage** (ADR 0124 §2).
+5. **Invalidation du Keystore** — réinitialiser l'appareil (ou désinstaller
+   puis réinstaller : le Keystore est effacé avec l'app, les blobs
+   `noBackupFilesDir` aussi — sur un appareil rooté seulement, simuler en
+   supprimant l'alias `codeide.ai.vault.v1`) : attendu « Clé à ressaisir »,
+   aucun plantage.
+6. **Consentement** — désactiver l'assistant dans les réglages, tenter un
+   envoi depuis l'IA (après IA-3) : aucune requête réseau ne part (vérifier
+   `adb logcat` ou un mandataire) ; l'UI oriente vers le consentement.
