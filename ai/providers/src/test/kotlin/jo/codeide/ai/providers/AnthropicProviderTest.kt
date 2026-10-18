@@ -21,7 +21,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.Timeout
 import java.util.concurrent.TimeUnit
 
 /**
@@ -32,6 +34,11 @@ import java.util.concurrent.TimeUnit
  * journaux (ADR 0124).
  */
 class AnthropicProviderTest {
+    // Filet anti-hang CI (incident 2026-10-18) : chaque test plafonné à
+    // 60 s — un test figé devient un échec nommé, jamais un job bloqué.
+    @get:Rule
+    val delaiGlobal: Timeout = Timeout.seconds(60)
+
     private val requete =
         AiRequest(
             messages =
