@@ -100,12 +100,13 @@ public class IaTiroirFragment : Fragment() {
         chat?.ouvrirConversation(conversationId)
     }
 
-    /** Affiche l'onglet demandé — Chat et Historique en fragments
-     * enfants réels, Agent et Recherche en « bientôt ». */
+    /** Affiche l'onglet demandé — Chat, Agent et Historique en
+     * fragments enfants réels, Recherche en « bientôt ». */
     private fun afficherOnglet(position: Int) {
         val liaison = liaisonTiroir ?: return
         when (position) {
             POSITION_CHAT -> afficherChat(liaison)
+            POSITION_AGENT -> afficherAgent(liaison)
             POSITION_HISTORIQUE -> afficherHistorique(liaison)
             else -> afficherBientot(liaison, position)
         }
@@ -128,6 +129,26 @@ public class IaTiroirFragment : Fragment() {
         transaction.commitAllowingStateLoss()
     }
 
+    /** L'agent vit lui aussi en fragment enfant (lot IA-7b) —
+     * ajouté UNE fois puis ré-attaché (même patron que le chat). */
+    private fun afficherAgent(liaison: FragmentIaTiroirBinding) {
+        masquerAutres(liaison, TAG_AGENT)
+        val gestionnaire = childFragmentManager
+        val existant = gestionnaire.findFragmentByTag(TAG_AGENT)
+        val transaction = gestionnaire.beginTransaction()
+        if (existant == null) {
+            transaction.add(
+                R.id.conteneur_ia,
+                jo.codeide.feature.ai.agent
+                    .AgentFragment(),
+                TAG_AGENT,
+            )
+        } else {
+            transaction.attach(existant)
+        }
+        transaction.commitAllowingStateLoss()
+    }
+
     /** L'historique vit lui aussi en fragment enfant (lot IA-6) —
      * ajouté UNE fois puis ré-attaché (même patron que le chat). */
     private fun afficherHistorique(liaison: FragmentIaTiroirBinding) {
@@ -143,6 +164,37 @@ public class IaTiroirFragment : Fragment() {
         transaction.commitAllowingStateLoss()
     }
 
+    /** Ouvre la revue des changements (IA-7b, plein tiroir) —
+     * le fragment Agent bascule ici après « Examiner ». */
+    public fun ouvrirRevueChangements() {
+        val liaison = liaisonTiroir ?: return
+        masquerAutres(liaison, TAG_REVUE)
+        val gestionnaire = childFragmentManager
+        val existant = gestionnaire.findFragmentByTag(TAG_REVUE)
+        val transaction = gestionnaire.beginTransaction()
+        if (existant == null) {
+            transaction.add(
+                R.id.conteneur_ia,
+                jo.codeide.feature.ai.agent
+                    .RevueChangementsFragment(),
+                TAG_REVUE,
+            )
+        } else {
+            transaction.attach(existant)
+        }
+        transaction.commitAllowingStateLoss()
+    }
+
+    /** Retour de la revue vers l'écran Agent (bouton Retour). */
+    public fun fermerRevueChangements() {
+        val liaison = liaisonTiroir ?: return
+        val revue = childFragmentManager.findFragmentByTag(TAG_REVUE)
+        if (revue != null) {
+            childFragmentManager.beginTransaction().detach(revue).commitAllowingStateLoss()
+        }
+        afficherAgent(liaison)
+    }
+
     /** Détache les fragments enfants autres que la destination + masque
      * la vue « bientôt » (un seul écran visible à la fois). */
     private fun masquerAutres(
@@ -154,7 +206,7 @@ public class IaTiroirFragment : Fragment() {
         if (vue != null && vue.root.parent === liaison.conteneurIa) {
             vue.root.visibility = if (masquerVue) View.GONE else vue.root.visibility
         }
-        for (tag in listOf(TAG_CHAT, TAG_HISTORIQUE)) {
+        for (tag in listOf(TAG_CHAT, TAG_AGENT, TAG_HISTORIQUE, TAG_REVUE)) {
             if (tag == tagCible) continue
             childFragmentManager.findFragmentByTag(tag)?.let { fragment ->
                 childFragmentManager.beginTransaction().detach(fragment).commitAllowingStateLoss()
@@ -188,7 +240,9 @@ public class IaTiroirFragment : Fragment() {
 
     private companion object {
         const val TAG_CHAT = "tiroir_ia_chat"
+        const val TAG_AGENT = "tiroir_ia_agent"
         const val TAG_HISTORIQUE = "tiroir_ia_historique"
+        const val TAG_REVUE = "tiroir_ia_revue"
 
         /** Pseudo-tag de la vue « bientôt » (pas un fragment). */
         const val TAG_BIENTOT = "tiroir_ia_bientot"

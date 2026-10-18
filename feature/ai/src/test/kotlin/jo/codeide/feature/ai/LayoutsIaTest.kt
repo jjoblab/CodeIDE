@@ -139,4 +139,58 @@ class LayoutsIaTest {
 
         assertNotNull(racine.findViewById<View>(R.id.texte_bientot))
     }
+
+    @Test
+    fun `l'écran agent se gonfle avec ses contrôles`() {
+        val racine = gonfler(R.layout.fragment_ia_agent)
+
+        assertNotNull(racine.findViewById<View>(R.id.champ_objectif))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_lancer))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_arreter))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_continuer))
+        assertNotNull(racine.findViewById<View>(R.id.liste_etapes))
+        assertNotNull(racine.findViewById<View>(R.id.carte_approbation))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_autoriser))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_refuser))
+        assertNotNull(racine.findViewById<View>(R.id.carte_changements))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_examiner))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_tout_appliquer))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_rejeter))
+        assertNotNull(racine.findViewById<View>(R.id.bandeau_annulation))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_annuler_execution))
+        // États initiaux : approbation, changements et annulation MASQUÉS.
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.carte_approbation).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.carte_changements).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.bandeau_annulation).visibility)
+    }
+
+    @Test
+    fun `la revue des changements se gonfle avec ses contrôles`() {
+        val racine = gonfler(R.layout.fragment_revue_changements)
+
+        assertNotNull(racine.findViewById<View>(R.id.liste_fichiers))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_appliquer_selection))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_retour))
+        assertNotNull(racine.findViewById<View>(R.id.bandeau_annulation))
+        assertNotNull(racine.findViewById<View>(R.id.texte_vide))
+        // État initial : message vide masqué (le fragment le révèle si la revue est vide).
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.texte_vide).visibility)
+    }
+
+    @Test
+    fun `la ligne de revue affiche le badge conflit masqué par défaut`() {
+        val racine = gonfler(R.layout.ligne_fichier_revue)
+
+        assertNotNull(racine.findViewById<View>(R.id.case_retenue))
+        assertNotNull(racine.findViewById<View>(R.id.chemin_fichier))
+        assertNotNull(racine.findViewById<View>(R.id.badge_conflit))
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.badge_conflit).visibility)
+    }
+
+    @Test
+    fun `la ligne d'étape se gonfle avec son libellé`() {
+        val racine = gonfler(R.layout.ligne_etape_agent)
+
+        assertNotNull(racine.findViewById<View>(R.id.texte_etape))
+    }
 }

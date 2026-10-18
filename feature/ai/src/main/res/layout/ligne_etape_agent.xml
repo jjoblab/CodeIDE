@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une étape de l'agent (spec E2) : pastille d'état + libellé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_sm">
+
+    <View
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="@drawable/pastille_etape_agent"
+        android:contentDescription="@null" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_etape"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:textAppearance="?attr/textAppearanceBodySmall" />
+</LinearLayout>
