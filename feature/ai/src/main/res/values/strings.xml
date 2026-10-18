@@ -77,6 +77,35 @@
     <string name="ia_consentement_activer">Activer l\'assistant</string>
     <string name="ia_consentement_pas_maintenant">Pas maintenant</string>
 
+    <!-- Chat du tiroir (lot IA-3) -->
+    <string name="ia_editeur_absent">Ouvrez un fichier dans l\'éditeur pour insérer le bloc</string>
+    <string name="ia_bloc_insere">Bloc de code inséré au curseur</string>
+    <string name="ia_chat_hint">Posez votre question…</string>
+    <string name="ia_envoyer">Envoyer</string>
+    <string name="ia_envoyer_cd">Envoyer le message à l\'assistant</string>
+    <string name="ia_arreter">Arrêter</string>
+    <string name="ia_arreter_cd">Arrêter la génération en cours</string>
+    <string name="ia_tiroir_titre">Assistant IA</string>
+    <string name="ia_onglet_chat">Chat</string>
+    <string name="ia_onglet_agent">Agent</string>
+    <string name="ia_onglet_historique">Historique</string>
+    <string name="ia_onglet_recherche">Recherche</string>
+    <string name="ia_ia_inactive_titre">Assistant non activé</string>
+    <string name="ia_ia_inactive_texte">Lisez le consentement pour activer l\'assistant IA.</string>
+    <string name="ia_ia_inactive_bouton">Consulter le consentement</string>
+    <string name="ia_chat_vide_titre">Aucun message</string>
+    <string name="ia_chat_vide_texte">Posez une question sur votre projet.</string>
+    <string name="ia_message_cd_utilisateur">Vous : %1$s</string>
+    <string name="ia_message_cd_assistant">Assistant : %1$s</string>
+    <string name="ia_copier">Copier</string>
+    <string name="ia_copier_cd">Copier le bloc de code</string>
+    <string name="ia_inserer">Insérer</string>
+    <string name="ia_inserer_cd">Insérer le bloc de code au curseur</string>
+    <string name="ia_copie_effectuee">Copié dans le presse-papiers</string>
+    <string name="ia_bientot_agent">L\'agent arrive au lot IA-7 — il ne modifiera rien sans votre validation.</string>
+    <string name="ia_bientot_historique">L\'historique des conversations arrive au lot IA-6.</string>
+    <string name="ia_bientot_recherche">La recherche sémantique est réservée — voir la feuille de route.</string>
+
     <!-- Erreurs (mappées depuis AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Clé absente ou refusée par le fournisseur</string>
     <string name="ia_erreur_quota">Limite de débit atteinte — réessayez dans %1$d s</string>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Message assistant : pleine largeur, blocs Markdown rendus à la volée
+  (titres, paragraphes spannés, listes, blocs de code — ligne_bloc_code),
+  carte d'erreur inline (clé/réseau/quota) + annonce TalkBack.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/spacing_sm"
+    android:paddingVertical="@dimen/spacing_xs">
+
+    <LinearLayout
+        android:id="@+id/conteneur_blocs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:accessibilityLiveRegion="polite" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/erreur_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:background="@drawable/fond_erreur_ia"
+        android:padding="@dimen/spacing_sm"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnErrorContainer"
+        android:visibility="gone" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_copier_message"
+        style="@style/Widget.CodeIDE.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="40dp"
+        android:text="@string/ia_copier"
+        android:visibility="gone" />
+</LinearLayout>

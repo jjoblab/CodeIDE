@@ -32,6 +32,7 @@
 
     <!-- Carte d\'aperçu du terminal du tiroir (T6, section 8 du prompt Terminal-1). -->
     <string name="editor_nav_terminal">Terminal</string>
+    <string name="editor_nav_ia">IA</string>
 
     <!-- Barre de navigation basse du tiroir (prompt compagnon 5.3). -->
     <string name="editor_nav_explorateur">Fichiers</string>

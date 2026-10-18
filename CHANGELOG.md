@@ -1,5 +1,77 @@
 # Journal des modifications
 
+## [0.138.0] – 2026-10-18
+
+### Mission IA — lot IA-3 « Chat dans le tiroir » (ADR 0122)
+
+#### Ajouté
+
+- **`:feature:ai` — `IaTiroirFragment`** : le fragment IA du tiroir
+  (6ᵉ destination du rail de l'éditeur, fournie par
+  `FabriqueFragmentIaTiroir` liée dans `di/TiroirIaBindsModule` — miroir
+  exact du terminal, ADR 0053). Quatre sous-onglets : **Chat** (réel,
+  fragment enfant attaché/détaché — ré-attaché au retour d'un onglet
+  « bientôt »), **Agent** (IA-7), **Historique** (IA-6) et **Recherche**
+  (réservé) en état « bientôt » générique — aucun contrôle sans effet
+  (ADR 0059). Le contrôleur hôte `ControleurIaTiroir` est résolu par
+  cast en `onAttach` : aucune dépendance feature ↔ feature.
+- **`:feature:ai` — `ChatFragment`/`ChatViewModel`** (UDF
+  `EtatChatIa`/`ActionChatIa`/`EffetChatIa`) : liste DiffUtil
+  (`AdapterMessages`, bulle utilisateur / pleine largeur assistant),
+  streaming incrémental via `SendMessageUseCase` (seul le message en
+  génération est re-rendu), bascule **Envoyer ↔ Arrêter**
+  (l'annulation du Job ferme la requête — critère d'acceptation IA-3),
+  **Régénérer**, copie d'un message et d'un bloc, garde de
+  consentement (IA inactive → écran de consentement, AUCUN appel
+  fournisseur), états vides/erreur inline, brouillon porté par le
+  ViewModel (survit à la rotation, anti-écho à l'affichage).
+- **`:feature:ai` — rendu Markdown minimal maison** (`MarkdownIa` +
+  `SpansMarkdown`, ADR 0002 : vues, pas de WebView) : titres `#`–`###`,
+  listes `- `/`* `, blocs de code avec langue (ouvrant non fermé =
+  bloc **provisoire** — jamais perdu pendant le flux), gras/italique,
+  code en ligne, liens `[texte](url)` (régression testée : l'ancien
+  balayage à double « [ » ne rendait jamais de lien ; bloc ```` ``` ````
+  nu — sans langue — reconnu). Actions de bloc : **Copier** et
+  **Insérer au curseur** via `PortEditeurActif` (remplacement de la
+  sélection, un seul pas d'annulation) ; port absent → message, jamais
+  d'effet silencieux.
+- **`:feature:editor` — 6ᵉ destination du rail** (câblage ≲ 40 lignes,
+  ADR 0122) : `destination_ia` (ids.xml), libellé « IA », icône
+  `ic_auto_awesome`, fragment ajouté/masqué par TAG comme les cinq
+  destinations existantes ; rail à 6 éléments (zones tactiles
+  inchangées ≥ 48 dp).
+- **`:feature:editor` — publication du port d'éditeur actif** (mission
+  IA, ADR 0122) : `EditorActivity` implémente `ControleurIaTiroir`
+  (chemin relatif du fichier actif PROJET uniquement — ADR 0124 §4 ;
+  dossier FUSE du projet résolu une fois en arrière-plan ;
+  `ouvrirFichier` sélectionne un onglet déjà ouvert) et publie un
+  `PortEditeurVue` vivant dans `RegistrePortEditeurActif` —
+  `beginBatch`/`endBatch` (un seul pas d'annulation, ADR 0126), plage
+  invalide → `Validation`, révision du document exposée (conflits
+  IA-5) ; le port est retiré à `onDestroy` (aucun chat vivant ne cible
+  un éditeur détruit). `EditorViewModel.dossierProjetReel()` ajouté
+  (partage le cache des usages existants).
+
+#### Sécurité
+
+- La clé d'API n'apparaît toujours dans AUCUN état d'UI (le message
+  `MessageChatUi` ne porte que du texte conversationnel) ; la
+  suppression du brouillon après envoi et la restauration post-rotation
+  passent par un drapeau anti-écho (aucune frappe utilisateur répercutée
+  en boucle).
+
+#### Tests
+
+- `MarkdownIaTest` (10 cas : titres, paragraphes, listes, blocs fermés
+  ET provisoires, mélange ordonné) ; `SpansMarkdownTest` (Robolectric :
+  gras, italique, code en ligne, liens — URL capturée au clic —,
+  texte brut) ; `ChatViewModelTest` (9 cas : garde de consentement,
+  RÉGRESSION « le message utilisateur ne part qu'UNE fois »,
+  accumulation des deltas, clôture du drapeau écran à Done/échec,
+  arrêt qui annule le job, régénération, insertion avec/sans port,
+  copie) ; `LayoutsIaTest` étendu aux 6 nouveaux layouts
+  (Arrêter masqué au repos).
+
 ## [0.137.0] – 2026-10-18
 
 ### Mission IA — lot IA-2 « Coffre, réglages, consentement » (ADR 0122/0124)
