@@ -248,9 +248,20 @@ internal class SseStreamExecutor(
                     }
                 }
             } finally {
-                // Fin normale (EOF) : arrêter le veilleur pour que le
-                // scope puisse se terminer ; sur sortie anormale, le
-                // veilleur est déjà en train de fermer la socket.
+                // Fermeture SYNCHRONE de la connexion dès que la consommation
+                // sort — fin normale (EOF), interruption d'opérateur (take/
+                // first, qui lève une CancellationException dans emit) ou
+                // annulation du job (le finally s'exécute aussi sous
+                // annulation : close() n'est pas suspendu). La socket est
+                // fermée ICI, avant toute autre sortie, ce qui débloque
+                // toujours le lecteur bloquant du dispatcher IO (ADR 0123
+                // point 4, plan IA-1 « annulation du Flow ⇒ socket fermée »).
+                // Idempotent : les finally de executerTentative referment.
+                reponse.close()
+                // Fin normale (EOF) : arrêter le veilleur pour que le scope
+                // puisse se terminer ; il reste une seconde ceinture si une
+                // sortie ne passe pas par ce finally (fermeture déjà faite
+                // ci-dessus — no-op).
                 veilleur.cancel()
             }
         }
