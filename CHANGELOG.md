@@ -1,5 +1,68 @@
 # Journal des modifications
 
+## [0.144.0] – 2026-10-18
+
+### Mission IA — lot IA-7b « Agent : écran, approbations, restauration » (ADR 0125)
+
+#### Ajouté
+
+- **`:core:ai` — `AppliqueurChangeSetIa`** (ADR 0125 « Réversibilité ») :
+  préparation de la revue (résolution SAF segment par segment, conflit
+  détecté AVANT toute écriture — empreinte SHA-256 divergente, fichier
+  créé entre-temps, contenu non textuel ⇒ jamais d'écrasement
+  silencieux), application via le port `FileSystem` (déjà décoré par
+  l'historique côté hôte) précédée du garde-fou **étiquette
+  « IA · <date> »** (historique en échec ⇒ application REFUSÉE sans
+  aucune écriture), instantané d'état d'AVANT par fichier,
+  **« Annuler cette exécution »** exact (création → suppression,
+  modification → contenu précédent, suppression → recréation).
+- **Outils V1 adaptés à la boucle** : `list_files`, `read_file`,
+  `propose_edit`, `create_file`, `delete_file` — les méthodes de IA-7a
+  deviennent des `OutilIa` appelables (schémas JSON, niveaux de risque).
+- **Écran Agent (spec E2)** : carte objectif modifiable + « Lancer »,
+  bandeau limites (`Étapes : n / 25 · modèle`), liste d'étapes, carte
+  d'approbation EXÉCUTION (une décision par appel, jamais « toujours
+  autoriser »), carte « Changements proposés » (Examiner / Tout
+  appliquer / Rejeter), bandeau « Annuler cette exécution » ; états
+  lisibles (en cours, interrompu, terminé, échoué, annulé) + « Continuer ».
+- **Revue des changements (plein tiroir)** : liste cochable fichier par
+  fichier, badge Conflit NON cochable, application par sélection ou en
+  bloc — un conflit ne part jamais.
+- **Service premier plan annulable** (`ServiceAgentIa`) : notification
+  honnête « Agent en cours » + action Arrêter, type `specialUse` avec
+  sous-type FR documenté, décision PURE testée hors Android ; arrêt de
+  lui-même dès la sortie de l'état en cours.
+- **`ControleurAgentIa`** (portée application) : la boucle d'[AgentRunnerIa]
+  survit à la rotation (spec §5) et le service observe LE MÊME état ;
+  porte d'approbation suspendant l'outil jusqu'à la carte.
+
+#### Tests (14 nouveaux)
+
+- Applicateur : modification sans divergence appliquée + étiquetée ;
+  conflit jamais écrasé ; création existante en conflit ; historique en
+  échec ⇒ refus SANS écriture ; sélection partielle ; **annulation
+  exacte** (création/modification/suppression) ; parents créés en
+  cascade ; suppression non textuelle refusée ; racine absente.
+- Adaptateurs d'outils : list/read succès + refus propre ;
+  propose_edit/create/delete poussent au ChangeSet SANS toucher le
+  disque.
+- Décision du service : notification affichée UNIQUEMENT en cours.
+- Layouts : écran Agent, revue, lignes (états initiaux masqués).
+
+#### Écart documenté
+
+`run_gradle` : l'exécutant tooling n'est pas encore branché (le port
+`DemarreurService…` de l'éditeur vit dans `:feature:editor`) — l'outil
+répond « indisponible hors éditeur » ; le branchement suivra au lot UI.
+`search_text` / `get_diagnostics` restent en dehors de V1 (ADR 0125).
+
+
+## [0.144.0] – 2026-10-18
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.143.1] – 2026-10-18
 
 ### Mission IA — filet de qualité : CI reverte au vert (IA-6/7a/8)

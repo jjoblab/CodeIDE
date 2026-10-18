@@ -173,4 +173,33 @@
     <string name="ia_retention_libelle_30j">Keep for 30 days</string>
     <string name="ia_retention_libelle_illimitee">Keep forever</string>
     <string name="ia_bientot_historique_ancien">Conversation history arrives in lot IA-6.</string>
+
+    <!-- Lot IA-7b: Agent screen, change review, foreground service -->
+    <string name="agent_objectif_hint">Agent goal</string>
+    <string name="agent_garde_fou">The agent changes nothing without your approval.</string>
+    <string name="agent_lancer">Start agent</string>
+    <string name="agent_arreter">Stop</string>
+    <string name="agent_continuer">Continue</string>
+    <string name="agent_en_cours">Agent running</string>
+    <string name="agent_limites">Steps: %1$d / %2$d · model %3$s</string>
+    <string name="agent_approbation_titre">Execution requested</string>
+    <string name="agent_approbation_refuser">Deny</string>
+    <string name="agent_approbation_autoriser">Allow once</string>
+    <string name="agent_changements_titre">Proposed changes</string>
+    <string name="agent_changements_resumes">Files: %1$d · Conflicts: %2$d</string>
+    <string name="agent_changements_examiner">Review</string>
+    <string name="agent_changements_rejeter">Reject</string>
+    <string name="agent_changements_appliquer">Apply all</string>
+    <string name="agent_annulation_disponible">Changes applied — an "IA" restore point was recorded.</string>
+    <string name="agent_annuler_execution">Undo this run</string>
+    <string name="agent_revue_titre">Review changes</string>
+    <string name="agent_revue_vide">No pending change.</string>
+    <string name="agent_revue_conflit">Conflict</string>
+    <string name="agent_revue_retour">Back</string>
+    <string name="agent_revue_appliquer_selection">Apply selection</string>
+    <string name="agent_application_en_cours">Applying</string>
+    <string name="agent_service_titre">Agent running</string>
+    <string name="agent_service_texte">The agent is working — it changes nothing without your approval.</string>
+    <string name="agent_service_arreter">Stop</string>
+    <string name="agent_service_canal">Agent</string>
 </resources>
