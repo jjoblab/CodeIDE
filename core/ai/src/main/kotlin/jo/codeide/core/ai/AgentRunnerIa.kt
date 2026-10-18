@@ -1,10 +1,10 @@
 package jo.codeide.core.ai
 
 import jo.codeide.core.model.AppError
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.toList
 
 /**
  * Porteur du ChangeSet courant (lot IA-7) : les outils d'écriture
@@ -68,7 +68,6 @@ public enum class IssueAgentIa {
 public class AgentRunnerIa(
     private val fournisseur: AiProvider,
     private val registre: RegistreOutilsIa,
-    private val changeSet: ChangeSetIaCourant,
     private val limites: LimitesAgentIa = LimitesAgentIa(),
 ) {
     /**
@@ -79,7 +78,13 @@ public class AgentRunnerIa(
      * @param maxJetonsReponse plafond de jetons par appel.
      * @param surEtape observation d'étape (UI : liste d'étapes).
      * @return l'issue + le texte final (réponse ou message d'état).
+     *
+     * La boucle EST la machine à états de l'agent (réfléchir → appeler →
+     * observer → continuer) : longueur, complexité, imbrication et
+     * retours multiples reflètent les issues distinctes (finale, échec,
+     * interruption) — jamais une factorisation naturelle (ADR 0125).
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth", "ReturnCount")
     public suspend fun executer(
         messages: List<AiMessage>,
         modele: String,
@@ -109,6 +114,8 @@ public class AgentRunnerIa(
                 } catch (annulation: kotlinx.coroutines.CancellationException) {
                     throw annulation
                 } catch (incident: Exception) {
+                    // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
+                    @Suppress("SwallowedException")
                     return Pair(IssueAgentIa.ECHOUE, "incident fournisseur : ${incident.javaClass.simpleName}")
                 }
 
@@ -119,12 +126,33 @@ public class AgentRunnerIa(
 
             for (evenement in evenements) {
                 when (evenement) {
-                    is AiEvent.TextDelta -> texte.append(evenement.text)
-                    is AiEvent.ToolCallStarted -> outilNom = evenement.name
-                    is AiEvent.ToolCallArguments -> fragmentsArguments.append(evenement.argumentsJsonFragment)
-                    is AiEvent.ToolCallCompleted -> if (fragmentsArguments.isEmpty()) fragmentsArguments.append(evenement.argumentsJson)
-                    is AiEvent.Failure -> echec = evenement.error
-                    else -> Unit
+                    is AiEvent.TextDelta -> {
+                        texte.append(evenement.text)
+                    }
+
+                    is AiEvent.ToolCallStarted -> {
+                        outilNom = evenement.name
+                    }
+
+                    is AiEvent.ToolCallArguments -> {
+                        fragmentsArguments.append(evenement.argumentsJsonFragment)
+                    }
+
+                    is AiEvent.ToolCallCompleted -> {
+                        if (fragmentsArguments.isEmpty()) {
+                            fragmentsArguments.append(
+                                evenement.argumentsJson,
+                            )
+                        }
+                    }
+
+                    is AiEvent.Failure -> {
+                        echec = evenement.error
+                    }
+
+                    else -> {
+                        Unit
+                    }
                 }
             }
 
@@ -146,7 +174,7 @@ public class AgentRunnerIa(
             surEtape("étape $etapes : $nomOutil")
             conversation =
                 conversation +
-                    AiMessage.assistant(reponseFinale.ifBlank { "appel d'outil" })
+                AiMessage.assistant(reponseFinale.ifBlank { "appel d'outil" })
 
             val outil = registre.parIdentifiant(nomOutil)
             val resultat =
@@ -158,6 +186,8 @@ public class AgentRunnerIa(
                     } catch (annulation: kotlinx.coroutines.CancellationException) {
                         throw annulation
                     } catch (incident: Exception) {
+                        // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
+                        @Suppress("SwallowedException")
                         ResultatOutilIa.Refuse("incident outil : ${incident.javaClass.simpleName}")
                     }
                 }
@@ -185,10 +215,10 @@ public class AgentRunnerIa(
 
             conversation =
                 conversation +
-                    AiMessage.toolResult(
-                        toolCallId = "etape-$etapes",
-                        content = observation,
-                    )
+                AiMessage.toolResult(
+                    toolCallId = "etape-$etapes",
+                    content = observation,
+                )
         }
 
         return Pair(
@@ -198,11 +228,12 @@ public class AgentRunnerIa(
     }
 
     /** Lit (nom, paramètres) d'un appel d'outil émis par le modèle. */
+    @Suppress("SwallowedException") // JSON malformé : paramètres vides = appel sans argument (refus modélisé).
     private fun lireAppel(
         nom: String,
         brut: String,
-    ): Pair<String, Map<String, String>> {
-        return try {
+    ): Pair<String, Map<String, String>> =
+        try {
             val objet =
                 kotlinx.serialization.json.Json
                     .parseToJsonElement(brut) as kotlinx.serialization.json.JsonObject
@@ -218,5 +249,4 @@ public class AgentRunnerIa(
         } catch (malforme: Exception) {
             Pair(nom, emptyMap())
         }
-    }
 }

@@ -15,6 +15,7 @@ public class OutilsEcritureIa(
     private val changeSet: ChangeSetIaCourant,
 ) {
     /** `propose_edit(chemin, contenu, raison)` : remplacement proposé. */
+    @Suppress("ReturnCount") // refus de garde + succès : sorties distinctes (résultats modélisés, ADR 0125).
     public suspend fun proposerModification(
         chemin: String,
         contenu: String,
@@ -36,10 +37,11 @@ public class OutilsEcritureIa(
                 empreinteAttendue = empreinte(ok.fichier),
                 raison = raison,
             )
-        return ResultatOutilIa.Succes("modifi proposée : ${ok.cheminRelatif} (en attente d'examen)")
+        return ResultatOutilIa.Succes("modification proposée : ${ok.cheminRelatif} (en attente d'examen)")
     }
 
     /** `create_file(chemin, contenu, raison)` : création proposée. */
+    @Suppress("ReturnCount") // refus de garde + succès : sorties distinctes (résultats modélisés, ADR 0125).
     public suspend fun proposerCreation(
         chemin: String,
         contenu: String,
@@ -55,17 +57,18 @@ public class OutilsEcritureIa(
         }
         changeSet.depot =
             changeSet.depot +
-                ChangementIa(
-                    cheminRelatif = ok.cheminRelatif,
-                    type = TypeChangementIa.CREER,
-                    contenu = contenu,
-                    empreinteAttendue = null,
-                    raison = raison,
-                )
+            ChangementIa(
+                cheminRelatif = ok.cheminRelatif,
+                type = TypeChangementIa.CREER,
+                contenu = contenu,
+                empreinteAttendue = null,
+                raison = raison,
+            )
         return ResultatOutilIa.Succes("création proposée : ${ok.cheminRelatif} (en attente d'examen)")
     }
 
     /** `delete_file(chemin, raison)` : suppression proposée (renforcée). */
+    @Suppress("ReturnCount") // refus de garde + succès : sorties distinctes (résultats modélisés, ADR 0125).
     public suspend fun proposerSuppression(
         chemin: String,
         raison: String,
@@ -80,13 +83,13 @@ public class OutilsEcritureIa(
         }
         changeSet.depot =
             changeSet.depot +
-                ChangementIa(
-                    cheminRelatif = ok.cheminRelatif,
-                    type = TypeChangementIa.SUPPRIMER,
-                    contenu = "",
-                    empreinteAttendue = empreinte(ok.fichier),
-                    raison = raison,
-                )
+            ChangementIa(
+                cheminRelatif = ok.cheminRelatif,
+                type = TypeChangementIa.SUPPRIMER,
+                contenu = "",
+                empreinteAttendue = empreinte(ok.fichier),
+                raison = raison,
+            )
         return ResultatOutilIa.Succes("suppression proposée : ${ok.cheminRelatif} (examen renforcé)")
     }
 
@@ -113,11 +116,19 @@ public class OutilRunGradleIa(
     private val executant: (suspend (tache: String) -> String)?,
 ) : OutilIa {
     override val identifiant: String = "run_gradle"
-    override val description: String = "Exécute une tâche Gradle de la liste blanche (approbation requise)."
+
+    override val description: String =
+        "Exécute une tâche Gradle de la liste blanche (approbation requise)."
+
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.EXECUTION
     override val parametresJson: String =
-        """{"type":"object","properties":{"tache":{"type":"string"},"raison":{"type":"string"}},"required":["tache","raison"]}"""
+        """
+        {"type":"object",
+         "properties":{"tache":{"type":"string"},"raison":{"type":"string"}},
+         "required":["tache","raison"]}
+        """.trimIndent()
 
+    @Suppress("ReturnCount") // clauses de garde (liste blanche, raison, refus) + succès : retours dédiés.
     override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa {
         val tache = arguments["tache"].orEmpty().trim()
         val raison = arguments["raison"].orEmpty().trim()

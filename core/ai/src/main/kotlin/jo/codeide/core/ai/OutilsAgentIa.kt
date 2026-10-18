@@ -24,6 +24,7 @@ public class ResolveurCheminsProjetIa(
      *
      * @return le fichier borné à la racine, ou le motif du refus.
      */
+    @Suppress("ReturnCount") // chaque motif de refus est un retour dédié (résultats modélisés, ADR 0125).
     public fun resoudre(cheminRelatif: String): ResultatFichierIa {
         if (cheminRelatif.isBlank()) {
             return ResultatFichierIa.Refuse("chemin vide")
@@ -92,14 +93,15 @@ public class OutilsLectureIa(
                 ResultatOutilIa.Succes(chemins.joinToString("\n").ifEmpty { "(aucun fichier)" })
             }
 
-            is AppResult.Failure -> ResultatOutilIa.Refuse("listing indisponible")
+            is AppResult.Failure -> {
+                ResultatOutilIa.Refuse("listing indisponible")
+            }
         }
 
     /** `read_file(chemin)` : contenu borné, refus des exclus (port). */
     public suspend fun lireFichier(cheminRelatif: String): ResultatOutilIa =
         when (val resultat = fournisseur.lireFichier(cheminRelatif)) {
             is AppResult.Success -> ResultatOutilIa.Succes(resultat.value)
-
             is AppResult.Failure -> ResultatOutilIa.Refuse("fichier introuvable, exclu ou illisible : $cheminRelatif")
         }
 
