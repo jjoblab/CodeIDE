@@ -43,10 +43,13 @@ import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DiagnosticEditeur
+import jo.codeide.core.domain.GraviteDiagnostic
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.PortEditeurActif
+import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.SelectionEditeur
+import jo.codeide.core.domain.SeveriteDiagnostic
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
@@ -171,6 +174,12 @@ class EditorActivity :
      * lisent ; aucun port = aucune insertion, jamais d'effet silencieux. */
     @Inject
     lateinit var registreEditeur: RegistrePortEditeurActif
+
+    /** Registre du dossier projet réel (mission IA, lot IA-4) : le
+     * dossier FUSE résolu y est publié pour le lecteur de contexte du
+     * tiroir IA — les chemins transmis au modèle restent RELATIFS. */
+    @Inject
+    lateinit var registreDossierIa: RegistreDossierProjetIa
 
     /** Dossier FUSE du projet résolu une fois (mission IA : contrôleur
      * du tiroir IA) — `null` tant que la résolution asynchrone n'est pas
@@ -669,10 +678,12 @@ class EditorActivity :
 
     /** Résolution asynchrone UNIQUE du dossier projet (mission IA) —
      * le contrat du contrôleur est synchrone, la résolution FUSE ne
-     * l'est pas : elle est lancée à la création et mise en cache. */
+     * l'est pas : elle est lancée à la création, mise en cache ET
+     * publiée au registre IA (lecteur de contexte du tiroir). */
     private fun resoudreDossierProjetAsynchrone() {
         lifecycleScope.launch {
             dossierProjetReelCache = viewModel.dossierProjetReel()
+            registreDossierIa.publier(dossierProjetReelCache)
         }
     }
 
@@ -693,7 +704,31 @@ class EditorActivity :
             }
 
         override val diagnostics: List<DiagnosticEditeur>
-            get() = emptyList() // branchement des diagnostics visibles : IA-4
+            get() {
+                // Diagnostics du FICHIER ACTIF seulement (contrat du
+                // port) — les fichiers tooling peuvent porter un chemin
+                // absolu : la comparaison par SUFFIXE (convention du
+                // dépôt, appliquerDiagnosticsAuxSessions) est relative.
+                val cheminActif = cheminRelatifFichier ?: return emptyList()
+                return viewModel
+                    .diagnosticsEditeur()
+                    .filter { diagnostic -> diagnostic.fichier.endsWith(cheminActif) }
+                    .map { diagnostic ->
+                        DiagnosticEditeur(
+                            identifiant = "${diagnostic.source}:${diagnostic.ligne}:${diagnostic.colonne}",
+                            gravite =
+                                when (diagnostic.severite) {
+                                    SeveriteDiagnostic.ERREUR -> GraviteDiagnostic.ERREUR
+                                    SeveriteDiagnostic.AVERTISSEMENT -> GraviteDiagnostic.AVERTISSEMENT
+                                    else -> GraviteDiagnostic.INFO
+                                },
+                            cheminRelatif = cheminActif,
+                            ligne = diagnostic.ligne.toInt(),
+                            colonne = diagnostic.colonne.toInt(),
+                            message = diagnostic.message,
+                        )
+                    }
+            }
 
         /** Révision du document actif (compteur de mutations cel —
          * conflits « Accepter » d'IA-5) ; sans session : 0. */

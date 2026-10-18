@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ListView
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
@@ -20,7 +21,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.ai.PieceContexte
+import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.feature.ai.databinding.FragmentIaChatBinding
 import kotlinx.coroutines.launch
@@ -48,6 +52,10 @@ public class ChatFragment : Fragment() {
     /** Garde anti-écho : l'écriture programmatique du brouillon ne
      * doit pas repartir vers le ViewModel comme une frappe. */
     private var synchronisationSaisie = false
+
+    /** Garde du dialogue bloquant de secret : une seule boîte par
+     * suspension de l'envoi (l'état vide réarme la garde). */
+    private var dialogueSecretAffiche = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -107,6 +115,7 @@ public class ChatFragment : Fragment() {
         LienIa.ouverture = null
         adaptateur = null
         liaison = null
+        dialogueSecretAffiche = false
         super.onDestroyView()
     }
 
@@ -128,6 +137,17 @@ public class ChatFragment : Fragment() {
         // Bouton principal : Envoyer (repos) ↔ Arrêter (génération en cours).
         liaisonLocale.boutonEnvoyer.isVisible = !etat.generationEnCours
         liaisonLocale.boutonArreter.isVisible = etat.generationEnCours
+
+        rendrePuces(etat, liaisonLocale)
+
+        // Dialogue bloquant de secret (ADR 0124 §4) : tant que l'état
+        // porte des alertes non tranchées, AUCUN envoi part — l'humain
+        // choisit « Envoyer sans » ou « Annuler ».
+        if (etat.alerteSecret.isNotEmpty()) {
+            afficherDialogueSecret(etat)
+        } else {
+            dialogueSecretAffiche = false
+        }
 
         // Défilement automatique vers le bas pendant la génération.
         if (etat.generationEnCours && etat.messages.isNotEmpty()) {
@@ -152,6 +172,134 @@ public class ChatFragment : Fragment() {
         }
     }
 
+    /**
+     * Rend la rangée de puces (mission IA, lot IA-4) : UNE puce par
+     * pièce assemblée + puce budget + puce « @ Fichier ». La puce
+     * affichée EST ce qui part — le retrait repart vers le ViewModel.
+     */
+    private fun rendrePuces(
+        etat: EtatChatIa,
+        liaisonLocale: FragmentIaChatBinding,
+    ) {
+        val conteneur = liaisonLocale.conteneurPuces
+        conteneur.removeAllViews()
+        for (piece in etat.pieces) {
+            conteneur.addView(
+                puce(
+                    layoutInflater,
+                    liaison?.conteneurPuces,
+                    libellePuce(requireContext(), piece),
+                    retirable = true,
+                ) { _ ->
+                    if (piece.type == TypePieceContexte.FichierMentionne) {
+                        piece.cheminRelatif?.let { chemin -> viewModel.onAction(ActionChatIa.RetirerMention(chemin)) }
+                    } else {
+                        viewModel.onAction(ActionChatIa.RetirerPiece(piece.type))
+                    }
+                },
+            )
+        }
+        if (etat.pieces.isNotEmpty()) {
+            conteneur.addView(
+                puce(
+                    layoutInflater,
+                    liaison?.conteneurPuces,
+                    getString(R.string.ia_jetons_contexte, etat.jetonsContexte),
+                    retirable = false,
+                ) { _ -> Unit },
+            )
+        }
+        conteneur.addView(
+            puce(
+                layoutInflater,
+                liaison?.conteneurPuces,
+                getString(R.string.ia_ajouter_mention),
+                retirable = false,
+            ) { _ ->
+                viewModel.onAction(ActionChatIa.OuvrirSelecteurFichiers)
+            },
+        )
+        liaisonLocale.rangeePuces.isVisible = true
+    }
+
+    /** Dialogue bloquant « secret détecté » (ADR 0124 §4) — l'humain tranche. */
+    private fun afficherDialogueSecret(etat: EtatChatIa) {
+        if (dialogueSecretAffiche) {
+            return
+        }
+        dialogueSecretAffiche = true
+        val motifs =
+            etat.alerteSecret
+                .map { it.motif }
+                .distinct()
+                .joinToString("\n• ", "• ")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.ia_secret_titre)
+            .setMessage(getString(R.string.ia_secret_texte, motifs))
+            .setCancelable(false)
+            .setPositiveButton(R.string.ia_secret_envoyer) { _, _ ->
+                viewModel.onAction(ActionChatIa.ConfirmerEnvoiSecret)
+            }.setNegativeButton(R.string.ia_secret_annuler) { _, _ ->
+                viewModel.onAction(ActionChatIa.AnnulerAlerteSecret)
+            }.show()
+    }
+
+    /** Sélecteur `@` : liste bornée des fichiers du projet, filtrage local. */
+    private fun ouvrirSelecteurFichiers() {
+        val chemins = viewModel.etat.value.cheminsDisponibles
+        val vue = layoutInflater.inflate(R.layout.vue_selecteur_fichiers_ia, null)
+        val liste = vue.findViewById<ListView>(R.id.liste_fichiers)
+        val recherche =
+            vue.findViewById<com.google.android.material.textfield.TextInputEditText>(
+                R.id.recherche_fichiers,
+            )
+        val adaptateur =
+            android.widget.ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                chemins.toMutableList(),
+            )
+        liste.adapter = adaptateur
+        recherche.addTextChangedListener(
+            object : android.text.TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) = Unit
+
+                override fun afterTextChanged(s: android.text.Editable?) {
+                    val filtre = s?.toString().orEmpty().trim()
+                    adaptateur.clear()
+                    adaptateur.addAll(
+                        if (filtre.isEmpty()) {
+                            chemins
+                        } else {
+                            chemins.filter { it.contains(filtre, ignoreCase = true) }
+                        },
+                    )
+                }
+            },
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.ia_selecteur_titre)
+            .setView(vue)
+            .setNegativeButton(R.string.ia_secret_annuler, null)
+            .show()
+        liste.setOnItemClickListener { _, _, position, _ ->
+            val chemin = adaptateur.getItem(position) ?: return@setOnItemClickListener
+            viewModel.onAction(ActionChatIa.AjouterMention(chemin))
+        }
+    }
+
     private fun rendreEffet(effet: EffetChatIa) {
         when (effet) {
             is EffetChatIa.Copier -> {
@@ -160,6 +308,10 @@ public class ChatFragment : Fragment() {
 
             EffetChatIa.OuvrirConsentement -> {
                 navigator.openAiConsentement()
+            }
+
+            EffetChatIa.OuvrirSelecteurFichiers -> {
+                ouvrirSelecteurFichiers()
             }
 
             is EffetChatIa.Message -> {
@@ -189,4 +341,52 @@ public class ChatFragment : Fragment() {
             // Aucun navigateur : l'ouverture est volontairement sans effet.
         }
     }
+}
+
+/** Libellé localisé d'une puce — la clé brute vient du domaine. */
+private fun libellePuce(
+    contexte: Context,
+    piece: PieceContexte,
+): String =
+    when (piece.type) {
+        TypePieceContexte.FichierActif -> {
+            contexte.getString(
+                R.string.ia_puce_fichier_actif,
+                piece.cheminRelatif.orEmpty(),
+            )
+        }
+
+        TypePieceContexte.Selection -> {
+            contexte.getString(R.string.ia_puce_selection)
+        }
+
+        TypePieceContexte.Diagnostics -> {
+            contexte.getString(R.string.ia_puce_diagnostics)
+        }
+
+        TypePieceContexte.FichierMentionne -> {
+            piece.cheminRelatif.orEmpty()
+        }
+
+        TypePieceContexte.ListeChemins -> {
+            contexte.getString(R.string.ia_puce_chemins)
+        }
+    }
+
+/** Gonfle une puce ; [auClic] reçoit le libellé — la croix seule est
+ * masquée quand la puce n'est pas retirable (budget, « @ Fichier »). */
+private fun puce(
+    gonfleur: LayoutInflater,
+    parent: ViewGroup?,
+    libelle: String,
+    retirable: Boolean,
+    auClic: (String) -> Unit,
+): View {
+    val vue = gonfleur.inflate(R.layout.ligne_puce_contexte, parent, false)
+    vue.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.libelle_puce).text = libelle
+    if (!retirable) {
+        vue.findViewById<View>(R.id.croix_puce).isVisible = false
+    }
+    vue.setOnClickListener { auClic(libelle) }
+    return vue
 }

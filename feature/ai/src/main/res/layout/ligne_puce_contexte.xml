@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une puce de contexte (mission IA, lot IA-4) : libellé + croix de
+     retrait — la puce affichée EST ce qui part (ADR 0124 §4). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="@dimen/spacing_xs"
+    android:background="@drawable/fond_puce_ia"
+    android:gravity="center_vertical"
+    android:minHeight="32dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_sm">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/libelle_puce"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="240dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <ImageView
+        android:id="@+id/croix_puce"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:contentDescription="@string/ia_retirer_puce_cd"
+        android:src="@drawable/ic_fermer_onglet"
+        app:tint="?attr/colorOnSurfaceVariant"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+</LinearLayout>

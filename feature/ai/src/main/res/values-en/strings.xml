@@ -105,6 +105,26 @@
     <string name="ia_bientot_historique">Conversation history arrives with lot IA-6.</string>
     <string name="ia_bientot_recherche">Semantic search is reserved — see the roadmap.</string>
 
+    <!-- Context and privacy (lot IA-4) -->
+    <string name="ia_puce_fichier_actif">File: %1$s</string>
+    <string name="ia_puce_selection">Selection</string>
+    <string name="ia_puce_diagnostics">Diagnostics</string>
+    <string name="ia_puce_chemins">Project paths</string>
+    <string name="ia_jetons_contexte">Context tokens ≈ %1$d</string>
+    <string name="ia_ajouter_mention">@ File</string>
+    <string name="ia_ajouter_mention_cd">Mention a project file</string>
+    <string name="ia_retirer_puce_cd">Remove this piece from the sent context</string>
+    <string name="ia_selecteur_titre">Mention a file</string>
+    <string name="ia_selecteur_recherche">Filter files…</string>
+    <string name="ia_selecteur_vide">No matching file</string>
+    <string name="ia_mention_refusee">"%1$s" skipped — excluded file (exclusion list)</string>
+    <string name="ia_mention_illisible">"%1$s" unreadable</string>
+    <string name="ia_mention_hors_projet">"%1$s" skipped — outside the project</string>
+    <string name="ia_secret_titre">This context seems to contain a secret</string>
+    <string name="ia_secret_texte">Detected pattern: %1$s. Send anyway? Prefer removing the piece at fault.</string>
+    <string name="ia_secret_envoyer">Send without</string>
+    <string name="ia_secret_annuler">Cancel</string>
+
     <!-- Errors (mapped from AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Key missing or rejected by the provider</string>
     <string name="ia_erreur_quota">Rate limit reached — try again in %1$d s</string>

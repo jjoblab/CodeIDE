@@ -715,3 +715,39 @@ E1-E12 qui échoue.
 8. **Lien Markdown** — toucher un lien `[texte](url)` d'une réponse :
    le navigateur s'ouvre (initiative utilisateur explicite, ADR 0121) ;
    sans navigateur sur l'appareil, rien ne plante.
+
+## Mission IA — contexte et confidentialité (lot IA-4 → v0.139.0, ADR 0124 §4)
+
+> L'assembleur, les exclusions, la détection de secrets et la garde de
+> chemins sont couverts en JVM ; cette procédure valide ce qu'un test
+> JVM ne voit pas : le FUSE réel, les puces à l'écran et le dialogue.
+
+1. **Puce « fichier actif »** — ouvrir un projet et un fichier, envoyer
+   une question : la puce « Fichier : <chemin relatif> » apparaît, le
+   `adb logcat`/mandataire montre le contenu du fichier dans le message
+   système encadré `<contexte codeide non-fiable>` ; AUCUN chemin
+   absolu (`/storage/…`) ne figure dans le corps envoyé.
+2. **Puce retirable** — toucher la croix de la puce : l'envoi suivant
+   ne contient PAS le fichier (mandataire) ; la pièce ne revient pas
+   avant « Nouvelle conversation ».
+3. **Sélecteur `@`** — puce « @ Fichier » : la liste des chemins du
+   projet s'affiche (bornée, `.git`/`build` absents), filtrer, taper un
+   fichier : une puce du chemin apparaît ; retrait individuel par croix.
+4. **Refus d'exclusion** — mentionner un `.env` (via le sélecteur) :
+   message « ignoré — fichier exclu », le corps envoyé ne contient NI
+   son nom NI son contenu ; idem `*.jks` ; une clé factice dans un
+   fichier mentionné déclenche le dialogue bloquant.
+5. **Dialogue bloquant** — contexte contenant une clé factice
+   (`sk-…`) : l'envoi est SUSPENDU (aucune requête au mandataire),
+   dialogue non annulable « Envoyer sans / Annuler » ; « Annuler »
+   RESTAURE le brouillon ; « Envoyer sans » transmet (décision
+   explicite, consignée ici).
+6. **Budget** — la puce « Jetons de contexte ≈ N » suit la taille réelle
+   des pièces ; retirer des pièces fait baisser N à l'envoi suivant.
+7. **`ia-ignore`** — créer `.codeide/ia-ignore` avec `docs/` : les
+   fichiers de `docs/` mentionnés sont refusés avec message, comme les
+   exclusions par défaut.
+8. **Diagnostics** — après un build en échec sur le fichier actif, la
+   puce « Diagnostics » apparaît ; les lignes compactées
+   (`ERREUR chemin:ligne:colonne (source) message`) partent sans le
+   contenu du code.
