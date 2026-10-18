@@ -55,7 +55,7 @@
             android:paddingBottom="3dp"
             android:textAppearance="?attr/textAppearanceLabelSmall"
             android:textSize="11sp"
-            android:textColor="@color/preview_section_badge_texte"
+            android:textColor="?attr/apercuNouveau"
             android:visibility="gone" />
 
         <!-- La flèche d'état (« ▾ fermée » / « ▴ ouverte »), posée au liage. -->

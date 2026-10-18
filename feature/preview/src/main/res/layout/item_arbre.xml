@@ -55,5 +55,5 @@
         android:layout_weight="1"
         android:gravity="end|center_vertical"
         android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="@color/preview_probleme_neutre" />
+        android:textColor="?attr/apercuTexteDoux" />
 </LinearLayout>

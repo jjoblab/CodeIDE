@@ -27,7 +27,7 @@ class VoletsPreviewLayoutTest {
     /** Gonfle un layout sous le thème réel de l'application. */
     private fun gonfler(ressource: Int): View {
         val base = ApplicationProvider.getApplicationContext<Context>()
-        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val contexte = ContextThemeWrapper(base, R.style.Theme_CodeIDE_Apercu)
         return LayoutInflater.from(contexte).inflate(ressource, null)
     }
 

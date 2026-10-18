@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille « tools » (.ns.tools) : violet doux. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuNouveauFond" />
+    <corners android:radius="@dimen/apercu_ns_rayon" />
+</shape>

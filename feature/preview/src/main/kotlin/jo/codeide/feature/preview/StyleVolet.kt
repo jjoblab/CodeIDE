@@ -32,8 +32,8 @@ internal object StyleVolet {
     internal val couleurFondSecondaire: Int = RMaterial.attr.colorSecondaryContainer
     internal val couleurSurface: Int = RMaterial.attr.colorSurface
     internal val couleurContour: Int = RMaterial.attr.colorOutlineVariant
-    internal val couleurAccentViolet: Int = R.color.preview_section_badge_texte
-    internal val couleurAccentVioletFond: Int = R.color.preview_section_badge_fond
+    internal val couleurAccentViolet: Int = R.attr.apercuNouveau
+    internal val couleurAccentVioletFond: Int = R.attr.apercuNouveauFond
 
     /** La mesure souple (constante de plateforme, lisible). */
     internal const val WRAP: Int = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -53,12 +53,6 @@ internal object StyleVolet {
         contexte.theme.resolveAttribute(attribut, valeur, true)
         return valeur.data
     }
-
-    /** La couleur d'un JETON du module (ressource `preview_*`). */
-    internal fun couleurRessource(
-        contexte: Context,
-        ressource: Int,
-    ): Int = ContextCompat.getColor(contexte, ressource)
 
     /** Le fond réactif des rangées cliquables (ondulation du thème). */
     internal fun fondReactif(contexte: Context): Drawable? {

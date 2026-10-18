@@ -1,5 +1,47 @@
 # Journal des modifications
 
+## [0.146.0] – 2026-10-19
+
+### PE11a — jetons de la maquette, thème de l'aperçu, test de parité
+
+#### Ajouté
+
+- **39 jetons `apercu_*`** (clair ET nuit, valeurs EXACTES du bloc `:root`
+  de la maquette v5) dans `:feature:preview`, exposés par **37 attributs de
+  thème `apercu*`** (`values/attrs.xml`) et câblés par
+  **`Theme.CodeIDE.Apercu`** (`values/themes.xml`, posé sur
+  `PreviewActivity`) : le thème recâble aussi les rôles Material 3
+  (`colorSurface`, `colorOutline`, conteneurs primaires…) sur les jetons
+  de la maquette (ADR 0131).
+- **`JetonsMaquetteTest`** (JVM pur, `:feature:preview`) : compare chaque
+  jeton clair/nuit à `docs/mockups/ref/jetons-maquette.json` (ARGB exact),
+  vérifie que chaque attribut `apercu*` est câblé dans le thème et que les
+  couleurs de marque de `:core:ui` restent égales aux jetons primaires/
+  erreur de la maquette — PREVIEW_UI.md § 12.1.
+- Styles `Widget.CodeIDE.Apercu.*` / `TextAppearance` et dimens `apercu_*`
+  de référence (`values/{styles,dimens}.xml`), les 5 drawables et 6 listes
+  d'états qu'ils référencent, ainsi que les 14 chaînes `preview_attr_*`
+  (FR + EN) consommées par les lots PE11b et suivants.
+- La nuit du badge « n définis » devient `#3A2A66` plein (fin du
+  translucide `#33C4A8FF` hérité de PE7e) et l'ambre des avertissements
+  passe de `#B8860B` à `#9A6700` (valeur exacte de la maquette).
+
+#### Modifié
+
+- **Migration des jetons `preview_*`** (PREVIEW_UI.md § 5) :
+  `preview_probleme_*` (3) et `preview_section_badge_*` (2) SUPPRIMÉS —
+  leurs lecteurs lisent désormais `?attr/apercuErreur` / `apercuAvert` /
+  `apercuTexteDoux` / `apercuNouveau(Fond)` (liage Kotlin via
+  `StyleVolet.couleur`, layouts et drawables en `?attr/`) ;
+  `preview_bulle_*` / `preview_palette_icone` deviennent des ALIAS vers
+  `@color/apercu_*` ; `preview_menu_fond` conservé tel quel (écart
+  documenté, PREVIEW.md § 3.4.1).
+- `fond_tag_ambre` : le littéral ambre `#38B8860B` devient le jeton
+  `?attr/apercuAvertTag` (miroir exact `.tag.wr`, nuit correcte).
+- Pastille d'état « en édition » : `codeide_journal_warn` →
+  `?attr/apercuAvert` (mêmes valeurs, un attribut sémantique de moins en
+  contournement) ; `StyleVolet.couleurRessource` supprimé (orphelin).
+
 ## [0.145.2] – 2026-10-19
 
 ### Lot « design exact de tous les écrans de l'aperçu » (docs) + mesures CI

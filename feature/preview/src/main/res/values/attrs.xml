@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Attributs de thème de l'APERÇU (ADR 0131) : un attribut par jeton de la maquette
+  (`docs/mockups/apercu-xml.html`, bloc `:root`). Les layouts, drawables et styles du module
+  ne lisent JAMAIS une couleur directement : ils passent par `?attr/apercu*` (règle 3).
+  Les valeurs vivent dans `colors.xml` / `values-night/colors.xml`, câblées par
+  `Theme.CodeIDE.Apercu` (themes.xml).
+-->
+<resources>
+    <attr name="apercuFond" format="color" />  <!-- bg -->
+    <attr name="apercuSurface" format="color" />  <!-- surface -->
+    <attr name="apercuSurface2" format="color" />  <!-- surface2 -->
+    <attr name="apercuTexte" format="color" />  <!-- fg -->
+    <attr name="apercuTexteDoux" format="color" />  <!-- muted -->
+    <attr name="apercuTrait" format="color" />  <!-- line -->
+    <attr name="apercuPrimaire" format="color" />  <!-- primary -->
+    <attr name="apercuSurPrimaire" format="color" />  <!-- on-primary -->
+    <attr name="apercuPrimaireConteneur" format="color" />  <!-- primary-c -->
+    <attr name="apercuSurPrimaireConteneur" format="color" />  <!-- on-primary-c -->
+    <attr name="apercuAccent" format="color" />  <!-- accent -->
+    <attr name="apercuAccentDoux" format="color" />  <!-- accent-soft -->
+    <attr name="apercuSucces" format="color" />  <!-- ok -->
+    <attr name="apercuAvert" format="color" />  <!-- warn -->
+    <attr name="apercuErreur" format="color" />  <!-- err -->
+    <attr name="apercuErreurConteneur" format="color" />  <!-- err-c -->
+    <attr name="apercuMarge" format="color" />  <!-- margin -->
+    <attr name="apercuRemplissage" format="color" />  <!-- padding -->
+    <attr name="apercuNouveau" format="color" />  <!-- new -->
+    <attr name="apercuNouveauFond" format="color" />  <!-- new-c -->
+    <attr name="apercuSurNouveau" format="color" />  <!-- on-new -->
+    <attr name="apercuNouveauDoux" format="color" />  <!-- new-soft -->
+    <attr name="apercuDamierCase" format="color" />  <!-- checker -->
+    <attr name="apercuEpingleAvert" format="color" />  <!-- pin-warn -->
+    <attr name="apercuEpingleErreur" format="color" />  <!-- pin-err -->
+    <attr name="apercuBornes" format="color" />  <!-- bounds -->
+    <attr name="apercuAvertTag" format="color" />  <!-- tag-wr -->
+    <attr name="apercuEcranTrait" format="color" />  <!-- screen-ring -->
+    <attr name="apercuEcranOmbre" format="color" />  <!-- screen-shadow -->
+    <attr name="apercuSurCalque" format="color" />  <!-- on-overlay -->
+    <attr name="apercuSourceInsere" format="color" />  <!-- ins -->
+    <attr name="apercuSourceVue" format="color" />  <!-- hl2 -->
+    <attr name="apercuMargeFond" format="color" />  <!-- margin-fill -->
+    <attr name="apercuRemplissageFond" format="color" />  <!-- padding-fill -->
+    <attr name="apercuCorrectifFond" format="color" />  <!-- color-mix(warn 9% sur surface) -->
+    <attr name="apercuCorrectifTrait" format="color" />  <!-- color-mix(warn 45% avec line) -->
+    <attr name="apercuAvertDoux" format="color" />  <!-- color-mix(warn 20% transparent) -->
+</resources>
