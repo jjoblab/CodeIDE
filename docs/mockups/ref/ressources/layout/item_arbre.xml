@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Une rangée de l'onglet ARBRE (.row) — RÉFÉRENCE (ADR 0134). Hauteur 34 dp = 20 (monogramme) + 7 + 7.
+  paddingStart = 8 + profondeur x 16 dp (posé au liage). Monogramme 20 dp (surface 2, rayon 5, initiale mono
+  10 / 600 en primaire) ; classe et id en mono 12,5 (id gris doux, ellipsé) ; badge à droite : « ! n »
+  (Avert) ou dimensions « 345×48 » (neutre). Sélectionnée = isSelected (accent doux). Remplace
+  fond_monogramme (colorPrimaryContainer, 24 dp) et le badge sans fond.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_arbre"
+    style="@style/Widget.CodeIDE.Apercu.Rangee"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/pill_monogramme"
+        style="@style/Widget.CodeIDE.Apercu.Monogramme"
+        android:layout_width="@dimen/apercu_monogramme"
+        android:layout_height="@dimen/apercu_monogramme"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/libelle_classe"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_rangee_gap"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Rangee" />
+
+    <TextView
+        android:id="@+id/libelle_id"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_rangee_gap"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.RangeeId" />
+
+    <!-- margin-left:auto : le badge se range à droite (poids 1 sur un espace). -->
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/badge_arbre"
+        style="@style/Widget.CodeIDE.Apercu.BadgeRangee"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_rangee_gap" />
+</LinearLayout>

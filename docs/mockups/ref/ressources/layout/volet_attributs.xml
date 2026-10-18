@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  VOLET ATTRIBUTS (maquette `#pane` quand l'onglet Attributs est actif) : un RecyclerView unique.
+  Padding 8/10/14/10 dp, cartes séparées de 10 dp (ItemDecoration ou divider), clipToPadding=false.
+  Items, dans l'ordre : 0 titre (entete_editeur) · 1 barre d'outils (barre_outils_attributs, épinglée) ·
+  2 correctifs (si besoin) · N cartes (carte_section) · bouton « autres » · séparateur + lecture seule.
+  Le fond du volet est TRANSPARENT : la surface vient de la feuille (apercu_feuille_fond).
+-->
+<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/volet_attributs"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:paddingStart="@dimen/apercu_pane_pad_h"
+    android:paddingTop="@dimen/apercu_pane_pad_haut"
+    android:paddingEnd="@dimen/apercu_pane_pad_h"
+    android:paddingBottom="@dimen/apercu_pane_pad_bas"
+    android:scrollbars="vertical" />

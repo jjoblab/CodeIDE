@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volet SOURCE — RÉFÉRENCE (ADR 0134). En-tête `.openrow` : plage « Lignes 12 à 19 » (12 gris doux) à gauche,
+  bouton « Ouvrir dans l'éditeur ↗ » (BoutonLien, 26 dp, trait 1 dp, rayon 8, accent) à droite ; padding
+  2 / 4 / 8 / 4 ; puis le texte en RecyclerView (padding vertical 4, horizontal 10 = .pane). Les lignes longues sont
+  TRONQUÉES (écart toléré : la maquette défile horizontalement, cf. PREVIEW_UI_ECRANS.md, points ouverts).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/apercu_pane_pad_h"
+    android:paddingTop="@dimen/apercu_pane_pad_haut"
+    android:paddingEnd="@dimen/apercu_pane_pad_h">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/apercu_ouvrir_pad_h"
+        android:paddingTop="@dimen/apercu_ouvrir_pad_haut"
+        android:paddingEnd="@dimen/apercu_ouvrir_pad_h"
+        android:paddingBottom="@dimen/apercu_ouvrir_pad_bas">
+
+        <TextView
+            android:id="@+id/plage_source"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/apercu_ouvrir_gap"
+            android:layout_weight="1"
+            android:text="@string/preview_feuille_source_entier"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.OuvrirTexte" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_ouvrir_editeur"
+            style="@style/Widget.CodeIDE.Apercu.BoutonLien"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/preview_feuille_ouvrir_editeur" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_source"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:contentDescription="@string/preview_feuille_onglet_source"
+        android:paddingTop="@dimen/apercu_source_pad_v"
+        android:paddingBottom="@dimen/apercu_pane_pad_bas"
+        tools:itemCount="12"
+        tools:listitem="@layout/item_ligne_source" />
+</LinearLayout>

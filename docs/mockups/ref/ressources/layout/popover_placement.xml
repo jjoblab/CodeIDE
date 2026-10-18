@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  POPUP de placement — RÉFÉRENCE (ADR 0134), remplace popover_placement.xml. Miroir de `.pop.bot`.
+  Géométrie : collé en BAS du rendu, marge 10 dp à gauche, à droite et en bas, hauteur max 340 dp.
+  Coque OPAQUE, padding 12, espacement 10. Le mini-arbre (`.mini`) utilise les MÊMES rangées que l'onglet
+  Arbre (monogramme surface 2 + classe + id), et la rangée de référence est surlignée en ACCENT doux
+  (pas en violet). Écarts avec l'actuel : monogramme violet supprimé, id affiché, positions à sélection
+  visible, résumé avec la valeur en violet.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/placement_racine"
+    style="@style/Widget.CodeIDE.Apercu.Popover"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:layout_marginStart="@dimen/apercu_popover_marge_h"
+    android:layout_marginEnd="@dimen/apercu_popover_marge_h"
+    android:layout_marginBottom="@dimen/apercu_popover_marge_h"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/apercu_palette_entete_hauteur"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/titre_placement"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.PopoverTitre" />
+
+        <ImageButton
+            android:id="@+id/bouton_fermer_placement"
+            style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+            android:layout_width="@dimen/apercu_bouton_icone"
+            android:layout_height="@dimen/apercu_bouton_icone"
+            android:contentDescription="@string/preview_placement_fermer_cd"
+            android:src="@drawable/apercu_ic_fermer" />
+    </LinearLayout>
+
+    <!-- .mini : cadre trait 1 dp, rayon 10, padding 4, 150 dp max ; défile. Hauteur bornée par le code
+         (ScrollView n'a pas de maxHeight) : LayoutParams.height = min(contenu, 150 dp). -->
+    <ScrollView
+        android:id="@+id/defile_arbre_placement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:background="@drawable/apercu_mini_fond"
+        android:contentDescription="@string/preview_placement_arbre_cd"
+        android:padding="@dimen/apercu_mini_pad">
+
+        <LinearLayout
+            android:id="@+id/lignes_arbre_placement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <!-- .pos : trois boutons égaux, surface 2, padding 4, espacement 4. -->
+    <LinearLayout
+        android:id="@+id/groupe_position"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:background="@drawable/apercu_mode_palette_conteneur"
+        android:orientation="horizontal"
+        android:padding="@dimen/apercu_position_pad">
+
+        <TextView
+            android:id="@+id/position_avant"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/preview_placement_avant" />
+
+        <TextView
+            android:id="@+id/position_dedans"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/apercu_position_gap"
+            android:layout_marginEnd="@dimen/apercu_position_gap"
+            android:text="@string/preview_placement_dedans" />
+
+        <TextView
+            android:id="@+id/position_apres"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/preview_placement_apres" />
+    </LinearLayout>
+
+    <!-- .res : mono 12, « Dans <b>X</b>, position <b>n</b> sur total » — les <b> en violet (ResumeFort). -->
+    <TextView
+        android:id="@+id/resume_placement"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Resume" />
+
+    <!-- .prim : bouton violet plein largeur, 37 dp, rayon 12. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_placer"
+        style="@style/Widget.CodeIDE.Apercu.Principal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:text="@string/preview_placement_confirmer" />
+</LinearLayout>

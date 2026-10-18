@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rangée de dimension (maquette `.dimrow`) : étiquette mono 11 sp de 56 dp, segments wrap_content /
+  match_parent / fixe, champ numérique mono 12 sp 64×28 visible seulement en « fixe ». Écart 8 dp.
+  Cote : rangée 374×30.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rangee_dimension"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/etiquette_dimension"
+        style="@style/Widget.CodeIDE.Apercu.Etiquette"
+        android:layout_width="@dimen/apercu_dim_etiquette_largeur"
+        android:layout_height="wrap_content" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_dimension"
+        style="@style/Widget.CodeIDE.Apercu.GroupeSegments"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_dim_gap" />
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/champ_dimension"
+        style="@style/Widget.CodeIDE.Apercu.ChampNum"
+        android:layout_width="@dimen/apercu_champ_num_largeur"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_dim_gap"
+        android:imeOptions="actionDone"
+        android:visibility="gone" />
+</LinearLayout>

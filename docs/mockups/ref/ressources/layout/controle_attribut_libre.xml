@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Section « Autres attributs » (maquette `.other`) : une rangée par attribut non couvert par les
+  contrôles (nom en code, valeur éditable, bouton ↺/✕), puis la rangée d'AJOUT (nom + valeur +
+  « Ajouter »). Grille 1fr | 1fr | auto, écart 6 dp. Les rangées existantes viennent de
+  `item_attribut_libre`, gonflées dans `liste_attributs_libres`.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_attribut_libre"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:divider="@drawable/apercu_espace_controles"
+    android:orientation="vertical"
+    android:showDividers="middle">
+
+    <LinearLayout
+        android:id="@+id/liste_attributs_libres"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:divider="@drawable/apercu_espace_controles"
+        android:orientation="vertical"
+        android:showDividers="middle" />
+
+    <LinearLayout
+        android:id="@+id/rangee_ajout_attribut"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+            android:id="@+id/champ_nouveau_nom"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/preview_attr_nom_hint"
+            android:inputType="textNoSuggestions" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/champ_nouvelle_valeur"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_couleur_gap"
+            android:layout_weight="1"
+            android:hint="@string/preview_attr_valeur_hint"
+            android:imeOptions="actionDone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_ajouter_attribut"
+            style="@style/Widget.CodeIDE.Apercu.BoutonLien"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_couleur_gap"
+            android:text="@string/preview_attr_ajouter" />
+    </LinearLayout>
+</LinearLayout>

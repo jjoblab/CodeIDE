@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Volet PROBLÈMES — RÉFÉRENCE (ADR 0134) : RecyclerView (padding .pane) + message vide (.empty) affiché quand
+  la liste est vide : « Aucun problème détecté à cette taille et à cette police. ».
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_problemes"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:contentDescription="@string/preview_feuille_onglet_problemes"
+        android:paddingStart="@dimen/apercu_pane_pad_h"
+        android:paddingTop="@dimen/apercu_pane_pad_haut"
+        android:paddingEnd="@dimen/apercu_pane_pad_h"
+        android:paddingBottom="@dimen/apercu_pane_pad_bas"
+        tools:itemCount="4"
+        tools:listitem="@layout/item_probleme" />
+
+    <TextView
+        android:id="@+id/message_aucun_probleme"
+        style="@style/Widget.CodeIDE.Apercu.Vide"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/preview_feuille_aucun_probleme"
+        android:visibility="gone" />
+</FrameLayout>

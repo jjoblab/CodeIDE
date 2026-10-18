@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne de source (.src div) : isSelected = racine sélectionnée (.hl, accent doux) ; isActivated = plage de la vue sélectionnée (.hl2, jeton apercuSourceVue). Appuyée = surface 2. Le surlignage « inséré » (.ins, 26 % de succès) se pose en code par un fond temporaire apercuSourceInsere. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuSourceVue" />
+            <corners android:radius="@dimen/apercu_source_rayon" />
+        </shape>
+    </item>
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuAccentDoux" />
+            <corners android:radius="@dimen/apercu_source_rayon" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuSurface2" />
+            <corners android:radius="@dimen/apercu_source_rayon" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="@dimen/apercu_source_rayon" />
+        </shape>
+    </item>
+</selector>

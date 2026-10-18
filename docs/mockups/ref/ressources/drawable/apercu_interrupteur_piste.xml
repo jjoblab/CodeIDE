@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Piste de l'interrupteur (.sw) : « trait » éteint, « accent » allumé, 34 x 20, pilule. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuAccent" />
+            <size android:width="@dimen/apercu_interrupteur_largeur" android:height="@dimen/apercu_interrupteur_hauteur" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuTrait" />
+            <size android:width="@dimen/apercu_interrupteur_largeur" android:height="@dimen/apercu_interrupteur_hauteur" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+</selector>

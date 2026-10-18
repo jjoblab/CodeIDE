@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Champ de saisie (.fld input) : fond « fond », trait 1 dp « trait », rayon 8. L'état d'erreur (.bad) = view.isActivated → voir apercu_champ_fond_erreur. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuFond" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_champ_rayon" />
+</shape>

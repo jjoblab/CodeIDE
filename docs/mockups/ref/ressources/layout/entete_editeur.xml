@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Titre du volet (maquette `.ed h5`, « MODIFIER · BUTTON ») : mono 10 sp / 600, capitales,
+  interlettrage 0.08 em, gris doux. Item 0 de la liste. Cote : 398×10 (hauteur de ligne = 10).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/titre_editeur"
+    style="@style/Widget.CodeIDE.Apercu.TitreGroupe"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingBottom="@dimen/apercu_titre_editeur_pad_bas" />

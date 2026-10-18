@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Conteneur des segments (.seg2) : fond « surface 2 », rayon 9. Le padding 2 dp est posé sur la vue. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_segments_rayon" />
+</shape>

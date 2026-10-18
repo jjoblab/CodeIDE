@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bouton de la pastille de mode (.seg button) : coché = primaire plein. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="?attr/apercuPrimaire" />
+    <item android:color="@android:color/transparent" />
+</selector>

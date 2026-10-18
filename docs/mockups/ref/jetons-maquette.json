@@ -1,0 +1,202 @@
+{
+ "apercu_fond": {
+  "css": "--bg",
+  "clair": "#F9F9FF",
+  "nuit": "#111318"
+ },
+ "apercu_surface": {
+  "css": "--surface",
+  "clair": "#FFFFFF",
+  "nuit": "#1A1E25"
+ },
+ "apercu_surface2": {
+  "css": "--surface2",
+  "clair": "#EEEEF7",
+  "nuit": "#20252E"
+ },
+ "apercu_texte": {
+  "css": "--fg",
+  "clair": "#1A1B21",
+  "nuit": "#E2E1E9"
+ },
+ "apercu_texte_doux": {
+  "css": "--muted",
+  "clair": "#5B5C66",
+  "nuit": "#A3A3AE"
+ },
+ "apercu_trait": {
+  "css": "--line",
+  "clair": "#D6D5E0",
+  "nuit": "#2C323D"
+ },
+ "apercu_primaire": {
+  "css": "--primary",
+  "clair": "#43559E",
+  "nuit": "#BAC4FF"
+ },
+ "apercu_sur_primaire": {
+  "css": "--on-primary",
+  "clair": "#FFFFFF",
+  "nuit": "#0C2264"
+ },
+ "apercu_primaire_conteneur": {
+  "css": "--primary-c",
+  "clair": "#DCE1FF",
+  "nuit": "#293D8F"
+ },
+ "apercu_sur_primaire_conteneur": {
+  "css": "--on-primary-c",
+  "clair": "#001159",
+  "nuit": "#DCE1FF"
+ },
+ "apercu_accent": {
+  "css": "--accent",
+  "clair": "#1E6EC8",
+  "nuit": "#7AB8F5"
+ },
+ "apercu_accent_doux": {
+  "css": "--accent-soft",
+  "clair": "#241E6EC8",
+  "nuit": "#2E7AB8F5"
+ },
+ "apercu_succes": {
+  "css": "--ok",
+  "clair": "#2E7D32",
+  "nuit": "#81C995"
+ },
+ "apercu_avert": {
+  "css": "--warn",
+  "clair": "#9A6700",
+  "nuit": "#FDD663"
+ },
+ "apercu_erreur": {
+  "css": "--err",
+  "clair": "#BA1A1A",
+  "nuit": "#FFB4AB"
+ },
+ "apercu_erreur_conteneur": {
+  "css": "--err-c",
+  "clair": "#FFDAD6",
+  "nuit": "#93000A"
+ },
+ "apercu_marge": {
+  "css": "--margin",
+  "clair": "#D9822B",
+  "nuit": "#F0A35A"
+ },
+ "apercu_remplissage": {
+  "css": "--padding",
+  "clair": "#2E8B4B",
+  "nuit": "#6FC47A"
+ },
+ "apercu_nouveau": {
+  "css": "--new",
+  "clair": "#7C3AED",
+  "nuit": "#C4A8FF"
+ },
+ "apercu_nouveau_fond": {
+  "css": "--new-c",
+  "clair": "#EDE5FF",
+  "nuit": "#3A2A66"
+ },
+ "apercu_sur_nouveau": {
+  "css": "--on-new",
+  "clair": "#FFFFFF",
+  "nuit": "#1B0B3D"
+ },
+ "apercu_nouveau_doux": {
+  "css": "--new-soft",
+  "clair": "#247C3AED",
+  "nuit": "#33C4A8FF"
+ },
+ "apercu_damier_case": {
+  "css": "--checker",
+  "clair": "#21808096",
+  "nuit": "#21808096"
+ },
+ "apercu_epingle_avert": {
+  "css": "--pin-warn",
+  "clair": "#B8860B",
+  "nuit": "#B8860B"
+ },
+ "apercu_epingle_erreur": {
+  "css": "--pin-err",
+  "clair": "#BA1A1A",
+  "nuit": "#BA1A1A"
+ },
+ "apercu_bornes": {
+  "css": "--bounds",
+  "clair": "#801E6EC8",
+  "nuit": "#801E6EC8"
+ },
+ "apercu_avert_tag": {
+  "css": "--tag-wr",
+  "clair": "#389A6700",
+  "nuit": "#38FDD663"
+ },
+ "apercu_ecran_trait": {
+  "css": "--screen-ring",
+  "clair": "#2E000000",
+  "nuit": "#2E000000"
+ },
+ "apercu_ecran_ombre": {
+  "css": "--screen-shadow",
+  "clair": "#38000000",
+  "nuit": "#38000000"
+ },
+ "apercu_sur_calque": {
+  "css": "--on-overlay",
+  "clair": "#FFFFFF",
+  "nuit": "#FFFFFF"
+ },
+ "apercu_source_insere": {
+  "css": "--ins",
+  "clair": "#422E7D32",
+  "nuit": "#4281C995"
+ },
+ "apercu_source_vue": {
+  "css": "--hl2",
+  "clair": "#4C1E6EC8",
+  "nuit": "#4C7AB8F5"
+ },
+ "apercu_marge_fond": {
+  "css": "--margin-fill",
+  "clair": "#61D9822B",
+  "nuit": "#61F0A35A"
+ },
+ "apercu_remplissage_fond": {
+  "css": "--padding-fill",
+  "clair": "#612E8B4B",
+  "nuit": "#616FC47A"
+ },
+ "apercu_correctif_fond": {
+  "css": "color-mix(warn 9% sur surface)",
+  "clair": "#F6F1E8",
+  "nuit": "#2E2F2B",
+  "calcule": true
+ },
+ "apercu_correctif_trait": {
+  "css": "color-mix(warn 45% avec line)",
+  "clair": "#BBA47B",
+  "nuit": "#8A7C4E",
+  "calcule": true
+ },
+ "apercu_avert_doux": {
+  "css": "color-mix(warn 20% transparent)",
+  "clair": "#339A6700",
+  "nuit": "#33FDD663",
+  "calcule": true
+ },
+ "apercu_damier_a": {
+  "css": "damier A (#bbb)",
+  "clair": "#BBBBBB",
+  "nuit": "#BBBBBB",
+  "calcule": true
+ },
+ "apercu_damier_b": {
+  "css": "damier B (#fff)",
+  "clair": "#FFFFFF",
+  "nuit": "#FFFFFF",
+  "calcule": true
+ }
+}
