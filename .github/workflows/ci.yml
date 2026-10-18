@@ -8,24 +8,41 @@
 # (garde-fou-composite) qui clone les frères aux versions épinglées du
 # catalogue et construit avec -Pfreres.sources.
 #
-# Compile et vérifie le projet depuis GitHub (demande utilisateur, étape
-# T6) : la même chaîne que la vérification locale complète, SANS `clean`
-# (le build cache et la configuration cache font le travail — voir ADR
-# 0037). Les réglages mémoire séquentiels de gradle.properties sont
-# conservés tels quels : le workflow ne dérègle rien côté machine.
+# TROIS JOBS PARALLÈLES (ADR 0130, 2026-10-19 — amende ADR 0037 §2) :
+# le job unique historique tournait SEQUENTIEL (gradle.properties réglé
+# pour la sandbox locale 4 Go / 2 cœurs) sur un runner 4 vCPU / 16 Go —
+# ~90 % du run dans « Vérification complète », médiane 21,6 min (mesures
+# docs/STRATEGIE_VERIFICATION.md §6). La chaîne est scindée en :
+#   - statique        : spotlessCheck detekt checkModuleDependencies
+#   - tests           : testDebugUnitTest koverVerify
+#   - lint-et-assemble: lintDebug assembleDebug + signature + APK
+# Les réglages Gradle (parallélisme, workers, tas) passent par OPTIONS
+# CLI — gradle.properties reste inchangé (garde-fous mémoire de la
+# sandbox locale 4 Go). Le build cache Gradle étant adressé par
+# contenu, les trois jobs partagent les sorties déjà compilées.
 #
 # Les artefacts (APK debug, nommé avec la version) sont téléchargeables
 # depuis la page du run. L'APK est signé par le keystore debug PUBLIC
 # versionné (ADR 0067) et la signature est VÉRIFIÉE à chaque run :
 # les APK successifs se mettent à jour les uns sur les autres, sans
 # « conflit de package ».
+#
+# paths-ignore (**.md, docs/**) : la documentation pure ne consomme pas
+# de runner. Les tags v* restent garantis : un bump de version touche
+# toujours version.properties (non ignoré).
 name: CI
 
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
   schedule:
     # Garde-fou composite nocturne (03:00 UTC) : prouver que les SOURCES
@@ -37,18 +54,106 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Lecture GitHub Packages (settings.gradle.kts — le registre exige
+  # une auth même pour un paquet public) — partagée par les 3 jobs.
+  # Le secret porte un PAT read:packages ; les PR de forks n'y accèdent
+  # pas (résolution binaire impossible — repo mono-propriétaire, non
+  # applicable).
+  CODEIDE_PACKAGES_PAT: ${{ secrets.CODEIDE_PACKAGES_PAT }}
+
 jobs:
-  build:
-    name: Compilation et vérification complète (binaire Packages)
+  # ADR 0130 job 1/3 — filet anti-push sale : échoue en MINUTES sur un
+  # problème de formatage/detekt/frontières (leçon spotless v0.141-v0.143).
+  statique:
+    name: Statique — spotless, detekt, frontières de modules
     runs-on: ubuntu-latest
     # Le schedule ne déclenche que le garde-fou composite.
     if: github.event_name != 'schedule'
-    env:
-      # Lecture GitHub Packages (settings.gradle.kts — le registre exige
-      # une auth même pour un paquet public). Le secret porte un PAT
-      # read:packages ; les PR de forks n'y accèdent pas (résolution
-      # binaire impossible — repo mono-propriétaire, non applicable).
-      CODEIDE_PACKAGES_PAT: ${{ secrets.CODEIDE_PACKAGES_PAT }}
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle (cache wrapper + dépendances)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          # Fix ADR 0130 : l'ancien `github.ref != 'refs/tags/'` était
+          # toujours vrai pour un tag réel (refs/tags/vX.Y.Z) — les tags
+          # tournaient en cache LECTURE SEULE.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Accepter les licences du SDK Android
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Analyse statique (parallèle, tas 3g)
+        run: >
+          ./gradlew -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=3
+          -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+          spotlessCheck detekt checkModuleDependencies --stacktrace
+
+      - name: Publier les rapports en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-statique-${{ github.sha }}
+          path: |
+            **/build/reports/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ADR 0130 job 2/3 — tests unitaires + couverture.
+  tests:
+    name: Tests unitaires et couverture (kover)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle (cache wrapper + dépendances)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Accepter les licences du SDK Android
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      # Tas 6g + workers 3 : démon 6g + ~3 JVM de test (maxHeapSize des
+      # conventions build-logic) restent sous les 16 Go du runner.
+      - name: Tests unitaires et kover (parallèle, tas 6g)
+        run: >
+          ./gradlew -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=3
+          -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8"
+          testDebugUnitTest koverVerify --stacktrace
+
+      - name: Publier les rapports en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-tests-${{ github.sha }}
+          path: |
+            **/build/reports/**
+            **/build/test-results/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ADR 0130 job 3/3 — lint complet, assemblage, signature et APK.
+  lint-et-assemble:
+    name: Lint, assemblage et publication de l'APK
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
     steps:
       - name: Récupérer les sources
         uses: actions/checkout@v4
@@ -68,7 +173,7 @@ jobs:
       - name: Gradle (cache wrapper + dépendances)
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/tags/' }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
       # Signature debug STABLE — keystore public VERSIONNÉ dans
       # config/signature/ (ADR 0067) : le runner GitHub n'embarque aucun
@@ -88,8 +193,11 @@ jobs:
       - name: Accepter les licences du SDK Android
         run: yes | sdkmanager --licenses >/dev/null || true
 
-      - name: Vérification complète (sans clean — caches Gradle)
-        run: ./gradlew spotlessCheck detekt checkModuleDependencies lintDebug testDebugUnitTest koverVerify assembleDebug --stacktrace
+      - name: Lint et assemblage (parallèle, tas 6g)
+        run: >
+          ./gradlew -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=3
+          -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8"
+          lintDebug assembleDebug --stacktrace
 
       - name: Version du projet
         id: version
@@ -123,10 +231,9 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: rapports-echec-${{ github.sha }}
+          name: rapports-lint-${{ github.sha }}
           path: |
             **/build/reports/**
-            **/build/test-results/**
           if-no-files-found: ignore
           retention-days: 14
 
@@ -137,7 +244,7 @@ jobs:
   # DU CATALOGUE (gradle/libs.versions.toml — la même source que le binaire)
   # et prouve que les sources des 4 dépôts s'assemblent toujours ensemble,
   # via l'opt-in -Pfreres.sources. Chaîne bornée (pas de tests/lint/kover —
-  # c'est le job binaire ci-dessus qui les porte) : style, frontières de
+  # c'est les jobs binaire ci-dessus qui les portent) : style, frontières de
   # modules et compilation complète de l'app, JAR orchestrateur inclus.
   garde-fou-composite:
     name: Garde-fou — intégration composite des sources
