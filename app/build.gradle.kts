@@ -60,6 +60,15 @@ dependencies {
     // Terminal T5 : écran plein écran du terminal (destination de
     // navigation ouverte par les points d'entrée de T6).
     implementation(project(":feature:terminal"))
+    // Mission IA (ADR 0122) : l'app est le SEUL point de composition des
+    // mondes IA — le domaine (:core:ai), les adaptateurs réseau
+    // (:ai:providers), le stockage (:core:ai-storage) et les écrans
+    // (Paramètres → IA, tiroir au lot IA-3). Les features n'y entrent
+    // jamais ; l'app lie FournisseurIaActif → AiProvider (ModuleIa).
+    implementation(project(":core:ai"))
+    implementation(project(":core:ai-storage"))
+    implementation(project(":ai:providers"))
+    implementation(project(":feature:ai"))
     // Tooling G3 : agrégation Hilt du client tooling (liaison
     // GradleToolingRepository → GradleApiImpl dans le graphe final). L'app
     // ne consomme toujours le tooling que via l'interface du domaine

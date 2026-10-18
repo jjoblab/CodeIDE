@@ -10,11 +10,13 @@ import org.junit.Test
  */
 class AppErrorTest {
     @Test
-    fun `les six raisons de stockage existent et sont distinctes`() {
+    fun `les raisons de stockage existent et sont distinctes`() {
         val raisons = AppError.StorageReason.entries.map { it.name }
 
+        // KeyUnavailable (lot IA-2, ADR 0124 §1) : blob du coffre IA
+        // illisible après invalidation du Keystore — « Clé à ressaisir ».
         assertEquals(
-            listOf("PermissionLost", "NotFound", "AlreadyExists", "NoSpace", "NotWritable", "Io"),
+            listOf("PermissionLost", "NotFound", "AlreadyExists", "NoSpace", "NotWritable", "KeyUnavailable", "Io"),
             raisons,
         )
     }
@@ -108,9 +110,11 @@ class AppErrorTest {
     }
 
     @Test
-    fun `les six raisons IA existent et le Retry-After est absent par défaut`() {
+    fun `les raisons IA existent et le Retry-After est absent par défaut`() {
         val raisons = AppError.AiReason.entries.map { it.name }
 
+        // ConsentRequired + Configuration (lot IA-2) : gardes du routeur
+        // FournisseurIaActif — sans consentement, aucune requête ne part.
         assertEquals(
             listOf(
                 "Authentication",
@@ -119,6 +123,8 @@ class AppErrorTest {
                 "Offline",
                 "Timeout",
                 "MalformedResponse",
+                "ConsentRequired",
+                "Configuration",
             ),
             raisons,
         )

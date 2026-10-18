@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mission IA (lot IA-2) : chaînes des écrans Paramètres → IA.
+     Préfixe ia_, miroir exact de values-en/strings.xml. -->
+<resources>
+    <!-- Titres -->
+    <string name="ia_reglages_titre">Assistant IA</string>
+    <string name="ia_fournisseur_titre">Fournisseur IA</string>
+    <string name="ia_consentement_titre">Consentement IA</string>
+    <string name="ia_retour_cd">Retour aux paramètres</string>
+
+    <!-- Carte « Activer l\'assistant IA » -->
+    <string name="ia_carte_activation_titre">Activer l\'assistant IA</string>
+    <string name="ia_activation_sous_titre">L\'assistant ne part nulle part sans votre accord.</string>
+    <string name="ia_ligne_consentement">Ce qui est envoyé au fournisseur</string>
+    <string name="ia_cd_consentement">Consulter le consentement de premier usage</string>
+
+    <!-- Carte « Fournisseur » -->
+    <string name="ia_carte_fournisseur_titre">Fournisseur</string>
+    <string name="ia_fournisseur_anthropic">Anthropic</string>
+    <string name="ia_fournisseur_openai">Compatible OpenAI</string>
+    <string name="ia_fournisseur_sous_titre_ok">Clé enregistrée %1$s</string>
+    <string name="ia_fournisseur_sous_titre_absente">Clé à saisir</string>
+    <string name="ia_fournisseur_sous_titre_ressaisir">Clé à ressaisir</string>
+    <string name="ia_cd_ligne_fournisseur">Ouvrir le détail du fournisseur</string>
+
+    <!-- Carte « Modèle » -->
+    <string name="ia_carte_modele_titre">Modèle</string>
+    <string name="ia_modele_hint">Identifiant du modèle</string>
+    <string name="ia_bouton_actualiser">Actualiser la liste</string>
+    <string name="ia_actualiser_cd">Récupérer la liste des modèles du fournisseur actif</string>
+    <string name="ia_modeles_recenses">Modèles récupérés : %1$d</string>
+
+    <!-- Carte « Confidentialité » -->
+    <string name="ia_carte_confidentialite_titre">Confidentialité</string>
+    <string name="ia_conf_fichier">Fichier actif</string>
+    <string name="ia_conf_fichier_sous">Envoie le contenu du fichier ouvert dans l\'éditeur</string>
+    <string name="ia_conf_chemins">Liste des chemins du projet</string>
+    <string name="ia_conf_chemins_sous">Noms de fichiers uniquement, jamais leur contenu</string>
+    <string name="ia_conf_diagnostics">Diagnostics</string>
+    <string name="ia_conf_diagnostics_sous">Erreurs et avertissements visibles du fichier actif</string>
+
+    <!-- Carte « Limites » -->
+    <string name="ia_carte_limites_titre">Limites</string>
+    <string name="ia_limites_jetons_hint">Jetons de réponse maximum</string>
+    <string name="ia_limites_delai_hint">Délai d\'une requête (secondes)</string>
+
+    <!-- Détail fournisseur -->
+    <string name="ia_url_hint">URL de base (HTTPS, ou http://localhost)</string>
+    <string name="ia_url_erreur">HTTPS requis — HTTP réservé à la boucle locale (localhost)</string>
+    <string name="ia_cle_hint">Clé d\'API</string>
+    <string name="ia_cle_apercu_vide">Aucune clé enregistrée</string>
+    <string name="ia_cle_cd">Saisir la clé d\'API — masquée, jamais affichée</string>
+    <string name="ia_bouton_enregistrer_cle">Enregistrer la clé</string>
+    <string name="ia_bouton_supprimer_cle">Supprimer la clé</string>
+    <string name="ia_bouton_tester">Tester la connexion</string>
+    <string name="ia_test_en_cours">Test en cours…</string>
+    <string name="ia_test_succes">Connexion réussie — la clé est acceptée</string>
+    <string name="ia_test_echec">Échec : %1$s</string>
+    <string name="ia_bouton_utiliser">Utiliser ce fournisseur</string>
+    <string name="ia_utilise_actuel">Fournisseur actif</string>
+    <string name="ia_cle_enregistree">Clé enregistrée — elle reste sur cet appareil, chiffrée</string>
+    <string name="ia_cle_supprimee">Clé supprimée</string>
+    <string name="ia_erreur_cle_vide">Saisissez une clé avant de l\'enregistrer</string>
+    <string name="ia_fournisseur_active">Fournisseur actif : %1$s</string>
+
+    <!-- Consentement -->
+    <string name="ia_consentement_intro">L\'IA envoie des extraits de votre code au fournisseur que vous avez choisi. CodeIDE n\'a aucun serveur et ne collecte rien.</string>
+    <string name="ia_consentement_envoye_titre">Ce qui peut être envoyé</string>
+    <string name="ia_consentement_envoye_1">Le fichier actif (désactivable)</string>
+    <string name="ia_consentement_envoye_2">La sélection courante</string>
+    <string name="ia_consentement_envoye_3">Les diagnostics visibles (désactivables)</string>
+    <string name="ia_consentement_envoye_4">La liste des chemins du projet, jamais leur contenu</string>
+    <string name="ia_consentement_jamais_titre">Jamais envoyé</string>
+    <string name="ia_consentement_jamais_1">Les clés et fichiers de secrets (exclusion par défaut)</string>
+    <string name="ia_consentement_jamais_2">Les chemins absolus de l\'appareil</string>
+    <string name="ia_consentement_jamais_3">Votre identité git ou vos courriels</string>
+    <string name="ia_consentement_activer">Activer l\'assistant</string>
+    <string name="ia_consentement_pas_maintenant">Pas maintenant</string>
+
+    <!-- Erreurs (mappées depuis AppError.Ai / Storage) -->
+    <string name="ia_erreur_authentication">Clé absente ou refusée par le fournisseur</string>
+    <string name="ia_erreur_quota">Limite de débit atteinte — réessayez dans %1$d s</string>
+    <string name="ia_erreur_quota_simple">Limite de débit atteinte — réessayez un peu plus tard</string>
+    <string name="ia_erreur_service">Fournisseur momentanément indisponible</string>
+    <string name="ia_erreur_hors_ligne">Hors-ligne — vérifiez la connexion</string>
+    <string name="ia_erreur_delai">Délai dépassé — le fournisseur ne répond pas</string>
+    <string name="ia_erreur_illisible">Réponse illisible du fournisseur</string>
+    <string name="ia_erreur_consentement">Activez l\'assistant et donnez votre consentement avant tout envoi</string>
+    <string name="ia_erreur_configuration">Fournisseur incomplet : URL de base ou modèle à définir</string>
+    <string name="ia_erreur_cle_perdue">La clé chiffrée est illisible (Keystore réinitialisé) — ressaisissez-la</string>
+    <string name="ia_erreur_stockage">Accès au stockage impossible</string>
+    <string name="ia_erreur_inconnue">Erreur inattendue</string>
+</resources>

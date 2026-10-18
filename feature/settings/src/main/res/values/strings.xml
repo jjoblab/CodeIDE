@@ -95,9 +95,9 @@
     <string name="settings_bientot">Bientôt</string>
 
     <!-- Écran générique « bientôt disponible ». -->
-    <string name="settings_bientot_titre_ia">Assistant IA — bientôt disponible</string>
-    <string name="settings_bientot_texte_ia">Cette section apparaîtra dans le menu dès que le module sera prêt.</string>
     <string name="settings_bientot_titre_securite">Bientôt disponible</string>
+    <string name="settings_bientot_titre_generique">Bientôt disponible</string>
+    <string name="settings_bientot_texte_generique">Cette section sera livrée avec une prochaine version.</string>
     <string name="settings_bientot_texte_securite">Rapports de plantage, verrouillage de l\'app — proposition à valider avec toi.</string>
 
     <!-- Section Apparence. -->
@@ -200,7 +200,7 @@
     <string name="settings_cd_ligne_notifications">Ouvrir les réglages de notifications</string>
     <string name="settings_cd_ligne_editeur">Ouvrir les réglages de l\'éditeur</string>
     <string name="settings_cd_ligne_terminal">Ouvrir les réglages du terminal</string>
-    <string name="settings_cd_ligne_ia">Assistant IA — bientôt disponible</string>
+    <string name="settings_cd_ligne_ia">Assistant IA</string>
     <string name="settings_cd_ligne_projets">Ouvrir les réglages des projets</string>
     <string name="settings_cd_ligne_historique">Ouvrir les réglages de l\'historique local</string>
     <string name="settings_cd_ligne_env">Ouvrir l\'écran Environnement</string>

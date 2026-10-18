@@ -100,11 +100,18 @@ internal class AppNavigatorImpl
                 return
             }
             when (section) {
-                SectionParametres.IA, SectionParametres.SECURITE -> {
+                SectionParametres.SECURITE -> {
                     logger.d(TAG) { "navigation paramètres -> section bientôt disponible" }
                     val arguments = Bundle()
                     arguments.putString(CLE_SECTION_BIENTOT, section.name)
                     controleur.navigate(R.id.settings_bientot, arguments)
+                }
+
+                SectionParametres.IA -> {
+                    // Mission IA (lot IA-2) : section réelle — les écrans
+                    // vivent dans :feature:ai, la destination dans le graphe.
+                    logger.d(TAG) { "navigation paramètres -> réglages IA" }
+                    controleur.navigate(R.id.settings_ia)
                 }
 
                 else -> {
@@ -132,7 +139,8 @@ internal class AppNavigatorImpl
 
                             // Atteints seulement via la branche « bientôt »
                             // ci-dessus — branche conservée pour l'exhaustivité.
-                            SectionParametres.IA,
+                            SectionParametres.IA -> R.id.settings_ia
+
                             SectionParametres.SECURITE,
                             -> R.id.settings_bientot
                         }
@@ -140,6 +148,26 @@ internal class AppNavigatorImpl
                     controleur.navigate(destination)
                 }
             }
+        }
+
+        override fun openAiFournisseur(identifiantFournisseur: String) {
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_IA) {
+                logger.w(TAG) { "ouverture du détail fournisseur IA hors des écrans IA : ignorée" }
+                return
+            }
+            val arguments = Bundle()
+            arguments.putString(CLE_FOURNISSEUR_IA, identifiantFournisseur)
+            controleur.navigate(R.id.settings_ia_fournisseur, arguments)
+        }
+
+        override fun openAiConsentement() {
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_IA) {
+                logger.w(TAG) { "ouverture du consentement IA hors des écrans IA : ignorée" }
+                return
+            }
+            controleur.navigate(R.id.settings_ia_consentement)
         }
 
         override fun goBack() {
@@ -427,3 +455,18 @@ private const val CLE_PROJET_CREE = "accueil.projet_cree"
 
 /** Clé de la section « bientôt disponible » (ADR 0059). */
 private const val CLE_SECTION_BIENTOT = "section"
+
+/** Clé de l'argument « identifiant de fournisseur » (mission IA, lot IA-2). */
+private const val CLE_FOURNISSEUR_IA = "identifiant_fournisseur"
+
+/**
+ * Destinations depuis lesquelles la sous-navigation IA est autorisée
+ * (réglages, détail fournisseur, consentement) — garde symétrique du
+ * garde du maître des Paramètres.
+ */
+private val DESTINATIONS_IA =
+    setOf(
+        R.id.settings_ia,
+        R.id.settings_ia_fournisseur,
+        R.id.settings_ia_consentement,
+    )
