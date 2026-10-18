@@ -32,6 +32,11 @@ internal object TraductionsDiagnostic {
             // journaux (AppError.Session.details), pas dans l'UI.
             is AppError.Session -> R.string.diagnostics_erreur_session
 
+            // Mission IA (v0.136.0, ADR 0123) : échec typé du transport IA
+            // — la raison précise (clé, quota, hors-ligne…) vit dans les
+            // journaux (AppError.Ai.details), l'écran propose une action.
+            is AppError.Ai -> R.string.diagnostics_erreur_ia
+
             is AppError.Unknown -> R.string.diagnostics_erreur_stockage
         }
 

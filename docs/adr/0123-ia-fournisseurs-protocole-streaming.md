@@ -72,7 +72,7 @@ en milieu de séquence). Les fichiers dorés couvrent ce risque.
 - **À revoir** : passage à OkHttp si HTTP/2 ou le pool de connexions deviennent nécessaires.
 
 ## Actions
-1. [ ] Définir `AiProvider`, `AiRequest`, `AiEvent`, `AiModelInfo` dans `:core:ai` (lot IA-1).
-2. [ ] Implémenter `AiHttpTransport` + `SseParser` + 2 adaptateurs, avec fichiers dorés (lot IA-1).
-3. [ ] Test d'annulation : annuler le `Flow` ferme la socket en < 1 s (lot IA-1).
+1. [x] Définir `AiProvider`, `AiRequest`, `AiEvent`, `AiModelInfo` dans `:core:ai` (lot IA-1, v0.136.0).
+2. [x] Implémenter `AiHttpTransport` + `SseParser` + 2 adaptateurs, avec fichiers dorés (lot IA-1, v0.136.0).
+3. [x] Test d'annulation : annuler le `Flow` ferme la socket en < 1 s (lot IA-1, v0.136.0).
 4. [ ] Test « aucun nom de modèle codé en dur » (grep dans le test d'architecture) (lot IA-9).
