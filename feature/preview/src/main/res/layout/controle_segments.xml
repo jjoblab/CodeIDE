@@ -1,37 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Un contrôle à SEGMENTS (PE9b, miroir `.seg2` — le CHOIX et le TRI-ÉTAT
-  partagent CE layout) : libellé + rangée de segments outline (item
-  segment gonflé par le liage). Le PREMIER choix est le défaut (retrait
-  de l'attribut).
+  Contrôle à SEGMENTS (maquette `.seg2`) — CHOIX, TRI-ÉTAT, orientation, visibilité… Le premier
+  choix est le défaut (retrait de l'attribut). Conteneur : surface 2, rayon 9, padding 2 ; segment :
+  26 dp, rayon 7, 12 sp/500, coché = primaire plein + texte « sur primaire ». Renvoi à la ligne
+  assumé (maquette : `.sec2 .seg2 { flex-wrap: wrap }`). Les segments (item_segment) sont gonflés
+  par le liage. Cote : conteneur 374×30.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/controle_segments"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/libelle_controle"
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_segments"
+        style="@style/Widget.CodeIDE.Apercu.GroupeSegments"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="2dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
-
-    <LinearLayout
-        android:id="@+id/rangee_segments"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/fond_champ"
-        android:orientation="horizontal"
-        android:padding="2dp" />
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
 </LinearLayout>

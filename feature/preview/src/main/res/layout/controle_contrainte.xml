@@ -1,62 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UNE RANGÉE d'ancre de CONTRAINTE (PE9b, PE8b, miroir `.crow`) :
-  libellé de l'ancre, bouton CIBLE (menu Aucune / parent / frères à id)
-  et champ MARGE en dp — chaque geste = UNE édition au port. Dépliée
-  quatre fois (Début/Fin/Haut/Bas).
+  UNE RANGÉE d'ancre de CONTRAINTE (PE9b, PE8b, habillé PE11b aux
+  jetons) : libellé de l'ancre, bouton CIBLE (menu Aucune / parent /
+  frères à id) et champ MARGE en dp — chaque geste = UNE édition au
+  port. Dépliée quatre fois (Début/Fin/Haut/Bas). Habillage : étiquette
+  mono (56 dp, miroir `.dimrow label`), bouton lien, champ numérique.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rangee_contrainte"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingTop="2dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="2dp">
+    android:orientation="horizontal">
 
     <TextView
         android:id="@+id/libelle_ancre"
-        android:layout_width="64dp"
-        android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurface" />
+        style="@style/Widget.CodeIDE.Apercu.Etiquette"
+        android:layout_width="@dimen/apercu_dim_etiquette_largeur"
+        android:layout_height="wrap_content" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_cible"
-        style="@style/Widget.Material3.Button.OutlinedButton"
+        style="@style/Widget.CodeIDE.Apercu.BoutonLien"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textAllCaps="false"
-        android:focusable="true"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:minWidth="0dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="12sp"
-        android:insetLeft="0dp"
-        android:insetRight="0dp" />
+        android:focusable="true" />
 
-    <EditText
+    <androidx.appcompat.widget.AppCompatEditText
         android:id="@+id/champ_marge"
-        android:layout_width="72dp"
+        style="@style/Widget.CodeIDE.Apercu.ChampNum"
+        android:layout_width="@dimen/apercu_champ_num_largeur"
         android:layout_height="wrap_content"
-        android:background="@drawable/fond_champ"
-        android:importantForAutofill="no"
-        android:inputType="number"
-        android:paddingStart="6dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="6dp"
-        android:paddingBottom="8dp"
-        android:singleLine="true"
-        android:textAlignment="center"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="12sp"
-        android:textColor="?attr/colorOnSurface" 
-    tools:ignore="LabelFor" />
+        android:layout_marginStart="@dimen/apercu_dim_gap"
+        android:imeOptions="actionDone"
+        android:inputType="number" />
 </LinearLayout>

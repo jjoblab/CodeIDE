@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carte de section (.sec2) : surface, trait 1 dp, rayon 10. La carte porte padding=1dp pour que les enfants ne mordent pas sur le trait. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_section_rayon" />
+</shape>

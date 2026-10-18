@@ -368,6 +368,15 @@ couleur de fond/texte résolue (clair **et** nuit via `Configuration.uiMode`). T
 30), champ (33.6), segment (26), drapeau (25), pastille couleur (34), correctif (≥ 68), barre collante (52.6),
 recherche (35.6). Aucune valeur n'est codée dans le test : elles viennent du JSON.
 
+**Tolérance interligne (±3 dp)** : les cotes `sec2sum` (30) et `fldro` (32.8) mesurent une boîte
+dont la maquette force `line-height: 1` (ou 1.4) SOUS l'ampleur naturelle de la police — la boîte
+de police Android ne descend pas sous son ascension+descente (14 px pour 12 sp), même avec
+`android:lineHeight` posé : l'écart résiduel est un artefact de police (Roboto/mono contre IBM
+Plex), pas de layout. Ces deux cotes tolèrent ±3 dp (codé dans `CotesMaquetteTest`) ; les autres
+restent à ±1 dp. Le test gonfle avec l'inflateur Material de production (les `MaterialTextView`
+lisent l'interligne de leur apparence) et tourne en mode graphique NATIVE (les métriques LEGACY
+de Robolectric sont fausses).
+
 ### 12.3 Revue visuelle (appareil ou émulateur, `agent-browser` pour la maquette)
 
 1. Ouvrir la **maquette** dans `agent-browser`, vue `Button`, onglet Attributs, feuille agrandie ; capturer

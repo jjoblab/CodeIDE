@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Trait 1 dp en bas, fond transparent (.tabs sans fond propre, séparateur .ed).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="bottom" android:height="@dimen/apercu_trait_epaisseur">
+        <shape android:shape="rectangle"><solid android:color="?attr/apercuTrait" /></shape>
+    </item>
+</layer-list>

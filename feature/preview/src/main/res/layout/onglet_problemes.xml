@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onglet PROBLÈMES de la feuille (maquette `.tabs button` + `.tabs .n`) :
+  vue personnalisée d'un onglet TabLayout (le customView REMPLACE le
+  titre — libellé et pastille vont ensemble) : libellé 13 / 500 dont la
+  couleur suit la sélection (duplicateParentState + sélecteur
+  apercu_onglet_texte), puis pastille de compte ambre, mono 10, cachée à
+  zéro. Écart libellé ↔ pastille : 6 dp (`.tabs button gap`).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/libelle_onglet_problemes"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:duplicateParentState="true"
+        android:text="@string/preview_feuille_onglet_problemes"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Onglet" />
+
+    <TextView
+        android:id="@+id/pastille_onglet"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_onglet_gap"
+        android:background="@drawable/apercu_badge_onglet_fond"
+        android:importantForAccessibility="no"
+        android:paddingStart="@dimen/apercu_onglet_badge_pad_h"
+        android:paddingTop="@dimen/apercu_onglet_badge_pad_v"
+        android:paddingEnd="@dimen/apercu_onglet_badge_pad_h"
+        android:paddingBottom="@dimen/apercu_onglet_badge_pad_v"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.BadgeOnglet"
+        android:visibility="gone" />
+</LinearLayout>

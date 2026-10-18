@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Le VOLET VIDE (aucune vue sélectionnée — miroir `texteSimple` des
+  volets, PE11b) : un texte doux sur la surface du volet, sans trait ni
+  fond. Remplace le TextView construit en code (StyleVolet.texteVide)
+  pour CE volet uniquement (ADR 0132 : aucune vue en code).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/texte_volet"
+    style="@style/Widget.CodeIDE.Apercu.Texte"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/apercu_pane_pad_h"
+    android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Saisie"
+    android:textColor="?attr/apercuTexteDoux" />

@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -177,7 +179,14 @@ public class FeuilleApercuFragment : Fragment() {
             )
         titres.forEachIndexed { indice, titre ->
             val onglet = liaison.ongletsFeuille.newTab()
-            onglet.text = getString(titre)
+            if (indice == ONGLET_PROBLEMES) {
+                // Le badge de compte vit DANS l'onglet (miroir `.tabs .n`) :
+                // le customView REMPLACE le titre — libellé + pastille ensemble.
+                onglet.customView =
+                    layoutInflater.inflate(R.layout.onglet_problemes, liaison.ongletsFeuille, false)
+            } else {
+                onglet.text = getString(titre)
+            }
             liaison.ongletsFeuille.addTab(onglet, indice, indice == ONGLET_ARBRE)
         }
     }
@@ -243,12 +252,14 @@ public class FeuilleApercuFragment : Fragment() {
             }
     }
 
-    /** Le badge compteur de l'onglet Problèmes (miroir `nProbs`, caché à zéro). */
+    /** Le badge compteur de l'onglet Problèmes (miroir `nProbs`, caché à zéro) :
+     * la PASTILLE ambre de la maquette (`.tabs .n`) — BadgeDrawable ne porte
+     * pas la police mono (PREVIEW_UI.md § 8). */
     private fun majBadgeProblemes(problemes: List<ProblemesPreview.ProblemeApercu>) {
         val onglet = liaison.ongletsFeuille.getTabAt(ONGLET_PROBLEMES) ?: return
-        val badge = onglet.orCreateBadge
-        badge.isVisible = problemes.isNotEmpty()
-        badge.number = problemes.size
+        val pastille = onglet.customView?.findViewById<TextView>(R.id.pastille_onglet) ?: return
+        pastille.isVisible = problemes.isNotEmpty()
+        pastille.text = problemes.size.toString()
     }
 
     public companion object {
@@ -258,8 +269,9 @@ public class FeuilleApercuFragment : Fragment() {
         internal const val ONGLET_PROBLEMES: Int = 2
         internal const val ONGLET_SOURCE: Int = 3
 
-        /** Hauteur repliée de la feuille : poignée + onglets (miroir 72 px). */
-        private const val PEEK_DP: Int = 72
+        /** Hauteur repliée de la feuille : poignée (8 + 4 + 6 + fil + 6 ≈ 40)
+         * + onglets 37 (miroir 76 de la maquette, arrondi au-dessus). */
+        private const val PEEK_DP: Int = 78
 
         /** Le volet déployé en part de l'écran (PE9d — « expand plus haut »). */
         private const val RATIO_VOLET: Float = 0.48f

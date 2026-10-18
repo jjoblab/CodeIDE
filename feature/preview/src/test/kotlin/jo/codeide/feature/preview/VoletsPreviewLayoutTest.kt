@@ -38,9 +38,9 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
-    fun `le volet attributs se gonfle avec ses groupes`() {
+    fun `le volet attributs se gonfle avec sa liste recyclée`() {
         val volet = gonfler(R.layout.fragment_volet_attributs)
-        assertNotNull(volet.findViewById<View>(R.id.groupes_attributs))
+        assertNotNull(volet.findViewById<View>(R.id.volet_attributs))
     }
 
     @Test
@@ -114,22 +114,28 @@ class VoletsPreviewLayoutTest {
     @Test
     fun `le contrôle segments porte sa rangée (choix et tri-état partagés)`() {
         val controle = gonfler(R.layout.controle_segments)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
         assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
-        assertNotNull(controle.findViewById<View>(R.id.rangee_segments))
+        assertNotNull(controle.findViewById<View>(R.id.groupe_segments))
     }
 
     @Test
     fun `le contrôle cotes porte sa grille de quatre`() {
         val controle = gonfler(R.layout.controle_cotes)
-        assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
-        assertNotNull(controle.findViewById<View>(R.id.rangee_cotes))
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.cote_haut))
+        assertNotNull(controle.findViewById<View>(R.id.cote_droite))
+        assertNotNull(controle.findViewById<View>(R.id.cote_bas))
+        assertNotNull(controle.findViewById<View>(R.id.cote_gauche))
     }
 
     @Test
-    fun `le contrôle dimensions déplie ses deux axes`() {
-        val controle = gonfler(R.layout.controle_dimensions)
-        assertNotNull(controle.findViewById<View>(R.id.largeur))
-        assertNotNull(controle.findViewById<View>(R.id.hauteur))
+    fun `le contrôle dimensions porte son conteneur et sa rangée d'axe`() {
+        assertNotNull(gonfler(R.layout.controle_dimensions))
+        val rangee = gonfler(R.layout.item_dimension)
+        assertNotNull(rangee.findViewById<View>(R.id.etiquette_dimension))
+        assertNotNull(rangee.findViewById<View>(R.id.groupe_dimension))
+        assertNotNull(rangee.findViewById<View>(R.id.champ_dimension))
     }
 
     @Test
@@ -149,17 +155,51 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
-    fun `les petits items de l'éditeur se gonflent (extraction lecture seule saisies segment cote)`() {
+    fun `les petits items de l'éditeur se gonflent (extraction lecture seule saisies segment)`() {
         assertNotNull(gonfler(R.layout.controle_extraction).findViewById<View>(R.id.bouton_extraire))
-        assertNotNull(gonfler(R.layout.item_lecture_seule).findViewById<View>(R.id.texte_lecture_seule))
+        assertNotNull(gonfler(R.layout.item_lecture_seule).findViewById<View>(R.id.valeur_lecture_seule))
         assertNotNull(gonfler(R.layout.saisie_texte).findViewById<View>(R.id.champ_saisie))
         assertNotNull(gonfler(R.layout.saisie_nombre).findViewById<View>(R.id.champ_nombre))
         assertNotNull(gonfler(R.layout.item_segment).findViewById<View>(R.id.segment))
-        assertNotNull(gonfler(R.layout.item_cote).findViewById<View>(R.id.champ_cote))
-        assertNotNull(gonfler(R.layout.item_libelle).findViewById<View>(R.id.libelle_controle))
-        assertNotNull(gonfler(R.layout.item_titre_groupe).findViewById<View>(R.id.titre_groupe))
-        assertNotNull(gonfler(R.layout.item_attribut).findViewById<View>(R.id.libelle_attribut))
+        assertNotNull(gonfler(R.layout.item_attribut_groupe).findViewById<View>(R.id.titre_groupe_attributs))
+        assertNotNull(gonfler(R.layout.item_attribut).findViewById<View>(R.id.cle_attribut))
+        assertNotNull(gonfler(R.layout.item_attribut).findViewById<View>(R.id.valeur_attribut))
         assertNotNull(gonfler(R.layout.entete_editeur).findViewById<View>(R.id.titre_editeur))
         assertNotNull(gonfler(R.layout.separateur_editeur).findViewById<View>(R.id.separateur_editeur))
+    }
+
+    @Test
+    fun `l'entête champ porte le libellé la pastille et le reset`() {
+        val entete = gonfler(R.layout.entete_champ)
+        assertNotNull(entete.findViewById<View>(R.id.libelle_controle))
+        assertNotNull(entete.findViewById<View>(R.id.pastille_espace_noms))
+        assertNotNull(entete.findViewById<View>(R.id.bouton_reinitialiser))
+    }
+
+    @Test
+    fun `la barre d'outils porte la recherche et la bascule (masquées jusqu'à PE11f)`() {
+        val barre = gonfler(R.layout.barre_outils_attributs)
+        val recherche = barre.findViewById<View>(R.id.champ_recherche_attribut)
+        val bascule = barre.findViewById<View>(R.id.groupe_mode_attributs)
+        assertNotNull(recherche)
+        assertNotNull(bascule)
+        assertTrue("la recherche attend PE11f", recherche.visibility == View.GONE)
+        assertTrue("la bascule attend PE11f", bascule.visibility == View.GONE)
+    }
+
+    @Test
+    fun `l'onglet problèmes porte son libellé et sa pastille`() {
+        val onglet = gonfler(R.layout.onglet_problemes)
+        assertNotNull(onglet.findViewById<View>(R.id.libelle_onglet_problemes))
+        assertNotNull(onglet.findViewById<View>(R.id.pastille_onglet))
+        assertTrue(
+            "la pastille attend un problème",
+            onglet.findViewById<View>(R.id.pastille_onglet).visibility == View.GONE,
+        )
+    }
+
+    @Test
+    fun `le volet vide porte son texte`() {
+        assertNotNull(gonfler(R.layout.vide_volet).findViewById<View>(R.id.texte_volet))
     }
 }

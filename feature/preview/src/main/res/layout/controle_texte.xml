@@ -1,31 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Un contrôle TEXTE (PE9b) : libellé + conteneur de valeur — le liage
-  gonfle SOIT la saisie littérale (saisie_texte), SOIT le bloc lecture
-  seule (item_lecture_seule) quand la valeur est une référence @/?
-  (miroir `.ro` : « une référence se montre, jamais écrasée »).
+  Contrôle TEXTE / NOMBRE / IDENTIFIANT (maquette `.fld` + input text|number) : étiquette, puis
+  SOIT le champ éditable, SOIT le bloc lecture seule (valeur @string/… : « une référence se
+  montre, jamais écrasée »), puis note (`.note2`) et message de validation (`.fmsg`).
+  Le liage gonfle `saisie_texte` ou `item_lecture_seule` dans `conteneur_saisie`.
+  Erreur de validation : champ.background = apercu_champ_fond_erreur + message visible.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/controle_texte"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/libelle_controle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="2dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
 
     <FrameLayout
         android:id="@+id/conteneur_saisie"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+
+    <TextView
+        android:id="@+id/note_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/message_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
 </LinearLayout>

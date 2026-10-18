@@ -21,6 +21,7 @@
 
     <!-- Onglets (.tabs) -->
     <dimen name="apercu_onglets_pad_h">10dp</dimen>  <!-- .tabs padding -->
+    <dimen name="apercu_onglets_hauteur">37dp</dimen>  <!-- .tabs hauteur mesurée (PE11b) -->
     <dimen name="apercu_onglets_gap">2dp</dimen>  <!-- .tabs gap -->
     <dimen name="apercu_onglet_pad">10dp</dimen>  <!-- .tabs button padding -->
     <dimen name="apercu_onglet_indicateur">2dp</dimen>  <!-- border-bottom du bouton -->
