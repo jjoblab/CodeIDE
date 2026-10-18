@@ -225,7 +225,21 @@ class PanneauConsoleFragment : Fragment() {
                 viewModel.onAction(ActionEditor.ExecuterTaches(taches))
             }
         }
+        // « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie du
+        // canal VISIBLE part en pré-remplissage du chat (jamais
+        // auto-envoyée — l'utilisateur relit puis envoie).
+        liaison.boutonExpliquerIa.setOnClickListener {
+            (activity as? ControleurPanneauEditeur)?.expliquerAvecIa(texteVisible())
+        }
     }
+
+    /** Sortie VISIBLE courante (console du canal affiché — Sync ou Build). */
+    private fun texteVisible(): String =
+        if (liaison.defilementConsoleBuild.isVisible) {
+            liaison.texteConsoleBuild.text.toString()
+        } else {
+            liaison.texteConsoleSync.text.toString()
+        }
 
     /**
      * Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le

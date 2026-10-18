@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Carte de proposition (diff) (mission IA, lot IA-5, ADR 0126, spec E3) :
+  même emplacement que la barre de consigne (entre l'éditeur et la barre
+  de symboles), hauteur ≤ ia_carte_diff_hauteur_max, défilante ; rendu
+  des lignes réutilisé de l'historique (ligne_diff.xml). La racine est
+  la vue autonome CarteDiffIa (câblage hôte mince — ADR 0126).
+-->
+<jo.codeide.feature.editor.CarteDiffIa xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/carte_diff_ia"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="@dimen/spacing_sm"
+    android:layout_marginVertical="@dimen/spacing_xs"
+    android:visibility="gone"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="@dimen/corner_radius_large"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp"
+    tools:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Entête : titre + compteur « +n −m » (spec E3). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/ia_carte_titre"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/compteur_diff"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="+6 −3" />
+        </LinearLayout>
+
+        <!-- Lignes du diff (défilantes, plafonnées en code). -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_diff"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:overScrollMode="ifContentScrolls"
+            tools:itemCount="3"
+            tools:listitem="@layout/ligne_diff" />
+
+        <!-- Boutons : [Rejeter] [Réessayer] [Accepter] (spec E3). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_rejeter_diff"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_carte_rejeter" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_ressayer_diff"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/ia_carte_ressayer_cd"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_carte_ressayer" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_accepter_diff"
+                style="@style/Widget.CodeIDE.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:contentDescription="@string/ia_carte_accepter_cd"
+                android:text="@string/ia_carte_accepter" />
+        </LinearLayout>
+    </LinearLayout>
+</jo.codeide.feature.editor.CarteDiffIa>

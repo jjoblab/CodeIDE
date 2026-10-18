@@ -27,7 +27,7 @@ public interface FabriqueFragmentIaTiroir {
  * Commandes du fragment IA que seule l'activité d'édition peut exécuter
  * (mission IA, ADR 0122) : état de l'espace de travail que `:feature:ai`
  * ne connaît pas — fichier actif, dossier réel du projet (pont FUSE),
- * ouverture d'un document.
+ * ouverture d'un document, affichage de la carte de diff (lot IA-5).
  *
  * L'activité d'édition implémente l'interface et le fragment la résout
  * par cast en `onAttach` ; un hôte qui ne l'implémente pas voit
@@ -58,7 +58,43 @@ public interface ControleurIaTiroir {
      * l'historique (IA-6) pour rouvrir un fichier cité.
      */
     public fun ouvrirFichier(cheminRelatif: String)
+
+    /**
+     * Affiche la **carte de diff** de l'éditeur (lot IA-5, ADR 0126) :
+     * revue Accepter / Rejeter / Réessayer d'une proposition de bloc de
+     * code du chat — l'application est en un lot (`beginBatch/endBatch`)
+     * et refusée si la révision du document a changé (critère IA-5).
+     * Hôte absent de la carte (aucun éditeur) : no-op honnête.
+     */
+    public fun afficherPropositionDiff(proposition: PropositionDiffIa)
 }
+
+/**
+ * Proposition d'édition IA destinée à la carte de diff de l'éditeur
+ * (mission IA, lot IA-5, ADR 0126) : construite par le chat au moment
+ * de « Appliquer » sur un bloc de code — la plage est la sélection
+ * courante du port d'éditeur, la révision sert de garde d'application
+ * (texte changé ⇒ « Accepter » refusé, relancer).
+ *
+ * @property texteActuel contenu actuel de la plage (texte de la
+ * sélection — ce que [jo.codeide.core.domain.DiffUnifie] compare).
+ * @property textePropose contenu proposé par le modèle (bloc de code).
+ * @property debut début de la plage de remplacement (offset document).
+ * @property fin fin (exclusive) de la plage de remplacement.
+ * @property revision révision du document au moment de la proposition
+ * (port [jo.codeide.core.domain.PortEditeurActif.revision]).
+ * @property cheminRelatif chemin relatif du fichier concerné (`null` si
+ * aucun fichier actif — la carte reste affichable mais « Accepter »
+ * sera refusé par le port).
+ */
+public data class PropositionDiffIa(
+    public val texteActuel: String,
+    public val textePropose: String,
+    public val debut: Int,
+    public val fin: Int,
+    public val revision: Long,
+    public val cheminRelatif: String?,
+)
 
 /**
  * Ce que l'éditeur appelle sur l'IA **sans** dépendre de `:feature:ai`
@@ -71,12 +107,16 @@ public interface ControleurIaTiroir {
  */
 public interface PontIaEditeur {
     /**
-     * Ouvre le chat IA pré-rempli avec la sélection courante de
-     * l'éditeur (« Demander à l'IA » — action de sélection enregistrée
-     * via `EditorView.addSelectionAction`, lot IA-5). Sélection vide :
-     * l'action appelante doit être grisée (critère d'acceptation IA-5).
+     * Transmet la consigne tapée dans la **barre de consigne en ligne**
+     * (lot IA-5, ADR 0126) : le chat s'ouvre pré-rempli et l'envoi part
+     * immédiatement — le bouton « Envoyer » de la barre EST une action
+     * utilisateur explicite (ADR 0121 point 3), le contexte (sélection,
+     * fichier actif) suit les règles IA-4 côté chat.
+     *
+     * @param consigne texte tapé par l'utilisateur (jamais vide — le
+     * bouton appelant est désactivé sinon).
      */
-    public fun demanderSurSelection()
+    public fun envoyerConsigne(consigne: String)
 
     /**
      * Ouvre le chat IA pré-rempli pour un diagnostic (« Corriger avec
@@ -90,4 +130,21 @@ public interface PontIaEditeur {
         cheminRelatif: String,
         identifiant: String,
     )
+
+    /**
+     * Ouvre le chat IA pré-rempli avec une sortie à expliquer
+     * (« Expliquer » — Console / Logcat, lot IA-5) : le texte est borné
+     * par le pont (fenêtre glissante) et ne part qu'à l'envoi
+     * utilisateur (pré-rempli, jamais auto-envoyé).
+     *
+     * @param texteBrut sortie telle qu'affichée à l'écran.
+     */
+    public fun expliquer(texteBrut: String)
+
+    /**
+     * Relance la dernière génération du chat (« Réessayer » de la carte
+     * de diff — lot IA-5) : la consigne d'origine est conservée ; si
+     * aucune génération n'existe encore, aucun effet.
+     */
+    public fun reessayer()
 }

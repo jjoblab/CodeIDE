@@ -139,4 +139,11 @@
     <string name="ia_erreur_cle_perdue">La clé chiffrée est illisible (Keystore réinitialisé) — ressaisissez-la</string>
     <string name="ia_erreur_stockage">Accès au stockage impossible</string>
     <string name="ia_erreur_inconnue">Erreur inattendue</string>
+
+    <!-- Lot IA-5 : intégration éditeur (pont, carte de diff). -->
+    <string name="ia_appliquer">Appliquer</string>
+    <string name="ia_appliquer_cd">Proposer ce bloc dans la carte de diff de l\'éditeur</string>
+    <string name="ia_diff_plage_absente">Sélectionnez d\'abord la plage du fichier à remplacer</string>
+    <string name="ia_consigne_corriger">Corrige cette erreur dans %1$s :\n</string>
+    <string name="ia_consigne_expliquer_sortie">Explique cette sortie et ses causes probables :\n</string>
 </resources>

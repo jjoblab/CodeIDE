@@ -133,6 +133,17 @@ class PanneauLogcatFragment : Fragment() {
         liaison.boutonPause.setOnClickListener { viewModel.basculerPause() }
         liaison.boutonEffacer.setOnClickListener { viewModel.effacer() }
 
+        // « Expliquer » (mission IA, lot IA-5, spec E3) : les lignes
+        // FILTRÉES visibles partent en pré-remplissage du chat (fenêtre
+        // bornée — jamais auto-envoyées).
+        liaison.boutonExpliquerIa.setOnClickListener {
+            val sortie =
+                viewModel.etat.value.lignes
+                    .takeLast(LIGNES_EXPLIQUEES_MAX)
+                    .joinToString("\n") { ligne -> "${ligne.ligne.etiquette}: ${ligne.ligne.message}" }
+            (activity as? ControleurPanneauEditeur)?.expliquerAvecIa(sortie)
+        }
+
         // Filtre texte : chaque frappe renvoie le couple (texte, regex) —
         // l'état du champ vit dans la vue, jamais d'écho vers le champ.
         liaison.champFiltre.addTextChangedListener(
@@ -427,6 +438,9 @@ class PanneauLogcatFragment : Fragment() {
         }
 
     private companion object {
+        /** Fenêtre glissante d'une sortie à expliquer (lignes — lot IA-5). */
+        const val LIGNES_EXPLIQUEES_MAX = 150
+
         /** Groupes du menu de processus (vivantes, terminées, précédentes). */
         const val GROUPE_VIVANTES = 1
         const val GROUPE_TERMINEES = 2

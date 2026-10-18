@@ -63,6 +63,8 @@ import jo.codeide.core.ui.ControleurTerminalTiroir
 import jo.codeide.core.ui.FabriqueFragmentIaTiroir
 import jo.codeide.core.ui.FabriqueFragmentTerminalTiroir
 import jo.codeide.core.ui.IconesFichiers
+import jo.codeide.core.ui.PontIaEditeur
+import jo.codeide.core.ui.PropositionDiffIa
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.applySystemBarsInsetsMargins
@@ -167,6 +169,13 @@ class EditorActivity :
      * la frontière (les features ne se référencent pas). */
     @Inject
     lateinit var fabriqueIaTiroir: FabriqueFragmentIaTiroir
+
+    /** Pont éditeur → IA (mission IA, lot IA-5, ADR 0126) : barre de
+     * consigne, « Corriger avec l'IA » (Problèmes), « Expliquer »
+     * (Console/Logcat), « Réessayer » (carte de diff). Implémenté dans
+     * `feature:ai` (liaison Hilt) — l'éditeur ne dépend pas du module. */
+    @Inject
+    lateinit var pontIa: PontIaEditeur
 
     /** Registre du port d'éditeur actif (mission IA, lot IA-3) : le
      * port [PortEditeurActif] de CETTE activité y est publié — le chat
@@ -614,6 +623,7 @@ class EditorActivity :
         resoudreDossierProjetAsynchrone()
         construireRail()
         selectionnerDestination(destinationCourante)
+        installerIntegrationIa()
     }
 
     // ------------------------------------------------------------------
@@ -676,6 +686,13 @@ class EditorActivity :
         }
     }
 
+    /** Affiche la carte de diff avec cette proposition (lot IA-5) —
+     * appelé par le chat via [ControleurIaTiroir] : la vue autonome
+     * calcule le diff unifié et affiche Accepter/Rejeter/Réessayer. */
+    override fun afficherPropositionDiff(proposition: PropositionDiffIa) {
+        carteDiffIa.maj(proposition)
+    }
+
     /** Résolution asynchrone UNIQUE du dossier projet (mission IA) —
      * le contrat du contrôleur est synchrone, la résolution FUSE ne
      * l'est pas : elle est lancée à la création, mise en cache ET
@@ -685,6 +702,86 @@ class EditorActivity :
             dossierProjetReelCache = viewModel.dossierProjetReel()
             registreDossierIa.publier(dossierProjetReelCache)
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Intégration IA dans l'éditeur (mission IA, lot IA-5, ADR 0126) :
+    // câblage MINCE — action de sélection « IA » (pill), barre de
+    // consigne en ligne, carte de proposition (diff). Toute logique vit
+    // dans :feature:ai (pont) / :core:ai ; ici : branchements d'UI.
+    // ------------------------------------------------------------------
+
+    /** Barre de consigne (include racine = vue autonome). */
+    private val barreConsigneIa: BarreConsigneIa
+        get() = liaison.barreConsigneIa.root as BarreConsigneIa
+
+    /** Carte de diff (include racine = vue autonome). */
+    private val carteDiffIa: CarteDiffIa
+        get() = liaison.carteDiffIa.root as CarteDiffIa
+
+    /** Branche la pill « IA », la barre et la carte (UNE fois, à la
+     * création — ADR 0126 : ≲ 80 lignes de câblage cumulées ici). */
+    private fun installerIntegrationIa() {
+        barreConsigneIa.surEnvoyer = { consigne ->
+            barreConsigneIa.masquer()
+            ouvrirTiroirSurChat()
+            pontIa.envoyerConsigne(consigne)
+        }
+        barreConsigneIa.surFermer = { barreConsigneIa.masquer() }
+        carteDiffIa.surAccepter = { proposition -> accepterProposition(proposition) }
+        carteDiffIa.surRejeter = { carteDiffIa.masquer() }
+        carteDiffIa.surRessayer = { pontIa.reessayer() }
+        liaison.vueEditeur.addSelectionAction(
+            jo.codeeditor.view.SelectionAction(
+                IDENTIFIANT_ACTION_IA,
+                getString(R.string.ia_action_selection),
+            ) { montrerBarreConsigne() },
+        )
+    }
+
+    /** Ouvre la pill « IA » : la barre s'affiche avec le contexte exact
+     * de la sélection courante (spec E3 — ligne d'état). */
+    private fun montrerBarreConsigne() {
+        val selection = portEditeur.selection
+        val lignes =
+            if (selection != null && selection.texte.isNotBlank()) {
+                selection.texte.count { it == '\n' } + 1
+            } else {
+                0
+            }
+        val fichier = cheminRelatifFichierActif()?.substringAfterLast('/') ?: "—"
+        barreConsigneIa.montrer(getString(R.string.ia_barre_contexte, lignes, fichier))
+    }
+
+    /** Accepte la proposition : garde de révision (texte changé ⇒
+     * refus honnête, relancer — critère IA-5), puis remplacement en UN
+     * LOT via le port (beginBatch/endBatch — un seul Annuler). */
+    private fun accepterProposition(proposition: PropositionDiffIa) {
+        if (portEditeur.revision() != proposition.revision) {
+            Snackbar
+                .make(liaison.racineEditeur, R.string.ia_carte_texte_change, Snackbar.LENGTH_LONG)
+                .show()
+            return
+        }
+        when (
+            portEditeur.appliquerRemplacement(proposition.debut, proposition.fin, proposition.textePropose)
+        ) {
+            is AppResult.Success -> {
+                carteDiffIa.masquer()
+                Snackbar.make(liaison.racineEditeur, R.string.ia_carte_appliquee, Snackbar.LENGTH_SHORT).show()
+            }
+
+            is AppResult.Failure -> {
+                Snackbar.make(liaison.racineEditeur, R.string.ia_carte_echec, Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /** Ouvre le tiroir sur la destination IA (rail 6ᵉ position — le
+     * chat est l'onglet par défaut du fragment IA, lot IA-3). */
+    private fun ouvrirTiroirSurChat() {
+        liaison.racineEditeur.openDrawer(liaison.tiroir)
+        selectionnerDestination(R.id.destination_ia)
     }
 
     /** Adaptateur vivant vers l'onglet/session COURANTS (mission IA,
@@ -2603,6 +2700,37 @@ class EditorActivity :
         sauterVersLigne(onglets[index].uri, ligne)
     }
 
+    /** Ouvre le tiroir sur le chat (mission IA, lot IA-5) — pont des
+     * panneaux Problèmes/Console/Logcat vers l'assistant. */
+    override fun ouvrirTiroirIa() {
+        ouvrirTiroirSurChat()
+    }
+
+    /** « Corriger avec l'IA » (mission IA, lot IA-5, spec E3) : le
+     * diagnostic du panneau est transcrit au port (identifiant
+     * source:ligne:colonne — convention [PortEditeurVue.diagnostics])
+     * puis le chat s'ouvre pré-rempli (jamais auto-envoyé). */
+    override fun corrigerProblemeAvecIa(
+        fichier: String,
+        ligne: Int,
+        colonne: Int,
+        source: String,
+    ) {
+        val identifiant = "$source:$ligne:$colonne"
+        val relatif =
+            cheminRelatifFichierActif()?.takeIf { chemin -> fichier.endsWith(chemin) } ?: fichier
+        ouvrirTiroirSurChat()
+        pontIa.corrigerDiagnostic(relatif, identifiant)
+    }
+
+    /** « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie
+     * visible de la console/logcat part en pré-remplissage borné — le
+     * texte reste local, l'envoi est un geste utilisateur (chat). */
+    override fun expliquerAvecIa(texte: String) {
+        ouvrirTiroirSurChat()
+        pontIa.expliquer(texte)
+    }
+
     /**
      * Pose le défilement et le curseur à la LIGNE du fichier ouvert —
      * APRÈS le re-rendu (post) pour que la vue soit rebranchée sur la
@@ -2845,6 +2973,10 @@ class EditorActivity :
         const val TAG_GIT = "tiroir_git"
         const val TAG_TERMINAL = "tiroir_terminal"
         const val TAG_IA = "tiroir_ia"
+
+        /** Identifiant de l'action de sélection « IA » (lot IA-5) —
+         * stable : l'éditeur la retire/la ré-ajoute par ce nom. */
+        const val IDENTIFIANT_ACTION_IA = "codeide_ia"
 
         /** Étiquette LSP de l'activité — la MÊME que
          * [CoordonnateurLsp] ("LspEditeur") : la séquence « branchement

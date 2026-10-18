@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Bloc de code du chat (mission IA, lot IA-3) : barre langue · Copier ·
-  Insérer au curseur + contenu à chasse fixe, défilant horizontalement.
-  Les deux actions sont réelles : presse-papiers et PortEditeurActif.
+  Bloc de code du chat (mission IA, lot IA-3 ; IA-5 ajoute Appliquer) :
+  barre langue · Copier · Insérer · Appliquer (diff) + contenu à chasse
+  fixe, défilant horizontalement. Les actions sont réelles : presse-
+  papiers, PortEditeurActif, carte de diff de l'éditeur (ADR 0126).
 -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -53,6 +54,15 @@
                 android:contentDescription="@string/ia_inserer_cd"
                 android:minHeight="40dp"
                 android:text="@string/ia_inserer" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_appliquer_bloc"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/ia_appliquer_cd"
+                android:minHeight="40dp"
+                android:text="@string/ia_appliquer" />
         </LinearLayout>
 
         <HorizontalScrollView
