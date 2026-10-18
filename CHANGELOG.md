@@ -1,5 +1,66 @@
 # Journal des modifications
 
+## [0.147.0] – 2026-10-19
+
+### PE11b — refonte de l'écran Attributs à l'identique de la maquette
+
+#### Ajouté
+
+- **Le volet Attributs devient un `RecyclerView`** (ADR 0132, PREVIEW_UI.md § 8) :
+  items scellés (`ItemAttributs` — titre, barre d'outils, carte de section, trait,
+  bloc lecture seule, titre de groupe, ligne clé/valeur, volet vide), un type d'item =
+  un layout de § 9 ; **la barre d'outils (recherche + bascule Courants/Tous) est en
+  place et épinglée en haut par `DecorationBarreCollante`** (miroir `position: sticky`
+  de la maquette), ses contenus restant masqués jusqu'au lot PE11f ; les cartes ne
+  gonflent leur CORPS qu'à l'ouverture et le détruisent à la fermeture (état
+  mémorisé par titre conservé) — la mécanique d'édition (ViewModel, ports,
+  `EditionAttributsXml`, `CatalogueAttributs`) est inchangée.
+- **13 layouts de référence copiés** (`docs/mockups/ref/ressources/layout/`) :
+  `carte_section` (en-tête 30 dp, trait 1 dp, rayon 10), `entete_editeur`,
+  `entete_champ` (étiquette + pastille d'espace de noms + bouton ↺, caché tant que
+  l'attribut n'est pas défini), `controle_texte` + `saisie_texte` +
+  `item_lecture_seule`, `controle_segments` (ChipGroup) + `item_segment` (Chip — fin
+  des `MaterialButton` Outlined), `controle_dimensions` + `item_dimension` (étiquette
+  56 dp, champ numérique 64×28), `controle_cotes` (quatre champs nommés), plus
+  `barre_outils_attributs` et le volet `RecyclerView` (padding 8/10/14/10) ;
+  habillage aux jetons des contrôles hors référence PE11b (identifiant,
+  extraction, contraintes, saisie nombre, séparateur) et du volet vide
+  (`vide_volet`).
+- **Feuille habillée** : poignée VERTICALE (tiret 36×4 au-dessus, fil d'Ariane
+  dessous — miroir `.grab` en colonne, styles `FilAriane`), onglets
+  `Widget.CodeIDE.Apercu.Onglets` (indicateur accent 2 dp, trait bas 1 dp) et le
+  compteur de problèmes devient la PASTILLE ambre mono 10 de la maquette
+  (`.tabs .n`, vue personnalisée — `BadgeDrawable` ne porte pas la police mono) ;
+  `peekHeight` recalée (78 dp — poignée ~40 + onglets 37).
+- **9 drawables de référence** : `apercu_carte_section_fond`, `apercu_badge_defini_fond`,
+  `apercu_trait_bas(_surface)`, `apercu_espace_(controles|sections)`,
+  `apercu_champ_fond_erreur`, `apercu_poignee`, `apercu_badge_onglet_fond` ; dimension
+  `apercu_onglets_hauteur` (37 dp, meas `.tabs`) ; interlignes exacts du CSS posés
+  dans les apparences (`lineHeight` rétroporté + `android:lineHeight`).
+- **`CotesMaquetteTest`** (Robolectric, PREVIEW_UI.md § 12.2) : chaque layout de § 9
+  gonflé sous `Theme.CodeIDE.Apercu` à largeur 398 dp, densité 1, comparé à
+  `meas_clair.json` (hauteur ±1 dp) — AUCUNE valeur codée dans le test ; gonflage
+  avec l'inflateur Material de production (l'interligne des apparences est lu par
+  les `MaterialTextView`) et mode graphique NATIVE (les métriques LEGACY de
+  Robolectric sont fausses) ; tolérance interligne ±3 dp documentée pour `sec2sum`/
+  `fldro` (la maquette force `line-height:1`, la boîte de police Android ne
+  descend pas sous son ampleur naturelle).
+
+#### Modifié
+
+- Tests de gonflage actualisés (`VoletsPreviewLayoutTest`) : le volet attributs se
+  gonfle avec sa liste recyclée, la barre porte la recherche et la bascule MASQUÉS
+  jusqu'à PE11f, l'onglet Problèmes porte son libellé et sa pastille, l'en-tête de
+  champ porte le libellé, la pastille et le ↺.
+
+#### Supprimé
+
+- `fond_champ`, `fond_carte_section`, `fond_badge_definis`, `item_cote`,
+  `item_titre_groupe`, `item_libelle` (couverts par les références) ; les
+  `textAppearanceLabel*` et les littéraux dp/sp/couleur du périmètre volet
+  Attributs (grille § 12.4 : `grep` vide) ; `StyleVolet.texteVide` remplacé pour ce
+  volet par le layout `vide_volet`.
+
 ## [0.146.0] – 2026-10-19
 
 ### PE11a — jetons de la maquette, thème de l'aperçu, test de parité

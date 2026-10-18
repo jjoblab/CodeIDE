@@ -23,6 +23,8 @@
 
     <!-- Fil d'Ariane (.crumb) : mono 12 / 500 ; la classe en accent est un span séparé. -->
     <style name="TextAppearance.CodeIDE.Apercu.FilAriane">
+        <item name="lineHeight">14sp</item>
+        <item name="android:lineHeight">14sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textColor">?attr/apercuTexteDoux</item>
@@ -30,6 +32,8 @@
 
     <!-- Onglet (.tabs button) : 13 / 500, gris au repos, texte plein si sélectionné. -->
     <style name="TextAppearance.CodeIDE.Apercu.Onglet">
+        <item name="lineHeight">13sp</item>
+        <item name="android:lineHeight">13sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">13sp</item>
         <item name="android:textColor">@color/apercu_onglet_texte</item>
@@ -37,6 +41,8 @@
 
     <!-- Pastille de compte sur un onglet (.tabs .n) : mono 10 / 500, texte = jeton « fond ». -->
     <style name="TextAppearance.CodeIDE.Apercu.BadgeOnglet">
+        <item name="lineHeight">10sp</item>
+        <item name="android:lineHeight">10sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">10sp</item>
         <item name="android:textColor">?attr/apercuFond</item>
@@ -45,6 +51,8 @@
     <!-- Titre de l'éditeur (.ed h5) et titres de groupes lecture seule (.kv dt.g) : mono 10 / 600,
          capitales, interlettrage .08 em. -->
     <style name="TextAppearance.CodeIDE.Apercu.TitreGroupe">
+        <item name="lineHeight">10sp</item>
+        <item name="android:lineHeight">10sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">10sp</item>
         <item name="android:textStyle">bold</item>
@@ -55,12 +63,16 @@
 
     <!-- Titre de section repliable (.sec2>summary) : 12 / 600. -->
     <style name="TextAppearance.CodeIDE.Apercu.SectionTitre">
+        <item name="lineHeight">12sp</item>
+        <item name="android:lineHeight">12sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">12sp</item>
     </style>
 
     <!-- Badge « n définis » et pastilles de statut (.sec2 small) : mono 10 / 500, violet « nouveau ». -->
     <style name="TextAppearance.CodeIDE.Apercu.Badge">
+        <item name="lineHeight">10sp</item>
+        <item name="android:lineHeight">10sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">10sp</item>
         <item name="android:textColor">?attr/apercuNouveau</item>
@@ -68,6 +80,8 @@
 
     <!-- Étiquette de champ (.fld label, .dimrow .dl) : mono 11 / 500, gris doux. -->
     <style name="TextAppearance.CodeIDE.Apercu.Etiquette">
+        <item name="lineHeight">11sp</item>
+        <item name="android:lineHeight">11sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">11sp</item>
         <item name="android:textColor">?attr/apercuTexteDoux</item>
@@ -75,12 +89,16 @@
 
     <!-- Saisie (.fld input, .search, select) : 13 / 400. -->
     <style name="TextAppearance.CodeIDE.Apercu.Saisie">
+        <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
         <item name="android:textSize">13sp</item>
         <item name="android:textColorHint">?attr/apercuTexteDoux</item>
     </style>
 
     <!-- Saisie mono compacte (.dimrow input, .sld number, .mrow) : mono 12 / 400. -->
     <style name="TextAppearance.CodeIDE.Apercu.SaisieMono">
+        <item name="lineHeight">14sp</item>
+        <item name="android:lineHeight">14sp</item>
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textColorHint">?attr/apercuTexteDoux</item>
@@ -91,10 +109,13 @@
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">12sp</item>
         <item name="lineHeight">17sp</item>
+        <item name="android:lineHeight">17sp</item>
     </style>
 
     <!-- Segment (.seg2 button) : 12 / 500 ; couleur par sélecteur. -->
     <style name="TextAppearance.CodeIDE.Apercu.Segment">
+        <item name="lineHeight">12sp</item>
+        <item name="android:lineHeight">12sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textColor">@color/apercu_segment_texte</item>
@@ -111,6 +132,7 @@
     <style name="TextAppearance.CodeIDE.Apercu.Note">
         <item name="android:textSize">11sp</item>
         <item name="lineHeight">15sp</item>
+        <item name="android:lineHeight">15sp</item>
         <item name="android:textColor">?attr/apercuTexteDoux</item>
     </style>
 
@@ -119,10 +141,12 @@
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">12sp</item>
         <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
     </style>
     <style name="TextAppearance.CodeIDE.Apercu.CorrectifCorps">
         <item name="android:textSize">12sp</item>
         <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
         <item name="android:textColor">?attr/apercuTexteDoux</item>
     </style>
 
@@ -168,12 +192,14 @@
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">12sp</item>
         <item name="lineHeight">18sp</item>
+        <item name="android:lineHeight">18sp</item>
         <item name="android:textColor">?attr/apercuTexteDoux</item>
     </style>
     <style name="TextAppearance.CodeIDE.Apercu.KvValeur">
         <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">12sp</item>
         <item name="lineHeight">18sp</item>
+        <item name="android:lineHeight">18sp</item>
     </style>
 
     <!-- ══════════════ Widgets ══════════════ -->

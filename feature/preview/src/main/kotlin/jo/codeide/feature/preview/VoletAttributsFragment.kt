@@ -5,12 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.view.isEmpty
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.feature.preview.databinding.CarteSectionBinding
@@ -22,16 +24,13 @@ import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
 import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
 import jo.codeide.feature.preview.databinding.ControleTexteBinding
-import jo.codeide.feature.preview.databinding.EnteteEditeurBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
-import jo.codeide.feature.preview.databinding.ItemCoteBinding
+import jo.codeide.feature.preview.databinding.ItemAttributGroupeBinding
 import jo.codeide.feature.preview.databinding.ItemDimensionBinding
 import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
-import jo.codeide.feature.preview.databinding.ItemLibelleBinding
 import jo.codeide.feature.preview.databinding.ItemMenuCibleBinding
 import jo.codeide.feature.preview.databinding.ItemSegmentBinding
-import jo.codeide.feature.preview.databinding.ItemTitreGroupeBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuCibleBinding
 import jo.codeide.feature.preview.databinding.SaisieNombreBinding
 import jo.codeide.feature.preview.databinding.SaisieTexteBinding
@@ -44,14 +43,14 @@ import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.RenommageIdentifiant
 
 /**
- * Le volet ATTRIBUTS de la feuille (PE9b, miroir `renderAttrs` +
- * `renderEditor`) : la section MODIFIER (le catalogue pur
- * [CatalogueAttributs] décrit les SECTIONS selon la classe de la vue et
- * le genre de son parent — cartes repliables `carte_section.xml`, état
- * mémorisé par titre) puis les groupes LECTURE SEULE — TOUTES les vues
- * viennent d'ITEM LAYOUTS RÉELS (un par type de contrôle, miroir `ctl` :
- * texte, identifiant, nombre, segments, cotes, dimensions, contraintes)
- * gonflés au liage ; le catalogue reste la source de vérité.
+ * Le volet ATTRIBUTS de la feuille (PE11b, miroir `renderAttrs` +
+ * `renderEditor`) : un RECYCLERVIEW dont les items sont les layouts
+ * réels de PREVIEW_UI.md § 9 (titre, barre d'outils épinglée, cartes de
+ * section repliables — le CORPS n'est gonflé qu'à l'ouverture, état
+ * mémorisé par titre — puis les groupes LECTURE SEULE) ; le catalogue
+ * pur [CatalogueAttributs] reste la source de vérité, la mécanique
+ * (ViewModel, ports, [EditionAttributsXml]) est conservée telle quelle
+ * (ADR 0132).
  *
  * UN SEUL CHEMIN d'édition : chaque contrôle passe au ViewModel (UNE
  * écriture au port, rendu immédiat) ; un refus recharge le volet depuis
@@ -59,9 +58,7 @@ import jo.codeide.preview.xml.RenommageIdentifiant
  * lecture seule (miroir `.ro`).
  *
  * Exemption detekt ciblée (règle 16) : TooManyFunctions + LargeClass —
- * chaque contrôle a SA fonction de liage (un type = un item layout) ;
- * les MagicNumber de PE9a ont disparu avec les dimensions en code
- * (elles vivent dans les layouts).
+ * chaque contrôle a SA fonction de liage (un type = un item layout).
  */
 @Suppress("TooManyFunctions", "LargeClass")
 @AndroidEntryPoint
@@ -70,11 +67,42 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
     private lateinit var liaison: FragmentVoletAttributsBinding
 
+    private lateinit var adaptateur: AdaptateurAttributs
+
     /**
      * L'état de repli des SECTIONS de l'éditeur, par TITRE (miroir `S.so`
      * de la maquette — mémorisé pendant la session du fragment).
      */
     private val etatSections: MutableMap<String, Boolean> = mutableMapOf()
+
+    /**
+     * Le contrat adaptateur : le LIAGE des corps de cartes reste au volet
+     * (chaque contrôle a sa fonction, un type = un item layout).
+     */
+    private val evenementsAdaptateur =
+        object : AdaptateurAttributs.Evenements {
+            override fun lierCorpsCarte(
+                carte: CarteSectionBinding,
+                section: CatalogueAttributs.SectionAttributs,
+                attrs: List<EditionAttributsXml.AttributSource>,
+            ) {
+                section.controles.forEach { controle ->
+                    carte.corpsSection.addView(controleSection(controle, attrs))
+                }
+            }
+
+            override fun sectionOuverte(
+                section: CatalogueAttributs.SectionAttributs,
+                position: Int,
+            ): Boolean = etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
+
+            override fun basculerSection(
+                section: CatalogueAttributs.SectionAttributs,
+                ouverte: Boolean,
+            ) {
+                etatSections[section.titre.name] = ouverte
+            }
+        }
 
     private fun gonfleur(): LayoutInflater = LayoutInflater.from(requireContext())
 
@@ -84,6 +112,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         savedInstanceState: Bundle?,
     ): View {
         liaison = FragmentVoletAttributsBinding.inflate(inflater, conteneur, false)
+        adaptateur = AdaptateurAttributs(evenementsAdaptateur)
+        liaison.voletAttributs.layoutManager = LinearLayoutManager(requireContext())
+        liaison.voletAttributs.adapter = adaptateur
+        liaison.voletAttributs.addItemDecoration(DecorationBarreCollante())
         return liaison.root
     }
 
@@ -93,79 +125,58 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /**
-     * Vide le conteneur reconstruit (seul volet en LinearLayout) — le
-     * crash du rapport 0.134.30 NPE `mViewFlags` (rapport c8f6ffeb)
-     * vivait ICI : le protocole focus-sûr RETIRE le focus d'abord, BLOQUE
-     * la descente de focus pendant la suppression (FOCUS_BLOCK_DESCENDANTS),
-     * puis rétablit. (Un passage RecyclerView de ce volet reste possible
-     * mais les cartes repliables avec état éclatent le diff pour rien.)
-     */
-    private fun viderConteneur(conteneur: ViewGroup) {
-        if (conteneur.isEmpty()) return
-        conteneur.findFocus()?.clearFocus()
-        val descentePrecedente = conteneur.descendantFocusability
-        conteneur.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-        conteneur.removeAllViews()
-        conteneur.descendantFocusability = descentePrecedente
-    }
-
-    /**
-     * L'onglet Attributs (miroir `renderAttrs`) : la section MODIFIER
-     * (cartes repliables) puis les groupes LECTURE SEULE (identité,
-     * disposition, mesuré — item_titre_groupe + item_attribut).
+     * L'onglet Attributs (miroir `renderAttrs`) : la liste des items —
+     * titre, barre d'outils, cartes repliables, trait, groupes LECTURE
+     * SEULE (identité, disposition, mesuré) — soumise à l'adaptateur.
+     * Le protocole focus-sûr du crash 0.134.30 (NPE `mViewFlags`, rapport
+     * c8f6ffeb) est CONSERVÉ : le focus quitte le volet AVANT la
+     * soumission (les vues focusées sont recyclées par la liste).
      */
     private fun majAttributs() {
         val vue = renduCourant?.vues?.getOrNull(selectionCourante)
-        viderConteneur(liaison.groupesAttributs)
-        if (vue == null) {
-            liaison.groupesAttributs.addView(texteVide(getString(R.string.preview_feuille_vide)))
-            return
-        }
-        majSectionModifier(vue)
-        for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
-            val titre = ItemTitreGroupeBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
-            titre.titreGroupe.text = groupe.titre
-            liaison.groupesAttributs.addView(titre.root)
-            for (entree in groupe.entrees) {
-                val rangee = ItemAttributBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
-                rangee.libelleAttribut.text = entree.libelle
-                rangee.valeurAttribut.text = entree.valeur
-                liaison.groupesAttributs.addView(rangee.root)
+        liaison.voletAttributs.findFocus()?.clearFocus()
+        adaptateur.soumettre(itemsVolet(vue))
+    }
+
+    /** La LISTE des items du volet (PREVIEW_UI.md § 8, de haut en bas). */
+    private fun itemsVolet(vue: InfoVueRendu?): List<ItemAttributs> =
+        buildList {
+            if (vue == null) {
+                add(ItemAttributs.Vide)
+                return@buildList
+            }
+            val classe = viewModel.classeSelection() ?: vue.classe
+            val genreParent =
+                viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
+            add(ItemAttributs.Titre(getString(R.string.preview_modifier_classe, classe)))
+            add(ItemAttributs.BarreOutils)
+            val attrs = viewModel.attributsSelection()
+            if (attrs == null) {
+                // Un span périmé retombe en LECTURE SEULE avec explication
+                // (miroir piège § 6 du prompt).
+                add(ItemAttributs.LectureSeule(getString(R.string.preview_edition_impossible_toast)))
+            } else {
+                val sections = CatalogueAttributs.sections(classe, genreParent)
+                sections.forEachIndexed { position, section ->
+                    add(
+                        ItemAttributs.Carte(
+                            section = section,
+                            attrs = attrs,
+                            position = position,
+                            titre = titreSectionRes(section.titre),
+                            definis = nombreDefinis(section, attrs),
+                        ),
+                    )
+                }
+                add(ItemAttributs.Separateur)
+            }
+            for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
+                add(ItemAttributs.TitreGroupe(groupe.titre))
+                groupe.entrees.forEach { entree ->
+                    add(ItemAttributs.Attribut(entree.libelle, entree.valeur))
+                }
             }
         }
-    }
-
-    /** Un TextView simple de volet vide (miroir `texteSimple` des volets). */
-    private fun texteVide(texte: String): TextView = StyleVolet.texteVide(requireContext(), texte)
-
-    /**
-     * La section MODIFIER (PE7e, miroir `renderEditor` + `sectionsFor`) :
-     * l'en-tête (« MODIFIER · CLASSE »), les cartes repliables des
-     * sections, le séparateur de fin — un span périmé retombe en LECTURE
-     * SEULE avec explication (miroir piège § 6 du prompt).
-     */
-    private fun majSectionModifier(vue: InfoVueRendu) {
-        val classe = viewModel.classeSelection() ?: vue.classe
-        val genreParent =
-            viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
-        val entete = EnteteEditeurBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
-        entete.titreEditeur.text = getString(R.string.preview_modifier_classe, classe)
-        liaison.groupesAttributs.addView(entete.root)
-        val attrs = viewModel.attributsSelection()
-        if (attrs == null) {
-            liaison.groupesAttributs.addView(
-                blocLectureSeule(liaison.groupesAttributs, getString(R.string.preview_edition_impossible_toast)),
-            )
-            return
-        }
-        val sections = CatalogueAttributs.sections(classe, genreParent)
-        sections.forEachIndexed { position, section ->
-            liaison.groupesAttributs.addView(carteSection(section, attrs, position))
-        }
-        val separateur = SeparateurEditeurBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
-        separateur.separateurEditeur.alpha = SEPARATEUR_ALPHA
-        liaison.groupesAttributs.addView(separateur.root)
-    }
 
     /** Le titre localisé d'une section (clé sémantique → ressource — table
      * unique, miroir [ETIQUETTES_RES]). */
@@ -204,56 +215,6 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             -> null
         }
 
-    /**
-     * UNE CARTE de section repliable (`carte_section.xml`) — le tap sur
-     * l'en-tête replie/déploie et MÉMORISE l'état par titre
-     * ([etatSections]) ; la flèche suit l'état de la fermeture locale.
-     */
-    private fun carteSection(
-        section: CatalogueAttributs.SectionAttributs,
-        attrs: List<EditionAttributsXml.AttributSource>,
-        position: Int,
-    ): View {
-        var ouverte = etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
-        val carte = CarteSectionBinding.inflate(gonfleur(), liaison.groupesAttributs, false)
-        carte.titreSection.text = titreSectionRes(section.titre)
-        majBadgeDefinis(carte, nombreDefinis(section, attrs))
-        majFleche(carte.flecheSection, ouverte)
-        carte.corpsSection.visibility = visibiliteOuverte(ouverte)
-        section.controles.forEach { controle ->
-            carte.corpsSection.addView(controleSection(controle, attrs))
-        }
-        carte.enteteSection.setOnClickListener {
-            ouverte = !ouverte
-            etatSections[section.titre.name] = ouverte
-            majFleche(carte.flecheSection, ouverte)
-            carte.corpsSection.visibility = visibiliteOuverte(ouverte)
-        }
-        return carte.root
-    }
-
-    /** Le badge « n défini(s) » (violet sur violet pâle), caché à zéro. */
-    private fun majBadgeDefinis(
-        carte: CarteSectionBinding,
-        nombre: Int,
-    ) {
-        carte.badgeDefinis.isVisible = nombre > 0
-        carte.badgeDefinis.text =
-            resources.getQuantityString(R.plurals.preview_section_definis, nombre, nombre)
-    }
-
-    /** Le libellé de flèche d'une carte (« ▴ ouverte » / « ▾ fermée »). */
-    private fun majFleche(
-        fleche: TextView,
-        ouverte: Boolean,
-    ) {
-        fleche.text =
-            getString(if (ouverte) R.string.preview_section_ouverte else R.string.preview_section_fermee)
-    }
-
-    /** La visibilité d'un corps replié. */
-    private fun visibiliteOuverte(ouverte: Boolean): Int = if (ouverte) View.VISIBLE else View.GONE
-
     /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un item layout). */
     private fun controleSection(
         controle: CatalogueAttributs.ControleAttribut,
@@ -284,8 +245,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         ItemLectureSeuleBinding
             .inflate(gonfleur(), parent, false)
             .apply {
-                texteLectureSeule.text = texte
-            }.texteLectureSeule
+                valeurLectureSeule.text = texte
+            }.valeurLectureSeule
 
     /** Un contrôle TEXTE (controle_texte.xml) : littéral éditable ou
      * référence en lecture seule (miroir `.ro`), EXTRACTION offerte (PE8c). */
@@ -295,7 +256,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     ): View {
         val bloc = ControleTexteBinding.inflate(gonfleur())
         val libelle = etiquetteRes(controle.etiquette)
-        bloc.libelleControle.text = libelle
+        bloc.entete.libelleControle.text = libelle
         val valeur = valeurDe(controle.nom, attrs)
         if (valeur != null && (valeur.startsWith("@") || valeur.startsWith("?"))) {
             // Une référence se MONTRE, jamais écrasée (miroir la ligne `.ro`).
@@ -426,7 +387,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             else -> valeur
         }
 
-    /** Le commit d'un RENOMMAGE (miroir `committerNombre`) : vide = rien,
+    /** Le commit d'un RENOMMAGE (miroir `commiterNombre`) : vide = rien,
      * nom invalide/identique = retour visuel, sinon l'édition — un refus
      * porte le message PROPRE au renommage (nom déjà pris dans le fichier). */
     private fun commiterRenommage(
@@ -529,9 +490,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleSegmentsBinding.inflate(gonfleur())
-        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
         val courant = valeurDe(controle.nom, attrs) ?: controle.valeurs.first()
-        segmentes(bloc.rangeeSegments, controle.valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
+        segmentes(bloc.groupeSegments, controle.valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
             val valeur = if (choix == controle.valeurs.first()) "" else choix
             editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
         }
@@ -545,7 +506,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleSegmentsBinding.inflate(gonfleur())
-        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
         val valeurs =
             listOf(
                 getString(R.string.preview_choix_defaut),
@@ -558,7 +519,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 "false" -> getString(R.string.preview_choix_faux)
                 else -> getString(R.string.preview_choix_defaut)
             }
-        segmentes(bloc.rangeeSegments, valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
+        segmentes(bloc.groupeSegments, valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
             val valeur =
                 when (choix) {
                     getString(R.string.preview_choix_vrai) -> "true"
@@ -571,66 +532,65 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /**
-     * La rangée de SEGMENTS (miroir `.seg2` — item_segment.xml gonflé
-     * dans la rangée donnée) : le tap valide (pas de frappe
-     * intermédiaire), le bouton coché suit `isSelected`.
+     * La rangée de SEGMENTS (miroir `.seg2` — ChipGroup de item_segment,
+     * ADR 0132 § 3) : le tap valide (pas de frappe intermédiaire), le
+     * segment coché suit l'état `isChecked` (sélecteurs de couleur).
      */
     private fun segmentes(
-        rangee: LinearLayout,
+        groupe: ChipGroup,
         valeurs: List<String>,
         courant: String,
         description: String,
         onChoix: (String) -> Unit,
     ) {
         valeurs.forEach { valeur ->
-            val segment = ItemSegmentBinding.inflate(gonfleur(), rangee, false)
+            val segment = ItemSegmentBinding.inflate(gonfleur(), groupe, false)
             segment.segment.text = valeur
-            segment.segment.isSelected = valeur == courant
+            segment.segment.isChecked = valeur == courant
             segment.segment.contentDescription = "$description : $valeur"
             segment.segment.setOnClickListener {
                 if (valeur != courant) onChoix(valeur)
             }
-            rangee.addView(segment.root)
+            groupe.addView(segment.root)
         }
     }
 
-    /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs
-     * item_cote gonflés, miroir `.mrow`). */
+    /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs nommés,
+     * miroir `.mrow`). */
     private fun controleCotes(
         controle: CatalogueAttributs.ControleAttribut.Cotes,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleCotesBinding.inflate(gonfleur())
-        bloc.libelleControle.text = etiquetteRes(controle.etiquette)
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
         val cotes =
             listOf(
-                EditionAttributsXml.Cote.HAUT to R.string.preview_cote_haut,
-                EditionAttributsXml.Cote.FIN to R.string.preview_cote_droite,
-                EditionAttributsXml.Cote.BAS to R.string.preview_cote_bas,
-                EditionAttributsXml.Cote.DEBUT to R.string.preview_cote_gauche,
+                Triple(EditionAttributsXml.Cote.HAUT, R.string.preview_cote_haut, bloc.coteHaut),
+                Triple(EditionAttributsXml.Cote.FIN, R.string.preview_cote_droite, bloc.coteDroite),
+                Triple(EditionAttributsXml.Cote.BAS, R.string.preview_cote_bas, bloc.coteBas),
+                Triple(EditionAttributsXml.Cote.DEBUT, R.string.preview_cote_gauche, bloc.coteGauche),
             )
-        cotes.forEach { (cote, libelleRes) ->
-            bloc.rangeeCotes.addView(champCote(controle, cote, getString(libelleRes), attrs, bloc.rangeeCotes))
+        cotes.forEach { (cote, libelleRes, champ) ->
+            lierCote(controle, cote, getString(libelleRes), champ, attrs)
         }
         return bloc.root
     }
 
-    /** UN champ de côté (item_cote.xml — commit IME/perte de focus). */
-    private fun champCote(
+    /** UN champ de côté (commit IME/perte de focus, miroir `.mrow`). */
+    private fun lierCote(
         controle: CatalogueAttributs.ControleAttribut.Cotes,
         cote: EditionAttributsXml.Cote,
         libelleCote: String,
+        champ: AppCompatEditText,
         attrs: List<EditionAttributsXml.AttributSource>,
-        parent: ViewGroup,
-    ): View {
-        val champ = ItemCoteBinding.inflate(gonfleur(), parent, false)
-        champ.champCote.setText(EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp"))
-        champ.champCote.hint = libelleCote
-        champ.champCote.contentDescription =
+    ) {
+        champ.setText(EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp"))
+        champ.hint = libelleCote
+        champ.contentDescription =
             getString(R.string.preview_cote_cd, etiquetteRes(controle.etiquette), libelleCote)
         val commettre = {
             val saisie =
-                champ.champCote.text
+                champ.text
                     ?.toString()
                     ?.trim()
                     .orEmpty()
@@ -641,7 +601,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 }
 
                 nombre == null || nombre < 0 -> {
-                    champ.champCote.setText(
+                    champ.setText(
                         EditionAttributsXml.valeurCote(attrs, controle.base, cote)?.removeSuffix("dp") ?: "",
                     )
                     false
@@ -654,16 +614,15 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 }
             }
         }
-        champ.champCote.setOnEditorActionListener { _, action, _ ->
+        champ.setOnEditorActionListener { _, action, _ ->
             if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
-                if (commettre()) champ.champCote.clearFocus()
+                if (commettre()) champ.clearFocus()
                 true
             } else {
                 false
             }
         }
-        champ.champCote.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
-        return champ.root
+        champ.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
     }
 
     /** Un contrôle DIMENSIONS (controle_dimensions.xml — les DEUX axes
@@ -671,12 +630,12 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun controleDimensions(): View {
         val bloc = ControleDimensionsBinding.inflate(gonfleur())
         rangeeDimension(
-            bloc.largeur,
+            ItemDimensionBinding.inflate(gonfleur(), bloc.root, false).also { bloc.root.addView(it.root) },
             EditionAttributsXml.Axe.LARGEUR,
             getString(R.string.preview_modifier_largeur),
         )
         rangeeDimension(
-            bloc.hauteur,
+            ItemDimensionBinding.inflate(gonfleur(), bloc.root, false).also { bloc.root.addView(it.root) },
             EditionAttributsXml.Axe.HAUTEUR,
             getString(R.string.preview_modifier_hauteur),
         )
@@ -696,8 +655,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         val nomAttribut = if (axe == EditionAttributsXml.Axe.LARGEUR) ATTR_LARGEUR else ATTR_HAUTEUR
         val valeur = viewModel.valeurAttributSelection(nomAttribut) ?: ""
         val (modeCourant, valeurFixe) = modeDimensionDe(valeur)
-        rangee.libelleAxe.text = libelle
-        rangee.champFixe.isVisible = modeCourant == EditionAttributsXml.ModeDimension.FIXE
+        rangee.etiquetteDimension.text = libelle
+        rangee.champDimension.isVisible = modeCourant == EditionAttributsXml.ModeDimension.FIXE
         val valeurs =
             listOf(
                 EditionAttributsXml.ModeDimension.WRAP to getString(R.string.preview_modifier_wrap),
@@ -708,15 +667,15 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             valeurs.firstOrNull { it.first == modeCourant }?.second
                 ?: getString(R.string.preview_modifier_fixe)
         val description = getString(R.string.preview_modifier_dimension_cd)
-        segmentes(rangee.rangeeSegmentsDimension, valeurs.map { it.second }, courant, description) { texteChoix ->
+        segmentes(rangee.groupeDimension, valeurs.map { it.second }, courant, description) { texteChoix ->
             val mode =
                 valeurs.firstOrNull { it.second == texteChoix }?.first
                     ?: EditionAttributsXml.ModeDimension.FIXE
-            rangee.champFixe.isVisible = mode == EditionAttributsXml.ModeDimension.FIXE
+            rangee.champDimension.isVisible = mode == EditionAttributsXml.ModeDimension.FIXE
             ecrireDimension(axe, mode, valeurFixe)
         }
-        rangee.champFixe.setText(valeurFixe?.toString() ?: "")
-        rangee.champFixe.doAfterTextChanged { texte ->
+        rangee.champDimension.setText(valeurFixe?.toString() ?: "")
+        rangee.champDimension.doAfterTextChanged { texte ->
             val nombre = texte?.toString()?.toIntOrNull() ?: return@doAfterTextChanged
             if (nombre > 0 && nombre != valeurFixe) {
                 ecrireDimension(axe, EditionAttributsXml.ModeDimension.FIXE, nombre)
@@ -909,9 +868,6 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
         /** La valeur de plateforme pour cibler le PARENT (code, pas UI). */
         private const val VALEUR_PARENT: String = "parent"
-
-        /** Transparence du séparateur du volet Modifier (0-1). */
-        private const val SEPARATEUR_ALPHA: Float = 0.25f
 
         /** Largeur du popover CIBLE, en dp (les cibles tiennent en courte). */
         private const val LARGEUR_MENU_CIBLE_DP: Int = 232

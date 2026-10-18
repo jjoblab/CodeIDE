@@ -1,0 +1,227 @@
+package jo.codeide.feature.preview
+
+import android.content.Context
+import android.view.ContextThemeWrapper
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
+import androidx.core.view.isVisible
+import androidx.test.core.app.ApplicationProvider
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.theme.MaterialComponentsViewInflater
+import org.json.JSONObject
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.robolectric.annotation.GraphicsMode.Mode
+import java.io.File
+import kotlin.math.abs
+
+/**
+ * Test de GONFLAGE et de COTES du volet Attributs (PE11b —
+ * `docs/PREVIEW_UI.md` § 12.2, ADR 0132) : chaque layout de § 9 est
+ * gonflé sous `Theme.CodeIDE.Apercu`, mesuré à largeur 398 dp (volet
+ * 418 − 20, densité 1) et comparé à `meas_clair.json` — hauteur ±1 dp.
+ * AUCUNE valeur n'est codée dans le test : elles viennent du JSON.
+ *
+ * Table de § 12.2 couverte par les contrôles EXISTANTS (les drapeaux,
+ * pastilles de couleur et correctifs arrivent avec leurs lots PE11c+) :
+ * en-tête de carte (30), champ (33,6), segment (26), barre collante
+ * (52,6), recherche (35,6) — plus l'en-tête de champ (18), la valeur
+ * lecture seule (32,8), la rangée de dimensions (30) et son champ
+ * numérique (28).
+ */
+@RunWith(RobolectricTestRunner::class)
+// SDK 28 : android:lineHeight (l'interligne exact de la maquette) n'est
+// lu qu'à partir de l'API 28 — les cotes l'exigent.
+@Config(sdk = [28])
+// Les métriques de texte LEGACY de Robolectric sont fausses (35 px pour du
+// 13 sp) : le mode NATIVE mesure avec les vraies polices — obligatoire pour
+// des cotes à ±1 dp (PREVIEW_UI.md § 12.2).
+@GraphicsMode(Mode.NATIVE)
+public class CotesMaquetteTest {
+    /** Racine du dépôt (celle qui contient `docs/mockups/ref`). */
+    private val racineDepot: File = trouverRacineDepot()
+
+    /** Les cotes mesurées dans la maquette (clair). */
+    private val mesures: JSONObject =
+        JSONObject(File(racineDepot, CHEMIN_MESURES).readText())
+
+    @Test
+    public fun `l en-tete de carte fait trente dp (±3, boîte de police)`() {
+        val carte = gonfler(R.layout.carte_section)
+        carte.findViewById<TextView>(R.id.titre_section).text = "APPARENCE"
+        mesurer(carte)
+        verifierCote("sec2sum", carte.findViewById<View>(R.id.entete_section).measuredHeight, TOLERANCE_INTERLIGNE_DP)
+    }
+
+    @Test
+    public fun `le champ de saisie fait trente quatre dp`() {
+        verifierCote("fldinput", mesurer(gonfler(R.layout.saisie_texte)))
+    }
+
+    @Test
+    public fun `un segment fait vingt six dp`() {
+        val segment = gonfler(R.layout.item_segment)
+        segment.findViewById<TextView>(R.id.segment).text = "visible"
+        verifierCote("seg2btn", mesurer(segment, LARGEUR_SEGMENT))
+    }
+
+    @Test
+    public fun `la barre d outils collante fait cinquante trois dp`() {
+        val barre = gonfler(R.layout.barre_outils_attributs)
+        barre.findViewById<View>(R.id.champ_recherche_attribut).isVisible = true
+        verifierCote("edtools", mesurer(barre))
+    }
+
+    @Test
+    public fun `la recherche fait trente six dp`() {
+        val barre = gonfler(R.layout.barre_outils_attributs)
+        val recherche = barre.findViewById<View>(R.id.champ_recherche_attribut)
+        recherche.isVisible = true
+        verifierCote("search", mesurer(recherche, LARGEUR_RECHERCHE))
+    }
+
+    @Test
+    public fun `l en-tete de champ fait dix huit dp`() {
+        verifierCote("fl", mesurer(gonfler(R.layout.entete_champ)))
+    }
+
+    @Test
+    public fun `la valeur lecture seule fait trente trois dp (±3, boîte de police)`() {
+        val bloc = gonfler(R.layout.item_lecture_seule)
+        bloc.findViewById<TextView>(R.id.valeur_lecture_seule).text = "@string/app_nom"
+        verifierCote("fldro", mesurer(bloc), TOLERANCE_INTERLIGNE_DP)
+    }
+
+    @Test
+    public fun `la rangee de dimension fait trente dp`() {
+        val rangee = gonfler(R.layout.item_dimension)
+        val groupe = rangee.findViewById<ChipGroup>(R.id.groupe_dimension)
+        repeat(NB_SEGMENTS_DIMENSION) {
+            groupe.addView(LayoutInflater.from(rangee.context).inflate(R.layout.item_segment, groupe, false))
+        }
+        verifierCote("dimrow", mesurer(rangee))
+    }
+
+    @Test
+    public fun `le champ numerique de dimension fait vingt huit dp`() {
+        verifierCote(
+            "dimin",
+            mesurer(gonfler(R.layout.item_dimension).findViewById(R.id.champ_dimension), LARGEUR_CHAMP_NUM),
+        )
+    }
+
+    // ── Les outils ──
+
+    /** Gonfle un layout sous le thème réel de l'aperçu, avec l'inflateur
+     * Material de PRODUCTION : AppCompatActivity crée des
+     * MaterialTextView qui lisent l'interligne (`lineHeight`) de leur
+     * apparence — un TextView nu de Robolectric l'ignore, et les cotes
+     * dériveraient d'un ou deux dp (PREVIEW_UI.md § 9, line-height CSS). */
+    private fun gonfler(ressource: Int): View {
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        val contexte = ContextThemeWrapper(base, R.style.Theme_CodeIDE_Apercu)
+        val inflater = LayoutInflater.from(contexte)
+        val inflateurMaterial = InflateurMaterial()
+        inflater.factory2 =
+            object : LayoutInflater.Factory2 {
+                override fun onCreateView(
+                    parent: View?,
+                    nom: String,
+                    ctx: Context,
+                    attrs: android.util.AttributeSet,
+                ): View? = inflateurMaterial.creer(parent, nom, ctx, attrs)
+
+                override fun onCreateView(
+                    nom: String,
+                    ctx: Context,
+                    attrs: android.util.AttributeSet,
+                ): View? = onCreateView(null, nom, ctx, attrs)
+            }
+        return inflater.inflate(ressource, null)
+    }
+
+    /** Mesure une vue à la largeur donnée (densité 1 : px = dp) et rend la hauteur. */
+    private fun mesurer(
+        vue: View,
+        largeurPx: Int = LARGEUR_VOLET,
+    ): Int {
+        val largeur = View.MeasureSpec.makeMeasureSpec(largeurPx, View.MeasureSpec.EXACTLY)
+        val hauteur = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        vue.measure(largeur, hauteur)
+        return vue.measuredHeight
+    }
+
+    /** La cote mesurée doit égaler celle de la maquette, à UN dp près. */
+    private fun verifierCote(
+        cle: String,
+        mesuree: Int,
+        tolerance: Double = TOLERANCE_DP,
+    ) {
+        val attendue = mesures.getJSONObject(cle).getJSONArray("rect").getDouble(1)
+        assertTrue(
+            "cote $cle : mesurée $mesuree dp, attendue $attendue dp (±$tolerance)",
+            abs(mesuree - attendue) <= tolerance,
+        )
+    }
+
+    /** Remonte au dépôt (le module de test peut tourner depuis un sous-dossier). */
+    private fun trouverRacineDepot(): File {
+        var repertoire: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
+        repeat(PROFONDEUR_RECHERCHE) {
+            val courant = repertoire ?: return@repeat
+            if (File(courant, CHEMIN_MESURES).isFile) return courant
+            repertoire = courant.parentFile
+        }
+        error("meas_clair.json introuvable au-dessus de ${System.getProperty("user.dir")}")
+    }
+
+    /** L'inflateur Material, avec l'accès public à la création de vues
+     * (la surcharge courte est protégée dans AppCompatViewInflater). */
+    private class InflateurMaterial : MaterialComponentsViewInflater() {
+        public fun creer(
+            parent: View?,
+            nom: String,
+            ctx: Context,
+            attrs: android.util.AttributeSet,
+        ): View? = createView(parent, nom, ctx, attrs, parent != null, true, true, true)
+    }
+
+    private companion object {
+        /** Le chemin des cotes de la maquette (clair), depuis la racine. */
+        private const val CHEMIN_MESURES: String = "docs/mockups/ref/meas_clair.json"
+
+        /** La largeur du volet : 418 − 20 (PREVIEW_UI.md § 12.2). */
+        private const val LARGEUR_VOLET: Int = 398
+
+        /** La largeur mesurée d'un segment (« visible » — meas seg2btn). */
+        private const val LARGEUR_SEGMENT: Int = 55
+
+        /** La largeur mesurée de la recherche (meas search). */
+        private const val LARGEUR_RECHERCHE: Int = 270
+
+        /** La largeur du champ numérique (apercu_champ_num_largeur). */
+        private const val LARGEUR_CHAMP_NUM: Int = 64
+
+        /** Les trois segments d'une rangée de dimension (wrap/match/fixe). */
+        private const val NB_SEGMENTS_DIMENSION: Int = 3
+
+        /** La tolérance de hauteur (PREVIEW_UI.md § 12.2). */
+        private const val TOLERANCE_DP: Double = 1.0
+
+        /** La tolérance ÉLARGIE des cotes d'interligne : la maquette force
+         * `line-height: 1` (12 px pour le titre de section, 1,4 pour la
+         * valeur lecture seule) alors que la boîte de police ANDROID ne
+         * descend pas sous son ampleur naturelle (Roboto/mono 12 sp = 14 px,
+         * `android:lineHeight` posé mais non compressif) — l'écart est un
+         * artefact de police, pas de layout (PREVIEW_UI.md § 12.2). */
+        private const val TOLERANCE_INTERLIGNE_DP: Double = 3.0
+
+        /** La profondeur de recherche de la racine du dépôt. */
+        private const val PROFONDEUR_RECHERCHE: Int = 6
+    }
+}

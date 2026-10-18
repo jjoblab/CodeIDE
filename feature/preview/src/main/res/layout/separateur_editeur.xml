@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Le SÉPARATEUR de fin de l'éditeur (PE9b, miroir le border-bottom de
-     `.ed` de la maquette) — l'atténuation suit la vue (alpha 0,25 au
-     liage, un drawable ne porte pas d'alpha d'attribut). -->
+<!--
+  Le SÉPARATEUR de fin de l'éditeur (PE9b, habillé PE11b) : miroir le
+  border-bottom de `.ed` de la maquette — trait 1 dp (jeton
+  apercu_trait_epaisseur) sur la couleur « trait ». L'atténuation suit
+  la vue (alpha 0,25 au liage, un drawable ne porte pas d'alpha
+  d'attribut).
+-->
 <View xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/separateur_editeur"
     android:layout_width="match_parent"
-    android:layout_height="1dp"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="10dp"
-    android:layout_marginEnd="8dp"
-    android:background="?attr/colorOnSurfaceVariant" />
+    android:layout_height="@dimen/apercu_trait_epaisseur"
+    android:layout_marginTop="@dimen/apercu_gap_sections"
+    android:background="?attr/apercuTrait" />

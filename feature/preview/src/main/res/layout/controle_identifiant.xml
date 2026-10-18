@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Un contrôle IDENTIFIANT (PE9b, PE8a) : la valeur courante en lecture
-  seule (mono), le champ « nouveau nom » validé à l'IME/à la perte de
-  focus — le renommage couvre la déclaration ET les références du
-  fichier en UNE édition — et la note de périmètre (code R.id et autres
-  layouts hors portée).
+  Un contrôle IDENTIFIANT (PE9b, PE8a, habillé PE11b aux jetons) : la
+  valeur courante en lecture seule (mono), le champ « nouveau nom »
+  validé à l'IME/à la perte de focus — le renommage couvre la déclaration
+  ET les références du fichier en UNE édition — et la note de périmètre
+  (code R.id et autres layouts hors portée). Habillage : styles
+  Widget.CodeIDE.Apercu (aucun littéral) ; le padding latéral vient du
+  corps de carte.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/controle_identifiant"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -15,16 +16,9 @@
 
     <TextView
         android:id="@+id/libelle_controle"
+        style="@style/Widget.CodeIDE.Apercu.Etiquette"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="2dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:layout_height="wrap_content" />
 
     <FrameLayout
         android:id="@+id/conteneur_courant"
@@ -33,32 +27,17 @@
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/champ_nouveau_nom"
-        android:importantForAutofill="no"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/fond_champ"
-        android:paddingStart="10dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="10dp"
-        android:paddingBottom="8dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="13sp"
-        android:textColor="?attr/colorOnSurface" 
-    tools:ignore="LabelFor" />
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:imeOptions="actionDone" />
 
     <TextView
         android:id="@+id/note_perimetre"
+        style="@style/Widget.CodeIDE.Apercu.Note"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="2dp"
-        android:text="@string/preview_identite_hors_perimetre"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:text="@string/preview_identite_hors_perimetre" />
 </LinearLayout>

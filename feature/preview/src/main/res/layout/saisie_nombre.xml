@@ -1,23 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Le champ NOMBRE avec unité de l'éditeur (PE9b) : saisie numérique,
-     refus propre (repli visuel) si non numérique. -->
-<EditText xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<!--
+  Le champ NOMBRE avec unité de l'éditeur (PE9b, habillé PE11b aux
+  jetons) : saisie numérique, refus propre (repli visuel) si non
+  numérique. Miroir `.fld input[type=number]` — le style Champ porte le
+  fond, le trait, le rayon et la taille 13 sp.
+-->
+<androidx.appcompat.widget.AppCompatEditText xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/champ_nombre"
+    style="@style/Widget.CodeIDE.Apercu.Champ"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="2dp"
-    android:layout_marginEnd="16dp"
-    android:background="@drawable/fond_champ"
-    android:importantForAutofill="no"
-        android:inputType="numberDecimal"
-    android:paddingStart="10dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="10dp"
-    android:paddingBottom="8dp"
-    android:singleLine="true"
-    android:textAppearance="?attr/textAppearanceLabelSmall"
-    android:textSize="13sp"
-    android:textColor="?attr/colorOnSurface" 
-    tools:ignore="LabelFor" />
+    android:imeOptions="actionDone"
+    android:inputType="numberDecimal" />

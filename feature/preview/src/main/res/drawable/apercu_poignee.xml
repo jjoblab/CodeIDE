@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Poignée de la feuille (.grab i) : 36×4 dp, rayon 2, couleur « trait ». -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_poignee_rayon" />
+</shape>
