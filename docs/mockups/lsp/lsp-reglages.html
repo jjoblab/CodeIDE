@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réglages LSP et composants partagés (ADR 0127 / 0128)</title>
+<!--
+  Maquette ancrée sur les VRAIS tokens de CodeIDE (core/ui colors.xml, values-night).
+  Écrans : L1 Vue d'ensemble · L2 Langage (Java, puis Kotlin : la liste suit les capacités
+  annoncées) · L3 Index et cache · L4 Environnement · L5 État et diagnostic · + planche des
+  composants partagés. Spécification : docs/LSP_SPEC_ECRANS.md.
+-->
+<style>
+:root{--primary:#43559E;--on-primary:#FFF;--pc:#DCE1FF;--on-pc:#001159;--bg:#F9F9FF;--on-bg:#1A1B21;--sv:#E2E1EC;--on-sv:#46464F;--outline:#767680;--ov:#C6C5D0;--ok:#2E7D32;--ok-c:#DDEFE0;--warn:#9A6700;--warn-c:#F6E7C1;--err:#BA1A1A;--err-c:#FFDAD6}
+.dark{--primary:#BAC4FF;--on-primary:#0C2264;--pc:#293D8F;--on-pc:#DCE1FF;--bg:#111318;--on-bg:#E2E1E9;--sv:#46464F;--on-sv:#C6C5D0;--outline:#90909A;--ov:#46464F;--ok:#81C995;--ok-c:#1F3A1F;--warn:#FDD663;--warn-c:#5A3D56;--err:#FFB4AB;--err-c:#5C1A14}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 2px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.top p{margin:0;color:var(--on-sv);font-size:12px}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:4px 12px;font:inherit;cursor:pointer}
+.wrap{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}.col{display:flex;flex-direction:column;gap:6px}.cap{font-size:12px;font-weight:600;color:var(--on-sv)}
+.ph{width:340px;height:640px;border:2px solid var(--outline);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--ov);font-weight:600}
+.sc{flex:1;overflow:hidden;padding:4px 0}
+.card{margin:8px 16px;border:1px solid var(--ov);border-radius:12px;padding:8px;background:var(--bg)}
+.sec{margin:2px 4px 4px;font-weight:600;font-size:12px;color:var(--on-sv)}
+.rw{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 4px}
+.rw i{font-style:normal;width:24px;text-align:center;color:var(--on-sv);flex:none}
+.rw .t{flex:1;min-width:0}.rw .t b{display:block;font-size:14px;font-weight:600}.rw .t span{display:block;font-size:12px;color:var(--on-sv)}
+.rw .v{font-size:12px;color:var(--on-sv)}.rw+.rw{border-top:1px solid var(--ov)}
+.ch{color:var(--on-sv)}
+.pd{display:inline-flex;gap:4px;align-items:center;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:600;flex:none}
+.pd.ok{background:var(--ok-c);color:var(--ok)}.pd.w{background:var(--warn-c);color:var(--warn)}.pd.e{background:var(--err-c);color:var(--err)}.pd.n{background:var(--sv);color:var(--on-sv)}
+.sw{width:36px;height:20px;border-radius:10px;background:var(--primary);position:relative;flex:none}.sw:after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--on-primary)}.sw.off{background:var(--sv)}.sw.off:after{right:auto;left:3px;background:var(--outline)}
+.btn{border:1px solid var(--outline);background:none;color:var(--primary);border-radius:18px;padding:7px 14px;font:12px system-ui;display:inline-block}
+.btn.t{background:var(--pc);color:var(--on-pc);border-color:transparent}.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.note{margin:6px 20px;font-size:11px;color:var(--on-sv)}
+.soon{border:1px solid var(--ov);border-radius:8px;padding:1px 6px;font-size:10px;color:var(--on-sv)}
+.bd{margin:6px 16px;padding:8px 12px;border-radius:12px;font-size:12px}.bd.w{background:var(--warn-c);color:var(--warn)}
+.er{font:11px ui-monospace,monospace;color:var(--on-sv);padding:4px}
+.ds{width:340px;border:2px solid var(--outline);border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.ds .r{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--ov);color:var(--on-sv);border-radius:8px;padding:3px 10px;font-size:12px}.chip.on{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.vs{text-align:center;padding:10px;color:var(--on-sv);font-size:12px}.vs b{display:block;font-size:14px;color:var(--on-bg);margin:2px 0}
+.sp{flex:1}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>Réglages LSP — « Intelligence du code »</h1><p>Tokens réels de CodeIDE · ADR 0127 (composants) · ADR 0128 (LSP) · spec : docs/LSP_SPEC_ECRANS.md</p></div>
+<button class="tg" onclick="document.body.classList.toggle('dark')">Clair / Sombre</button></div>
+<div class="wrap">
+
+<!-- L1 -->
+<div class="col"><div class="cap">L1 · Vue d'ensemble</div><div class="ph">
+<div class="bar">← Intelligence du code</div>
+<div class="sc">
+ <div class="card"><div class="sec">Moteurs</div>
+  <div class="rw"><i>☕</i><div class="t"><b>Java</b><span>Prêt · 191 fichiers</span></div><span class="pd ok">● Prêt</span><span class="ch">›</span></div>
+  <div class="rw"><i>K</i><div class="t"><b>Kotlin</b><span>Indexation 62 %</span></div><span class="pd w">▲ En cours</span><span class="ch">›</span></div>
+  <div class="rw"><i>‹›</i><div class="t"><b>XML</b><span>Prêt</span></div><span class="pd ok">● Prêt</span><span class="ch">›</span></div></div>
+ <div class="card"><div class="sec">Analyse</div>
+  <div class="rw"><i>▤</i><div class="t"><b>Index et cache</b><span>184 Mo · mis à jour il y a 2 h</span></div><span class="ch">›</span></div>
+  <div class="rw"><i>⚙</i><div class="t"><b>Environnement d'analyse</b><span>JDK 17 · plateforme API 34</span></div><span class="ch">›</span></div>
+  <div class="rw"><i>✚</i><div class="t"><b>État et diagnostic</b><span>Aucune erreur récente</span></div><span class="ch">›</span></div></div>
+ <p class="note">Ces réglages s'appliquent au projet ouvert. Certains prennent effet à la réouverture.</p>
+</div></div></div>
+
+<!-- L2 Java -->
+<div class="col"><div class="cap">L2 · Langage — Java</div><div class="ph">
+<div class="bar">← Java</div>
+<div class="sc">
+ <div class="card"><div class="sec">Moteur</div>
+  <div class="rw"><div class="t"><b>Compilateur</b><span>ecj adapté à Android</span></div></div>
+  <div class="rw"><div class="t"><b>État</b></div><span class="pd ok">● Prêt</span></div></div>
+ <div class="card"><div class="sec">Fonctions</div>
+  <div class="rw"><div class="t"><b>Complétion</b><span>Suggestions pendant la frappe</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Survol</b><span>Documentation au toucher long</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Diagnostics</b><span>Erreurs et avertissements</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Renommer</b><span>Renommage sûr du symbole</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Formatage</b><span>Mise en forme du code</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Indices en ligne</b><span>Types et noms de paramètres</span></div><span class="sw off"></span></div></div>
+ <div class="card"><div class="rw"><div class="t"><b>Gravité affichée</b><span>Les erreurs de compilation restent visibles</span></div><span class="v">Tout ›</span></div>
+  <div class="rw"><div class="t"><b>Réactivité de l'analyse</b></div><span class="soon">Bientôt</span></div></div>
+</div></div></div>
+
+<!-- L2 Kotlin -->
+<div class="col"><div class="cap">L2 · Langage — Kotlin (liste dérivée des capacités)</div><div class="ph">
+<div class="bar">← Kotlin</div>
+<div class="sc">
+ <div class="card"><div class="sec">Moteur</div>
+  <div class="rw"><div class="t"><b>Analyseur</b><span>Intégré · pack de langue</span></div><span class="soon">Bientôt</span></div>
+  <div class="rw"><div class="t"><b>État</b></div><span class="pd w">▲ Indexation 62 %</span></div></div>
+ <div class="card"><div class="sec">Fonctions</div>
+  <div class="rw"><div class="t"><b>Complétion</b><span>Suggestions pendant la frappe</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Survol</b><span>Documentation au toucher long</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Diagnostics</b><span>Erreurs et avertissements</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Aide à la signature</b><span>Paramètres de l'appel en cours</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Renommer</b><span>Renommage sûr du symbole</span></div><span class="sw"></span></div></div>
+ <p class="note">Formatage et indices en ligne n'apparaissent pas : ce moteur ne les annonce pas.</p>
+</div></div></div>
+
+<!-- L3 -->
+<div class="col"><div class="cap">L3 · Index et cache</div><div class="ph">
+<div class="bar">← Index et cache</div>
+<div class="sc">
+ <div class="card"><div class="sec">Occupation</div>
+  <div class="rw"><div class="t"><b>Cache d'index</b><span>Dernier passage : 1 min 12 s · 3 avertissements</span></div><span class="v">184 Mo</span></div>
+  <div class="rw"><div class="t"><b>Taille maximale</b><span>Auto s'adapte à la taille du projet</span></div><span class="v">Auto ›</span></div></div>
+ <div class="card"><div class="sec">Détection des changements</div>
+  <div class="rw"><div class="t"><b>Surveiller les modifications externes</b><span>Utile après un git pull</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Fréquence</b></div><span class="v">5 s ›</span></div></div>
+ <div class="card"><div class="sec">Actions</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;padding:4px"><span class="btn">Réindexer</span><span class="btn">Réessayer les échecs</span><span class="btn t">Vider le cache</span></div></div>
+ <div class="bd w">▲ Indexation en cours : « Vider le cache » est indisponible jusqu'à la fin.</div>
+ <p class="note">Détails de l'indexation › (ouvre la feuille existante)</p>
+</div></div></div>
+
+<!-- L4 + L5 -->
+<div class="col"><div class="cap">L4 Environnement · L5 État et diagnostic</div><div class="ph">
+<div class="bar">← Environnement d'analyse</div>
+<div class="sc">
+ <div class="card"><div class="sec">Toolchain (lecture seule)</div>
+  <div class="rw"><div class="t"><b>JDK</b><span>Fourni par l'environnement</span></div><span class="v">17</span></div>
+  <div class="rw"><div class="t"><b>Plateforme Android</b></div><span class="v">API 34</span></div>
+  <div class="rw"><div class="t"><b>Mode Java</b></div><span class="v">Par module</span></div></div>
+ <div class="vs" style="border-top:1px solid var(--ov);margin-top:6px">— L5 · État et diagnostic —</div>
+ <div class="card"><div class="sec">Dernières erreurs</div>
+  <div class="er">14:02 · Kotlin · Référence non résolue (index partiel)</div>
+  <div class="er">13:47 · Java · Classpath mis à jour</div>
+  <div style="padding:6px 4px"><span class="btn">Copier le diagnostic LSP</span></div></div>
+ <div class="vs"><b>Aucun projet ouvert</b>Les moteurs sont inactifs. <span class="btn" style="margin-top:6px">Ouvrir un projet</span></div>
+</div></div></div>
+
+<!-- Composants -->
+<div class="col"><div class="cap">Composants partagés (ADR 0127)</div>
+<div class="ds">
+ <div class="sec">RangeeParametre · chevron / interrupteur / valeur</div>
+ <div class="card" style="margin:0"><div class="rw"><i>▤</i><div class="t"><b>Titre</b><span>Sous-titre d'état</span></div><span class="ch">›</span></div>
+  <div class="rw"><i>◐</i><div class="t"><b>Titre</b><span>Sous-titre</span></div><span class="sw"></span></div>
+  <div class="rw"><i>⚙</i><div class="t"><b>Titre</b></div><span class="v">Valeur ›</span></div></div>
+ <div class="sec">IndicateurEtat · forme + texte, pas la couleur seule</div>
+ <div class="r"><span class="pd ok">● Prêt</span><span class="pd w">▲ Partiel</span><span class="pd e">✕ Erreur</span><span class="pd n">○ Inactif</span></div>
+ <div class="sec">Chip.Filter / Assist · Boutons</div>
+ <div class="r"><span class="chip on">Filtre actif</span><span class="chip">Assist</span><span class="btn p">Principal</span><span class="btn t">Tonal</span><span class="btn">Outlined</span></div>
+ <div class="sec">VueEtat · vide / erreur / hors-ligne / chargement</div>
+ <div class="vs" style="border:1px dashed var(--ov);border-radius:12px"><b>Rien à afficher</b>Message court + action unique</div>
+ <div class="sec">Retour (Snackbar) — jamais de Toast</div>
+ <div class="rw" style="background:var(--on-bg);color:var(--bg);border-radius:8px;padding:10px 12px"><div class="t" style="color:var(--bg)"><b style="font-weight:400">Cache vidé</b></div><b style="color:var(--pc)">Annuler</b></div>
+</div></div>
+
+</div>
+</body>
+</html>

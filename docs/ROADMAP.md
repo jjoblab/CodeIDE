@@ -1,12 +1,12 @@
 # CodeIDE — Roadmap
 
 > Dernière mise à jour : 2026-10-18
-> Version courante : **0.135.0** (source de vérité : `version.properties`)
+> Version courante : **0.136.0** (source de vérité : `version.properties`)
 > Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.135.0)
+## État actuel (v0.136.0)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -354,6 +354,37 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 Optionnels : IA-5b (diff en ligne `ViewZone` — chantier `jjoblab/code-editor`),
 IA-8 (complétion « texte fantôme », ADR propre).
 
+## Mission UI/LSP — cohérence visuelle et réglages ⬜ PROPOSÉ
+
+> ADR 0127 (cohérence UI + garde-fou à cliquet) et 0128 (réglages LSP pilotés par
+> capacités) **proposées** — les lots démarreront après acceptation par le propriétaire.
+> Documents : [`UI_AUDIT_COHERENCE.md`](UI_AUDIT_COHERENCE.md) (mesures C1–C10),
+> [`LSP_REVUE_REGLAGES.md`](LSP_REVUE_REGLAGES.md) (constats L1–L7),
+> [`LSP_SPEC_ECRANS.md`](LSP_SPEC_ECRANS.md) (écrans L1–L5),
+> [`mockups/lsp/lsp-reglages.html`](mockups/lsp/lsp-reglages.html).
+> **Règle d'ordonnancement : UI-1 et UI-2 d'abord** — aucun écran IA (IA-2+) ni LSP
+> ne se construit avant.
+
+### Lots UI — cohérence (ADR 0127)
+| Lot | Version | Contenu | État |
+|---|---|---|---|
+| UI-1 | — | Jetons, styles et composants partagés dans `core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`) | ⬜ |
+| UI-2 | — | Garde-fou `checkUiTokens` à cliquet (baseline versionnée, jamais à la hausse) + CI + tests du moteur | ⬜ |
+| UI-3 | — | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ⬜ |
+| UI-4 | — | `install`, `core/crash`, `terminal` : alignement complet | ⬜ |
+| UI-5 | — | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ⬜ |
+| UI-6 | — | `preview` : idem | ⬜ |
+| UI-7 | — | Toast → Snackbar partout + règle de bannissement | ⬜ |
+
+### Lots LSP — réglages (ADR 0128, deux dépôts)
+| Lot | Dépôt | Contenu | État |
+|---|---|---|---|
+| LSP-0 | les deux | Purge règle 13 ; publication ; source unique des docs `LSP_*` ; numérotation d'ADR | ⬜ |
+| LSP-1 | `codeide-lsp` | `ConfigurationLsp`, `appliquer`, cache et capacités exposés, tests, **v1.1.0** | ⬜ |
+| LSP-2 | CodeIDE | Version vérifiée, `LspSettings` (hors `AppSettings`), câblage `CoordonnateurLsp`, filtres côté client | ⬜ |
+| LSP-3 | CodeIDE | Écrans L1–L5 « Intelligence du code », composants ADR 0127 uniquement (après UI-1/UI-2) | ⬜ |
+| LSP-4 | CodeIDE | « Copier le diagnostic LSP », tests d'architecture, accessibilité, EN/FR | ⬜ |
+
 ## Priorisation
 
 | Phase | Priorité | Effort | Impact utilisateur |
@@ -365,4 +396,5 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
 | R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
 | **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| **UI/LSP — cohérence + réglages** | **PROPOSÉ** — ADR 0127/0128 en attente d'acceptation ; UI-1/UI-2 prérequis des écrans IA et LSP | Haut | Haut — unité visuelle, réglages LSP réels |
 | 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |
