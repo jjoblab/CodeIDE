@@ -4,6 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jo.codeide.feature.preview.databinding.BarreOutilsAttributsBinding
 import jo.codeide.feature.preview.databinding.CarteSectionBinding
@@ -20,9 +22,9 @@ import jo.codeide.preview.xml.EditionAttributsXml
  * L'adaptateur du volet ATTRIBUTS (PE11b, ADR 0132) : UN type d'item =
  * UN layout (PREVIEW_UI.md § 9). Les cartes ne gonflent leur CORPS qu'à
  * l'ouverture et le détruisent à la fermeture (état mémorisé par le
- * volet, miroir `S.so` de la maquette) ; la soumission refait la liste
- * entière (pas de DiffUtil : les cartes sont peu nombreuses, miroir le
- * re-marche du volet).
+ * volet, miroir `S.so` de la maquette) ; la soumission passe par un
+ * [DiffUtil] SOUS LE CAPOT (ADR 0132 § 4) — les cartes sont peu
+ * nombreuses, seules les dérivées re-lient.
  *
  * Le LIAGE des contrôles reste au volet ([Evenements.lierCorpsCarte]) —
  * la mécanique d'édition (ViewModel, ports, [CatalogueAttributs]) est
@@ -30,7 +32,7 @@ import jo.codeide.preview.xml.EditionAttributsXml
  */
 internal class AdaptateurAttributs(
     private val evenements: Evenements,
-) : RecyclerView.Adapter<AdaptateurAttributs.Detenteur>() {
+) : ListAdapter<ItemAttributs, AdaptateurAttributs.Detenteur>(DiffItems) {
     /** Le contrat volet ↔ adaptateur : le corps des cartes reste au volet. */
     internal interface Evenements {
         /** Gonfle les contrôles d'une section OUVERTE dans son corps. */
@@ -53,19 +55,15 @@ internal class AdaptateurAttributs(
         )
     }
 
-    private val items = mutableListOf<ItemAttributs>()
-
-    /** Soumet une nouvelle liste (miroir majAttributs : re-marche complet). */
+    /** Soumet une nouvelle liste (miroir majAttributs : le diff re-lie les dérivées). */
     fun soumettre(nouveaux: List<ItemAttributs>) {
-        items.clear()
-        items.addAll(nouveaux)
-        notifyDataSetChanged()
+        submitList(nouveaux)
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = super.getItemCount()
 
     override fun getItemViewType(position: Int): Int =
-        when (val item = items[position]) {
+        when (val item = getItem(position)) {
             is ItemAttributs.Titre -> VUE_TITRE
             ItemAttributs.BarreOutils -> VUE_BARRE
             is ItemAttributs.Carte -> VUE_CARTE
@@ -99,7 +97,7 @@ internal class AdaptateurAttributs(
         detenteur: Detenteur,
         position: Int,
     ) {
-        when (val item = items[position]) {
+        when (val item = getItem(position)) {
             is ItemAttributs.Titre -> {
                 EnteteEditeurBinding.bind(detenteur.itemView).titreEditeur.text = item.texte
             }
@@ -176,6 +174,32 @@ internal class AdaptateurAttributs(
     internal class Detenteur(
         vue: View,
     ) : RecyclerView.ViewHolder(vue)
+
+    /**
+     * Le diff des items (ADR 0132 § 4) : les items sont des data class
+     * immuables — l'égalité de contenu suffit ; une carte reste « la
+     * même » par le TITRE de sa section (miroir l'état par titre).
+     */
+    private object DiffItems : DiffUtil.ItemCallback<ItemAttributs>() {
+        override fun areItemsTheSame(
+            ancien: ItemAttributs,
+            nouveau: ItemAttributs,
+        ): Boolean =
+            when {
+                ancien is ItemAttributs.Carte && nouveau is ItemAttributs.Carte -> {
+                    ancien.section.titre == nouveau.section.titre
+                }
+
+                else -> {
+                    ancien == nouveau
+                }
+            }
+
+        override fun areContentsTheSame(
+            ancien: ItemAttributs,
+            nouveau: ItemAttributs,
+        ): Boolean = ancien == nouveau
+    }
 
     internal companion object {
         /** Les types de vues (UN item = UN layout — PREVIEW_UI.md § 9). */
