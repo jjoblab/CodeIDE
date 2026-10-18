@@ -12,6 +12,7 @@ import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.DiagnosticEditeur
 import jo.codeide.core.domain.PortEditeurActif
 import jo.codeide.core.domain.RegistrePortEditeurActif
+import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.domain.SelectionEditeur
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -37,6 +38,7 @@ import org.junit.Test
  * utilisateur qui ne doit partir **qu'une fois** par requête.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // une classe de tests par écran : le contrat UDF s'y déploie entier.
 class ChatViewModelTest {
     @get:Rule
     val regleMain = MainDispatcherRule()
@@ -58,6 +60,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -84,6 +88,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -128,6 +134,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -180,6 +188,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -215,6 +225,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -255,6 +267,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -302,6 +316,8 @@ class ChatViewModelTest {
                     registre,
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -323,6 +339,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -342,6 +360,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -370,6 +390,8 @@ class ChatViewModelTest {
                     registre,
                     contexte,
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -415,6 +437,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     contexte,
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -453,6 +477,8 @@ class ChatViewModelTest {
                     registre,
                     contexte,
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -503,6 +529,8 @@ class ChatViewModelTest {
                     registre,
                     contexte,
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -540,6 +568,8 @@ class ChatViewModelTest {
                     registre,
                     contexte,
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -579,6 +609,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     canal,
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -602,6 +634,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     canal,
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -626,6 +660,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     canal,
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -645,6 +681,8 @@ class ChatViewModelTest {
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 
@@ -653,6 +691,56 @@ class ChatViewModelTest {
 
             val effet = modele.effets.first()
             assertTrue(effet is EffetChatIa.Message)
+        }
+
+    @Test
+    fun `l'envoi persiste le message utilisateur puis la réponse au Done`() =
+        runTest {
+            val fournisseurFlux = FauxFournisseurFlux()
+            val historique = FauxConversationStore()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    CanalSignauxIa(),
+                    historique,
+                    HorlogeFixe,
+                )
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.ChangerSaisie("Bonjour"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+
+            // Le message utilisateur est persisté dès l'envoi.
+            assertEquals(1, historique.conversations.size)
+            val conversationId = historique.conversations.keys.single()
+            val persistes = historique.messages(conversationId)
+            assertEquals(1, persistes.size)
+            assertTrue(persistes.single().utilisateur)
+            assertEquals("Bonjour", persistes.single().texte)
+        }
+
+    @Test
+    fun `la purge de rétention est lancée à la création du tiroir`() =
+        runTest {
+            val historique = FauxConversationStore()
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+            )
+            advanceUntilIdle()
+
+            assertEquals(1, historique.purges)
+            // Le réglage actif vaut JOURS_30 (FakeReglagesIa par défaut).
+            assertEquals(RetentionIa.JOURS_30, historique.retentionDerniere)
         }
 
     @Test
@@ -667,6 +755,8 @@ class ChatViewModelTest {
                     registre,
                     FauxFournisseurContexte(),
                     CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
                 )
             advanceUntilIdle()
 

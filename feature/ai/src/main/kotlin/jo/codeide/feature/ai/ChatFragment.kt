@@ -36,7 +36,12 @@ import javax.inject.Inject
  * états transverses (IA non activée → consentement ; conversation vide),
  * compositeur avec bascule Envoyer ↔ Arrêter (l'annulation ferme la
  * requête — critère d'acceptation IA-3), effets presse-papiers.
+
+ * Le seuil de fonctions est structurellement dépassé : un fragment
+ * est un CONTRAT de câblage (cycle de vie + écouteurs — précédent
+ * `PanneauConsoleFragment`).
  */
+@Suppress("TooManyFunctions")
 @AndroidEntryPoint
 public class ChatFragment : Fragment() {
     /** Navigation découplée (consentement). */
@@ -110,6 +115,15 @@ public class ChatFragment : Fragment() {
                 }
             }
         }
+    }
+
+    /**
+     * Rouvre une conversation de l'historique (lot IA-6, appelé par
+     * [IaTiroirFragment]) : l'action charge les messages persistés dans
+     * la vue — l'envoi suivant poursuit la même conversation.
+     */
+    public fun ouvrirConversation(conversationId: String) {
+        viewModel.onAction(ActionChatIa.OuvrirConversation(conversationId))
     }
 
     override fun onDestroyView() {

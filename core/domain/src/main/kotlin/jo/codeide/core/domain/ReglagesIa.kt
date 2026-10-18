@@ -61,6 +61,8 @@ public data class AiSettings(
     public val envoyerListeChemins: Boolean = true,
     /** Confidentialité : envoyer les diagnostics du fichier actif. */
     public val envoyerDiagnostics: Boolean = true,
+    /** Historique (IA-6, ADR 0124 §5) : rétention des conversations. */
+    public val retentionConversations: RetentionIa = RetentionIa.JOURS_30,
 ) {
     /** Modèle actif selon le fournisseur choisi (chaîne vide = à choisir). */
     public val modeleActif: String

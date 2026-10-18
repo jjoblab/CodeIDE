@@ -145,4 +145,32 @@
     <string name="ia_diff_plage_absente">Select the file range to replace first</string>
     <string name="ia_consigne_corriger">Fix this error in %1$s:\n</string>
     <string name="ia_consigne_expliquer_sortie">Explain this output and its likely causes:\n</string>
+
+    <!-- Lot IA-6: conversation history. -->
+    <string name="ia_historique_recherche_hint">Search a conversation</string>
+    <string name="ia_historique_vide">No conversation</string>
+    <string name="ia_historique_meta">%1$s · %2$s</string>
+    <string name="ia_historique_menu_renommer">Rename</string>
+    <string name="ia_historique_menu_supprimer">Delete</string>
+    <string name="ia_historique_menu_cd">Conversation actions</string>
+    <string name="ia_historique_ligne_cd">%1$s — reopen in chat</string>
+    <string name="ia_historique_renommer_titre">Rename conversation</string>
+    <string name="ia_historique_renommer_hint">New title</string>
+    <string name="ia_historique_suppression_titre">Delete conversation</string>
+    <string name="ia_historique_suppression_message">Delete \u201c%1$s\u201d and all its messages?</string>
+    <string name="ia_historique_tout_effacer">Clear all</string>
+    <string name="ia_historique_tout_effacer_titre">Clear all</string>
+    <string name="ia_historique_tout_effacer_message">Delete ALL conversations and their messages?</string>
+    <string name="ia_historique_confirmer">Confirm</string>
+    <string name="ia_historique_annuler">Cancel</string>
+    <string name="ia_historique_renommee">Conversation renamed</string>
+    <string name="ia_historique_supprimee">Conversation deleted</string>
+    <string name="ia_historique_purgee">History cleared</string>
+    <string name="ia_reglages_historique_purge">History cleared</string>
+    <string name="ia_carte_historique_titre">History</string>
+    <string name="ia_carte_historique_message">Conversations stay on this device. Configurable retention, purged on open.</string>
+    <string name="ia_retention_libelle_7j">Keep for 7 days</string>
+    <string name="ia_retention_libelle_30j">Keep for 30 days</string>
+    <string name="ia_retention_libelle_illimitee">Keep forever</string>
+    <string name="ia_bientot_historique_ancien">Conversation history arrives in lot IA-6.</string>
 </resources>

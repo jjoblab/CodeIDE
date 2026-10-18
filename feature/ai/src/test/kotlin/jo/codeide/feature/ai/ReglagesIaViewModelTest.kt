@@ -28,7 +28,13 @@ class ReglagesIaViewModelTest {
     fun `activer n'enregistre rien et ouvre le consentement`() =
         runTest {
             val reglages = FakeReglagesIa()
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    reglages,
+                    FakeCoffre(),
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ChangerActivation(true))
@@ -45,7 +51,13 @@ class ReglagesIaViewModelTest {
                 FakeReglagesIa(
                     AiSettings(assistantActive = true, consentementDonne = true, consentementDateEpochMs = 42L),
                 )
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    reglages,
+                    FakeCoffre(),
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ChangerActivation(false))
@@ -91,7 +103,8 @@ class ReglagesIaViewModelTest {
         runTest {
             val reglages = FakeReglagesIa(AiSettings(assistantActive = true, consentementDonne = false))
             val faux = FauxFournisseur()
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(faux))
+            val modele =
+                ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(faux), FauxConversationStore())
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ActualiserModeles)
@@ -109,7 +122,8 @@ class ReglagesIaViewModelTest {
                     AiSettings(assistantActive = true, consentementDonne = true, modeleAnthropic = "modele-test"),
                 )
             val faux = FauxFournisseur()
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(faux))
+            val modele =
+                ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(faux), FauxConversationStore())
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ActualiserModeles)
@@ -124,7 +138,13 @@ class ReglagesIaViewModelTest {
         runTest {
             val coffre = FakeCoffre()
             coffre.enregistrer(FournisseursIa.ANTHROPIC, "sk-test-abcdef1234567890WXYZ".toCharArray())
-            val modele = ReglagesIaViewModel(FakeReglagesIa(), coffre, ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    FakeReglagesIa(),
+                    coffre,
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
 
             advanceUntilIdle()
             val etat = modele.etat.value
@@ -142,7 +162,13 @@ class ReglagesIaViewModelTest {
             val coffre = FakeCoffre()
             coffre.enregistrer(FournisseursIa.ANTHROPIC, "sk-test-abcdef1234567890".toCharArray())
             coffre.maitrePerdue = true
-            val modele = ReglagesIaViewModel(FakeReglagesIa(), coffre, ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    FakeReglagesIa(),
+                    coffre,
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
 
             advanceUntilIdle()
             val etat = modele.etat.value
@@ -154,7 +180,13 @@ class ReglagesIaViewModelTest {
     fun `choisir un fournisseur inconnu n'écrit rien`() =
         runTest {
             val reglages = FakeReglagesIa()
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    reglages,
+                    FakeCoffre(),
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ChoisirFournisseur("inconnu"))
@@ -170,7 +202,13 @@ class ReglagesIaViewModelTest {
                 FakeReglagesIa(
                     AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE, modeleAnthropic = "existant"),
                 )
-            val modele = ReglagesIaViewModel(reglages, FakeCoffre(), ListerModelesIaUseCase(FauxFournisseur()))
+            val modele =
+                ReglagesIaViewModel(
+                    reglages,
+                    FakeCoffre(),
+                    ListerModelesIaUseCase(FauxFournisseur()),
+                    FauxConversationStore(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionReglagesIa.ChangerModele(" modele-openai "))

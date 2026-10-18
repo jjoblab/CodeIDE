@@ -17,10 +17,14 @@ import javax.inject.Inject
  * Tiroir IA (mission IA, lot IA-3, ADR 0122) : le fragment ajouté à la
  * 6ᵉ destination du rail de l'éditeur via [FabriqueFragmentIaTiroir]
  * (liée par Hilt dans `di/TiroirIaBindsModule` — miroir du terminal).
- * Onglets Chat (réel), Agent / Historique (« bientôt » — IA-7/IA-6) et
- * Recherche (réservé) ; le contrôleur hôte est résolu par cast en
- * `onAttach` (aucune dépendance feature ↔ feature).
+ * Onglets Chat (réel), Historique (réel — lot IA-6), Agent (« bientôt »
+ * — IA-7) et Recherche (réservé) ; le contrôleur hôte est résolu par
+ * cast en `onAttach` (aucune dépendance feature ↔ feature).
+ *
+ * Le seuil de fonctions est structurellement dépassé : un fragment est
+ * un CONTRAT de câblage des onglets (précédent `PanneauConsoleFragment`).
  */
+@Suppress("TooManyFunctions")
 @AndroidEntryPoint
 public class IaTiroirFragment : Fragment() {
     /** Commandes de l'hôte (chemin du fichier actif, dossier projet…) — IA-4/IA-7. */
@@ -82,13 +86,28 @@ public class IaTiroirFragment : Fragment() {
         super.onDestroyView()
     }
 
-    /** Affiche l'onglet demandé — Chat en fragment enfant, le reste en « bientôt ». */
+    /**
+     * Rouvre une conversation de l'historique DANS le chat (lot IA-6,
+     * spec E6) : bascule sur l'onglet Chat puis transmet l'identifiant
+     * au fragment chat — conversation poursuivie, jamais dupliquée.
+     */
+    public fun ouvrirConversationDansChat(conversationId: String) {
+        afficherOnglet(POSITION_CHAT)
+        // L'onglet Chat est attaché ASYNCHRONEMENT (commit) : la
+        // transmission passe par la file du fragment enfant dès qu'il
+        // reprend son cycle de vie.
+        val chat = childFragmentManager.findFragmentByTag(TAG_CHAT) as? ChatFragment
+        chat?.ouvrirConversation(conversationId)
+    }
+
+    /** Affiche l'onglet demandé — Chat et Historique en fragments
+     * enfants réels, Agent et Recherche en « bientôt ». */
     private fun afficherOnglet(position: Int) {
         val liaison = liaisonTiroir ?: return
-        if (position == POSITION_CHAT) {
-            afficherChat(liaison)
-        } else {
-            afficherBientot(liaison, position)
+        when (position) {
+            POSITION_CHAT -> afficherChat(liaison)
+            POSITION_HISTORIQUE -> afficherHistorique(liaison)
+            else -> afficherBientot(liaison, position)
         }
     }
 
@@ -97,7 +116,7 @@ public class IaTiroirFragment : Fragment() {
      * onglets — un simple findFragmentByTag ne suffit pas, le fragment
      * détaché doit être RÉ-attaché au retour sur Chat. */
     private fun afficherChat(liaison: FragmentIaTiroirBinding) {
-        masquerBientot(liaison)
+        masquerAutres(liaison, TAG_CHAT)
         val gestionnaire = childFragmentManager
         val existant = gestionnaire.findFragmentByTag(TAG_CHAT)
         val transaction = gestionnaire.beginTransaction()
@@ -109,6 +128,40 @@ public class IaTiroirFragment : Fragment() {
         transaction.commitAllowingStateLoss()
     }
 
+    /** L'historique vit lui aussi en fragment enfant (lot IA-6) —
+     * ajouté UNE fois puis ré-attaché (même patron que le chat). */
+    private fun afficherHistorique(liaison: FragmentIaTiroirBinding) {
+        masquerAutres(liaison, TAG_HISTORIQUE)
+        val gestionnaire = childFragmentManager
+        val existant = gestionnaire.findFragmentByTag(TAG_HISTORIQUE)
+        val transaction = gestionnaire.beginTransaction()
+        if (existant == null) {
+            transaction.add(R.id.conteneur_ia, HistoriqueFragment(), TAG_HISTORIQUE)
+        } else {
+            transaction.attach(existant)
+        }
+        transaction.commitAllowingStateLoss()
+    }
+
+    /** Détache les fragments enfants autres que la destination + masque
+     * la vue « bientôt » (un seul écran visible à la fois). */
+    private fun masquerAutres(
+        liaison: FragmentIaTiroirBinding,
+        tagCible: String,
+    ) {
+        val masquerVue = tagCible != TAG_BIENTOT
+        val vue = liaisonBientot
+        if (vue != null && vue.root.parent === liaison.conteneurIa) {
+            vue.root.visibility = if (masquerVue) View.GONE else vue.root.visibility
+        }
+        for (tag in listOf(TAG_CHAT, TAG_HISTORIQUE)) {
+            if (tag == tagCible) continue
+            childFragmentManager.findFragmentByTag(tag)?.let { fragment ->
+                childFragmentManager.beginTransaction().detach(fragment).commitAllowingStateLoss()
+            }
+        }
+    }
+
     /** État « bientôt » générique — aucun contrôle sans effet (ADR 0059).
      * La vue est gonflée UNE fois puis masquée/affichée : elle ne se
      * cumule jamais par-dessus le chat (vue ajoutée au conteneur). */
@@ -116,10 +169,7 @@ public class IaTiroirFragment : Fragment() {
         liaison: FragmentIaTiroirBinding,
         position: Int,
     ) {
-        val chat = childFragmentManager.findFragmentByTag(TAG_CHAT)
-        if (chat != null) {
-            childFragmentManager.beginTransaction().detach(chat).commitAllowingStateLoss()
-        }
+        masquerAutres(liaison, TAG_BIENTOT)
         val vue =
             liaisonBientot ?: VueIaBientotBinding
                 .inflate(layoutInflater, liaison.conteneurIa, false)
@@ -130,23 +180,18 @@ public class IaTiroirFragment : Fragment() {
         vue.texteBientot.setText(
             when (position) {
                 POSITION_AGENT -> R.string.ia_bientot_agent
-                POSITION_HISTORIQUE -> R.string.ia_bientot_historique
                 else -> R.string.ia_bientot_recherche
             },
         )
         vue.root.visibility = View.VISIBLE
     }
 
-    /** Masque la vue « bientôt » (retour sur Chat). */
-    private fun masquerBientot(liaison: FragmentIaTiroirBinding) {
-        val vue = liaisonBientot
-        if (vue != null && vue.root.parent === liaison.conteneurIa) {
-            vue.root.visibility = View.GONE
-        }
-    }
-
     private companion object {
         const val TAG_CHAT = "tiroir_ia_chat"
+        const val TAG_HISTORIQUE = "tiroir_ia_historique"
+
+        /** Pseudo-tag de la vue « bientôt » (pas un fragment). */
+        const val TAG_BIENTOT = "tiroir_ia_bientot"
         const val POSITION_CHAT = 0
         const val POSITION_AGENT = 1
         const val POSITION_HISTORIQUE = 2

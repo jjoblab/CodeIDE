@@ -211,6 +211,7 @@ termux-terminal-view = { group = "com.github.termux.termux-app", name = "termina
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 
 # Injection (l'API @Inject du domaine est javax.inject, pure JVM).
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javax-inject" }
