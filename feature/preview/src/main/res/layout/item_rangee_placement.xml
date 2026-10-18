@@ -41,6 +41,6 @@
         android:fontFamily="monospace"
         android:textAppearance="?attr/textAppearanceLabelSmall"
         android:textSize="11sp"
-        android:textColor="@color/preview_probleme_neutre"
+        android:textColor="?attr/apercuTexteDoux"
         android:visibility="gone" />
 </LinearLayout>

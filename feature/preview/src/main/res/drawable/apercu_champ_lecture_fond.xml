@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Valeur en lecture seule (.fld .ro) : fond « surface 2 », rayon 8, SANS trait. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_champ_rayon" />
+</shape>

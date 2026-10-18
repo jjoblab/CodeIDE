@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Champ de recherche (.ed-tools .search) : comme le champ, rayon 10. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuFond" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_recherche_rayon" />
+</shape>

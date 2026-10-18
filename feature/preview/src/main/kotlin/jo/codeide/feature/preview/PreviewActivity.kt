@@ -380,9 +380,10 @@ public class PreviewActivity : AppCompatActivity() {
 
             EtatPreviewXml.EnEdition -> {
                 liaison.pastilleEtatTexte.setText(R.string.preview_pastille_edition)
-                // L'ambre de la maquette (`.status.edit` #9A6700) est le
-                // jeton journal_warn du thème — pas d'attribut sémantique.
-                teinterPastilleRessource(RUi.color.codeide_journal_warn)
+                // L'ambre de la maquette (`.status.edit` #9A6700, nuit
+                // #FDD663) est un attribut du thème depuis PE11a
+                // (jeton `apercu_avert` — mêmes valeurs que journal_warn).
+                teinterPastille(R.attr.apercuAvert)
             }
 
             EtatPreviewXml.Inactif -> {
@@ -394,12 +395,6 @@ public class PreviewActivity : AppCompatActivity() {
     /** La COULEUR du point de la pastille (jeton sémantique du thème). */
     private fun teinterPastille(attribut: Int) {
         liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleur(this, attribut))
-        liaison.pastilleEtat.isVisible = true
-    }
-
-    /** La couleur du point via un JETON couleur (l'ambre n'a pas d'attribut). */
-    private fun teinterPastilleRessource(ressource: Int) {
-        liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleurRessource(this, ressource))
         liaison.pastilleEtat.isVisible = true
     }
 

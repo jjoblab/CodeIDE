@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille d'espace de noms neutre (.ns) : surface 2, rayon 4. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_ns_rayon" />
+</shape>

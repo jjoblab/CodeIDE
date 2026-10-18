@@ -252,4 +252,20 @@
         <item quantity="one">%1$d set</item>
         <item quantity="other">%1$d set</item>
     </plurals>
+
+    <!-- Reference strings of the Attributes pane (PE11a, ADR 0132). -->
+    <string name="preview_attr_recherche_hint">Search attribute</string>
+    <string name="preview_attr_mode_courants">Common</string>
+    <string name="preview_attr_mode_tous">All</string>
+    <string name="preview_attr_fleche_fermee">▾</string>
+    <string name="preview_attr_fleche_ouverte">▴</string>
+    <string name="preview_attr_reset_glyphe">↺</string>
+    <string name="preview_attr_reset_desc">Reset to default value</string>
+    <string name="preview_attr_couleur_apercu_desc">Color preview</string>
+    <string name="preview_attr_couleur_hint">#RRGGBB or @color/…</string>
+    <string name="preview_attr_palette">Palette</string>
+    <string name="preview_attr_ratio_separateur">:</string>
+    <string name="preview_attr_nom_hint">android:name</string>
+    <string name="preview_attr_valeur_hint">value</string>
+    <string name="preview_attr_ajouter">Add</string>
 </resources>

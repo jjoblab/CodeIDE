@@ -24,6 +24,9 @@ dependencies {
     // Tests unitaires du ViewModel (branches SourceApercu du registre).
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
+    // org.json réel pour le test de parité des jetons (JetonsMaquetteTest,
+    // JVM pur : les classes org.json du stub android.jar lèvent).
+    testImplementation(libs.org.json)
     // Le ViewModel construit une SettingsDataStore RÉELLE sur un fichier
     // temporaire (miroir SettingsDataStoreTest) : l'artefact DataStore est
     // `implementation` dans :core:datastore — invisible en test ici.
