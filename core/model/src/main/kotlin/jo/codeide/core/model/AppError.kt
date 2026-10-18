@@ -273,6 +273,52 @@ public sealed interface AppError {
     ) : AppError
 
     /**
+     * Raison normalisée d'un échec d'une requête IA (ADR 0123 point 5) :
+     * la liste est **fermée** et couvre exactement les cas modélisés par la
+     * mission IA — tout autre incident (code HTTP non listé, incident SSL,
+     * flux interrompu) reste un [Unknown] honnête.
+     */
+    public enum class AiReason {
+        /** Clé d'API absente (aucune clé configurée) ou refusée par le fournisseur (401/403). */
+        Authentication,
+
+        /** Quota ou limite de débit atteint (429) — [Ai.retryAfterSeconds] porte le délai conseillé. */
+        QuotaExceeded,
+
+        /** Service indisponible (5xx, ou erreur « overloaded » du fournisseur). */
+        ServiceUnavailable,
+
+        /** Hors-ligne (résolution DNS impossible, connexion refusée). */
+        Offline,
+
+        /** Délai dépassé (connexion ou lecture). */
+        Timeout,
+
+        /** Réponse mal formée (SSE ou JSON inattendu, flux tronqué). */
+        MalformedResponse,
+    }
+
+    /**
+     * Erreur d'une requête IA (mission IA, ADR 0123 point 5) : les erreurs
+     * attendues du transport IA sont modélisées pour que l'UI propose une
+     * action localisée (ressaisir la clé, patienter selon le `Retry-After`,
+     * vérifier la connexion) sans interpréter de texte brut.
+     *
+     * @property reason raison normalisée, pilotant le message et l'action.
+     * @property details contexte technique pour les journaux (code HTTP,
+     * type d'erreur fournisseur) — jamais d'en-tête d'authentification ni
+     * de corps de requête (ADR 0124).
+     * @property retryAfterSeconds délai conseillé en secondes quand le
+     * fournisseur l'a annoncé via l'en-tête `Retry-After` (429/5xx),
+     * sinon `null`.
+     */
+    public data class Ai(
+        public val reason: AiReason,
+        public val details: String = "",
+        public val retryAfterSeconds: Long? = null,
+    ) : AppError
+
+    /**
      * Erreur non prévue par le domaine (par défaut, imprévue).
      *
      * @property details contexte technique pour les journaux.

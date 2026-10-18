@@ -74,6 +74,13 @@ internal object TraductionsAccueil {
                 R.string.accueil_erreur_stockage
             }
 
+            is AppError.Ai -> {
+                // Mission IA (v0.136.0, ADR 0123) : hors périmètre de
+                // l'accueil — l'écran réglages IA (IA-2) porte ses propres
+                // messages ; repli générique du fichier ici.
+                R.string.accueil_erreur_stockage
+            }
+
             is AppError.Unknown -> {
                 R.string.accueil_erreur_stockage
             }

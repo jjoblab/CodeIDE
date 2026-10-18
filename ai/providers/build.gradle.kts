@@ -10,11 +10,15 @@
 // test d'architecture (lot IA-9) fera échouer toute requête IA ouverte
 // ailleurs. Interdits vérifiés : :ai:providers → Android.
 //
-// IA-0 : échafaudage — module vide compilable ; transport, parseur SSE
-// et adaptateurs arrivent au lot IA-1 (ADR 0123 §décision).
+// IA-1 : transport, parseur SSE et adaptateurs livrés (ADR 0123 §décision) —
+// testés contre des fichiers dorés et un serveur JDK (com.sun.net.httpserver).
 
 plugins {
     id("codeide.kotlin.library")
+    // Sérialisation JSON des corps de requête et du parse des flux
+    // (ADR 0123 point 7 : kotlinx-serialization-json 1.9.0, déjà au
+    // catalogue — aucune dépendance nouvelle).
+    alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
@@ -26,6 +30,9 @@ dependencies {
     // Le transport renvoie des Flow (lecture ligne à ligne, annulation
     // coopérative — ADR 0123 point 4).
     api(libs.kotlinx.coroutines.core)
+    // Corps de requête et décodage des flux SSE/JSON des fournisseurs
+    // (ADR 0123 point 7).
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlinx.coroutines.test)
 }

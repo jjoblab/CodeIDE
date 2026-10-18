@@ -159,6 +159,14 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
                 getString(R.string.wizard_echec_inattendu)
             }
 
+            is AppError.Ai -> {
+                // Mission IA (v0.136.0, ADR 0123) : hors périmètre du
+                // wizard — le transport IA n'est pas sollicité à la
+                // création de projet ; repli générique si un jour une
+                // erreur IA traverse cet écran.
+                getString(R.string.wizard_echec_inattendu)
+            }
+
             is AppError.Unknown -> {
                 getString(R.string.wizard_echec_inattendu)
             }
@@ -174,6 +182,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
             is AppError.EnvironmentSetup -> erreur.details
             is AppError.Tooling -> erreur.message
             is AppError.Session -> erreur.details
+            is AppError.Ai -> erreur.details
             is AppError.Unknown -> erreur.details
         }
 

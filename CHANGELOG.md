@@ -1,5 +1,55 @@
 # Journal des modifications
 
+## [0.136.0] – 2026-10-18
+
+### Mission IA — lot IA-1 « Domaine IA et fournisseurs » (ADR 0123 livrée)
+
+### Ajouté
+
+- **`:core:ai` — domaine IA (JVM pur, `explicitApi()`)** :
+  `AiMessage` (rôles, blocs texte/`tool_use`/`tool_result`), `AiRequest`
+  (identifiant de modèle **jamais codé en dur**, ADR 0123 point 6),
+  `AiEvent` (`TextDelta`, `ToolCallStarted`, `ToolCallArguments`,
+  `ToolCallCompleted`, `Usage`, `Done`, `Failure`), `AiStopReason`
+  normalisé entre fournisseurs, `AiModelInfo`, `ToolSpec`, port
+  `AiProvider` (`stream`/`listModels`/`ping`), `ApiKeySource` (la clé
+  ne circule jamais dans la requête, ADR 0124), `SendMessageUseCase`,
+  `TokenBudget` (estimation grossière ~4 caractères/jeton + plafond).
+- **`:ai:providers` — transport et adaptateurs (le SEUL point de sortie
+  réseau IA, ADR 0121 point 2)** : `AiHttpTransport` au-dessus de
+  `HttpURLConnection` (aucune dépendance réseau tierce, ADR 0033/0123),
+  `SseParser` (lignes `data:` multiples, commentaires, champs inconnus,
+  UTF-8 coupé en milieu de séquence), `SseStreamExecutor` (reprise
+  bornée 429/5xx **avant** le premier jeton, `Retry-After` respecté et
+  plafonné ; annulation coopérative — la fermeture de la socket débloque
+  la lecture bloquante, testée < 1 s), `AnthropicProvider` (Messages,
+  blocs `tool_use` fragmentés), `OpenAiCompatibleProvider` (Chat
+  Completions, `tool_calls`, `data: [DONE]`, URL de base configurable —
+  serveurs locaux en boucle locale).
+- **Erreurs IA modélisées (ADR 0123 point 5)** : `AppError.Ai` et
+  `AiReason` (authentification 401/403, quota 429 avec `retryAfterSeconds`,
+  indisponibilité 5xx, hors-ligne, délai dépassé, réponse mal formée) ;
+  traductions UI (`TraductionsAccueil`, `TraductionsDiagnostic`,
+  écran de création).
+- **Garde URL (ADR 0121)** : le transport refuse le HTTP en clair hors
+  boucle locale (testé) — même règle que la `networkSecurityConfig` (IA-0),
+  appliquée aussi dans les modules JVM purs.
+- **Tests** : 51 tests `:ai:providers` (flux nominaux et dégradés contre
+  des fichiers dorés + serveur JDK `com.sun.net.httpserver` : reprises
+  429/5xx, flux tronqués, appels d'outils fragmentés, annulation socket
+  fermée < 1 s, sobriété des journaux — aucun en-tête ni corps
+  journalisé) ; 4 classes de tests `:core:ai` ; couverture Kover
+  ≥ 80 % sur les deux modules IA.
+
+### Modifié
+
+- `ai/providers/build.gradle.kts` : plugin `kotlin-serialization`
+  (kotlinx-serialization-json 1.9.0, déjà au catalogue — ADR 0123
+  point 7, aucune dépendance nouvelle) ;
+  `core/ai/build.gradle.kts` : `javax.inject` (cas d'usage).
+- Documentation d'échec étendue aux raisons IA
+  (`feature:diagnostics`, `feature:home`, `feature:newproject`).
+
 ## [0.135.0] – 2026-10-18
 
 ### Mission IA — lot IA-0 « Préalables et garde-fous » (ADR 0121–0126 acceptées)

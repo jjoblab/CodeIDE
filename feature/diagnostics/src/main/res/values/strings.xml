@@ -79,6 +79,7 @@
     <!-- v0.103.0, mission « Cycle de vie » étape B : refus du contrat de
          session (erreur COOPÉRATIVE attendue, jamais un crash). -->
     <string name="diagnostics_erreur_session">L\'opération a échoué : la session de projet est dans un état incompatible.</string>
+    <string name="diagnostics_erreur_ia">La requête IA a échoué : vérifiez la clé, le réseau ou réessayez plus tard.</string>
 
     <!-- ====== Divers ====== -->
 

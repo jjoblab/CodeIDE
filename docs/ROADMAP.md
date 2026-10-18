@@ -20,6 +20,7 @@
 - **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports
 - **Git** : socle livré — moteur CLI (ADR 0092, G0 v0.70.0), clonage depuis l'accueil (ADR 0101, v0.80.x), initialisation, détection de dépôt
 - **Recherche/paramètres/explorateur** : Material You + paramètres deux niveaux (ADR 0059/0064), explorateur v2 (ADR 0052), recherche/remplacement dans l'éditeur (B10)
+- **Mission IA — domaine et fournisseurs** (IA-1, v0.136.0, ADR 0123) : `:core:ai` (port `AiProvider`, `AiEvent` normalisés, `TokenBudget`, `SendMessageUseCase`), `:ai:providers` (transport `HttpURLConnection`, parseur SSE maison, adaptateurs Anthropic Messages et « compatible OpenAI », reprise bornée 429/5xx avant premier jeton, annulation coopérative < 1 s, HTTP en clair refusé hors boucle locale), `AppError.Ai` modélisée avec traductions UI ; aucun nom de modèle codé en dur, aucune clé dans les journaux.
 - **Mission IA — garde-fous** (IA-0, v0.135.0, ADR 0121–0126 acceptées) : `network_security_config.xml` (https obligatoire, boucle locale seule exception), sauvegarde gouvernée (`data_extraction_rules.xml`/`backup_rules.xml`), `LogRedactor` masque les clés (`<secret>`), 4 modules IA échafaudés, contrats d'accroche (`PontIaEditeur`, `PortEditeurActif`)
 
 ### Problèmes connus ❌
@@ -340,7 +341,8 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 | Lot | Version | Titre | Statut |
 |---|---|---|---|
 | IA-0 | 0.135.0 | Préalables et garde-fous (réseau explicite, sauvegarde, `LogRedactor`, 4 modules vides) | ✅ v0.135.0 |
-| IA-1 | 0.136.0 | Domaine IA et fournisseurs (Anthropic + compatible OpenAI, streaming testé) | ⬜ |
+| IA-1 | 0.136.0 | Domaine IA et fournisseurs (Anthropic + compatible OpenAI, streaming testé) | ✅ v0.136.0 |
+|      |        | `:core:ai` (AiMessage/AiEvent/AiProvider/TokenBudget) + `:ai:providers` (HttpURLConnection + SSE maison + 2 adaptateurs, reprise bornée, annulation < 1 s, fichiers dorés, Kover ≥ 80 %) | |
 | IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ⬜ |
 | IA-3 | 0.138.0 | Chat dans le tiroir (streaming, Markdown) | ⬜ |
 | IA-4 | 0.139.0 | Contexte et confidentialité (`@fichiers`, exclusions, détection de secrets) | ⬜ |
@@ -362,5 +364,5 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | 4 — Wizard | **Moyenne (prochaine)** ✅ livré v0.45.0 (ADR 0077) | Moyen | Moyen — meilleure UX |
 | 5 — LSP | Basse ✅ livré v0.91.0 → v0.120.0, moteurs déplacés dans `codeide-lsp` | Très haut | Très haut — transforme en IDE |
 | R — Installation E1–E6 | Haute ✅ livré v0.55.0 → v0.65.0 | Très haut | Très haut — le build marche sur l'appareil |
-| **IA — Assistant BYOK** | **EN COURS** — IA-0 livré v0.135.0 (ADR 0121–0126 acceptées) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
+| **IA — Assistant BYOK** | **EN COURS** — IA-0 v0.135.0, IA-1 v0.136.0 (domaine + fournisseurs) | Très haut | Très haut — assistance à l'édition, agent contrôlé |
 | 6 — Fonctionnalités IDE | Après IA (6.2 socle ✅) | Très haut | Très haut — fonctionnalités pro |
