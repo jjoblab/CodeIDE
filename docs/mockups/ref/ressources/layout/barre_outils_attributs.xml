@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Barre d'outils COLLANTE du volet Attributs (maquette `.ed-tools`) : recherche + bascule
+  Courants / Tous. Pleine largeur (pas de marge latérale : la maquette annule le padding du
+  volet par une marge négative), surface + trait 1 dp en bas. Item 1 de la liste, épinglé en
+  haut dès qu'il atteindrait le bord supérieur (ADR 0132 § Barre collante).
+  Cotes : barre 418×52.6 ; recherche 269.8×35.6 (rayon 10) ; bascule 120.2×30.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/barre_outils_attributs"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/apercu_trait_bas_surface"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/apercu_barre_pad_h"
+    android:paddingTop="@dimen/apercu_barre_pad_v"
+    android:paddingEnd="@dimen/apercu_barre_pad_h"
+    android:paddingBottom="@dimen/apercu_barre_pad_bas">
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/champ_recherche_attribut"
+        style="@style/Widget.CodeIDE.Apercu.Recherche"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="@string/preview_attr_recherche_hint" />
+
+    <!-- Bascule de mode : UN groupe à sélection unique et obligatoire. -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_mode_attributs"
+        style="@style/Widget.CodeIDE.Apercu.GroupeSegments"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_barre_gap">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/mode_courants"
+            style="@style/Widget.CodeIDE.Apercu.Segment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/preview_attr_mode_courants" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/mode_tous"
+            style="@style/Widget.CodeIDE.Apercu.Segment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/preview_attr_mode_tous" />
+    </com.google.android.material.chip.ChipGroup>
+</LinearLayout>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle à QUATRE CÔTÉS (maquette `.mrow` : marges, padding, coins) : quatre champs égaux,
+  écart 6 dp, 89×33.6 chacun (champ 13 sp, hint = haut / droite / bas / gauche ; coins : haut g.,
+  haut d., bas d., bas g.). Le raccourci éclaté en Start/End/Top/Bottom est géré par EditionAttributsXml.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_cotes"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <LinearLayout
+        android:id="@+id/rangee_cotes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:baselineAligned="false"
+        android:orientation="horizontal"
+        android:weightSum="4">
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/cote_haut"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:inputType="number" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/cote_droite"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_cotes_gap"
+            android:layout_weight="1"
+            android:inputType="number" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/cote_bas"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_cotes_gap"
+            android:layout_weight="1"
+            android:inputType="number" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/cote_gauche"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_cotes_gap"
+            android:layout_weight="1"
+            android:inputType="number" />
+    </LinearLayout>
+</LinearLayout>

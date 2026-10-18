@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chaînes de référence du volet Attributs (ADR 0132). À fusionner dans strings.xml du module (règle 3 : aucun libellé en dur). -->
+<resources>
+    <string name="preview_attr_recherche_hint">Search an attribute</string>
+    <string name="preview_attr_mode_courants">Common</string>
+    <string name="preview_attr_mode_tous">All</string>
+    <string name="preview_attr_fleche_fermee">▾</string>
+    <string name="preview_attr_fleche_ouverte">▴</string>
+    <string name="preview_attr_reset_glyphe">↺</string>
+    <string name="preview_attr_reset_desc">Reset to default</string>
+    <string name="preview_attr_couleur_apercu_desc">Colour preview</string>
+    <string name="preview_attr_couleur_hint">#RRGGBB or @color/…</string>
+    <string name="preview_attr_palette">Palette</string>
+    <string name="preview_attr_ratio_separateur">:</string>
+    <string name="preview_attr_nom_hint">android:name</string>
+    <string name="preview_attr_valeur_hint">value</string>
+    <string name="preview_attr_ajouter">Add</string>
+</resources>

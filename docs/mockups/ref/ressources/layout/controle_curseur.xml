@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle CURSEUR (maquette `.sld`) : glissière (accent VIOLET) + champ numérique mono 12 sp de 72 dp,
+  écart 10 dp. Cote : rangée 374×30 ; glissière 292 de large. Désactivé (alpha .4) avec une note
+  d'explication (`.note2`) quand l'attribut n'a pas d'effet pour cette vue.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_curseur"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <LinearLayout
+        android:id="@+id/rangee_curseur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/curseur"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:haloColor="?attr/apercuNouveauDoux"
+            app:thumbColor="?attr/apercuNouveau"
+            app:thumbElevation="0dp"
+            app:tickVisible="false"
+            app:trackColorActive="?attr/apercuNouveau"
+            app:trackColorInactive="?attr/apercuNouveauFond" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/champ_curseur"
+            style="@style/Widget.CodeIDE.Apercu.ChampNum"
+            android:layout_width="@dimen/apercu_curseur_champ_largeur"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_curseur_gap"
+            android:imeOptions="actionDone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/note_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+</LinearLayout>

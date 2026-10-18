@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Badge « n définis » (.sec2 small) : violet doux, rayon 5. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuNouveauFond" />
+    <corners android:radius="@dimen/apercu_badge_defini_rayon" />
+</shape>

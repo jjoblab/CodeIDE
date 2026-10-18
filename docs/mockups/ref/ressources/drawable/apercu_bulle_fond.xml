@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bulle (.bubble) : le halo « new-soft » de 4 dp est AUTOUR du carré violet de 50 dp (box-shadow, pas un trait). La vue fait donc 58 dp (50 + 2 x 4). Ouvert (aria-expanded) : la vue pose backgroundTintList = texte / icône = fond. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuNouveauDoux" />
+            <corners android:radius="@dimen/apercu_bulle_rayon_halo" />
+        </shape>
+    </item>
+    <item android:left="@dimen/apercu_bulle_halo" android:top="@dimen/apercu_bulle_halo" android:right="@dimen/apercu_bulle_halo" android:bottom="@dimen/apercu_bulle_halo">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuNouveau" />
+            <corners android:radius="@dimen/apercu_bulle_rayon" />
+        </shape>
+    </item>
+</layer-list>

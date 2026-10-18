@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contraintes en LECTURE SEULE (maquette `t:'con'`) quand l'édition n'est pas disponible : bloc `.ro`
+  (une ligne « ancre = cible » par contrainte) + note. L'édition réelle reste `controle_contrainte`.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_contraintes_lecture"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <TextView
+        android:id="@+id/valeur_lecture_seule"
+        style="@style/Widget.CodeIDE.Apercu.LectureSeule"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+</LinearLayout>

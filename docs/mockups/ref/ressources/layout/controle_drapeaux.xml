@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle à DRAPEAUX (maquette `.flg`, flags `a|b|c`, options de saisie, ratios prédéfinis) :
+  pastilles mono 11 sp / 500, trait 1 dp, rayon 7, 25 dp, écart 5 dp, renvoi à la ligne.
+  Coché = fond violet doux + trait violet + texte violet. Désactivé = alpha .4 (.flg button:disabled).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_drapeaux"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_drapeaux"
+        style="@style/Widget.CodeIDE.Apercu.GroupeDrapeaux"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+</LinearLayout>

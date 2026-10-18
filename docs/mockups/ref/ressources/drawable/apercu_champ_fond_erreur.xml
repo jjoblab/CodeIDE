@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variante d'erreur (.bad : border-color var(err)). À poser quand la validation échoue, à retirer ensuite. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuFond" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuErreur" />
+    <corners android:radius="@dimen/apercu_champ_rayon" />
+</shape>

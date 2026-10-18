@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Conteneur des RANGÉES de dimensions (maquette `.dimrow`, une par axe : largeur, hauteur). Pas
+  d'étiquette `.fld` : l'étiquette est portée par la rangée.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_dimensions"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:divider="@drawable/apercu_espace_controles"
+    android:orientation="vertical"
+    android:showDividers="middle" />

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Champ de saisie (maquette `.fld input[type=text|number]`) : 374×33.6, fond « fond », trait 1 dp,
+  rayon 8, texte 13 sp. Validation à l'IME « terminé » et à la perte de focus — jamais à la frappe.
+-->
+<androidx.appcompat.widget.AppCompatEditText xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/champ_saisie"
+    style="@style/Widget.CodeIDE.Apercu.Champ"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:imeOptions="actionDone" />

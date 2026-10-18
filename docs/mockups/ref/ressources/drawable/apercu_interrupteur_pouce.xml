@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pouce (.sw::after) : disque blanc de 16 dp dans une boîte de 20 (marge 2) ; la course vaut 34 - 20 = 14 dp. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="@dimen/apercu_interrupteur_hauteur" android:height="@dimen/apercu_interrupteur_hauteur">
+        <inset android:inset="@dimen/apercu_interrupteur_marge">
+            <shape android:shape="oval">
+                <solid android:color="?attr/apercuSurCalque" />
+                <size android:width="@dimen/apercu_interrupteur_bouton" android:height="@dimen/apercu_interrupteur_bouton" />
+            </shape>
+        </inset>
+    </item>
+</layer-list>

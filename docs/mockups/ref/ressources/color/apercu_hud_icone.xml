@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icônes de la barre d'édition : désactivées = opacité .32 (.edit button:disabled). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:alpha="0.32" android:color="?attr/apercuTexte" />
+    <item android:color="?attr/apercuTexte" />
+</selector>
