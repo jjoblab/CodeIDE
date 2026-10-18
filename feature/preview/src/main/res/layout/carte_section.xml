@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UNE CARTE de section repliable de l'éditeur (PE9b, miroir `.sec2` de
-  la maquette : contour, coins 10, en-tête 9×11 avec badge « n définis »
-  et flèche, corps 2×11) — le tap sur l'en-tête replie/déploie, l'état
-  est mémorisé par titre (VoletAttributsFragment). Les contrôles viennent
-  gonfler dans le corps.
+  CARTE de section repliable (maquette `.sec2`) : trait 1 dp, rayon 10, fond surface.
+  - la carte porte padding=1dp : le trait du <shape> est dessiné à l'intérieur de la vue ;
+  - en-tête 9/11 dp, hauteur 30 dp (PAS de minHeight 48 dp : ADR 0133), titre 12 sp / 600,
+    badge « n définis » violet (caché à 0), flèche ▾ / ▴ en gris doux ;
+  - corps : padding 2/11/11/11 dp, séparateur de 9 dp entre contrôles (showDividers).
+  Cotes de référence : carte 398 px de large ; en-tête 396×30 ; badge 60×16.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/carte_section"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="12dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginEnd="12dp"
-    android:background="@drawable/fond_carte_section"
-    android:orientation="vertical">
+    android:background="@drawable/apercu_carte_section_fond"
+    android:orientation="vertical"
+    android:padding="@dimen/apercu_trait_epaisseur">
 
-    <!-- L'en-tête : titre, badge, flèche (cible tactile 48 dp). -->
     <LinearLayout
         android:id="@+id/entete_section"
         android:layout_width="match_parent"
@@ -25,56 +23,58 @@
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
-        android:minHeight="48dp"
         android:orientation="horizontal"
-        android:paddingStart="11dp"
-        android:paddingTop="9dp"
-        android:paddingEnd="11dp"
-        android:paddingBottom="9dp">
+        android:paddingStart="@dimen/apercu_section_entete_pad_h"
+        android:paddingTop="@dimen/apercu_section_entete_pad_v"
+        android:paddingEnd="@dimen/apercu_section_entete_pad_h"
+        android:paddingBottom="@dimen/apercu_section_entete_pad_v">
 
         <TextView
             android:id="@+id/titre_section"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="@dimen/apercu_section_gap_entete"
             android:layout_weight="1"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurface" />
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.SectionTitre" />
 
-        <!-- Le badge « n défini(s) » (violet sur violet pâle), caché à zéro. -->
         <TextView
             android:id="@+id/badge_definis"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/fond_badge_definis"
-            android:fontFamily="monospace"
-            android:paddingStart="6dp"
-            android:paddingTop="3dp"
-            android:paddingEnd="6dp"
-            android:paddingBottom="3dp"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:textSize="11sp"
-            android:textColor="?attr/apercuNouveau"
+            android:layout_marginEnd="@dimen/apercu_section_gap_entete"
+            android:background="@drawable/apercu_badge_defini_fond"
+            android:paddingStart="@dimen/apercu_badge_defini_pad_h"
+            android:paddingTop="@dimen/apercu_badge_defini_pad_v"
+            android:paddingEnd="@dimen/apercu_badge_defini_pad_h"
+            android:paddingBottom="@dimen/apercu_badge_defini_pad_v"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Badge"
             android:visibility="gone" />
 
-        <!-- La flèche d'état (« ▾ fermée » / « ▴ ouverte »), posée au liage. -->
         <TextView
             android:id="@+id/fleche_section"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:importantForAccessibility="no"
+            android:text="@string/preview_attr_fleche_fermee"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.SectionTitre"
+            android:textColor="?attr/apercuTexteDoux" />
     </LinearLayout>
 
-    <!-- Le corps : les contrôles de la section (gonflés par code). -->
+    <!-- Les contrôles de la section sont gonflés ICI à l'ouverture (jamais à vide). -->
     <LinearLayout
         android:id="@+id/corps_section"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:divider="@drawable/apercu_espace_controles"
         android:orientation="vertical"
-        android:paddingStart="11dp"
-        android:paddingTop="2dp"
-        android:paddingEnd="11dp"
-        android:paddingBottom="11dp" />
+        android:paddingStart="@dimen/apercu_section_entete_pad_h"
+        android:paddingTop="@dimen/apercu_section_corps_pad_haut"
+        android:paddingEnd="@dimen/apercu_section_entete_pad_h"
+        android:paddingBottom="@dimen/apercu_section_corps_pad_bas"
+        android:showDividers="middle" />
 </LinearLayout>

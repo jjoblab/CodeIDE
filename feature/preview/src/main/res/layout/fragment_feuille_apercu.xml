@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  FEUILLE inférieure de l'aperçu XML (PE6d, maquette
-  docs/mockups/apercu-xml.html § « Feuille inférieure : arbre,
-  attributs, problèmes, source ») : poignée de tirage (miroir `.grab`,
-  tiret + fil d'Ariane), 4 onglets (miroir `.tabs` : Arbre, Attributs,
-  Problèmes + compteur, Source) et le volet (miroir `.pane`).
-  Fermée, la feuille expose poignée + onglets (72 px de la maquette,
-  peekHeight 76 dp) ; déployée, le volet de 224 dp s'ajoute (300 px
-  au total). Le chrome Material vit ICI (:feature:preview) — le
-  contenu vient des modèles purs de :preview:xml (FeuilleApercu).
+  FEUILLE inférieure de l'aperçu XML (PE6d, habillage PE11b — maquette
+  `docs/mockups/apercu-xml.html` § « Feuille inférieure ») : poignée de
+  tirage (miroir `.grab` — COLONNE : tiret 36×4 au-dessus, fil d'Ariane
+  dessous, écart 6, padding 8/14/6/14), 4 onglets (miroir `.tabs` :
+  style Widget.CodeIDE.Apercu.Onglets — indicateur accent 2 dp, trait
+  bas 1 dp) et le volet (miroir `.pane`). Fermée, la feuille expose
+  poignée + onglets (peekHeight tenu par le code) ; déployée, le volet
+  s'ajoute. Le chrome Material vit ICI (:feature:preview) — le contenu
+  vient des modèles purs de :preview:xml (FeuilleApercu).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/racine_feuille"
     android:layout_width="match_parent"
@@ -22,43 +23,46 @@
     <!-- Le fond est VITAL : la feuille (BottomSheet) doit être opaque
          sur le rendu — l'Overdraw signalé est assumé. -->
 
-    <!-- Poignée de tirage (miroir `.grab` : tiret + fil d'Ariane). -->
+    <!-- Poignée de tirage (miroir `.grab` : TIRET puis fil d'Ariane, en colonne). -->
     <LinearLayout
         android:id="@+id/grab_feuille"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/spacing_md"
-        android:paddingEnd="@dimen/spacing_md">
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/apercu_poignee_pad_h"
+        android:paddingTop="@dimen/apercu_poignee_pad_haut"
+        android:paddingEnd="@dimen/apercu_poignee_pad_h"
+        android:paddingBottom="@dimen/apercu_poignee_pad_bas">
 
         <View
-            android:layout_width="24dp"
-            android:layout_height="4dp"
-            android:layout_marginEnd="@dimen/spacing_sm"
-            android:background="?attr/colorOutline" />
+            android:layout_width="@dimen/apercu_poignee_largeur"
+            android:layout_height="@dimen/apercu_poignee_hauteur"
+            android:importantForAccessibility="no"
+            android:background="@drawable/apercu_poignee" />
 
         <TextView
             android:id="@+id/fil_ariane"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/apercu_poignee_gap"
             android:ellipsize="end"
             android:singleLine="true"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.FilAriane"
             android:text="@string/preview_feuille_sans_selection" />
     </LinearLayout>
 
-    <!-- Onglets (miroir `.tabs`, rôle tablist). Le badge compteur des
-         problèmes se pose par code (TabLayout.Tab.getOrCreateBadge). -->
+    <!-- Onglets (miroir `.tabs`, rôle tablist : indicateur accent 2 dp,
+         trait 1 dp en bas). Le badge compteur des problèmes se pose par
+         code (vue personnalisée item_onglet_badge — miroir `.tabs .n`). -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/onglets_feuille"
+        style="@style/Widget.CodeIDE.Apercu.Onglets"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="@dimen/apercu_onglets_hauteur"
+        android:background="@drawable/apercu_trait_bas"
         android:contentDescription="@string/preview_feuille_onglets_cd"
-        app:tabGravity="fill"
-        app:tabIndicatorColor="?attr/colorPrimary"
-        app:tabMode="fixed"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        app:tabMode="fixed" />
 
     <!-- Le volet : UN conteneur portant les QUATRE fragments de volet
          (PE9a — VoletArbreFragment, VoletAttributsFragment,

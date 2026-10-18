@@ -1,72 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La rangée d'EXTRACTION en ressource (PE9b, PE8c) : le bouton révèle
-  le champ du nom (pré-rempli par ExtractionRessource.nomPropose) et le
-  bouton de validation — littéral + session strings.xml ouverte du même
-  projet. Les deux boutons suivent le style outline miniature des puces.
+  La rangée d'EXTRACTION en ressource (PE9b, PE8c, habillé PE11b aux
+  jetons) : le bouton révèle le champ du nom (pré-rempli par
+  ExtractionRessource.nomPropose) et le bouton de validation — littéral
+  + session strings.xml ouverte du même projet. Les deux boutons suivent
+  le style lien miniature de la maquette (`.linkbtn`, 12 / 500, accent).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rangee_extraction"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingTop="2dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="2dp">
+    android:orientation="horizontal">
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_extraire"
-        style="@style/Widget.Material3.Button.OutlinedButton"
+        style="@style/Widget.CodeIDE.Apercu.BoutonLien"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAllCaps="false"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:minWidth="0dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="11sp"
-        android:insetLeft="0dp"
-        android:insetRight="0dp" />
+        android:layout_height="wrap_content" />
 
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/champ_nom_ressource"
-        android:importantForAutofill="no"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/apercu_correctif_gap"
         android:layout_weight="1"
-        android:background="@drawable/fond_champ"
-        android:paddingStart="8dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="6dp"
-        android:singleLine="true"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="12sp"
-        android:textColor="?attr/colorOnSurface"
-        android:visibility="gone" 
-    tools:ignore="LabelFor" />
+        android:visibility="gone" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_valider_extraction"
-        style="@style/Widget.Material3.Button.OutlinedButton"
+        style="@style/Widget.CodeIDE.Apercu.BoutonLien"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:textAllCaps="false"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:minWidth="0dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="11sp"
-        android:visibility="gone"
-        android:insetLeft="0dp"
-        android:insetRight="0dp" />
+        android:layout_marginStart="@dimen/apercu_correctif_gap"
+        android:visibility="gone" />
 </LinearLayout>

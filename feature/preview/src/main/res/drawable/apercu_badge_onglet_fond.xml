@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille de compte d'un onglet (.tabs .n) : ambre, rayon 9. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuAvert" />
+    <corners android:radius="@dimen/apercu_onglet_badge_rayon" />
+</shape>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Titre de groupe de la liste en LECTURE SEULE (maquette `.kv dt.g`) : mono 10 sp / 600, capitales,
+  interlettrage .08, marge haute 8 dp. Pleine largeur.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/titre_groupe_attributs"
+    style="@style/Widget.CodeIDE.Apercu.TitreGroupe"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/apercu_kv_groupe_marge_haut" />
