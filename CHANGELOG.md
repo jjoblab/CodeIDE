@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.143.0] – 2026-10-18
+
+### Mission IA — lot IA-8 (amorce) : ADR 0129 « complétion texte fantôme »
+
+#### Ajouté
+
+- **ADR 0129** (accepté) : la complétion « texte fantôme » est
+  **désactivée par défaut** (opt-in explicite), déclenchée après 800 ms
+  de pause, **annulée à la frappe** (socket fermée, même contrat que
+  « Arrêter » du chat), **une requête en vol au maximum**, plafond de
+  coût visible (200 k caractères/mois, désactivation automatique au
+  plafond), rendu via `EditorDecorationPainter` (aucune vue intercalée),
+  Tab = acceptation en un lot, mode chat simple portable (FIM natif
+  différé).
+
+#### Écart documenté (IA-8b — suite du lot)
+
+L'implémentation (interrupteur + `CompletionGhostIa` + rendu éditeur +
+tests) reste À LIVRER : l'ADR 0129 en fixe d'abord le cadre de coût et
+de confidentialité (le plan IA-8 exige « ADR propre d'abord ») ; la
+fonction n'existe encore nulle part dans l'application.
+
+
+## [0.143.0] – 2026-10-18
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.142.0] – 2026-10-18
 
 ### Mission IA — lot IA-7a « Agent : cœur, outils et confinement » (ADR 0125)
