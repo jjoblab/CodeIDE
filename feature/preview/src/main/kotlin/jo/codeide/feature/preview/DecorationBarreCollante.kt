@@ -2,6 +2,7 @@ package jo.codeide.feature.preview
 
 import android.graphics.Canvas
 import android.view.View
+import androidx.core.graphics.withTranslation
 import androidx.recyclerview.widget.RecyclerView
 
 /**
@@ -34,10 +35,9 @@ internal class DecorationBarreCollante : RecyclerView.ItemDecoration() {
         val vue = barre ?: return
         val translation = parent.paddingTop.toFloat() - vue.top
         if (translation > 0f) {
-            canvas.save()
-            canvas.translate(0f, translation)
-            vue.draw(canvas)
-            canvas.restore()
+            canvas.withTranslation(0f, translation) {
+                vue.draw(this)
+            }
         }
     }
 }
