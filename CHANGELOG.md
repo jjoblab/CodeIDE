@@ -1,5 +1,40 @@
 # Journal des modifications
 
+## [0.145.1] – 2026-10-19
+
+### Stratégie de vérification et de collaboration multi-agents
+
+#### Ajouté
+
+- **`docs/STRATEGIE_VERIFICATION.md`** : stratégie de vérification
+  (prime sur les directives d'AGENTS.md) — principe local/CI,
+  chaîne locale obligatoire (`spotlessApply` → spotlessCheck →
+  detekt racine → checkModuleDependencies racine → compile+tests des
+  modules touchés ; assembleDebug/lintDebug/koverVerify/tests hors
+  modules touchés **interdits en local**), moment de repasser à la
+  chaîne RACINE, boucle CI (push par série de chantiers, surveillance
+  API 5 min, correction `fix(ci)`), règles de collaboration
+  multi-agents (branche+PR par agent, fichiers partagés réservés à
+  l'intégrateur, version/CHANGELOG à l'intégration, ports `:core:*`
+  sérialisés, bump-frere réservé à l'intégrateur), mesures CI
+  (10 runs, cache, runner) et leçon spotless.
+- **`scripts/modules-touches.sh`** : `git diff --name-only` →
+  coordonnées Gradle des modules touchés (`RACINE` si fichier de
+  build partagé, code de sortie 1 → chaîne racine obligatoire).
+- **`docs/archive/AGENTS_VERIFICATION_HISTORIQUE.md`** : texte
+  intégral des directives remplacées (v0.31.1 → v0.134.40).
+
+#### Modifié
+
+- **AGENTS.md** : bannière « À LIRE AVANT TOUT CHANTIER » en tête ;
+  directives de vérification remplacées par des renvois vers la
+  stratégie (Commandes, §0, §1, §7, §7.1, définition de « terminé »),
+  sans perte d'historique (archive).
+- Mesure fondatrice : la CI exécutait la chaîne **séquentielle**
+  (gradle.properties réglé pour la sandbox 4 Go / 2 cœurs) sur un
+  runner 4 vCPU / 16 Go — médiane des runs success 21,6 min,
+  « Vérification complète » = ~90 % du run (voir stratégie §6).
+
 ## [0.145.0] – 2026-10-18
 
 ### Mission IA — lot IA-8b « complétion texte fantôme » (ADR 0129)
