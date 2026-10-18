@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mission IA (lot IA-2) : English strings — exact mirror of values/strings.xml. -->
+<resources>
+    <!-- Titles -->
+    <string name="ia_reglages_titre">AI assistant</string>
+    <string name="ia_fournisseur_titre">AI provider</string>
+    <string name="ia_consentement_titre">AI consent</string>
+    <string name="ia_retour_cd">Back to settings</string>
+
+    <!-- "Activate the AI assistant" card -->
+    <string name="ia_carte_activation_titre">Activate the AI assistant</string>
+    <string name="ia_activation_sous_titre">Nothing leaves this device without your consent.</string>
+    <string name="ia_ligne_consentement">What is sent to the provider</string>
+    <string name="ia_cd_consentement">Review the first-use consent</string>
+
+    <!-- "Provider" card -->
+    <string name="ia_carte_fournisseur_titre">Provider</string>
+    <string name="ia_fournisseur_anthropic">Anthropic</string>
+    <string name="ia_fournisseur_openai">OpenAI compatible</string>
+    <string name="ia_fournisseur_sous_titre_ok">Key stored %1$s</string>
+    <string name="ia_fournisseur_sous_titre_absente">Key required</string>
+    <string name="ia_fournisseur_sous_titre_ressaisir">Key must be re-entered</string>
+    <string name="ia_cd_ligne_fournisseur">Open the provider details</string>
+
+    <!-- "Model" card -->
+    <string name="ia_carte_modele_titre">Model</string>
+    <string name="ia_modele_hint">Model identifier</string>
+    <string name="ia_bouton_actualiser">Refresh list</string>
+    <string name="ia_actualiser_cd">Fetch the model list of the active provider</string>
+    <string name="ia_modeles_recenses">Models fetched: %1$d</string>
+
+    <!-- "Privacy" card -->
+    <string name="ia_carte_confidentialite_titre">Privacy</string>
+    <string name="ia_conf_fichier">Active file</string>
+    <string name="ia_conf_fichier_sous">Sends the content of the file open in the editor</string>
+    <string name="ia_conf_chemins">Project path list</string>
+    <string name="ia_conf_chemins_sous">File names only, never their content</string>
+    <string name="ia_conf_diagnostics">Diagnostics</string>
+    <string name="ia_conf_diagnostics_sous">Visible errors and warnings of the active file</string>
+
+    <!-- "Limits" card -->
+    <string name="ia_carte_limites_titre">Limits</string>
+    <string name="ia_limites_jetons_hint">Maximum response tokens</string>
+    <string name="ia_limites_delai_hint">Request timeout (seconds)</string>
+
+    <!-- Provider details -->
+    <string name="ia_url_hint">Base URL (HTTPS, or http://localhost)</string>
+    <string name="ia_url_erreur">HTTPS required — plain HTTP is reserved for localhost</string>
+    <string name="ia_cle_hint">API key</string>
+    <string name="ia_cle_apercu_vide">No key stored</string>
+    <string name="ia_cle_cd">Enter the API key — masked, never displayed</string>
+    <string name="ia_bouton_enregistrer_cle">Save key</string>
+    <string name="ia_bouton_supprimer_cle">Delete key</string>
+    <string name="ia_bouton_tester">Test connection</string>
+    <string name="ia_test_en_cours">Testing…</string>
+    <string name="ia_test_succes">Connection successful — the key is accepted</string>
+    <string name="ia_test_echec">Failure: %1$s</string>
+    <string name="ia_bouton_utiliser">Use this provider</string>
+    <string name="ia_utilise_actuel">Active provider</string>
+    <string name="ia_cle_enregistree">Key saved — it stays on this device, encrypted</string>
+    <string name="ia_cle_supprimee">Key deleted</string>
+    <string name="ia_erreur_cle_vide">Enter a key before saving</string>
+    <string name="ia_fournisseur_active">Active provider: %1$s</string>
+
+    <!-- Consent -->
+    <string name="ia_consentement_intro">The AI sends excerpts of your code to the provider you chose. CodeIDE has no server and collects nothing.</string>
+    <string name="ia_consentement_envoye_titre">What may be sent</string>
+    <string name="ia_consentement_envoye_1">The active file (can be disabled)</string>
+    <string name="ia_consentement_envoye_2">The current selection</string>
+    <string name="ia_consentement_envoye_3">Visible diagnostics (can be disabled)</string>
+    <string name="ia_consentement_envoye_4">The project path list, never their content</string>
+    <string name="ia_consentement_jamais_titre">Never sent</string>
+    <string name="ia_consentement_jamais_1">Keys and secret files (excluded by default)</string>
+    <string name="ia_consentement_jamais_2">Absolute device paths</string>
+    <string name="ia_consentement_jamais_3">Your git identity or e-mail addresses</string>
+    <string name="ia_consentement_activer">Activate the assistant</string>
+    <string name="ia_consentement_pas_maintenant">Not now</string>
+
+    <!-- Errors (mapped from AppError.Ai / Storage) -->
+    <string name="ia_erreur_authentication">Key missing or rejected by the provider</string>
+    <string name="ia_erreur_quota">Rate limit reached — try again in %1$d s</string>
+    <string name="ia_erreur_quota_simple">Rate limit reached — try again shortly</string>
+    <string name="ia_erreur_service">Provider temporarily unavailable</string>
+    <string name="ia_erreur_hors_ligne">Offline — check the connection</string>
+    <string name="ia_erreur_delai">Timed out — the provider does not respond</string>
+    <string name="ia_erreur_illisible">Unreadable provider response</string>
+    <string name="ia_erreur_consentement">Activate the assistant and give consent before anything is sent</string>
+    <string name="ia_erreur_configuration">Provider incomplete: base URL or model missing</string>
+    <string name="ia_erreur_cle_perdue">The encrypted key is unreadable (Keystore reset) — please re-enter it</string>
+    <string name="ia_erreur_stockage">Storage access failed</string>
+    <string name="ia_erreur_inconnue">Unexpected error</string>
+</resources>

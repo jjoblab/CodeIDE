@@ -22,6 +22,7 @@
 - **Recherche/paramètres/explorateur** : Material You + paramètres deux niveaux (ADR 0059/0064), explorateur v2 (ADR 0052), recherche/remplacement dans l'éditeur (B10)
 - **Mission IA — domaine et fournisseurs** (IA-1, v0.136.0, ADR 0123) : `:core:ai` (port `AiProvider`, `AiEvent` normalisés, `TokenBudget`, `SendMessageUseCase`), `:ai:providers` (transport `HttpURLConnection`, parseur SSE maison, adaptateurs Anthropic Messages et « compatible OpenAI », reprise bornée 429/5xx avant premier jeton, annulation coopérative < 1 s, HTTP en clair refusé hors boucle locale), `AppError.Ai` modélisée avec traductions UI ; aucun nom de modèle codé en dur, aucune clé dans les journaux.
 - **Mission IA — garde-fous** (IA-0, v0.135.0, ADR 0121–0126 acceptées) : `network_security_config.xml` (https obligatoire, boucle locale seule exception), sauvegarde gouvernée (`data_extraction_rules.xml`/`backup_rules.xml`), `LogRedactor` masque les clés (`<secret>`), 4 modules IA échafaudés, contrats d'accroche (`PontIaEditeur`, `PortEditeurActif`)
+- **Mission IA — coffre et réglages** (IA-2, v0.137.0, ADR 0122/0124) : `CoffreClesKeystore` (AES-256-GCM Keystore, blobs `noBackupFilesDir`, perte de clé → « Clé à ressaisir » sans plantage), `AiSettingsStore` (DataStore dédié hors `AppSettings`), routeur `FournisseurIaActif` (**sans consentement, aucune requête réseau IA**, testé), écrans Paramètres → IA (fournisseurs, modèle, confidentialité, limites) et consentement de premier usage ; la clé n'apparaît jamais dans un état, un `Bundle` ou un journal.
 
 ### Problèmes connus ❌
 - (aucun ouvert — les quatre bloquants IA identifiés par `docs/IA_REVUE_DEPOT.md`
@@ -343,7 +344,7 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 | IA-0 | 0.135.0 | Préalables et garde-fous (réseau explicite, sauvegarde, `LogRedactor`, 4 modules vides) | ✅ v0.135.0 |
 | IA-1 | 0.136.0 | Domaine IA et fournisseurs (Anthropic + compatible OpenAI, streaming testé) | ✅ v0.136.0 |
 |      |        | `:core:ai` (AiMessage/AiEvent/AiProvider/TokenBudget) + `:ai:providers` (HttpURLConnection + SSE maison + 2 adaptateurs, reprise bornée, annulation < 1 s, fichiers dorés, Kover ≥ 80 %) | |
-| IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ⬜ |
+| IA-2 | 0.137.0 | Coffre de clés (Keystore), réglages, consentement | ✅ v0.137.0 |
 | IA-3 | 0.138.0 | Chat dans le tiroir (streaming, Markdown) | ⬜ |
 | IA-4 | 0.139.0 | Contexte et confidentialité (`@fichiers`, exclusions, détection de secrets) | ⬜ |
 | IA-5 | 0.140.0 | Intégration éditeur (carte de diff, actions Problèmes/Console) | ⬜ |

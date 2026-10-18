@@ -101,9 +101,10 @@
         android:label="@string/settings_avance_titre"
         tools:layout="@layout/fragment_settings_avance" />
 
-    <!-- Écran générique « bientôt disponible » : IA, Outils de
+    <!-- Écran générique « bientôt disponible » : Outils de
          développement, Sécurité — le même fragment, les arguments
-         portent la section (patron réutilisable, ADR 0059). -->
+         portent la section (patron réutilisable, ADR 0059).
+         La section IA est devenue réelle au lot IA-2 (mission IA). -->
     <fragment
         android:id="@+id/settings_bientot"
         android:name="jo.codeide.feature.settings.BientotFragment"
@@ -112,6 +113,32 @@
             android:name="section"
             app:argType="string" />
     </fragment>
+
+    <!-- Mission IA (lot IA-2) : Paramètres → IA. Les fragments vivent
+         dans :feature:ai ; l'app est le seul point connaissant les deux
+         modules (règle feature ↔ feature, ADR 0122). -->
+    <fragment
+        android:id="@+id/settings_ia"
+        android:name="jo.codeide.feature.ai.ReglagesIaFragment"
+        android:label="@string/ia_reglages_titre"
+        tools:layout="@layout/fragment_reglages_ia" />
+
+    <fragment
+        android:id="@+id/settings_ia_fournisseur"
+        android:name="jo.codeide.feature.ai.FournisseurIaFragment"
+        android:label="@string/ia_fournisseur_titre"
+        tools:layout="@layout/fragment_fournisseur_ia">
+        <argument
+            android:name="identifiant_fournisseur"
+            app:argType="string"
+            android:defaultValue="anthropic" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settings_ia_consentement"
+        android:name="jo.codeide.feature.ai.ConsentementIaFragment"
+        android:label="@string/ia_consentement_titre"
+        tools:layout="@layout/fragment_consentement_ia" />
 
     <fragment
         android:id="@+id/diagnostics"

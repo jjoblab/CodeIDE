@@ -1,8 +1,78 @@
 # Journal des modifications
 
-## [Non publié]
+## [0.137.0] – 2026-10-18
 
-### Documentation — mission UI/LSP intégrée
+### Mission IA — lot IA-2 « Coffre, réglages, consentement » (ADR 0122/0124)
+
+#### Ajouté
+
+- **`:core:ai-storage` — `CoffreClesKeystore` (ADR 0124 §1)** : clé maître
+  AES-256-GCM générée dans l'Android Keystore (alias versionné
+  `codeide.ai.vault.v1`, non exportable), chaque clé d'API chiffrée avec IV
+  aléatoire de 12 octets, blob `version ‖ IV ‖ chiffré+étiquette` écrit
+  atomiquement dans `noBackupFilesDir` (exclu de la sauvegarde par
+  construction) ; aperçu public `••••1234` (4 derniers caractères, clé
+  courte intégralement masquée) stocké à côté du blob ; **aucun plantage**
+  en cas de perte : blob absent → `Storage(NotFound)`, clé maître invalidée
+  ou blob corrompu → `Storage(KeyUnavailable)` — état « Clé à ressaisir ».
+- **`:core:ai-storage` — `AiSettingsStore`** : DataStore **dédié**
+  `ai_settings.preferences_pb` (nom contractuel exclu de la sauvegarde par
+  les règles IA-0), gestion de corruption identique au store principal ;
+  fournisseur actif, URL de base par fournisseur, modèle (jamais codé en
+  dur), plafonds (jetons de réponse, délai), interrupteurs de
+  confidentialité (ADR 0124 §4), consentement donné + date. Port
+  `ReglagesIaRepository` (core:domain) implémenté et lié par Hilt.
+- **`:core:ai` — `FournisseurIaActif`** : la seule porte d'entrée IA, qui
+  applique les gardes dans l'ordre — **sans consentement, aucune requête
+  réseau IA ne part** (critère d'acceptation IA-2, testé : la fabrique
+  n'est jamais sollicitée), puis configuration (URL invalide, modèle vide,
+  fournisseur inconnu), puis délégation ; le modèle des réglages fait
+  autorité. `AiReason.{ConsentRequired, Configuration}` ajoutées au
+  modèle d'erreurs. `ListerModelesIaUseCase` (actualisation de la liste).
+- **`:core:domain`** — `AiSettings`, `FournisseursIa`, `ValidationUrlIa`
+  (HTTPS obligatoire, HTTP réservé à la boucle locale), ports
+  `ReglagesIaRepository` et `CoffreClesIa` ; `StorageReason.KeyUnavailable`.
+- **`:feature:ai` — écrans Paramètres → IA** (spec E4/E5) : Réglages IA
+  (activation, fournisseurs avec état de clé par ligne, modèle +
+  actualisation `listModels`, confidentialité 3 interrupteurs, limites) ;
+  Détail fournisseur (URL validée en direct, clé **masquée** avec aperçu
+  `••••1234`, champ `saveEnabled=false` — rien dans un `Bundle`, test de
+  connexion `ping` du fournisseur édité, remplacement/suppression) ;
+  Consentement (« ce qui est envoyé / jamais envoyé », Activer / Pas
+  maintenant — unique chemin d'activation, révocation dans les réglages).
+  Chaînes FR/EN complètes.
+- **`:app`** — composition IA : `ModuleIa` fournit `AiHttpTransport`,
+  lie la fabrique réelle (adaptateurs + source de clé par fournisseur
+  depuis le coffre) et `FournisseurIaActif` sur le port `AiProvider` ;
+  navigation réelle `SectionParametres.IA` → destinations
+  `settings_ia`, `settings_ia_fournisseur`, `settings_ia_consentement`.
+- **`:feature:settings`** — le cas « bientôt » IA est remplacé par la
+  section réelle (rangée maître sans puce, repli générique de
+  `BientotFragment` reprenant ses propres chaînes).
+
+#### Sécurité
+
+- La clé d'API ne circule **jamais** dans un état d'UI, un `Bundle`, un
+  journal ou une requête : saisie → `CharArray` → coffre (effacé après
+  usage) ; seul l'aperçu `••••1234` sort du coffre (ADR 0124 §1, testé).
+- Sans consentement, aucune requête réseau IA ne part — garanti par le
+  routeur du domaine, testé en JVM pur sur les trois opérations.
+
+#### Tests
+
+- `:core:ai` : 8 tests du routeur (gardes, délégation, modèle autoritaire).
+- `:core:ai-storage` : 10 tests du coffre (aller-retour, aperçu, perte de
+  clé maître, blob corrompu, identifiants d'évasion refusés) + 6 tests du
+  store (défauts, aller-retour, valeur inconnue, fichier corrompu).
+- `:feature:ai` : 7 tests ViewModel (aucune trace de clé dans l'état,
+  activation sans consentement sans écriture, URL invalide non persistée)
+  + 3 tests de layout (Robolectric).
+
+## [0.136.0] – 2026-10-18
+
+### Mission IA — lot IA-1 « Domaine IA et fournisseurs » (ADR 0123 livrée)
+
+### Documentation — mission UI/LSP intégrée (commit fb406faa, hors lot)
 
 - Intégration des documents de la mission « cohérence visuelle et réglages LSP »
   (aucun changement de code, ADR au statut **proposé**) :
@@ -20,10 +90,6 @@
   `docs/mockups/lsp/lsp-reglages.html` — écrans « Intelligence du code » L1–L5.
 - `ROADMAP.md` : section « Mission UI/LSP » (lots UI-1 → UI-7 et LSP-0 → LSP-4),
   règle d'ordonnancement UI-1/UI-2 d'abord ; état rafraîchi à v0.136.0.
-
-## [0.136.0] – 2026-10-18
-
-### Mission IA — lot IA-1 « Domaine IA et fournisseurs » (ADR 0123 livrée)
 
 ### Ajouté
 

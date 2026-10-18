@@ -27,17 +27,16 @@ dependencies {
     api(project(":core:domain"))
     // Patron DataStore existant (gestion de corruption, projection).
     implementation(project(":core:datastore"))
+    // API DataStore déclarée directement : le frère la garde « implementation »
+    // et nos signatures publiques (AiSettingsStore) l'exposent.
+    implementation(libs.androidx.datastore)
 
-    // Dépendances de test (robolectric, turbine…) ajoutées au lot IA-2
-    // avec les premiers tests réels de KeyVault/AiSettingsStore — un
-    // module échafaudé sans test ne déclare pas de classpath de test
-    // (échec failOnNoDiscoveredTests, AGP 9).
-}
-
-// AGP 9 (« failOnNoDiscoveredTests ») : un module échafaudé sans test
-// fait échouer testDebugUnitTest — les premiers tests réels (KeyVault,
-// AiSettingsStore) arrivent au lot IA-2. Le drapeau est borné à CE
-// module échafaudé ; aucune autre vérification n'est touchée.
-tasks.withType<Test>().configureEach {
-    failOnNoDiscoveredTests = false
+    // Tests : coffre (clé maître logicielle de remplacement du Keystore),
+    // store réglages (patron SettingsDataStoreTest), source de clé.
+    testImplementation(project(":core:testing"))
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.turbine)
 }

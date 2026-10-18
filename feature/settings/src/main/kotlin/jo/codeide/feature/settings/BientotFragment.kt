@@ -42,23 +42,19 @@ class BientotFragment : BaseFragment<FragmentSettingsBientotBinding>() {
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
 
         when (section()) {
-            SectionParametres.IA -> {
-                binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_smart_toy)
-                binding.titreBientot.setText(R.string.settings_bientot_titre_ia)
-                binding.texteBientot.setText(R.string.settings_bientot_texte_ia)
-            }
-
             SectionParametres.SECURITE -> {
                 binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_bouclier)
                 binding.titreBientot.setText(R.string.settings_bientot_titre_securite)
                 binding.texteBientot.setText(R.string.settings_bientot_texte_securite)
             }
 
-            // Repli défensif : toute autre section n'a rien à faire ici.
+            // Repli défensif : toute autre section n'a rien à faire ici
+            // (le repli historique réutilisait les textes IA — section devenue
+            // réelle au lot IA-2, il a ses propres chaînes génériques).
             else -> {
                 binding.iconeBientot.setImageResource(jo.codeide.core.ui.R.drawable.ic_info)
-                binding.titreBientot.setText(R.string.settings_bientot_titre_securite)
-                binding.texteBientot.setText(R.string.settings_bientot_texte_ia)
+                binding.titreBientot.setText(R.string.settings_bientot_titre_generique)
+                binding.texteBientot.setText(R.string.settings_bientot_texte_generique)
             }
         }
     }

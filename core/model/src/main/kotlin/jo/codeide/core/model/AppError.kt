@@ -33,6 +33,14 @@ public sealed interface AppError {
         /** L'emplacement n'est pas accessible en écriture. */
         NotWritable,
 
+        /**
+         * Contenu chiffré illisible parce que la clé de déchiffrement n'est
+         * plus disponible (coffre IA, ADR 0124 §1 : invalidation du
+         * Keystore après réinitialisation de l'appareil) — le secret
+         * doit être ressaisi, jamais récupéré.
+         */
+        KeyUnavailable,
+
         /** Autre erreur d'entrée/sortie non classée. */
         Io,
     }
@@ -296,6 +304,19 @@ public sealed interface AppError {
 
         /** Réponse mal formée (SSE ou JSON inattendu, flux tronqué). */
         MalformedResponse,
+
+        /**
+         * L'assistant IA n'est pas activé ou le consentement n'a pas été
+         * donné (lot IA-2, ADR 0121 point 3) : **aucune** requête réseau IA
+         * ne part — l'UI oriente vers l'écran de consentement.
+         */
+        ConsentRequired,
+
+        /**
+         * Fournisseur non configuré : identifiant inconnu, URL de base
+         * absente ou invalide, modèle vide (réglages IA-2 à compléter).
+         */
+        Configuration,
     }
 
     /**

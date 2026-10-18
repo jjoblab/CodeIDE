@@ -30,10 +30,20 @@ internal object TraductionsAccueil {
             is AppError.Storage -> {
                 when (erreur.reason) {
                     AppError.StorageReason.PermissionLost -> R.string.accueil_erreur_permission
+
                     AppError.StorageReason.NotFound -> R.string.accueil_erreur_introuvable
+
                     AppError.StorageReason.AlreadyExists -> R.string.accueil_erreur_deja_reference
+
                     AppError.StorageReason.NoSpace -> R.string.accueil_erreur_espace
+
                     AppError.StorageReason.NotWritable -> R.string.accueil_erreur_ecriture
+
+                    // Mission IA (lot IA-2) : clé Keystore perdue — le
+                    // message générique de stockage reste honnête ici ;
+                    // l'écran IA, lui, propose la ressaisie.
+                    AppError.StorageReason.KeyUnavailable -> R.string.accueil_erreur_stockage
+
                     AppError.StorageReason.Io -> R.string.accueil_erreur_stockage
                 }
             }

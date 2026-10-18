@@ -243,12 +243,13 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                         }
                     "$police · $curseur"
                 },
+                // Mission IA (lot IA-2) : section réelle — l'écran vit
+                // dans :feature:ai, la destination dans le graphe de :app.
                 ligne(
                     SectionParametres.IA,
                     jo.codeide.core.ui.R.drawable.ic_smart_toy,
                     R.string.settings_maitre_ia,
                     R.string.settings_cd_ligne_ia,
-                    bientot = true,
                 ) { getString(R.string.settings_sous_ia) },
             ),
         )

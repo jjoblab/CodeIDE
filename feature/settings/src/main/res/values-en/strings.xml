@@ -95,9 +95,9 @@
     <string name="settings_bientot">Soon</string>
 
     <!-- Generic "coming soon" screen. -->
-    <string name="settings_bientot_titre_ia">AI assistant — coming soon</string>
-    <string name="settings_bientot_texte_ia">This section will appear in the menu as soon as the module is ready.</string>
     <string name="settings_bientot_titre_securite">Coming soon</string>
+    <string name="settings_bientot_titre_generique">Coming soon</string>
+    <string name="settings_bientot_texte_generique">This section will be delivered in an upcoming version.</string>
     <string name="settings_bientot_texte_securite">Crash reports, app lock — to be validated with you.</string>
 
     <!-- Appearance section. -->
@@ -200,7 +200,7 @@
     <string name="settings_cd_ligne_notifications">Open notification settings</string>
     <string name="settings_cd_ligne_editeur">Open editor settings</string>
     <string name="settings_cd_ligne_terminal">Open terminal settings</string>
-    <string name="settings_cd_ligne_ia">AI assistant — coming soon</string>
+    <string name="settings_cd_ligne_ia">AI assistant</string>
     <string name="settings_cd_ligne_projets">Open project settings</string>
     <string name="settings_cd_ligne_historique">Open local history settings</string>
     <string name="settings_cd_ligne_env">Open the Environment screen</string>
