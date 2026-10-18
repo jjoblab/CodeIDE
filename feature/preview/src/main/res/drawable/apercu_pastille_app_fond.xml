@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille « app » (.ns.app) : ambre à 20 %. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuAvertDoux" />
+    <corners android:radius="@dimen/apercu_ns_rayon" />
+</shape>

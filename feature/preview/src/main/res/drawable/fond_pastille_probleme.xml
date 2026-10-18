@@ -2,7 +2,7 @@
 <!-- La pastille d'état des rangées de problèmes (PE9a, miroir le
      `span.dot` de la maquette : disque ambre/rouge). La TEINTE suit la
      sévérité (posée au liage — backgroundTintList : erreur
-     preview_probleme_erreur, avertissement preview_probleme_avertissement). -->
+     ?attr/apercuErreur, avertissement ?attr/apercuAvert). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="#FFFFFF" />

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -143,9 +142,9 @@ internal class AdaptateurArbre(
             liaison.libelleId.isVisible = entree.idNom.isNotEmpty()
             liaison.badgeArbre.text = entree.badge
             liaison.badgeArbre.setTextColor(
-                ContextCompat.getColor(
+                StyleVolet.couleur(
                     contexte,
-                    if (entree.aProblemes) R.color.preview_probleme_erreur else R.color.preview_probleme_neutre,
+                    if (entree.aProblemes) R.attr.apercuErreur else R.attr.apercuTexteDoux,
                 ),
             )
         }

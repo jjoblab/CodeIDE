@@ -356,12 +356,7 @@ public class TuilesPaletteAdapter(
                 entree.id == "rv" -> {
                     tag.isVisible = true
                     tag.text = contexte.getString(R.string.preview_palette_dependance_absente)
-                    tag.setTextColor(
-                        androidx.core.content.ContextCompat.getColor(
-                            contexte,
-                            R.color.preview_probleme_avertissement,
-                        ),
-                    )
+                    tag.setTextColor(StyleVolet.couleur(contexte, R.attr.apercuAvert))
                     tag.background =
                         androidx.core.content.ContextCompat.getDrawable(
                             contexte,
@@ -378,12 +373,7 @@ public class TuilesPaletteAdapter(
                         } else {
                             entree.dependanceRequise
                         }
-                    tag.setTextColor(
-                        androidx.core.content.ContextCompat.getColor(
-                            contexte,
-                            R.color.preview_probleme_neutre,
-                        ),
-                    )
+                    tag.setTextColor(StyleVolet.couleur(contexte, R.attr.apercuTexteDoux))
                     tag.background =
                         androidx.core.content.ContextCompat.getDrawable(
                             contexte,

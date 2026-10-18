@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Styles de l'APERÇU (ADR 0131/0128). RÈGLES :
+  - px de la maquette → sp pour le texte, dp pour le reste (1 px = 1 dp) ;
+  - sans-serif = police système (aucune police embarquée, ADR 0133) ; mono = `monospace` ;
+  - poids : 500 et 600 → `sans-serif-medium` (Roboto Medium, toutes API) ; mono 500 → `monospace`
+    normal ; mono 600 → `textStyle=bold`. AUCUN `textFontWeight` (API 28 : alerte lint
+    UnusedAttribute sous minSdk 26) ; l'écart de graisse est imperceptible à 10-12 sp ;
+  - `lineHeight` (SANS préfixe android: — rétroporté par AppCompat/MaterialTextView, lu aussi dans un
+    TextAppearance) ne se pose que là où la maquette a un interligne non unitaire (note, message,
+    lecture seule, correctifs, kv) ;
+  - TOUT TextView de l'aperçu hérite de Widget.CodeIDE.Apercu.Texte (includeFontPadding=false,
+    sinon chaque ligne est ~3 dp plus haute que la maquette).
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ══════════════ Apparences de texte ══════════════ -->
+    <style name="TextAppearance.CodeIDE.Apercu" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- Fil d'Ariane (.crumb) : mono 12 / 500 ; la classe en accent est un span séparé. -->
+    <style name="TextAppearance.CodeIDE.Apercu.FilAriane">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Onglet (.tabs button) : 13 / 500, gris au repos, texte plein si sélectionné. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Onglet">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/apercu_onglet_texte</item>
+    </style>
+
+    <!-- Pastille de compte sur un onglet (.tabs .n) : mono 10 / 500, texte = jeton « fond ». -->
+    <style name="TextAppearance.CodeIDE.Apercu.BadgeOnglet">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">?attr/apercuFond</item>
+    </style>
+
+    <!-- Titre de l'éditeur (.ed h5) et titres de groupes lecture seule (.kv dt.g) : mono 10 / 600,
+         capitales, interlettrage .08 em. -->
+    <style name="TextAppearance.CodeIDE.Apercu.TitreGroupe">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Titre de section repliable (.sec2>summary) : 12 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.SectionTitre">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- Badge « n définis » et pastilles de statut (.sec2 small) : mono 10 / 500, violet « nouveau ». -->
+    <style name="TextAppearance.CodeIDE.Apercu.Badge">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">?attr/apercuNouveau</item>
+    </style>
+
+    <!-- Étiquette de champ (.fld label, .dimrow .dl) : mono 11 / 500, gris doux. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Etiquette">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Saisie (.fld input, .search, select) : 13 / 400. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Saisie">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColorHint">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Saisie mono compacte (.dimrow input, .sld number, .mrow) : mono 12 / 400. -->
+    <style name="TextAppearance.CodeIDE.Apercu.SaisieMono">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColorHint">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Bloc lecture seule (.fld .ro) : mono 12 / interligne 16.8. -->
+    <style name="TextAppearance.CodeIDE.Apercu.LectureSeule">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+
+    <!-- Segment (.seg2 button) : 12 / 500 ; couleur par sélecteur. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Segment">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/apercu_segment_texte</item>
+    </style>
+
+    <!-- Drapeau (.flg button) : mono 11 / 500 ; couleur par sélecteur. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Drapeau">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/apercu_drapeau_texte</item>
+    </style>
+
+    <!-- Note d'aide (.note2) et message de validation (.fmsg) : 11 / interligne 15. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Note">
+        <item name="android:textSize">11sp</item>
+        <item name="lineHeight">15sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Correctif rapide : titre (.fix .m b) 12 / 600 ; corps (.fix .m) 12 / interligne 16. -->
+    <style name="TextAppearance.CodeIDE.Apercu.CorrectifTitre">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">16sp</item>
+    </style>
+    <style name="TextAppearance.CodeIDE.Apercu.CorrectifCorps">
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">16sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Boutons : lien (.linkbtn) 12 / 500 accent ; plein violet (.prim2) 12 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.BoutonLien">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuAccent</item>
+    </style>
+    <style name="TextAppearance.CodeIDE.Apercu.BoutonNouveau">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+    </style>
+
+    <!-- Action rapide (.qa .linkbtn) : Chip « assist » à contour, rayon 8, 26 dp, texte accent 12 / 500. -->
+    <style name="Widget.CodeIDE.Apercu.Action" parent="Widget.Material3.Chip.Assist">
+        <item name="chipBackgroundColor">@android:color/transparent</item>
+        <item name="chipStrokeColor">?attr/apercuTrait</item>
+        <item name="chipStrokeWidth">@dimen/apercu_trait_epaisseur</item>
+        <item name="chipCornerRadius">@dimen/apercu_bouton_rayon</item>
+        <item name="chipMinHeight">@dimen/apercu_bouton_lien_hauteur</item>
+        <item name="chipStartPadding">0dp</item>
+        <item name="chipEndPadding">0dp</item>
+        <item name="textStartPadding">@dimen/apercu_bouton_lien_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_bouton_lien_pad_h</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="rippleColor">?attr/apercuAccentDoux</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.BoutonLien</item>
+    </style>
+
+    <!-- Pastille d'espace de noms (.ns) : mono 9 / 500. La couleur dépend du type (app / tools). -->
+    <style name="TextAppearance.CodeIDE.Apercu.Pastille">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">9sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- Lecture seule en grille (.kv) : clé grise, valeur pleine, mono 12 / interligne 18. -->
+    <style name="TextAppearance.CodeIDE.Apercu.KvCle">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">18sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <style name="TextAppearance.CodeIDE.Apercu.KvValeur">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">18sp</item>
+    </style>
+
+    <!-- ══════════════ Widgets ══════════════ -->
+    <!-- Base de tout TextView de l'aperçu. -->
+    <style name="Widget.CodeIDE.Apercu.Texte" parent="">
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu</item>
+    </style>
+
+    <style name="Widget.CodeIDE.Apercu.Etiquette" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Etiquette</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Widget.CodeIDE.Apercu.Note" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Note</item>
+    </style>
+
+    <style name="Widget.CodeIDE.Apercu.TitreGroupe" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.TitreGroupe</item>
+    </style>
+
+    <!-- Champ de saisie (.fld input) : fond « fond » + trait 1 dp, rayon 8, 13 sp. -->
+    <style name="Widget.CodeIDE.Apercu.Champ" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_champ_fond</item>
+        <item name="android:minHeight">@dimen/apercu_champ_hauteur_min</item>
+        <item name="android:paddingStart">@dimen/apercu_champ_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_champ_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_champ_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_champ_pad_v</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Saisie</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:importantForAutofill">no</item>
+    </style>
+
+    <!-- Champ numérique compact (.dimrow input, .sld number, .mrow input). -->
+    <style name="Widget.CodeIDE.Apercu.ChampNum" parent="Widget.CodeIDE.Apercu.Champ">
+        <item name="android:minHeight">@dimen/apercu_champ_num_hauteur</item>
+        <item name="android:paddingStart">@dimen/apercu_champ_num_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_champ_num_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_champ_num_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_champ_num_pad_v</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.SaisieMono</item>
+        <item name="android:inputType">numberDecimal|numberSigned</item>
+    </style>
+
+    <!-- Recherche (.ed-tools .search) : rayon 10, 36 dp. -->
+    <style name="Widget.CodeIDE.Apercu.Recherche" parent="Widget.CodeIDE.Apercu.Champ">
+        <item name="android:background">@drawable/apercu_recherche_fond</item>
+        <item name="android:minHeight">@dimen/apercu_recherche_hauteur_min</item>
+        <item name="android:paddingStart">@dimen/apercu_recherche_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_recherche_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_recherche_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_recherche_pad_v</item>
+        <item name="android:imeOptions">actionSearch</item>
+        <item name="android:inputType">text</item>
+    </style>
+
+    <!-- Valeur en lecture seule (.fld .ro) : fond surface 2, rayon 8, mono 12. -->
+    <style name="Widget.CodeIDE.Apercu.LectureSeule" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_champ_lecture_fond</item>
+        <item name="android:paddingStart">@dimen/apercu_champ_lecture_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_champ_lecture_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_champ_lecture_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_champ_lecture_pad_v</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.LectureSeule</item>
+        <item name="android:textIsSelectable">true</item>
+    </style>
+
+    <!-- Segment (.seg2 button) : Chip M3 SANS trait, rayon 7, 26 dp ; coché = primaire plein. -->
+    <style name="Widget.CodeIDE.Apercu.Segment" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/apercu_segment_fond</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">@dimen/apercu_segment_rayon</item>
+        <item name="chipMinHeight">@dimen/apercu_segment_hauteur</item>
+        <item name="chipStartPadding">0dp</item>
+        <item name="chipEndPadding">0dp</item>
+        <item name="textStartPadding">@dimen/apercu_segment_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_segment_pad_h</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="rippleColor">?attr/apercuAccentDoux</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Segment</item>
+        <item name="android:checkable">true</item>
+    </style>
+
+    <!-- Drapeau (.flg button) : Chip M3 à trait 1 dp, rayon 7, 25 dp ; coché = violet doux + trait violet. -->
+    <style name="Widget.CodeIDE.Apercu.Drapeau" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/apercu_drapeau_fond</item>
+        <item name="chipStrokeColor">@color/apercu_drapeau_trait</item>
+        <item name="chipStrokeWidth">@dimen/apercu_trait_epaisseur</item>
+        <item name="chipCornerRadius">@dimen/apercu_drapeau_rayon</item>
+        <item name="chipMinHeight">@dimen/apercu_drapeau_hauteur</item>
+        <item name="chipStartPadding">0dp</item>
+        <item name="chipEndPadding">0dp</item>
+        <item name="textStartPadding">@dimen/apercu_drapeau_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_drapeau_pad_h</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="rippleColor">?attr/apercuNouveauDoux</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Drapeau</item>
+    </style>
+
+    <!-- Groupe de segments / drapeaux : renvoi à la ligne (flex-wrap), espacements de la maquette. -->
+    <style name="Widget.CodeIDE.Apercu.GroupeSegments" parent="Widget.Material3.ChipGroup">
+        <item name="chipSpacingHorizontal">0dp</item>
+        <item name="chipSpacingVertical">0dp</item>
+        <item name="singleSelection">true</item>
+        <item name="selectionRequired">true</item>
+        <item name="android:background">@drawable/apercu_segments_fond</item>
+        <item name="android:padding">@dimen/apercu_segments_pad</item>
+    </style>
+    <style name="Widget.CodeIDE.Apercu.GroupeDrapeaux" parent="Widget.Material3.ChipGroup">
+        <item name="chipSpacingHorizontal">@dimen/apercu_drapeaux_gap</item>
+        <item name="chipSpacingVertical">@dimen/apercu_drapeaux_gap</item>
+        <item name="singleSelection">false</item>
+    </style>
+
+    <!-- Boutons : lien (.linkbtn) = contour + texte accent ; plein (.prim2) = violet. -->
+    <style name="Widget.CodeIDE.Apercu.BoutonLien" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.BoutonLien</item>
+        <item name="android:minHeight">@dimen/apercu_bouton_lien_hauteur</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">@dimen/apercu_bouton_lien_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_bouton_lien_pad_h</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">@dimen/apercu_bouton_rayon</item>
+        <item name="strokeColor">?attr/apercuTrait</item>
+        <item name="strokeWidth">@dimen/apercu_trait_epaisseur</item>
+        <item name="android:textColor">?attr/apercuAccent</item>
+        <item name="rippleColor">?attr/apercuAccentDoux</item>
+    </style>
+    <!-- Variante pleine largeur (.linkbtn.wide) : la LARGEUR se pose dans le layout (layout_* est ignoré
+         dans un style) ; ici seulement la hauteur 9 + 12 + 9 + 2 trait ≈ 32. -->
+    <style name="Widget.CodeIDE.Apercu.BoutonLien.Large">
+        <item name="android:minHeight">32dp</item>
+    </style>
+    <style name="Widget.CodeIDE.Apercu.BoutonNouveau" parent="Widget.Material3.Button.UnelevatedButton">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.BoutonNouveau</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">@dimen/apercu_bouton_rayon</item>
+        <item name="backgroundTint">?attr/apercuNouveau</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+    </style>
+
+    <!-- Pastille d'espace de noms (.ns) : app (ambre), tools (violet), neutre sinon. -->
+    <style name="Widget.CodeIDE.Apercu.Pastille" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Pastille</item>
+        <item name="android:background">@drawable/apercu_pastille_fond</item>
+        <item name="android:paddingStart">@dimen/apercu_ns_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_ns_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_ns_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_ns_pad_v</item>
+    </style>
+    <style name="Widget.CodeIDE.Apercu.Pastille.App">
+        <item name="android:background">@drawable/apercu_pastille_app_fond</item>
+        <item name="android:textColor">?attr/apercuAvert</item>
+    </style>
+    <style name="Widget.CodeIDE.Apercu.Pastille.Tools">
+        <item name="android:background">@drawable/apercu_pastille_tools_fond</item>
+        <item name="android:textColor">?attr/apercuNouveau</item>
+    </style>
+
+    <!-- Bouton de réinitialisation d'un attribut (.rst). -->
+    <style name="Widget.CodeIDE.Apercu.Reset" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_reset_fond</item>
+        <item name="android:paddingStart">@dimen/apercu_reset_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_reset_pad_h</item>
+        <item name="android:paddingTop">@dimen/apercu_reset_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_reset_pad_v</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Onglets de la feuille : TabLayout M3, indicateur accent 2 dp pleine largeur, sans fond. -->
+    <style name="Widget.CodeIDE.Apercu.Onglets" parent="Widget.Material3.TabLayout">
+        <item name="tabMode">fixed</item>
+        <item name="tabGravity">start</item>
+        <item name="tabIndicatorColor">?attr/apercuAccent</item>
+        <item name="tabIndicatorHeight">@dimen/apercu_onglet_indicateur</item>
+        <item name="tabIndicatorFullWidth">true</item>
+        <item name="tabTextAppearance">@style/TextAppearance.CodeIDE.Apercu.Onglet</item>
+        <item name="tabTextColor">?attr/apercuTexteDoux</item>
+        <item name="tabSelectedTextColor">?attr/apercuTexte</item>
+        <item name="tabPaddingStart">@dimen/apercu_onglet_pad</item>
+        <item name="tabPaddingEnd">@dimen/apercu_onglet_pad</item>
+        <item name="tabPaddingTop">@dimen/apercu_onglet_pad</item>
+        <item name="tabPaddingBottom">@dimen/apercu_onglet_pad</item>
+        <item name="tabMinWidth">0dp</item>
+        <item name="tabRippleColor">?attr/apercuAccentDoux</item>
+        <item name="android:background">@null</item>
+    </style>
+</resources>

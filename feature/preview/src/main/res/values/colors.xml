@@ -1,28 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Couleurs des problèmes de l'aperçu (PE6c/PE6d, miroir des pastilles
-     de la maquette : ambre de la pastille d'avertissement, rouge de
-     l'erreur, gris neutre du badge sans problème). -->
+<!--
+  Jetons de couleur de l'APERÇU — clair (PE11a, ADR 0131). Valeurs EXACTES du bloc `:root` de
+  la maquette (`docs/mockups/apercu-xml.html`) ; le test de parité (`JetonsMaquetteTest`)
+  compare chaque ligne à `docs/mockups/ref/jetons-maquette.json`. Les layouts, drawables et
+  styles lisent ces couleurs via les attributs de thème `?attr/apercu*` (règle 3 de
+  `docs/PREVIEW_UI.md` § 10), jamais par un hexadécimal.
+-->
 <resources>
-    <color name="preview_probleme_erreur">#BA1A1A</color>
-    <color name="preview_probleme_avertissement">#B8860B</color>
-    <color name="preview_probleme_neutre">#5B5C66</color>
+    <color name="apercu_fond">#F9F9FF</color>  <!-- bg -->
+    <color name="apercu_surface">#FFFFFF</color>  <!-- surface -->
+    <color name="apercu_surface2">#EEEEF7</color>  <!-- surface2 -->
+    <color name="apercu_texte">#1A1B21</color>  <!-- fg -->
+    <color name="apercu_texte_doux">#5B5C66</color>  <!-- muted -->
+    <color name="apercu_trait">#D6D5E0</color>  <!-- line -->
+    <color name="apercu_primaire">#43559E</color>  <!-- primary -->
+    <color name="apercu_sur_primaire">#FFFFFF</color>  <!-- on-primary -->
+    <color name="apercu_primaire_conteneur">#DCE1FF</color>  <!-- primary-c -->
+    <color name="apercu_sur_primaire_conteneur">#001159</color>  <!-- on-primary-c -->
+    <color name="apercu_accent">#1E6EC8</color>  <!-- accent -->
+    <color name="apercu_accent_doux">#241E6EC8</color>  <!-- accent-soft -->
+    <color name="apercu_succes">#2E7D32</color>  <!-- ok -->
+    <color name="apercu_avert">#9A6700</color>  <!-- warn -->
+    <color name="apercu_erreur">#BA1A1A</color>  <!-- err -->
+    <color name="apercu_erreur_conteneur">#FFDAD6</color>  <!-- err-c -->
+    <color name="apercu_marge">#D9822B</color>  <!-- margin -->
+    <color name="apercu_remplissage">#2E8B4B</color>  <!-- padding -->
+    <color name="apercu_nouveau">#7C3AED</color>  <!-- new -->
+    <color name="apercu_nouveau_fond">#EDE5FF</color>  <!-- new-c -->
+    <color name="apercu_sur_nouveau">#FFFFFF</color>  <!-- on-new -->
+    <color name="apercu_nouveau_doux">#247C3AED</color>  <!-- new-soft -->
+    <color name="apercu_damier_case">#21808096</color>  <!-- checker -->
+    <color name="apercu_epingle_avert">#B8860B</color>  <!-- pin-warn -->
+    <color name="apercu_epingle_erreur">#BA1A1A</color>  <!-- pin-err -->
+    <color name="apercu_bornes">#801E6EC8</color>  <!-- bounds -->
+    <color name="apercu_avert_tag">#389A6700</color>  <!-- tag-wr -->
+    <color name="apercu_ecran_trait">#2E000000</color>  <!-- screen-ring -->
+    <color name="apercu_ecran_ombre">#38000000</color>  <!-- screen-shadow -->
+    <color name="apercu_sur_calque">#FFFFFF</color>  <!-- on-overlay -->
+    <color name="apercu_source_insere">#422E7D32</color>  <!-- ins -->
+    <color name="apercu_source_vue">#4C1E6EC8</color>  <!-- hl2 -->
+    <color name="apercu_marge_fond">#61D9822B</color>  <!-- margin-fill -->
+    <color name="apercu_remplissage_fond">#612E8B4B</color>  <!-- padding-fill -->
+    <color name="apercu_correctif_fond">#F6F1E8</color>  <!-- color-mix(warn 9% sur surface) -->
+    <color name="apercu_correctif_trait">#BBA47B</color>  <!-- color-mix(warn 45% avec line) -->
+    <color name="apercu_avert_doux">#339A6700</color>  <!-- color-mix(warn 20% transparent) -->
+    <color name="apercu_damier_a">#BBBBBB</color>  <!-- damier A (#bbb) -->
+    <color name="apercu_damier_b">#FFFFFF</color>  <!-- damier B (#fff) -->
 
-    <!-- Couleurs PE7c/PE7d (miroir des jetons v2 de la maquette :
-         la bulle et les tuiles de la palette portent le VIOLET
-         « nouveau/modifiable » (#7C3AED, nuit #C4A8FF), le halo suit
-         new_soft, l'icône sur la bulle suit on_new (#FFFFFF clair,
-         #1B0B3D nuit)). -->
-    <color name="preview_bulle_fond">#7C3AED</color>
-    <color name="preview_bulle_halo">#247C3AED</color>
-    <color name="preview_bulle_icone">#FFFFFF</color>
-    <color name="preview_palette_icone">#7C3AED</color>
-
-    <!-- Coque translucide des menus de l'aperçu (PE9c — « popups un
-         peu transparent » : la surface du thème atténuée, clair/nuit). -->
+    <!-- Coque translucide des menus de l'aperçu (PE9c — « popups un peu
+         transparent » ; la surface du thème atténuée, clair/nuit).
+         CONSERVÉ tel quel : translucidité demandée par le propriétaire,
+         écart documenté (PREVIEW.md § 3.4.1). -->
     <color name="preview_menu_fond">#F2F9F9FF</color>
 
-    <!-- Badge « n définis » des sections de l'éditeur (PE7e, miroir
-         `summary small` : le violet « new » sur son fond pâle). -->
-    <color name="preview_section_badge_texte">#7C3AED</color>
-    <color name="preview_section_badge_fond">#EDE5FF</color>
+    <!-- Alias migrés (PE11a, PREVIEW_UI.md § 5) : les anciens jetons
+         `preview_bulle_*` / `preview_palette_icone` (PE7c/PE7d) pointent
+         vers les jetons de la maquette — mêmes valeurs, une seule source
+         de vérité. La nuit suit automatiquement la déclinaison de la
+         couleur référencée. -->
+    <color name="preview_bulle_fond">@color/apercu_nouveau</color>
+    <color name="preview_bulle_halo">@color/apercu_nouveau_doux</color>
+    <color name="preview_bulle_icone">@color/apercu_sur_nouveau</color>
+    <color name="preview_palette_icone">@color/apercu_nouveau</color>
 </resources>

@@ -11,7 +11,8 @@
         <activity
             android:name="jo.codeide.feature.preview.PreviewActivity"
             android:exported="false"
-            android:label="@string/preview_titre" />
+            android:label="@string/preview_titre"
+            android:theme="@style/Theme.CodeIDE.Apercu" />
     </application>
 
 </manifest>

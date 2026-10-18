@@ -31,7 +31,7 @@ class ActivityPreviewLayoutTest {
     /** Gonfle le layout sous le thème réel de l'application. */
     private fun gonfler(): ViewGroup {
         val base = ApplicationProvider.getApplicationContext<Context>()
-        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val contexte = ContextThemeWrapper(base, R.style.Theme_CodeIDE_Apercu)
         return LayoutInflater.from(contexte).inflate(R.layout.activity_preview, null) as ViewGroup
     }
 
@@ -100,7 +100,7 @@ class ActivityPreviewLayoutTest {
     @Test
     fun `le layout de la feuille se gonfle avec son conteneur de volets (PE6d + PE9a)`() {
         val base = ApplicationProvider.getApplicationContext<Context>()
-        val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
+        val contexte = ContextThemeWrapper(base, R.style.Theme_CodeIDE_Apercu)
         val feuille = LayoutInflater.from(contexte).inflate(R.layout.fragment_feuille_apercu, null)
         assertNotNull(feuille.findViewById<View>(R.id.racine_feuille))
         assertNotNull(feuille.findViewById<View>(R.id.grab_feuille))

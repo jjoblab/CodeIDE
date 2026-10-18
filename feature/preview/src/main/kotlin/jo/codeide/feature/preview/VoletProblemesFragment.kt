@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -186,9 +185,9 @@ internal class AdaptateurProblemes(
             indiceVue = item.entree.indiceVue
             val contexte = liaison.root.context
             val couleurPastille =
-                ContextCompat.getColor(
+                StyleVolet.couleur(
                     contexte,
-                    if (item.entree.erreur) R.color.preview_probleme_erreur else R.color.preview_probleme_avertissement,
+                    if (item.entree.erreur) R.attr.apercuErreur else R.attr.apercuAvert,
                 )
             liaison.pastilleProbleme.backgroundTintList = ColorStateList.valueOf(couleurPastille)
             liaison.titreProbleme.text = item.titre
