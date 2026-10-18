@@ -1328,6 +1328,15 @@ class EditorViewModel
                 ?.documentUri
                 ?.let { resolveurChemin(it) }
 
+        /**
+         * Chemin FUSE résolu du dossier projet (mission IA, lot IA-3,
+         * ADR 0122 : `ControleurIaTiroir.dossierProjetReel`) — l'assembleur
+         * de contexte (IA-4) liste les fichiers `@mentionnables` à partir
+         * d'ici ; partage le cache [cheminProjet] des usages existants.
+         */
+        public suspend fun dossierProjetReel(): String? =
+            cheminProjet ?: resoudreCheminProjet().also { cheminProjet = it }
+
         // ------------------------------------------------------------------
         // Session LSP Java (mission « LSP Java » étape 4 lot h2, §16.2).
         // ------------------------------------------------------------------

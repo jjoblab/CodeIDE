@@ -73,4 +73,59 @@ class LayoutsIaTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_pas_maintenant))
         assertNotNull(racine.findViewById<View>(R.id.toolbar_consentement_ia))
     }
+
+    // ------------------------------------------------------------------
+    // Tiroir IA (mission IA, lot IA-3) : onglets, chat, lignes de
+    // messages, bloc de code, état « bientôt ».
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `le tiroir IA se gonfle avec ses onglets et son conteneur`() {
+        val racine = gonfler(R.layout.fragment_ia_tiroir)
+
+        assertNotNull(racine.findViewById<View>(R.id.onglets_ia))
+        assertNotNull(racine.findViewById<View>(R.id.conteneur_ia))
+    }
+
+    @Test
+    fun `le chat se gonfle avec compositeur et états — Arrêter masqué au repos`() {
+        val racine = gonfler(R.layout.fragment_ia_chat)
+
+        assertNotNull(racine.findViewById<View>(R.id.liste_messages))
+        assertNotNull(racine.findViewById<View>(R.id.saisie_ia))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_envoyer))
+        assertNotNull(racine.findViewById<View>(R.id.etat_transverse))
+        assertNotNull(racine.findViewById<View>(R.id.etat_titre))
+        assertNotNull(racine.findViewById<View>(R.id.etat_texte))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_consentement))
+        assertNotNull(racine.findViewById<View>(R.id.zone_chat))
+        // Critère IA-3 : au repos, c'est « Envoyer » qui est visible ;
+        // « Arrêter » n'apparaît que pendant la génération.
+        assertEquals(View.VISIBLE, racine.findViewById<View>(R.id.bouton_envoyer).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.bouton_arreter).visibility)
+    }
+
+    @Test
+    fun `les lignes de messages et le bloc de code se gonflent`() {
+        val utilisateur = gonfler(R.layout.ligne_message_utilisateur)
+        assertNotNull(utilisateur.findViewById<View>(R.id.texte_message))
+
+        val assistant = gonfler(R.layout.ligne_message_assistant)
+        assertNotNull(assistant.findViewById<View>(R.id.conteneur_blocs))
+        assertNotNull(assistant.findViewById<View>(R.id.erreur_message))
+        assertNotNull(assistant.findViewById<View>(R.id.bouton_copier_message))
+
+        val bloc = gonfler(R.layout.ligne_bloc_code)
+        assertNotNull(bloc.findViewById<View>(R.id.langue_bloc))
+        assertNotNull(bloc.findViewById<View>(R.id.code_bloc))
+        assertNotNull(bloc.findViewById<View>(R.id.bouton_copier_bloc))
+        assertNotNull(bloc.findViewById<View>(R.id.bouton_inserer_bloc))
+    }
+
+    @Test
+    fun `la vue « bientôt » se gonfle avec son texte`() {
+        val racine = gonfler(R.layout.vue_ia_bientot)
+
+        assertNotNull(racine.findViewById<View>(R.id.texte_bientot))
+    }
 }

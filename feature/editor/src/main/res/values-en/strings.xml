@@ -26,6 +26,7 @@
 
     <!-- Terminal drawer preview card (T6, Terminal-1 prompt section 8). -->
     <string name="editor_nav_terminal">Terminal</string>
+    <string name="editor_nav_ia">AI</string>
     <!-- « many » n'existe pas en anglais (lint UnusedQuantity). -->
 
     <!-- Bottom navigation bar of the drawer (companion prompt 5.3). -->

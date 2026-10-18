@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bloc de code du chat (mission IA, lot IA-3) : barre langue · Copier ·
+  Insérer au curseur + contenu à chasse fixe, défilant horizontalement.
+  Les deux actions sont réelles : presse-papiers et PortEditeurActif.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="@dimen/spacing_xs"
+    app:cardBackgroundColor="?attr/colorSurfaceVariant"
+    app:contentPadding="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/langue_bloc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="kotlin" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_copier_bloc"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/ia_copier_cd"
+                android:minHeight="40dp"
+                android:text="@string/ia_copier" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_inserer_bloc"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/ia_inserer_cd"
+                android:minHeight="40dp"
+                android:text="@string/ia_inserer" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/code_bloc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textIsSelectable="true"
+                tools:text="fun main() { }" />
+        </HorizontalScrollView>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -42,14 +42,22 @@ import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeeditor.view.chrome.SymbolBarView
 import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.DiagnosticEditeur
 import jo.codeide.core.domain.InfoTache
+import jo.codeide.core.domain.PortEditeurActif
+import jo.codeide.core.domain.RegistrePortEditeurActif
+import jo.codeide.core.domain.SelectionEditeur
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.model.AppError
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.ControleurIaTiroir
 import jo.codeide.core.ui.ControleurTerminalTiroir
+import jo.codeide.core.ui.FabriqueFragmentIaTiroir
 import jo.codeide.core.ui.FabriqueFragmentTerminalTiroir
 import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.ThemeHarmonizer
@@ -125,6 +133,7 @@ import jo.codeide.core.ui.R as RUi
 class EditorActivity :
     AppCompatActivity(),
     ControleurTerminalTiroir,
+    ControleurIaTiroir,
     ControleurPanneauEditeur {
     private val viewModel: EditorViewModel by viewModels()
 
@@ -149,6 +158,29 @@ class EditorActivity :
      * référencent pas). */
     @Inject
     lateinit var fabriqueTerminalTiroir: FabriqueFragmentTerminalTiroir
+
+    /** Fabrique du fragment IA du tiroir (mission IA, lot IA-3, ADR
+     * 0122) : le chat vit dans `feature:ai` — la fabrique seule traverse
+     * la frontière (les features ne se référencent pas). */
+    @Inject
+    lateinit var fabriqueIaTiroir: FabriqueFragmentIaTiroir
+
+    /** Registre du port d'éditeur actif (mission IA, lot IA-3) : le
+     * port [PortEditeurActif] de CETTE activité y est publié — le chat
+     * (« Insérer au curseur ») et l'assembleur de contexte (IA-4) le
+     * lisent ; aucun port = aucune insertion, jamais d'effet silencieux. */
+    @Inject
+    lateinit var registreEditeur: RegistrePortEditeurActif
+
+    /** Dossier FUSE du projet résolu une fois (mission IA : contrôleur
+     * du tiroir IA) — `null` tant que la résolution asynchrone n'est pas
+     * passée ou sans projet ouvert. */
+    private var dossierProjetReelCache: String? = null
+
+    /** Port de l'éditeur actif (mission IA, lot IA-3, ADR 0122) :
+     * adaptateur vivant — un seul enregistrement au registre, les
+     * getters résolvent l'onglet et la session COURANTS à chaque appel. */
+    private val portEditeur: PortEditeurActif by lazy { PortEditeurVue() }
 
     /** Réglages de l'éditeur consommés au fil de l'eau (v0.37.0) : thème,
      * zoom, retour à la ligne, minimap… — le détenteur process-wide y
@@ -548,6 +580,9 @@ class EditorActivity :
                         }
                 }
             val terminal = fabriqueTerminalTiroir.creer()
+            // Tiroir IA (mission IA, lot IA-3, ADR 0122) : 6ᵉ destination
+            // — le chat, l'agent et l'historique vivent dans :feature:ai.
+            val ia = fabriqueIaTiroir.creer()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_tiroir, explorateur, TAG_EXPLORATEUR)
@@ -559,8 +594,15 @@ class EditorActivity :
                 .hide(git)
                 .add(R.id.conteneur_fragments_tiroir, terminal, TAG_TERMINAL)
                 .hide(terminal)
+                .add(R.id.conteneur_fragments_tiroir, ia, TAG_IA)
+                .hide(ia)
                 .commit()
         }
+        // Port de l'éditeur actif publié AU REGISTRE (mission IA, lot
+        // IA-3) : un seul enregistrement — l'adaptateur lit l'onglet et
+        // la session COURANTS à chaque appel (état toujours frais).
+        registreEditeur.enregistrer(portEditeur)
+        resoudreDossierProjetAsynchrone()
         construireRail()
         selectionnerDestination(destinationCourante)
     }
@@ -587,6 +629,109 @@ class EditorActivity :
     /** Ouvre l'écran d'installation du bootstrap natif. */
     override fun ouvrirInstallationBootstrap() {
         viewModel.onAction(ActionEditor.InstallerOutilsTerminal)
+    }
+
+    // ------------------------------------------------------------------
+    // Contrôleur du fragment IA du tiroir (mission IA, lot IA-3, ADR
+    // 0122) : l'état de l'espace de travail que :feature:ai ne connaît
+    // pas — résolu par cast en onAttach (aucune dépendance feature ↔
+    // feature). Les méthodes ne sont consommées qu'à partir d'IA-4/IA-7
+    // ; l'implémentation est déjà honnête (aucun effet silencieux).
+    // ------------------------------------------------------------------
+
+    /** Chemin RELATIF du fichier actif — onglet PROJET seul (les
+     * fichiers privés ne quittent jamais l'appareil, ADR 0124 §4). */
+    override fun cheminRelatifFichierActif(): String? {
+        val etat = viewModel.etat.value
+        return etat.onglets
+            .getOrNull(etat.indexOngletActif)
+            ?.takeIf { it.source == SourceArbre.PROJET }
+            ?.cheminRelatif
+    }
+
+    /** Dossier RÉEL du projet (pont SAF → FUSE) — résolu UNE fois en
+     * arrière-plan ([resoudreDossierProjetAsynchrone]) : l'assembleur de
+     * contexte (IA-4) liste les fichiers `@mentionnables` à partir d'ici
+     * ; les chemins transmis au modèle restent RELATIFS. */
+    override fun dossierProjetReel(): String? = dossierProjetReelCache
+
+    /** Ouvre un document du projet (chemin relatif) : un onglet déjà
+     * ouvert est sélectionné ; l'ouverture HORS onglet existant arrive
+     * avec IA-6/IA-7 (résolution chemin relatif → URI d'arbre SAF —
+     * même limite connue qu'EffetRecherche.OuvrirFichier, navigation S3). */
+    override fun ouvrirFichier(cheminRelatif: String) {
+        val onglets = viewModel.etat.value.onglets
+        val index = onglets.indexOfFirst { onglet -> onglet.cheminRelatif == cheminRelatif }
+        if (index >= 0) {
+            viewModel.onAction(ActionEditor.SelectionnerOnglet(index))
+        }
+    }
+
+    /** Résolution asynchrone UNIQUE du dossier projet (mission IA) —
+     * le contrat du contrôleur est synchrone, la résolution FUSE ne
+     * l'est pas : elle est lancée à la création et mise en cache. */
+    private fun resoudreDossierProjetAsynchrone() {
+        lifecycleScope.launch {
+            dossierProjetReelCache = viewModel.dossierProjetReel()
+        }
+    }
+
+    /** Adaptateur vivant vers l'onglet/session COURANTS (mission IA,
+     * lot IA-3, ADR 0122) : les getters résolvent l'état frais — un
+     * seul enregistrement au registre suffit, aucune resynchronisation. */
+    private inner class PortEditeurVue : PortEditeurActif {
+        override val cheminRelatifFichier: String?
+            get() = cheminRelatifFichierActif()
+
+        override val selection: SelectionEditeur?
+            get() {
+                val session = sessionEditeurActif() ?: return null
+                val courante = session.selection
+                if (courante.isCursor) return null
+                val texte = session.document.getText().substring(courante.start, courante.end)
+                return SelectionEditeur(courante.start, courante.end, texte)
+            }
+
+        override val diagnostics: List<DiagnosticEditeur>
+            get() = emptyList() // branchement des diagnostics visibles : IA-4
+
+        /** Révision du document actif (compteur de mutations cel —
+         * conflits « Accepter » d'IA-5) ; sans session : 0. */
+        override fun revision(): Long = sessionEditeurActif()?.document?.revision?.toLong() ?: 0L
+
+        /** Remplacement ATOMIQUE : beginBatch/endBatch = un seul pas
+         * d'annulation (ADR 0126) ; plage invalide = échec typé, jamais
+         * d'écrasement silencieux. */
+        override fun appliquerRemplacement(
+            debut: Int,
+            fin: Int,
+            texte: String,
+        ): AppResult<Unit> {
+            val session =
+                sessionEditeurActif()
+                    ?: return AppResult.Failure(
+                        AppError.Validation("aucune session d'édition active"),
+                    )
+            val longueur = session.document.length()
+            if (debut < 0 || fin > longueur || debut > fin) {
+                return AppResult.Failure(
+                    AppError.Validation("plage invalide : [$debut, $fin[ sur $longueur"),
+                )
+            }
+            session.beginBatch()
+            try {
+                session.replaceRange(debut, fin, texte)
+            } finally {
+                session.endBatch()
+            }
+            return AppResult.Success(Unit)
+        }
+
+        private fun sessionEditeurActif(): EditorSession? {
+            val etat = viewModel.etat.value
+            val uri = etat.onglets.getOrNull(etat.indexOngletActif)?.uri ?: return null
+            return viewModel.sessionDe(uri)
+        }
     }
 
     /** Construit le rail de fragments (§ 14) : quatre destinations
@@ -616,6 +761,11 @@ class EditorActivity :
                     R.id.destination_terminal,
                     jo.codeide.core.ui.R.drawable.ic_terminal,
                     R.string.editor_nav_terminal,
+                ),
+                Triple(
+                    R.id.destination_ia,
+                    jo.codeide.core.ui.R.drawable.ic_auto_awesome,
+                    R.string.editor_nav_ia,
                 ),
             )
         val dp = resources.displayMetrics.density
@@ -649,6 +799,7 @@ class EditorActivity :
                     R.id.destination_projet -> TAG_PROJET
                     R.id.destination_git -> TAG_GIT
                     R.id.destination_terminal -> TAG_TERMINAL
+                    R.id.destination_ia -> TAG_IA
                     else -> TAG_EXPLORATEUR
                 },
             ) ?: return
@@ -656,7 +807,7 @@ class EditorActivity :
         // Ciblé PAR TAG (v0.32.4) : les fragments du PANNEAU inférieur
         // vivent dans le même manager — un forEach global les cacherait
         // à chaque changement de destination du tiroir.
-        listOf(TAG_EXPLORATEUR, TAG_RECHERCHE, TAG_PROJET, TAG_GIT, TAG_TERMINAL)
+        listOf(TAG_EXPLORATEUR, TAG_RECHERCHE, TAG_PROJET, TAG_GIT, TAG_TERMINAL, TAG_IA)
             .mapNotNull { tag -> gestionnaire.findFragmentByTag(tag) }
             .forEach { fragment ->
                 if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
@@ -2078,6 +2229,11 @@ class EditorActivity :
      * réel sera mesuré (S2) avant réarbitrage.
      */
     override fun onDestroy() {
+        // Le port de l'éditeur actif est retiré (mission IA, lot IA-3) :
+        // aucun chat vivant ne doit cibler un éditeur détruit — l'IA
+        // verra « port absent » et les insertions seront refusées, sans
+        // effet silencieux.
+        registreEditeur.enregistrer(null)
         coordonnateurLsp.fermer()
         super.onDestroy()
     }
@@ -2653,6 +2809,7 @@ class EditorActivity :
         const val TAG_PROJET = "tiroir_projet"
         const val TAG_GIT = "tiroir_git"
         const val TAG_TERMINAL = "tiroir_terminal"
+        const val TAG_IA = "tiroir_ia"
 
         /** Étiquette LSP de l'activité — la MÊME que
          * [CoordonnateurLsp] ("LspEditeur") : la séquence « branchement

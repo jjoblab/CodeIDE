@@ -86,7 +86,7 @@ sur l'éditeur à quelques dizaines de lignes de câblage.
 - **À revoir** : si un 2ᵉ consommateur apparaît (ex. aperçu XML), généraliser `PortEditeurActif`.
 
 ## Actions
-1. [ ] Étendre `ModuleRulesPlugin` (lot IA-0) et exécuter `checkModuleDependencies` racine.
-2. [ ] Créer les 4 modules avec `README.md` + `Module.md` (convention du dépôt).
-3. [ ] Ajouter `FabriqueFragmentIaTiroir`, `ControleurIaTiroir`, `PontIaEditeur` à `core:ui` ; `PortEditeurActif` à `core:domain`.
-4. [ ] Documenter les modules dans `docs/ARCHITECTURE.md` (tableaux « Modules » et « Règles de dépendance »).
+1. [x] Étendre `ModuleRulesPlugin` (lot IA-0) et exécuter `checkModuleDependencies` racine.
+2. [x] Créer les 4 modules avec `README.md` + `Module.md` (convention du dépôt).
+3. [x] Ajouter `FabriqueFragmentIaTiroir`, `ControleurIaTiroir`, `PontIaEditeur` à `core:ui` ; `PortEditeurActif` à `core:domain`.
+4. [x] Documenter les modules dans `docs/ARCHITECTURE.md` (tableaux « Modules » et « Règles de dépendance »).
