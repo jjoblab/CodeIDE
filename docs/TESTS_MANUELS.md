@@ -751,3 +751,40 @@ E1-E12 qui échoue.
    puce « Diagnostics » apparaît ; les lignes compactées
    (`ERREUR chemin:ligne:colonne (source) message`) partent sans le
    contenu du code.
+
+## Mission IA — agent, approbations, restauration (lot IA-7b → v0.144.0, ADR 0125)
+
+Écran : tiroir IA · onglet **Agent** ; parler : TalkBack, cibles ≥ 48 dp
+visibles. Appareil : téléphone + TalkBack, thèmes clair/sombre, police
+système ×1,3.
+
+1. **États de l'onglet** — objectif vide → « Lancer » garde l'état avec
+   message ; un projet OUVERT est requis (sinon état « échec » lisible,
+   jamais de crash).
+2. **Exécution + service premier plan** — « Lancer » : la notification
+   « Agent en cours » apparaît (canal Agent, importance faible), avec
+   action **Arrêter** ; l'action annule la boucle → état « annulé »
+   lisible ; la notification disparaît d'elle-même (décision MASQUER).
+3. **Approbation EXÉCUTION** — demander `run_gradle` à l'agent : une
+   carte « Exécution demandée » (outil + arguments + raison) suspend
+   l'appel ; **Refuser** renvoie un refus au modèle ; **Autoriser une
+   fois** exécute CET appel (deux appels = deux cartes, jamais
+   « toujours autoriser »). TalkBack : la carte annonce outil et raison.
+4. **Revue des changements** — après des propositions d'écriture, la
+   carte « Changements proposés » affiche le compte ; **Examiner**
+   ouvre la revue plein tiroir : case cochée par défaut (hors
+   conflits), badge **Conflit** non cochable si le fichier a changé
+   depuis la proposition (jamais d'écrasement silencieux) ;
+   « Appliquer la sélection » n'écrit QUE la sélection.
+5. **Étiquette d'historique** — après application, l'écran Historique
+   (fichier ou projet) montre l'étiquette « IA · <date> » ET les
+   entrées d'écriture du projet (décorateur).
+6. **« Annuler cette exécution »** — le bandeau apparaît après
+   application : création → fichier supprimé, modification → contenu
+   d'avant restauré, suppression → fichier recréé à l'identique
+   (vérifier dans l'éditeur après réouverture du fichier).
+7. **Historique indisponible** — (vérification constructeur, tests
+   automatisés) : l'application est REFUSÉE sans aucune écriture.
+8. **TalkBack** — chaque étape est annoncée ; la carte d'approbation
+   annonce outil + raison ; les lignes de revue annoncent
+   « chemin — conflit, non cochable » si applicable.

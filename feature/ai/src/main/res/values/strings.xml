@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- tools:ignore = Typos : « restauration » est un mot français correct. -->
 <!-- Mission IA (lot IA-2) : chaînes des écrans Paramètres → IA.
      Préfixe ia_, miroir exact de values-en/strings.xml. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Titres -->
     <string name="ia_reglages_titre">Assistant IA</string>
     <string name="ia_fournisseur_titre">Fournisseur IA</string>
@@ -174,4 +175,33 @@
     <string name="ia_retention_libelle_30j">Conserver 30 jours</string>
     <string name="ia_retention_libelle_illimitee">Conserver indéfiniment</string>
     <string name="ia_bientot_historique_ancien">L\'historique des conversations arrive au lot IA-6.</string>
+
+    <!-- Lot IA-7b : écran Agent, revue des changements, service premier plan -->
+    <string name="agent_objectif_hint">Objectif de l\'agent</string>
+    <string name="agent_garde_fou">L\'agent ne modifie rien sans votre validation.</string>
+    <string name="agent_lancer">Lancer l\'agent</string>
+    <string name="agent_arreter">Arrêter</string>
+    <string name="agent_continuer">Continuer</string>
+    <string name="agent_en_cours">Agent en cours</string>
+    <string name="agent_limites">Étapes : %1$d / %2$d · modèle %3$s</string>
+    <string name="agent_approbation_titre">Exécution demandée</string>
+    <string name="agent_approbation_refuser">Refuser</string>
+    <string name="agent_approbation_autoriser">Autoriser une fois</string>
+    <string name="agent_changements_titre">Changements proposés</string>
+    <string name="agent_changements_resumes">Fichiers : %1$d · Conflits : %2$d</string>
+    <string name="agent_changements_examiner">Examiner</string>
+    <string name="agent_changements_rejeter">Rejeter</string>
+    <string name="agent_changements_appliquer">Tout appliquer</string>
+    <string name="agent_annulation_disponible" tools:ignore="Typos">Changements appliqués — un point de restauration « IA » est posé.</string>
+    <string name="agent_annuler_execution">Annuler cette exécution</string>
+    <string name="agent_revue_titre">Examiner les changements</string>
+    <string name="agent_revue_vide">Aucun changement en attente.</string>
+    <string name="agent_revue_conflit">Conflit</string>
+    <string name="agent_revue_retour">Retour</string>
+    <string name="agent_revue_appliquer_selection">Appliquer la sélection</string>
+    <string name="agent_application_en_cours">Application en cours</string>
+    <string name="agent_service_titre">Agent en cours</string>
+    <string name="agent_service_texte">L\'agent travaille — il ne modifie rien sans votre validation.</string>
+    <string name="agent_service_arreter">Arrêter</string>
+    <string name="agent_service_canal">Agent</string>
 </resources>
