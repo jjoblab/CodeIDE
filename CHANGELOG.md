@@ -1,5 +1,52 @@
 # Journal des modifications
 
+## [0.140.0] – 2026-10-18
+
+### Mission IA — lot IA-5 « Intégration éditeur » (ADR 0126, spec E3)
+
+#### Ajouté
+
+- **`:core:ui` — pont éditeur → IA étendu** : `PontIaEditeur` gagne
+  `envoyerConsigne` (barre de consigne — envoi immédiat, geste
+  explicite), `expliquer` (Console/Logcat — pré-remplissage borné,
+  jamais auto-envoyé) et `reessayer` (carte de diff) ;
+  `ControleurIaTiroir` gagne `afficherPropositionDiff` ;
+  `PropositionDiffIa` (texte actuel/proposé, plage, révision, chemin).
+- **`:feature:ai` — `CanalSignauxIa` + `PontIaEditeurImpl`** : canal
+  singleton à signal unique (consigne pré-remplie / envoi immédiat /
+  régénération) consommé par le `ChatViewModel` — un signal = un
+  traitement, aucun rejeu à la rotation ; le bloc de code du chat gagne
+  l'action **« Appliquer »** : la proposition (plage = sélection
+  courante, révision capturée) part à la carte de diff via l'effet
+  `AfficherDiff` — sans sélection : message honnête, la carte ne devine
+  jamais une plage.
+- **`:feature:editor` — `BarreConsigneIa`** (vue autonome) : posée entre
+  l'éditeur et la barre de symboles (jamais en overlay, monte avec le
+  clavier via `GestionnaireInsetsEditeur`), 5 actions rapides
+  (Expliquer · Corriger · Documenter · Tests · Simplifier), champ,
+  « Envoyer » et ligne de contexte exacte (« Sélection N l. · fichier »).
+- **`:feature:editor` — `CarteDiffIa`** (vue autonome) : revue
+  `DiffUnifie` + `ligne_diff.xml` (rendu identique à l'historique),
+  compteur « +n −m », hauteur plafonnée (`ia_carte_diff_hauteur_max`),
+  **Accepter / Rejeter / Réessayer** — Accepter vérifie la révision au
+  clic (texte changé ⇒ refus « relancer », critère IA-5) puis applique
+  en **un seul lot** via le port d'éditeur (un seul Annuler).
+- **Points d'entrée panneaux** (via `ControleurPanneauEditeur`) :
+  « Corriger avec l'IA » sur chaque diagnostic de l'onglet Problèmes
+  (identifiant `source:ligne:colonne` reconstruit par l'hôte) ;
+  « Expliquer » sur Console (sortie du canal visible) et Logcat (fenêtre
+  glissante des lignes filtrées) — le tiroir s'ouvre sur Chat, pré-rempli.
+
+#### Tests
+
+- `PontIaEditeurImplTest` (8 tests Robolectric) : envoi immédiat,
+  pré-remplissage borné, diagnostic par identifiant (repli sans chemin),
+  garde « rien ne part sans texte/port/diagnostic ».
+- `ChatViewModelTest` +5 : consigne externe (pré-remplissage sans envoi,
+  envoi immédiat), Réessayer sans historique, `AppliquerBlocCode` sans
+  sélection (message) et avec sélection (proposition exacte : bornes,
+  révision, chemin).
+
 ## [0.139.1] – 2026-10-18
 
 ### Correction — filets anti-hang CI sur les tests IA (incident 2026-10-18)

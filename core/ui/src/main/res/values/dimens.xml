@@ -24,6 +24,10 @@
     <!-- Cibles tactiles minimales (accessibilité, section 12.1). -->
     <dimen name="touch_target_min">48dp</dimen>
 
+    <!-- Mission IA (lot IA-5, spec E3) : plafond de hauteur de la carte
+         de diff de l'éditeur (au-delà, elle défile). -->
+    <dimen name="ia_carte_diff_hauteur_max">280dp</dimen>
+
     <!-- Composants d'état (vide, chargement, erreur). -->
     <dimen name="state_icon_size">64dp</dimen>
     <dimen name="state_padding">32dp</dimen>

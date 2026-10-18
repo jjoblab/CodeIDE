@@ -653,4 +653,34 @@
     <!-- Neutral notification (channels off, ADR 0059). -->
     <string name="tooling_service_neutre_texte">Background task</string>
 
+    <!-- Mission IA — lot IA-5: editor integration (ADR 0126, spec E3). -->
+    <string name="ia_action_selection">AI</string>
+    <string name="ia_barre_hint">What needs to change?</string>
+    <string name="ia_barre_envoyer">Send</string>
+    <string name="ia_barre_envoyer_cd">Send the prompt to the AI chat</string>
+    <string name="ia_barre_fermer_cd">Close the prompt bar</string>
+    <string name="ia_barre_contexte">Context: Selection %1$d l. · %2$s</string>
+    <string name="ia_barre_chip_expliquer">Explain</string>
+    <string name="ia_barre_chip_corriger">Fix</string>
+    <string name="ia_barre_chip_documenter">Document</string>
+    <string name="ia_barre_chip_tests">Tests</string>
+    <string name="ia_barre_chip_simplifier">Simplify</string>
+    <string name="ia_barre_consigne_expliquer">Explain the selected code, line by line</string>
+    <string name="ia_barre_consigne_corriger">Fix the problems in this code while keeping its behavior</string>
+    <string name="ia_barre_consigne_documenter">Document this code (KDoc/Docstring)</string>
+    <string name="ia_barre_consigne_tests">Write unit tests for this code</string>
+    <string name="ia_barre_consigne_simplifier">Simplify this code without changing its behavior</string>
+    <string name="ia_carte_titre">Proposal</string>
+    <string name="ia_carte_compteur">+%1$d −%2$d</string>
+    <string name="ia_carte_accepter">Accept</string>
+    <string name="ia_carte_accepter_cd">Applies the proposal in a single undo step</string>
+    <string name="ia_carte_rejeter">Reject</string>
+    <string name="ia_carte_ressayer">Retry</string>
+    <string name="ia_carte_ressayer_cd">Re-runs the original prompt</string>
+    <string name="ia_carte_texte_change">The text has changed — regenerate the proposal</string>
+    <string name="ia_carte_appliquee">Proposal applied — a single Undo is enough</string>
+    <string name="ia_carte_echec">Could not apply — check the open file</string>
+    <string name="ia_corriger_ia_cd">Fix with AI</string>
+    <string name="ia_expliquer_ia_cd">Explain with AI</string>
+
 </resources>

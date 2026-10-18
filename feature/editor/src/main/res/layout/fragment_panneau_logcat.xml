@@ -140,6 +140,21 @@
             android:contentDescription="@string/logcat_effacer"
             app:icon="@drawable/ic_supprimer"
             app:iconTint="@color/explorateur_texte_2" />
+
+        <!-- « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie
+             filtrée visible part en pré-remplissage du chat (bouton
+             panneau — le flux logcat est une table virtualisée, pas de
+             rangée cliquable dédiée). -->
+        <ImageButton
+            android:id="@+id/bouton_expliquer_ia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ia_expliquer_ia_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            android:src="@drawable/ic_auto_awesome"
+            app:tint="?attr/colorPrimary" />
     </LinearLayout>
 
     <!-- ===================== Bandeaux d'état (§ 4.1) ===================== -->
