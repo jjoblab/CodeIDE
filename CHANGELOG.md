@@ -1,5 +1,59 @@
 # Journal des modifications
 
+## [0.142.0] – 2026-10-18
+
+### Mission IA — lot IA-7a « Agent : cœur, outils et confinement » (ADR 0125)
+
+#### Ajouté
+
+- **`:core:ai` — machinerie d'agent** (ADR 0125 action 1) :
+  `OutilIa` (nom, niveau de risque, schéma, exécution suspendue),
+  `RegistreOutilsIa` (liste fermée + ToolSpec), `ChangeSetIa`
+  (écritures MISES EN ATTENTE — aucun disque touché),
+  `PorteApprobationIa` (EXÉCUTION : décision explicite par appel, sans
+  « toujours autoriser »), `AgentRunnerIa` (boucle bornée
+  réfléchir→appeler→observer, plafond d'étapes + 3 échecs consécutifs,
+  annulation coopérative, observation d'étapes pour l'UI).
+- **Outils V1** : `list_files` / `read_file` via
+  `FournisseurContexteProjet` (exclusions ADR 0124 + garde d'évasion du
+  port) ; `propose_edit` / `create_file` / `delete_file` → ChangeSet
+  avec **empreinte SHA-256 du contenu actuel** (conflit détectable,
+  jamais d'écrasement silencieux) ; `run_gradle` avec **liste blanche
+  fermée** (assembleDebug, lintDebug, testDebugUnitTest, spotlessCheck,
+  detekt) + approbation à chaque appel + raison obligatoire.
+- **`ResolveurCheminsProjetIa`** (ADR 0125 « Confinement ») : toute
+  opération de chemin passe par lui — normalisation, refus de `..`,
+  chemins absolus, liens symboliques sortants (canonique sous la racine
+  réelle) et fichiers exclus ; refus = résultat modélisé renvoyé au
+  modèle (jamais d'exception jusqu'à l'UI).
+
+#### Tests (13 — sécurité d'abord)
+
+- Évasion : `..`, absolu, vide, `.env`/`*.jks` exclus, **lien
+  symbolique sortant**, chemin interne OK.
+- `run_gradle` : hors liste blanche refusé SANS solliciter la porte ;
+  deux appels = deux décisions ; raison vide refusée avant approbation.
+- Boucle : plafond d'étapes → « interrompu » lisible ; 3 échecs
+  consécutifs → arrêt ; réponse finale sans outil → TERMINE proprement.
+- **Injection** : un fichier piégé ne déclenche AUCUNE écriture disque
+  (le ChangeSet n'écrit jamais) ; `propose_edit` n'écrit rien.
+
+#### Écart documenté (IA-7b — suite du lot)
+
+L'écran Agent (plan, étapes, cartes d'approbation, revue des
+changements), l'application du ChangeSet via `FileSystem` avec étiquette
+d'historique + « Annuler cette exécution », et le service au premier
+plan restent À LIVRER (IA-7b) : la machinerie de confinement et les
+tests de sécurité sont le socle préalable — aucun disque n'est touché
+avant l'écran de revue.
+
+
+## [0.142.0] – 2026-10-18
+
+### Ajouté
+
+- (à compléter)
+
 ## [0.141.0] – 2026-10-18
 
 ### Mission IA — lot IA-6 « Historique des conversations » (ADR 0124 §5, spec E6)
