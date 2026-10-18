@@ -5,7 +5,9 @@ import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.Timeout
 
 /**
  * Tests du transport HTTP IA (ADR 0123 point 4) : `HttpURLConnection`
@@ -13,6 +15,11 @@ import org.junit.Test
  * en-têtes de réponse normalisés en minuscules.
  */
 class AiHttpTransportTest {
+    // Filet anti-hang CI (incident 2026-10-18) : chaque test plafonné à
+    // 60 s — un test figé devient un échec nommé, jamais un job bloqué.
+    @get:Rule
+    val delaiGlobal: Timeout = Timeout.seconds(60)
+
     private val transport = AiHttpTransport(DispatchersReels())
 
     @Test

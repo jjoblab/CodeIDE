@@ -87,6 +87,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             tasks.withType<Test>().configureEach {
                 jvmArgs("--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED")
                 maxHeapSize = "640m"
+                reglagesAntiHang()
             }
         }
     }

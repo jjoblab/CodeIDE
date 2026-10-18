@@ -1,5 +1,29 @@
 # Journal des modifications
 
+## [0.139.1] – 2026-10-18
+
+### Correction — filets anti-hang CI sur les tests IA (incident 2026-10-18)
+
+#### Corrigé
+
+- **`:ai:providers` — `SseStreamExecutor`** : la fermeture de la connexion
+  SSE est désormais **synchrone** dans le `finally` du consommateur (fin
+  normale, interruption d'opérateur `take`/`first` ou annulation du job) —
+  la socket est fermée avant toute autre sortie et le lecteur bloquant du
+  dispatcher IO est toujours débloqué. Avant, la fermeture dépendait de
+  l'exécution asynchrone du « veilleur », dont l'échec relatif figeait la
+  tâche de tests en CI (`:ai:providers:test` observé bloqué 88 min puis
+  4 h 01 sur GitHub Actions).
+- **Filet JUnit** : règle `Timeout` de 60 s par test sur les trois classes
+  réseau (`AiHttpTransportTest`, `AnthropicProviderTest`,
+  `OpenAiCompatibleProviderTest`) — un test figé devient un échec nommé,
+  jamais un job bloqué.
+- **Filet Gradle** (`build-logic`, plugins de convention JVM + Android) :
+  `timeout` de 10 min par tâche de tests (tuée par Gradle en cas
+  pathologique) + `testLogging` (échecs/sauts tracés, format complet ;
+  départs sur demande via `-Dtest.events.started=true` pour désigner le
+  test en cours dans les logs CI).
+
 ## [0.139.0] – 2026-10-18
 
 ### Mission IA — lot IA-4 « Contexte et confidentialité » (ADR 0124 §4/§4 bis)

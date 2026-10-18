@@ -45,6 +45,7 @@ class KotlinLibraryConventionPlugin : Plugin<Project> {
                 useJUnit()
                 // Tas borné pour la machine CI (4 Go) — voir gradle.properties.
                 maxHeapSize = "640m"
+                reglagesAntiHang()
             }
 
             dependencies.add(
