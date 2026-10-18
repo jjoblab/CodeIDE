@@ -57,6 +57,7 @@ class ChatViewModelTest {
                     FakeReglagesIa(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -82,6 +83,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -125,6 +127,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -176,6 +179,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -210,6 +214,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -249,6 +254,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -290,7 +296,13 @@ class ChatViewModelTest {
             val registre = RegistrePortEditeurActif()
             registre.enregistrer(port)
             val modele =
-                ChatViewModel(SendMessageUseCase(fournisseur), reglagesActifs(), registre, FauxFournisseurContexte())
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    registre,
+                    FauxFournisseurContexte(),
+                    CanalSignauxIa(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.InsererBlocCode("val x = 1"))
@@ -310,6 +322,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -328,6 +341,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     FauxFournisseurContexte(),
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -349,7 +363,14 @@ class ChatViewModelTest {
             val contexte = FauxFournisseurContexte()
             contexte.fichiers["src/main/java/MainActivity.kt"] = "class MainActivity"
             val fournisseurFlux = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    registre,
+                    contexte,
+                    CanalSignauxIa(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Explique"))
@@ -393,6 +414,7 @@ class ChatViewModelTest {
                     reglagesActifs(),
                     RegistrePortEditeurActif(),
                     contexte,
+                    CanalSignauxIa(),
                 )
             advanceUntilIdle()
 
@@ -424,7 +446,14 @@ class ChatViewModelTest {
             val contexte = FauxFournisseurContexte()
             contexte.fichiers["src/main/java/MainActivity.kt"] = "val cle = \"sk-factice1234567890abcdef\""
             val fournisseurFlux = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    registre,
+                    contexte,
+                    CanalSignauxIa(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Q"))
@@ -467,7 +496,14 @@ class ChatViewModelTest {
             val contexte = FauxFournisseurContexte()
             contexte.fichiers["src/main/java/MainActivity.kt"] = "val cle = \"sk-factice1234567890abcdef\""
             val fournisseurFlux = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    registre,
+                    contexte,
+                    CanalSignauxIa(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.ChangerSaisie("Ma question"))
@@ -497,7 +533,14 @@ class ChatViewModelTest {
             val contexte = FauxFournisseurContexte()
             contexte.fichiers["src/main/java/MainActivity.kt"] = "class MainActivity"
             val fournisseurFlux = FauxFournisseurFlux()
-            val modele = ChatViewModel(SendMessageUseCase(fournisseurFlux), reglagesActifs(), registre, contexte)
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseurFlux),
+                    reglagesActifs(),
+                    registre,
+                    contexte,
+                    CanalSignauxIa(),
+                )
             advanceUntilIdle()
 
             modele.onAction(ActionChatIa.RetirerPiece(TypePieceContexte.FichierActif))
@@ -518,6 +561,127 @@ class ChatViewModelTest {
                 modele.etat.value.pieces
                     .map { it.type },
             )
+        }
+
+    // ------------------------------------------------------------------
+    // Lot IA-5 : signaux de l'éditeur (canal) + carte de diff.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `une consigne externe pré-remplit la saisie sans envoyer`() =
+        runTest {
+            val fournisseur = FauxFournisseurFlux()
+            val canal = CanalSignauxIa()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    canal,
+                )
+            advanceUntilIdle()
+
+            canal.publier(SignalIaExterne.Consigne("Explique ceci", envoiImmediat = false))
+            advanceUntilIdle()
+
+            assertEquals("Explique ceci", modele.etat.value.saisie)
+            assertEquals(0, fournisseur.appels)
+            assertEquals(0, modele.etat.value.messages.size)
+        }
+
+    @Test
+    fun `une consigne externe à envoi immédiat part sans deuxième geste`() =
+        runTest {
+            val fournisseur = FauxFournisseurFlux()
+            val canal = CanalSignauxIa()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    canal,
+                )
+            advanceUntilIdle()
+
+            canal.publier(SignalIaExterne.Consigne("Bonjour", envoiImmediat = true))
+            advanceUntilIdle()
+
+            assertEquals(1, fournisseur.appels)
+            assertTrue(
+                modele.etat.value.messages
+                    .isNotEmpty(),
+            )
+        }
+
+    @Test
+    fun `le signal Réessayer sans historique ne produit aucun effet`() =
+        runTest {
+            val canal = CanalSignauxIa()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(FauxFournisseurFlux()),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    canal,
+                )
+            advanceUntilIdle()
+
+            canal.publier(SignalIaExterne.Regenerer)
+            advanceUntilIdle()
+
+            assertEquals(0, modele.etat.value.messages.size)
+        }
+
+    @Test
+    fun `sans port d'éditeur, AppliquerBlocCode prévient sans carte`() =
+        runTest {
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(FauxFournisseurFlux()),
+                    reglagesActifs(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    CanalSignauxIa(),
+                )
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.AppliquerBlocCode("fun x() {}"))
+            advanceUntilIdle()
+
+            val effet = modele.effets.first()
+            assertTrue(effet is EffetChatIa.Message)
+        }
+
+    @Test
+    fun `AppliquerBlocCode avec sélection porte la proposition à la carte`() =
+        runTest {
+            val registre = RegistrePortEditeurActif()
+            registre.enregistrer(FauxPortEditeur())
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(FauxFournisseurFlux()),
+                    reglagesActifs(),
+                    registre,
+                    FauxFournisseurContexte(),
+                    CanalSignauxIa(),
+                )
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.AppliquerBlocCode("nouveau texte"))
+            advanceUntilIdle()
+
+            val effet = modele.effets.first()
+            assertTrue(effet is EffetChatIa.AfficherDiff)
+            val proposition = (effet as EffetChatIa.AfficherDiff).proposition
+            assertEquals(2, proposition.debut)
+            assertEquals(5, proposition.fin)
+            assertEquals(7L, proposition.revision)
+            assertEquals("abc", proposition.texteActuel)
+            assertEquals("nouveau texte", proposition.textePropose)
+            assertEquals("src/main/java/MainActivity.kt", proposition.cheminRelatif)
         }
 }
 

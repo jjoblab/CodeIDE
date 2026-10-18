@@ -78,6 +78,7 @@ public class ChatFragment : Fragment() {
                 onCopierMessage = { identifiant -> viewModel.onAction(ActionChatIa.CopierMessage(identifiant)) },
                 onCopierBloc = { code -> viewModel.onAction(ActionChatIa.CopierBlocCode(code)) },
                 onInsererBloc = { code -> viewModel.onAction(ActionChatIa.InsererBlocCode(code)) },
+                onAppliquerBloc = { code -> viewModel.onAction(ActionChatIa.AppliquerBlocCode(code)) },
             )
         adaptateur = adaptateurLocal
         liaisonLocale.listeMessages.adapter = adaptateurLocal
@@ -319,6 +320,14 @@ public class ChatFragment : Fragment() {
                     effet.argument?.let { requireContext().getString(effet.ressource, it) }
                         ?: requireContext().getString(effet.ressource)
                 Toast.makeText(requireContext(), texte, Toast.LENGTH_SHORT).show()
+            }
+
+            is EffetChatIa.AfficherDiff -> {
+                // Carte de diff de l'éditeur (lot IA-5) : la proposition
+                // passe par le contrat hôte — hôte absent (chat hors
+                // éditeur) : aucun effet visible.
+                (activity as? jo.codeide.core.ui.ControleurIaTiroir)
+                    ?.afficherPropositionDiff(effet.proposition)
             }
         }
     }

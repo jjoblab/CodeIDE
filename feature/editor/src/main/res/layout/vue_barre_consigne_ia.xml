@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Barre de consigne en ligne (mission IA, lot IA-5, ADR 0126, spec E3) :
+  posée entre l'éditeur et la barre de symboles — JAMAIS en overlay (la
+  sélection reste visible) ; monte avec le clavier via les insets de
+  GestionnaireInsetsEditeur (ADR 0118). La racine est la vue autonome
+  BarreConsigneIa (câblage hôte mince — ADR 0126).
+-->
+<jo.codeide.feature.editor.BarreConsigneIa xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/barre_consigne_ia"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="@dimen/spacing_sm"
+    android:layout_marginVertical="@dimen/spacing_xs"
+    android:visibility="gone"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="@dimen/corner_radius_large"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp"
+    tools:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_sm">
+
+        <!-- Actions rapides (spec E3) : pré-remplissent le champ —
+             l'utilisateur relit puis envoie. Boutons texte (échelle
+             thème, zones ≥ 48 dp) plutôt que chips : aucun style
+             Material3 brut dans un fichier nouveau (ADR 0127 §5). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_expliquer"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_barre_chip_expliquer" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_corriger"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_barre_chip_corriger" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_documenter"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_barre_chip_documenter" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_tests"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_barre_chip_tests" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_simplifier"
+                style="@style/Widget.CodeIDE.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/ia_barre_chip_simplifier" />
+        </LinearLayout>
+
+        <!-- Consigne (une ligne — c'est une barre, pas un éditeur). -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.CodeIDE.TextField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:hint="@string/ia_barre_hint"
+            app:endIconContentDescription="@string/ia_barre_envoyer_cd"
+            app:endIconDrawable="@drawable/ic_auto_awesome"
+            app:endIconMode="custom">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/saisie_consigne"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSend"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Ligne d'état : contexte exact (sélection · fichier) + croix. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_envoyer_consigne"
+                style="@style/Widget.CodeIDE.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/ia_barre_envoyer_cd"
+                android:text="@string/ia_barre_envoyer" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/ligne_contexte_ia"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_weight="1"
+                android:ellipsize="start"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Contexte : Sélection 12 l. · Main.kt" />
+
+            <ImageButton
+                android:id="@+id/bouton_fermer_barre_ia"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/ia_barre_fermer_cd"
+                android:minWidth="@dimen/touch_target_min"
+                android:minHeight="@dimen/touch_target_min"
+                android:src="@drawable/ic_fermer"
+                app:tint="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+</jo.codeide.feature.editor.BarreConsigneIa>

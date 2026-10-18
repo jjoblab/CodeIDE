@@ -46,6 +46,7 @@ internal fun List<GroupeProblemes>.aplatir(): List<RangeeProbleme> =
  */
 internal class ProblemesAdapter(
     private val surSaut: (fichier: String, ligne: Int) -> Unit,
+    private val surCorrigerIa: (diagnostic: jo.codeide.core.domain.DiagnosticBuild) -> Unit,
 ) : ListAdapter<RangeeProbleme, RecyclerView.ViewHolder>(DiffRangees) {
     /** Fabrique des rangées (en-tête / diagnostic). */
     private enum class Type {
@@ -85,7 +86,9 @@ internal class ProblemesAdapter(
             is RangeeProbleme.Diagnostic -> {
                 (holder as DiagnosticHolder).lier(
                     rangee,
-                ) { fichier, ligne -> surSaut(fichier, ligne) }
+                    { fichier, ligne -> surSaut(fichier, ligne) },
+                    surCorrigerIa,
+                )
             }
         }
     }
@@ -101,13 +104,14 @@ internal class ProblemesAdapter(
         }
     }
 
-    /** Diagnostic : pastille de sévérité, message, position. */
+    /** Diagnostic : pastille de sévérité, message, position, IA. */
     private class DiagnosticHolder(
         private val liaison: LigneProblemeBinding,
     ) : RecyclerView.ViewHolder(liaison.root) {
         fun lier(
             rangee: RangeeProbleme.Diagnostic,
             surSaut: (String, Int) -> Unit,
+            surCorrigerIa: (jo.codeide.core.domain.DiagnosticBuild) -> Unit,
         ) {
             val diagnostic = rangee.diagnostic
             liaison.pointProbleme.setImageResource(pointDeSeverite(diagnostic.severite))
@@ -116,6 +120,12 @@ internal class ProblemesAdapter(
                 String.format(java.util.Locale.ROOT, "%d", diagnostic.ligne)
             liaison.racineLigne.setOnClickListener {
                 surSaut(rangee.groupe.fichier, diagnostic.ligne.toInt())
+            }
+            // « Corriger avec l'IA » (mission IA, lot IA-5, spec E3) :
+            // le diagnostic entier est transmis (source:ligne:colonne
+            // reconstruits par l'hôte, convention du port d'éditeur).
+            liaison.boutonCorrigerIa.setOnClickListener {
+                surCorrigerIa(diagnostic)
             }
         }
 

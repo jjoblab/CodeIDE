@@ -25,6 +25,7 @@ public class AdapterMessages(
     private val onCopierMessage: (String) -> Unit,
     private val onCopierBloc: (String) -> Unit,
     private val onInsererBloc: (String) -> Unit,
+    private val onAppliquerBloc: (String) -> Unit,
 ) : ListAdapter<MessageChatUi, RecyclerView.ViewHolder>(ComparateurMessages) {
     public override fun getItemViewType(position: Int): Int =
         if (getItem(position).utilisateur) TYPE_UTILISATEUR else TYPE_ASSISTANT
@@ -49,7 +50,7 @@ public class AdapterMessages(
         if (titulaire is TitulaireUtilisateur) {
             titulaire.lier(message)
         } else if (titulaire is TitulaireAssistant) {
-            titulaire.lier(message, onCopierMessage, onCopierBloc, onInsererBloc)
+            titulaire.lier(message, onCopierMessage, onCopierBloc, onInsererBloc, onAppliquerBloc)
         }
     }
 
@@ -74,6 +75,7 @@ public class AdapterMessages(
             onCopierMessage: (String) -> Unit,
             onCopierBloc: (String) -> Unit,
             onInsererBloc: (String) -> Unit,
+            onAppliquerBloc: (String) -> Unit,
         ) {
             liaison.conteneurBlocs.removeAllViews()
             for (bloc in MarkdownIa.parser(message.texte)) {
@@ -106,7 +108,9 @@ public class AdapterMessages(
                     }
 
                     is BlocMarkdown.BlocCode -> {
-                        liaison.conteneurBlocs.addView(gonflerBlocCode(bloc, onCopierBloc, onInsererBloc))
+                        liaison.conteneurBlocs.addView(
+                            gonflerBlocCode(bloc, onCopierBloc, onInsererBloc, onAppliquerBloc),
+                        )
                     }
                 }
             }
@@ -129,11 +133,12 @@ public class AdapterMessages(
             liaison.boutonCopierMessage.setOnClickListener { onCopierMessage(message.identifiant) }
         }
 
-        /** Bloc de code : barre langue · Copier · Insérer + contenu défilant. */
+        /** Bloc de code : barre langue · Copier · Insérer · Appliquer (diff) + contenu défilant. */
         private fun gonflerBlocCode(
             bloc: BlocMarkdown.BlocCode,
             onCopierBloc: (String) -> Unit,
             onInsererBloc: (String) -> Unit,
+            onAppliquerBloc: (String) -> Unit,
         ): android.view.View {
             val liaisonBloc =
                 LigneBlocCodeBinding.inflate(
@@ -146,6 +151,7 @@ public class AdapterMessages(
             liaisonBloc.codeBloc.text = bloc.code
             liaisonBloc.boutonCopierBloc.setOnClickListener { onCopierBloc(bloc.code) }
             liaisonBloc.boutonInsererBloc.setOnClickListener { onInsererBloc(bloc.code) }
+            liaisonBloc.boutonAppliquerBloc.setOnClickListener { onAppliquerBloc(bloc.code) }
             return liaisonBloc.root
         }
 

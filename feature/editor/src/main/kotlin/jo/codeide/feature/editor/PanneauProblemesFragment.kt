@@ -64,9 +64,22 @@ class PanneauProblemesFragment : Fragment() {
         etat: Bundle?,
     ) {
         adaptateur =
-            ProblemesAdapter { fichier, ligne ->
-                controleur.sauterAuProbleme(fichier, ligne)
-            }
+            ProblemesAdapter(
+                surSaut = { fichier, ligne ->
+                    controleur.sauterAuProbleme(fichier, ligne)
+                },
+                surCorrigerIa = { diagnostic ->
+                    // « Corriger avec l'IA » (mission IA, lot IA-5) :
+                    // l'hôte reconstruit l'identifiant du port et ouvre
+                    // le chat pré-rempli (jamais auto-envoyé).
+                    controleur.corrigerProblemeAvecIa(
+                        fichier = diagnostic.fichier,
+                        ligne = diagnostic.ligne.toInt(),
+                        colonne = diagnostic.colonne.toInt(),
+                        source = diagnostic.source,
+                    )
+                },
+            )
         liaison.listeProblemes.layoutManager = LinearLayoutManager(requireContext())
         liaison.listeProblemes.adapter = adaptateur
 

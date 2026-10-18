@@ -690,4 +690,34 @@
     <!-- Notification neutre (canaux coupés, ADR 0059). -->
     <string name="tooling_service_neutre_texte">Tâche en arrière-plan</string>
 
+    <!-- Mission IA — lot IA-5 : intégration éditeur (ADR 0126, spec E3). -->
+    <string name="ia_action_selection">IA</string>
+    <string name="ia_barre_hint">Que faut-il changer ?</string>
+    <string name="ia_barre_envoyer">Envoyer</string>
+    <string name="ia_barre_envoyer_cd">Envoyer la consigne au chat IA</string>
+    <string name="ia_barre_fermer_cd">Fermer la barre de consigne</string>
+    <string name="ia_barre_contexte">Contexte : Sélection %1$d l. · %2$s</string>
+    <string name="ia_barre_chip_expliquer">Expliquer</string>
+    <string name="ia_barre_chip_corriger">Corriger</string>
+    <string name="ia_barre_chip_documenter">Documenter</string>
+    <string name="ia_barre_chip_tests">Tests</string>
+    <string name="ia_barre_chip_simplifier">Simplifier</string>
+    <string name="ia_barre_consigne_expliquer">Explique le code sélectionné, ligne par ligne</string>
+    <string name="ia_barre_consigne_corriger">Corrige les problèmes de ce code en gardant son comportement</string>
+    <string name="ia_barre_consigne_documenter">Documente ce code (KDoc/Docstring)</string>
+    <string name="ia_barre_consigne_tests">Écrit des tests unitaires pour ce code</string>
+    <string name="ia_barre_consigne_simplifier">Simplifie ce code sans changer son comportement</string>
+    <string name="ia_carte_titre">Proposition</string>
+    <string name="ia_carte_compteur">+%1$d −%2$d</string>
+    <string name="ia_carte_accepter">Accepter</string>
+    <string name="ia_carte_accepter_cd">Applique la proposition en un seul pas d\'annulation</string>
+    <string name="ia_carte_rejeter">Rejeter</string>
+    <string name="ia_carte_ressayer">Réessayer</string>
+    <string name="ia_carte_ressayer_cd">Relance la consigne d\'origine</string>
+    <string name="ia_carte_texte_change">Le texte a changé — relancer la proposition</string>
+    <string name="ia_carte_appliquee">Proposition appliquée — un seul Annuler suffit</string>
+    <string name="ia_carte_echec">Application impossible — vérifiez le fichier ouvert</string>
+    <string name="ia_corriger_ia_cd">Corriger avec l\'IA</string>
+    <string name="ia_expliquer_ia_cd">Expliquer avec l\'IA</string>
+
 </resources>

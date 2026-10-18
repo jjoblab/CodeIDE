@@ -24,6 +24,7 @@ import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.getOrNull
+import jo.codeide.core.ui.PropositionDiffIa
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -111,6 +112,17 @@ public sealed interface ActionChatIa {
         public val code: String,
     ) : ActionChatIa
 
+    /**
+     * Propose un bloc de code pour la **carte de diff** de l'éditeur
+     * (lot IA-5, ADR 0126) : la plage visée est la sélection courante du
+     * port d'éditeur (aucune sélection ⇒ effet message honnête — la
+     * carte ne devine jamais une plage). L'effet [EffetChatIa.AfficherDiff]
+     * porte la proposition à l'hôte.
+     */
+    public data class AppliquerBlocCode(
+        public val code: String,
+    ) : ActionChatIa
+
     /** Nouvelle conversation (vide la vue — l'historique Room arrive en IA-6). */
     public data object NouvelleConversation : ActionChatIa
 
@@ -167,6 +179,15 @@ public sealed interface EffetChatIa {
 
     /** Ouvre le sélecteur `@` (chemins déjà chargés dans l'état). */
     public data object OuvrirSelecteurFichiers : EffetChatIa
+
+    /**
+     * Affiche la carte de diff de l'éditeur avec cette proposition
+     * (lot IA-5) — le fragment la porte à [ControleurIaTiroir] ; hôte
+     * absent (pas d'éditeur) : aucun effet visible.
+     */
+    public data class AfficherDiff(
+        public val proposition: PropositionDiffIa,
+    ) : EffetChatIa
 }
 
 /**
@@ -176,7 +197,13 @@ public sealed interface EffetChatIa {
  * et assemblage du contexte CONFIDENTIEL (puces = ce qui part, refus
  * d'exclusion, balayage de secrets bloquant — ADR 0124). Aucune
  * logique métier ici : l'assemblage vit dans `core:ai`.
+ *
+ * Le seuil de fonctions est structurellement dépassé par le contrat UDF
+ * (table de répartition + signaux de l'éditeur, lot IA-5) : une action
+ * = une branche ou une méthode dédiée — même précédent que
+ * `PanneauConsoleFragment`.
  */
+@Suppress("TooManyFunctions")
 @HiltViewModel
 public class ChatViewModel
     @Inject
@@ -185,6 +212,7 @@ public class ChatViewModel
         private val reglages: ReglagesIaRepository,
         private val registreEditeur: RegistrePortEditeurActif,
         private val fournisseurContexte: FournisseurContexteProjet,
+        private val signauxExternes: CanalSignauxIa,
     ) : ViewModel() {
         private val etatInterne = MutableStateFlow(EtatChatIa())
 
@@ -223,6 +251,32 @@ public class ChatViewModel
                 reglages.observeAiSettings().collect { courant ->
                     etatInterne.value =
                         etatInterne.value.copy(active = courant.assistantActive && courant.consentementDonne)
+                }
+            }
+            // Signaux de l'éditeur (lot IA-5) : consigne de la barre en
+            // ligne (pré-remplissage, envoi immédiat si le geste était
+            // explicite), pré-remplissage Problèmes/Console/Logcat,
+            // relance « Réessayer ». Un signal = un traitement, aucun rejeu.
+            viewModelScope.launch {
+                signauxExternes.signal.collect { signal ->
+                    when (signal) {
+                        null -> {
+                            Unit
+                        }
+
+                        is SignalIaExterne.Consigne -> {
+                            signauxExternes.consommer()
+                            etatInterne.value = etatInterne.value.copy(saisie = signal.texte)
+                            if (signal.envoiImmediat) {
+                                envoyerMessage(signal.texte)
+                            }
+                        }
+
+                        SignalIaExterne.Regenerer -> {
+                            signauxExternes.consommer()
+                            regenerer()
+                        }
+                    }
                 }
             }
         }
@@ -267,6 +321,10 @@ public class ChatViewModel
 
                 is ActionChatIa.InsererBlocCode -> {
                     insererAuCurseur(action.code)
+                }
+
+                is ActionChatIa.AppliquerBlocCode -> {
+                    proposerDiff(action.code)
                 }
 
                 ActionChatIa.NouvelleConversation -> {
@@ -477,6 +535,35 @@ public class ChatViewModel
                 is AppResult.Success -> emettre(EffetChatIa.Message(R.string.ia_bloc_insere))
                 is AppResult.Failure -> emettre(PresentationErreursIa.message(resultat.error).enEffetChat())
             }
+        }
+
+        /**
+         * Propose le bloc à la carte de diff (lot IA-5) : la plage visée
+         * est la sélection courante du port (texte actuel + bornes +
+         * révision capturés MAINTENANT — la garde « Accepter » compare
+         * la révision au clic). Sans port ni sélection : effet message
+         * honnête — la carte ne devine jamais une plage, ne remplace
+         * jamais un fichier entier par un fragment.
+         */
+        private fun proposerDiff(code: String) {
+            val port = registreEditeur.actif()
+            val selection = port?.selection
+            if (port == null || selection == null || selection.texte.isBlank()) {
+                emettre(EffetChatIa.Message(R.string.ia_diff_plage_absente))
+                return
+            }
+            emettre(
+                EffetChatIa.AfficherDiff(
+                    PropositionDiffIa(
+                        texteActuel = selection.texte,
+                        textePropose = code,
+                        debut = selection.debut,
+                        fin = selection.fin,
+                        revision = port.revision(),
+                        cheminRelatif = port.cheminRelatifFichier,
+                    ),
+                ),
+            )
         }
 
         private fun nouvelleConversation() {

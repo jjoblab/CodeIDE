@@ -85,6 +85,21 @@
             android:text="@string/editor_config_tooling_libelle"
             app:icon="@drawable/ic_outils" />
 
+        <!-- « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie
+             visible du canal courant part en pré-remplissage du chat
+             (bouton panneau — console flux brut, pas de rangée
+             cliquable, ADR 0078). -->
+        <ImageButton
+            android:id="@+id/bouton_expliquer_ia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ia_expliquer_ia_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            android:src="@drawable/ic_auto_awesome"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_annuler_build"
             style="@style/Widget.Material3.Button.TextButton"

@@ -256,6 +256,19 @@
                      posée juste au-dessus des touches : « collée ».
                      Masquée sinon (et le panneau réapparaît). La VRAIE
                      SymbolBarView de la bibliothèque code-editor. -->
+                <!-- Mission IA, lot IA-5 (ADR 0126, spec E3) : barre de
+                     consigne en ligne + carte de proposition (diff),
+                     entre l'éditeur et la barre de symboles — JAMAIS en
+                     overlay ; elles montent avec le clavier (insets de
+                     la zone centrale, ADR 0118). Masquées par défaut. -->
+                <include
+                    android:id="@+id/barre_consigne_ia"
+                    layout="@layout/vue_barre_consigne_ia" />
+
+                <include
+                    android:id="@+id/carte_diff_ia"
+                    layout="@layout/vue_carte_diff_ia" />
+
                 <jo.codeeditor.view.chrome.SymbolBarView
                     android:id="@+id/barre_symboles"
                     android:layout_width="match_parent"
