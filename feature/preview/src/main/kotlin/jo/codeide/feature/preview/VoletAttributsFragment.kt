@@ -22,6 +22,7 @@ import jo.codeide.feature.preview.databinding.ControleContrainteBinding
 import jo.codeide.feature.preview.databinding.ControleContraintesBinding
 import jo.codeide.feature.preview.databinding.ControleCotesBinding
 import jo.codeide.feature.preview.databinding.ControleDimensionsBinding
+import jo.codeide.feature.preview.databinding.ControleDrapeauxBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
 import jo.codeide.feature.preview.databinding.ControleListeBinding
@@ -31,6 +32,7 @@ import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
 import jo.codeide.feature.preview.databinding.ItemAttributGroupeBinding
 import jo.codeide.feature.preview.databinding.ItemDimensionBinding
+import jo.codeide.feature.preview.databinding.ItemDrapeauBinding
 import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
 import jo.codeide.feature.preview.databinding.ItemMenuCibleBinding
 import jo.codeide.feature.preview.databinding.ItemSegmentBinding
@@ -212,6 +214,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
 
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.nom
+
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> controle.nom
+
             is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
             is CatalogueAttributs.ControleAttribut.Cotes,
@@ -231,6 +237,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.Nombre -> controleNombre(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Choix -> controleChoix(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Liste -> controleListe(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> controleDrapeaux(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> controleTypeSaisie(controle, attrs)
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
@@ -543,6 +551,115 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         // miroir du select natif de la maquette.
         bloc.listeDeroulante.setOnClickListener { vue ->
             (vue as? AppCompatAutoCompleteTextView)?.showDropDown()
+        }
+        return bloc.root
+    }
+
+    /**
+     * Un contrôle DRAPEAUX (controle_drapeaux.xml — miroir `.flg`, PE11d) :
+     * les drapeaux cochés suivent les parties de la valeur courante, un
+     * drapeau posé hors catalogue est AJOUTÉ à la fin (miroir
+     * `opts.concat(parts…)`), et la bascule écrit les parties retenues
+     * ORDONNÉES selon les options (miroir `opts.filter(…).join('|')`) ;
+     * tout décoché RETIRE l'attribut. Le groupe est MULTI-sélection.
+     */
+    private fun controleDrapeaux(
+        controle: CatalogueAttributs.ControleAttribut.Drapeaux,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleDrapeauxBinding.inflate(gonfleur())
+        val libelle = etiquetteRes(controle.etiquette)
+        bloc.entete.libelleControle.text = libelle
+        val valeur = valeurDe(controle.nom, attrs)
+        val parties = controle.parties(valeur)
+        controle.options(valeur).forEach { option ->
+            val drapeau = ItemDrapeauBinding.inflate(gonfleur(), bloc.groupeDrapeaux, false)
+            drapeau.drapeau.text = option
+            drapeau.drapeau.isChecked = option in parties
+            drapeau.drapeau.contentDescription = "$libelle : $option"
+            drapeau.drapeau.setOnClickListener {
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(
+                        controle.nom,
+                        controle.basculer(valeur, option),
+                    )
+                }
+            }
+            bloc.groupeDrapeaux.addView(drapeau.root)
+        }
+        return bloc.root
+    }
+
+    /**
+     * Le TYPE DE SAISIE composite (PE11d — miroir `input` de la maquette,
+     * § 9 : `controle_liste` + `controle_drapeaux`) : la BASE en liste
+     * déroulante (sans « par défaut » — « text » EST le défaut), puis les
+     * MODIFICATEURS en drapeaux SOUS le champ, désactivés (alpha .4) quand
+     * la base n'est pas textuelle (miroir `b.disabled =
+     * !base.startsWith('text')`). Le groupe de drapeaux vient du contrôle
+     * de référence : seule sa RANGÉE est greffée, son en-tête ne l'est pas
+     * (le composite n'a qu'UNE étiquette — miroir du DOM `f.appendChild`).
+     */
+    private fun controleTypeSaisie(
+        controle: CatalogueAttributs.ControleAttribut.TypeSaisie,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleListeBinding.inflate(gonfleur())
+        bloc.entete.libelleControle.text = etiquetteRes(CatalogueAttributs.Etiquette.TYPE_SAISIE)
+        val valeur = valeurDe(controle.nom, attrs)
+        val base = controle.base(valeur)
+        val modificateurs = controle.modificateursPoses(valeur)
+        bloc.listeDeroulante.setText(base, false)
+        // Garantie de non-saisie (miroir select) — cf. controleListe.
+        bloc.listeDeroulante.keyListener = null
+        bloc.listeDeroulante.setAdapter(
+            ArrayAdapter(requireContext(), R.layout.item_option_liste, controle.bases),
+        )
+        bloc.listeDeroulante.setOnItemClickListener { _, _, position, _ ->
+            val nouvelleBase = controle.bases[position]
+            editerOuRecharger {
+                viewModel.definirAttributSelection(
+                    controle.nom,
+                    controle.composer(nouvelleBase, modificateurs),
+                )
+            }
+        }
+        bloc.listeDeroulante.setOnClickListener { vue ->
+            (vue as? AppCompatAutoCompleteTextView)?.showDropDown()
+        }
+        // Les MODIFICATEURS : la rangée du contrôle drapeaux, greffée sous
+        // le champ (l'écart de 4 dp est celui du `.fld`, marginTop du groupe) ;
+        // l'en-tête du contrôle gonflé n'est PAS greffé (une seule étiquette).
+        val drapeaux = ControleDrapeauxBinding.inflate(gonfleur())
+        val groupeModificateurs = drapeaux.groupeDrapeaux
+        (groupeModificateurs.parent as? ViewGroup)?.removeView(groupeModificateurs)
+        groupeModificateurs.contentDescription = getString(R.string.preview_drapeaux_options_saisie)
+        bloc.root.addView(groupeModificateurs)
+        val textuelle = base.startsWith("text")
+        controle.modificateurs.forEach { modificateur ->
+            val drapeau = ItemDrapeauBinding.inflate(gonfleur(), groupeModificateurs, false)
+            // Miroir maquette : le glyphe retire le préfixe « text », le
+            // nom complet reste la description (miroir `b.title = x`).
+            drapeau.drapeau.text = modificateur.removePrefix("text")
+            drapeau.drapeau.isChecked = modificateur in modificateurs
+            drapeau.drapeau.contentDescription = modificateur
+            drapeau.drapeau.isEnabled = textuelle
+            drapeau.drapeau.alpha = if (textuelle) 1f else ALPHA_DESACTIVE
+            drapeau.drapeau.setOnClickListener {
+                val nouvelles =
+                    if (modificateur in modificateurs) {
+                        modificateurs - modificateur
+                    } else {
+                        modificateurs + modificateur
+                    }
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(
+                        controle.nom,
+                        controle.composer(base, nouvelles),
+                    )
+                }
+            }
+            groupeModificateurs.addView(drapeau.root)
         }
         return bloc.root
     }
@@ -920,6 +1037,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         /** Largeur du popover CIBLE, en dp (les cibles tiennent en courte). */
         private const val LARGEUR_MENU_CIBLE_DP: Int = 232
 
+        /** L'opacité d'un contrôle DÉSACTIVÉ (miroir `.flg button:disabled { opacity: .4 }`). */
+        private const val ALPHA_DESACTIVE: Float = 0.4f
+
         // ── Attributs de dimension du volet Modifier (PE7d) ──
         private const val ATTR_LARGEUR: String = "android:layout_width"
         private const val ATTR_HAUTEUR: String = "android:layout_height"
@@ -970,6 +1090,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.Etiquette.INDETERMINE to R.string.preview_etiquette_indetermine,
                 CatalogueAttributs.Etiquette.ITEM_LISTE to R.string.preview_etiquette_item_liste,
                 CatalogueAttributs.Etiquette.GESTIONNAIRE to R.string.preview_etiquette_gestionnaire,
+                CatalogueAttributs.Etiquette.SCROLLBARS to R.string.preview_etiquette_scrollbars,
+                CatalogueAttributs.Etiquette.SHOW_DIVIDERS to R.string.preview_etiquette_show_dividers,
                 CatalogueAttributs.Etiquette.POIDS to R.string.preview_etiquette_poids,
                 CatalogueAttributs.Etiquette.GRAVITE_PARENT to R.string.preview_etiquette_gravite_parent,
                 CatalogueAttributs.Etiquette.MARGES to R.string.preview_etiquette_marges,
