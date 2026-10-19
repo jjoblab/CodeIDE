@@ -226,6 +226,8 @@
     <string name="preview_etiquette_indetermine">indeterminate</string>
     <string name="preview_etiquette_item_liste">listitem</string>
     <string name="preview_etiquette_gestionnaire">layoutManager</string>
+    <string name="preview_etiquette_scrollbars">scrollbars</string>
+    <string name="preview_etiquette_show_dividers">showDividers</string>
     <string name="preview_etiquette_poids">layout_weight</string>
     <string name="preview_etiquette_gravite_parent">layout_gravity</string>
     <string name="preview_etiquette_marges">margins</string>
@@ -244,6 +246,7 @@
 
     <!-- The TRI-STATE (default = the attribute is removed). -->
     <string name="preview_choix_defaut">default</string>
+    <string name="preview_drapeaux_options_saisie">Input options</string>
     <string name="preview_choix_vrai">true</string>
     <string name="preview_choix_faux">false</string>
 
