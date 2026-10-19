@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trait de la puce : 1 dp « trait », transparent quand elle est appuyée. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@android:color/transparent" />
+    <item android:state_activated="true" android:color="@android:color/transparent" />
+    <item android:color="?attr/apercuTrait" />
+</selector>

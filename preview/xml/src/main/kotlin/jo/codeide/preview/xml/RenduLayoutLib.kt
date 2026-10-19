@@ -59,11 +59,11 @@ import java.io.StringReader
 public const val XML_MALFORME: String = "XML_MALFORME"
 
 /**
- * Validation XML complète (même stratégie que RenderService :
- * XmlPullParser — traversée intégrale, toute malformation lève).
- * Partagée moteur (feedback AVANT IPC) et service (défense en profondeur).
+ * LIGNE de la première malformation XML (null = bien formé) — PE11i,
+ * bandeau « Ligne n » (ADR 0134 D6) : la même traversée intégrale que
+ * la validation, mais l'exception du parseur porte son numéro de ligne.
  */
-public fun xmlBienForme(texte: String): Boolean =
+public fun ligneDeMalformation(texte: String): Int? =
     try {
         val fabrique = XmlPullParserFactory.newInstance()
         val parseur = fabrique.newPullParser()
@@ -71,12 +71,34 @@ public fun xmlBienForme(texte: String): Boolean =
         while (parseur.next() != XmlPullParser.END_DOCUMENT) {
             // La traversée complète suffit : toute malformation lève.
         }
-        true
-    } catch (_: XmlPullParserException) {
-        false
+        null
+    } catch (e: XmlPullParserException) {
+        e.lineNumber.takeIf { it > 0 }
     } catch (_: IOException) {
-        false
+        null
     }
+
+/**
+ * Validation XML complète (même stratégie que RenderService :
+ * XmlPullParser — traversée intégrale, toute malformation lève).
+ * Partagée moteur (feedback AVANT IPC) et service (défense en profondeur).
+ */
+public fun xmlBienForme(texte: String): Boolean = ligneDeMalformation(texte) == null
+
+/**
+ * La ligne portée par un message d'exception LayoutLib (« Binary XML
+ * file line #12 » — la position du TAG fautif), null sinon. PURE (PE11i,
+ * bandeau « Ligne n ») : les erreurs SÉMANTIQUES (classe introuvable)
+ * traversent l'inflater qui rapporte la ligne du tag dans son message.
+ */
+internal fun ligneDeMessageRendu(message: String): Int? =
+    LIGNE_DANS_MESSAGE
+        .find(message)
+        ?.groupValues
+        ?.get(1)
+        ?.toIntOrNull()
+
+private val LIGNE_DANS_MESSAGE = Regex("line #(\\d+)")
 
 @Suppress("TooManyFunctions") // Pipeline nommé de PE1, étendu en PE3 (profils, nuit, genres, sélection).
 public class RenduLayoutLib(
@@ -206,12 +228,13 @@ public class RenduLayoutLib(
     ): ResultatPipeline {
         val debut = System.nanoTime()
         return try {
-            if (!xmlBienForme(requete.texte)) {
+            ligneDeMalformation(requete.texte)?.let { ligne ->
                 return ResultatPipeline(
                     rendu =
                         ResultatRendu(
                             ok = false,
                             message = XML_MALFORME,
+                            ligne = ligne,
                             largeur = 0,
                             hauteur = 0,
                             nombreVues = 0,
@@ -228,11 +251,13 @@ public class RenduLayoutLib(
             }
         } catch (t: Throwable) {
             journal?.w(TAG) { "rendu preview échoué : ${t.message}" }
+            val message = messageLisible(t)
             ResultatPipeline(
                 rendu =
                     ResultatRendu(
                         ok = false,
-                        message = messageLisible(t),
+                        message = message,
+                        ligne = ligneDeMessageRendu(message) ?: -1,
                         largeur = 0,
                         hauteur = 0,
                         nombreVues = 0,

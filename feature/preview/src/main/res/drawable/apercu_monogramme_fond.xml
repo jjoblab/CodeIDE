@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monogramme de classe (.row .k) : surface 2, rayon 5, initiale en primaire. REMPLACE fond_monogramme (colorPrimaryContainer, rayon 6, 24 dp). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_monogramme_rayon" />
+</shape>

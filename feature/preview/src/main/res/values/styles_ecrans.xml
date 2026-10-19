@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Styles des ÉCRANS de l'aperçu (ADR 0134) : écran principal, palette, placement, menus, Arbre,
+  Problèmes, Source. Mêmes règles que styles.xml (ADR 0131/0129) : px → sp / dp, mono = `monospace`,
+  500-600 → `sans-serif-medium`, mono 600 → bold, `lineHeight` sans préfixe, TOUT TextView hérite de
+  Widget.CodeIDE.Apercu.Texte (includeFontPadding=false). La famille « titre » de la maquette
+  (Schibsted Grotesk) devient `sans-serif-medium`.
+-->
+<resources>
+
+    <!-- ══════════════ Apparences de texte ══════════════ -->
+    <!-- .ttl b : mono 600. ÉCART VOULU PE10 (PREVIEW.md 3.4.2) : 14 sp au lieu des 13 px de la maquette (la typographie suit la police système). -->
+    <style name="TextAppearance.CodeIDE.Apercu.Titre">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="android:textStyle">bold</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .ttl span : 11, interligne hérité du corps (1,55). -->
+    <style name="TextAppearance.CodeIDE.Apercu.SousTitre">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .seg button : 12 / 500 ; coché = sur-primaire. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Mode">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/apercu_mode_texte</item>
+    </style>
+    <!-- .chip : 12 / 500. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Puce">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/apercu_puce_texte</item>
+    </style>
+    <!-- .zoom button : mono 13 / 500. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Hud">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+    </style>
+    <!-- .status : mono 11. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Etat">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <!-- .status b : texte plein, même graisse (500). -->
+    <style name="TextAppearance.CodeIDE.Apercu.EtatFort">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+    </style>
+    <!-- .banner : 12, interligne 1,4. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Bandeau">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuErreur</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .banner b : 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.BandeauGras">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuErreur</item>
+    </style>
+    <!-- .banner button : 11 / 500, couleur = celle du texte. -->
+    <style name="TextAppearance.CodeIDE.Apercu.BandeauBouton">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuErreur</item>
+    </style>
+    <!-- .toast : texte = jeton « fond » sur fond « texte ». -->
+    <style name="TextAppearance.CodeIDE.Apercu.Toast">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuFond</item>
+        <item name="lineHeight">19sp</item>
+    </style>
+    <!-- .ph-head b : famille « titre » 15 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.PopoverTitre">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">18sp</item>
+    </style>
+    <!-- .mode button : 12 / 500, sélectionné = texte plein. -->
+    <style name="TextAppearance.CodeIDE.Apercu.ModeTitre">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/apercu_mode_palette_texte</item>
+        <item name="lineHeight">15sp</item>
+    </style>
+    <!-- .mode button small : 11, opacité .85 (android:alpha .85 posé sur la vue). -->
+    <style name="TextAppearance.CodeIDE.Apercu.ModeDetail">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/apercu_mode_palette_texte</item>
+        <item name="lineHeight">14sp</item>
+    </style>
+    <!-- .tile b : 12 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.TuileNom">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">14sp</item>
+    </style>
+    <!-- .tile small : mono 10,5. -->
+    <style name="TextAppearance.CodeIDE.Apercu.TuileClasse">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10.5sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">13sp</item>
+    </style>
+    <!-- .tag : mono 11 / 500 ; couleur posée par le style du tag. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Tag">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <!-- .ghost : 12 / 600, texte = sur-nouveau. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Ghost">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+    </style>
+    <!-- .ghost small : mono 11. -->
+    <style name="TextAppearance.CodeIDE.Apercu.GhostCible">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+    </style>
+    <!-- .pos button : 12,5 / 500. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Position">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textColor">@color/apercu_mode_palette_texte</item>
+    </style>
+    <!-- .res : mono 12, interligne 1,4. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Resume">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .res b : violet. -->
+    <style name="TextAppearance.CodeIDE.Apercu.ResumeFort">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuNouveau</item>
+    </style>
+    <!-- .prim : 13 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Principal">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+    </style>
+    <!-- .opt : 13, interligne 1,3. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Option">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .opt small : mono 11. -->
+    <style name="TextAppearance.CodeIDE.Apercu.OptionDetail">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">14sp</item>
+    </style>
+    <!-- .row : mono 12,5. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Rangee">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">15sp</item>
+    </style>
+    <!-- .row .id : même police, gris doux. -->
+    <style name="TextAppearance.CodeIDE.Apercu.RangeeId">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">15sp</item>
+    </style>
+    <!-- .row .k : mono 10 / 600 en primaire. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Monogramme">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">?attr/apercuPrimaire</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <!-- .row .badge : mono 10. -->
+    <style name="TextAppearance.CodeIDE.Apercu.RangeeBadge">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <!-- .row .badge.w : texte = « fond » sur fond « avert ». -->
+    <style name="TextAppearance.CodeIDE.Apercu.RangeeBadgeAvert">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">?attr/apercuFond</item>
+    </style>
+    <!-- .prob b : 13 / 600. -->
+    <style name="TextAppearance.CodeIDE.Apercu.ProblemeTitre">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+    <!-- .prob span : 12 (interligne normal). -->
+    <style name="TextAppearance.CodeIDE.Apercu.ProblemeDetail">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <!-- .prob .go : mono 11 / 500, accent. -->
+    <style name="TextAppearance.CodeIDE.Apercu.ProblemeVoir">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">?attr/apercuAccent</item>
+    </style>
+    <!-- .src : mono 12, interligne 1,65 (19,8 → 20). -->
+    <style name="TextAppearance.CodeIDE.Apercu.Source">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexte</item>
+        <item name="lineHeight">20sp</item>
+    </style>
+    <!-- .src .ln : même ligne, gris doux, aligné à droite. -->
+    <style name="TextAppearance.CodeIDE.Apercu.SourceNumero">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">20sp</item>
+    </style>
+    <!-- .openrow span : 12 gris doux. -->
+    <style name="TextAppearance.CodeIDE.Apercu.OuvrirTexte">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+        <item name="lineHeight">19sp</item>
+    </style>
+    <!-- .empty : 13 gris doux, centré. -->
+    <style name="TextAppearance.CodeIDE.Apercu.Vide">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+
+    <!-- ══════════════ Widgets ══════════════ -->
+    <!-- .ib : bouton rond 36 dp, icône 20 dp (padding 8). width/height = 36 dp dans le layout. -->
+    <style name="Widget.CodeIDE.Apercu.BoutonIcone" parent="">
+        <item name="android:background">@drawable/apercu_bouton_icone_fond</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .edit button : 34 dp, icône 18 dp (padding 8), rayon 10 ; désactivé = opacité .32 via le sélecteur de teinte. -->
+    <style name="Widget.CodeIDE.Apercu.BoutonHud" parent="">
+        <item name="android:background">@drawable/apercu_hud_bouton_fond</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:tint">@color/apercu_hud_icone</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .zoom button : 36 x 34 dp, texte mono 13. -->
+    <style name="Widget.CodeIDE.Apercu.ZoomBouton" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_hud_bouton_fond</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Hud</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .seg : pilule « surface 2 », padding 3. -->
+    <style name="Widget.CodeIDE.Apercu.GroupeMode" parent="Widget.Material3.ChipGroup">
+        <item name="chipSpacingHorizontal">0dp</item>
+        <item name="chipSpacingVertical">0dp</item>
+        <item name="singleLine">true</item>
+        <item name="singleSelection">true</item>
+        <item name="selectionRequired">true</item>
+        <item name="android:background">@drawable/apercu_mode_pastille_fond</item>
+        <item name="android:padding">@dimen/apercu_mode_pad</item>
+    </style>
+    <!-- .seg button : 26 dp, pilule, sans trait ; coché = primaire plein. -->
+    <style name="Widget.CodeIDE.Apercu.ModeChip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/apercu_mode_fond</item>
+        <item name="chipStrokeColor">@null</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">13dp</item>
+        <item name="chipMinHeight">@dimen/apercu_mode_hauteur</item>
+        <item name="chipStartPadding">0dp</item>
+        <item name="chipEndPadding">0dp</item>
+        <item name="textStartPadding">@dimen/apercu_mode_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_mode_pad_h</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="rippleColor">?attr/apercuAccentDoux</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Mode</item>
+        <item name="android:checkable">true</item>
+    </style>
+    <!-- .chip : 30 dp, pilule, trait 1 dp ; appuyée ou menu ouvert = conteneur primaire sans trait. Pour les puces à menu (appareil, calques) : android:checkable=false et isActivated posé par le code. -->
+    <style name="Widget.CodeIDE.Apercu.Puce" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/apercu_puce_fond</item>
+        <item name="chipStrokeColor">@color/apercu_puce_trait</item>
+        <item name="chipStrokeWidth">@dimen/apercu_puce_trait</item>
+        <item name="chipCornerRadius">15dp</item>
+        <item name="chipMinHeight">@dimen/apercu_puce_hauteur</item>
+        <item name="chipStartPadding">0dp</item>
+        <item name="chipEndPadding">0dp</item>
+        <item name="textStartPadding">@dimen/apercu_puce_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_puce_pad_h</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="rippleColor">?attr/apercuAccentDoux</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Puce</item>
+    </style>
+    <!-- .cats .chip et .ph-head .chip : 28 dp (padding 7 / 10 + trait). -->
+    <style name="Widget.CodeIDE.Apercu.PuceCategorie" parent="Widget.CodeIDE.Apercu.Puce">
+        <item name="chipMinHeight">@dimen/apercu_categorie_hauteur</item>
+        <item name="chipCornerRadius">14dp</item>
+        <item name="textStartPadding">@dimen/apercu_categorie_pad_h</item>
+        <item name="textEndPadding">@dimen/apercu_categorie_pad_h</item>
+        <item name="chipBackgroundColor">@color/apercu_categorie_fond</item>
+    </style>
+    <!-- .zoom et .edit : coque surface + trait + rayon 14, padding 4, élévation 4. -->
+    <style name="Widget.CodeIDE.Apercu.Hud" parent="">
+        <item name="android:background">@drawable/apercu_hud_fond</item>
+        <item name="android:padding">@dimen/apercu_hud_pad</item>
+        <item name="android:elevation">@dimen/apercu_hud_elevation</item>
+    </style>
+    <!-- .status : pilule, padding 6 / 12. -->
+    <style name="Widget.CodeIDE.Apercu.Etat" parent="">
+        <item name="android:background">@drawable/apercu_etat_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_etat_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_etat_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_etat_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_etat_pad_h</item>
+        <item name="android:elevation">@dimen/apercu_hud_elevation</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+    <!-- .toast : pastille inversée, padding 8 / 12, rayon 10. -->
+    <style name="Widget.CodeIDE.Apercu.Toast" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_toast_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_toast_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_toast_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_toast_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_toast_pad_h</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Toast</item>
+        <item name="android:elevation">6dp</item>
+    </style>
+    <!-- .banner : fond « erreur conteneur », trait bas 1 dp (paddingBottom = 9 + 1). -->
+    <style name="Widget.CodeIDE.Apercu.Bandeau" parent="">
+        <item name="android:background">@drawable/apercu_bandeau_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_bandeau_pad_v</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:paddingStart">@dimen/apercu_bandeau_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_bandeau_pad_h</item>
+        <item name="android:elevation">@dimen/apercu_hud_elevation</item>
+    </style>
+    <!-- .banner button : padding 5 / 9 + trait 1. -->
+    <style name="Widget.CodeIDE.Apercu.BandeauBouton" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_bandeau_bouton_fond</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.BandeauBouton</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .pop.pal / .pop.bot : surface OPAQUE, rayon 16, padding 12. -->
+    <style name="Widget.CodeIDE.Apercu.Popover" parent="">
+        <item name="android:background">@drawable/apercu_popover_fond</item>
+        <item name="android:padding">@dimen/apercu_popover_pad</item>
+        <item name="android:elevation">@dimen/apercu_popover_elevation</item>
+        <item name="android:clickable">true</item>
+    </style>
+    <!-- .pop (menus : appareil, calques, cible) : coque TRANSLUCIDE (écart voulu PE9c), padding 8. -->
+    <style name="Widget.CodeIDE.Apercu.Menu" parent="">
+        <item name="android:background">@drawable/apercu_menu_fond</item>
+        <item name="android:padding">@dimen/apercu_menu_pad</item>
+        <item name="android:elevation">@dimen/apercu_popover_elevation</item>
+        <item name="android:clickable">true</item>
+    </style>
+    <!-- .pop h4 : titre de groupe en capitales ; marges posées dans le layout (10 / 8 / 10 / 6). -->
+    <style name="Widget.CodeIDE.Apercu.MenuTitre" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.TitreGroupe</item>
+        <item name="android:layout_marginStart">@dimen/apercu_menu_titre_marge_h</item>
+    </style>
+    <!-- .opt : rayon 10, padding 10, gap 10 (marges des enfants). -->
+    <style name="Widget.CodeIDE.Apercu.Option" parent="">
+        <item name="android:background">@drawable/apercu_option_fond</item>
+        <item name="android:padding">@dimen/apercu_option_pad</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .sw : interrupteur 34 x 20 (SwitchCompat, PAS MaterialSwitch 52 x 32) : piste « trait » / accent, pouce blanc de 16 dp, course 14 dp. -->
+    <style name="Widget.CodeIDE.Apercu.Interrupteur" parent="">
+        <item name="android:track">@drawable/apercu_interrupteur_piste</item>
+        <item name="android:thumb">@drawable/apercu_interrupteur_pouce</item>
+        <item name="showText">false</item>
+        <item name="switchMinWidth">@dimen/apercu_interrupteur_largeur</item>
+        <item name="android:thumbTextPadding">0dp</item>
+        <item name="android:background">@null</item>
+    </style>
+    <!-- .mode button : colonne titre + détail, rayon 9. -->
+    <style name="Widget.CodeIDE.Apercu.ModeBouton" parent="">
+        <item name="android:background">@drawable/apercu_mode_palette_bouton_fond</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingTop">@dimen/apercu_mode_palette_bouton_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_mode_palette_bouton_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_mode_palette_bouton_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_mode_palette_bouton_pad_h</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .pos button : Avant, Dedans, Après (désactivé = opacité .35 posée par le code). -->
+    <style name="Widget.CodeIDE.Apercu.PositionBouton" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_mode_palette_bouton_fond</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">@dimen/apercu_position_bouton_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_position_bouton_pad_v</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Position</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .tile. -->
+    <style name="Widget.CodeIDE.Apercu.Tuile" parent="">
+        <item name="android:background">@drawable/apercu_tuile_fond</item>
+        <item name="android:padding">@dimen/apercu_tuile_pad</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">start|top</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .tag.old : Material = surface 2 + trait. -->
+    <style name="Widget.CodeIDE.Apercu.Tag" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_tag_ancien_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_tag_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_tag_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_tag_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_tag_pad_h</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Tag</item>
+        <item name="android:textColor">?attr/apercuTexteDoux</item>
+    </style>
+    <!-- .tag.wr : dépendance absente. -->
+    <style name="Widget.CodeIDE.Apercu.Tag.Avert">
+        <item name="android:background">@drawable/apercu_tag_avert_fond</item>
+        <item name="android:textColor">?attr/apercuAvert</item>
+    </style>
+    <!-- .prim : bouton violet « Placer ici » (37 dp : 13 + 12 + 12), rayon 12. -->
+    <style name="Widget.CodeIDE.Apercu.Principal" parent="Widget.Material3.Button.UnelevatedButton">
+        <item name="backgroundTint">?attr/apercuNouveau</item>
+        <item name="cornerRadius">@dimen/apercu_principal_rayon</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Principal</item>
+        <item name="android:textColor">?attr/apercuSurNouveau</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="rippleColor">?attr/apercuSurNouveau</item>
+    </style>
+    <!-- .row : paddingStart = 8 + profondeur x 16, posé au liage. -->
+    <style name="Widget.CodeIDE.Apercu.Rangee" parent="">
+        <item name="android:background">@drawable/apercu_rangee_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_rangee_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_rangee_pad_v</item>
+        <item name="android:paddingEnd">@dimen/apercu_rangee_pad_h</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .row .k : 20 x 20 (le layout fixe la taille). -->
+    <style name="Widget.CodeIDE.Apercu.Monogramme" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_monogramme_fond</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Monogramme</item>
+    </style>
+    <!-- .row .badge. -->
+    <style name="Widget.CodeIDE.Apercu.BadgeRangee" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:background">@drawable/apercu_badge_rangee_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_badge_rangee_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_badge_rangee_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_badge_rangee_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_badge_rangee_pad_h</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.RangeeBadge</item>
+    </style>
+    <!-- .row .badge.w : « ! n ». -->
+    <style name="Widget.CodeIDE.Apercu.BadgeRangee.Avert">
+        <item name="android:background">@drawable/apercu_badge_rangee_avert_fond</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.RangeeBadgeAvert</item>
+    </style>
+    <!-- .prob : rayon 8 (même fond que .row). -->
+    <style name="Widget.CodeIDE.Apercu.Probleme" parent="">
+        <item name="android:background">@drawable/apercu_rangee_fond</item>
+        <item name="android:paddingTop">@dimen/apercu_probleme_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_probleme_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_probleme_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_probleme_pad_h</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .src div : une ligne ; isSelected = racine, isActivated = plage de la vue. -->
+    <style name="Widget.CodeIDE.Apercu.SourceLigne" parent="">
+        <item name="android:background">@drawable/apercu_source_ligne_fond</item>
+        <item name="android:paddingStart">@dimen/apercu_source_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_source_pad_h</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- .empty. -->
+    <style name="Widget.CodeIDE.Apercu.Vide" parent="Widget.CodeIDE.Apercu.Texte">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.Vide</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">@dimen/apercu_vide_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_vide_pad_v</item>
+        <item name="android:paddingStart">@dimen/apercu_vide_pad_h</item>
+        <item name="android:paddingEnd">@dimen/apercu_vide_pad_h</item>
+    </style>
+</resources>

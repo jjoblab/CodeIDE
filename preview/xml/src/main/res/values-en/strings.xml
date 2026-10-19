@@ -3,6 +3,7 @@
 <resources>
     <string name="preview_cd">XML layout preview rendered by the preview engine</string>
     <string name="preview_accueil">Open an XML layout to see its preview</string>
-    <string name="preview_en_edition">XML being typed — last render kept</string>
+    <string name="preview_planche_design">Design</string>
+    <string name="preview_planche_plan">Plan</string>
 
 </resources>

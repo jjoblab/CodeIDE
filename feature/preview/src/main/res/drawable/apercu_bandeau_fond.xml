@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bandeau d'erreur (.banner) : fond « erreur conteneur », trait bas 1 dp « erreur ». -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuErreur" />
+        </shape>
+    </item>
+    <item android:bottom="@dimen/apercu_trait_epaisseur">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuErreurConteneur" />
+        </shape>
+    </item>
+</layer-list>

@@ -36,11 +36,18 @@ internal class PopoverMenuApercu(
     public val estOuvert: Boolean
         get() = fenetre?.isShowing == true
 
-    /** Ferme le menu (idempotent). */
+    /**
+     * Ferme le menu (idempotent). PE11i : [auFermer] retire l'état
+     * « menu ouvert » (isActivated) de la puce d'ancrage.
+     */
     public fun masquer() {
         fenetre?.dismiss()
         fenetre = null
+        auFermer?.invoke()
     }
+
+    /** Appelé à CHAQUE fermeture (extérieur, masquage, Échap) — retire l'état activé de la puce. */
+    public var auFermer: (() -> Unit)? = null
 
     /**
      * Gonfle [layout], remplit le contenu via [remplir], mesure puis

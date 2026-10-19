@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dimensions des ÉCRANS de l'aperçu (ADR 0134) : écran principal, palette, placement, menus, Arbre,
+  Problèmes, Source. 1 px de la maquette = 1 dp. Chaque ligne cite le sélecteur CSS source ;
+  les valeurs « trait inclus » ajoutent 1 dp de bordure au padding CSS (la bordure CSS est EXTÉRIEURE
+  au padding, le trait d'un drawable Android est INTÉRIEUR).
+-->
+<resources>
+
+    <!-- Écran principal : barre du haut (.appbar, .seg, .chips) -->
+    <dimen name="apercu_appbar_hauteur">52dp</dimen>  <!-- .appbar : 8 + 36 + 8 (le trait bas de 1 dp est une vue à part) -->
+    <dimen name="apercu_appbar_pad_h">10dp</dimen>  <!-- .appbar padding -->
+    <dimen name="apercu_appbar_gap">8dp</dimen>  <!-- .appbar gap -->
+    <dimen name="apercu_bouton_icone">36dp</dimen>  <!-- .ib -->
+    <dimen name="apercu_icone">20dp</dimen>  <!-- .ib svg -->
+    <dimen name="apercu_mode_pad">3dp</dimen>  <!-- .seg padding -->
+    <dimen name="apercu_mode_hauteur">26dp</dimen>  <!-- .seg button : 12 + 7 + 7 -->
+    <dimen name="apercu_mode_pad_h">10dp</dimen>  <!-- .seg button padding -->
+    <dimen name="apercu_reglages_pad_v">8dp</dimen>  <!-- .chips padding -->
+    <dimen name="apercu_reglages_pad_h">10dp</dimen>  <!-- .chips padding -->
+    <dimen name="apercu_reglages_gap">6dp</dimen>  <!-- .chips gap -->
+    <dimen name="apercu_puce_hauteur">30dp</dimen>  <!-- .chip : 12 + 8 + 8 + trait 2 -->
+    <dimen name="apercu_puce_pad_h">12dp</dimen>  <!-- .chip : 11 + trait 1 -->
+    <dimen name="apercu_puce_trait">1dp</dimen>  <!-- .chip border -->
+    <dimen name="apercu_trait_titre">1dp</dimen>  <!-- border-bottom de .appbar et .chips -->
+
+    <!-- Écran principal : couche HUD (.hud, .zoom, .edit, .status, .bubble, .toast, .banner) -->
+    <dimen name="apercu_hud_marge">10dp</dimen>  <!-- left/right/top/bottom des .hud -->
+    <dimen name="apercu_hud_pad">4dp</dimen>  <!-- .zoom / .edit padding -->
+    <dimen name="apercu_hud_rayon">14dp</dimen>  <!-- .zoom / .edit radius -->
+    <dimen name="apercu_hud_bouton_rayon">10dp</dimen>  <!-- .zoom button / .edit button radius -->
+    <dimen name="apercu_hud_elevation">4dp</dimen>  <!-- box-shadow 0 4px 14px rgba(0,0,0,.16) -->
+    <dimen name="apercu_zoom_largeur">36dp</dimen>  <!-- .zoom button -->
+    <dimen name="apercu_zoom_hauteur">34dp</dimen>  <!-- .zoom button -->
+    <dimen name="apercu_edition_bouton">34dp</dimen>  <!-- .edit button -->
+    <dimen name="apercu_edition_icone">18dp</dimen>  <!-- .edit svg -->
+    <dimen name="apercu_edition_gap">2dp</dimen>  <!-- .edit gap -->
+    <dimen name="apercu_edition_sep_v">4dp</dimen>  <!-- .edit .sep margin -->
+    <dimen name="apercu_edition_sep_h">3dp</dimen>  <!-- .edit .sep margin -->
+    <dimen name="apercu_edition_decalage">64dp</dimen>  <!-- .edit.shift top : sous le bandeau -->
+    <dimen name="apercu_etat_pad_v">6dp</dimen>  <!-- .status padding -->
+    <dimen name="apercu_etat_pad_h">12dp</dimen>  <!-- .status : 11 + trait 1 -->
+    <dimen name="apercu_etat_point">7dp</dimen>  <!-- .status .dot -->
+    <dimen name="apercu_etat_point_gap">6dp</dimen>  <!-- .status .dot margin-right -->
+    <dimen name="apercu_bulle_taille">50dp</dimen>  <!-- .bubble -->
+    <dimen name="apercu_bulle_halo">4dp</dimen>  <!-- .bubble box-shadow 0 0 0 4px new-soft (HORS de la bulle) -->
+    <dimen name="apercu_bulle_vue">58dp</dimen>  <!-- 50 + 2 x 4 : la vue de la bulle contient son halo -->
+    <dimen name="apercu_bulle_rayon">17dp</dimen>  <!-- .bubble radius -->
+    <dimen name="apercu_bulle_rayon_halo">21dp</dimen>  <!-- 17 + 4 -->
+    <dimen name="apercu_bulle_icone">24dp</dimen>  <!-- .bubble svg -->
+    <dimen name="apercu_bulle_elevation">8dp</dimen>  <!-- box-shadow 0 8px 20px -->
+    <dimen name="apercu_bulle_marge">6dp</dimen>  <!-- 10 (maquette) - 4 (halo) : marge de la VUE de 58 dp -->
+    <dimen name="apercu_bulle_haut_min">64dp</dimen>  <!-- placeBubble : lo -->
+    <dimen name="apercu_toast_haut">14dp</dimen>  <!-- .toast top -->
+    <dimen name="apercu_toast_pad_v">8dp</dimen>  <!-- .toast padding -->
+    <dimen name="apercu_toast_pad_h">12dp</dimen>  <!-- .toast padding -->
+    <dimen name="apercu_toast_rayon">10dp</dimen>  <!-- .toast radius -->
+    <dimen name="apercu_bandeau_pad_v">9dp</dimen>  <!-- .banner padding -->
+    <dimen name="apercu_bandeau_pad_h">12dp</dimen>  <!-- .banner padding -->
+    <dimen name="apercu_bandeau_gap">10dp</dimen>  <!-- .banner gap -->
+    <dimen name="apercu_bandeau_bouton_pad_v">5dp</dimen>  <!-- .banner button -->
+    <dimen name="apercu_bandeau_bouton_pad_h">9dp</dimen>  <!-- .banner button -->
+    <dimen name="apercu_bandeau_bouton_rayon">8dp</dimen>  <!-- .banner button radius -->
+
+    <!-- Popovers (.pop, .pop.pal, .pop.bot, .opt) -->
+    <dimen name="apercu_popover_rayon">16dp</dimen>  <!-- .pop radius -->
+    <dimen name="apercu_popover_marge_h">10dp</dimen>  <!-- .pop left/right -->
+    <dimen name="apercu_popover_haut">8dp</dimen>  <!-- .pop top : 8 sous la rangée de puces -->
+    <dimen name="apercu_popover_marge_bas">12dp</dimen>  <!-- .pop.pal : marge basse -->
+    <dimen name="apercu_popover_pad">12dp</dimen>  <!-- .pop.pal / .pop.bot padding -->
+    <dimen name="apercu_popover_gap">10dp</dimen>  <!-- .pop.pal / .pop.bot gap -->
+    <dimen name="apercu_popover_elevation">8dp</dimen>  <!-- box-shadow 0 14px 40px rgba(0,0,0,.28) -->
+    <dimen name="apercu_palette_hauteur_max">600dp</dimen>  <!-- .pop.pal max-height : min(600px, 100% - 134px) -->
+    <dimen name="apercu_placement_hauteur_max">340dp</dimen>  <!-- .pop.bot max-height -->
+    <dimen name="apercu_menu_pad">8dp</dimen>  <!-- .pop padding (menus) -->
+    <dimen name="apercu_menu_hauteur_max">430dp</dimen>  <!-- .pop max-height -->
+    <dimen name="apercu_menu_titre_marge_h">10dp</dimen>  <!-- .pop h4 margin -->
+    <dimen name="apercu_menu_titre_marge_haut">8dp</dimen>  <!-- .pop h4 margin-top -->
+    <dimen name="apercu_menu_titre_marge_bas">6dp</dimen>  <!-- .pop h4 margin-bottom -->
+    <dimen name="apercu_option_pad">10dp</dimen>  <!-- .opt padding -->
+    <dimen name="apercu_option_rayon">10dp</dimen>  <!-- .opt radius -->
+    <dimen name="apercu_option_gap">10dp</dimen>  <!-- .opt gap -->
+    <dimen name="apercu_interrupteur_largeur">34dp</dimen>  <!-- .sw -->
+    <dimen name="apercu_interrupteur_hauteur">20dp</dimen>  <!-- .sw -->
+    <dimen name="apercu_interrupteur_bouton">16dp</dimen>  <!-- .sw::after -->
+    <dimen name="apercu_interrupteur_marge">2dp</dimen>  <!-- .sw::after left/top -->
+    <dimen name="apercu_interrupteur_course">14dp</dimen>  <!-- translateX(14px) -->
+
+    <!-- Palette (.ph-head, .mode, .cats, .tiles, .tile, .ghost) -->
+    <dimen name="apercu_palette_entete_hauteur">36dp</dimen>  <!-- .ph-head (hauteur du bouton fermer) -->
+    <dimen name="apercu_palette_puce_bulle_hauteur">28dp</dimen>  <!-- .ph-head .chip : 12 + 7 + 7 + trait 2 -->
+    <dimen name="apercu_palette_puce_pad_h">11dp</dimen>  <!-- .ph-head .chip : 10 + trait 1 -->
+    <dimen name="apercu_mode_palette_pad">4dp</dimen>  <!-- .mode padding -->
+    <dimen name="apercu_mode_palette_gap">4dp</dimen>  <!-- .mode gap -->
+    <dimen name="apercu_mode_palette_rayon">12dp</dimen>  <!-- .mode radius -->
+    <dimen name="apercu_mode_palette_bouton_rayon">9dp</dimen>  <!-- .mode button radius -->
+    <dimen name="apercu_mode_palette_bouton_pad_v">9dp</dimen>  <!-- .mode button padding -->
+    <dimen name="apercu_mode_palette_bouton_pad_h">8dp</dimen>  <!-- .mode button padding -->
+    <dimen name="apercu_mode_palette_bouton_gap">2dp</dimen>  <!-- .mode button gap -->
+    <dimen name="apercu_categorie_hauteur">28dp</dimen>  <!-- .cats .chip : 12 + 7 + 7 + trait 2 -->
+    <dimen name="apercu_categorie_pad_h">11dp</dimen>  <!-- .cats .chip : 10 + trait 1 -->
+    <dimen name="apercu_categories_gap">6dp</dimen>  <!-- .cats gap -->
+    <dimen name="apercu_tuiles_gap">8dp</dimen>  <!-- .tiles gap -->
+    <dimen name="apercu_tuiles_pad">2dp</dimen>  <!-- .tiles padding -->
+    <dimen name="apercu_tuile_rayon">12dp</dimen>  <!-- .tile radius -->
+    <dimen name="apercu_tuile_pad">10dp</dimen>  <!-- .tile padding -->
+    <dimen name="apercu_tuile_gap">6dp</dimen>  <!-- .tile gap -->
+    <dimen name="apercu_tuile_icone">24dp</dimen>  <!-- .tile svg -->
+    <dimen name="apercu_tuile_hauteur_min">112dp</dimen>  <!-- .tile mesurée (icône + nom + classe), Récents : 112 -->
+    <dimen name="apercu_sous_titre_haut">4dp</dimen>  <!-- .sub margin-top -->
+    <dimen name="apercu_tag_pad_v">4dp</dimen>  <!-- .tag padding -->
+    <dimen name="apercu_tag_pad_h">7dp</dimen>  <!-- .tag padding -->
+    <dimen name="apercu_tag_rayon">5dp</dimen>  <!-- .tag radius -->
+    <dimen name="apercu_ghost_pad_v">8dp</dimen>  <!-- .ghost padding -->
+    <dimen name="apercu_ghost_pad_h">12dp</dimen>  <!-- .ghost padding -->
+    <dimen name="apercu_ghost_gap">8dp</dimen>  <!-- .ghost gap -->
+    <dimen name="apercu_ghost_rayon">12dp</dimen>  <!-- .ghost radius -->
+    <dimen name="apercu_ghost_icone">18dp</dimen>  <!-- .ghost svg -->
+    <dimen name="apercu_ghost_elevation">10dp</dimen>  <!-- box-shadow 0 10px 26px -->
+
+    <!-- Placement (.mini, .pos, .res, .prim) -->
+    <dimen name="apercu_mini_hauteur_max">150dp</dimen>  <!-- .mini max-height -->
+    <dimen name="apercu_mini_rayon">10dp</dimen>  <!-- .mini radius -->
+    <dimen name="apercu_mini_pad">4dp</dimen>  <!-- .mini padding -->
+    <dimen name="apercu_mini_rangee_pad_v">6dp</dimen>  <!-- .mini .row padding -->
+    <dimen name="apercu_mini_rangee_pad_h">8dp</dimen>  <!-- .mini .row padding -->
+    <dimen name="apercu_position_pad">4dp</dimen>  <!-- .pos padding -->
+    <dimen name="apercu_position_gap">4dp</dimen>  <!-- .pos gap -->
+    <dimen name="apercu_position_rayon">12dp</dimen>  <!-- .pos radius -->
+    <dimen name="apercu_position_bouton_rayon">9dp</dimen>  <!-- .pos button radius -->
+    <dimen name="apercu_position_bouton_pad_v">10dp</dimen>  <!-- .pos button padding -->
+    <dimen name="apercu_principal_hauteur">37dp</dimen>  <!-- .prim : 13 + 12 + 12 -->
+    <dimen name="apercu_principal_rayon">12dp</dimen>  <!-- .prim radius -->
+
+    <!-- Onglets Arbre, Problèmes, Source (.row, .prob, .src) -->
+    <dimen name="apercu_rangee_pad_v">7dp</dimen>  <!-- .row padding -->
+    <dimen name="apercu_rangee_pad_h">8dp</dimen>  <!-- .row padding -->
+    <dimen name="apercu_rangee_gap">8dp</dimen>  <!-- .row gap -->
+    <dimen name="apercu_rangee_rayon">8dp</dimen>  <!-- .row radius -->
+    <dimen name="apercu_rangee_indent">16dp</dimen>  <!-- retrait par niveau : style.paddingLeft = 8 + profondeur x 16 -->
+    <dimen name="apercu_monogramme">20dp</dimen>  <!-- .row .k -->
+    <dimen name="apercu_monogramme_rayon">5dp</dimen>  <!-- .row .k radius -->
+    <dimen name="apercu_badge_rangee_pad_v">2dp</dimen>  <!-- .row .badge padding -->
+    <dimen name="apercu_badge_rangee_pad_h">5dp</dimen>  <!-- .row .badge padding -->
+    <dimen name="apercu_badge_rangee_rayon">4dp</dimen>  <!-- .row .badge radius -->
+    <dimen name="apercu_probleme_pad_v">9dp</dimen>  <!-- .prob padding -->
+    <dimen name="apercu_probleme_pad_h">8dp</dimen>  <!-- .prob padding -->
+    <dimen name="apercu_probleme_gap">10dp</dimen>  <!-- .prob gap -->
+    <dimen name="apercu_probleme_rayon">8dp</dimen>  <!-- .prob radius -->
+    <dimen name="apercu_probleme_point">8dp</dimen>  <!-- .prob .sev -->
+    <dimen name="apercu_probleme_point_haut">6dp</dimen>  <!-- .prob .sev margin-top -->
+    <dimen name="apercu_source_pad_v">4dp</dimen>  <!-- .src padding -->
+    <dimen name="apercu_source_pad_h">8dp</dimen>  <!-- .src div padding -->
+    <dimen name="apercu_source_gap">10dp</dimen>  <!-- .src div gap -->
+    <dimen name="apercu_source_rayon">4dp</dimen>  <!-- .src div radius -->
+    <dimen name="apercu_source_numero">24dp</dimen>  <!-- .src .ln width -->
+    <dimen name="apercu_ouvrir_pad_h">4dp</dimen>  <!-- .openrow padding -->
+    <dimen name="apercu_ouvrir_pad_haut">2dp</dimen>  <!-- .openrow padding -->
+    <dimen name="apercu_ouvrir_pad_bas">8dp</dimen>  <!-- .openrow padding -->
+    <dimen name="apercu_ouvrir_gap">10dp</dimen>  <!-- .openrow gap -->
+    <dimen name="apercu_vide_pad_v">18dp</dimen>  <!-- .empty padding -->
+    <dimen name="apercu_vide_pad_h">10dp</dimen>  <!-- .empty padding -->
+</resources>
