@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Point de sévérité (.prob .sev) : 8 dp, « avert » ; erreur = backgroundTintList « erreur » (.sev.e). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="?attr/apercuAvert" />
+</shape>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Surlignage « inséré » de l'onglet Source (.ins, 26 % de succès) : le commentaire de la référence
+     (apercu_source_ligne_fond.xml) le nomme « fond temporaire apercuSourceInsere posé en code » —
+     matérialisé en drawable pour rester fidèle à ADR 0127-0129 (aucun GradientDrawable en code).
+     Posé par le liage sur les lignes de la plage insérée (PE11k), retiré quand le flux plageInseree
+     repasse à null (délai de la maquette : 2,6 s). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSourceInsere" />
+    <corners android:radius="@dimen/apercu_source_rayon" />
+</shape>

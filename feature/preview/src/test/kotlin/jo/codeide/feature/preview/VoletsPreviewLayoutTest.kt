@@ -48,9 +48,12 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
-    fun `le volet problèmes se gonfle avec sa liste recyclée`() {
+    fun `le volet problèmes se gonfle avec sa liste recyclée et son message vide`() {
+        // PE11k — ref fragment_volet_problemes : le message « Aucun
+        // problème détecté… » vit dans le LAYOUT (plus de vue en code).
         val volet = gonfler(R.layout.fragment_volet_problemes)
         assertNotNull(volet.findViewById<View>(R.id.liste_problemes))
+        assertNotNull(volet.findViewById<View>(R.id.message_aucun_probleme))
     }
 
     @Test
@@ -71,11 +74,14 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
-    fun `la rangée de problème porte sa pastille et son détail`() {
+    fun `la rangée de problème porte sa pastille son détail et le lien Voir`() {
+        // PE11k — ref item_probleme : le « Voir » mono accent vit dans le
+        // layout (miroir `.prob .go` de la maquette).
         val item = gonfler(R.layout.item_probleme)
         assertNotNull(item.findViewById<View>(R.id.pastille_probleme))
         assertNotNull(item.findViewById<View>(R.id.titre_probleme))
         assertNotNull(item.findViewById<View>(R.id.detail_probleme))
+        assertNotNull(item.findViewById<View>(R.id.voir_probleme))
     }
 
     @Test

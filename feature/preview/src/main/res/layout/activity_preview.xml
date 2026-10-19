@@ -400,12 +400,18 @@
                 android:contentDescription="@string/preview_bulle_cd"
                 android:elevation="@dimen/apercu_bulle_elevation" />
 
-            <!-- Les popovers passent AU-DESSUS de la bulle (maquette : .pop z-index 8, .bubble 6). -->
+            <!-- Les popovers passent AU-DESSUS de la bulle ET du reste du chrome (maquette : .pop z-index 8,
+                 .bubble 6). Correctif PE11k (bug rapporté : « la barre d'outils avec undo redo cache l'écran
+                 palette ») : l'élévation se pose sur le CONTENEUR — Android ordonne les ENFANTS du
+                 conteneur_rendu par le Z du conteneur (l'élévation 8 dp de la coque ENFANTE ne TRAVERSE
+                 PAS la frontière du parent 0 dp : la barre d'édition à 4 dp la recouvrait).
+                 Même élévation que la bulle (8 dp) + ordre XML APRÈS elle → le popover dessine au-dessus. -->
             <FrameLayout
                 android:id="@+id/conteneur_palette"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipChildren="false"
+                android:elevation="@dimen/apercu_popover_elevation"
                 android:visibility="gone" />
 
             <FrameLayout
@@ -413,6 +419,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipChildren="false"
+                android:elevation="@dimen/apercu_popover_elevation"
                 android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>

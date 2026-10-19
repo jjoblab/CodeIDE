@@ -29,14 +29,12 @@ import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.RegimeRendu
 import jo.codeide.preview.xml.RequeteRendu
-import jo.codeide.preview.xml.VuePreviewXml
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
-import jo.codeide.core.ui.R as RUi
 
 /**
  * Écran DÉDIÉ de l'aperçu XML (PE6-0, maquette
@@ -123,6 +121,16 @@ public class PreviewActivity : AppCompatActivity() {
 
     /** Le TOAST en vue (PE11i, D6 — remplace tout Toast système). */
     private val toastApercu: ToastApercu by lazy { ToastApercu(liaison.toastApercu) }
+
+    /** Le popover CALQUES (PE11k — extraction chrome pur, miroir `showPop("layers")`). */
+    private val popoverCalques: PopoverCalquesApercu by lazy {
+        PopoverCalquesApercu(
+            contexte = this,
+            vueRendu = liaison.vuePreview,
+            barreNavigation = { controleur?.barreNavigation ?: true },
+            poserBarreNavigation = { coche -> controleur?.definirBarreNavigation(coche) },
+        )
+    }
 
     /** Le processus `:preview` est-il ARRÊTÉ (bandeau « Réessayer », PE11i D6). */
     private var regimeArrete = false
@@ -353,23 +361,28 @@ public class PreviewActivity : AppCompatActivity() {
     /**
      * La GLISSADE de la feuille (PE10a — miroir `applySheet` de la
      * maquette : `status/zoom .bottom` suivent la feuille) : le HUD de
-     * zoom et la PASTILLE D'ÉTAT glissent au-dessus de la part déployée
-     * (jamais recouverts par le peek), la bulle ÉVITE la zone déployée.
+     * zoom et la PASTILLE D'ÉTAT glissent au-dessus du bord COURANT de
+     * la feuille (peek compris — correctif PE11k : repliée, l'entête
+     * recouvrait les deux pièces), la bulle ÉVITE la zone visible.
      */
     private fun majGlissadeFeuille(deployeePx: Float) {
-        val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
+        // Garde : la vue de la feuille doit exister (le fragment est monté).
+        liaison.conteneurFeuille.getChildAt(0) ?: return
         val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
-        val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-        val decalage = if (delta > 0f) deployeePx / delta else 0f
-        liaison.hudZoom.translationY = -delta * decalage
-        liaison.pastilleEtat.translationY = -delta * decalage
         // La bulle ne glisse pas SOUS la feuille déployée
         // (miroir le `hi` de `placeBubble` qui suit `S.open`).
-        // PE11i : la réserve de la bulle = HUD de zoom + sa marge (10 dp,
-        // par ressource — plus de littéral).
+        // PE11k : la réserve de la bulle et la translation des pièces
+        // basses partent du PEEK — formules pures [GlissadeFeuilleApercu].
+        liaison.hudZoom.translationY =
+            GlissadeFeuilleApercu.translationHud(comportement.peekHeight, deployeePx.toInt())
+        liaison.pastilleEtat.translationY = liaison.hudZoom.translationY
         liaison.bullePalette.reserveBas =
-            (liaison.hudZoom.height + resources.getDimensionPixelSize(R.dimen.apercu_hud_marge)) +
-            deployeePx.toInt()
+            GlissadeFeuilleApercu.reserveBulle(
+                hudPx = liaison.hudZoom.height,
+                margePx = resources.getDimensionPixelSize(R.dimen.apercu_hud_marge),
+                peekPx = comportement.peekHeight,
+                deployeePx = deployeePx.toInt(),
+            )
         liaison.bullePalette.reposer()
     }
 
@@ -798,92 +811,7 @@ public class PreviewActivity : AppCompatActivity() {
         liaison.boutonCalquesApercu.isActivated = true
         menuApercu.auFermer = { liaison.boutonCalquesApercu.isActivated = false }
         menuApercu.montrer(R.layout.popover_menu_calques, liaison.boutonCalquesApercu) { vue ->
-            lierCalques(PopoverMenuCalquesBinding.bind(vue))
-        }
-    }
-
-    /**
-     * Les SIX calques de la VUE (titre, état lu à la volée, pose) — PE11j
-     * : le SEPTIÈME (Barre de navigation, groupe « Chrome système ») vit
-     * dans la CONFIGURATION DE RENDU ([ControleurPreviewXml]), pas dans
-     * la vue : il est lié à part dans [lierCalques].
-     */
-    private fun entreesCalques(vueRendu: VuePreviewXml): List<EntreeCalque> =
-        listOf(
-            EntreeCalque(R.string.preview_calque_parent_freres, { vueRendu.calquesParentFreres }, {
-                vueRendu.calquesParentFreres =
-                    it
-            }),
-            EntreeCalque(R.string.preview_calque_marges_padding, { vueRendu.calquesMargesPadding }, {
-                vueRendu.calquesMargesPadding =
-                    it
-            }),
-            EntreeCalque(R.string.preview_calque_contraintes, { vueRendu.calquesContraintes }, {
-                vueRendu.calquesContraintes =
-                    it
-            }),
-            EntreeCalque(
-                R.string.preview_calque_problemes,
-                { vueRendu.calquesProblemes },
-                { vueRendu.calquesProblemes = it },
-            ),
-            EntreeCalque(R.string.preview_calque_bornes, { vueRendu.calquesBornes }, { vueRendu.calquesBornes = it }),
-            EntreeCalque(R.string.preview_calque_grille, { vueRendu.grilleAffichee }, { vueRendu.grilleAffichee = it }),
-        )
-
-    /**
-     * Lie les calques aux rangées du popover (PE9c) — l'accent
-     * COLORÉ de chaque calque est un rôle sémantique du thème (canaux
-     * tooling, erreur, succès, info), la rangée bascule le commutateur.
-     * PE11j : le groupe « CHROME SYSTÈME » suit — « Barre de navigation »
-     * (id `calque_navigation`) branchée sur l'option correspondante de
-     * la CONFIGURATION DE RENDU ([ControleurPreviewXml.barreNavigation],
-     * ADR 0134 : un CHANGEMENT relance le rendu).
-     */
-    private fun lierCalques(popover: PopoverMenuCalquesBinding) {
-        val calques = entreesCalques(liaison.vuePreview)
-        val accents =
-            listOf(
-                RUi.attr.colorCanalSync,
-                RUi.attr.colorCanalTaches,
-                RUi.attr.colorCanalBuild,
-                androidx.appcompat.R.attr.colorError,
-                RUi.attr.colorSucces,
-                RUi.attr.colorInfo,
-            )
-        val ranges =
-            listOf(
-                popover.calqueParentFreres,
-                popover.calqueMargesPadding,
-                popover.calqueContraintes,
-                popover.calqueProblemes,
-                popover.calqueBornes,
-                popover.calqueGrille,
-            )
-        calques.forEachIndexed { indice, calque ->
-            val rangee = ranges[indice]
-            rangee.pastilleCalque.backgroundTintList =
-                ColorStateList.valueOf(StyleVolet.couleur(this, accents[indice]))
-            rangee.libelleCalque.setText(calque.titreRes)
-            rangee.basculeCalque.isChecked = calque.estActif()
-            rangee.rangeeCalque.setOnClickListener { rangee.basculeCalque.toggle() }
-            rangee.basculeCalque.setOnCheckedChangeListener { _, coche ->
-                calque.poser(coche)
-            }
-        }
-        // PE11j — « Chrome système / Barre de navigation » : l'état vient
-        // du MOTEUR (option de la requête de rendu, défaut ON — miroir
-        // `S.nav = true` de la maquette) ; la pastille porte le canal
-        // étiquette (système).
-        popover.calqueNavigation.pastilleCalque.backgroundTintList =
-            ColorStateList.valueOf(StyleVolet.couleur(this, RUi.attr.colorCanalEtiquette))
-        popover.calqueNavigation.libelleCalque.setText(R.string.preview_calque_navigation)
-        popover.calqueNavigation.basculeCalque.isChecked = controleur?.barreNavigation ?: true
-        popover.calqueNavigation.rangeeCalque.setOnClickListener {
-            popover.calqueNavigation.basculeCalque.toggle()
-        }
-        popover.calqueNavigation.basculeCalque.setOnCheckedChangeListener { _, coche ->
-            controleur?.definirBarreNavigation(coche)
+            popoverCalques.lier(PopoverMenuCalquesBinding.bind(vue))
         }
     }
 
@@ -1004,13 +932,6 @@ public class PreviewActivity : AppCompatActivity() {
         }
         finish()
     }
-
-    /** UNE entrée du popover Calques : titre, état lu à la volée, pose. */
-    private data class EntreeCalque(
-        val titreRes: Int,
-        val estActif: () -> Boolean,
-        val poser: (Boolean) -> Unit,
-    )
 
     private companion object {
         private const val TAG: String = "PreviewActivity"

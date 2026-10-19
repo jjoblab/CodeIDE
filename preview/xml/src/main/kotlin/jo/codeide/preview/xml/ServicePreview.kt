@@ -39,9 +39,32 @@ public class ServicePreview : Service() {
 
     override fun onBind(intention: Intent): IBinder =
         object : IRenduApercu.Stub() {
+            /**
+             * Correctif PE11k : la doc de contrat promet « l'échec de rendu
+             * voyage en DONNÉE » — le filet [RenduLayoutLib.rendre] couvre
+             * le pipeline, mais TOUTE exception résiduelle (parcel hostile,
+             * erreur avant le pipeline) tuait le PROCESSUS `:preview` sur
+             * le fil du binder : le propriétaire voyait le bandeau « a
+             * cessé de répondre » revenir à chaque « Réessayer ». Le filet
+             * du stub renvoie l'erreur en DONNÉE (règle 6) — le processus
+             * survit, l'app affiche le message honnête.
+             */
             override fun rendre(requete: RequeteRendu): ResultatRendu =
                 synchronized(verrou) {
-                    rendu.rendre(requete, compresser = true).rendu
+                    try {
+                        rendu.rendre(requete, compresser = true).rendu
+                    } catch (t: Throwable) {
+                        ResultatRendu(
+                            ok = false,
+                            message = t.message?.trim()?.ifEmpty { null } ?: t.javaClass.simpleName,
+                            ligne = -1,
+                            largeur = 0,
+                            hauteur = 0,
+                            nombreVues = 0,
+                            dureeMs = 0,
+                            png = ByteArray(0),
+                        )
+                    }
                 }
         }
 

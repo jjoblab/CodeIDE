@@ -16,11 +16,15 @@ import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.ProblemesPreview
 
 /**
- * Le volet ARBRE de la feuille (PE9a, miroir `renderTree` — ancien
- * `majArbre` de [FeuilleApercuFragment]) : le pré-ordre de l'arbre
- * rendu dans UN RecyclerView réel ([AdaptateurArbre]) — indentation
- * par profondeur posée au liage, badge « ! n » (problèmes) sinon
- * dimensions, sélection DEUX VOIES par le tap d'une rangée.
+ * Le volet ARBRE de la feuille (PE9a, miroir `renderTree` — refonte
+ * PE11k à l'identique de `fragment_volet_arbre`/`item_arbre` de la
+ * référence, ADR 0134) : le pré-ordre de l'arbre rendu dans UN
+ * RecyclerView réel ([AdaptateurArbre]) — indentation posée au liage,
+ * rangée 34 dp à TROIS états (sélectionnée = `isSelected` → accent
+ * doux, appuyée = surface 2 — le sélecteur `apercu_rangee_fond`),
+ * badge « ! n » sur fond AMBRE (avertissement) sinon les dimensions
+ * sur fond neutre, monogramme 20 dp. La SÉLECTION vit dans les
+ * entrées (rebind DiffUtil des seules rangées changées).
  */
 @AndroidEntryPoint
 internal class VoletArbreFragment : VoletFeuilleFragment() {
@@ -28,7 +32,7 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
 
     private lateinit var liaison: FragmentVoletArbreBinding
 
-    /** La liste (rangées + état vide), recyclée — le tap sélectionne. */
+    /** La liste (rangées recyclées), le tap sélectionne. */
     private val adaptateur = AdaptateurArbre { indice -> viewModel.selectionner(indice) }
 
     override fun onCreateView(
@@ -44,80 +48,60 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
 
     override fun marcher() {
         val vues = renduCourant?.vues
+        // Miroir renderTree : arbre VIDE → liste vide (la maquette
+        // n'affiche AUCUN message dans ce volet — le fil d'Ariane de la
+        // feuille porte déjà « Sans sélection »).
         if (vues.isNullOrEmpty()) {
-            adaptateur.submitList(listOf(EntreeArbreUi.Vide(getString(R.string.preview_feuille_vide))))
+            adaptateur.submitList(emptyList())
             return
         }
         val densite = viewModel.moteur.profil.densiteDpi
         val problemes = ProblemesPreview.evaluer(vues, densite)
         adaptateur.submitList(
-            FeuilleApercu.entreesArbre(vues, problemes, densite).map { EntreeArbreUi.Ligne(it) },
+            FeuilleApercu.entreesArbre(vues, problemes, densite).mapIndexed { indice, entree ->
+                EntreeArbreUi(entree = entree, selectionnee = indice == selectionCourante)
+            },
         )
     }
 }
 
-/** UNE entrée de l'onglet Arbre : rangée d'arbre, ou état vide. */
-internal sealed class EntreeArbreUi {
-    /** Le message « rien à afficher » (aucun rendu valide). */
-    internal data class Vide(
-        val message: String,
-    ) : EntreeArbreUi()
-
-    /** Une rangée du pré-ordre (données pures du modèle [FeuilleApercu]). */
-    internal data class Ligne(
-        val entree: FeuilleApercu.EntreeArbre,
-    ) : EntreeArbreUi()
-}
+/** UNE entrée de l'onglet Arbre : la rangée du pré-ordre et son état de sélection. */
+internal data class EntreeArbreUi(
+    /** La rangée du pré-ordre (données pures du modèle [FeuilleApercu]). */
+    val entree: FeuilleApercu.EntreeArbre,
+    /** La rangée est-elle la SÉLECTION courante (état `isSelected` au liage). */
+    val selectionnee: Boolean,
+)
 
 /**
  * L'adaptateur de l'onglet Arbre (miroir `renderTree`) : rangée = item
- * layout RÉEL (`item_arbre.xml` — monogramme, classe, id, badge),
- * l'indentation de profondeur est la SEULE pose au liage.
- *
- * Exemption detekt ciblée (règle 16) : MagicNumber — la SEULE dimension
- * au code est l'indentation (donnée du modèle, dp) ; tout le reste vit
- * dans le layout.
+ * layout RÉEL (`item_arbre.xml` — monogramme, classe, id, badge), les
+ * SEULES poses au liage sont l'indentation de profondeur (donnée du
+ * modèle), l'état `isSelected` de la rangée et le fond/couleur du badge
+ * (neutre ↔ avertissement — miroir `.badge`/`.badge.w`).
  */
-@Suppress("MagicNumber")
 internal class AdaptateurArbre(
     private val auLigne: (Int) -> Unit,
-) : ListAdapter<EntreeArbreUi, RecyclerView.ViewHolder>(ComparateurArbre) {
+) : ListAdapter<EntreeArbreUi, AdaptateurArbre.LigneArbreVue>(ComparateurArbre) {
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
-    ): RecyclerView.ViewHolder {
+    ): LigneArbreVue {
         val gonfleur = LayoutInflater.from(parent.context)
-        return when (viewType) {
-            TYPE_VIDE -> {
-                object : RecyclerView.ViewHolder(StyleVolet.texteVide(parent.context, "")) {}
-            }
-
-            else -> {
-                LigneArbreVue(ItemArbreBinding.inflate(gonfleur, parent, false), auLigne)
-            }
-        }
+        return LigneArbreVue(ItemArbreBinding.inflate(gonfleur, parent, false), auLigne)
     }
 
     override fun getItemCount(): Int = currentList.size
 
-    override fun getItemViewType(position: Int): Int =
-        when (currentList[position]) {
-            is EntreeArbreUi.Vide -> TYPE_VIDE
-            is EntreeArbreUi.Ligne -> TYPE_LIGNE
-        }
-
     override fun onBindViewHolder(
-        holder: RecyclerView.ViewHolder,
+        holder: LigneArbreVue,
         position: Int,
     ) {
-        when (val item = currentList[position]) {
-            is EntreeArbreUi.Vide -> (holder.itemView as android.widget.TextView).text = item.message
-            is EntreeArbreUi.Ligne -> (holder as LigneArbreVue).poser(item.entree)
-        }
+        holder.poser(currentList[position])
     }
 
-    /** Le conteneur d'une rangée (item_arbre.xml — tout est en layout). */
-    private class LigneArbreVue(
+    /** Le conteneur d'une rangée (item_arbre.xml — tout le reste est en layout). */
+    internal class LigneArbreVue(
         private val liaison: ItemArbreBinding,
         auLigne: (Int) -> Unit,
     ) : RecyclerView.ViewHolder(liaison.root) {
@@ -127,24 +111,41 @@ internal class AdaptateurArbre(
             liaison.root.setOnClickListener { auLigne(indice) }
         }
 
-        fun poser(entree: FeuilleApercu.EntreeArbre) {
-            indice = entree.indice
+        fun poser(entree: EntreeArbreUi) {
+            indice = entree.entree.indice
             val contexte = liaison.root.context
+            // Sélection = isSelected : le sélecteur apercu_rangee_fond
+            // peint l'accent doux (miroir `.row.on` de la maquette).
+            liaison.root.isSelected = entree.selectionnee
+            // L'indentation de profondeur : 8 + profondeur × 16 dp, la
+            // SEULE dimension au code (donnée du modèle, miroir
+            // `paddingLeft = (8 + x.d * 16)`).
             liaison.root.setPadding(
-                StyleVolet.dp(contexte, entree.indentation),
+                StyleVolet.dp(contexte, entree.entree.indentation),
                 liaison.root.paddingTop,
                 liaison.root.paddingEnd,
                 liaison.root.paddingBottom,
             )
-            liaison.pillMonogramme.text = entree.monogramme
-            liaison.libelleClasse.text = entree.classe
-            liaison.libelleId.text = contexte.getString(R.string.preview_feuille_id, entree.idNom)
-            liaison.libelleId.isVisible = entree.idNom.isNotEmpty()
-            liaison.badgeArbre.text = entree.badge
+            liaison.pillMonogramme.text = entree.entree.monogramme
+            liaison.libelleClasse.text = entree.entree.classe
+            liaison.libelleId.text = contexte.getString(R.string.preview_feuille_id, entree.entree.idNom)
+            liaison.libelleId.isVisible = entree.entree.idNom.isNotEmpty()
+            // Badge : « ! n » sur fond AMBRE + texte « fond » (miroir
+            // `.badge.w`), sinon les dimensions sur fond NEUTRE + texte
+            // doux ; PAS de badge sans contenu (miroir : rien ajouté).
+            liaison.badgeArbre.text = entree.entree.badge
+            liaison.badgeArbre.isVisible = entree.entree.badge.isNotEmpty()
+            liaison.badgeArbre.setBackgroundResource(
+                if (entree.entree.aProblemes) {
+                    R.drawable.apercu_badge_rangee_avert_fond
+                } else {
+                    R.drawable.apercu_badge_rangee_fond
+                },
+            )
             liaison.badgeArbre.setTextColor(
                 StyleVolet.couleur(
                     contexte,
-                    if (entree.aProblemes) R.attr.apercuErreur else R.attr.apercuTexteDoux,
+                    if (entree.entree.aProblemes) R.attr.apercuFond else R.attr.apercuTexteDoux,
                 ),
             )
         }
@@ -155,22 +156,11 @@ internal class AdaptateurArbre(
         override fun areItemsTheSame(
             ancienne: EntreeArbreUi,
             nouvelle: EntreeArbreUi,
-        ): Boolean = ancienne.cle() == nouvelle.cle()
+        ): Boolean = ancienne.entree.indice == nouvelle.entree.indice
 
         override fun areContentsTheSame(
             ancienne: EntreeArbreUi,
             nouvelle: EntreeArbreUi,
         ): Boolean = ancienne == nouvelle
-
-        private fun EntreeArbreUi.cle(): String =
-            when (this) {
-                is EntreeArbreUi.Vide -> "vide"
-                is EntreeArbreUi.Ligne -> "ligne-${entree.indice}"
-            }
-    }
-
-    private companion object {
-        private const val TYPE_VIDE: Int = 0
-        private const val TYPE_LIGNE: Int = 1
     }
 }

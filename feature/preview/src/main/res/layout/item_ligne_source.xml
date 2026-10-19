@@ -1,31 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UNE LIGNE de l'onglet Source (PE9a, miroir `renderSrc` : numéro en
-  mono à droite sur colonne fixe, texte en mono, surlignage de la plage
-  de la vue sélectionnée posé au liage via fond_ligne_source_surlignee).
+  Une ligne de l'onglet SOURCE (.src div) — RÉFÉRENCE (ADR 0134). Hauteur 20 dp (mono 12, interligne 1,65).
+  Numéro : colonne de 24 dp alignée à droite, gris doux ; texte : mono 12, `white-space: pre`
+  (singleLine, pas de retour à la ligne). Coloration :
+  balise = primaire, attribut = « remplissage » (vert), valeur = « marge » (orange) — ForegroundColorSpan
+  lu dans ?attr/apercu*. Racine sélectionnée = isSelected (accent doux), plage de la vue = isActivated
+  (jeton apercuSourceVue). Remplace fond_ligne_source_surlignee (colorSecondaryContainer).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+    android:id="@+id/rangee_source"
+    style="@style/Widget.CodeIDE.Apercu.SourceLigne"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:minWidth="0dp"
     android:orientation="horizontal">
 
     <TextView
         android:id="@+id/numero_ligne"
-        android:layout_width="36dp"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="@dimen/apercu_source_numero"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
         android:gravity="end"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="11sp"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.SourceNumero" />
 
     <TextView
         android:id="@+id/texte_ligne"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:fontFamily="monospace"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="11sp"
-        android:textColor="?attr/colorOnSurface" />
+        android:layout_marginStart="@dimen/apercu_source_gap"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Source" />
 </LinearLayout>

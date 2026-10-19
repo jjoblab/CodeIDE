@@ -1,13 +1,16 @@
 package jo.codeide.preview.xml
 
 /**
- * Modèles d'alimentation de la FEUILLE inférieure (PE6d, maquette
+ * Le porte-documents des VOLETS de la feuille (PE9a, maquette
  * `docs/mockups/apercu-xml.html` § « Feuille inférieure : arbre,
  * attributs, problèmes, source ») — FONCTIONS PURES sur l'état du
  * moteur (« alimentée par le même état que la vue »), SANS Android :
  * le fragment `FeuilleApercuFragment` de `:feature:preview` ne fait que
- * la mise en forme des modèles (miroir `renderTree` / `renderAttrs` /
- * `renderProbs` de la maquette), la logique est testée ici.
+ * la mise en forme des modèles (miroir `renderTree` / `renderProbs` /
+ * `renderSrc` de la maquette), la logique est testée ici. Les entrées
+ * PURES (arbre, problèmes) et les plages de lignes (surlignage de la
+ * vue sélectionnée, PE11k : plage insérée par une écriture) n'ont
+ * AUCUNE vue — que des données.
  *
  * L'onglet ATTRIBUTS reste LECTURE SEULE en PE6d (l'édition d'attributs
  * est PE7d) : il affiche les DONNÉES MESURÉES du rendu — identité
@@ -16,11 +19,14 @@ package jo.codeide.preview.xml
  * enrichie (PE6c) ; les valeurs des attributs du TEXTE (android:text…)
  * restent consultables dans l'onglet Source.
  *
- * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde (vue
- * absente, spans absents, texte vide) est une issue DISTINCTE du
- * remplissage des volets (patron [SelectionPreview]).
+ * Exemptions detekt ciblées (règle 16) : ReturnCount — chaque garde
+ * (vue absente, spans absents, texte vide) est une issue DISTINCTE du
+ * remplissage des volets (patron [SelectionPreview]) ; TooManyFunctions
+ * — une fonction PAR morceau de la maquette, étendue en PE11k (plage
+ * insérée) sans regrouper artificiellement des contrats distincts
+ * (même exemption que le pipeline [RenduLayoutLib]).
  */
-@Suppress("ReturnCount")
+@Suppress("ReturnCount", "TooManyFunctions")
 public object FeuilleApercu {
     /**
      * UNE ligne de l'ARBRE (miroir `renderTree`) : indentation par
@@ -197,6 +203,27 @@ public object FeuilleApercu {
         val debut = AligneurElementsXml.numeroLigne(texte, vue.debutElement)
         val fin = AligneurElementsXml.numeroLigne(texte, (vue.finElement - 1).coerceAtLeast(vue.debutElement))
         return if (fin < debut) null else debut..fin
+    }
+
+    /**
+     * Les NUMÉROS DE LIGNES (1-based, bornée) couvrant la plage
+     * [debut, fin[ du texte (PE11k — surlignage « inséré » de la
+     * Source : la plage posée par une écriture d'insertion, dépôt ou
+     * placement). Null si la plage est vide ou hors texte.
+     */
+    public fun lignesDePlage(
+        texte: String,
+        debut: Int,
+        fin: Int,
+    ): IntRange? {
+        if (texte.isEmpty() || fin <= debut) return null
+        val premiere = AligneurElementsXml.numeroLigne(texte, debut.coerceIn(0, texte.length - 1))
+        val derniere =
+            AligneurElementsXml.numeroLigne(
+                texte,
+                (fin - 1).coerceIn(0, texte.length - 1),
+            )
+        return if (derniere < premiere) null else premiere..derniere
     }
 
     /**

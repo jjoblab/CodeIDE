@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Volet ARBRE de la feuille (PE9a, miroir `.pane` — ancien
-  volet_arbre + lignes_arbre du fragment_feuille_apercu.xml) : la liste
-  des vues rendues en pré-ordre, UN RecyclerView réel (recyclage —
-  l'ancien LinearLayout reconstruisait chaque rangée à chaque état ;
-  le crash 0.134.30 vivait dans cette reconstruction).
+  Volet ARBRE — RÉFÉRENCE (ADR 0134) : un RecyclerView avec le padding du volet (.pane : 8 / 10 / 14).
+  Aucun séparateur : les rangées sont jointives (le surlignage de sélection suffit).
 -->
 <androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/liste_arbre"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipToPadding="false"
     android:contentDescription="@string/preview_feuille_onglet_arbre"
+    android:paddingStart="@dimen/apercu_pane_pad_h"
+    android:paddingTop="@dimen/apercu_pane_pad_haut"
+    android:paddingEnd="@dimen/apercu_pane_pad_h"
+    android:paddingBottom="@dimen/apercu_pane_pad_bas"
     tools:itemCount="8"
     tools:listitem="@layout/item_arbre" />
