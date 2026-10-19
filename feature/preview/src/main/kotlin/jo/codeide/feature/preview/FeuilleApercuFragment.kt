@@ -98,7 +98,7 @@ public class FeuilleApercuFragment : Fragment() {
                 override fun onTabSelected(onglet: TabLayout.Tab) {
                     ongletActifInterne.value = onglet.position
                     montrerVolet(onglet.position)
-                    deploierFeuille()
+                    basculerFeuille(deplierSeulement = true)
                 }
 
                 override fun onTabUnselected(onglet: TabLayout.Tab) = Unit
@@ -134,20 +134,25 @@ public class FeuilleApercuFragment : Fragment() {
         }
     }
 
-    /** La feuille déployée ↔ repliée (miroir `grab.onclick : S.open = !S.open`). */
-    private fun basculerFeuille() {
+    /**
+     * La feuille : BASCULE déployée ↔ repliée (miroir `grab.onclick :
+     * S.open = !S.open`) — ou SE DÉPLOIE sans replier une feuille déjà
+     * déployée ([deplierSeulement] : sélection d'onglet, « Ligne n »).
+     */
+    private fun basculerFeuille(deplierSeulement: Boolean = false) {
         val comportement = comportementFeuille() ?: return
-        if (comportement.state == BottomSheetBehavior.STATE_EXPANDED) {
-            comportement.state = BottomSheetBehavior.STATE_COLLAPSED
-        } else {
-            comportement.state = BottomSheetBehavior.STATE_EXPANDED
-        }
-    }
+        when {
+            deplierSeulement && comportement.state == BottomSheetBehavior.STATE_EXPANDED -> {
+                Unit
+            }
 
-    private fun deploierFeuille() {
-        val comportement = comportementFeuille() ?: return
-        if (comportement.state != BottomSheetBehavior.STATE_EXPANDED) {
-            comportement.state = BottomSheetBehavior.STATE_EXPANDED
+            !deplierSeulement && comportement.state == BottomSheetBehavior.STATE_EXPANDED -> {
+                comportement.state = BottomSheetBehavior.STATE_COLLAPSED
+            }
+
+            else -> {
+                comportement.state = BottomSheetBehavior.STATE_EXPANDED
+            }
         }
     }
 
@@ -214,6 +219,18 @@ public class FeuilleApercuFragment : Fragment() {
                 gestion.beginTransaction().hide(fragment).commitNow()
             }
         }
+    }
+
+    /**
+     * Ouvre l'onglet SOURCE amené à une LIGNE (PE11i — bouton « Ligne n »
+     * du bandeau d'erreur, ADR 0134 D6) : sélection de l'onglet (le
+     * tiroir suit par son écouteur), déploiement de la feuille, puis
+     * défilement du volet source sur la ligne.
+     */
+    public fun ouvrirSourceALigne(ligne: Int) {
+        liaison.ongletsFeuille.getTabAt(ONGLET_SOURCE)?.select()
+        basculerFeuille(deplierSeulement = true)
+        (childFragmentManager.findFragmentByTag(TAG_SOURCE) as? VoletSourceFragment)?.allerALigne(ligne)
     }
 
     /** Le volet ACTIF seul visible (miroir `montrerVolet`, une transaction). */

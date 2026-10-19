@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rangée d'arbre, de problème et de placement (.row, .prob) : sélectionnée = accent doux, appuyée = surface 2, rayon 8. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuAccentDoux" />
+            <corners android:radius="@dimen/apercu_rangee_rayon" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuSurface2" />
+            <corners android:radius="@dimen/apercu_rangee_rayon" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="@dimen/apercu_rangee_rayon" />
+        </shape>
+    </item>
+</selector>

@@ -55,6 +55,8 @@ public sealed interface ResultatTransport {
     /** Rendu échoué (XML malformé → [m[message] = [XML_MALFORME]). */
     public class Erreur(
         public val message: String,
+        /** Ligne source de l'erreur (null = inconnue — PE11i, bandeau « Ligne n », ADR 0134 D6). */
+        public val ligne: Int? = null,
     ) : ResultatTransport
 }
 
@@ -147,7 +149,10 @@ public class TransportRenduLocal(
                 vues = resultat.rendu.vues.toList(),
             )
         } else {
-            ResultatTransport.Erreur(resultat.rendu.message ?: "rendu échoué")
+            ResultatTransport.Erreur(
+                message = resultat.rendu.message ?: "rendu échoué",
+                ligne = resultat.rendu.ligne.takeIf { it > 0 },
+            )
         }
 
     override fun close() {
@@ -415,6 +420,20 @@ public class TransportIsolation(
 
     /** Régime de rendu courant (le moteur le publie à l'UI). */
     public val regime: kotlinx.coroutines.flow.StateFlow<RegimeRendu> = regimeInterne.asStateFlow()
+
+    /**
+     * RÉACTIVE le régime isolé (PE11i — bouton « Réessayer » du bandeau,
+     * ADR 0134 D6) : le compteur de pannes et la désactivation de la
+     * SESSION repartent à zéro, le régime redevient [RegimeRendu.PROCESSUS_ISOLE]
+     * — le rendu suivant retente le processus `:preview`.
+     */
+    public fun reactiver() {
+        synchronized(verrou) {
+            pannes = 0
+            desactive.set(false)
+            regimeInterne.value = RegimeRendu.PROCESSUS_ISOLE
+        }
+    }
 
     override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
         val resultat = rendreAvecReprise(requete)

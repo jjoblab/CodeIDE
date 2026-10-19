@@ -1,22 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Écran dédié de l'aperçu XML (PE6-0, maquette
-  docs/mockups/apercu-xml.html § « Activité dédiée » ; chrome PE6b ;
-  feuille PE6d ; PE7c bulle/palette/popup de placement ; PE7d barre
-  d'édition ; PE10 pastille segmented + chips + pastille d'état) :
-  CoordinatorLayout racine — la colonne (toolbar COMPACTE avec la
-  PASTILLE Design/Plan/Les deux, CHIPS Material défilantes, panneau de
-  rendu VuePreviewXml avec PASTILLE D'ÉTAT + barre d'édition, popovers
-  et bulle de palette, HUD de zoom) et la FEUILLE inférieure en
-  BottomSheet (arbre, attributs, problèmes, source — miroir `.sheet`).
-  Le MOTEUR :preview:xml reste zéro-Material (règle du module) : le
-  chrome vit ici.
+  Écran dédié de l'aperçu XML — RÉFÉRENCE (ADR 0134), remplace feature/preview/src/main/res/layout/activity_preview.xml.
+  Miroir de la maquette `docs/mockups/apercu-xml.html`, section « Maquette interactive », `.phone`.
+  Écarts avec le fichier actuel :
+  - la MaterialToolbar devient une barre LinearLayout de 52 dp (`appbar_preview`) : 36 dp de bouton rond,
+    titre mono + sous-titre, PASTILLE de mode (ChipGroup), bouton « plus » ; le trait bas est une vue de 1 dp ;
+    l'inset de la barre d'état s'applique à `entete_preview` (fond surface), plus à la toolbar ;
+  - les puces Material par défaut deviennent Widget.CodeIDE.Apercu.Puce (pilule 30 dp, trait 1 dp) ;
+  - le HUD (édition, état, zoom) prend les coques `Hud` / `Etat` de la maquette (surface, trait 1 dp, rayon 14 / pilule) ;
+  - le bandeau d'erreur est une VUE (`banniere_rendu`) : le moteur ne le dessine plus ;
+  - le toast est une vue (`toast_apercu`) : plus de Toast système ;
+  - la bulle fait 58 dp (50 + halo 4 dp de chaque côté) ;
+  - la palette et le placement passent AU-DESSUS de la bulle (z-order de la maquette : popover 8 > bulle 6).
+  Ids conservés quand c'est possible pour limiter les changements de Kotlin.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/racine_preview"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/apercuFond">
 
     <LinearLayout
         android:id="@+id/colonne_preview"
@@ -24,151 +27,185 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Appbar COMPACTE (PE10 — l'appbar était trop grosse face à la
-             maquette : hauteur 52 dp, titre 14 sp, sous-titre 11 sp) et
-             PASTILLE segmented (miroir `.segMode` : Design, Plan, Les
-             deux — le mode d'affichage du panneau). -->
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar_preview"
-            style="@style/Widget.CodeIDE.Toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            app:navigationContentDescription="@string/preview_retour_cd"
-            app:navigationIcon="?attr/homeAsUpIndicator"
-            app:subtitleTextAppearance="@style/TextAppearance.CodeIDE.PreviewSousTitre"
-            app:title="@string/preview_titre"
-            app:titleTextAppearance="@style/TextAppearance.CodeIDE.PreviewTitre">
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/groupe_mode_apercu"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="44dp"
-                app:checkedButton="@id/mode_design"
-                app:selectionRequired="true"
-                app:singleSelection="true">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mode_design"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:insetTop="4dp"
-                    android:insetBottom="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="@string/preview_mode_design"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mode_plan"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:insetTop="4dp"
-                    android:insetBottom="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="@string/preview_mode_plan"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mode_les_deux"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:insetTop="4dp"
-                    android:insetBottom="4dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:text="@string/preview_mode_les_deux"
-                    android:textSize="11sp" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-        </com.google.android.material.appbar.MaterialToolbar>
-
-        <!-- Chips défilantes de réglages (PE10b, miroir `.chips` de la
-             maquette — MÊME ORDRE : appareil ▾, portrait/paysage, jour,
-             langue, police, calques ▾ ; l'option « Compacter » (PE9d)
-             QUITTE la rangée — décision propriétaire PE10). -->
-        <HorizontalScrollView
-            android:id="@+id/barre_reglages_apercu"
+        <!-- En-tête : barre + puces, sur la surface (le padding haut reçoit l'inset de la barre d'état). -->
+        <LinearLayout
+            android:id="@+id/entete_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="@dimen/spacing_sm"
-            android:paddingEnd="@dimen/spacing_sm"
-            android:scrollbars="none">
+            android:background="?attr/apercuSurface"
+            android:orientation="vertical">
 
+            <!-- .appbar : 52 dp = 8 + 36 + 8, padding horizontal 10, espacement 8. -->
             <LinearLayout
+                android:id="@+id/appbar_preview"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/apercu_appbar_hauteur"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/apercu_appbar_pad_h"
+                android:paddingEnd="@dimen/apercu_appbar_pad_h">
+
+                <ImageButton
+                    android:id="@+id/bouton_retour"
+                    style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+                    android:layout_width="@dimen/apercu_bouton_icone"
+                    android:layout_height="@dimen/apercu_bouton_icone"
+                    android:contentDescription="@string/preview_retour_cd"
+                    android:src="@drawable/apercu_ic_retour" />
+
+                <LinearLayout
+                    android:id="@+id/bloc_titre"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/apercu_appbar_gap"
+                    android:layout_marginEnd="@dimen/apercu_appbar_gap"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/titre_apercu"
+                        style="@style/Widget.CodeIDE.Apercu.Texte"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Titre"
+                        android:text="@string/preview_titre" />
+
+                    <TextView
+                        android:id="@+id/sous_titre_apercu"
+                        style="@style/Widget.CodeIDE.Apercu.Texte"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.SousTitre" />
+                </LinearLayout>
+
+                <!-- .seg : PASTILLE pleine « surface 2 », bouton coché = primaire plein. -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/groupe_mode_apercu"
+                    style="@style/Widget.CodeIDE.Apercu.GroupeMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/preview_mode_cd"
+                    app:checkedChip="@id/mode_design">
+            <com.google.android.material.chip.Chip
+                android:id="@+id/mode_design"
+                style="@style/Widget.CodeIDE.Apercu.ModeChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:text="@string/preview_mode_design" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/mode_plan"
+                style="@style/Widget.CodeIDE.Apercu.ModeChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_mode_plan" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/mode_les_deux"
+                style="@style/Widget.CodeIDE.Apercu.ModeChip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/preview_mode_les_deux" />
+                </com.google.android.material.chip.ChipGroup>
+
+                <ImageButton
+                    android:id="@+id/bouton_plus"
+                    style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+                    android:layout_width="@dimen/apercu_bouton_icone"
+                    android:layout_height="@dimen/apercu_bouton_icone"
+                    android:layout_marginStart="@dimen/apercu_appbar_gap"
+                    android:contentDescription="@string/preview_plus_cd"
+                    android:src="@drawable/apercu_ic_plus" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/apercu_trait_titre"
+                android:background="?attr/apercuTrait" />
+
+            <!-- .chips : défilante, padding 8 / 10, espacement 6, MÊME ORDRE que la maquette. -->
+            <HorizontalScrollView
+                android:id="@+id/barre_reglages_apercu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingStart="@dimen/apercu_reglages_pad_h"
+                android:paddingTop="@dimen/apercu_reglages_pad_v"
+                android:paddingEnd="@dimen/apercu_reglages_pad_h"
+                android:paddingBottom="@dimen/apercu_reglages_pad_v"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_appareil_apercu"
-                    style="@style/Widget.Material3.Chip.Assist"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/preview_profil_cd"
+                    android:checkable="false"
                     android:text="@string/preview_appareil" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_orientation_apercu"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:checkable="true"
+                    android:layout_marginStart="@dimen/apercu_reglages_gap"
                     android:contentDescription="@string/preview_orientation_cd"
                     android:text="@string/preview_portrait" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_nuit_apercu"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:checkable="true"
+                    android:layout_marginStart="@dimen/apercu_reglages_gap"
                     android:contentDescription="@string/preview_nuit_cd"
                     android:text="@string/preview_jour" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_langue_apercu"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:checkable="true"
+                    android:layout_marginStart="@dimen/apercu_reglages_gap"
                     android:contentDescription="@string/preview_langue_cd"
                     android:text="@string/preview_langue_defaut" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_police_apercu"
-                    style="@style/Widget.Material3.Chip.Filter"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
-                    android:checkable="true"
+                    android:layout_marginStart="@dimen/apercu_reglages_gap"
                     android:contentDescription="@string/preview_police_cd"
                     android:text="@string/preview_police_format" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/bouton_calques_apercu"
-                    style="@style/Widget.Material3.Chip.Assist"
+                    style="@style/Widget.CodeIDE.Apercu.Puce"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:layout_marginStart="@dimen/apercu_reglages_gap"
                     android:contentDescription="@string/preview_calques_cd"
+                    android:checkable="false"
                     android:text="@string/preview_calques" />
-            </LinearLayout>
-        </HorizontalScrollView>
+                </LinearLayout>
+            </HorizontalScrollView>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/apercu_trait_titre"
+                android:background="?attr/apercuTrait" />
+        </LinearLayout>
+
+        <!-- .canvas : le damier et le rendu sont dessinés par VuePreviewXml ; les .hud sont des vues. -->
         <FrameLayout
             android:id="@+id/conteneur_rendu"
             android:layout_width="match_parent"
@@ -180,153 +217,188 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <!-- Barre d'édition (PE7d, miroir `.edit` de la maquette) :
-                 annuler, rétablir | dupliquer, supprimer — en haut-centre,
-                 DÉSACTIVÉE selon l'historique et la sélection (PE10c). -->
+            <!-- .banner : visible seulement en erreur de rendu ou processus arrêté. -->
+            <LinearLayout
+                android:id="@+id/banniere_rendu"
+                style="@style/Widget.CodeIDE.Apercu.Bandeau"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:gravity="top"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/banniere_message"
+                    style="@style/Widget.CodeIDE.Apercu.Texte"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Bandeau" />
+
+                <TextView
+                    android:id="@+id/banniere_ligne"
+                    style="@style/Widget.CodeIDE.Apercu.BandeauBouton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/apercu_bandeau_gap" />
+
+                <TextView
+                    android:id="@+id/banniere_details"
+                    style="@style/Widget.CodeIDE.Apercu.BandeauBouton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/apercu_bandeau_gap"
+                    android:text="@string/preview_bandeau_details" />
+            </LinearLayout>
+
+            <!-- .edit : haut-centre, 10 dp du bord (64 dp sous un bandeau visible : translationY posé par le code). -->
             <LinearLayout
                 android:id="@+id/barre_edition"
+                style="@style/Widget.CodeIDE.Apercu.Hud"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|center_horizontal"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:background="@drawable/fond_barre_edition"
-                android:elevation="4dp"
-                android:orientation="horizontal"
-                android:padding="4dp">
+                android:layout_marginTop="@dimen/apercu_hud_marge"
+                android:orientation="horizontal">
 
-                <ImageButton
-                    android:id="@+id/bouton_annuler"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:contentDescription="@string/preview_edition_annuler_cd"
-                    android:src="@drawable/ic_edition_annuler" />
+        <ImageButton
+            android:id="@+id/bouton_annuler"
+            style="@style/Widget.CodeIDE.Apercu.BoutonHud"
+            android:layout_width="@dimen/apercu_edition_bouton"
+            android:layout_height="@dimen/apercu_edition_bouton"
+            android:contentDescription="@string/preview_edition_annuler_cd"
+            android:src="@drawable/apercu_ic_annuler" />
 
-                <ImageButton
-                    android:id="@+id/bouton_retablir"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:contentDescription="@string/preview_edition_retablir_cd"
-                    android:src="@drawable/ic_edition_retablir" />
+        <ImageButton
+            android:id="@+id/bouton_retablir"
+            style="@style/Widget.CodeIDE.Apercu.BoutonHud"
+            android:layout_width="@dimen/apercu_edition_bouton"
+            android:layout_height="@dimen/apercu_edition_bouton"
+            android:contentDescription="@string/preview_edition_retablir_cd"
+            android:src="@drawable/apercu_ic_retablir" />
 
                 <View
-                    android:layout_width="1dp"
+                    android:layout_width="@dimen/apercu_trait_titre"
                     android:layout_height="match_parent"
-                    android:layout_marginVertical="6dp"
-                    android:layout_marginStart="2dp"
-                    android:layout_marginEnd="4dp"
-                    android:background="?attr/colorOutlineVariant" />
+                    android:layout_marginStart="@dimen/apercu_edition_sep_h"
+                    android:layout_marginTop="@dimen/apercu_edition_sep_v"
+                    android:layout_marginEnd="@dimen/apercu_edition_sep_h"
+                    android:layout_marginBottom="@dimen/apercu_edition_sep_v"
+                    android:background="?attr/apercuTrait" />
 
-                <ImageButton
-                    android:id="@+id/bouton_dupliquer"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:contentDescription="@string/preview_edition_dupliquer_cd"
-                    android:src="@drawable/ic_edition_dupliquer" />
+        <ImageButton
+            android:id="@+id/bouton_dupliquer"
+            style="@style/Widget.CodeIDE.Apercu.BoutonHud"
+            android:layout_width="@dimen/apercu_edition_bouton"
+            android:layout_height="@dimen/apercu_edition_bouton"
+            android:contentDescription="@string/preview_edition_dupliquer_cd"
+            android:src="@drawable/apercu_ic_dupliquer" />
 
-                <ImageButton
-                    android:id="@+id/bouton_supprimer"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:contentDescription="@string/preview_edition_supprimer_cd"
-                    android:src="@drawable/ic_edition_supprimer" />
+        <ImageButton
+            android:id="@+id/bouton_supprimer"
+            style="@style/Widget.CodeIDE.Apercu.BoutonHud"
+            android:layout_width="@dimen/apercu_edition_bouton"
+            android:layout_height="@dimen/apercu_edition_bouton"
+            android:contentDescription="@string/preview_edition_supprimer_cd"
+            android:src="@drawable/apercu_ic_supprimer" />
             </LinearLayout>
 
-            <!-- La PASTILLE d'état (PE10a, miroir `.status` de la
-                 maquette) : point coloré + « Rendu · 142 ms · 9 vues ·
-                 393×851 dp » — une VUE de la couche HUD (elle glisse avec
-                 la feuille, jamais recouverte par le peek) ; elle QUITTE
-                 le Canvas du moteur (zéro-Material respecté). -->
+            <!-- .toast : pastille inversée, haut-centre, fondu 200 ms, 2,4 s. -->
+            <TextView
+                android:id="@+id/toast_apercu"
+                style="@style/Widget.CodeIDE.Apercu.Toast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="@dimen/apercu_toast_haut"
+                android:alpha="0"
+                android:maxWidth="@dimen/apercu_toast_largeur_max"
+                android:visibility="gone" />
+
+            <!-- .status : pilule bas-gauche ; le code la remonte avec la feuille (translationY). -->
             <LinearLayout
                 android:id="@+id/pastille_etat"
+                style="@style/Widget.CodeIDE.Apercu.Etat"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|start"
-                android:layout_margin="@dimen/spacing_sm"
-                android:background="@drawable/fond_barre_edition"
-                android:elevation="4dp"
-                android:gravity="center_vertical"
+                android:layout_margin="@dimen/apercu_hud_marge"
                 android:orientation="horizontal"
-                android:paddingStart="10dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="6dp"
                 android:visibility="gone">
 
                 <View
                     android:id="@+id/pastille_point"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
-                    android:background="@drawable/fond_point_pastille" />
+                    android:layout_width="@dimen/apercu_etat_point"
+                    android:layout_height="@dimen/apercu_etat_point"
+                    android:layout_marginEnd="@dimen/apercu_etat_point_gap"
+                    android:background="@drawable/apercu_etat_point" />
 
                 <TextView
                     android:id="@+id/pastille_etat_texte"
+                    style="@style/Widget.CodeIDE.Apercu.Texte"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
                     android:singleLine="true"
-                    android:textAppearance="@style/TextAppearance.CodeIDE.LabelMedium"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Etat" />
             </LinearLayout>
 
-            <!-- HUD de zoom (PE6b, miroir `.zoom` de la maquette) : colonne
-                 bas-droite — zoom avant, 100 %, ajuster, zoom arrière. Il
-                 remonte au déploiement de la feuille (miroir applySheet). -->
+            <!-- .zoom : colonne bas-droite, +, 100 %, ajuster, −. -->
             <LinearLayout
                 android:id="@+id/hud_zoom"
+                style="@style/Widget.CodeIDE.Apercu.Hud"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="@dimen/spacing_sm"
-                android:background="@drawable/fond_barre_edition"
-                android:elevation="4dp"
-                android:orientation="vertical"
-                android:padding="4dp">
+                android:layout_margin="@dimen/apercu_hud_marge"
+                android:orientation="vertical">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_zoom_avant"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/preview_zoom_avant_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_zoom_avant" />
+        <TextView
+            android:id="@+id/bouton_zoom_avant"
+            style="@style/Widget.CodeIDE.Apercu.ZoomBouton"
+            android:layout_width="@dimen/apercu_zoom_largeur"
+            android:layout_height="@dimen/apercu_zoom_hauteur"
+            android:contentDescription="@string/preview_zoom_avant_cd"
+            android:text="@string/preview_zoom_avant" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_zoom_pct"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/preview_zoom_100_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_zoom_100" />
+        <TextView
+            android:id="@+id/bouton_zoom_pct"
+            style="@style/Widget.CodeIDE.Apercu.ZoomBouton"
+            android:layout_width="@dimen/apercu_zoom_largeur"
+            android:layout_height="@dimen/apercu_zoom_hauteur"
+            android:contentDescription="@string/preview_zoom_100_cd"
+            android:text="@string/preview_zoom_100" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_zoom_ajuster"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/preview_zoom_ajuster_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_zoom_ajuster" />
+        <TextView
+            android:id="@+id/bouton_zoom_ajuster"
+            style="@style/Widget.CodeIDE.Apercu.ZoomBouton"
+            android:layout_width="@dimen/apercu_zoom_largeur"
+            android:layout_height="@dimen/apercu_zoom_hauteur"
+            android:contentDescription="@string/preview_zoom_ajuster_cd"
+            android:text="@string/preview_zoom_ajuster" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_zoom_arriere"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/preview_zoom_arriere_cd"
-                    android:minWidth="0dp"
-                    android:text="@string/preview_zoom_arriere" />
+        <TextView
+            android:id="@+id/bouton_zoom_arriere"
+            style="@style/Widget.CodeIDE.Apercu.ZoomBouton"
+            android:layout_width="@dimen/apercu_zoom_largeur"
+            android:layout_height="@dimen/apercu_zoom_hauteur"
+            android:contentDescription="@string/preview_zoom_arriere_cd"
+            android:text="@string/preview_zoom_arriere" />
             </LinearLayout>
 
-            <!-- La PALETTE de widgets (PE7c, miroir `.pop.pal`) : VUE de
-                 l'activité (jamais une fenêtre de dialogue — le dépôt doit
-                 passer), posée au-dessus de l'aperçu, masquée pendant un
-                 glisser (miroir `.phone.dragging .bubble`). -->
+            <!-- .bubble : 58 dp = 50 + halo 4 de chaque côté. Marge 6 = 10 (maquette) - 4 (halo). -->
+            <jo.codeide.feature.preview.BulleFlottante
+                android:id="@+id/bulle_palette"
+                android:layout_width="@dimen/apercu_bulle_vue"
+                android:layout_height="@dimen/apercu_bulle_vue"
+                android:layout_marginStart="@dimen/apercu_bulle_marge"
+                android:background="@drawable/apercu_bulle_fond"
+                android:contentDescription="@string/preview_bulle_cd"
+                android:elevation="@dimen/apercu_bulle_elevation" />
+
+            <!-- Les popovers passent AU-DESSUS de la bulle (maquette : .pop z-index 8, .bubble 6). -->
             <FrameLayout
                 android:id="@+id/conteneur_palette"
                 android:layout_width="match_parent"
@@ -334,31 +406,16 @@
                 android:clipChildren="false"
                 android:visibility="gone" />
 
-            <!-- Le POPUP de placement (PE7c, miroir `.pop.bot`) : l'arbre
-                 des vues rendues, Avant/Dedans/Après, le résumé, le bouton
-                 violet — et le repère en direct sur l'aperçu. -->
             <FrameLayout
                 android:id="@+id/conteneur_placement"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipChildren="false"
                 android:visibility="gone" />
-
-            <!-- La BULLE de palette (PE7c, miroir `.bubble`) : 50 dp,
-                 coins 17 dp, fond violet, déplaçable aux bords gauche et
-                 droit (aimantation), position persistée (SettingsDataStore). -->
-            <jo.codeide.feature.preview.BulleFlottante
-                android:id="@+id/bulle_palette"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginStart="10dp"
-                android:contentDescription="@string/preview_bulle_cd"
-                android:elevation="8dp" />
         </FrameLayout>
     </LinearLayout>
 
-    <!-- La feuille inférieure (PE6d) : le fragment la porte — le
-         BottomSheetBehavior se pose par code (hauteur repliée 72 dp). -->
+    <!-- La feuille inférieure : voir fragment_feuille_apercu.xml (ADR 0132). -->
     <FrameLayout
         android:id="@+id/conteneur_feuille"
         android:layout_width="match_parent"

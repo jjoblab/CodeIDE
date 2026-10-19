@@ -1,14 +1,13 @@
 package jo.codeide.feature.preview
 
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -28,6 +27,7 @@ import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ModeApercu
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProfilPeripherique
+import jo.codeide.preview.xml.RegimeRendu
 import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.VuePreviewXml
 import jo.codeide.preview.xml.ZonesDepot
@@ -50,14 +50,16 @@ import jo.codeide.core.ui.R as RUi
  * - [PreviewViewModel] : moteur (rotation sûre), source du registre,
  *   projet (`res/` FUSE, thème, label), réglages persistés (PE7c) ;
  * - [ControleurPreviewXml] : couture moteur ↔ vue + tap → span ;
- * - CETTE activité : chrome Material — toolbar (SOUS-TITRE « res/layout
- *   · rendu en X », miroir `.ttl span`), PUCES défilantes (miroir
- *   `.chips` : appareil ▾, portrait/paysage PE6e-f, jour, langue,
+ * - CETTE activité : chrome — BARRE DU HAUT 52 dp en LinearLayout (PE11i,
+ *   ADR 0134 D1 : bouton retour, titre mono + sous-titre, PASTILLE de
+ *   mode, bouton plus → PopupMenu — plus d'ActionBar), PUCES défilantes
+ *   (miroir `.chips` : appareil ▾, portrait/paysage PE6e-f, jour, langue,
  *   police PE6e-f, calques ▾), HUD de zoom, BARRE D'ÉDITION (PE7d,
  *   miroir `.edit` : annuler, rétablir | dupliquer, supprimer), BULLE
  *   + PALETTE + POPUP DE PLACEMENT (PE7c, miroirs `.bubble`/`.pop.pal`/
- *   `.pop.bot`) — le module porte le chrome, le moteur `:preview:xml`
- *   reste zéro-Material (règle du module).
+ *   `.pop.bot`), BANDEAU d'erreur et TOAST en VUES (PE11i, D6) — le
+ *   module porte le chrome, le moteur `:preview:xml` reste zéro-Material
+ *   (règle du module) et reçoit ses couleurs par JETONS injectés (D7).
  *
  * PE7c — PALETTE COMME VUE : la palette est une VUE de l'activité (le
  * popover de l'explorateur, jamais une fenêtre de dialogue — le dépôt
@@ -116,6 +118,15 @@ public class PreviewActivity : AppCompatActivity() {
     /** Les POPOVERS MENUS translucides (PE9c) — calques, appareil. */
     private val menuApercu: PopoverMenuApercu by lazy { PopoverMenuApercu(liaison.root) }
 
+    /** Le BANDEAU d'erreur/toast en vues (PE11i, D6 — chrome dédié). */
+    private val bandeau: BandeauApercu by lazy { BandeauApercu(liaison) }
+
+    /** Le TOAST en vue (PE11i, D6 — remplace tout Toast système). */
+    private val toastApercu: ToastApercu by lazy { ToastApercu(liaison.toastApercu) }
+
+    /** Le processus `:preview` est-il ARRÊTÉ (bandeau « Réessayer », PE11i D6). */
+    private var regimeArrete = false
+
     /** Le widget en placement par popup (miroir `S.place.w`). */
     private var widgetEnPlacement: ZonesDepot.ContenuDepot? = null
 
@@ -134,10 +145,15 @@ public class PreviewActivity : AppCompatActivity() {
         liaison = ActivityPreviewBinding.inflate(layoutInflater)
         setContentView(liaison.root)
 
-        liaison.toolbarPreview.applySystemBarsInsets(top = true, bottom = false)
-        setSupportActionBar(liaison.toolbarPreview)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        liaison.toolbarPreview.setNavigationOnClickListener { navigateur.goBack() }
+        // PE11i (ADR 0134 D1) : plus d'ActionBar — la barre du haut est un
+        // LinearLayout de 52 dp ; l'inset de barre d'état va à l'EN-TÊTE
+        // (fond surface), le menu « Choisir le fichier… » s'ouvre par un
+        // PopupMenu ancré au bouton « plus ».
+        liaison.entetePreview.applySystemBarsInsets(top = true, bottom = false)
+        liaison.boutonRetour.setOnClickListener { navigateur.goBack() }
+        liaison.boutonPlus.setOnClickListener { ouvrirMenuPlus() }
+        // PE11i (D7) : les JETONS du moteur sont posés AVANT tout tracé.
+        poserJetonsMoteur()
 
         brancherSelectionEtDepot()
         brancherPucesReglages()
@@ -187,10 +203,11 @@ public class PreviewActivity : AppCompatActivity() {
      * recalcule (Les deux double la largeur) et le rendu suit.
      */
     private fun brancherModeApercu() {
-        liaison.groupeModeApercu.addOnButtonCheckedListener { _, checkedId, coche ->
-            if (!coche) return@addOnButtonCheckedListener
+        // PE11i (D2) : ChipGroup à sélection unique OBLIGATOIRE —
+        // l'écouteur devient setOnCheckedStateChangeListener.
+        liaison.groupeModeApercu.setOnCheckedStateChangeListener { groupe, _ ->
             liaison.vuePreview.modeAffichage =
-                when (checkedId) {
+                when (groupe.checkedChipId) {
                     R.id.mode_plan -> ModeApercu.PLAN
                     R.id.mode_les_deux -> ModeApercu.LES_DEUX
                     else -> ModeApercu.DESIGN
@@ -274,10 +291,18 @@ public class PreviewActivity : AppCompatActivity() {
             // PE6e-f + sous-titre + PASTILLE d'état (PE10a) : chaque état
             // du moteur met le chrome à jour (profil, orientation, durée,
             // vues — miroir `ttlProfile`/`lblOrient`/`renderStatus`).
+            // PE11i (D6) : le BANDEAU suit le même état (vue, plus de
+            // dessin moteur).
             viewModel.moteur.etat.collect { etat ->
                 majTitre()
                 majPastilleEtat(etat)
+                majBandeau(etat)
             }
+        }
+        launch {
+            // PE11i (D6) : le régime ISOLÉ / LOCAL_DÉGRÉ porte le bandeau
+            // « processus arrêté » (bouton « Réessayer »).
+            viewModel.moteur.regime.collect { regime -> majBandeauRegime(regime) }
         }
     }
 
@@ -340,8 +365,11 @@ public class PreviewActivity : AppCompatActivity() {
         liaison.pastilleEtat.translationY = -delta * decalage
         // La bulle ne glisse pas SOUS la feuille déployée
         // (miroir le `hi` de `placeBubble` qui suit `S.open`).
+        // PE11i : la réserve de la bulle = HUD de zoom + sa marge (10 dp,
+        // par ressource — plus de littéral).
         liaison.bullePalette.reserveBas =
-            (liaison.hudZoom.height + dp(RETRAIT_HUD_DP)) + deployeePx.toInt()
+            (liaison.hudZoom.height + resources.getDimensionPixelSize(R.dimen.apercu_hud_marge)) +
+            deployeePx.toInt()
         liaison.bullePalette.reposer()
     }
 
@@ -370,19 +398,17 @@ public class PreviewActivity : AppCompatActivity() {
                         etat.dureeMs,
                         dimensions,
                     )
-                teinterPastille(RUi.attr.colorSucces)
+                teinterPastille(R.attr.apercuSucces)
             }
 
             is EtatPreviewXml.ErreurRendu -> {
                 liaison.pastilleEtatTexte.setText(R.string.preview_pastille_erreur)
-                teinterPastille(androidx.appcompat.R.attr.colorError)
+                teinterPastille(R.attr.apercuErreur)
             }
 
             EtatPreviewXml.EnEdition -> {
                 liaison.pastilleEtatTexte.setText(R.string.preview_pastille_edition)
-                // L'ambre de la maquette (`.status.edit` #9A6700, nuit
-                // #FDD663) est un attribut du thème depuis PE11a
-                // (jeton `apercu_avert` — mêmes valeurs que journal_warn).
+                // L'ambre de la maquette (`.status.edit` — jeton apercuAvert).
                 teinterPastille(R.attr.apercuAvert)
             }
 
@@ -396,6 +422,62 @@ public class PreviewActivity : AppCompatActivity() {
     private fun teinterPastille(attribut: Int) {
         liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleur(this, attribut))
         liaison.pastilleEtat.isVisible = true
+    }
+
+    // ── Bandeau, toast et jetons (PE11i — ADR 0134 D6/D7) ──────────────
+
+    /**
+     * Le bandeau suit l'ÉTAT du moteur (PE11i, D6) : l'erreur sémantique
+     * avec UNE ligne de message (le dernier rendu reste affiché dessous),
+     * boutons « Ligne n » et « Détails » ↔ « Réduire » — le bandeau du
+     * processus arrêté PRIME (régime). Le chrome vit dans [BandeauApercu].
+     */
+    private fun majBandeau(etat: EtatPreviewXml) {
+        if (regimeArrete) return
+        val erreur = etat as? EtatPreviewXml.ErreurRendu
+        if (erreur == null) {
+            bandeau.masquer()
+            return
+        }
+        bandeau.montrerErreur(erreur) { ligne -> ouvrirSourceALigne(ligne) }
+    }
+
+    /**
+     * Le bandeau du PROCESSUS ARRÊTÉ (PE11i, D6) : message honnête du
+     * repli local + bouton « Réessayer » (réactivation de l'isolation).
+     */
+    private fun majBandeauRegime(regime: RegimeRendu) {
+        regimeArrete = regime == RegimeRendu.LOCAL_DEGRADE
+        if (regimeArrete) {
+            bandeau.montrerProcessusArrete(getString(R.string.preview_bandeau_crash)) {
+                viewModel.reactiverIsolation()
+            }
+        } else {
+            bandeau.masquer()
+        }
+    }
+
+    /** « Ligne n » : ouvre l'onglet Source de la feuille, amené à la ligne. */
+    private fun ouvrirSourceALigne(ligne: Int) {
+        (supportFragmentManager.findFragmentById(R.id.conteneur_feuille) as? FeuilleApercuFragment)
+            ?.ouvrirSourceALigne(ligne)
+    }
+
+    /**
+     * Les JETONS du moteur (PE11i, D7) : résolus du THÈME courant (clair
+     * ou nuit) et injectés AVANT le premier tracé, puis à chaque
+     * changement de configuration (le thème suit l'application).
+     */
+    private fun poserJetonsMoteur() {
+        liaison.vuePreview.appliquerJetons(StyleVolet.jetonsCalques(this))
+    }
+
+    override fun onConfigurationChanged(nouvelleConfiguration: Configuration) {
+        super.onConfigurationChanged(nouvelleConfiguration)
+        // PE11i (D7) : jour/nuit système → les jetons du moteur se
+        // RE-POSENT (l'activité est recréée par défaut ; ceci couvre les
+        // changements déclarés au manifeste).
+        poserJetonsMoteur()
     }
 
     /**
@@ -457,11 +539,13 @@ public class PreviewActivity : AppCompatActivity() {
         paletteCourante.auTuilePlace = { entree -> ouvrirPlacement(entree) }
         paletteCourante.auGlisser = { entree, vueTuile -> lancerDrag(entree, vueTuile) }
         liaison.conteneurPalette.visibility = View.VISIBLE
+        liaison.bullePalette.ouverte = true
     }
 
-    /** Masque la palette (miroir `hidePop` : les expanded tombent). */
+    /** Masque la palette (miroir `hidePop` : les expanded tombent) et ferme la bulle. */
     private fun masquerPalette() {
         liaison.conteneurPalette.visibility = View.GONE
+        liaison.bullePalette.ouverte = false
     }
 
     /**
@@ -611,22 +695,24 @@ public class PreviewActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_preview, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean =
-        when (item.itemId) {
-            R.id.action_choisir_fichier -> {
+    /**
+     * Le menu « Choisir le fichier… » (PE11i, D1) : l'ancien menu
+     * d'options de l'ActionBar devient un PopupMenu ancré au bouton
+     * « plus » (`R.menu.menu_preview`).
+     */
+    private fun ouvrirMenuPlus() {
+        val menu = PopupMenu(this, liaison.boutonPlus)
+        menu.menuInflater.inflate(R.menu.menu_preview, menu.menu)
+        menu.setOnMenuItemClickListener { element ->
+            if (element.itemId == R.id.action_choisir_fichier) {
                 ouvrirSelecteurFichier()
                 true
-            }
-
-            else -> {
-                super.onOptionsItemSelected(item)
+            } else {
+                false
             }
         }
+        menu.show()
+    }
 
     /**
      * Feuille de choix de l'appareil (PE6b, miroir `showPop("device")`
@@ -639,6 +725,9 @@ public class PreviewActivity : AppCompatActivity() {
             menuApercu.masquer()
             return
         }
+        // PE11i (D2) : l'état « menu ouvert » de la puce = isActivated.
+        liaison.boutonAppareilApercu.isActivated = true
+        menuApercu.auFermer = { liaison.boutonAppareilApercu.isActivated = false }
         menuApercu.montrer(R.layout.popover_menu_appareil, liaison.boutonAppareilApercu) { vue ->
             val popover = PopoverMenuAppareilBinding.bind(vue)
             // L'ordre des rangées du XML suit ProfilPeripherique.CATALOGUE.
@@ -676,6 +765,9 @@ public class PreviewActivity : AppCompatActivity() {
             menuApercu.masquer()
             return
         }
+        // PE11i (D2) : l'état « menu ouvert » de la puce = isActivated.
+        liaison.boutonCalquesApercu.isActivated = true
+        menuApercu.auFermer = { liaison.boutonCalquesApercu.isActivated = false }
         menuApercu.montrer(R.layout.popover_menu_calques, liaison.boutonCalquesApercu) { vue ->
             lierCalques(PopoverMenuCalquesBinding.bind(vue))
         }
@@ -808,13 +900,16 @@ public class PreviewActivity : AppCompatActivity() {
      */
     private fun majTitre() {
         val nom = viewModel.nomFichierCourant()
-        supportActionBar?.title = nom.ifBlank { getString(R.string.preview_titre) }
-        supportActionBar?.subtitle =
+        // PE11i (D1) : le titre et le sous-titre sont des TextView du bloc
+        // titre (plus d'ActionBar) ; la LÉGENDE de planche suit le profil.
+        liaison.titreApercu.text = nom.ifBlank { getString(R.string.preview_titre) }
+        liaison.sousTitreApercu.text =
             getString(
                 R.string.preview_sous_titre_format,
                 dossierSource(),
                 controleur?.profil?.nom ?: "",
             )
+        liaison.vuePreview.libelleProfil = controleur?.profil?.nom ?: ""
         majReglages()
     }
 
@@ -830,18 +925,18 @@ public class PreviewActivity : AppCompatActivity() {
     private fun nomConteneur(): String = viewModel.dernierParentDepot ?: ""
 
     private fun toast(resId: Int) {
-        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
+        toastApercu.montrer(getString(resId))
     }
 
     private fun toast(texte: String) {
-        Toast.makeText(this, texte, Toast.LENGTH_SHORT).show()
+        toastApercu.montrer(texte)
     }
 
     private fun toast(
         resId: Int,
         argument: String,
     ) {
-        Toast.makeText(this, getString(resId, argument), Toast.LENGTH_SHORT).show()
+        toastApercu.montrer(getString(resId, argument))
     }
 
     /**
@@ -858,8 +953,6 @@ public class PreviewActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun dp(valeur: Int): Int = (valeur * resources.displayMetrics.density).toInt()
-
     /** UNE entrée du popover Calques : titre, état lu à la volée, pose. */
     private data class EntreeCalque(
         val titreRes: Int,
@@ -875,8 +968,5 @@ public class PreviewActivity : AppCompatActivity() {
 
         /** Conversion échelle → pourcentage affiché (2,56 = 256 %). */
         private const val POURCENTAGE: Int = 100
-
-        /** Retrait autour du HUD de zoom, en dp (réserve de la bulle). */
-        private const val RETRAIT_HUD_DP: Int = 16
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coque des popovers (.pop) : surface OPAQUE, trait 1 dp, rayon 16. Remplace fond_popover_apercu et fond_menu_apercu (translucide) : ADR 0134, décision D3. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_popover_rayon" />
+</shape>

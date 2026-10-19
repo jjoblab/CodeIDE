@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond des boutons du HUD (.zoom button, .edit button) : ondulation « surface 2 », rayon 10. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="?attr/apercuSurface2">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <corners android:radius="@dimen/apercu_hud_bouton_rayon" />
+        </shape>
+    </item>
+</ripple>
