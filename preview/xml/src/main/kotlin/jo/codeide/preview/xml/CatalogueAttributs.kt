@@ -155,6 +155,19 @@ public object CatalogueAttributs {
             val etiquette: Etiquette,
         ) : ControleAttribut()
 
+        /**
+         * Une liste déroulante (PE11c — miroir `list` de la maquette, § 9 :
+         * tout enum de PLUS de 4 valeurs ; 4 ou moins reste un [Choix]) :
+         * l'UI ajoute une première entrée « par défaut » qui RETIRE
+         * l'attribut, et une valeur courante hors catalogue est AJOUTÉE à
+         * la fin (miroir `if (cur && !opts.includes(cur)) opts.push(cur)`).
+         */
+        public data class Liste(
+            val nom: String,
+            val etiquette: Etiquette,
+            val valeurs: List<String>,
+        ) : ControleAttribut()
+
         /** Les quatre côtés d'une marge ou d'un padding (miroir `.mrow`). */
         public data class Cotes(
             val base: String,
@@ -182,7 +195,21 @@ public object CatalogueAttributs {
     private val TYPES_SAISIE: List<String> = listOf("text", "textEmailAddress", "textPassword", "number")
     private val FONDS: List<String> = listOf("outline", "filled")
     private val ICONES_FIN: List<String> = listOf("none", "password_toggle", "clear_text")
-    private val TYPES_ECHELLE: List<String> = listOf("fitCenter", "centerCrop", "centerInside", "fitXY")
+
+    // scaleType : les 8 valeurs plateforme (SCALE de la maquette) — le
+    // catalogue PE7e n'en portait que 4 (rétrécies pour tenir en segments) ;
+    // plus de 4 valeurs ⇒ liste déroulante (règle § 9 / maquette « Liste »).
+    private val TYPES_ECHELLE: List<String> =
+        listOf(
+            "matrix",
+            "fitXY",
+            "fitStart",
+            "fitCenter",
+            "fitEnd",
+            "center",
+            "centerCrop",
+            "centerInside",
+        )
     private val VISIBILITES: List<String> = listOf("visible", "invisible", "gone")
 
     /**
@@ -349,7 +376,7 @@ public object CatalogueAttributs {
                 TitreSection.IMAGE,
                 listOf(
                     ControleAttribut.Texte("android:src", Etiquette.SOURCE),
-                    ControleAttribut.Choix("android:scaleType", Etiquette.TYPE_ECHELLE, TYPES_ECHELLE),
+                    ControleAttribut.Liste("android:scaleType", Etiquette.TYPE_ECHELLE, TYPES_ECHELLE),
                 ),
             )
         }

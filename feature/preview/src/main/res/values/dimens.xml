@@ -61,6 +61,7 @@
     <dimen name="apercu_recherche_rayon">10dp</dimen>  <!-- .search radius -->
     <dimen name="apercu_champ_hauteur_min">34dp</dimen>  <!-- 33.6 mesuré -->
     <dimen name="apercu_recherche_hauteur_min">36dp</dimen>  <!-- 35.6 mesuré -->
+    <dimen name="apercu_liste_hauteur_min">36dp</dimen>  <!-- .fld select : hauteur 36 -->
     <dimen name="apercu_champ_pad_h">11dp</dimen>  <!-- 10 (css) + 1 (trait) -->
     <dimen name="apercu_champ_pad_v">9dp</dimen>  <!-- 8 (css) + 1 (trait) -->
     <dimen name="apercu_recherche_pad_h">13dp</dimen>  <!-- 12 (css) + 1 (trait) -->
