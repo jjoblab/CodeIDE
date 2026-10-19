@@ -255,6 +255,20 @@ public object CatalogueAttributs {
                 }
         }
 
+        /**
+         * Le contrôle COULEUR (PE11e — miroir `col` de la maquette,
+         * § 9 `controle_couleur`) : pastille à TROIS couches (damier,
+         * teinte, cadre), champ hex et bouton « Palette » qui montre
+         * les `@color` du projet. La valeur est VALIDÉE avant
+         * écriture (miroir `vCol` — [ValidationAttribut]) : une
+         * ERREUR n'écrit RIEN, un AVERTISSEMENT écrit quand même,
+         * le vide RETIRE l'attribut (miroir `setEx` à valeur vide).
+         */
+        public data class Couleur(
+            val nom: String,
+            val etiquette: Etiquette,
+        ) : ControleAttribut()
+
         /** Les quatre côtés d'une marge ou d'un padding (miroir `.mrow`). */
         public data class Cotes(
             val base: String,
@@ -454,7 +468,7 @@ public object CatalogueAttributs {
                     ControleAttribut.Nombre("android:textSize", Etiquette.TAILLE_SP, "sp"),
                     ControleAttribut.Drapeaux("android:textStyle", Etiquette.STYLE, STYLES_DRAPEAUX),
                     ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
-                    ControleAttribut.Texte("android:textColor", Etiquette.COULEUR),
+                    ControleAttribut.Couleur("android:textColor", Etiquette.COULEUR),
                 ),
             )
         }

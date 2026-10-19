@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle COULEUR (maquette `.colr`) : pastille 34×34 (damier + couleur + cadre), champ hex
+  (mono non : 13 sp), bouton « Palette » (lien). Grille 34 dp | 1fr | auto, écart 6 dp. La palette
+  (`.cpal`) s'insère SOUS la rangée : bloc surface 2, rayon 8, padding 8, pastilles 28 dp, écart 6.
+  La pastille se compose de TROIS couches : damier (DamierPastille, tuile 10 dp, apercu_damier_a/b),
+  couleur courante (backgroundTint), cadre apercu_pastille_couleur_cadre.
+
+  Écart documenté (PE11e) : la référence N'a PAS de vue de message — la maquette AJOUTE un bloc
+  `.fmsg` au DOM à la volée (showMsg). Android ne gonfle pas de vues en cours de route : le
+  message de validation (ERREUR n'écrit rien / AVERTISSEMENT écrit quand même) vit donc ICI,
+  invisible au repos, même patron que `controle_texte` (l'écart n'est pas une réinvention :
+  le comportement affiché reste celui de showMsg — message persistent sous la rangée).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_couleur"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <LinearLayout
+        android:id="@+id/rangee_couleur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/pastille_couleur"
+            android:layout_width="@dimen/apercu_pastille_couleur"
+            android:layout_height="@dimen/apercu_pastille_couleur"
+            android:contentDescription="@string/preview_attr_couleur_apercu_desc">
+
+            <View
+                android:id="@+id/pastille_damier"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <View
+                android:id="@+id/pastille_teinte"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/apercu_pastille_couleur_cadre" />
+        </FrameLayout>
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/champ_couleur"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_couleur_gap"
+            android:layout_weight="1"
+            android:hint="@string/preview_attr_couleur_hint"
+            android:imeOptions="actionDone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_palette"
+            style="@style/Widget.CodeIDE.Apercu.BoutonLien"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_couleur_gap"
+            android:text="@string/preview_attr_palette" />
+    </LinearLayout>
+
+    <!-- La palette : cachée tant que « Palette » n'est pas ouvert. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/palette_couleurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:background="@drawable/apercu_champ_lecture_fond"
+        android:clipToPadding="false"
+        android:padding="@dimen/apercu_palette_pad"
+        android:visibility="gone" />
+
+    <!-- Message de validation : SOUS tout (miroir showMsg qui AJOUTE .fmsg à la fin du bloc). -->
+    <TextView
+        android:id="@+id/message_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
+</LinearLayout>

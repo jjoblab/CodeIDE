@@ -21,6 +21,7 @@ import jo.codeide.feature.preview.databinding.CarteSectionBinding
 import jo.codeide.feature.preview.databinding.ControleContrainteBinding
 import jo.codeide.feature.preview.databinding.ControleContraintesBinding
 import jo.codeide.feature.preview.databinding.ControleCotesBinding
+import jo.codeide.feature.preview.databinding.ControleCouleurBinding
 import jo.codeide.feature.preview.databinding.ControleDimensionsBinding
 import jo.codeide.feature.preview.databinding.ControleDrapeauxBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
@@ -41,11 +42,13 @@ import jo.codeide.feature.preview.databinding.SaisieNombreBinding
 import jo.codeide.feature.preview.databinding.SaisieTexteBinding
 import jo.codeide.feature.preview.databinding.SeparateurEditeurBinding
 import jo.codeide.preview.xml.CatalogueAttributs
+import jo.codeide.preview.xml.CouleursProjetXml
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.RenommageIdentifiant
+import jo.codeide.preview.xml.ValidationAttribut
 
 /**
  * Le volet ATTRIBUTS de la feuille (PE11b, miroir `renderAttrs` +
@@ -220,6 +223,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
+            is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
+
             is CatalogueAttributs.ControleAttribut.Cotes,
             CatalogueAttributs.ControleAttribut.Dimensions,
             CatalogueAttributs.ControleAttribut.Contraintes,
@@ -240,6 +245,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.Drapeaux -> controleDrapeaux(controle, attrs)
             is CatalogueAttributs.ControleAttribut.TypeSaisie -> controleTypeSaisie(controle, attrs)
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
             CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
@@ -719,6 +725,265 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             groupe.addView(segment.root)
         }
     }
+
+    /**
+     * Un contrôle COULEUR (controle_couleur.xml, PE11e — miroir `colr`
+     * de la maquette) : pastille à TROIS couches (damier posé en code —
+     * [DamierPastille], miroir `DamierDrawable` de la référence — puis
+     * teinte TINTÉE, cadre du layout), champ hex VALIDÉ au commit
+     * (miroir `vCol` : ERREUR n'écrit rien, AVERTISSEMENT écrit quand
+     * même, vide RETIRE l'attribut), bouton « Palette » qui ouvre les
+     * `@color` du projet + les entrées fixes (miroir `.cpal`).
+     */
+    private fun controleCouleur(
+        controle: CatalogueAttributs.ControleAttribut.Couleur,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleCouleurBinding.inflate(gonfleur())
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        val valeur = valeurDe(controle.nom, attrs)
+        bloc.pastilleDamier.background = DamierPastille(bloc.root.resources)
+        poserTeintePastille(bloc.pastilleTeinte, valeur)
+        bloc.champCouleur.setText(valeur ?: "")
+        val libelleHint = getString(R.string.preview_attr_couleur_hint)
+        bloc.champCouleur.hint = libelleHint
+        bloc.champCouleur.contentDescription = libelleHint
+        val commettre = { commiterCouleur(bloc, controle, attrs) }
+        bloc.champCouleur.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) bloc.champCouleur.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        bloc.champCouleur.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        // L'avertissement de la valeur COURANTE se montre d'emblée
+        // (miroir `const m0 = vCol(cur); if (m0.warn) showMsg(f, m0)`).
+        when (val verdict = verdictCouleur(valeur)) {
+            is ValidationAttribut.Resultat.Avertissement -> {
+                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre)
+            }
+
+            else -> {
+                masquerMessageCouleur(bloc)
+            }
+        }
+        bloc.boutonPalette.setOnClickListener {
+            basculerPaletteCouleurs(bloc, controle)
+        }
+        return bloc.root
+    }
+
+    /**
+     * Le VERDICT de validation d'une valeur du contrôle couleur : les
+     * `@color`/`@drawable` du projet nourrissent l'avertissement
+     * « introuvable » (miroir `RES` de la maquette — l'état VIVANT du
+     * ViewModel, rechargé à chaque suivi de projet).
+     */
+    private fun verdictCouleur(valeur: String?): ValidationAttribut.Resultat =
+        ValidationAttribut.couleur(
+            valeur,
+            viewModel.couleursProjet.value
+                .map { it.nom }
+                .toSet(),
+            viewModel.drawablesProjet.value,
+        )
+
+    /**
+     * POSE la TEINTE de la pastille du contrôle couleur (miroir
+     * `sw.style.setProperty('--c', colorCss(cur) || 'transparent')`) :
+     * résolution par [CouleursProjetXml.resoudre] (hex, `@color/`, trio
+     * `@android:color/`), puis le THÈME de l'aperçu pour les six
+     * `?attr/` de `ATTRS_THEME` (miroir `ATTR_CSS` — le thème Material
+     * de l'activité porte les mêmes noms). Introuvable = SANS teinte :
+     * le damier reste seul (miroir `transparent`).
+     */
+    private fun poserTeintePastille(
+        vue: View,
+        valeur: String?,
+    ) {
+        vue.setBackgroundResource(R.drawable.apercu_pastille_teinte)
+        val teinte =
+            CouleursProjetXml
+                .resoudre(valeur, viewModel.couleursProjet.value.associate { it.nom to it.valeur })
+                ?.toInt()
+                ?: valeur
+                    ?.removePrefix("?attr/")
+                    ?.takeIf { it in CouleursProjetXml.ATTRS_THEME }
+                    ?.let { teinteTheme(it) }
+        vue.backgroundTintList =
+            teinte?.let { couleur ->
+                android.content.res.ColorStateList
+                    .valueOf(couleur)
+            }
+    }
+
+    /**
+     * La couleur d'un ATTRIBUT DE THÈME (miroir `ATTR_CSS` de la
+     * maquette : `colorPrimary`→`var(--s-pri)`, `colorSurface`→
+     * `var(--s-surf)`…) : le thème de l'aperçu porte les MÊMES jetons
+     * par ses attrs propres ([StyleVolet] — résolution par
+     * `resolveAttribute`, jamais d'identifiant d'attr d'une autre
+     * bibliothèque).
+     */
+    private fun teinteTheme(nom: String): Int? {
+        val attr =
+            when (nom) {
+                "colorPrimary" -> R.attr.apercuPrimaire
+                "colorOnPrimary" -> R.attr.apercuSurPrimaire
+                "colorSurface" -> R.attr.apercuSurface
+                "colorOnSurface" -> R.attr.apercuTexte
+                "colorOutline" -> R.attr.apercuTrait
+                "colorError" -> R.attr.apercuErreur
+                else -> return null
+            }
+        val valeur = android.util.TypedValue()
+        return if (requireContext().theme.resolveAttribute(attr, valeur, true)) valeur.data else null
+    }
+
+    /**
+     * Le COMMIT du champ couleur (miroir le `onchange` de la maquette) :
+     * ERREUR → RIEN s'écrit, message rouge + fond de champ d'erreur ;
+     * AVERTISSEMENT → la valeur s'écrit QUAND MÊME, message ambre ;
+     * VALIDE → écrit (le VIDE RETIRE l'attribut, miroir `setEx('')` —
+     * un vide sur un attribut ABSENT reste un no-op silencieux).
+     */
+    private fun commiterCouleur(
+        bloc: ControleCouleurBinding,
+        controle: CatalogueAttributs.ControleAttribut.Couleur,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): Boolean {
+        val saisie =
+            bloc.champCouleur.text
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+        return when (val verdict = verdictCouleur(saisie)) {
+            is ValidationAttribut.Resultat.Erreur -> {
+                montrerMessageCouleur(bloc, R.color.apercu_erreur, verdict.genre)
+                bloc.champCouleur.setBackgroundResource(R.drawable.apercu_champ_fond_erreur)
+                false
+            }
+
+            is ValidationAttribut.Resultat.Avertissement -> {
+                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre)
+                bloc.champCouleur.setBackgroundResource(R.drawable.apercu_champ_fond)
+                if (saisie.isEmpty() && valeurDe(controle.nom, attrs) == null) {
+                    true
+                } else {
+                    editerOuRecharger { viewModel.definirAttributSelection(controle.nom, saisie) }
+                }
+            }
+
+            ValidationAttribut.Resultat.Valide -> {
+                masquerMessageCouleur(bloc)
+                bloc.champCouleur.setBackgroundResource(R.drawable.apercu_champ_fond)
+                if (saisie.isEmpty() && valeurDe(controle.nom, attrs) == null) {
+                    true
+                } else {
+                    editerOuRecharger { viewModel.definirAttributSelection(controle.nom, saisie) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Le MESSAGE de validation sous le contrôle (miroir `showMsg` :
+     * `.fmsg.err` rouge, `.fmsg.warn` ambre — `role=alert` =
+     * `accessibilityLiveRegion` du layout).
+     */
+    private fun montrerMessageCouleur(
+        bloc: ControleCouleurBinding,
+        couleur: Int,
+        genre: ValidationAttribut.GenreMessage,
+    ) {
+        val ressource =
+            when (genre) {
+                ValidationAttribut.GenreMessage.COULEUR_INVALIDE -> R.string.preview_attr_couleur_invalide
+                ValidationAttribut.GenreMessage.COULEUR_INTROUVABLE -> R.string.preview_attr_couleur_introuvable
+                ValidationAttribut.GenreMessage.DRAWABLE_INTROUVABLE -> R.string.preview_attr_drawable_introuvable
+            }
+        bloc.messageControle.text = getString(ressource)
+        bloc.messageControle.setTextColor(
+            androidx.core.content.res.ResourcesCompat
+                .getColor(resources, couleur, null),
+        )
+        bloc.messageControle.isVisible = true
+    }
+
+    /** Retire le message de validation (miroir `showMsg(f, null)` retire le bloc). */
+    private fun masquerMessageCouleur(bloc: ControleCouleurBinding) {
+        bloc.messageControle.isVisible = false
+    }
+
+    /**
+     * OUVRE/FERME la palette de couleurs (miroir le `onclick` du bouton
+     * Palette : la palette se RETIRE au second tap ; `aria-expanded` =
+     * `stateDescription`). Les ressources du projet sont RECHARGÉES à
+     * l'ouverture (elles ont pu changer dans l'éditeur).
+     */
+    private fun basculerPaletteCouleurs(
+        bloc: ControleCouleurBinding,
+        controle: CatalogueAttributs.ControleAttribut.Couleur,
+    ) {
+        val ouvrir = !bloc.paletteCouleurs.isVisible
+        if (ouvrir) viewModel.rechargerRessourcesProjet()
+        bloc.paletteCouleurs.isVisible = ouvrir
+        // `aria-expanded` de la maquette : stateDescription (API 30+, la
+        // garde remplace tout tools:ignore — règle 8).
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            bloc.boutonPalette.stateDescription =
+                getString(if (ouvrir) R.string.preview_attr_palette_ouverte else R.string.preview_attr_palette_fermee)
+        }
+        if (!ouvrir) return
+        val couleurs = viewModel.couleursProjet.value
+        val pastilles =
+            couleurs.map { couleur ->
+                AdaptateurPastilles.Pastille(
+                    nom = "@color/${couleur.nom}",
+                    teinte = CouleursProjetXml.resoudre(couleur.valeur, emptyMap())?.toInt(),
+                )
+            } +
+                CouleursProjetXml.PALETTE_FIXE.map { nom ->
+                    AdaptateurPastilles.Pastille(nom = nom, teinte = teintePaletteFixe(nom))
+                }
+        bloc.paletteCouleurs.adapter =
+            AdaptateurPastilles(pastilles) { choix ->
+                bloc.champCouleur.setText(choix)
+                masquerMessageCouleur(bloc)
+                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, choix) }
+            }
+        bloc.paletteCouleurs.post {
+            val ressources = bloc.paletteCouleurs.resources
+            val cellule =
+                ressources.getDimensionPixelSize(R.dimen.apercu_palette_pastille) +
+                    2 * ressources.getDimensionPixelSize(R.dimen.apercu_pastille_palette_inset)
+            bloc.paletteCouleurs.layoutManager =
+                androidx.recyclerview.widget.GridLayoutManager(
+                    requireContext(),
+                    AdaptateurPastilles.colonnesPastille(bloc.paletteCouleurs.width, cellule),
+                )
+        }
+    }
+
+    /** La teinte d'une entrée FIXE de la palette (trio système + deux `?attr/` de thème). */
+    private fun teintePaletteFixe(nom: String): Int? =
+        when {
+            nom.startsWith("@android:color/") -> {
+                CouleursProjetXml.resoudre(nom, emptyMap())?.toInt()
+            }
+
+            nom.startsWith("?attr/") -> {
+                teinteTheme(nom.removePrefix("?attr/"))
+            }
+
+            else -> {
+                null
+            }
+        }
 
     /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs nommés,
      * miroir `.mrow`). */

@@ -39,6 +39,8 @@ public class CatalogueAttributsTest {
 
                 is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
+                is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
+
                 is CatalogueAttributs.ControleAttribut.Cotes -> controle.base
 
                 CatalogueAttributs.ControleAttribut.Dimensions,
@@ -524,6 +526,38 @@ public class CatalogueAttributsTest {
             "Les modificateurs posés",
             listOf("textAutoCorrect"),
             composite.modificateursPoses("text|textAutoCorrect|xyz"),
+        )
+    }
+
+    @Test
+    fun `tout attribut de couleur porte le controle Couleur - usager textColor`() {
+        // Règle § 9 (PE11e) : un attribut de COULEUR n'est jamais un
+        // champ texte libre — le contrôle `col` de la maquette (pastille
+        // + hex + Palette). Premier usager du catalogue : android:textColor.
+        val texte =
+            CatalogueAttributs
+                .sections("TextView", CatalogueAttributs.GenreParent.AUCUN)
+                .first { it.titre == CatalogueAttributs.TitreSection.TEXTE }
+        val controle =
+            texte.controles.first { it is CatalogueAttributs.ControleAttribut.Couleur }
+        assertEquals(
+            "textColor est le contrôle couleur",
+            CatalogueAttributs.ControleAttribut.Couleur(
+                "android:textColor",
+                CatalogueAttributs.Etiquette.COULEUR,
+            ),
+            controle,
+        )
+        assertFalse(
+            "plus AUCUN champ Texte ne porte l'étiquette COULEUR",
+            CatalogueAttributs
+                .sections("TextView", CatalogueAttributs.GenreParent.AUCUN)
+                .any { section ->
+                    section.controles.any {
+                        it is CatalogueAttributs.ControleAttribut.Texte &&
+                            it.etiquette == CatalogueAttributs.Etiquette.COULEUR
+                    }
+                },
         )
     }
 }

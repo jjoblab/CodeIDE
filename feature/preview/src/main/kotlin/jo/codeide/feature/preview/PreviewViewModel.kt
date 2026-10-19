@@ -16,6 +16,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.ClassificateurPreview
+import jo.codeide.preview.xml.CouleursProjetXml
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ExtractionRessource
@@ -149,6 +150,29 @@ public class PreviewViewModel
 
         /** Job du suivi projet (résolution FUSE suspendante — annulé au changement). */
         private var suiviProjet: kotlinx.coroutines.Job? = null
+
+        // ── PE11e : les ressources du projet pour le contrôle COULEUR ─────
+        // Miroir `RES` de la maquette : la palette couleur montre les
+        // `@color` du projet, le validateur avertit quand une référence
+        // est INTROUVABLE. La source reste les FICHIERS de `res/` (même
+        // vérité que [lireManifeste] — jamais d'état parallel).
+
+        /** Le dossier `res/` résolu du projet courant (`null` = repli natif). */
+        private var dossierResCourant: String? = null
+
+        /** Les `@color` du projet (interne — ordre du document). */
+        private val couleursProjetInterne = MutableStateFlow<List<CouleursProjetXml.CouleurProjet>>(emptyList())
+
+        /** Les `@color` du projet : la palette couleur les montre, la pastille les résout. */
+        public val couleursProjet: StateFlow<List<CouleursProjetXml.CouleurProjet>> =
+            couleursProjetInterne
+                .asStateFlow()
+
+        /** Les noms `@drawable` du projet (interne). */
+        private val drawablesProjetInterne = MutableStateFlow<Set<String>>(emptySet())
+
+        /** Les noms `@drawable` du projet — l'avertissement « introuvable » du validateur. */
+        public val drawablesProjet: StateFlow<Set<String>> = drawablesProjetInterne.asStateFlow()
 
         // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
         // ⚠️ DÉCLARÉ AVANT le bloc init — CONTRAT d'ordre d'initialisation :
@@ -853,14 +877,24 @@ public class PreviewViewModel
                 moteur.definirDossierRes(null)
                 moteur.definirThemeName(null)
                 moteur.definirLabelActivite(null)
+                dossierResCourant = null
+                couleursProjetInterne.value = emptyList()
+                drawablesProjetInterne.value = emptySet()
                 return
             }
             suiviProjet =
                 viewModelScope.launch {
                     val racine = resolveurChemin.resoudreEntree(uriProjet) ?: return@launch
                     val cheminRes = dossierResProjet(racine, sourceBranchee.cheminRelatif)
-                    if (cheminRes == null) return@launch
+                    if (cheminRes == null) {
+                        dossierResCourant = null
+                        couleursProjetInterne.value = emptyList()
+                        drawablesProjetInterne.value = emptySet()
+                        return@launch
+                    }
                     moteur.definirDossierRes(cheminRes)
+                    dossierResCourant = cheminRes
+                    rechargerRessourcesProjet()
                     val manifeste = lireManifeste(racine)
                     moteur.definirThemeName(manifeste?.let { resoudreThemeActivite(it) })
                     moteur.definirLabelActivite(manifeste?.let { resoudreLabelActivite(it) })
@@ -935,6 +969,53 @@ public class PreviewViewModel
                 )
             return candidats.firstOrNull { java.io.File(it).isFile }
         }
+
+        // ── PE11e : lecture des couleurs/drawables du projet ────────────
+
+        /**
+         * RECHARGE les `@color` et `@drawable` du projet depuis `res/`
+         * (PE11e — miroir `RES` de la maquette) : appelé au suivi du
+         * projet ET à CHAQUE ouverture de la palette couleur (les
+         * ressources ont pu changer dans l'éditeur entre-temps). Sans
+         * dossier `res/` résolu : les listes restent VIDES (le
+         * validateur se tait, la palette ne montre que les entrées
+         * FIXES — repli silencieux, jamais d'exception, règle 6).
+         */
+        public fun rechargerRessourcesProjet() {
+            val res = dossierResCourant ?: return
+            viewModelScope.launch {
+                val fichiersCouleurs =
+                    java.io
+                        .File(res)
+                        .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("values") }
+                        .orEmpty()
+                        .sortedBy { dossier -> if (dossier.name == "values") 0 else 1 }
+                        .mapNotNull { dossier -> resolveDossierFichier(dossier, "colors.xml") }
+                couleursProjetInterne.value = CouleursProjetXml.lire(fichiersCouleurs)
+                drawablesProjetInterne.value =
+                    java.io
+                        .File(res)
+                        .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("drawable") }
+                        .orEmpty()
+                        .flatMap { dossier -> dossier.listFiles().orEmpty().toList() }
+                        .mapNotNull { fichier -> fichier.name.substringBeforeLast('.').ifEmpty { null } }
+                        .toSet()
+            }
+        }
+
+        /** Le texte d'un fichier d'un dossier de ressources (`null` = absent/illisible, règle 6). */
+        private fun resolveDossierFichier(
+            dossier: java.io.File,
+            nom: String,
+        ): String? =
+            try {
+                java.io
+                    .File(dossier, nom)
+                    .takeIf { it.isFile }
+                    ?.readText()
+            } catch (_: Throwable) {
+                null
+            }
 
         /** Extras d'intention (Publics : l'implémentation du navigateur pose les extras.) */
         public companion object {
