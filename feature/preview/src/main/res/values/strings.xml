@@ -290,6 +290,11 @@
     <string name="preview_attr_couleur_apercu_desc">Aperçu de la couleur</string>
     <string name="preview_attr_couleur_hint">#RRGGBB ou @color/…</string>
     <string name="preview_attr_palette">Palette</string>
+    <string name="preview_attr_couleur_invalide">Couleur invalide : #RRGGBB, #AARRGGBB, @color/nom ou ?attr/nom.</string>
+    <string name="preview_attr_couleur_introuvable">\@color introuvable dans res/values/colors.xml.</string>
+    <string name="preview_attr_drawable_introuvable">\@drawable introuvable dans res/.</string>
+    <string name="preview_attr_palette_ouverte">palette ouverte</string>
+    <string name="preview_attr_palette_fermee">palette fermée</string>
     <string name="preview_attr_ratio_separateur">:</string>
     <string name="preview_attr_nom_hint">android:nom</string>
     <string name="preview_attr_valeur_hint">valeur</string>

@@ -1,5 +1,111 @@
 # Journal des modifications
 
+## [0.154.0] – 2026-10-20
+
+### PE11e — le contrôle COULEUR (pastille 3 couches + hex + Palette), 3e lot des nouveaux contrôles § 9
+
+#### Ajouté
+
+- **Le contrôle COULEUR** (`controle_couleur.xml` — miroir `.colr` de la
+  maquette, 12e layout de référence copié) : **pastille à TROIS couches**
+  34 dp — damier (`DamierPastille`, tuile 10 dp `apercu_damier_a/b`, clippé
+  au rayon 8 — le `DamierDrawable` que la référence NOMME dans son
+  commentaire, irréalisable en XML), teinte (`apercu_pastille_teinte` +
+  `backgroundTint` SRC_IN), cadre (`apercu_pastille_couleur_cadre` copié) —
+  champ hex (style `Champ`, 33,6 mesuré vs `colrin`), bouton « Palette »
+  (`BoutonLien`). La **PALETTE** (`.cpal`) s'ouvre sous la rangée : les
+  `@color` du PROJET (ordre du document, `values/` d'abord) puis les entrées
+  FIXES de la maquette (`@android:color/white|black|transparent`,
+  `?attr/colorPrimary`, `?attr/colorError`) ; disques 28 dp
+  (`item_pastille_palette` copié, marge 3 dp → `apercu_pastille_palette_inset`
+  — même valeur, grille sans littéral), couche TEINTE posée AU LIAGE par
+  `AdaptateurPastilles` (miroir le commentaire de la référence), grille à
+  colonnes dérivées de la largeur (`colonnesPastille` pur, miroir
+  `flex-wrap` gap 6), nom complet en `contentDescription` (miroir
+  `aria-label`), `aria-expanded` = `stateDescription` (garde API 30, règle 8).
+- **`ValidationAttribut`** (pur, 1re tranche — les couleurs) : type SCELLÉ
+  `Valide` / `Avertissement(genre)` / `Erreur(genre)` — JAMAIS d'exception
+  (règle 6), messages par GENRES (règle 3, patron `GenreProbleme`) traduits
+  FR/EN (`preview_attr_couleur_invalide`, `_introuvable`,
+  `preview_attr_drawable_introuvable`). Miroir EXACT de `vCol` : une ERREUR
+  n'écrit RIEN (message rouge + `apercu_champ_fond_erreur`), un
+  AVERTISSEMENT écrit QUAND MÊME (`@color/x` absent du projet, `@drawable/x`
+  absent — tolérance partagée avec `android:background`), le vide RETIRE
+  l'attribut (miroir `setEx('')`), l'avertissement de la valeur COURANTE
+  s'affiche d'emblée (miroir `const m0 = vCol(cur)`).
+- **`CouleursProjetXml`** (pur) : lecture des `<color>` des `colors.xml`
+  (premier nom vu gagne, `values/` d'abord — la pastille montre la valeur
+  CLAIRE) + RÉSOLUTION de pastille miroir `colorCss` (hex 3/4/6/8 chiffres
+  doublés, `@color/` à UN niveau comme la maquette, trio `ANDROID_COL`,
+  `?attr/` rendu au thème via `ATTRS_THEME` — les SIX de `ATTR_CSS` résolus
+  par les ATTRS DU MODULE `apercuPrimaire/Surface/Trait/Erreur…`, idiome
+  `StyleVolet`, aucun identifiant d'attr d'une autre bibliothèque).
+- **Le ViewModel lit les ressources du projet** (`rechargerRessourcesProjet`)
+  : `res/values*/colors.xml` + noms de `res/drawable*/` via le dossier FUSE
+  déjà résolu (`suivreProjet`), rechargés à CHAQUE ouverture de la palette
+  (elles ont pu changer dans l'éditeur) — même vérité que `lireManifeste`,
+  jamais d'état parallèle.
+- **Règle § 9 appliquée au catalogue** : tout attribut de COULEUR porte le
+  kind `ControleAttribut.Couleur` — premier usager `android:textColor` (ex
+  `Texte`), un `when` scellé de plus au volet.
+
+#### Tests
+
+- `ValidationAttributTest` (9) : un test PAR RÈGLE de `vCol` — vide, les
+  QUATRE formes hexa, hexa malformé (2/5/7 chiffres, hors hexa), `@color`
+  présent/introuvable, `@drawable` présent/introuvable, `?attr/`+`@android:`,
+  nom de ressource illégal, mot quelconque.
+- `CouleursProjetXmlTest` (6) : ordre du document + premier vu gagne,
+  doublons, les quatre formes hexa vs `colorCss` (`#8FA2`→`88FFAA22`),
+  référence `@color` à UN niveau, trio ANDROID, les constantes de palette
+  (`ATTRS_THEME` 6, `PALETTE_FIXE` 5, `ANDROID` 3).
+- `CatalogueAttributsTest` +1 : parité du kind Couleur (`textColor`) + plus
+  AUCUN `Texte` à étiquette COULEUR.
+- `CotesMaquetteTest` +4 : pastille `sw2` 34×34 (mesurée À TRAVERS le
+  contrôle), champ `colrin` 34, rangée `colr` 34, pastille palette 28 (cote
+  par ressource — meas n'a pas de clé `cpal`, sanité comme PE11l).
+- `VoletsPreviewLayoutTest` +2 : gonflage (trois couches + palette/message
+  cachés au repos), item 28 dp + `colonnesPastille` borné.
+- Chaîne locale VERTE : spotlessCheck, detekt RACINE (exemption
+  `ReturnCount` ciblée sur `resoudre`, motivation `ExtractionRessource`),
+  checkModuleDependencies, lintDebug des DEUX modules, koverVerify des deux ;
+  291 + 87 tests, 0 échec ; greps § 12.4 VIDE (sentinelle `0dp` hors
+  périmètre, documentée PE11l).
+
+#### Écarts documentés
+
+- La référence n'a PAS de vue de message : la maquette AJOUTE un bloc
+  `.fmsg` au DOM à la volée (`showMsg`) — le message vit donc EN XML
+  invisible (`message_controle`, `accessibilityLiveRegion`, patron
+  `controle_texte`), comportement affiché identique (message PERSISTENT sous
+  la palette, miroir append-to-end).
+- Le fond damier du bouton `.cpal` de la CSS n'est pas porté : la référence
+  le REMPLACE déjà par l'ovale BLANC de la couche 3 (transparent → blanc) ;
+  le teinte du swatch, lui, garde le damier des deux.
+- `?attr/` se résout contre les JETONS de design du thème d'aperçu (miroir
+  `ATTR_CSS` = variables CSS), pas contre le thème du projet rendu — la
+  maquette n'a qu'UN thème.
+- Pastille `item_pastille_palette` : marge 3 dp littérale de la référence →
+  `@dimen/apercu_pastille_palette_inset` (même valeur, PE11j déjà converti
+  ainsi pour la pastille de menu).
+
+#### Grille § 12.4 (recopiée)
+
+- [x] Aucune `GradientDrawable` construite pour l'écran (`DamierPastille`
+      dessine ses cases au Canvas, motif impossible en XML — le commentaire
+      de la référence le nomme `DamierDrawable` ; l'ADR 0127-0129 vise les
+      fonds dégradés en code)
+- [x] `grep` hexa/textColor + `[0-9]+dp` hors tokens → VIDE (sentinelle
+      `0dp` du poids documentée PE11l)
+- [x] `TextView` du contrôle → style `Note` (parent `Apercu.Texte`)
+- [x] `JetonsMaquetteTest` (39) + cotes Robolectric verts
+- [ ] Captures clair + nuit (`ecran-attributs-couleur`) : sur appareil au
+      prochain retour propriétaire (§ 12.3, 1 paire)
+- [x] En-têtes de layout à jour (commentaires sélecteur CSS + cotes)
+- [x] `lintDebug` sans nouvel avertissement ; AUCUN `tools:ignore`/suppression
+      lint (garde `Build.VERSION.SDK_INT` pour `stateDescription`)
+
+
 ## [0.153.0] – 2026-10-19
 
 ### PE11l — RECETTE FINALE + les 5 écarts rapportés par le propriétaire

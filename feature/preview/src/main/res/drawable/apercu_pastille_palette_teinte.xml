@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couche TEINTE d'une pastille de la PALETTE (.cpal button, PE11e) : disque plein — le liage pose
+     la couleur par backgroundTint (SRC_IN sur le blanc), par-dessus l'ovale blanc de la couche 3
+     de apercu_pastille_palette (les anneaux « trait »/« surface » restent au drawable racine).
+     Replacé par blanc : transparent laisse voir la couche 3 (pas de damier en palette — écart
+     assumé de la référence, le fond .cpal button CSS n'ayant pas été porté). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@android:color/white" />
+</shape>

@@ -5,6 +5,7 @@ import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
+import androidx.core.view.isVisible
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.chip.ChipGroup
 import org.junit.Assert.assertEquals
@@ -246,5 +247,39 @@ class VoletsPreviewLayoutTest {
     @Test
     fun `le volet vide porte son texte`() {
         assertNotNull(gonfler(R.layout.vide_volet).findViewById<View>(R.id.texte_volet))
+    }
+
+    @Test
+    fun `le contrôle couleur porte ses trois couches son champ et son bouton palette`() {
+        // PE11e — miroir `.colr` : pastille TROIS couches (damier + teinte
+        // + cadre), champ hex, bouton « Palette » ; la palette et le
+        // message de validation sont CACHÉS au repos (miroir showMsg et
+        // le `.cpal` posé au clic).
+        val controle = gonfler(R.layout.controle_couleur)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.pastille_damier))
+        assertNotNull(controle.findViewById<View>(R.id.pastille_teinte))
+        assertNotNull(controle.findViewById<View>(R.id.champ_couleur))
+        assertNotNull(controle.findViewById<View>(R.id.bouton_palette))
+        val palette = controle.findViewById<View>(R.id.palette_couleurs)
+        assertNotNull(palette)
+        assertFalse("La palette est fermée au repos", palette.isVisible)
+        assertFalse(
+            "Le message de validation est masqué au repos",
+            controle.findViewById<View>(R.id.message_controle).isVisible,
+        )
+    }
+
+    @Test
+    fun `l item de palette porte son disque et les colonnes se bornent`() {
+        // PE11e — miroir `.cpal button` : disque 28 dp (fond = les anneaux
+        // trait/surface/blanc du drawable) ; la couche TEINTE est posée
+        // par le liage (AdaptateurPastilles). Les colonnes de la grille
+        // se bornent à 1 (miroir flex-wrap, jamais de colonne nulle).
+        assertNotNull(gonfler(R.layout.item_pastille_palette).findViewById<View>(R.id.pastille_palette))
+        assertEquals(1, AdaptateurPastilles.colonnesPastille(0, 34))
+        assertEquals(1, AdaptateurPastilles.colonnesPastille(374, 0))
+        assertEquals(11, AdaptateurPastilles.colonnesPastille(374, 34))
+        assertEquals(1, AdaptateurPastilles.colonnesPastille(30, 34))
     }
 }

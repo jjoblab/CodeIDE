@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couche TEINTE de la pastille de couleur (.sw2, PE11e) : rectangle plein, rayon 8 — le liage
+     pose la couleur par backgroundTint (SRC_IN sur le blanc) ; le damier reste visible dessous
+     pour les couleurs TRANSLUCIDES. Même géométrie que le cadre apercu_pastille_couleur_cadre. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/white" />
+    <corners android:radius="@dimen/apercu_pastille_couleur_rayon" />
+</shape>
