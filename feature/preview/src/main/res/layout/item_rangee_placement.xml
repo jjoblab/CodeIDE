@@ -1,46 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UNE RANGÉE du mini-arbre du popup de PLACEMENT (PE9f, miroir
-     `.mini` de la maquette : monogramme violet + classe + id) — le
-     monogramme reçoit le fond violet des jetons de la bulle ; la
-     sélection suit `isSelected` (fond `preview_bulle_halo`). -->
+<!--
+  Une rangée du mini-arbre de PLACEMENT (.mini .row) — RÉFÉRENCE (ADR 0134) : IDENTIQUE à item_arbre
+  (monogramme surface 2, classe, id affiché) sans badge ; la référence est isSelected (accent doux, pas
+  violet). Hauteur 32 dp (padding 6 / 8, monogramme 20). On peut aussi inclure item_arbre tel quel.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rangee_placement"
+    style="@style/Widget.CodeIDE.Apercu.Rangee"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="8dp"
-    android:paddingTop="6dp"
-    android:paddingEnd="8dp"
-    android:paddingBottom="6dp">
+    android:paddingTop="@dimen/apercu_mini_rangee_pad_v"
+    android:paddingBottom="@dimen/apercu_mini_rangee_pad_v">
 
     <TextView
         android:id="@+id/monogramme_placement"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginEnd="8dp"
-        android:background="@drawable/fond_monogramme_placement"
-        android:contentDescription="@null"
-        android:gravity="center"
-        android:fontFamily="monospace"
-        android:textSize="11sp"
-        android:textColor="@android:color/white" />
+        style="@style/Widget.CodeIDE.Apercu.Monogramme"
+        android:layout_width="@dimen/apercu_monogramme"
+        android:layout_height="@dimen/apercu_monogramme"
+        android:contentDescription="@null" />
 
     <TextView
         android:id="@+id/libelle_classe_placement"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurface" />
+        android:layout_marginStart="@dimen/apercu_rangee_gap"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Rangee" />
 
     <TextView
         android:id="@+id/libelle_id_placement"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:fontFamily="monospace"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textSize="11sp"
-        android:textColor="?attr/apercuTexteDoux"
-        android:visibility="gone" />
+        android:layout_marginStart="@dimen/apercu_rangee_gap"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.RangeeId" />
 </LinearLayout>

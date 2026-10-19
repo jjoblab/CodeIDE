@@ -3,7 +3,10 @@
 package jo.codeide.preview.xml
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -39,12 +42,21 @@ import jo.layoutlib.themes.ThemeResolver
  *
  * **windowBackground** : si le thème déclare un `windowBackground`, on
  * l'applique comme background du conteneur de contenu.
+ *
+ * PE11j : la 4e pièce du chrome est la BARRE DE NAVIGATION (48 dp,
+ * miroir `.nbar` de la maquette : fond sombre fixe, trois glyphes) —
+ * OPTIONNELLE ([RequeteRendu.barreNavigation], interrupteur
+ * « Barre de navigation » du menu Calques).
  */
 @Suppress("TooManyFunctions")
 internal class ChromeSysteme(
     private val contexte: Context,
     private val themeResolver: ThemeResolver?,
     private val titreActivite: String?,
+    /** Régime nuit du rendu (PE11j — fond de la barre `#000`, miroir `.screen.night --s-sys`). */
+    private val nuit: Boolean = false,
+    /** La barre de navigation de 48 dp est-elle rendue ? (PE11j — miroir `S.nav`, défaut ON). */
+    private val barreNavigation: Boolean = true,
 ) {
     /**
      * Hauteur de la status bar en dp (24dp standard Android).
@@ -55,6 +67,9 @@ internal class ChromeSysteme(
 
     /** Hauteur de l'action bar en dp (56dp standard Material). */
     private val actionBarHauteurDp = 56
+
+    /** Hauteur de la barre de navigation en dp (48dp — PE11j, miroir `.nbar`). */
+    private val barreNavigationHauteurDp = 48
 
     /**
      * Enveloppe [contenu] dans un conteneur chrome si le thème le permet.
@@ -117,6 +132,12 @@ internal class ChromeSysteme(
         conteneurContenu.addView(contenu)
         conteneur.addView(conteneurContenu)
 
+        // 4. Barre de navigation (PE11j — miroir `.nbar` : `margin-top:auto`
+        // la plaque en BAS du chrome ; optionnelle).
+        if (barreNavigation) {
+            conteneur.addView(creerBarreNavigation(densite))
+        }
+
         return conteneur
     }
 
@@ -168,6 +189,30 @@ internal class ChromeSysteme(
         return bar
     }
 
+    /**
+     * Crée la vue BARRE DE NAVIGATION (48 dp — PE11j, miroir `.nbar` de
+     * la maquette) : fond sombre FIXE (`--s-sys` : clair `#1C1B1F`, nuit
+     * `#000`) et les TROIS glyphes `#CFCFD6` — retour (chevron), accueil
+     * (cercle), applications (carré arrondi). Le module n'a pas de
+     * ressources : les glyphes se DESSINENT (la vue est le CONTENU du
+     * rendu, pas du chrome de l'app — patron du moteur).
+     */
+    private fun creerBarreNavigation(densite: Float): View {
+        val hauteurPx = (barreNavigationHauteurDp * densite).toInt()
+        return GlyphesBarreNavigation(contexte).apply {
+            layoutParams =
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    hauteurPx,
+                )
+            setBackgroundColor(couleurBarreNavigation())
+        }
+    }
+
+    /** Le fond de la barre : `--s-sys` de la maquette (sombre, clair et nuit). */
+    private fun couleurBarreNavigation(): Int =
+        if (nuit) COULEUR_BARRE_NAVIGATION_NUIT else COULEUR_BARRE_NAVIGATION_JOUR
+
     /** Couleur de la status bar — statusBarColor > colorPrimaryDark > défaut. */
     private fun couleurStatusBar(): Int {
         themeResolver?.getColorAttr("statusBarColor")?.let { return it }
@@ -209,5 +254,80 @@ internal class ChromeSysteme(
 
         /** Couleur action bar par défaut (Material teal). */
         private val COULEUR_PRIMARY_DEFAUT: Int = Color.parseColor("#009688")
+
+        /** Fond de la barre de navigation en clair (maquette `--s-sys`). */
+        private val COULEUR_BARRE_NAVIGATION_JOUR: Int = Color.parseColor("#1C1B1F")
+
+        /** Fond de la barre de navigation en nuit (maquette `.screen.night --s-sys`). */
+        private val COULEUR_BARRE_NAVIGATION_NUIT: Int = Color.parseColor("#000000")
+    }
+}
+
+/**
+ * Les TROIS glyphes de la barre de navigation (PE11j — miroir `.nbar i` de
+ * la maquette : 14 × 14, trait 2, écart 56 ; retour = chevron, accueil =
+ * cercle, applications = carré arrondi `#CFCFD6`). Dessinés en code : le
+ * module `:preview:xml` n'a pas de ressources — cette vue est le CONTENU
+ * du rendu (patron du moteur `VuePreviewXml`), pas du chrome de l'app.
+ */
+@Suppress("MagicNumber")
+private class GlyphesBarreNavigation(
+    contexte: Context,
+) : View(contexte) {
+    /** Le trait des glyphes (`#CFCFD6`, trait 2 — miroir `.nbar i`). */
+    private val peinture =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#CFCFD6")
+            style = Paint.Style.STROKE
+            strokeWidth = 2f * resources.displayMetrics.density
+            strokeCap = Paint.Cap.ROUND
+        }
+
+    override fun onDraw(canevas: Canvas) {
+        super.onDraw(canevas)
+        val densite = resources.displayMetrics.density
+        val centreY = height / 2f
+        // Trois glyphes espacés de 56 + 14 (miroir `.nbar{gap:56px}`),
+        // centrés horizontalement.
+        val ecart = 70f * densite
+        val demi = 7f * densite
+        dessinerRetour(canevas, width / 2f - ecart, centreY, demi)
+        dessinerAccueil(canevas, width / 2f, centreY, demi)
+        dessinerApplications(canevas, width / 2f + ecart, centreY, demi)
+    }
+
+    /** Le glyphe RETOUR (« < » — miroir `i:nth-child(1)`, bordures bas + gauche pivotées). */
+    private fun dessinerRetour(
+        canevas: Canvas,
+        centreX: Float,
+        centreY: Float,
+        demi: Float,
+    ) {
+        val chemin = Path()
+        chemin.moveTo(centreX + demi, centreY - demi)
+        chemin.lineTo(centreX - demi, centreY)
+        chemin.lineTo(centreX + demi, centreY + demi)
+        canevas.drawPath(chemin, peinture)
+    }
+
+    /** Le glyphe ACCUEIL (cercle — miroir `i:nth-child(2){border-radius:50%}`). */
+    private fun dessinerAccueil(
+        canevas: Canvas,
+        centreX: Float,
+        centreY: Float,
+        demi: Float,
+    ) {
+        canevas.drawCircle(centreX, centreY, demi, peinture)
+    }
+
+    /** Le glyphe APPLICATIONS (carré arrondi rayon 3 — miroir `i:nth-child(3)`). */
+    private fun dessinerApplications(
+        canevas: Canvas,
+        centreX: Float,
+        centreY: Float,
+        demi: Float,
+    ) {
+        val rayon = 3f * resources.displayMetrics.density
+        canevas.drawRoundRect(centreX - demi, centreY - demi, centreX + demi, centreY + demi, rayon, rayon, peinture)
     }
 }

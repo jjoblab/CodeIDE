@@ -10,14 +10,22 @@ import android.widget.PopupWindow
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toDrawable
+import kotlin.math.min
 
 /**
  * Le contrôleur des POPPOVERS MENUS de l'aperçu (PE9c, patron
  * [jo.codeide.feature.editor.PopoverExplorateur] rendu module-local) :
  * une [PopupWindow] ANCRÉE portant un layout RÉEL gonflé par le
- * propriétaire — coque TRANSLUCIDE colorée (`fond_menu_apercu`), mesurée
- * puis posée sous l'ancre (retournement au-dessus si le bas dépasse),
- * clic extérieur = fermeture.
+ * propriétaire — coque TRANSLUCIDE colorée (style
+ * `Widget.CodeIDE.Apercu.Menu`, ADR 0134 D3), mesurée puis posée sous
+ * l'ancre (retournement au-dessus si le bas dépasse), clic extérieur =
+ * fermeture.
+ *
+ * PE11j (ADR 0134, § 6 des écrans) : la largeur PAR DÉFAUT est la pleine
+ * largeur moins 10 dp de chaque bord (miroir `.pop` : `left: 10px;
+ * right: 10px`) ; le menu se pose 8 dp sous la rangée de puces et sa
+ * hauteur est bornée à `apercu_menu_hauteur_max` (430 dp) — imposées par
+ * le code (une `PopupWindow` n'a pas de maxHeight).
  *
  * Un seul menu à la fois (miroir § 10.5 : `montrer` masque le courant).
  *
@@ -52,13 +60,14 @@ internal class PopoverMenuApercu(
     /**
      * Gonfle [layout], remplit le contenu via [remplir], mesure puis
      * affiche le menu ancré SOUS [ancre] — borné aux bords de l'écran,
-     * retourné AU-DESSUS si le bas dépasse. La largeur suit
-     * [largeurDp] (le contenu est posé EXACTLY).
+     * retourné AU-DESSUS si le bas dépasse. La largeur suit [largeurDp]
+     * (`null` = pleine largeur moins 10 dp de chaque bord — miroir
+     * `.pop`), la hauteur est bornée à `apercu_menu_hauteur_max`.
      */
     public fun montrer(
         layout: Int,
         ancre: View,
-        largeurDp: Int = LARGEUR_DEFAUT_DP,
+        largeurDp: Int? = null,
         remplir: (View) -> Unit,
     ) {
         masquer()
@@ -68,20 +77,29 @@ internal class PopoverMenuApercu(
 
         // Mesure explicite : la hauteur décide du retournement.
         val dp = contexte.resources.displayMetrics.density
-        val largeur = (largeurDp * dp).toInt()
+        val marge = (MARGE_ECRAN_DP * dp).toInt()
+        val largeur =
+            if (largeurDp != null) {
+                (largeurDp * dp).toInt()
+            } else {
+                // Miroir `.pop` : 10 dp de chaque bord (pleine largeur).
+                contexte.resources.displayMetrics.widthPixels - 2 * marge
+            }
         vue.measure(
             android.view.View.MeasureSpec
                 .makeMeasureSpec(largeur, android.view.View.MeasureSpec.EXACTLY),
             android.view.View.MeasureSpec.UNSPECIFIED,
         )
-        val hauteur = vue.measuredHeight
+        // Miroir `.pop` max-height : 430 dp — le code borne (une
+        // PopupWindow n'a pas de maxHeight, le contenu déborderait).
+        val hauteurMax = contexte.resources.getDimensionPixelSize(R.dimen.apercu_menu_hauteur_max)
+        val hauteur = min(vue.measuredHeight, hauteurMax)
         val ecranHauteur = contexte.resources.displayMetrics.heightPixels
         val ecranLargeur = contexte.resources.displayMetrics.widthPixels
 
         // Position ÉCRAN de l'ancre (la PopupWindow se pose en écran).
         val position = IntArray(2)
         ancre.getLocationOnScreen(position)
-        val marge = (MARGE_ECRAN_DP * dp).toInt()
         val posX = position[0].coerceIn(marge, (ecranLargeur - largeur - marge).coerceAtLeast(marge))
         val sous = position[1] + ancre.height + (DECALAGE_SOUS_DP * dp).toInt()
         val posY =
@@ -95,7 +113,7 @@ internal class PopoverMenuApercu(
 
         // Fenêtre : focusable pour Échap/retour, clic extérieur = fermeture.
         val popup =
-            PopupWindow(vue, largeur, ViewGroup.LayoutParams.WRAP_CONTENT, true).apply {
+            PopupWindow(vue, largeur, hauteur, true).apply {
                 isOutsideTouchable = true
                 setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 elevation = (ELEVATION_DP * dp).toFloat()
@@ -127,14 +145,11 @@ internal class PopoverMenuApercu(
     }
 
     private companion object {
-        /** Largeur par défaut du menu, en dp (miroir les popovers de l'éditeur). */
-        private const val LARGEUR_DEFAUT_DP: Int = 264
+        /** Marge aux bords de l'écran, en dp (miroir `.pop` : 10 px de chaque bord). */
+        private const val MARGE_ECRAN_DP: Int = 10
 
-        /** Marge aux bords de l'écran, en dp. */
-        private const val MARGE_ECRAN_DP: Int = 8
-
-        /** Retrait sous l'ancre, en dp. */
-        private const val DECALAGE_SOUS_DP: Int = 4
+        /** Retrait sous l'ancre, en dp (miroir `.pop` : 8 sous la rangée de puces). */
+        private const val DECALAGE_SOUS_DP: Int = 8
 
         /** Retrait au-dessus de l'ancre (retournement), en dp. */
         private const val RETOURNEMENT_DP: Int = 8

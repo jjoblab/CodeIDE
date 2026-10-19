@@ -50,7 +50,7 @@
          CONSERVÉ tel quel (PE9c, écart documenté PREVIEW.md § 3.4.1). -->
     <color name="preview_menu_fond">#F0111318</color>
 
-    <!-- Les alias `preview_bulle_*` / `preview_palette_icone` vivent
-         uniquement dans values/ : ils pointent vers des jetons `apercu_*`
-         qui portent leur propre déclinaison nuit. -->
+    <!-- L'alias `preview_palette_icone` vit uniquement dans values/ : il
+         pointe vers un jeton `apercu_*` qui porte sa propre déclinaison
+         nuit ; les alias `preview_bulle_*` ont été retirés en PE11j. -->
 </resources>

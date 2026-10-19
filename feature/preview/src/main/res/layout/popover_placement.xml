@@ -1,137 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Le POPUP de placement (PE7c, miroir `.pop.bot` de la maquette) :
-  « Où placer X ? » + fermer, l'arbre des vues rendues (mini `.mini`),
-  les positions Avant/Dedans/Après (`.pos`), le résumé (« Dans X,
-  position n sur total ») et le bouton violet « Placer ici » (`.prim`).
-  En bas de l'écran — le repère se dessine EN DIRECT sur l'aperçu.
+  POPUP de placement — RÉFÉRENCE (ADR 0134), remplace popover_placement.xml. Miroir de `.pop.bot`.
+  Géométrie : collé en BAS du rendu, marge 10 dp à gauche, à droite et en bas, hauteur max 340 dp.
+  Coque OPAQUE, padding 12, espacement 10. Le mini-arbre (`.mini`) utilise les MÊMES rangées que l'onglet
+  Arbre (monogramme surface 2 + classe + id), et la rangée de référence est surlignée en ACCENT doux
+  (pas en violet). Écarts avec l'actuel : monogramme violet supprimé, id affiché, positions à sélection
+  visible, résumé avec la valeur en violet.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/placement_racine"
+    style="@style/Widget.CodeIDE.Apercu.Popover"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
-    android:layout_marginStart="10dp"
-    android:layout_marginEnd="10dp"
-    android:layout_marginBottom="10dp"
-    android:background="@drawable/fond_popover_apercu"
-    android:elevation="8dp"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layout_marginStart="@dimen/apercu_popover_marge_h"
+    android:layout_marginEnd="@dimen/apercu_popover_marge_h"
+    android:layout_marginBottom="@dimen/apercu_popover_marge_h"
+    android:orientation="vertical">
 
-    <!-- En-tête : la question + fermer. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/apercu_palette_entete_hauteur"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/titre_placement"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.PopoverTitre" />
 
         <ImageButton
             android:id="@+id/bouton_fermer_placement"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+            android:layout_width="@dimen/apercu_bouton_icone"
+            android:layout_height="@dimen/apercu_bouton_icone"
             android:contentDescription="@string/preview_placement_fermer_cd"
-            android:src="@drawable/ic_fermer" />
+            android:src="@drawable/apercu_ic_fermer" />
     </LinearLayout>
 
-    <!-- L'arbre des vues rendues (miroir `.mini` : 150 px max, lignes
-         d'arbre posées en code, référence surlignée). -->
+    <!-- .mini : cadre trait 1 dp, rayon 10, padding 4, 150 dp max ; défile. Hauteur bornée par le code
+         (ScrollView n'a pas de maxHeight) : LayoutParams.height = min(contenu, 150 dp). -->
     <ScrollView
         android:id="@+id/defile_arbre_placement"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:background="@drawable/apercu_mini_fond"
         android:contentDescription="@string/preview_placement_arbre_cd"
-        android:maxHeight="150dp">
+        android:padding="@dimen/apercu_mini_pad">
 
         <LinearLayout
             android:id="@+id/lignes_arbre_placement"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="4dp" />
+            android:orientation="vertical" />
     </ScrollView>
 
-    <!-- Les positions (miroir `.pos` : grille 3 colonnes sur surface 2). -->
+    <!-- .pos : trois boutons égaux, surface 2, padding 4, espacement 4. -->
     <LinearLayout
         android:id="@+id/groupe_position"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="?attr/colorSurfaceContainerHighest"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:background="@drawable/apercu_mode_palette_conteneur"
         android:orientation="horizontal"
-        android:padding="4dp">
+        android:padding="@dimen/apercu_position_pad">
 
-        <com.google.android.material.button.MaterialButton
+        <TextView
             android:id="@+id/position_avant"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/preview_placement_avant"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:text="@string/preview_placement_avant" />
 
-        <com.google.android.material.button.MaterialButton
+        <TextView
             android:id="@+id/position_dedans"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/preview_placement_dedans"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:layout_marginStart="@dimen/apercu_position_gap"
+            android:layout_marginEnd="@dimen/apercu_position_gap"
+            android:text="@string/preview_placement_dedans" />
 
-        <com.google.android.material.button.MaterialButton
+        <TextView
             android:id="@+id/position_apres"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/preview_placement_apres"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:text="@string/preview_placement_apres" />
     </LinearLayout>
 
-    <!-- Le résumé (miroir `.res` : « Dans X, position n sur total »). -->
+    <!-- .res : mono 12, « Dans <b>X</b>, position <b>n</b> sur total » — les <b> en violet (ResumeFort). -->
     <TextView
         android:id="@+id/resume_placement"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:fontFamily="monospace"
-        android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Resume" />
 
-    <!-- Le bouton violet (miroir `.prim`). -->
+    <!-- .prim : bouton violet plein largeur, 37 dp, rayon 12. -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_placer"
+        style="@style/Widget.CodeIDE.Apercu.Principal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="@color/preview_bulle_fond"
-        android:text="@string/preview_placement_confirmer"
-        android:textColor="@color/preview_bulle_icone"
-        android:textStyle="bold" />
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:text="@string/preview_placement_confirmer" />
 </LinearLayout>

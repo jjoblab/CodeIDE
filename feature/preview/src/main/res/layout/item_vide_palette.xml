@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Le message « aucun widget ne correspond » de la grille de palette
-     (PE9e, miroir `fillGrid` en recherche vide). -->
+<!--
+  « Aucun widget ne correspond » (.empty) — RÉFÉRENCE (ADR 0134). Pleine largeur, centré, gris doux.
+-->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/message_vide_palette"
+    style="@style/Widget.CodeIDE.Apercu.Vide"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingStart="2dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="2dp"
-    android:paddingBottom="8dp"
-    android:textAppearance="?attr/textAppearanceBodySmall"
-    android:textColor="?attr/colorOnSurfaceVariant" />
+    android:layout_height="wrap_content" />

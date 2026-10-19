@@ -509,18 +509,26 @@ public class PreviewActivity : AppCompatActivity() {
 
     // ── Palette et popup de placement (PE7c) ─────────────────────────────
 
-    /** Ouvre/FERME la palette (miroir `showPalette` : re-tap = fermer). */
+    /**
+     * Ouvre/FERME la palette (miroir `showPalette` : re-tap = fermer).
+     *
+     * Correctif PE11j (bug rapporté par le propriétaire : « la bulle ne
+     * redevient pas active après avoir choisi [un widget dans] une
+     * palette ») : l'état testé est celui du CONTENEUR —
+     * [masquerPalette] pose `conteneur_palette` à `GONE` sans toucher au
+     * drapeau de visibilité de la popover ENFANTE (l'extension KTX
+     * `isVisible` ne regarde QUE le drapeau de la vue) : après la
+     * première fermeture, l'ancien test renvoyait TOUJOURS « affichée »
+     * et le tap re-masquait au lieu de rouvrir — la bulle paraissait
+     * désactivée.
+     */
     private fun basculerPalette() {
-        val paletteCourante = palette
-        if (paletteCourante == null || !estAffichee(paletteCourante)) {
+        if (!liaison.conteneurPalette.isVisible) {
             ouvrirPalette()
         } else {
             masquerPalette()
         }
     }
-
-    /** La palette est-elle à l'écran ? (extension KTX — lint UseKtx) */
-    private fun estAffichee(vue: View): Boolean = vue.isVisible
 
     /** Construit (une fois) et OUVERT la palette (miroir `showPalette`). */
     private fun ouvrirPalette() {
@@ -538,6 +546,14 @@ public class PreviewActivity : AppCompatActivity() {
         paletteCourante.auTapIndique = { entree -> toast(R.string.preview_palette_toast_drag) }
         paletteCourante.auTuilePlace = { entree -> ouvrirPlacement(entree) }
         paletteCourante.auGlisser = { entree, vueTuile -> lancerDrag(entree, vueTuile) }
+        // PE11j (ADR 0134 D9) : la hauteur de la coque est bornée à
+        // min(600 dp, conteneur − marges) AVANT la pose (sans borne la
+        // grille déborde de l'écran — le LinearLayout enveloppe son
+        // contenu). Repli : pas encore de mise en page (hauteur 0) → la
+        // borne repasse au prochain tap.
+        if (liaison.conteneurPalette.height > 0) {
+            paletteCourante.bornerHauteur(liaison.conteneurPalette.height)
+        }
         liaison.conteneurPalette.visibility = View.VISIBLE
         liaison.bullePalette.ouverte = true
     }
@@ -716,9 +732,10 @@ public class PreviewActivity : AppCompatActivity() {
 
     /**
      * Feuille de choix de l'appareil (PE6b, miroir `showPop("device")`
-     * de la maquette) : menu RADIO ancré à la puce — chaque entrée porte
-     * la description courte du profil (nom · WxHdp · dpi), l'entrée
-     * courante est cochée.
+     * de la maquette) : menu ancré à la puce — chaque entrée porte le NOM
+     * (13 sp) et le DÉTAIL mono 11 « 393×851 dp · 440 dpi », l'entrée
+     * courante est SÉLECTIONNÉE (PE11j : plus de radio — miroir `.opt`,
+     * `isSelected` = fond accent doux du sélecteur `apercu_option_fond`).
      */
     private fun ouvrirFeuilleAppareil() {
         if (menuApercu.estOuvert) {
@@ -728,6 +745,8 @@ public class PreviewActivity : AppCompatActivity() {
         // PE11i (D2) : l'état « menu ouvert » de la puce = isActivated.
         liaison.boutonAppareilApercu.isActivated = true
         menuApercu.auFermer = { liaison.boutonAppareilApercu.isActivated = false }
+        // PE11j : la largeur par défaut suit § 6 (pleine largeur − 10 dp
+        // de chaque bord), la hauteur est bornée à 430 dp par le menu.
         menuApercu.montrer(R.layout.popover_menu_appareil, liaison.boutonAppareilApercu) { vue ->
             val popover = PopoverMenuAppareilBinding.bind(vue)
             // L'ordre des rangées du XML suit ProfilPeripherique.CATALOGUE.
@@ -742,10 +761,20 @@ public class PreviewActivity : AppCompatActivity() {
             val courant = controleur?.profil
             ProfilPeripherique.CATALOGUE.forEachIndexed { indice, profil ->
                 val rangee = ranges[indice]
-                rangee.libelleAppareil.text = profil.description()
-                rangee.radioAppareil.isChecked = profil == courant
+                rangee.libelleAppareil.text = profil.nom
+                // Détail mono « 393×851 dp · 440 dpi » — pluriel imposé par
+                // lint (PluralsCandidate) : la quantité formelle est la
+                // densité, le gabarit ne dépend pas d'elle.
+                rangee.detailAppareil.text =
+                    resources.getQuantityString(
+                        R.plurals.preview_appareil_detail_format,
+                        profil.densiteDpi,
+                        profil.largeurDp,
+                        profil.hauteurDp,
+                        profil.densiteDpi,
+                    )
+                rangee.rangeeAppareil.isSelected = profil == courant
                 rangee.rangeeAppareil.setOnClickListener {
-                    rangee.radioAppareil.isChecked = true
                     controleur?.definirProfil(profil)
                     menuApercu.masquer()
                     majReglages()
@@ -773,7 +802,12 @@ public class PreviewActivity : AppCompatActivity() {
         }
     }
 
-    /** Les SIX entrées du menu Calques (titre, état lu à la volée, pose). */
+    /**
+     * Les SIX calques de la VUE (titre, état lu à la volée, pose) — PE11j
+     * : le SEPTIÈME (Barre de navigation, groupe « Chrome système ») vit
+     * dans la CONFIGURATION DE RENDU ([ControleurPreviewXml]), pas dans
+     * la vue : il est lié à part dans [lierCalques].
+     */
     private fun entreesCalques(vueRendu: VuePreviewXml): List<EntreeCalque> =
         listOf(
             EntreeCalque(R.string.preview_calque_parent_freres, { vueRendu.calquesParentFreres }, {
@@ -798,9 +832,13 @@ public class PreviewActivity : AppCompatActivity() {
         )
 
     /**
-     * Lie les SIX calques aux rangées du popover (PE9c) — l'accent
+     * Lie les calques aux rangées du popover (PE9c) — l'accent
      * COLORÉ de chaque calque est un rôle sémantique du thème (canaux
      * tooling, erreur, succès, info), la rangée bascule le commutateur.
+     * PE11j : le groupe « CHROME SYSTÈME » suit — « Barre de navigation »
+     * (id `calque_navigation`) branchée sur l'option correspondante de
+     * la CONFIGURATION DE RENDU ([ControleurPreviewXml.barreNavigation],
+     * ADR 0134 : un CHANGEMENT relance le rendu).
      */
     private fun lierCalques(popover: PopoverMenuCalquesBinding) {
         val calques = entreesCalques(liaison.vuePreview)
@@ -832,6 +870,20 @@ public class PreviewActivity : AppCompatActivity() {
             rangee.basculeCalque.setOnCheckedChangeListener { _, coche ->
                 calque.poser(coche)
             }
+        }
+        // PE11j — « Chrome système / Barre de navigation » : l'état vient
+        // du MOTEUR (option de la requête de rendu, défaut ON — miroir
+        // `S.nav = true` de la maquette) ; la pastille porte le canal
+        // étiquette (système).
+        popover.calqueNavigation.pastilleCalque.backgroundTintList =
+            ColorStateList.valueOf(StyleVolet.couleur(this, RUi.attr.colorCanalEtiquette))
+        popover.calqueNavigation.libelleCalque.setText(R.string.preview_calque_navigation)
+        popover.calqueNavigation.basculeCalque.isChecked = controleur?.barreNavigation ?: true
+        popover.calqueNavigation.rangeeCalque.setOnClickListener {
+            popover.calqueNavigation.basculeCalque.toggle()
+        }
+        popover.calqueNavigation.basculeCalque.setOnCheckedChangeListener { _, coche ->
+            controleur?.definirBarreNavigation(coche)
         }
     }
 

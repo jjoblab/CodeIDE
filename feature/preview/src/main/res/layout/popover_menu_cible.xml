@@ -1,29 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Le POPOVER CIBLE d'une ancre de contrainte (PE9c) : titre + les
-  cibles DYNAMIQUES (Aucune, parent, puis les frères à id — dépendent
-  du fichier ouvert, le conteneur est rempli au liage).
+  Menu CIBLE d'une ancre de contrainte — RÉFÉRENCE (ADR 0134) : même coque et même titre de groupe que les
+  autres menus ; les options sont dynamiques (Aucune, parent, frères à id).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/popover_cible"
+    style="@style/Widget.CodeIDE.Apercu.Menu"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/fond_menu_apercu"
-    android:orientation="vertical"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/titre_menu"
+        style="@style/Widget.CodeIDE.Apercu.MenuTitre"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="14dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="4dp"
-        android:text="@string/preview_menu_cible_titre"
-        android:textAppearance="?attr/textAppearanceLabelLarge"
-        android:textColor="?attr/colorOnSurface" />
+        android:layout_marginTop="@dimen/apercu_menu_titre_marge_haut"
+        android:layout_marginBottom="@dimen/apercu_menu_titre_marge_bas"
+        android:text="@string/preview_menu_cible_titre" />
 
     <LinearLayout
         android:id="@+id/liste_cibles"
