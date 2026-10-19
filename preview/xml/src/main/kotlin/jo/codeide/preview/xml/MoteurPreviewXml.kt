@@ -70,6 +70,17 @@ public class MoteurPreviewXml(
     public val regime: StateFlow<RegimeRendu>
         get() = regimeTransport
 
+    /**
+     * RÉACTIVE le processus `:preview` (PE11i — bouton « Réessayer » du
+     * bandeau, ADR 0134 D6) : la politique d'isolation repart du régime
+     * nominal et le rendu courant est RELANCÉ (le prochain texte rendu
+     * retente le processus isolé).
+     */
+    public fun reactiverIsolation() {
+        (transport as? TransportIsolation)?.reactiver()
+        relancerSiTexte()
+    }
+
     private val regimeTransport: StateFlow<RegimeRendu> =
         (transport as? TransportIsolation)?.regime
             ?: MutableStateFlow(RegimeRendu.LOCAL_DEGRADE).asStateFlow()
@@ -382,7 +393,7 @@ public class MoteurPreviewXml(
             }
 
             is ResultatTransport.Erreur -> {
-                EtatPreviewXml.ErreurRendu(resultat.message)
+                EtatPreviewXml.ErreurRendu(resultat.message, resultat.ligne)
             }
         }
 

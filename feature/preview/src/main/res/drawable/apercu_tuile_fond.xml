@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tuile de palette (.tile) : fond « bg » (PAS surface 2), trait 1 dp, rayon 12 ; appuyée/survolée = new-soft + trait violet (.tile:hover). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuNouveauDoux" />
+            <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuNouveau" />
+            <corners android:radius="@dimen/apercu_tuile_rayon" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuFond" />
+            <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+            <corners android:radius="@dimen/apercu_tuile_rayon" />
+        </shape>
+    </item>
+</selector>

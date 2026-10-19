@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Option de menu (.opt) : cochée = accent doux (.opt[aria-checked]), appuyée = surface 2, rayon 10. Cochée = isSelected posé par le code. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuAccentDoux" />
+            <corners android:radius="@dimen/apercu_option_rayon" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuSurface2" />
+            <corners android:radius="@dimen/apercu_option_rayon" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="@dimen/apercu_option_rayon" />
+        </shape>
+    </item>
+</selector>

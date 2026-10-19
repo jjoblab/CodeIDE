@@ -21,7 +21,42 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
 class VuePreviewXmlTest {
-    private fun vue(): VuePreviewXml = VuePreviewXml(ApplicationProvider.getApplicationContext())
+    /**
+     * PE11i : le moteur ne dessine AUCUNE couleur sans jetons injectés
+     * (ADR 0134 D7) — le helper pose un jeu de test (valeurs arbitraires
+     * DISTINCTES ; la parité maquette ↔ ressources vit dans
+     * `JetonsCalquesTest` côté feature).
+     */
+    private fun vue(): VuePreviewXml =
+        VuePreviewXml(ApplicationProvider.getApplicationContext()).apply {
+            appliquerJetons(jetonsTest)
+        }
+
+    /** Un jeu de jetons arbitraire mais complet (21 champs). */
+    private val jetonsTest =
+        JetonsCalques(
+            surface2 = 0xFFEEEEF7.toInt(),
+            damierCase = 0x21808096,
+            accent = 0xFF1E6EC8.toInt(),
+            accentDoux = 0x241E6EC8,
+            surface = 0xFFFFFFFF.toInt(),
+            texte = 0xFF1A1B21.toInt(),
+            fond = 0xFFF9F9FF.toInt(),
+            texteDoux = 0xFF5B5C66.toInt(),
+            marge = 0xFFD9822B.toInt(),
+            margeFond = 0x61D9822B,
+            remplissage = 0xFF2E8B4B.toInt(),
+            remplissageFond = 0x612E8B4B,
+            bornes = 0x801E6EC8.toInt(),
+            nouveau = 0xFF7C3AED.toInt(),
+            nouveauDoux = 0x247C3AED,
+            surNouveau = 0xFFFFFFFF.toInt(),
+            epingleAvert = 0xFFB8860B.toInt(),
+            epingleErreur = 0xFFBA1A1A.toInt(),
+            surCalque = 0xFFFFFFFF.toInt(),
+            ecranTrait = 0x2E000000.toInt(),
+            ecranOmbre = 0x38000000.toInt(),
+        )
 
     @Test
     fun `mesure layout dessin - aucun lever`() {
@@ -34,18 +69,17 @@ class VuePreviewXmlTest {
     }
 
     @Test
-    fun `etats affiches - rendu erreur edition reinitialisation`() {
+    fun `etats affiches - rendu reinitialisation - aucun lever`() {
         val vue = vue()
         vue.measure(256, 256)
         vue.layout(0, 0, 256, 256)
         val sortie = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(sortie)
 
+        // PE11i (D6) : l'erreur et la frappe ne passent plus par la vue
+        // (le bandeau est une vue du chrome) — rendu et réinitialisation
+        // restent les seuls états du moteur.
         vue.afficherRendu(Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888))
-        vue.draw(canvas)
-        vue.afficherErreur("Tag inconnu : MachinChose")
-        vue.draw(canvas)
-        vue.afficherEnEdition()
         vue.draw(canvas)
         vue.reinitialiser()
         vue.draw(canvas)

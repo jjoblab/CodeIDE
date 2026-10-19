@@ -4,6 +4,7 @@
 <resources>
     <string name="preview_cd">Aperçu du layout XML rendu par le moteur de preview</string>
     <string name="preview_accueil">Ouvrez un layout XML pour voir son aperçu</string>
-    <string name="preview_en_edition">XML en cours de frappe — dernier rendu conservé</string>
+    <string name="preview_planche_design">Design</string>
+    <string name="preview_planche_plan">Plan</string>
 
 </resources>

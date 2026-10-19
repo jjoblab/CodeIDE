@@ -34,6 +34,8 @@ import android.os.Parcelable
 public class ResultatRendu(
     public val ok: Boolean,
     public val message: String?,
+    /** Ligne source de l'erreur (-1 = inconnue — PE11i, bandeau « Ligne n »). */
+    public val ligne: Int = -1,
     public val largeur: Int,
     public val hauteur: Int,
     public val nombreVues: Int,
@@ -44,6 +46,7 @@ public class ResultatRendu(
     private constructor(parcel: Parcel) : this(
         ok = parcel.readByte() != 0.toByte(),
         message = parcel.readString(),
+        ligne = parcel.readInt(),
         largeur = parcel.readInt(),
         hauteur = parcel.readInt(),
         nombreVues = parcel.readInt(),
@@ -58,6 +61,7 @@ public class ResultatRendu(
     ) {
         parcel.writeByte(if (ok) 1 else 0.toByte())
         parcel.writeString(message)
+        parcel.writeInt(ligne)
         parcel.writeInt(largeur)
         parcel.writeInt(hauteur)
         parcel.writeInt(nombreVues)

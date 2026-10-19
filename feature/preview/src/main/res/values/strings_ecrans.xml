@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chaînes ajoutées par les écrans (ADR 0134) : menu plus, titres de menus, bandeau d'erreur, onglet Problèmes.
+-->
+<resources>
+    <string name="preview_plus_cd">Plus d\'actions</string>
+    <string name="preview_appareil_titre">Appareil</string>
+    <string name="preview_calques_titre">Calques</string>
+    <string name="preview_chrome_systeme_titre">Chrome système</string>
+    <string name="preview_calque_navigation">Barre de navigation</string>
+    <string name="preview_probleme_voir">Voir</string>
+    <string name="preview_bandeau_erreur_titre">Erreur de rendu</string>
+    <string name="preview_bandeau_ligne">Ligne %1$d</string>
+    <string name="preview_bandeau_details">Détails</string>
+    <string name="preview_bandeau_reduire">Réduire</string>
+    <string name="preview_bandeau_crash">Le processus :preview a cessé de répondre. Le rendu passe en local, plus lent.</string>
+    <string name="preview_bandeau_reessayer">Réessayer</string>
+</resources>

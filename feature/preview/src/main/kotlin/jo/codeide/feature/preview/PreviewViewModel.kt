@@ -300,6 +300,15 @@ public class PreviewViewModel
             moteur.definirPaysage(paysage)
         }
 
+        /**
+         * RÉACTIVE le processus `:preview` (PE11i — bouton « Réessayer » du
+         * bandeau, ADR 0134 D6) : la politique d'isolation repart du régime
+         * nominal et le rendu courant est relancé.
+         */
+        public fun reactiverIsolation() {
+            moteur.reactiverIsolation()
+        }
+
         /** Cycler l'échelle de police (puce Police ×n : 1,0 → 1,3 → 2,0 → 1,0). */
         public fun cyclerEchellePolice(): Float {
             val suivante =

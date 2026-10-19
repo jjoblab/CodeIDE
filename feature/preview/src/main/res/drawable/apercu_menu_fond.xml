@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coque des MENUS (appareil, calques, cible) : surface translucide, trait 1 dp, rayon 16. ÉCART VOULU PE9c (PREVIEW.md 3.4.1) : conservé. Les popovers palette et placement, eux, sont OPAQUES (apercu_popover_fond). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/apercu_menu_fond" />
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_popover_rayon" />
+</shape>

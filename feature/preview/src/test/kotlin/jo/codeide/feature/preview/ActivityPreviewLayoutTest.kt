@@ -6,7 +6,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
-import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -14,21 +15,22 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import jo.codeide.core.ui.R as RUi
 
 /**
  * Gonflage du layout de l'écran d'aperçu sous Robolectric (PE6-0 —
  * miroir [jo.codeide.feature.editor.ActivityEditorLayoutTest]) :
- * `activity_preview.xml` se gonfle sous le thème réel de l'application,
- * la vue de rendu :preview:xml, la toolbar et les puces de réglages se
- * trouvent par identifiant. PE6d : la racine est un CoordinatorLayout
- * (la feuille inférieure en BottomSheet) et le layout du fragment de
- * feuille se gonfle aussi.
+ * `activity_preview.xml` se gonfle sous le thème de l'aperçu, la vue de
+ * rendu :preview:xml, la BARRE DU HAUT (PE11i, ADR 0134 D1 : retour,
+ * bloc titre, pastille de mode, bouton plus — plus de toolbar), les
+ * puces de réglages, le BANDEAU et le TOAST en vues (D6) se trouvent par
+ * identifiant. PE6d : la racine est un CoordinatorLayout (la feuille
+ * inférieure en BottomSheet) et le layout du fragment de feuille se
+ * gonfle aussi.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
 class ActivityPreviewLayoutTest {
-    /** Gonfle le layout sous le thème réel de l'application. */
+    /** Gonfle le layout sous le thème réel de l'aperçu. */
     private fun gonfler(): ViewGroup {
         val base = ApplicationProvider.getApplicationContext<Context>()
         val contexte = ContextThemeWrapper(base, R.style.Theme_CodeIDE_Apercu)
@@ -38,19 +40,29 @@ class ActivityPreviewLayoutTest {
     @Test
     fun `le layout de l'aperçu se gonfle sans exception`() {
         val racine = gonfler()
-        assertNotNull(racine.findViewById<MaterialToolbar>(R.id.toolbar_preview))
+        // PE11i (D1) : la barre du haut est un LinearLayout de 52 dp —
+        // bouton retour, bloc titre, pastille de mode, bouton plus.
+        assertNotNull(racine.findViewById<View>(R.id.entete_preview))
+        assertNotNull(racine.findViewById<View>(R.id.appbar_preview))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_retour))
+        assertNotNull(racine.findViewById<View>(R.id.titre_apercu))
+        assertNotNull(racine.findViewById<View>(R.id.sous_titre_apercu))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_plus))
         assertNotNull(racine.findViewById<View>(R.id.vue_preview))
         assertNotNull(racine.findViewById<View>(R.id.bouton_appareil_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_nuit_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_langue_apercu))
         assertNotNull(racine.findViewById<View>(R.id.bouton_calques_apercu))
-        // PE10 : l'option « Compacter » QUITTE la rangée (décision
-        // propriétaire) ; la pastille d'état rejoint la couche HUD
-        // (l'id bouton_compacter_apercu n'existe plus).
         assertNotNull(racine.findViewById<View>(R.id.pastille_etat))
         assertNotNull(racine.findViewById<View>(R.id.pastille_point))
         assertNotNull(racine.findViewById<View>(R.id.pastille_etat_texte))
         assertNotNull(racine.findViewById<View>(R.id.conteneur_rendu))
+        // PE11i (D6) : le bandeau d'erreur et le toast sont des VUES.
+        assertNotNull(racine.findViewById<View>(R.id.banniere_rendu))
+        assertNotNull(racine.findViewById<View>(R.id.banniere_message))
+        assertNotNull(racine.findViewById<View>(R.id.banniere_ligne))
+        assertNotNull(racine.findViewById<View>(R.id.banniere_details))
+        assertNotNull(racine.findViewById<View>(R.id.toast_apercu))
         // PE6d : le conteneur de la feuille inférieure (BottomSheet).
         assertNotNull(racine.findViewById<View>(R.id.conteneur_feuille))
     }
@@ -65,25 +77,26 @@ class ActivityPreviewLayoutTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_zoom_arriere))
         // Les puces à menu portent le caret (miroir `.caret` de la maquette).
         val appareil =
-            racine.findViewById<com.google.android.material.chip.Chip>(
+            racine.findViewById<Chip>(
                 R.id.bouton_appareil_apercu,
             )
         assertTrue("la puce Appareil annonce le menu déroulant", appareil.text.contains("▾"))
     }
 
     @Test
-    fun `la pastille segmented Design Plan Les deux se gonfle (PE10de)`() {
+    fun `la pastille de mode Design Plan Les deux se gonfle (PE10de, PE11i D2)`() {
         val racine = gonfler()
         val groupe =
-            racine.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(
+            racine.findViewById<ChipGroup>(
                 R.id.groupe_mode_apercu,
             )
         assertNotNull(groupe)
         assertNotNull(racine.findViewById<View>(R.id.mode_design))
         assertNotNull(racine.findViewById<View>(R.id.mode_plan))
         assertNotNull(racine.findViewById<View>(R.id.mode_les_deux))
-        // Design est le mode par défaut (miroir `S.mode = 'design'`).
-        assertEquals(R.id.mode_design, groupe.checkedButtonId)
+        // Design est le mode par défaut (miroir `S.mode = 'design'`) —
+        // PE11i (D2) : ChipGroup à sélection unique obligatoire.
+        assertEquals(R.id.mode_design, groupe.checkedChipId)
     }
 
     @Test
@@ -95,6 +108,14 @@ class ActivityPreviewLayoutTest {
         // en selon la locale de test, Robolectric tourne en en-US) : on
         // épingle la PRÉSENCE, pas la langue.
         assertNotNull("le panneau porte la description du moteur", vue.contentDescription)
+    }
+
+    @Test
+    fun `la bulle de palette porte son fond et son halo (PE11i D4)`() {
+        val racine = gonfler()
+        val bulle = racine.findViewById<View>(R.id.bulle_palette)
+        assertNotNull(bulle)
+        assertNotNull("la bulle porte le layer-list violet + halo", bulle.background)
     }
 
     @Test

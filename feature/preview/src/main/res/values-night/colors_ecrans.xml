@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nuit : surface sombre à ~95 % d'alpha (écart voulu PE9c).
+-->
+<resources>
+    <color name="apercu_menu_fond">#F21A1E25</color>  <!-- surface nuit à 95 % -->
+</resources>

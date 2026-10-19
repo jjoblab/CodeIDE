@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings added by the screens (ADR 0134).
+-->
+<resources>
+    <string name="preview_plus_cd">More actions</string>
+    <string name="preview_appareil_titre">Device</string>
+    <string name="preview_calques_titre">Layers</string>
+    <string name="preview_chrome_systeme_titre">System chrome</string>
+    <string name="preview_calque_navigation">Navigation bar</string>
+    <string name="preview_probleme_voir">Show</string>
+    <string name="preview_bandeau_erreur_titre">Render error</string>
+    <string name="preview_bandeau_ligne">Line %1$d</string>
+    <string name="preview_bandeau_details">Details</string>
+    <string name="preview_bandeau_reduire">Collapse</string>
+    <string name="preview_bandeau_crash">The :preview process stopped responding. Rendering falls back to local mode, which is slower.</string>
+    <string name="preview_bandeau_reessayer">Retry</string>
+</resources>

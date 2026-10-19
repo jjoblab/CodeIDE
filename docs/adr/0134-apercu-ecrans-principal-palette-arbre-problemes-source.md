@@ -1,7 +1,9 @@
 # ADR 0134 — Aperçu : écran principal, palette, placement, menus, onglets Arbre / Problèmes / Source à l'identique de la maquette
 
-- **Statut** : proposé — les décisions D1 à D9 découlent de la demande « design identique pour tous les écrans » ;
-  **D8 (cibles tactiles) étend la dérogation de l'ADR 0133 et doit être confirmée par le propriétaire** avant PE11i.
+- **Statut** : **accepté** (2026-10-19, GO PE11i du propriétaire) — les décisions D1 à D9 découlent de la demande
+  « design identique pour tous les écrans » ; **D8 (cibles tactiles) confirmée par le propriétaire** avec le GO PE11i
+  (le brief PE11 prescrit ces cotes : puces 30, segments 26, HUD 34-36, tuiles et rangées 34 dp ; l'appbar garde 48 dp
+  de zone tactile au bouton plus).
 - **Date** : 2026-10-18
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0131 (jetons, thème `Theme.CodeIDE.Apercu`), ADR 0132 (layouts, styles, `RecyclerView`),

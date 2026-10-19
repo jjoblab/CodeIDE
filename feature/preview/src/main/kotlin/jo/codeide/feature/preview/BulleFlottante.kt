@@ -1,6 +1,7 @@
 package jo.codeide.feature.preview
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
@@ -32,20 +33,45 @@ import kotlin.math.abs
  * testée sans [MotionEvent] (patron machine d'états PE7b).
  *
  * PE9e : la bulle est un layout GONFLÉ (`bulle_palette.xml` — l'icône
- * vectorielle centrée vient du XML ; le fond violet `fond_bulle` et
- * l'élévation restent portés par la vue/tag du layout de l'activité).
+ * vectorielle centrée vient du XML).
+ *
+ * PE11i (ADR 0134 D4) : la vue fait **58 dp** (disque violet 50 dp +
+ * halo `new-soft` 4 dp de chaque côté, dessiné par le layer-list
+ * `apercu_bulle_fond` posé par le LAYOUT de l'activité — plus aucun
+ * fond ni élévation en code) ; OUVERTE (palette visible) :
+ * `apercu_bulle_fond_ouverte` + l'icône se teinte `apercuFond`.
  */
 public class BulleFlottante : FrameLayout {
     public constructor(context: Context) : this(context, null)
 
     public constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
-        BullePaletteBinding.inflate(LayoutInflater.from(context), this)
-        background = ContextCompat.getDrawable(context, R.drawable.fond_bulle)
-        elevation = ELEVATION_DP * resources.displayMetrics.density
+        liaisonBulle = BullePaletteBinding.inflate(LayoutInflater.from(context), this)
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         isClickable = true
         isFocusable = true
     }
+
+    /** Le liage du contenu (icône — teinte posée par [ouverte]). */
+    private lateinit var liaisonBulle: BullePaletteBinding
+
+    /**
+     * La bulle est OUVERTE (la palette est visible — miroir
+     * `.bubble[aria-expanded=true]`) : fond `apercu_bulle_fond_ouverte`,
+     * icône teintée `apercuFond`.
+     */
+    public var ouverte: Boolean = false
+        set(valeur) {
+            field = valeur
+            background =
+                ContextCompat.getDrawable(
+                    context,
+                    if (valeur) R.drawable.apercu_bulle_fond_ouverte else R.drawable.apercu_bulle_fond,
+                )
+            liaisonBulle.iconeBulle.imageTintList =
+                ColorStateList.valueOf(
+                    StyleVolet.couleur(context, if (valeur) R.attr.apercuFond else R.attr.apercuSurNouveau),
+                )
+        }
 
     /**
      * Le tap ouvre la palette (miroir `showPalette` — un glisser n'est
@@ -178,6 +204,8 @@ public class BulleFlottante : FrameLayout {
     public fun reposer() {
         val conteneur = parent as? View ?: return
         if (conteneur.width <= 0 || conteneur.height <= 0) return
+        // PE11i : la marge latérale est celle de la VUE de 58 dp (halo
+        // compris — `apercu_bulle_marge` = 10 − 4), posée par ressource.
         val (gauche, haut) =
             PlacementBulle.placementPour(
                 largeurConteneur = conteneur.width,
@@ -187,7 +215,7 @@ public class BulleFlottante : FrameLayout {
                 hauteurVue = height,
                 aDroite = aDroite,
                 yNormalise = if (fixe) AppSettings.BULLE_Y_DEFAUT else yNormalise,
-                margeCotePx = PlacementBulle.margeCotePx(resources.displayMetrics.density),
+                margeCotePx = resources.getDimensionPixelSize(R.dimen.apercu_bulle_marge),
             )
         translationX = (gauche - left).toFloat()
         translationY = (haut - top).toFloat()
@@ -213,9 +241,6 @@ public class BulleFlottante : FrameLayout {
     private companion object {
         /** Seuil du glisser (px — miroir `> 6` de la maquette). */
         private const val SEUIL_DEPLACEMENT: Float = 12f
-
-        /** Élévation de la bulle (dp — miroir `box-shadow` de `.bubble`). */
-        private const val ELEVATION_DP: Float = 8f
     }
 }
 

@@ -155,12 +155,17 @@ public class ControleurPreviewXml(
                 vue.afficherProblemes(ProblemesPreview.evaluer(etat.vues, moteur.profil.densiteDpi))
             }
 
+            // PE11i (ADR 0134 D6) : le bandeau d'erreur et le signal de
+            // frappe ne passent PLUS par la vue (méthodes supprimées du
+            // moteur) — l'activité collecte `moteur.etat` elle-même et
+            // pilote la vue `banniere_rendu` et la pastille d'état ; le
+            // dernier rendu valide reste affiché dessous.
             is EtatPreviewXml.ErreurRendu -> {
-                vue.afficherErreur(etat.message)
+                Unit
             }
 
             EtatPreviewXml.EnEdition -> {
-                vue.afficherEnEdition()
+                Unit
             }
 
             EtatPreviewXml.Inactif -> {

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Badge de rangée (.row .badge) : surface 2, rayon 4 ; version « avertissement » : voir apercu_badge_rangee_avert_fond. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_badge_rangee_rayon" />
+</shape>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .tag.wr : avertissement 22 % (jeton apercuAvertTag). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuAvertTag" />
+    <corners android:radius="@dimen/apercu_tag_rayon" />
+</shape>

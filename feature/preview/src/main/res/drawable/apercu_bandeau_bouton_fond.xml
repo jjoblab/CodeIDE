@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bouton du bandeau (.banner button) : trait 1 dp = couleur du texte (currentColor), rayon 8. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="?attr/apercuErreur">
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuErreur" />
+            <corners android:radius="@dimen/apercu_bandeau_bouton_rayon" />
+        </shape>
+    </item>
+</ripple>

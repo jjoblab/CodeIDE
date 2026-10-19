@@ -122,4 +122,8 @@
     <dimen name="apercu_kv_gap_ligne">2dp</dimen>  <!-- .kv row gap -->
     <dimen name="apercu_kv_gap_colonne">10dp</dimen>  <!-- .kv column gap -->
     <dimen name="apercu_kv_groupe_marge_haut">8dp</dimen>  <!-- dt.g margin-top -->
+
+    <!-- Toast de l'écran principal (PE11i — écart ADAPTÉ de la référence : la maquette
+         pose width 88 % en CSS, Android n'a que maxWidth ; § 3.6 : « largeur max ≈ 88 % (340 dp) »). -->
+    <dimen name="apercu_toast_largeur_max">340dp</dimen>
 </resources>

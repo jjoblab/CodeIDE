@@ -45,6 +45,8 @@ public sealed interface EtatPreviewXml {
     public class ErreurRendu(
         /** Message d'erreur lisible (jamais brut : cause simplifiée). */
         public val message: String,
+        /** Ligne source de l'erreur (null = inconnue — PE11i, bandeau « Ligne n », ADR 0134 D6). */
+        public val ligne: Int? = null,
     ) : EtatPreviewXml
 
     /** XML malformé (frappe en cours) : signal discret, le rendu précédent reste. */

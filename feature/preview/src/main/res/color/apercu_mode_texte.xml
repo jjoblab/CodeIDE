@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texte du bouton de mode : coché = sur-primaire, sinon gris doux. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="?attr/apercuSurPrimaire" />
+    <item android:color="?attr/apercuTexteDoux" />
+</selector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Puce de réglage (.chip) : appuyée (aria-pressed) ou menu ouvert (aria-expanded) = conteneur primaire. Le menu ouvert pose isActivated. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="?attr/apercuPrimaireConteneur" />
+    <item android:state_activated="true" android:color="?attr/apercuPrimaireConteneur" />
+    <item android:color="?attr/apercuSurface" />
+</selector>

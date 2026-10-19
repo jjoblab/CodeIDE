@@ -87,6 +87,17 @@ internal class VoletSourceFragment : VoletFeuilleFragment() {
         }
     }
 
+    /**
+     * Amène la liste sur une LIGNE précise (PE11i — bandeau « Ligne n ») :
+     * même défilement que la plage de la sélection (70 dp au-dessus).
+     */
+    internal fun allerALigne(numero: Int) {
+        liaison.listeSource.post {
+            (liaison.listeSource.layoutManager as? LinearLayoutManager)
+                ?.scrollToPositionWithOffset(numero - 1, StyleVolet.dp(requireContext(), DP_PLAGE))
+        }
+    }
+
     private companion object {
         /** Le retrait de la plage ramenée en tête de liste, en dp (miroir `- 70`). */
         private const val DP_PLAGE: Int = 70

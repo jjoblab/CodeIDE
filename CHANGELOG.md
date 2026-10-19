@@ -1,5 +1,132 @@
 # Journal des modifications
 
+## [0.150.0] – 2026-10-19
+
+### PE11i — refonte de l'ÉCRAN PRINCIPAL à l'identique de la maquette (ADR 0134)
+
+#### Ajouté
+
+- **Les ressources de référence des ÉCRANS** (partie II, copiées de
+  `docs/mockups/ref/ressources/`) : `values/{dimens,styles,colors,strings}_ecrans.xml`,
+  `values-night/colors_ecrans.xml`, `values-en/strings_ecrans.xml`, 8
+  sélecteurs `color/apercu_{mode,puce,hud}_*` et 32 drawables/vecteurs
+  `apercu_*` (appbar, HUD, état, bandeau, toast, bulle + les drawables
+  des écrans à venir, référencés par les styles — leurs LAYOUTS
+  arriveront avec leurs lots PE11j/k). Écart corrigé de la référence :
+  `chipStrokeColor None` (valeur CSS, invalide en Android) → `@null`.
+- **`activity_preview.xml` REMPLACÉ par la référence** : barre du haut
+  en `LinearLayout` de 52 dp (D1 — retour 36 dp, bloc titre mono 14 +
+  sous-titre sans 11, PASTILLE de mode `ChipGroup` + bouton plus),
+  en-tête `entete_preview` (fond surface, inset de barre d'état), traits
+  1 dp sous l'appbar et sous les puces, puces `Widget.CodeIDE.Apercu.Puce`
+  (pilule 30, trait 1), BANDEAU `banniere_rendu` + TOAST `toast_apercu`
+  en vues (D6), HUD `Hud`/`Etat`/`BoutonHud`/`ZoomBouton`, bulle de 58 dp
+  (D4) AVANT les popovers (z-order maquette : popover 8 > bulle 6).
+  Trois littéraux de la référence adaptés en ressources de MÊME valeur
+  (14 dp → `apercu_toast_haut`, 1 dp → `apercu_trait_titre`, 340 dp →
+  nouveau `apercu_toast_largeur_max` — § 3.6).
+- **Les JETONS DU MOTEUR (D7)** : `JetonsCalques` (data class pure de
+  `:preview:xml`, 21 entiers ARGB, ordre de `JetonsCalques.NOMS`) +
+  `VuePreviewXml.appliquerJetons(...)` injecté par `PreviewActivity` à la
+  création et au changement de configuration (`StyleVolet.jetonsCalques`
+  résout le thème clair/nuit) — TOUTES les constantes de couleur du
+  moteur disparaissent (`COULEUR_DAMIER_*`, `COULEUR_PLAN`, `COULEUR_PIN_*`,
+  `COULEUR_ZONE_DEPOT*`, `couleurSurlignage/Parent/Surface` lues du thème…).
+  `JetonsCalquesTest` (JVM) : parité maquette ↔ `colors.xml` clair ET nuit.
+- **La LÉGENDE de planche** (§ 3.4 `.cap`) : « DESIGN · PIXEL 4 » — mono
+  11/500, capitales, interlettrage 0,04 em, `apercuTexteDoux`, 22 dp
+  au-dessus de chaque planche (le libellé du profil est posé par l'activité).
+- **Le BANDEAU (D6)** : VUE `banniere_rendu` (chrome dédié
+  `BandeauApercu`) — UNE ligne, boutons « Ligne n » (aller à la source :
+  onglet Source amené à la ligne) et « Détails » ↔ « Réduire » (déplie) ;
+  en PROCESSUS ARRÊTÉ (`RegimeRendu.LOCAL_DEGRÉ` collecté) : message
+  honnête + « Réessayer » (`MoteurPreviewXml.reactiverIsolation` →
+  `TransportIsolation.reactiver` : les pannes de session repartent à
+  zéro). La barre d'édition descend de 64 dp sous un bandeau visible.
+  `dessinerBandeauErreur` SUPPRIMÉ du moteur.
+- **La LIGNE de l'erreur de rendu** : `ResultatRendu.ligne` (parcelle
+  AIDL, -1 = inconnue) ← `ligneDeMalformation` (parseur) ou le message
+  LayoutLib (« line #N »), portée par `ResultatTransport.Erreur.ligne`
+  puis `EtatPreviewXml.ErreurRendu.ligne` — « Ligne n » n'apparaît que
+  si la ligne est connue (écarts voulus documentés dans PREVIEW.md §3.4).
+- **Le TOAST en vue (D6)** : `ToastApercu` (chrome dédié) — pastille
+  inversée haut-centre, fondu 200 ms, reste 2,4 s ; PLUS AUCUN
+  `Toast.makeText` dans l'écran.
+- **La bulle OUVERTE (D4)** : `BulleFlottante.ouverte` — layer-list
+  `apercu_bulle_fond_ouverte` + icône teintée `apercuFond` quand la
+  palette est visible ; fond/élévation/marge portés par le LAYOUT (58 dp
+  avec halo, `apercu_bulle_marge` = 10 − 4), plus de code.
+
+#### Modifié
+
+- **Barre du haut (D1)** : `setSupportActionBar`/`MaterialToolbar`/
+  `AppBarLayout` SUPPRIMÉS — le menu « Choisir le fichier… » devient un
+  `PopupMenu` ancré à `bouton_plus` (`R.menu.menu_preview`) ; le titre
+  et le sous-titre sont des `TextView` (`titre_apercu`, `sous_titre_apercu`).
+- **Pastille de mode (D2)** : `MaterialButtonToggleGroup` → `ChipGroup`
+  (sélection unique obligatoire, `setOnCheckedStateChangeListener`) ;
+  les puces Appareil/Calques portent `isActivated` à l'ouverture de leur
+  menu (crochet de fermeture `PopoverMenuApercu.auFermer`).
+- **Pastille d'état (E10)** : pilule `Widget.CodeIDE.Apercu.Etat`, point
+  7 dp `apercu_etat_point`, jetons `apercuSucces`/`apercuAvert`/
+  `apercuErreur` (plus de rôles du thème de l'app) ; l'ancien signal
+  d'édition dessiné par le moteur disparaît (la pastille le porte).
+- **Calques du moteur (§ 3.5)** : damier 8 dp sur `apercuSurface2` +
+  cases `apercuDamierCase` ; sélection 2 dp accent + aplat
+  `apercuAccentDoux` ; poignées CARRÉES 9 dp (surface + trait 2 accent,
+  rayon 2 — fin des disques ronds) ; parent 1,5 dp pointillé accent à
+  75 % ; frères en BORD 1 dp à 35 % (fin de l'aplat 9 %) ; étiquettes
+  RECTANGLE rayon 4, padding 3/6, mono 11/500 (`.lab`, `.lab.dim`,
+  `.lab.nw` en jetons) ; épingles liseré 2 dp `apercuSurCalque` ;
+  marges/padding en jetons `apercuMarge{,Fond}`/`apercuRemplissage{,Fond}`
+  (alpha DANS les jetons) ; ombre et liseré de l'écran rendu en jetons
+  `apercuEcranOmbre`/`apercuEcranTrait` ; largeurs de trait et tailles
+  en dp ÉCRAN constants (densité / zoom, § 3.5).
+- **`ControleurPreviewXml`** : les branches `ErreurRendu`/`EnEdition`
+  ne touchent plus la vue (méthodes moteur supprimées) — l'activité
+  collecte `moteur.etat` et pilote le bandeau et la pastille (D6).
+- `PreviewViewModel.reactiverIsolation()` ; `FeuilleApercuFragment.ouvrirSourceALigne`
+  + `VoletSourceFragment.allerALigne` (« Ligne n ») ; la réserve de la
+  bulle par `apercu_hud_marge` (plus de littéral 16 dp).
+
+#### Supprimé
+
+- `fond_barre_edition`, `ic_edition_{annuler,retablir,dupliquer,supprimer}`,
+  `fond_bulle`, `fond_point_pastille` (remplacés par les drawables de
+  référence) ; la chaîne moteur `preview_en_edition` (signal désormais
+  porté par la pastille d'état du chrome).
+
+#### Tests
+
+- NOUVEAUX : `JetonsCalquesTest` (3 — parité clair/nuit + complétude),
+  `CotesEcransMaquetteTest` (7 — gonflage 420×812 sous le thème, cotes
+  § 12.1 contre `meas_ecrans_clair.json` : appbar 52, puce 30, bouton de
+  mode 26, zoom 36 × 34, édition 34 × 34, bulle 58, point 7),
+  assertions bandeau/toast/bulle/titre de `ActivityPreviewLayoutTest` ;
+  `ServicePreviewTest` : la ligne survit à l'aller-retour parcel AIDL.
+- ACTUALISÉS : `VuePreviewXmlTest` (injection des jetons — aucune
+  couleur sans injection ; les états bandeau/édition quittent la vue),
+  `ActivityPreviewLayoutTest` (barre 52 dp, ChipGroup, plus de toolbar).
+- Chaîne locale VERTE : `spotlessApply`/`spotlessCheck`, `detekt` RACINE,
+  `checkModuleDependencies` RACINE, `:preview:xml:test` + `:feature:preview:testDebugUnitTest`
+  (298 tests, 0 échec) ; AUCUN littéral dans les layouts de l'écran
+  principal (grille § 12.4).
+
+#### Recette de fidélité (§ 12.3 — paires de captures sur appareil)
+
+| Écran | État | Claire | Nuit | Notes |
+|---|---|---|---|---|
+| écran-principal-ferme | repos, feuille repliée | ☐ | ☐ | appbar 52, trait bas, pastille pleine |
+| écran-principal-attributs | onglet Attributs actif | ☐ | ☐ | pastille d'état, zoom remonté |
+| écran-bandeau-erreur | erreur sémantique | ☐ | ☐ | bandeau 2 boutons, barre décalée 64 |
+| écran-statut-frappe | XML en cours | ☐ | ☐ | point ambre |
+| écran-toast | après une action | ☐ | ☐ | haut-centre, fondu |
+| écran-glisser | drag d'une tuile | ☐ | ☐ | bulle 20 %, zones de dépôt |
+| damier | clair et nuit | ☐ | ☐ | cases 8 dp IDENTIQUES nuit |
+| sélection | vue sélectionnée | ☐ | ☐ | poignées CARRÉES, étiquette rect |
+
+(À joindre au prochain retour propriétaire — même pratique que PE11b/c.)
+
 ## [0.149.1] – 2026-10-19
 
 ### Le brief PE11 rejoint le dépôt (documentation)

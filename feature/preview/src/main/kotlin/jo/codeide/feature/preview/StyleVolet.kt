@@ -6,6 +6,7 @@ import android.util.TypedValue
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import jo.codeide.preview.xml.JetonsCalques
 import com.google.android.material.R as RMaterial
 
 /**
@@ -53,6 +54,39 @@ internal object StyleVolet {
         contexte.theme.resolveAttribute(attribut, valeur, true)
         return valeur.data
     }
+
+    /**
+     * Les JETONS DU MOTEUR (PE11i — ADR 0134 D7) : les 21 couleurs des
+     * calques résolues du THÈME courant (clair ou nuit), DANS L'ORDRE de
+     * [JetonsCalques.NOMS] — l'activité les injecte par
+     * `VuePreviewXml.appliquerJetons` à la création et à chaque
+     * changement de thème ; la parité maquette ↔ ressources est gardée
+     * par `JetonsCalquesTest`.
+     */
+    internal fun jetonsCalques(contexte: Context): JetonsCalques =
+        JetonsCalques(
+            surface2 = couleur(contexte, R.attr.apercuSurface2),
+            damierCase = couleur(contexte, R.attr.apercuDamierCase),
+            accent = couleur(contexte, R.attr.apercuAccent),
+            accentDoux = couleur(contexte, R.attr.apercuAccentDoux),
+            surface = couleur(contexte, R.attr.apercuSurface),
+            texte = couleur(contexte, R.attr.apercuTexte),
+            fond = couleur(contexte, R.attr.apercuFond),
+            texteDoux = couleur(contexte, R.attr.apercuTexteDoux),
+            marge = couleur(contexte, R.attr.apercuMarge),
+            margeFond = couleur(contexte, R.attr.apercuMargeFond),
+            remplissage = couleur(contexte, R.attr.apercuRemplissage),
+            remplissageFond = couleur(contexte, R.attr.apercuRemplissageFond),
+            bornes = couleur(contexte, R.attr.apercuBornes),
+            nouveau = couleur(contexte, R.attr.apercuNouveau),
+            nouveauDoux = couleur(contexte, R.attr.apercuNouveauDoux),
+            surNouveau = couleur(contexte, R.attr.apercuSurNouveau),
+            epingleAvert = couleur(contexte, R.attr.apercuEpingleAvert),
+            epingleErreur = couleur(contexte, R.attr.apercuEpingleErreur),
+            surCalque = couleur(contexte, R.attr.apercuSurCalque),
+            ecranTrait = couleur(contexte, R.attr.apercuEcranTrait),
+            ecranOmbre = couleur(contexte, R.attr.apercuEcranOmbre),
+        )
 
     /** Le fond réactif des rangées cliquables (ondulation du thème). */
     internal fun fondReactif(contexte: Context): Drawable? {

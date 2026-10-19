@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bulle OUVERTE (.bubble[aria-expanded=true]) : fond « texte », icône « fond ». À poser à l'ouverture de la palette. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuNouveauDoux" />
+            <corners android:radius="@dimen/apercu_bulle_rayon_halo" />
+        </shape>
+    </item>
+    <item android:left="@dimen/apercu_bulle_halo" android:top="@dimen/apercu_bulle_halo" android:right="@dimen/apercu_bulle_halo" android:bottom="@dimen/apercu_bulle_halo">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/apercuTexte" />
+            <corners android:radius="@dimen/apercu_bulle_rayon" />
+        </shape>
+    </item>
+</layer-list>

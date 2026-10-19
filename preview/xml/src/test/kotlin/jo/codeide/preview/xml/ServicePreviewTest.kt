@@ -84,6 +84,7 @@ class ServicePreviewTest {
             ResultatRendu(
                 ok = true,
                 message = null,
+                ligne = 12,
                 largeur = 12,
                 hauteur = 34,
                 nombreVues = 5,
@@ -101,6 +102,8 @@ class ServicePreviewTest {
             parcel.setDataPosition(0)
             val relu = ResultatRendu.CREATOR.createFromParcel(parcel)
             assertEquals(source.ok, relu.ok)
+            // PE11i : la ligne source de l'erreur (bandeau « Ligne n »).
+            assertEquals(source.ligne, relu.ligne)
             assertEquals(source.largeur, relu.largeur)
             assertEquals(source.hauteur, relu.hauteur)
             assertEquals(source.nombreVues, relu.nombreVues)
