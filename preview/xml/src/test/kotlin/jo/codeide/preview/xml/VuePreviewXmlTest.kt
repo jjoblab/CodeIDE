@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.DragEvent
+import android.view.MotionEvent
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -389,5 +390,120 @@ class VuePreviewXmlTest {
         vue.draw(canvas)
         vue.traiterEvenementDrag(DragEvent.ACTION_DRAG_ENDED, 0f, 0f, contenu)
         vue.draw(canvas)
+    }
+
+    // ── Redimensionnement par poignée (PE11l — demandé par le propriétaire) ──
+
+    @Test
+    fun `plan seul - la planche vit a l origine, les deux la decale`() {
+        // PE11l (bug rapporté : « corriger le rendu plan ») : le fit cadre
+        // UNE planche en mode Plan — dessinée au-delà de sa propre largeur
+        // elle sortait du cadre (écran vide derrière le damier).
+        assertEquals(0, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.PLAN, 100, 40))
+        assertEquals(140, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.LES_DEUX, 100, 40))
+        assertEquals(0, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.DESIGN, 100, 40))
+    }
+
+    @Test
+    fun `redimensionnement - saisie fantome puis UNE ecriture au relachement`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sortie)
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        vue.surlignerVue(1)
+        var ecritures = 0
+        var cible = 0 to 0
+        vue.auRedimensionner = { largeur, hauteur ->
+            ecritures += 1
+            cible = largeur to hauteur
+        }
+        // Fit d'une planche 100×200 dans 512×1024 : échelle 5,12, décalages 0.
+        // Saisie de la poignée BAS-DROITE de la vue 1 (10,10 → 90,60) :
+        // coin (90, 60), ancre OPPOSÉE (10, 10) — l'événement est CONSOMMÉ.
+        assertTrue(
+            "saisie consommée",
+            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
+        )
+        // Le doigt suit : le fantôme se dessine SANS lever (rien n'est écrit).
+        assertTrue(
+            "suivi consommé",
+            vue.traiterRedimension(MotionEvent.ACTION_MOVE, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
+        )
+        vue.draw(canvas)
+        assertEquals("rien n'est écrit avant le relâchement", 0, ecritures)
+        // Relâchement : UNE écriture groupée — cible (50, 80) depuis l'ancre
+        // (10, 10) : 40 px → 15 dp, 70 px → 25 dp (440 dpi).
+        assertTrue(
+            "relâchement consommé",
+            vue.traiterRedimension(MotionEvent.ACTION_UP, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
+        )
+        assertEquals("UNE écriture par geste", 1, ecritures)
+        assertEquals(15 to 25, cible)
+    }
+
+    @Test
+    fun `redimensionnement - contact sans derive et saisie hors poignee`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+            densiteDpiProfil = 440,
+        )
+        vue.surlignerVue(1)
+        var ecritures = 0
+        vue.auRedimensionner = { _, _ -> ecritures += 1 }
+        // Hors poignée (centre de la vue) : le geste n'est PAS consommé —
+        // pan/zoom/tap gardent la main.
+        assertFalse(
+            "centre de la vue : pas de saisie",
+            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 50f * ECHELLE_FIT, 35f * ECHELLE_FIT),
+        )
+        // Contact sur la poignée SANS dérive : consommé mais RIEN n'est
+        // écrit au relâchement (miroir le tap sans dérive du canvas).
+        assertTrue(
+            "poignée saisie",
+            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
+        )
+        assertTrue(
+            "relâchement consommé",
+            vue.traiterRedimension(MotionEvent.ACTION_UP, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
+        )
+        assertEquals("contact seul : aucune écriture", 0, ecritures)
+    }
+
+    @Test
+    fun `redimensionnement - sans selection ni densite aucune saisie`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 1024)
+        // Sans rendu du tout : rien à saisir.
+        assertFalse(
+            "sans bitmap : pas de saisie",
+            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 0f, 0f),
+        )
+        vue.afficherRendu(
+            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
+            vuesRendues = vues(),
+        )
+        vue.surlignerVue(1)
+        // Sans densité de profil (repli px) : le geste ne peut pas
+        // produire de dp — aucune saisie (pas de faux repli).
+        assertFalse(
+            "sans densité : pas de saisie",
+            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
+        )
+    }
+
+    private companion object {
+        /** L'échelle du fit d'une planche 100×200 dans une vue 512×1024. */
+        private const val ECHELLE_FIT = 5.12f
     }
 }

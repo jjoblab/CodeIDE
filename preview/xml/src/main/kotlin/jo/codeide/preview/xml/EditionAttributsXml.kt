@@ -160,6 +160,65 @@ public object EditionAttributsXml {
         return ecrireAttribut(texte, span, nom, valeur)
     }
 
+    /**
+     * Pose les DEUX dimensions FIXES en UNE SEULE édition (PE11l —
+     * redimensionnement par POIGNÉE de l'aperçu, miroir le `mutate`
+     * groupé de la maquette : un geste = une entrée d'historique) :
+     * la largeur puis la hauteur sont composées sur le texte remanié
+     * (chaque écriture par [ecrireDimension], le span suit le décalage
+     * de la première), puis la balise ouvrante ENTIÈRE est remplacée
+     * par sa version remaniée — [SourceApercu.remplacer] n'accepte
+     * qu'une plage, l'édition reste ATOMIQUE.
+     *
+     * `null` si RIEN ne change (les deux valeurs déjà posées) ou span
+     * périmé (jamais d'exception, règle 6).
+     */
+    public fun ecrireDimensions(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        largeurDp: Int,
+        hauteurDp: Int,
+    ): EditionAttributsXmlResultat? {
+        val localise = localiser(texte, span) ?: return null
+        // 1) LA LARGEUR sur le texte original.
+        val editionLargeur =
+            ecrireDimension(texte, span, Axe.LARGEUR, ModeDimension.FIXE, largeurDp)
+        val deltaLargeur = delta(editionLargeur)
+        val texteApresLargeur =
+            if (editionLargeur == null) {
+                texte
+            } else {
+                appliquer(texte, editionLargeur)
+            }
+        // 2) LA HAUTEUR sur le texte remanié — l'élément FIN bouge du
+        // décalage de la largeur (l'écriture vit DANS la balise).
+        val spanHauteur = InsertionXml.SpanParent(span.debut, span.fin + deltaLargeur)
+        val editionHauteur =
+            ecrireDimension(texteApresLargeur, spanHauteur, Axe.HAUTEUR, ModeDimension.FIXE, hauteurDp)
+        if (editionLargeur == null && editionHauteur == null) return null
+        val texteFinal =
+            if (editionHauteur == null) {
+                texteApresLargeur
+            } else {
+                appliquer(texteApresLargeur, editionHauteur)
+            }
+        // 3) UNE édition : la balise originale remplacée par la remaniée.
+        val finBaliseOriginale = localise.chevron + 1
+        val finBaliseRemaniee = finBaliseOriginale + deltaLargeur + delta(editionHauteur)
+        val baliseRemaniee = texteFinal.substring(localise.debut, finBaliseRemaniee)
+        return EditionAttributsXmlResultat(localise.debut, finBaliseOriginale, baliseRemaniee)
+    }
+
+    /** Applique une édition à un texte (composition pure, hors port). */
+    private fun appliquer(
+        texte: String,
+        edition: EditionAttributsXmlResultat,
+    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+
+    /** Le décalage de longueur d'une édition (0 si absente). */
+    private fun delta(edition: EditionAttributsXmlResultat?): Int =
+        edition?.let { it.remplacement.length - (it.fin - it.debut) } ?: 0
+
     // ── PE7e : lecture, définition générale, côtés ───────────────────────
 
     /**

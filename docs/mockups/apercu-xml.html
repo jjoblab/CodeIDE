@@ -5,7 +5,11 @@
 /* Concept : une page de revue en deux temps. À gauche une maquette interactive
    du panneau d'aperçu (cadre téléphone, calques réels, feuille inférieure),
    à droite la lecture des calques ; dessous le constat tiré du code et le plan.
-   Jetons = palette réelle de core/ui (colors.xml / values-night). */
+   Jetons = palette réelle de core/ui (colors.xml / values-night).
+   v6 (PE11l) : le REDIMENSIONNEMENT par poignée rejoint la maquette — saisir
+   une poignée d'angle ancre le coin opposé, fantôme pointillé + chip dp en
+   direct, relâchement = UNE entrée d'historique pour les DEUX axes (plancher
+   8 dp, la racine exclue) — l'application le reprend à l'identique. */
 :root{
   --bg:#F9F9FF; --surface:#FFFFFF; --surface2:#EEEEF7; --fg:#1A1B21; --muted:#5B5C66;
   --line:#D6D5E0; --primary:#43559E; --on-primary:#FFFFFF; --primary-c:#DCE1FF; --on-primary-c:#001159;
@@ -115,7 +119,8 @@ header.top{display:flex;flex-direction:column;gap:14px}
 .ov{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
 .ov *{pointer-events:none}
 .sel{position:absolute;border:calc(2px/var(--z,1)) solid var(--accent);background:var(--accent-soft)}
-.sel .h{position:absolute;width:calc(9px/var(--z,1));height:calc(9px/var(--z,1));background:var(--surface);border:calc(2px/var(--z,1)) solid var(--accent);border-radius:2px}
+.sel .h{position:absolute;width:calc(9px/var(--z,1));height:calc(9px/var(--z,1));background:var(--surface);border:calc(2px/var(--z,1)) solid var(--accent);border-radius:2px;pointer-events:auto;touch-action:none}
+.rsz{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--accent);pointer-events:none}
 .par{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--accent);opacity:.75}
 .sib{position:absolute;border:calc(1px/var(--z,1)) solid var(--accent);opacity:.35}
 .bnd{position:absolute;border:calc(1px/var(--z,1)) solid var(--bounds)}
@@ -1154,9 +1159,14 @@ function drawOverlay(bd) {
   if (L.mg && v && q && sel !== 'root' && !S.dropView) drawBoxModel(ov, v, q);
   if (v && q && !S.dropView) {
     const s = box('sel', q.x, q.y, q.w, q.h, ov);
-    [[0,0],[1,0],[0,1],[1,1]].forEach(c => { const h = el('i', 'h'); h.style.left = 'calc(' + (c[0]*100) + '% - ' + (5.5/z) + 'px)'; h.style.top = 'calc(' + (c[1]*100) + '% - ' + (5.5/z) + 'px)'; s.appendChild(h); });
+    [[0,0],[1,0],[0,1],[1,1]].forEach(c => { const h = el('i', 'h'); h.style.left = 'calc(' + (c[0]*100) + '% - ' + (5.5/z) + 'px)'; h.style.top = 'calc(' + (c[1]*100) + '% - ' + (5.5/z) + 'px)'; h.style.cursor = (c[0] ^ c[1]) ? 'nesw-resize' : 'nwse-resize'; s.appendChild(h); bindResize(h, c); });
     chip(ov, '', label(v), q.x, q.y - 24/z >= 0 ? q.y - 24/z : q.y + 4/z);
     chip(ov, 'dim', r0(q.w) + ' × ' + r0(q.h) + ' dp', q.x, q.y + q.h + 4/z);
+  }
+  if (S.rsz) {
+    const rx = Math.min(S.rsz.ax, S.rsz.x), ry = Math.min(S.rsz.ay, S.rsz.y);
+    box('rsz', rx, ry, Math.abs(S.rsz.x - S.rsz.ax), Math.abs(S.rsz.y - S.rsz.ay), ov);
+    chip(ov, 'dim', rszDim(Math.abs(S.rsz.x - S.rsz.ax)) + ' × ' + rszDim(Math.abs(S.rsz.y - S.rsz.ay)) + ' dp', rx, ry + Math.abs(S.rsz.y - S.rsz.ay) + 4/z);
   }
   if (L.prob && !S.dropView) {
     const seen = {};
@@ -1958,6 +1968,44 @@ function bindCanvas() {
   $('zOut').onclick = () => zoomAt(...mid(), 1 / 1.25);
   $('zPct').onclick = () => { const m = mid(); zoomAt(m[0], m[1], 1 / S.z); };
   $('zFit').onclick = () => { S.autofit = true; fit(); };
+}
+/* ---------- Redimensionnement par poignée (v6 — l'app PE11l le reprend à l'identique) ----------
+   Saisir une poignée ANCRE le coin OPPOSÉ, le fantôme pointillé suit le doigt
+   (chip dp en direct), le relâchement écrit largeur ET hauteur en UNE SEULE
+   entrée d'historique (mutate groupé) avec le plancher 8 dp — même règle que
+   la rangée de dimension (`Math.max(8, …)` au passage en fixe). Un contact
+   sans dérive (moved < 6) n'écrit rien. La RACINE n'est pas redimensionnable. */
+const rszDim = n => Math.max(8, r0(n));
+function bindResize(h, c) {
+  h.addEventListener('pointerdown', e => {
+    if (!S.sel || S.sel === 'root' || S.dropView) return;
+    const f = find(S.sel); if (!f || !f.p) return;
+    const q = S.b[S.sel]; if (!q) return;
+    e.preventDefault(); e.stopPropagation();
+    h.setPointerCapture(e.pointerId);
+    // L'ancre = le coin OPPOSÉ à la poignée saisie (c[0]/c[1] : coin dans la boîte).
+    const d0 = toDesign(e.clientX, e.clientY);
+    if (!d0) return; // saisie hors zone utile (sous la feuille) : pas de geste
+    S.rsz = { ax: c[0] ? q.x : q.x + q.w, ay: c[1] ? q.y : q.y + q.h, x: d0.x, y: d0.y };
+    let moved = 0, lx = e.clientX, ly = e.clientY;
+    const mv = ev => {
+      const d = toDesign(ev.clientX, ev.clientY); if (!d) return;
+      S.rsz.x = d.x; S.rsz.y = d.y;
+      moved += Math.abs(ev.clientX - lx) + Math.abs(ev.clientY - ly); lx = ev.clientX; ly = ev.clientY;
+      render();
+    };
+    const up = () => {
+      h.removeEventListener('pointermove', mv);
+      h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+      const w = rszDim(Math.abs(S.rsz.x - S.rsz.ax)), hh = rszDim(Math.abs(S.rsz.y - S.rsz.ay));
+      const rid = S.sel; S.rsz = null;
+      if (moved < 6) { render(); return; }
+      mutate(() => { const ff = find(rid); if (!ff) return; ff.n.w = w; ff.n.h = hh; }, 'Redimensionné : ' + w + ' × ' + hh + ' dp');
+    };
+    h.addEventListener('pointermove', mv);
+    h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+    render();
+  });
 }
 </script>
 <script>

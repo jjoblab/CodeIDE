@@ -89,6 +89,11 @@
     <!-- Dépôt de la palette (PE7b, miroir toast d\'insertAt). -->
     <string name="preview_toast_depot_ok">%1$s ajouté dans %2$s</string>
     <string name="preview_toast_depot_ko">Dépôt impossible ici : le document a changé depuis le rendu.</string>
+
+    <!-- Redimensionnement par poignée (PE11l — miroir `mutate` groupé). -->
+    <string name="preview_dimension_format" translatable="false">%1$d × %2$d dp</string>
+    <string name="preview_toast_redimensionne">Redimensionné : %1$s</string>
+    <string name="preview_toast_redimension_ko">Redimensionnement impossible : la sélection n\'est plus éditable.</string>
     <!-- Orientation et police de l'aperçu (PE6e-f, miroir `.chips` de la
          maquette : Portrait/Paysage et Police ×n). -->
     <string name="preview_orientation_cd">Basculer l\'aperçu entre portrait et paysage</string>

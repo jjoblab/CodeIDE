@@ -1,5 +1,160 @@
 # Journal des modifications
 
+## [0.153.0] – 2026-10-19
+
+### PE11l — RECETTE FINALE + les 5 écarts rapportés par le propriétaire
+
+#### Corrigé
+
+- **① Zoom / « Rendu · N vues » visibles dès le lancement, feuille
+  repliée** (bug rapporté : « affichés normalement seulement après
+  avoir déployé la feuille ») : la translation du HUD de zoom et de la
+  pastille d'état n'était posée que par les CALLBACKS du
+  `BottomSheetBehavior` (`onStateChanged`/`onSlide`) — au lancement,
+  AUCUN callback n'a encore tiré et l'entête visible (peek, 78 dp)
+  recouvrait les deux pièces posées au bord. La pose INITIALE
+  (`majGlissadeFeuille(0f)`) suit le montage de la feuille, miroir
+  `applySheet` au chargement de la maquette (formules pures
+  `GlissadeFeuilleApercu` inchangées, déjà testées).
+- **② Bandeau « processus arrêté » permanent** (bug rapporté : « le
+  bandeau erreurs est toujours affiché ») : deux causes racine
+  traitées côté transport — (a) le pipeline `RenduLayoutLib` était
+  construit dans `ServicePreview.onCreate` : la MOINDRE exception à la
+  construction tuait le processus `:preview` AVANT le binder, la
+  liaison échouait deux fois, la politique d'isolation désactivait le
+  transport pour la SESSION et le bandeau restait affiché tant que
+  l'app vivait (rendu local fonctionnel, bandeau permanent) — le
+  pipeline devient PARESSEUX : sa construction glisse sous le filet du
+  stub AIDL, l'échec part en DONNÉE (`ResultatRendu` ok=false, règle
+  6), le processus SURVIT et « Réessayer » retente un état propre ;
+  (b) le PREMIER rendu d'une liaison (processus froid : pipeline +
+  plateforme + premier inflate) dépassait parfois le budget unique de
+  10 s sur appareil — la lenteur de DÉMARRAGE était convertie en panne
+  de transport (reprise → re-attente → désactivation). Le premier rendu
+  après chaque (re)liaison reçoit un budget de 45 s
+  (`DELAI_PREMIER_RENDU_MS`), les suivants reviennent à 10 s ; le
+  délai de (re)liaison passe de 8 à 15 s (la reprise VISE toujours
+  ~2 s — le délai ne borne que l'attente maximale).
+- **③ Palette remplie dès la première ouverture** (bug rapporté : « je
+  dois appuyer sur l'un des types pour que l'adaptateur charge ») : la
+  grille n'était remplie que par les CALLBACKS (catégorie, recherche,
+  récents) — le remplissage INITIAL rejoint le `init` (miroir
+  `fillGrid` de la maquette : « Tous », recherche vide, liste
+  complète). Test : `la grille est remplie dès la construction`.
+- **④ Rendu PLAN (wireframe) réparé** (bug rapporté : « corriger le
+  rendu plan ») : la planche bp était translattée de
+  `decalagePlanche()` (largeur design + écart) MÊME SEULE — dessinée à
+  [W+écart, 2W+écart] alors que l'ajustement cadre UNE planche de
+  largeur W, l'écran restait vide derrière le damier. La maquette pose
+  la planche bp à L'ORIGINE quand elle est seule
+  (`S.mode === 'bp' ? [true]`) : le décalage d'affichage passe par
+  `CalculsVuePreview.decalagePlancheAffichage` (0 en Plan seul,
+  W+écart en « Les deux » — même esprit que `decalagePlancheHit`),
+  testé à part.
+- **⑤ REDIMENSIONNEMENT par poignée d'angle** (demandé par le
+  propriétaire) : saisir une poignée de la sélection ancre le coin
+  OPPOSÉ, un fantôme pointillé accent suit le doigt avec sa pill
+  « largeur×hauteur dp » en direct, le relâchement écrit les DEUX axes
+  en UNE SEULE édition groupée (`EditionAttributsXml.ecrireDimensions`
+  : la balise remaniée remplace la balise originale — une entrée
+  d'historique par geste, miroir le `mutate` groupé de la maquette).
+  Plancher 8 dp (miroir `Math.max(8, …)`), cible tactile de saisie
+  18 dp écran (dérogation ADR 0133 ≥ 24 dp), contact sans dérive =
+  rien (miroir le tap), la RACINE n'est pas redimensionnable, la
+  densité du profil doit être connue (jamais de repli px). La
+  maquette `docs/mockups/apercu-xml.html` gagne l'interaction à
+  l'identique (v6) — elle reste la référence de comportement.
+
+#### Ajouté
+
+- **Recette finale § 12** (`PREVIEW_UI_ECRANS.md`) :
+  - **Recherche des littéraux (`#`, `dp`, `sp`) dans les layouts :
+    VIDE** — les quatre derniers littéraux deviennent des ressources
+    (`apercu_reset_cible` 24 dp : cible tactile ↺, plancher ADR 0133 ;
+    `apercu_palette_puce_bulle_marge_fin` 8 dp ; marginEnd du
+    `bouton_bulle` ; `apercu_categories_pad_bas` 2 dp ;
+    `apercu_feuille_volets_defaut` 224 dp : placeholder du conteneur de
+    volets, posé à `RATIO_VOLET` de l'écran au montage). Restent les
+    sentinelles `0dp` (match-constraint / réinitialisation), hors
+    périmètre.
+  - **Cotes Robolectric pour TOUS les layouts de la partie II** :
+    nouvelle classe `CotesPlacementMenusMaquetteTest` (6 tests) —
+    puce de catégorie 28 (cat), rangée du mini-arbre de placement 32
+    (mini_row), ghost 34 (glisser/ghost), coque du placement (padding
+    12, fermer 36, boutons de position composés 32,5 — pos_btn), les
+    TROIS conteneurs de menus (coque Menu padding 8, hauteur max 430
+    posée par `PopoverMenuApercu`), option du menu cible et messages
+    de palette (gonflage + sanité : la maquette ne les mesure pas).
+    Avec `CotesEcransMaquetteTest`, `CotesPopoversMaquetteTest`,
+    `CotesVoletsMaquetteTest`, `CotesMaquetteTest`,
+    `ActivityPreviewLayoutTest` et `VoletsPreviewLayoutTest`, chaque
+    layout de la partie II est gonflé et mesuré quelque part.
+  - **`RedimensionApercu`** (objet pur, 7 tests) : ancre du coin
+    saisi, conversions dp du profil (plancher 8), rectangle ordonné du
+    fantôme, dérive du contact.
+- **Tests** : `VuePreviewXmlTest` +4 (contrat du décalage de planche,
+  machine du redimensionnement : saisie/fantôme/UNE écriture, contact
+  sans dérive, refus sans sélection/densité) ; `EditionAttributsXmlTest`
+  +4 (`ecrireDimensions` : les deux axes en UNE édition, insertion des
+  attributs absents, idempotence, span périmé) ; chaîne des transports
+  inchangée (les 3 contrats `TransportRenduProcessTest` couvrent la
+  liaison paresseuse du pipeline).
+
+#### Modifié
+
+- `docs/mockups/apercu-xml.html` **resynchronisée (v6)** : l'en-tête
+  documente la version, le redimensionnement par poignée rejoint la
+  maquette (CSS `.rsz` + `bindResize` + curseurs par coin), le ghost
+  pointillé + chip dp en direct — l'application le reprend à
+  l'identique.
+- `TransportRendu.kt` / `ServicePreview.kt` : budgets de transport
+  (premier rendu 45 s, liaison 15 s, pipeline paresseux — détails au
+  ② ci-dessus).
+
+#### Grille de contrôle § 12.4 (recette finale)
+
+Pastille de mode pleine ☑ ; puces pilule 30 dp ☑ ; trait sous l'appbar
+et sous les puces ☑ ; damier 8 dp en nuit ☑ ; sélection carrée 9 dp ☑ ;
+bandeau avec 2 boutons ☑ ; toast haut-centre ☑ ; bulle 50 dp violet
+entouré de son halo ☑ ; palette bornée à 600 dp ☑ ; mode sélectionné
+visible ☑ ; 3 colonnes espacées de 8 ☑ ; mini-arbre avec ids ☑ ;
+interrupteurs 34 × 20 ☑ ; rangée d'arbre 34 dp ☑ ; « Voir » sur chaque
+problème ☑ ; source colorée ☑.
+
+#### Captures de recette § 12.3 (à produire sur appareil par le propriétaire)
+
+Paires clair/nuit restant à joindre depuis PE11i/j/k :
+`ecran-principal-ferme`, `ecran-principal-attributs`,
+`ecran-bandeau-erreur`, `ecran-statut-frappe`, `ecran-toast`,
+`ecran-glisser`, `ecran-palette-glisser`, `ecran-palette-popup`,
+`ecran-palette-recherche`, `ecran-placement`, `ecran-menu-appareil`,
+`ecran-menu-calques`, `ecran-menu-plus`, `ecran-arbre`,
+`ecran-problemes`, `ecran-source`. Cette version porte les CINQ
+correctifs ci-dessus : vérifier sur l'appareil ① zoom/pastille au
+lancement feuille repliée, ② bandeau absent au rendu nominal, ③
+palette pleine à l'ouverture, ④ mode Plan dessiné, ⑤ drag d'une
+poignée = UNE entrée d'historique (annuler la restaure).
+
+#### Points ouverts O1-O5 (§ 13) — décision proposée, confirmation du propriétaire attendue
+
+O1 titre d'appbar 14 sp conservé ☑ ; O2 menus translucides colorés
+conservés (palette et placement opaques) ☑ ; O3 dérogation ADR 0133
+(plancher 24 dp) étendue au chrome dense — appbar et barre de
+navigation gardent 48 dp ☑ ; O4 défilement horizontal de la Source :
+la troncature est conservée, le besoin ne s'est pas confirmé ☑ ;
+O5 interrupteur 34 × 20 `SwitchCompat` retenu ☑.
+
+#### Écarts datés (PREVIEW.md § 3.4)
+
+- Redimensionnement par poignée : NOUVEAU comportement demandé par le
+  propriétaire, porté d'abord par la maquette (v6) puis repris à
+  l'identique — plancher 8 dp, une édition groupée, racine exclue.
+- Budgets de transport : 45 s / 15 s / 10 s (premier rendu / liaison /
+  rendu chaud) — la reprise vise ~2 s, les délais ne bornent que
+  l'attente maximale.
+- Messages de palette et menu cible : SANS clé JSON de mesure —
+  gonflage + sanité, la cote y est portée par le texte (§ 12.1).
+
 ## [0.152.1] – 2026-10-19
 
 ### Le brief PE10 rejoint le dépôt (documentation)

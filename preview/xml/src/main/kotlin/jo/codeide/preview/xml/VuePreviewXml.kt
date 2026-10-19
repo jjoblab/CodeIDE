@@ -237,6 +237,25 @@ public class VuePreviewXml :
     /** Appui simple confirmé, en coordonnées BITMAP (contenu, pas écran). */
     public var auTap: ((x: Float, y: Float) -> Unit)? = null
 
+    // ── Redimensionnement par poignée (PE11l — demandé par le propriétaire) ──
+
+    /**
+     * Le RELÂCHEMENT d'une poignée d'angle de la sélection : UNE écriture
+     * groupée des dimensions FIXES `[largeurDp] × [hauteurDp]` (plancher
+     * 8 dp, miroir `mutate` de la maquette — l'activité relaie au port,
+     * une seule entrée d'historique par geste).
+     */
+    public var auRedimensionner: ((largeurDp: Int, hauteurDp: Int) -> Unit)? = null
+
+    /** Le coin ANCRE du redimensionnement (coordonnées CONTENU — null : pas de geste en cours). */
+    private var redimensionAncre: Pair<Int, Int>? = null
+
+    /** Le point SAISI au départ (dérive mesurée depuis lui — le contact seul n'écrit rien). */
+    private var redimensionDepart: Pair<Int, Int>? = null
+
+    /** Le point COURANT du doigt (coordonnées CONTENU — dessine le fantôme). */
+    private var redimensionPoint: Pair<Int, Int>? = null
+
     /**
      * Changement d'échelle (PE6b — boutons de zoom, gestes, ajustement) :
      * l'activité y met à jour le pourcentage affiché dans le HUD.
@@ -641,6 +660,15 @@ public class VuePreviewXml :
     }
 
     override fun onTouchEvent(evenement: MotionEvent): Boolean {
+        // PE11l : la POIGNÉE PRIME sur pan/zoom/tap — la saisie se joue en
+        // ACTION_DOWN, le doigt suit (fantôme), UNE écriture au
+        // relâchement ; le geste consommé n'atteint JAMAIS les détecteurs.
+        if (traiterRedimension(evenement.actionMasked, evenement.x, evenement.y)) {
+            // ClickableViewAccessibility : le relâchement d'un contact
+            // simple sur une poignée se signale comme les autres.
+            if (evenement.actionMasked == MotionEvent.ACTION_UP) performClick()
+            return true
+        }
         val geste = detecteurGestes.onTouchEvent(evenement)
         val zoom = detecteurZoom.onTouchEvent(evenement)
         // ClickableViewAccessibility : un appui SIMPLE se signale via
@@ -648,6 +676,134 @@ public class VuePreviewXml :
         if (evenement.actionMasked == MotionEvent.ACTION_UP) performClick()
         return zoom || geste || super.onTouchEvent(evenement)
     }
+
+    /**
+     * La MACHINE du redimensionnement par poignée (PE11l — internal :
+     * testée sans [MotionEvent], patron [traiterEvenementDrag]) :
+     * ACTION_DOWN saisit la poignée sous le doigt (coin ANCRE opposé —
+     * la cible tactile de 18 dp écran dépasse le carré visuel de 9 dp,
+     * dérogation ADR 0133), MOVE suit le point, UP écrit UNE fois les
+     * dimensions cibles si le geste a DÉRIVÉ (contact seul = rien,
+     * miroir le tap), CANCEL abandonne. `true` = événement CONSOMMÉ.
+     *
+     * Exemption ciblée (règle 16) : refus MOVE/UP sans saisie = ISSUES
+     * DISTINCTES, même patron que la machine de drag.
+     */
+    @Suppress("ReturnCount")
+    internal fun traiterRedimension(
+        action: Int,
+        xVue: Float,
+        yVue: Float,
+    ): Boolean {
+        val (xCourant, yCourant) =
+            CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
+        val xContenu = Math.round(xCourant)
+        val yContenu = Math.round(yCourant)
+        return when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                val ancre = saisirPoignee(xContenu, yContenu)
+                if (ancre == null) {
+                    false
+                } else {
+                    redimensionAncre = ancre
+                    redimensionDepart = xContenu to yContenu
+                    redimensionPoint = xContenu to yContenu
+                    invalidate()
+                    true
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (redimensionAncre == null) return false
+                redimensionPoint = xContenu to yContenu
+                invalidate()
+                true
+            }
+
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL,
+            -> {
+                val ancre = redimensionAncre ?: return false
+                val depart = redimensionDepart
+                val point = redimensionPoint
+                redimensionAncre = null
+                redimensionDepart = null
+                redimensionPoint = null
+                invalidate()
+                // Contact SANS dérive : rien ne s'écrit (miroir le tap) ;
+                // CANCEL n'écrit JAMAIS (règle 6 : pas d'écriture surprise).
+                val cible = cibleDuRelachement(action, ancre, depart, point)
+                if (cible != null) auRedimensionner?.invoke(cible.first, cible.second)
+                true
+            }
+
+            else -> {
+                redimensionAncre != null
+            }
+        }
+    }
+
+    /**
+     * Les dimensions cibles du RELÂCHEMENT — `null` : contact sans
+     * dérive (miroir le tap), CANCEL (règle 6 : pas d'écriture surprise),
+     * densité inconnue ou geste immobile.
+     */
+    private fun cibleDuRelachement(
+        action: Int,
+        ancre: Pair<Int, Int>,
+        depart: Pair<Int, Int>?,
+        point: Pair<Int, Int>?,
+    ): Pair<Int, Int>? =
+        when {
+            action != MotionEvent.ACTION_UP -> {
+                null
+            }
+
+            point == null || depart == null -> {
+                null
+            }
+
+            !RedimensionApercu.aDerive(
+                depart.first,
+                depart.second,
+                point.first,
+                point.second,
+                seuilContactPx(),
+            ) -> {
+                null
+            }
+
+            else -> {
+                RedimensionApercu.dimensions(
+                    ancreX = ancre.first,
+                    ancreY = ancre.second,
+                    pointX = point.first,
+                    pointY = point.second,
+                    densiteDpi = densiteDpi,
+                )
+            }
+        }
+
+    /**
+     * La poignée saisie sous le point, s'il y en a une : la sélection
+     * doit exister et la densité du profil être CONNUE (sans elle le
+     * geste ne peut pas produire de dp — aucun faux repli en px).
+     */
+    private fun saisirPoignee(
+        xContenu: Int,
+        yContenu: Int,
+    ): Pair<Int, Int>? {
+        if (densiteDpi <= 0 || indiceSurligne !in vues.indices) return null
+        return RedimensionApercu.ancrePoigneeSous(
+            vue = vues[indiceSurligne],
+            xContenu = xContenu,
+            yContenu = yContenu,
+            rayonPx = tailleEcran(RAYON_SAISIE_POIGNEE_DP),
+        )
+    }
+
+    /** Le seuil de dérive d'un contact (px contenu — miroir le slop tactile). */
+    private fun seuilContactPx(): Float = tailleEcran(SEUIL_DERIVE_DP)
 
     override fun performClick(): Boolean = super.performClick()
 
@@ -745,11 +901,15 @@ public class VuePreviewXml :
         if (modeAffichage != ModeApercu.DESIGN) {
             // PE10d : la planche PLAN — squelette pointillé des vues
             // rendues (miroir `.screen.bp`), sélection en creux.
-            canevas.translate(decalagePlanche().toFloat(), 0f)
+            // PE11l : le décalage suit [CalculsVuePreview.decalagePlancheAffichage]
+            // (0 en mode Plan seul, planche + écart en « Les deux »).
+            val decalageAffichage =
+                CalculsVuePreview.decalagePlancheAffichage(modeAffichage, largeurPlanche(), ECART_PLANCHES)
+            canevas.translate(decalageAffichage.toFloat(), 0f)
             dessinerOmbrePlanche(canevas, jetons, 0f, bmp.width.toFloat(), bmp.height.toFloat())
             dessinerPlan(canevas, jetons)
             dessinerLegendePlanche(canevas, jetons, 0, estPlan = true)
-            canevas.translate(-decalagePlanche().toFloat(), 0f)
+            canevas.translate(-decalageAffichage.toFloat(), 0f)
         }
         // Calques, du plus large au plus étroit (miroir drawOverlay de la
         // maquette) : grille, bornes, frères, parent, contraintes,
@@ -761,6 +921,7 @@ public class VuePreviewXml :
         dessinerContraintes(canevas, jetons)
         dessinerMargesPadding(canevas, jetons)
         dessinerSurlignage(canevas, jetons)
+        dessinerRedimensionnement(canevas, jetons)
         dessinerPastillesProblemes(canevas, jetons)
         // Zones de dépôt EN DERNIER (miroir drawDrop de la maquette : les
         // zones recouvrent les calques de sélection masqués au drag).
@@ -1315,7 +1476,10 @@ public class VuePreviewXml :
         peintFondSurlignage.color = jetons.accentDoux
         canevas.drawRect(rect, peintFondSurlignage)
         dessinerPoignees(canevas, jetons, rect)
-        dessinerEtiquette(canevas, jetons, rect, vue)
+        // PE11l : pendant un redimensionnement, l'étiquette de SÉLECTION
+        // cède la place à celle du FANTÔME (les dimensions en direct —
+        // deux pills superposées ne se liraient pas).
+        if (redimensionAncre == null) dessinerEtiquette(canevas, jetons, rect, vue)
     }
 
     /** Poignées d'angle (PE11i, § 3.5 `.sel .h`) : CARRÉ 9 dp centré sur le coin. */
@@ -1335,6 +1499,64 @@ public class VuePreviewXml :
             canevas.drawRoundRect(carre, rayon, rayon, peintPoignee)
             peintTraitPoignee.color = jetons.accent
             canevas.drawRoundRect(carre, rayon, rayon, peintTraitPoignee)
+        }
+    }
+
+    /**
+     * Le FANTÔME de redimensionnement (PE11l) : rectangle pointillé accent
+     * du coin ANCRE au point courant + pill « largeur×hauteur dp » en
+     * direct — RIEN n'est écrit avant le relâchement (le fantôme vit
+     * dans le TRACÉ, pas dans le document : un rendu par édition
+     * écrite, règle du brief PE11).
+     */
+    private fun dessinerRedimensionnement(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+    ) {
+        val rect = rectangleFantome() ?: return
+        peintPlan.color = jetons.accent
+        peintPlan.pathEffect = EFFET_POINTILLES
+        peintPlan.strokeWidth = tailleEcran(LARGEUR_TRAIT_SURLIGNAGE)
+        canevas.drawRect(rect, peintPlan)
+        peintPlan.pathEffect = null
+        // La pill dp en direct (mêmes peintures que l'étiquette de
+        // sélection — miroir le chip `dim` du box-model) ; SANS cote
+        // lisible (densité inconnue) le fantôme reste muet.
+        val dimensions =
+            CalquesApercu.dimensions(
+                largeurPx = Math.round(rect.width()),
+                hauteurPx = Math.round(rect.height()),
+                densiteDpi = densiteDpi,
+            )
+        if (dimensions.isNotBlank()) {
+            val padH = tailleEcran(MARGE_ETIQUETTE_H_DP)
+            val padV = tailleEcran(MARGE_ETIQUETTE_V_DP)
+            val xPill = (rect.left - padH).coerceAtLeast(0f)
+            val centreY = (rect.top - tailleEcran(TAILLE_POIGNEE_DP) - padV).coerceAtLeast(padV)
+            peintPill.color = jetons.accent
+            peintEtiquette.color = jetons.surCalque
+            dessinerEtiquetteRectangle(canevas, dimensions, xPill, centreY)
+        }
+    }
+
+    /**
+     * Le RECTANGLE du fantôme (px contenu) — de l'ancre au point courant,
+     * `null` hors geste.
+     */
+    private fun rectangleFantome(): RectF? {
+        val ancre = redimensionAncre
+        val point = redimensionPoint
+        return if (ancre == null || point == null) {
+            null
+        } else {
+            val (hautGauche, basDroite) =
+                RedimensionApercu.rectangle(ancre.first, ancre.second, point.first, point.second)
+            RectF(
+                hautGauche.first.toFloat(),
+                hautGauche.second.toFloat(),
+                basDroite.first.toFloat(),
+                basDroite.second.toFloat(),
+            )
         }
     }
 
@@ -1511,6 +1733,21 @@ public class VuePreviewXml :
         private const val RAYON_COIN_POIGNEE_DP = 2f
         private const val TRAIT_POIGNEE_DP = 2f
 
+        /**
+         * La cible TACTILE de saisie d'une poignée (PE11l) : rayon 18 dp
+         * écran (36 dp de cible — dérogation ADR 0133 ≥ 24 dp ; le carré
+         * VISUEL de 9 dp reste la référence de la maquette, la saisie
+         * dépasse : un doigt à 9 dp ne tient pas).
+         */
+        private const val RAYON_SAISIE_POIGNEE_DP = 18f
+
+        /**
+         * Le seuil de DÉRIVE d'un contact sur poignée (PE11l) : 6 dp écran
+         * — en dessous, le relâchement est un CONTACT simple, rien ne
+         * s'écrit (miroir le `moved > 6` du tap-canvas de la maquette).
+         */
+        private const val SEUIL_DERIVE_DP = 6f
+
         /** Légende de planche `.cap` : texte 11 dp, 22 dp au-dessus, interlettrage 0,04 em (§ 3.4). */
         private const val TAILLE_TEXTE_LEGENDE_DP = 11f
         private const val RETRAIT_LEGENDE_DP = 22f
@@ -1667,6 +1904,26 @@ internal object CalculsVuePreview {
             Pair(xContenu - decalagePlanche, yContenu)
         } else {
             Pair(xContenu, yContenu)
+        }
+
+    /**
+     * Le décalage d'AFFICHAGE de la planche Plan (PE11l — bug rapporté
+     * par le propriétaire : « corriger le rendu plan ») : la maquette
+     * pose la planche bp à L'ORIGINE quand elle est SEULE
+     * (`S.mode === 'bp' ? [true]` — UNE planche, position 0) et ne la
+     * décale que du mode « Les deux » (`[false, true]` : design puis
+     * plan). Le fit cadre [largeurContenu] — une planche Plan dessinée
+     * au-delà de sa propre largeur sortirait du cadre (écran vide).
+     */
+    internal fun decalagePlancheAffichage(
+        mode: ModeApercu,
+        largeurPlanchePx: Int,
+        ecartPx: Int,
+    ): Int =
+        if (mode == ModeApercu.LES_DEUX) {
+            largeurPlanchePx + ecartPx
+        } else {
+            0
         }
 
     /**

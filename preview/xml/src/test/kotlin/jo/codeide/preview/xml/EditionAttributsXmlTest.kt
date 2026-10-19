@@ -397,4 +397,71 @@ public class EditionAttributsXmlTest {
         assertTrue(resultat.contains("""android:paddingStart="8dp""""))
         assertEquals(3, AligneurElementsXml.aligner(resultat, null).size)
     }
+
+    // ── Dimensions groupées (PE11l — poignée de l'aperçu) ───────────────
+
+    @Test
+    fun `ecrireDimensions remplace les deux axes en une seule edition`() {
+        // Le geste de l'aperçu écrit largeur ET hauteur d'un coup : UNE
+        // édition (une entrée d'historique), la balise remaniée porte
+        // les DEUX valeurs nouvelles — les autres attributs restent.
+        val edition =
+            EditionAttributsXml.ecrireDimensions(
+                formate,
+                spanBouton(),
+                largeurDp = 120,
+                hauteurDp = 48,
+            )!!
+        val resultat = appliquer(formate, edition)
+        assertTrue("""android:layout_width="120dp"""" in resultat)
+        assertTrue("""android:layout_height="48dp"""" in resultat)
+        assertTrue("""android:id="@+id/button"""" in resultat)
+        assertEquals("le document reste bien formé", 3, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `ecrireDimensions insere les attributs absents`() {
+        // Une balise SANS dimensions reçoit les DEUX attributs dans la
+        // même édition (l'insertion compose largeur PUIS hauteur).
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:id="@+id/seul" />
+</LinearLayout>
+""".trimStart()
+        val span = spanDe(texte, 1)!!
+        val edition = EditionAttributsXml.ecrireDimensions(texte, span, 80, 32)!!
+        val resultat = appliquer(texte, edition)
+        assertTrue("""android:layout_width="80dp"""" in resultat)
+        assertTrue("""android:layout_height="32dp"""" in resultat)
+        assertEquals(2, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `ecrireDimensions sans changement refuse null idempotence`() {
+        // Les deux valeurs SONT déjà posées : le geste n'écrit rien.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:layout_width="96dp" android:layout_height="48dp" />
+</LinearLayout>
+""".trimStart()
+        val span = spanDe(texte, 1)!!
+        assertNull(
+            "aucune édition attendue",
+            EditionAttributsXml.ecrireDimensions(texte, span, 96, 48),
+        )
+    }
+
+    @Test
+    fun `ecrireDimensions sur un span perime refuse null`() {
+        assertNull(
+            "span périmé : jamais d'exception (règle 6)",
+            EditionAttributsXml.ecrireDimensions(formate, InsertionXml.SpanParent(3, 7), 64, 32),
+        )
+    }
 }

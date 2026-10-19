@@ -42,7 +42,7 @@
             style="@style/Widget.CodeIDE.Apercu.PuceCategorie"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="@dimen/apercu_palette_puce_bulle_marge_fin"
             android:text="@string/preview_bulle_flottante" />
 
         <ImageButton
@@ -130,7 +130,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/apercu_popover_gap"
-        android:paddingBottom="2dp"
+        android:paddingBottom="@dimen/apercu_categories_pad_bas"
         android:scrollbars="none">
 
         <LinearLayout

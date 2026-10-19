@@ -79,6 +79,10 @@
     <!-- Palette drop (PE7b, mirror of the insertAt toast). -->
     <string name="preview_toast_depot_ok">%1$s added to %2$s</string>
     <string name="preview_toast_depot_ko">Drop not possible here: the document changed since the render.</string>
+
+    <!-- Handle resize (PE11l — mirrors the grouped mutate). -->
+    <string name="preview_toast_redimensionne">Resized: %1$s</string>
+    <string name="preview_toast_redimension_ko">Resize not possible: the selection is no longer editable.</string>
     <!-- Orientation and font scale (PE6e-f). -->
     <string name="preview_orientation_cd">Toggle the preview between portrait and landscape</string>
     <string name="preview_portrait">Portrait</string>

@@ -90,6 +90,7 @@
     <!-- Palette (.ph-head, .mode, .cats, .tiles, .tile, .ghost) -->
     <dimen name="apercu_palette_entete_hauteur">36dp</dimen>  <!-- .ph-head (hauteur du bouton fermer) -->
     <dimen name="apercu_palette_puce_bulle_hauteur">28dp</dimen>  <!-- .ph-head .chip : 12 + 7 + 7 + trait 2 -->
+    <dimen name="apercu_palette_puce_bulle_marge_fin">8dp</dimen>  <!-- .ph-head .chip margin (littérale 8dp dans la référence, ressource ici — grille § 12.4, PE11l) -->
     <dimen name="apercu_palette_puce_pad_h">11dp</dimen>  <!-- .ph-head .chip : 10 + trait 1 -->
     <dimen name="apercu_mode_palette_pad">4dp</dimen>  <!-- .mode padding -->
     <dimen name="apercu_mode_palette_gap">4dp</dimen>  <!-- .mode gap -->
@@ -101,6 +102,7 @@
     <dimen name="apercu_categorie_hauteur">28dp</dimen>  <!-- .cats .chip : 12 + 7 + 7 + trait 2 -->
     <dimen name="apercu_categorie_pad_h">11dp</dimen>  <!-- .cats .chip : 10 + trait 1 -->
     <dimen name="apercu_categories_gap">6dp</dimen>  <!-- .cats gap -->
+    <dimen name="apercu_categories_pad_bas">2dp</dimen>  <!-- .cats padding-bottom (littérale 2dp dans la référence, ressource ici — grille § 12.4, PE11l) -->
     <dimen name="apercu_tuiles_gap">8dp</dimen>  <!-- .tiles gap -->
     <dimen name="apercu_tuiles_pad">2dp</dimen>  <!-- .tiles padding -->
     <dimen name="apercu_tuile_rayon">12dp</dimen>  <!-- .tile radius -->

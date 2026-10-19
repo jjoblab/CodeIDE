@@ -11,6 +11,7 @@
     <dimen name="apercu_feuille_rayon">18dp</dimen>  <!-- border-radius 18px 18px 0 0 -->
     <dimen name="apercu_feuille_elevation">8dp</dimen>  <!-- box-shadow 0 -8px 28px rgba(0,0,0,.2) -->
     <dimen name="apercu_feuille_rayon_interne">17dp</dimen>  <!-- rayon 18 − trait 1 (couche interne) -->
+    <dimen name="apercu_feuille_volets_defaut">224dp</dimen>  <!-- placeholder du conteneur de volets : posé à RATIO_VOLET de l'écran au montage (FeuilleApercuFragment) ; ressource plutôt que littéral (grille § 12.4 — PE11l) -->
     <dimen name="apercu_poignee_largeur">36dp</dimen>  <!-- .grab i -->
     <dimen name="apercu_poignee_hauteur">4dp</dimen>  <!-- .grab i -->
     <dimen name="apercu_poignee_rayon">2dp</dimen>  <!-- .grab i -->
@@ -112,6 +113,7 @@
     <dimen name="apercu_reset_pad_v">3dp</dimen>  <!-- .rst -->
     <dimen name="apercu_reset_pad_h">6dp</dimen>  <!-- .rst -->
     <dimen name="apercu_reset_rayon">6dp</dimen>  <!-- .rst -->
+    <dimen name="apercu_reset_cible">24dp</dimen>  <!-- .rst cible tactile ↺ : plancher ADR 0133 (grille § 12.4 — PE11l) -->
     <dimen name="apercu_correctif_pad_v">9dp</dimen>  <!-- .fix padding -->
     <dimen name="apercu_correctif_pad_h">11dp</dimen>  <!-- .fix padding -->
     <dimen name="apercu_correctif_rayon">10dp</dimen>  <!-- .fix radius -->
