@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pastille de la palette (.cpal button) : disque 28 dp, anneau interne 2 dp « surface » puis trait 1 dp « trait ». La couleur est posée par backgroundTint sur la vue enfant. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="?attr/apercuTrait" /></shape></item>
+    <item android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp"><shape android:shape="oval"><solid android:color="?attr/apercuSurface" /></shape></item>
+    <item android:top="3dp" android:bottom="3dp" android:left="3dp" android:right="3dp"><shape android:shape="oval"><solid android:color="@android:color/white" /></shape></item>
+</layer-list>

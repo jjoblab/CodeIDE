@@ -124,6 +124,52 @@ public class CotesMaquetteTest {
         )
     }
 
+    @Test
+    public fun `la pastille de couleur fait trente quatre dp`() {
+        // PE11e — miroir `.sw2` : la pastille TROIS couches (damier +
+        // teinte + cadre) est un carré 34 dp — mesurée à TRAVERS le
+        // contrôle (un measure direct UNSPECIFIED ignore sa taille fixe).
+        val controle = gonfler(R.layout.controle_couleur)
+        mesurer(controle)
+        val pastille = controle.findViewById<View>(R.id.pastille_couleur)
+        verifierCote("sw2", pastille.measuredHeight)
+        val attendue = mesures.getJSONObject("sw2").getJSONArray("rect").getDouble(0)
+        assertTrue(
+            "cote sw2 (largeur) : mesurée ${pastille.measuredWidth} dp, attendue $attendue dp",
+            abs(pastille.measuredWidth - attendue) <= TOLERANCE_DP,
+        )
+    }
+
+    @Test
+    public fun `le champ couleur fait trente quatre dp`() {
+        // PE11e — miroir `.colr input` (colrin : 266,7 × 33,6) : le champ
+        // hex garde la hauteur du style Champ.
+        val champ = gonfler(R.layout.controle_couleur).findViewById<View>(R.id.champ_couleur)
+        verifierCote("colrin", mesurer(champ, LARGEUR_CHAMP_COULEUR))
+    }
+
+    @Test
+    public fun `la rangee du controle couleur fait trente quatre dp`() {
+        // PE11e — miroir `.colr` : pastille | champ | Palette alignent à 34 dp.
+        verifierCote("colr", mesurer(gonfler(R.layout.controle_couleur).findViewById(R.id.rangee_couleur)))
+    }
+
+    @Test
+    public fun `une pastille de palette fait vingt huit dp`() {
+        // PE11e — miroir `.cpal button` : disque 28 dp — cote portée par la
+        // RESSOURCE (meas n'a pas de clé cpal : sanité, comme les menus PE11l).
+        // La RACINE se mesure avec un spec EXACT : ses LayoutParams fixes
+        // ne s'appliquent pas à une vue détachée.
+        val item = gonfler(R.layout.item_pastille_palette)
+        val attendue = item.context.resources.getDimensionPixelSize(R.dimen.apercu_palette_pastille)
+        val exact = View.MeasureSpec.makeMeasureSpec(attendue, View.MeasureSpec.EXACTLY)
+        item.measure(exact, exact)
+        assertTrue(
+            "la pastille palette mesure $attendue dp (mesurée ${item.measuredHeight})",
+            item.measuredHeight == attendue,
+        )
+    }
+
     // ── Les outils ──
 
     /** Gonfle un layout sous le thème réel de l'aperçu, avec l'inflateur
@@ -218,6 +264,9 @@ public class CotesMaquetteTest {
 
         /** La largeur du champ numérique (apercu_champ_num_largeur). */
         private const val LARGEUR_CHAMP_NUM: Int = 64
+
+        /** La largeur mesurée du champ couleur (meas colrin : 266,7 px). */
+        private const val LARGEUR_CHAMP_COULEUR: Int = 267
 
         /** Les trois segments d'une rangée de dimension (wrap/match/fixe). */
         private const val NB_SEGMENTS_DIMENSION: Int = 3

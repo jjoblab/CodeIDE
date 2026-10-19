@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE pastille de la palette (maquette `.cpal button`) : disque 28 dp. Le liage pose la couleur
+  par backgroundTint sur `teinte` ; cercle = couches de apercu_pastille_palette.
+— écart PE11e : la marge littérale 3 dp de la référence passe par @dimen/apercu_pastille_palette_inset (même valeur, grille § 12.4 sans littéral). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pastille_palette"
+    android:layout_width="@dimen/apercu_palette_pastille"
+    android:layout_height="@dimen/apercu_palette_pastille"
+    android:layout_margin="@dimen/apercu_pastille_palette_inset"
+    android:background="@drawable/apercu_pastille_palette"
+    android:clickable="true"
+    android:focusable="true" />

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cadre de la pastille de couleur (.sw2) : trait 1 dp « trait », rayon 8, SANS fond (le damier passe dessous). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <stroke android:width="@dimen/apercu_trait_epaisseur" android:color="?attr/apercuTrait" />
+    <corners android:radius="@dimen/apercu_pastille_couleur_rayon" />
+</shape>

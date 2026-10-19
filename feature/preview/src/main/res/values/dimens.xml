@@ -98,6 +98,8 @@
     <dimen name="apercu_palette_pad">8dp</dimen>  <!-- .cpal padding -->
     <dimen name="apercu_palette_gap">6dp</dimen>  <!-- .cpal gap -->
     <dimen name="apercu_palette_pastille">28dp</dimen>  <!-- .cpal button -->
+    <dimen name="apercu_damier_pastille">10dp</dimen>  <!-- .sw2 damier tuile (repeating-conic 0 0/10px) -->
+    <dimen name="apercu_pastille_palette_inset">3dp</dimen>  <!-- anneaux trait 1 + surface 2 du disque palette -->
     <dimen name="apercu_damier_cellule">10dp</dimen>  <!-- tuile du damier -->
     <dimen name="apercu_dim_etiquette_largeur">56dp</dimen>  <!-- .dimrow .dl -->
     <dimen name="apercu_dim_gap">8dp</dimen>  <!-- .dimrow gap -->
