@@ -31,6 +31,8 @@ public class CatalogueAttributsTest {
 
                 is CatalogueAttributs.ControleAttribut.Choix -> controle.nom
 
+                is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
+
                 is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
                 is CatalogueAttributs.ControleAttribut.Cotes -> controle.base
@@ -240,6 +242,13 @@ public class CatalogueAttributsTest {
             .flatMap { it.controles }
             .filterIsInstance<CatalogueAttributs.ControleAttribut.Choix>()
 
+    /** Les contrôles LISTE d'une classe (helper d'itération — PE11c). */
+    private fun listesDe(classe: String): List<CatalogueAttributs.ControleAttribut.Liste> =
+        CatalogueAttributs
+            .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            .flatMap { it.controles }
+            .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
+
     @Test
     fun `les valeurs d'enumeration sont valides pour la plateforme`() {
         // Listes de référence : attrs.xml d'AOSP (textStyle, scaleType,
@@ -254,8 +263,6 @@ public class CatalogueAttributsTest {
                     listOf("text", "textEmailAddress", "textPassword", "number"),
                 "app:boxBackgroundMode" to listOf("outline", "filled"),
                 "app:endIconMode" to listOf("none", "password_toggle", "clear_text"),
-                "android:scaleType" to
-                    listOf("fitCenter", "centerCrop", "centerInside", "fitXY"),
                 "android:orientation" to listOf("vertical", "horizontal"),
                 "android:visibility" to listOf("visible", "invisible", "gone"),
             )
@@ -280,7 +287,6 @@ public class CatalogueAttributsTest {
             mapOf(
                 "android:textStyle" to "normal",
                 "android:visibility" to "visible",
-                "android:scaleType" to "fitCenter",
                 "android:inputType" to "text",
                 "app:boxBackgroundMode" to "outline",
                 "app:endIconMode" to "none",
@@ -296,6 +302,38 @@ public class CatalogueAttributsTest {
                 "Défaut de ${choix.nom} ($classe)",
                 defauts[choix.nom],
                 choix.valeurs.first(),
+            )
+        }
+    }
+
+    @Test
+    fun `les enums de plus de 4 valeurs sont des listes deroulantes`() {
+        // Miroir § 9 / maquette « Liste » : un enum de plus de 4 valeurs
+        // porte le contrôle LISTE (liste déroulante) ; scaleType est le
+        // premier usager (8 valeurs plateforme, SCALE de la maquette).
+        val reference =
+            mapOf(
+                "android:scaleType" to
+                    listOf(
+                        "matrix",
+                        "fitXY",
+                        "fitStart",
+                        "fitCenter",
+                        "fitEnd",
+                        "center",
+                        "centerCrop",
+                        "centerInside",
+                    ),
+            )
+        val classeListes =
+            classesCouvertes
+                .flatMap { classe -> listesDe(classe).map { classe to it } }
+                .distinctBy { it.second.nom }
+        for ((classe, liste) in classeListes) {
+            assertEquals(
+                "Valeurs de ${liste.nom} ($classe)",
+                reference[liste.nom],
+                liste.valeurs,
             )
         }
     }

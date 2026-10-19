@@ -1,5 +1,23 @@
 # Journal des modifications
 
+## [0.148.0] – 2026-10-19
+
+### PE11c — le contrôle LISTE déroulante (premier lot de nouveaux contrôles)
+
+#### Ajouté
+
+- **Le contrôle LISTE** (`controle_liste` — miroir `.fld select`, PREVIEW_UI.md § 9) :
+  `entete_champ` + `AppCompatAutoCompleteTextView` **sans saisie** (`inputType none`,
+  chevron `apercu_fleche_deroulant` 16 dp, popup `fond_menu_apercu`, hauteur min 36 dp
+  via `apercu_liste_hauteur_min`), options gonflées par `item_option_liste` ; la
+  première entrée « par défaut » retire l'attribut, une valeur courante hors catalogue
+  est ajoutée à la fin (miroir `opts.push(cur)` de la maquette).
+- **Règle § 9 appliquée au catalogue** : tout enum de plus de 4 valeurs porte le kind
+  `ControleAttribut.Liste` — premier usager `android:scaleType` : de Choix (4 valeurs
+  rétrécies) à Liste avec les **8 valeurs plateforme** (SCALE de la maquette) ; 4
+  valeurs ou moins restent en segments. Tests de parité des enums longs et de gonflage
+  (`inputType=TYPE_NULL`).
+
 ## [0.147.1] – 2026-10-19
 
 ### Corrigé

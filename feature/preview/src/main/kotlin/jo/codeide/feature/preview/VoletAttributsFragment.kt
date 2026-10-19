@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -22,6 +24,7 @@ import jo.codeide.feature.preview.databinding.ControleCotesBinding
 import jo.codeide.feature.preview.databinding.ControleDimensionsBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
+import jo.codeide.feature.preview.databinding.ControleListeBinding
 import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
 import jo.codeide.feature.preview.databinding.ControleTexteBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
@@ -207,6 +210,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             is CatalogueAttributs.ControleAttribut.Choix -> controle.nom
 
+            is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
+
             is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
             is CatalogueAttributs.ControleAttribut.Cotes,
@@ -225,6 +230,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.Texte -> controleTexte(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Nombre -> controleNombre(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Choix -> controleChoix(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Liste -> controleListe(controle, attrs)
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
@@ -495,6 +501,48 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         segmentes(bloc.groupeSegments, controle.valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
             val valeur = if (choix == controle.valeurs.first()) "" else choix
             editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+        }
+        return bloc.root
+    }
+
+    /**
+     * Un contrôle LISTE (controle_liste.xml — miroir `.fld select`, PE11c,
+     * § 9 : tout enum de plus de 4 valeurs). La première entrée « par
+     * défaut » retire l'attribut ; une valeur courante hors catalogue est
+     * ajoutée à la fin (miroir `opts.push(cur)` de la maquette) ; le champ
+     * ne SAISIT pas (inputType none) — il ne fait qu'ouvrir le menu.
+     */
+    private fun controleListe(
+        controle: CatalogueAttributs.ControleAttribut.Liste,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleListeBinding.inflate(gonfleur())
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        val courant = valeurDe(controle.nom, attrs)
+        // Miroir maquette : la valeur posée hors catalogue reste visible.
+        val valeurs =
+            if (courant != null && courant !in controle.valeurs) {
+                controle.valeurs + courant
+            } else {
+                controle.valeurs
+            }
+        val options = listOf(getString(R.string.preview_choix_defaut)) + valeurs
+        bloc.listeDeroulante.setText(courant ?: getString(R.string.preview_choix_defaut), false)
+        // Garantie de non-saisie (miroir select) : le layout pose déjà
+        // focusable=false + inputType none — le keyListener null l'assure
+        // aussi sur les appareils où inputType none laisse passer l'IME.
+        bloc.listeDeroulante.keyListener = null
+        bloc.listeDeroulante.setAdapter(
+            ArrayAdapter(requireContext(), R.layout.item_option_liste, options),
+        )
+        bloc.listeDeroulante.setOnItemClickListener { _, _, position, _ ->
+            val valeur = if (position == 0) "" else options[position]
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+        }
+        // Sans frappe (inputType none), le menu ne s'ouvre qu'au TAP —
+        // miroir du select natif de la maquette.
+        bloc.listeDeroulante.setOnClickListener { vue ->
+            (vue as? AppCompatAutoCompleteTextView)?.showDropDown()
         }
         return bloc.root
     }
