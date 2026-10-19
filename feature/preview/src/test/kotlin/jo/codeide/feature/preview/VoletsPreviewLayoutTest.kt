@@ -8,7 +8,6 @@ import android.widget.EditText
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -125,15 +124,21 @@ class VoletsPreviewLayoutTest {
     @Test
     fun `le contrôle liste porte son champ déroulant sans saisie`() {
         // PE11c — miroir `.fld select` : en-tête + AutoCompleteTextView
-        // (chevron, editable=false — le champ n'ouvre que le menu, au TAP).
+        // (chevron à droite, hauteur 36 — la non-saisie est posée au liage :
+        // inputType none + keyListener nul, le menu n'ouvre qu'au TAP).
         val controle = gonfler(R.layout.controle_liste)
         assertNotNull(controle.findViewById<View>(R.id.entete))
         assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
         val champ = controle.findViewById<EditText>(R.id.liste_deroulante)
         assertNotNull(champ)
-        assertNull(
-            "La liste déroulante ne saisit pas (editable=false)",
-            champ.keyListener,
+        assertNotNull(
+            "Le chevron de la liste déroulante est présent à droite",
+            champ.compoundDrawablesRelative[2],
+        )
+        assertEquals(
+            "Hauteur minimale du select (36 dp, densité 1)",
+            36,
+            champ.minimumHeight,
         )
     }
 

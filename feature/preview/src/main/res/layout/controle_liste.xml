@@ -2,9 +2,9 @@
 <!--
   Liste déroulante (PE11c — maquette `.fld select`, `idref`) : même habillage
   que le champ, hauteur 36, chevron à droite. Implémentation :
-  AutoCompleteTextView SANS saisie (editable=false + inputType none :
-  jamais de clavier — le champ n'ouvre que le menu, au TAP) + adaptateur ;
-  la première entrée « par défaut » retire l'attribut.
+  AutoCompleteTextView SANS saisie (inputType none, keyListener nul posé
+  par le liage : jamais de clavier — le champ n'ouvre que le menu, au TAP)
+  + adaptateur ; la première entrée « par défaut » retire l'attribut.
 
   CSS miroir : `.fld select` = trait 1, fond bg, texte fg, rayon 8,
   padding 8x10, police 13/1.2, largeur pleine ; cotes : hauteur 36,
@@ -27,7 +27,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/apercu_gap_etiquette"
         android:drawableEnd="@drawable/apercu_fleche_deroulant"
-        android:editable="false"
         android:inputType="none"
         android:minHeight="@dimen/apercu_liste_hauteur_min"
         android:popupBackground="@drawable/fond_menu_apercu"
