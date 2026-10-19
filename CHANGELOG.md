@@ -1,5 +1,16 @@
 # Journal des modifications
 
+## [0.147.1] – 2026-10-19
+
+### Corrigé
+
+- **Plantage au premier lancement de l'éditeur** (v0.145.2, `EditorActivity` :
+  `UninitializedPropertyAccessException: lateinit property liaison has not been
+  initialized`) : l'installation de la complétion fantôme IA-8b
+  (`installerFantomeCompletion`) lisait `liaison.vueEditeur` AVANT l'inflation
+  du binding — l'appel est déplacé juste après `setContentView`, avec un
+  commentaire invariant pour prévenir toute régression d'ordre.
+
 ## [0.147.0] – 2026-10-19
 
 ### PE11b — refonte de l'écran Attributs à l'identique de la maquette
