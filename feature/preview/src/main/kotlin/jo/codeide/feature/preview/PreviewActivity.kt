@@ -356,6 +356,18 @@ public class PreviewActivity : AppCompatActivity() {
                 }
             },
         )
+        // PE11l (bug rapporté par le propriétaire : « Zoom / Rendu · N vues
+        // s'affichent normalement seulement après avoir déployé la
+        // feuille ») : la glissade n'était posée que par les CALLBACKS
+        // (onStateChanged/onSlide) — au lancement, la feuille est
+        // REPLIÉE et AUCUN callback n'a encore tiré : le HUD de zoom et
+        // la pastille d'état restaient posés au bord, SOUS l'entête
+        // visible (peek). La pose INITIALE (feuille repliée, part
+        // déployée nulle) suit le même montage que la maquette
+        // (`applySheet` au chargement) : le fragment est déjà monté et
+        // le peek posé (executePendingTransactions ci-dessus), les
+        // formules [GlissadeFeuilleApercu] font le reste.
+        majGlissadeFeuille(0f)
     }
 
     /**
@@ -516,6 +528,18 @@ public class PreviewActivity : AppCompatActivity() {
                 toast(getString(R.string.preview_toast_depot_ok, contenu.nomAffiche, nomConteneur()))
             } else {
                 toast(getString(R.string.preview_toast_depot_ko))
+            }
+        }
+        // PE11l : le relâchement d'une POIGNÉE d'angle redimensionne la
+        // sélection (UNE édition groupée des deux axes — la racine n'est
+        // pas redimensionnable, l'échec part en toast honnête).
+        liaison.vuePreview.auRedimensionner = { largeurDp, hauteurDp ->
+            val libelle =
+                getString(R.string.preview_dimension_format, largeurDp, hauteurDp)
+            if (viewModel.redimensionnerSelection(largeurDp, hauteurDp)) {
+                toast(getString(R.string.preview_toast_redimensionne, libelle))
+            } else {
+                toast(R.string.preview_toast_redimension_ko)
             }
         }
     }

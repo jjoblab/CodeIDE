@@ -197,11 +197,29 @@ internal class TransportRenduProcess(
     /** Binder vivant (null : à relancer). */
     private var binder: IRenduApercu? = null
 
+    /**
+     * Le PREMIER rendu d'une liaison vient de NAÎTRE (PE11l) : le
+     * processus `:preview` est froid — construction du pipeline
+     * LayoutLib, chargement des ressources de plateforme, premier
+     * inflate. Sur appareil ce démarrage peut DÉPASSER le délai d'un
+     * rendu CHAUD (mesuré propriétaire : le bandeau « processus arrêté »
+     * revenait à chaque session alors que le repli local rendait bien)
+     * ; l'ancien budget unique de [DELAI_RENDU_MS] convertissait une
+     * lenteur de DÉMARRAGE en panne de transport (reprise → re-attente →
+     * désactivation de session). Le PREMIER rendu après chaque (re)liaison
+     * reçoit donc [DELAI_PREMIER_RENDU_MS], les suivants reviennent au
+     * budget chaud — la reprise vise toujours ~2 s, le délai ne borne que
+     * l'ATTENTE maximale.
+     */
+    private var liaisonFroide = false
+
     override suspend fun rendre(requete: RequeteRendu): ResultatTransport {
         val service = binder() ?: throw ProcessusIndisponible("liaison :preview impossible")
+        val premierRendu = liaisonFroide
+        liaisonFroide = false
         val brut: ResultatRendu =
             try {
-                withTimeout(DELAI_RENDU_MS) {
+                withTimeout(if (premierRendu) DELAI_PREMIER_RENDU_MS else DELAI_RENDU_MS) {
                     runInterruptible(Dispatchers.IO) { service.rendre(requete) }
                 }
             } catch (t: Throwable) {
@@ -239,6 +257,7 @@ internal class TransportRenduProcess(
                         liaison.lier(
                             onConnecte = { brut ->
                                 binder = IRenduApercu.Stub.asInterface(brut)
+                                liaisonFroide = true
                                 if (attache.compareAndSet(false, true)) {
                                     continuation.resume(binder)
                                 }
@@ -266,11 +285,23 @@ internal class TransportRenduProcess(
     }
 
     private companion object {
-        /** Délai d'un appel de rendu (vue bloquée côté :preview). */
+        /** Délai d'un rendu CHAUD (vue bloquée côté :preview). */
         private const val DELAI_RENDU_MS: Long = 10_000L
 
-        /** Délai de (re)liaison (process killé → relance ~2 s visée §6). */
-        private const val DELAI_LIAISON_MS: Long = 8_000L
+        /**
+         * Délai du PREMIER rendu d'une liaison (processus froid :
+         * pipeline + plateforme + premier inflate — PE11l, voir
+         * [liaisonFroide]).
+         */
+        private const val DELAI_PREMIER_RENDU_MS: Long = 45_000L
+
+        /**
+         * Délai de (re)liaison — naissance du processus `:preview`
+         * (spawn + Application.onCreate + Service.onCreate) : la
+         * reprise VISE ~2 s (§6), ce délai borne l'ATTENTE maximale
+         * sur les appareils lents (PE11l : 8 s → 15 s).
+         */
+        private const val DELAI_LIAISON_MS: Long = 15_000L
     }
 }
 

@@ -704,6 +704,22 @@ public class PreviewViewModel
                 EditionAttributsXml.ecrireDimension(rendu, span, axe, mode, valeurDp)
             }
 
+        /**
+         * REDIMENSIONNE la sélection aux deux dimensions FIXES (PE11l —
+         * poignée d'angle de l'aperçu) : les DEUX axes partent en UNE
+         * édition groupée (une seule entrée d'historique par geste, miroir
+         * le `mutate` groupé de la maquette —
+         * [EditionAttributsXml.ecrireDimensions]). `false` = sélection non
+         * éditable (racine) ou span périmé.
+         */
+        public fun redimensionnerSelection(
+            largeurDp: Int,
+            hauteurDp: Int,
+        ): Boolean =
+            editerSelection { rendu, span ->
+                EditionAttributsXml.ecrireDimensions(rendu, span, largeurDp, hauteurDp)
+            }
+
         /** DUPLIQUE la vue sélectionnée (miroir `dupSel`) — le libellé de la copie. */
         public fun dupliquerSelection(): Boolean =
             editerSelection { rendu, span ->
