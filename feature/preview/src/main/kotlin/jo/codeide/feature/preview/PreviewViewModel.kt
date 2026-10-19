@@ -26,6 +26,7 @@ import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
+import jo.codeide.preview.xml.RessourcesProjetXml
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -173,6 +174,18 @@ public class PreviewViewModel
 
         /** Les noms `@drawable` du projet — l'avertissement « introuvable » du validateur. */
         public val drawablesProjet: StateFlow<Set<String>> = drawablesProjetInterne.asStateFlow()
+
+        /** L'index des ressources du projet PAR TYPE (interne). */
+        private val indexRessourcesInterne = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+
+        /**
+         * L'INDEX des ressources du projet, PAR TYPE (PE11f — miroir
+         * `RES` de la maquette) : `drawable`, `color`, `string`,
+         * `style` (entrées des `values*`) et `layout` (fichiers) — le
+         * validateur `ressource` y pique ses avertissements
+         * « introuvable », les SUGGESTIONS du contrôle en sortent.
+         */
+        public val indexRessources: StateFlow<Map<String, Set<String>>> = indexRessourcesInterne.asStateFlow()
 
         // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
         // ⚠️ DÉCLARÉ AVANT le bloc init — CONTRAT d'ordre d'initialisation :
@@ -880,6 +893,7 @@ public class PreviewViewModel
                 dossierResCourant = null
                 couleursProjetInterne.value = emptyList()
                 drawablesProjetInterne.value = emptySet()
+                indexRessourcesInterne.value = emptyMap()
                 return
             }
             suiviProjet =
@@ -890,6 +904,7 @@ public class PreviewViewModel
                         dossierResCourant = null
                         couleursProjetInterne.value = emptyList()
                         drawablesProjetInterne.value = emptySet()
+                        indexRessourcesInterne.value = emptyMap()
                         return@launch
                     }
                     moteur.definirDossierRes(cheminRes)
@@ -984,24 +999,40 @@ public class PreviewViewModel
         public fun rechargerRessourcesProjet() {
             val res = dossierResCourant ?: return
             viewModelScope.launch {
-                val fichiersCouleurs =
+                val dossiersValeurs =
                     java.io
                         .File(res)
                         .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("values") }
                         .orEmpty()
                         .sortedBy { dossier -> if (dossier.name == "values") 0 else 1 }
-                        .mapNotNull { dossier -> resolveDossierFichier(dossier, "colors.xml") }
-                couleursProjetInterne.value = CouleursProjetXml.lire(fichiersCouleurs)
-                drawablesProjetInterne.value =
-                    java.io
-                        .File(res)
-                        .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("drawable") }
-                        .orEmpty()
-                        .flatMap { dossier -> dossier.listFiles().orEmpty().toList() }
-                        .mapNotNull { fichier -> fichier.name.substringBeforeLast('.').ifEmpty { null } }
-                        .toSet()
+                val fichiers = { nom: String -> dossiersValeurs.mapNotNull { resolveDossierFichier(it, nom) } }
+                val couleurs = CouleursProjetXml.lire(fichiers("colors.xml"))
+                couleursProjetInterne.value = couleurs
+                val drawables = nomsFichiersDe(res, "drawable")
+                drawablesProjetInterne.value = drawables
+                indexRessourcesInterne.value =
+                    mapOf(
+                        "drawable" to drawables,
+                        "color" to couleurs.map { it.nom }.toSet(),
+                        "string" to RessourcesProjetXml.noms(fichiers("strings.xml"), "string"),
+                        "style" to RessourcesProjetXml.noms(fichiers("styles.xml"), "style"),
+                        "layout" to nomsFichiersDe(res, "layout"),
+                    )
             }
         }
+
+        /** Les noms SANS extension des fichiers des dossiers `prefixe*` de `res/`. */
+        private fun nomsFichiersDe(
+            res: String,
+            prefixe: String,
+        ): Set<String> =
+            java.io
+                .File(res)
+                .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith(prefixe) }
+                .orEmpty()
+                .flatMap { dossier -> dossier.listFiles().orEmpty().toList() }
+                .mapNotNull { fichier -> fichier.name.substringBeforeLast('.').ifEmpty { null } }
+                .toSet()
 
         /** Le texte d'un fichier d'un dossier de ressources (`null` = absent/illisible, règle 6). */
         private fun resolveDossierFichier(

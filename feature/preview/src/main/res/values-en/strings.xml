@@ -277,6 +277,14 @@
     <string name="preview_attr_couleur_introuvable">\@color not found in res/values/colors.xml.</string>
     <string name="preview_attr_drawable_introuvable">\@drawable not found in res/.</string>
     <string name="preview_attr_palette_ouverte">palette expanded</string>
+    <string name="preview_attr_reference_attendue">Reference expected: @%1$s/name.</string>
+    <string name="preview_attr_type_refuse">Type @%1$s not allowed here, expected: %2$s.</string>
+    <string name="preview_attr_ressource_introuvable">\@%1$s/%2$s not found in res/.</string>
+    <string name="preview_attr_aucun">No attribute matches "%1$s".</string>
+    <plurals name="preview_attr_autres">
+        <item quantity="one">Show the other attribute of %2$s</item>
+        <item quantity="other">Show the %1$d other attributes of %2$s</item>
+    </plurals>
     <string name="preview_attr_palette_fermee">palette collapsed</string>
     <string name="preview_attr_ratio_separateur">:</string>
     <string name="preview_attr_nom_hint">android:name</string>

@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jo.codeide.feature.preview.databinding.BarreOutilsAttributsBinding
+import jo.codeide.feature.preview.databinding.BoutonAutresAttributsBinding
 import jo.codeide.feature.preview.databinding.CarteSectionBinding
 import jo.codeide.feature.preview.databinding.EnteteEditeurBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
@@ -33,14 +34,18 @@ import jo.codeide.preview.xml.EditionAttributsXml
 internal class AdaptateurAttributs(
     private val evenements: Evenements,
 ) : ListAdapter<ItemAttributs, AdaptateurAttributs.Detenteur>(DiffItems) {
-    /** Le contrat volet ↔ adaptateur : le corps des cartes reste au volet. */
+    /** Le contrat volet ↔ adaptateur : le corps des cartes et la BARRE restent au volet. */
     internal interface Evenements {
-        /** Gonfle les contrôles d'une section OUVERTE dans son corps. */
+        /** Gonfle les contrôles (FILTRÉS par la recherche, PE11f) d'une section OUVERTE. */
         fun lierCorpsCarte(
             carte: CarteSectionBinding,
             section: CatalogueAttributs.SectionAttributs,
+            controles: List<CatalogueAttributs.ControleAttribut>,
             attrs: List<EditionAttributsXml.AttributSource>,
         )
+
+        /** Branche la BARRE d'outils (recherche + bascule, PE11f) à chaque liage. */
+        fun lierBarre(barre: BarreOutilsAttributsBinding)
 
         /** L'état ouvert/fermé d'une section (mémorisé par titre). */
         fun sectionOuverte(
@@ -53,6 +58,9 @@ internal class AdaptateurAttributs(
             section: CatalogueAttributs.SectionAttributs,
             ouverte: Boolean,
         )
+
+        /** Le tap sur « Afficher les N autres attributs » passe en mode TOUS. */
+        fun auBoutonAutres()
     }
 
     /** Soumet une nouvelle liste (miroir majAttributs : le diff re-lie les dérivées). */
@@ -71,6 +79,8 @@ internal class AdaptateurAttributs(
             is ItemAttributs.LectureSeule -> VUE_LECTURE_SEULE
             is ItemAttributs.TitreGroupe -> VUE_TITRE_GROUPE
             is ItemAttributs.Attribut -> VUE_ATTRIBUT
+            is ItemAttributs.Message -> VUE_VIDE
+            is ItemAttributs.BoutonAutres -> VUE_BOUTON_AUTRES
             ItemAttributs.Vide -> VUE_VIDE
         }
 
@@ -88,6 +98,7 @@ internal class AdaptateurAttributs(
                 VUE_LECTURE_SEULE -> ItemLectureSeuleBinding.inflate(gonfleur, parent, false).root
                 VUE_TITRE_GROUPE -> ItemAttributGroupeBinding.inflate(gonfleur, parent, false).root
                 VUE_ATTRIBUT -> ItemAttributBinding.inflate(gonfleur, parent, false).root
+                VUE_BOUTON_AUTRES -> BoutonAutresAttributsBinding.inflate(gonfleur, parent, false).root
                 else -> VideVoletBinding.inflate(gonfleur, parent, false).root
             }
         return Detenteur(vue)
@@ -100,6 +111,10 @@ internal class AdaptateurAttributs(
         when (val item = getItem(position)) {
             is ItemAttributs.Titre -> {
                 EnteteEditeurBinding.bind(detenteur.itemView).titreEditeur.text = item.texte
+            }
+
+            ItemAttributs.BarreOutils -> {
+                evenements.lierBarre(BarreOutilsAttributsBinding.bind(detenteur.itemView))
             }
 
             is ItemAttributs.Carte -> {
@@ -125,6 +140,16 @@ internal class AdaptateurAttributs(
             ItemAttributs.Vide,
             -> {
                 Unit
+            }
+
+            is ItemAttributs.Message -> {
+                VideVoletBinding.bind(detenteur.itemView).texteVolet.text = item.texte
+            }
+
+            is ItemAttributs.BoutonAutres -> {
+                val bouton = BoutonAutresAttributsBinding.bind(detenteur.itemView).boutonAutresAttributs
+                bouton.text = item.texte
+                bouton.setOnClickListener { evenements.auBoutonAutres() }
             }
         }
     }
@@ -167,7 +192,7 @@ internal class AdaptateurAttributs(
     ) {
         carte.corpsSection.removeAllViews()
         carte.corpsSection.isVisible = ouverte
-        if (ouverte) evenements.lierCorpsCarte(carte, item.section, item.attrs)
+        if (ouverte) evenements.lierCorpsCarte(carte, item.section, item.controles, item.attrs)
     }
 
     /** Le détenteur générique (le liage re-bind par le type de vue). */
@@ -211,5 +236,6 @@ internal class AdaptateurAttributs(
         internal const val VUE_TITRE_GROUPE: Int = 5
         internal const val VUE_ATTRIBUT: Int = 6
         internal const val VUE_VIDE: Int = 7
+        internal const val VUE_BOUTON_AUTRES: Int = 8
     }
 }

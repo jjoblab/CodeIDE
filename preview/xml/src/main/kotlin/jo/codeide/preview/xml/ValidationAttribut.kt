@@ -40,9 +40,24 @@ public object ValidationAttribut {
 
         /** « @drawable introuvable dans res/. » (avertissement). */
         DRAWABLE_INTROUVABLE,
+
+        /** « Référence attendue : @type/nom. » (erreur — [Arguments.TYPE] : premier type attendu). */
+        REFERENCE_ATTENDUE,
+
+        /** « Type @x refusé ici, attendu : @color, @drawable. » (erreur — [Arguments.TYPE], [Arguments.TYPES]). */
+        TYPE_REFUSE,
+
+        /** « @type/nom introuvable dans res/. » (avertissement — [Arguments.TYPE], [Arguments.NOM]). */
+        RESSOURCE_INTROUVABLE,
     }
 
-    /** Le résultat d'une validation — jamais une exception (règle 6). */
+    /**
+     * Le résultat d'une validation — jamais une exception (règle 6).
+     * [Avertissement.genre]/[Erreur.genre] porte la CLÉ du message ;
+     * [Resultat.Avertissement.arguments]/[Resultat.Erreur.arguments]
+     * porte les FRAGMENTS du libellé (nom du type, de la ressource… —
+     * l'UI compose la ressource chaîne, règle 3).
+     */
     public sealed interface Resultat {
         /** La valeur s'écrit telle quelle (vide = RETRAIT à l'écriture). */
         public data object Valide : Resultat
@@ -50,12 +65,26 @@ public object ValidationAttribut {
         /** La valeur s'écrit QUAND MÊME, message d'avertissement affiché. */
         public data class Avertissement(
             val genre: GenreMessage,
+            val arguments: List<String> = emptyList(),
         ) : Resultat
 
         /** La valeur NE S'ÉCRIT PAS, message d'erreur affiché. */
         public data class Erreur(
             val genre: GenreMessage,
+            val arguments: List<String> = emptyList(),
         ) : Resultat
+    }
+
+    /** Les positions des fragments dans `arguments` (les genres les nomment). */
+    public object Arguments {
+        /** Le type refusé ou attendu (`drawable`, `string`…). */
+        public const val TYPE: Int = 0
+
+        /** Le NOM de la ressource introuvable. */
+        public const val NOM: Int = 1
+
+        /** La LISTE des types acceptés (`@color, @drawable`). */
+        public const val TYPES: Int = 1
     }
 
     /** Hexadécimal `#RGB`, `#ARGB`, `#RRGGBB`, `#AARRGGBB` (miroir `colorCss`). */
@@ -116,4 +145,62 @@ public object ValidationAttribut {
             }
         }
     }
+
+    /** Une référence `@type/nom` (miroir `vRes` : `^@(\w+)/([\w.]+)$`). */
+    private val REFERENCE: Regex = Regex("""^@(\w+)/([\w.]+)$""")
+
+    /**
+     * Valide une valeur de RESSOURCE (miroir `vRes(x, c.ty)` de la
+     * maquette) : [types] = les types acceptés par l'attribut
+     * (`drawable`, `string`…), [index] = les noms PAR TYPE du projet
+     * (un type absent de l'index n'est PAS vérifiable — miroir `set`
+     * nul : pas d'avertissement, le RENDU tranchera).
+     */
+    public fun ressource(
+        valeur: String?,
+        types: List<String>,
+        index: Map<String, Set<String>>,
+    ): Resultat {
+        if (valeur.isNullOrEmpty()) return Resultat.Valide
+        val correspondance = REFERENCE.find(valeur)
+        val type = correspondance?.groupValues?.get(1).orEmpty()
+        val nom = correspondance?.groupValues?.get(2).orEmpty()
+        val connus = index[type]
+        return when {
+            ATTR_THEME.matches(valeur) -> {
+                Resultat.Valide
+            }
+
+            correspondance == null -> {
+                // Une forme cassée : l'ERREUR porte le premier type
+                // attendu (miroir `'Référence attendue : @' + ty[0] + '/nom.'`).
+                erreurReference(types)
+            }
+
+            type !in types -> {
+                Resultat.Erreur(
+                    GenreMessage.TYPE_REFUSE,
+                    listOf(type, types.joinToString(", ") { "@$it" }),
+                )
+            }
+
+            connus != null && nom !in connus -> {
+                Resultat.Avertissement(GenreMessage.RESSOURCE_INTROUVABLE, listOf(type, nom))
+            }
+
+            else -> {
+                Resultat.Valide
+            }
+        }
+    }
+
+    /**
+     * L'erreur de FORME : une valeur sans la forme `@type/nom` — le
+     * message porte le PREMIER type attendu (miroir
+     * `'Référence attendue : @' + ty[0] + '/nom.'`). Les COMPLÉTIONS
+     * d'un nom nu (`ic_logo` → `@drawable/ic_logo`) se passent en amont,
+     * au liage.
+     */
+    private fun erreurReference(types: List<String>): Resultat =
+        Resultat.Erreur(GenreMessage.REFERENCE_ATTENDUE, listOf(types.firstOrNull().orEmpty()))
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bouton large « Afficher les N autres attributs de Button » (maquette `.linkbtn.wide`) : bouton
+  lien pleine largeur, centré, padding vertical 9. Visible seulement en mode « Courants ».
+-->
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bouton_autres_attributs"
+    style="@style/Widget.CodeIDE.Apercu.BoutonLien.Large"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />
