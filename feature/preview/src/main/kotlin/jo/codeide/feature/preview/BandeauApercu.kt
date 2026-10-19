@@ -13,6 +13,14 @@ import jo.codeide.preview.xml.EtatPreviewXml
  * message) ; la BARRE D'ÉDITION descend de 64 dp sous un bandeau visible
  * (miroir `.edit.shift`), le dernier rendu valide reste affiché dessous.
  *
+ * Correctif PE11k (bug rapporté par le propriétaire : « j'ai appuyé sur
+ * réessayer, réduire, rien ne fonctionne ») : le bandeau du processus
+ * arrêté est le miroir EXACT de la maquette (`renderStatus`, cas crash) —
+ * message COMPLET sur deux lignes (pas de clip) et « Réessayer » SEUL ;
+ * « Détails »/« Réduire » n'existe que pour l'erreur de rendu (le pliage
+ * du message d'arrêt paraissait « ne rien faire » : le message tient en
+ * une ligne, seul le libellé basculait).
+ *
  * Chrome PUR (patron [PopoverMenuApercu]) : aucun état métier — l'activité
  * pose l'état du moteur, le bandeau l'affiche.
  */
@@ -44,10 +52,14 @@ internal class BandeauApercu(
             texte = erreur.message,
             libelleBouton = ligne?.let { ressources.getString(R.string.preview_bandeau_ligne, it) },
             actionBouton = ligne?.let { l -> { allerALigne(l) } },
+            pliable = true,
         )
     }
 
-    /** Le processus `:preview` ARRÊTÉ : message honnête + « Réessayer ». */
+    /** Le processus `:preview` ARRÊTÉ : message honnête COMPLET (miroir
+     * `renderStatus` cas crash : deux lignes, AUCUN pliage) + « Réessayer »
+     * SEUL — pas de « Détails »/« Réduire » sur ce bandeau (la maquette ne
+     * les porte que sur l'erreur de rendu). */
     fun montrerProcessusArrete(
         texte: CharSequence,
         reessayer: () -> Unit,
@@ -56,6 +68,7 @@ internal class BandeauApercu(
             texte = texte,
             libelleBouton = ressources.getString(R.string.preview_bandeau_reessayer),
             actionBouton = reessayer,
+            pliable = false,
         )
     }
 
@@ -67,17 +80,28 @@ internal class BandeauApercu(
         barreEdition.translationY = REPLI_EDITION
     }
 
-    /** Pose le bandeau visible et descend la barre d'édition (miroir `.edit.shift`). */
+    /** Pose le bandeau visible et descend la barre d'édition (miroir `.edit.shift`).
+     *
+     * @param pliable vrai (erreur de rendu) : message replié à UNE ligne +
+     *        bouton « Détails »/« Réduire » ; faux (processus arrêté) :
+     *        message complet, AUCUN bouton de pliage (miroir la maquette). */
     private fun montrer(
         texte: CharSequence,
         libelleBouton: String?,
         actionBouton: (() -> Unit)?,
+        pliable: Boolean,
     ) {
         message.text = texte
-        appliquerPliage()
         this.actionBouton = actionBouton
         bouton.isVisible = libelleBouton != null
         bouton.text = libelleBouton.orEmpty()
+        details.isVisible = pliable
+        if (pliable) {
+            appliquerPliage()
+        } else {
+            deplie = false
+            message.maxLines = LIGNES_DEPLIE
+        }
         racine.isVisible = true
         barreEdition.translationY = decalageEdition
     }

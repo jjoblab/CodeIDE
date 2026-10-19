@@ -19,12 +19,15 @@ import jo.codeide.preview.xml.ClassificateurPreview
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ExtractionRessource
+import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.ZonesDepot
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -237,6 +240,48 @@ public class PreviewViewModel
         /** Le texte VIVANT du document (onglet Source de la feuille — PE6d). */
         public fun texteCourant(): String = source?.texte() ?: ""
 
+        // ── PE11k : surlignage temporaire de l'INSERTION (onglet Source) ──
+
+        /** La plage de lignes INSÉRÉES par la dernière écriture (miroir
+         *  `S.flash` de la maquette : posée à l'insertion, retirée après
+         *  le délai — le volet Source la lit au liage). Null = rien à
+         *  surligner. */
+        private val plageInsereeInterne = MutableStateFlow<IntRange?>(null)
+
+        /** La plage insérée observable (l'onglet Source s'y aligne). */
+        public val plageInseree: StateFlow<IntRange?> = plageInsereeInterne.asStateFlow()
+
+        /** La bougie d'effacement de la plage insérée (repouillée à chaque pose). */
+        private var bougieInseree: Job? = null
+
+        /**
+         * Pose la plage de lignes INSÉRÉES par une écriture réussie (dépôt
+         * PE7b ou placement PE7c — même miroir `S.flash = n.rid` de
+         * `insertAt`), puis l'EFFACE après le délai de la maquette (la
+         * maquette gagne sur le « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9 : 2,6 s).
+         */
+        private fun marquerInsertion(
+            sourceBranchee: SourceApercu,
+            edition: InsertionXml.EditionXml,
+        ) {
+            val texte = sourceBranchee.texte()
+            if (texte.isEmpty()) return
+            // La plage posée vit dans le texte NOUVEAU : [debut, debut + remplacement[.
+            val plage =
+                FeuilleApercu.lignesDePlage(
+                    texte,
+                    edition.debut,
+                    edition.debut + edition.remplacement.length,
+                ) ?: return
+            plageInsereeInterne.value = plage
+            bougieInseree?.cancel()
+            bougieInseree =
+                viewModelScope.launch {
+                    delay(DELAI_INSERTION_MS)
+                    plageInsereeInterne.value = null
+                }
+        }
+
         /**
          * Le DÉPÔT de la palette (PE7b) : cible le conteneur sous le
          * point, façonne l'extrait (identifiant libre — miroir `nextId`,
@@ -283,6 +328,7 @@ public class PreviewViewModel
             if (ecrit) {
                 dernierParentDepot = parent.classe
                 marquerRecent(contenu.idWidget)
+                marquerInsertion(sourceBranchee, edition)
             }
             return ecrit
         }
@@ -439,6 +485,7 @@ public class PreviewViewModel
             if (ecrit) {
                 dernierParentDepot = parent.classe
                 marquerRecent(contenu.idWidget)
+                marquerInsertion(sourceBranchee, edition)
             }
             return ecrit
         }
@@ -894,6 +941,11 @@ public class PreviewViewModel
 
             /** Marge latérale PAR DÉFAUT à la racine (miroir `ml/mr = 24`). */
             private const val MARGE_PLACEMENT_COTE_DP: Int = 24
+
+            /** Délai du surlignage « inséré » de la Source (PE11k — miroir le
+             *  `setTimeout(…, 2600)` de `insertAt` : la maquette gagne sur le
+             *  « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9, écart documenté). */
+            private const val DELAI_INSERTION_MS: Long = 2_600L
 
             /** Taille de la liste des récents (miroir `slice(0, 4)`). */
             private const val RECENTS_MAX: Int = 4

@@ -1,5 +1,120 @@
 # Journal des modifications
 
+## [0.152.0] – 2026-10-19
+
+### PE11k — ONGLETS ARBRE, PROBLÈMES, SOURCE à l'identique de la maquette (ADR 0134) + 4 correctifs du propriétaire
+
+#### Ajouté
+
+- **Les 6 layouts de référence copiés** (§ 7-9 de `PREVIEW_UI_ECRANS.md`) :
+  `fragment_volet_arbre`, `fragment_volet_problemes`,
+  `fragment_volet_source`, `item_arbre`, `item_probleme`,
+  `item_ligne_source` + le drawable `apercu_probleme_point` (point de
+  sévérité 8 dp). Les 5 autres drawables attendus étaient déjà en place
+  depuis PE11a/i (`apercu_rangee_fond`, `apercu_monogramme_fond`,
+  `apercu_badge_rangee_fond`/`_avert_fond`, `apercu_source_ligne_fond`)
+  ; les anciens `fond_monogramme` (24 dp `colorPrimaryContainer`) et
+  `fond_ligne_source_surlignee` (`colorSecondaryContainer`) sont
+  SUPPRIMÉS. Écart adapté : `xmlns:app` non porté du
+  `fragment_volet_source` (aucun attribut `app:` — lint
+  RedundantNamespace, même écart qu'PE11j) ; le fond temporaire « inséré
+  » nommé par le commentaire de la référence devient le drawable
+  `apercu_source_insere_fond` (`?attr/apercuSourceInsere` + rayon —
+  ADR 0127-0129 : aucun `GradientDrawable` en code).
+- **ARBRE** (§ 7) : rangée 34 dp (20 + 7 + 7) à TROIS états —
+  sélectionnée `isSelected` → accent doux du sélecteur
+  `apercu_rangee_fond`, appuyée → surface 2 ; la SÉLECTION vit dans les
+  entrées (`EntreeArbreUi.selectionnee`, rebind DiffUtil des seules
+  rangées changées) ; monogramme 20 dp (surface 2, rayon 5, initiale
+  mono 10/600 primaire) ; badge à droite « ! n » sur fond AMBRE + texte
+  `apercuFond` (miroir `.badge.w`) sinon dimensions « 345×48 » sur fond
+  neutre + texte doux, MASQUÉ sans contenu ; indentation
+  `8 + profondeur × 16` (donnée du modèle, seule pose au liage) ; arbre
+  vide = liste vide (miroir `renderTree` : aucun message, le fil
+  d'Ariane porte déjà « Sans sélection »).
+- **PROBLÈMES** (§ 8) : le message « Aucun problème détecté à cette
+  taille et à cette police. » vit dans le LAYOUT
+  (`message_aucun_probleme`, bascule de visibilité — plus de `TextView`
+  construite en code) ; point 8 dp aligné sur la première ligne (marge
+  haute 6), teinte ambre/erreur au liage ; titre 13/600, détail 12 doux
+  sur DEUX lignes (libellé de la vue puis message) dans UNE colonne
+  alignée sur le titre ; « Voir » mono 11 accent dans le layout ; le tap
+  de la rangée sélectionne la vue fautive.
+- **SOURCE** (§ 9) : en-tête `.openrow` (plage « Lignes a à b » 12 doux,
+  « Document entier » pour la racine sélectionnée — miroir `renderSrc`)
+  + bouton « Ouvrir dans l'éditeur ↗ » `Widget.CodeIDE.Apercu.BoutonLien`
+  (26 dp, trait 1, rayon 8, accent — le style posé par l'habillage
+  PE11b est ENFIN branché : le volet portait un `TextButton` Material
+  par défaut) ; ligne 20 dp (mono 12,
+  interligne 20 configuré), numéro colonne 24 dp à droite ; la
+  COLORATION balise/attribut/valeur par le module PUR
+  `ColorationSourceXml` (machine à états sur le document ENTIER — une
+  valeur multi-lignes garde son rôle sur chaque ligne traversée ;
+  rôles → `ForegroundColorSpan` lus dans `?attr/apercuPrimaire` /
+  `apercuRemplissage` / `apercuMarge`) ; les TROIS surlignages :
+  racine sélectionnée `isSelected` → accent doux (miroir `hl`), plage de
+  la vue `isActivated` → `apercuSourceVue` (miroir `hl2`), plage INSÉRÉE
+  → fond temporaire `apercuSourceInsere` posé par le flux
+  `PreviewViewModel.plageInseree` (dépôt PE7b et placement PE7c —
+  miroir `S.flash` de `insertAt`), RETIRÉE après le délai de la maquette
+  (2,6 s — la maquette gagne sur le « ~1,2 s » de la § 9, écart
+  documenté) ; plage amenée à 70 dp du haut, la plage insérée PRIME
+  (miroir `target = flashSp || …`).
+- **Correctif ① — clair/nuit** : le bus `definirNuit` → `RequeteRendu.nuit`
+  → reconfiguration (`setNightMode` ressources + thèmes) était SAIN, mais
+  RIEN ne le gardait : `RenduNuitTest` (2 tests) rend le MÊME document
+  jour puis nuit sur un faux projet `values`/`values-night` et exige un
+  pixel DIFFÉRENT — plus une garde anti-oscillation (deux rendus jour
+  identiques). Si la bascule paraissait inactive sur l'appareil, la
+  cause PREMIÈRE est le bandeau ② : le processus `:preview` mort, le rendu
+  partait en repli local pendant que le bandeau couvrait l'écran.
+- **Correctif ② — bandeau « processus arrêté »** : le bandeau est le
+  miroir EXACT de la maquette (`renderStatus`, cas crash) — message
+  COMPLET (2 lignes, pas de clip) portant la 3ᵉ phrase manquante
+  « Une reprise automatique a déjà eu lieu. » et « Réessayer » SEUL (le
+  « Détails »/« Réduire » n'existe que pour l'erreur de rendu : sur le
+  message d'arrêt, le pliage paraissait « ne rien faire ») ; et le stub
+  AIDL de `ServicePreview` attrape TOUT `Throwable` : une exception
+  résiduelle tuait le PROCESSUS `:preview` sur le fil du binder — le
+  bandeau « a cessé de répondre » revenait à chaque « Réessayer ».
+  L'erreur voyage maintenant en DONNÉE (règle 6) : le processus survit,
+  le message honnête s'affiche.
+- **Correctif ③ — z-order palette** : l'élévation 8 dp de la coque
+  ENFANTE ne traverse PAS la frontière du conteneur 0 dp — la barre
+  d'édition (Hud, 4 dp) et la bannière dessinaient AU-DESSUS de l'écran
+  palette. Les CONTENEURS `conteneur_palette`/`conteneur_placement`
+  portent désormais `apercu_popover_elevation` (miroir `.pop` z-index 8
+  > `.bubble` 6 ; même élévation que la bulle + ordre XML APRÈS elle).
+- **Correctif ④ — entête de feuille vs zoom/pastille** : la translation
+  du HUD de zoom et de la pastille « Rendu · N vues » ne portait que la
+  part DÉPLOYÉE — repliée, l'entête 78 dp du bottom sheet les recouvrait
+  au bord. Les formules pures `GlissadeFeuilleApercu` partent du PEEK
+  (miroir `applySheet` : `bottom = ch − (open ? SHEET_OPEN : 72) − 10`),
+  et la RÉSERVE de la bulle suit (miroir `sh = … + 10`).
+
+#### Supprimé
+
+- `StyleVolet` perd ses aides d'habillage d'avant-PE11b (apparences
+  Material, `TextView` libellé/vide, fond réactif, `WRAP`) — orphelines
+  depuis que chaque contrôle/rangée vit dans SON layout de référence ;
+  mêmes orphelins que `STYLES`/`TYPES_SAISIE` en PE11d.
+
+#### Tests
+
+- `CotesVoletsMaquetteTest` (7) : rangée 34, monogramme 20 × 20,
+  problème ≥ 62 (composé des `lineHeight` configurés — la mesure
+  Robolectric ignore l'interligne), point 8 × 8, ligne 20, numéro 24,
+  bouton « Ouvrir » 26 — contre `meas_ecrans_clair.json`
+  (`arbre`/`problemes`/`source`), ±1 dp.
+- `ColorationSourceXmlTest` (8) : rôles par plage, valeur multi-lignes
+  découpée aux sauts, `/>` en BALISE (jamais un attribut vert),
+  commentaire entier, document tronqué en frappe, attribut sans valeur.
+- `RenduNuitTest` (2), `GlissadeFeuilleApercuTest` (5) ;
+  `VoletsPreviewLayoutTest` actualisé (message vide du layout, « Voir »).
+- Extraction chrome : `PopoverCalquesApercu` (règle 8, LargeClass —
+  même patron que `BandeauApercu`) ; `FeuilleApercu.lignesDePlage`
+  public (le module pur expose la plage de lignes d'une écriture).
+
 ## [0.151.0] – 2026-10-19
 
 ### PE11j — BULLE, PALETTE, GHOST, PLACEMENT, MENUS à l'identique de la maquette (ADR 0134) + correctif bulle
