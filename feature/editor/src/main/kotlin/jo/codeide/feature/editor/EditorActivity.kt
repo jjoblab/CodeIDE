@@ -355,13 +355,19 @@ class EditorActivity :
             statusBarStyle = SystemBarStyle.auto(0x66000000, 0x66000000),
             navigationBarStyle = SystemBarStyle.auto(0x66FFFFFF, 0x66000000),
         )
-        installerFantomeCompletion()
         savedInstanceState?.let {
             largeurTiroirPx = it.getInt(CLE_LARGEUR_TIROIR, 0)
             destinationCourante = it.getInt(CLE_DESTINATION_TIROIR, R.id.destination_explorateur)
         }
         liaison = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(liaison.root)
+
+        // IA-8b : l'installation lit `liaison.vueEditeur` — elle DOIT suivre
+        // l'inflation du binding. Plantage v0.145.2 : appelée AVANT
+        // l'inflation, l'activité mourait en UninitializedPropertyAccessException
+        // (« lateinit property liaison has not been initialized ») au premier
+        // lancement (EditorActivity.onCreate → installerFantomeCompletion).
+        installerFantomeCompletion()
 
         brancherInsets()
         brancherTiroir()
