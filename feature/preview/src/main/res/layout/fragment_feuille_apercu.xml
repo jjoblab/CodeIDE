@@ -72,5 +72,5 @@
     <FrameLayout
         android:id="@+id/conteneur_volets"
         android:layout_width="match_parent"
-        android:layout_height="224dp" />
+        android:layout_height="@dimen/apercu_feuille_volets_defaut" />
 </LinearLayout>

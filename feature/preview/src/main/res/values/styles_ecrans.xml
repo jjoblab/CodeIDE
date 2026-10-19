@@ -138,6 +138,9 @@
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">12.5sp</item>
         <item name="android:textColor">@color/apercu_mode_palette_texte</item>
+        <!-- PE11l : la maquette porte line-height 1 (12,5px) — sans lui le
+             bouton composait 35 dp au lieu des 32,5 mesurés (pos_btn). -->
+        <item name="lineHeight">12.5sp</item>
     </style>
     <!-- .res : mono 12, interligne 1,4. -->
     <style name="TextAppearance.CodeIDE.Apercu.Resume">

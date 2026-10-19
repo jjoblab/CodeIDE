@@ -26,15 +26,32 @@ import android.os.IBinder
  *    seule la panne de TRANSPORT est une exception côté app.
  */
 public class ServicePreview : Service() {
-    /** Pipeline LayoutLib — propriété de CE processus. */
-    private lateinit var rendu: RenduLayoutLib
+    /**
+     * Pipeline LayoutLib — propriété de CE processus, PARESSEUX (PE11l).
+     *
+     * Correctif PE11l (bug rapporté par le propriétaire : « le bandeau
+     * erreurs est toujours affiché ») : la construction vivait dans
+     * [onCreate] — la MOINDRE exception de [RenduLayoutLib] (une donnée
+     * d'appareil inattendue, un état de plateforme absent) tuait le
+     * processus `:preview` AVANT le binder : la liaison échouait DEUX
+     * fois, la politique d'isolation désactivait le transport pour la
+     * SESSION ([RegimeRendu.LOCAL_DEGRADE]) et le bandeau « processus
+     * arrêté » restait affiché TANT QUE l'app vivait, rendu local
+     * fonctionnel mais bandeau permanent. En PARESSEUX, la construction
+     * glisse SOUS le filet du stub : son échec part en DONNÉE
+     * (`ResultatRendu` ok=false, règle 6), le processus SURVIT et la
+     * reprise de l'isolation (bouton « Réessayer ») retente un état
+     * propre au lieu de mourir à chaque relance.
+     */
+    private val rendu: RenduLayoutLib by lazy { RenduLayoutLib(applicationContext, journal = null) }
 
     /** Verrou de sérialisation des rendus (inflater non thread-safe). */
     private val verrou = Any()
 
     override fun onCreate() {
         super.onCreate()
-        rendu = RenduLayoutLib(applicationContext, journal = null)
+        // La construction du pipeline est PARESSEUSE (voir KDoc de
+        // [rendu]) — onCreate ne fait RIEN qui puisse mourir.
     }
 
     override fun onBind(intention: Intent): IBinder =

@@ -151,6 +151,15 @@ public class PalettePopover(
             }
         liaison.grilleTuiles.layoutManager = gestionnaire
         liaison.grilleTuiles.addItemDecoration(EspacementGrilleTuiles(context))
+        // PE11l (bug rapporté par le propriétaire : « la palette ne charge
+        // pas la liste au départ, je dois appuyer sur l'un des types ») :
+        // la grille n'était remplie que par les CALLBACKS (catégorie,
+        // recherche, récents) — la PREMIÈRE ouverture partait d'une liste
+        // VIDE tant qu'aucune puce n'était touchée. Le remplissage initial
+        // est le miroir `fillGrid` de la maquette : « Tous » est la
+        // catégorie courante dès la construction (miroir `palCat`
+        // initial), la recherche est vide — la liste est donc complète.
+        remplirGrille()
     }
 
     /**

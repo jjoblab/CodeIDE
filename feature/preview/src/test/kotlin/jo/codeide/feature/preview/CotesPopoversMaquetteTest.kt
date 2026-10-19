@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.theme.MaterialComponentsViewInflater
+import jo.codeide.preview.xml.CataloguePalette
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,6 +76,22 @@ public class CotesPopoversMaquetteTest {
         assertEquals(600, popover.layoutParams.height)
         popover.bornerHauteur(500)
         assertEquals(480, popover.layoutParams.height)
+    }
+
+    @Test
+    public fun `la grille est remplie des la construction`() {
+        // PE11l (bug rapporté par le propriétaire : « la palette ne charge
+        // pas la liste au départ ») : le remplissage initial est le miroir
+        // `fillGrid` de la maquette — AVANT ce correctif la grille ne se
+        // remplissait qu'au PREMIER appel de callback (catégorie, recherche
+        // ou récents), la première ouverture partait d'une liste VIDE.
+        val popover = PalettePopover(contexte)
+        val grille = popover.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.grille_tuiles)
+        val nombre = grille.adapter?.itemCount ?: 0
+        assertTrue("la grille contient des tuiles dès la construction (trouvé $nombre)", nombre > 0)
+        // Toutes les catégories y sont : « Tous » + les 6 du catalogue,
+        // les tuiles de « Tous les widgets » suivent.
+        assertTrue("au moins autant d'items que de catégories", nombre > CataloguePalette.CATEGORIES.size)
     }
 
     @Test

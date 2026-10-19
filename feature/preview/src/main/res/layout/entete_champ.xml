@@ -37,8 +37,8 @@
         android:layout_marginStart="@dimen/apercu_champ_entete_gap"
         android:contentDescription="@string/preview_attr_reset_desc"
         android:gravity="center"
-        android:minWidth="24dp"
-        android:minHeight="24dp"
+        android:minWidth="@dimen/apercu_reset_cible"
+        android:minHeight="@dimen/apercu_reset_cible"
         android:text="@string/preview_attr_reset_glyphe"
         android:visibility="gone" />
 </LinearLayout>
