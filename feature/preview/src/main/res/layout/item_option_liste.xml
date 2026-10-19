@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE OPTION de la liste déroulante (PE11c — maquette `.fld select option`) :
+  le même corps que le champ (apparence de saisie, hauteur du champ) ; le
+  conteneur du menu porte `fond_menu_apercu` (popupBackground du contrôle).
+  Gonflée par l'ArrayAdapter du contrôle — jamais incluse dans un layout.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.CodeIDE.Apercu.Champ"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@null"
+    android:minHeight="@dimen/apercu_liste_hauteur_min" />
