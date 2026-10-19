@@ -1,5 +1,26 @@
 # Journal des modifications
 
+## [0.149.1] – 2026-10-19
+
+### Le brief PE11 rejoint le dépôt (documentation)
+
+#### Ajouté
+
+- **`docs/PE11-attributs-brief.md`** : le brief original de la série PE11
+  (objectifs, état du code, découpage PE11a-l, dix nouveaux contrôles, règles
+  du dépôt, critères d'acceptation, annexe du catalogue curé) est désormais
+  **versionné** — il vivait hors du dépôt (collé dans les sessions d'agent).
+  Les renvois de `docs/PREVIEW_UI.md` § 14 (« voir le brief
+  `PE11-attributs-brief.md` ») et de `docs/PREVIEW_UI_ECRANS.md` § 2
+  (« "Chantier" renvoie à `PE11-attributs-brief.md` ») résolvent maintenant
+  vers ce fichier, même répertoire `docs/`.
+- Relecture règle 13 préalable : aucun nom d'éditeur ou d'IDE tiers dans le
+  texte (vérifié par recherche exhaustive) ; le document reste une référence
+  d'intention, la maquette reste la source de vérité visuelle.
+- La suite de la série reprend l'**ordre recommandé du brief** :
+  refontes des écrans restants (PE11i-l) **avant** les nouveautés
+  PE11e-h.
+
 ## [0.149.0] – 2026-10-19
 
 ### PE11d — le contrôle DRAPEAUX et la règle des masques `|` (2e lot de nouveaux contrôles)
