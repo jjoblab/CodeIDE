@@ -123,6 +123,7 @@ public object CatalogueAttributs {
         /** L'identifiant de la vue (PE8a : renommage déclaration + références). */
         public data class Identifiant(
             val nom: String,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /**
@@ -135,6 +136,7 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val extrayable: Boolean = false,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /** Un nombre avec unité (`"dp"`, `"sp"` ou `""` — alpha sans unité). */
@@ -142,6 +144,7 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val unite: String,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /** Un choix segmenté — le PREMIER élément est le défaut (retrait). */
@@ -149,12 +152,14 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /** Un tri-état (défaut / true / false — défaut = retrait). */
         public data class TriEtat(
             val nom: String,
             val etiquette: Etiquette,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /**
@@ -168,6 +173,7 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /**
@@ -183,6 +189,7 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
+            val courant: Boolean = true,
         ) : ControleAttribut() {
             /**
              * Les PARTIES posées de la valeur (miroir
@@ -224,6 +231,7 @@ public object CatalogueAttributs {
             val nom: String,
             val bases: List<String>,
             val modificateurs: List<String>,
+            val courant: Boolean = true,
         ) : ControleAttribut() {
             /**
              * La BASE courante : première partie de la valeur dans le
@@ -267,12 +275,44 @@ public object CatalogueAttributs {
         public data class Couleur(
             val nom: String,
             val etiquette: Etiquette,
+            val courant: Boolean = true,
         ) : ControleAttribut()
+
+        /**
+         * Le contrôle RESSOURCE (PE11f — miroir `res` de la maquette,
+         * § 9 `controle_ressource`) : champ à SUGGESTIONS `@type/nom`
+         * (les types viennent de l'attribut), un NOM NU saisi est
+         * COMPLÉTÉ `@premierType/nom` (miroir `x = '@' + c.ty[0] +
+         * '/' + x`), une ressource absente du projet est un
+         * AVERTISSEMENT qui s'écrit quand même, un TYPE refusé ou une
+         * forme cassée est une ERREUR qui n'écrit RIEN, le vide
+         * RETIRE l'attribut.
+         */
+        public data class Ressource(
+            val nom: String,
+            val etiquette: Etiquette,
+            val types: List<String>,
+            val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /**
+             * La valeur COMPLÉTÉE : un NOM NU (lettres, chiffres, « _ »
+             * et « . ») reçoit le PREMIER type (miroir
+             * `x = '@' + c.ty[0] + '/' + x` — `ic_logo` devient
+             * `@drawable/ic_logo`) ; tout le reste passe TEL QUEL (une
+             * référence, un `?attr/…` : la validation tranchera).
+             */
+            public fun completer(valeur: String): String =
+                if (nomNu.matches(valeur) && types.isNotEmpty()) "@${types.first()}/$valeur" else valeur
+
+            /** Un nom de ressource nu (miroir `/^[\w.]+$/` du `inp`). */
+            private val nomNu: Regex = Regex("""^[\w.]+$""")
+        }
 
         /** Les quatre côtés d'une marge ou d'un padding (miroir `.mrow`). */
         public data class Cotes(
             val base: String,
             val etiquette: Etiquette,
+            val courant: Boolean = true,
         ) : ControleAttribut()
 
         /** Les dimensions wrap/match/fixe (PE7d — miroir `dimrow`). */
@@ -356,6 +396,11 @@ public object CatalogueAttributs {
 
     private val FONDS: List<String> = listOf("outline", "filled")
     private val ICONES_FIN: List<String> = listOf("none", "password_toggle", "clear_text")
+
+    // Les types acceptés par un contrôle RESSOURCE d'icône/image — miroir
+    // `C.res('…', '…', ['drawable'])` de la maquette (les attr `string`,
+    // `layout`, `style` suivent avec leurs usagers de la 2e vague).
+    private val TYPES_DESSINABLE: List<String> = listOf("drawable")
 
     // scaleType : les 8 valeurs plateforme (SCALE de la maquette) — le
     // catalogue PE7e n'en portait que 4 (rétrécies pour tenir en segments) ;
@@ -512,7 +557,7 @@ public object CatalogueAttributs {
                 TitreSection.BOUTON,
                 listOf(
                     ControleAttribut.Nombre("app:cornerRadius", Etiquette.ARRONDI, "dp"),
-                    ControleAttribut.Texte("app:icon", Etiquette.ICONE),
+                    ControleAttribut.Ressource("app:icon", Etiquette.ICONE, TYPES_DESSINABLE),
                 ),
             )
         }
@@ -536,7 +581,7 @@ public object CatalogueAttributs {
             SectionAttributs(
                 TitreSection.IMAGE,
                 listOf(
-                    ControleAttribut.Texte("android:src", Etiquette.SOURCE),
+                    ControleAttribut.Ressource("android:src", Etiquette.SOURCE, TYPES_DESSINABLE),
                     ControleAttribut.Liste("android:scaleType", Etiquette.TYPE_ECHELLE, TYPES_ECHELLE),
                 ),
             )
