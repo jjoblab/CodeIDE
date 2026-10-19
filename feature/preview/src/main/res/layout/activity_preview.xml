@@ -14,12 +14,14 @@
   - la palette et le placement passent AU-DESSUS de la bulle (z-order de la maquette : popover 8 > bulle 6).
   Ids conservés quand c'est possible pour limiter les changements de Kotlin.
 -->
+<!-- Écart à la référence : le fond ?attr/apercuFond de la racine n'est pas porté —
+     Theme.CodeIDE.Apercu peint déjà windowBackground=apercu_fond (même couleur, le
+     repeindre serait un surdessin — règle Overdraw de lint, ADR 0131). -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/racine_preview"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="?attr/apercuFond">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/colonne_preview"
