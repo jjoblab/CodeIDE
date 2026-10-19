@@ -1,5 +1,107 @@
 # Journal des modifications
 
+## [0.155.0] – 2026-10-20
+
+### PE11f — le contrôle RESSOURCE + la barre d'outils branchée (recherche et bascule Courants/Tous), 4e lot des nouveaux contrôles § 9
+
+#### Ajouté
+
+- **Le contrôle RESSOURCE** (`controle_ressource.xml` — 13e layout de
+  référence copié À L'IDENTIQUE, miroir `res` de la maquette) : champ à
+  SUGGESTIONS `@type/nom` (miroir le `<datalist>` — `item_option_liste`
+  déjà en place depuis PE11c), un NOM NU saisi est COMPLÉTÉ
+  `@premierType/nom` au commit (`controle.completer` — miroir
+  `x = '@' + c.ty[0] + '/' + x`), validation miroir `vRes` : TYPE refusé
+  ou forme cassée = ERREUR sans écriture, ressource ABSENTE du projet =
+  AVERTISSEMENT qui s'écrit quand même, vide = RETRAIT, type sans index
+  = silence (le RENDU tranche, miroir `set` nul). **Règle § 9** : toute
+  RÉFÉRENCE `@type/nom` porte le kind `Ressource` — usagers convertis
+  `app:icon` (Bouton) et `android:src` (Image), types `['drawable']`.
+- **`ValidationAttribut.ressource`** (2e validateur pur) : le type
+  scellé gagne les ARGUMENTS de message
+  (`Avertissement(genre, arguments)` — règle 3 : l'UI compose les
+  libellés FR/EN `preview_attr_reference_attendue` `%1$s`,
+  `preview_attr_type_refuse` `%1$s…%2$s`, `preview_attr_ressource_introuvable`
+  `\@%1$s/%2$s`) + 3 genres (`REFERENCE_ATTENDUE`, `TYPE_REFUSE`,
+  `RESSOURCE_INTROUVABLE`) et la table `Arguments` des positions.
+- **`RessourcesProjetXml`** (pur) : les NOMS d'entrées par balise
+  (`<string>`, `<style>`) des fichiers de valeurs ; le ViewModel expose
+  l'**INDEX PAR TYPE** (`indexRessources`: `drawable`/`color`/`string`/
+  `style`/`layout` — miroir `RES` de la maquette) rechargé à chaque
+  suivi de projet et à chaque ouverture de palette/carte.
+- **La BARRE d'outils branchée** (PE11f de l'interface — `barre_outils_attributs`
+  : la recherche et la bascule quittent `visibility=gone`) :
+  - **Recherche** (miroir `q.oninput` + `fill`) : filtre par ÉTIQUETTE,
+    NOM d'attribut et TITRE de section (minuscules), OUVRE les sections
+    qui correspondent (les cartes portent leurs contrôles FILTRÉS —
+    rebind à la frappe), ne MÉMORISE PAS l'état plié pendant la
+    recherche (miroir `if (!qq) S.so[t] = d.open`), message « Aucun
+    attribut ne correspond à « … ». » (`preview_attr_aucun`) ; la
+    frappe NE PERD PAS le focus (l'item BarreOutils ne change jamais —
+    brief PE11f) et ne vide pas le focus du volet (le protocole crash
+    0.134.30 vise les vues recyclées, pas la barre).
+  - **Bascule Courants/Tous** (miroir `aria-pressed` → ChipGroup à
+    sélection unique, défaut Courants) : le mode retient les contrôles
+    `courant` ;
+  - **Drapeau `courant`** (PE10a — le brief l'exigeait sur CHAQUE
+    contrôle) : posé sur les ONZE kinds (défaut `true`, la 1re vague
+    est entièrement courante ; les faux viennent avec l'annexe § 7) ;
+  - **Bouton large « Afficher les N autres attributs de X »**
+    (`bouton_autres_attributs.xml` — 14e layout de référence copié,
+    miroir `.linkbtn.wide`, pluriel exigé par lint — précédent PE11j) :
+    visible en mode Courants quand des contrôles sont masqués, le tap
+    passe en Tous. Toujours 0 dans la 1re vague — le bouton s'allumera
+    avec les drapeaux de la 2e vague (comportement déjà branché).
+- La recherche suggère « Ajouter … comme attribut libre » dans la
+  maquette : la rangée d'ajout vit dans la section « Autres attributs »
+  (PE11h, `controle_attribut_libre`) — reporté avec ce lot, documenté.
+
+#### Tests
+
+- `ValidationAttributTest` +7 : un test PAR RÈGLE de `vRes` (vide et
+  `?attr/`, type bon, ABSENTE = avertissement qui porte ses DEUX
+  arguments, type refusé, forme cassée ×3, type sans index = silence,
+  complétion du nom nu).
+- `RessourcesProjetXmlTest` (3) : strings dans l'ordre, styles sans
+  fuiter les `<item>`, la balise demandée ne lit que la sienne.
+- `CatalogueAttributsTest` +2 : parité `Ressource` (`app:icon`,
+  `android:src` — kinds + types) ; le drapeau `courant` existe sur
+  chaque contrôle de la 1re vague et vaut `true`.
+- `VoletsPreviewLayoutTest` +2 : gonflage du champ ressource (message
+  caché au repos) et du bouton large (pleine largeur).
+- `CotesMaquetteTest` +1 : le champ ressource garde la hauteur
+  `fldinput` (33,6) du style Champ.
+
+#### Écarts documentés (re-cut du lot annoncé)
+
+- Le ROADMAP annonçait « PE11f (ressource + correctifs +
+  recherche/Courants-Tous) » : les CORRECTIONS RAPIDES (genres de
+  problèmes TEXTE_CODÉ / TRONQUÉ / SANS_CONTENT_DESCRIPTION — dont la
+  détection de troncature CÔTÉ MOTEUR — et les cartes
+  `item_correctif`) forment un chantier à part ; ils suivent en
+  **PE11g-corrections** (découpage plus fin, même pratique que
+  PE11c/PE11d depuis le début de la série). Curseur+Ratio passent
+  PE11g-contrôles, actions/libre/contraintes-lecture restent PE11h.
+- La suggestion « Ajouter comme attribut libre » de la recherche
+  attends la section Autres attributs (PE11h) — le message « Aucun
+  attribut ne correspond » est déjà fidèle.
+- La bascule Courants/Tous est branchée mais SANS effet visible dans
+  la 1re vague (tous les contrôles sont courants — le drapeau et le
+  bouton large s'activeront avec l'annexe § 7).
+
+#### Grille § 12.4 (recopiée)
+
+- [x] Aucune `GradientDrawable`/vue construite en code pour l'écran
+- [x] Greps hexa/textColor + `[0-9]+dp` → VIDE
+- [x] `TextView` du contrôle → style `Note` (parent `Apercu.Texte`)
+- [x] `JetonsMaquetteTest` + cotes Robolectric verts
+- [ ] Captures clair + nuit (`ecran-attributs-ressource`, barre
+      branchée) : sur appareil au prochain retour propriétaire
+- [x] En-têtes de layout à jour (commentaires sélecteur CSS + cotes)
+- [x] `lintDebug` sans nouvel avertissement ; AUCUN `tools:ignore`
+      (pluriel exigé par lint → `<plurals>`, précédent PE11j)
+
+
 ## [0.154.0] – 2026-10-20
 
 ### PE11e — le contrôle COULEUR (pastille 3 couches + hex + Palette), 3e lot des nouveaux contrôles § 9

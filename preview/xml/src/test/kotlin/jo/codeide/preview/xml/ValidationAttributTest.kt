@@ -118,4 +118,120 @@ public class ValidationAttributTest {
             ValidationAttribut.couleur("FF0000", couleurs, drawables),
         )
     }
+
+    // ── PE11f : le contrôle RESSOURCE (miroir `vRes`) ─────────────────
+
+    /** L'index du faux projet : un drawable, un string, RIEN pour layout. */
+    private val index: Map<String, Set<String>> =
+        mapOf(
+            "drawable" to setOf("logo"),
+            "string" to setOf("app_nom"),
+        )
+
+    /** Les types acceptés par l'attribut testé (miroir `c.ty`). */
+    private val typesDessinables: List<String> = listOf("drawable")
+
+    @Test
+    public fun `le vide et les attr de theme sont des ressources valides`() {
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource(null, typesDessinables, index),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource("", typesDessinables, index),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource("?attr/colorPrimary", typesDessinables, index),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource("?android:attr/colorAccent", typesDessinables, index),
+        )
+    }
+
+    @Test
+    public fun `une ressource du bon type est valide`() {
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource("@drawable/logo", typesDessinables, index),
+        )
+    }
+
+    @Test
+    public fun `une ressource absente est un avertissement qui ecrit quand meme`() {
+        assertEquals(
+            ValidationAttribut.Resultat.Avertissement(
+                ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE,
+                listOf("drawable", "absent"),
+            ),
+            ValidationAttribut.ressource("@drawable/absent", typesDessinables, index),
+        )
+    }
+
+    @Test
+    public fun `un type refuse est une erreur qui n ecrit rien`() {
+        // Miroir `{err:'Type @x refusé ici, attendu : @drawable.'}` — la
+        // liste des acceptés suit le CATALOGUE.
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(
+                ValidationAttribut.GenreMessage.TYPE_REFUSE,
+                listOf("string", "@drawable"),
+            ),
+            ValidationAttribut.ressource("@string/app_nom", typesDessinables, index),
+        )
+    }
+
+    @Test
+    public fun `une forme cassee est l erreur de reference`() {
+        // Miroir `{err:'Référence attendue : @ty[0]/nom.'}` — le nom nu
+        // est COMPLÉTÉ en amont (controle.completer), le validateur ne
+        // voit que des candidats de référence.
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(
+                ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE,
+                listOf("drawable"),
+            ),
+            ValidationAttribut.ressource("logo", typesDessinables, index),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(
+                ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE,
+                listOf("drawable"),
+            ),
+            ValidationAttribut.ressource("@", typesDessinables, index),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(
+                ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE,
+                listOf("drawable"),
+            ),
+            ValidationAttribut.ressource("@drawable/", typesDessinables, index),
+        )
+    }
+
+    @Test
+    public fun `un type sans index ne peut pas etre verifie - pas d avertissement`() {
+        // Miroir `set` nul : l'index du projet n'a pas ce type → le
+        // RENDU tranchera, le validateur SE TAIT.
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.ressource("@layout/main", typesDessinables + "layout", emptyMap()),
+        )
+    }
+
+    @Test
+    public fun `la completion du nom nu suit la maquette`() {
+        val controle =
+            CatalogueAttributs.ControleAttribut.Ressource(
+                "android:src",
+                CatalogueAttributs.Etiquette.SOURCE,
+                listOf("drawable", "mipmap"),
+            )
+        assertEquals("Le nom nu reçoit le PREMIER type", "@drawable/ic_logo", controle.completer("ic_logo"))
+        assertEquals("Une référence passe telle quelle", "@drawable/x", controle.completer("@drawable/x"))
+        assertEquals("Un attr de thème passe tel quel", "?attr/x", controle.completer("?attr/x"))
+        assertEquals("Le vide passe tel quel (retrait)", "", controle.completer(""))
+    }
 }

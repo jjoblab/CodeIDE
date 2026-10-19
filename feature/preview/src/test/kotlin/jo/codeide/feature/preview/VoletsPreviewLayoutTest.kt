@@ -271,6 +271,32 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
+    fun `le controle ressource porte son champ a suggestions et son message cache`() {
+        // PE11f — miroir `res` de la maquette : champ (style Champ, clé de
+        // l'<datalist> au liage) + message de validation caché au repos.
+        val controle = gonfler(R.layout.controle_ressource)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        val champ = controle.findViewById<View>(R.id.champ_ressource)
+        assertNotNull(champ)
+        assertFalse(
+            "Le message de validation est masqué au repos",
+            controle.findViewById<View>(R.id.message_controle).isVisible,
+        )
+    }
+
+    @Test
+    fun `le bouton autres attributs se gonfle en bouton large`() {
+        // PE11f — miroir `.linkbtn.wide` : pleine largeur, texte posé au
+        // liage (« Afficher les N autres attributs de X »).
+        val bouton = gonfler(R.layout.bouton_autres_attributs)
+        val largeur = bouton.layoutParams?.width ?: android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        assertTrue(
+            "Le bouton large prend toute la largeur",
+            largeur == android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        )
+    }
+
+    @Test
     fun `l item de palette porte son disque et les colonnes se bornent`() {
         // PE11e — miroir `.cpal button` : disque 28 dp (fond = les anneaux
         // trait/surface/blanc du drawable) ; la couche TEINTE est posée

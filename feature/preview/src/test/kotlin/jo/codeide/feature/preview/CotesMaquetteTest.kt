@@ -155,6 +155,15 @@ public class CotesMaquetteTest {
     }
 
     @Test
+    public fun `le champ ressource garde la hauteur du champ de la maquette`() {
+        // PE11f — le champ du contrôle `res` est le MÊME style Champ que
+        // la saisie (`.fld input`, meas fldinput : 33,6) — le <datalist>
+        // de la maquette ne change pas sa boîte.
+        val champ = gonfler(R.layout.controle_ressource).findViewById<View>(R.id.champ_ressource)
+        verifierCote("fldinput", mesurer(champ))
+    }
+
+    @Test
     public fun `une pastille de palette fait vingt huit dp`() {
         // PE11e — miroir `.cpal button` : disque 28 dp — cote portée par la
         // RESSOURCE (meas n'a pas de clé cpal : sanité, comme les menus PE11l).

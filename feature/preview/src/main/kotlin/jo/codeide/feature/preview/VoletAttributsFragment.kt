@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.feature.preview.databinding.BarreOutilsAttributsBinding
 import jo.codeide.feature.preview.databinding.CarteSectionBinding
 import jo.codeide.feature.preview.databinding.ControleContrainteBinding
 import jo.codeide.feature.preview.databinding.ControleContraintesBinding
@@ -27,6 +28,7 @@ import jo.codeide.feature.preview.databinding.ControleDrapeauxBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
 import jo.codeide.feature.preview.databinding.ControleListeBinding
+import jo.codeide.feature.preview.databinding.ControleRessourceBinding
 import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
 import jo.codeide.feature.preview.databinding.ControleTexteBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
@@ -49,6 +51,7 @@ import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.ValidationAttribut
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Le volet ATTRIBUTS de la feuille (PE11b, miroir `renderAttrs` +
@@ -83,6 +86,20 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      */
     private val etatSections: MutableMap<String, Boolean> = mutableMapOf()
 
+    // ── PE11f : la barre d'outils branchée (recherche + bascule) ──────
+    // Miroir `S.attrQ`/`S.attrMode` de la maquette : la requête et le
+    // mode SURVIVENT aux reconstructions du volet (l'état vit ici, la
+    // barre n'est jamais reconstruite par la frappe).
+
+    /** La requête de recherche courante (miroir `S.attrQ`, minuscule à la comparaison). */
+    private val rechercheInterne = MutableStateFlow("")
+
+    /** Le mode Courants (vrai) ou Tous (miroir `S.attrMode` — défaut Courants). */
+    private val modeCourantsInterne = MutableStateFlow(true)
+
+    /** La garde anti-boucle : brancher la barre ne re-déclenche pas la recherche. */
+    private var branchementBarre: Boolean = false
+
     /**
      * Le contrat adaptateur : le LIAGE des corps de cartes reste au volet
      * (chaque contrôle a sa fonction, un type = un item layout).
@@ -92,23 +109,38 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             override fun lierCorpsCarte(
                 carte: CarteSectionBinding,
                 section: CatalogueAttributs.SectionAttributs,
+                controles: List<CatalogueAttributs.ControleAttribut>,
                 attrs: List<EditionAttributsXml.AttributSource>,
             ) {
-                section.controles.forEach { controle ->
+                controles.forEach { controle ->
                     carte.corpsSection.addView(controleSection(controle, attrs))
                 }
+            }
+
+            override fun lierBarre(barre: BarreOutilsAttributsBinding) {
+                brancherBarre(barre)
             }
 
             override fun sectionOuverte(
                 section: CatalogueAttributs.SectionAttributs,
                 position: Int,
-            ): Boolean = etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
+            ): Boolean =
+                // La recherche OUVRE les sections qui restent (miroir
+                // `d.open = qq ? true : …`).
+                rechercheInterne.value.isNotBlank() ||
+                    (etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES))
 
             override fun basculerSection(
                 section: CatalogueAttributs.SectionAttributs,
                 ouverte: Boolean,
             ) {
-                etatSections[section.titre.name] = ouverte
+                // La recherche NE MÉMORISE PAS (miroir `if (!qq) S.so[t] = d.open`).
+                if (rechercheInterne.value.isBlank()) etatSections[section.titre.name] = ouverte
+            }
+
+            override fun auBoutonAutres() {
+                modeCourantsInterne.value = false
+                majAttributs()
             }
         }
 
@@ -130,6 +162,131 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /** La mise en forme du volet (l'onglet est actif — porte de la base). */
     override fun marcher() {
         majAttributs()
+    }
+
+    /**
+     * Les contrôles FILTRÉS d'une section (miroir `fill` de la
+     * maquette) : la recherche cherche dans l'ÉTIQUETTE, le NOM
+     * d'attribut et le TITRE de section, et elle PRIME sur le mode ;
+     * sans recherche, le mode Courants retient les contrôles
+     * `courant`, le mode Tous les garde tous. Les contrôles SANS nom
+     * (dimensions, contraintes) suivent le TITRE de leur section.
+     */
+    private fun controlesFiltres(
+        section: CatalogueAttributs.SectionAttributs,
+    ): List<CatalogueAttributs.ControleAttribut> {
+        val requete = rechercheInterne.value.trim().lowercase()
+        val titre = titreSectionRes(section.titre).lowercase()
+        if (requete.isEmpty()) {
+            return if (modeCourantsInterne.value) {
+                section.controles.filter { it.courant() }
+            } else {
+                section.controles
+            }
+        }
+        return section.controles.filter { controle ->
+            val nom = nomDuControle(controle)?.lowercase().orEmpty()
+            val etiquette =
+                etiquetteDuControle(controle)?.let { etiquetteRes(it).lowercase() }.orEmpty()
+            titre.contains(requete) || nom.contains(requete) || etiquette.contains(requete)
+        }
+    }
+
+    /**
+     * Le drapeau Courants d'un contrôle (PE11a du brief PE10 : les
+     * contrôles sans paramètres — dimensions, contraintes — sont
+     * TOUJOURS courants).
+     */
+    private fun CatalogueAttributs.ControleAttribut.courant(): Boolean =
+        when (this) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
+
+            is CatalogueAttributs.ControleAttribut.Texte -> courant
+
+            is CatalogueAttributs.ControleAttribut.Nombre -> courant
+
+            is CatalogueAttributs.ControleAttribut.Choix -> courant
+
+            is CatalogueAttributs.ControleAttribut.Liste -> courant
+
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
+
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
+
+            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
+
+            is CatalogueAttributs.ControleAttribut.Couleur -> courant
+
+            is CatalogueAttributs.ControleAttribut.Ressource -> courant
+
+            is CatalogueAttributs.ControleAttribut.Cotes -> courant
+
+            CatalogueAttributs.ControleAttribut.Dimensions,
+            CatalogueAttributs.ControleAttribut.Contraintes,
+            -> true
+        }
+
+    /**
+     * L'ÉTIQUETTE locale d'un contrôle (miroir `c.l` de la maquette) :
+     * les contrôles SANS étiquette (identifiant, composite de saisie,
+     * dimensions, contraintes) ne matchent que par leur NOM ou le
+     * TITRE de leur section.
+     */
+    private fun etiquetteDuControle(controle: CatalogueAttributs.ControleAttribut): CatalogueAttributs.Etiquette? =
+        when (controle) {
+            is CatalogueAttributs.ControleAttribut.Texte -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Nombre -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Choix -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Liste -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.TriEtat -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Couleur -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Ressource -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Cotes -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Identifiant,
+            is CatalogueAttributs.ControleAttribut.TypeSaisie,
+            CatalogueAttributs.ControleAttribut.Dimensions,
+            CatalogueAttributs.ControleAttribut.Contraintes,
+            -> null
+        }
+
+    /**
+     * Branche la BARRE d'outils (miroir `q.oninput` + la bascule
+     * `aria-pressed` de la maquette, PE11f) : la frappe RECONSTRUIT
+     * les items SANS rebrancher la barre (l'item BarreOutils ne change
+     * pas — la frappe garde son focus, brief PE11f) et SANS vider le
+     * focus du volet (le protocole crash 0.134.30 vise les VUES
+     * RECYCLÉES ; la barre reste la même vue).
+     */
+    private fun brancherBarre(barre: BarreOutilsAttributsBinding) {
+        branchementBarre = true
+        barre.champRechercheAttribut.isVisible = true
+        barre.groupeModeAttributs.isVisible = true
+        if (barre.champRechercheAttribut.text?.toString() != rechercheInterne.value) {
+            barre.champRechercheAttribut.setText(rechercheInterne.value)
+        }
+        barre.champRechercheAttribut.doAfterTextChanged { saisie ->
+            if (branchementBarre) return@doAfterTextChanged
+            rechercheInterne.value = saisie?.toString().orEmpty()
+            adaptateur.soumettre(itemsVolet(renduCourant?.vues?.getOrNull(selectionCourante)))
+        }
+        barre.modeCourants.isChecked = modeCourantsInterne.value
+        barre.modeTous.isChecked = !modeCourantsInterne.value
+        barre.groupeModeAttributs.setOnCheckedStateChangeListener { groupe, cochees ->
+            if (branchementBarre) return@setOnCheckedStateChangeListener
+            modeCourantsInterne.value = barre.modeCourants.id in cochees
+            adaptateur.soumettre(itemsVolet(renduCourant?.vues?.getOrNull(selectionCourante)))
+        }
+        branchementBarre = false
     }
 
     /**
@@ -165,14 +322,38 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 add(ItemAttributs.LectureSeule(getString(R.string.preview_edition_impossible_toast)))
             } else {
                 val sections = CatalogueAttributs.sections(classe, genreParent)
+                var visibles = 0
+                var masques = 0
                 sections.forEachIndexed { position, section ->
+                    val controles = controlesFiltres(section)
+                    if (controles.isEmpty()) return@forEachIndexed
+                    masques += section.controles.size - controles.size
+                    visibles++
                     add(
                         ItemAttributs.Carte(
                             section = section,
+                            controles = controles,
                             attrs = attrs,
                             position = position,
                             titre = titreSectionRes(section.titre),
                             definis = nombreDefinis(section, attrs),
+                        ),
+                    )
+                }
+                if (visibles == 0) {
+                    // Miroir le `<p class="empty">` de la maquette (la
+                    // suggestion « Ajouter … comme attribut libre » arrive
+                    // avec la section Autres attributs, PE11h).
+                    add(ItemAttributs.Message(getString(R.string.preview_attr_aucun, rechercheInterne.value.trim())))
+                }
+                // Miroir le `.linkbtn.wide` : visible en mode Courants
+                // quand des attributs sont MASQUÉS (toujours 0 dans la
+                // 1re vague — tous courants — le bouton s'allumera avec
+                // les drapeaux de la 2e vague).
+                if (rechercheInterne.value.isBlank() && modeCourantsInterne.value && masques > 0) {
+                    add(
+                        ItemAttributs.BoutonAutres(
+                            resources.getQuantityString(R.plurals.preview_attr_autres, masques, masques, classe),
                         ),
                     )
                 }
@@ -225,6 +406,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
 
+            is CatalogueAttributs.ControleAttribut.Ressource -> controle.nom
+
             is CatalogueAttributs.ControleAttribut.Cotes,
             CatalogueAttributs.ControleAttribut.Dimensions,
             CatalogueAttributs.ControleAttribut.Contraintes,
@@ -246,6 +429,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.TypeSaisie -> controleTypeSaisie(controle, attrs)
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Ressource -> controleRessource(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
             CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
@@ -764,7 +948,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         // (miroir `const m0 = vCol(cur); if (m0.warn) showMsg(f, m0)`).
         when (val verdict = verdictCouleur(valeur)) {
             is ValidationAttribut.Resultat.Avertissement -> {
-                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre)
+                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre, verdict.arguments)
             }
 
             else -> {
@@ -863,13 +1047,13 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 .orEmpty()
         return when (val verdict = verdictCouleur(saisie)) {
             is ValidationAttribut.Resultat.Erreur -> {
-                montrerMessageCouleur(bloc, R.color.apercu_erreur, verdict.genre)
+                montrerMessageCouleur(bloc, R.color.apercu_erreur, verdict.genre, verdict.arguments)
                 bloc.champCouleur.setBackgroundResource(R.drawable.apercu_champ_fond_erreur)
                 false
             }
 
             is ValidationAttribut.Resultat.Avertissement -> {
-                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre)
+                montrerMessageCouleur(bloc, R.color.apercu_avert, verdict.genre, verdict.arguments)
                 bloc.champCouleur.setBackgroundResource(R.drawable.apercu_champ_fond)
                 if (saisie.isEmpty() && valeurDe(controle.nom, attrs) == null) {
                     true
@@ -899,24 +1083,53 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         bloc: ControleCouleurBinding,
         couleur: Int,
         genre: ValidationAttribut.GenreMessage,
-    ) {
-        val ressource =
-            when (genre) {
-                ValidationAttribut.GenreMessage.COULEUR_INVALIDE -> R.string.preview_attr_couleur_invalide
-                ValidationAttribut.GenreMessage.COULEUR_INTROUVABLE -> R.string.preview_attr_couleur_introuvable
-                ValidationAttribut.GenreMessage.DRAWABLE_INTROUVABLE -> R.string.preview_attr_drawable_introuvable
-            }
-        bloc.messageControle.text = getString(ressource)
-        bloc.messageControle.setTextColor(
-            androidx.core.content.res.ResourcesCompat
-                .getColor(resources, couleur, null),
-        )
-        bloc.messageControle.isVisible = true
+        arguments: List<String>,
+    ) = montrerMessageControle(bloc.messageControle, couleur, genre, arguments)
+
+    /** Retire le message de validation du contrôle couleur (miroir `showMsg(f, null)`). */
+    private fun masquerMessageCouleur(bloc: ControleCouleurBinding) {
+        masquerMessageControle(bloc.messageControle)
     }
 
+    /**
+     * Le MESSAGE de validation d'un contrôle (miroir `showMsg` :
+     * `.fmsg.err` rouge, `.fmsg.warn` ambre — `role=alert` =
+     * `accessibilityLiveRegion` du layout). Partagé Couleur/Ressource.
+     */
+    private fun montrerMessageControle(
+        message: TextView,
+        couleurJeton: Int,
+        genre: ValidationAttribut.GenreMessage,
+        arguments: List<String>,
+    ) {
+        val ressource = messageRessource(genre)
+        message.text =
+            when (arguments.size) {
+                0 -> getString(ressource)
+                1 -> getString(ressource, arguments[0])
+                else -> getString(ressource, arguments[0], arguments[1])
+            }
+        message.setTextColor(
+            androidx.core.content.res.ResourcesCompat
+                .getColor(resources, couleurJeton, null),
+        )
+        message.isVisible = true
+    }
+
+    /** La ressource chaîne d'un genre de message (règle 3 — jamais de chaîne en dur). */
+    private fun messageRessource(genre: ValidationAttribut.GenreMessage): Int =
+        when (genre) {
+            ValidationAttribut.GenreMessage.COULEUR_INVALIDE -> R.string.preview_attr_couleur_invalide
+            ValidationAttribut.GenreMessage.COULEUR_INTROUVABLE -> R.string.preview_attr_couleur_introuvable
+            ValidationAttribut.GenreMessage.DRAWABLE_INTROUVABLE -> R.string.preview_attr_drawable_introuvable
+            ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE -> R.string.preview_attr_reference_attendue
+            ValidationAttribut.GenreMessage.TYPE_REFUSE -> R.string.preview_attr_type_refuse
+            ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
+        }
+
     /** Retire le message de validation (miroir `showMsg(f, null)` retire le bloc). */
-    private fun masquerMessageCouleur(bloc: ControleCouleurBinding) {
-        bloc.messageControle.isVisible = false
+    private fun masquerMessageControle(message: TextView) {
+        message.isVisible = false
     }
 
     /**
@@ -984,6 +1197,121 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 null
             }
         }
+
+    /**
+     * Un contrôle RESSOURCE (controle_ressource.xml, PE11f — miroir
+     * `res` de la maquette) : champ à SUGGESTIONS `@type/nom` (miroir
+     * le `<datalist>`), un nom NU saisi est COMPLÉTÉ `@premierType/nom`
+     * au commit, validation miroir `vRes` (TYPE refusé ou forme cassée
+     * = ERREUR sans écriture ; ressource ABSENTE du projet =
+     * AVERTISSEMENT qui s'écrit quand même ; vide = RETRAIT).
+     */
+    private fun controleRessource(
+        controle: CatalogueAttributs.ControleAttribut.Ressource,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleRessourceBinding.inflate(gonfleur())
+        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        val valeur = valeurDe(controle.nom, attrs)
+        bloc.champRessource.setText(valeur.orEmpty())
+        val libelle = etiquetteRes(controle.etiquette)
+        bloc.champRessource.hint = libelle
+        bloc.champRessource.contentDescription = libelle
+        // Miroir le `<datalist>` : une suggestion par ressource des
+        // types acceptés (`@type/nom`).
+        val suggestions =
+            controle.types.flatMap { type ->
+                viewModel.indexRessources.value[type]
+                    .orEmpty()
+                    .map { nom -> "@$type/$nom" }
+            }
+        bloc.champRessource.setAdapter(
+            ArrayAdapter(requireContext(), R.layout.item_option_liste, suggestions),
+        )
+        bloc.champRessource.setOnItemClickListener { _, _, position, _ ->
+            val choix = suggestions[position]
+            masquerMessageControle(bloc.messageControle)
+            bloc.champRessource.setBackgroundResource(R.drawable.apercu_champ_fond)
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, choix) }
+        }
+        val commettre = { commiterRessource(bloc, controle, attrs) }
+        bloc.champRessource.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) bloc.champRessource.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        bloc.champRessource.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        // L'avertissement de la valeur COURANTE se montre d'emblée
+        // (même miroir que la couleur : `const m0 = vRes(cur)`).
+        when (val verdict = verdictRessource(valeur, controle)) {
+            is ValidationAttribut.Resultat.Avertissement -> {
+                montrerMessageControle(bloc.messageControle, R.color.apercu_avert, verdict.genre, verdict.arguments)
+            }
+
+            else -> {
+                masquerMessageControle(bloc.messageControle)
+            }
+        }
+        return bloc.root
+    }
+
+    /** Le verdict `vRes` d'une valeur du contrôle ressource (l'index VIVANT du ViewModel). */
+    private fun verdictRessource(
+        valeur: String?,
+        controle: CatalogueAttributs.ControleAttribut.Ressource,
+    ): ValidationAttribut.Resultat =
+        ValidationAttribut.ressource(valeur, controle.types, viewModel.indexRessources.value)
+
+    /**
+     * Le COMMIT du champ ressource (miroir le `inp(...)` de la
+     * maquette) : le nom NU est COMPLÉTÉ AVANT la validation, une
+     * ERREUR n'écrit RIEN (message + fond d'erreur), un AVERTISSEMENT
+     * écrit quand même, le vide RETIRE l'attribut posé (un vide sur un
+     * attribut ABSENT reste un no-op silencieux).
+     */
+    private fun commiterRessource(
+        bloc: ControleRessourceBinding,
+        controle: CatalogueAttributs.ControleAttribut.Ressource,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): Boolean {
+        val saisie =
+            bloc.champRessource.text
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+        // Le VIDE : no-op silencieux sur un attribut absent, RETRAIT sinon.
+        if (saisie.isEmpty() && valeurDe(controle.nom, attrs) == null) {
+            masquerMessageControle(bloc.messageControle)
+            bloc.champRessource.setBackgroundResource(R.drawable.apercu_champ_fond)
+            return true
+        }
+        val valeur = controle.completer(saisie)
+        bloc.champRessource.setText(valeur)
+        bloc.champRessource.setBackgroundResource(R.drawable.apercu_champ_fond)
+        if (valeur.isEmpty()) masquerMessageControle(bloc.messageControle)
+        return when (val verdict = verdictRessource(valeur, controle)) {
+            is ValidationAttribut.Resultat.Erreur -> {
+                montrerMessageControle(bloc.messageControle, R.color.apercu_erreur, verdict.genre, verdict.arguments)
+                bloc.champRessource.setBackgroundResource(R.drawable.apercu_champ_fond_erreur)
+                false
+            }
+
+            is ValidationAttribut.Resultat.Avertissement -> {
+                montrerMessageControle(bloc.messageControle, R.color.apercu_avert, verdict.genre, verdict.arguments)
+                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+            }
+
+            ValidationAttribut.Resultat.Valide -> {
+                if (valeur.isNotEmpty()) masquerMessageControle(bloc.messageControle)
+                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+            }
+        }
+    }
 
     /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs nommés,
      * miroir `.mrow`). */

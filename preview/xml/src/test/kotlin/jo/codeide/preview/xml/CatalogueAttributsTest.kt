@@ -41,6 +41,8 @@ public class CatalogueAttributsTest {
 
                 is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
 
+                is CatalogueAttributs.ControleAttribut.Ressource -> controle.nom
+
                 is CatalogueAttributs.ControleAttribut.Cotes -> controle.base
 
                 CatalogueAttributs.ControleAttribut.Dimensions,
@@ -528,6 +530,91 @@ public class CatalogueAttributsTest {
             composite.modificateursPoses("text|textAutoCorrect|xyz"),
         )
     }
+
+    @Test
+    fun `tout attribut de reference porte le controle Ressource - usagers icon et src`() {
+        // Règle § 9 (PE11f) : une RÉFÉRENCE `@type/nom` n'est jamais un
+        // champ texte libre — le contrôle `res` de la maquette
+        // (suggestions + complétion du nom nu). Usagers de la 1re vague :
+        // app:icon (Bouton) et android:src (Image), types ['drawable'].
+        val bouton =
+            CatalogueAttributs
+                .sections("Button", CatalogueAttributs.GenreParent.CONSTRAINT)
+                .first { it.titre == CatalogueAttributs.TitreSection.BOUTON }
+        val icon =
+            bouton.controles.first { it is CatalogueAttributs.ControleAttribut.Ressource }
+        assertEquals(
+            "app:icon est le contrôle ressource drawable",
+            CatalogueAttributs.ControleAttribut.Ressource(
+                "app:icon",
+                CatalogueAttributs.Etiquette.ICONE,
+                listOf("drawable"),
+            ),
+            icon,
+        )
+        val image =
+            CatalogueAttributs
+                .sections("ImageView", CatalogueAttributs.GenreParent.AUCUN)
+                .first { it.titre == CatalogueAttributs.TitreSection.IMAGE }
+        val src =
+            image.controles.first { it is CatalogueAttributs.ControleAttribut.Ressource }
+        assertEquals(
+            "android:src est le contrôle ressource drawable",
+            CatalogueAttributs.ControleAttribut.Ressource(
+                "android:src",
+                CatalogueAttributs.Etiquette.SOURCE,
+                listOf("drawable"),
+            ),
+            src,
+        )
+    }
+
+    @Test
+    fun `tout controle de la premiere vague est courant - le drapeau existe`() {
+        // PE10a/PE11f : le drapeau `courant` existe sur CHAQUE contrôle ;
+        // la 1re vague est TOUJOURS courante (les attributs non courants
+        // arrivent avec l'annexe § 7 de la 2e vague).
+        for (classe in listOf("TextView", "Button", "EditText", "ImageView", "LinearLayout")) {
+            for (section in CatalogueAttributs.sections(classe, CatalogueAttributs.GenreParent.CONSTRAINT)) {
+                for (controle in section.controles) {
+                    assertTrue(
+                        "contrôle de $classe/${section.titre}",
+                        controle.estCourant(),
+                    )
+                }
+            }
+        }
+    }
+
+    /** Le drapeau Courants d'un contrôle (objet = toujours courant). */
+    private fun CatalogueAttributs.ControleAttribut.estCourant(): Boolean =
+        when (this) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
+
+            is CatalogueAttributs.ControleAttribut.Texte -> courant
+
+            is CatalogueAttributs.ControleAttribut.Nombre -> courant
+
+            is CatalogueAttributs.ControleAttribut.Choix -> courant
+
+            is CatalogueAttributs.ControleAttribut.Liste -> courant
+
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
+
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
+
+            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
+
+            is CatalogueAttributs.ControleAttribut.Couleur -> courant
+
+            is CatalogueAttributs.ControleAttribut.Ressource -> courant
+
+            is CatalogueAttributs.ControleAttribut.Cotes -> courant
+
+            CatalogueAttributs.ControleAttribut.Dimensions,
+            CatalogueAttributs.ControleAttribut.Contraintes,
+            -> true
+        }
 
     @Test
     fun `tout attribut de couleur porte le controle Couleur - usager textColor`() {

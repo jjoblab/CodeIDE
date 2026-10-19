@@ -294,6 +294,14 @@
     <string name="preview_attr_couleur_introuvable">\@color introuvable dans res/values/colors.xml.</string>
     <string name="preview_attr_drawable_introuvable">\@drawable introuvable dans res/.</string>
     <string name="preview_attr_palette_ouverte">palette ouverte</string>
+    <string name="preview_attr_reference_attendue">Référence attendue : @%1$s/nom.</string>
+    <string name="preview_attr_type_refuse">Type @%1$s refusé ici, attendu : %2$s.</string>
+    <string name="preview_attr_ressource_introuvable">\@%1$s/%2$s introuvable dans res/.</string>
+    <string name="preview_attr_aucun">Aucun attribut ne correspond à « %1$s ».</string>
+    <plurals name="preview_attr_autres">
+        <item quantity="one">Afficher l\'autre attribut de %2$s</item>
+        <item quantity="other">Afficher les %1$d autres attributs de %2$s</item>
+    </plurals>
     <string name="preview_attr_palette_fermee">palette fermée</string>
     <string name="preview_attr_ratio_separateur">:</string>
     <string name="preview_attr_nom_hint">android:nom</string>

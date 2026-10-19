@@ -26,6 +26,7 @@ internal sealed interface ItemAttributs {
      */
     data class Carte(
         val section: CatalogueAttributs.SectionAttributs,
+        val controles: List<CatalogueAttributs.ControleAttribut>,
         val attrs: List<EditionAttributsXml.AttributSource>,
         val position: Int,
         val titre: String,
@@ -53,4 +54,22 @@ internal sealed interface ItemAttributs {
 
     /** Le volet vide (aucune vue sélectionnée). */
     data object Vide : ItemAttributs
+
+    /**
+     * Une ligne de message pleine largeur (vide_volet, texte posé au
+     * liage — miroir le `<p class="empty">` de la maquette : « Aucun
+     * attribut ne correspond à « … ». », PE11f).
+     */
+    data class Message(
+        val texte: String,
+    ) : ItemAttributs
+
+    /**
+     * Le bouton large « Afficher les N autres attributs de X »
+     * (bouton_autres_attributs — miroir `.linkbtn.wide`, visible en
+     * mode Courants quand des attributs sont masqués, PE11f).
+     */
+    data class BoutonAutres(
+        val texte: String,
+    ) : ItemAttributs
 }
