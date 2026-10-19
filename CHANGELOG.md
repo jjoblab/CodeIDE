@@ -1,5 +1,25 @@
 # Journal des modifications
 
+## [0.152.1] – 2026-10-19
+
+### Le brief PE10 rejoint le dépôt (documentation)
+
+#### Ajouté
+
+- **`docs/PE10-attributs-brief.md`** : le brief original de la deuxième
+  vague de l'écran Attributs (objectifs, état du code au commit 0ad3cab,
+  découpage PE10a-f, dix nouveaux contrôles, règles du dépôt, critères
+  d'acceptation sur appareil, annexe du catalogue curé) est désormais
+  **versionné** — il vivait hors du dépôt (collé dans les sessions
+  d'agent). Il complète `docs/PE11-attributs-brief.md` (même répertoire,
+  même motif de mode 755) : la série PE11 refaisait l'habillage « à
+  l'identique » de ce que PE10 avait livré, le brief PE10 en est la
+  référence fonctionnelle (l'annexe du catalogue y décrit les sections
+  Courants/Tous par classe de vue).
+- Relecture règle 13 préalable : aucun nom d'éditeur ou d'IDE tiers dans
+  le fichier (la maquette citée est `docs/mockups/apercu-xml.html`,
+  référence de comportement du dépôt).
+
 ## [0.152.0] – 2026-10-19
 
 ### PE11k — ONGLETS ARBRE, PROBLÈMES, SOURCE à l'identique de la maquette (ADR 0134) + 4 correctifs du propriétaire
