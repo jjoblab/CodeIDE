@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -18,12 +19,16 @@ import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
 
 /**
- * Le volet PROBLÈMES de la feuille (PE9a, miroir `renderProbs` — ancien
- * `majProblemes` de [FeuilleApercuFragment]) : les règles pures
+ * Le volet PROBLÈMES de la feuille (PE9a, miroir `renderProbs` — refonte
+ * PE11k à l'identique de `fragment_volet_problemes`/`item_probleme` de
+ * la référence, ADR 0134) : les règles pures
  * ([ProblemesPreview.evaluer]) évaluées à chaque rendu valide, rendues
- * dans UN RecyclerView réel ([AdaptateurProblemes]) — pastille
- * ambre/rouge teintée au liage, tap → sélection de la vue fautive. Le
- * badge compteur de l'ONGLET est tenu par la feuille (miroir `nProbs`).
+ * dans UN RecyclerView réel ([AdaptateurProblemes]) — point de sévérité
+ * 8 dp teinté au liage (ambre/erreur), « Voir » mono accent, tap →
+ * sélection de la vue fautive ; le message VIDE vit dans le LAYOUT
+ * (`message_aucun_probleme`, plus de vue construite en code). Le badge
+ * compteur de l'ONGLET est tenu par la feuille (miroir `nProbs`, masqué
+ * à zéro).
  */
 @AndroidEntryPoint
 internal class VoletProblemesFragment : VoletFeuilleFragment() {
@@ -31,7 +36,7 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
 
     private lateinit var liaison: FragmentVoletProblemesBinding
 
-    /** La liste (rangées + états), recyclée — le tap sélectionne. */
+    /** La liste (rangées recyclées), le tap sélectionne. */
     private val adaptateur = AdaptateurProblemes { indice -> viewModel.selectionner(indice) }
 
     override fun onCreateView(
@@ -48,7 +53,16 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     override fun marcher() {
         val vues = renduCourant?.vues ?: return
         val problemes = ProblemesPreview.evaluer(vues, viewModel.moteur.profil.densiteDpi)
-        adaptateur.submitList(problemesMarches(vues, problemes))
+        // Miroir renderProbs : liste VIDE → le message « Aucun problème
+        // détecté… » du LAYOUT (plus d'entrée « vide » dans l'adaptateur).
+        liaison.messageAucunProbleme.isVisible = problemes.isEmpty()
+        adaptateur.submitList(
+            if (problemes.isEmpty()) {
+                emptyList()
+            } else {
+                problemesMarches(vues, problemes)
+            },
+        )
     }
 
     /** Les entrées affichables (données pures) avec leurs textes résolus. */
@@ -56,16 +70,12 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
         vues: List<InfoVueRendu>,
         problemes: List<ProblemesPreview.ProblemeApercu>,
     ): List<EntreeProblemeUi> =
-        if (problemes.isEmpty()) {
-            listOf(EntreeProblemeUi.Vide(getString(R.string.preview_feuille_aucun_probleme)))
-        } else {
-            FeuilleApercu.entreesProblemes(problemes).map { entree ->
-                EntreeProblemeUi.Ligne(
-                    entree = entree,
-                    titre = titreProbleme(entree.genre, vues.getOrNull(entree.indiceVue)),
-                    detail = detailProbleme(entree, vues.getOrNull(entree.indiceVue)),
-                )
-            }
+        FeuilleApercu.entreesProblemes(problemes).map { entree ->
+            EntreeProblemeUi(
+                entree = entree,
+                titre = titreProbleme(entree.genre, vues.getOrNull(entree.indiceVue)),
+                detail = detailProbleme(entree, vues.getOrNull(entree.indiceVue)),
+            )
         }
 
     /** Le titre localisé d'un problème (miroir `p.title` de `computeProblems`). */
@@ -113,65 +123,44 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     }
 }
 
-/** UNE entrée de l'onglet Problèmes : rangée résolue, ou état vide. */
-internal sealed class EntreeProblemeUi {
-    /** Le message « aucun problème ». */
-    internal data class Vide(
-        val message: String,
-    ) : EntreeProblemeUi()
-
-    /** Une rangée résolue (entrée pure + textes locaux déjà résolus). */
-    internal data class Ligne(
-        val entree: FeuilleApercu.EntreeProbleme,
-        val titre: String,
-        val detail: String,
-    ) : EntreeProblemeUi()
-}
+/** UNE rangée résolue de l'onglet Problèmes (entrée pure + textes locaux). */
+internal data class EntreeProblemeUi(
+    /** L'entrée pure (vue fautive, genre, sévérité). */
+    val entree: FeuilleApercu.EntreeProbleme,
+    /** Le titre localisé (miroir `p.title`). */
+    val titre: String,
+    /** Le détail localisé (libellé de la vue, puis message — deux lignes). */
+    val detail: String,
+)
 
 /**
  * L'adaptateur de l'onglet Problèmes (miroir `renderProbs`) : rangée =
- * item layout RÉEL (`item_probleme.xml` — pastille teintée au liage,
- * titre, détail), la sélection part du tap.
+ * item layout RÉEL (`item_probleme.xml` — point de sévérité 8 dp teinté
+ * au liage : ambre/erreur, titre, détail, « Voir »), la sélection part
+ * du tap sur la rangée entière (miroir `d.onclick → select(p.rid)`).
  */
 internal class AdaptateurProblemes(
     private val auLigne: (Int) -> Unit,
-) : ListAdapter<EntreeProblemeUi, RecyclerView.ViewHolder>(ComparateurProblemes) {
+) : ListAdapter<EntreeProblemeUi, AdaptateurProblemes.LigneProblemeVue>(ComparateurProblemes) {
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int,
-    ): RecyclerView.ViewHolder {
+    ): LigneProblemeVue {
         val gonfleur = LayoutInflater.from(parent.context)
-        return when (viewType) {
-            TYPE_VIDE -> {
-                object : RecyclerView.ViewHolder(StyleVolet.texteVide(parent.context, "")) {}
-            }
-
-            else -> {
-                LigneProblemeVue(ItemProblemeBinding.inflate(gonfleur, parent, false), auLigne)
-            }
-        }
+        return LigneProblemeVue(ItemProblemeBinding.inflate(gonfleur, parent, false), auLigne)
     }
 
     override fun getItemCount(): Int = currentList.size
 
-    override fun getItemViewType(position: Int): Int =
-        when (currentList[position]) {
-            is EntreeProblemeUi.Vide -> TYPE_VIDE
-            is EntreeProblemeUi.Ligne -> TYPE_LIGNE
-        }
-
     override fun onBindViewHolder(
-        holder: RecyclerView.ViewHolder,
+        holder: LigneProblemeVue,
         position: Int,
     ) {
-        when (val item = currentList[position]) {
-            is EntreeProblemeUi.Vide -> (holder.itemView as android.widget.TextView).text = item.message
-            is EntreeProblemeUi.Ligne -> (holder as LigneProblemeVue).poser(item)
-        }
+        holder.poser(currentList[position])
     }
 
     /** Le conteneur d'une rangée (item_probleme.xml). */
-    private class LigneProblemeVue(
+    internal class LigneProblemeVue(
         private val liaison: ItemProblemeBinding,
         auLigne: (Int) -> Unit,
     ) : RecyclerView.ViewHolder(liaison.root) {
@@ -181,9 +170,11 @@ internal class AdaptateurProblemes(
             liaison.root.setOnClickListener { auLigne(indiceVue) }
         }
 
-        fun poser(item: EntreeProblemeUi.Ligne) {
+        fun poser(item: EntreeProblemeUi) {
             indiceVue = item.entree.indiceVue
             val contexte = liaison.root.context
+            // Le point de sévérité : ambre (avertissement) ou erreur —
+            // teinte posée au liage sur le drawable `apercu_probleme_point`.
             val couleurPastille =
                 StyleVolet.couleur(
                     contexte,
@@ -207,15 +198,6 @@ internal class AdaptateurProblemes(
             nouvelle: EntreeProblemeUi,
         ): Boolean = ancienne == nouvelle
 
-        private fun EntreeProblemeUi.cle(): String =
-            when (this) {
-                is EntreeProblemeUi.Vide -> "vide"
-                is EntreeProblemeUi.Ligne -> "ligne-${entree.indiceVue}-${entree.genre}"
-            }
-    }
-
-    private companion object {
-        private const val TYPE_VIDE: Int = 0
-        private const val TYPE_LIGNE: Int = 1
+        private fun EntreeProblemeUi.cle(): String = "ligne-${entree.indiceVue}-${entree.genre}"
     }
 }
