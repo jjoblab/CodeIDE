@@ -6,7 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
 import androidx.test.core.app.ApplicationProvider
+import com.google.android.material.chip.ChipGroup
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -140,6 +142,20 @@ class VoletsPreviewLayoutTest {
             36,
             champ.minimumHeight,
         )
+    }
+
+    @Test
+    fun `le contrôle drapeaux porte son en-tête et son groupe multi`() {
+        // PE11d — miroir `.flg` : en-tête + ChipGroup de drapeaux, le
+        // groupe est MULTI-sélection (plusieurs drapeaux simultanés) ;
+        // les drapeaux (item_drapeau) sont gonflés par le liage.
+        val controle = gonfler(R.layout.controle_drapeaux)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.libelle_controle))
+        val groupe = controle.findViewById<ChipGroup>(R.id.groupe_drapeaux)
+        assertNotNull(groupe)
+        assertFalse("Le groupe de drapeaux est multi-sélection", groupe.isSingleSelection)
+        assertNotNull(gonfler(R.layout.item_drapeau).findViewById<View>(R.id.drapeau))
     }
 
     @Test

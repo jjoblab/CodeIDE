@@ -71,6 +71,15 @@ public class CotesMaquetteTest {
     }
 
     @Test
+    public fun `un drapeau fait vingt cinq dp`() {
+        // PE11d — miroir `.flg button` : « bold » mesure 44,5 × 25 dans la
+        // maquette (mono 11, padding 6+8, trait 1, rayon 7).
+        val drapeau = gonfler(R.layout.item_drapeau)
+        drapeau.findViewById<TextView>(R.id.drapeau).text = "bold"
+        verifierCote("flgbtn", mesurer(drapeau, LARGEUR_DRAPEAU))
+    }
+
+    @Test
     public fun `la barre d outils collante fait cinquante trois dp`() {
         val barre = gonfler(R.layout.barre_outils_attributs)
         barre.findViewById<View>(R.id.champ_recherche_attribut).isVisible = true
@@ -200,6 +209,9 @@ public class CotesMaquetteTest {
 
         /** La largeur mesurée d'un segment (« visible » — meas seg2btn). */
         private const val LARGEUR_SEGMENT: Int = 55
+
+        /** La largeur mesurée d'un drapeau (« bold » — meas flgbtn). */
+        private const val LARGEUR_DRAPEAU: Int = 44
 
         /** La largeur mesurée de la recherche (meas search). */
         private const val LARGEUR_RECHERCHE: Int = 270

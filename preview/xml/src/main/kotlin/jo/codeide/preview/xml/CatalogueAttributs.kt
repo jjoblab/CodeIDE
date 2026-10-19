@@ -106,6 +106,8 @@ public object CatalogueAttributs {
         INDETERMINE,
         ITEM_LISTE,
         GESTIONNAIRE,
+        SCROLLBARS,
+        SHOW_DIVIDERS,
         POIDS,
         GRAVITE_PARENT,
         MARGES,
@@ -168,6 +170,91 @@ public object CatalogueAttributs {
             val valeurs: List<String>,
         ) : ControleAttribut()
 
+        /**
+         * Un contrôle à DRAPEAUX (PE11d — miroir `flags` de la maquette, § 9 :
+         * la valeur est un MASQUE, des drapeaux joints par « | », plusieurs
+         * choix simultanés). Les drapeaux cochés suivent les parties de la
+         * valeur courante ; un drapeau posé HORS catalogue est ajouté à la
+         * fin (miroir `opts.concat(parts…)`), et l'écriture ordonne les
+         * parties selon le CATALOGUE (miroir `opts.filter(o =>
+         * n.includes(o)).join('|')`) ; tout décoché retire l'attribut.
+         */
+        public data class Drapeaux(
+            val nom: String,
+            val etiquette: Etiquette,
+            val valeurs: List<String>,
+        ) : ControleAttribut() {
+            /**
+             * Les PARTIES posées de la valeur (miroir
+             * `cur.split('|').filter(Boolean)`).
+             */
+            public fun parties(valeur: String?): List<String> =
+                valeur?.split('|')?.filter { it.isNotBlank() } ?: emptyList()
+
+            /**
+             * Les options AFFICHÉES : le catalogue, puis les parties hors
+             * catalogue de la valeur courante (miroir `opts = c.o.concat(…)`).
+             */
+            public fun options(valeur: String?): List<String> = valeurs + parties(valeur).filter { it !in valeurs }
+
+            /**
+             * La valeur APRÈS bascule d'un drapeau : les parties retenues,
+             * ordonnées selon les options (miroir `join('|')` de la maquette).
+             */
+            public fun basculer(
+                valeur: String?,
+                drapeau: String,
+            ): String {
+                val posees = parties(valeur).toMutableSet()
+                if (!posees.remove(drapeau)) posees.add(drapeau)
+                return options(valeur).filter { it in posees }.joinToString("|")
+            }
+        }
+
+        /**
+         * Le TYPE DE SAISIE composite (PE11d — miroir `input` de la
+         * maquette, § 9 : `controle_liste` + `controle_drapeaux`) : une
+         * BASE en liste déroulante et des MODIFICATEURS en drapeaux,
+         * désactivés quand la base n'est pas textuelle (miroir
+         * `b.disabled = !base.startsWith('text')`). La valeur écrite est
+         * `base|modificateur|…` ; « text » SEUL (aucun modificateur)
+         * RETIRE l'attribut (défaut plateforme).
+         */
+        public data class TypeSaisie(
+            val nom: String,
+            val bases: List<String>,
+            val modificateurs: List<String>,
+        ) : ControleAttribut() {
+            /**
+             * La BASE courante : première partie de la valeur dans le
+             * catalogue, sinon « text » (miroir
+             * `parts.find(p => IN_BASE.includes(p)) || 'text'`).
+             */
+            public fun base(valeur: String?): String = valeur?.split('|')?.firstOrNull { it in bases } ?: "text"
+
+            /**
+             * Les MODIFICATEURS posés (les parties hors base et hors
+             * modificateurs sont ignorées — miroir
+             * `parts.filter(p => IN_MOD.includes(p))`).
+             */
+            public fun modificateursPoses(valeur: String?): List<String> =
+                valeur?.split('|')?.filter { it in modificateurs } ?: emptyList()
+
+            /**
+             * La valeur composée (miroir `write` : `text` sans modificateur
+             * retire l'attribut).
+             */
+            public fun composer(
+                base: String,
+                modificateurs: List<String>,
+            ): String =
+                if (base == "text" && modificateurs.isEmpty()) {
+                    ""
+                } else {
+                    (listOf(base) + modificateurs).joinToString("|")
+                }
+        }
+
         /** Les quatre côtés d'une marge ou d'un padding (miroir `.mrow`). */
         public data class Cotes(
             val base: String,
@@ -188,11 +275,71 @@ public object CatalogueAttributs {
         val controles: List<ControleAttribut>,
     )
 
-    /** Les valeurs des choix normal/… (miroir `TRI`/`GR` de la maquette). */
-    private val STYLES: List<String> = listOf("normal", "bold", "italic")
-    private val GRAVITES: List<String> = listOf("start", "center", "end")
+    /**
+     * Les 8 drapeaux du masque gravity (GRAV de la maquette — attrs.xml
+     * d'AOSP) : plusieurs drapeaux simultanés, « start » seul = défaut.
+     */
+    private val GRAVITES: List<String> =
+        listOf(
+            "start",
+            "end",
+            "top",
+            "bottom",
+            "center_horizontal",
+            "center_vertical",
+            "center",
+            "fill",
+        )
     private val ORIENTATIONS: List<String> = listOf("vertical", "horizontal")
-    private val TYPES_SAISIE: List<String> = listOf("text", "textEmailAddress", "textPassword", "number")
+
+    /**
+     * Les drapeaux du masque textStyle (miroir `['bold', 'italic']` de la
+     * maquette) : « normal » est l'état VIDE (tout décoché retire
+     * l'attribut), pas un drapeau.
+     */
+    private val STYLES_DRAPEAUX: List<String> = listOf("bold", "italic")
+
+    /**
+     * Les drapeaux de showDividers (miroir de la maquette — LinearLayout).
+     */
+    private val SEPARATEURS: List<String> = listOf("beginning", "middle", "end")
+
+    /** Les drapeaux de scrollbars (miroir de la maquette — View). */
+    private val BARRES_DEFILEMENT: List<String> = listOf("vertical", "horizontal")
+
+    /**
+     * Les BASES du type de saisie (IN_BASE de la maquette — KeyType de
+     * AOSP) : « text » est le défaut (retrait de l'attribut).
+     */
+    private val BASES_SAISIE: List<String> =
+        listOf(
+            "text",
+            "textEmailAddress",
+            "textPassword",
+            "textUri",
+            "textPersonName",
+            "textMultiLine",
+            "number",
+            "numberDecimal",
+            "numberSigned",
+            "numberPassword",
+            "phone",
+            "datetime",
+        )
+
+    /**
+     * Les MODIFICATEURS du type de saisie (IN_MOD de la maquette) : posés
+     * sur une base textuelle, ils se combinent en `base|modificateur|…`.
+     */
+    private val MODIFICATEURS_SAISIE: List<String> =
+        listOf(
+            "textCapSentences",
+            "textCapWords",
+            "textCapCharacters",
+            "textAutoCorrect",
+            "textNoSuggestions",
+        )
+
     private val FONDS: List<String> = listOf("outline", "filled")
     private val ICONES_FIN: List<String> = listOf("none", "password_toggle", "clear_text")
 
@@ -240,7 +387,7 @@ public object CatalogueAttributs {
                             TitreSection.DANS_PARENT,
                             listOf(
                                 ControleAttribut.Nombre("android:layout_weight", Etiquette.POIDS, ""),
-                                ControleAttribut.Choix("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+                                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
                             ),
                         ),
                     )
@@ -305,8 +452,8 @@ public object CatalogueAttributs {
                 listOf(
                     ControleAttribut.Texte("android:text", Etiquette.TEXTE, extrayable = true),
                     ControleAttribut.Nombre("android:textSize", Etiquette.TAILLE_SP, "sp"),
-                    ControleAttribut.Choix("android:textStyle", Etiquette.STYLE, STYLES),
-                    ControleAttribut.Choix("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                    ControleAttribut.Drapeaux("android:textStyle", Etiquette.STYLE, STYLES_DRAPEAUX),
+                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
                     ControleAttribut.Texte("android:textColor", Etiquette.COULEUR),
                 ),
             )
@@ -321,7 +468,7 @@ public object CatalogueAttributs {
                 TitreSection.SAISIE,
                 listOf(
                     ControleAttribut.Texte("android:hint", Etiquette.HINT, extrayable = true),
-                    ControleAttribut.Choix("android:inputType", Etiquette.TYPE_SAISIE, TYPES_SAISIE),
+                    ControleAttribut.TypeSaisie("android:inputType", BASES_SAISIE, MODIFICATEURS_SAISIE),
                     ControleAttribut.Nombre("android:maxLines", Etiquette.LIGNES_MAX, ""),
                 ),
             )
@@ -392,7 +539,8 @@ public object CatalogueAttributs {
                             Etiquette.ORIENTATION,
                             ORIENTATIONS,
                         ),
-                        ControleAttribut.Choix("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                        ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                        ControleAttribut.Drapeaux("android:showDividers", Etiquette.SHOW_DIVIDERS, SEPARATEURS),
                     )
                 }
 
@@ -434,6 +582,7 @@ public object CatalogueAttributs {
                 listOf(
                     ControleAttribut.Texte("tools:listitem", Etiquette.ITEM_LISTE),
                     ControleAttribut.Texte("app:layoutManager", Etiquette.GESTIONNAIRE),
+                    ControleAttribut.Drapeaux("android:scrollbars", Etiquette.SCROLLBARS, BARRES_DEFILEMENT),
                 ),
             )
         }

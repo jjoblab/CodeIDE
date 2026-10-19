@@ -33,6 +33,10 @@ public class CatalogueAttributsTest {
 
                 is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
 
+                is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.nom
+
+                is CatalogueAttributs.ControleAttribut.TypeSaisie -> controle.nom
+
                 is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
 
                 is CatalogueAttributs.ControleAttribut.Cotes -> controle.base
@@ -251,16 +255,12 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `les valeurs d'enumeration sont valides pour la plateforme`() {
-        // Listes de référence : attrs.xml d'AOSP (textStyle, scaleType,
-        // visibility, gravity) + Material Components (boxBackgroundMode,
-        // endIconMode) + TextView (inputType de KeyType).
+        // Listes de référence : attrs.xml d'AOSP (visibility) + Material
+        // Components (boxBackgroundMode, endIconMode) + LinearLayout
+        // (orientation). Les masques | (textStyle, gravity, layout_gravity)
+        // et le type de saisie sont des DRAPEAUX/TypeSaisie — testés plus bas.
         val reference =
             mapOf(
-                "android:textStyle" to listOf("normal", "bold", "italic"),
-                "android:gravity" to listOf("start", "center", "end"),
-                "android:layout_gravity" to listOf("start", "center", "end"),
-                "android:inputType" to
-                    listOf("text", "textEmailAddress", "textPassword", "number"),
                 "app:boxBackgroundMode" to listOf("outline", "filled"),
                 "app:endIconMode" to listOf("none", "password_toggle", "clear_text"),
                 "android:orientation" to listOf("vertical", "horizontal"),
@@ -285,9 +285,7 @@ public class CatalogueAttributsTest {
         // correct que pour les attributs dont le défaut plateforme coincide.
         val defauts =
             mapOf(
-                "android:textStyle" to "normal",
                 "android:visibility" to "visible",
-                "android:inputType" to "text",
                 "app:boxBackgroundMode" to "outline",
                 "app:endIconMode" to "none",
                 "android:orientation" to "vertical",
@@ -336,5 +334,196 @@ public class CatalogueAttributsTest {
                 liste.valeurs,
             )
         }
+    }
+
+    // ── PE11d : les masques multi-valeurs (miroir `flags` de la maquette) ─
+
+    /** Les contrôles DRAPEAUX d'une classe (helper d'itération — PE11d). */
+    private fun drapeauxDe(classe: String): List<CatalogueAttributs.ControleAttribut.Drapeaux> =
+        CatalogueAttributs
+            .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            .flatMap { it.controles }
+            .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
+
+    @Test
+    fun `les masques multi-valeurs sont des drapeaux`() {
+        // Miroir § 9 / maquette `flags` : tout attribut dont la valeur est
+        // un masque « a|b|c » porte le contrôle DRAPEAUX. Références :
+        // GRAV de la maquette (8 valeurs AOSP), ['bold','italic'] pour
+        // textStyle (« normal » est l'état VIDE), showDividers et
+        // scrollbars de la maquette.
+        val reference =
+            mapOf(
+                "android:textStyle" to listOf("bold", "italic"),
+                "android:gravity" to
+                    listOf(
+                        "start",
+                        "end",
+                        "top",
+                        "bottom",
+                        "center_horizontal",
+                        "center_vertical",
+                        "center",
+                        "fill",
+                    ),
+                "android:showDividers" to listOf("beginning", "middle", "end"),
+                "android:scrollbars" to listOf("vertical", "horizontal"),
+            )
+        val classeDrapeaux =
+            classesCouvertes
+                .flatMap { classe -> drapeauxDe(classe).map { classe to it } }
+                .distinctBy { it.second.nom }
+        for ((classe, drapeaux) in classeDrapeaux) {
+            assertEquals(
+                "Valeurs de ${drapeaux.nom} ($classe)",
+                reference[drapeaux.nom],
+                drapeaux.valeurs,
+            )
+        }
+    }
+
+    @Test
+    fun `layout_gravity est un drapeaux dans le parent lineaire`() {
+        // La section DANS_PARENT n'existe que pour un parent LinearLayout :
+        // layout_gravity y porte le MASQUE complet de la maquette (GRAV).
+        val sections =
+            CatalogueAttributs.sections("TextView", CatalogueAttributs.GenreParent.LINEAR)
+        val drapeaux =
+            sections
+                .flatMap { it.controles }
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
+                .first { it.nom == "android:layout_gravity" }
+        assertEquals(
+            "layout_gravity porte les 8 drapeaux de la maquette",
+            listOf(
+                "start",
+                "end",
+                "top",
+                "bottom",
+                "center_horizontal",
+                "center_vertical",
+                "center",
+                "fill",
+            ),
+            drapeaux.valeurs,
+        )
+    }
+
+    @Test
+    fun `le type de saisie est le composite liste plus drapeaux`() {
+        // Miroir § 9 / maquette `input` : inputType porte le composite
+        // TypeSaisie — IN_BASE (12 bases, « text » défaut) et IN_MOD (5
+        // modificateurs) de la maquette ; c'est l'usager de la SAISIE.
+        val composite =
+            classesCouvertes
+                .flatMap { classe ->
+                    CatalogueAttributs
+                        .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+                        .flatMap { it.controles }
+                        .filterIsInstance<CatalogueAttributs.ControleAttribut.TypeSaisie>()
+                }.distinctBy { it.nom }
+                .single()
+        assertEquals("L'usager du composite est inputType", "android:inputType", composite.nom)
+        assertEquals(
+            "Les bases (IN_BASE de la maquette)",
+            listOf(
+                "text",
+                "textEmailAddress",
+                "textPassword",
+                "textUri",
+                "textPersonName",
+                "textMultiLine",
+                "number",
+                "numberDecimal",
+                "numberSigned",
+                "numberPassword",
+                "phone",
+                "datetime",
+            ),
+            composite.bases,
+        )
+        assertEquals(
+            "Les modificateurs (IN_MOD de la maquette)",
+            listOf(
+                "textCapSentences",
+                "textCapWords",
+                "textCapCharacters",
+                "textAutoCorrect",
+                "textNoSuggestions",
+            ),
+            composite.modificateurs,
+        )
+    }
+
+    @Test
+    fun `la bascule d un drapeau suit la maquette`() {
+        // Miroir `opts.filter(o => n.includes(o)).join('|')` : l'ordre du
+        // CATALOGUE prime sur l'ordre des clics, une partie hors catalogue
+        // reste visible ET conservée, tout décoché retire l'attribut.
+        val style =
+            CatalogueAttributs.ControleAttribut.Drapeaux(
+                "android:textStyle",
+                CatalogueAttributs.Etiquette.STYLE,
+                listOf("bold", "italic"),
+            )
+        assertEquals("Poser bold", "bold", style.basculer(null, "bold"))
+        assertEquals("Poser italic en second", "bold|italic", style.basculer("bold", "italic"))
+        assertEquals("Retirer bold", "italic", style.basculer("bold|italic", "bold"))
+        assertEquals("Retirer italic (tout décoché = retrait)", "", style.basculer("italic", "italic"))
+
+        // L'ordre du catalogue prime : poser italic puis bold, l'écriture
+        // ordonne bold PUIS italic (jamais l'ordre des clics).
+        assertEquals("L'ordre du catalogue prime", "bold|italic", style.basculer("italic", "bold"))
+
+        // Une valeur hors catalogue : visible, cochée, conservée à l'écriture.
+        assertEquals("Partie hors catalogue conservée", "bold|italic|custom", style.basculer("bold|custom", "italic"))
+        assertEquals(
+            "Options : catalogue puis hors catalogue",
+            listOf("bold", "italic", "custom"),
+            style.options("bold|custom"),
+        )
+        assertEquals("Parties d'une valeur vide", emptyList<String>(), style.parties(null))
+    }
+
+    @Test
+    fun `la composition du type de saisie suit la maquette`() {
+        // Miroir `write` : « text » sans modificateur RETIRE l'attribut ;
+        // la base courante est la première partie connue, sinon « text » ;
+        // les parties inconnues sont ignorées.
+        val composite =
+            CatalogueAttributs.ControleAttribut.TypeSaisie(
+                "android:inputType",
+                listOf("text", "number", "phone"),
+                listOf("textCapSentences", "textAutoCorrect"),
+            )
+        assertEquals("text seul retire l'attribut", "", composite.composer("text", emptyList()))
+        assertEquals(
+            "Un modificateur compose",
+            "text|textCapSentences",
+            composite.composer("text", listOf("textCapSentences")),
+        )
+        assertEquals(
+            "Une base non textuelle reste",
+            "number",
+            composite.composer("number", emptyList()),
+        )
+        assertEquals(
+            "Base et modificateurs composés",
+            "text|textCapSentences|textAutoCorrect",
+            composite.composer("text", listOf("textCapSentences", "textAutoCorrect")),
+        )
+        assertEquals("La base courante par défaut", "text", composite.base(null))
+        assertEquals("La base courante extraite", "number", composite.base("number|xyz"))
+        assertEquals(
+            "La base courante avec modificateurs",
+            "text",
+            composite.base("text|textCapSentences"),
+        )
+        assertEquals("Base inconnue → défaut", "text", composite.base("xyz"))
+        assertEquals(
+            "Les modificateurs posés",
+            listOf("textAutoCorrect"),
+            composite.modificateursPoses("text|textAutoCorrect|xyz"),
+        )
     }
 }

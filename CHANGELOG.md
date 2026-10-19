@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.149.0] – 2026-10-19
+
+### PE11d — le contrôle DRAPEAUX et la règle des masques `|` (2e lot de nouveaux contrôles)
+
+#### Ajouté
+
+- **Le contrôle DRAPEAUX** (`controle_drapeaux` — miroir `.flg` de la maquette,
+  PREVIEW_UI.md § 9) : `entete_champ` + `ChipGroup` `Widget.CodeIDE.Apercu.GroupeDrapeaux`
+  (MULTI-sélection, écart 5 dp, renvoi à la ligne) de `item_drapeau` (Chip Filter
+  mono 11 sp, trait 1 dp, rayon 7, 25 dp ; coché = fond violet doux + trait +
+  texte violets) ; les deux layouts sont COPIÉS de la référence
+  `docs/mockups/ref/ressources/layout/`, styles/couleurs/dimens déjà posés par PE11a.
+- **La sémantique des masques** (pures sur le kind, testées JVM) : les drapeaux
+  cochés suivent les parties de la valeur courante, un drapeau posé HORS
+  catalogue est ajouté à la fin (miroir `opts.concat(parts…)`), la bascule
+  écrit les parties retenues ORDONNÉES selon le catalogue (miroir
+  `opts.filter(o => n.includes(o)).join('|')`), tout décoché RETIRE l'attribut.
+- **Le composite TYPE DE SAISIE** (`TypeSaisie` — miroir `input` de la maquette,
+  § 9 : `controle_liste` + `controle_drapeaux`) : la base en liste déroulante
+  (IN_BASE, 12 valeurs, « text » = défaut SANS entrée « par défaut ») et les
+  MODIFICATEURS en drapeaux greffés SOUS le champ (IN_MOD, 5 valeurs, glyphe
+  sans le préfixe « text ») ; les modificateurs sont DÉSACTIVÉS (alpha .4,
+  miroir `.flg button:disabled`) quand la base n'est pas textuelle ; « text »
+  seul retire l'attribut, l'écriture compose `base|modificateur|…`.
+- **Règle § 9 appliquée au catalogue** : tout attribut à valeur de MASQUE
+  (plusieurs valeurs jointes par « | ») porte le kind `Drapeaux` — usagers
+  convertis : `android:textStyle` (bold|italic, « normal » devient l'état VIDE),
+  `android:gravity` et `android:layout_gravity` (les 8 drapeaux GRAV de la
+  maquette : start, end, top, bottom, center_horizontal, center_vertical,
+  center, fill — fin des 3 valeurs rétrécies), `android:inputType` (le composite
+  remplace le Choix de 4 valeurs) ; usagers AJOUTÉS de la maquette :
+  `android:showDividers` (beginning, middle, end — section Conteneur) et
+  `android:scrollbars` (vertical, horizontal — section Liste).
+- Tests : parité des masques et du composite (`CatalogueAttributsTest` — 5
+  nouveaux, dont la bascule ordonnée et la composition `text` seul = retrait),
+  gonflage + groupe multi (`VoletsPreviewLayoutTest`), cote du drapeau 25 dp
+  contre `meas_clair.json` (`CotesMaquetteTest`).
+
 ## [0.148.0] – 2026-10-19
 
 ### PE11c — le contrôle LISTE déroulante (premier lot de nouveaux contrôles)
