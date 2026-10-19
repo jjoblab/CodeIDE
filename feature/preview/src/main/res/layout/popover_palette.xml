@@ -1,158 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La PALETTE de widgets (PE7c, miroir `.pop.pal` de la maquette) :
-  en-tête (titre, puce bulle fixe/flottante, fermer), MODE d'insertion
-  (Glisser-déposer / Placer par popup), recherche, puces de catégories,
-  grille de tuiles (Récents puis Tous les widgets). La palette est une
-  VUE de l'activité — le popover de l'explorateur, pas une fenêtre de
-  dialogue qui bloquerait le dépôt (maquette PE7b).
+  PALETTE de widgets — RÉFÉRENCE (ADR 0134), remplace popover_palette.xml. Miroir de `.pop.pal`.
+  Géométrie : marge gauche/droite 10 dp, haut 8 dp sous la rangée de puces, bas 12 dp, hauteur
+  min(600 dp, hauteur disponible) IMPOSÉE par le code (le LinearLayout enveloppe son contenu : sans borne
+  la grille déborde de l'écran). Coque OPAQUE (apercu_popover_fond), padding 12, espacement 10.
+  Écarts avec le fichier actuel : coque et espacements ; en-tête 36 dp avec puce 28 dp ; mode = deux
+  boutons à sélection VISIBLE (surface + ombre légère) — l'ancien fond_mode_palette n'était référencé par
+  aucun layout ; recherche = style commun Recherche ; puces de catégories = Chips pilule 28 dp.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/palette_racine"
+    style="@style/Widget.CodeIDE.Apercu.Popover"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="10dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginEnd="10dp"
-    android:background="@drawable/fond_popover_apercu"
-    android:elevation="8dp"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layout_marginStart="@dimen/apercu_popover_marge_h"
+    android:layout_marginTop="@dimen/apercu_popover_haut"
+    android:layout_marginEnd="@dimen/apercu_popover_marge_h"
+    android:layout_marginBottom="@dimen/apercu_popover_marge_bas"
+    android:orientation="vertical">
 
-    <!-- En-tête : « Palette », puce bulle (fixe/flottante), fermer. -->
+    <!-- .ph-head : 36 dp, titre 15 / 600, puce bulle 28 dp, fermer 36 dp, espacement 8. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/apercu_palette_entete_hauteur"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/titre_palette"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/preview_palette_titre"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.PopoverTitre" />
 
-        <com.google.android.material.button.MaterialButton
+        <!-- Coché = bulle FIXE (aria-pressed) ; libellé « Bulle fixe » / « Bulle flottante ». -->
+        <com.google.android.material.chip.Chip
             android:id="@+id/bouton_bulle"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.CodeIDE.Apercu.PuceCategorie"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:text="@string/preview_bulle_flottante"
-            android:textSize="12sp" />
+            android:layout_marginEnd="8dp"
+            android:text="@string/preview_bulle_flottante" />
 
         <ImageButton
             android:id="@+id/bouton_fermer_palette"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+            android:layout_width="@dimen/apercu_bouton_icone"
+            android:layout_height="@dimen/apercu_bouton_icone"
             android:contentDescription="@string/preview_palette_fermer_cd"
-            android:src="@drawable/ic_fermer" />
+            android:src="@drawable/apercu_ic_fermer" />
     </LinearLayout>
 
-    <!-- Mode d'insertion : deux boutons radio (titre + description). -->
+    <!-- .mode : deux boutons égaux, surface 2, padding 4, espacement 4 ; le sélectionné reçoit isSelected. -->
     <LinearLayout
         android:id="@+id/groupe_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:background="@drawable/apercu_mode_palette_conteneur"
         android:baselineAligned="false"
-        android:layout_marginTop="10dp"
-        android:background="?attr/colorSurfaceContainerHighest"
         android:orientation="horizontal"
-        android:padding="4dp">
+        android:padding="@dimen/apercu_mode_palette_pad">
 
         <LinearLayout
             android:id="@+id/mode_drag"
+            style="@style/Widget.CodeIDE.Apercu.ModeBouton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="9dp">
+            android:layout_weight="1">
 
             <TextView
+                style="@style/Widget.CodeIDE.Apercu.Texte"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/preview_palette_mode_drag"
-                android:textAppearance="?attr/textAppearanceLabelMedium" />
+                android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ModeTitre" />
 
             <TextView
+                style="@style/Widget.CodeIDE.Apercu.Texte"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/apercu_mode_palette_bouton_gap"
+                android:alpha="0.85"
                 android:text="@string/preview_palette_mode_drag_detail"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ModeDetail" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/mode_popup"
+            style="@style/Widget.CodeIDE.Apercu.ModeBouton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackground"
-            android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="9dp">
+            android:layout_weight="1">
 
             <TextView
+                style="@style/Widget.CodeIDE.Apercu.Texte"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/preview_palette_mode_popup"
-                android:textAppearance="?attr/textAppearanceLabelMedium" />
+                android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ModeTitre" />
 
             <TextView
+                style="@style/Widget.CodeIDE.Apercu.Texte"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/apercu_mode_palette_bouton_gap"
+                android:alpha="0.85"
                 android:text="@string/preview_palette_mode_popup_detail"
-                android:textAppearance="?attr/textAppearanceLabelSmall"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.ModeDetail" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Recherche (miroir `.search`). -->
-    <com.google.android.material.textfield.TextInputEditText
+    <!-- .search : style commun de la recherche (fond « fond », trait 1 dp, rayon 10, 36 dp). -->
+    <EditText
         android:id="@+id/champ_recherche"
+        style="@style/Widget.CodeIDE.Apercu.Recherche"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:background="?attr/colorSurfaceContainerHighest"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
         android:hint="@string/preview_palette_recherche_indice"
-        android:imeOptions="actionSearch"
-        android:inputType="text"
-        android:maxLines="1"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="9dp"
-        android:textAppearance="?attr/textAppearanceBodyMedium" />
+        android:textColorHint="?attr/apercuTexteDoux"
+        tools:ignore="Autofill" />
 
-    <!-- Puces de catégories (miroir `.cats` : Tous + 6 catégories). -->
+    <!-- .cats : défilante, espacement 6, remplie par le code (Tous + 6 catégories). -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
+        android:paddingBottom="2dp"
         android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/rangee_categories"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingBottom="2dp" />
+            android:orientation="horizontal" />
     </HorizontalScrollView>
 
-    <!-- Grille de tuiles (3 colonnes — miroir `.tiles`, Récents puis
-         « Tous les widgets », sous-titres posés par l'adaptateur). -->
+    <!-- .tiles : 3 colonnes, espacement 8 (ItemDecoration), padding 2 ; défile seule. -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/grille_tuiles"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/apercu_popover_gap"
         android:layout_weight="1"
-        android:minHeight="120dp"
-        android:overScrollMode="ifContentScrolls" />
+        android:clipToPadding="false"
+        android:overScrollMode="ifContentScrolls"
+        android:padding="@dimen/apercu_tuiles_pad" />
 </LinearLayout>

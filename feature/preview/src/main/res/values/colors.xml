@@ -53,13 +53,12 @@
          écart documenté (PREVIEW.md § 3.4.1). -->
     <color name="preview_menu_fond">#F2F9F9FF</color>
 
-    <!-- Alias migrés (PE11a, PREVIEW_UI.md § 5) : les anciens jetons
-         `preview_bulle_*` / `preview_palette_icone` (PE7c/PE7d) pointent
-         vers les jetons de la maquette — mêmes valeurs, une seule source
-         de vérité. La nuit suit automatiquement la déclinaison de la
-         couleur référencée. -->
-    <color name="preview_bulle_fond">@color/apercu_nouveau</color>
-    <color name="preview_bulle_halo">@color/apercu_nouveau_doux</color>
-    <color name="preview_bulle_icone">@color/apercu_sur_nouveau</color>
+    <!-- Alias migré (PE11a, PREVIEW_UI.md § 5) : l'ancien jeton
+         `preview_palette_icone` (PE7c) pointe vers le jeton de la maquette
+         — même valeur, une seule source de vérité. Les icônes ic_tuile_*
+         le portent en trait INTRINSÈQUE ; l'affichage le reteint
+         `?attr/apercuNouveau` depuis le layout (PE11j, tracés inchangés).
+         Les alias `preview_bulle_*` ont été retirés en PE11j (la bulle
+         vit sur `apercu_bulle_fond`). -->
     <color name="preview_palette_icone">@color/apercu_nouveau</color>
 </resources>

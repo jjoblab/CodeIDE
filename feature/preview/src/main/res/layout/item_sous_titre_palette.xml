@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Le SOUS-TITRE de section de la grille de palette (PE9e, miroir
-     `fillGrid` : « Récents », « Tous les widgets »). -->
+<!--
+  Sous-titre de la grille (.sub : « Récents », « Tous les widgets ») — RÉFÉRENCE (ADR 0134). Titre de
+  groupe mono 10 / 600 capitales, marge haute 4 ; pleine largeur (SpanSizeLookup = 3).
+-->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sous_titre_palette"
+    style="@style/Widget.CodeIDE.Apercu.TitreGroupe"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="2dp"
-    android:paddingTop="4dp"
-    android:paddingEnd="2dp"
-    android:paddingBottom="4dp"
-    android:textAppearance="?attr/textAppearanceLabelSmall"
-    android:textColor="?attr/colorOnSurfaceVariant" />
+    android:paddingTop="@dimen/apercu_sous_titre_haut" />

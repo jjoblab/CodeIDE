@@ -406,14 +406,18 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
-    <!-- .sw : interrupteur 34 x 20 (SwitchCompat, PAS MaterialSwitch 52 x 32) : piste « trait » / accent, pouce blanc de 16 dp, course 14 dp. -->
+    <!-- .sw : interrupteur 34 x 20 (SwitchCompat, PAS MaterialSwitch 52 x 32) : piste « trait » / accent, pouce blanc de 16 dp, course 14 dp.
+         PE11j : track / thumbTextPadding SANS préfixe (styleable AppCompat) mais android:thumb PRÉFIXÉ (SwitchCompat_android_thumb) — les formes
+         préfixées de piste/pouce étaient ignorées : l'interrupteur par défaut 48 dp se voyait à la mesure, cotes § 12.4. -->
     <style name="Widget.CodeIDE.Apercu.Interrupteur" parent="">
-        <item name="android:track">@drawable/apercu_interrupteur_piste</item>
+        <item name="track">@drawable/apercu_interrupteur_piste</item>
         <item name="android:thumb">@drawable/apercu_interrupteur_pouce</item>
         <item name="showText">false</item>
         <item name="switchMinWidth">@dimen/apercu_interrupteur_largeur</item>
-        <item name="android:thumbTextPadding">0dp</item>
+        <item name="thumbTextPadding">0dp</item>
         <item name="android:background">@null</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
     </style>
     <!-- .mode button : colonne titre + détail, rayon 9. -->
     <style name="Widget.CodeIDE.Apercu.ModeBouton" parent="">

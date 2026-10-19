@@ -1,40 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  UNE RANGÉE du menu CALQUES (PE9c, miroir `showPop("layers")` rendu
-  maison) : pastille colorée (accent sémantique du calque, teintée au
-  liage), libellé et MaterialSwitch — la rangée entière bascule.
+  Une option du menu CALQUES (.opt + .sw) — RÉFÉRENCE (ADR 0134) : pastille colorée 12 dp (écart voulu
+  PE9c, teinte posée au liage), libellé 13 sp, interrupteur 34 x 20 à droite. La rangée entière bascule ;
+  l'interrupteur n'est pas cliquable (clickable=false).
+
+  Écart PE11j documenté (PREVIEW.md § 3.4) : la taille de la pastille, littérale (12dp) dans la référence,
+  devient la ressource `apercu_pastille_menu_taille` de même valeur — le grep des littéraux des layouts
+  doit rester vide (grille § 12.4).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rangee_calque"
+    style="@style/Widget.CodeIDE.Apercu.Option"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
-    android:gravity="center_vertical"
-    android:minHeight="48dp"
-    android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="14dp"
-    android:paddingBottom="8dp">
+    android:orientation="horizontal">
 
     <View
         android:id="@+id/pastille_calque"
-        android:layout_width="12dp"
-        android:layout_height="12dp"
-        android:background="@drawable/fond_pastille_menu" />
+        android:layout_width="@dimen/apercu_pastille_menu_taille"
+        android:layout_height="@dimen/apercu_pastille_menu_taille"
+        android:layout_marginEnd="@dimen/apercu_option_gap"
+        android:background="@drawable/apercu_pastille_menu" />
 
     <TextView
         android:id="@+id/libelle_calque"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
         android:layout_weight="1"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurface" />
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Option" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/bascule_calque"
+        style="@style/Widget.CodeIDE.Apercu.Interrupteur"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp" />
+        android:layout_marginStart="@dimen/apercu_option_gap"
+        android:clickable="false"
+        android:focusable="false" />
 </LinearLayout>

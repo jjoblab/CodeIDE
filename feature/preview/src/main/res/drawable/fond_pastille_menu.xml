@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- La pastille COLORÉE des rangées de menu (PE9c) : le disque reçoit
-     sa TEINTE au liage (backgroundTintList — un accent sémantique du
-     thème par entrée : canaux tooling, erreur, succès, info). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="#FFFFFF" />
-</shape>

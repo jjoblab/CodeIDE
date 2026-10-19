@@ -80,6 +80,7 @@
     <dimen name="apercu_option_pad">10dp</dimen>  <!-- .opt padding -->
     <dimen name="apercu_option_rayon">10dp</dimen>  <!-- .opt radius -->
     <dimen name="apercu_option_gap">10dp</dimen>  <!-- .opt gap -->
+    <dimen name="apercu_pastille_menu_taille">12dp</dimen>  <!-- .opt .dot : pastille colorée des menus (écart PE9c) ; littérale (12dp) dans la référence, ressource ici (grille § 12.4) -->
     <dimen name="apercu_interrupteur_largeur">34dp</dimen>  <!-- .sw -->
     <dimen name="apercu_interrupteur_hauteur">20dp</dimen>  <!-- .sw -->
     <dimen name="apercu_interrupteur_bouton">16dp</dimen>  <!-- .sw::after -->

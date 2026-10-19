@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Le CONTENU de la bulle de palette (PE9e, miroir `.bubble` de la
-  maquette) : l'icône vectorielle 24 dp centrée (PE11i : `apercu_ic_bulle`,
-  teinte `apercuSurNouveau` — `apercuFond` posé en code quand la bulle
-  est OUVERTE). Le FOND (layer-list 58 dp : disque + halo) et l'élévation
-  sont portés par le TAG de la vue dans activity_preview.xml (ADR 0134 D4).
+  Contenu de la bulle (.bubble svg) : l'icône 24 dp centrée — RÉFÉRENCE (ADR 0134). Le fond (violet + halo
+  EXTÉRIEUR) est `@drawable/apercu_bulle_fond`, porté par la VUE de 58 dp (activity_preview).
+  Teinte de l'icône : « sur-nouveau » (blanc en clair, violet très sombre en nuit) ; bulle OUVERTE : fond
+  `apercu_bulle_fond_ouverte` + teinte « fond ».
 -->
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <ImageView
         android:id="@+id/icone_bulle"
@@ -15,5 +15,6 @@
         android:layout_gravity="center"
         android:contentDescription="@null"
         android:importantForAccessibility="no"
-        android:src="@drawable/apercu_ic_bulle" />
+        android:src="@drawable/apercu_ic_bulle"
+        tools:ignore="UseAppTint" />
 </merge>

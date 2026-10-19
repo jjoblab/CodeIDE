@@ -1,51 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Une TUILE de la palette (PE7c, miroir `.tile` de la maquette) : icône
-  violette, nom, classe en mono, tag de dépendance (Material = contour ;
-  « dépendance absente » = ambre). Tuile glissable (mode Glisser-déposer)
-  ou cliquable (mode Placer par popup).
+  Une TUILE (.tile) — RÉFÉRENCE (ADR 0134). Largeur = 1/3 de la grille moins l'espacement (3 colonnes, 8 dp).
+  Fond « fond » + trait + rayon 12 ; icône 24 dp violette ; nom 12 / 600 (2 lignes max) ; classe mono 10,5 ;
+  tag de dépendance : « Material » (style Tag) ou « dépendance absente » (Tag.Avert). Les icônes
+  ic_tuile_* existantes sont conformes (trait 1,8) : seule la teinte passe de @color/preview_palette_icone à
+  ?attr/apercuNouveau.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.CodeIDE.Apercu.Tuile"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/fond_tuile_palette"
-    android:gravity="start|top"
-    android:orientation="vertical"
-    android:padding="10dp">
+    android:minHeight="@dimen/apercu_tuile_hauteur_min">
 
     <ImageView
         android:id="@+id/icone_tuile"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="@dimen/apercu_tuile_icone"
+        android:layout_height="@dimen/apercu_tuile_icone"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_tuile_tv" />
+        android:src="@drawable/ic_tuile_tv"
+        app:tint="?attr/apercuNouveau" />
 
     <TextView
         android:id="@+id/nom_tuile"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/apercu_tuile_gap"
         android:maxLines="2"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textStyle="bold" />
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.TuileNom" />
 
     <TextView
         android:id="@+id/classe_tuile"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
+        android:layout_marginTop="@dimen/apercu_tuile_gap"
         android:maxLines="2"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.TuileClasse" />
 
+    <!-- .tile .tag : margin-top auto — le tag se range en bas de la tuile (code : espace flexible). -->
     <TextView
         android:id="@+id/tag_tuile"
+        style="@style/Widget.CodeIDE.Apercu.Tag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="@drawable/fond_tag_contour"
-        android:paddingHorizontal="7dp"
-        android:paddingVertical="4dp"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:layout_marginTop="@dimen/apercu_tuile_gap"
         android:visibility="gone" />
 </LinearLayout>

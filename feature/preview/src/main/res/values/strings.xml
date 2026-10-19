@@ -135,7 +135,9 @@
     <string name="preview_placement_avant">Avant</string>
     <string name="preview_placement_dedans">Dedans</string>
     <string name="preview_placement_apres">Après</string>
-    <string name="preview_placement_resume">Dans %1$s, position %2$d/%3$d</string>
+    <string name="preview_placement_resume_dans">Dans </string>
+    <string name="preview_placement_resume_position">, position </string>
+    <string name="preview_placement_resume_sur"> sur </string>
     <string name="preview_placement_confirmer">Placer ici</string>
     <string name="preview_prefixe_id">\@+id/%1$s</string>
     <string name="preview_placement_repere_cd">Repère d\'insertion en direct sur l\'aperçu</string>

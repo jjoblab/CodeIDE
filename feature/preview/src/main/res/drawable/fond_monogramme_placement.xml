@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Le monogramme VIOLET du mini-arbre de placement (PE9f, miroir les
-     pastilles `.mini` — le violet des jetons de la bulle, clair/nuit). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/preview_bulle_fond" />
-    <corners android:radius="5dp" />
-</shape>

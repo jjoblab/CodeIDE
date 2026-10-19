@@ -982,13 +982,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             entrees.forEach { (libelle, valeur) ->
                 val rangee = ItemMenuCibleBinding.inflate(gonfleur(), popover.listeCibles, false)
                 rangee.libelleCible.text = libelle
-                rangee.cocheCible.isVisible = cibleCourante == valeur
-                if (cibleCourante == valeur) {
-                    rangee.cocheCible.backgroundTintList =
-                        android.content.res.ColorStateList.valueOf(
-                            StyleVolet.couleur(requireContext(), StyleVolet.couleurPrimaire),
-                        )
-                }
+                // PE11j : la cible courante est SÉLECTIONNÉE (miroir `.opt`
+                // — fond accent doux), plus de point de coche.
+                rangee.rangeeCible.isSelected = cibleCourante == valeur
                 rangee.rangeeCible.setOnClickListener {
                     menuCiblePopover.masquer()
                     val cible =

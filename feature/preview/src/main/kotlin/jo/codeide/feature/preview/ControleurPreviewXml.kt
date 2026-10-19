@@ -99,6 +99,19 @@ public class ControleurPreviewXml(
         moteur.definirLangue(suivante)
     }
 
+    /** Barre de navigation du chrome système courante (PE11j — menu Calques). */
+    public val barreNavigation: Boolean get() = moteur.barreNavigation
+
+    /**
+     * Définit la barre de navigation du chrome système (PE11j — miroir
+     * `S.nav` : l'interrupteur « Barre de navigation » du groupe
+     * « Chrome système » du menu Calques) ; un CHANGEMENT relance un
+     * rendu immédiat.
+     */
+    public fun definirBarreNavigation(barre: Boolean) {
+        moteur.definirBarreNavigation(barre)
+    }
+
     /** Coupe la collecte d'état (onDestroy de l'activité). Idempotent. */
     public fun fermer() {
         if (ferme) return

@@ -128,6 +128,9 @@ public class MoteurPreviewXml(
     /** Échelle de police courante (PE6e-f — ×1,0 / ×1,3 / ×2,0 de la maquette). */
     private var echellePoliceCourante: Float = RequeteRendu.ECHELLE_POLICE_DEFAUT
 
+    /** Barre de navigation du chrome système courante (PE11j — miroir `S.nav`, défaut ON). */
+    private var barreNavigationCourante: Boolean = true
+
     /** Fournisseur de texte courant (dernier onglet branché). */
     private var fournisseurTexte: (() -> String)? = null
 
@@ -261,6 +264,9 @@ public class MoteurPreviewXml(
     /** Échelle de police courante (PE6e-f). */
     public val echellePolice: Float get() = echellePoliceCourante
 
+    /** Barre de navigation du chrome système courante (PE11j — menu Calques, groupe « Chrome système »). */
+    public val barreNavigation: Boolean get() = barreNavigationCourante
+
     /** Définit l'orientation de l'aperçu (PE6e-f — puce Portrait/Paysage de
      *  la maquette) : un CHANGEMENT relance un rendu immédiat (dimensions
      *  du profil permutées + qualifieur `values-land`). */
@@ -278,6 +284,16 @@ public class MoteurPreviewXml(
     public fun definirEchellePolice(echelle: Float) {
         if (ferme || echelle <= 0f || echelle == echellePoliceCourante) return
         echellePoliceCourante = echelle
+        relancerSiTexte()
+    }
+
+    /** Définit la barre de navigation du chrome système (PE11j — miroir
+     *  `S.nav` de la maquette, interrupteur « Barre de navigation » du
+     *  menu Calques) : un CHANGEMENT relance un rendu immédiat (la barre
+     *  de 48 dp est ajoutée ou retirée sous le contenu par le chrome). */
+    public fun definirBarreNavigation(barre: Boolean) {
+        if (ferme || barre == barreNavigationCourante) return
+        barreNavigationCourante = barre
         relancerSiTexte()
     }
 
@@ -355,6 +371,7 @@ public class MoteurPreviewXml(
                     classpath = classpathCourant,
                     paysage = paysageCourant,
                     echellePolice = echellePoliceCourante,
+                    barreNavigation = barreNavigationCourante,
                 )
             journal?.i(TAG_PREVIEW) {
                 "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +

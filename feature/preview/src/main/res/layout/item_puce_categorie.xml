@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UNE PUCE de catégorie de la palette (PE9e, miroir `.cats` de la
-     maquette) : bouton outline miniature, sélection = isSelected posé
-     par le popover ; le retrait à droite sépare les puces. -->
-<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Une puce de catégorie (.cats .chip) — RÉFÉRENCE (ADR 0134). Chip pilule 28 dp, trait 1 dp ; la sélectionnée
+  (isChecked) = conteneur primaire sans trait. L'espacement de 6 dp est posé en marge de fin (le dernier
+  élément n'en a pas besoin).
+-->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/puce_categorie"
-    style="@style/Widget.Material3.Button.OutlinedButton"
+    style="@style/Widget.CodeIDE.Apercu.PuceCategorie"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="6dp"
-    android:insetTop="0dp"
-    android:insetBottom="0dp"
-    android:minWidth="0dp"
-    android:paddingStart="10dp"
-    android:paddingTop="7dp"
-    android:paddingEnd="10dp"
-    android:paddingBottom="7dp"
-    android:textAppearance="?attr/textAppearanceLabelSmall"
-    android:insetLeft="0dp"
-    android:insetRight="0dp" />
+    android:layout_marginEnd="@dimen/apercu_categories_gap" />

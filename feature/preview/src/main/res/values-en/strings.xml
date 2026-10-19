@@ -122,7 +122,9 @@
     <string name="preview_placement_avant">Before</string>
     <string name="preview_placement_dedans">Inside</string>
     <string name="preview_placement_apres">After</string>
-    <string name="preview_placement_resume">In %1$s, position %2$d/%3$d</string>
+    <string name="preview_placement_resume_dans">In </string>
+    <string name="preview_placement_resume_position">, position </string>
+    <string name="preview_placement_resume_sur"> of </string>
     <string name="preview_placement_confirmer">Place here</string>
     <string name="preview_prefixe_id">\@+id/%1$s</string>
     <string name="preview_placement_repere_cd">Live insertion marker on the preview</string>
