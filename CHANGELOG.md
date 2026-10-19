@@ -1,5 +1,115 @@
 # Journal des modifications
 
+## [0.151.0] – 2026-10-19
+
+### PE11j — BULLE, PALETTE, GHOST, PLACEMENT, MENUS à l'identique de la maquette (ADR 0134) + correctif bulle
+
+#### Ajouté
+
+- **Les 15 layouts de référence copiés** (§ 4-6 de `PREVIEW_UI_ECRANS.md`) :
+  `popover_palette`, `item_puce_categorie`, `item_tuile_palette`,
+  `item_sous_titre_palette`, `item_vide_palette`, `item_ghost_palette`,
+  `popover_placement`, `item_rangee_placement`,
+  `popover_menu_appareil`/`item_menu_appareil`,
+  `popover_menu_calques`/`item_menu_calque`,
+  `popover_menu_cible`/`item_menu_cible`, `bulle_palette` — plus les 5
+  drawables attendus (`apercu_ghost_fond`, `apercu_ic_fermer`,
+  `apercu_mini_fond`, `apercu_mode_palette_conteneur`,
+  `apercu_pastille_menu`). La COQUE des popovers/placement vient enfin
+  du style `Widget.CodeIDE.Apercu.Popover` (OPAQUE, D3) et des menus du
+  style `Menu` (TRANSLUCIDE, écart voulu PE9c) : plus AUCUN fond ni
+  élévation posés en code. Écarts adaptés et documentés : la pastille
+  12 dp littérale de la référence devient `apercu_pastille_menu_taille`
+  de même valeur (grille § 12.4 — grep des littéraux VIDE).
+- **La PALETTE** (ADR 0134 D9) : hauteur `min(600 dp, conteneur − marges)`
+  IMPOSÉE par le code (`PalettePopover.bornerHauteur` + fonction pure
+  `HauteurPalettePopover` testée) — le `LinearLayout` enveloppe son
+  contenu, sans borne la grille déborde de l'écran ; grille 3 colonnes
+  avec `EspacementGrilleTuiles` (`ItemDecoration` d'écart 8 dp à perte
+  ÉGALE par colonne) ; icônes `ic_tuile_*` RETEINTÉES `?attr/apercuNouveau`
+  depuis le layout (tracés inchangés) ; tuile au plancher 112 dp
+  (`apercu_tuile_hauteur_min`) ; puces de catégories `Chip` pilule 28 dp
+  (sélection = `state_checked` → conteneur primaire).
+- **Le GHOST et le PLACEMENT** (§ 4.3/§ 5) : la pill violette du drag
+  pose son point d'accroche AU-DESSUS du doigt (miroir
+  `translate(-50 %, -130 %)`) ; le mini-arbre du placement porte les
+  MÊMES rangées que l'arbre (monogramme surface 2 + classe + id,
+  `Widget.CodeIDE.Apercu.Rangee`), la référence est `isSelected`
+  (accent DOUX du sélecteur, plus de violet en code), les positions
+  Avant/Dedans/Après passent à `TextView` + opacité .35 hors autorisées,
+  le résumé « Dans X, position n sur total » porte ses valeurs en FORT
+  (`TextAppearanceSpan` `ResumeFort`), et les hauteurs se bornent par le
+  code (mini-arbre 150 dp, coque 340 dp — une `ScrollView`/un `PopupWindow`
+  n'ont pas de `max-height`).
+- **Les MENUS** (§ 6) : appareil SANS radio — l'entrée courante est
+  `isSelected` (accent doux) et le DÉTAIL mono « 393×851 dp · 440 dpi »
+  rejoint le nom (pluriel `preview_appareil_detail_format` FR/EN —
+  le remède exigé par lint `PluralsCandidate`, gabarit indépendant de
+  la quantité) ;
+  cible SANS point de coche (`isSelected`) ; calques : pastilles
+  conservées (écart voulu PE9c) et l'interrupteur devient
+  `SwitchCompat` 34 × 20 (D5 — style corrigé : `track` SANS préfixe,
+  `android:thumb` PRÉFIXÉ, `minHeight 0` ; le styleable AppCompat
+  ignorait les formes préfixées, l'interrupteur par défaut 48 dp se
+  voyait à la mesure) ; `PopoverMenuApercu` : largeur PAR DÉFAUT pleine
+  largeur − 10 dp de chaque bord, 8 dp sous la rangée de puces, hauteur
+  bornée à 430 dp.
+- **« Chrome système / Barre de navigation »** (ADR 0134, groupe du menu
+  Calques, id `calque_navigation`) : NOUVELLE option de la configuration
+  de rendu — `RequeteRendu.barreNavigation` (parcel AIDL, défaut ON,
+  miroir `S.nav`), `MoteurPreviewXml.definirBarreNavigation` (un
+  CHANGEMENT relance le rendu), relais `ControleurPreviewXml`, et le
+  chrome du rendu (ChromeSysteme) DESSINE la barre de 48 dp (miroir
+  `.nbar` : fond sombre `--s-sys` clair/nuit, trois glyphes retour /
+  accueil / applications) SOUS le contenu.
+
+#### Corrigé
+
+- **La BULLE ne réagissait plus après un passage par la palette** (bug
+  rapporté par le propriétaire : « elle ne redevient pas active après
+  avoir choisi une palette — quand j'appuie dessus elle semble
+  désactivée ») : `basculerPalette` testait `isVisible` de la popover
+  ENFANTE alors que `masquerPalette` pose `conteneur_palette` à `GONE`
+  sans toucher au drapeau de l'enfant — après la première fermeture, le
+  tap re-masquait au lieu de ROUVRIR. L'état testé est désormais celui
+  du CONTENEUR.
+
+#### Tests
+
+- `CotesPopoversMaquetteTest` (6) : hauteur bornée (calcul pur + pose au
+  `LayoutParams`), onglets de mode 48,8, tuile ≥ 112, option d'appareil
+  51,2, option de calques 40, interrupteur 34 × 20 — contre
+  `meas_ecrans_clair.json`, ±1 dp. Les cotes PORTÉES PAR LE TEXTE se
+  composent depuis les `lineHeight` CONFIGURÉS : Robolectric n'applique
+  pas l'interligne à la mesure (vérifié), l'appareil le fait.
+- `ChromeSystemeTest` (3) : la barre de navigation est la 4e pièce du
+  chrome (48 dp) quand l'interrupteur est allumé, absente sinon, le
+  contenu garde la part restante. `RenduLayoutLibV3Test` : la barre
+  retranche 48 dp à la racine utilisateur (test « remplit la zone de
+  contenu » actualisé en conséquence) ; `MoteurPreviewXmlTest`/
+  `ServicePreviewTest` inchangés et verts.
+- Grille § 12.4 : grep des littéraux (dp/sp/hex) dans les 15 layouts —
+  VIDE. Revue visuelle § 12.3 sur appareil au prochain retour
+  propriétaire (paires clair/nuit : `ecran-palette-glisser`, `-popup`,
+  `-recherche`, `ecran-placement`, `ecran-menu-appareil`, `-calques`,
+  `-plus`, `ecran-glisser`).
+
+#### Écarts documentés
+
+- Le libellé « → cible » du ghost (`item_ghost_palette`) reste MASQUÉ :
+  l'ombre d'un drag Android se fige au lancement, elle ne peut pas
+  suivre la cible survolée — la cible EN DIRECT reste dessinée par le
+  moteur (zones de dépôt PE7b, `PREVIEW_UI_ECRANS.md` § 3.5).
+- Le style `Interrupteur` : `track` SANS préfixe (styleable AppCompat)
+  mais `android:thumb` PRÉFIXÉ — la référence de l'API `SwitchCompat`
+  n'est pas symétrique ; `minHeight 0` sinon le `super` (Bouton, 48 dp)
+  l'emporte sur la piste de 20 dp.
+- Le `xmlns:app` DUPLIQUÉ sur l'icône de `item_tuile_palette` et
+  `item_ghost_palette` (présent dans la référence) est retiré — lint
+  `RedundantNamespace`/`UnusedNamespace`, la déclaration de la RACINE
+  suffit ; le greffon « + cible » du `item_ghost_palette` de référence
+  suit (masqué — cf. ci-dessus).
+
 ## [0.150.0] – 2026-10-19
 
 ### PE11i — refonte de l'ÉCRAN PRINCIPAL à l'identique de la maquette (ADR 0134)

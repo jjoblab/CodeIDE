@@ -5,6 +5,14 @@
 <resources>
     <string name="preview_plus_cd">Plus d\'actions</string>
     <string name="preview_appareil_titre">Appareil</string>
+    <!-- Pluriel (le remède exigé par lint PluralsCandidate — « %d suivi d'un mot » ; règle 8 : pas de
+         tools:ignore). Le gabarit est indépendant de la quantité (dimensions FIXES de l'appareil),
+         les trois formes portent le même texte « 393×851 dp · 440 dpi » (§ 6 de la partie II). -->
+    <plurals name="preview_appareil_detail_format">
+        <item quantity="one">%1$d×%2$d dp · %3$d dpi</item>
+        <item quantity="many">%1$d×%2$d dp · %3$d dpi</item>
+        <item quantity="other">%1$d×%2$d dp · %3$d dpi</item>
+    </plurals>
     <string name="preview_calques_titre">Calques</string>
     <string name="preview_chrome_systeme_titre">Chrome système</string>
     <string name="preview_calque_navigation">Barre de navigation</string>

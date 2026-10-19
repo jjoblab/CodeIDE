@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Conteneur du choix de mode (.mode) et des positions (.pos) : surface 2, rayon 12, padding 4 posé sur la vue. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/apercuSurface2" />
+    <corners android:radius="@dimen/apercu_mode_palette_rayon" />
+</shape>

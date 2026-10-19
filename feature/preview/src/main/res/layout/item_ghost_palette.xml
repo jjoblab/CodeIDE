@@ -1,34 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Le GHOST du drag d'une tuile de la palette (PE9e, miroir `.ghost` de
-  la maquette : « icône + nom du widget, pill violette ») — dessiné par
-  le DragShadowBuilder qui suit le doigt pendant le dépôt.
+  GHOST du glisser (.ghost) — RÉFÉRENCE (ADR 0134). Pilule violette : icône 18 dp + nom 12 / 600
+  (+ « → Conteneur visé » en mono 11 quand une cible est survolée). Rayon 12, padding 8 / 12, espacement 8.
+  Rendu par le DragShadowBuilder ; le point d'accroche est au-dessus du doigt (translate -50 % / -130 %).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/ghost_palette"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/fond_ghost"
+    android:background="@drawable/apercu_ghost_fond"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="8dp">
+    android:paddingTop="@dimen/apercu_ghost_pad_v"
+    android:paddingBottom="@dimen/apercu_ghost_pad_v"
+    android:paddingStart="@dimen/apercu_ghost_pad_h"
+    android:paddingEnd="@dimen/apercu_ghost_pad_h">
 
     <ImageView
         android:id="@+id/icone_ghost"
-        android:layout_width="18dp"
-        android:layout_height="18dp"
+        android:layout_width="@dimen/apercu_ghost_icone"
+        android:layout_height="@dimen/apercu_ghost_icone"
         android:contentDescription="@null"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_bulle_palette" />
+        android:src="@drawable/ic_tuile_tv"
+        app:tint="?attr/apercuSurNouveau" />
 
     <TextView
         android:id="@+id/nom_ghost"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/preview_bulle_icone" />
+        android:layout_marginStart="@dimen/apercu_ghost_gap"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.Ghost" />
+
+    <TextView
+        android:id="@+id/cible_ghost"
+        style="@style/Widget.CodeIDE.Apercu.Texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_ghost_gap"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.GhostCible"
+        android:visibility="gone" />
 </LinearLayout>

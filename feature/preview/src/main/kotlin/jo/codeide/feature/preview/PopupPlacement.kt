@@ -1,25 +1,20 @@
 package jo.codeide.feature.preview
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.Typeface
+import android.text.SpannableStringBuilder
+import android.text.style.TextAppearanceSpan
 import android.util.AttributeSet
-import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import com.google.android.material.button.MaterialButton
 import jo.codeide.feature.preview.databinding.ItemRangeePlacementBinding
 import jo.codeide.feature.preview.databinding.PopoverPlacementBinding
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ZonesDepot
+import kotlin.math.min
 
 /**
  * Le POPUP de placement (PE7c, maquette `docs/mockups/apercu-xml.html` §
@@ -32,23 +27,24 @@ import jo.codeide.preview.xml.ZonesDepot
  * - l'en-tête : « Où placer X ? » + fermer ;
  * - l'ARBRE des vues rendues (référence surlignée — miroir `.mini`, les
  *   rangées reprennent le patron de l'arbre PE6d :
- *   [FeuilleApercu.entreesArbre]) ;
+ *   [FeuilleApercu.entreesArbre], hauteur bornée à 150 dp par le code) ;
  * - les positions AVANT / DEDANS / APRÈS (miroir `.pos` : DEDANS
  *   désactivé hors conteneur, AVANT/APRÈS désactivés sur la racine —
- *   [PlacementPopup.positionsAutorisees]) ;
- * - le résumé « Dans X, position n sur total » (miroir `.res`,
- *   [PlacementPopup.resume]) ;
+ *   [PlacementPopup.positionsAutorisees], indisponible = opacité .35) ;
+ * - le résumé « Dans X, position n sur total » (miroir `.res`, les valeurs
+ *   en `ResumeFort` — [PlacementPopup.resume]) ;
  * - le bouton violet « Placer ici » (miroir `.prim` → [auConfirmer]).
  *
- * Le REPÈRE EN DIRECT reste au propriétaire : chaque changement de
- * référence/position notifie [auCibleChange], l'activité pose la cible
- * sur la vue d'aperçu (zones de dépôt PE7b — un seul calque).
+ * PE11j (ADR 0134) : la COQUE vient du layout (style
+ * `Widget.CodeIDE.Apercu.Popover` — plus aucun fond ni élévation en
+ * code) ; la référence du mini-arbre est `isSelected` (accent doux du
+ * sélecteur `apercu_rangee_fond`, PAS en violet) ; la hauteur du popup
+ * est bornée à [R.dimen.apercu_placement_hauteur_max] par le code.
  *
- * Exemption detekt ciblée (règle 16) : MagicNumber — la mise en forme des
- * rangées se fait EN CODE, les dimensions dp y sont littérales (patron
- * render* de la maquette, même exemption que [FeuilleApercuFragment]).
+ * Le REPÈRE EN DIRECT reste au propriétaire : chaque changement de
+ * référence/position notifie [auReference]/[auPosition], l'activité pose
+ * la cible sur la vue d'aperçu (zones de dépôt PE7b — un seul calque).
  */
-@Suppress("MagicNumber")
 public class PopupPlacement(
     context: Context,
     attrs: AttributeSet? = null,
@@ -69,8 +65,6 @@ public class PopupPlacement(
     public var auFermer: (() -> Unit)? = null
 
     init {
-        background = ContextCompat.getDrawable(context, R.drawable.fond_popover_apercu)
-        elevation = 8f * resources.displayMetrics.density
         liaison.boutonFermerPlacement.setOnClickListener { auFermer?.invoke() }
         liaison.boutonPlacer.setOnClickListener { auConfirmer?.invoke() }
         liaison.positionAvant.setOnClickListener { auPosition?.invoke(PlacementPopup.Position.AVANT) }
@@ -87,7 +81,8 @@ public class PopupPlacement(
      * Re-marche TOUT le popup (miroir `drawPlace`) : l'arbre, les
      * positions autorisées, le résumé. Les vues + la référence courante
      * + la position courante viennent du propriétaire (source de vérité
-     * unique).
+     * unique). Les bornes de hauteur (mini-arbre 150 dp, coque 340 dp)
+     * suivent — imposées par le code (miroir `max-height`).
      */
     public fun afficher(
         vues: List<InfoVueRendu>,
@@ -98,6 +93,7 @@ public class PopupPlacement(
         majArbre(vues, indiceReference)
         majPositions(vues, indiceReference, position)
         majResume(vues, cible)
+        bornerHauteurs()
     }
 
     /** L'arbre des vues rendues (miroir `.mini` — rangées d'arbre PE6d). */
@@ -108,26 +104,24 @@ public class PopupPlacement(
         liaison.lignesArbrePlacement.removeAllViews()
         if (vues.isEmpty()) return
         val entrees = FeuilleApercu.entreesArbre(vues, problemes = emptyList(), densiteDpi = 0)
+        val retraitBase = resources.getDimensionPixelSize(R.dimen.apercu_rangee_pad_h)
+        val retraitNiveau = resources.getDimensionPixelSize(R.dimen.apercu_rangee_indent)
         for (entree in entrees) {
-            // PE9f : la rangée vient de l'item layout réel (miroir `.mini`).
+            // PE11j : la rangée vient de l'item layout réel (miroir `.mini`,
+            // MÊMES rangées que l'arbre — monogramme, classe, id).
             val rangee =
                 ItemRangeePlacementBinding.inflate(
                     LayoutInflater.from(context),
                     liaison.lignesArbrePlacement,
                     false,
                 )
+            // La référence surlignée = isSelected → accent DOUX du sélecteur
+            // (miroir `.row.on` — PE11j retire le violet posé en code).
             rangee.rangeePlacement.isSelected = entree.indice == indiceReference
-            rangee.rangeePlacement.setBackgroundColor(
-                if (entree.indice == indiceReference) {
-                    // Miroir `.row.on` : le fond doux de la sélection.
-                    ContextCompat.getColor(context, R.color.preview_bulle_halo)
-                } else {
-                    Color.TRANSPARENT
-                },
-            )
-            // L'indentation de profondeur suit l'arbre (paddingStart dynamique).
+            // L'indentation de profondeur suit l'arbre (8 + profondeur × 16 —
+            // miroir `style.paddingLeft`, le reste du padding vient du style).
             rangee.rangeePlacement.setPadding(
-                dp(entree.indentation + 8),
+                retraitBase + entree.indentation * retraitNiveau,
                 rangee.rangeePlacement.paddingTop,
                 rangee.rangeePlacement.paddingEnd,
                 rangee.rangeePlacement.paddingBottom,
@@ -172,16 +166,21 @@ public class PopupPlacement(
     }
 
     private fun poserPosition(
-        bouton: MaterialButton,
+        bouton: TextView,
         position: PlacementPopup.Position,
         autorisees: Set<PlacementPopup.Position>,
         courante: PlacementPopup.Position,
     ) {
         bouton.isEnabled = position in autorisees
+        // Miroir `.pos button:disabled` : opacité .35, la sélection reste lisible.
+        bouton.alpha = if (position in autorisees) ALPHA_ACTIVE else ALPHA_INDISPONIBLE
         bouton.isSelected = position == courante
     }
 
-    /** Le résumé « Dans X, position n sur total » (miroir `.res`). */
+    /**
+     * Le résumé « Dans X, position n sur total » (miroir `.res` : mono 12,
+     * les valeurs `<b>` en ResumeFort — violet, [majFort]).
+     */
     private fun majResume(
         vues: List<InfoVueRendu>,
         cible: ZonesDepot.CibleDepot?,
@@ -192,15 +191,58 @@ public class PopupPlacement(
             liaison.boutonPlacer.isEnabled = false
             return
         }
-        liaison.resumePlacement.text =
-            context.getString(
-                R.string.preview_placement_resume,
-                resume.libelleParent,
-                resume.position,
-                resume.total,
-            )
+        val corps = SpannableStringBuilder()
+        corps.append(context.getString(R.string.preview_placement_resume_dans))
+        majFort(corps, resume.libelleParent)
+        corps.append(context.getString(R.string.preview_placement_resume_position))
+        majFort(corps, resume.position.toString())
+        corps.append(context.getString(R.string.preview_placement_resume_sur))
+        corps.append(resume.total.toString())
+        liaison.resumePlacement.text = corps
         liaison.boutonPlacer.isEnabled = true
     }
 
-    private fun dp(valeur: Int): Int = (valeur * resources.displayMetrics.density).toInt()
+    /** Pose le morceau FORT (ResumeFort — miroir `<b>` de `.res`) à la fin de [corps]. */
+    private fun majFort(
+        corps: SpannableStringBuilder,
+        morceau: String,
+    ) {
+        val debut = corps.length
+        corps.append(morceau)
+        corps.setSpan(
+            TextAppearanceSpan(context, R.style.TextAppearance_CodeIDE_Apercu_ResumeFort),
+            debut,
+            corps.length,
+            SpannableStringBuilder.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+    }
+
+    /**
+     * Les BORNES de hauteur (miroir `max-height`) : le mini-arbre à
+     * [R.dimen.apercu_mini_hauteur_max], la coque à
+     * [R.dimen.apercu_placement_hauteur_max] — le code les impose après
+     * la passe de mesure (le ScrollView n'a pas de maxHeight).
+     */
+    private fun bornerHauteurs() {
+        liaison.defileArbrePlacement.post {
+            val miniMax = resources.getDimensionPixelSize(R.dimen.apercu_mini_hauteur_max)
+            val hauteurMini = liaison.lignesArbrePlacement.measuredHeight
+            if (hauteurMini > 0) {
+                liaison.defileArbrePlacement.layoutParams.height = min(miniMax, hauteurMini)
+            }
+            val coqueMax = resources.getDimensionPixelSize(R.dimen.apercu_placement_hauteur_max)
+            val hauteurCoque = measuredHeight
+            if (hauteurCoque > 0 && hauteurCoque > coqueMax) {
+                layoutParams.height = coqueMax
+            }
+        }
+    }
+
+    private companion object {
+        /** Opacité d'une position INDISPONIBLE (miroir `.pos button:disabled`). */
+        private const val ALPHA_INDISPONIBLE: Float = 0.35f
+
+        /** Opacité d'une position disponible. */
+        private const val ALPHA_ACTIVE: Float = 1f
+    }
 }

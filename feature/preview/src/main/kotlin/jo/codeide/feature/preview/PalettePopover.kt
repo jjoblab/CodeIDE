@@ -7,18 +7,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
 import jo.codeide.feature.preview.databinding.ItemPuceCategorieBinding
 import jo.codeide.feature.preview.databinding.ItemSousTitrePaletteBinding
 import jo.codeide.feature.preview.databinding.ItemTuilePaletteBinding
 import jo.codeide.feature.preview.databinding.ItemVidePaletteBinding
 import jo.codeide.feature.preview.databinding.PopoverPaletteBinding
 import jo.codeide.preview.xml.CataloguePalette
+import kotlin.math.min
 
 /**
  * La PALETTE de widgets (PE7c, maquette `docs/mockups/apercu-xml.html` §
@@ -37,21 +39,22 @@ import jo.codeide.preview.xml.CataloguePalette
  *   `.phone.dragging .bubble`) ou Placer par popup (tuile touchée →
  *   [auTuilePlace] ouvre le popup de placement) ;
  * - la recherche et les puces de catégories (« Tous » + [CataloguePalette.CATEGORIES]) ;
- * - la grille de tuiles (3 colonnes) : RÉCENTS (4 derniers — miroir
- *   `recents`, session courante) puis « Tous les widgets » ; chaque
- *   tuile porte son icône violette, son nom, sa classe et le TAG de
- *   dépendance (Material = contour ; « dépendance absente » = ambre —
- *   miroir `depTag`, « une tuile dont la dépendance manque est
- *   signalée »).
+ * - la grille de tuiles (3 colonnes, espacement [R.dimen.apercu_tuiles_gap] en
+ *   [EspacementGrilleTuiles]) : RÉCENTS (4 derniers — miroir `recents`,
+ *   session courante) puis « Tous les widgets » ; chaque tuile porte son
+ *   icône violette, son nom, sa classe et le TAG de dépendance (Material =
+ *   contour ; « dépendance absente » = ambre — miroir `depTag`, « une tuile
+ *   dont la dépendance manque est signalée »).
+ *
+ * PE11j (ADR 0134 D9) : la COQUE vient du layout (style
+ * `Widget.CodeIDE.Apercu.Popover` — plus aucun fond ni élévation en code) ;
+ * la HAUTEUR est bornée à `min(600 dp, disponible)` par [bornerHauteur],
+ * imposée par le code (le `LinearLayout` enveloppe son contenu : sans
+ * borne la grille déborde de l'écran).
  *
  * Le filtrage ([CataloguePalette.rechercher]) reste en fonctions pures
  * du module `:preview:xml` — le popover ne porte que le chrome.
- *
- * Exemption detekt ciblée (règle 16) : MagicNumber — la mise en forme du
- * popover se fait EN CODE, les dimensions dp y sont littérales (patron
- * render* de la maquette).
  */
-@Suppress("MagicNumber")
 public class PalettePopover(
     context: Context,
     attrs: AttributeSet? = null,
@@ -108,12 +111,6 @@ public class PalettePopover(
     public var auTapIndique: ((CataloguePalette.EntreePalette) -> Unit)? = null
 
     init {
-        // Le fond du popover vit sur CE conteneur (miroir `.pop`).
-        background =
-            androidx.core.content.ContextCompat
-                .getDrawable(context, R.drawable.fond_popover_apercu)
-        elevation = 8f * resources.displayMetrics.density
-
         liaison.boutonFermerPalette.setOnClickListener { auFermer?.invoke() }
         liaison.boutonBulle.setOnClickListener { auBulleFixe?.invoke(!bulleFixe) }
 
@@ -153,18 +150,42 @@ public class PalettePopover(
                 override fun getSpanSize(position: Int): Int = if (adaptateur.estSousTitre(position)) NB_COLONNES else 1
             }
         liaison.grilleTuiles.layoutManager = gestionnaire
+        liaison.grilleTuiles.addItemDecoration(EspacementGrilleTuiles(context))
+    }
+
+    /**
+     * BORNE la hauteur du popover (PE11j, ADR 0134 D9 — miroir
+     * `max-height: min(600px, 100% - 134px)` de la maquette) :
+     * `LayoutParams.height = min(600 dp, conteneur − marges)`, IMPOSÉ par
+     * le code — le `LinearLayout` enveloppe son contenu, sans borne la
+     * grille déborde de l'écran. [hauteurConteneur] = hauteur du conteneur
+     * plein écran de l'activité.
+     */
+    public fun bornerHauteur(hauteurConteneur: Int) {
+        val hauteurCalculee =
+            HauteurPalettePopover.calcule(
+                hauteurConteneur = hauteurConteneur,
+                margeHaut = resources.getDimensionPixelSize(R.dimen.apercu_popover_haut),
+                margeBas = resources.getDimensionPixelSize(R.dimen.apercu_popover_marge_bas),
+                hauteurMax = resources.getDimensionPixelSize(R.dimen.apercu_palette_hauteur_max),
+            )
+        val parametres = layoutParams ?: FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, hauteurCalculee)
+        parametres.height = hauteurCalculee
+        layoutParams = parametres
     }
 
     /** La bulle est-elle fixe (état de la puce d'en-tête) ? */
     public var bulleFixe: Boolean = false
         private set
 
-    /** Pose l'état de la puce bulle (miroir `pinUp`). */
+    /** Pose l'état de la puce bulle (miroir `pinUp` : cochée = fixe). */
     public fun definirBulleFixe(fixe: Boolean) {
         bulleFixe = fixe
         liaison.boutonBulle.text =
             context.getString(if (fixe) R.string.preview_bulle_fixe else R.string.preview_bulle_flottante)
-        liaison.boutonBulle.isSelected = fixe
+        // La sélection visuelle de la puce suit state_checked (sélecteur
+        // apercu_categorie_fond — miroir aria-pressed).
+        liaison.boutonBulle.isChecked = fixe
     }
 
     /** Pose le mode d'insertion (visuel + notification au propriétaire). */
@@ -193,7 +214,7 @@ public class PalettePopover(
 
     /** Les puces de catégories (« Tous » + les 6 du catalogue) — item
      * layout réel (item_puce_categorie.xml), la sélection reste
-     * `isSelected` posé par [majPucesCategories]. */
+     * `isChecked` posé par [majPucesCategories]. */
     private fun construireCategories() {
         val categories = listOf(CataloguePalette.TOUTES) + CataloguePalette.CATEGORIES
         categories.forEach { nom ->
@@ -208,11 +229,11 @@ public class PalettePopover(
         majPucesCategories()
     }
 
-    /** L'état visuel des puces (miroir `aria-pressed`). */
+    /** L'état visuel des puces (miroir `aria-pressed` : la sélection est state_checked). */
     private fun majPucesCategories() {
         for (indice in 0 until liaison.rangeeCategories.childCount) {
-            val puce = liaison.rangeeCategories.getChildAt(indice) as? MaterialButton ?: continue
-            puce.isSelected = (puce.text == categorie)
+            val puce = liaison.rangeeCategories.getChildAt(indice) as? Chip ?: continue
+            puce.isChecked = puce.text.toString() == categorie
         }
     }
 
@@ -247,6 +268,62 @@ public class PalettePopover(
     }
 }
 
+/**
+ * La hauteur BORNÉE du popover de palette (PE11j, ADR 0134 D9) — fonction
+ * PURE : `min(600 dp, conteneur − marge haute − marge basse)`, jamais
+ * négative. Testée sans vue (patron machine d'états PE7b).
+ */
+internal object HauteurPalettePopover {
+    /** Le calcul du `LayoutParams.height` (miroir `min(600px, 100% - 134px)`). */
+    public fun calcule(
+        hauteurConteneur: Int,
+        margeHaut: Int,
+        margeBas: Int,
+        hauteurMax: Int,
+    ): Int = min(hauteurMax, hauteurConteneur - margeHaut - margeBas).coerceAtLeast(0)
+}
+
+/**
+ * L'ESPACEMENT de la grille de tuiles (PE11j, ADR 0134 D9 — miroir
+ * `.tiles{display:grid;gap:8px}`) : [RecyclerView.ItemDecoration] de
+ * `apercu_tuiles_gap` ENTRE les colonnes et les rangées, rien sur les
+ * bords. Les tuiles étant égales (`GridLayoutManager`), chaque colonne
+ * perd la même largeur totale (perte = espacement × (colonnes − 1) /
+ * colonnes) pour que les TROIS tuiles restent identiques ; l'écart entre
+ * deux colonnes vaut l'espacement à UN dp près (8/3 ne tombe pas juste).
+ * Les sous-titres (pleine largeur) ne portent que l'écart de rangée.
+ */
+internal class EspacementGrilleTuiles(
+    contexte: Context,
+) : RecyclerView.ItemDecoration() {
+    /** L'écart entre deux tuiles (miroir `.tiles` gap), en px. */
+    private val espacement: Int = contexte.resources.getDimensionPixelSize(R.dimen.apercu_tuiles_gap)
+
+    override fun getItemOffsets(
+        rect: android.graphics.Rect,
+        vue: View,
+        parent: RecyclerView,
+        etat: RecyclerView.State,
+    ) {
+        val gestionnaire = parent.layoutManager as? GridLayoutManager ?: return
+        val position = parent.getChildAdapterPosition(vue)
+        if (position == RecyclerView.NO_POSITION) return
+        val nbColonnes = gestionnaire.spanCount
+        val etendue = gestionnaire.spanSizeLookup.getSpanSize(position)
+        // Rangée : écart de 8 entre deux rangées, rien au-dessus de la
+        // première (le marginTop du RecyclerView tient déjà son rôle).
+        rect.top = if (position == 0) 0 else espacement
+        // Sous-titre pleine largeur : pas d'écart de colonne.
+        if (etendue < nbColonnes) {
+            val colonne = gestionnaire.spanSizeLookup.getSpanIndex(position, nbColonnes)
+            // Perte ÉGALE par colonne : left croît, right complète (voir KDoc).
+            val perte = espacement * (nbColonnes - 1) / nbColonnes
+            rect.left = colonne * perte / (nbColonnes - 1)
+            rect.right = perte - rect.left
+        }
+    }
+}
+
 /** UNE ligne de la grille : sous-titre de section, tuile, ou vide. */
 public sealed class ItemTuile {
     /** Le sous-titre de section (« Récents », « Tous les widgets »). */
@@ -269,11 +346,7 @@ public sealed class ItemTuile {
  * L'adaptateur de la grille (miroir `tile`/`fillGrid`) : le long-appui
  * lance le DRAG (mode Glisser-déposer), le tap OUVERT le placement (mode
  * popup) — les callbacks du popover restent la seule voie.
- *
- * Exemption detekt ciblée (règle 16) : MagicNumber — mêmes motifs que
- * [PalettePopover] (dimensions dp littérales du chrome, patron render*).
  */
-@Suppress("MagicNumber")
 public class TuilesPaletteAdapter(
     private val auTuilePlace: (CataloguePalette.EntreePalette) -> Unit,
     private val auGlisser: (CataloguePalette.EntreePalette, View) -> Unit,
@@ -356,15 +429,14 @@ public class TuilesPaletteAdapter(
                 entree.id == "rv" -> {
                     tag.isVisible = true
                     tag.text = contexte.getString(R.string.preview_palette_dependance_absente)
+                    // .tag.wr : le VARIANT averti du style Tag (fond ambre,
+                    // texte apercuAvert) — posé au liage (donnée de la tuile).
+                    tag.background = ContextCompat.getDrawable(contexte, R.drawable.apercu_tag_avert_fond)
                     tag.setTextColor(StyleVolet.couleur(contexte, R.attr.apercuAvert))
-                    tag.background =
-                        androidx.core.content.ContextCompat.getDrawable(
-                            contexte,
-                            R.drawable.fond_tag_ambre,
-                        )
                 }
 
-                // Miroir `depTag` : la coordonnée requise en tag de contour.
+                // Miroir `depTag` : la coordonnée requise en tag de contour
+                // (.tag.old : surface 2 + trait — l'état par défaut du style).
                 entree.dependanceRequise != null -> {
                     tag.isVisible = true
                     tag.text =
@@ -373,12 +445,8 @@ public class TuilesPaletteAdapter(
                         } else {
                             entree.dependanceRequise
                         }
+                    tag.background = ContextCompat.getDrawable(contexte, R.drawable.apercu_tag_ancien_fond)
                     tag.setTextColor(StyleVolet.couleur(contexte, R.attr.apercuTexteDoux))
-                    tag.background =
-                        androidx.core.content.ContextCompat.getDrawable(
-                            contexte,
-                            R.drawable.fond_tag_contour,
-                        )
                 }
 
                 else -> {

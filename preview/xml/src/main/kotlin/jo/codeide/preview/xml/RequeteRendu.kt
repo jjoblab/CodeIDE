@@ -58,6 +58,12 @@ public class RequeteRendu(
      *  `scaledDensity` du rendu (convertisseur dp→px et moteur de mesure —
      *  LayoutLib v3 `setFontScale`). Borne : > 0. */
     public val echellePolice: Float = ECHELLE_POLICE_DEFAUT,
+    /** Barre de navigation du CHROME SYSTÈME du rendu (PE11j, ADR 0134 —
+     *  miroir `S.nav` de la maquette, groupe « Chrome système » du menu
+     *  Calques) : `true` = la barre 48 dp à trois glyphes est rendue SOUS
+     *  le contenu (avec la status bar et l'action bar du chrome). Un
+     *  CHANGEMENT relance un rendu immédiat. Défaut : ON. */
+    public val barreNavigation: Boolean = true,
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -81,6 +87,7 @@ public class RequeteRendu(
         classpath = parcel.createTypedArrayList(EntreeClasspath.CREATOR) ?: emptyList(),
         paysage = parcel.readByte() != 0.toByte(),
         echellePolice = parcel.readFloat(),
+        barreNavigation = parcel.readByte() != 0.toByte(),
     )
 
     override fun writeToParcel(
@@ -101,6 +108,7 @@ public class RequeteRendu(
         parcel.writeTypedList(classpath)
         parcel.writeByte(if (paysage) 1 else 0)
         parcel.writeFloat(echellePolice)
+        parcel.writeByte(if (barreNavigation) 1 else 0)
     }
 
     override fun describeContents(): Int = 0
@@ -117,7 +125,8 @@ public class RequeteRendu(
             other.labelActivite == labelActivite &&
             other.classpath == classpath &&
             other.paysage == paysage &&
-            other.echellePolice == echellePolice
+            other.echellePolice == echellePolice &&
+            other.barreNavigation == barreNavigation
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -131,6 +140,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + classpath.hashCode()
         resultat = 31 * resultat + if (paysage) 1 else 0
         resultat = 31 * resultat + echellePolice.hashCode()
+        resultat = 31 * resultat + if (barreNavigation) 1 else 0
         return resultat
     }
 

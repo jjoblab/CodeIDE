@@ -5,6 +5,11 @@
 <resources>
     <string name="preview_plus_cd">More actions</string>
     <string name="preview_appareil_titre">Device</string>
+    <!-- Plural (lint PluralsCandidate remedy; the template is quantity-independent — § 6, part II). -->
+    <plurals name="preview_appareil_detail_format">
+        <item quantity="one">%1$d×%2$d dp · %3$d dpi</item>
+        <item quantity="other">%1$d×%2$d dp · %3$d dpi</item>
+    </plurals>
     <string name="preview_calques_titre">Layers</string>
     <string name="preview_chrome_systeme_titre">System chrome</string>
     <string name="preview_calque_navigation">Navigation bar</string>

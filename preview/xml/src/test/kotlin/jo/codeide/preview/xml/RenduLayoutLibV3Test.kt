@@ -363,8 +363,11 @@ class RenduLayoutLibV3Test {
     // draw, hit-test et surlignage).
     // ============================================================
 
-    /** Le layout passé, rendu AVEC chrome (themeName). */
-    private fun rendreAvecChrome(texte: String): ResultatRendu {
+    /** Le layout passé, rendu AVEC chrome (themeName) — barre de navigation PE11j réglable. */
+    private fun rendreAvecChrome(
+        texte: String,
+        barreNavigation: Boolean = true,
+    ): ResultatRendu {
         val requete =
             RequeteRendu(
                 texte = texte,
@@ -373,6 +376,7 @@ class RenduLayoutLibV3Test {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
                 themeName = "Theme.MaterialComponents.DayNight",
+                barreNavigation = barreNavigation,
             )
         return pipeline.rendre(requete, compresser = false).rendu
     }
@@ -407,6 +411,30 @@ class RenduLayoutLibV3Test {
             "la racine doit commencer sous le chrome (bounds bitmap, pas contenu)",
             chromeAttendu,
             resultat.vues.first().haut,
+        )
+    }
+
+    @Test
+    fun `chrome PE11j - la barre de navigation retranche quarante huit dp au contenu`() {
+        // Miroir `.nbar` : la barre OPTIONNELLE (interrupteur « Barre de
+        // navigation » du menu Calques, [RequeteRendu.barreNavigation])
+        // est la 4e pièce du chrome — la racine utilisateur finit
+        // AU-DESSUS d'elle ; éteinte, la racine va jusqu'en bas.
+        val avecBarre = rendreAvecChrome(xmlRacineMatchParent, barreNavigation = true)
+        assertTrue("le rendu avec barre doit réussir", avecBarre.ok)
+        val sansBarre = rendreAvecChrome(xmlRacineMatchParent, barreNavigation = false)
+        assertTrue("le rendu sans barre doit réussir", sansBarre.ok)
+        val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
+        val barreHauteur = (48 * densite).toInt()
+        assertEquals(
+            "la racine doit finir au-dessus de la barre de navigation",
+            avecBarre.hauteur - barreHauteur,
+            avecBarre.vues.first().bas,
+        )
+        assertEquals(
+            "sans barre de navigation, la racine va jusqu'en bas du bitmap",
+            sansBarre.hauteur,
+            sansBarre.vues.first().bas,
         )
     }
 
@@ -472,14 +500,22 @@ class RenduLayoutLibV3Test {
         val racine = resultat.vues.first()
         val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
         val chromeAttendu = (24 * densite).toInt() + (56 * densite).toInt()
+        // PE11j : la barre de navigation (48 dp, défaut ON — miroir `S.nav`)
+        // est la 4e pièce du chrome, la zone de contenu finit AU-DESSUS.
+        val barreHauteur = (48 * densite).toInt()
         // La racine déclarée match_parent × match_parent doit REMPLIR la
         // zone de contenu : toute la largeur du bitmap, du bas du chrome
-        // jusqu'au bas du bitmap. Avant le correctif, elle restait tassée
-        // en haut à gauche de la zone de contenu (WRAP_CONTENT factice).
+        // jusqu'au bas de la zone (au-dessus de la barre de navigation).
+        // Avant le correctif, elle restait tassée en haut à gauche de la
+        // zone de contenu (WRAP_CONTENT factice).
         assertEquals("la racine part du bord gauche du bitmap", 0, racine.gauche)
         assertEquals("la racine remplit toute la largeur", resultat.largeur, racine.droite)
         assertEquals("la racine commence sous le chrome", chromeAttendu, racine.haut)
-        assertEquals("la racine descend jusqu'en bas du bitmap", resultat.hauteur, racine.bas)
+        assertEquals(
+            "la racine descend jusqu'au bas de la zone de contenu",
+            resultat.hauteur - barreHauteur,
+            racine.bas,
+        )
     }
 
     @Test

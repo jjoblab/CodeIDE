@@ -960,7 +960,16 @@ public class RenduLayoutLib(
         // projet) au lieu du themeName brut ; repli themeName si absent
         // (comportement d'avant v0.134.4).
         val titre = titreActionBar(requete)
-        val chrome = ChromeSysteme(contexte, resolver, titreActivite = titre)
+        // PE11j : le chrome suit la REQUÊTE — nuit (fond de la barre de
+        // navigation) et barreNavigation (option du menu Calques).
+        val chrome =
+            ChromeSysteme(
+                contexte,
+                resolver,
+                titreActivite = titre,
+                nuit = requete.nuit,
+                barreNavigation = requete.barreNavigation,
+            )
         return chrome.envelopper(racine, densite)
     }
 
