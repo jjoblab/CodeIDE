@@ -1,5 +1,89 @@
 # Journal des modifications
 
+## [0.160.0] – 2026-10-20
+
+### UI-3 — Settings : les rangées passent à `RangeeParametre`, les cartes à `Widget.CodeIDE.Card` (audit C6/C4/C3/C1, ADR 0127)
+
+#### Modifié
+
+- **`feature:settings` à ZÉRO rangée recopiée** (critère de fin du lot) : les
+  ~25 rangées « icône + titre + sous-titre + contrôle » des sous-écrans
+  (Apparence, Langue, Notifications, Éditeur, Terminal, Projets, Historique,
+  Avancé, À propos) vivent dans `RangeeParametre` (`core:ui`) — chevron,
+  interrupteur, valeur ou lecture seule ; les 12 rangées du maître aussi :
+  `ligne_parametre.xml` est SUPPRIMÉ (absorbé par le composant, son KDoc
+  l'annonçait depuis UI-1) et le maître construit ses rangées par code
+  (`setIcone`, `titre`, `TypeRangee.CHEVRON`, `bientot`, `setSurClic`).
+  Le patron `renduEnCours` anti-retour-de-boucle est conservé tel quel :
+  `setSurChangementCoche` garde la même garde que les écouteurs d'origine.
+- **Les 17 cartes du module passent à `Widget.CodeIDE.Card`** (audit C4) :
+  16 × `?attr/materialCardViewFilledStyle` + attrs inline (stroke, forme,
+  fond) et la carte NUE de l'écran Environnement (élévation par défaut) ;
+  les libellés d'en-tête deviennent `EnteteSection` (plus de TextView
+  recopié carte par carte) ; les filets entre rangées ne sont PLUS des
+  `<View 1dp>` recopiés — le conteneur vertical porte
+  `divider=@drawable/separateur_rangee` + `showDividers="middle"`
+  (ADR 0127 §3).
+- **Boutons alignés** (audit C3) : les 9 boutons des
+  `MaterialButtonToggleGroup` (langue, apparence, éditeur, terminal ×2)
+  passent de `?attr/materialButtonOutlinedStyle` à
+  `Widget.CodeIDE.Button.Outlined` ; les 4 actions de l'écran
+  Environnement passent du `<Button style="?attr/materialButtonOutlinedStyle">`
+  nu à `MaterialButton` thémé (audit R5 « widgets nus » au passage).
+- **Écran Environnement + `rangee_composant_env.xml` tokenisés** (audit C1) :
+  paddings/marges 16/12/10/8/2 dp → jetons
+  `spacing_md`/`spacing_md_compact`/`spacing_sm`/`spacing_2xs` ;
+  `TextView` nus → `MaterialTextView`. L'écran reste hors gabarit
+  (sans toolbar, RecyclerView) : seuls ses littéraux et ses styles
+  sont alignés.
+- **`RangeeParametre` grandit de deux attributs** (manque constaté PENDANT
+  la migration — « si un manque apparaît, lot `core:ui` d'abord », spec LSP
+  §4) : `rangeeDestructrice` (icône + titre en couleur d'erreur — la rangée
+  « Réinitialiser » de l'écran Avancé garde son signal irréversible SANS
+  recopie teintée à la main) et `rangeeIndicateur` +
+  `rangeeIndicateurTexte` (pastille `IndicateurEtat` avant le chevron,
+  prête pour les rangées moteurs des écrans LSP L1-L2 — lot LSP-3) ;
+  `setIcone(resId)` public (patron `VueEtat.setIcone`) pour les rangées
+  construites par code (maître).
+
+#### Supprimé
+
+- `feature/settings/src/main/res/layout/ligne_parametre.xml` — absorbé par
+  `RangeeParametre` (`core:ui`), même marge, même hauteur minimale, même
+  puce « Bientôt ».
+
+#### Vérifié
+
+- **Cliquet `checkUiTokens` tenu** : baseline DESCENDUE 606 → 561
+  occurrences (−45, −99 lignes) et **`feature:settings` disparaît de la
+  baseline** (ses 11 fichiers ne doivent PLUS aucun littéral UI) ;
+  re-scan vert après cliquet (aucun littéral nouveau : les layouts
+  réécrits ne comptent que des jetons, styles et composants).
+- `:core:ui` **53 tests verts** (dont `RangeeParametreTest` 11 : les 4
+  nouvelles — teinte destructive, absence de teinte standard, pastille
+  lue du XML niveau+texte, pastille masquée → `indicateur =` → masquée) ;
+  `:feature:settings` testDebugUnitTest VERT dont
+  `SectionsParametresLayoutTest` sur les layouts MIGRÉS (invariant « une
+  carte = un seul LinearLayout vertical » tenu partout) ; racine :
+  `spotlessCheck`, `detekt`, `checkModuleDependencies` verts ;
+  `lintDebug` de `:core:ui` et `:feature:settings` verts.
+
+#### Écarts documentés
+
+- « Rendu identique (capture avant/après) » : exigé SUR APPAREIL
+  (360 dp, clair + sombre) — la procédure rejoint `TESTS_MANUELS.md`
+  (§ UI-3), à dérouler au prochain retour propriétaire. Écarts assumés
+  PAR CONSTRUCTION : la valeur du thème de l'éditeur passe du sous-titre
+  à la colonne de droite (patron `RangeeParametre` type=valeur, miroir
+  licence/rétention) ; un filet apparaît sous chaque `EnteteSection` (le
+  divider du conteneur sépare TOUS les enfants — uniforme, jamais
+  recopié) ; la carte Environnement perd son ombre (élévation 0 +
+  contour — c'est l'unification visée par C4).
+- Les rangées palette (`ligne_palette_option.xml`) restent hors
+  périmètre : leurs pastilles sont DYNAMIQUES par palette (ADR 0060),
+  inexprimables en attributs de thème — composite documenté, pas une
+  rangée recopiée.
+
 ## [0.159.0] – 2026-10-20
 
 ### UI-2 — garde-fou `checkUiTokens` à CLIQUET, branché sur la chaîne locale et la CI (ADR 0127 §5, lot UI-2)

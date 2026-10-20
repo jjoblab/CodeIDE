@@ -40,16 +40,16 @@ class AProposFragment : BaseFragment<FragmentSettingsAproposBinding>() {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
-        binding.ligneLicences.setOnClickListener { ouvrirLicences() }
+        binding.rangeeLicences.setSurClic { ouvrirLicences() }
 
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
-            binding.texteVersion.text =
+            binding.rangeeVersion.sousTitre =
                 getString(
                     R.string.settings_a_propos_version,
                     etat.infosBuild.versionName,
                     etat.infosBuild.versionCode,
                 )
-            binding.texteBuild.text =
+            binding.rangeeBuild.sousTitre =
                 getString(R.string.settings_a_propos_build, etat.infosBuild.buildType)
         }
     }

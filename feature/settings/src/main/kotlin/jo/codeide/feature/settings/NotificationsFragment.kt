@@ -51,14 +51,14 @@ class NotificationsFragment : BaseFragment<FragmentSettingsNotificationsBinding>
 
     /** Branchements des contrôles → actions (une seule fois). */
     private fun brancher() {
-        binding.interrupteurNotifSync.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerNotificationsSync(active))
+        binding.rangeeNotifSync.setSurChangementCoche { actif ->
+            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerNotificationsSync(actif))
         }
-        binding.interrupteurNotifBuild.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerNotificationsBuild(active))
+        binding.rangeeNotifBuild.setSurChangementCoche { actif ->
+            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerNotificationsBuild(actif))
         }
-        binding.interrupteurNotifSon.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerSonNotifications(active))
+        binding.rangeeNotifSon.setSurChangementCoche { actif ->
+            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerSonNotifications(actif))
         }
     }
 
@@ -66,9 +66,9 @@ class NotificationsFragment : BaseFragment<FragmentSettingsNotificationsBinding>
     private fun rendre(reglages: AppSettings) {
         renduEnCours = true
         try {
-            binding.interrupteurNotifSync.isChecked = reglages.notificationsSync
-            binding.interrupteurNotifBuild.isChecked = reglages.notificationsBuild
-            binding.interrupteurNotifSon.isChecked = reglages.sonNotifications
+            binding.rangeeNotifSync.coche = reglages.notificationsSync
+            binding.rangeeNotifBuild.coche = reglages.notificationsBuild
+            binding.rangeeNotifSon.coche = reglages.sonNotifications
         } finally {
             renduEnCours = false
         }

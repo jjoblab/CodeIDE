@@ -3,6 +3,9 @@
   Section Projets — section dédiée des Paramètres (ADR 0059) : sa propre
   toolbar (flèche retour + titre), le même SettingsViewModel que le
   maître — seule la présentation change.
+  Lot UI-3 (audit C6, ADR 0127) : rangées `RangeeParametre`, carte
+  `Widget.CodeIDE.Card`, filet au conteneur ; le champ auteur
+  (TextInputLayout) et les boutons d'action restent des composites.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -31,105 +34,77 @@
         android:fillViewport="true">
 
         <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/spacing_md"
             android:layout_marginVertical="@dimen/spacing_sm"
-            app:cardBackgroundColor="?attr/colorSurface"
-            app:contentPadding="@dimen/spacing_md"
-            app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:contentPadding="@dimen/spacing_md">
 
             <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
+                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064) ;
+                 le filet entre blocs lui appartient (ADR 0127 §3). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:divider="@drawable/separateur_rangee"
+                android:orientation="vertical"
+                android:showDividers="middle">
+
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_dossier"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:rangeeIcone="@drawable/ic_dossier"
+                    app:rangeeTitre="@string/settings_dossier_travail"
+                    app:rangeeType="aucun" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_dossier"
-                        app:tint="?attr/colorOnSurfaceVariant" />
+                    android:orientation="vertical"
+                    android:paddingVertical="@dimen/spacing_xs">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_changer_dossier"
+                            style="@style/Widget.CodeIDE.Button.Tonal"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_dossier_travail"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
+                            android:text="@string/settings_dossier_changer" />
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/texte_dossier"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_effacer_dossier"
+                            style="@style/Widget.CodeIDE.Button.Text"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            tools:text="CodeIDE" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/spacing_sm"
-                            android:orientation="horizontal">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/bouton_changer_dossier"
-                                style="@style/Widget.CodeIDE.Button.Tonal"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_dossier_changer" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/bouton_effacer_dossier"
-                                style="@style/Widget.CodeIDE.Button.Text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="@dimen/spacing_xs"
-                                android:text="@string/settings_dossier_effacer" />
-                        </LinearLayout>
+                            android:layout_marginStart="@dimen/spacing_xs"
+                            android:text="@string/settings_dossier_effacer" />
                     </LinearLayout>
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/progression_dossier"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/texte_retour_dossier"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:visibility="gone"
+                        tools:text="Dossier changé." />
                 </LinearLayout>
 
-                <com.google.android.material.progressindicator.CircularProgressIndicator
-                    android:id="@+id/progression_dossier"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:indeterminate="true"
-                    android:visibility="gone" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/texte_retour_dossier"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:visibility="gone"
-                    tools:text="Dossier changé." />
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/champ_nom_auteur_conteneur"
                     android:layout_width="match_parent"
@@ -145,56 +120,14 @@
                         android:inputType="textPersonName|textCapWords"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
+
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_licence"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_etiquette"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_licence_defaut"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/valeur_licence"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            tools:text="MIT" />
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_chevron_droite"
-                        app:tint="?attr/colorOutline" />
-                </LinearLayout>
+                    app:rangeeIcone="@drawable/ic_etiquette"
+                    app:rangeeTitre="@string/settings_licence_defaut"
+                    app:rangeeType="valeur" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>

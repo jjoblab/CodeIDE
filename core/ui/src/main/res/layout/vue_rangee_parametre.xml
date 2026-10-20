@@ -79,6 +79,18 @@
         android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone" />
 
+    <!-- Pastille d'état (rangeeIndicateur, écrans LSP L1/L2) : la forme
+         porte le niveau, le texte se lit d'un coup d'œil — masquée
+         tant que l'écran n'a pas d'état à montrer. -->
+    <jo.codeide.core.ui.IndicateurEtat
+        android:id="@+id/rangee_indicateur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:visibility="gone"
+        app:indicateurEtat="neutre"
+        tools:ignore="MissingPrefix" />
+
     <!-- Chevron de navigation (types chevron et valeur). -->
     <ImageView
         android:id="@+id/rangee_chevron"

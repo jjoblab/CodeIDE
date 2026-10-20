@@ -6,6 +6,11 @@
   ligatures, badges de diagnostic, sauvegarde automatique). Trois cartes
   à libellé de section, comme le maître des Paramètres (ADR 0059) :
   Apparence de l'éditeur / Affichage / Édition.
+
+  Lot UI-3 (audit C6, ADR 0127) : plus AUCUNE rangée recopiée — chaque
+  rangée vit dans `RangeeParametre` (core:ui), chaque carte porte
+  `Widget.CodeIDE.Card` + `EnteteSection`, le filet entre rangées
+  appartient au conteneur (divider/showDividers), jamais recopié.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -41,490 +46,187 @@
             <!-- Carte « Apparence de l'éditeur » : thème de coloration,
                  taille de police, ligatures. -->
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/spacing_md"
                 android:layout_marginVertical="@dimen/spacing_sm"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                     conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
+                     conteneur vertical unique (régression corrigée v0.35.4, ADR 0064) ;
+                     le filet entre enfants lui appartient (ADR 0127 §3). -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_editeur_apparence"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_editeur_apparence" />
 
-                    <!-- Thème de coloration : rangée cliquable, ouvre le
-                         sélecteur (choix unique) — la valeur courante sert
-                         de sous-titre, comme la licence par défaut. -->
-                    <LinearLayout
+                    <!-- Thème de coloration : rangée à choix, ouvre le
+                         sélecteur (choix unique) — la valeur courante
+                         s'affiche à droite, comme la licence par défaut. -->
+                    <jo.codeide.core.ui.RangeeParametre
                         android:id="@+id/rangee_theme_editeur"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_contraste"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_theme_editeur"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/valeur_theme_editeur"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                tools:text="VS Code Sombre" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@null"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_chevron_droite"
-                            app:tint="?attr/colorOutline" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="@dimen/spacing_sm"
-                        android:background="?attr/colorOutlineVariant" />
+                        app:rangeeIcone="@drawable/ic_contraste"
+                        app:rangeeTitre="@string/settings_theme_editeur"
+                        app:rangeeType="valeur" />
 
                     <!-- Taille de police : en-tête de groupe + trio de boutons
                          (miroir du terminal). -->
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_police_editeur"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingVertical="@dimen/spacing_xs">
+                        app:rangeeIcone="@drawable/ic_taille_police"
+                        app:rangeeTitre="@string/settings_taille_police"
+                        app:rangeeType="aucun" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:minHeight="@dimen/touch_target_min"
-                            android:orientation="horizontal">
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:importantForAccessibility="no"
-                                android:src="@drawable/ic_taille_police"
-                                app:tint="?attr/colorOnSurfaceVariant" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="@dimen/spacing_md"
-                                android:text="@string/settings_taille_police"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-                        </LinearLayout>
-
-                        <com.google.android.material.button.MaterialButtonToggleGroup
-                            android:id="@+id/groupe_police_editeur"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/spacing_sm"
-                            app:selectionRequired="true"
-                            app:singleSelection="true">
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/bouton_police_editeur_1"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/settings_police_petite" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/bouton_police_editeur_2"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/settings_police_moyenne" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/bouton_police_editeur_3"
-                                style="?attr/materialButtonOutlinedStyle"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/settings_police_grande" />
-                        </com.google.android.material.button.MaterialButtonToggleGroup>
-                    </LinearLayout>
-
-                    <View
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/groupe_police_editeur"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="@dimen/spacing_sm"
-                        android:background="?attr/colorOutlineVariant" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_police_editeur_1"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_police_petite" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_police_editeur_2"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_police_moyenne" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_police_editeur_3"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_police_grande" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
 
                     <!-- Ligatures : l'avertissement compte — activer coupe la
                          coloration syntaxique (compromis documenté de cel-ui). -->
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_ligatures"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_ligatures"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_ligatures"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_ligatures_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_ligatures"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_ligatures"
+                        app:rangeeSousTitre="@string/settings_ligatures_sous"
+                        app:rangeeTitre="@string/settings_ligatures"
+                        app:rangeeType="interrupteur" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Carte « Affichage » : retour à la ligne, minimap,
                  caractères non imprimables, badges de diagnostic. -->
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/spacing_md"
                 android:layout_marginVertical="@dimen/spacing_sm"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_editeur_affichage"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_editeur_affichage" />
 
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_retour_ligne"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
+                        app:rangeeIcone="@drawable/ic_retour_ligne"
+                        app:rangeeSousTitre="@string/settings_retour_ligne_sous"
+                        app:rangeeTitre="@string/settings_retour_ligne"
+                        app:rangeeType="interrupteur" />
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_retour_ligne"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_retour_ligne"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_retour_ligne_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_retour_ligne"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="@dimen/spacing_sm"
-                        android:background="?attr/colorOutlineVariant" />
-
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_minimap"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
+                        app:rangeeIcone="@drawable/ic_minimap"
+                        app:rangeeSousTitre="@string/settings_minimap_sous"
+                        app:rangeeTitre="@string/settings_minimap"
+                        app:rangeeType="interrupteur" />
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_minimap"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_minimap"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_minimap_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_minimap"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="@dimen/spacing_sm"
-                        android:background="?attr/colorOutlineVariant" />
-
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_caracteres_non_imprimables"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
+                        app:rangeeIcone="@drawable/ic_non_imprimables"
+                        app:rangeeSousTitre="@string/settings_caracteres_non_imprimables_sous"
+                        app:rangeeTitre="@string/settings_caracteres_non_imprimables"
+                        app:rangeeType="interrupteur" />
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_non_imprimables"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_caracteres_non_imprimables"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_caracteres_non_imprimables_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_caracteres_non_imprimables"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="@dimen/spacing_sm"
-                        android:background="?attr/colorOutlineVariant" />
-
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_chips_diagnostics"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_legende"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_chips_diagnostics"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_chips_diagnostics_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_chips_diagnostics"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_legende"
+                        app:rangeeSousTitre="@string/settings_chips_diagnostics_sous"
+                        app:rangeeTitre="@string/settings_chips_diagnostics"
+                        app:rangeeType="interrupteur" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Carte « Édition » : sauvegarde automatique. -->
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="@dimen/spacing_md"
                 android:layout_marginVertical="@dimen/spacing_sm"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_editeur_edition"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_editeur_edition" />
 
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_sauvegarde_auto"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_enregistrer"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_sauvegarde_auto"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/settings_sauvegarde_auto_sous"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/interrupteur_sauvegarde_auto"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_enregistrer"
+                        app:rangeeSousTitre="@string/settings_sauvegarde_auto_sous"
+                        app:rangeeTitre="@string/settings_sauvegarde_auto"
+                        app:rangeeType="interrupteur" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
