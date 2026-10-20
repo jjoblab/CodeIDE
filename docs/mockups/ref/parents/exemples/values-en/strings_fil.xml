@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fil_titre">News feed</string>
+    <string name="fil_f_tout">All</string>
+    <string name="fil_f_amis">Friends</string>
+    <string name="fil_f_suivis">Following</string>
+    <string name="fil_cd_nouveau">New message</string>
+</resources>

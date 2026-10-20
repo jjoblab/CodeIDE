@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="carte_badge">New</string>
+    <string name="carte_titre">Layout editor</string>
+    <string name="carte_sous">Live preview, no build needed</string>
+    <string name="carte_cd_fond">Project illustration</string>
+    <string name="carte_cd_lire">Play the video</string>
+</resources>

@@ -1,0 +1,173 @@
+[
+ {
+  "document": "profil",
+  "scenario": "S1 Button sous bio, marge 16 (popup : Dessous)",
+  "ajoute": [
+   "    <Button",
+   "        android:id=\"@+id/button1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"48dp\"",
+   "        android:layout_marginTop=\"16dp\"",
+   "        android:paddingHorizontal=\"24dp\"",
+   "        android:text=\"Button\"",
+   "        android:textSize=\"14sp\"",
+   "        android:layout_below=\"@id/bio\"",
+   "        android:layout_alignStart=\"@id/bio\" />"
+  ]
+ },
+ {
+  "document": "profil",
+  "scenario": "S2 TextView à droite de nom, marge 8 (popup : Droite)",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:layout_marginStart=\"8dp\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_toEndOf=\"@id/nom\"",
+   "        android:layout_alignTop=\"@id/nom\" />"
+  ]
+ },
+ {
+  "document": "profil",
+  "scenario": "S3 Switch au-dessus de btn_message, marge 0 (popup : Dessus)",
+  "ajoute": [
+   "    <Switch",
+   "        android:id=\"@+id/switch1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"48dp\"",
+   "        android:text=\"Switch\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_above=\"@id/btn_message\"",
+   "        android:layout_alignStart=\"@id/btn_message\" />"
+  ]
+ },
+ {
+  "document": "profil",
+  "scenario": "S4 TextView dans le parent, cellule bas-fin, marge 16 (popup : Dedans, racine)",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:layout_marginBottom=\"16dp\"",
+   "        android:layout_marginEnd=\"16dp\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_alignParentEnd=\"true\"",
+   "        android:layout_alignParentBottom=\"true\" />"
+  ]
+ },
+ {
+  "document": "profil",
+  "scenario": "S5 TextView dans le parent, centre (popup : Dedans, racine)",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_centerInParent=\"true\" />"
+  ]
+ },
+ {
+  "document": "carte",
+  "scenario": "S6 TextView, cellule haut-début (défaut : aucun layout_gravity)",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:layout_marginTop=\"16dp\"",
+   "        android:layout_marginStart=\"16dp\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\" />"
+  ]
+ },
+ {
+  "document": "carte",
+  "scenario": "S7 TextView, cellule bas-fin",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:layout_marginBottom=\"16dp\"",
+   "        android:layout_marginEnd=\"16dp\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_gravity=\"end|bottom\" />"
+  ]
+ },
+ {
+  "document": "carte",
+  "scenario": "S8 Button, cellule centre (Devant badge)",
+  "ajoute": [
+   "    <Button",
+   "        android:id=\"@+id/button1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"48dp\"",
+   "        android:paddingHorizontal=\"24dp\"",
+   "        android:text=\"Button\"",
+   "        android:textSize=\"14sp\"",
+   "        android:layout_gravity=\"center\" />"
+  ]
+ },
+ {
+  "document": "fil",
+  "scenario": "S9 FloatingActionButton lâché sur la liste (ancre, haut-centre)",
+  "ajoute": [
+   "    <com.google.android.material.floatingactionbutton.FloatingActionButton",
+   "        android:id=\"@+id/floatingActionButton1\"",
+   "        android:layout_width=\"56dp\"",
+   "        android:layout_height=\"56dp\"",
+   "        android:layout_marginTop=\"16dp\"",
+   "        android:layout_marginBottom=\"16dp\"",
+   "        android:layout_marginHorizontal=\"16dp\"",
+   "        app:srcCompat=\"@drawable/ic_search\"",
+   "        android:contentDescription=\"Action\"",
+   "        app:layout_anchor=\"@id/liste\"",
+   "        app:layout_anchorGravity=\"center_horizontal|top\" />"
+  ]
+ },
+ {
+  "document": "fil",
+  "scenario": "S10 TextView dans le CoordinatorLayout, cellule centre",
+  "ajoute": [
+   "    <TextView",
+   "        android:id=\"@+id/textView1\"",
+   "        android:layout_width=\"wrap_content\"",
+   "        android:layout_height=\"wrap_content\"",
+   "        android:text=\"TextView\"",
+   "        android:textSize=\"16sp\"",
+   "        android:layout_gravity=\"center\" />"
+  ]
+ },
+ {
+  "document": "fil",
+  "scenario": "S11 RecyclerView dans le CoordinatorLayout (comportement ajouté)",
+  "ajoute": [
+   "    <androidx.recyclerview.widget.RecyclerView",
+   "        android:id=\"@+id/recyclerView1\"",
+   "        android:layout_width=\"match_parent\"",
+   "        android:layout_height=\"160dp\"",
+   "        app:layout_behavior=\"@string/appbar_scrolling_view_behavior\" />"
+  ]
+ },
+ {
+  "document": "fil",
+  "scenario": "S12 Button dans l'AppBarLayout, après toolbar",
+  "ajoute": [
+   "        <Button",
+   "            android:id=\"@+id/button1\"",
+   "            android:layout_width=\"wrap_content\"",
+   "            android:layout_height=\"48dp\"",
+   "            android:paddingHorizontal=\"24dp\"",
+   "            android:text=\"Button\"",
+   "            android:textSize=\"14sp\" />"
+  ]
+ }
+]

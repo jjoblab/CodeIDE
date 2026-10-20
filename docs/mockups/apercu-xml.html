@@ -491,7 +491,7 @@ td code{display:inline-block;margin:1px 0}
       <div class="phone" id="phone">
         <header class="appbar">
           <button class="ib" id="btnClose" aria-label="Retour à l'éditeur"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-          <div class="ttl"><b>activity_login.xml</b><span>res/layout · rendu en <span id="ttlProfile">Pixel 4</span></span></div>
+          <div class="ttl"><b id="ttlFile">activity_login.xml</b><span>res/layout · rendu en <span id="ttlProfile">Pixel 4</span></span></div>
           <div class="seg" id="segMode" role="tablist" aria-label="Mode d'affichage">
             <button role="tab" data-mode="design" aria-selected="true">Design</button>
             <button role="tab" data-mode="bp" aria-selected="false">Plan</button>
@@ -548,11 +548,21 @@ td code{display:inline-block;margin:1px 0}
     </div>
 
     <div class="aside">
+      <div class="docs" role="group" aria-label="Document d'exemple">
+        <h3>Document d'exemple</h3>
+        <p>Un document par famille de parent : chaque racine range ses enfants selon ses propres règles.</p>
+        <div class="docbtns">
+          <button type="button" data-doc="login" aria-pressed="true"><b>activity_login.xml</b><span>ConstraintLayout</span></button>
+          <button type="button" data-doc="profil" aria-pressed="false"><b>activity_profil.xml</b><span>RelativeLayout</span></button>
+          <button type="button" data-doc="carte" aria-pressed="false"><b>activity_carte.xml</b><span>FrameLayout</span></button>
+          <button type="button" data-doc="fil" aria-pressed="false"><b>activity_fil.xml</b><span>CoordinatorLayout + AppBarLayout</span></button>
+        </div>
+      </div>
       <div class="keys" aria-label="Légende des calques">
         <div class="key"><span class="sym s1"></span><div><b>Sélection <span class="tag rework">Refonte</span></b><p>Cadre, poignées d'angle, nom et dimensions en dp.</p></div></div>
         <div class="key"><span class="sym s2"></span><div><b>Parent et frères <span class="tag new">Nouveau</span></b><p>Le parent en pointillés, les frères en filigrane.</p></div></div>
         <div class="key"><span class="sym s3"></span><div><b>Marges et padding <span class="tag new">Nouveau</span></b><p>Orange pour les marges, vert pour le padding, valeurs en dp.</p></div></div>
-        <div class="key"><span class="sym s4"></span><div><b>Contraintes <span class="tag new">Nouveau</span></b><p>Ancres et distances aux bords et aux voisins.</p></div></div>
+        <div class="key"><span class="sym s4"></span><div><b>Relations <span class="tag new">Nouveau</span></b><p>Contraintes du ConstraintLayout, règles du RelativeLayout, ancres du CoordinatorLayout, selon le parent.</p></div></div>
         <div class="key"><span class="sym s5"></span><div><b>Problèmes <span class="tag new">Nouveau</span></b><p>Pastilles : cible tactile, texte codé en dur, classe introuvable, texte tronqué.</p></div></div>
         <div class="key"><span class="sym s7"></span><div><b>Zones de dépôt <span class="tag new">Nouveau</span></b><p>Pendant un glisser ou un placement : conteneurs en violet, conteneur visé plein, barre d'insertion entre les frères.</p></div></div>
       </div>
@@ -565,6 +575,9 @@ td code{display:inline-block;margin:1px 0}
           <li>Dans l'onglet <b>Attributs</b>, passez en <b>Tous</b>, changez une couleur, un drapeau de <b>gravity</b> ou l'<b>alpha</b>, puis <b>Annuler</b> avec la barre du haut.</li>
           <li>Sur <b>lien_oublie</b>, utilisez les <b>corrections rapides</b>. Cherchez <b>bias</b> ou <b>ellipsize</b> dans la recherche.</li>
           <li>Glissez la <b>bulle</b> sur l'autre bord, ou fixez-la depuis l'en-tête de la palette.</li>
+          <li>Ouvrez <b>activity_profil.xml</b> (RelativeLayout) : glissez un widget près de <b>nom</b>, la règle <code>layout_below</code> ou <code>layout_toEndOf</code> se dessine avant le dépôt. Dans <b>Attributs</b>, choisissez <code>layout_below</code> = <b>bio</b> sur <b>role</b> : la boucle est refusée.</li>
+          <li>Ouvrez <b>activity_fil.xml</b> (CoordinatorLayout) : le bouton d'action est ancré au bas de l'AppBarLayout. Déposez un <b>FloatingActionButton</b> sur la liste pour l'ancrer ; essayez <b>anchorGravity</b>.</li>
+          <li>Ouvrez <b>activity_carte.xml</b> (FrameLayout) : le dépôt choisit une gravité parmi neuf cellules, et l'ordre des enfants est l'ordre d'empilement.</li>
         </ul>
       </div>
       <p class="note"><b>Limite de la maquette.</b> Le rendu est du HTML et le XML est généré depuis un arbre en mémoire. Dans l'application, le texte du document reste la seule source : la palette écrit une édition dans la session, et le rendu repart par le chemin normal.</p>
@@ -657,6 +670,60 @@ td code{display:inline-block;margin:1px 0}
   <p class="note"><b>À essayer.</b> Sélectionnez <b>lien_oublie</b> et touchez « Passer à 48 dp », puis « Extraire en @string ». Sur <b>btn_connexion</b>, choisissez la variante <b>OutlinedButton</b>, une couleur de texte et <b>gravity</b> <b>center</b>. Cherchez <b>bias</b> sur un enfant de la racine. Sur <b>champ_email</b>, ouvrez <b>Aides et compteur</b>. Ajoutez un <b>RecyclerView</b>, corrigez la dépendance, puis réglez <code>tools:itemCount</code>.</p>
 </section>
 
+<section class="sec" id="parents">
+  <div class="sec-head">
+    <span class="eyebrow">Parents et enfants · troisième vague</span>
+    <h2>Chaque parent range ses enfants à sa façon</h2>
+    <p class="lede">Aujourd'hui le dépôt ne connaît que trois genres de parent : la racine <code>ConstraintLayout</code>, <code>LinearLayout</code> et « autre ». Un <code>RelativeLayout</code> ou un <code>CoordinatorLayout</code> est donc traité comme une colonne, et les attributs de ses enfants ne sont ni proposés ni dessinés. Cette vague introduit une <b>famille de parent</b> : elle décide des sections de l'inspecteur, de la zone de dépôt, du popup de placement, du calque « Relations » et des problèmes. Dans la maquette, changez de document dans la colonne de droite ou dans le menu ⋮.</p>
+  </div>
+
+  <div class="tbl"><table class="gtbl">
+    <thead><tr><th>Famille</th><th>Classes</th><th>Ce qui place un enfant</th><th>Glisser-déposer</th><th>Popup « Où placer ? »</th><th>Calque Relations</th></tr></thead>
+    <tbody>
+      <tr><td><b>CONSTRAINT</b></td><td><code>ConstraintLayout</code></td><td><code>layout_constraint*</code>, biais, ratio</td><td>Barre d'insertion dans l'ordre ; contraintes déduites (existant)</td><td>Avant, Dedans, Après (existant)</td><td>Ancres vers les bords et les voisins</td></tr>
+      <tr><td><b>LINEAR</b></td><td><code>LinearLayout</code></td><td>Ordre, <code>layout_weight</code>, <code>layout_gravity</code></td><td>Barre d'insertion, verticale ou horizontale selon <code>orientation</code></td><td>Avant, Dedans, Après</td><td>Aucun</td></tr>
+      <tr><td><b>FRAME</b></td><td><code>FrameLayout</code>, <code>MaterialCardView</code></td><td><code>layout_gravity</code> (défaut début, haut) ; l'ordre est l'empilement</td><td>Neuf cellules : la cellule survolée choisit la gravité et les marges de 16 dp</td><td>Derrière, Dedans, Devant + grille 3 × 3</td><td>Aucun</td></tr>
+      <tr><td><b>RELATIVE</b></td><td><code>RelativeLayout</code></td><td>Règles <code>layout_below</code>, <code>toEndOf</code>, <code>alignParent*</code>, <code>center*</code> vers un frère ou le parent</td><td>À moins de 28 dp d'un frère : règle vers lui (côté, alignement, marge multiple de 8) ; sinon ancrage au parent</td><td>Dessous, Dessus, Droite, Gauche + grille d'ancrage + marge</td><td>Une flèche par règle, étiquette sur la vue sélectionnée</td></tr>
+      <tr><td><b>COORDINATOR</b></td><td><code>CoordinatorLayout</code></td><td><code>layout_gravity</code>, <code>layout_anchor</code> + <code>anchorGravity</code>, <code>layout_behavior</code>, <code>insetEdge</code></td><td>Neuf cellules ; un FloatingActionButton lâché sur une vue s'y ancre ; une liste reçoit le comportement de défilement si une AppBarLayout existe</td><td>Derrière, Dedans, Devant + grille 3 × 3</td><td>Ligne du point d'ancrage au centre de la vue ancrée</td></tr>
+      <tr><td><b>APPBAR</b></td><td><code>AppBarLayout</code></td><td>Colonne ; <code>layout_scrollFlags</code> sur chaque enfant</td><td>Barre d'insertion verticale</td><td>Avant, Dedans, Après</td><td>Aucun</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="sec-head"><h3>Ce que la maquette garantit</h3></div>
+  <div class="found">
+    <article class="fnd">
+      <h3>Le rendu suit la famille <span class="tag new">Nouveau</span></h3>
+      <p>Le placement reprend les règles du framework : gravité d'un <code>FrameLayout</code>, tri des dépendances et arithmétique des marges du <code>RelativeLayout</code>, point d'ancrage puis recadrage dans les marges du <code>CoordinatorLayout</code>. Dans l'application, c'est LayoutLib qui rend ; la maquette sert à décider de l'interface.</p>
+      <span class="src">FrameLayout.onLayout · RelativeLayout.DependencyGraph · CoordinatorLayout.getDesiredAnchoredChildRect</span>
+    </article>
+    <article class="fnd">
+      <h3>Les attributs d'un enfant suivent son parent <span class="tag new">Nouveau</span></h3>
+      <p>Un enfant de <code>RelativeLayout</code> reçoit « Dans le parent » et « Positions relatives », jamais <code>layout_weight</code>. Les listes de références ne proposent que les vues sœurs, ou le sous-arbre pour une ancre. <code>anchorGravity</code> reste grisé tant qu'il n'y a pas d'ancre.</p>
+      <span class="src">sectionsFor · FamilleParent</span>
+    </article>
+    <article class="fnd">
+      <h3>Attribut ignoré par le parent <span class="tag wr">Problème</span></h3>
+      <p>Un attribut de layout hors famille (<code>layout_below</code> dans un <code>LinearLayout</code>, <code>layout_weight</code> dans un <code>FrameLayout</code>) est signalé : le parent l'ignore. Correction rapide : le retirer.</p>
+      <span class="src">ProblemesPreview</span>
+    </article>
+    <article class="fnd">
+      <h3>Dépendance circulaire <span class="tag wr">Erreur</span></h3>
+      <p>Une règle qui fermerait une boucle est grisée dans la liste. Si le XML en contient une quand même, LayoutLib lève <code>Circular dependencies cannot exist in RelativeLayout</code> : le bandeau « Dernier rendu valide » s'affiche et un problème propose de casser la boucle.</p>
+      <span class="src">Simulé : « Erreur de rendu » · dernier rendu conservé</span>
+    </article>
+    <article class="fnd">
+      <h3>Suppression et renommage sans référence morte <span class="tag new">Nouveau</span></h3>
+      <p>Supprimer une vue retire les règles, ancres et <code>labelFor</code> qui la visaient, en une seule édition annulable. Renommer un <code>@+id</code> met à jour ces références (<code>RenommageIdentifiant</code> existe déjà, la suppression est à ajouter à <code>EditionAttributsXml</code>).</p>
+      <span class="src">EditionAttributsXml · RenommageIdentifiant</span>
+    </article>
+    <article class="fnd">
+      <h3>Limites assumées <span class="tag wr">À mesurer</span></h3>
+      <p><code>RelativeLayout.gravity</code> et <code>ignoreGravity</code> s'écrivent sans effet simulé ; la ligne de base est approchée ; les comportements autres que celui de l'AppBarLayout ne bougent rien ; un attribut <code>app:</code> peut ne pas changer le rendu LayoutLib (P3). La sémantique des ancres se vérifie en comparant la maquette à une mesure de LayoutLib avant livraison.</p>
+    </article>
+  </div>
+  <p class="note"><b>À essayer.</b> Sur <b>activity_profil.xml</b>, sélectionnez <b>role</b> : la section « Positions relatives » liste ses règles et le calque Relations les dessine. Ajoutez un <b>Button</b> avec « Placer par popup », choisissez <b>Dessous</b> de <b>bio</b>, puis une marge. Sur <b>activity_fil.xml</b>, lâchez un <b>FloatingActionButton</b> sur la liste. Dans <b>Attributs</b> de <b>bio</b>, essayez <code>layout_below</code> = <b>stats</b> : l'option est grisée, elle fermerait la boucle <b>stats</b> → <b>bio</b>.</p>
+</section>
+
 <section class="sec" id="fidelite">
   <div class="sec-head">
     <span class="eyebrow">Design exact · spécification pour l'agent</span>
@@ -681,7 +748,7 @@ td code{display:inline-block;margin:1px 0}
   <div class="cols2">
     <article class="card"><h3>Ce que reçoit l'agent</h3>
       <ul><li><b>PREVIEW_UI.md</b> : règle d'or, constat, jetons, typographie, cotes, anatomie, états, conventions XML, recette.</li>
-      <li><b>ADR 0131 à 0129</b> : fidélité et thème, refonte de l'écran, typographie et cibles tactiles.</li>
+      <li><b>ADR 0131 à 0134</b> : fidélité et thème, refonte de l'écran, typographie et cibles tactiles.</li>
       <li><b>ressources/</b> : 66 fichiers Android prêts à copier (attributs, couleurs clair et nuit, dimensions, styles, drawables, 30 layouts), XML vérifié.</li>
       <li><b>ref/</b> : 110+ captures clair et nuit, deux planches annotées, mesures calculées, jetons en JSON.</li></ul></article>
     <article class="card"><h3>Comment la fidélité est gardée</h3>
@@ -879,11 +946,11 @@ const DEVICES = [
   {id:'tab', name:'Tablette 10"', w:800, h:1280, dpi:320, old:false},
   {id:'sm',  name:'Petit écran',  w:320, h:568,  dpi:320, old:false}
 ];
-const STR = {
+const STR0 = {
   fr:{appbar:'Connexion', titre:'Bon retour', sous:'Connectez-vous pour reprendre votre projet', email:'Adresse e-mail', mdp:'Mot de passe', souvenir:'Se souvenir de moi', btn:'Se connecter'},
   en:{appbar:'Sign in',   titre:'Welcome back', sous:'Sign in to pick up your project',           email:'Email address', mdp:'Password',     souvenir:'Remember me',        btn:'Sign in'}
 };
-const ROOT = {rid:'root', cls:'ConstraintLayout', fq:'androidx.constraintlayout.widget.ConstraintLayout', k:'C', kind:'root', children:[
+const ROOT0 = {rid:'root', cls:'ConstraintLayout', fq:'androidx.constraintlayout.widget.ConstraintLayout', k:'C', kind:'root', children:[
   {rid:'logo', cls:'ImageView', k:'I', kind:'logo', w:88, h:88, mt:32, center:true, extra:[['android:src','@drawable/ic_logo']]},
   {rid:'titre', cls:'TextView', k:'T', kind:'text', w:'m', h:'w', mt:24, ml:24, mr:24, size:28, txt:'titre', extra:[['android:textStyle','bold']]},
   {rid:'sous_titre', cls:'TextView', k:'T', kind:'text', w:'m', h:'w', mt:4, ml:24, mr:24, size:14, txt:'sous', muted:true},
@@ -893,6 +960,7 @@ const ROOT = {rid:'root', cls:'ConstraintLayout', fq:'androidx.constraintlayout.
   {rid:'btn_connexion', cls:'Button', k:'B', kind:'btn', w:'m', h:48, mt:20, ml:24, mr:24, pad:[24,0,24,0], size:14, txt:'btn', click:true},
   {rid:'lien_oublie', cls:'TextView', k:'T', kind:'link', w:'w', h:'w', mt:16, center:true, pad:[8,6,8,6], size:14, lit:'Mot de passe oublié ?', click:true}
 ]};
+let STR = JSON.parse(JSON.stringify(STR0)), ROOT = JSON.parse(JSON.stringify(ROOT0)), DOC = null;
 let SHEET_OPEN = 300;
 const S = {
   dev:0, land:false, night:false, lang:null, fs:1, mode:'design', nav:true,
@@ -900,7 +968,7 @@ const S = {
   sel:'btn_connexion', tab:'tree', open:false, sim:null, autofit:true, pop:null,
   z:1, tx:0, ty:0, W:393, H:851, b:{}, chrome:[], probs:[], boards:[],
   palMode:'drag', palCat:'Tous', palQ:'', recents:[], bub:{side:'l', y:.42, fixed:false},
-  attrMode:'c', attrQ:'', so:{}, focusAttr:null, hist:[], redo:[], flash:null, dropView:null, place:null, drag:null, errLine:0
+  attrMode:'c', attrQ:'', so:{}, focusAttr:null, hist:[], redo:[], flash:null, dropView:null, place:null, drag:null, errLine:0, lastGood:null, cyc:null
 };
 const $ = id => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -924,10 +992,12 @@ function nextId(cls) {
 function mkView(v, t, po) {
   const e = el('div', 'v'); e.dataset.rid = v.rid;
   const s = e.style, fs = S.fs;
-  s.margin = (v.mt||0)+'px '+(v.mr||0)+'px '+(v.mb||0)+'px '+(v.ml||0)+'px';
-  if (po === 'h') { s.alignSelf = 'center'; if (v.w === 'm') s.flex = '1 1 0'; else if (v.w !== 'w') s.width = v.w+'px'; }
+  const posKid = /^[frc]$/.test(po);   /* enfant d'un FrameLayout, RelativeLayout ou CoordinatorLayout : position absolue posée par layoutPos */
+  s.margin = posKid ? '0' : (v.mt||0)+'px '+(v.mr||0)+'px '+(v.mb||0)+'px '+(v.ml||0)+'px';
+  if (posKid) { if (typeof v.w === 'number') s.width = v.w + 'px'; }
+  else if (po === 'h') { s.alignSelf = 'center'; if (v.w === 'm') s.flex = '1 1 0'; else if (v.w !== 'w') s.width = v.w+'px'; }
   else if (v.w !== 'm') { s.alignSelf = v.center ? 'center' : 'flex-start'; if (v.w !== 'w') s.width = v.w+'px'; }
-  if (v.h !== 'w') s.height = (v.h === 'm' ? '100%' : v.h + 'px');
+  if (typeof v.h === 'number') s.height = v.h + 'px'; else if (!posKid && v.h === 'm') s.height = '100%';
   if (v.minH) s.minHeight = v.minH + 'px';
   if (v.pad) s.padding = v.pad[1]+'px '+v.pad[2]+'px '+v.pad[3]+'px '+v.pad[0]+'px';
   const text = ex(v, 'tools:text') || (v.lit != null ? v.lit : (v.txt && t[v.txt]));
@@ -977,7 +1047,7 @@ function mkView(v, t, po) {
     case 'divider': s.background = 'var(--s-outline)'; s.opacity = '.45'; break;
     case 'space': break;
     case 'recycler':
-      s.flexDirection = 'column'; s.overflow = 'hidden';
+      s.flexDirection = 'column'; s.overflow = 'hidden'; e.dataset.scroll = '1';
       const nRows = Math.min(12, Math.max(1, parseInt(ex(v, 'tools:itemCount')) || 4));
       for (let i = 0; i < nRows; i++) {
         const row = el('div'); row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid color-mix(in srgb,var(--s-outline) 35%,transparent);flex:none';
@@ -985,27 +1055,35 @@ function mkView(v, t, po) {
           bar('flex:1;height:8px;border-radius:4px;background:color-mix(in srgb,var(--s-fg) 22%,transparent)'));
         e.appendChild(row);
       } break;
-    case 'group':
-      s.flexDirection = v.orient === 'h' ? 'row' : 'column';
-      if (v.orient === 'h') s.alignItems = 'center';
+    case 'toolbar': {
+      s.background = 'var(--s-pri)'; s.alignItems = 'center'; s.padding = '0 16px'; s.gap = '16px';
+      const ic = el('span', 'dr', '←'); ic.style.cssText = 'font-size:20px;color:var(--s-onpri)';
+      e.append(ic, tx(text, 20, {color:'var(--s-onpri)', fontWeight:'500', flex:'1'})); break; }
+    case 'fab': {
+      s.background = 'var(--s-pri)'; s.borderRadius = '16px'; s.alignItems = 'center'; s.justifyContent = 'center'; s.boxShadow = '0 3px 8px rgba(0,0,0,.35)';
+      const g = el('span', 'dr', '+'); g.style.cssText = 'font-size:26px;line-height:1;color:var(--s-onpri)'; e.appendChild(g); break; }
+    case 'group': {
+      const fam = famOf(v);
+      if (isPosFam(fam)) e.dataset.lay = fam;
+      else { s.flexDirection = v.orient === 'h' ? 'row' : 'column'; if (v.orient === 'h') s.alignItems = 'center'; }
       if (v.card) { s.background = 'var(--s-surf)'; s.borderRadius = '12px'; s.boxShadow = '0 1px 4px rgba(0,0,0,.28)'; s.border = '1px solid color-mix(in srgb,var(--s-outline) 40%,transparent)'; }
-      (v.children || []).forEach(c => e.appendChild(mkView(c, t, v.orient || 'v'))); break;
+      (v.children || []).forEach(c => e.appendChild(mkView(c, t, FAM_PO[fam] || v.orient || 'v'))); break; }
   }
   applyFx(e, v, po);
   return e;
 }
 function buildScreen(bp) {
-  const {w, h} = dim(), t = STR[S.lang || 'fr'];
+  const {w, h} = dim(), t = STR[S.lang || 'fr'], rfam = famOf(ROOT);
   const sc = el('div', 'screen' + (S.night ? ' night' : '') + (bp ? ' bp' : '') + (S.layers.grid ? ' grid' : ''));
   sc.style.cssText += 'width:'+w+'px;height:'+h+'px;display:flex;flex-direction:column';
   const sb = el('div', 'chrome sbar'); sb.dataset.chrome = '1';
   sb.append(el('span', '', '9:41'), el('span', '', '5G  ▮▮▮ 100%'));
   const ab = el('div', 'chrome abar', t.appbar); ab.dataset.chrome = '1';
-  const root = el('div', 'root v'); root.dataset.rid = 'root';
+  const root = el('div', 'root v'); root.dataset.rid = 'root'; if (isPosFam(rfam)) root.dataset.lay = rfam;
   root.style.alignItems = 'stretch'; root.style.flexDirection = 'column'; root.style.flex = '1 1 0';
   { const rb = colorCss(ex(ROOT, 'android:background')); if (rb) root.style.background = rb; if (ROOT.pad) root.style.padding = ROOT.pad[1] + 'px ' + ROOT.pad[2] + 'px ' + ROOT.pad[3] + 'px ' + ROOT.pad[0] + 'px'; }
-  ROOT.children.forEach(v => root.appendChild(mkView(v, t, 'v')));
-  sc.append(sb, ab, root);
+  ROOT.children.forEach(v => root.appendChild(mkView(v, t, FAM_PO[rfam] || 'v')));
+  sc.append(sb); if (!(DOC && DOC.noBar)) sc.appendChild(ab); sc.appendChild(root);
   if (S.nav) { const nb = el('div', 'chrome nbar'); nb.dataset.chrome = '1'; nb.append(el('i'), el('i'), el('i')); sc.appendChild(nb); }
   return sc;
 }
@@ -1019,7 +1097,7 @@ function measure(sc) {
     const q = n.getBoundingClientRect();
     b[n.dataset.rid] = {x:(q.left-sr.left)/r, y:(q.top-sr.top)/r, w:q.width/r, h:q.height/r};
     n.querySelectorAll(':scope > .t').forEach(c => { if (c.scrollWidth > c.clientWidth + 1) trunc.add(n.dataset.rid); });
-    if (n.dataset.rid !== 'root' && !n.querySelector('[data-rid]') && n.scrollHeight > n.clientHeight + 1) trunc.add(n.dataset.rid);
+    if (n.dataset.rid !== 'root' && !n.dataset.scroll && !n.querySelector('[data-rid]') && n.scrollHeight > n.clientHeight + 1) trunc.add(n.dataset.rid);
   });
   sc.querySelectorAll('[data-chrome]').forEach(n => {
     const q = n.getBoundingClientRect();
@@ -1027,12 +1105,12 @@ function measure(sc) {
   });
   return {b, chrome, trunc};
 }
-function computeProblems(trunc) {
+function computeProblemsBase(trunc) {
   const p = [];
   nodes().forEach(v => {
     const q = S.b[v.rid];
     if (v.mock) p.push({rid:v.rid, sev:'e', title:'Classe introuvable : ' + v.cls, msg:'Ajoutez ' + v.dep + ' au module. En attendant, l’aperçu affiche un cadre de remplacement.'});
-    if ((v.kind === 'logo' || v.kind === 'image') && !v.cd) p.push({rid:v.rid, sev:'w', title:v.cls + ' sans contentDescription', msg:'Un lecteur d’écran ne sait pas annoncer cette image.'});
+    if (['logo', 'image', 'fab'].includes(v.kind) && !v.cd && !ex(v, 'android:contentDescription')) p.push({rid:v.rid, sev:'w', title:v.cls + ' sans contentDescription', msg:'Un lecteur d’écran ne sait pas annoncer cette image.'});
     if (v.lit) p.push({rid:v.rid, sev:'w', title:'Texte codé en dur', msg: S.lang === 'en' ? 'Ce texte reste identique en anglais : il n’est pas dans values-en.' : 'Utilisez @string/ pour que values-en le traduise.'});
     if (v.click && q && Math.min(q.w, q.h) < 47.5) p.push({rid:v.rid, sev:'w', title:'Cible tactile trop petite', msg:'Mesure ' + r0(q.w) + ' × ' + r0(q.h) + ' dp, minimum recommandé 48 × 48.'});
     if (trunc.has(v.rid)) p.push({rid:v.rid, sev:'e', title:'Texte tronqué', msg:'Le contenu dépasse la vue à la police ×' + String(S.fs).replace('.', ',') + '.'});
@@ -1042,7 +1120,7 @@ function computeProblems(trunc) {
 
 /* ---------- Source XML généré depuis l'arbre ---------- */
 function attrsOf(v, par, prev) {
-  const inRoot = par && par.rid === 'root';
+  const inRoot = !!par && famOf(par) === 'cons';
   const a = [['android:id', '@+id/' + v.rid],
     ['android:layout_width', v.w === 'm' ? (inRoot ? '0dp' : 'match_parent') : v.w === 'w' ? 'wrap_content' : v.w + 'dp'],
     ['android:layout_height', v.h === 'w' ? 'wrap_content' : v.h === 'm' ? 'match_parent' : v.h + 'dp']];
@@ -1058,10 +1136,11 @@ function attrsOf(v, par, prev) {
     if (v.pad[0] === v.pad[2] && v.pad[0]) a.push(['android:paddingHorizontal', v.pad[0] + 'dp']);
     if (v.pad[1] === v.pad[3] && v.pad[1]) a.push(['android:paddingVertical', v.pad[1] + 'dp']);
   }
-  if (v.kind === 'group') a.push(['android:orientation', v.orient === 'h' ? 'horizontal' : 'vertical']);
+  if (v.kind === 'group' && famOf(v) === 'lin') a.push(['android:orientation', v.orient === 'h' ? 'horizontal' : 'vertical']);
   if (v.minH && !ex(v, 'android:minHeight')) a.push(['android:minHeight', v.minH + 'dp']);
   if (v.hint) a.push(['android:hint', v.hint]);
-  if (v.lit) a.push(['android:text', v.lit]); else if (v.txt) a.push(['android:text', '@string/login_' + v.txt]);
+  if (v.kind === 'toolbar') a.push(['app:title', v.lit != null ? v.lit : '@string/' + sName(v.txt)]);
+  else if (v.lit) a.push(['android:text', v.lit]); else if (v.txt) a.push(['android:text', '@string/' + sName(v.txt)]);
   if (v.kind === 'edit') a.push(['android:inputType', 'text']);
   if (v.size) a.push(['android:textSize', v.size + 'sp']);
   (v.extra || []).forEach(x => a.push(x));
@@ -1155,7 +1234,7 @@ function drawOverlay(bd) {
     (f.p.children || []).forEach(x => { if (x.rid !== sel && b[x.rid]) box('sib', b[x.rid].x, b[x.rid].y, b[x.rid].w, b[x.rid].h, ov); });
     const pq = b[f.p.rid]; if (pq) box('par', pq.x, pq.y, pq.w, pq.h, ov);
   }
-  if (L.con) drawConstraints(ov);
+  if (L.con) drawRelations(ov);
   if (L.mg && v && q && sel !== 'root' && !S.dropView) drawBoxModel(ov, v, q);
   if (v && q && !S.dropView) {
     const s = box('sel', q.x, q.y, q.w, q.h, ov);
@@ -1195,7 +1274,17 @@ function dupSel() {
 }
 function delSel() {
   const f = S.sel && find(S.sel); if (!f || !f.p) return;
-  const name = label(f.n); pushHist(); f.p.children.splice(f.i, 1); S.sel = null; render(); toast(name + ' supprimé');
+  const name = label(f.n); pushHist();
+  const gone = new Set(); walk(f.n, n => gone.add(n.rid));
+  f.p.children.splice(f.i, 1);
+  let nr = 0;   /* aucune référence ne doit pointer une vue supprimée (règles, ancres, labelFor) */
+  [ROOT].concat(nodes()).forEach(k => {
+    const before = (k.extra || []).length;
+    k.extra = (k.extra || []).filter(e => { const m = /^@\+?id\/(\w+)$/.exec(e[1]); return !(m && gone.has(m[1])); });
+    nr += before - k.extra.length;
+    if (k.extra.length && !ex(k, 'app:layout_anchor')) setEx(k, 'app:layout_anchorGravity', '');
+  });
+  S.sel = null; render(); toast(name + ' supprimé' + (nr ? ' · ' + nr + ' référence' + (nr > 1 ? 's' : '') + ' retirée' + (nr > 1 ? 's' : '') : ''));
 }
 function updateEditBar() {
   const f = S.sel && find(S.sel), can = !!(f && f.p);
@@ -1281,7 +1370,7 @@ function vRes(x, ty) {
   const m = /^@(\w+)\/([\w.]+)$/.exec(x);
   if (!m) return {err:'Référence attendue : @' + ty[0] + '/nom.'};
   if (!ty.includes(m[1])) return {err:'Type @' + m[1] + ' refusé ici, attendu : ' + ty.map(t => '@' + t).join(', ') + '.'};
-  const set = m[1] === 'string' ? Object.keys(STR.fr).map(k => 'login_' + k) : (Array.isArray(RES[m[1]]) ? RES[m[1]] : RES[m[1]] ? Object.keys(RES[m[1]]) : null);
+  const set = m[1] === 'string' ? Object.keys(STR.fr).map(k => sName(k)) : (Array.isArray(RES[m[1]]) ? RES[m[1]] : RES[m[1]] ? Object.keys(RES[m[1]]) : null);
   return set && !set.includes(m[2]) ? {warn:'@' + m[1] + '/' + m[2] + ' introuvable dans res/.'} : {};
 }
 
@@ -1312,11 +1401,12 @@ const PRE = 'app:layout_constraint';
 function sectionsFor(v, par) {
   const k = v.kind, out = [], sec = (t, cs, o) => out.push(Object.assign({t, cs}, o || {}));
   const T = ['text', 'link', 'btn', 'check', 'switch'].includes(k), isRoot = v.rid === 'root';
-  const genre = isRoot ? 'none' : par && par.rid === 'root' ? 'cons' : par && par.card ? 'frame' : 'lin';
+  const genre = isRoot ? 'none' : famOf(par);
   sec('Identité', [{t:'id', a:'android:id', l:'identifiant', c:0, ro:isRoot}, C.str('android:tag', 'tag')]);
   if (isRoot) {
     sec('Racine', [C.str('tools:context', 'tools:context', 1, /^[.\w]+$/, 'Nom d’activité attendu, par exemple .MainActivity.'), C.col('android:background', 'background', 1),
       {t:'sides', k:'p', l:'padding', c:1}, C.tri('android:fitsSystemWindows', 'fitsSystemWindows'), C.tri('android:clipToPadding', 'clipToPadding'), C.num('android:minHeight', 'minHeight', 'dp')]);
+    containerSecs(v, sec);
     return out;
   }
   /* ----- spécifiques à la classe ----- */
@@ -1351,8 +1441,12 @@ function sectionsFor(v, par) {
     : [C.col('android:thumbTint', 'thumbTint', 1), C.col('android:trackTint', 'trackTint', 1), C.tri('android:showText', 'showText'), C.str('android:textOn', 'textOn'), C.str('android:textOff', 'textOff')]));
   if (k === 'image' || k === 'logo') sec('Image', [C.res('android:src', 'src', ['drawable'], 1), C.res('app:srcCompat', 'srcCompat', ['drawable']), C.list('android:scaleType', 'scaleType', SCALE, 1), C.tri('android:adjustViewBounds', 'adjustViewBounds'),
     C.col('app:tint', 'tint'), C.list('android:tintMode', 'tintMode', ['src_in', 'src_atop', 'multiply', 'screen', 'add']), C.tri('android:cropToPadding', 'cropToPadding'), C.num('android:maxWidth', 'maxWidth', 'dp', 0, 0), C.num('android:maxHeight', 'maxHeight', 'dp', 0, 0)]);
+  if (k === 'toolbar') sec('Barre d’outils', [{t:'lit', a:'app:title', l:'titre', c:1}, C.str('app:subtitle', 'sous-titre'), C.res('app:navigationIcon', 'navigationIcon', ['drawable'], 1), C.tri('app:titleCentered', 'titleCentered'),
+    C.col('app:titleTextColor', 'titleTextColor'), C.res('app:menu', 'menu', ['menu'])]);
+  if (k === 'fab') sec('Bouton d’action', [C.res('app:srcCompat', 'srcCompat', ['drawable'], 1), C.col('app:backgroundTint', 'backgroundTint', 1), C.list('app:fabSize', 'fabSize', ['auto', 'normal', 'mini'], 1),
+    C.col('app:tint', 'tint'), C.num('app:elevation', 'elevation', 'dp', 0, 0), C.num('app:borderWidth', 'borderWidth', 'dp', 0, 0), C.col('app:rippleColor', 'rippleColor'), C.tri('app:useCompatPadding', 'useCompatPadding')]);
   if (k === 'group') {
-    sec('Conteneur', [{t:'orient', a:'android:orientation', l:'orientation', c:1}, C.flg('android:gravity', 'gravity', GRAV, 1), C.tri('android:baselineAligned', 'baselineAligned'), C.num('android:weightSum', 'weightSum', '', 0, 0),
+    if (famOf(v) !== 'lin') containerSecs(v, sec); else sec('Conteneur', [{t:'orient', a:'android:orientation', l:'orientation', c:1}, C.flg('android:gravity', 'gravity', GRAV, 1), C.tri('android:baselineAligned', 'baselineAligned'), C.num('android:weightSum', 'weightSum', '', 0, 0),
       C.flg('android:showDividers', 'showDividers', ['beginning', 'middle', 'end']), C.res('android:divider', 'divider', ['drawable']), C.num('android:dividerPadding', 'dividerPadding', 'dp', 0, 0),
       C.tri('android:measureWithLargestChild', 'measureWithLargestChild'), C.tri('android:clipChildren', 'clipChildren'), C.tri('android:clipToPadding', 'clipToPadding'), C.tri('android:animateLayoutChanges', 'animateLayoutChanges')]);
     if (v.card) sec('Carte', [C.col('app:cardBackgroundColor', 'cardBackgroundColor', 1), C.num('app:cardCornerRadius', 'arrondi', 'dp', 1, 0), C.num('app:cardElevation', 'élévation', 'dp', 1, 0),
@@ -1381,7 +1475,7 @@ function sectionsFor(v, par) {
       {t:'quick', l:'Actions', c:1, items:[['Remplir l’espace restant', () => { setEx(v, 'android:layout_weight', '1'); if (par.orient === 'h') v.w = 'm'; else v.h = 'm'; }]]}]);
   } else if (genre === 'frame') {
     sec('Dans le parent', [C.flg('android:layout_gravity', 'layout_gravity', GRAV, 1)]);
-  }
+  } else parentSecs(v, par, genre, sec);
   /* ----- communs ----- */
   sec('Disposition', [{t:'dims', c:1}, {t:'sides', k:'m', l:'marges', c:1}, {t:'sides', k:'p', l:'padding', c:1},
     {t:'minh', a:'android:minHeight', l:'minHeight', u:'dp', c:0}, C.num('android:minWidth', 'minWidth', 'dp', 0, 0), C.num('android:maxWidth', 'maxWidth', 'dp', 0, 0), C.num('android:maxHeight', 'maxHeight', 'dp', 0, 0)].filter(c => !((k === 'image' || k === 'logo') && /max/.test(c.a || ''))));
@@ -1446,7 +1540,7 @@ function ctl(box, c, v, par) {
   const f = fieldBox(c, v), id = fid(c), cur = c.a ? ex(v, c.a) : '';
   const inp = (type, val, on) => { const i = el('input'); i.type = type; i.id = id; if (type === 'number') i.step = 'any'; i.value = val; i.onchange = () => on(i.value, i); f.appendChild(i); return i; };
   if (t === 'lit') {
-    if (v.txt) f.appendChild(el('div', 'ro', '@string/login_' + v.txt + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »'));
+    if (v.txt) f.appendChild(el('div', 'ro', '@string/' + sName(v.txt) + ' = « ' + STR[S.lang || 'fr'][v.txt] + ' »'));
     else inp('text', v.lit || '', x => mutate(() => { v.lit = x; }));
   } else if (t === 'hint') inp('text', v.hint || '', x => mutate(() => { v.hint = x; }));
   else if (t === 'size') inp('number', v.size || '', x => mutate(() => { v.size = Math.max(1, +x || 1); }));
@@ -1458,7 +1552,10 @@ function ctl(box, c, v, par) {
       if (x === v.rid) return;
       if (!/^[a-z][a-z0-9_]*$/.test(x)) { i.classList.add('bad'); showMsg(f, {err:'snake_case attendu : lettres minuscules, chiffres et _.'}); return; }
       if (find(x) || x === 'root') { i.classList.add('bad'); showMsg(f, {err:'@+id/' + x + ' existe déjà.'}); return; }
-      mutate(() => { const old = v.rid; v.rid = x; S.sel = x; if (S.flash === old) S.flash = x; }, 'Renommé en @+id/' + x);
+      pushHist(); const old = v.rid; v.rid = x; S.sel = x; if (S.flash === old) S.flash = x;
+      let nr = 0;
+      [ROOT].concat(nodes()).forEach(k => (k.extra || []).forEach(e => { const m = /^@\+?id\/(\w+)$/.exec(e[1]); if (m && m[1] === old) { e[1] = '@id/' + x; nr++; } }));
+      render(); toast('Renommé en @+id/' + x + (nr ? ' · ' + nr + ' référence' + (nr > 1 ? 's' : '') + ' mise' + (nr > 1 ? 's' : '') + ' à jour' : ''));
     });
     if (!c.ro) f.appendChild(el('div', 'note2', 'Renomme aussi les références @id/… du document (RenommageIdentifiant).'));
   } else if (t === 'str') {
@@ -1498,9 +1595,9 @@ function ctl(box, c, v, par) {
     const g = el('div', 'flg'), parts = cur.split('|').filter(Boolean), opts = c.o.concat(parts.filter(p => !c.o.includes(p)));
     g.setAttribute('role', 'group'); g.setAttribute('aria-label', c.l);
     opts.forEach(x => {
-      const b = el('button', '', x); b.type = 'button'; b.setAttribute('aria-pressed', String(parts.includes(x)));
+      const b = el('button', '', x); b.type = 'button'; b.setAttribute('aria-pressed', String(parts.includes(x))); if (c.en === false) b.disabled = true;
       b.onclick = () => mutate(() => { const n = parts.includes(x) ? parts.filter(p => p !== x) : parts.concat(x); setEx(v, c.a, opts.filter(o => n.includes(o)).join('|')); }); g.appendChild(b);
-    }); f.appendChild(g);
+    }); f.appendChild(g); if (c.en === false) f.appendChild(el('div', 'note2', c.why));
   } else if (t === 'col') {
     const row = el('div', 'colr'), sw = el('span', 'sw2'), pb = el('button', 'linkbtn', 'Palette'); pb.type = 'button'; pb.setAttribute('aria-expanded', 'false');
     sw.style.setProperty('--c', colorCss(cur) || 'transparent'); sw.setAttribute('role', 'img'); sw.setAttribute('aria-label', 'Aperçu de la couleur');
@@ -1553,8 +1650,15 @@ function ctl(box, c, v, par) {
     }); f.appendChild(g);
   } else if (t === 'idref') {
     const s = el('select'); s.id = id; const o0 = el('option', '', 'aucun'); o0.value = ''; s.appendChild(o0);
-    nodes().filter(n => n.rid !== v.rid).forEach(n => { const o = el('option', '', '@id/' + n.rid); o.value = '@id/' + n.rid; if (cur === o.value) o.selected = true; s.appendChild(o); });
+    const cu = cur.replace('@+id/', '@id/'), cands = c.scope ? refCands(v, par, c) : nodes().filter(n => n.rid !== v.rid).map(n => ({n, bad:false}));
+    cands.forEach(({n, bad}) => { const o = el('option', '', '@id/' + n.rid + (bad ? ' (boucle)' : '')); o.value = '@id/' + n.rid; o.disabled = bad && cu !== o.value; if (cu === o.value) o.selected = true; s.appendChild(o); });
+    if (cu && !cands.some(x => '@id/' + x.n.rid === cu)) { const o = el('option', '', cu + ' (introuvable)'); o.value = cu; o.selected = true; s.appendChild(o); }
     s.onchange = () => mutate(() => setEx(v, c.a, s.value)); f.appendChild(s);
+    if (c.scope === 'sib') f.appendChild(el('div', 'note2', 'Vues sœurs seulement. Une règle qui fermerait une boucle est grisée.'));
+  } else if (t === 'tgl') {
+    const g = el('div', 'flg'); g.setAttribute('role', 'group'); g.setAttribute('aria-label', c.l);
+    c.items.forEach(([a, lab]) => { const on = ex(v, a) === 'true', b = el('button', '', lab); b.type = 'button'; b.setAttribute('aria-pressed', String(on)); b.onclick = () => mutate(() => setEx(v, a, on ? '' : 'true')); g.appendChild(b); });
+    f.appendChild(g);
   } else if (t === 'sides') {
     const m = c.k === 'm', K = m ? ['mt', 'mr', 'mb', 'ml'] : [1, 2, 3, 0], g = el('div', 'mrow');
     ['haut', 'droite', 'bas', 'gauche'].forEach((n, j) => {
@@ -1572,7 +1676,7 @@ function ctl(box, c, v, par) {
 
 /* ---------- Corrections rapides, tirées des problèmes de la vue ---------- */
 function extractStr(v) { const key = v.rid.replace(/[^a-z0-9_]/g, '_'); STR.fr[key] = v.lit; STR.en[key] = v.lit; v.txt = key; delete v.lit; }
-function quickFixes(v) {
+function quickFixesBase(v) {
   const out = [];
   S.probs.filter(p => p.rid === v.rid).forEach(p => {
     let fx = null;
@@ -1668,7 +1772,7 @@ function applyFx(e, v, po) {
   if (tr.length) s.transform = tr.join(' ');
   [['minWidth', 'android:minWidth'], ['minHeight', 'android:minHeight'], ['maxWidth', 'android:maxWidth'], ['maxHeight', 'android:maxHeight']].forEach(([p, a]) => { const x = N(a); if (x != null) s[p] = x + 'px'; });
   const bg = colorCss(X('android:background')); if (bg) s.background = bg;
-  const tint = colorCss(X('app:backgroundTint') || X('android:backgroundTint')); if (tint && v.kind === 'btn') s.background = tint;
+  const tint = colorCss(X('app:backgroundTint') || X('android:backgroundTint')); if (tint && ['btn', 'fab'].includes(v.kind)) s.background = tint;
   const elv = N('android:elevation'); if (elv) s.boxShadow = '0 ' + Math.min(elv / 2, 8) + 'px ' + elv + 'px rgba(0,0,0,.3)';
   const wt = N('android:layout_weight'); if (wt) { if (po === 'h') s.flex = wt + ' 1 0'; else s.flexGrow = wt; }
   const wp = N(PRE + 'Width_percent'); if (wp) { s.width = (wp * 100) + '%'; s.flex = 'none'; s.alignSelf = v.center ? 'center' : 'flex-start'; }
@@ -1736,7 +1840,7 @@ function applyFx(e, v, po) {
 }
 function applyBias(sc) {
   sc.querySelectorAll('[data-rid]').forEach(n => {
-    const v = viewOf(n.dataset.rid); if (!v || !n.parentElement || n.parentElement.dataset.rid !== 'root') return;
+    const v = viewOf(n.dataset.rid); if (!v || famOf(ROOT) !== 'cons' || !n.parentElement || n.parentElement.dataset.rid !== 'root') return;
     const b = parseFloat(ex(v, PRE + 'Horizontal_bias')); if (isNaN(b)) return;
     const cs = getComputedStyle(n.parentElement), pw = n.parentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), free = pw - n.offsetWidth - (v.ml || 0) - (v.mr || 0);
     if (free > 0) { n.style.alignSelf = 'flex-start'; n.style.marginLeft = ((v.ml || 0) + free * b) + 'px'; }
@@ -1818,20 +1922,22 @@ function applySheet() {
 /* ---------- Pastille d'état, bandeau, toast ---------- */
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
 function renderStatus() {
-  const st = $('status'), bn = $('banner'), n = nodes().length + 1;
-  st.className = 'hud status' + (S.sim === 'edit' ? ' edit' : S.sim ? ' err' : '');
+  const st = $('status'), bn = $('banner'), n = nodes().length + 1, sim = simNow();
+  st.className = 'hud status' + (sim === 'edit' ? ' edit' : sim ? ' err' : '');
   st.innerHTML = '<span class="dot"></span>' + (
-    S.sim === 'edit' ? '<b>XML en cours de frappe</b> · dernier rendu conservé' :
-    S.sim === 'err' ? '<b>Dernier rendu valide</b> conservé' :
-    S.sim === 'crash' ? '<b>Mode local dégradé</b> · processus :preview arrêté' :
+    sim === 'edit' ? '<b>XML en cours de frappe</b> · dernier rendu conservé' :
+    sim === 'err' ? '<b>Dernier rendu valide</b> conservé' :
+    sim === 'crash' ? '<b>Mode local dégradé</b> · processus :preview arrêté' :
     '<b>Rendu</b> · <span title="Valeur d’exemple dans la maquette">142 ms</span> · ' + n + ' vues · ' + S.W + '×' + S.H + ' dp');
-  bn.hidden = !(S.sim === 'err' || S.sim === 'crash');
-  if (S.sim === 'err') {
-    const ln = SRC.span.btn_connexion ? SRC.span.btn_connexion[0] + 1 : 1;
-    bn.innerHTML = '<div class="msg clip" id="bmsg"><b>Erreur de rendu</b> · Classe introuvable : com.exemple.CarteProfil. Vérifiez le nom de la classe et la dépendance du module.</div><button type="button" id="bGo">Ligne ' + ln + '</button><button type="button" id="bMore">Détails</button>';
-    $('bGo').onclick = () => { S.open = true; S.tab = 'src'; applySheet(); select('btn_connexion', true); };
+  bn.hidden = !(sim === 'err' || sim === 'crash');
+  if (sim === 'err') {
+    const cy = S.cyc, tgt = cy ? cy.path[0] : (find('btn_connexion') ? 'btn_connexion' : ROOT.children.length ? ROOT.children[0].rid : 'root'), ln = SRC.span[tgt] ? SRC.span[tgt][0] + 1 : 1;
+    const msg = cy ? '<b>Erreur de rendu</b> · Dépendance circulaire dans ' + esc(cy.cont) + ' : ' + cy.path.map(x => '@id/' + esc(x)).join(' → ') + '. RelativeLayout refuse une boucle de règles.'
+      : '<b>Erreur de rendu</b> · Classe introuvable : com.exemple.CarteProfil. Vérifiez le nom de la classe et la dépendance du module.';
+    bn.innerHTML = '<div class="msg clip" id="bmsg">' + msg + '</div><button type="button" id="bGo">Ligne ' + ln + '</button><button type="button" id="bMore">Détails</button>';
+    $('bGo').onclick = () => { S.open = true; S.tab = 'src'; applySheet(); select(tgt, true); };
     $('bMore').onclick = () => { const m = $('bmsg'); const c = m.classList.toggle('clip'); $('bMore').textContent = c ? 'Détails' : 'Réduire'; };
-  } else if (S.sim === 'crash') {
+  } else if (sim === 'crash') {
     bn.innerHTML = '<div class="msg"><b>Le processus :preview a cessé de répondre.</b> Le rendu passe en local, plus lent. Une reprise automatique a déjà eu lieu.</div><button type="button" id="bRetry">Réessayer</button>';
     $('bRetry').onclick = () => { S.sim = null; renderStatus(); };
   }
@@ -1864,7 +1970,7 @@ function showPop(kind, openerId) {
       () => { S.dev = i; S.autofit = true; hidePop(); render(); }, '<span class="tag ' + (d.old ? 'old">Existant' : 'new">Nouveau') + '</span>')));
   } else if (kind === 'layers') {
     h4('Calques');
-    [['par', 'Parent et frères'], ['mg', 'Marges et padding'], ['con', 'Contraintes'], ['prob', 'Problèmes'], ['bnd', 'Bornes de toutes les vues'], ['grid', 'Grille 8 dp']].forEach(a =>
+    [['par', 'Parent et frères'], ['mg', 'Marges et padding'], ['con', 'Relations'], ['prob', 'Problèmes'], ['bnd', 'Bornes de toutes les vues'], ['grid', 'Grille 8 dp']].forEach(a =>
       pop.appendChild(opt(a[1], '', S.layers[a[0]], 'menuitemcheckbox', o => { S.layers[a[0]] = !S.layers[a[0]]; o.setAttribute('aria-checked', String(S.layers[a[0]])); render(); })));
     h4('Chrome système');
     pop.appendChild(opt('Barre de navigation', '', S.nav, 'menuitemcheckbox', o => { S.nav = !S.nav; o.setAttribute('aria-checked', String(S.nav)); render(); }));
@@ -1873,6 +1979,8 @@ function showPop(kind, openerId) {
     [['err', 'Erreur de rendu', 'Classe introuvable, dernier rendu conservé'], ['edit', 'Frappe en cours', 'XML malformé, aucun rendu remplacé'],
      ['crash', 'Processus :preview arrêté', 'Repli en rendu local'], [null, 'Rendu normal', '']].forEach(a =>
       pop.appendChild(opt(a[1], a[2], S.sim === a[0], 'menuitemradio', () => { S.sim = a[0]; hidePop(); renderStatus(); })));
+    h4('Document d’exemple');
+    Object.values(DOCS).forEach(d => pop.appendChild(opt(d.file, d.fam, DOC && DOC.id === d.id, 'menuitemradio', () => { hidePop(); loadDoc(d.id); })));
   }
   pop.hidden = false;
 }
@@ -1889,7 +1997,7 @@ function applyT() {
 function fit() {
   const cv = $('canvas'), w = $('world'), cw = cv.clientWidth, ch = cv.clientHeight, ww = w.offsetWidth, wh = w.offsetHeight;
   if (!ww || !wh || !cw) return;
-  const top = (S.sim === 'err' || S.sim === 'crash') ? 62 : 56, bottom = ch - (S.open ? SHEET_OPEN : 72) - 10, uw = cw - 24, uh = bottom - top - 8;
+  const top = (simNow() === 'err' || simNow() === 'crash') ? 62 : 56, bottom = ch - (S.open ? SHEET_OPEN : 72) - 10, uw = cw - 24, uh = bottom - top - 8;
   let z = Math.min(uw / ww, uh / wh, 1.4);
   if (S.open) z = Math.max(z, Math.min(uw / ww, .5));
   z = Math.max(0.08, z); S.z = z; S.tx = (cw - ww * z) / 2;
@@ -1982,7 +2090,6 @@ function bindResize(h, c) {
     const f = find(S.sel); if (!f || !f.p) return;
     const q = S.b[S.sel]; if (!q) return;
     e.preventDefault(); e.stopPropagation();
-    h.setPointerCapture(e.pointerId);
     // L'ancre = le coin OPPOSÉ à la poignée saisie (c[0]/c[1] : coin dans la boîte).
     const d0 = toDesign(e.clientX, e.clientY);
     if (!d0) return; // saisie hors zone utile (sous la feuille) : pas de geste
@@ -1995,19 +2102,39 @@ function bindResize(h, c) {
       render();
     };
     const up = () => {
-      h.removeEventListener('pointermove', mv);
-      h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
       const w = rszDim(Math.abs(S.rsz.x - S.rsz.ax)), hh = rszDim(Math.abs(S.rsz.y - S.rsz.ay));
       const rid = S.sel; S.rsz = null;
       if (moved < 6) { render(); return; }
       mutate(() => { const ff = find(rid); if (!ff) return; ff.n.w = w; ff.n.h = hh; }, 'Redimensionné : ' + w + ' × ' + hh + ' dp');
     };
-    h.addEventListener('pointermove', mv);
-    h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+    window.addEventListener('pointermove', mv);
+    window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     render();
   });
 }
 </script>
+<style>
+/* familles de parents */
+.root[data-lay],.v[data-lay]{display:block}
+[data-lay]>.v{position:absolute}
+.cell{position:absolute;background:var(--new-soft);border:calc(2px/var(--z,1)) solid var(--new);border-radius:calc(4px/var(--z,1))}
+.gbox{position:absolute;border:calc(1.5px/var(--z,1)) dashed var(--new);background:var(--new-soft);border-radius:calc(4px/var(--z,1))}
+.pop.bot.tall{max-height:min(580px,calc(100% - 134px));overflow-y:auto}
+.pop h4.pl{margin:2px 4px 0}
+.pos.g3 button{font-size:16px;line-height:1;padding:9px 6px}
+.docs{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.docs h3{margin:0;font:600 15px/1.2 var(--font-d)}
+.docs p{margin:0;font-size:13.5px;color:var(--muted)}
+.docbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.docbtns button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:3px;cursor:pointer;font:500 12.5px/1.2 var(--font-m);min-width:0;overflow-wrap:anywhere}
+.docbtns button span{color:var(--muted);font:400 12px/1.25 var(--font-b)}
+.docbtns button[aria-pressed="true"]{border-color:var(--new);background:var(--new-soft)}
+.docbtns button:hover{border-color:var(--new)}
+.pop.bot.tall .mini{max-height:100px}
+
+</style>
 <script>
 /* ---------- Catalogue de la palette ---------- */
 const ICO = {
@@ -2026,11 +2153,18 @@ const ICO = {
   pb:'<rect x="4" y="10" width="16" height="4" rx="2"/><path d="M4 12h9"/>',
   sk:'<path d="M4 12h16"/><circle cx="10" cy="12" r="3"/>',
   dv:'<path d="M4 12h16" stroke-dasharray="2 3"/>',
-  sp:'<path d="M5 9v6M19 9v6M5 12h14"/>'
+  sp:'<path d="M5 9v6M19 9v6M5 12h14"/>',
+  fl:'<rect x="4" y="5" width="16" height="14" rx="2"/><rect x="7" y="8" width="7" height="5" rx="1"/>',
+  rl:'<rect x="4" y="5" width="16" height="14" rx="2"/><rect x="6.5" y="7.5" width="5" height="4" rx="1"/><rect x="12.5" y="13" width="5" height="4" rx="1"/><path d="M9 11.5v4h3.5"/>',
+  cl:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="4" y="4" width="16" height="5"/><circle cx="16.5" cy="9" r="2.5"/>',
+  abl:'<rect x="4" y="5" width="16" height="9" rx="1.5"/><path d="M7 9.5h5M4 17h16"/>',
+  tb:'<rect x="4" y="7" width="16" height="10" rx="1.5"/><path d="M7 12h5M7 12l2-2M7 12l2 2"/>',
+  fab:'<rect x="5" y="5" width="14" height="14" rx="5"/><path d="M12 9v6M9 12h6"/>'
 };
 const svg = k => '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>';
 const MAT = 'com.google.android.material:material';
 const CATS = ['Texte', 'Boutons', 'Conteneurs', 'Médias', 'Listes', 'Autres'];
+const COORD = 'androidx.coordinatorlayout.widget.CoordinatorLayout';
 const WIDGETS = [
   {id:'tv',  name:'TextView',         cls:'TextView',   cat:'Texte',      ico:'tv',  make:() => ({cls:'TextView', k:'T', kind:'text', w:'w', h:'w', size:16, lit:'TextView'})},
   {id:'et',  name:'Plain Text',       cls:'EditText',   cat:'Texte',      ico:'et',  make:() => ({cls:'EditText', k:'E', kind:'edit', w:'m', h:48, size:16, hint:'Nom', lit:''})},
@@ -2042,6 +2176,12 @@ const WIDGETS = [
   {id:'llv', name:'LinearLayout (V)', cls:'Vertical',   cat:'Conteneurs', ico:'llv', make:() => ({cls:'LinearLayout', k:'Ll', kind:'group', orient:'v', w:'m', h:'w', minH:96, children:[]})},
   {id:'llh', name:'LinearLayout (H)', cls:'Horizontal', cat:'Conteneurs', ico:'llh', make:() => ({cls:'LinearLayout', k:'Ll', kind:'group', orient:'h', w:'m', h:'w', minH:96, children:[]})},
   {id:'card',name:'MaterialCardView', cls:'Material',   cat:'Conteneurs', ico:'card',dep:MAT, make:() => ({cls:'MaterialCardView', fq:'com.google.android.material.card.MaterialCardView', k:'Cv', kind:'group', card:true, orient:'v', w:'m', h:'w', minH:96, pad:[16,16,16,16], children:[]})},
+  {id:'fl',  name:'FrameLayout',      cls:'Pile',       cat:'Conteneurs', ico:'fl',  make:() => ({cls:'FrameLayout', fq:'android.widget.FrameLayout', k:'Fl', kind:'group', lay:'frame', w:'m', h:'w', minH:96, children:[]})},
+  {id:'rl',  name:'RelativeLayout',   cls:'Règles',     cat:'Conteneurs', ico:'rl',  make:() => ({cls:'RelativeLayout', fq:'android.widget.RelativeLayout', k:'Rl', kind:'group', lay:'rel', w:'m', h:'w', minH:96, children:[]})},
+  {id:'cl',  name:'CoordinatorLayout',cls:'Material',   cat:'Conteneurs', ico:'cl',  dep:MAT, make:() => ({cls:'CoordinatorLayout', fq:COORD, k:'Cl', kind:'group', lay:'coord', w:'m', h:160, children:[]})},
+  {id:'abl', name:'AppBarLayout',     cls:'Material',   cat:'Conteneurs', ico:'abl', dep:MAT, make:() => ({cls:'AppBarLayout', fq:'com.google.android.material.appbar.AppBarLayout', k:'Ab', kind:'group', lay:'appbar', orient:'v', w:'m', h:'w', minH:56, children:[]})},
+  {id:'tb',  name:'MaterialToolbar',  cls:'Material',   cat:'Autres',     ico:'tb',  dep:MAT, make:() => ({cls:'MaterialToolbar', fq:'com.google.android.material.appbar.MaterialToolbar', k:'Tb', kind:'toolbar', w:'m', h:56, lit:'Titre'})},
+  {id:'fab', name:'FloatingActionButton', cls:'Material', cat:'Boutons',  ico:'fab', dep:MAT, make:() => ({cls:'FloatingActionButton', fq:'com.google.android.material.floatingactionbutton.FloatingActionButton', k:'Fb', kind:'fab', w:56, h:56, click:true, cd:true, extra:[['app:srcCompat', '@drawable/ic_search'], ['android:contentDescription', 'Action']]})},
   {id:'iv',  name:'ImageView',        cls:'ImageView',  cat:'Médias',     ico:'iv',  make:() => ({cls:'ImageView', k:'I', kind:'image', w:96, h:96})},
   {id:'rv',  name:'RecyclerView',     cls:'AndroidX',   cat:'Listes',     ico:'rv',  dep:'androidx.recyclerview:recyclerview', missing:true,
     make:() => ({cls:'RecyclerView', fq:'androidx.recyclerview.widget.RecyclerView', k:'Rv', kind:'recycler', w:'m', h:160, mock:true, dep:'androidx.recyclerview:recyclerview'})},
@@ -2053,19 +2193,6 @@ const WIDGETS = [
 const wById = id => WIDGETS.find(w => w.id === id);
 
 /* ---------- Zones de dépôt : cible sous un point, repère d'insertion ---------- */
-function targetAt(x, y) {
-  const rq = S.b.root;
-  if (!rq || x < rq.x || x >= rq.x + rq.w || y < rq.y || y >= rq.y + rq.h) return null;
-  let best = ROOT, bd = 0;
-  flat().forEach(f => {
-    if (!f.n.children) return;
-    const q = S.b[f.n.rid];
-    if (q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h && f.d >= bd) { best = f.n; bd = f.d; }
-  });
-  const horiz = best.orient === 'h'; let idx = 0;
-  best.children.forEach(c => { const q = S.b[c.rid]; if (!q) return; const mid = horiz ? q.x + q.w / 2 : q.y + q.h / 2; if ((horiz ? x : y) > mid) idx++; });
-  return {parentRid: best.rid, index: idx};
-}
 function slotRect(par, i) {
   const pq = S.b[par.rid], kids = par.children, qs = kids.map(c => S.b[c.rid]), th = 4 / S.z, n = kids.length;
   if (par.orient !== 'h') {
@@ -2083,16 +2210,6 @@ function slotRect(par, i) {
   else x = (qs[i-1].x + qs[i-1].w + qs[i].x) / 2;
   return {x: x - th / 2, y: pq.y + 8, w: th, h: Math.max(8, pq.h - 16)};
 }
-function drawDrop(ov, dv) {
-  const z = S.z;
-  flat().forEach(f => { if (!f.n.children) return; const q = S.b[f.n.rid]; if (q) box('dz', q.x, q.y, q.w, q.h, ov); });
-  const t = dv.target; if (!t) return;
-  const par = viewOf(t.parentRid), pq = par && S.b[par.rid]; if (!pq) return;
-  box('dz on', pq.x, pq.y, pq.w, pq.h, ov);
-  chip(ov, 'nw', 'Dans ' + label(par), pq.x, pq.y - 24 / z >= 0 ? pq.y - 24 / z : pq.y + 4 / z);
-  const s = slotRect(par, t.index); box('slot', s.x, s.y, s.w, s.h, ov);
-  chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + (t.index + 1) + '/' + (par.children.length + 1), s.x, s.y + s.h + 6 / z);
-}
 function ensureVisible(y) {
   const pop = $('pop'); if (pop.hidden) return;
   const pr = pop.getBoundingClientRect(), cr = $('canvas').getBoundingClientRect(), limit = pr.top - cr.top - 26, sy = S.ty + y * S.z;
@@ -2100,62 +2217,6 @@ function ensureVisible(y) {
 }
 
 /* ---------- Insertion (dans l'application : édition de texte passée à la session) ---------- */
-function insertAt(w, parentRid, index) {
-  const par = viewOf(parentRid); if (!par || !par.children) return;
-  const n = w.make(); n.rid = nextId(n.cls);
-  if (par.rid === 'root') { n.mt = 16; if (n.w === 'm') { n.ml = 24; n.mr = 24; } else n.center = true; }
-  else if (par.orient === 'h' && n.w === 'm') n.w = 'w';
-  pushHist(); par.children.splice(Math.min(index, par.children.length), 0, n);
-  S.recents = [w.id].concat(S.recents.filter(x => x !== w.id)).slice(0, 4); save();
-  S.sel = n.rid; S.flash = n.rid; clearTimeout(insertAt.t);
-  insertAt.t = setTimeout(() => { S.flash = null; if (S.tab === 'src') renderPane(); }, 2600);
-  render(); revealSel();
-  toast(w.name + ' ajouté dans ' + par.cls + (par.rid === 'root' ? '' : ' @+id/' + par.rid) + (n.mock ? '. Dépendance manquante.' : ''));
-}
-
-/* ---------- Placement par popup ---------- */
-function normPos() { const p = S.place, n = viewOf(p.ref); if (p.ref === 'root') p.pos = 'in'; else if (!n.children && p.pos === 'in') p.pos = 'after'; }
-function placeTarget() {
-  const p = S.place, f = find(p.ref);
-  if (p.pos === 'in') return {parentRid: p.ref, index: f.n.children.length};
-  const i = f.p.children.indexOf(f.n); return {parentRid: f.p.rid, index: p.pos === 'before' ? i : i + 1};
-}
-function setPlaceRef(rid) {
-  if (!S.place) return; const n = viewOf(rid); if (!n) return;
-  S.place.ref = rid; if (n.children) S.place.pos = 'in'; drawPlace();
-}
-function showPlace(w) {
-  hidePop(); S.pop = 'place'; $('pop').className = 'pop bot'; $('pop').hidden = false;
-  const ref = S.sel && find(S.sel) ? S.sel : 'root';
-  S.place = {w, ref, pos: viewOf(ref).children ? 'in' : 'after'}; drawPlace();
-}
-function drawPlace() {
-  normPos();
-  const pop = $('pop'), old = pop.querySelector('.mini'), keep = old ? old.scrollTop : 0; pop.replaceChildren();
-  const p = S.place, w = p.w, refN = viewOf(p.ref);
-  const hd = el('div', 'ph-head'); hd.appendChild(el('b', '', 'Où placer ' + w.name + ' ?'));
-  const x = el('button', 'ib'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.onclick = hidePop; hd.appendChild(x);
-  const mini = el('div', 'mini'); mini.setAttribute('aria-label', 'Vue de référence');
-  flat().forEach(f => {
-    const r = el('button', 'row' + (f.n.rid === p.ref ? ' on' : '')); r.type = 'button'; r.style.paddingLeft = (8 + f.d * 16) + 'px';
-    r.append(el('span', 'k', f.n.k), el('span', '', f.n.cls), el('span', 'id', '@+id/' + f.n.rid)); r.onclick = () => setPlaceRef(f.n.rid); mini.appendChild(r);
-  });
-  const pos = el('div', 'pos'); pos.setAttribute('role', 'radiogroup'); pos.setAttribute('aria-label', 'Position par rapport à la vue de référence');
-  [['before', 'Avant'], ['in', 'Dedans'], ['after', 'Après']].forEach(([m, t]) => {
-    const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(p.pos === m));
-    b.disabled = (m === 'in' && !refN.children) || (m !== 'in' && p.ref === 'root');
-    b.onclick = () => { p.pos = m; drawPlace(); }; pos.appendChild(b);
-  });
-  const t = placeTarget(), par = viewOf(t.parentRid);
-  const res = el('div', 'res'); res.innerHTML = 'Dans <b>' + esc(label(par)) + '</b>, position <b>' + (t.index + 1) + '</b> sur ' + (par.children.length + 1);
-  const ok = el('button', 'prim', 'Placer ici'); ok.type = 'button';
-  ok.onclick = () => { const tt = placeTarget(); hidePop(); insertAt(w, tt.parentRid, tt.index); };
-  pop.append(hd, mini, pos, res, ok); mini.scrollTop = keep;
-  const cur = mini.querySelector('.row.on'); if (cur) mini.scrollTop = Math.max(0, cur.offsetTop - mini.clientHeight / 2 + cur.offsetHeight / 2);
-  S.dropView = {w, target: t}; redraw();
-  const s = slotRect(par, t.index); ensureVisible(s.y + s.h / 2);
-}
-
 /* ---------- Palette ---------- */
 function save() { try { localStorage.setItem('codeide.preview.v2', JSON.stringify({palMode:S.palMode, bub:S.bub, recents:S.recents})); } catch (_) {} }
 function load() {
@@ -2244,7 +2305,7 @@ function beginDrag(w, x, y) {
 function moveDrag(x, y) {
   if (!S.drag) return;
   const g = $('ghost'); g.style.left = x + 'px'; g.style.top = y + 'px';
-  const d = toDesign(x, y), t = d ? targetAt(d.x, d.y) : null, key = t ? t.parentRid + ':' + t.index : '';
+  const d = toDesign(x, y), t = d ? targetAt(d.x, d.y, S.drag.w) : null, key = t ? t.parentRid + ':' + t.index + ':' + (t.hint ? t.hint.text : '') : '';
   $('ghostT').textContent = t ? '→ ' + viewOf(t.parentRid).cls : '';
   if (key === S.drag.key) return;
   S.drag.key = key; S.dropView.target = t; redraw();
@@ -2256,7 +2317,7 @@ function endDrag(x, y, ok) {
   $('phone').classList.remove('dragging'); $('pop').style.visibility = '';
   S.drag = null; S.dropView = null; S.justDragged = true; setTimeout(() => { S.justDragged = false; }, 120);
   hidePop();
-  if (ok && t) insertAt(w, t.parentRid, t.index); else { redraw(); toast('Dépôt annulé : relâchez sur l’écran de l’aperçu.'); }
+  if (ok && t) insertAt(w, t.parentRid, t.index, t); else { redraw(); toast('Dépôt annulé : relâchez sur l’écran de l’aperçu.'); }
 }
 document.addEventListener('touchmove', e => { if (S.drag) e.preventDefault(); }, {passive:false});
 
@@ -2292,12 +2353,18 @@ function bindBubble() {
 function buildBoards() {
   const w = $('world'); w.replaceChildren(); S.boards = []; lastZ = -1;
   const d = dim(); S.W = d.w; S.H = d.h; w.style.padding = '26px 20px 0';
+  const cyc = relCycle(); S.cyc = cyc;
+  let live = null;
+  if (cyc && S.lastGood) { live = {c:ROOT.children, x:ROOT.extra, p:ROOT.pad}; const j = JSON.parse(S.lastGood); ROOT.children = j.c; ROOT.extra = j.x; ROOT.pad = j.p; }   /* LayoutLib refuse la boucle : on garde le dernier rendu valide */
   (S.mode === 'design' ? [false] : S.mode === 'bp' ? [true] : [false, true]).forEach(bp => {
     const bd = el('div', 'board'); bd.appendChild(el('span', 'cap', bp ? 'Plan' : 'Design · ' + DEVICES[S.dev].name));
-    const sc = buildScreen(bp), ov = el('div', 'ov'); bd.append(sc, ov); w.appendChild(bd); applyBias(sc);
+    const sc = buildScreen(bp), ov = el('div', 'ov'); bd.append(sc, ov); w.appendChild(bd); layoutPos(sc); applyBias(sc);
     S.boards.push({bd, sc, ov, bp});
   });
-  const m = measure(S.boards[0].sc); S.b = m.b; S.chrome = m.chrome; S.probs = computeProblems(m.trunc);
+  const m = measure(S.boards[0].sc); S.b = m.b; S.chrome = m.chrome;
+  if (live) { ROOT.children = live.c; ROOT.extra = live.x; ROOT.pad = live.p; }
+  S.probs = computeProblems(m.trunc);
+  if (!cyc) S.lastGood = snap();
 }
 function updateChips() {
   const d = DEVICES[S.dev], f = String(S.fs).replace('.', ',');
@@ -2333,8 +2400,590 @@ function init() {
     if (S.drag) endDrag(0, 0, false); else if (S.pop) hidePop();
   });
   if (window.ResizeObserver) new ResizeObserver(() => { if (S.autofit) fit(); placeBubble(); }).observe($('canvas'));
-  render();
+  document.querySelectorAll('[data-doc]').forEach(b => { b.onclick = () => loadDoc(b.dataset.doc); });
+  loadDoc('login', true);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
 }
+/* ====== Familles de parents (ADR 0135) ====== */
+/* ---------- Familles de parents (ADR 0135) : un parent = une famille de paramètres de layout ---------- */
+const FAM_PO = {frame:'f', rel:'r', coord:'c'};
+const famOf = n => !n ? null : n.lay || (n.rid === 'root' ? (n.cls === 'ConstraintLayout' ? 'cons' : 'lin') : n.card ? 'frame' : 'lin');
+const isPosFam = f => f === 'frame' || f === 'rel' || f === 'coord';
+const sName = k => (DOC.pre || 'login') + '_' + k;
+const FAM_LABEL = {cons:'ConstraintLayout', lin:'LinearLayout', frame:'FrameLayout', rel:'RelativeLayout', coord:'CoordinatorLayout', appbar:'AppBarLayout'};
+const G9 = [['start|top', 'center_horizontal|top', 'end|top'], ['start|center_vertical', 'center', 'end|center_vertical'], ['start|bottom', 'center_horizontal|bottom', 'end|bottom']];
+const G9TXT = [['haut, début', 'haut, centre', 'haut, fin'], ['centre, début', 'centre', 'centre, fin'], ['bas, début', 'bas, centre', 'bas, fin']];
+const G9GLY = [['↖', '↑', '↗'], ['←', '●', '→'], ['↙', '↓', '↘']];
+const gravParts = s => (s || '').split('|').filter(Boolean);
+const r8 = n => Math.max(0, Math.round(n / 8) * 8);
+const MGS = [0, 8, 16, 24];
+
+/* règles de RelativeLayout : nom → [axe, rôle]. L'ordre H puis V reproduit RelativeLayout.applyHorizontalSizeRules / applyVerticalSizeRules. */
+const REL_REFS = ['below', 'above', 'toEndOf', 'toStartOf', 'toLeftOf', 'toRightOf', 'alignTop', 'alignBottom', 'alignStart', 'alignEnd', 'alignLeft', 'alignRight', 'alignBaseline'];
+const REL_FLAGS = ['alignParentStart', 'alignParentEnd', 'alignParentLeft', 'alignParentRight', 'alignParentTop', 'alignParentBottom', 'centerInParent', 'centerHorizontal', 'centerVertical'];
+const refId = (v, name) => { const m = /^@\+?id\/(\w+)$/.exec(ex(v, 'android:layout_' + name)); return m ? m[1] : null; };
+function relEdges(par) {
+  const g = new Map(), rids = new Set((par.children || []).map(k => k.rid));
+  (par.children || []).forEach(k => { const s = new Set(); REL_REFS.forEach(r => { const t = refId(k, r); if (t && rids.has(t) && t !== k.rid) s.add(t); }); g.set(k.rid, s); });
+  return g;
+}
+function pathTo(g, from, to, seen) {
+  if (from === to) return [from];
+  seen = seen || new Set(); if (seen.has(from)) return null; seen.add(from);
+  for (const nx of (g.get(from) || [])) { const p = pathTo(g, nx, to, seen); if (p) return [from].concat(p); }
+  return null;
+}
+/* le premier cycle des règles d'un RelativeLayout du document, ou null (X4 : LayoutLib lève « Circular dependencies cannot exist in RelativeLayout ») */
+function relCycle() {
+  for (const f of flat()) {
+    if (famOf(f.n) !== 'rel' || !f.n.children) continue;
+    const g = relEdges(f.n);
+    for (const [rid, outs] of g) for (const t of outs) { const p = pathTo(g, t, rid); if (p) return {cont:f.n.rid, path:[rid].concat(p), via:t}; }
+  }
+  return null;
+}
+function wouldCycle(par, rid, attr, target) {
+  const g = relEdges(par), mine = new Set(g.get(rid) || []);
+  const name = attr.replace('android:layout_', ''), old = refId(viewOf(rid), name); if (old) mine.delete(old);
+  mine.add(target); g.set(rid, mine);
+  return !!pathTo(g, target, rid);
+}
+const isDesc = (root, n) => { let hit = false; walk(root, x => { if (x === n) hit = true; }); return hit; };
+
+/* ---------- Placement positionnel (équivalent de FrameLayout, RelativeLayout, CoordinatorLayout) ---------- */
+function layoutPos(sc) {
+  [...sc.querySelectorAll('[data-lay]')].reverse().forEach(c => {
+    const n = viewOf(c.dataset.rid), fam = c.dataset.lay; if (!n || !n.children) return;
+    const pad = n.pad || [0, 0, 0, 0], pl = pad[0], pt = pad[1], pr = pad[2], pb = pad[3];
+    const W = c.clientWidth, H = c.clientHeight, aw = W - pl - pr, ah = H - pt - pb;
+    const els = {}, kids = n.children.filter(k => { const e = c.querySelector(':scope > [data-rid="' + k.rid + '"]'); if (e && e.style.display !== 'none') { els[k.rid] = e; return true; } return false; });
+    const dims = {};
+    kids.forEach(k => {
+      const e = els[k.rid], ml = k.ml || 0, mr = k.mr || 0, mt = k.mt || 0, mb = k.mb || 0;
+      e.style.left = '0px'; e.style.top = '0px';
+      if (k.w === 'm') e.style.width = Math.max(0, aw - ml - mr) + 'px'; else if (k.w === 'w') e.style.maxWidth = Math.max(0, aw - ml - mr) + 'px';
+      if (k.h === 'm') e.style.height = Math.max(0, ah - mt - mb) + 'px';
+      dims[k.rid] = {w:e.offsetWidth, h:e.offsetHeight};
+    });
+    const put = (k, L, T, w, h) => { const e = els[k.rid]; e.style.left = L + 'px'; e.style.top = T + 'px'; if (w != null) e.style.width = w + 'px'; if (h != null) e.style.height = h + 'px'; return {l:L, t:T, r:L + (w != null ? w : dims[k.rid].w), b:T + (h != null ? h : dims[k.rid].h)}; };
+    const rects = {};
+    const frameAt = (k, coord) => {   /* FrameLayout.onLayout (marges pleines) ou CoordinatorLayout.layoutChild (gravité dans le rectangle réduit des marges) */
+      const d = dims[k.rid], raw = gravParts(ex(k, 'android:layout_gravity')), g = new Set(raw.includes('center') ? raw.concat(['center_horizontal', 'center_vertical']) : raw);
+      const ml = k.ml || 0, mr = k.mr || 0, mt = k.mt || 0, mb = k.mb || 0;
+      let L, T, w = null, h = null;
+      if (coord) {
+        const cl = pl + ml, cr = W - pr - mr, ct = pt + mt, cb = H - pb - mb;
+        L = g.has('center_horizontal') ? cl + (cr - cl - d.w) / 2 : g.has('end') || g.has('right') ? cr - d.w : cl;
+        T = g.has('center_vertical') ? ct + (cb - ct - d.h) / 2 : g.has('bottom') ? cb - d.h : ct;
+        if (g.has('fill')) { L = cl; T = ct; w = cr - cl; h = cb - ct; }
+        return put(k, L, T, w, h);
+      }
+      if (g.has('center_horizontal')) L = pl + (aw - d.w) / 2 + ml - mr; else if (g.has('end') || g.has('right')) L = W - pr - d.w - mr; else L = pl + ml;
+      if (g.has('center_vertical')) T = pt + (ah - d.h) / 2 + mt - mb; else if (g.has('bottom')) T = H - pb - d.h - mb; else T = pt + mt;
+      if (g.has('fill')) { L = pl + ml; T = pt + mt; w = aw - ml - mr; h = ah - mt - mb; }
+      return put(k, L, T, w, h);
+    };
+    if (fam === 'frame') kids.forEach(k => { rects[k.rid] = frameAt(k); });
+    else if (fam === 'coord') {
+      const rest = [], anch = [];
+      kids.forEach(k => { const a = (/^@\+?id\/(\w+)$/.exec(ex(k, 'app:layout_anchor')) || [])[1]; if (a && els[a]) anch.push(k); else rest.push(k); });
+      rest.filter(k => famOf(k) === 'appbar' || !ex(k, 'app:layout_behavior')).forEach(k => { rects[k.rid] = frameAt(k, true); });
+      rest.filter(k => famOf(k) !== 'appbar' && ex(k, 'app:layout_behavior')).forEach(k => {   /* appbar_scrolling_view_behavior : sous la barre, hauteur restante */
+        const bar = kids.find(x => famOf(x) === 'appbar' && rects[x.rid]), top = bar ? rects[bar.rid].b : pt, mt = k.mt || 0, mb = k.mb || 0;
+        const h = k.h === 'm' ? Math.max(0, H - pb - top - mt - mb) : null;
+        rects[k.rid] = put(k, pl + (k.ml || 0), top + mt, null, h);
+      });
+      anch.forEach(k => {   /* getDesiredAnchoredChildRect : point d'ancrage (début/haut par défaut), décalage par la gravité de l'enfant (centre par défaut), puis constrainChildRect */
+        const a = (/^@\+?id\/(\w+)$/.exec(ex(k, 'app:layout_anchor')) || [])[1], ar = rects[a] || (() => { const q = els[a]; return {l:q.offsetLeft, t:q.offsetTop, r:q.offsetLeft + q.offsetWidth, b:q.offsetTop + q.offsetHeight}; })();
+        const exp = x => { const p = gravParts(x); return new Set(p.includes('center') ? p.concat(['center_horizontal', 'center_vertical']) : p); };
+        const ag = exp(ex(k, 'app:layout_anchorGravity')), cg = exp(ex(k, 'android:layout_gravity')), d = dims[k.rid];
+        if (!cg.size) { cg.add('center_horizontal'); cg.add('center_vertical'); }
+        let L = ag.has('end') || ag.has('right') ? ar.r : ag.has('center_horizontal') ? (ar.l + ar.r) / 2 : ar.l;
+        let T = ag.has('bottom') ? ar.b : ag.has('center_vertical') ? (ar.t + ar.b) / 2 : ar.t;
+        if (cg.has('end') || cg.has('right')) L -= d.w; else if (cg.has('center_horizontal')) L -= d.w / 2;
+        if (cg.has('bottom')) T -= d.h; else if (cg.has('center_vertical')) T -= d.h / 2;
+        L = Math.max(pl + (k.ml || 0), Math.min(L, W - pr - d.w - (k.mr || 0)));
+        T = Math.max(pt + (k.mt || 0), Math.min(T, H - pb - d.h - (k.mb || 0)));
+        rects[k.rid] = put(k, L, T);
+      });
+    } else if (fam === 'rel') {
+      const g = relEdges(n), left = new Set(kids.map(k => k.rid)), order = [];
+      while (left.size) {   /* DependencyGraph.getSortedViews : on pose les vues dont les références sont posées */
+        const ready = kids.filter(k => left.has(k.rid) && [...(g.get(k.rid) || [])].every(t => !left.has(t)));
+        if (!ready.length) { kids.filter(k => left.has(k.rid)).forEach(k => order.push(k)); break; }
+        ready.forEach(k => { order.push(k); left.delete(k.rid); });
+      }
+      order.forEach(k => {
+        const d = dims[k.rid], ml = k.ml || 0, mr = k.mr || 0, mt = k.mt || 0, mb = k.mb || 0, flag = nm => ex(k, 'android:layout_' + nm) === 'true';
+        const ref = (...ns) => { for (const nm of ns) { const t = refId(k, nm); if (t && rects[t]) return {r:rects[t], n:viewOf(t)}; } return null; };
+        let L = null, R = null, T = null, B = null, w = d.w, h = d.h, a;
+        if ((a = ref('toStartOf', 'toLeftOf'))) R = a.r.l - ((a.n.ml || 0) + mr);
+        if ((a = ref('toEndOf', 'toRightOf'))) L = a.r.r + ((a.n.mr || 0) + ml);
+        if ((a = ref('alignStart', 'alignLeft'))) L = a.r.l + ml;
+        if ((a = ref('alignEnd', 'alignRight'))) R = a.r.r - mr;
+        if (flag('alignParentStart') || flag('alignParentLeft')) L = pl + ml;
+        if (flag('alignParentEnd') || flag('alignParentRight')) R = W - pr - mr;
+        if ((a = ref('above'))) B = a.r.t - ((a.n.mt || 0) + mb);
+        if ((a = ref('below'))) T = a.r.b + ((a.n.mb || 0) + mt);
+        if ((a = ref('alignTop'))) T = a.r.t + mt;
+        if ((a = ref('alignBottom'))) B = a.r.b - mb;
+        if ((a = ref('alignBaseline'))) T = a.r.t + ((a.r.b - a.r.t) - h) / 2;
+        if (flag('alignParentTop')) T = pt + mt;
+        if (flag('alignParentBottom')) B = H - pb - mb;
+        const cH = flag('centerInParent') || flag('centerHorizontal'), cV = flag('centerInParent') || flag('centerVertical');
+        if (L == null && R == null) { L = cH ? (W - w) / 2 : pl + ml; R = L + w; }
+        else if (k.w === 'm') { if (L == null) L = pl + ml; if (R == null) R = W - pr - mr; w = R - L; }
+        else if (L == null) L = R - w; else if (R == null) R = L + w;
+        if (T == null && B == null) { T = cV ? (H - h) / 2 : pt + mt; B = T + h; }
+        else if (k.h === 'm') { if (T == null) T = pt + mt; if (B == null) B = H - pb - mb; h = B - T; }
+        else if (T == null) T = B - h; else if (B == null) B = T + h;
+        rects[k.rid] = put(k, L, T, w !== d.w ? w : null, h !== d.h ? h : null);
+      });
+    }
+    if (!n.rid || n.rid === 'root') return;
+    const rs = Object.values(rects);   /* un conteneur wrap_content prend la taille de ses enfants */
+    if (rs.length && n.w === 'w') c.style.width = Math.max(...rs.map(r => r.r)) + pr + 'px';
+    if (rs.length && n.h === 'w') c.style.height = Math.max(n.minH || 0, Math.max(...rs.map(r => r.b)) + pb) + 'px';
+  });
+}
+
+/* ---------- Inspecteur : sections par famille de parent ---------- */
+const REL_V = [['below', 'dessous de'], ['above', 'dessus de'], ['alignTop', 'aligné en haut avec'], ['alignBottom', 'aligné en bas avec'], ['alignBaseline', 'ligne de base avec']];
+const REL_H = [['toEndOf', 'à droite de'], ['toStartOf', 'à gauche de'], ['alignStart', 'aligné au début avec'], ['alignEnd', 'aligné à la fin avec']];
+const REL_P = [['android:layout_alignParentStart', 'début'], ['android:layout_alignParentEnd', 'fin'], ['android:layout_alignParentTop', 'haut'], ['android:layout_alignParentBottom', 'bas'],
+  ['android:layout_centerHorizontal', 'centre H'], ['android:layout_centerVertical', 'centre V'], ['android:layout_centerInParent', 'centre']];
+const BEHAVIORS = ['@string/appbar_scrolling_view_behavior', '@string/bottom_sheet_behavior', 'com.google.android.material.behavior.HideBottomViewOnScrollBehavior', 'com.google.android.material.behavior.SwipeDismissBehavior'];
+const SCROLLF = ['scroll', 'exitUntilCollapsed', 'enterAlways', 'enterAlwaysCollapsed', 'snap', 'snapMargins'];
+const EDGES = ['none', 'top', 'bottom', 'left', 'right', 'start', 'end'];
+function containerSecs(v, sec0) {
+  const f = famOf(v), DUP = ['android:fitsSystemWindows', 'android:clipToPadding'];
+  const sec = (t, cs, o) => sec0(t, v.rid === 'root' ? cs.filter(c => !DUP.includes(c.a)) : cs, o);
+  if (f === 'rel') sec('Conteneur', [C.flg('android:gravity', 'gravity', GRAV, 1), {t:'idref', a:'android:ignoreGravity', l:'ignoreGravity', scope:'sub'}, C.tri('android:clipChildren', 'clipChildren'), C.tri('android:clipToPadding', 'clipToPadding')]);
+  else if (f === 'frame') sec('Conteneur', [C.flg('android:foregroundGravity', 'foregroundGravity', GRAV), C.tri('android:measureAllChildren', 'measureAllChildren'), C.tri('android:clipChildren', 'clipChildren'), C.tri('android:clipToPadding', 'clipToPadding')]);
+  else if (f === 'coord') sec('Conteneur', [C.tri('android:fitsSystemWindows', 'fitsSystemWindows', 1), C.res('app:statusBarBackground', 'statusBarBackground', ['drawable', 'color']), C.tri('android:clipChildren', 'clipChildren')]);
+  else if (f === 'appbar') sec('Barre d’application', [C.tri('app:liftOnScroll', 'liftOnScroll', 1), {t:'idref', a:'app:liftOnScrollTargetViewId', l:'liftOnScrollTargetViewId', scope:'sub'}, C.tri('android:fitsSystemWindows', 'fitsSystemWindows'), C.tri('app:expanded', 'expanded')]);
+}
+function parentSecs(v, par, genre, sec) {
+  const ref = (n, l, c) => ({t:'idref', a:'android:layout_' + n, l, c, scope:'sib'});
+  if (genre === 'rel') {
+    sec('Dans le parent', [{t:'tgl', l:'ancrage au parent', c:1, a:REL_P[0][0], also:REL_P.slice(1).map(x => x[0]), items:REL_P}, C.tri('android:layout_alignWithParentIfMissing', 'alignWithParentIfMissing')]);
+    sec('Positions relatives', REL_V.concat(REL_H).map(([n, l]) => ref(n, l, n === 'below' || n === 'toEndOf' ? 1 : 0)), {note:'Chaque règle vise une vue sœur ; une règle qui fermerait une boucle est refusée.'});
+  } else if (genre === 'coord') {
+    sec('Dans le parent', [C.flg('android:layout_gravity', 'layout_gravity', GRAV, 1), {t:'idref', a:'app:layout_anchor', l:'ancre', c:1, scope:'sub'},
+      Object.assign(C.flg('app:layout_anchorGravity', 'anchorGravity', GRAV), {en:!!ex(v, 'app:layout_anchor'), why:'Choisissez d’abord une ancre (layout_anchor).'}),
+      C.list('app:layout_behavior', 'comportement', BEHAVIORS, 1), C.list('app:layout_insetEdge', 'insetEdge', EDGES), C.flg('app:layout_dodgeInsetEdges', 'dodgeInsetEdges', ['top', 'bottom', 'left', 'right', 'start', 'end', 'all']),
+      C.num('app:layout_keyline', 'keyline', '', 0, -1, 99)]);
+  } else if (genre === 'appbar') {
+    sec('Dans le parent', [C.flg('app:layout_scrollFlags', 'scrollFlags', SCROLLF, 1), C.str('app:layout_scrollInterpolator', 'scrollInterpolator'), C.flg('android:layout_gravity', 'layout_gravity', GRAV)]);
+  }
+}
+/* candidats d'un contrôle de référence d'id : frères (règles), sous-arbre (ancre, ignoreGravity), jamais la vue elle-même */
+function refCands(v, par, c) {
+  let list;
+  if (c.scope === 'sib') list = (par.children || []).filter(n => n.rid !== v.rid);
+  else if (c.scope === 'sub') { const base = c.a === 'app:layout_anchor' ? par : v; list = []; walk(base, n => { if (n !== base && n.rid !== v.rid && !isDesc(v, n)) list.push(n); }); }
+  else list = nodes().filter(n => n.rid !== v.rid);
+  const rel = c.scope === 'sib' && /layout_(below|above|toEndOf|toStartOf|align(Top|Bottom|Start|End|Baseline))$/.test(c.a);
+  return list.map(n => ({n, bad: rel && wouldCycle(par, v.rid, c.a, n.rid)}));
+}
+
+/* ---------- Problèmes propres aux familles ---------- */
+const FAM_ATTRS = [
+  [/^app:layout_constraint/, ['cons'], 'ConstraintLayout'],
+  [/^android:layout_(below|above|toEndOf|toStartOf|toLeftOf|toRightOf|align(Top|Bottom|Start|End|Left|Right|Baseline|ParentTop|ParentBottom|ParentStart|ParentEnd|ParentLeft|ParentRight|WithParentIfMissing)|centerInParent|centerHorizontal|centerVertical)$/, ['rel'], 'RelativeLayout'],
+  [/^android:layout_weight$/, ['lin', 'appbar'], 'LinearLayout'],
+  [/^android:layout_gravity$/, ['lin', 'appbar', 'frame', 'coord'], 'LinearLayout, FrameLayout ou CoordinatorLayout'],
+  [/^app:layout_(anchor|anchorGravity|behavior|insetEdge|dodgeInsetEdges|keyline)$/, ['coord'], 'CoordinatorLayout'],
+  [/^app:layout_scroll(Flags|Interpolator)$/, ['appbar'], 'AppBarLayout']
+];
+function computeProblems(trunc) {
+  const p = computeProblemsBase(trunc);
+  flat().forEach(f => {
+    const v = f.n, par = f.p; if (!par) return;
+    const fam = famOf(par), orph = (v.extra || []).filter(x => FAM_ATTRS.some(r => r[0].test(x[0]) && !r[1].includes(fam))).map(x => x[0]);
+    if (orph.length) p.push({rid:v.rid, sev:'w', title:'Attribut ignoré par le parent', msg:orph.map(n => n.replace(/^\w+:/, '')).join(', ') + ' ne sert à rien : le parent est un ' + FAM_LABEL[fam] + '.', fixer:{b:'Retirer ' + (orph.length > 1 ? 'ces attributs' : 'cet attribut'), run:() => orph.forEach(n => setEx(v, n, '')), msg:orph.length + ' attribut' + (orph.length > 1 ? 's' : '') + ' retiré' + (orph.length > 1 ? 's' : '')}});
+    if (fam === 'rel') REL_REFS.forEach(r => { const m = /^@\+?id\/(\w+)$/.exec(ex(v, 'android:layout_' + r)); if (m && !(par.children || []).some(k => k.rid === m[1])) p.push({rid:v.rid, sev:'w', title:'Référence introuvable parmi les frères', msg:'layout_' + r + ' vise @id/' + m[1] + ', absent de ce RelativeLayout : la règle est ignorée.', fixer:{b:'Retirer la règle', run:() => setEx(v, 'android:layout_' + r, ''), msg:'layout_' + r + ' retiré'}}); });
+    if (fam === 'coord') {
+      const a = ex(v, 'app:layout_anchor');
+      if (a) { const m = /^@\+?id\/(\w+)$/.exec(a), t = m && find(m[1]); if (!t || t.n === v || isDesc(v, t.n) || !isDesc(par, t.n)) p.push({rid:v.rid, sev:'e', title:'Ancre invalide', msg:'layout_anchor ' + a + ' doit viser une vue du CoordinatorLayout qui n’est ni la vue ni l’un de ses descendants : LayoutLib refuse ce rendu.', fixer:{b:'Retirer l’ancre', run:() => { setEx(v, 'app:layout_anchor', ''); setEx(v, 'app:layout_anchorGravity', ''); }, msg:'Ancre retirée'}}); }
+      const bar = (par.children || []).some(k => famOf(k) === 'appbar');
+      if (bar && (v.kind === 'recycler' || /ScrollView$/.test(v.cls)) && !ex(v, 'app:layout_behavior')) p.push({rid:v.rid, sev:'w', title:'Contenu défilant sans comportement', msg:'Une AppBarLayout est présente : sans appbar_scrolling_view_behavior, le contenu passe sous la barre.', fixer:{b:'Ajouter le comportement', run:() => setEx(v, 'app:layout_behavior', '@string/appbar_scrolling_view_behavior'), msg:'app:layout_behavior ajouté'}});
+    }
+  });
+  const cy = relCycle();
+  if (cy) p.push({rid:cy.path[0], sev:'e', title:'Dépendance circulaire', msg:cy.path.map(x => '@id/' + x).join(' → ') + ' : RelativeLayout refuse une boucle de règles. Le dernier rendu valide est conservé.', fixer:{b:'Casser la boucle', run:() => { const k = viewOf(cy.path[0]); REL_REFS.forEach(r => { if (refId(k, r) === cy.via) setEx(k, 'android:layout_' + r, ''); }); }, msg:'Règle retirée'}});
+  return p;
+}
+function quickFixes(v) {
+  const out = quickFixesBase(v);
+  S.probs.filter(p => p.rid === v.rid && p.fixer).forEach(p => out.push({p, fx:p.fixer}));
+  return out;
+}
+const simNow = () => S.cyc ? 'err' : S.sim;
+
+/* ---------- Plans d'insertion par famille (miroir de l'insertion pure du dépôt, ADR 0135) ---------- */
+const PAD0 = [0, 0, 0, 0];
+const padOf = par => par.pad || (par.rid === 'root' && ROOT.pad) || PAD0;
+function defSize(w, pq, pad) {
+  const n = w.make(), gw = n.w === 'm' ? Math.max(24, pq.w - pad[0] - pad[2]) : typeof n.w === 'number' ? n.w : 96;
+  let gh = typeof n.h === 'number' ? n.h : 40; if (n.minH) gh = Math.max(gh, n.minH);
+  return {gw, gh, n};
+}
+function cellRect(q, pad, cell) {
+  const l = q.x + pad[0], t = q.y + pad[1], w = q.w - pad[0] - pad[2], h = q.h - pad[1] - pad[3];
+  return {x:l + cell.c * w / 3, y:t + cell.r * h / 3, w:w / 3, h:h / 3};
+}
+function cellAt(q, pad, x, y) {
+  const l = q.x + pad[0], t = q.y + pad[1], w = Math.max(3, q.w - pad[0] - pad[2]), h = Math.max(3, q.h - pad[1] - pad[3]);
+  return {c:Math.min(2, Math.max(0, Math.floor((x - l) / (w / 3)))), r:Math.min(2, Math.max(0, Math.floor((y - t) / (h / 3))))};
+}
+/* FrameLayout et CoordinatorLayout : un dépôt = une gravité (9 cellules), l'enfant passe au premier plan */
+function framePlan(par, cell, w, anchorRid) {
+  const fam = famOf(par), pq = S.b[par.rid], pad = padOf(par), g = G9[cell.r][cell.c], attrs = [], mg = {}, parts = gravParts(g);
+  const dft = g === 'start|top';
+  if (anchorRid) {   /* ancré : l'enfant se pose sur le point d'ancrage (centré par défaut), recadré dans les marges de 16 dp */
+    const aq = S.b[anchorRid], ag = G9[cell.r][cell.c], ap = gravParts(ag), {gw, gh} = defSize(w, pq, pad);
+    attrs.push(['app:layout_anchor', '@id/' + anchorRid], ['app:layout_anchorGravity', ag]);
+    let gx = ap.includes('end') ? aq.x + aq.w : ap.includes('center_horizontal') || ap.includes('center') ? aq.x + aq.w / 2 : aq.x;
+    let gy = ap.includes('bottom') ? aq.y + aq.h : ap.includes('center_vertical') || ap.includes('center') ? aq.y + aq.h / 2 : aq.y;
+    gx = Math.max(pq.x + pad[0] + 16, Math.min(gx - gw / 2, pq.x + pq.w - pad[2] - gw - 16)); gy = Math.max(pq.y + pad[1] + 16, Math.min(gy - gh / 2, pq.y + pq.h - pad[3] - gh - 16));
+    return {kind:'frame', cell, attrs, mg:{ml:16, mr:16, mt:16, mb:16}, anchor:anchorRid, text:'ancré à @id/' + anchorRid + ' · ' + G9TXT[cell.r][cell.c], ghost:{x:gx, y:gy, w:gw, h:gh}};
+  }
+  if (!dft) attrs.push(['android:layout_gravity', g]);
+  if (parts.includes('start')) mg.ml = 16; if (parts.includes('end')) mg.mr = 16; if (parts.includes('top')) mg.mt = 16; if (parts.includes('bottom')) mg.mb = 16;
+  let extra = '';
+  const sc = w && (w.id === 'rv' || w.id === 'nsv');
+  if (fam === 'coord' && sc && (par.children || []).some(k => famOf(k) === 'appbar')) { attrs.push(['app:layout_behavior', '@string/appbar_scrolling_view_behavior']); extra = ' · défilement lié à l’AppBar'; ['ml', 'mr', 'mt', 'mb'].forEach(k => delete mg[k]); }
+  return {kind:'frame', cell, attrs, mg, anchor:null, text:G9TXT[cell.r][cell.c] + (cell.r === 0 && cell.c === 0 ? ' (défaut)' : '') + extra, ghost:null};
+}
+/* RelativeLayout : un dépôt = des règles (une vue sœur ou le parent) + des marges multiples de 8 dp */
+function relGhost(par, plan, gw, gh) {
+  const pq = S.b[par.rid], pad = padOf(par), ml = plan.mg.ml || 0, mr = plan.mg.mr || 0, mt = plan.mg.mt || 0, mb = plan.mg.mb || 0, A = n => (plan.attrs.find(a => a[0] === 'android:layout_' + n) || [])[1];
+  const R = n => { const m = /@\+?id\/(\w+)/.exec(A(n) || ''); return m && S.b[m[1]] ? {q:S.b[m[1]], v:viewOf(m[1])} : null; };
+  let L = null, Rr = null, T = null, Bb = null, a;
+  if ((a = R('toEndOf'))) L = a.q.x + a.q.w + (a.v.mr || 0) + ml;
+  if ((a = R('toStartOf'))) Rr = a.q.x - (a.v.ml || 0) - mr;
+  if ((a = R('alignStart'))) L = a.q.x + ml; if ((a = R('alignEnd'))) Rr = a.q.x + a.q.w - mr;
+  if (A('alignParentStart')) L = pq.x + pad[0] + ml; if (A('alignParentEnd')) Rr = pq.x + pq.w - pad[2] - mr;
+  if ((a = R('below'))) T = a.q.y + a.q.h + (a.v.mb || 0) + mt; if ((a = R('above'))) Bb = a.q.y - (a.v.mt || 0) - mb;
+  if ((a = R('alignTop'))) T = a.q.y + mt; if ((a = R('alignBottom'))) Bb = a.q.y + a.q.h - mb;
+  if (A('alignParentTop')) T = pq.y + pad[1] + mt; if (A('alignParentBottom')) Bb = pq.y + pq.h - pad[3] - mb;
+  const cH = A('centerInParent') || A('centerHorizontal'), cV = A('centerInParent') || A('centerVertical');
+  if (L == null && Rr != null) L = Rr - gw; if (L == null) L = cH ? pq.x + (pq.w - gw) / 2 : pq.x + pad[0] + ml;
+  if (T == null && Bb != null) T = Bb - gh; if (T == null) T = cV ? pq.y + (pq.h - gh) / 2 : pq.y + pad[1] + mt;
+  return {x:L, y:T, w:gw, h:gh};
+}
+const SIDE_ATTR = {below:'below', above:'above', end:'toEndOf', start:'toStartOf'}, SIDE_TXT = {below:'Sous', above:'Au-dessus de', end:'À droite de', start:'À gauche de'};
+function relPlanSide(par, refRid, side, gap, cross, w) {
+  const pq = S.b[par.rid], pad = padOf(par), q = S.b[refRid], {gw, gh} = defSize(w, pq, pad), mg = {}, attrs = [['android:layout_' + SIDE_ATTR[side], '@id/' + refRid]];
+  const vert = side === 'below' || side === 'above';
+  if (side === 'below') mg.mt = gap; else if (side === 'above') mg.mb = gap; else if (side === 'end') mg.ml = gap; else mg.mr = gap;
+  const cx = cross && cross.x != null ? cross.x : null, cy = cross && cross.y != null ? cross.y : null;
+  if (vert) {
+    if (cx != null && Math.abs(cx - (q.x + q.w - gw)) <= 16 && Math.abs(cx - q.x) > 16) attrs.push(['android:layout_alignEnd', '@id/' + refRid]);
+    else if (cx == null || Math.abs(cx - q.x) <= 16) attrs.push(['android:layout_alignStart', '@id/' + refRid]);
+    else { attrs.push(['android:layout_alignParentStart', 'true']); mg.ml = r8(cx - pq.x - pad[0]); }
+  } else {
+    if (cy != null && Math.abs(cy - (q.y + q.h - gh)) <= 16 && Math.abs(cy - q.y) > 16) attrs.push(['android:layout_alignBottom', '@id/' + refRid]);
+    else if (cy == null || Math.abs(cy - q.y) <= 16) attrs.push(['android:layout_alignTop', '@id/' + refRid]);
+    else { attrs.push(['android:layout_alignParentTop', 'true']); mg.mt = r8(cy - pq.y - pad[1]); }
+  }
+  const plan = {kind:'rel', attrs, mg, ref:refRid, cell:null, anchor:null}, k = viewOf(refRid);
+  plan.ghost = relGhost(par, plan, gw, gh);
+  plan.text = SIDE_TXT[side] + ' @id/' + refRid + ' · marge ' + gap + ' dp';
+  plan.k = k; return plan;
+}
+function relPlanParent(par, cell, mg0, w, at) {
+  const pq = S.b[par.rid], pad = padOf(par), {gw, gh} = defSize(w, pq, pad), attrs = [], mg = {};
+  if (cell.c === 0) { attrs.push(['android:layout_alignParentStart', 'true']); mg.ml = at ? r8(at.x - pq.x - pad[0]) : mg0; }
+  else if (cell.c === 2) { attrs.push(['android:layout_alignParentEnd', 'true']); mg.mr = at ? r8(pq.x + pq.w - pad[2] - at.x - gw) : mg0; }
+  if (cell.r === 0) { attrs.push(['android:layout_alignParentTop', 'true']); mg.mt = at ? r8(at.y - pq.y - pad[1]) : mg0; }
+  else if (cell.r === 2) { attrs.push(['android:layout_alignParentBottom', 'true']); mg.mb = at ? r8(pq.y + pq.h - pad[3] - at.y - gh) : mg0; }
+  if (cell.c === 1 && cell.r === 1) attrs.push(['android:layout_centerInParent', 'true']);
+  else { if (cell.c === 1) attrs.push(['android:layout_centerHorizontal', 'true']); if (cell.r === 1) attrs.push(['android:layout_centerVertical', 'true']); }
+  const plan = {kind:'rel', attrs, mg, ref:null, cell, anchor:null};
+  plan.ghost = relGhost(par, plan, gw, gh);
+  const mgt = Object.values(mg).filter(x => x > 0);
+  plan.text = 'dans le parent : ' + G9TXT[cell.r][cell.c] + (mgt.length ? ' · marges ' + mgt.join(' / ') + ' dp' : '');
+  return plan;
+}
+const ADH = 28;
+function relPlanPointer(par, x, y, w) {   /* le pointeur est le centre de la vue déposée */
+  const pq = S.b[par.rid], pad = padOf(par), {gw, gh} = defSize(w, pq, pad), L = x - gw / 2, T = y - gh / 2;
+  let best = null, bd = 1e9;
+  (par.children || []).forEach(k => { const q = S.b[k.rid]; if (!q) return; const d = Math.hypot(Math.max(q.x - x, 0, x - (q.x + q.w)), Math.max(q.y - y, 0, y - (q.y + q.h))); if (d < bd) { bd = d; best = k; } });
+  if (best && bd <= ADH) {
+    const q = S.b[best.rid], beyond = {below:y - (q.y + q.h), above:q.y - y, end:x - (q.x + q.w), start:q.x - x};   /* le côté où le pointeur dépasse le plus, sinon le bord le plus proche */
+    const side = Object.keys(beyond).reduce((m, k) => beyond[k] > beyond[m] ? k : m, 'below');
+    const gap = Math.min(64, r8(side === 'below' ? T - (q.y + q.h) : side === 'above' ? q.y - (T + gh) : side === 'end' ? L - (q.x + q.w) : q.x - (L + gw)));
+    return relPlanSide(par, best.rid, side, gap, {x:L, y:T}, w);
+  }
+  const cell = cellAt(pq, pad, x, y), cx = Math.abs(x - (pq.x + pq.w / 2)) <= 16, cy = Math.abs(y - (pq.y + pq.h / 2)) <= 16;
+  return relPlanParent(par, {c:cx ? 1 : cell.c === 1 ? 0 : cell.c, r:cy ? 1 : cell.r === 1 ? 0 : cell.r}, 16, w, {x:L, y:T});
+}
+function applyPlan(n, plan) { (plan.attrs || []).forEach(([a, v]) => setEx(n, a, v)); Object.assign(n, plan.mg || {}); }
+
+/* ---------- Zones de dépôt par famille ---------- */
+function targetAt(x, y, w) {
+  const rq = S.b.root;
+  if (!rq || x < rq.x || x >= rq.x + rq.w || y < rq.y || y >= rq.y + rq.h) return null;
+  let best = ROOT, bd = 0, bf = null;
+  flat().forEach(f => {
+    if (!f.n.children) return;
+    const q = S.b[f.n.rid];
+    if (q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h && f.d >= bd) { best = f.n; bd = f.d; bf = f; }
+  });
+  let fam = famOf(best), anchorRid = null;
+  if (w && w.id === 'fab') {   /* un bouton d'action se pose sur le CoordinatorLayout, ancré à la vue visée */
+    const cf = flat().filter(f => famOf(f.n) === 'coord' && f.n.children && S.b[f.n.rid]).filter(f => isDesc(f.n, best)).pop();
+    if (cf) { best = cf.n; fam = 'coord'; const hit = (best.children || []).find(k => { const q = S.b[k.rid]; return q && x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h; }); anchorRid = hit ? hit.rid : null; }
+  }
+  const pq = S.b[best.rid], pad = padOf(best);
+  if (fam === 'frame' || fam === 'coord') {
+    const cell = anchorRid ? cellAt(S.b[anchorRid], PAD0, x, y) : cellAt(pq, pad, x, y);
+    return {parentRid:best.rid, index:best.children.length, hint:framePlan(best, cell, w, anchorRid)};
+  }
+  if (fam === 'rel') return {parentRid:best.rid, index:best.children.length, hint:relPlanPointer(best, x, y, w || WIDGETS[0])};
+  const horiz = best.orient === 'h' && fam === 'lin'; let idx = 0;
+  best.children.forEach(c => { const q = S.b[c.rid]; if (!q) return; const mid = horiz ? q.x + q.w / 2 : q.y + q.h / 2; if ((horiz ? x : y) > mid) idx++; });
+  return {parentRid:best.rid, index:idx};
+}
+function relLine(ov, pts, dash) {
+  const z = S.z, ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'ov'); svg.setAttribute('width', S.W); svg.setAttribute('height', S.H);
+  const l = document.createElementNS(ns, 'line'); l.setAttribute('x1', pts[0]); l.setAttribute('y1', pts[1]); l.setAttribute('x2', pts[2]); l.setAttribute('y2', pts[3]);
+  l.style.cssText = 'stroke:var(--new);stroke-width:' + (1.5 / z) + (dash ? ';stroke-dasharray:' + (5 / z) + ' ' + (3 / z) : ''); svg.appendChild(l);
+  [[pts[0], pts[1]], [pts[2], pts[3]]].forEach(c => { const d = document.createElementNS(ns, 'circle'); d.setAttribute('cx', c[0]); d.setAttribute('cy', c[1]); d.setAttribute('r', 3 / z); d.style.fill = 'var(--new)'; svg.appendChild(d); });
+  ov.appendChild(svg);
+}
+function drawDrop(ov, dv) {
+  const z = S.z;
+  flat().forEach(f => { if (!f.n.children) return; const q = S.b[f.n.rid]; if (q) box('dz', q.x, q.y, q.w, q.h, ov); });
+  const t = dv.target; if (!t) return;
+  const par = viewOf(t.parentRid), pq = par && S.b[par.rid]; if (!pq) return;
+  box('dz on', pq.x, pq.y, pq.w, pq.h, ov);
+  chip(ov, 'nw', 'Dans ' + label(par), pq.x, pq.y - 24 / z >= 0 ? pq.y - 24 / z : pq.y + 4 / z);
+  const h = t.hint;
+  if (h && h.kind === 'frame') {
+    const r = h.anchor ? (() => { const q = S.b[h.anchor]; box('dz on', q.x, q.y, q.w, q.h, ov); return cellRect(q, PAD0, h.cell); })() : cellRect(pq, padOf(par), h.cell);
+    box('cell', r.x, r.y, r.w, r.h, ov); if (h.ghost) box('gbox', h.ghost.x, h.ghost.y, h.ghost.w, h.ghost.h, ov);
+    chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + h.text, r.x, r.y + r.h + 6 / z);
+    return;
+  }
+  if (h && h.kind === 'rel') {
+    const g = h.ghost; box('gbox', g.x, g.y, g.w, g.h, ov);
+    if (h.ref && S.b[h.ref]) { const q = S.b[h.ref], side = (h.attrs[0][0].replace('android:layout_', ''));
+      const pts = side === 'below' ? [g.x + g.w / 2, g.y, g.x + g.w / 2, q.y + q.h] : side === 'above' ? [g.x + g.w / 2, g.y + g.h, g.x + g.w / 2, q.y] : side === 'toEndOf' ? [g.x, g.y + g.h / 2, q.x + q.w, g.y + g.h / 2] : [g.x + g.w, g.y + g.h / 2, q.x, g.y + g.h / 2];
+      relLine(ov, pts, false); box('dz on', q.x, q.y, q.w, q.h, ov);
+    }
+    chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + h.text, g.x, g.y + g.h + 6 / z);
+    return;
+  }
+  const s = slotRect(par, t.index); box('slot', s.x, s.y, s.w, s.h, ov);
+  chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + (t.index + 1) + '/' + (par.children.length + 1), s.x, s.y + s.h + 6 / z);
+}
+
+/* ---------- Insertion ---------- */
+function insertAt(w, parentRid, index, tgt) {
+  const par = viewOf(parentRid); if (!par || !par.children) return;
+  const n = w.make(), fam = famOf(par); n.rid = nextId(n.cls);
+  if (fam === 'cons') { n.mt = 16; if (n.w === 'm') { n.ml = 24; n.mr = 24; } else n.center = true; }
+  else if (fam === 'lin' && par.orient === 'h' && n.w === 'm') n.w = 'w';
+  else if (fam === 'appbar' && n.w === 'm') n.w = 'm';
+  pushHist();
+  if (tgt && tgt.hint) applyPlan(n, tgt.hint);
+  par.children.splice(Math.min(index, par.children.length), 0, n);
+  S.recents = [w.id].concat(S.recents.filter(x => x !== w.id)).slice(0, 4); save();
+  S.sel = n.rid; S.flash = n.rid; clearTimeout(insertAt.t);
+  insertAt.t = setTimeout(() => { S.flash = null; if (S.tab === 'src') renderPane(); }, 2600);
+  render(); revealSel();
+  toast(w.name + ' ajouté dans ' + par.cls + (par.rid === 'root' ? '' : ' @+id/' + par.rid) + (tgt && tgt.hint ? ' · ' + tgt.hint.text : '') + (n.mock ? '. Dépendance manquante.' : ''));
+}
+
+/* ---------- Placement par popup, selon la famille du parent résultant ---------- */
+const POS_SEQ = [['before', 'Avant'], ['in', 'Dedans'], ['after', 'Après']], POS_Z = [['before', 'Derrière'], ['in', 'Dedans'], ['after', 'Devant']];
+const POS_REL = [['below', 'Dessous'], ['above', 'Dessus'], ['end', 'Droite'], ['start', 'Gauche']];
+function placeParent() { const p = S.place, f = find(p.ref); return p.pos === 'in' ? f.n : f.p; }
+function posList() {
+  const p = S.place, f = find(p.ref), n = f.n, pf = f.p ? famOf(f.p) : null, isC = !!n.children;
+  if (p.ref === 'root') return [['in', 'Dedans']];
+  if (pf === 'rel') return POS_REL.concat(isC ? [['in', 'Dedans']] : []);
+  if (pf === 'frame' || pf === 'coord') return POS_Z.filter(x => isC || x[0] !== 'in');
+  return POS_SEQ.filter(x => isC || x[0] !== 'in');
+}
+function normPos() {
+  const p = S.place, ok = posList().map(x => x[0]);
+  if (!ok.includes(p.pos)) p.pos = ok.includes('in') && viewOf(p.ref).children ? 'in' : ok[ok.length > 1 ? (ok.includes('after') ? ok.indexOf('after') : 0) : 0];
+}
+function placeTarget() {
+  const p = S.place, f = find(p.ref), w = p.w;
+  if (p.pos === 'in') {
+    const fam = famOf(f.n), t = {parentRid:p.ref, index:f.n.children.length};
+    if (fam === 'frame' || fam === 'coord') t.hint = framePlan(f.n, p.cell, w, null);
+    else if (fam === 'rel') t.hint = relPlanParent(f.n, p.cell, p.mg, w);
+    return t;
+  }
+  const i = f.p.children.indexOf(f.n), fam = famOf(f.p);
+  if (fam === 'rel') return {parentRid:f.p.rid, index:(p.pos === 'below' || p.pos === 'end') ? i + 1 : i, hint:relPlanSide(f.p, p.ref, p.pos, p.mg, null, w)};
+  if (fam === 'frame' || fam === 'coord') return {parentRid:f.p.rid, index:p.pos === 'before' ? i : i + 1, hint:framePlan(f.p, p.cell, w, null)};
+  return {parentRid:f.p.rid, index:p.pos === 'before' ? i : i + 1};
+}
+function setPlaceRef(rid) {
+  if (!S.place) return; const n = viewOf(rid); if (!n) return;
+  S.place.ref = rid; S.place.pos = n.children ? 'in' : 'after'; drawPlace();
+}
+function showPlace(w) {
+  hidePop(); S.pop = 'place'; $('pop').className = 'pop bot'; $('pop').hidden = false;
+  const ref = S.sel && find(S.sel) ? S.sel : 'root';
+  S.place = {w, ref, pos:viewOf(ref).children ? 'in' : 'after', cell:{r:0, c:0}, mg:16}; drawPlace();
+}
+function mkPos(opts, cur, on, lab, cols) {
+  const pos = el('div', 'pos'); pos.setAttribute('role', 'radiogroup'); pos.setAttribute('aria-label', lab); if (cols) pos.style.gridTemplateColumns = 'repeat(' + cols + ',1fr)';
+  opts.forEach(([m, t]) => { const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(cur === m)); b.onclick = () => on(m); pos.appendChild(b); });
+  return pos;
+}
+function drawPlace() {
+  normPos();
+  const pop = $('pop'), old = pop.querySelector('.mini'), keep = old ? old.scrollTop : 0; pop.replaceChildren();
+  const p = S.place, w = p.w, par0 = placeParent(), pf = famOf(par0), grid = (p.pos === 'in' ? pf : pf) === 'frame' || pf === 'coord' || (pf === 'rel' && p.pos === 'in'), relMg = pf === 'rel';
+  pop.className = 'pop bot' + (grid || relMg ? ' tall' : '');
+  const hd = el('div', 'ph-head'); hd.appendChild(el('b', '', 'Où placer ' + w.name + ' ?'));
+  const x = el('button', 'ib'); x.type = 'button'; x.setAttribute('aria-label', 'Fermer'); x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.onclick = hidePop; hd.appendChild(x);
+  const mini = el('div', 'mini'); mini.setAttribute('aria-label', 'Vue de référence');
+  flat().forEach(f => {
+    const r = el('button', 'row' + (f.n.rid === p.ref ? ' on' : '')); r.type = 'button'; r.style.paddingLeft = (8 + f.d * 16) + 'px';
+    r.append(el('span', 'k', f.n.k), el('span', '', f.n.cls), el('span', 'id', '@+id/' + f.n.rid)); r.onclick = () => setPlaceRef(f.n.rid); mini.appendChild(r);
+  });
+  const pl = posList(), z = pf === 'frame' || pf === 'coord';
+  const pos = mkPos(pl, p.pos, m => { p.pos = m; drawPlace(); }, z ? 'Ordre d’empilement par rapport à la vue de référence' : pf === 'rel' && p.pos !== 'in' || (pf === 'rel' && p.ref !== 'root' && pl.length > 1 && pl[0][0] === 'below') ? 'Côté par rapport à la vue de référence' : 'Position par rapport à la vue de référence', pl.length > 3 ? pl.length : 3);
+  if (pl.length < 3 && pl.length > 0) pos.style.gridTemplateColumns = 'repeat(' + pl.length + ',1fr)';
+  const kids = [hd, mini, pos], t = placeTarget(), par = viewOf(t.parentRid);
+  if (grid) {
+    const h4 = el('h4', 'pl', pf === 'rel' ? 'Ancrage dans le parent' : 'Position dans le conteneur'); const g = el('div', 'pos g3'); g.setAttribute('role', 'radiogroup'); g.setAttribute('aria-label', h4.textContent);
+    G9GLY.forEach((row, r) => row.forEach((gl, c) => { const b = el('button', '', gl); b.type = 'button'; b.title = G9TXT[r][c]; b.setAttribute('role', 'radio'); b.setAttribute('aria-label', G9TXT[r][c]); b.setAttribute('aria-checked', String(p.cell.r === r && p.cell.c === c)); b.onclick = () => { p.cell = {r, c}; drawPlace(); }; g.appendChild(b); }));
+    kids.push(h4, g);
+  }
+  if (relMg) { const h4 = el('h4', 'pl', 'Marge'); kids.push(h4, mkPos(MGS.map(m => [String(m), m + ' dp']), String(p.mg), m => { p.mg = +m; drawPlace(); }, 'Marge', 4)); }
+  const res = el('div', 'res'), h = t.hint;
+  if (!h) res.innerHTML = 'Dans <b>' + esc(label(par)) + '</b>, position <b>' + (t.index + 1) + '</b> sur ' + (par.children.length + 1);
+  else if (h.kind === 'rel') res.innerHTML = '<b>' + esc(h.text.charAt(0).toUpperCase() + h.text.slice(1)) + '</b>, dans <b>' + esc(label(par)) + '</b>';
+  else res.innerHTML = 'Dans <b>' + esc(label(par)) + '</b>, <b>' + esc(h.text) + '</b>, plan <b>' + (t.index + 1) + '</b> sur ' + (par.children.length + 1);
+  const ok = el('button', 'prim', 'Placer ici'); ok.type = 'button';
+  ok.onclick = () => { const tt = placeTarget(); hidePop(); insertAt(w, tt.parentRid, tt.index, tt); };
+  kids.push(res, ok); pop.append(...kids); mini.scrollTop = keep;
+  const cur = mini.querySelector('.row.on'); if (cur) mini.scrollTop = Math.max(0, cur.offsetTop - mini.clientHeight / 2 + cur.offsetHeight / 2);
+  S.dropView = {w, target:t}; redraw();
+  const ar = h && h.kind === 'rel' ? {y:h.ghost.y, h:h.ghost.h} : h && h.kind === 'frame' ? {y:cellRect(S.b[par.rid], padOf(par), h.cell).y, h:cellRect(S.b[par.rid], padOf(par), h.cell).h} : (() => { const s = slotRect(par, t.index); return {y:s.y, h:s.h}; })();
+  ensureVisible(ar.y + ar.h / 2);
+}
+
+/* ---------- Relations : ConstraintLayout (existant), règles du RelativeLayout, ancres du CoordinatorLayout ---------- */
+function drawRelations(ov) {
+  if (famOf(ROOT) === 'cons') drawConstraints(ov);
+  const z = S.z, ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'), labels = [];
+  svg.setAttribute('class', 'ov'); svg.setAttribute('width', S.W); svg.setAttribute('height', S.H);
+  const line = (x1, y1, x2, y2, dash) => {
+    const l = document.createElementNS(ns, 'line'); l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.style.cssText = 'stroke:var(--accent);stroke-width:' + (1.5 / z) + (dash ? ';stroke-dasharray:' + (5 / z) + ' ' + (3 / z) : ''); svg.appendChild(l);
+    [[x1, y1], [x2, y2]].forEach(c => { const d = document.createElementNS(ns, 'circle'); d.setAttribute('cx', c[0]); d.setAttribute('cy', c[1]); d.setAttribute('r', 3.5 / z); d.style.fill = 'var(--accent)'; svg.appendChild(d); });
+  };
+  flat().forEach(f => {
+    const par = f.n, fam = famOf(par), pq = S.b[par.rid]; if (!par.children || !pq) return;
+    par.children.forEach(k => {
+      const q = S.b[k.rid]; if (!q) return; const mine = S.sel === k.rid;
+      if (fam === 'rel') {
+        const pad = padOf(par);
+        REL_REFS.forEach(r => {
+          const t = refId(k, r), tq = t && S.b[t]; if (!tq) return;
+          const hmid = q.y + q.h / 2, vmid = q.x + q.w / 2;
+          if (r === 'below') line(vmid, q.y, vmid, tq.y + tq.h, false); else if (r === 'above') line(vmid, q.y + q.h, vmid, tq.y, false);
+          else if (r === 'toEndOf' || r === 'toRightOf') line(q.x, hmid, tq.x + tq.w, hmid, false); else if (r === 'toStartOf' || r === 'toLeftOf') line(q.x + q.w, hmid, tq.x, hmid, false);
+          else if (r === 'alignStart' || r === 'alignLeft') line(tq.x, Math.min(q.y, tq.y), tq.x, Math.max(q.y + q.h, tq.y + tq.h), true);
+          else if (r === 'alignEnd' || r === 'alignRight') line(tq.x + tq.w, Math.min(q.y, tq.y), tq.x + tq.w, Math.max(q.y + q.h, tq.y + tq.h), true);
+          else if (r === 'alignTop') line(Math.min(q.x, tq.x), tq.y, Math.max(q.x + q.w, tq.x + tq.w), tq.y, true);
+          else if (r === 'alignBottom') line(Math.min(q.x, tq.x), tq.y + tq.h, Math.max(q.x + q.w, tq.x + tq.w), tq.y + tq.h, true);
+          else line(q.x, hmid, tq.x, hmid, true);
+          if (mine) labels.push([r, (q.x + q.w / 2 + tq.x + tq.w / 2) / 2, (q.y + q.h / 2 + tq.y + tq.h / 2) / 2 - 11 / z]);
+        });
+        const flag = n => ex(k, 'android:layout_' + n) === 'true';
+        [['alignParentStart', 'alignParentLeft'], ['alignParentEnd', 'alignParentRight'], ['alignParentTop'], ['alignParentBottom']].forEach(ns2 => {
+          const on = ns2.find(n => flag(n)); if (!on) return;
+          const hm = q.y + q.h / 2, vm = q.x + q.w / 2;
+          if (/Start|Left/.test(on)) line(pq.x + pad[0], hm, q.x, hm, false); else if (/End|Right/.test(on)) line(q.x + q.w, hm, pq.x + pq.w - pad[2], hm, false);
+          else if (/Top/.test(on)) line(vm, pq.y + pad[1], vm, q.y, false); else line(vm, q.y + q.h, vm, pq.y + pq.h - pad[3], false);
+          if (mine) labels.push(['parent', q.x + q.w / 2, q.y - 11 / z]);
+        });
+        if (flag('centerHorizontal') || flag('centerInParent')) line(pq.x + pq.w / 2, q.y, pq.x + pq.w / 2, q.y + q.h, true);
+        if (flag('centerVertical') || flag('centerInParent')) line(q.x, pq.y + pq.h / 2, q.x + q.w, pq.y + pq.h / 2, true);
+      } else if (fam === 'coord') {
+        const a = (/^@\+?id\/(\w+)$/.exec(ex(k, 'app:layout_anchor')) || [])[1], aq = a && S.b[a]; if (!aq) return;
+        const ag = new Set(gravParts(ex(k, 'app:layout_anchorGravity'))), px = ag.has('end') || ag.has('right') ? aq.x + aq.w : ag.has('start') || ag.has('left') ? aq.x : aq.x + aq.w / 2, py = ag.has('bottom') ? aq.y + aq.h : ag.has('top') ? aq.y : aq.y + aq.h / 2;
+        line(px, py, q.x + q.w / 2, q.y + q.h / 2, true);
+        if (mine) labels.push(['anchor · ' + (ex(k, 'app:layout_anchorGravity') || 'center'), (px + q.x + q.w / 2) / 2, (py + q.y + q.h / 2) / 2 - 11 / z]);
+      }
+    });
+  });
+  ov.appendChild(svg);
+  labels.forEach(l => chip(ov, 'dim', l[0], l[1], l[2], true));
+}
+
+/* ---------- Documents d'exemple : un par famille de parent ---------- */
+const TXT = (rid, txt, o) => Object.assign({rid, cls:'TextView', k:'T', kind:'text', w:'w', h:'w', size:14, txt}, o || {});
+const DOCS = {
+  login: {id:'login', file:'activity_login.xml', name:'Connexion', fam:'ConstraintLayout', pre:'login', root:ROOT0, str:STR0, sel:'btn_connexion', rel:false},
+  profil: {id:'profil', file:'activity_profil.xml', name:'Profil', fam:'RelativeLayout', pre:'profil', sel:'btn_suivre', rel:true,
+    str:{
+      fr:{appbar:'Profil', nom:'Camille Durand', role:'Développeuse Android', suivre:'Suivre', bio:'Outils pour écrire du code sur mobile.', n_projets:'24 projets', n_abonnes:'1,2 k abonnés', n_suivis:'310 suivis', message:'Envoyer un message', cd_avatar:'Photo de profil'},
+      en:{appbar:'Profile', nom:'Camille Durand', role:'Android developer', suivre:'Follow', bio:'Tools for writing code on mobile.', n_projets:'24 projects', n_abonnes:'1.2k followers', n_suivis:'310 following', message:'Send a message', cd_avatar:'Profile picture'}},
+    root:{rid:'root', cls:'RelativeLayout', fq:'android.widget.RelativeLayout', lay:'rel', k:'R', kind:'root', extra:[['tools:context', '.ProfilActivity']], children:[
+      {rid:'avatar', cls:'ImageView', k:'I', kind:'logo', w:80, h:80, ml:16, mt:16, cd:true, extra:[['android:layout_alignParentStart', 'true'], ['android:layout_alignParentTop', 'true'], ['android:src', '@drawable/ic_user'], ['android:contentDescription', '@string/profil_cd_avatar']]},
+      TXT('nom', 'nom', {size:20, ml:16, mt:4, extra:[['android:layout_toEndOf', '@id/avatar'], ['android:layout_alignTop', '@id/avatar'], ['android:textStyle', 'bold']]}),
+      TXT('role', 'role', {muted:true, extra:[['android:layout_below', '@id/nom'], ['android:layout_alignStart', '@id/nom']]}),
+      {rid:'btn_suivre', cls:'Button', k:'B', kind:'btn', w:'w', h:40, mr:16, pad:[16, 0, 16, 0], size:14, txt:'suivre', click:true, extra:[['android:layout_alignParentEnd', 'true'], ['android:layout_alignTop', '@id/avatar']]},
+      {rid:'separateur', cls:'View', k:'V', kind:'divider', w:'m', h:1, ml:16, mr:16, mt:16, extra:[['android:layout_below', '@id/avatar']]},
+      TXT('bio', 'bio', {w:'m', ml:16, mr:16, mt:12, extra:[['android:layout_below', '@id/separateur']]}),
+      {rid:'stats', cls:'LinearLayout', k:'Ll', kind:'group', orient:'h', w:'m', h:'w', ml:16, mr:16, mt:16, extra:[['android:layout_below', '@id/bio']], children:[
+        TXT('n_projets', 'n_projets', {extra:[['android:layout_weight', '1'], ['android:gravity', 'center']]}),
+        TXT('n_abonnes', 'n_abonnes', {extra:[['android:layout_weight', '1'], ['android:gravity', 'center']]}),
+        TXT('n_suivis', 'n_suivis', {extra:[['android:layout_weight', '1'], ['android:gravity', 'center']]})]},
+      {rid:'btn_message', cls:'Button', k:'B', kind:'btn', w:'w', h:48, mb:24, pad:[24, 0, 24, 0], size:14, txt:'message', click:true, extra:[['android:layout_alignParentBottom', 'true'], ['android:layout_centerHorizontal', 'true']]}
+    ]}},
+  carte: {id:'carte', file:'activity_carte.xml', name:'Carte projet', fam:'FrameLayout', pre:'carte', sel:'badge', rel:false,
+    str:{
+      fr:{appbar:'Carte', badge:'Nouveau', titre:'Éditeur de layouts', sous:'Aperçu en direct, sans compiler', cd_fond:'Illustration du projet', cd_lire:'Lire la vidéo'},
+      en:{appbar:'Card', badge:'New', titre:'Layout editor', sous:'Live preview, no build needed', cd_fond:'Project illustration', cd_lire:'Play the video'}},
+    root:{rid:'root', cls:'FrameLayout', fq:'android.widget.FrameLayout', lay:'frame', k:'F', kind:'root', extra:[['tools:context', '.CarteActivity']], children:[
+      {rid:'fond', cls:'ImageView', k:'I', kind:'image', w:'m', h:'m', cd:true, extra:[['android:src', '@drawable/bg_gradient'], ['android:scaleType', 'centerCrop'], ['android:contentDescription', '@string/carte_cd_fond']]},
+      TXT('badge', 'badge', {size:12, mt:16, mr:16, pad:[12, 4, 12, 4], extra:[['android:layout_gravity', 'top|end'], ['android:background', '@color/accent'], ['android:textColor', '#FFFFFF']]}),
+      {rid:'btn_lecture', cls:'ImageButton', k:'Ib', kind:'image', w:64, h:64, click:true, cd:true, extra:[['android:layout_gravity', 'center'], ['android:contentDescription', '@string/carte_cd_lire']]},
+      {rid:'legende', cls:'LinearLayout', k:'Ll', kind:'group', orient:'v', w:'m', h:'w', pad:[16, 12, 16, 12], extra:[['android:layout_gravity', 'bottom'], ['android:background', '#99000000']], children:[
+        TXT('titre', 'titre', {size:18, extra:[['android:textColor', '#FFFFFF'], ['android:textStyle', 'bold']]}),
+        TXT('sous_titre', 'sous', {extra:[['android:textColor', '#FFFFFF']]})]}
+    ]}},
+  fil: {id:'fil', file:'activity_fil.xml', name:'Fil d’actualité', fam:'CoordinatorLayout', pre:'fil', sel:'fab_nouveau', rel:true, noBar:true,
+    str:{
+      fr:{appbar:'Fil', titre:'Fil d’actualité', f_tout:'Tout', f_amis:'Amis', f_suivis:'Suivis', cd_nouveau:'Nouveau message'},
+      en:{appbar:'Feed', titre:'News feed', f_tout:'All', f_amis:'Friends', f_suivis:'Following', cd_nouveau:'New message'}},
+    root:{rid:'root', cls:'CoordinatorLayout', fq:'androidx.coordinatorlayout.widget.CoordinatorLayout', lay:'coord', k:'Cl', kind:'root', extra:[['tools:context', '.FilActivity']], children:[
+      {rid:'appbar', cls:'AppBarLayout', fq:'com.google.android.material.appbar.AppBarLayout', k:'Ab', kind:'group', lay:'appbar', orient:'v', w:'m', h:'w', children:[
+        {rid:'toolbar', cls:'MaterialToolbar', fq:'com.google.android.material.appbar.MaterialToolbar', k:'Tb', kind:'toolbar', w:'m', h:56, txt:'titre', extra:[['app:layout_scrollFlags', 'scroll|enterAlways']]},
+        {rid:'filtres', cls:'LinearLayout', k:'Ll', kind:'group', orient:'h', w:'m', h:48, pad:[16, 0, 16, 0], children:[
+          TXT('f_tout', 'f_tout', {mr:16, extra:[['android:textStyle', 'bold']]}), TXT('f_amis', 'f_amis', {mr:16}), TXT('f_suivis', 'f_suivis')]}]},
+      {rid:'liste', cls:'RecyclerView', fq:'androidx.recyclerview.widget.RecyclerView', k:'Rv', kind:'recycler', w:'m', h:'m', extra:[['app:layout_behavior', '@string/appbar_scrolling_view_behavior'], ['tools:itemCount', '8'], ['tools:listitem', '@layout/item_projet']]},
+      {rid:'fab_nouveau', cls:'FloatingActionButton', fq:'com.google.android.material.floatingactionbutton.FloatingActionButton', k:'Fb', kind:'fab', w:56, h:56, mr:16, mb:16, click:true, cd:true,
+        extra:[['app:layout_anchor', '@id/appbar'], ['app:layout_anchorGravity', 'bottom|end'], ['app:srcCompat', '@drawable/ic_search'], ['android:contentDescription', '@string/fil_cd_nouveau']]}
+    ]}}
+};
+function loadDoc(id, quiet) {
+  const d = DOCS[id]; if (!d) return;
+  DOC = d; ROOT = JSON.parse(JSON.stringify(d.root)); STR = JSON.parse(JSON.stringify(d.str));
+  Object.assign(S, {sel:d.sel, hist:[], redo:[], flash:null, lastGood:null, cyc:null, attrQ:'', so:{}, autofit:true, sim:null});
+  S.layers.con = !!d.rel;
+  if ($('pop')) hidePop();
+  $('ttlFile').textContent = d.file;
+  document.querySelectorAll('[data-doc]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.doc === id)));
+  render(); if (!quiet) toast('Document : ' + d.file + ' · racine ' + d.fam);
+}
+
 init();
 </script>
