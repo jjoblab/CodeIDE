@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.view.isVisible
@@ -1681,14 +1680,15 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             },
         )
 
-    /** L'édition ou le RECHARGEMENT : un refus → toast (surchargeable pour
-     * un refus spécialisé, ex. renommage) + volet relu depuis le texte vivant. */
+    /** L'édition ou le RECHARGEMENT : un refus → retour maison via
+     * l'HÔTE (surchargeable pour un refus spécialisé, ex. renommage)
+     * + volet relu depuis le texte vivant. */
     private fun editerOuRecharger(
         message: Int = R.string.preview_edition_perimee_toast,
         action: () -> Boolean,
     ): Boolean {
         if (action()) return true
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        (activity as? HoteVoletsApercu)?.annoncer(message)
         majAttributs()
         return false
     }
@@ -1696,14 +1696,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /**
      * Déclenche la CORRECTION (PE11g — miroir `b.onclick` de la maquette :
      * `fx.go` NAVIGUE sans édition, `fx.run` écrit UNE édition puis le
-     * toast `fx.msg` part — la carte disparaît au re-rendu, critère § 6.7
+     * retour `fx.msg` part — la carte disparaît au re-rendu, critère § 6.7
      * « produit une édition et fait disparaître le problème »).
      */
     private fun declencherCorrectif(action: ActionCorrectif) {
         when (action) {
             ActionCorrectif.ElargirCible -> {
                 if (editerOuRecharger { viewModel.elargirCibleSelection() }) {
-                    toastCorrectif(R.string.preview_correctif_cible_toast)
+                    annoncerCorrectif(R.string.preview_correctif_cible_toast)
                 }
             }
 
@@ -1713,7 +1713,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             ActionCorrectif.AutoriserDeuxLignes -> {
                 if (editerOuRecharger { viewModel.definirAttributSelection(ATTR_MAX_LIGNES, DEUX_LIGNES) }) {
-                    toastCorrectif(R.string.preview_correctif_tronque_toast)
+                    annoncerCorrectif(R.string.preview_correctif_tronque_toast)
                 }
             }
 
@@ -1723,16 +1723,16 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
     }
 
-    /** Le toast de SUCCÈS d'une correction (miroir `mutate(fx.run, fx.msg)`). */
-    private fun toastCorrectif(message: Int) {
-        Toast.makeText(requireContext(), getString(message), Toast.LENGTH_SHORT).show()
+    /** Le retour maison de SUCCÈS d'une correction (miroir `mutate(fx.run, fx.msg)`). */
+    private fun annoncerCorrectif(message: Int) {
+        (activity as? HoteVoletsApercu)?.annoncer(message)
     }
 
     /**
      * « Extraire en @string » (miroir `extractStr`) : le nom proposé vient
      * de la VALEUR (le même [ExtractionRessource.nomPropose] que la rangée
      * d'extraction), l'écriture passe par le flux EXISTANT (entrée FR+EN
-     * puis référence) — un refus porte le toast PROPRE à l'extraction.
+     * puis référence) — un refus porte le retour PROPRE à l'extraction.
      */
     private fun extraireTexteCorrectif() {
         val valeur = viewModel.valeurAttributSelection(ATTR_TEXTE).orEmpty()
@@ -1741,7 +1741,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 viewModel.extraireEnRessource(ATTR_TEXTE, ExtractionRessource.nomPropose(valeur))
             }
         ) {
-            toastCorrectif(R.string.preview_correctif_extraire_toast)
+            annoncerCorrectif(R.string.preview_correctif_extraire_toast)
         }
     }
 

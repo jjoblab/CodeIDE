@@ -87,7 +87,9 @@ import kotlin.math.roundToInt
  */
 @Suppress("TooManyFunctions")
 @AndroidEntryPoint
-public class PreviewActivity : AppCompatActivity() {
+public class PreviewActivity :
+    AppCompatActivity(),
+    HoteVoletsApercu {
     private val viewModel: PreviewViewModel by viewModels()
 
     /** Journal applicatif (règle 11 : chemins seuls, rien de personnel). */
@@ -121,6 +123,11 @@ public class PreviewActivity : AppCompatActivity() {
 
     /** Le TOAST en vue (PE11i, D6 — remplace tout Toast système). */
     private val toastApercu: ToastApercu by lazy { ToastApercu(liaison.toastApercu) }
+
+    /** Port du contrat volets (UI-6) : le retour maison part de l'activité. */
+    public override fun annoncer(resId: Int) {
+        toast(resId)
+    }
 
     /** Le popover CALQUES (PE11k — extraction chrome pur, miroir `showPop("layers")`). */
     private val popoverCalques: PopoverCalquesApercu by lazy {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Pastille colorée des menus (écart voulu PE9c) : disque 12 dp teinté au liage (backgroundTintList), rendu inchangé. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <solid android:color="#FFFFFFFF" />
+    <solid android:color="@android:color/white" />
 </shape>
