@@ -35,6 +35,7 @@
     <color name="apercu_avert_tag">#38FDD663</color>  <!-- tag-wr -->
     <color name="apercu_ecran_trait">#2E000000</color>  <!-- screen-ring -->
     <color name="apercu_ecran_ombre">#38000000</color>  <!-- screen-shadow -->
+    <color name="apercu_ombre_bouton">#2E000000</color>  <!-- box-shadow 0 1px 3px rgba(0,0,0,.18) -->
     <color name="apercu_sur_calque">#FFFFFF</color>  <!-- on-overlay -->
     <color name="apercu_source_insere">#4281C995</color>  <!-- ins -->
     <color name="apercu_source_vue">#4C7AB8F5</color>  <!-- hl2 -->
