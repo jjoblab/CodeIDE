@@ -46,6 +46,10 @@
     </style>
 
     <!-- Champ de saisie encadré (recherche, renommage — étape 7). -->
+    <!-- Progression circulaire thématisée (lot UI-5, audit C3) : le
+         cliquet R4 refuse tout style Material brut dans les écrans. -->
+    <style name="Widget.CodeIDE.CircularProgressIndicator" parent="Widget.Material3.CircularProgressIndicator" />
+
     <style name="Widget.CodeIDE.TextField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="android:textAppearance">@style/TextAppearance.CodeIDE.BodyMedium</item>
     </style>

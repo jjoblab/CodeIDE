@@ -156,7 +156,7 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/bouton_vide_explorer"
-                                style="@style/Widget.Material3.Button.TonalButton"
+                                style="@style/Widget.CodeIDE.Button.Tonal"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/editor_vide_action_explorer"
@@ -164,7 +164,7 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/bouton_vide_terminal"
-                                style="@style/Widget.Material3.Button.TextButton"
+                                style="@style/Widget.CodeIDE.Button.Text"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="@dimen/spacing_sm"
@@ -368,8 +368,8 @@
                         android:background="@drawable/badge_panneau"
                         android:gravity="center"
                         android:minWidth="20dp"
-                        android:paddingHorizontal="6dp"
-                        android:paddingVertical="2dp"
+                        android:paddingHorizontal="@dimen/spacing_sm"
+                        android:paddingVertical="@dimen/spacing_2xs"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:visibility="gone"
                         tools:text="12"
@@ -439,7 +439,7 @@
 
                         <com.google.android.material.progressindicator.CircularProgressIndicator
                             android:id="@+id/spinner_canal_tooling"
-                            style="@style/Widget.Material3.CircularProgressIndicator"
+                            style="@style/Widget.CodeIDE.CircularProgressIndicator"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
@@ -613,9 +613,9 @@
                     android:layout_height="66dp"
                     android:background="?attr/colorSurfaceVariant"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="4dp"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="4dp" />
+                    android:paddingHorizontal="@dimen/spacing_xs"
+                    android:paddingTop="@dimen/spacing_sm"
+                    android:paddingBottom="@dimen/spacing_xs" />
             </LinearLayout>
 
             <!-- Zone du snackbar maison (§ 15) : flottante au-dessus du rail,
@@ -625,8 +625,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|center_horizontal"
-                android:layout_marginBottom="74dp"
-                android:paddingHorizontal="10dp" />
+                android:layout_marginBottom="@dimen/editor_snackbar_marge_bas"
+                android:paddingHorizontal="@dimen/spacing_md_compact" />
 
             <!-- Pastille de taille (§ 13) : flottante au-dessus du rail,
                  visible pendant le glissement puis fondue (v0.80.2 : reste
@@ -636,15 +636,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="13dp"
-                android:layout_marginBottom="54dp"
+                android:layout_marginEnd="@dimen/spacing_md_compact"
+                android:layout_marginBottom="@dimen/editor_pastille_taille_marge_bas"
                 android:background="@drawable/fond_pastille_taille"
                 android:elevation="6dp"
                 android:fontFamily="monospace"
-                android:paddingHorizontal="9dp"
-                android:paddingVertical="4dp"
+                android:paddingHorizontal="@dimen/spacing_sm"
+                android:paddingVertical="@dimen/spacing_xs"
                 android:textColor="?attr/colorPrimary"
-                android:textSize="11sp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:visibility="gone"
                 tools:text="55 %" />
         </FrameLayout>

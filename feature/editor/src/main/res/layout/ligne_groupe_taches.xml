@@ -10,5 +10,4 @@
     android:paddingVertical="@dimen/spacing_xs"
     android:textAppearance="?attr/textAppearanceLabelMedium"
     android:textColor="?attr/colorOnSurfaceVariant"
-    android:textSize="11sp"
-    tools:text="build" />
+        tools:text="build" />

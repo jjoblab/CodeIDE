@@ -62,6 +62,20 @@
     <!-- Rail de fragments (§ 14). -->
     <dimen name="editor_rail_hauteur">66dp</dimen>
 
+    <!-- Bouton icône maison du module (lot UI-5) : cote composée
+         (touch_target_min 48 − icon_size_sm 20) / 2 — le padding qui fait
+         afficher icon_size_sm dans une zone tactile standard. -->
+    <dimen name="editor_bouton_icone_padding">14dp</dimen>
+
+    <!-- Snackbar du tiroir (§ 15, lot UI-5) : position flottante au-dessus
+         du rail — COTE COMPOSÉE (editor_rail_hauteur 66 + spacing_sm 8),
+         irréductible à l'échelle ADR 0127 §2 sans casser le placement. -->
+    <dimen name="editor_snackbar_marge_bas">74dp</dimen>
+
+    <!-- Pastille de taille (§ 13, lot UI-5) : ancrage sur le bas du tiroir
+         pendant le glissement — cote maquette, non arrondissable. -->
+    <dimen name="editor_pastille_taille_marge_bas">54dp</dimen>
+
     <!-- Barre de presse-papiers (§ 12) et snackbar (§ 15). -->
     <dimen name="editor_presse_papiers_padding_v">7dp</dimen>
     <dimen name="editor_presse_papiers_padding_h">11dp</dimen>
