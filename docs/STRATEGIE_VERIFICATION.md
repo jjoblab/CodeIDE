@@ -37,8 +37,10 @@ source scripts/env.sh
 ./gradlew spotlessCheck          # 2. vérif formatage (contrôle, pas réparation)
 ./gradlew detekt                 # 3. analyse statique RACINE (tous modules)
 ./gradlew checkModuleDependencies  # 4. frontières de modules RACINE
+./gradlew checkUiTokens           # 5. littéraux UI à CLIQUET (ADR 0127 §5 :
+                                   #    la baseline ne peut que descendre)
 ./gradlew :<mod>:compileDebugKotlin :<mod>:compileDebugUnitTestKotlin \
-          :<mod>:testDebugUnitTest   # 5. modules TOUCHÉS seulement
+          :<mod>:testDebugUnitTest   # 6. modules TOUCHÉS seulement
 ```
 
 Le script `scripts/modules-touches.sh` imprime la liste des modules

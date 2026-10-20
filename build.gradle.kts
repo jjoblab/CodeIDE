@@ -20,4 +20,7 @@ plugins {
 
     // Règles de dépendance entre modules (tâche checkModuleDependencies).
     id("codeide.module-rules")
+
+    // Garde-fou des littéraux UI à cliquet (tâche checkUiTokens, ADR 0127 §5).
+    id("codeide.ui-tokens")
 }

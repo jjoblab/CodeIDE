@@ -58,6 +58,18 @@ justification commentée. Les erreurs attendues passent par `AppResult` /
 `AppError`, pas par des exceptions jusqu'à l'UI. `CancellationException` est
 toujours relancée.
 
+**Aucun littéral UI dans le code neuf** (ADR 0127 — le garde-fou Gradle
+`checkUiTokens` fait échouer le build sur tout littéral NOUVEAU) : couleurs
+par rôles de thème `?attr/color…`, marges et paddings par
+`@dimen/spacing_*` (échelle `2xs·xs·sm·md_compact·md·lg·xl`), tailles de
+texte par `textAppearance` `TextAppearance.CodeIDE.*`, widgets par les
+styles `Widget.CodeIDE.*`, rangées et états par les composants partagés de
+`core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`). Un
+besoin visuel absent du système s'ajoute à `core:ui` (jeton ou composant,
+KDoc + aperçu `docs/mockups/ui/`), jamais en local. La dette ancienne vit
+sous la baseline `config/ui-baseline.json` et ne descend que par
+`-Pui.baseline.ratchet`.
+
 ## Use cases (étape 1)
 
 Toute logique métier vit dans un **use case** de `core:domain` — jamais dans
