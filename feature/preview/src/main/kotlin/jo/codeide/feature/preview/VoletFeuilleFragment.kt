@@ -11,6 +11,19 @@ import jo.codeide.preview.xml.EtatPreviewXml
 import kotlinx.coroutines.launch
 
 /**
+ * Hôte des volets de la feuille (lot UI-6, audit C5) : SEULE l'activité
+ * possède le retour transitoire maison — la vue `toast_apercu` en
+ * haut-centre (ADR 0134 D6) qui « remplace TOUT Toast système ». Un
+ * volet qui annonce un refus ou un succès DÉLÈGUE ici ; hôte absent
+ * (volet hors de l'aperçu) : sans effet — même garde que le contrat
+ * hôte de l'éditeur (ADR 0126).
+ */
+internal interface HoteVoletsApercu {
+    /** Retour transitoire maison (vue `toast_apercu`, fond inversé). */
+    fun annoncer(resId: Int)
+}
+
+/**
  * BASE des quatre volets de la feuille (PE9a) : la collecte COMMUNE de
  * l'état partagé (rendu du moteur, sélection, onglet actif de la
  * feuille) et la porte « l'onglet ACTIF seul se re-marche » (miroir
