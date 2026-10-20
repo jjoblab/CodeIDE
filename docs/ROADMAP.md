@@ -385,8 +385,8 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | Lot | Dépôt | Contenu | État |
 |---|---|---|---|
 | LSP-0 | les deux | Purge règle 13 ; publication ; source unique des docs `LSP_*` ; numérotation d'ADR | ✅ v0.156.3 + frère `2aaa65a` (docs LSP → stubs de renvoi vers `codeide-lsp` ; 88 désignations tiers purgées ; ADR 0121 du frère renumérotée 0200) |
-| LSP-1 | `codeide-lsp` | `ConfigurationLsp`, `appliquer`, cache et capacités exposés, tests, **v1.2.0** (v1.1.0 = stabilisation S3 du 2026-10-19) | ⬜ |
-| LSP-2 | CodeIDE | Version vérifiée, `LspSettings` (hors `AppSettings`), câblage `CoordonnateurLsp`, filtres côté client | ⬜ |
+| LSP-1 | `codeide-lsp` | `ConfigurationLsp`, `appliquer`, cache et capacités exposés, tests, **v1.2.0** (v1.1.0 = stabilisation S3 du 2026-10-19) | ✅ v1.2.0 `6c23677` (+14 tests : 119 host, 247 index, parité capacités ×3 langages, baseline 216 fichiers) |
+| LSP-2 | CodeIDE | Version vérifiée, `LspSettings` (hors `AppSettings`), câblage, filtres côté client | ✅ v0.157.0 (dépôt dédié `lsp_settings`, câblage DYNAMIQUE sans redémarrer ; filtres d'AFFICHAGE gravité/capacités différés au chantier code-editor — jamais un contrôle sans effet, ADR 0059) |
 | LSP-3 | CodeIDE | Écrans L1–L5 « Intelligence du code », composants ADR 0127 uniquement (après UI-1/UI-2) | ⬜ |
 | LSP-4 | CodeIDE | « Copier le diagnostic LSP », tests d'architecture, accessibilité, EN/FR | ⬜ |
 

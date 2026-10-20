@@ -1,5 +1,60 @@
 # Journal des modifications
 
+## [0.157.0] – 2026-10-20
+
+### LSP-2 — montée de version, dépôt dédié des réglages, câblage dynamique (ADR 0128 §4)
+
+- **Montée de version `codeide-lsp` 1.0.2 → 1.2.0** (VERSION VÉRIFIÉE :
+  workflows du frère `v1.2.0` COMPLETED/SUCCESS — publication GitHub
+  Packages consommée par le catalogue ; la CI clone le frère au tag lu
+  ici, l'épingle voyage avec le bump). Le frère v1.2.0 porte le lot
+  LSP-1 : `ConfigurationLsp` immuable (budget Auto/plafond, surveillance
+  0–30 s), `SessionLsp(config)` + `appliquer(config)` dynamique,
+  `tailleCacheOctets()`, `viderCache()` refusé pendant une indexation
+  (refus en DONNÉE), `capacites(langage)` — parité verrouillée par test
+  (revue `LSP_REVUE_REGLAGES.md` §5).
+- **`LspSettings` (`core:model`) + `LspSettingsStore` (`core:datastore`)** :
+  DÉPÔT DÉDIÉ hors `AppSettings` (fichier `lsp_settings`, même traitement
+  que les réglages IA — ADR 0122, jamais dans le sac-à-dos à 40 champs).
+  Champs : plafond du budget du cache (`null` = **Auto**) et période de
+  surveillance des fichiers externes (`0` = désactivée, défaut 5 s) —
+  chaque champ projette une API RÉELLE de l'hôte v1.2.0 (« jamais un
+  contrôle sans effet », ADR 0059). Les paliers de l'écran L3 (Auto/
+  256/512/1024 Mo ; 2/5/10/30 s) vivent en constantes du modèle, prêtes
+  pour les écrans LSP-3. Lecture TOLÉRANTE : valeur incohérente sur
+  disque → repli par champ sur le défaut.
+- **Câblage `EditorViewModel`** : la session Java ouvre avec
+  `config = dernier réglage CONNU` (défauts = comportement historique) —
+  jamais d'ouverture suspendue par l'E/S du DataStore (l'indexation ne
+  doit pas attendre un fichier de préférences) ; un collecteur dans la
+  portée de fermeture de session (ADR 0114 — survit aux écrans) applique
+  chaque nouveau réglage à la session VIVANTE via `SessionLsp.appliquer`
+  : budget recréé au plafond demandé (segments persistés — zéro
+  ré-indexation), surveillance relancée à la nouvelle période — SANS
+  redémarrer. Le collecteur meurt AVANT la session dans
+  `fermerSessionLsp` (jamais d'`appliquer()` sur une session fermée).
+  La frontière `LspSettings` → `ConfigurationLsp` vit dans
+  `ConversionsLsp.kt` (`feature:editor`) — le seul point où le modèle pur
+  rencontre `:lsp:host`.
+- **Frontières** : `:feature:editor` → `:core:datastore` autorisé
+  (`ModuleRulesPlugin`, exception feature documentée — même précédent
+  que `:feature:preview` → `SettingsDataStore` en PE7c).
+- **Filtres d'affichage différés, assumés** : la gravité des diagnostics
+  et les interrupteurs de capacités par langage EXIGENT une évolution de
+  la bibliothèque `code-editor` (le rendu des diagnostics vit dans
+  cel-ui — `setDiagnosticChipsEnabled` est la seule porte applicative) :
+  rien n'est persisté sans effet, ces filtres rejoindront le modèle
+  avec les écrans LSP-3/LSP-4 et le chantier code-editor associé.
+- **Tests** : `LspSettingsTest` (3 — défauts, bornes, paliers),
+  `LspSettingsStoreTest` (5 — Robolectric : stock vide = défauts,
+  aller-retour, retour à Auto par CLÉ RETIRÉE, valeurs incohérentes →
+  repli par champ, bornes), `ConversionsLspTest` (3 — frontière champ à
+  champ) ; socle `BaseEditorViewModelTest` câblé au store réel
+  (DataStore sur fichier temporaire) ; `feature:editor` 398 verts
+  (dont la réouverture de session après déplacement — le câblage mémoire
+  n'y suspend plus l'ouverture) ; `core:model`/`core:datastore` kover
+  ≥ 80 % vérifiés.
+
 ## [0.156.3] – 2026-10-20
 
 ### LSP-0 — purge, source unique, numérotation d'ADR (les deux dépôts)
