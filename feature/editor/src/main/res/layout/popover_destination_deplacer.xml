@@ -27,18 +27,18 @@
         android:layout_height="wrap_content"
         android:background="@drawable/fond_popover"
         android:orientation="vertical"
-        android:padding="6dp">
+        android:padding="@dimen/editor_popover_padding">
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/titre_destination_choisir"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="7dp"
+            android:paddingHorizontal="@dimen/editor_popover_padding"
+            android:paddingVertical="@dimen/spacing_sm"
             android:singleLine="true"
             android:text="@string/deplacer_destination_choisir"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="13sp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textStyle="bold" />
 
         <!-- Liste déroulante des dossiers : hauteur bornée à l'exécution
@@ -48,7 +48,7 @@
             android:id="@+id/defilement_destination"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/spacing_2xs"
             android:scrollbars="none">
 
             <LinearLayout

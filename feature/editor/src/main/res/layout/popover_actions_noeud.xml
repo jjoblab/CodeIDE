@@ -2,8 +2,8 @@
 <!--
   Popover maison d'actions d'un nœud (étape 31, § 10, EXPLORATEUR_V2) :
   largeur 258 dp, coque fond_popover + flèche fond_fleche_popover,
-  tête (icône, nom ellipsé à 168 dp, chemin absolu mono 10 sp 2 lignes,
-  ligne de contexte mono 10 sp accent), puis les lignes d'action
+  tête (icône, nom ellipsé à 168 dp, chemin absolu mono Micro 2 lignes,
+  ligne de contexte mono Micro accent), puis les lignes d'action
   ajoutées dynamiquement (§ 10.4) avec séparateurs.
 
   La flèche (12 dp) est positionnée à l'exécution : sous la coque quand
@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/fond_popover"
         android:orientation="vertical"
-        android:padding="6dp">
+        android:padding="@dimen/editor_popover_padding">
 
         <!-- Tête (§ 10.3) : icône + nom + chemin + contexte. -->
         <LinearLayout
@@ -38,8 +38,8 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="7dp"
+            android:paddingHorizontal="@dimen/editor_popover_padding"
+            android:paddingVertical="@dimen/spacing_sm"
             tools:ignore="UseCompoundDrawables">
 
             <ImageView
@@ -53,12 +53,12 @@
                 android:id="@+id/nom_tete_popover"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="9dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:singleLine="true"
                 android:textColor="?attr/colorOnSurface"
-                android:textSize="13sp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textStyle="bold"
                 tools:text="EditorViewModel.kt" />
         </LinearLayout>
@@ -67,13 +67,13 @@
             android:id="@+id/chemin_tete_popover"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="6dp"
+            android:layout_marginHorizontal="@dimen/editor_popover_padding"
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:lineSpacingExtra="2dp"
             android:maxLines="2"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             tools:text="feature/editor/src/main/kotlin/jo/codeide/feature/editor/EditorViewModel.kt" />
 
         <!-- Ligne de contexte (§ 10.3) : Cible / Déplacement / Créer dans. -->
@@ -81,13 +81,13 @@
             android:id="@+id/contexte_popover"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="6dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginHorizontal="@dimen/editor_popover_padding"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:singleLine="true"
             android:textColor="?attr/colorPrimary"
-            android:textSize="10sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             android:visibility="gone"
             tools:text="Cible — docs"
             tools:visibility="visible" />
@@ -97,7 +97,7 @@
             android:id="@+id/actions_popover"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:orientation="vertical" />
     </LinearLayout>
 </FrameLayout>
