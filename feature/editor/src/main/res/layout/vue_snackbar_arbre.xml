@@ -2,9 +2,9 @@
 <!--
   Snackbar maison de l'explorateur (étape 31, § 15, EXPLORATEUR_V2) :
   centré au-dessus du rail du tiroir, fond et bordure dédiés, rayon 12,
-  message 12,5 sp + chemin en seconde ligne mono 10,5 sp, action unique
-  (« Annuler ») à droite. Masquage automatique après 4 600 ms (posé par
-  le fragment).
+  message 12 sp (LabelMedium — table §4 ADR 0127) + chemin en seconde
+  ligne mono Micro, action unique (« Annuler ») à droite. Masquage
+  automatique après 4 600 ms (posé par le fragment).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -15,10 +15,10 @@
     android:elevation="8dp"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="8dp"
-    android:paddingBottom="10dp">
+    android:paddingStart="@dimen/spacing_md"
+    android:paddingTop="@dimen/spacing_sm"
+    android:paddingEnd="@dimen/spacing_sm"
+    android:paddingBottom="@dimen/spacing_sm">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -33,7 +33,7 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="12.5sp"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
             tools:text="Créé — TestClass.kt" />
 
         <com.google.android.material.textview.MaterialTextView
@@ -44,7 +44,7 @@
             android:fontFamily="monospace"
             android:singleLine="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10.5sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             android:visibility="gone"
             tools:text="feature/editor/src/main/kotlin"
             tools:visibility="visible" />
@@ -54,15 +54,15 @@
         android:id="@+id/action_snackbar_arbre"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
         android:background="?attr/selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="4dp"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_xs"
         android:text="@string/notif_annuler"
         android:textColor="?attr/colorPrimary"
-        android:textSize="12.5sp"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
         android:textStyle="bold"
         android:visibility="gone"
         tools:visibility="visible" />
