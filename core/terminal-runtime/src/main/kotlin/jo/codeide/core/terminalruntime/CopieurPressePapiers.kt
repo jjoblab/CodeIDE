@@ -32,6 +32,14 @@ internal interface CopieurPressePapiers {
  * DEJA son propre bandeau à chaque `setPrimaryClip()` — un Toast maison
  * ferait doublon ; sur les versions antérieures, un Toast court reste
  * utile (aucun autre retour sinon).
+ *
+ * EXCEPTION R6 ASSUMÉE (ADR 0127 §5, lot UI-7 — la SEULE avec l'annonce
+ * « build continue en arrière-plan » de l'éditeur) : le module est SANS
+ * UI (contexte d'application seul — aucun point d'ancrage de Snackbar)
+ * et la copie OSC 52 peut survenir SANS écran visible (les sessions
+ * vivent dans `TerminalService`) ; la cible pre-33 EST le cœur de
+ * l'audience (targetSdk 28, ADR 0045). Le cliquet tient ce fichier à
+ * R6=1 dans la baseline — tout NOUVEAU Toast, partout, échoue le build.
  */
 @Singleton
 internal class CopieurPressePapiersAndroid
