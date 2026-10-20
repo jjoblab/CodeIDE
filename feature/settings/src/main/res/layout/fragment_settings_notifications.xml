@@ -3,6 +3,8 @@
   Section Notifications — section dédiée des Paramètres (ADR 0059) : sa propre
   toolbar (flèche retour + titre), le même SettingsViewModel que le
   maître — seule la présentation change.
+  Lot UI-3 (audit C6, ADR 0127) : rangées `RangeeParametre`, carte
+  `Widget.CodeIDE.Card`, filet porté par le conteneur.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -31,149 +33,48 @@
         android:fillViewport="true">
 
         <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/spacing_md"
             android:layout_marginVertical="@dimen/spacing_sm"
-            app:cardBackgroundColor="?attr/colorSurface"
-            app:contentPadding="@dimen/spacing_md"
-            app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:contentPadding="@dimen/spacing_md">
 
             <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
+                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064) ;
+                 le filet entre rangées lui appartient (ADR 0127 §3). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <LinearLayout
-                    android:id="@+id/notif_sync"
+                android:divider="@drawable/separateur_rangee"
+                android:orientation="vertical"
+                android:showDividers="middle">
+
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_notif_sync"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
+                    app:rangeeIcone="@drawable/ic_synchronisation"
+                    app:rangeeSousTitre="@string/settings_notif_sync_sous"
+                    app:rangeeTitre="@string/settings_notif_sync"
+                    app:rangeeType="interrupteur" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_synchronisation"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_notif_sync"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/settings_notif_sync_sous"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_notif_sync"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/notif_build"
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_notif_build"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
+                    app:rangeeIcone="@drawable/ic_outils"
+                    app:rangeeSousTitre="@string/settings_notif_build_sous"
+                    app:rangeeTitre="@string/settings_notif_build"
+                    app:rangeeType="interrupteur" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outils"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_notif_build"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/settings_notif_build_sous"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_notif_build"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/notif_son"
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_notif_son"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_volume"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_notif_son"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_notif_son"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
+                    app:rangeeIcone="@drawable/ic_volume"
+                    app:rangeeTitre="@string/settings_notif_son"
+                    app:rangeeType="interrupteur" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>

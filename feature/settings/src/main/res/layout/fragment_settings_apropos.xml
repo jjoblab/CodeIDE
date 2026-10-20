@@ -3,6 +3,8 @@
   Section À propos — section dédiée des Paramètres (ADR 0059) : sa propre
   toolbar (flèche retour + titre), le même SettingsViewModel que le
   maître — seule la présentation change.
+  Lot UI-3 (audit C6, ADR 0127) : rangées `RangeeParametre` (lecture
+  seule ou chevron), carte `Widget.CodeIDE.Card`, filet au conteneur.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -31,138 +33,46 @@
         android:fillViewport="true">
 
         <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/spacing_md"
             android:layout_marginVertical="@dimen/spacing_sm"
-            app:cardBackgroundColor="?attr/colorSurface"
-            app:contentPadding="@dimen/spacing_md"
-            app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:contentPadding="@dimen/spacing_md">
 
             <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
+                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064) ;
+                 le filet entre rangées lui appartient (ADR 0127 §3). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <LinearLayout
+                android:divider="@drawable/separateur_rangee"
+                android:orientation="vertical"
+                android:showDividers="middle">
+
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_version"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
+                    app:rangeeIcone="@drawable/ic_etiquette"
+                    app:rangeeTitre="@string/settings_a_propos_version_libelle"
+                    app:rangeeType="aucun" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_etiquette"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_a_propos_version_libelle"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/texte_version"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            tools:text="0.34.0 (3400)" />
-                    </LinearLayout>
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_build"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
+                    app:rangeeIcone="@drawable/ic_outils"
+                    app:rangeeTitre="@string/settings_a_propos_build_libelle"
+                    app:rangeeType="aucun" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_outils"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_a_propos_build_libelle"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/texte_build"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            tools:text="debug" />
-                    </LinearLayout>
-                </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/ligne_licences"
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_licences"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_document"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:text="@string/settings_licences"
-                        android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_chevron_droite"
-                        app:tint="?attr/colorOutline" />
-                </LinearLayout>
+                    app:rangeeIcone="@drawable/ic_document"
+                    app:rangeeTitre="@string/settings_licences"
+                    app:rangeeType="chevron" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>

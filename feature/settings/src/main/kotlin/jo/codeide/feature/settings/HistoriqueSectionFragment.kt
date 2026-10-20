@@ -51,7 +51,7 @@ class HistoriqueSectionFragment : BaseFragment<FragmentSettingsHistoriqueBinding
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
 
-        binding.rangeeRetention.setOnClickListener { ouvrirChoixRetention() }
+        binding.rangeeRetention.setSurClic { ouvrirChoixRetention() }
         binding.boutonEffacerHistorique.setOnClickListener { confirmerEffacement() }
 
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
@@ -59,8 +59,8 @@ class HistoriqueSectionFragment : BaseFragment<FragmentSettingsHistoriqueBinding
 
     /** Rendu de l'état (rétention, empreinte, retour d'effacement). */
     private fun rendre(etat: EtatParametres) {
-        binding.valeurRetention.text = getString(libelleRetention(etat.reglage.retentionHistorique))
-        binding.texteEmpreinte.text =
+        binding.rangeeRetention.valeur = getString(libelleRetention(etat.reglage.retentionHistorique))
+        binding.rangeeEmpreinte.titre =
             getString(
                 R.string.settings_historique_empreinte,
                 formaterOctets(etat.empreinteHistoriqueOctets),

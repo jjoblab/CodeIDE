@@ -46,6 +46,25 @@
         app:rangeeTitre="Réactivité de l'analyse"
         app:rangeeType="valeur" />
 
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_destructrice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeDestructrice="true"
+        app:rangeeIcone="@drawable/ic_actualiser"
+        app:rangeeTitre="Réinitialiser"
+        app:rangeeType="chevron" />
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_indicateur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeIndicateur="ok"
+        app:rangeeIndicateurTexte="Prêt"
+        app:rangeeSousTitre="191 fichiers"
+        app:rangeeTitre="Java"
+        app:rangeeType="chevron" />
+
     <jo.codeide.core.ui.IndicateurEtat
         android:id="@+id/indicateur"
         android:layout_width="wrap_content"

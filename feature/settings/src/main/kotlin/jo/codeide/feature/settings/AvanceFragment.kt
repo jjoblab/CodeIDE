@@ -42,9 +42,9 @@ class AvanceFragment : BaseFragment<FragmentSettingsAvanceBinding>() {
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
 
-        binding.ligneDiagnostic.setOnClickListener { navigator.openDiagnostics() }
-        binding.ligneReinitialiser.setOnClickListener { confirmerReinitialisation() }
-        binding.ligneRelancerAssistant.setOnClickListener {
+        binding.rangeeDiagnostic.setSurClic { navigator.openDiagnostics() }
+        binding.rangeeReinitialiser.setSurClic { confirmerReinitialisation() }
+        binding.rangeeRelancerAssistant.setSurClic {
             viewModel.onAction(ActionParametres.RelancerAssistant)
         }
 

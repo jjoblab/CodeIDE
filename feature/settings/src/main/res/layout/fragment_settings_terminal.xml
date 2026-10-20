@@ -3,6 +3,9 @@
   Section Terminal — section dédiée des Paramètres (ADR 0059) : sa propre
   toolbar (flèche retour + titre), le même SettingsViewModel que le
   maître — seule la présentation change.
+  Lot UI-3 (audit C6, ADR 0127) : en-têtes `RangeeParametre` (aucun),
+  rangée interrupteur `RangeeParametre`, carte `Widget.CodeIDE.Card`,
+  filet entre blocs au conteneur.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -31,50 +34,36 @@
         android:fillViewport="true">
 
         <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/spacing_md"
             android:layout_marginVertical="@dimen/spacing_sm"
-            app:cardBackgroundColor="?attr/colorSurface"
-            app:contentPadding="@dimen/spacing_md"
-            app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:strokeWidth="1dp">
+            app:contentPadding="@dimen/spacing_md">
 
-            <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
+            <!-- La carte est un FrameLayout : ses blocs s'empilent dans ce
+                 conteneur vertical unique (régression corrigée v0.35.4, ADR 0064) ;
+                 le filet entre blocs lui appartient (ADR 0127 §3). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:divider="@drawable/separateur_rangee"
+                android:orientation="vertical"
+                android:showDividers="middle">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingVertical="@dimen/spacing_xs">
 
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_police_terminal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_taille_police"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:text="@string/settings_taille_police"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_taille_police"
+                        app:rangeeTitre="@string/settings_taille_police"
+                        app:rangeeType="aucun" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/groupe_police_terminal"
@@ -86,7 +75,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_police_terminal_1"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -94,7 +83,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_police_terminal_2"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -102,45 +91,27 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_police_terminal_3"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/settings_police_grande" />
                     </com.google.android.material.button.MaterialButtonToggleGroup>
                 </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:paddingVertical="@dimen/spacing_xs">
 
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_curseur"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_curseur"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:text="@string/settings_style_curseur"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_curseur"
+                        app:rangeeTitre="@string/settings_style_curseur"
+                        app:rangeeType="aucun" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/groupe_curseur"
@@ -152,7 +123,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_curseur_1"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -160,7 +131,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_curseur_2"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -168,52 +139,21 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/bouton_curseur_3"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/settings_curseur_barre" />
                     </com.google.android.material.button.MaterialButtonToggleGroup>
                 </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="@dimen/spacing_sm"
-                    android:background="?attr/colorOutlineVariant" />
-                <LinearLayout
-                    android:id="@+id/copie_selection"
+
+                <jo.codeide.core.ui.RangeeParametre
+                    android:id="@+id/rangee_copie_selection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="@dimen/touch_target_min"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_copie"
-                        app:tint="?attr/colorOnSurfaceVariant" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_copie_selection"
-                            android:textAppearance="?attr/textAppearanceTitleSmall" />
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/interrupteur_copie_selection"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
+                    app:rangeeIcone="@drawable/ic_copie"
+                    app:rangeeTitre="@string/settings_copie_selection"
+                    app:rangeeType="interrupteur" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </ScrollView>

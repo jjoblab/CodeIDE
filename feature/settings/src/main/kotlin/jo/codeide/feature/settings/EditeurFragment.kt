@@ -62,7 +62,7 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
 
     /** Branchements des contrôles → actions (une seule fois). */
     private fun brancher() {
-        binding.rangeeThemeEditeur.setOnClickListener {
+        binding.rangeeThemeEditeur.setSurClic {
             ouvrirChoixTheme()
         }
         binding.groupePoliceEditeur.addOnButtonCheckedListener { _, id, coche ->
@@ -70,22 +70,22 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
                 viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(tailleDeLId(id)))
             }
         }
-        binding.interrupteurLigatures.setOnCheckedChangeListener { _, activees ->
+        binding.rangeeLigatures.setSurChangementCoche { activees ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerLigatures(activees))
         }
-        binding.interrupteurRetourLigne.setOnCheckedChangeListener { _, actif ->
+        binding.rangeeRetourLigne.setSurChangementCoche { actif ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerRetourLigne(actif))
         }
-        binding.interrupteurMinimap.setOnCheckedChangeListener { _, activee ->
+        binding.rangeeMinimap.setSurChangementCoche { activee ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerMinimap(activee))
         }
-        binding.interrupteurCaracteresNonImprimables.setOnCheckedChangeListener { _, affiches ->
+        binding.rangeeCaracteresNonImprimables.setSurChangementCoche { affiches ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCaracteresNonImprimables(affiches))
         }
-        binding.interrupteurChipsDiagnostics.setOnCheckedChangeListener { _, activees ->
+        binding.rangeeChipsDiagnostics.setSurChangementCoche { activees ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerChipsDiagnostics(activees))
         }
-        binding.interrupteurSauvegardeAuto.setOnCheckedChangeListener { _, activee ->
+        binding.rangeeSauvegardeAuto.setSurChangementCoche { activee ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerSauvegardeAuto(activee))
         }
     }
@@ -94,18 +94,18 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
     private fun rendre(reglages: AppSettings) {
         renduEnCours = true
         try {
-            binding.valeurThemeEditeur.setText(libelleTheme(reglages.editorThemeEditeur))
+            binding.rangeeThemeEditeur.valeur = getString(libelleTheme(reglages.editorThemeEditeur))
             when (reglages.editorTaillePolice) {
                 TaillePoliceEditeur.PETITE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_1)
                 TaillePoliceEditeur.MOYENNE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_2)
                 TaillePoliceEditeur.GRANDE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_3)
             }
-            binding.interrupteurLigatures.isChecked = reglages.editorLigatures
-            binding.interrupteurRetourLigne.isChecked = reglages.editorRetourLigne
-            binding.interrupteurMinimap.isChecked = reglages.editorMinimap
-            binding.interrupteurCaracteresNonImprimables.isChecked = reglages.editorCaracteresNonImprimables
-            binding.interrupteurChipsDiagnostics.isChecked = reglages.editorChipsDiagnostics
-            binding.interrupteurSauvegardeAuto.isChecked = reglages.editorSauvegardeAuto
+            binding.rangeeLigatures.coche = reglages.editorLigatures
+            binding.rangeeRetourLigne.coche = reglages.editorRetourLigne
+            binding.rangeeMinimap.coche = reglages.editorMinimap
+            binding.rangeeCaracteresNonImprimables.coche = reglages.editorCaracteresNonImprimables
+            binding.rangeeChipsDiagnostics.coche = reglages.editorChipsDiagnostics
+            binding.rangeeSauvegardeAuto.coche = reglages.editorSauvegardeAuto
         } finally {
             renduEnCours = false
         }

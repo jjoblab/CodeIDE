@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Section « Historique local » — section dédiée des Paramètres (mission
-  « Historique local » H6, ADR 0105) : rétention du filet de sécurité
-  (rangée à dialogue de choix) et entretien (empreinte au stockage +
-  effacement total, confirmé). Le même SettingsViewModel que le maître
-  — seule la présentation change.
+  Section Historique — section dédiée des Paramètres (ADR 0059) : sa propre
+  toolbar (flèche retour + titre), le même SettingsViewModel que le
+  maître — seule la présentation change.
+  Lot UI-3 (audit C6, ADR 0127) : rangées `RangeeParametre` (valeur ou
+  lecture seule), cartes `Widget.CodeIDE.Card` ; pas de filet — chaque
+  carte ne porte qu'une rangée et ses notes d'action composites.
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -32,26 +33,18 @@
         android:layout_height="match_parent"
         android:fillViewport="true">
 
-        <!-- La carte est un FrameLayout : ses rangées s'empilent dans ce
-             conteneur vertical unique (régression corrigée v0.35.4, ADR 0064). -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/spacing_md"
-            android:paddingVertical="@dimen/spacing_sm">
+            android:orientation="vertical">
 
             <!-- ============= Carte Rétention ============= -->
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_sm"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_md"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_md">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -60,52 +53,13 @@
 
                     <!-- Rangée de rétention : dialogue à choix unique, la
                          valeur courante pré-cochée (patron licence). -->
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
                         android:id="@+id/rangee_retention"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_historique"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/settings_historique_retention"
-                                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/valeur_retention"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textAppearance="?attr/textAppearanceBodySmall"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                tools:text="5 jours" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_chevron_droite"
-                            app:tint="?attr/colorOutline" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_historique"
+                        app:rangeeTitre="@string/settings_historique_retention"
+                        app:rangeeType="valeur" />
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
@@ -119,14 +73,10 @@
 
             <!-- ============= Carte Entretien ============= -->
             <com.google.android.material.card.MaterialCardView
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_md"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_md">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -135,28 +85,12 @@
 
                     <!-- Empreinte au stockage : mesurée hors fil principal
                          (null : « … » le temps du retour). -->
-                    <LinearLayout
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_empreinte"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:importantForAccessibility="no"
-                            android:src="@drawable/ic_enregistrer"
-                            app:tint="?attr/colorOnSurfaceVariant" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/texte_empreinte"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_md"
-                            android:textAppearance="?attr/textAppearanceTitleSmall"
-                            tools:text="Espace occup\u00e9 : 12,3 Mo" />
-                    </LinearLayout>
+                        app:rangeeIcone="@drawable/ic_enregistrer"
+                        app:rangeeType="aucun" />
 
                     <!-- Effacement total : confirmé AVANT l'action (dialogue),
                          tous projets — jamais silencieux. -->

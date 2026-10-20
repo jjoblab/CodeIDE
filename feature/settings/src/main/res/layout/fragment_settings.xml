@@ -2,9 +2,10 @@
 <!--
   Écran maître des Paramètres (ADR 0059) : cartes M3 groupées par
   domaine (Général, Modules, Environnement, Application), une rangée par
-  section — chaque section s'ouvre dans son propre fragment. Les rangées
-  sont gonflées par SettingsFragment (ligne_parametre.xml), leurs
-  sous-titres reflètent l'état courant des réglages.
+  section — chaque section s'ouvre dans son propre fragment. Lot UI-3
+  (audit C6) : les rangées sont des RangeeParametre posés par
+  SettingsFragment, le filet entre rangées vit au conteneur, les cartes
+  portent Widget.CodeIDE.Card + EnteteSection (ADR 0127 §3).
 -->
 <!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35) :
      garantit qu'aucun écran sous-jacent ne transparaît ; le double-peint
@@ -43,15 +44,11 @@
             <!-- Carte « Général » : Apparence, Langue, Notifications. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/carte_general"
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -59,34 +56,29 @@
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_section_general"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_section_general" />
 
                     <LinearLayout
                         android:id="@+id/rangees_general"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:orientation="vertical" />
+                        android:divider="@drawable/separateur_rangee"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Carte « Modules » : Éditeur, Terminal, IA (bientôt). -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/carte_modules"
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_md"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -94,34 +86,29 @@
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_section_modules"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_section_modules" />
 
                     <LinearLayout
                         android:id="@+id/rangees_modules"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:orientation="vertical" />
+                        android:divider="@drawable/separateur_rangee"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Carte « Environnement » : Projets, Outils de développement (bientôt). -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/carte_environnement"
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_md"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -129,34 +116,29 @@
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_section_environnement"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_section_environnement" />
 
                     <LinearLayout
                         android:id="@+id/rangees_environnement"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:orientation="vertical" />
+                        android:divider="@drawable/separateur_rangee"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Carte « Application » : Sécurité (bientôt), À propos, Avancé. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/carte_application"
-                style="?attr/materialCardViewFilledStyle"
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_md"
-                app:cardBackgroundColor="?attr/colorSurface"
-                app:contentPadding="@dimen/spacing_sm"
-                app:shapeAppearance="?attr/shapeAppearanceMediumComponent"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:contentPadding="@dimen/spacing_sm">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -164,19 +146,18 @@
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:text="@string/settings_section_application"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:text="@string/settings_section_application" />
 
                     <LinearLayout
                         android:id="@+id/rangees_application"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_xs"
-                        android:orientation="vertical" />
+                        android:divider="@drawable/separateur_rangee"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

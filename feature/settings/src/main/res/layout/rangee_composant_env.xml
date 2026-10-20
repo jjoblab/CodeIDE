@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ligne d'un composant de l'écran Environnement (E5, § 7). -->
+<!-- Ligne d'un composant de l'écran Environnement (E5, § 7).
+     Lot UI-3 (audit C1) : espacements aux jetons, pas de widget nu. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingVertical="@dimen/spacing_sm">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -14,13 +15,13 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/nom_composant"
             style="?attr/textAppearanceTitleSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/details_composant"
             style="?attr/textAppearanceBodySmall"
             android:layout_width="match_parent"

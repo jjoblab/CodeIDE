@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.PaletteCouleur
@@ -17,18 +16,23 @@ import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.RangeeParametre
 import jo.codeide.core.ui.SectionParametres
+import jo.codeide.core.ui.TypeRangee
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.settings.databinding.FragmentSettingsBinding
-import jo.codeide.feature.settings.databinding.LigneParametreBinding
 import javax.inject.Inject
 
 /**
  * Écran maître des Paramètres (ADR 0059) : sections groupées en cartes M3
  * (Général, Modules, Environnement, Application), une rangée par section —
  * icône, libellé, **sous-titre d'état** et chevron vers le fragment
- * dédié. Les sections pas encore développées (IA, Outils de
+ * dédié. Lot UI-3 (audit C6) : les rangées sont des [RangeeParametre]
+ * (core:ui), plus aucun layout `ligne_parametre` — le maître construit
+ * ses rangées par code, les filets vivent au conteneur.
+ *
+ * Les sections pas encore développées (IA, Outils de
  * développement, Sécurité) restent visibles mais atténuées, puce
  * « Bientôt » à la place du chevron, vers l'écran minimal générique.
  *
@@ -48,8 +52,8 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
     @Inject
     lateinit var navigator: AppNavigator
 
-    /** Rangées gonflées du maître, indexées par section. */
-    private val rangees = mutableMapOf<SectionParametres, LigneParametreBinding>()
+    /** Rangées construites du maître, indexées par section. */
+    private val rangees = mutableMapOf<SectionParametres, RangeeParametre>()
 
     /** Sous-titres par section — recalculés à chaque émission d'état. */
     private val sousTitres = mutableMapOf<SectionParametres, (EtatParametres) -> String>()
@@ -75,7 +79,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
 
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             sousTitres.forEach { (section, calcul) ->
-                rangees[section]?.sousTitreLigneParametre?.text = calcul(etat)
+                rangees[section]?.sousTitre = calcul(etat)
             }
         }
     }
@@ -113,24 +117,29 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         sousTitre: (EtatParametres) -> String,
     ): ModeleLigne = ModeleLigne(section, icone, titre, description, bientot, sousTitre)
 
-    /** Gonfle les rangées dans le conteneur d'une carte. */
+    /** Construit les rangées d'une carte — composant partagé, jamais gonflé depuis un layout local. */
     private fun ajouterRangees(
         conteneur: LinearLayout,
         modeles: List<ModeleLigne>,
     ) {
         modeles.forEach { modele ->
-            val liaison = LigneParametreBinding.inflate(layoutInflater, conteneur, false)
-            liaison.iconeLigneParametre.setImageResource(modele.icone)
-            liaison.titreLigneParametre.setText(modele.titre)
-            liaison.root.contentDescription = getString(modele.description)
-            liaison.chevronLigneParametre.isVisible = !modele.bientot
-            liaison.puceBientotLigneParametre.isVisible = modele.bientot
+            val rangee = RangeeParametre(requireContext())
+            rangee.layoutParams =
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                )
+            rangee.setIcone(modele.icone)
+            rangee.titre = getString(modele.titre)
+            rangee.type = TypeRangee.CHEVRON
+            rangee.bientot = modele.bientot
+            rangee.contentDescription = getString(modele.description)
             if (modele.bientot) {
-                liaison.root.alpha = ALPHA_BIENTOT
+                rangee.alpha = ALPHA_BIENTOT
             }
-            liaison.root.setOnClickListener { navigator.openSettingsSection(modele.section) }
-            conteneur.addView(liaison.root)
-            rangees[modele.section] = liaison
+            rangee.setSurClic { navigator.openSettingsSection(modele.section) }
+            conteneur.addView(rangee)
+            rangees[modele.section] = rangee
             sousTitres[modele.section] = modele.sousTitre
         }
     }

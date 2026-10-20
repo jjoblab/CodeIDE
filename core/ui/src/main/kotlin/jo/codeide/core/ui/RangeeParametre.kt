@@ -1,6 +1,7 @@
 package jo.codeide.core.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.TypedArray
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
@@ -9,8 +10,11 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textview.MaterialTextView
+import androidx.appcompat.R as RAppcompat
+import com.google.android.material.R as RMaterial
 
 /**
  * Contrôle de droite d'une rangée de réglage.
@@ -49,6 +53,13 @@ enum class TypeRangee {
  *     app:rangeeType="chevron" />
  * ```
  *
+ * Deux attributs s'ajoutent aux types de contrôle :
+ * - `rangeeDestructrice` teinte l'icône et le titre en couleur d'erreur
+ *   (action irréversible — « Réinitialiser les réglages ») ;
+ * - `rangeeIndicateur` + `rangeeIndicateurTexte` posent une pastille
+ *   [IndicateurEtat] avant le chevron (état d'un moteur — écrans LSP L1,
+ *   forme + texte, jamais la couleur seule).
+ *
  * Le séparateur entre rangées voisines n'appartient PAS à la rangée :
  * le conteneur vertical pose `android:divider="@drawable/separateur_rangee"`
  * et `android:showDividers="middle"` (jamais de marge recopiée).
@@ -70,6 +81,7 @@ public class RangeeParametre
         private val vuePuce: MaterialTextView
         private val interrupteur: MaterialSwitch
         private val vueValeur: MaterialTextView
+        private val indicateurEtat: IndicateurEtat
         private val vueChevron: ImageView
         private val colonneTexte: LinearLayout
 
@@ -85,6 +97,35 @@ public class RangeeParametre
             set(valeur) {
                 field = valeur
                 appliquerControle()
+            }
+
+        /**
+         * Rangée destructive : icône et titre portent la couleur d'erreur
+         * (l'action est irréversible — le signal ne passe pas par la forme
+         * seule, TalkBack lit le titre).
+         */
+        public var destructrice: Boolean = false
+            set(valeur) {
+                field = valeur
+                appliquerTeinte()
+            }
+
+        /**
+         * Niveau de la pastille d'état posée avant le chevron ; `null`
+         * masque la pastille (défaut — seuls les écrans d'état la posent).
+         */
+        public var indicateur: NiveauEtat? = null
+            set(valeur) {
+                field = valeur
+                if (valeur != null) indicateurEtat.setEtat(valeur)
+                indicateurEtat.isVisible = valeur != null
+            }
+
+        /** Texte court de la pastille (« Prêt », « En cours »…). */
+        public var indicateurTexte: CharSequence
+            get() = indicateurEtat.texte
+            set(valeur) {
+                indicateurEtat.texte = valeur
             }
 
         /** Titre de la rangée ; porte aussi le rôle de l'interrupteur. */
@@ -138,6 +179,7 @@ public class RangeeParametre
             vuePuce = findViewById(R.id.rangee_puce_bientot)
             interrupteur = findViewById(R.id.rangee_interrupteur)
             vueValeur = findViewById(R.id.rangee_valeur)
+            indicateurEtat = findViewById(R.id.rangee_indicateur)
             vueChevron = findViewById(R.id.rangee_chevron)
             colonneTexte = vueTitre.parent as LinearLayout
 
@@ -152,6 +194,14 @@ public class RangeeParametre
         /** Rôle d'appui (retour haptique et accessibilité offerts par le ripple). */
         public fun setSurClic(ecouteur: OnClickListener?) {
             setOnClickListener(ecouteur)
+        }
+
+        /**
+         * Icône de la rangée (patron [VueEtat.setIcone]) ; `0` la masque
+         * et le titre part au bord de la carte.
+         */
+        public fun setIcone(resId: Int) {
+            afficherIcone(resId)
         }
 
         /**
@@ -199,12 +249,41 @@ public class RangeeParametre
                 sousTitre = lecteur.getText(R.styleable.RangeeParametre_rangeeSousTitre) ?: ""
                 valeur = lecteur.getText(R.styleable.RangeeParametre_rangeeValeur) ?: ""
                 bientot = lecteur.getBoolean(R.styleable.RangeeParametre_rangeeBientot, false)
+                destructrice = lecteur.getBoolean(R.styleable.RangeeParametre_rangeeDestructrice, false)
+                indicateurTexte = lecteur.getText(R.styleable.RangeeParametre_rangeeIndicateurTexte) ?: ""
+                indicateur = lireIndicateur(lecteur)
                 type = lireType(lecteur)
                 appliquerControle()
             } finally {
                 lecteur.recycle()
             }
         }
+
+        /** Teinte destructive : icône et titre ensemble, rien d'autre. */
+        private fun appliquerTeinte() {
+            val couleur = if (destructrice) RAppcompat.attr.colorError else AUCUNE_TEINTE
+            if (couleur == AUCUNE_TEINTE) {
+                vueIcone.imageTintList = null
+                vueTitre.setTextColor(MaterialColors.getColor(vueTitre, RMaterial.attr.colorOnSurface))
+            } else {
+                val teinte = ColorStateList.valueOf(MaterialColors.getColor(vueTitre, couleur))
+                vueIcone.imageTintList = teinte
+                vueTitre.setTextColor(teinte)
+            }
+        }
+
+        /** Lit le niveau de la pastille ; absent, la pastille reste masquée. */
+        private fun lireIndicateur(lecteur: TypedArray): NiveauEtat? =
+            if (lecteur.hasValue(R.styleable.RangeeParametre_rangeeIndicateur)) {
+                when (lecteur.getInt(R.styleable.RangeeParametre_rangeeIndicateur, NiveauEtat.NEUTRE.ordinal)) {
+                    NiveauEtat.OK.ordinal -> NiveauEtat.OK
+                    NiveauEtat.AVERTISSEMENT.ordinal -> NiveauEtat.AVERTISSEMENT
+                    NiveauEtat.ERREUR.ordinal -> NiveauEtat.ERREUR
+                    else -> NiveauEtat.NEUTRE
+                }
+            } else {
+                null
+            }
 
         private fun lireType(lecteur: TypedArray): TypeRangee =
             when (lecteur.getInt(R.styleable.RangeeParametre_rangeeType, TypeRangee.CHEVRON.ordinal)) {
@@ -233,6 +312,9 @@ public class RangeeParametre
 
             /** Indice unique du tableau d'attributs à un seul élément. */
             const val SEUL_ATTRIBUT = 0
+
+            /** Aucune teinte forcée (rangée standard). */
+            const val AUCUNE_TEINTE = 0
 
             /** Ripple standard au premier plan des rangées cliquables. */
             fun foregroundTappable(context: Context): Drawable? {

@@ -77,8 +77,8 @@ class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
                 viewModel.onAction(ActionParametres.ChangerTheme(modeDuTheme(id)))
             }
         }
-        binding.interrupteurCouleursDynamiques.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(active))
+        binding.rangeeCouleursDynamiques.setSurChangementCoche { actif ->
+            if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(actif))
         }
     }
 
@@ -110,7 +110,7 @@ class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
                 ThemeMode.LIGHT -> binding.groupeTheme.check(R.id.bouton_theme_2)
                 ThemeMode.DARK -> binding.groupeTheme.check(R.id.bouton_theme_3)
             }
-            binding.interrupteurCouleursDynamiques.isChecked = reglages.useDynamicColor
+            binding.rangeeCouleursDynamiques.coche = reglages.useDynamicColor
             // Aperçu réactif : atténué quand les couleurs dynamiques sont
             // coupées — les pastilles montrent la palette du thème courant
             // (dynamique ou de marque) telle quelle.
