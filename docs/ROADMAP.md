@@ -359,7 +359,7 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 Optionnels : IA-5b (diff en ligne `ViewZone` — chantier `jjoblab/code-editor`),
 IA-8 (complétion « texte fantôme », ADR propre).
 
-## Mission UI/LSP — cohérence visuelle et réglages 🟡 EN COURS (UI-5/6/7 restants)
+## Mission UI/LSP — cohérence visuelle et réglages 🟡 EN COURS (UI-6/7 restants)
 
 > ADR 0127 (cohérence UI + garde-fou à cliquet) et 0128 (réglages LSP pilotés par
 > capacités) **acceptées** (GO propriétaire du 2026-10-20) — les lots LSP sont
@@ -379,7 +379,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | UI-2 | v0.159.0 | Garde-fou `checkUiTokens` à cliquet (baseline versionnée, jamais à la hausse) + CI + tests du moteur | ✅ v0.159.0 (règles R1-R7, moteur pur +20 tests JUnit, baseline initialisée 96 fichiers/606 occurrences, branché chaîne locale étape 5 + CI statique & composite, AGENTS.md règle 15 ; sens ROUGE prouvé par attaque) |
 | UI-3 | v0.160.0 | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ✅ v0.160.0 (0 rangée recopiée — `ligne_parametre.xml` supprimé, 17 cartes `Widget.CodeIDE.Card` + `EnteteSection`, 9 boutons `Outlined` ; `RangeeParametre` + `rangeeDestructrice`/`rangeeIndicateur`/`setIcone` ; cliquet 606→561, `feature:settings` HORS baseline ; recette visuelle sur appareil dans `TESTS_MANUELS.md` § UI-3) |
 | UI-4 | v0.163.0 | `install`, `core/crash`, `terminal` : alignement complet | ✅ v0.163.0 (139 occurrences → 0, les 3 modules SORTENT de la baseline 85 → 69 fichiers : crash 22 marges + textSize trace par textAppearance + 7 styles maison + 6 Toast→snackbar, install 2 layouts ×21 marges + 2 cartes `Widget.CodeIDE.Card` + 8 boutons maison + 2 drawables morts supprimés, terminal 39 marges + 7 tailles par `Micro`/échelle + 3 hex → constantes + touche clavier maison + 2 Toast→snackbar ; recette visuelle `TESTS_MANUELS.md` § UI-4) |
-| UI-5 | — | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ⬜ |
+| UI-5 | v0.164.0 | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ✅ v0.164.0 (354 occurrences → 0 sur les 35 fichiers du module — le plus gros lot de la mission, 6 commits par sous-écran ; entêtes de tiroir unifiés 12/12 ; nom de nœud 13 sp → BodySmall aligné sur l'édition inline ; note d'indexation → `Widget.CodeIDE.Card` (R7) ; 12 hex de l'illustration + masque de l'anneau → couleurs NOMMÉES (C9) ; 2 Toast → `Retour.snackbar` (C5) dont copie logcat miroir terminal ; NOUVEAU `Widget.CodeIDE.CircularProgressIndicator` dans core:ui ; 4 jetons dédiés editor (cotes composées 74/54/14) + 5 jetons maquette orphelins ENFIN branchés ; baseline 69 → 34 fichiers, `feature/editor` HORS ; écart documenté : le toast « Quitter pendant un build » survit à finish(), hors cliquet — à arbitrer en UI-7 ; recette visuelle `TESTS_MANUELS.md` § UI-5) |
 | UI-6 | — | `preview` : idem | ⬜ |
 | UI-7 | — | Toast → Snackbar partout + règle de bannissement | ⬜ |
 

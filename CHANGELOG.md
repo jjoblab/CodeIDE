@@ -1,5 +1,74 @@
 # Journal des modifications
 
+## [0.164.0] – 2026-10-21
+
+### UI-5 — `feature/editor` : zéro littéral, le plus gros module sort de la baseline (354 occurrences → 0 sur 35 fichiers, audit C1/C2/C3/C4/C5/C9, ADR 0127 §4-5)
+
+#### Modifié
+
+- **Explorateur & arborescence** (6 fichiers, 91 occurrences) :
+  `fragment_explorateur.xml` — entête unifié 12/12 (les quatre tiroirs
+  partagent `spacing_md_compact`), titre bold par
+  `textAppearanceBodyMedium`, chemin monospace par `TextAppearance.CodeIDE.Micro`
+  (fini le 10,5 sp littéral), boutons 32 dp espacés par
+  `@dimen/editor_ecart_actions` (jeton maquette existant, ENFIN branché),
+  barre presse-papiers par `@dimen/editor_presse_papiers_padding_h/v`
+  (jetons orphelins depuis l'étape 31) ; `ligne_noeud_arborescence.xml` —
+  nom 13 sp → `BodySmall` (aligné sur le champ d'édition inline 12 sp :
+  le passage en mode renommage ne change plus la taille), compteur et
+  badge racine par `Micro` ; les popovers (actions, Supprimer, Déplacer,
+  destination, Légende) passent par `@dimen/editor_popover_padding`
+  (coques 6 dp) ou `spacing_md_compact` (coques 12 dp), boutons
+  Annuler/Valider unifiés 12-16/8, la snackbar maison de l'arbre garde
+  son fond dédié avec paddings `md`/`sm`.
+- **Recherche & Git & panneau inférieur** (8 fichiers, 122 occurrences) :
+  `fragment_recherche.xml` — entête 12/12, « Tout remplacer » quitte
+  `?attr/materialButtonOutlinedStyle` pour `MaterialButton` +
+  `Widget.CodeIDE.Button.Outlined` (widget NU converti, règle R5 au
+  passage) ; `fragment_git.xml` — badge de branche, état « pas un
+  dépôt » par `state_padding`, « Initialiser » Outlined maison, bouton
+  Commit `Widget.CodeIDE.Button` (nu → maison) ; `fragment_panneau_console.xml` —
+  chip d'action `Widget.CodeIDE.Chip.Assist`, 5 boutons `Widget.CodeIDE.Button.Text`,
+  champ stdin `Widget.CodeIDE.TextField` ; `fragment_panneau_journal.xml` —
+  4 chips filtres `Widget.CodeIDE.Chip.Filter` ; `fragment_panneau_logcat.xml` —
+  le COMMENTAIRE d'entête perd son `#14171d` (R3 ne scanne pas que le
+  code), barre et bandeaux par `md_compact`/`sm`/`LabelSmall`.
+- **Projet & indexation** (10 fichiers, 62 occurrences) :
+  `fragment_projet.xml`, lignes de scripts/dépendances/mises à jour
+  (padding 12/8, titres `BodyMedium`, sous-textes `LabelSmall`) ;
+  `fragment_detail_indexation.xml` — la note d'impact devient
+  `Widget.CodeIDE.Card` (R7 : plus de `cardCornerRadius`/`cardElevation`
+  littéraux ; rayon 12 et élévation 0 par le style, fond
+  `colorSurfaceVariant` conservé, filet 1 dp — unification C4) ;
+  **drawables** : `ill_editeur_code.xml` (12 hex → 9 couleurs nommées
+  `ill_editeur_*` dans `values/colors.xml` — mêmes valeurs, illustration
+  inchangée) et `anneau_etape_en_cours.xml` (masque blanc
+  `anneau_etape_masque`, teinte toujours par `backgroundTintList`).
+- **Activité & chrome** (7 fichiers, 42 occurrences) : `activity_editor.xml` —
+  les 3 styles `Widget.Material3.*` bruts deviennent `Widget.CodeIDE.Button.Tonal`
+  / `.Text` et le NOUVEAU `Widget.CodeIDE.CircularProgressIndicator`
+  (créé dans `core:ui` — besoin inédit ADR 0127, le spinner du canal
+  tooling) ; rail, badge de panneau, zone snackbar et pastille de taille
+  par les jetons ; **4 jetons dédiés** dans `feature/editor/dimens.xml`
+  pour les cotes non arrondissables : `editor_snackbar_marge_bas` (74 =
+  rail 66 + `sm` 8), `editor_pastille_taille_marge_bas` (54, maquette
+  § 13), `editor_bouton_icone_padding` (14 = (48 − 20)/2, cote composée),
+  plus `editor_ecart_actions`/`editor_popover_padding`/`editor_presse_papiers_padding_*`
+  enfin consommés.
+- **Retours unifiés (audit C5)** : `PanneauLogcatFragment.copierLigne` et
+  `EditorActivity.ouvrirAvec` passent de `Toast` à `Retour.snackbar`
+  (thémé + annoncé TalkBack, miroir du terminal UI-4 — le check SDK 33
+  disparaît comme dans le terminal : sur Android 13+, la confirmation
+  système reste la seule). **Écart assumé documenté** : le toast
+  « Quitter pendant un build » (`EditorActivity`, écrit qualifié
+  multi-lignes) SURVIT car il doit survivre à `finish()` — hors scanner
+  R6, à arbitrer au lot UI-7 (« Toast → Snackbar partout »).
+- **Cliquet** : baseline `config/ui-baseline.json` 69 → **34 fichiers**
+  (`feature/editor` ENTIÈREMENT hors — critère de fin « baseline à 0 »
+  atteint) ; restent preview 16, ai 9, newproject 7, diagnostics 1,
+  onboarding 1 (lots UI-6/7). Recette visuelle 360 dp clair/sombre :
+  `docs/TESTS_MANUELS.md` § UI-5.
+
 ## [0.163.0] – 2026-10-21
 
 ### UI-4 — `install`, `core/crash`, `terminal` : alignement complet, les trois modules sortent de la baseline (audit C1/C2/C3/C4/C5/C9, ADR 0127 §4-5)
