@@ -31,6 +31,13 @@ dependencies {
     // couture DI vit dans di/ModuleSessionProjet.kt.
     implementation(project(":core:session"))
 
+    // Lot LSP-2 (ADR 0128 §4) : dépôt DÉDIÉ des réglages LSP — la
+    // session câble budget du cache et surveillance des fichiers
+    // externes (LspSettingsStore, hors AppSettings ; exception feature
+    // documentée dans ModuleRulesPlugin, même précédent que
+    // :feature:preview → SettingsDataStore en PE7c).
+    implementation(project(":core:datastore"))
+
     // Mission « Previews » PE1 (PREVIEW.md §3) : panneau d'aperçu XML —
     // le moteur et la vue vivent dans :preview:xml (la dépendance
     // LayoutLib y est confinée, la feature ne la voit jamais ; PE2 y
@@ -38,6 +45,11 @@ dependencies {
     implementation(project(":preview:xml"))
 
     // Tests du ViewModel : fakes et horloge virtuelle.
+    // Lot LSP-2 : le socle de test construit un LspSettingsStore réel
+    // (DataStore sur fichier temporaire) — androidx.datastore est
+    // `implementation` côté :core:datastore (non transitif), le socle
+    // en a besoin directement.
+    testImplementation(libs.androidx.datastore)
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":core:testing"))

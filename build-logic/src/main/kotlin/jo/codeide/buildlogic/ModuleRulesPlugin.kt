@@ -161,8 +161,20 @@ class ModuleRulesPlugin : Plugin<Project> {
         // Cycle de vie étape C (ADR 0114) : + :core:session — l'éditeur
         // BRANCHE ses ressources (session LSP, flush I7) sur le contrat
         // de session de projet (Kotlin JVM pur, même famille core).
+        // Lot LSP-2 (ADR 0128 §4) : + :core:datastore — l'éditeur câble
+        // la session LSP sur le DÉPÔT DÉDIÉ des réglages LSP
+        // (LspSettingsStore, hors AppSettings — même exception que
+        // :feature:preview → SettingsDataStore en PE7c ; l'écran des
+        // réglages vivra côté feature:settings).
         chemin == ":feature:editor" ->
-            setOf(":core:ui", ":core:domain", ":core:model", ":core:session", ":preview:xml")
+            setOf(
+                ":core:ui",
+                ":core:domain",
+                ":core:model",
+                ":core:session",
+                ":core:datastore",
+                ":preview:xml",
+            )
         // Previews PE6-0 (maquette docs/mockups/apercu-xml.html) : l'écran
         // d'aperçu dédié consomme le moteur :preview:xml (le moteur de
         // rendu y reste confiné — la feature ne voit JAMAIS LayoutLib en
