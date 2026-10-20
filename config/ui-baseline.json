@@ -1,22 +1,4 @@
 {
-    "core/crash/src/main/kotlin/jo/codeide/core/crash/ui/CrashActivity.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 6,
-        "R7": 0
-    },
-    "core/crash/src/main/res/layout/activity_crash.xml": {
-        "R1": 22,
-        "R2": 1,
-        "R3": 0,
-        "R4": 7,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
     "feature/ai/src/main/kotlin/jo/codeide/feature/ai/ChatFragment.kt": {
         "R1": 0,
         "R2": 0,
@@ -422,42 +404,6 @@
         "R6": 0,
         "R7": 0
     },
-    "feature/install/src/main/res/drawable/etape_attente.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/install/src/main/res/drawable/etape_faite.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/install/src/main/res/layout-sw600dp/fragment_installation.xml": {
-        "R1": 21,
-        "R2": 0,
-        "R3": 0,
-        "R4": 4,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/install/src/main/res/layout/fragment_installation.xml": {
-        "R1": 21,
-        "R2": 0,
-        "R3": 0,
-        "R4": 4,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
     "feature/newproject/src/main/kotlin/jo/codeide/feature/newproject/EcranCreationFragment.kt": {
         "R1": 0,
         "R2": 0,
@@ -669,96 +615,6 @@
         "R1": 0,
         "R2": 0,
         "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/kotlin/jo/codeide/feature/terminal/TerminalActivity.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 1,
-        "R7": 0
-    },
-    "feature/terminal/src/main/kotlin/jo/codeide/feature/terminal/TerminalTiroirFragment.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 1,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/drawable/fond_badge_etat_session.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/drawable/fond_bouton_mode_terminal.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/drawable/point_session_vivante.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 1,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/layout/fragment_terminal_tiroir.xml": {
-        "R1": 14,
-        "R2": 3,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/layout/touche_clavier.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 1,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/layout/vue_carte_session_terminal.xml": {
-        "R1": 14,
-        "R2": 3,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/layout/vue_onglet_session.xml": {
-        "R1": 1,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/terminal/src/main/res/layout/vue_panneau_terminal.xml": {
-        "R1": 9,
-        "R2": 1,
-        "R3": 0,
         "R4": 0,
         "R5": 0,
         "R6": 0,

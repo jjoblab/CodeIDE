@@ -1,5 +1,66 @@
 # Journal des modifications
 
+## [0.163.0] – 2026-10-21
+
+### UI-4 — `install`, `core/crash`, `terminal` : alignement complet, les trois modules sortent de la baseline (audit C1/C2/C3/C4/C5/C9, ADR 0127 §4-5)
+
+#### Modifié
+
+- **`core/crash` (36 → 0)** : `activity_crash.xml` — 22 marges/paddings
+  vers `@dimen/spacing_*` (échelle 2xs→lg), la trace monospace passe
+  par `?attr/textAppearanceBodySmall` (12 sp, `textIsSelectable`
+  conservé), `minHeight` des boutons par `@dimen/touch_target_min` ;
+  la carte résumé devient `Widget.CodeIDE.Card` (contour, élévation
+  0, unification C4) avec `contentPadding` ; les 8 `<Button>` deviennent
+  `MaterialButton` et les 7 styles `Widget.Material3.*` deviennent
+  `Widget.CodeIDE.Button` / `.Outlined` / `.Text` (« Vider le cache »
+  garde la teinte d'erreur). `CrashActivity` : les 6 `Toast` deviennent
+  `Retour.snackbar` (thémé + annoncé TalkBack, audit C5) — copie,
+  partage impossible, enregistrement, vidage, redémarrage impossible.
+- **`feature/install` (52 → 0)** : les DEUX variantes de
+  `fragment_installation` (téléphone + sw600dp) — 21 marges/paddings
+  chacune vers les jetons (16→`md`, 12→`md_compact`, 8→`sm`, 6→`xs`,
+  4→`xs`, 2→`2xs`), les 2 cartes par `Widget.CodeIDE.Card` +
+  `contentPadding`, les 8 boutons `MaterialButton` maison
+  (`Button`/`.Outlined`/`.Text` — plus de `?attr/materialButtonOutlinedStyle`
+  ni `borderlessButtonStyle`). **2 drawables MORTS supprimés**
+  (`etape_attente.xml`, `etape_faite.xml` — aucune référence ni
+  résolution dynamique, remplacés de longue date par les pastilles de
+  `carte_phase_installation`).
+- **`feature/terminal` (51 → 0)** : `fragment_terminal_tiroir.xml`,
+  `vue_carte_session_terminal.xml`, `vue_panneau_terminal.xml`,
+  `vue_onglet_session.xml` — 39 marges/paddings vers les jetons
+  (l'entête garde ses couleurs de maquette, seules les distances et
+  tailles changent de registre) ; 7 `textSize` par
+  `textAppearance`/`TextAppearance.CodeIDE.Micro` (14 sp titre, 10 sp
+  sous-titres/badges/libellés — l'échelle typographique remplace les
+  demi-tailles 9.5/10.5/12.5 sp) ; 3 `#hex` des drawables vers
+  `@android:color/transparent`/`white` (bases de teinte au rendu) ;
+  `touche_clavier.xml` par `Widget.CodeIDE.Button.Text` ; les 2
+  `Toast` de copie de sélection (activité + tiroir) deviennent
+  `Retour.snackbar`.
+
+#### Vérifié
+
+- **Critère de fin tenu** : `checkUiTokens -Pui.baseline.ratchet` — la
+  baseline passe de **85 à 69 fichiers**, `core/crash`,
+  `feature/install` et `feature/terminal` en sont entièrement HORS
+  (139 occurrences → 0) ; `checkUiTokens` vert sans ratchet.
+- **Chaîne locale RACINE** verte : `spotlessCheck`, `detekt`,
+  `checkModuleDependencies`, `checkUiTokens` ; tests des modules
+  touchés : `:core:crash` **68**, `:feature:install` **14**,
+  `:feature:terminal` **26**, `:app` **84** (intégration) — tous verts.
+- **Recette visuelle** sur appareil (360 dp, clair + sombre) dans
+  `TESTS_MANUELS.md` § UI-4 — migration à rendre invisible au
+  quotidien ; TalkBack : snackbars annoncées, zones ≥ 48 dp.
+
+#### Documentation
+
+- `ROADMAP.md` : UI-4 ✅ v0.163.0, la mission passe « PROPOSÉ » →
+  « EN COURS » (UI-5/6/7 restants, ADR 0127 action 3 mise à jour) ;
+  **ADR 0127 : statut accepté** (GO propriétaire du 2026-10-20),
+  actions 1/2/4 cochées, action 3 en cours (UI-3/UI-4 ✅).
+
 ## [0.162.0] – 2026-10-21
 
 ### LSP-4 — lien L3 « Détails de l'indexation », test d'architecture des interrupteurs, accessibilité (ADR 0128 ; spec `consommes/LSP_SPEC_ECRANS.md` § 5)

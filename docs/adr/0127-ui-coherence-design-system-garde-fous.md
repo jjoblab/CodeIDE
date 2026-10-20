@@ -1,6 +1,7 @@
 # ADR 0127 — UI : cohérence visuelle, composants partagés et garde-fou à cliquet
 
-- **Statut** : proposé (à accepter avant les lots UI-1/UI-2 et avant tout écran IA/LSP)
+- **Statut** : accepté (GO propriétaire du 2026-10-20 — lots livrés depuis : UI-1 v0.158.0,
+  UI-2 v0.159.0, UI-3 v0.160.0, UI-4 v0.163.0 ; la mission LSP sur cet ADR est close)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **S'appuie sur** : ADR 0059 (jetons de thème, Paramètres), 0060 (palettes/couleurs dynamiques),
@@ -125,7 +126,10 @@ bougeront de 1–2 dp : c'est le prix de l'unité, atténué par la capture avan
 - **À revoir** : élargir le cliquet à `strings` (FR/EN) et aux `contentDescription` manquants.
 
 ## Actions
-1. [ ] Jetons, styles, `RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour` dans `core:ui` (lot UI-1).
-2. [ ] `checkUiTokens` + `config/ui-baseline.json` + CI + tests du moteur de règles (lot UI-2).
-3. [ ] Migrations par module (UI-3 à UI-7), baseline mise à jour à chaque lot.
-4. [ ] Mettre à jour `docs/CONVENTIONS.md` (liens vers cet ADR) et `AGENTS.md` (nouvelle règle : « aucun littéral UI »).
+1. [x] Jetons, styles, `RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour` dans `core:ui` (lot UI-1) — livré v0.158.0.
+2. [x] `checkUiTokens` + `config/ui-baseline.json` + CI + tests du moteur de règles (lot UI-2) — livré v0.159.0.
+3. [ ] Migrations par module (UI-3 à UI-7), baseline mise à jour à chaque lot — UI-3 v0.160.0 ✅
+   (Settings hors baseline) ; UI-4 v0.163.0 ✅ (install, crash, terminal hors baseline —
+   85 → 69 fichiers) ; RESTENT UI-5 (editor), UI-6 (preview), UI-7 (Toast → Snackbar).
+4. [x] Mettre à jour `docs/CONVENTIONS.md` (liens vers cet ADR) et `AGENTS.md` (règle 15 :
+   « aucun littéral UI ») — livré par UI-2 v0.159.0.
