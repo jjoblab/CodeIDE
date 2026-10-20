@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LSP-3 — L2 Langage (UN SEUL layout pour Java/Kotlin/XML, spec § 3) :
+  le titre et l'argument de navigation portent le langage ; les rangées
+  Moteur sont posées par le fragment (nom, état, puce « pack langue »
+  pour Kotlin/XML), la carte Fonctions est GÉNÉRÉE depuis les capacités
+  annoncées (capacitesAnnoncees — jamais une liste recopiée), et les
+  filtres différés (gravité, réactivité) affichent la puce « Bientôt »
+  — jamais un contrôle sans effet (ADR 0059, décision LSP-2).
+-->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35, miroir
+     des sections des Paramètres) : garantit qu'aucun écran sous-jacent ne
+     transparaît ; le double-peint avec windowBackground est assumé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/lsp_langage_java" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_moteur" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_nom_moteur"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeType="aucun" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_etat_moteur"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeTitre="@string/lsp_moteur_row_etat"
+                        app:rangeeType="aucun" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_fonctions" />
+
+                    <!-- Rangées générées depuis capacitesAnnoncees(langage),
+                         en ordre fixe (spec § 3) — lecture seule tant que les
+                         interrupteurs côté client n'ont pas d'effet (LSP-2). -->
+                    <LinearLayout
+                        android:id="@+id/rangees_fonctions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:divider="@drawable/separateur_rangee"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_fonctions_note"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_filtres" />
+
+                    <!-- Filtre DIFFÉRÉ au chantier code-editor (LSP-2) :
+                         la gravité exposée exigera une évolution de cel-ui —
+                         puce « Bientôt », jamais un contrôle sans effet. -->
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_gravite"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeBientot="true"
+                        app:rangeeSousTitre="@string/lsp_gravite_sous"
+                        app:rangeeTitre="@string/lsp_gravite_affichee"
+                        app:rangeeType="valeur" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_reactivite"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeBientot="true"
+                        app:rangeeTitre="@string/lsp_reactivite"
+                        app:rangeeType="valeur" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

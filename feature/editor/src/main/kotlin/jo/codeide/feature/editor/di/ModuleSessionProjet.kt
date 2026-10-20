@@ -74,4 +74,16 @@ internal object ModuleSessionProjet {
     @PorteeFermetureSession
     fun porteeFermetureSession(dispatchers: DispatcherProvider): CoroutineScope =
         CoroutineScope(SupervisorJob() + dispatchers.default)
+
+    /**
+     * Lot LSP-3 (ADR 0128 §4) : table des capacités ANNONCÉES du frère —
+     * singleton process-wide (l'écran L2 la lit même éditeur fermé) ;
+     * :feature:editor est le seul module qui voit `:lsp:host`, la table
+     * n'est JAMAIS recopiée côté écrans (parité verrouillée par test).
+     */
+    @Provides
+    @Singleton
+    fun tableCapacitesLsp(): jo.codeide.core.domain.TableCapacitesLsp =
+        jo.codeide.feature.editor
+            .TableCapacitesLspHote()
 }

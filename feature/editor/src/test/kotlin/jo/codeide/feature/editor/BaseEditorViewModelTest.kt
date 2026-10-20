@@ -119,6 +119,14 @@ abstract class BaseEditorViewModelTest {
      *  session LSP vit dégradée (java.home du runtime de test). */
     protected val outilchainTest = FakeToolchainLocator()
 
+    /** Registre du port des moteurs LSP des tests (lot LSP-3, ADR 0128
+     *  §4) — instance RÉELLE (Kotlin pur, sans Android) : l'espace y
+     *  publie son port à l'ouverture, le retire dans onCleared ; les
+     *  tests de réglages l'observeront comme le feront les écrans. */
+    protected val registrePortLspTest =
+        jo.codeide.core.domain
+            .RegistrePortLsp()
+
     /** Réglages en mémoire — pilote [optionsTooling] (v3) et
      *  [optionsEditeur] (v0.37.0) : même dépôt, mêmes semailles. */
     protected val depotReglages = FakeSettingsRepository()
@@ -314,6 +322,9 @@ abstract class BaseEditorViewModelTest {
             dossierIndexLsp = dossierIndexLspTest,
             // Lot LSP-2 (ADR 0128 §4) : dépôt dédié des réglages LSP.
             reglagesLsp = reglagesLspTest,
+            // Lot LSP-3 (ADR 0128 §4) : registre du port des moteurs —
+            // instance réelle (Kotlin pur), le port y est publié puis retiré.
+            registrePortLsp = registrePortLspTest,
             outilchain = outilchainTest,
             executerTachesUseCase =
                 jo.codeide.core.domain.ExecuterTachesUseCase(

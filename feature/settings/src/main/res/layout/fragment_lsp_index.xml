@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LSP-3 — L3 Index et cache (spec § 3) : occupation OBSERVÉE (taille du
+  cache sur disque + dernier passage), budget Auto/256/512/1024 Mo
+  APPLIQUÉ dynamiquement (paliers du modèle LspSettings), surveillance
+  des fichiers externes (0 = coupée) et actions ancrées sur la session
+  vivante — « Vider le cache » confirmé par dialogue, refusé pendant
+  une indexation (refus en DONNÉE), retour par Retour.snackbar.
+-->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35, miroir
+     des sections des Paramètres) : garantit qu'aucun écran sous-jacent ne
+     transparaît ; le double-peint avec windowBackground est assumé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/lsp_index_titre" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_occupation" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_cache_index"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_db"
+                        app:rangeeTitre="@string/lsp_cache_index"
+                        app:rangeeType="aucun" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_budget" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_taille_max"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_taille_police"
+                        app:rangeeSousTitre="@string/lsp_taille_max_sous"
+                        app:rangeeTitre="@string/lsp_taille_maximale"
+                        app:rangeeType="valeur" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_detection" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_surveiller"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_synchronisation"
+                        app:rangeeSousTitre="@string/lsp_surveiller_sous"
+                        app:rangeeTitre="@string/lsp_surveiller"
+                        app:rangeeType="interrupteur" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_frequence"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_actualiser"
+                        app:rangeeTitre="@string/lsp_frequence"
+                        app:rangeeType="valeur" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_actions" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_reindexer"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/lsp_reindexer" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_reessayer_echecs"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:text="@string/lsp_reessayer_echecs"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_vider_cache"
+                            style="@style/Widget.CodeIDE.Button.Tonal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:text="@string/lsp_vider_cache" />
+                    </LinearLayout>
+
+                    <!-- Explication posée par l'écran : refus du vidage
+                         pendant une indexation, absence de moteur. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/note_actions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

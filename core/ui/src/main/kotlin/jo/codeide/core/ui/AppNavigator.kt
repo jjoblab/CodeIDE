@@ -27,6 +27,57 @@ public interface AppNavigator {
     public fun openSettingsSection(section: SectionParametres): Unit
 
     /**
+     * Ouvre l'écran **Langage** des réglages LSP (lot LSP-3, L2 — écrans
+     * « Intelligence du code ») : UN seul écran pour Java/Kotlin/XML,
+     * le langage voyage en argument de navigation (identifiant de
+     * [jo.codeide.core.domain.LangageLsp]).
+     *
+     * Servi par les rangées moteurs de la vue d'ensemble (L1) ; la
+     * destination concrète vit dans `app` (garde des destinations LSP,
+     * même patron que les écrans IA).
+     *
+     * @param langage identifiant de [jo.codeide.core.domain.LangageLsp]
+     * (`JAVA`, `KOTLIN`, `XML`).
+     */
+    public fun openLspLangage(langage: String): Unit
+
+    /**
+     * Ouvre l'écran **Index et cache** des réglages LSP (lot LSP-3, L3).
+     *
+     * Servi par la rangée « Index et cache » de la vue d'ensemble (L1).
+     */
+    public fun openLspIndex(): Unit
+
+    /**
+     * Ouvre l'écran **Environnement d'analyse** des réglages LSP (lot
+     * LSP-3, L4) — lecture seule (JDK, plateforme, mode du moteur).
+     *
+     * Servi par la rangée « Environnement d'analyse » de la vue
+     * d'ensemble (L1).
+     */
+    public fun openLspEnvironnement(): Unit
+
+    /**
+     * Ouvre l'écran **État et diagnostic** des réglages LSP (lot LSP-3,
+     * L5) : résumé par moteur, dernières erreurs, copie du diagnostic.
+     *
+     * Servi par la rangée « État et diagnostic » de la vue d'ensemble
+     * (L1).
+     */
+    public fun openLspEtat(): Unit
+
+    /**
+     * Ouvre l'écran **Environnement** des Paramètres (réparation du JDK
+     * — action unique « Réparer » de L4, lot LSP-3 : l'échec est
+     * récupérable là-bas, E5/ADR 0090).
+     *
+     * Servi par l'état d'erreur JDK de l'environnement d'analyse (L4) ;
+     * la garde couvre les destinations LSP ([openSettingsSection]
+     * n'ouvre une section QUE depuis le maître).
+     */
+    public fun openReglageEnvironnement(): Unit
+
+    /**
      * Revient en arrière dans la pile de navigation.
      *
      * À distinguer d'une fermeture de dialogue ou d'un retour système :
@@ -229,6 +280,13 @@ public enum class SectionParametres {
 
     /** Réglages de l'éditeur (entièrement créés par l'ADR 0059). */
     EDITEUR,
+
+    /**
+     * « Intelligence du code » (lot LSP-3, ADR 0128) : moteurs, index et
+     * fonctions par langage — 2ᵉ rangée du groupe Modules, après
+     * l'Éditeur (spec `LSP_SPEC_ECRANS.md` § 1).
+     */
+    LANGAGES,
 
     /** Réglages du terminal (police migrée depuis Apparence). */
     TERMINAL,

@@ -39,6 +39,14 @@ class SectionsParametresLayoutTest {
             "notifications" to R.layout.fragment_settings_notifications,
             "projets" to R.layout.fragment_settings_projets,
             "terminal" to R.layout.fragment_settings_terminal,
+            // Lot LSP-3 : les cinq écrans « Intelligence du code » suivent
+            // le MÊME gabarit (ADR 0127 §2) — ils entrent dans la même
+            // régression qu'ils fondent avec les sections.
+            "L1 aperçu LSP" to R.layout.fragment_lsp_apercu,
+            "L2 langage LSP" to R.layout.fragment_lsp_langage,
+            "L3 index LSP" to R.layout.fragment_lsp_index,
+            "L4 environnement LSP" to R.layout.fragment_lsp_environnement,
+            "L5 état LSP" to R.layout.fragment_lsp_etat,
         )
 
     @Test

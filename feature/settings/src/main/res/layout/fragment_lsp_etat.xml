@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LSP-3 — L5 État et diagnostic (spec § 3) : résumé par moteur (état,
+  comptes du modèle d'indexation, dernier passage), dernières erreurs
+  (≤ 20, heures absolues, messages ré-expurgés au rendu) et « Copier le
+  diagnostic LSP » — texte expurgé vers le presse-papiers, retour par
+  Retour.snackbar (modèle « Copier le diagnostic » de l'Environnement).
+-->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35, miroir
+     des sections des Paramètres) : garantit qu'aucun écran sous-jacent ne
+     transparaît ; le double-peint avec windowBackground est assumé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/lsp_etat_titre" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_resume" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_resume_java"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_java"
+                        app:rangeeTitre="@string/lsp_langage_java"
+                        app:rangeeType="aucun" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_resume_kotlin"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_kotlin"
+                        app:rangeeTitre="@string/lsp_langage_kotlin"
+                        app:rangeeType="aucun" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_resume_xml"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_xml"
+                        app:rangeeTitre="@string/lsp_langage_xml"
+                        app:rangeeType="aucun" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_erreurs_recentes" />
+
+                    <!-- Lignes gonflées par le fragment (≤ 20) — heure,
+                         moteur, message court, monospace comme le journal
+                         de l'écran Environnement. -->
+                    <LinearLayout
+                        android:id="@+id/erreurs_recentes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                    <!-- Aucune erreur : état vide de la CARTE (spec § 3). -->
+                    <jo.codeide.core.ui.VueEtat
+                        android:id="@+id/vue_etat_aucune_erreur"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        app:etatVariante="vide"
+                        app:stateMessage="@string/lsp_aucune_erreur_message"
+                        app:stateTitle="@string/lsp_aucune_erreur_titre" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bouton_copier_diagnostic"
+                style="@style/Widget.CodeIDE.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="@string/lsp_copier_diagnostic" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

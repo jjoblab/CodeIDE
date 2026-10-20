@@ -42,6 +42,7 @@ import jo.codeide.core.domain.ObserveToolchainStateUseCase
 import jo.codeide.core.domain.OngletEspace
 import jo.codeide.core.domain.PreparerClasspathLspUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
+import jo.codeide.core.domain.RegistrePortLsp
 import jo.codeide.core.domain.RegistreSourcesApercu
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.RestaurerArbreUseCase
@@ -249,6 +250,11 @@ class EditorViewModel
         // (suivreReglagesLsp) : budget du cache et surveillance des
         // fichiers externes SANS redémarrer.
         private val reglagesLsp: LspSettingsStore,
+        // Lot LSP-3 (ADR 0128 §4) : les écrans de réglages « Intelligence du
+        // code » (:feature:settings) observent les moteurs SANS dépendre de
+        // :lsp:host — le port vit dans :core:domain, PUBLIÉ ici auprès des
+        // sessions que cet espace possède (patron PortEditeurActif IA-5).
+        private val registrePortLsp: RegistrePortLsp,
         private val outilchain: ToolchainLocator,
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val executerApplication: ExecuterApplicationUseCase,
@@ -599,6 +605,19 @@ class EditorViewModel
             porteeFermetureSession.launch {
                 reglagesLsp.observe().collect { reglagesLspCourants.value = it }
             }
+
+            // Lot LSP-3 (ADR 0128 §4) : PUBLICATION du port des moteurs —
+            // les écrans de réglages l'observent (RegistrePortLsp) sans
+            // jamais voir :lsp:host ; il vit dans viewModelScope : il
+            // naît et meurt avec l'espace (retrait dans onCleared).
+            registrePortLsp.enregistrer(
+                PortLspEspace(
+                    sessionJava = sessionLsp,
+                    sessionKotlin = sessionLspKotlin,
+                    sessionXml = sessionLspXml,
+                    portee = viewModelScope,
+                ),
+            )
 
             // Mission « Cycle de vie » étape C (ADR 0114) : OUVERTURE de la
             // session de projet — le contrat process-wide I1 (ouvrir B ferme
@@ -4088,6 +4107,10 @@ class EditorViewModel
          * configuration.
          */
         override fun onCleared() {
+            // Lot LSP-3 (ADR 0128 §4) : le port des moteurs meurt avec
+            // l'espace AVANT les sessions — les écrans de réglages
+            // observent l'absence (INACTIFS), jamais une session fermée.
+            registrePortLsp.enregistrer(null)
             sauvegardesAuto.values.forEach { it.cancel() }
             porteeFermetureSession.launch { fermerSessionDeProjetEnSortie() }
         }

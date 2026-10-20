@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LSP-3 — L4 Environnement d'analyse (spec § 3) : LECTURE SEULE — chaque
+  valeur vient de l'hôte ou de l'environnement, AUCUNE saisie de chemin
+  (règle 11) ; « Copier le chemin » n'existe pas (voir L5). JDK absent →
+  VueEtat(erreur) + action unique « Réparer » vers l'écran Environnement.
+-->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35, miroir
+     des sections des Paramètres) : garantit qu'aucun écran sous-jacent ne
+     transparaît ; le double-peint avec windowBackground est assumé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/lsp_environnement_titre" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_toolchain" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_jdk"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_terminal"
+                        app:rangeeSousTitre="@string/lsp_jdk_fourni"
+                        app:rangeeTitre="@string/lsp_jdk"
+                        app:rangeeType="aucun" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_plateforme"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_manifest"
+                        app:rangeeTitre="@string/lsp_plateforme"
+                        app:rangeeType="aucun" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_mode_java"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_java"
+                        app:rangeeTitre="@string/lsp_mode_java"
+                        app:rangeeType="aucun" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- JDK introuvable : échec récupérable — action unique vers
+                 l'écran Environnement des Paramètres (SectionParametres.ENVIRONNEMENT). -->
+            <jo.codeide.core.ui.VueEtat
+                android:id="@+id/vue_etat_jdk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:visibility="gone"
+                app:etatActionLibelle="@string/lsp_reparer"
+                app:etatVariante="erreur"
+                app:stateMessage="@string/lsp_jdk_introuvable_message"
+                app:stateTitle="@string/lsp_jdk_introuvable_titre" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

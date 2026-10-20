@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LSP-3 — L1 Vue d'ensemble « Intelligence du code » (spec
+  LSP_SPEC_ECRANS.md § 3, maquette mockups/lsp/lsp-reglages.html) :
+  gabarit commun ADR 0127 — toolbar CodeIDE, cartes Widget.CodeIDE.Card,
+  rangées RangeeParametre EXCLUSIVEMENT, filets au conteneur. Zéro
+  littéral UI (règle 15) : jetons, styles et composants core:ui.
+  Les pastilles d'état (IndicateurEtat) et les sous-titres sont OBSERVÉS
+  (StateFlow) et posés par le fragment — jamais lus une seule fois.
+-->
+<!-- Fond opaque volontaire sur la racine (retour utilisateur v0.35, miroir
+     des sections des Paramètres) : garantit qu'aucun écran sous-jacent ne
+     transparaît ; le double-peint avec windowBackground est assumé. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    tools:ignore="Overdraw"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/lsp_apercu_titre" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_moteurs" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_moteur_java"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_java"
+                        app:rangeeTitre="@string/lsp_langage_java"
+                        app:rangeeType="chevron" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_moteur_kotlin"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_kotlin"
+                        app:rangeeTitre="@string/lsp_langage_kotlin"
+                        app:rangeeType="chevron" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_moteur_xml"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_xml"
+                        app:rangeeTitre="@string/lsp_langage_xml"
+                        app:rangeeType="chevron" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_sm">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        style="@style/EnteteSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lsp_section_analyse" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_index_cache"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_db"
+                        app:rangeeTitre="@string/lsp_row_index_cache"
+                        app:rangeeType="chevron" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_environnement_analyse"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_outils"
+                        app:rangeeTitre="@string/lsp_row_environnement"
+                        app:rangeeType="chevron" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_etat_diagnostic"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_stethoscope"
+                        app:rangeeTitre="@string/lsp_row_etat"
+                        app:rangeeType="chevron" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/note_reglages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_lg"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="@string/lsp_note_reglages"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- Sans projet ouvert : message + action unique (spec § 2) ;
+                 les réglages restent éditables (rangées visibles). -->
+            <jo.codeide.core.ui.VueEtat
+                android:id="@+id/vue_etat_sans_projet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:visibility="gone"
+                app:etatActionLibelle="@string/lsp_ouvrir_projet"
+                app:etatVariante="vide"
+                app:stateTitle="@string/lsp_sans_projet_titre"
+                app:stateMessage="@string/lsp_sans_projet_message" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -125,6 +125,10 @@ internal class AppNavigatorImpl
 
                             SectionParametres.EDITEUR -> R.id.settings_editeur
 
+                            // Lot LSP-3 (ADR 0128 §4) : vue d'ensemble des
+                            // réglages « Intelligence du code » (L1).
+                            SectionParametres.LANGAGES -> R.id.settings_lsp_apercu
+
                             SectionParametres.TERMINAL -> R.id.settings_terminal
 
                             SectionParametres.PROJETS -> R.id.settings_projets
@@ -148,6 +152,57 @@ internal class AppNavigatorImpl
                     controleur.navigate(destination)
                 }
             }
+        }
+
+        override fun openLspLangage(langage: String) {
+            // Lot LSP-3 : la sous-navigation LSP n'existe QUE depuis les
+            // écrans LSP (garde symétrique du maître, même patron IA).
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_LSP) {
+                logger.w(TAG) { "ouverture d'un langage LSP hors des écrans LSP : ignorée" }
+                return
+            }
+            val arguments = Bundle()
+            arguments.putString(CLE_LANGAGE_LSP, langage)
+            controleur.navigate(R.id.settings_lsp_langage, arguments)
+        }
+
+        override fun openLspIndex() {
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_LSP) {
+                logger.w(TAG) { "ouverture de l'index LSP hors des écrans LSP : ignorée" }
+                return
+            }
+            controleur.navigate(R.id.settings_lsp_index)
+        }
+
+        override fun openLspEnvironnement() {
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_LSP) {
+                logger.w(TAG) { "ouverture de l'environnement LSP hors des écrans LSP : ignorée" }
+                return
+            }
+            controleur.navigate(R.id.settings_lsp_environnement)
+        }
+
+        override fun openLspEtat() {
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_LSP) {
+                logger.w(TAG) { "ouverture de l'état LSP hors des écrans LSP : ignorée" }
+                return
+            }
+            controleur.navigate(R.id.settings_lsp_etat)
+        }
+
+        override fun openReglageEnvironnement() {
+            // Lot LSP-3 : action unique « Réparer » de L4 (JDK absent) —
+            // l'écran Environnement E5 reste LA porte de réparation.
+            val controleur = navControllerDHote
+            if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_LSP) {
+                logger.w(TAG) { "ouverture de la réparation hors des écrans LSP : ignorée" }
+                return
+            }
+            controleur.navigate(R.id.settings_environnement)
         }
 
         override fun openAiFournisseur(identifiantFournisseur: String) {
@@ -458,6 +513,23 @@ private const val CLE_SECTION_BIENTOT = "section"
 
 /** Clé de l'argument « identifiant de fournisseur » (mission IA, lot IA-2). */
 private const val CLE_FOURNISSEUR_IA = "identifiant_fournisseur"
+
+/** Clé de l'argument « langage LSP » (lot LSP-3 — identifiant de LangageLsp). */
+private const val CLE_LANGAGE_LSP = "langage"
+
+/**
+ * Destinations depuis lesquelles la sous-navigation LSP est autorisée
+ * (vue d'ensemble, langage, index, environnement, état) — garde
+ * symétrique du garde du maître des Paramètres (patron IA-2).
+ */
+private val DESTINATIONS_LSP =
+    setOf(
+        R.id.settings_lsp_apercu,
+        R.id.settings_lsp_langage,
+        R.id.settings_lsp_index,
+        R.id.settings_lsp_environnement,
+        R.id.settings_lsp_etat,
+    )
 
 /**
  * Destinations depuis lesquelles la sous-navigation IA est autorisée
