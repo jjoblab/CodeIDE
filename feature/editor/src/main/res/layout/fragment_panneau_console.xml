@@ -27,7 +27,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
         android:paddingVertical="@dimen/spacing_xs">
 
         <!-- Chip d'action unique (v0.40.1, prompt de suivi §3) : reflète
@@ -39,7 +39,7 @@
              rendu. -->
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_action_courante"
-            style="@style/Widget.Material3.Chip.Assist"
+            style="@style/Widget.CodeIDE.Chip.Assist"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:clickable="false"
@@ -60,7 +60,7 @@
              POURQUOI il est éteint avant la sync. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_taches_sortie"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/editor_console_taches_indisponible"
@@ -76,7 +76,7 @@
              dialogue plein écran au-dessus de l'éditeur. -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_config_tooling"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/editor_config_tooling_cd"
@@ -102,7 +102,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_annuler_build"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.CodeIDE.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:contentDescription="@string/editor_sortie_annuler_cd"
@@ -121,7 +121,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
         android:paddingVertical="@dimen/spacing_xs">
 
         <ImageView
@@ -152,7 +152,7 @@
         android:id="@+id/bandeau_echec_build"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
+        android:layout_marginHorizontal="@dimen/spacing_md_compact"
         android:layout_marginBottom="@dimen/spacing_xs"
         android:background="@drawable/fond_bandeau_echec"
         android:orientation="vertical"
@@ -196,7 +196,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_voir_problemes"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.CodeIDE.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="@dimen/touch_target_min"
@@ -204,7 +204,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_reessayer_build"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.CodeIDE.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="@dimen/touch_target_min"
@@ -238,11 +238,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="4dp"
+                android:paddingHorizontal="@dimen/spacing_md_compact"
+                android:paddingVertical="@dimen/spacing_xs"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
                 tools:text="Vérification des outils ✓ 120ms" />
         </androidx.core.widget.NestedScrollView>
 
@@ -261,11 +260,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="4dp"
+                android:paddingHorizontal="@dimen/spacing_md_compact"
+                android:paddingVertical="@dimen/spacing_xs"
                 android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
                 tools:text="&gt; Task :app:compileDebugKotlin" />
         </androidx.core.widget.NestedScrollView>
 
@@ -289,10 +287,10 @@
              le texte est envoyé au serveur via BuildInput. -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/champ_entree_console"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.CodeIDE.TextField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="@dimen/spacing_md_compact"
             android:layout_marginVertical="@dimen/spacing_xs"
             android:hint="@string/editor_console_entree_hint"
             android:visibility="gone"
@@ -307,7 +305,7 @@
                 android:fontFamily="monospace"
                 android:imeOptions="actionSend"
                 android:inputType="text"
-                android:textSize="12sp" />
+                android:textAppearance="?attr/textAppearanceBodySmall" />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 

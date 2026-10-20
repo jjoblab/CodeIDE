@@ -3,7 +3,6 @@ package jo.codeide.feature.editor
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,7 +11,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -27,6 +25,7 @@ import jo.codeide.core.domain.LigneJournal
 import jo.codeide.core.domain.LignesPile
 import jo.codeide.core.domain.NiveauJournal
 import jo.codeide.core.domain.SessionJournal
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauLogcatBinding
 import java.text.SimpleDateFormat
@@ -395,8 +394,9 @@ class PanneauLogcatFragment : Fragment() {
 
     /** Copie de la ligne brute (clic long, spec § 4.3) — au format
      *  logcat (« heure pid-tid N/etiquette: message »). Confirmation :
-     *  le système l'affiche déjà sur Android 13+, un Toast court sinon
-     *  (même règle que le terminal, correctif C3). */
+     *  snackbar thématisée (audit C5, lot UI-4 — le terminal a convergé
+     *  de la même façon : le système affiche déjà la confirmation sur
+     *  Android 13+, la snackbar ne double plus le toast système). */
     private fun copierLigne(ligne: LigneJournal) {
         val contexte = requireContext()
         val brut =
@@ -406,9 +406,7 @@ class PanneauLogcatFragment : Fragment() {
                 "/" + ligne.etiquette + ": " + ligne.message
         val presse = contexte.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         presse.setPrimaryClip(ClipData.newPlainText(getString(R.string.logcat_libelle_clip), brut))
-        if (Build.VERSION.SDK_INT < SEUIL_CONFIRMATION_SYSTEME) {
-            Toast.makeText(contexte, R.string.logcat_copiee, Toast.LENGTH_SHORT).show()
-        }
+        Retour.snackbar(requireView(), getString(R.string.logcat_copiee))
     }
 
     /** Range le clavier (validation du filtre). */
@@ -448,8 +446,5 @@ class PanneauLogcatFragment : Fragment() {
 
         /** Groupe du menu de niveaux. */
         const val GROUPE_NIVEAUX = 4
-
-        /** Android 13 (API 33) : le système confirme lui-même la copie. */
-        const val SEUIL_CONFIRMATION_SYSTEME = 33
     }
 }
