@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.DiffUtil
@@ -16,6 +15,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.CreationProgress
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.newproject.databinding.EcranCreationBinding
 import jo.codeide.feature.newproject.databinding.VueLigneEvenementBinding
@@ -186,7 +186,8 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
             is AppError.Unknown -> erreur.details
         }
 
-    /** Copie les détails expurgés (erreurs typées — identifiants seulement). */
+    /** Copie les détails expurgés (erreurs typées — identifiants seulement)
+     * — retour Snackbar thématisé (ADR 0127 §3). */
     private fun copierDetails() {
         val echec = wizard.etat.value.etatCreation as? EtatCreation.Echec ?: return
         val pressePapiers =
@@ -194,7 +195,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
         pressePapiers.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.wizard_echec_copier), echec.erreur.toString()),
         )
-        Toast.makeText(requireContext(), R.string.wizard_echec_copie_ok, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(requireView(), getString(R.string.wizard_echec_copie_ok))
     }
 
     override fun onDestroyView() {
