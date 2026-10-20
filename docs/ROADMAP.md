@@ -375,7 +375,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 |---|---|---|---|
 | UI-1 | v0.158.0 | Jetons, styles et composants partagés dans `core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`) | ✅ v0.158.0 (échelle d'espacement complète 2xs→xl, `Micro`/`SectionLabel`, `Widget.CodeIDE.Card`/`Button.Outlined`/`Chip.*`/`EnteteSection`, rôles de pastilles jour+nuit, +17 tests Robolectric, planche `docs/mockups/ui/composants-partages.html`) |
 | UI-2 | v0.159.0 | Garde-fou `checkUiTokens` à cliquet (baseline versionnée, jamais à la hausse) + CI + tests du moteur | ✅ v0.159.0 (règles R1-R7, moteur pur +20 tests JUnit, baseline initialisée 96 fichiers/606 occurrences, branché chaîne locale étape 5 + CI statique & composite, AGENTS.md règle 15 ; sens ROUGE prouvé par attaque) |
-| UI-3 | — | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ⬜ |
+| UI-3 | v0.160.0 | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ✅ v0.160.0 (0 rangée recopiée — `ligne_parametre.xml` supprimé, 17 cartes `Widget.CodeIDE.Card` + `EnteteSection`, 9 boutons `Outlined` ; `RangeeParametre` + `rangeeDestructrice`/`rangeeIndicateur`/`setIcone` ; cliquet 606→561, `feature:settings` HORS baseline ; recette visuelle sur appareil dans `TESTS_MANUELS.md` § UI-3) |
 | UI-4 | — | `install`, `core/crash`, `terminal` : alignement complet | ⬜ |
 | UI-5 | — | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ⬜ |
 | UI-6 | — | `preview` : idem | ⬜ |

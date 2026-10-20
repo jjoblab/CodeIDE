@@ -54,6 +54,19 @@
             <enum name="valeur" value="2" />
             <enum name="aucun" value="3" />
         </attr>
+        <!-- Action irréversible : l'icône et le titre prennent la
+             couleur d'erreur (« Réinitialiser les réglages »). -->
+        <attr name="rangeeDestructrice" format="boolean" />
+        <!-- Pastille d'état avant le chevron (écrans LSP L1/L2) :
+         niveau de IndicateurEtat, la forme porte le niveau. -->
+        <attr name="rangeeIndicateur" format="enum">
+            <enum name="ok" value="0" />
+            <enum name="avertissement" value="1" />
+            <enum name="erreur" value="2" />
+            <enum name="neutre" value="3" />
+        </attr>
+        <!-- Texte court de la pastille d'état (« Prêt », « En cours »…). -->
+        <attr name="rangeeIndicateurTexte" format="string" />
     </declare-styleable>
 
     <declare-styleable name="VueEtat">

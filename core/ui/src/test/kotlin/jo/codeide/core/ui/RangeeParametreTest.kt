@@ -32,6 +32,8 @@ class RangeeParametreTest {
     private lateinit var rangeeValeur: RangeeParametre
     private lateinit var rangeeAucune: RangeeParametre
     private lateinit var rangeeBientot: RangeeParametre
+    private lateinit var rangeeDestructrice: RangeeParametre
+    private lateinit var rangeeIndicateur: RangeeParametre
 
     @Before
     fun gonflerLesRangees() {
@@ -46,6 +48,8 @@ class RangeeParametreTest {
         rangeeValeur = racine.findViewById(R.id.rangee_test_valeur)
         rangeeAucune = racine.findViewById(R.id.rangee_test_aucune)
         rangeeBientot = racine.findViewById(R.id.rangee_test_bientot)
+        rangeeDestructrice = racine.findViewById(R.id.rangee_test_destructrice)
+        rangeeIndicateur = racine.findViewById(R.id.rangee_test_indicateur)
     }
 
     @Test
@@ -119,6 +123,59 @@ class RangeeParametreTest {
         assertFalse(rangeeInterrupteur.findViewById<MaterialSwitch>(R.id.rangee_interrupteur).isEnabled)
         assertFalse(rangeeInterrupteur.isClickable)
     }
+
+    @Test
+    fun `une rangée destructive teinte le titre en couleur d'erreur`() {
+        assertTrue(rangeeDestructrice.destructrice)
+
+        val couleurErreur =
+            com.google.android.material.color.MaterialColors.getColor(
+                rangeeDestructrice,
+                androidx.appcompat.R.attr.colorError,
+            )
+        assertEquals(couleurErreur, rangeeDestructrice.titreColor())
+    }
+
+    @Test
+    fun `une rangée standard ne force aucune teinte d'erreur`() {
+        assertFalse(rangeeChevron.destructrice)
+
+        val couleurStandard =
+            com.google.android.material.color.MaterialColors.getColor(
+                rangeeChevron,
+                com.google.android.material.R.attr.colorOnSurface,
+            )
+        assertEquals(couleurStandard, rangeeChevron.titreColor())
+    }
+
+    @Test
+    fun `la pastille indicateur lit son niveau et son texte depuis le XML`() {
+        assertEquals(NiveauEtat.OK, rangeeIndicateur.indicateur)
+        assertEquals("Prêt", rangeeIndicateur.indicateurTexte)
+        assertTrue(rangeeIndicateur.findViewById<View>(R.id.rangee_indicateur).isVisible)
+        // Le chevron reste présent : la rangée navigue vers le détail.
+        assertTrue(rangeeIndicateur.findViewById<View>(R.id.rangee_chevron).isVisible)
+    }
+
+    @Test
+    fun `sans attribut la pastille reste masquée puis suit setEtat`() {
+        assertFalse(rangeeChevron.findViewById<View>(R.id.rangee_indicateur).isVisible)
+
+        rangeeChevron.indicateur = NiveauEtat.ERREUR
+        rangeeChevron.indicateurTexte = "Erreur"
+
+        assertTrue(rangeeChevron.findViewById<View>(R.id.rangee_indicateur).isVisible)
+        assertEquals(NiveauEtat.ERREUR, rangeeChevron.indicateur)
+        assertEquals("Erreur", rangeeChevron.indicateurTexte)
+
+        rangeeChevron.indicateur = null
+        assertFalse(rangeeChevron.findViewById<View>(R.id.rangee_indicateur).isVisible)
+    }
+
+    /** Couleur courante du titre (comparaison des teintes posées). */
+    private fun RangeeParametre.titreColor(): Int =
+        findViewById<com.google.android.material.textview.MaterialTextView>(R.id.rangee_titre)
+            .currentTextColor
 
     private companion object {
         const val EPSILON_ALPHA = 0.01f

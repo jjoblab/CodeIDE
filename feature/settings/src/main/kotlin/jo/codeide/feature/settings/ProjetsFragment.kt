@@ -79,7 +79,7 @@ class ProjetsFragment : BaseFragment<FragmentSettingsProjetsBinding>() {
                 viewModel.onAction(ActionParametres.ValiderNomAuteur(nom))
             }
         }
-        binding.valeurLicence.setOnClickListener { ouvrirChoixLicence() }
+        binding.rangeeLicence.setSurClic { ouvrirChoixLicence() }
     }
 
     /** Rendu de l'état : dossier, auteur, licence, retour. */
@@ -89,14 +89,14 @@ class ProjetsFragment : BaseFragment<FragmentSettingsProjetsBinding>() {
             val reglages = etat.reglage
 
             val dossier = reglages.workspace
-            binding.texteDossier.text =
+            binding.rangeeDossier.sousTitre =
                 dossier?.displayPath ?: getString(R.string.settings_dossier_aucun)
             binding.boutonEffacerDossier.isVisible = dossier != null
 
             if (!binding.champNomAuteur.isFocused) {
                 binding.champNomAuteur.setText(reglages.authorName)
             }
-            binding.valeurLicence.text = libelleLicence(reglages.defaultLicense)
+            binding.rangeeLicence.valeur = libelleLicence(reglages.defaultLicense)
 
             binding.progressionDossier.isVisible = etat.verificationDossier
             binding.boutonChangerDossier.isEnabled = !etat.verificationDossier

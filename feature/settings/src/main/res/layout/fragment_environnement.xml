@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Écran Environnement des Paramètres (E5, § 7, ADR 0089) : composants
      (versions, tailles, état vérifié), actions Vérifier (légère /
-     approfondie), Réparer, Désinstaller (confirmation), diagnostic. -->
+     approfondie), Réparer, Désinstaller (confirmation), diagnostic.
+     Lot UI-3 (audit C1/C3/C4, ADR 0127) : espacements aux jetons de
+     l'échelle, carte Widget.CodeIDE.Card, boutons Widget.CodeIDE.Button. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,25 +18,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/spacing_md">
 
-            <TextView
+            <com.google.android.material.textview.MaterialTextView
                 style="?attr/textAppearanceHeadlineSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/environnement_titre" />
 
-            <TextView
+            <com.google.android.material.textview.MaterialTextView
                 style="?attr/textAppearanceBodySmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="@dimen/spacing_2xs"
                 android:text="@string/environnement_sous_titre" />
 
             <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="@dimen/spacing_md_compact">
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/liste_composants"
@@ -44,51 +47,51 @@
         </LinearLayout>
     </ScrollView>
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/journal_environnement"
         style="?attr/textAppearanceBodySmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="monospace"
         android:maxLines="6"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/spacing_md"
         android:textIsSelectable="true" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="@dimen/spacing_md_compact">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_verifier"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.CodeIDE.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/environnement_verifier" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_verifier_profond"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.CodeIDE.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:text="@string/environnement_verifier_profond" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_reparer"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.CodeIDE.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:text="@string/environnement_reparer" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_diagnostic"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.CodeIDE.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:text="@string/environnement_diagnostic" />
     </LinearLayout>
 </LinearLayout>

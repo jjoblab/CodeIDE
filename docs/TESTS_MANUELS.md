@@ -811,3 +811,37 @@ logcat : compteur seulement, ADR 0124 §3).
 6. **Confidentialité** — `.env`/`*.jks` exclus : leur contenu n'entre
    jamais dans le préfixe/suffixe (mêmes exclusions que le chat).
 7. **TalkBack** — le fantôme n'est JAMAIS annoncé (décoration pure).
+
+## Cohérence UI — migration Settings (lot UI-3 → v0.160.0, audit C6, ADR 0127)
+
+Écran : Paramètres (maître + les 9 sous-écrans) + Environnement. La
+migration des rangées vers `RangeeParametre` et des cartes vers
+`Widget.CodeIDE.Card` doit être INVISIBLE au quotidien : « rendu
+identique (capture avant/après) » — procédure à dérouler sur appareil
+360 dp, clair ET sombre (comparez aux captures d'avant-migration si
+disponibles, sinon à la maquette `mockups/lsp/lsp-reglages.html` pour
+la structure).
+
+1. **Maître** — les 4 cartes (Général, Modules, Environnement,
+   Application) : libellés d'en-tête, rangées, sous-titres d'état mis à
+   jour au fil des réglages ; la rangée Sécurité reste atténuée avec sa
+   puce « Bientôt ».
+2. **Filets** — un trait fin sépare les rangées VOISINES de chaque
+   carte ; un filet apparaît aussi sous chaque en-tête de section
+   (uniforme, voulu) ; AUCUN double trait.
+3. **Éditeur** — la valeur du thème de coloration apparaît à DROITE
+   de la rangée suivie du chevron (patron « valeur », miroir licence) ;
+   les six interrupteurs basculent par un appui sur TOUTE la rangée et
+   l'état survit à la rotation.
+4. **Apparence** — le trio système/clair/sombre et les 8 palettes ;
+   l'interrupteur couleurs dynamiques ; l'aperçu pastilles.
+5. **Avancé** — la rangée « Réinitialiser » garde icône et titre en
+   ROUGE (couleur d'erreur), les deux autres rangées restent neutres.
+6. **Environnement** — la carte des composants est À CONTOUR sans
+   ombre (élévation 0, unification C4) ; les 4 boutons d'action sont
+   thémés.
+7. **TalkBack** — chaque rangée se lit « <titre>, <sous-titre> » une
+   seule fois ; la cible tactile de chaque rangée fait au moins 48 dp.
+8. **Boutons pressés** — dans chaque sous-écran, appuyer partout :
+   aucun ripple ne « fuit » hors d'une rangée, aucune action ne se
+   déclenche deux fois (patron `renduEnCours` conservé).

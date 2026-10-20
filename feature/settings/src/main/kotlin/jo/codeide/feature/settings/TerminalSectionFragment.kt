@@ -63,7 +63,7 @@ class TerminalSectionFragment : BaseFragment<FragmentSettingsTerminalBinding>() 
                 viewModel.onAction(ActionParametres.ChangerStyleCurseur(styleDeLId(id)))
             }
         }
-        binding.interrupteurCopieSelection.setOnCheckedChangeListener { _, activee ->
+        binding.rangeeCopieSelection.setSurChangementCoche { activee ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerCopieSelection(activee))
         }
     }
@@ -82,7 +82,7 @@ class TerminalSectionFragment : BaseFragment<FragmentSettingsTerminalBinding>() 
                 StyleCurseurTerminal.LIGNE -> binding.groupeCurseur.check(R.id.bouton_curseur_2)
                 StyleCurseurTerminal.BARRE -> binding.groupeCurseur.check(R.id.bouton_curseur_3)
             }
-            binding.interrupteurCopieSelection.isChecked = reglages.copieSelectionAuto
+            binding.rangeeCopieSelection.coche = reglages.copieSelectionAuto
         } finally {
             renduEnCours = false
         }
