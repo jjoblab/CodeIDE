@@ -10,8 +10,8 @@
     android:gravity="center_vertical"
     android:minHeight="48dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="8dp">
+    android:paddingHorizontal="@dimen/spacing_md_compact"
+    android:paddingVertical="@dimen/spacing_sm">
 
     <ImageView
         android:layout_width="20dp"
@@ -23,7 +23,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -33,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="13sp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             tools:ignore="HardcodedText"
             tools:text="build.gradle.kts" />
 
@@ -43,7 +43,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11sp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
             tools:ignore="HardcodedText"
             tools:text="48 o" />
     </LinearLayout>
