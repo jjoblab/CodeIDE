@@ -2,7 +2,8 @@
 
 > **Statut** : normatif (ADR 0131, 0128, 0129, 0130). **Partie II** : `docs/PREVIEW_UI_ECRANS.md` (écran principal, palette, placement, menus, Arbre, Problèmes, Source). Remplace tout choix de style local du module
 > `:feature:preview` qui s'en écarte.
-> **Source de vérité visuelle** : `docs/mockups/apercu-xml.html` (maquette v3). Quand ce document et la
+> **Source de vérité visuelle** : `docs/mockups/apercu-xml.html` (maquette **v6** — celle du dépôt ; étiquette
+> resynchronisée en 0.156.1 : elle disait v3). Quand ce document et la
 > maquette divergent, **la maquette gagne** — et on corrige ce document.
 > **Public** : l'agent d'implémentation. Tout ce qu'il faut pour reproduire l'écran **à l'identique**
 > est ici ou dans les fichiers cités. Aucune valeur de design n'est à deviner.
