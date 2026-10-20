@@ -14,8 +14,8 @@
         android:background="@drawable/fond_entete_explorateur"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_md_compact">
 
         <ImageView
             android:layout_width="20dp"
@@ -28,7 +28,7 @@
             style="?attr/textAppearanceTitleSmall"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:text="@string/recherche_titre" />
 
@@ -40,9 +40,9 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/recherche_mode_fichiers_cd"
             android:gravity="center"
-            android:paddingHorizontal="8dp"
+            android:paddingHorizontal="@dimen/spacing_sm"
             android:text="@string/recherche_mode_fichiers"
-            android:textSize="11sp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
             android:textStyle="bold" />
 
         <ImageView
@@ -51,7 +51,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/recherche_effacer_cd"
-            android:padding="6dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_fermer_onglet"
             android:visibility="gone"
             app:tint="?attr/colorOnSurfaceVariant" />
@@ -62,7 +62,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/spacing_md_compact">
 
         <EditText
             android:id="@+id/champ_recherche"
@@ -72,15 +72,15 @@
             android:background="@drawable/fond_champ_inline"
             android:hint="@string/recherche_hint"
             android:inputType="text"
-            android:padding="8dp"
-            android:textSize="13sp" />
+            android:padding="@dimen/spacing_sm"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <!-- S4 : champ de remplacement (masqué par défaut). -->
         <LinearLayout
             android:id="@+id/zone_remplacement"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:orientation="horizontal"
             android:visibility="gone">
 
@@ -93,15 +93,15 @@
                 android:background="@drawable/fond_champ_inline"
                 android:hint="@string/recherche_remplacement_hint"
                 android:inputType="text"
-                android:padding="8dp"
-                android:textSize="13sp" />
+                android:padding="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_tout_remplacer"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/spacing_xs"
                 android:text="@string/recherche_tout_remplacer"
                 android:visibility="gone" />
         </LinearLayout>
@@ -109,7 +109,7 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:orientation="horizontal">
 
             <TextView
@@ -120,7 +120,7 @@
                 android:contentDescription="@string/recherche_bascule_casse_cd"
                 android:gravity="center"
                 android:text="@string/recherche_bascule_casse"
-                android:textSize="12sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
 
             <TextView
@@ -131,7 +131,7 @@
                 android:contentDescription="@string/recherche_bascule_mot_entier_cd"
                 android:gravity="center"
                 android:text="@string/recherche_bascule_mot_entier"
-                android:textSize="12sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
 
             <TextView
@@ -142,7 +142,7 @@
                 android:contentDescription="@string/recherche_bascule_regex_cd"
                 android:gravity="center"
                 android:text="@string/recherche_bascule_regex"
-                android:textSize="12sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
 
             <!-- S4 : bouton remplacement. -->
@@ -154,7 +154,7 @@
                 android:contentDescription="@string/recherche_remplacer_cd"
                 android:gravity="center"
                 android:text="@string/recherche_remplacer_label"
-                android:textSize="12sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
@@ -173,7 +173,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="@dimen/spacing_md_compact">
 
         <TextView
             android:id="@+id/resume"
@@ -191,7 +191,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/recherche_precedent_cd"
-            android:padding="6dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_chevron_noeud"
             android:rotation="270"
             android:visibility="gone"
@@ -203,7 +203,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/recherche_suivant_cd"
-            android:padding="6dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_chevron_noeud"
             android:rotation="90"
             android:visibility="gone"
@@ -221,8 +221,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
-            android:padding="12dp"
-            android:textSize="11sp"
+            android:padding="@dimen/spacing_md_compact"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
             android:visibility="gone" />
     </ScrollView>
 
@@ -250,7 +250,7 @@
         style="?attr/textAppearanceLabelSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"
+        android:padding="@dimen/spacing_sm"
         android:text="@string/recherche_plafond"
         android:textColor="?attr/colorError"
         android:visibility="gone" />
@@ -261,7 +261,7 @@
         style="?attr/textAppearanceBodySmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"
+        android:padding="@dimen/spacing_sm"
         android:textColor="?attr/colorError"
         android:visibility="gone" />
 </LinearLayout>

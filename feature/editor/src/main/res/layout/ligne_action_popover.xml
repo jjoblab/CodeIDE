@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Ligne d'action du popover maison (étape 31, § 10.4, EXPLORATEUR_V2) :
-  icône 15 dp + libellé 13 sp + note mono 10 sp (nom du presse-papiers
-  de « Coller »). Le danger (rouge) et la désactivation (35 %) se posent
-  à la liaison.
+  icône 15 dp + libellé 13 sp (BodyMedium, table §4) + note mono Micro
+  (nom du presse-papiers de « Coller »). Le danger (rouge) et la
+  désactivation (35 %) se posent à la liaison.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,8 +16,8 @@
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="10dp"
-    android:paddingVertical="9dp"
+    android:paddingHorizontal="@dimen/spacing_md_compact"
+    android:paddingVertical="@dimen/spacing_sm"
     tools:ignore="UseCompoundDrawables">
 
     <ImageView
@@ -32,11 +32,11 @@
         android:id="@+id/libelle_action_popover"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="11dp"
+        android:layout_marginStart="@dimen/spacing_md_compact"
         android:layout_weight="1"
         android:singleLine="true"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="13sp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
         tools:text="Renommer" />
 
     <!-- Note de marge droite (§ 10.4) : presse-papiers de « Coller ». -->
@@ -44,12 +44,12 @@
         android:id="@+id/note_action_popover"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
         android:ellipsize="end"
         android:fontFamily="monospace"
         android:singleLine="true"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="10sp" tools:ignore="SmallSp"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
         android:visibility="gone"
         tools:text="docs"
         tools:visibility="visible" />
