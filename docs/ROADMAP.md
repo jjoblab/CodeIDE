@@ -359,12 +359,15 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 Optionnels : IA-5b (diff en ligne `ViewZone` — chantier `jjoblab/code-editor`),
 IA-8 (complétion « texte fantôme », ADR propre).
 
-## Mission UI/LSP — cohérence visuelle et réglages 🟡 EN COURS (UI-6/7 restants)
+## Mission UI/LSP — cohérence visuelle et réglages ✅ CLOSE (UI-1 → UI-7 livrés)
 
 > ADR 0127 (cohérence UI + garde-fou à cliquet) et 0128 (réglages LSP pilotés par
 > capacités) **acceptées** (GO propriétaire du 2026-10-20) — les lots LSP sont
-> TOUS livrés (LSP-0 → LSP-4, v0.156.3 → v0.162.0) ; les lots UI restants sont
-> UI-5 (editor), UI-6 (preview), UI-7 (Toast → Snackbar final).
+> TOUS livrés (LSP-0 → LSP-4, v0.156.3 → v0.162.0) et les SEPT lots UI aussi
+> (UI-1 → UI-7, v0.158.0 → v0.166.0). La dette UI résiduelle (ai, newproject,
+> diagnostics, onboarding, 13 icônes R5 de l'audit C3) vit dans le CLIQUET
+> `config/ui-baseline.json` : visible, gelée, décroissante — sa migration est
+> un lot futur sur GO.
 > Documents : [`UI_AUDIT_COHERENCE.md`](UI_AUDIT_COHERENCE.md) (mesures C1–C10),
 > [`consommes/LSP_REVUE_REGLAGES.md`](consommes/LSP_REVUE_REGLAGES.md) (constats L1–L7),
 > [`consommes/LSP_SPEC_ECRANS.md`](consommes/LSP_SPEC_ECRANS.md) (écrans L1–L5),
@@ -381,7 +384,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | UI-4 | v0.163.0 | `install`, `core/crash`, `terminal` : alignement complet | ✅ v0.163.0 (139 occurrences → 0, les 3 modules SORTENT de la baseline 85 → 69 fichiers : crash 22 marges + textSize trace par textAppearance + 7 styles maison + 6 Toast→snackbar, install 2 layouts ×21 marges + 2 cartes `Widget.CodeIDE.Card` + 8 boutons maison + 2 drawables morts supprimés, terminal 39 marges + 7 tailles par `Micro`/échelle + 3 hex → constantes + touche clavier maison + 2 Toast→snackbar ; recette visuelle `TESTS_MANUELS.md` § UI-4) |
 | UI-5 | v0.164.0 | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ✅ v0.164.0 (354 occurrences → 0 sur les 35 fichiers du module — le plus gros lot de la mission, 6 commits par sous-écran ; entêtes de tiroir unifiés 12/12 ; nom de nœud 13 sp → BodySmall aligné sur l'édition inline ; note d'indexation → `Widget.CodeIDE.Card` (R7) ; 12 hex de l'illustration + masque de l'anneau → couleurs NOMMÉES (C9) ; 2 Toast → `Retour.snackbar` (C5) dont copie logcat miroir terminal ; NOUVEAU `Widget.CodeIDE.CircularProgressIndicator` dans core:ui ; 4 jetons dédiés editor (cotes composées 74/54/14) + 5 jetons maquette orphelins ENFIN branchés ; baseline 69 → 34 fichiers, `feature/editor` HORS ; écart documenté : le toast « Quitter pendant un build » survit à finish(), hors cliquet — à arbitrer en UI-7 ; recette visuelle `TESTS_MANUELS.md` § UI-5) |
 | UI-6 | v0.165.0 | `preview` : idem | ✅ v0.165.0 (16 fichiers, 30 occurrences → 0 — le module sort ENTIÈREMENT de la baseline, 34 → 18 fichiers ; 3 drawables orphelins supprimés (`fond_mode_palette`, `fond_position_placement`, `fond_pastille_probleme`, zéro référence, remplaçants PE11j/k) ; masques ripple et bases tintables → `@android:color/white`, ombre du bouton palette/placement → jeton dédié `apercu_ombre_bouton` (même valeur, rôle distinct), 8 icônes vectorielles (24 dp, trait 2) → `@android:color/black`/`transparent` (constantes framework, teinte au liage inchangée) ; les 2 derniers Toast système du volet Attributs → TOAST MAISON `ToastApercu` par contrat hôte `HoteVoletsApercu` (ADR 0134 D6 — même présentation que l'écran, miroir `fx.msg`) ; adaptation ressource documentée : les drawables `apercu_*` ne sont plus bit-à-bit identiques à `docs/mockups/ref` (rendu inchangé) ; recette `TESTS_MANUELS.md` § UI-6) |
-| UI-7 | — | Toast → Snackbar partout + règle de bannissement | ⬜ |
+| UI-7 | v0.166.0 | Toast → Snackbar partout + règle de bannissement | ✅ v0.166.0 (les 7 Toast « en fenêtre » → `Retour.snackbar` : ai ×6 — messages des effets + clé vide + copie du chat — et newproject ×1 — copie des détails d'échec ; le preview ×2 était parti en UI-6 ; SCANNER DURCI : R6 attrape l'appel QUALIFIÉ multi-lignes et R5 les balises en fin de ligne — avec EXEMPTION du style maison `Widget.CodeIDE.*` sur la balise (composant dédié, ADR §3) ; 13 occurrences R5 de l'audit C3 (12 fichiers, icônes sans composant maison) DEVIENT VISIBLES et entrent à la baseline au constat exact — migration = lot futur avec captures ; DEUX exceptions R6 assumées plafonnées à 1 pour toujours : l'annonce §2.1c « build continue en arrière-plan » de `EditorActivity` (survit à `finish()`, ratifiée CYCLE_DE_VIE.md) et la confirmation OSC 52 pre-33 de `CopieurPressePaiersAndroid` (module sans UI, sessions dans `TerminalService`, cible targetSdk 28) ; ADR 0127 §5 amendé (règle de bannissement) ; recette `TESTS_MANUELS.md` § UI-7) |
 
 ### Lots LSP — réglages (ADR 0128, deux dépôts)
 | Lot | Dépôt | Contenu | État |
