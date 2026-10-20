@@ -84,7 +84,7 @@ moteurs Kotlin/XML sans dépendance interne.
 | **LSP-0** | `codeide-lsp` + CodeIDE | Purge règle 13 (L3) ; trancher K1/K2 et publication (L2) ; docs LSP : une seule source (L5) ; règle de numérotation d'ADR (L4) | — |
 | **LSP-1** | `codeide-lsp` | API : `ConfigurationLsp` (données immuables, défauts), `SessionLsp(config)` + `appliquer(config)` pour le sous-ensemble dynamique, `tailleCacheOctets()`, `viderCache()`, exposition des capacités par langage ; tests ; **release v1.2.0** (v1.1.0 publiée le 2026-10-19 par la stabilisation S3) | LSP-0 |
 | **LSP-2** | CodeIDE | Montée de version (**version vérifiée**), `LspSettings` + dépôt dédié (hors `AppSettings`), câblage dans `CoordonnateurLsp`, filtres côté client | LSP-1 |
-| **LSP-3** | CodeIDE | Écrans L1–L5 (`docs/LSP_SPEC_ECRANS.md`) construits **uniquement** avec les composants d'ADR 0127 | LSP-2, **UI-1, UI-2** |
+| **LSP-3** | CodeIDE | Écrans L1–L5 (`docs/LSP_SPEC_ECRANS.md`) construits **uniquement** avec les composants d'ADR 0127 | ✅ livré v0.161.0 (dépendances : LSP-2, UI-1, UI-2) |
 | **LSP-4** | CodeIDE | « Copier le diagnostic LSP », tests d'architecture (aucun interrupteur sans capacité), accessibilité, EN/FR, `TESTS_MANUELS.md` | LSP-3 |
 
 Les écrans de réglages **n'affichent jamais un contrôle sans effet** : ce qui n'est pas ancré est

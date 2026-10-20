@@ -845,3 +845,50 @@ la structure).
 8. **Boutons pressés** — dans chaque sous-écran, appuyer partout :
    aucun ripple ne « fuit » hors d'une rangée, aucune action ne se
    déclenche deux fois (patron `renduEnCours` conservé).
+
+## Réglages LSP « Intelligence du code » (lot LSP-3 → v0.161.0, ADR 0128)
+
+Écran : Paramètres → « Intelligence du code » (L1) puis L2/L3/L4/L5. À
+vérifier sur appareil 360 dp, clair ET sombre (la maquette de référence :
+`mockups/lsp/lsp-reglages.html`). Un projet DOIT être ouvert pour observer
+les moteurs vivants ; sans projet, les pastilles passent en neutre
+« Inactif » et les réglages restent éditables.
+
+1. **Maître** — 2ᵉ rangée du groupe Modules (entre Éditeur et Terminal),
+   icône « code », sous-titre « Moteurs, index et fonctions par
+   langage ».
+2. **L1 avec projet ouvert** — les trois rangées moteurs portent une
+   pastille FORME+TEXTE : Java suit l'indexation en direct (« Indexation
+   62 % » pendant un build, « Prêt · n fichiers indexés » ensuite ;
+   « Partiel » et « Erreur » avec leurs comptes si applicable) ;
+   Kotlin/XML disent « Prêt » ou « Inactif » selon la présence de
+   session — JAMAIS un faux pourcentage.
+3. **L1 sans projet** — bloc « Aucun projet ouvert / Les moteurs sont
+   inactifs » + bouton « Ouvrir un projet » qui ramène à l'accueil.
+4. **L2 ×3 langages** — Java : 10 fonctions en ordre fixe (Complétion
+   d'abord, Indices en ligne en dernier) ; Kotlin : 8 SANS Formatage ni
+   Indices en ligne ; XML : 7 SANS Aide à la signature ni Références —
+   seules les fonctions ANNONCÉES apparaissent ; « Gravité affichée »
+   et « Réactivité » portent la puce « Bientôt » (non interactives) ;
+   Kotlin/XML : puce « pack langue — bientôt » sur la rangée moteur.
+5. **L3** — « Taille maximale » ouvre le dialogue Auto/256/512/1024 Mo,
+   le choix S'APPLIQUE SANS REDÉMARRER (surveiller la fermeture/ouverture
+   d'un projet) ; l'interrupteur « Surveiller les modifications externes »
+   coupe/relance la surveillance, « Fréquence » propose 2/5/10/30 s et
+   reste désactivée quand la surveillance est coupée ; « Vider le cache »
+   demande CONFIRMATION, est indisponible pendant une indexation
+   (explication affichée) et annonce le refus par snackbar si tenté ;
+   le retour « Cache vidé — X libérés » est un snackbar SANS « Annuler ».
+6. **L4** — valeurs lues seulement (JDK · plateforme API · mode Par
+   module/Instantané) ; avec un JDK absent : état d'erreur + bouton
+   « Réparer » qui ouvre l'écran Environnement des Paramètres.
+7. **L5** — résumé par moteur avec l'heure du dernier passage ; les
+   erreurs récentes (≤ 20, « 14:02 · Java · message ») sont masquées
+   par « Aucune erreur » quand la liste est vide ; « Copier le
+   diagnostic LSP » colle un texte SANS chemin en clair (vérifier dans
+   un éditeur de texte) et confirme par snackbar.
+8. **TalkBack** — chaque rangée moteur se lit d'une seule voix
+   (« Java : Prêt ») ; les changements de pastille sont annoncés
+   (région live polie) ; cibles tactiles ≥ 48 dp partout.
+9. **Rotation/recréation** — l'état affiché se ré-observe sans action
+   destructive répétée ; le langage L2 survit à la rotation.

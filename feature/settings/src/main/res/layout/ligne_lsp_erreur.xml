@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ligne d'une erreur récente LSP (lot LSP-3, spec § 3 L5) : heure ·
+     moteur · message court — monospace comme le journal Environnement,
+     texte ré-expurgé au rendu (LogRedactor au domaine). -->
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/texte_erreur_lsp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fontFamily="monospace"
+    android:paddingVertical="@dimen/spacing_xs"
+    android:textAppearance="?attr/textAppearanceBodySmall"
+    android:textColor="?attr/colorOnSurfaceVariant" />

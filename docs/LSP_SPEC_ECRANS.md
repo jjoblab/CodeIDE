@@ -1,5 +1,15 @@
 # Réglages LSP — spécification des écrans (« Intelligence du code »)
 
+> **Mise à jour 2026-10-20 (livraison LSP-3, v0.161.0)** : les cinq écrans sont
+> livrés ; trois écarts assumés y sont consignés — (1) les interrupteurs de la
+> carte Fonctions et « Gravité affichée » restent des puce « Bientôt » tant que
+> les filtres exigent une évolution de la bibliothèque code-editor (décision
+> LSP-2, jamais un contrôle sans effet) ; (2) la rangée « Version » du moteur
+> (L2) est omise : `:lsp:host` n'expose aucune version de moteur ; (3) le lien
+> « Détails de l'indexation » (L3) est différé à LSP-4 (bottom sheet `internal`
+> à feature:editor). L'accessibilité (§ 5) est portée par les composants ;
+> la revue sur appareil vit dans `TESTS_MANUELS.md` § LSP-3.
+
 > Complète l'ADR 0128 et la maquette `docs/mockups/lsp/lsp-reglages.html` (L1…L5). **Tous les
 > écrans sont assemblés avec les composants de l'ADR 0127** — aucune dimension, couleur, taille
 > de texte ni style de widget n'est défini ici ou dans la feature : on les emprunte à `core:ui`.

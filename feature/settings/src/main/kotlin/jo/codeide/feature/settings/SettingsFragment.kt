@@ -212,7 +212,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         )
     }
 
-    /** Carte « Modules » : Éditeur, Terminal, IA (bientôt). */
+    /** Carte « Modules » : Éditeur, Intelligence du code, Terminal, IA (bientôt). */
     private fun construireCarteModules() {
         ajouterRangees(
             binding.rangeesModules,
@@ -232,6 +232,15 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                         }
                     "$theme · $police"
                 },
+                // Lot LSP-3 (ADR 0128 §4) : 2ᵉ rangée du groupe Modules
+                // (spec LSP_SPEC_ECRANS.md § 1) — moteurs, index et
+                // fonctions par langage.
+                ligne(
+                    SectionParametres.LANGAGES,
+                    jo.codeide.core.ui.R.drawable.ic_code,
+                    R.string.settings_maitre_langages,
+                    R.string.settings_cd_ligne_langages,
+                ) { getString(R.string.settings_sous_langages) },
                 ligne(
                     SectionParametres.TERMINAL,
                     jo.codeide.core.ui.R.drawable.ic_terminal,
