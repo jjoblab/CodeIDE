@@ -359,10 +359,12 @@ double téléchargement cmdline-tools, « SDK non fonctionnel » muet
 Optionnels : IA-5b (diff en ligne `ViewZone` — chantier `jjoblab/code-editor`),
 IA-8 (complétion « texte fantôme », ADR propre).
 
-## Mission UI/LSP — cohérence visuelle et réglages ⬜ PROPOSÉ
+## Mission UI/LSP — cohérence visuelle et réglages 🟡 EN COURS (UI-5/6/7 restants)
 
 > ADR 0127 (cohérence UI + garde-fou à cliquet) et 0128 (réglages LSP pilotés par
-> capacités) **proposées** — les lots démarreront après acceptation par le propriétaire.
+> capacités) **acceptées** (GO propriétaire du 2026-10-20) — les lots LSP sont
+> TOUS livrés (LSP-0 → LSP-4, v0.156.3 → v0.162.0) ; les lots UI restants sont
+> UI-5 (editor), UI-6 (preview), UI-7 (Toast → Snackbar final).
 > Documents : [`UI_AUDIT_COHERENCE.md`](UI_AUDIT_COHERENCE.md) (mesures C1–C10),
 > [`consommes/LSP_REVUE_REGLAGES.md`](consommes/LSP_REVUE_REGLAGES.md) (constats L1–L7),
 > [`consommes/LSP_SPEC_ECRANS.md`](consommes/LSP_SPEC_ECRANS.md) (écrans L1–L5),
@@ -376,7 +378,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | UI-1 | v0.158.0 | Jetons, styles et composants partagés dans `core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`) | ✅ v0.158.0 (échelle d'espacement complète 2xs→xl, `Micro`/`SectionLabel`, `Widget.CodeIDE.Card`/`Button.Outlined`/`Chip.*`/`EnteteSection`, rôles de pastilles jour+nuit, +17 tests Robolectric, planche `docs/mockups/ui/composants-partages.html`) |
 | UI-2 | v0.159.0 | Garde-fou `checkUiTokens` à cliquet (baseline versionnée, jamais à la hausse) + CI + tests du moteur | ✅ v0.159.0 (règles R1-R7, moteur pur +20 tests JUnit, baseline initialisée 96 fichiers/606 occurrences, branché chaîne locale étape 5 + CI statique & composite, AGENTS.md règle 15 ; sens ROUGE prouvé par attaque) |
 | UI-3 | v0.160.0 | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ✅ v0.160.0 (0 rangée recopiée — `ligne_parametre.xml` supprimé, 17 cartes `Widget.CodeIDE.Card` + `EnteteSection`, 9 boutons `Outlined` ; `RangeeParametre` + `rangeeDestructrice`/`rangeeIndicateur`/`setIcone` ; cliquet 606→561, `feature:settings` HORS baseline ; recette visuelle sur appareil dans `TESTS_MANUELS.md` § UI-3) |
-| UI-4 | — | `install`, `core/crash`, `terminal` : alignement complet | ⬜ |
+| UI-4 | v0.163.0 | `install`, `core/crash`, `terminal` : alignement complet | ✅ v0.163.0 (139 occurrences → 0, les 3 modules SORTENT de la baseline 85 → 69 fichiers : crash 22 marges + textSize trace par textAppearance + 7 styles maison + 6 Toast→snackbar, install 2 layouts ×21 marges + 2 cartes `Widget.CodeIDE.Card` + 8 boutons maison + 2 drawables morts supprimés, terminal 39 marges + 7 tailles par `Micro`/échelle + 3 hex → constantes + touche clavier maison + 2 Toast→snackbar ; recette visuelle `TESTS_MANUELS.md` § UI-4) |
 | UI-5 | — | `editor` : spacing/typo/boutons/cartes, par sous-écrans (≤ 10 fichiers/commit) | ⬜ |
 | UI-6 | — | `preview` : idem | ⬜ |
 | UI-7 | — | Toast → Snackbar partout + règle de bannissement | ⬜ |

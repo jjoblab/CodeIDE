@@ -846,6 +846,44 @@ la structure).
    aucun ripple ne « fuit » hors d'une rangée, aucune action ne se
    déclenche deux fois (patron `renduEnCours` conservé).
 
+## Cohérence UI — migration crash, install, terminal (lot UI-4 → v0.163.0, audit C1-C5/C9, ADR 0127)
+
+Écrans : rapport de plantage (processus `:crash`), installation de
+l'environnement (téléphone ET tablette sw600dp), terminal (activité
+plein écran + tiroir de l'espace). Les trois modules quittent la
+baseline `checkUiTokens` (zéro littéral) — la migration doit rester
+INVISIBLE au quotidien : 360 dp, clair ET sombre, capture avant/après
+si disponible.
+
+1. **Rapport de plantage** — les 7 boutons (Redémarrer plein, les 5
+   actions en contour, Fermer/Détails en texte) suivent le thème ;
+   « Vider le cache » garde son titre en couleur d'erreur ; la carte
+   résumé est à CONTOUR sans ombre ; les retours de copie, partage,
+   enregistrement et vidage sont des SNACKBAR (jamais de Toast) — y
+   compris « Redémarrage impossible » ; la trace monospace reste
+   sélectionnable.
+2. **Installation** — le stepper de 4 phases tient dans la carte à
+   contour ; la carte licence (centrée verticalement au démarrage)
+   garde titre, texte et case ; « Démarrer » plein, Annuler/Réessayer/
+   Diagnostic/Terminal en contour, « Journal » en texte ; sur TABLETTE
+   le journal de droite reste collé à la colonne gauche.
+3. **Terminal** — l'entête du tiroir (emblème, titre, sous-titre
+   monospace, rangée d'actions) garde ses couleurs de maquette ; les
+   tailles suivent l'échelle typographique (titre 14 sp, sous-titres et
+   badges `Micro` 10 sp) — vérifier le sous-titre « N sessions
+   actives · termux » ; les cartes de sessions (libellé, détail,
+   badge, 2 boutons) ne débordent pas sur 360 dp ; le clavier étendu
+   (Tab/Ctrl/Alt/flèches) reste compact et thémé.
+4. **Couleurs dynamiques** — les trois écrans suivent le thème
+   (clair/sombre/Material You) : aucune des surfaces ni teintes
+   migrées n'est restée figée.
+5. **TalkBack** — les zones tactiles des boutons d'action du plantage
+   et des touches du clavier étendu font ≥ 48 dp ; les snackbars sont
+   annoncées (les Toasts ne l'étaient pas de la même façon).
+6. **Cliquet** — `./gradlew checkUiTokens` reste vert ; la baseline ne
+   contient PLUS AUCUN fichier de `core/crash`, `feature/install` ni
+   `feature/terminal` (critère de fin du lot).
+
 ## Réglages LSP « Intelligence du code » (lot LSP-3 → v0.161.0, ADR 0128)
 
 Écran : Paramètres → « Intelligence du code » (L1) puis L2/L3/L4/L5. À
