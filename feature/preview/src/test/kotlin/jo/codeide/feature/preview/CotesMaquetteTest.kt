@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.test.core.app.ApplicationProvider
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.theme.MaterialComponentsViewInflater
 import org.json.JSONObject
@@ -179,6 +180,49 @@ public class CotesMaquetteTest {
         )
     }
 
+    @Test
+    public fun `la carte de correctif garde le plancher de trois lignes`() {
+        // PE11g — miroir `.fix` (meas fix : 398 × 68,6 = padding 9/11 +
+        // titre 1 ligne + corps 2 lignes à 16,2 px) : la boîte CSS paie
+        // l'interligne JUSQU'À LA DERNIÈRE ligne, la descente Android ne
+        // le paie pas sur la dernière de chaque vue (14 + 16 + 14 = 44
+        // contre 48,6 — écart de MOTEUR, pas de ressource) : la cote
+        // exacte vit sur le TITRE de groupe et le BOUTON, la carte garde
+        // le PLANCHER multi-lignes (patron SEUIL_PROBLEME PE11k) — une
+        // régression (corps non replié, padding perdu) le fait tomber.
+        val carte = gonfler(R.layout.item_correctif)
+        carte.findViewById<TextView>(R.id.titre_correctif).text = "Texte codé en dur"
+        carte.findViewById<TextView>(R.id.corps_correctif).text =
+            "Utilisez @string/ pour que values-en le traduise."
+        carte.findViewById<MaterialButton>(R.id.bouton_correctif).text = "Extraire en @string"
+        val mesuree = mesurer(carte)
+        assertTrue(
+            "la carte de correctif fait au moins $SEUIL_CORRECTIF_DP dp (mesurée $mesuree dp, meas 68,6)",
+            mesuree >= SEUIL_CORRECTIF_DP,
+        )
+    }
+
+    @Test
+    public fun `le titre du groupe correctifs fait dix dp`() {
+        // PE11g — miroir `.fixes h5` (meas fixesh5 : 398 × 10, mono 10 /
+        // 600, capitales) — le TitreGroupe RÉUTILISÉ par les correctifs.
+        val titre = gonfler(R.layout.item_attribut_groupe)
+        titre.findViewById<TextView>(R.id.titre_groupe_attributs).text = "CORRECTIONS RAPIDES"
+        verifierCote("fixesh5", mesurer(titre))
+    }
+
+    @Test
+    public fun `le bouton du correctif fait vingt neuf dp (±3, boîte de police)`() {
+        // PE11g — miroir `.prim2` (meas : 85,7 × 29,2 — padding 8/10,
+        // texte 12 sp sur ligne 13,2 px, insets nuls) ; le creux de police
+        // est COUPÉ (includeFontPadding=false, grille § 12.4 n° 3) — la
+        // métrique Roboto reste à ±3 de la ligne CSS.
+        val carte = gonfler(R.layout.item_correctif)
+        val bouton = carte.findViewById<MaterialButton>(R.id.bouton_correctif)
+        bouton.text = "Passer à 48 dp"
+        verifierCote("prim2", mesurer(bouton), TOLERANCE_INTERLIGNE_DP)
+    }
+
     // ── Les outils ──
 
     /** Gonfle un layout sous le thème réel de l'aperçu, avec l'inflateur
@@ -290,6 +334,9 @@ public class CotesMaquetteTest {
          * `android:lineHeight` posé mais non compressif) — l'écart est un
          * artefact de police, pas de layout (PREVIEW_UI.md § 12.2). */
         private const val TOLERANCE_INTERLIGNE_DP: Double = 3.0
+
+        /** PE11g — plancher de la carte de correctif (padding 18 + 3 lignes ≥ 14 − marge). */
+        private const val SEUIL_CORRECTIF_DP: Int = 60
 
         /** La profondeur de recherche de la racine du dépôt. */
         private const val PROFONDEUR_RECHERCHE: Int = 6

@@ -53,6 +53,20 @@ public object EditionAttributsXml {
     private const val ATTR_LARGEUR: String = "android:layout_width"
     private const val ATTR_HAUTEUR: String = "android:layout_height"
 
+    /** PE11g — minimum de la cible tactile (correctif « Passer à 48 dp »). */
+    public const val CIBLE_TACTILE_DP: Int = 48
+
+    /** Noms des minimums de taille (correctif de cible — PE11g). */
+    private const val ATTR_LARGEUR_MINIMALE: String = "android:minWidth"
+    private const val ATTR_HAUTEUR_MINIMALE: String = "android:minHeight"
+
+    /** Les DEUX axes du correctif de cible : dimension → minimum (PE11g). */
+    private val AXES_CIBLE: List<Pair<String, String>> =
+        listOf(ATTR_LARGEUR to ATTR_LARGEUR_MINIMALE, ATTR_HAUTEUR to ATTR_HAUTEUR_MINIMALE)
+
+    /** Regex d'une valeur de dimension FIXE en dp (44dp, 44.5dp — aussi 0dp). */
+    private val REGEX_DIMENSION_DP: Regex = Regex("""^(\d+(?:\.\d+)?)dp$""")
+
     /** Valeurs littérales des modes (miroir `attrsOf` de la maquette). */
     private const val VALEUR_WRAP: String = "wrap_content"
     private const val VALEUR_MATCH: String = "match_parent"
@@ -74,6 +88,15 @@ public object EditionAttributsXml {
     private const val SEAU_RESTE: Int = 5
 
     // ── Lectures ─────────────────────────────────────────────────────────
+
+    /**
+     * La valeur est-elle un LITTÉRAL éditable (PE11g) : non vide, sans
+     * référence `@…` ni `?attr/…` — la garde « codé en dur » du moteur
+     * ([ProblemesRendu.texteCodeDur]) ET de l'extraction
+     * (`PreviewViewModel.extractionPossible`) : UNE seule définition.
+     */
+    public fun estLitteral(valeur: String?): Boolean =
+        valeur != null && valeur.isNotEmpty() && !valeur.startsWith("@") && !valeur.startsWith("?")
 
     /**
      * La valeur ACTUELLE d'un attribut de la vue au span (lecture dans le
@@ -208,6 +231,84 @@ public object EditionAttributsXml {
         val baliseRemaniee = texteFinal.substring(localise.debut, finBaliseRemaniee)
         return EditionAttributsXmlResultat(localise.debut, finBaliseOriginale, baliseRemaniee)
     }
+
+    /**
+     * CORRECTION RAPIDE « Passer à 48 dp » (PE11g — miroir `quickFixes`
+     * de la maquette : `v.w = Math.max(v.w, 48)` sur une dimension FIXE,
+     * `setEx(minWidth, '48dp')` sinon), les DEUX axes en UNE SEULE
+     * édition (patron [ecrireDimensions] : composition sur la balise,
+     * puis remplacement ATOMIQUE de la balise ouvrante).
+     *
+     * Gardes : `0dp` (match_constraint) n'est PAS une dimension fixe — il
+     * suit la voie du MINIMUM, jamais réécrit en 48 dp ; un minimum déjà
+     * ≥ 48 dp n'est jamais ABAISSÉ (jamais de régression de cible).
+     *
+     * `null` si RIEN ne change (déjà ≥ 48 dp partout) ou span périmé
+     * (jamais d'exception, règle 6).
+     */
+    public fun elargirCibleTactile(
+        texte: String,
+        span: InsertionXml.SpanParent,
+    ): EditionAttributsXmlResultat? {
+        val localise = localiser(texte, span) ?: return null
+        var texteCourant = texte
+        var deltaCumule = 0
+        var ecrit = false
+        for ((nom, valeur) in ecrituresCible(texte, span)) {
+            val edition =
+                ecrireAttribut(
+                    texteCourant,
+                    InsertionXml.SpanParent(span.debut, span.fin + deltaCumule),
+                    nom,
+                    valeur,
+                ) ?: continue
+            texteCourant = appliquer(texteCourant, edition)
+            deltaCumule += delta(edition)
+            ecrit = true
+        }
+        // Rien n'a changé (déjà ≥ 48 dp partout) : pas d'édition — le
+        // DRAPEAU décide, pas le delta (deux remplacements de MÊME
+        // longueur, 44dp → 48dp, laissent un delta cumulé nul).
+        if (!ecrit) return null
+        // UNE édition : la balise ouvrante originale remplacée par la remaniée.
+        val finBaliseOriginale = localise.chevron + 1
+        val baliseRemaniee = texteCourant.substring(localise.debut, finBaliseOriginale + deltaCumule)
+        return EditionAttributsXmlResultat(localise.debut, finBaliseOriginale, baliseRemaniee)
+    }
+
+    /**
+     * Les écritures du correctif de cible (pures, sur le texte ORIGINAL —
+     * chaque attribut lu ne dépend pas des écritures précédentes) :
+     * dimension fixe < 48 dp → 48 dp ; sinon (wrap, match, 0dp, @dimen,
+     * absent) → minimum 48 dp s'il n'est pas déjà posé ≥ 48 dp.
+     */
+    private fun ecrituresCible(
+        texte: String,
+        span: InsertionXml.SpanParent,
+    ): List<Pair<String, String>> =
+        buildList {
+            for ((dimension, minimum) in AXES_CIBLE) {
+                val dpDimension = valeurAttribut(texte, span, dimension)?.let(::dpFixes)
+                when {
+                    dpDimension != null && dpDimension > 0 -> {
+                        if (dpDimension < CIBLE_TACTILE_DP) add(dimension to "${CIBLE_TACTILE_DP}dp")
+                    }
+
+                    else -> {
+                        val dpMinimum = valeurAttribut(texte, span, minimum)?.let(::dpFixes) ?: 0.0
+                        if (dpMinimum < CIBLE_TACTILE_DP) add(minimum to "${CIBLE_TACTILE_DP}dp")
+                    }
+                }
+            }
+        }
+
+    /** La valeur FIXE en dp d'une dimension (null si wrap/match/absente). */
+    private fun dpFixes(valeur: String): Double? =
+        REGEX_DIMENSION_DP
+            .matchEntire(valeur)
+            ?.groupValues
+            ?.get(1)
+            ?.toDoubleOrNull()
 
     /** Applique une édition à un texte (composition pure, hors port). */
     private fun appliquer(

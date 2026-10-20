@@ -464,4 +464,103 @@ public class EditionAttributsXmlTest {
             EditionAttributsXml.ecrireDimensions(formate, InsertionXml.SpanParent(3, 7), 64, 32),
         )
     }
+
+    // ── PE11g — correctif « Passer à 48 dp » (elargirCibleTactile) ──
+
+    @Test
+    fun `elargirCibleTactile elargit les deux dimensions fixes en une seule edition`() {
+        // Miroir `v.w = Math.max(v.w, 48)` : 44 et 30 fixes → 48 et 48,
+        // UNE édition atomique, le reste de la balise reste.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:id="@+id/petit" android:layout_width="44dp" android:layout_height="30dp" />
+</LinearLayout>
+""".trimStart()
+        val edition = EditionAttributsXml.elargirCibleTactile(texte, spanDe(texte, 1)!!)!!
+        val resultat = appliquer(texte, edition)
+        assertTrue("""android:layout_width="48dp"""" in resultat)
+        assertTrue("""android:layout_height="48dp"""" in resultat)
+        assertTrue("""android:id="@+id/petit"""" in resultat)
+        assertFalse("la largeur 44 dp ne survit pas", """44dp""" in resultat)
+        assertEquals("le document reste bien formé", 2, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `elargirCibleTactile passe wrap_content aux minimums`() {
+        // Miroir `setEx(minWidth, 48dp)` : wrap_content → minWidth ; la
+        // hauteur FIXE déjà à 48 dp ne bouge pas (jamais de minHeight).
+        val edition = EditionAttributsXml.elargirCibleTactile(formate, spanBouton())!!
+        val resultat = appliquer(formate, edition)
+        assertTrue("""android:minWidth="48dp"""" in resultat)
+        assertFalse("pas de minHeight sur un axe déjà à 48 dp", """android:minHeight""" in resultat)
+        assertTrue("""android:layout_height="48dp"""" in resultat)
+        assertTrue("""android:layout_width="wrap_content"""" in resultat)
+        assertEquals("le document reste bien formé", 3, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `elargirCibleTactile garde le match constraint et pose les minimums`() {
+        // `0dp` (match_constraint) n'est PAS une dimension fixe : jamais
+        // réécrit en 48 dp — les DEUX minimums le portent.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:layout_width="0dp" android:layout_height="wrap_content" />
+</LinearLayout>
+""".trimStart()
+        val edition = EditionAttributsXml.elargirCibleTactile(texte, spanDe(texte, 1)!!)!!
+        val resultat = appliquer(texte, edition)
+        assertTrue("""android:layout_width="0dp"""" in resultat)
+        assertTrue("""android:minWidth="48dp"""" in resultat)
+        assertTrue("""android:minHeight="48dp"""" in resultat)
+    }
+
+    @Test
+    fun `elargirCibleTactile sur cible deja large refuse null idempotence`() {
+        // 96 × 48 dp : RIEN à élargir — le correctif n'écrit pas.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:layout_width="96dp" android:layout_height="48dp" />
+</LinearLayout>
+""".trimStart()
+        assertNull(
+            "aucune édition attendue",
+            EditionAttributsXml.elargirCibleTactile(texte, spanDe(texte, 1)!!),
+        )
+    }
+
+    @Test
+    fun `elargirCibleTactile n abaisse jamais un minimum pose`() {
+        // wrap_content + minWidth=64dp : le minimum RESTE (jamais de
+        // régression) ; seul l'axe sans minimum reçoit le sien.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:layout_width="wrap_content" android:minWidth="64dp" android:layout_height="wrap_content" />
+</LinearLayout>
+""".trimStart()
+        val edition = EditionAttributsXml.elargirCibleTactile(texte, spanDe(texte, 1)!!)!!
+        val resultat = appliquer(texte, edition)
+        assertTrue("""android:minWidth="64dp"""" in resultat)
+        assertFalse("""android:minWidth="48dp"""" in resultat)
+        assertTrue("""android:minHeight="48dp"""" in resultat)
+    }
+
+    @Test
+    fun `elargirCibleTactile sur un span perime refuse null`() {
+        assertNull(
+            "span périmé : jamais d'exception (règle 6)",
+            EditionAttributsXml.elargirCibleTactile(formate, InsertionXml.SpanParent(3, 7)),
+        )
+    }
 }

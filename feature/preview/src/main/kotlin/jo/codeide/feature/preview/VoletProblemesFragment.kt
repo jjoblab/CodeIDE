@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.feature.preview.databinding.FragmentVoletProblemesBinding
 import jo.codeide.feature.preview.databinding.ItemProblemeBinding
-import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
@@ -82,16 +81,7 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     private fun titreProbleme(
         genre: ProblemesPreview.GenreProbleme,
         vueFautive: InfoVueRendu?,
-    ): String =
-        when (genre) {
-            ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> {
-                getString(R.string.preview_probleme_classe_absente_titre, vueFautive?.classe ?: "")
-            }
-
-            ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> {
-                getString(R.string.preview_probleme_cible_tactile_titre)
-            }
-        }
+    ): String = LibellesProblemes.titre(requireContext(), genre, vueFautive)
 
     /** Le détail localisé (vue fautive + message, miroir `p.msg`). */
     private fun detailProbleme(
@@ -101,24 +91,13 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
         val libelle =
             vueFautive?.let { LibellesVolet.libelleVue(requireContext(), it) } ?: ""
         val message =
-            when (entree.genre) {
-                ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> {
-                    getString(R.string.preview_probleme_classe_absente_message)
-                }
-
-                ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> {
-                    val densite = viewModel.moteur.profil.densiteDpi
-                    if (vueFautive != null && densite > 0) {
-                        getString(
-                            R.string.preview_probleme_cible_tactile_message,
-                            CalquesApercu.pxVersDp(vueFautive.largeurPx, densite),
-                            CalquesApercu.pxVersDp(vueFautive.hauteurPx, densite),
-                        )
-                    } else {
-                        getString(R.string.preview_probleme_cible_tactile_message_sans_mesure)
-                    }
-                }
-            }
+            LibellesProblemes.message(
+                requireContext(),
+                entree.genre,
+                vueFautive,
+                viewModel.moteur.profil.densiteDpi,
+                viewModel.echellePolice,
+            )
         return "$libelle\n$message"
     }
 }

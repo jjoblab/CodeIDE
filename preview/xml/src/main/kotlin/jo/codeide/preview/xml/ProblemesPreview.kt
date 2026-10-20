@@ -11,17 +11,19 @@ import kotlin.math.min
  * (aucune vue, aucune ressource : les libellés FR/EN sont composés par
  * l'UI à partir du [GenreProbleme], les données portent le fait).
  *
- * Règles livrées (miroir de `computeProblems` de la maquette) :
+ * Règles livrées (miroir de `computeProblems` de la maquette, DANS SON
+ * ORDRE — classe, description, texte codé, cible, tronc) :
  * - [classeAbsente] : l'inflater a dégradé le tag en cadre de
  *   remplacement (`MockView` — G15) → ERREUR ;
+ * - [sansContentDescription] : vue IMAGE sans `contentDescription`
+ *   (lecteur d'écran muet) → AVERTISSEMENT ;
+ * - [texteCodeDur] : `android:text` LITTÉRAL au source (`v.lit` —
+ *   values-en muet) → AVERTISSEMENT ;
  * - [cibleTactile] : vue cliquable plus petite que le minimum
  *   d'accessibilité 48×48 dp (seuil 47,5 dp — la maquette tolère
- *   l'arrondi) → AVERTISSEMENT.
- *
- * Les règles de la maquette qui ont besoin d'AUTRES données (texte codé
- * en dur = analyse XML côté source, texte tronqué = mesure LayoutLib,
- * image sans contentDescription = lecture de la vue) arrivent avec leurs
- * phases — la structure [ProblemeApercu] les accueille sans rupture.
+ *   l'arrondi) → AVERTISSEMENT ;
+ * - [texteTronque] : le texte DÉBORDE de la vue au rendu (mesure
+ *   LayoutLib posée par le moteur, miroir `trunc`) → ERREUR.
  */
 public object ProblemesPreview {
     /** Sévérité affichable (miroir de la maquette : pastille ambre / rouge). */
@@ -38,8 +40,17 @@ public object ProblemesPreview {
         /** La classe du tag est introuvable : cadre de remplacement affiché. */
         CLASSE_ABSENTE,
 
+        /** Vue IMAGE sans `contentDescription` — lecteur d'écran muet (PE11g). */
+        SANS_CONTENT_DESCRIPTION,
+
+        /** `android:text` LITTÉRAL au source — values-en muet (PE11g). */
+        TEXTE_CODE_DUR,
+
         /** Vue cliquable sous la cible tactile de 48×48 dp. */
         CIBLE_TACTILE,
+
+        /** Le texte déborde de la vue au rendu (mesure LayoutLib — PE11g). */
+        TEXTE_TRONQUE,
     }
 
     /** UN problème détecté, rattaché à la vue par son INDICE dans la liste. */
@@ -66,6 +77,25 @@ public object ProblemesPreview {
      * (G15) posé quand la classe du tag n'a pas pu être instanciée.
      */
     public fun classeAbsente(vue: InfoVueRendu): Boolean = vue.classe == InfoVueRendu.CLASSE_REMPLACEMENT
+
+    /**
+     * Règle « image sans contentDescription » (PE11g — lecture de la vue
+     * rendue par le moteur, miroir `!v.cd` sur les kinds image de la
+     * maquette).
+     */
+    public fun sansContentDescription(vue: InfoVueRendu): Boolean = vue.sansContentDescription
+
+    /**
+     * Règle « texte codé en dur » (PE11g — `android:text` LITTÉRAL au
+     * source, posé par le moteur sur l'élément aligné, miroir `v.lit`).
+     */
+    public fun texteCodeDur(vue: InfoVueRendu): Boolean = vue.texteCodeDur
+
+    /**
+     * Règle « texte tronqué » (PE11g — la mesure LayoutLib dit que le
+     * contenu déborde de la vue, miroir `trunc` de `measure`).
+     */
+    public fun texteTronque(vue: InfoVueRendu): Boolean = vue.texteTronque
 
     /**
      * Règle « cible tactile » : vue CLIQUABLE dont le plus petit côté
@@ -99,13 +129,25 @@ public object ProblemesPreview {
         val problemes = mutableListOf<ProblemeApercu>()
         for (indice in vues.indices) {
             val vue = vues[indice]
+            // Ordre miroir de computeProblems : mock → cd → lit → click → trunc.
             if (classeAbsente(vue)) {
                 problemes.add(ProblemeApercu(indice, Severite.ERREUR, GenreProbleme.CLASSE_ABSENTE))
+            }
+            if (sansContentDescription(vue)) {
+                problemes.add(
+                    ProblemeApercu(indice, Severite.AVERTISSEMENT, GenreProbleme.SANS_CONTENT_DESCRIPTION),
+                )
+            }
+            if (texteCodeDur(vue)) {
+                problemes.add(ProblemeApercu(indice, Severite.AVERTISSEMENT, GenreProbleme.TEXTE_CODE_DUR))
             }
             if (cibleTactile(vue, densiteDpi)) {
                 problemes.add(
                     ProblemeApercu(indice, Severite.AVERTISSEMENT, GenreProbleme.CIBLE_TACTILE),
                 )
+            }
+            if (texteTronque(vue)) {
+                problemes.add(ProblemeApercu(indice, Severite.ERREUR, GenreProbleme.TEXTE_TRONQUE))
             }
         }
         return problemes

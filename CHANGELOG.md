@@ -1,5 +1,147 @@
 # Journal des modifications
 
+## [0.156.0] – 2026-10-20
+
+### PE11g-corrections — les CORRECTIONS RAPIDES du volet Attributs : 3 nouveaux genres de problèmes (dont la troncature CÔTÉ MOTEUR) + les cartes `item_correctif` + les 4 actions
+
+#### Ajouté
+
+- **Les TROIS genres de problèmes** (`ProblemesPreview` — miroir
+  `computeProblems`, DANS SON ORDRE : mock → cd → lit → click → trunc) :
+  `SANS_CONTENT_DESCRIPTION` (vue IMAGE muette, AVERTISSEMENT),
+  `TEXTE_CODE_DUR` (`android:text` LITTÉRAL, AVERTISSEMENT) et
+  `TEXTE_TRONQUE` (le texte déborde au rendu, ERREUR). Les genres
+  existants (classe absente, cible tactile) sont inchangés ; l'onglet
+  Problèmes, les badges de l'arbre et de la feuille les comptent
+  AUTOMATIQUEMENT (même évaluation pure).
+- **La détection CÔTÉ MOTEUR** (`RenduLayoutLib` → `InfoVueRendu`
+  +3 champs `texteTronque`/`sansContentDescription`/`texteCodeDur`,
+  parcel aux DEUX endroits du miroir + `equals`/`hashCode` — 24
+  champs) :
+  - **Tronqué** (`ProblemesRendu.texteDepasse`, extrait de
+    `RenduLayoutLib` — exemption `LargeClass` motivée étendue au
+    pipeline, patron `PopoverCalquesApercu`) : une ligne ELLIPSÉE ou
+    plus large que la largeur utile, ou un contenu plus haut que la
+    hauteur utile — miroir `trunc` de `measure` (`scrollWidth >
+    clientWidth + 1`, tolérance 1 px) ; une vue non posée ne dit
+    RIEN (jamais de faux positif) ;
+  - **Sans description** : lecture de la vue RÉELLE — `ImageView`
+    (couvre ImageButton) à `contentDescription` nulle ;
+  - **Codé en dur** : `android:text` LITTÉRAL au span de l'élément
+    ALIGNÉ — la garde `EditionAttributsXml.estLitteral` (pur,
+    NOUVEAU) est dorénavant PARTAGÉE par
+    `PreviewViewModel.extractionPossible` (une seule définition).
+- **Les CARTES de correction** (`item_correctif.xml` — 16e layout de
+  référence copié, miroir `.fix` ; `apercu_correctif_fond` copié) :
+  le bloc « CORRECTIONS RAPIDES » (titre de groupe via `TitreGroupe`,
+  miroir `.fixes h5` 10 dp) vit ENTRE la barre et les sections
+  (PREVIEW_UI.md § 8 item 2), une carte par problème ACTIONNABLE de la
+  vue sélectionnée — le titre n'apparaît que s'il y a des cartes
+  (miroir le bloc absent à zéro fix). **CLASSE_ABSENTE ne produit
+  JAMAIS de carte** : l'action « Ajouter la dépendance » est simulée
+  en maquette et hors périmètre — brief : « n'afficher le bouton que
+  si l'action existe ». Un span périmé (lecture seule) n'en montre
+  pas : les problèmes du rendu seraient stalles aussi.
+- **Les QUATRE actions** (`ActionCorrectif` scellé +
+  `ItemAttributs.Correctif` + `VUE_CORRECTIF` + `Evenements.auCorrectif`,
+  miroir `fx` : `run` écrit UNE édition + toast `fx.msg`, `go` navigue
+  SANS édition) :
+  - **« Passer à 48 dp »** → `EditionAttributsXml.elargirCibleTactile`
+    (UNE édition groupée, patron `ecrireDimensions` : composition sur
+    la balise puis remplacement atomique) : dimension FIXE < 48 →
+    48 ; `wrap_content`/`match_parent`/`0dp`/absente →
+    `minWidth`/`minHeight` = 48 dp. Gardes : `0dp`
+    (match_constraint) n'est JAMAIS réécrit en 48 ; un minimum
+    existant ≥ 48 n'est jamais ABAISSÉ ;
+  - **« Extraire en @string »** → le flux EXISTANT
+    `extraireEnRessource` (entrée FR+EN puis référence), nom proposé
+    depuis la VALEUR (`nomPropose` — miroir `extractStr`) ; un refus
+    porte le toast de la rangée d'extraction ;
+  - **« Autoriser 2 lignes »** → `definirAttributSelection("android:maxLines",
+    "2")` (miroir `setEx`) ;
+  - **« Renseigner »** → SANS édition : vide la RECHERCHE, OUVRE la
+    section qui PORTE le champ et pose le FOCUS dessus — scroll +
+    `findViewWithTag` (le NOM d'attribut posé en tag du champ en
+    `controleTexte`, miroir `S.focusAttr`). La maquette vise la
+    section Accessibilité de la 2e vague ; l'app vise la section
+    CONTENANT le contrôle (aujourd'hui Affichage) — l'annexe § 7 la
+    déplacera, la correction suivra PAR CONSTRUCTION.
+- **`LibellesProblemes`** : les TITRES et MESSAGES localisés des
+  genres, partagés par l'onglet Problèmes (rangée : libellé de la vue
+  + message) et les cartes (titre + message) ; l'échelle du message
+  tronqué suit le LOCALE (« ×1,3 » en français — miroir
+  `String(S.fs).replace('.', ',')`), chaînes FR/EN ×6 problèmes + ×9
+  correctifs (titre, 4 boutons, 3 toasts, `maxLines = 2` non traduit).
+- **`Widget…BoutonNouveau`** : `includeFontPadding=false` (grille
+  § 12.4 n° 3 — tout TextView sans le creux de police ; la ligne CSS
+  13,2 px de `.prim2` en est l'équivalent, meas 29,2 dp).
+
+#### Tests
+
+- `ProblemesPreviewTest` +4 : les TROIS règles (drapeaux du moteur) +
+  l'ORDRE des CINQ problèmes d'une vue fautive (genres et sévérités,
+  miroir `computeProblems`) ; la fabrique du test porte les nouveaux
+  champs (exemption motivée, miroir du PARCELABLE).
+- `EditionAttributsXmlTest` +6 : le correctif de cible aux DEUX
+  dimensions fixes en UNE édition (44/30 → 48/48), `wrap_content` →
+  `minWidth` (l'axe déjà à 48 ne bouge pas), `0dp` garde
+  match_constraint et reçoit les minimums, idempotence (rien à
+  élargir), un minimum posé n'est jamais abaissé, span périmé.
+  **Bug attrapé par le test** : deux remplacements de MÊME longueur
+  (44dp → 48dp) laissent un delta cumulé NUL — le drapeau `ecrit`
+  décide, pas le delta (patron `ecrireDimensions` qui teste l'ÉDITION).
+- `CotesMaquetteTest` +3 : `fixesh5` 10 dp EXACT (TitreGroupe réutilisé),
+  `prim2` 29,2 ±3 (creux de police coupé, métrique Roboto), la CARTE
+  au PLANCHER 60 dp (patron `SEUIL_PROBLEME` PE11k : la boîte CSS paie
+  l'interligne jusqu'à la dernière ligne, la descente Android pas —
+  écart de MOTEUR, documenté ; une régression fait tomber le plancher).
+- `VoletsPreviewLayoutTest` +1 : gonflage de la carte (titre, corps,
+  bouton).
+- Chaîne locale : spotless, detekt RACINE, checkModuleDependencies,
+  lintDebug DEUX modules, tests + koverVerify DEUX modules — 0 échec.
+
+#### Écarts documentés
+
+- **`0dp` n'est pas une dimension fixe** : la maquette
+  (`Math.max(v.w, 48)` sur un nombre) ne connaît pas
+  match_constraint — l'app ne réécrit JAMAIS `0dp`, elle pose les
+  MINIMUMS (jamais de layout cassé).
+- **Un minimum ≥ 48 dp n'est jamais abaissé** : la maquette écrase
+  sans condition (`setEx`), l'app ne dégrade jamais une cible.
+- **« Renseigner » vise la section porteuse** (Affichage aujourd'hui)
+  — la maquette cible « Accessibilité » de la 2e vague, la correction
+  suivra le catalogue par construction.
+- **Toasts de succès en `Toast.makeText`** : la convention du VOLET
+  (édition périmée depuis PE7e) ; `toast_apercu` reste l'outil de
+  l'activité. La DISPARITION de la carte au re-rendu reste le retour
+  principal (critère § 6.7 : « produit une édition et fait
+  disparaître le problème »).
+- **La carte d'extraction s'affiche même sans session strings.xml**
+  (miroir la maquette qui montre toujours le fix) : le tap porte le
+  toast de refus de la rangée d'extraction.
+- **Interligne de la dernière ligne** (écart de moteur CSS/Android) :
+  la cote exacte vit sur le titre de groupe et le bouton, la carte
+  garde le plancher.
+- Exemptions detekt ciblées et motivées : `LargeClass` du pipeline
+  `RenduLayoutLib` (l'éclater disperserait l'ordre des étapes — la
+  détection est extraite dans `ProblemesRendu`), `LongParameterList`
+  des miroirs champ-par-champ (`versInfoVue`, fabrique du test).
+
+#### Grille § 12.4 (recopiée)
+
+- [x] Aucune `GradientDrawable`/vue construite en code pour l'écran
+- [x] Greps hexa/textColor + `[0-9]+dp` → VIDE (sentinelle `0dp`
+      `item_ligne_source` documentée PE11l)
+- [x] `TextView` du contrôle → style `Widget…Apercu.Texte`
+      (`includeFontPadding=false`, règle n° 3 — le BOUTON aussi)
+- [x] `JetonsMaquetteTest` + cotes Robolectric verts
+- [ ] Captures clair + nuit (`ecran-attributs-correctifs`, carte
+      ambre + bouton violet) : sur appareil au prochain retour
+      propriétaire
+- [x] En-têtes de layout à jour (commentaires sélecteur CSS + cotes)
+- [x] `lintDebug` sans nouvel avertissement ; AUCUN `tools:ignore`
+
+
 ## [0.155.0] – 2026-10-20
 
 ### PE11f — le contrôle RESSOURCE + la barre d'outils branchée (recherche et bascule Courants/Tous), 4e lot des nouveaux contrôles § 9

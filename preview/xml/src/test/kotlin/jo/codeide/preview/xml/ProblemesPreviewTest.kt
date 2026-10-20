@@ -12,11 +12,17 @@ import org.junit.Test
  * densité, sévérités, évaluation d'ensemble.
  */
 class ProblemesPreviewTest {
+    // Fabrique miroir du PARCELABLE : un CHAMP utile = un paramètre
+    // (même justification qu'[InfoVueRendu], règle 16).
+    @Suppress("LongParameterList")
     private fun vue(
         largeurPx: Int,
         hauteurPx: Int,
         cliquable: Boolean = false,
         classe: String = "Button",
+        texteTronque: Boolean = false,
+        sansContentDescription: Boolean = false,
+        texteCodeDur: Boolean = false,
     ): InfoVueRendu =
         InfoVueRendu(
             gauche = 0,
@@ -30,6 +36,9 @@ class ProblemesPreviewTest {
             profondeur = 0,
             classe = classe,
             cliquable = cliquable,
+            texteTronque = texteTronque,
+            sansContentDescription = sansContentDescription,
+            texteCodeDur = texteCodeDur,
         )
 
     // ── Règle « classe absente » (cadre de remplacement G15) ──
@@ -87,6 +96,29 @@ class ProblemesPreviewTest {
         assertFalse(ProblemesPreview.cibleTactile(vue40px, densiteDpi = 80))
     }
 
+    // ── PE11g — les TROIS règles portées par les drapeaux du moteur ──
+
+    @Test
+    fun `texte tronque - le drapeau du moteur signale`() {
+        val debordante = vue(120, 24, texteTronque = true)
+        assertTrue(ProblemesPreview.texteTronque(debordante))
+        assertFalse(ProblemesPreview.texteTronque(vue(120, 48)))
+    }
+
+    @Test
+    fun `sans content description - le drapeau du moteur signale l image`() {
+        val muette = vue(96, 96, classe = "ImageView", sansContentDescription = true)
+        assertTrue(ProblemesPreview.sansContentDescription(muette))
+        assertFalse(ProblemesPreview.sansContentDescription(vue(96, 96, classe = "ImageView")))
+    }
+
+    @Test
+    fun `texte code dur - le drapeau du moteur signale le litteral`() {
+        val enDur = vue(120, 48, texteCodeDur = true)
+        assertTrue(ProblemesPreview.texteCodeDur(enDur))
+        assertFalse(ProblemesPreview.texteCodeDur(vue(120, 48)))
+    }
+
     // ── Évaluation d'ensemble ──
 
     @Test
@@ -131,5 +163,54 @@ class ProblemesPreviewTest {
         assertEquals(1, problemes.size)
         assertEquals(1, problemes[0].indiceVue)
         assertEquals(ProblemesPreview.GenreProbleme.CLASSE_ABSENTE, problemes[0].genre)
+    }
+
+    @Test
+    fun `evaluer - une vue fautive porte les CINQ dans l ordre de computeProblems`() {
+        // PE11g — miroir l'ordre par vue de `computeProblems` :
+        // mock → cd → lit → click → trunc (sévérités e, w, w, w, e).
+        val touteFautive = 0
+        val problemes =
+            ProblemesPreview.evaluer(
+                vues =
+                    listOf(
+                        vue(
+                            largeurPx = 88,
+                            hauteurPx = 88,
+                            cliquable = true,
+                            classe = InfoVueRendu.CLASSE_REMPLACEMENT,
+                            texteTronque = true,
+                            sansContentDescription = true,
+                            texteCodeDur = true,
+                        ),
+                    ),
+                densiteDpi = 320,
+            )
+        assertEquals(
+            listOf(
+                ProblemesPreview.GenreProbleme.CLASSE_ABSENTE,
+                ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION,
+                ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR,
+                ProblemesPreview.GenreProbleme.CIBLE_TACTILE,
+                ProblemesPreview.GenreProbleme.TEXTE_TRONQUE,
+            ),
+            problemes.map { it.genre },
+        )
+        assertEquals(
+            listOf(
+                ProblemesPreview.Severite.ERREUR,
+                ProblemesPreview.Severite.AVERTISSEMENT,
+                ProblemesPreview.Severite.AVERTISSEMENT,
+                ProblemesPreview.Severite.AVERTISSEMENT,
+                ProblemesPreview.Severite.ERREUR,
+            ),
+            problemes.map { it.severite },
+        )
+        assertEquals(5, problemes.size)
+        assertEquals(
+            "la pastille de l'UI compte : tous rattachés à la vue fautive",
+            List(problemes.size) { touteFautive },
+            problemes.map { it.indiceVue },
+        )
     }
 }

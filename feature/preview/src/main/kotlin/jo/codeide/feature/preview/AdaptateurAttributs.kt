@@ -13,6 +13,7 @@ import jo.codeide.feature.preview.databinding.CarteSectionBinding
 import jo.codeide.feature.preview.databinding.EnteteEditeurBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
 import jo.codeide.feature.preview.databinding.ItemAttributGroupeBinding
+import jo.codeide.feature.preview.databinding.ItemCorrectifBinding
 import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
 import jo.codeide.feature.preview.databinding.SeparateurEditeurBinding
 import jo.codeide.feature.preview.databinding.VideVoletBinding
@@ -61,6 +62,9 @@ internal class AdaptateurAttributs(
 
         /** Le tap sur « Afficher les N autres attributs » passe en mode TOUS. */
         fun auBoutonAutres()
+
+        /** Le tap sur le BOUTON d'une carte de correction (PE11g — l'action part au volet). */
+        fun auCorrectif(action: ActionCorrectif)
     }
 
     /** Soumet une nouvelle liste (miroir majAttributs : le diff re-lie les dérivées). */
@@ -74,6 +78,7 @@ internal class AdaptateurAttributs(
         when (val item = getItem(position)) {
             is ItemAttributs.Titre -> VUE_TITRE
             ItemAttributs.BarreOutils -> VUE_BARRE
+            is ItemAttributs.Correctif -> VUE_CORRECTIF
             is ItemAttributs.Carte -> VUE_CARTE
             ItemAttributs.Separateur -> VUE_SEPARATEUR
             is ItemAttributs.LectureSeule -> VUE_LECTURE_SEULE
@@ -93,6 +98,7 @@ internal class AdaptateurAttributs(
             when (viewType) {
                 VUE_TITRE -> EnteteEditeurBinding.inflate(gonfleur, parent, false).root
                 VUE_BARRE -> BarreOutilsAttributsBinding.inflate(gonfleur, parent, false).root
+                VUE_CORRECTIF -> ItemCorrectifBinding.inflate(gonfleur, parent, false).root
                 VUE_CARTE -> CarteSectionBinding.inflate(gonfleur, parent, false).root
                 VUE_SEPARATEUR -> SeparateurEditeurBinding.inflate(gonfleur, parent, false).root
                 VUE_LECTURE_SEULE -> ItemLectureSeuleBinding.inflate(gonfleur, parent, false).root
@@ -115,6 +121,14 @@ internal class AdaptateurAttributs(
 
             ItemAttributs.BarreOutils -> {
                 evenements.lierBarre(BarreOutilsAttributsBinding.bind(detenteur.itemView))
+            }
+
+            is ItemAttributs.Correctif -> {
+                val carte = ItemCorrectifBinding.bind(detenteur.itemView)
+                carte.titreCorrectif.text = item.titre
+                carte.corpsCorrectif.text = item.message
+                carte.boutonCorrectif.text = item.bouton
+                carte.boutonCorrectif.setOnClickListener { evenements.auCorrectif(item.action) }
             }
 
             is ItemAttributs.Carte -> {
@@ -237,5 +251,6 @@ internal class AdaptateurAttributs(
         internal const val VUE_ATTRIBUT: Int = 6
         internal const val VUE_VIDE: Int = 7
         internal const val VUE_BOUTON_AUTRES: Int = 8
+        internal const val VUE_CORRECTIF: Int = 9
     }
 }

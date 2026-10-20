@@ -121,6 +121,7 @@
     <dimen name="apercu_correctif_rayon">10dp</dimen>  <!-- .fix radius -->
     <dimen name="apercu_correctif_gap">10dp</dimen>  <!-- .fix gap -->
     <dimen name="apercu_correctifs_gap">6dp</dimen>  <!-- .fixes gap -->
+    <dimen name="apercu_correctif_bouton_max">160dp</dimen>  <!-- .fix button max-width (42 % de 398 ≈ 167 → 160 de la référence) -->
 
     <!-- Lecture seule (.kv) -->
     <dimen name="apercu_kv_gap_ligne">2dp</dimen>  <!-- .kv row gap -->
