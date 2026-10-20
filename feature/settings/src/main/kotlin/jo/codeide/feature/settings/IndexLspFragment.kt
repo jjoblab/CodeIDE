@@ -68,6 +68,11 @@ class IndexLspFragment : BaseFragment<FragmentLspIndexBinding>() {
         binding.boutonReindexer.setOnClickListener { viewModel.onAction(ActionReglagesLsp.Reindexer) }
         binding.boutonReessayerEchecs.setOnClickListener { viewModel.onAction(ActionReglagesLsp.Reindexer) }
         binding.boutonViderCache.setOnClickListener { confirmerVidage() }
+        // Lot LSP-4 (ADR 0117) : le panneau de détail vit dans l'espace
+        // éditeur — la demande part par le PORT, l'effet remonte l'espace.
+        binding.rangeeDetailsIndexation.setSurClic {
+            viewModel.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+        }
     }
 
     /** Rendu OBSERVÉ : sous-titre du cache, valeur du budget, surveillance. */
@@ -105,30 +110,48 @@ class IndexLspFragment : BaseFragment<FragmentLspIndexBinding>() {
                 else -> R.string.lsp_vidage_refuse
             },
         )
+
+        // Lot LSP-4 (ADR 0117) : le lien « Détails de l'indexation » exige
+        // un espace VIVANT (le panneau vit côté éditeur) — même garde que
+        // les actions de la carte (spécification § 3 L3 : « si un projet
+        // est ouvert, sinon désactivé »).
+        binding.rangeeDetailsIndexation.setEnabled(!modele.moteurAbsent)
     }
 
     /** Retours uniques des actions (Snackbar thématisé, jamais de Toast). */
     private fun rendreEffet(effet: EffetEcransLsp) {
-        val message =
-            when (effet) {
-                is EffetEcransLsp.CacheVide -> {
+        when (effet) {
+            is EffetEcransLsp.DetailsIndexationDemandes -> {
+                // Lot LSP-4 : la demande est posée sur le port — l'espace
+                // remonte au premier plan (ADR 0048 inversé) et consomme la
+                // demande à sa reprise ; session fermée en vol : honnête.
+                val identifiant = effet.identifiantProjet
+                if (identifiant == null) {
+                    Retour.snackbar(binding.root, getString(R.string.lsp_actions_sans_moteur))
+                } else {
+                    navigator.revenirALEditeur(identifiant)
+                }
+            }
+
+            is EffetEcransLsp.CacheVide -> {
+                val message =
                     getString(
                         R.string.lsp_cache_vide,
                         java.text
                             .DecimalFormat("#.##", java.text.DecimalFormatSymbols(Locale.US))
                             .format(effet.octetsLiberes / MIO.toDouble()),
                     )
-                }
-
-                EffetEcransLsp.VidageRefuse -> {
-                    getString(R.string.lsp_vidage_refuse)
-                }
-
-                EffetEcransLsp.AucunMoteur -> {
-                    getString(R.string.lsp_actions_sans_moteur)
-                }
+                Retour.snackbar(binding.root, message)
             }
-        Retour.snackbar(binding.root, message)
+
+            EffetEcransLsp.VidageRefuse -> {
+                Retour.snackbar(binding.root, getString(R.string.lsp_vidage_refuse))
+            }
+
+            EffetEcransLsp.AucunMoteur -> {
+                Retour.snackbar(binding.root, getString(R.string.lsp_actions_sans_moteur))
+            }
+        }
     }
 
     /** Budget : paliers du modèle (Auto/256/512/1024 Mo), courants pré-cochés. */

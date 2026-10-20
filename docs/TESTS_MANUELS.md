@@ -892,3 +892,44 @@ les moteurs vivants ; sans projet, les pastilles passent en neutre
    (région live polie) ; cibles tactiles ≥ 48 dp partout.
 9. **Rotation/recréation** — l'état affiché se ré-observe sans action
    destructive répétée ; le langage L2 survit à la rotation.
+
+## Réglages LSP « Intelligence du code » (lot LSP-4 → v0.162.0, ADR 0128)
+
+Écran : Paramètres → « Intelligence du code » → L3 « Index et cache ». À
+vérifier sur appareil 360 dp, clair ET sombre. Complète la recette LSP-3 :
+le lien « Détails de l'indexation » (différé à ce lot), l'audit
+d'accessibilité des cinq écrans (§ 5 de la spécification) et le test
+d'architecture des interrupteurs y sont livrés.
+
+1. **Lien « Détails de l'indexation » (L3, carte Occupation)** — rangée
+   sous « Cache d'index », icône journal, chevron ; AVEC un projet
+   ouvert : l'appui RAMÈNE l'espace éditeur au premier plan (sans le
+   recréer — pas de doublon dans la pile) et le panneau de détail de
+   l'indexation (ADR 0117, celui de la pastille de la toolbar) s'ouvre
+   À L'ARRIVÉE.
+2. **Lien sans projet** — éditeur refermé (session fermée) : la rangée
+   est désactivée (opacité Material) et ne navigue nulle part — jamais
+   un contrôle sans effet.
+3. **Demande qui survit (état, pas événement)** — poser l'appui puis
+   rester dans les réglages ne montre rien ; ressortir par le système
+   (l'espace reprend au premier plan) : le panneau s'ouvre à la
+   reprise — la demande vit sur le PORT des moteurs, rien ne se perd.
+4. **Concurrence honnête** — fermer le projet PENDANT que L3 est ouvert :
+   la rangée se désactive au rendu suivant (port retiré) ; un appui
+   résiduel répond « Les actions demandent un moteur actif » par
+   snackbar, rien n'est posé.
+5. **Accessibilité des cinq écrans (§ 5)** — TalkBack : rangées moteurs
+   d'une seule voix (« Java : Prêt »), pastilles annoncées (région
+   live polie), zones tactiles ≥ 48 dp (portées par `RangeeParametre`) ;
+   police système ×1,3 : les sous-titres passent à la ligne SANS
+   troncature ; contraste clair/sombre/dynamique vérifié L1-L5 (rôles
+   de thème uniquement — cliquet `checkUiTokens` vert).
+6. **EN/FR** — basculer la langue : les deux libellés neufs (« Détails
+   de l'indexation », « Liste de travail et bilan du dernier passage »)
+   suivent la langue, comme le reste de l'écran.
+7. **Tests automatiques associés** — `ArchitectureInterrupteursLspTest`
+   (aucune rangée de fonction sans capacité annoncée, ordre FIXE, table
+   vide = zéro rangée), `PortLspEspaceTest` (demande : posée elle
+   survit, consommée elle retombe), `LangagesViewModelTest` (la demande
+   passe par le port et porte l'identifiant du projet ; refus honnête
+   sans port ni session).

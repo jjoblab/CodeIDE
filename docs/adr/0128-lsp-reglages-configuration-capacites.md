@@ -1,11 +1,13 @@
 # ADR 0128 — LSP : réglages utilisateur, API de configuration et pilotage par capacités
 
-- **Statut** : proposé
+- **Statut** : accepté (GO propriétaire du 2026-10-20 ; lots LSP-0 → LSP-4
+  livrés entre v0.156.3 et v0.162.0, la recette sur appareil vit dans
+  `docs/TESTS_MANUELS.md` § LSP-3 et § LSP-4)
 - **Date** : 2026-10-17
 - **Décideurs** : jjoblab
 - **S'appuie sur** : ADR 0127 (composants UI), 0117 (écran d'indexation), 0059 (« chaque contrôle
   projette une API réelle »), 0122 (réglages hors `AppSettings`). **Données** :
-  `docs/LSP_REVUE_REGLAGES.md` (L1–L7).
+  `docs/consommes/LSP_REVUE_REGLAGES.md` (L1–L7).
 - **Contexte** : depuis l'extraction (`codeide-lsp` v1.0.2), le LSP est un produit à part,
   consommé par coordonnées. Son seul point d'entrée de configuration est le constructeur de
   `SessionLsp` ; le reste est constant. L'application n'a aucun écran de réglages LSP. Les
@@ -42,7 +44,7 @@ n'enregistre pas (ou ne sollicite pas) le fournisseur correspondant ; aucune mod
 moteurs. Valeur par défaut : **tout activé** ; désactiver ne supprime jamais un diagnostic
 bloquant de compilation.
 
-### 4. Écrans (spécification : `docs/LSP_SPEC_ECRANS.md`)
+### 4. Écrans (spécification : `docs/consommes/LSP_SPEC_ECRANS.md`)
 Nouvelle section **`SectionParametres.LANGAGES`** (« Intelligence du code »), placée après
 **Éditeur** dans le maître, avec : L1 Vue d'ensemble · L2 Langage (écran unique paramétré
 Java/Kotlin/XML) · L3 Index et cache · L4 Environnement d'analyse (lecture seule) · L5 État et
@@ -93,8 +95,10 @@ de normalisation et donne en échange un écran qui reste vrai quand les moteurs
 - **À revoir** : profil « Réactivité de l'analyse » (nécessite une API moteur) ; fiabilité de l'estimation d'indexation.
 
 ## Actions
-1. [ ] LSP-0 : purge règle 13, K1/K2, publication, source unique des docs, numérotation d'ADR.
-2. [ ] LSP-1 : `ConfigurationLsp`, `appliquer`, `tailleCacheOctets`, `viderCache`, `capacites` + tests + v1.1.0.
-3. [ ] LSP-2 : montée de version vérifiée, `LspSettingsRepository`, câblage `CoordonnateurLsp`.
-4. [ ] LSP-3 : `SectionParametres.LANGAGES` + écrans L1–L5 (après UI-1/UI-2).
-5. [ ] LSP-4 : test d'architecture « aucun interrupteur sans capacité annoncée ».
+1. [x] LSP-0 : purge règle 13, K1/K2, publication, source unique des docs, numérotation d'ADR — livré v0.156.3 + frère `2aaa65a`.
+2. [x] LSP-1 : `ConfigurationLsp`, `appliquer`, `tailleCacheOctets`, `viderCache`, `capacites` + tests + v1.2.0 — livré `6c23677`.
+3. [x] LSP-2 : montée de version vérifiée, `LspSettingsRepository`, câblage `CoordonnateurLsp` — livré v0.157.0.
+4. [x] LSP-3 : `SectionParametres.LANGAGES` + écrans L1–L5 (après UI-1/UI-2) — livré v0.161.0.
+5. [x] LSP-4 : test d'architecture « aucun interrupteur sans capacité annoncée » — livré v0.162.0
+   (`ArchitectureInterrupteursLspTest`, plus lien L3 « Détails de l'indexation » par
+   demande-état sur `PortLsp`, accessibilité § 5 auditée, EN/FR paritaires).
