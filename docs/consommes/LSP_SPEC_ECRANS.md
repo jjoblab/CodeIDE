@@ -1,5 +1,20 @@
 # Réglages LSP — spécification des écrans (« Intelligence du code »)
 
+> **Mise à jour 2026-10-21 (livraison LSP-4, v0.162.0) — document CONSOMMÉ** :
+> les trois écarts sont clos — (3) le lien « Détails de l'indexation » est
+> LIVRÉ : la rangée L3 pose une demande-ÉTAT sur `PortLsp`
+> (`demandeDetailsIndexation`), l'espace éditeur la consomme à sa reprise
+> (collecte STARTED) et ouvre le bottom sheet de l'ADR 0117 — la
+> remontée passe par `AppNavigator.revenirALEditeur` (miroir ADR 0048).
+> Le test d'architecture « aucun interrupteur sans capacité annoncée »
+> (`ArchitectureInterrupteursLspTest`) verrouille la dérivation des rangées
+> L2 ; l'accessibilité § 5 est auditée (portée par les composants ADR 0127)
+> et la recette vit dans `TESTS_MANUELS.md` § LSP-4. Les écarts (1)
+> interrupteurs « Bientôt » (décision LSP-2, chantier code-editor) et
+> (2) rangée « Version » omise (`:lsp:host` n'expose pas de version)
+> restent assumés. Toutes les étapes de ce document sont livrées : il
+> rejoint `docs/consommes/` (AGENTS.md §8).
+
 > **Mise à jour 2026-10-20 (livraison LSP-3, v0.161.0)** : les cinq écrans sont
 > livrés ; trois écarts assumés y sont consignés — (1) les interrupteurs de la
 > carte Fonctions et « Gravité affichée » restent des puce « Bientôt » tant que

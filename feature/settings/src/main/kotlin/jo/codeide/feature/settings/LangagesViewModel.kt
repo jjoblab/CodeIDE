@@ -190,6 +190,10 @@ class LangagesViewModel
                         }
                     }
                 }
+
+                ActionReglagesLsp.OuvrirDetailsIndexation -> {
+                    ouvrirDetailsIndexation()
+                }
             }
         }
 
@@ -216,6 +220,26 @@ class LangagesViewModel
 
         /** Dernier réglage CONNU (sans I/S suspendante — défauts avant émission). */
         private fun reglagesLspCourants(): LspSettings = etat.value.reglages
+
+        /**
+         * Lot LSP-4 (ADR 0117) : pose la demande du panneau « Détails de
+         * l'indexation » sur le PORT des moteurs — l'identifiant est lu
+         * AVANT (une session peut fermer entre les deux — la demande
+         * mourrait avec le port, l'effet ne naviguerait vers rien) ; sans
+         * port OU sans session, l'écran reste honnête (AucunMoteur).
+         */
+        private fun ouvrirDetailsIndexation() {
+            val identifiant =
+                session.etatSession.value.projet
+                    ?.value
+            val port = registre.port.value
+            if (identifiant == null || port == null) {
+                effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
+            } else {
+                port.demanderDetailsIndexation()
+                effetsInternes.trySend(EffetEcransLsp.DetailsIndexationDemandes(identifiant))
+            }
+        }
 
         /** Dernière période NON NULLE choisie (reprise après une coupure). */
         private var dernierePeriodeMs: Long = LspSettings.SURVEILLANCE_PAR_DEFAUT_MS

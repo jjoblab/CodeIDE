@@ -18,6 +18,7 @@ import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -49,6 +50,7 @@ class LangagesViewModelTest {
 
     private val registre = RegistrePortLsp()
     private val portFaux = PortLspFaux()
+    private val observateurSessionFaux = ObservateurSessionFaux()
 
     /**
      * Portée du DataStore sur l'HORLOGE DE TEST (patron
@@ -85,7 +87,7 @@ class LangagesViewModelTest {
             reglagesLsp = depot,
             registrePortLsp = registre,
             tableCapacites = TableCapacitesFausse,
-            observateurSession = ObservateurSessionFaux,
+            observateurSession = observateurSessionFaux,
             outilchain = OutilchainFaux,
             etatInstallation = MagasinInstallationFaux,
             dispatcheurs =
@@ -219,13 +221,63 @@ class LangagesViewModelTest {
             assertEquals(setOf(CapaciteLsp.COMPLETION), vm.capacitesAnnoncees(jo.codeide.core.domain.LangageLsp.JAVA))
         }
 
-    /** Port factice : moteurs pilotables + vidage à commande. */
+    @Test
+    fun `la demande de détails passe par le port et porte l'identifiant du projet`() =
+        runTest {
+            val vm = viewModel()
+            registre.enregistrer(portFaux)
+            observateurSessionFaux.etatInterne.value =
+                EtatSessionProjetVue.Ouverte(
+                    jo.codeide.core.model
+                        .ProjectId("projet-lsp-4"),
+                )
+
+            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+            advanceUntilIdle()
+
+            // La demande est un ÉTAT posé sur le port (survit au temps de
+            // remontée de l'espace) et l'effet porte l'identifiant pour la
+            // navigation (ADR 0117, lot LSP-4).
+            assertTrue(portFaux.demandeDetailsInterne.value)
+            assertEquals(
+                EffetEcransLsp.DetailsIndexationDemandes("projet-lsp-4"),
+                vm.effets.first(),
+            )
+        }
+
+    @Test
+    fun `sans port ou sans session la demande de détails reste honnête - AucunMoteur, rien posé`() =
+        runTest {
+            val vm = viewModel()
+
+            // Sans port (éditeur fermé) : refus honnête, rien à ouvrir.
+            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+            advanceUntilIdle()
+            assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
+
+            // Port vivant mais session fermée en vol : honnête aussi —
+            // la demande n'est JAMAIS posée sans identifiant à remonter.
+            registre.enregistrer(portFaux)
+            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+            advanceUntilIdle()
+            assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
+            assertFalse(portFaux.demandeDetailsInterne.value)
+        }
+
+    /** Port factice : moteurs pilotables + vidage à commande + demande observable. */
     private class PortLspFaux : PortLsp {
         val moteursInternes = MutableStateFlow(MoteursLsp.INACTIFS)
+        val demandeDetailsInterne = MutableStateFlow(false)
         var refus: ResultatVidageCacheLsp? =
             ResultatVidageCacheLsp.Refusee(jo.codeide.core.domain.RaisonRefusVidageLsp.INDEXATION_EN_COURS)
 
         override val moteurs: StateFlow<MoteursLsp> = moteursInternes
+
+        override val demandeDetailsIndexation: StateFlow<Boolean> = demandeDetailsInterne.asStateFlow()
+
+        override fun demanderDetailsIndexation() {
+            demandeDetailsInterne.value = true
+        }
 
         override fun tailleCacheOctets(): Long? = 184L
 
@@ -245,10 +297,11 @@ class LangagesViewModelTest {
             }
     }
 
-    /** Session : jamais de projet ouvert (l'écran L1 montre l'état « vide »). */
-    private object ObservateurSessionFaux : ObservateurSessionProjet {
-        override val etatSession: StateFlow<EtatSessionProjetVue> =
-            MutableStateFlow(EtatSessionProjetVue.Aucune)
+    /** Session PILOTABLE : Aucune par défaut (écran L1 « vide »), Ouverte pour la demande LSP-4. */
+    private class ObservateurSessionFaux : ObservateurSessionProjet {
+        val etatInterne = MutableStateFlow<EtatSessionProjetVue>(EtatSessionProjetVue.Aucune)
+
+        override val etatSession: StateFlow<EtatSessionProjetVue> = etatInterne.asStateFlow()
     }
 
     /** Chaîne d'outils : rien d'installé (L4 dira JDK introuvable). */

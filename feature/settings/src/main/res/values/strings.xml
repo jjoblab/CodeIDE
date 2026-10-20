@@ -293,6 +293,9 @@
     <string name="lsp_reactivite">Réactivité de l\'analyse</string>
     <string name="lsp_section_occupation">Occupation</string>
     <string name="lsp_cache_index">Cache d\'index</string>
+    <!-- Lot LSP-4 (ADR 0117) : le panneau de détail vit dans l'espace éditeur. -->
+    <string name="lsp_details_indexation">Détails de l\'indexation</string>
+    <string name="lsp_details_indexation_sous">Liste de travail et bilan du dernier passage</string>
     <string name="lsp_section_budget">Budget</string>
     <string name="lsp_taille_maximale">Taille maximale</string>
     <string name="lsp_taille_max_sous">Auto s\'adapte à la taille du projet</string>

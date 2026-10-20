@@ -230,6 +230,25 @@ class PortLspEspaceTest {
         }
 
     @Test
+    fun `la demande de détails est un état - posée elle survit, consommée elle retombe`() {
+        val port = portSansSession()
+
+        // Défaut : aucune demande en attente.
+        assertFalse(port.demandeDetailsIndexation.value)
+
+        // Posée (le panneau vit côté éditeur, la session n'y change rien) :
+        // l'état TIENT jusqu'à consommation — même espacée, l'utilisateur
+        // remonte l'espace quand il veut (lot LSP-4, ADR 0117).
+        port.demanderDetailsIndexation()
+        port.demanderDetailsIndexation()
+        assertTrue(port.demandeDetailsIndexation.value)
+
+        // Consommée par l'espace AU MOMENT d'ouvrir le panneau.
+        port.consommerDemandeDetailsIndexation()
+        assertFalse(port.demandeDetailsIndexation.value)
+    }
+
+    @Test
     fun `une session vivante alimente l'état, les capacités et les actions`() =
         runTest {
             val racine = dossierTemporaire.newFolder("projet")

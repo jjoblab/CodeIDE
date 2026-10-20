@@ -67,6 +67,19 @@
                         app:rangeeIcone="@drawable/ic_fichier_db"
                         app:rangeeTitre="@string/lsp_cache_index"
                         app:rangeeType="aucun" />
+
+                    <!-- Lot LSP-4 (ADR 0117 + 0128 §4) : le panneau de détail
+                         de l'indexation vit dans l'ESPACE ÉDITEUR — la
+                         demande part par le port des moteurs, l'appui
+                         remonte l'espace vivant ; désactivé sans moteur. -->
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_details_indexation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_fichier_log"
+                        app:rangeeSousTitre="@string/lsp_details_indexation_sous"
+                        app:rangeeTitre="@string/lsp_details_indexation"
+                        app:rangeeType="chevron" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
