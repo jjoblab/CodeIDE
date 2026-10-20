@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
@@ -19,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.ConversationIa
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.ai.databinding.FragmentIaHistoriqueBinding
 import jo.codeide.feature.ai.databinding.LigneConversationBinding
@@ -79,7 +79,7 @@ public class HistoriqueFragment : Fragment() {
         }
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
             if (effet is EffetHistoriqueIa.Message) {
-                Toast.makeText(requireContext(), getString(effet.ressource), Toast.LENGTH_SHORT).show()
+                Retour.snackbar(liaison.root, getString(effet.ressource))
             }
         }
     }

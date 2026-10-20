@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -14,6 +13,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.feature.ai.databinding.FragmentFournisseurIaBinding
 import kotlinx.coroutines.launch
@@ -82,7 +82,7 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
         val champ = binding.champCle
         val texte = champ.text?.toString() ?: return
         if (texte.isBlank()) {
-            Toast.makeText(requireContext(), R.string.ia_erreur_cle_vide, Toast.LENGTH_SHORT).show()
+            Retour.snackbar(binding.root, getString(R.string.ia_erreur_cle_vide))
             return
         }
         viewModel.onAction(ActionFournisseurIa.EnregistrerCle(texte.toCharArray()))
@@ -156,7 +156,7 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
                 val texte =
                     effet.argument?.let { requireContext().getString(effet.ressource, it) }
                         ?: requireContext().getString(effet.ressource)
-                Toast.makeText(requireContext(), texte, Toast.LENGTH_SHORT).show()
+                Retour.snackbar(binding.root, texte)
             }
         }
     }
