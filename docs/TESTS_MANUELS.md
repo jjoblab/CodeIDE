@@ -955,6 +955,44 @@ DÉDIÉS documentés, pas des littéraux.
    long assumé (il survit à la destruction de l'activité — écart
    documenté, hors cliquet R6).
 
+## Cohérence UI — migration preview (lot UI-6 → v0.165.0, audit C5/C9, ADR 0127)
+
+Écran : l'aperçu XML tout entier (barre du haut, HUD, barre d'édition,
+palette, placement, menus, bulle, volets de la feuille). Le module
+`feature:preview` quitte la baseline `checkUiTokens` (16 fichiers,
+30 occurrences → 0) — la migration doit rester INVISIBLE au quotidien :
+aucun pixel ne change (constantes framework de même valeur, teintes posées
+au liage inchangées). 360 dp, clair ET sombre.
+
+1. **Boutons ronds 36 dp et HUD** (retour, plus, annuler/rétablir,
+   dupliquer, supprimer, zoom quand il est en boutons) : les 8 icônes
+   restent TEINTÉES comme avant (`apercuSurNouveau` / teinte du
+   style) — l'ondulation au toucher reste un cercle (resp. rectangle
+   rayon 10 pour le HUD) sur `apercuSurface2`.
+2. **Barre d'édition en mode sélection** : les 4 boutons 34 dp du HUD
+   se teintent `apercu_hud_icone`, désactivés à opacité .32 — identique.
+3. **Palette et placement** : le bouton de MODE sélectionné (Design /
+   Plan / Les deux) et la position choisie du placement gardent l'OMBRE
+   LÉGÈRE de 1 dp sous la surface (jeton `apercu_ombre_bouton`, même
+   valeur #2E000000 — box-shadow rgba(0,0,0,.18) de la maquette).
+4. **Menus Calques / appareil / cible** : les PASTILLES de couche restent
+   bien colorées par `backgroundTintList` (base blanche tintée — pas de
+   changement de teinte) ; la pastille 12 dp du menu calques garde sa
+   taille de `apercu_pastille_menu_taille`.
+5. **Volet Attributs** : provoquer un REFUS d'édition (éditer la valeur
+   d'une vue périmée — re-rendu entre-temps, message « édition périmée »)
+   puis déclencher une CORRECTION RAPIDE (« Passer à 48 dp ») : les DEUX
+   retours partent désormais par le TOAST MAISON en haut-centre (fond
+   inversé, fondu 200 ms, 2,4 s) — PLUS AUCUN Toast système (fond gris
+   en bas de l'écran). Même présentation que les messages d'insertion
+   de la palette.
+6. **Nettoyage invisible** : rien ne doit référencer les 3 drawables
+   supprimés (fond_mode_palette, fond_position_placement,
+   fond_pastille_probleme) — aucun écran ne change.
+7. **Cotes verrouillées** : `CotesEcransMaquetteTest` (7) et
+   `CotesPopoversMaquetteTest` (6) restent verts — les cotes mesurées
+   (boutons 36, HUD 34, pastille 12…) prouvent l'absence de dérive.
+
 ## Réglages LSP « Intelligence du code » (lot LSP-3 → v0.161.0, ADR 0128)
 
 Écran : Paramètres → « Intelligence du code » (L1) puis L2/L3/L4/L5. À
