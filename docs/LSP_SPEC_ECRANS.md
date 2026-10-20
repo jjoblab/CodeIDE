@@ -50,7 +50,8 @@ Titre = nom du langage ; argument de navigation = identifiant du langage.
 | **Diagnostics** | Rangée `type=valeur` « Gravité affichée » : Erreurs seules / Erreurs et avertissements / Tout. Le texte précise : « Les erreurs de compilation restent toujours visibles. » |
 | **Réactivité** | Rangée `type=valeur` « Réactivité de l'analyse » avec puce **Bientôt** (désactivée). |
 Règles : jamais d'interrupteur pour une capacité non annoncée (Kotlin sans Formatage ni Indices ;
-XML sans Renommer ni Signatures) ; chaque changement est enregistré **immédiatement**
+XML sans Signatures — le renommage XML existe depuis codeide-lsp v1.1.0) ; chaque changement
+est enregistré **immédiatement**
 (`LspSettingsRepository`) et appliqué sans redémarrer quand il est côté client.
 
 ### L3 — Index et cache (`fragment_lsp_index.xml`)

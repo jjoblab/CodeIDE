@@ -3,6 +3,12 @@
 > Analyse de `jjoblab/codeide-lsp` (v1.0.2, commit `fc82fb3`) et de son usage par CodeIDE
 > (v0.134.44, commit `3c57ee4`). Chaque constat vient de la lecture du code ; ce qui reste
 > incertain est marqué « **à vérifier** ». Date : 2026-10-17. ADR associé : 0128.
+>
+> **Mise à jour 2026-10-20** : `codeide-lsp` a publié **v1.1.0** le 2026-10-19 (lot de
+> stabilisation S3 — renommage borné et formateur XML, correctifs Kotlin KP8/KP1, notices
+> P3, purge provenance ADR 0121 côté frère). Les tables §1/§4 reflètent encore v1.0.2 :
+> le moteur XML gagne désormais le **renommage** et le **formatage**. La release du lot
+> LSP-1 vise **v1.2.0** (v1.1.0 est prise).
 
 ## 1. État après séparation
 
@@ -76,7 +82,7 @@ moteurs Kotlin/XML sans dépendance interne.
 | Lot | Dépôt | Contenu | Dépend de |
 |---|---|---|---|
 | **LSP-0** | `codeide-lsp` + CodeIDE | Purge règle 13 (L3) ; trancher K1/K2 et publication (L2) ; docs LSP : une seule source (L5) ; règle de numérotation d'ADR (L4) | — |
-| **LSP-1** | `codeide-lsp` | API : `ConfigurationLsp` (données immuables, défauts), `SessionLsp(config)` + `appliquer(config)` pour le sous-ensemble dynamique, `tailleCacheOctets()`, `viderCache()`, exposition des capacités par langage ; tests ; **release v1.1.0** | LSP-0 |
+| **LSP-1** | `codeide-lsp` | API : `ConfigurationLsp` (données immuables, défauts), `SessionLsp(config)` + `appliquer(config)` pour le sous-ensemble dynamique, `tailleCacheOctets()`, `viderCache()`, exposition des capacités par langage ; tests ; **release v1.2.0** (v1.1.0 publiée le 2026-10-19 par la stabilisation S3) | LSP-0 |
 | **LSP-2** | CodeIDE | Montée de version (**version vérifiée**), `LspSettings` + dépôt dédié (hors `AppSettings`), câblage dans `CoordonnateurLsp`, filtres côté client | LSP-1 |
 | **LSP-3** | CodeIDE | Écrans L1–L5 (`docs/LSP_SPEC_ECRANS.md`) construits **uniquement** avec les composants d'ADR 0127 | LSP-2, **UI-1, UI-2** |
 | **LSP-4** | CodeIDE | « Copier le diagnostic LSP », tests d'architecture (aucun interrupteur sans capacité), accessibilité, EN/FR, `TESTS_MANUELS.md` | LSP-3 |
