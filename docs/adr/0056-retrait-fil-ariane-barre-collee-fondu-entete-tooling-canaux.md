@@ -1,11 +1,11 @@
-# ADR 0056 — Retrait du fil d'Ariane, barre collée au clavier façon CodeAssist, en-tête qui s'efface et tooling à canaux
+# ADR 0056 — Retrait du fil d'Ariane, barre collée au clavier façon projet de référence, en-tête qui s'efface et tooling à canaux
 
 - **Statut** : accepté (v0.32.5, cinquième retour d'appareil réel sur
   l'étape 31)
 - **Contexte** : retours utilisateur du 2026-09-26 sur la v0.32.4, cinq
   points : « Tu peux enlever le breadcrumb pour le moment, cela ne me
   donne pas le design espéré. Le virtuelkey n'est toujours pas visible,
-  consulte le projet CodeAssist de tyron112233 pour voir comment ils ont
+  consulte le projet tiers de référence pour voir comment ils ont
   fait. Lorsque bottomsheet behavior est expand le header devrait
   progressivement disparaitre. Le background du bottomsheet behavior est
   complètement transparent. L'étape suivante concerne le tooling : le
@@ -13,7 +13,7 @@
   tâche ou activité en cours, bouton, progress ou timer ; chaque
   information doit avoir un canal unique. Je veux aussi un script pour
   nettoyer le dépôt de mon côté. »
-- **Référence analysée** : dépôt CodeAssist (tyron12233, Apache-2.0,
+- **Référence analysée** : dépôt du projet tiers de référence (auteur tiers, Apache-2.0,
   commit 84cf11e) — `EditorLayouts.kt` place `EditorSymbolBar` en
   DERNIÈRE vue de la colonne éditeur, montre/masque par
   `WindowInsets.ime.getBottom > 0`, cache le dock de build pendant la
@@ -31,14 +31,14 @@ supprimés ; les chaînes `fil_ariane_editeur_cd` partent. « Pour le
 moment » : le besoin (situer le caret) reste ouvert, une future reprise
 devra partir d'un design validé, pas d'une transcription.
 
-### 2. Barre de symboles : patron CodeAssist, pas un hack de peek
+### 2. Barre de symboles : patron du projet de référence, pas un hack de peek
 
 La cause racine de l'invisibilité : `enableEdgeToEdge()` rend
 `adjustResize` inerte sur API 30+ (le fenêtre ne rétrécit pas) — le panneau
 et sa barre restaient derrière le clavier. La v0.32.4 élargissait le peek
 sans jamais remonter quoi que ce soit : la barre dessinait hors écran.
 
-Transposition du patron CodeAssist :
+Transposition du patron du projet de référence :
 
 - la `SymbolBarView` (vraie classe de la bibliothèque, conservée) devient
   la DERNIÈRE vue de `zone_centrale` (hors du sheet) ;
@@ -49,7 +49,7 @@ Transposition du patron CodeAssist :
   `WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE)`
   : `onProgress(insets, …)` re-pose le padding à chaque trame de
   l'animation (le « collé » suit les touches) ;
-- le sheet se MASQUE pendant la frappe (comme le dock de CodeAssist) et
+- le sheet se MASQUE pendant la frappe (comme le dock du projet de référence) et
   se restaure à l'état du ViewModel à la fermeture du clavier ;
 - la double détection IME (insets + rétrécissement root) est conservée :
   sur les resize hérités (API < 30) le root rétrécit seul, l'inset vaut 0,

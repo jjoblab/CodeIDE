@@ -17,7 +17,7 @@
 |---|---|---|---|---|
 | **XML** | ✅ La plus disciplinée (zéro dépendance, parser tolérant, X4 rigoureux) | 188 module + 17 host, verts | XP1/XP2/XP3 (faux positifs sur références) | Oui (probe B/D/E) |
 | **Kotlin** | ✅ Saine (grammaire officielle vendored, D3 conservateur) | 118 tests, 1 échec (baseline) | KP1 (baseline rouge) + KP8 (faux `kt.unresolved`) | Oui (`ArrayList`, `StringBuilder`) |
-| **Java** | ✅ Riche (ecj vendored, index disque, completion, diagnostics) | 498 tests, 0 échec, 76 ignorés | D3 (dette GPL CodeAssist — légal) | Non (mais dette légale) |
+| **Java** | ✅ Riche (ecj vendored, index disque, completion, diagnostics) | 498 tests, 0 échec, 76 ignorés | D3 (dette GPL du projet de référence — légal) | Non (mais dette légale) |
 
 ## 2. Synthèse transversale — problèmes communs
 
@@ -57,7 +57,7 @@
 - Socket transport (ADR 0109 plan B)
 - Extraction bibliothèque (après D3)
 
-**Bloqueur critique** : D3/CodeAssist GPL — ~19 fichiers level-B dérivés, bloque toute publication/extraction.
+**Bloqueur critique** : D3/projet de référence GPL — ~19 fichiers level-B dérivés, bloque toute publication/extraction.
 
 ### 3.2 LSP Kotlin — Plan S0 → S3
 

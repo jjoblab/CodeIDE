@@ -35,7 +35,7 @@ import javax.inject.Singleton
  * canal Taches) : chaque information affichée dans l'en-tête du panneau ou
  * dans la console vit sur SON canal — Sync, Build et Taches ne se mélangent
  * jamais, l'icône et la couleur du canal identifient la provenance au
- * premier regard (patron CodeAssist : la console y sépare
+ * premier regard (patron du projet de référence : la console y sépare
  * problèmes/log/étapes).
  *
  * Le Journal et les Problèmes sont déjà des onglets distincts du panneau

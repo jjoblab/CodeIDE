@@ -6,7 +6,7 @@
   Étude mesurée des deux références (dépôts GPL — concepts retenus,
   **code intégralement réécrit** : CodeIDE n'est pas sous GPL) :
 
-| Critère | AndroidIDE | CodeAssist (mesuré) |
+| Critère | AndroidIDE | projet de référence (mesuré) |
 |---|---|---|
 | Transport | AIDL (contrôle) + socket TCP localhost | Binder `oneway` pur, lots de trames |
 | Permissions ajoutées à l'app cible | INTERNET, FOREGROUND_SERVICE, permission propre | **aucune** |
@@ -23,12 +23,12 @@
 1. **Binder seulement, mais bidirectionnel.** Un service exporté côté
    IDE ; à la connexion, l'app **confie son propre binder de
    contrôle** (idée AndroidIDE), puis envoie des **lots de trames
-   structurées par Binder `oneway`** (idée CodeAssist). Résultat :
+   structurées par Binder `oneway`** (idée projet de référence). Résultat :
    **aucune permission ajoutée à l'app cible** (ni INTERNET, ni
    FOREGROUND_SERVICE, ni permission propre), **aucun service de
    premier plan**, aucun port local ouvert (LocalSocket est de toute
    façon refusé par SELinux entre apps non privilégiées — constat
-   CodeAssist).
+   projet de référence).
 2. **Authenticité réelle par UID.** L'IDE compare
    `Binder.getCallingUid()` à l'UID du paquet qu'il vient d'installer
    et lancer (`PackageManager.getPackageUid`), et rejette tout le
@@ -55,14 +55,14 @@
 5. **Résilience visible** : anneau borné dans l'app (vidé à la
    connexion — les lignes émises pendant que l'IDE était en arrière-plan
    ne sont pas perdues), **compteur de lignes perdues affiché** en cas
-   de débordement (CodeAssist jette en silence), lots sous la limite
-   de taille des transactions Binder (~1 Mo mesuré côté CodeAssist),
+   de débordement (projet de référence jette en silence), lots sous la limite
+   de taille des transactions Binder (~1 Mo mesuré côté projet de référence),
    limitation de débit, troncature des messages gigantesques.
 6. **Multi-processus.** Le `ContentProvider` d'amorçage s'exécute dans
    **chaque processus** de l'app cible : un pont par processus, clé de
    session **(paquet, pid, nom de processus)**, sélecteur de processus
    dans l'interface (AndroidIDE : un émetteur par paquet — le second
-   processus déconnecte le premier ; CodeAssist : une seule session).
+   processus déconnecte le premier ; projet de référence : une seule session).
 7. **Injection propre.** Script d'initialisation Gradle (`-I`) géré par
    `tooling/server`, appliquant un petit plugin Kotlin qui n'utilise
    **que des API publiques** : la variante déboguable est repérée par
@@ -107,7 +107,7 @@ textes d'interface, pas des notes de bas de page de doc.
 - Bibliothèque `applog-runtime` : module Android **Java pur, sans
   dépendance externe**, jamais active hors debug — code original.
 - Analyse des trames **pure et testée en JVM** (format tabulaire à
-  message-reste, inspiré de la mesure CodeAssist, réécrit) ; transport
+  message-reste, inspiré de la mesure projet de référence, réécrit) ; transport
   isolé derrière un **port dans `core:domain`** pour que l'interface et
   les tests n'en dépendent pas.
 - Phases : R2 (bibliothèque + service IDE + injection), R3 (onglet

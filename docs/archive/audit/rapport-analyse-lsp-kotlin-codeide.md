@@ -103,7 +103,7 @@ rename borné, hover KDoc — le parseur KDoc est déjà vendoré) → **S3**
   `KotlinLanguageServerTest` + 8 `SessionLspKotlinTest`).
 - **Comparaison** (recherche web du 2026-10-14) : fwcd/kotlin-language-
   server (README), JetBrains **kotlin-lsp officiel** (kotlinlang.org +
-  blog JetBrains mai 2026), CodeAssist (étude intégrée au cadrage),
+  blog JetBrains mai 2026), projet de référence (étude intégrée au cadrage),
   Android Studio (référence UX implicite).
 - **Sonde empirique** (§4.4) : programme Java hors dépôt
   (`scripts/sonde-lsp-kotlin/Sonde.java`, compilé contre le jar du module
@@ -524,7 +524,7 @@ symbols**, definition lookup, **method signature help**, et au-delà
 (references, workspace symbols, folding, semantic tokens, formatting
 ktlint, quick-fixes/organize imports). Le cadrage CodeIDE l'a **écarté
 en connaissance de cause** (D1 : contraire à l'architecture in-process et
-à la leçon CodeAssist « FIR à chaque frappe trop lourd sur appareil ») —
+à la leçon du projet de référence « FIR à chaque frappe trop lourd sur appareil ») —
 et le run mémoire de fwcd (centaines de Mo, JVM desktop) confirmerait
 l'incompatibilité avec un tas ART ~576 Mo.
 
@@ -548,17 +548,17 @@ modèle conservateur in-process) reste la seule voie réaliste ; le
 kotlin-lsp officiel sert de **cible de confort** (richesse des
 quick-fixes, rename) pour S2+, pas de modèle d'architecture.
 
-### 7.3 CodeAssist (tyron12233) — la provenance intellectuelle
+### 7.3 Projet tiers de référence — la provenance intellectuelle
 
-Le cadrage a étudié CodeAssist en profondeur (§2 du document) et CodeIDE
+Le cadrage a étudié le projet de référence en profondeur (§2 du document) et CodeIDE
 en a retenu l'architecture à l'identique : parseur multiplateforme
 vendoré + modèle de symboles maison + classes synthétiques par point
 d'extension + index disque `top:`/`ext:`. Points où CodeIDE a
-**dépassé** le modèle : zéro modification locale du vendoring (CodeAssist
+**dépassé** le modèle : zéro modification locale du vendoring (projet de référence
 modifie `LightSyntaxTree.kt`), suite de parité contractuelle (digeste +
 tolérance), coupure synthétiques par classe réelle homonyme, multi-langue
 Java↔Kotlin dans le même moteur (SourcesJava), attentes de lambda du
-classpath. Points où CodeAssist garde l'avantage : **réécriture
+classpath. Points où le projet de référence garde l'avantage : **réécriture
 incrémentale** (re-parse de sous-arbre) et instrumentation des
 indexeurs — deux sujets exactement repris dans le plan S3/S1.
 
@@ -574,7 +574,7 @@ utilisé**) et l'absence de rename/references.
 
 ### 7.5 Tableau fonctionnel comparatif (fonctions clés)
 
-| Fonction | CodeIDE Kotlin (v0.124.7) | fwcd | JetBrains officiel | CodeAssist |
+| Fonction | CodeIDE Kotlin (v0.124.7) | fwcd | JetBrains officiel | projet de référence |
 |---|---|---|---|---|
 | Architecture | in-process, 0,5 Mo, pas de compilateur | process externe + compilateur | process externe + IntelliJ | in-process (SPI maison) |
 | Diagnostics | syntaxe + 7 sémantiques conservateurs | complets (compilateur) | complets + quick-fixes | partiels maison |
@@ -854,7 +854,7 @@ versions)**
 **S3 — Différés assumés (attendre le tooling)**
 1. T2 : compilation K2 par pack (le pack §6 devient l'hôte du
    compilateur — critères de découpage §6 à revoir avec le propriétaire).
-2. Re-parse incrémental de sous-arbre (CodeAssist le fait ; la façade est
+2. Re-parse incrémental de sous-arbre (le projet de référence le fait ; la façade est
    prête — arbre immuable reconstruit de toute façon).
 3. Sources-jars/décompilé pour la définition classpath (« mode profond »
    Analysis API documenté comme extension possible).
@@ -967,7 +967,7 @@ d'utilité).
 - JetBrains kotlin-lsp officiel — kotlinlang.org/docs/kotlin-lsp.html et
   blog JetBrains « Official Kotlin Support for Visual Studio Code »
   (05-2026), consultés le 2026-10-14.
-- CodeAssist (tyron12233) — étude intégrée au cadrage (§2), GPL-3.0,
+- projet tiers de référence — étude intégrée au cadrage (§2), GPL-3.0,
   zéro code réutilisé.
 - Run de vérification du jour : `:lsp:kotlin:test` 118 tests / 1 échec
   (PariteCorpusDepotTest — digeste) ; `:lsp:host:testDebugUnitTest` 72

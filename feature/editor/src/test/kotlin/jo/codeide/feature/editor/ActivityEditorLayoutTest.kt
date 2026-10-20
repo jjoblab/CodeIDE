@@ -283,7 +283,7 @@ class ActivityEditorLayoutTest {
         val barre = racine.findViewById<View>(R.id.barre_symboles)
         val parent = barre.parent as ViewGroup
         assertEquals(
-            "la barre appartient à la colonne CENTRALE (patron CodeAssist, v0.32.5, ADR 0056)",
+            "la barre appartient à la colonne CENTRALE (patron du projet de référence, v0.32.5, ADR 0056)",
             R.id.zone_centrale,
             parent.id,
         )

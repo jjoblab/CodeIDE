@@ -4,7 +4,7 @@
 - **Contexte** : l'index actuel du module vendored est purement mémoire
   (W1 confirmé par mesures : reconstruction intégrale à chaque
   remplacement de contexte — 98/219/794 ms pour 20/73/250 jars même
-  JVM ; +1 dépendance = 257/396/1178 ms tout repayé). CodeAssist
+  JVM ; +1 dépendance = 257/396/1178 ms tout repayé). projet de référence
   persiste des segments par *(extension, classpath entier)* : ajouter
   UNE dépendance reconstruit tout le classpath.
 
@@ -59,7 +59,7 @@
 
 ## Alternatives écartées
 
-- **Clé par classpath entier** (modèle CodeAssist) : ajouter une
+- **Clé par classpath entier** (modèle projet de référence) : ajouter une
   dépendance reconstruit tout — précisément ce que les mesures W1
   condamnent. Écartée (c'est l'amélioration demandée par le prompt).
 - **Base de données embarquée** (SQLite/…) : dépendance lourde sur ART,

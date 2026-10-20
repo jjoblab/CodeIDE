@@ -17,7 +17,7 @@
 > d'état fraîche (tests, kover, jar) ; **sonde empirique hors dépôt** pilotant
 > le SPI public du jar compilé contre la vraie plateforme android-37.2
 > installée (10 cas A→J, §6) ; comparaison avec LemMinX/vscode-xml (Red Hat),
-> Android Studio et CodeAssist `lang-xml` (§8).
+> Android Studio et le projet de référence `lang-xml` (§8).
 
 ---
 
@@ -38,7 +38,7 @@ protocole (le moteur ignore LSP4J) ; règles pures + coutures conservatrices X4
 rigoureusement respectées partout où elles sont écrites ; **zéro dépendance**
 (jar 195 903 octets / 87 classes, contre un uber-jar LemMinX de plusieurs Mo) ;
 188 tests module verts, kover ≥ 80 % vérifié, 17 tests hôte XML verts ; aucune
-mention tierce dans THIRD_PARTY_NOTICES (CodeAssist = enseignements
+mention tierce dans THIRD_PARTY_NOTICES (projet de référence = enseignements
 d'architecture uniquement, **zéro code réutilisé** — contrairement au lot G du
 LSP Java, aucun risque GPL).
 
@@ -186,7 +186,7 @@ maigre : 0,19 Mo).
 | `:lsp:host` tests XML | `XmlLanguageServerTest` 9 + `SessionLspXmlTest` 8 = **17 tests verts** |
 | `:lsp:xml:rapportTaille` | jar 195 903 octets (0,19 Mo), 87 classes, zéro dépendance |
 | Arbre git | propre, 0 fichier suivi modifié — CodeIDE intact |
-| Juridique | THIRD_PARTY_NOTICES : **aucune entrée pour le LSP XML** (CodeAssist = enseignements uniquement) — pas d'équivalent du lot G Java, pas de vendoring tiers |
+| Juridique | THIRD_PARTY_NOTICES : **aucune entrée pour le LSP XML** (projet de référence = enseignements uniquement) — pas d'équivalent du lot G Java, pas de vendoring tiers |
 | Historique module | 5 commits (XE1→XE5, v0.117.0→v0.121.0), **rien depuis** alors que l'app est à v0.124.7 |
 
 L'incident de process qui discréditait le LSP Kotlin (baseline de parité
@@ -304,7 +304,7 @@ catalogue (`chaineDe` → null → `listOf("View")` — `android:orientation`,
 `android:baselineAligned`, `android:layout_gravity` mode.LinearLayout jamais
 proposés alors que le styleable existe dans attrs.xml), survol limité aux 37,
 « did you mean » borné aux 37. **La complétion XML est aujourd'hui en-dessous
-du plancher CodeAssist** (qui complète sur toutes les vues du classpath) et
+du plancher du projet de référence** (qui complète sur toutes les vues du classpath) et
 sans commune mesure avec Android Studio. Parades plausibles, par coût
 croissant : (a) dériver les familles de balises des 598 `declare-styleable`
 d'attrs.xml (données déjà parsées !) ; (b) enrichir par la vue de noms
@@ -449,7 +449,7 @@ plan (on répare un moteur sain, on ne le réécrit pas) :
   documentés, gravités réfléchies (tailles = AVERTISSEMENT conformément au
   cadrage « hint, pas error »), dumb mode respecté dans ReglesReferences,
   garde X4 triple-unanime (catalogue + scan + vue de noms) pour tagInconnu.
-- **Juridiquement propre** : aucune entrée tierce, CodeAssist n'a servi que
+- **Juridiquement propre** : aucune entrée tierce, le projet de référence n'a servi que
   de modèle d'architecture (conforme à la section §2 du cadrage qui annonçait
   « aucune réutilisation de code »).
 
@@ -464,7 +464,7 @@ README officiel vérifié (fetch du dépôt main) — capacités annoncées :
 `documentSymbol`, `foldingRanges`, `formatting`, `hover`, `rangeFormatting`,
 `rename`, plus la validation XSD/DTD via Xerces et un système d'extensions
 SPI (le patron « contributeurs » de CodeIDE est un écho direct de ce modèle,
-via CodeAssist).
+via le projet de référence).
 
 | Capacité | LemMinX | CodeIDE XML |
 |---|---|---|
@@ -483,7 +483,7 @@ via CodeAssist).
 La décision X1 d'écarter LemMinx reste **défendable** pour CodeIDE : un
 uber-jar Xerces+Eclipse sur ART, une sémantique Android non-schématisable,
 et le besoin de brancher le modèle de ressources AGP v2 — le cadrage §2
-l'argumentait déjà via l'audit CodeAssist. Mais le miroir des constats
+l'argumentait déjà via l'audit du projet de référence. Mais le miroir des constats
 Kotlin vaut ici : LemMinX marque le **plancher fonctionnel** d'un LSP XML
 sérieux, et documentSymbol + foldingRanges y sont les absents les plus
 inexplicables côté CodeIDE puisque le DOM neutre détient déjà exactement
@@ -501,11 +501,11 @@ renommage de ressources, l'extraction de chaînes, la preview intégrée
 (CodeIDE : preview LayoutLib existe par ailleurs — traçabilité §8 du
 cadrage, l'index LSP est promis partagé avec elle).
 
-### 8.3 CodeAssist `lang-xml` — le modèle d'origine
+### 8.3 Projet de référence `lang-xml` — le modèle d'origine
 
 Le cadrage §2 en tire quatre enseignements (parseur tolérant, DOM neutre,
 règles/coutures séparées, complétion par contributeurs) — tous livrés. En
-revanche, le point où CodeAssist reste devant : sa complétion de balise
+revanche, le point où le projet de référence reste devant : sa complétion de balise
 s'appuie sur **les classes du classpath** (toutes les vues disponibles),
 quand CodeIDE en propose 37 (XP4) et aucune du projet (XP5). L'écart
 sémantique « connaissance Android = données, pas code » (X3) est juste ;

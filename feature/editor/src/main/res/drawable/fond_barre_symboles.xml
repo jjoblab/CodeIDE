@@ -2,7 +2,7 @@
 <!-- Fond de la barre de symboles (v0.32.5, ADR 0056 décision 2) : surface
      OPAQUE + filet supérieur fin — la barre « collée » au clavier doit se
      lire comme un prolongement du clavier, pas comme une vue flottante
-     qui laisserait passer l'éditeur derrière (patron CodeAssist :
+     qui laisserait passer l'éditeur derrière (patron du projet de référence :
      surfaceContainerHigh + hairline). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
