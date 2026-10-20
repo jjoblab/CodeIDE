@@ -249,7 +249,7 @@
                 </FrameLayout>
 
                 <!-- Barre de symboles collée au clavier (v0.32.5, ADR 0056
-                     décision 2, patron CodeAssist) : DERNIÈRE vue de la
+                     décision 2, patron du projet de référence) : DERNIÈRE vue de la
                      colonne centrale — quand l'IME s'ouvre, le bas de la
                      zone est remonté de la hauteur du clavier (insets IME
                      appliqués en padding, animés), la barre se retrouve

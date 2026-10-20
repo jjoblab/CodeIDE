@@ -120,6 +120,15 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
     historique git) seront purgées globalement par le propriétaire — les
     nouvelles contributions doivent être silencieuses sur leurs sources
     d'inspiration dès maintenant.
+14. **Numérotation des ADR partagée entre dépôts frères** (directive du
+    2026-10-20, lot LSP-0) : CodeIDE numérote **0001–0199** ;
+    `codeide-lsp` garde **0001–0120** en héritage extrait (gelé : mêmes
+    documents que CodeIDE, purgés des désignations tiers) et numérote ses
+    décisions propres **0200–0299** ; `codeide-tooling` prendrait
+    **0300–0399** le cas échéant. Jamais deux décisions différentes sous
+    le même numéro : l'ADR 0121 du frère (rectification de provenance) a
+    été renumérotée **ADR 0200** pour lever la collision avec l'ADR 0121
+    de CodeIDE (`ia-perimetre-reseau-internet-byok`).
 
 ## Architecture (sections 5 et 6 du prompt)
 

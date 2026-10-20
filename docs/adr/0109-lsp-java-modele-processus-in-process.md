@@ -3,7 +3,7 @@
 - **Statut** : accepté par défaut, à confirmer par mesure comparative sur
   appareil (v0.91.0, étape 0 — prompt 2 §3 D2)
 - **Contexte** : deux modèles possibles pour exécuter ecj sur l'appareil :
-  **in-process** (comme CodeAssist et l'ancienne version : latence
+  **in-process** (comme projet de référence et l'ancienne version : latence
   minimale, tas partagé) ou **sous-processus JDK** (comme le démon de
   tooling : HotSpot, isolation, arrêt franc). Le banc JVM de l'étape 0
   (docs/LSP_JAVA.md §4) mesure 131 Mo de tas stable pour 250 jars et des
@@ -13,7 +13,7 @@
 ## Décision
 
 1. **In-process (ART) par défaut**, comme l'ancienne version et
-   CodeAssist : zéro coût IPC pour chaque frappe, démarrage instantané,
+   projet de référence : zéro coût IPC pour chaque frappe, démarrage instantané,
    pas de dépendance au JDK du bootstrap pour ÉDITER.
 2. **Transport abstrait obligatoire** : l'hôte (`lsp:host`) isolera le
    moteur derrière une interface (`SessionLsp`) aux frontières nettes

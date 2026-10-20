@@ -10,7 +10,7 @@
     PendingIntent broadcast, récepteur **exporté à action FIXE**
     (forgeable), **aucune relance** de lancement, aucune gestion de
     `canRequestPackageInstalls()`.
-  - **CodeAssist** : pré-vérification `canRequestPackageInstalls()`
+  - **Projet de référence** : pré-vérification `canRequestPackageInstalls()`
     avec écran système guidé et **reprise automatique** (attente
     bornée 5 min, poll 300 ms), session `MODE_FULL_INSTALL` + `fsync`,
     récepteur **non exporté à action unique par session**, relances de
@@ -46,7 +46,7 @@ un process JVM séparé qui n'a pas le droit de démarrer une activité.
    « Autoriser » ouvrant
    `ACTION_MANAGE_UNKNOWN_APP_SOURCES?package=<codeide>`, **reprise
    automatique** de l'installation au retour (attente bornée 5 min,
-   poll 300 ms — le Run n'est jamais perdu, leçon CodeAssist).
+   poll 300 ms — le Run n'est jamais perdu, leçon du projet de référence).
 4. **Installer** : session `PackageInstaller` en `MODE_FULL_INSTALL`,
    ouverture « base.apk », copie par blocs de 8 Ko, `fsync` explicite,
    `commit(PendingIntent)` — PendingIntent broadcast
@@ -75,7 +75,7 @@ un process JVM séparé qui n'a pas le droit de démarrer une activité.
   système l'accepte — sinon la confirmation s'affiche, honnêteté
   d'abord).
 - Récepteur **non exporté + action par session** : ni AndroidIDE
-  (exporté) ni CodeAssist (action dérivée de l'identifiant de session,
+  (exporté) ni projet de référence (action dérivée de l'identifiant de session,
   même approche — nous adoptons la leur, prouvée).
 - Échecs **typés en français** avec action correctrice :
   - signature différente → proposer **désinstaller puis réinstaller**

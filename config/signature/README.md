@@ -12,7 +12,7 @@ la variante debug par le convention plugin `codeide.android.application`.
   `~/.android/debug.keystore` d'Android Studio) : magasin et clé
   `android`, alias `androiddebugkey`, sujet `CN=Android Debug,O=Android,C=US`.
 - C'est le patron des clés de test d'AOSP (publiques par design) et de
-  CodeAssist (tyron12233), qui versionne lui aussi son `debug.keystore`.
+  projet tiers de référence, qui versionne lui aussi son `debug.keystore`.
 - **Pourquoi** : le runner GitHub n'embarque aucun
   `~/.android/debug.keystore` stable et les caches `actions/cache` sont
   scopés par ref (runs de tags lancés en parallèle) et évictables (7 jours

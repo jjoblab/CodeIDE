@@ -17,7 +17,7 @@
     <!-- Panneau inférieur & barre de symboles (v0.32.5, ADR 0056) :
          surfaces opaques — le sheet se POSE sur l'éditeur, la barre
          « collée » au clavier se lit comme un prolongement du clavier
-         (patron CodeAssist : surface + filet). -->
+         (patron du projet de référence : surface + filet). -->
     <color name="panneau_inferieur_fond">#F7F9FC</color>
     <color name="barre_symboles_fond">#E7EBF2</color>
     <color name="barre_symboles_filet">#C7CEDB</color>

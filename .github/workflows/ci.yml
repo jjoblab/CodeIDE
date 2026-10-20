@@ -182,7 +182,7 @@ jobs:
       # évictables (7 jours d'inactivité) — chaque APK CI portait une
       # signature différente et Android refusait la mise à jour (« conflit
       # de package », retours v0.35.2 puis v0.37.1). La clé debug n'est pas
-      # un secret (identifiants publics, patrons AOSP/CodeAssist) : la
+      # un secret (identifiants publics, patrons AOSP/projet de référence) : la
       # versionner fixe l'identité pour la CI, les contributeurs et toute
       # machine locale. Aucun cache nécessaire : la clé voyage avec les
       # sources.

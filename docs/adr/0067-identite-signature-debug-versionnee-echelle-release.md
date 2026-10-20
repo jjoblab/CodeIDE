@@ -15,10 +15,10 @@ par un APK signé par une clé différente (« conflit de package » /
 décision 3), puis à nouveau v0.37.1 sur v0.37.0 alors que le cache
 keystore était en place.
 
-Référence demandée par l'utilisateur : **CodeAssist** (tyron12233) —
+Référence demandée par l'utilisateur : **Projet de référence** (auteur tiers) —
 vérifié à la source (dépôt cloné, workflows lus) :
 
-- CodeAssist **versionne un `debug.keystore` dans son dépôt**
+- projet de référence **versionne un `debug.keystore` dans son dépôt**
   (`app/ide-android/src/main/assets/debug.keystore`), aux identifiants
   publics de convention Android (`android`/`androiddebugkey`,
   `CN=Android Debug,O=Android,C=US`) — son `DebugKeystore.kt` régénère à
@@ -67,12 +67,12 @@ vérifié à la source (dépôt cloné, workflows lus) :
    autres keystores restent ignorés). Paramètres : PKCS12 *legacy*,
    RSA 2048, validité 10 000 jours, alias `androiddebugkey`, mots de
    passe `android`, sujet `CN=Android Debug,O=Android,C=US` —
-   exactement les paramètres du `DebugKeystore` de CodeAssist et la
+   exactement les paramètres du `DebugKeystore` du projet de référence et la
    convention Android Studio.
 2. **Câblage** : le convention plugin `codeide.android.application`
    impose ce keystore à la signature de la variante debug (échec de
    configuration explicite s'il manque). La release n'est PAS concernée.
-3. **Échelle release hors dépôt** (patron CodeAssist) : résolution par
+3. **Échelle release hors dépôt** (patron du projet de référence) : résolution par
    champ dans l'ordre `config/signature/keystore.properties` (gitignoré,
    modèle `keystore.properties.example`) → propriété Gradle
    `-PRELEASE_*` → variable d'environnement `RELEASE_*`. Sans keystore

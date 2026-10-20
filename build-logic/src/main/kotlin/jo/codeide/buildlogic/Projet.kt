@@ -46,7 +46,7 @@ internal data class ParametresSignatureRelease(
 
 /**
  * Résout la signature RELEASE par l'échelle hors dépôt (ADR 0067, patron
- * CodeAssist) : `config/signature/keystore.properties` (gitignoré) →
+ * projet de référence) : `config/signature/keystore.properties` (gitignoré) →
  * propriété Gradle `-PRELEASE_*` → variable d'environnement `RELEASE_*`.
  *
  * Renvoie `null` quand aucun keystore n'est résolu : la variante release

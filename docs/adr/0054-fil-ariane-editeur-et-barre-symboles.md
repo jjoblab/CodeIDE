@@ -10,9 +10,9 @@
   bibliothèque d'édition elle-même — porte en tête (après le tag v3.37.0
   que CodeIDE consomme) deux vues de chrome : `BreadcrumbBar`
   (`view/chrome/BreadcrumbBar.java`, fil « fichier › classe › méthode »
-  suivant le caret, inspirée de CodeAssist/IntelliJ) et `SymbolBarView`
+  suivant le caret, inspirée du projet de référence/IntelliJ) et `SymbolBarView`
   (`view/chrome/SymbolBarView.java`, touches de symboles au-dessus de
-  l'IME, inspirée de l'EditorSymbolBar de CodeAssist). Ces deux classes
+  l'IME, inspirée de l'EditorSymbolBar du projet de référence). Ces deux classes
   n'existent pas dans la version publiée 3.37.0 : les transposer dans
   CodeIDE plutôt que de mettre à jour la dépendance (bump de version =
   redéployer la bibliothèque, hors périmètre d'un correctif).

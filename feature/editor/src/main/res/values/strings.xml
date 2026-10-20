@@ -16,7 +16,7 @@
     <string name="editor_vide_astuce_terminal">Terminal du tiroir : sessions côte à côte en split view.</string>
     <!-- (v0.32.5) Plus de fil d'Ariane (retour d'appareil réel, ADR 0056).
          barre_symboles_cd : conservée — la barre vit désormais au bas de
-         la colonne centrale, collée au clavier (patron CodeAssist). -->
+         la colonne centrale, collée au clavier (patron du projet de référence). -->
     <string name="barre_symboles_cd">Barre de symboles au-dessus du clavier</string>
     <string name="editor_introuvable_titre">Projet introuvable</string>
     <string name="editor_introuvable_message">Ce projet n\'est plus enregistré. Il a peut-être été retiré depuis l\'accueil.</string>

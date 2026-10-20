@@ -1,12 +1,12 @@
 # ADR 0115 — LSP Kotlin : vendoring de la grammaire du compilateur (K1)
 
 - **Statut** : accepté (v0.110.0, étape K1 de la mission « LSP Kotlin » —
-  `docs/LSP_KOTLIN.md` D2, étude comparative CodeAssist Task 12)
+  `docs/LSP_KOTLIN.md` D2, étude comparative projet de référence Task 12)
 - **Contexte** : le LSP Kotlin doit être in-process (jamais de serveur
   externe, cohérence avec :lsp:java/ADR 0109) et ne doit pas embarquer le
-  compilateur complet (leçon CodeAssist : « le frontend FIR à chaque
-  frappe est trop lourd pour un éditeur sur appareil »). L'étude CodeAssist
-  (tyron12233, GPL-3.0 — enseignements d'architecture, zéro code réutilisé)
+  compilateur complet (leçon projet de référence : « le frontend FIR à chaque
+  frappe est trop lourd pour un éditeur sur appareil »). L'étude du projet de référence
+  (auteur tiers, GPL-3.0 — enseignements d'architecture, zéro code réutilisé)
   a montré la voie : **le parseur multiplateforme du compilateur Kotlin
   lui-même** (`compiler/multiplatform-parsing`, Apache 2.0, ~25 fichiers)
   + un modèle de symboles maison derrière une façade `Kt*`.
@@ -31,7 +31,7 @@ construire dessus notre façade et notre suite de parité.
    cache-redirector, filtre de contenu strict dans settings.gradle.kts —
    le filtre doit admettre les variantes KMP `-jvm` et la dépendance
    `lang-syntax`) et `org.jetbrains:annotations:26.0.2` (Central).
-3. **Zéro modification locale** — plus strict que CodeAssist (qui
+3. **Zéro modification locale** — plus strict que projet de référence (qui
    modifie `LightSyntaxTree.kt` pour l'accès indexé et le re-parse
    incrémental) : ces besoins vivent chez nous dans `jo.lspkotlin.parse`
    (reconstruction de l'arbre immuable via l'API PUBLIQUE de syntax-api).
@@ -84,14 +84,14 @@ construire dessus notre façade et notre suite de parité.
 
 - **fwcd/kotlin-language-server** (processus externe + LSP + embarque le
   compilateur) : contraire à l'architecture in-process et à la leçon
-  CodeAssist (D1 de LSP_KOTLIN).
-- **Analysis API K2 par frappe** : rejetée par CodeAssist après l'avoir
+  projet de référence (D1 de LSP_KOTLIN).
+- **Analysis API K2 par frappe** : rejetée par projet de référence après l'avoir
   essayée (« too heavy ») ; réduite chez nous à un éventuel mode
   diagnostic profond à la demande.
 - **Réécriture d'une grammaire maison** (ANTLR/tree-sitter) : la valeur
   du parseur est d'ÊTRE la grammaire du compilateur — une divergence
   apparaîtrait comme un faux diagnostic sous du code correct (leçon
-  CodeAssist, K1 de leur kotlin-syntax).
+  projet de référence, K1 de leur kotlin-syntax).
 - **Vendoring 2.4.x** : imposerait une montée d'outillage Kotlin
   (bootstrap 2.3+) hors périmètre K1 ; différée jusqu'à nécessité.
 
