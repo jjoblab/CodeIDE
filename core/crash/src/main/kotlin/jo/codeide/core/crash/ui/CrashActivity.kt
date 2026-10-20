@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +22,7 @@ import jo.codeide.core.crash.R
 import jo.codeide.core.crash.databinding.ActivityCrashBinding
 import jo.codeide.core.model.CrashReport
 import jo.codeide.core.model.CrashType
+import jo.codeide.core.ui.Retour
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -159,7 +159,9 @@ class CrashActivity : AppCompatActivity() {
     private fun redemarrerApplication() {
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         if (intent == null) {
-            Toast.makeText(this, R.string.crash_redemarrage_impossible, Toast.LENGTH_SHORT).show()
+            // Lot UI-4 (audit C5, ADR 0127 §3) : Snackbar thématisé + annonce
+            // TalkBack — jamais de Toast dans le code neuf (règle 15).
+            Retour.snackbar(binding.root, getString(R.string.crash_redemarrage_impossible))
             return
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -176,7 +178,7 @@ class CrashActivity : AppCompatActivity() {
                 CrashReportFormatter.texte(rapport),
             ),
         )
-        Toast.makeText(this, R.string.crash_copie_confirmee, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(binding.root, getString(R.string.crash_copie_confirmee))
     }
 
     /** Partage le rapport comme texte brut (sélecteur système). */
@@ -210,7 +212,7 @@ class CrashActivity : AppCompatActivity() {
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
             )
         } catch (erreur: IOException) {
-            Toast.makeText(this, R.string.crash_archive_impossible, Toast.LENGTH_SHORT).show()
+            Retour.snackbar(binding.root, getString(R.string.crash_archive_impossible))
         } catch (erreur: IllegalArgumentException) {
             // Fournisseur introuvable : repli sur le partage texte.
             partagerTexte(rapport)
@@ -224,9 +226,9 @@ class CrashActivity : AppCompatActivity() {
             contentResolver.openOutputStream(uri)?.use { sortie ->
                 sortie.write(CrashReportZip.octets(rapportCourant))
             }
-            Toast.makeText(this, R.string.crash_enregistrement_confirme, Toast.LENGTH_SHORT).show()
+            Retour.snackbar(binding.root, getString(R.string.crash_enregistrement_confirme))
         } catch (erreur: IOException) {
-            Toast.makeText(this, R.string.crash_archive_impossible, Toast.LENGTH_SHORT).show()
+            Retour.snackbar(binding.root, getString(R.string.crash_archive_impossible))
         }
     }
 
@@ -246,7 +248,7 @@ class CrashActivity : AppCompatActivity() {
     /** Vide le contenu du répertoire de cache — et rien d'autre. */
     private fun viderCache() {
         cacheDir.listFiles()?.forEach { entree -> entree.deleteRecursively() }
-        Toast.makeText(this, R.string.crash_cache_vide, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(binding.root, getString(R.string.crash_cache_vide))
     }
 
     /** Écran de repli quand le rapport n'existe plus ou est corrompu. */
