@@ -47,9 +47,9 @@
         android:id="@+id/libelle_rail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/spacing_xs"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="10sp" tools:ignore="SmallSp"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
         android:textStyle="bold"
         tools:text="Fichiers" />
 </LinearLayout>

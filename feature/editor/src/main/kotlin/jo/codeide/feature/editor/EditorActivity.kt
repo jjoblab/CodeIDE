@@ -11,7 +11,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -66,6 +65,7 @@ import jo.codeide.core.ui.IconesFichiers
 import jo.codeide.core.ui.PontCompletionFantomeIa
 import jo.codeide.core.ui.PontIaEditeur
 import jo.codeide.core.ui.PropositionDiffIa
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.applySystemBarsInsetsMargins
@@ -2965,7 +2965,7 @@ class EditorActivity :
         try {
             startActivity(intention)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.editor_ouvrir_avec_aucune, Toast.LENGTH_SHORT).show()
+            Retour.snackbar(liaison.racineEditeur, getString(R.string.editor_ouvrir_avec_aucune))
         }
     }
 

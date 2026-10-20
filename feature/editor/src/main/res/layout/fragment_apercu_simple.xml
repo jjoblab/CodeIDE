@@ -19,8 +19,8 @@
         android:background="@drawable/fond_entete_explorateur"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="13dp">
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_md_compact">
 
         <FrameLayout
             android:id="@+id/embleme_apercu"
@@ -40,7 +40,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="9dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -51,7 +51,7 @@
                 android:ellipsize="end"
                 android:singleLine="true"
                 android:textColor="?attr/colorOnSurface"
-                android:textSize="14sp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textStyle="bold"
                 tools:text="Recherche" />
 
@@ -63,7 +63,7 @@
                 android:fontFamily="monospace"
                 android:singleLine="true"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="10.5sp" tools:ignore="SmallSp"
+                android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
                 tools:text="recherche en plein texte" />
         </LinearLayout>
     </LinearLayout>
@@ -73,10 +73,10 @@
         android:id="@+id/description_apercu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/spacing_md"
         android:lineSpacingExtra="3dp"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="12.5sp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
         tools:text="La recherche en plein texte du projet arrivera avec son lot dédié." />
 
     <com.google.android.material.button.MaterialButton
@@ -84,7 +84,7 @@
         style="@style/Widget.CodeIDE.Button.Text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
         android:gravity="start|center_vertical"
         android:minWidth="@dimen/touch_target_min"
         android:minHeight="@dimen/touch_target_min"
