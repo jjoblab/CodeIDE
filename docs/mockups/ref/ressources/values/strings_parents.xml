@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chaînes ajoutées par la vague « familles de parents » (ADR 0135). Pendant anglais : values-en/strings_parents.xml. -->
+<resources>
+    <!-- Popup de placement : positions selon la famille du parent -->
+    <string name="preview_placement_derriere">Derrière</string>
+    <string name="preview_placement_devant">Devant</string>
+    <string name="preview_placement_dessous">Dessous</string>
+    <string name="preview_placement_dessus">Dessus</string>
+    <string name="preview_placement_droite">Droite</string>
+    <string name="preview_placement_gauche">Gauche</string>
+    <string name="preview_placement_titre_position">Ordre d\'empilement par rapport à la vue de référence</string>
+    <string name="preview_placement_titre_cote">Côté par rapport à la vue de référence</string>
+    <string name="preview_placement_groupe_conteneur">Position dans le conteneur</string>
+    <string name="preview_placement_groupe_ancrage">Ancrage dans le parent</string>
+    <string name="preview_placement_groupe_marge">Marge</string>
+    <string name="preview_placement_marge_dp">%1$d dp</string>
+    <!-- Cellules de la grille 3 × 3 (contentDescription) -->
+    <string name="preview_cellule_haut_debut">Haut, début</string>
+    <string name="preview_cellule_haut_centre">Haut, centre</string>
+    <string name="preview_cellule_haut_fin">Haut, fin</string>
+    <string name="preview_cellule_centre_debut">Centre, début</string>
+    <string name="preview_cellule_centre">Centre</string>
+    <string name="preview_cellule_centre_fin">Centre, fin</string>
+    <string name="preview_cellule_bas_debut">Bas, début</string>
+    <string name="preview_cellule_bas_centre">Bas, centre</string>
+    <string name="preview_cellule_bas_fin">Bas, fin</string>
+    <!-- Résumés -->
+    <string name="preview_placement_resume_regle">%1$s, dans %2$s</string>
+    <string name="preview_placement_resume_pile">Dans %1$s, %2$s, plan %3$d sur %4$d</string>
+    <string name="preview_placement_defaut">(défaut)</string>
+    <!-- Libellés du repère de dépôt -->
+    <string name="preview_depot_dessous">Sous %1$s · marge %2$d dp</string>
+    <string name="preview_depot_dessus">Au-dessus de %1$s · marge %2$d dp</string>
+    <string name="preview_depot_droite">À droite de %1$s · marge %2$d dp</string>
+    <string name="preview_depot_gauche">À gauche de %1$s · marge %2$d dp</string>
+    <string name="preview_depot_parent">Dans le parent : %1$s</string>
+    <string name="preview_depot_ancre">Ancré à %1$s · %2$s</string>
+    <string name="preview_depot_comportement">Défilement lié à l\'AppBar</string>
+    <!-- Inspecteur : références d'id -->
+    <string name="preview_ref_aucun">aucun</string>
+    <string name="preview_ref_boucle">%1$s (boucle)</string>
+    <string name="preview_ref_introuvable">%1$s (introuvable)</string>
+    <string name="preview_ref_note_freres">Vues sœurs seulement. Une règle qui fermerait une boucle est grisée.</string>
+    <string name="preview_ref_note_ancre">Une vue du CoordinatorLayout qui n\'est ni cette vue ni l\'un de ses descendants.</string>
+    <string name="preview_ref_ancre_requise">Choisissez d\'abord une ancre (layout_anchor).</string>
+    <!-- Problèmes liés au parent -->
+    <string name="preview_probleme_orphelin_titre">Attribut ignoré par le parent</string>
+    <string name="preview_probleme_orphelin_detail">%1$s ne sert à rien : le parent est un %2$s.</string>
+    <string name="preview_probleme_reference_titre">Référence introuvable parmi les frères</string>
+    <string name="preview_probleme_reference_detail">%1$s vise %2$s, absent de ce RelativeLayout : la règle est ignorée.</string>
+    <string name="preview_probleme_ancre_titre">Ancre invalide</string>
+    <string name="preview_probleme_ancre_detail">layout_anchor %1$s doit viser une vue du CoordinatorLayout qui n\'est ni la vue ni l\'un de ses descendants.</string>
+    <string name="preview_probleme_comportement_titre">Contenu défilant sans comportement</string>
+    <string name="preview_probleme_comportement_detail">Une AppBarLayout est présente : sans appbar_scrolling_view_behavior, le contenu passe sous la barre.</string>
+    <string name="preview_probleme_boucle_titre">Dépendance circulaire</string>
+    <string name="preview_probleme_boucle_detail">%1$s : RelativeLayout refuse une boucle de règles. Le dernier rendu valide est conservé.</string>
+    <string name="preview_correctif_retirer_attribut">Retirer cet attribut</string>
+    <string name="preview_correctif_retirer_attributs">Retirer ces attributs</string>
+    <string name="preview_correctif_retirer_regle">Retirer la règle</string>
+    <string name="preview_correctif_retirer_ancre">Retirer l\'ancre</string>
+    <string name="preview_correctif_ajouter_comportement">Ajouter le comportement</string>
+    <string name="preview_correctif_casser_boucle">Casser la boucle</string>
+    <string name="preview_bandeau_boucle">Dépendance circulaire dans %1$s : %2$s. RelativeLayout refuse une boucle de règles.</string>
+    <!-- Calque et suppression -->
+    <string name="preview_calque_relations">Relations</string>
+    <string name="preview_supprime_references">%1$s supprimé · %2$d référence(s) retirée(s)</string>
+    <string name="preview_renomme_references">Renommé en @+id/%1$s · %2$d référence(s) mise(s) à jour</string>
+</resources>

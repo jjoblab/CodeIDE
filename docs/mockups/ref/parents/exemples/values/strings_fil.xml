@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fil_titre">Fil d’actualité</string>
+    <string name="fil_f_tout">Tout</string>
+    <string name="fil_f_amis">Amis</string>
+    <string name="fil_f_suivis">Suivis</string>
+    <string name="fil_cd_nouveau">Nouveau message</string>
+</resources>

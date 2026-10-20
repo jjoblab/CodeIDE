@@ -1,12 +1,12 @@
 # CodeIDE — Roadmap
 
-> Dernière mise à jour : 2026-10-19
-> Version courante : **0.145.2** (source de vérité : `version.properties`)
+> Dernière mise à jour : 2026-10-21
+> Version courante : **0.166.1** (source de vérité : `version.properties`)
 > Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.145.2 — stratégie de vérification + CI 3 jobs + lot design écrans)
+## État actuel (v0.166.1 — mission UI close (UI-1→UI-7) + lot familles de parents PE12 (docs))
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)

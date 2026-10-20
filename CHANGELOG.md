@@ -1,5 +1,51 @@
 # Journal des modifications
 
+## [0.166.1] – 2026-10-21
+
+### Lot « familles de parents » (PE12, docs)
+
+#### Ajouté
+
+- **`docs/PREVIEW_PARENTS.md`** (normatif, partie III — ADR 0135) :
+  audit P1-P11 de l'existant (clone v0.153.0), modèle `FamilleParent`
+  (calculé par le rendu via la chaîne de superclasses, repli par
+  balise), sémantique Android famille par famille (`RelativeLayout`,
+  `CoordinatorLayout`, `FrameLayout`, `AppBarLayout`), sections de
+  l'inspecteur, dépôt par glisser et popup « Où placer ? », calque
+  « Relations », cinq nouveaux problèmes avec correctifs, suppression
+  sûre des références mortes, palette, recette, correspondance
+  maquette → code, questions ouvertes.
+- **`docs/adr/0135-apercu-familles-de-parents.md`** (proposé — D6
+  marge 16 dp et D9 cibles tactiles à confirmer par le propriétaire
+  avant PE12d) : famille explicite portée par `InfoVueRendu`,
+  attributs orphelins, dépôt par famille (grille 3 × 3, règles,
+  ancres), calque Relations, dépendance circulaire expliquée et
+  réparable, suppression en une édition.
+- **`docs/mockups/apercu-xml.html`** : maquette v6 resynchronisée —
+  correctif du relâchement de la poignée de redimensionnement + NOUVELLE
+  section « Parents et enfants » : quatre documents (Connexion =
+  `ConstraintLayout`, Profil = `RelativeLayout`, Carte =
+  `FrameLayout`, Fil = `CoordinatorLayout` + `AppBarLayout`), calque
+  « Contraintes » renommé « Relations ». Remplace la version du dépôt ;
+  les 39 jetons de la maquette sont inchangés (parité vérifiée).
+- **`docs/mockups/ref/parents/`** (26 fichiers) : fixtures de test
+  (`activity_profil.xml`, `activity_carte.xml`, `activity_fil.xml` +
+  valeurs fr/en), `insertions_or.json` (12 scénarios de dépôt en or
+  S1-S12), `meas_popups_parents.json` (cotes du popup, cinq
+  contextes), 15 captures clair (glisser/déposer/popup par famille).
+- **`docs/mockups/ref/ressources/`** (8 fichiers) : ressources de
+  référence pour les chantiers PE12c/d —
+  `values/{dimens,styles,strings}_parents.xml`,
+  `values-en/strings_parents.xml`,
+  `layout/popover_placement_parents.xml` (remplacera
+  `popover_placement.xml` dans `:feature:preview`),
+  `item_position_bouton.xml`, `item_cellule_gravite.xml`,
+  `controle_reference_id.xml`. Aucun doublon avec l'existant.
+- Rien n'écrase du code : seul `docs/` reçoit des fichiers (les
+  ressources de référence sont à copier dans `feature/preview/src/main/res/`
+  par les chantiers PE12c/d). Le brief d'exécution PE12a-PE12h reste
+  hors dépôt (il accompagne les sessions d'agent).
+
 ## [0.166.0] – 2026-10-21
 
 ### UI-7 — Toast → Snackbar partout + règle de bannissement : la mission UI est close (audit C3/C5, ADR 0127 §3/§5)

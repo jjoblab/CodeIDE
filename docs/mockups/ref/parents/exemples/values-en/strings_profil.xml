@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profil_nom">Camille Durand</string>
+    <string name="profil_role">Android developer</string>
+    <string name="profil_suivre">Follow</string>
+    <string name="profil_bio">Tools for writing code on mobile.</string>
+    <string name="profil_n_projets">24 projects</string>
+    <string name="profil_n_abonnes">1.2k followers</string>
+    <string name="profil_n_suivis">310 following</string>
+    <string name="profil_message">Send a message</string>
+    <string name="profil_cd_avatar">Profile picture</string>
+</resources>
