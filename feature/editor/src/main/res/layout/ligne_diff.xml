@@ -11,6 +11,6 @@
     android:fontFamily="monospace"
     android:paddingHorizontal="@dimen/spacing_md"
     android:paddingVertical="1dp"
-    android:textSize="11sp"
+    android:textAppearance="?attr/textAppearanceLabelSmall"
     tools:text="-    val modele = ViewModelProvider(this)"
     tools:textColor="@color/logcat_niveau_erreur" />

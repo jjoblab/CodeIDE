@@ -15,8 +15,8 @@
         android:background="@drawable/fond_entete_explorateur"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_md_compact">
 
         <ImageView
             android:layout_width="20dp"
@@ -30,7 +30,7 @@
             style="?attr/textAppearanceTitleSmall"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:text="@string/git_titre" />
 
@@ -40,8 +40,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/fond_badge_racine"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_2xs"
             android:textColor="?attr/colorOnPrimaryContainer"
             android:visibility="gone" />
 
@@ -49,10 +49,10 @@
             android:id="@+id/bouton_actualiser_git"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/spacing_xs"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/git_actualiser_cd"
-            android:padding="6dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_actualiser"
             app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
@@ -63,7 +63,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="@dimen/spacing_xl"
         android:visibility="gone" />
 
     <!-- État "pas un dépôt". -->
@@ -73,7 +73,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="40dp"
+        android:padding="@dimen/state_padding"
         android:visibility="gone">
 
         <TextView
@@ -83,12 +83,12 @@
             android:text="@string/git_pas_depot"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_initialiser_git"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.CodeIDE.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/spacing_md"
             android:text="@string/git_initialiser" />
     </LinearLayout>
 
@@ -99,8 +99,8 @@
         style="?attr/textAppearanceBodySmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginHorizontal="@dimen/spacing_md_compact"
+        android:layout_marginTop="@dimen/spacing_xs"
         android:textColor="?attr/colorError"
         android:visibility="gone" />
 
@@ -115,7 +115,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="@dimen/spacing_md_compact">
 
             <!-- Champ message de commit. -->
             <EditText
@@ -127,8 +127,8 @@
                 android:hint="@string/git_message_hint"
                 android:inputType="textMultiLine"
                 android:maxLines="3"
-                android:padding="8dp"
-                android:textSize="12sp" />
+                android:padding="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
 
             <!-- Résumé des changements. -->
             <TextView
@@ -136,7 +136,7 @@
                 style="?attr/textAppearanceLabelSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/spacing_sm"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:visibility="gone" />
 
@@ -145,19 +145,20 @@
                 android:id="@+id/liste_changements"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/spacing_xs"
                 android:fontFamily="monospace"
-                android:textSize="11sp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
 
     <!-- Bouton Commit. -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_committer"
+        style="@style/Widget.CodeIDE.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
+        android:layout_margin="@dimen/spacing_md_compact"
         android:text="@string/git_committer"
         android:visibility="gone" />
 </LinearLayout>
