@@ -1,0 +1,866 @@
+{
+    "core/crash/src/main/kotlin/jo/codeide/core/crash/ui/CrashActivity.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 6,
+        "R7": 0
+    },
+    "core/crash/src/main/res/layout/activity_crash.xml": {
+        "R1": 22,
+        "R2": 1,
+        "R3": 0,
+        "R4": 7,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/ChatFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 2,
+        "R7": 0
+    },
+    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/FournisseurIaFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 2,
+        "R7": 0
+    },
+    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/HistoriqueFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/ReglagesIaFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/fragment_consentement_ia.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/fragment_fournisseur_ia.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/fragment_ia_agent.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 9,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/fragment_revue_changements.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 3,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/ligne_fichier_revue.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/diagnostics/src/main/res/layout/page_journal.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 4,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/kotlin/jo/codeide/feature/editor/EditorActivity.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/editor/src/main/kotlin/jo/codeide/feature/editor/PanneauLogcatFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/drawable/anneau_etape_en_cours.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/drawable/ill_editeur_code.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 12,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/activity_editor.xml": {
+        "R1": 11,
+        "R2": 1,
+        "R3": 0,
+        "R4": 3,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/feuille_historique.xml": {
+        "R1": 0,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/feuille_taches.xml": {
+        "R1": 0,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_apercu_simple.xml": {
+        "R1": 5,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_detail_indexation.xml": {
+        "R1": 13,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 2
+    },
+    "feature/editor/src/main/res/layout/fragment_explorateur.xml": {
+        "R1": 36,
+        "R2": 6,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_git.xml": {
+        "R1": 17,
+        "R2": 2,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_panneau_console.xml": {
+        "R1": 8,
+        "R2": 3,
+        "R3": 0,
+        "R4": 7,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_panneau_journal.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 4,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_panneau_logcat.xml": {
+        "R1": 15,
+        "R2": 8,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_projet.xml": {
+        "R1": 13,
+        "R2": 0,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_recherche.xml": {
+        "R1": 17,
+        "R2": 8,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/item_rail_fragment.xml": {
+        "R1": 1,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_action_popover.xml": {
+        "R1": 4,
+        "R2": 2,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_bilan.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_dependance.xml": {
+        "R1": 3,
+        "R2": 2,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_diff.xml": {
+        "R1": 0,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_groupe_taches.xml": {
+        "R1": 0,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_log_logcat.xml": {
+        "R1": 6,
+        "R2": 5,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_mise_a_jour.xml": {
+        "R1": 3,
+        "R2": 2,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_moteur.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_noeud_arborescence.xml": {
+        "R1": 9,
+        "R2": 4,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_script_build.xml": {
+        "R1": 3,
+        "R2": 2,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_travail_indexation.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/popover_actions_noeud.xml": {
+        "R1": 8,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/popover_deplacer.xml": {
+        "R1": 20,
+        "R2": 8,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/popover_destination_deplacer.xml": {
+        "R1": 4,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/popover_legende.xml": {
+        "R1": 16,
+        "R2": 14,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/popover_supprimer.xml": {
+        "R1": 7,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/vue_onglet_fichier.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/vue_snackbar_arbre.xml": {
+        "R1": 7,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/install/src/main/res/drawable/etape_attente.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/install/src/main/res/drawable/etape_faite.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/install/src/main/res/layout-sw600dp/fragment_installation.xml": {
+        "R1": 21,
+        "R2": 0,
+        "R3": 0,
+        "R4": 4,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/install/src/main/res/layout/fragment_installation.xml": {
+        "R1": 21,
+        "R2": 0,
+        "R3": 0,
+        "R4": 4,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/newproject/src/main/kotlin/jo/codeide/feature/newproject/EcranCreationFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/newproject/src/main/res/layout/etape_fichiers.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 2,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/newproject/src/main/res/layout/etape_informations.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 1
+    },
+    "feature/newproject/src/main/res/layout/etape_recapitulatif.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 5
+    },
+    "feature/newproject/src/main/res/layout/item_modele.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 1
+    },
+    "feature/newproject/src/main/res/layout/vue_carte_radio.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 1
+    },
+    "feature/newproject/src/main/res/layout/vue_tuile_choix.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 1
+    },
+    "feature/onboarding/src/main/res/layout/page_profil.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/kotlin/jo/codeide/feature/preview/VoletAttributsFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 2,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_bouton_icone_fond.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_hud_bouton_fond.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_annuler.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 2,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_bulle.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 5,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_dupliquer.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 2,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_fermer.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 2,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_plus.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 3,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_retablir.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 2,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_retour.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 2,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_ic_supprimer.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 3,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_mode_palette_bouton_fond.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/apercu_pastille_menu.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/fond_mode_palette.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/fond_pastille_probleme.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/preview/src/main/res/drawable/fond_position_placement.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_environnement.xml": {
+        "R1": 8,
+        "R2": 0,
+        "R3": 0,
+        "R4": 4,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_apparence.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 3,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_apropos.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_editeur.xml": {
+        "R1": 7,
+        "R2": 0,
+        "R3": 0,
+        "R4": 3,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_historique.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_langue.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 3,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_notifications.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_projets.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/fragment_settings_terminal.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 6,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/ligne_parametre.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/rangee_composant_env.xml": {
+        "R1": 2,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/kotlin/jo/codeide/feature/terminal/TerminalActivity.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/terminal/src/main/kotlin/jo/codeide/feature/terminal/TerminalTiroirFragment.kt": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 1,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/drawable/fond_badge_etat_session.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/drawable/fond_bouton_mode_terminal.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/drawable/point_session_vivante.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 1,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/fragment_terminal_tiroir.xml": {
+        "R1": 14,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/touche_clavier.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 1,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/vue_carte_session_terminal.xml": {
+        "R1": 14,
+        "R2": 3,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/vue_onglet_session.xml": {
+        "R1": 1,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/vue_panneau_terminal.xml": {
+        "R1": 9,
+        "R2": 1,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 0,
+        "R7": 0
+    }
+}

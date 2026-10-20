@@ -34,6 +34,10 @@ gradlePlugin {
             id = "codeide.module-rules"
             implementationClass = "jo.codeide.buildlogic.ModuleRulesPlugin"
         }
+        register("uiTokens") {
+            id = "codeide.ui-tokens"
+            implementationClass = "jo.codeide.buildlogic.UiTokensPlugin"
+        }
     }
 }
 
@@ -45,4 +49,9 @@ dependencies {
     compileOnly(libs.detekt.gradlePlugin)
     compileOnly(libs.spotless.gradlePlugin)
     compileOnly(libs.kover.gradlePlugin)
+
+    // Lot UI-2 (ADR 0127 §5) : tests du moteur de règles R1-R7 — le
+    // moteur MoteurUiTokens est PUR (aucun type Gradle), testé ici.
+    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit"))
 }

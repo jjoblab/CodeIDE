@@ -129,6 +129,20 @@ git for-each-ref refs/tags --format='%(taggername) <%(taggeremail)>' | sort -u
     le même numéro : l'ADR 0121 du frère (rectification de provenance) a
     été renumérotée **ADR 0200** pour lever la collision avec l'ADR 0121
     de CodeIDE (`ia-perimetre-reseau-internet-byok`).
+15. **Aucun littéral UI dans le code neuf** (ADR 0127, lot UI-2) : les
+    couleurs passent par les rôles de thème (`?attr/color…`), les
+    marges et paddings par `@dimen/spacing_*` (échelle
+    `2xs·xs·sm·md_compact·md·lg·xl`), les tailles de texte par
+    `textAppearance` `TextAppearance.CodeIDE.*`, les widgets par les
+    styles `Widget.CodeIDE.*` et les rangées/états par les composants
+    partagés de `core:ui` (`RangeeParametre`, `VueEtat`,
+    `IndicateurEtat`, `Retour.snackbar`). Un besoin visuel absent du
+    système s'ajoute à `core:ui` (jeton ou composant, KDoc + aperçu
+    `docs/mockups/ui/`), jamais en local. La tâche racine
+    `checkUiTokens` (chaîne locale + CI) fait échouer le build sur tout
+    littéral NOUVEAU ; la dette ancienne vit sous la baseline versionnée
+    `config/ui-baseline.json` et ne descend que par
+    `-Pui.baseline.ratchet` — une remontée manuelle est refusée en revue.
 
 ## Architecture (sections 5 et 6 du prompt)
 

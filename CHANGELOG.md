@@ -1,5 +1,78 @@
 # Journal des modifications
 
+## [0.159.0] – 2026-10-20
+
+### UI-2 — garde-fou `checkUiTokens` à CLIQUET, branché sur la chaîne locale et la CI (ADR 0127 §5, lot UI-2)
+
+#### Ajouté
+
+- **Convention `codeide.ui-tokens`** (`build-logic`, même famille que
+  `codeide.module-rules`) : la tâche racine `checkUiTokens` scanne en
+  TEXTE les `src/main/res/layout*`, `src/main/res/drawable*` (hors icônes
+  `ic_*` — assumées ADR §4) et les sources Kotlin/Java `src/main` de
+  TOUS les modules, au moteur PUR `MoteurUiTokens` (aucun type Gradle :
+  testable en JUnit standard). Règles R1-R7 : littéraux de
+  marge/padding (0dp/1dp admis), `textSize` littéral, `#hex` hors
+  `tools:`, styles Material3/MaterialComponents bruts et
+  `?attr/materialButton*Style`, widgets nus (`<Button>`, `<ImageButton>`,
+  `CardView`), `Toast.makeText` (Kotlin), `cardCornerRadius`/`cardElevation`
+  littéraux.
+- **CLIQUET à baseline versionnée** `config/ui-baseline.json` (format ADR
+  §5 `{ "chemin": { "R1": n } }`, triée, stable en revue) — **initialisée
+  à l'état courant : 96 fichiers plafonnés, 606 occurrences** (cohérent
+  avec l'audit C1-C2 du `UI_AUDIT_COHERENCE.md`) :
+  - la tâche **échoue** si un fichier dépasse son plafond, règle par
+    règle, ou si un fichier INCONNU de la baseline présente la moindre
+    occurrence — le code NOUVEAU est tenu à zéro littéral ;
+  - `-Pui.baseline.ratchet` réécrit la baseline À LA BAISSE (MIN par
+    règle et par fichier) ; les fichiers disparus ou devenus propres
+    SORTENT ; un fichier inconnu SALE ne peut PAS y entrer — une
+    remontée manuelle est refusée en revue par construction ;
+  - l'initialisation (baseline vide) est un geste explicite : ratchet
+    sans échec, documenté dans le KDoc du plugin ;
+  - sortie lisible `chemin:ligne: R1 — conseil de réparation` + extrait,
+    rapport complet dans `build/reports/ui-tokens.txt`.
+- **+20 tests JUnit du moteur** (`build-logic/src/test`, premier jeu de
+  tests du build inclus) : cas PASSANTS et ÉCHOUANTS par règle (R1
+  variantes marges/paddings + 0dp/1dp admis ; R2 14sp et 11.5sp fautifs,
+  apparence admise ; R3 tools: excepté ; R4 trois dialectes ; R5 noms
+  préfixés non piégés ; R7 jetons admis), décompte, lignes 1-indexées,
+  comparaison au plafond (fichier sous plafond, dépassement isolé par
+  règle, fichier INCONNU intégral, fichier inconnu PROPRE admis) et
+  descente du cliquet (MIN par règle, inconnu ignoré, disparu sorti,
+  devenu-propre sorti).
+- **Branchement** : `id("codeide.ui-tokens")` au build racine ; la CI
+  appelle `checkUiTokens` dans le job Statique (premier signal en ~2,5
+  min, ADR 0130) ET dans le garde-fou composite `-Pfreres.sources` ;
+  la chaîne LOCALE de `STRATEGIE_VERIFICATION.md` § 2 gagne l'étape 5
+  (renumérotée).
+- **PREUVE DE L'ATTAQUE** avant livraison : un littéral injecté
+  (`android:padding="17dp"` + `android:textSize="9sp"`) dans
+  `fragment_settings.xml` a fait échouer `checkUiTokens` en exactement
+  2 dépassements (`R1 0 → 1`, `R2 0 → 1`) avec le conseil de réparation ;
+  retour arrière, re-scan vert — le garde-fou tient dans les DEUX sens.
+
+#### Documentation (action 4 de l'ADR)
+
+- `AGENTS.md` **règle 15** : « aucun littéral UI dans le code neuf » —
+  jetons/états par `core:ui`, un besoin absent s'ajoute au système,
+  `checkUiTokens` en chaîne locale + CI, baseline qui ne descend que
+  par `-Pui.baseline.ratchet`.
+- `docs/CONVENTIONS.md` (Interdictions) : même injonction, lien ADR
+  0127 + mécanique de la baseline.
+- `docs/STRATEGIE_VERIFICATION.md` § 2 : étape 5 `checkUiTokens` de la
+  chaîne locale (les modules touchés passent en étape 6).
+- `build-logic/README.md` + `Module.md` : ligne `codeide.ui-tokens` du
+  tableau des conventions.
+
+#### Vérifications (chaîne RACINE — build partagé touché)
+
+- `spotlessCheck detekt checkModuleDependencies checkUiTokens
+  :build-logic:test` **VERTS en 1 m 18** (sandbox 4 Go, heap 1408m,
+  composite `-Pfreres.sources`) : cliquet tenu à 606 occurrences sous
+  plafond, aucun dépassement ; le test d'attaque a validé le sens
+  ROUGE avant le retour arrière.
+
 ## [0.158.0] – 2026-10-20
 
 ### UI-1 — jetons, styles et composants partagés dans `core:ui` (ADR 0127 §2-3, lot UI-1 ; prérequis des écrans IA et LSP)

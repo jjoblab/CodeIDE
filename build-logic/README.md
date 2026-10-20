@@ -15,6 +15,7 @@ réglages (SDK, Kotlin, qualité, packaging) :
 | `codeide.android.hilt` | Hilt via KSP (kapt est incompatible avec AGP 9) |
 | `codeide.android.room` | Room via KSP, schémas exportés dans `<module>/schemas` |
 | `codeide.module-rules` | Tâche `checkModuleDependencies` : vérification automatique des règles de dépendance, le build échoue en cas de violation |
+| `codeide.ui-tokens` | Tâche `checkUiTokens` : garde-fou des littéraux UI à CLIQUET (ADR 0127 §5, règles R1-R7, baseline `config/ui-baseline.json` qui ne descend que par `-Pui.baseline.ratchet`) |
 
 Les versions des artefacts de plugins vivent dans
 `build-logic/gradle/libs.versions.toml` ; celles des bibliothèques du projet,
