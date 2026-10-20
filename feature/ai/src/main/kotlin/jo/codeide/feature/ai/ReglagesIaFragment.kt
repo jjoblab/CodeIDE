@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,6 +15,7 @@ import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.feature.ai.databinding.FragmentReglagesIaBinding
 import kotlinx.coroutines.launch
@@ -235,7 +235,7 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
                 val texte =
                     effet.argument?.let { requireContext().getString(effet.ressource, it) }
                         ?: requireContext().getString(effet.ressource)
-                Toast.makeText(requireContext(), texte, Toast.LENGTH_SHORT).show()
+                Retour.snackbar(binding.root, texte)
             }
         }
     }

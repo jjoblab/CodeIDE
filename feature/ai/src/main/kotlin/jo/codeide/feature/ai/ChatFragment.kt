@@ -10,7 +10,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
-import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -26,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.Retour
 import jo.codeide.feature.ai.databinding.FragmentIaChatBinding
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -333,7 +333,7 @@ public class ChatFragment : Fragment() {
                 val texte =
                     effet.argument?.let { requireContext().getString(effet.ressource, it) }
                         ?: requireContext().getString(effet.ressource)
-                Toast.makeText(requireContext(), texte, Toast.LENGTH_SHORT).show()
+                Retour.snackbar(requireView(), texte)
             }
 
             is EffetChatIa.AfficherDiff -> {
@@ -346,12 +346,13 @@ public class ChatFragment : Fragment() {
         }
     }
 
-    /** Presse-papiers (même API que le tiroir terminal). */
+    /** Presse-papiers (même API que le tiroir terminal) — retour
+     * Snackbar thématisé (ADR 0127 §3), miroir du terminal et du Logcat. */
     private fun copier(texte: String) {
         val gestionnaire =
             requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         gestionnaire.setPrimaryClip(ClipData.newPlainText(getString(R.string.ia_tiroir_titre), texte))
-        Toast.makeText(requireContext(), R.string.ia_copie_effectuee, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(requireView(), getString(R.string.ia_copie_effectuee))
     }
 
     /** Ouvre un lien Markdown dans le navigateur — action utilisateur
