@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.shift.DiagnosticShift
+import jo.codeide.core.datastore.LspSettingsStore
 import jo.codeide.core.domain.AnnulerBuildUseCase
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.ArbreMemoire
@@ -61,6 +62,7 @@ import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
+import jo.codeide.core.model.LspSettings
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectAccessState
 import jo.codeide.core.model.ProjectId
@@ -241,6 +243,12 @@ class EditorViewModel
         // injecté (ADR 0111 §2) et JDK du terminal (sondes du moteur).
         private val sourceClasspathLsp: SourceClasspathLsp,
         private val dossierIndexLsp: DossierIndexLsp,
+        // Lot LSP-2 (ADR 0128 §4) : les réglages « Intelligence du code »
+        // vivent dans le DÉPÔT DÉDIÉ (hors AppSettings, ADR 0122 le miroir
+        // IA) — la session les applique à l'ouverture PUIS dynamiquement
+        // (suivreReglagesLsp) : budget du cache et surveillance des
+        // fichiers externes SANS redémarrer.
+        private val reglagesLsp: LspSettingsStore,
         private val outilchain: ToolchainLocator,
         private val executerTachesUseCase: ExecuterTachesUseCase,
         private val executerApplication: ExecuterApplicationUseCase,
@@ -397,6 +405,25 @@ class EditorViewModel
 
         /** Poignée d'enregistrement au registre de la session XML (XE1). */
         private var enregistrementLspXml: Desenregistrement? = null
+
+        /**
+         * Collecteur des réglages LSP (lot LSP-2, ADR 0128 §4) — vit dans
+         * la portée de fermeture de session (ADR 0114 : la session survit à
+         * l'écran), annulé dans [fermerSessionLsp] AVANT la fermeture : le
+         * dernier réglage ne s'applique JAMAIS à une session fermée.
+         */
+        private var collecteReglagesLsp: kotlinx.coroutines.Job? = null
+
+        /**
+         * Dernier réglage LSP CONNU (lot LSP-2) — [LspSettings.parDefaut]
+         * tant que le dépôt n'a pas émis : la session ouvre sur les défauts
+         * (comportement historique), le collecteur dynamique applique les
+         * réglages réels DÈS RÉCEPTION — jamais d'ouverture suspendue par
+         * l'E/S du DataStore (l'indexation du projet ne doit pas attendre
+         * un fichier de préférences).
+         */
+        private val reglagesLspCourants =
+            kotlinx.coroutines.flow.MutableStateFlow(LspSettings.parDefaut())
 
         /** Session LSP observable (branchement éditeur, §16.2). */
         val sessionLsp: StateFlow<SessionLsp?> = sessionLspInterne.asStateFlow()
@@ -565,6 +592,13 @@ class EditorViewModel
             observerSessionsTerminal()
             observerOutilsTerminal()
             observerTooling()
+            // Lot LSP-2 (ADR 0128 §4) : le DERNIER réglage CONNU vit en
+            // mémoire, alimenté par le dépôt dédié — vit dans la portée de
+            // fermeture de session (ADR 0114) comme la session elle-même :
+            // l'écran peut mourir, le réglage continue d'arriver.
+            porteeFermetureSession.launch {
+                reglagesLsp.observe().collect { reglagesLspCourants.value = it }
+            }
 
             // Mission « Cycle de vie » étape C (ADR 0114) : OUVERTURE de la
             // session de projet — le contrat process-wide I1 (ouvrir B ferme
@@ -1398,8 +1432,15 @@ class EditorViewModel
                         // le modèle Gradle. Absent : repli mode instantané
                         // (v0.101.0) — le didOpen annonce son régime.
                         androidJar = outilchain.androidJar(),
+                        // Lot LSP-2 (ADR 0128 §4) : configuration issue du
+                        // DERNIER réglage CONNU (défauts = comportement
+                        // historique) — jamais d'ouverture suspendue par
+                        // l'E/S du dépôt ; les réglages réels s'appliquent
+                        // dynamiquement (suivreReglagesLsp ci-dessous).
+                        config = reglagesLspCourants.value.versConfigurationHote(),
                     )
                 sessionLspInterne.value = session
+                suivreReglagesLsp(session)
                 // Cycle de vie étape C (ADR 0114) : la ressource démarre →
                 // elle s'enregistre au registre de la session de projet
                 // (fermeture ordonnée, bornée, en ordre inverse). Refus
@@ -1552,6 +1593,10 @@ class EditorViewModel
         /** Referme la session LSP (changement de projet, destruction). */
         private fun fermerSessionLsp() {
             val session = sessionLspInterne.value ?: return
+            // Lot LSP-2 (ADR 0128 §4) : le suivi des réglages meurt AVANT la
+            // session — jamais d'appliquer() sur une session fermée.
+            collecteReglagesLsp?.cancel()
+            collecteReglagesLsp = null
             // Cycle de vie étape C : la ressource meurt de sa propre
             // initiative → désenregistrement d'abord (le registre ne
             // rappellera pas une fermeture locale — I2).
@@ -1560,6 +1605,32 @@ class EditorViewModel
             sessionLspInterne.value = null
             session.close()
             journal.i(TAG) { "session LSP refermée (projet ${identifiantSuivi()})" }
+        }
+
+        /**
+         * Lot LSP-2 (ADR 0128 §4) : applique chaque nouveau réglage à la
+         * session VIVANTE — [SessionLsp.appliquer] porte le sous-ensemble
+         * DYNAMIQUE de l'hôte v1.2.0 (plafond du budget : service recréé au
+         * budget DEMANDÉ, segments persistés — zéro ré-indexation ;
+         * surveillance : boucle relancée à la nouvelle période, `0` =
+         * coupée). Le collecteur vit dans la portée de fermeture de
+         * session (ADR 0114) : il survit aux écrans et meurt dans
+         * [fermerSessionLsp] AVANT la fermeture.
+         */
+        private fun suivreReglagesLsp(session: SessionLsp) {
+            collecteReglagesLsp?.cancel()
+            collecteReglagesLsp =
+                porteeFermetureSession.launch {
+                    reglagesLspCourants.collect { reglages ->
+                        try {
+                            session.appliquer(reglages.versConfigurationHote())
+                        } catch (_: IllegalStateException) {
+                            // Course rare avec la fermeture (émission en vol
+                            // quand fermerSessionLsp annule) — l'annulation du
+                            // job met fin au collecteur, rien à appliquer.
+                        }
+                    }
+                }
         }
 
         /** Referme la session LSP Kotlin (changement de projet, destruction). */

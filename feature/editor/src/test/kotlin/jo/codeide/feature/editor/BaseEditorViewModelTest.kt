@@ -99,6 +99,22 @@ abstract class BaseEditorViewModelTest {
             .toFile()
     }
 
+    /** Dépôt des réglages LSP des tests (lot LSP-2, ADR 0128 §4) — DataStore
+     *  réel sur un fichier temporaire (UN par test, paresseux) : la session
+     *  ouverte lit les DÉFAUTS (budget Auto, surveillance 5 s), les tests
+     *  peuvent semer un réglage via [LspSettingsStore.remplacer]. */
+    protected val reglagesLspTest: jo.codeide.core.datastore.LspSettingsStore by lazy {
+        val dossier =
+            java.nio.file.Files
+                .createTempDirectory("codeide-reglages-lsp")
+                .toFile()
+        jo.codeide.core.datastore.LspSettingsStore(
+            androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+                produceFile = { java.io.File(dossier, "lsp_settings.preferences_pb") },
+            ),
+        )
+    }
+
     /** Chaîne d'outils factice (mission h2) : JDK absent par défaut — la
      *  session LSP vit dégradée (java.home du runtime de test). */
     protected val outilchainTest = FakeToolchainLocator()
@@ -296,6 +312,8 @@ abstract class BaseEditorViewModelTest {
             // Mission « LSP Java » h2 (§16.2) : coutures LSP de l'espace.
             sourceClasspathLsp = sourceClasspathLspTest,
             dossierIndexLsp = dossierIndexLspTest,
+            // Lot LSP-2 (ADR 0128 §4) : dépôt dédié des réglages LSP.
+            reglagesLsp = reglagesLspTest,
             outilchain = outilchainTest,
             executerTachesUseCase =
                 jo.codeide.core.domain.ExecuterTachesUseCase(
