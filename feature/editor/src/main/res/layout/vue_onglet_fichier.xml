@@ -44,7 +44,7 @@
         android:layout_width="@dimen/touch_target_min"
         android:layout_height="@dimen/touch_target_min"
         android:contentDescription="@string/editor_onglet_fermer_cd"
-        android:padding="14dp"
+        android:padding="@dimen/editor_bouton_icone_padding"
         android:src="@drawable/ic_fermer_onglet"
         app:tint="?attr/colorOnSurfaceVariant"
         tools:visibility="gone" />
