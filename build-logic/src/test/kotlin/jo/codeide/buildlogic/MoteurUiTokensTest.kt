@@ -111,6 +111,74 @@ class MoteurUiTokensTest {
         assertTrue(MoteurUiTokens.xml("""<ButtonViewCustom />""").isEmpty())
     }
 
+    @Test
+    fun `R5 durci attrape ImageButton en FIN DE LIGNE (XML formaté un attribut par ligne)`() {
+        val contenu =
+            """
+            <ImageButton
+                android:id="@+id/croix"
+                android:src="@drawable/ic_fermer" />
+            """.trimIndent()
+
+        assertEquals(1, MoteurUiTokens.xml(contenu).size)
+        assertEquals(Regle.R5, MoteurUiTokens.xml(contenu).first().regle)
+    }
+
+    @Test
+    fun `R5 durci EXONÈRE ImageButton portant un style maison`() {
+        val contenu =
+            """
+            <ImageButton
+                android:id="@+id/bouton_retour"
+                style="@style/Widget.CodeIDE.Apercu.BoutonIcone"
+                android:src="@drawable/apercu_ic_retour" />
+            <Button
+                style="@style/Widget.CodeIDE.Button.Outlined"
+                android:text="@string/valider" />
+            """.trimIndent()
+
+        assertTrue(MoteurUiTokens.xml(contenu).isEmpty())
+    }
+
+    @Test
+    fun `R5 durci attrape ImageButton à style BRUT même multi-lignes`() {
+        val contenu =
+            """
+            <ImageButton
+                style="?attr/borderlessButtonStyle"
+                android:src="@android:drawable/ic_menu_delete" />
+            """.trimIndent()
+
+        assertEquals(1, MoteurUiTokens.xml(contenu).count { it.regle == Regle.R5 })
+    }
+
+    @Test
+    fun `R5 durci n'exonère pas par le style d'une balise SUIVANTE`() {
+        val contenu =
+            """
+            <ImageButton
+                android:id="@+id/nue"
+                android:src="@drawable/x" />
+            <ImageButton
+                style="@style/Widget.CodeIDE.Button.Icon"
+                android:src="@drawable/y" />
+            """.trimIndent()
+
+        assertEquals(1, MoteurUiTokens.xml(contenu).size)
+        assertEquals(1, MoteurUiTokens.xml(contenu).first().ligne)
+    }
+
+    @Test
+    fun `R5 durci n'exonère pas une balise tenue sur UNE ligne suivie d'une maison`() {
+        val contenu =
+            """
+            <Button android:id="@+id/nue" />
+            <Button style="@style/Widget.CodeIDE.Button.Icon" android:id="@+id/styloe" />
+            """.trimIndent()
+
+        assertEquals(1, MoteurUiTokens.xml(contenu).size)
+    }
+
     // ------------------------------------------------------------------
     // R6 — Toast banni (Kotlin).
     // ------------------------------------------------------------------
@@ -124,6 +192,33 @@ class MoteurUiTokensTest {
         assertEquals(Regle.R6, MoteurUiTokens.kotlin(sale).first().regle)
         assertEquals(1, MoteurUiTokens.kotlin(sale).first().ligne)
         assertTrue(MoteurUiTokens.kotlin(propre).isEmpty())
+    }
+
+    @Test
+    fun `R6 durci attrape l'appel QUALIFIÉ multi-lignes`() {
+        val sale =
+            """
+            if (buildEnCours) {
+                android.widget.Toast
+                    .makeText(this, R.string.x, android.widget.Toast.LENGTH_LONG)
+                    .show()
+            }
+            """.trimIndent()
+
+        val occurrences = MoteurUiTokens.kotlin(sale)
+        assertEquals(1, occurrences.size)
+        assertEquals(Regle.R6, occurrences.first().regle)
+        assertEquals(2, occurrences.first().ligne)
+    }
+
+    @Test
+    fun `R6 durci attribue la ligne du JETON Toast et normalise l'extrait`() {
+        val sale =
+            "fun f() {\n    Toast\n        .makeText(c, m, Toast.LENGTH_SHORT).show()\n}\n"
+
+        val occurrence = MoteurUiTokens.kotlin(sale).single()
+        assertEquals(2, occurrence.ligne)
+        assertEquals("Toast .makeText", occurrence.extrait)
     }
 
     // ------------------------------------------------------------------

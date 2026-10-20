@@ -1,32 +1,5 @@
 {
-    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/ChatFragment.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 2,
-        "R7": 0
-    },
-    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/FournisseurIaFragment.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 2,
-        "R7": 0
-    },
-    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/HistoriqueFragment.kt": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 1,
-        "R7": 0
-    },
-    "feature/ai/src/main/kotlin/jo/codeide/feature/ai/ReglagesIaFragment.kt": {
+    "core/terminal-runtime/src/main/kotlin/jo/codeide/core/terminalruntime/CopieurPressePapiers.kt": {
         "R1": 0,
         "R2": 0,
         "R3": 0,
@@ -62,12 +35,39 @@
         "R6": 0,
         "R7": 0
     },
+    "feature/ai/src/main/res/layout/fragment_ia_historique.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/fragment_reglages_ia.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
     "feature/ai/src/main/res/layout/fragment_revue_changements.xml": {
         "R1": 0,
         "R2": 0,
         "R3": 0,
         "R4": 3,
         "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/ai/src/main/res/layout/ligne_conversation.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
         "R6": 0,
         "R7": 0
     },
@@ -89,13 +89,67 @@
         "R6": 0,
         "R7": 0
     },
-    "feature/newproject/src/main/kotlin/jo/codeide/feature/newproject/EcranCreationFragment.kt": {
+    "feature/editor/src/main/kotlin/jo/codeide/feature/editor/EditorActivity.kt": {
         "R1": 0,
         "R2": 0,
         "R3": 0,
         "R4": 0,
         "R5": 0,
         "R6": 1,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_panneau_console.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/fragment_panneau_logcat.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_noeud_arborescence.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 2,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/ligne_probleme.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/editor/src/main/res/layout/vue_barre_consigne_ia.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/home/src/main/res/layout/item_projet.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
         "R7": 0
     },
     "feature/newproject/src/main/res/layout/etape_fichiers.xml": {
@@ -143,6 +197,15 @@
         "R6": 0,
         "R7": 1
     },
+    "feature/newproject/src/main/res/layout/vue_ligne_arborescence.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
     "feature/newproject/src/main/res/layout/vue_tuile_choix.xml": {
         "R1": 0,
         "R2": 0,
@@ -158,6 +221,24 @@
         "R3": 0,
         "R4": 1,
         "R5": 0,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/settings/src/main/res/layout/rangee_composant_env.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
+        "R6": 0,
+        "R7": 0
+    },
+    "feature/terminal/src/main/res/layout/activity_terminal.xml": {
+        "R1": 0,
+        "R2": 0,
+        "R3": 0,
+        "R4": 0,
+        "R5": 1,
         "R6": 0,
         "R7": 0
     }

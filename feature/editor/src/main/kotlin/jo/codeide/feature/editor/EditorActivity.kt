@@ -2853,6 +2853,13 @@ class EditorActivity :
                 // arrière-plan (process-wide, notification maintenue par
                 // ToolingService) — l'annonce part AVANT finish(), le
                 // toast survit à la destruction de l'écran.
+                //
+                // EXCEPTION R6 ASSUMÉE (ADR 0127 §5, lot UI-7 — la SEULE
+                // avec l'OSC 52 du terminal) : un Snackbar mourrait avec
+                // la vue, une notification exigerait un canal dédié pour
+                // un message unique ; l'annonce est ratifiée par §2.1c.
+                // Le cliquet la tient à R6=1 dans la baseline — TOUT
+                // autre Toast, partout, échoue le build.
                 if (viewModel.etatGradle.value.statutBuild == StatutBuild.EN_COURS) {
                     android.widget.Toast
                         .makeText(this, R.string.editor_sortie_build_continue, android.widget.Toast.LENGTH_LONG)
