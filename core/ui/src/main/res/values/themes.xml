@@ -52,6 +52,12 @@
         <item name="colorSucces">@color/codeide_succes</item>
         <item name="colorInfo">@color/codeide_info</item>
 
+        <!-- Pastilles d'état (ADR 0127, lot UI-1) : le mode nuit passe
+             par la surcharge des @color, jamais par un second thème. -->
+        <item name="colorSuccesContainer">@color/codeide_succes_container</item>
+        <item name="colorAvertissement">@color/codeide_avertissement</item>
+        <item name="colorAvertissementContainer">@color/codeide_avertissement_container</item>
+
         <!-- Canaux tooling. -->
         <item name="colorCanalSync">@color/codeide_canal_sync</item>
         <item name="colorCanalBuild">@color/codeide_canal_build</item>

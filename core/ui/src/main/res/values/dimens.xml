@@ -6,9 +6,13 @@
 -->
 <resources>
 
-    <!-- Échelle d'espacement (base 4 dp). -->
+    <!-- Échelle d'espacement officielle (ADR 0127 §2) :
+         2xs 2 · xs 4 · sm 8 · md_compact 12 · md 16 · lg 24 · xl 32.
+         Aucune autre valeur en marge/padding dans les écrans. -->
+    <dimen name="spacing_2xs">2dp</dimen>
     <dimen name="spacing_xs">4dp</dimen>
     <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md_compact">12dp</dimen>
     <dimen name="spacing_md">16dp</dimen>
     <dimen name="spacing_lg">24dp</dimen>
     <dimen name="spacing_xl">32dp</dimen>
@@ -23,6 +27,20 @@
 
     <!-- Cibles tactiles minimales (accessibilité, section 12.1). -->
     <dimen name="touch_target_min">48dp</dimen>
+
+    <!-- Filets et élévations (ADR 0127 §5 règle R7 : jamais de rayon
+         ni d'élévation littéraux sur une MaterialCardView). -->
+    <dimen name="separateur_epaisseur">1dp</dimen>
+    <dimen name="elevation_aucune">0dp</dimen>
+
+    <!-- Tailles d'icônes partagées (ADR 0127 §2 : les littéraux 24 dp / 20 dp
+         disparaissent des rangées et des rails au profit de ces jetons). -->
+    <dimen name="icon_size_md">24dp</dimen>
+    <dimen name="icon_size_sm">20dp</dimen>
+
+    <!-- Pastille d'état IndicateurEtat (ADR 0127 §3) : petit glyphe
+         porté par une icône vectorielle, jamais par une taille en dur. -->
+    <dimen name="indicateur_icone_taille">16dp</dimen>
 
     <!-- Mission IA (lot IA-5, spec E3) : plafond de hauteur de la carte
          de diff de l'éditeur (au-delà, elle défile). -->

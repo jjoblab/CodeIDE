@@ -1,5 +1,109 @@
 # Journal des modifications
 
+## [0.158.0] – 2026-10-20
+
+### UI-1 — jetons, styles et composants partagés dans `core:ui` (ADR 0127 §2-3, lot UI-1 ; prérequis des écrans IA et LSP)
+
+#### Ajouté
+
+- **Jetons d'espacement et d'icônes** (`core/ui dimens.xml`) : `spacing_2xs`
+  (2 dp) et `spacing_md_compact` (12 dp) ferment les trous de l'échelle —
+  officielle désormais **2xs 2 · xs 4 · sm 8 · md_compact 12 · md 16 · lg 24 ·
+  xl 32** (ADR 0127 §2) ; `icon_size_md`/`icon_size_sm` (24/20 dp) retirent
+  les littéraux des rangées et rails ; `separateur_epaisseur` (1 dp) et
+  `elevation_aucune` (0 dp) préparent la règle R7 de UI-2 (jamais de rayon
+  ni d'élévation littéraux sur une `MaterialCardView`) ;
+  `indicateur_icone_taille` (16 dp) pour la pastille d'état.
+- **Typographie** : `TextAppearance.CodeIDE.Micro` (10 sp Medium — ancêtre
+  unique des demi-tailles 9,5/10/10,5 sp de l'audit C2) et
+  `TextAppearance.CodeIDE.SectionLabel` (`TitleSmall` sur
+  `colorOnSurfaceVariant` — le libellé de carte recopié par 9 sous-écrans,
+  audit C6).
+- **Styles de widgets** : `Widget.CodeIDE.Card` (remplie, contour 1 dp
+  `colorOutlineVariant`, forme `Medium`, élévation 0 — remplace les QUATRE
+  recettes de cartes de l'audit C4), `Widget.CodeIDE.Button.Outlined`
+  standard (la `Compact` reste aux barres denses ; remplace
+  `?attr/materialButtonOutlinedStyle` et `Widget.Material3.Button
+  .OutlinedButton` bruts, audit C3), `Widget.CodeIDE.Chip.Filter/.Assist/
+  .Input` (audit C8 : 13 chips Material3 brutes) et `EnteteSection`
+  (libellé de section posé, plus recopié).
+- **Rôles de couleur des pastilles** (jour + nuit) :
+  `colorSuccesContainer` (#DDEFE0/#1F3A1F), `colorAvertissement`
+  (#9A6700/#FDD663) et `colorAvertissementContainer` (#F6E7C1/#5A3D56) —
+  valeurs ancrées sur la maquette `docs/mockups/lsp/lsp-reglages.html`,
+  l'erreur restant sur les rôles Material `colorError`/`colorErrorContainer`
+  existants.
+- **`RangeeParametre`** (`core:ui`) : rangée standard de réglage — icône
+  FACULTATIVE (absente, le titre part au bord sans retrait, miroir L2 de la
+  maquette LSP), titre, sous-titre d'état, et contrôle de droite par
+  `rangeeType` : `chevron` | `interrupteur` | `valeur` | `aucun`, plus la
+  puce `rangeeBientot` (miroir du `badge_bientot` des Paramètres, la rangée
+  devient non interactive). L'interrupteur `MaterialSwitch` porte le TITRE
+  comme rôle TalkBack, toute la rangée bascule (cible 48 dp), l'état
+  désactivé atténue à 0,38 et verrouille. Le séparateur entre rangées
+  N'APPARTIENT PAS à la rangée : `separateur_rangee` (1 dp
+  `colorOutlineVariant`) se pose en `divider` du conteneur vertical
+  (`showDividers="middle"`). Absorbe `ligne_parametre.xml` à la migration
+  UI-3 (marges identiques : rendu inchangé à la capture près).
+- **`IndicateurEtat`** (`core:ui`) : pastille FORME + texte — ok disque
+  plein `ic_indicateur_ok`, avertissement triangle `ic_indicateur_avertissement`,
+  erreur croix `ic_indicateur_erreur`, neutre cercle ouvert
+  `ic_indicateur_neutre` (fond `fond_indicateur` teinté par
+  `backgroundTintList` du rôle conteneur, texte/glyphe en teinte PLEINE).
+  Le niveau se lit sans la couleur ET sans le texte ; région live polie —
+  les changements d'état sont annoncés (spec LSP § 5).
+- **`VueEtat`** (`core:ui`) : état plein écran UNIFIÉ, variantes
+  `etatVariante` = `vide` | `erreur` | `horsLigne` | `chargement`
+  (icônes par défaut `ic_dossier`/`ic_avertissement`/`ic_synchronisation`,
+  `chargement` remplace l'icône par un `CircularProgressIndicator` décrit
+  pour TalkBack — `core_ui_chargement`), titre, message, et ACTION UNIQUE
+  (`etatActionLibelle` en XML ou `setAction` en code). Jetons `state_*`
+  existants ; colonne centrée au patron de `EmptyStateView` (rendu
+  identique à l'accueil). Supprime les cinq variantes recopiées (audit C7)
+  et le `vue_etat_ia` prévu par la mission IA (amendement § 6).
+- **`Retour.snackbar(vue, message, action?, surClic?)`** (`core:ui`) : le
+  retour transitoire unifié — JAMAIS de `Toast` (audit C5) ; l'action est
+  OPTIONNELLE et l'annonce d'accessibilité vit dans la région live du
+  Snackbar Material (aucune méthode dépréciée API 34) ; RENVOIE l'instance
+  pour l'ancrage (`setAnchorView`) et pour les tests sans ombre du
+  framework.
+- **Chaînes FR+EN** : `core_ui_bientot` (« Bientôt »/« Soon ») et
+  `core_ui_chargement` (« Chargement »/« Loading ») ; KDoc FR complet sur
+  chaque composant avec exemple de déclaration XML.
+- **Aperçu documentaire** `docs/mockups/ui/composants-partages.html` :
+  planche clair + sombre ancrée sur les mêmes jetons réels que
+  `lsp-reglages.html` (rangée × 4 types + Bientôt + désactivée, pastilles ×
+  4 niveaux avec leur rôle de couleur, boutons, chips, VueEtat × 4
+  variantes, Retour) — critère de fin UI-1 « aperçus dans docs/mockups/ ».
+
+#### Tests
+
+- **+17 tests Robolectric** dans `:core:ui` (49 au total) :
+  `RangeeParametreTest` (7 : lecture XML des 4 types, clic-interrupteur par
+  appui de rangée, titre porté au rôle TalkBack, puce Bientôt désactivante,
+  alpha 0,38, alignement sans icône), `IndicateurEtatTest` (5 : niveaux ×
+  formes par `createdFromResId`, teintes fond/texte par rôle résolu du
+  thème, région live, code pur neutre), `VueEtatTest` (6 : variantes et
+  icônes par défaut, indicateur de chargement décrit en locale du
+  contexte, action XML + écouteur code, retrait d'action, textes),
+  `RetourTest` (4 : message exact, bouton d'action GONE sans action — le
+  layout Material gonfle toujours le bouton, déclenchement de l'écouteur au
+  clic, instances indépendantes).
+
+#### Vérifications (chaîne proportionnée, sandbox 4 Go)
+
+- `:core:ui` : spotlessCheck ✓ detekt ✓ assembleDebug ✓ testDebugUnitTest
+  ✓ (49) koverVerify ✓ lintDebug ✓.
+- Consommateurs assemblés par modules (l'assemblage racine fait disparaître
+  le daemon en 4 Go — contournement PE11d, la CI reste l'autorité) :
+  `:feature:settings` + `:feature:home` ✓, `:feature:ai` + `:feature:editor`
+  ✓ (embarque `:preview:xml` sur LayoutLib v3.4.7 — le checkout frère
+  préexistant était resté à v2.2.0 : resynchronisé sur le tag du catalogue,
+  les API v3 `setFactory2`/`getStyleAttribute`/`setLanguage` résolvent).
+- Aucun littéral dans les nouveaux layouts (règles R1-R7 de l'ADR, en
+  avance sur le garde-fou UI-2) ; scan de collision de noms sur toutes les
+  ressources des modules consommateurs : VIDE.
+
 ## [0.157.0] – 2026-10-20
 
 ### LSP-2 — montée de version, dépôt dédié des réglages, câblage dynamique (ADR 0128 §4)

@@ -2,4 +2,8 @@
 <resources>
     <!-- Composants d'état de core:ui. -->
     <string name="core_ui_retry">Réessayer</string>
+
+    <!-- Composants partagés ADR 0127 (lot UI-1). -->
+    <string name="core_ui_bientot">Bientôt</string>
+    <string name="core_ui_chargement">Chargement</string>
 </resources>

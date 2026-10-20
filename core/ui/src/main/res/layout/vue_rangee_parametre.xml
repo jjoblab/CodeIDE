@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Enfants de RangeeParametre (ADR 0127 §3, lot UI-1) — gonflés par
+  <merge> dans le LinearLayout que la classe configure elle-même
+  (orientation, hauteur minimale, paddings, premier plan). Absorbe
+  ligne_parametre.xml des Paramètres (migration UI-3) : marges et
+  hauteurs identiques pour un rendu inchangé à la capture près.
+
+  Zéro littéral : dimensions, couleurs et tailles passent par des
+  jetons core:ui (la rangée EST l'exemple des règles R1-R7).
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Icône de la rangée (facultative : absente, aucun retrait). -->
+    <ImageView
+        android:id="@+id/rangee_icone"
+        android:layout_width="@dimen/icon_size_md"
+        android:layout_height="@dimen/icon_size_md"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="MissingPrefix" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/rangee_titre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/rangee_sous_titre"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Puce « Bientôt » : remplace le contrôle, désactive la rangée. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/rangee_puce_bientot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:background="@drawable/fond_indicateur"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs"
+        android:text="@string/core_ui_bientot"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:visibility="gone" />
+
+    <!-- Interrupteur (rangeeType = interrupteur) : la cible tactile
+         reste la rangée entière, le rôle est porté par le titre. -->
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/rangee_interrupteur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:visibility="gone" />
+
+    <!-- Valeur courante (rangeeType = valeur) : lecture courte,
+         jamais un résumé long (le sous-titre porte l'explication). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/rangee_valeur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+
+    <!-- Chevron de navigation (types chevron et valeur). -->
+    <ImageView
+        android:id="@+id/rangee_chevron"
+        android:layout_width="@dimen/icon_size_sm"
+        android:layout_height="@dimen/icon_size_sm"
+        android:layout_marginStart="@dimen/spacing_2xs"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_chevron_droite"
+        android:visibility="gone"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="MissingPrefix" />
+</merge>
