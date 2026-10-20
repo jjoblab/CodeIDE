@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -19,6 +18,7 @@ import jo.codeide.core.domain.TerminalSessionSummary
 import jo.codeide.core.terminalruntime.TerminalRuntime
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.ControleurTerminalTiroir
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.terminal.databinding.FragmentTerminalTiroirBinding
 import jo.codeide.feature.terminal.databinding.VueCarteSessionTerminalBinding
@@ -399,7 +399,7 @@ class TerminalTiroirFragment : Fragment() {
         pressePapiers.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.terminal_selection_libelle), texte),
         )
-        Toast.makeText(requireContext(), R.string.terminal_selection_copiee, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(requireView(), getString(R.string.terminal_selection_copiee))
     }
 
     /** Branche (et rebranche) un panneau sur sa session Termux. */

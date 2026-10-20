@@ -9,7 +9,6 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +25,7 @@ import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceTerminal
 import jo.codeide.core.terminalruntime.TerminalRuntime
 import jo.codeide.core.ui.AppNavigator
+import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.core.ui.collectWithLifecycle
@@ -436,7 +436,7 @@ class TerminalActivity : AppCompatActivity() {
         pressePapiers.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.terminal_selection_libelle), texte),
         )
-        Toast.makeText(this, R.string.terminal_selection_copiee, Toast.LENGTH_SHORT).show()
+        Retour.snackbar(liaison.root, getString(R.string.terminal_selection_copiee))
     }
 
     /**
