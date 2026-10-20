@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Enfants de VueEtat (ADR 0127 §3, lot UI-1) — état plein écran
+  UNIFIÉ : variantes vide / erreur / horsLigne / chargement, icône,
+  titre, message court et action unique. Remplace les cinq variantes
+  recopiées d'un module à l'autre (audit C7) ; jetons state_*.
+
+  Gonflés par <merge> dans le FrameLayout que la classe configure ;
+  la colonne reste WRAP_CONTENT centrée comme EmptyStateView.
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/state_padding">
+
+        <!-- Icône décorative de l'état (masquée en variante chargement,
+             remplacée par l'indicateur de progression). -->
+        <ImageView
+            android:id="@+id/etat_icone"
+            android:layout_width="@dimen/state_icon_size"
+            android:layout_height="@dimen/state_icon_size"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/etat_progression"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/etat_titre"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/state_spacing"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceTitleLarge" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/etat_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- Action unique, facultative : « Ouvrir un projet », « Réparer »,
+             « Réessayer »… jamais un menu d'options. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/etat_action"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:visibility="gone" />
+    </LinearLayout>
+</merge>

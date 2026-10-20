@@ -373,7 +373,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 ### Lots UI — cohérence (ADR 0127)
 | Lot | Version | Contenu | État |
 |---|---|---|---|
-| UI-1 | — | Jetons, styles et composants partagés dans `core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`) | ⬜ |
+| UI-1 | v0.158.0 | Jetons, styles et composants partagés dans `core:ui` (`RangeeParametre`, `VueEtat`, `IndicateurEtat`, `Retour`) | ✅ v0.158.0 (échelle d'espacement complète 2xs→xl, `Micro`/`SectionLabel`, `Widget.CodeIDE.Card`/`Button.Outlined`/`Chip.*`/`EnteteSection`, rôles de pastilles jour+nuit, +17 tests Robolectric, planche `docs/mockups/ui/composants-partages.html`) |
 | UI-2 | — | Garde-fou `checkUiTokens` à cliquet (baseline versionnée, jamais à la hausse) + CI + tests du moteur | ⬜ |
 | UI-3 | — | Settings : rangées → `RangeeParametre`, cartes → `Widget.CodeIDE.Card` | ⬜ |
 | UI-4 | — | `install`, `core/crash`, `terminal` : alignement complet | ⬜ |

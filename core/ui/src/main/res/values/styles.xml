@@ -29,6 +29,15 @@
         <item name="android:textAppearance">@style/TextAppearance.CodeIDE.LabelLarge</item>
     </style>
 
+    <!-- Bouton encadré STANDARD (ADR 0127 §3, lot UI-1) : remplace
+         ?attr/materialButtonOutlinedStyle et Widget.Material3.Button
+         .OutlinedButton bruts — la variante Compact reste pour les
+         barres denses d'IDE. -->
+    <style name="Widget.CodeIDE.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.LabelLarge</item>
+    </style>
+
     <!-- Bouton icône seul (réglages de l'accueil, étape 7) : le rôle est
          porté par la description de contenu, jamais par un texte. -->
     <style name="Widget.CodeIDE.Button.Icon" parent="Widget.Material3.Button.IconButton">
@@ -50,6 +59,47 @@
     <style name="Widget.CodeIDE.Toolbar" parent="Widget.Material3.Toolbar">
         <item name="titleTextAppearance">@style/TextAppearance.CodeIDE.TitleLarge</item>
         <item name="android:minHeight">@dimen/touch_target_min</item>
+    </style>
+
+    <!-- ============================================================
+         Composants partagés ADR 0127 (lot UI-1) : carte, chips,
+         en-tête de section. Un seul point d'ancrage par famille,
+         les variantes par héritage implicite (aucune recopie).
+         ============================================================ -->
+
+    <!-- Carte de réglage STANDARD : remplie, contour 1 dp variante,
+         forme moyenne, AUCUNE élévation (remplace les 4 recettes C4 :
+         ombre / contour / fond plat / style par défaut). -->
+    <style name="Widget.CodeIDE.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="strokeWidth">@dimen/separateur_epaisseur</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.CodeIDE.Medium</item>
+        <item name="cardElevation">@dimen/elevation_aucune</item>
+    </style>
+
+    <!-- Chips thématisées (ADR 0127 §3) : remplacent les
+         Widget.Material3.Chip.* bruts (audit C8). -->
+    <style name="Widget.CodeIDE.Chip.Filter" parent="Widget.Material3.Chip.Filter">
+        <item name="shapeAppearance">@style/ShapeAppearance.CodeIDE.Small</item>
+    </style>
+
+    <style name="Widget.CodeIDE.Chip.Assist" parent="Widget.Material3.Chip.Assist">
+        <item name="shapeAppearance">@style/ShapeAppearance.CodeIDE.Small</item>
+    </style>
+
+    <style name="Widget.CodeIDE.Chip.Input" parent="Widget.Material3.Chip.Input">
+        <item name="shapeAppearance">@style/ShapeAppearance.CodeIDE.Small</item>
+    </style>
+
+    <!-- En-tête de section d'un écran de réglages (ADR 0127 §3) :
+         remplace le libellé recopié carte par carte (audit C6). -->
+    <style name="EnteteSection" parent="">
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.SectionLabel</item>
+        <item name="android:paddingStart">@dimen/spacing_md_compact</item>
+        <item name="android:paddingEnd">@dimen/spacing_md_compact</item>
+        <item name="android:paddingTop">@dimen/spacing_sm</item>
+        <item name="android:paddingBottom">@dimen/spacing_sm</item>
     </style>
 
     <!-- Appbar COMPACTE de l'aperçu XML (PE10, miroir `.ttl` de la

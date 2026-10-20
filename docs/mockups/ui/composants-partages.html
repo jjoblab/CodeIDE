@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composants partagés core:ui (ADR 0127 — lot UI-1)</title>
+<!--
+  Planche des composants livrés par le lot UI-1 (ADR 0127 §2-3), ancrée
+  sur les VRAIS jetons de CodeIDE (core/ui colors.xml + values-night) —
+  mêmes variables que docs/mockups/lsp/lsp-reglages.html. Chaque planche
+  se relit en mode sombre par le bouton. Les écrans IA (amendements
+  § 6 de UI_AUDIT_COHERENCE.md) et LSP (LSP_SPEC_ECRANS.md § 2) sont
+  ASSEMBLÉS avec ces composants : aucun jeton local, aucune recopie.
+-->
+<style>
+:root{--primary:#43559E;--on-primary:#FFF;--pc:#DCE1FF;--on-pc:#001159;--bg:#F9F9FF;--on-bg:#1A1B21;--sv:#E2E1EC;--on-sv:#46464F;--outline:#767680;--ov:#C6C5D0;--ok:#2E7D32;--ok-c:#DDEFE0;--warn:#9A6700;--warn-c:#F6E7C1;--err:#BA1A1A;--err-c:#FFDAD6}
+.dark{--primary:#BAC4FF;--on-primary:#0C2264;--pc:#293D8F;--on-pc:#DCE1FF;--bg:#111318;--on-bg:#E2E1E9;--sv:#46464F;--on-sv:#C6C5D0;--outline:#90909A;--ov:#46464F;--ok:#81C995;--ok-c:#1F3A1F;--warn:#FDD663;--warn-c:#5A3D56;--err:#FFB4AB;--err-c:#93000A}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 2px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.top p{margin:0;color:var(--on-sv);font-size:12px}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:4px 12px;font:inherit;cursor:pointer}
+.wrap{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}.col{display:flex;flex-direction:column;gap:6px}.cap{font-size:12px;font-weight:600;color:var(--on-sv)}
+.ds{width:340px;border:2px solid var(--outline);border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.sec{font-weight:600;font-size:12px;color:var(--on-sv)}
+/* Carte ADR 0127 : remplie, contour 1 px variante, rayon 12, élévation 0. */
+.card{border:1px solid var(--ov);border-radius:12px;padding:8px;background:var(--bg)}
+/* RangeeParametre : icône 24 + titre 14/600 + sous-titre 12 + contrôle. */
+.rw{display:flex;align-items:center;gap:16px;min-height:48px;padding:8px 4px}
+.rw.noi{gap:0}.rw i{font-style:normal;width:24px;text-align:center;color:var(--on-sv);flex:none}
+.rw .t{flex:1;min-width:0}.rw .t b{display:block;font-size:14px;font-weight:600}.rw .t span{display:block;font-size:12px;color:var(--on-sv)}
+.rw .v{font-size:12px;color:var(--on-sv)}.rw+.rw{border-top:1px solid var(--ov)}
+.rw.off{opacity:.38}
+.sw{width:36px;height:20px;border-radius:10px;background:var(--primary);position:relative;flex:none}.sw:after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--on-primary)}.sw.off{background:var(--sv)}.sw.off:after{right:auto;left:3px;background:var(--outline)}
+.ch{color:var(--on-sv)}
+/* IndicateurEtat : la forme porte le niveau — disque, triangle, croix, cercle. */
+.pd{display:inline-flex;gap:4px;align-items:center;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:600;flex:none}
+.pd.ok{background:var(--ok-c);color:var(--ok)}.pd.w{background:var(--warn-c);color:var(--warn)}.pd.e{background:var(--err-c);color:var(--err)}.pd.n{background:var(--sv);color:var(--on-sv)}
+/* Boutons CodeIDE. */
+.btn{border:1px solid var(--outline);background:none;color:var(--primary);border-radius:18px;padding:7px 14px;font:12px system-ui;display:inline-block}
+.btn.t{background:var(--pc);color:var(--on-pc);border-color:transparent}.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.chip{border:1px solid var(--ov);color:var(--on-sv);border-radius:8px;padding:3px 10px;font-size:12px}.chip.on{background:var(--pc);color:var(--on-pc);border-color:transparent}
+/* VueEtat : colonne centrée, icône 64, titre TitleLarge, message, action. */
+.vs{text-align:center;padding:32px;color:var(--on-sv);font-size:12px}.vs b{display:block;font-size:16px;color:var(--on-bg);margin:4px 0}
+.vs .ico{display:block;font-size:40px;line-height:64px;color:var(--on-sv)}
+.note{font-size:11px;color:var(--on-sv)}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>Composants partagés — core:ui</h1><p>Lot UI-1 · ADR 0127 §2-3 · jetons réels · sombre = valeurs night de colors.xml · spec : docs/UI_AUDIT_COHERENCE.md §5</p></div>
+<button class="tg" onclick="document.body.classList.toggle('dark')">Clair / Sombre</button></div>
+<div class="wrap">
+
+<!-- RangeeParametre -->
+<div class="col"><div class="cap">RangeeParametre — chevron · interrupteur · valeur · aucun · Bientôt · désactivée</div><div class="ds">
+ <div class="card"><div class="sec">Carte (EnteteSection + séparateur_rangee en divider du conteneur)</div>
+  <div class="rw"><i>▤</i><div class="t"><b>Index et cache</b><span>184 Mo · mis à jour il y a 2 h</span></div><span class="ch">›</span></div>
+  <div class="rw"><i>⚙</i><div class="t"><b>Complétion</b><span>Suggestions pendant la frappe</span></div><span class="sw"></span></div>
+  <div class="rw"><i>⚙</i><div class="t"><b>Gravité affichée</b><span>Les erreurs restent visibles</span></div><span class="v">Tout ›</span></div>
+  <div class="rw"><i>✚</i><div class="t"><b>JDK</b><span>Fourni par l'environnement</span></div></div>
+ </div>
+ <div class="card"><div class="sec">Sans icône (le titre part au bord) · puce Bientôt · désactivée</div>
+  <div class="rw noi"><div class="t"><b>Survol</b><span>Documentation au toucher long</span></div><span class="sw"></span></div>
+  <div class="rw noi"><div class="t"><b>Réactivité de l'analyse</b><span>Détection réglée des changements</span></div><span class="pd n">Bientôt</span></div>
+  <div class="rw noi off"><div class="t"><b>Vider le cache</b><span>Indisponible pendant l'indexation</span></div><span class="sw off"></span></div>
+ </div>
+ <p class="note">Zones tactiles ≥ 48 dp ; l'interrupteur porte le TITRE comme rôle TalkBack ; le séparateur est posé par le conteneur (showDividers), jamais par la rangée.</p>
+</div></div>
+
+<!-- IndicateurEtat + styles -->
+<div class="col"><div class="cap">IndicateurEtat — la forme porte le niveau, jamais la couleur seule</div><div class="ds">
+ <div class="card"><div class="sec">Quatre niveaux, texte + conteneur sémantique</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px"><span class="pd ok">● Prêt</span><span class="pd w">▲ En cours</span><span class="pd e">✕ Erreur</span><span class="pd n">○ Inactif</span></div>
+  <p class="note">ok → colorSucces sur colorSuccesContainer · avertissement → colorAvertissement/Container · erreur → colorError/ErrorContainer (rôles Material) · neutre → onSurfaceVariant/SurfaceVariant. Région live polie : le changement d'état est annoncé.</p>
+ </div>
+ <div class="card"><div class="sec">Boutons — Widget.CodeIDE.Button.{,Tonal,Outlined,Text}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px"><span class="btn p">Principal</span><span class="btn t">Tonal</span><span class="btn">Outlined</span></div>
+  <p class="note">Cible tactile 48 dp · LabelLarge · la variante Outlined STANDARD remplace ?attr/materialButtonOutlinedStyle et les styles Material3 bruts.</p>
+ </div>
+ <div class="card"><div class="sec">Chips — Widget.CodeIDE.Chip.{Filter,Assist,Input}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px"><span class="chip on">Filtre actif</span><span class="chip">Assist</span><span class="chip">Input</span></div>
+ </div>
+</div></div>
+
+<!-- VueEtat + Retour -->
+<div class="col"><div class="cap">VueEtat — vide · erreur · hors-ligne · chargement · + Retour</div><div class="ds">
+ <div class="card" style="border-style:dashed"><div class="sec">Variantes (icône 64, TitleLarge, BodyMedium, action unique)</div>
+  <div class="vs"><span class="ico">📂</span><b>Aucune erreur</b>Dernier passage sans incident.</div>
+  <div class="vs"><span class="ico">⚠</span><b>JDK introuvable</b>L'environnement est incomplet.<span class="btn" style="margin-top:6px">Réparer</span></div>
+  <div class="vs"><span class="ico">⇅</span><b>Hors ligne</b>Les moteurs reviennent avec le réseau.</div>
+  <div class="vs"><span class="ico">◐</span><b>Indexation en cours</b>Le contenu arrive.</div>
+ </div>
+ <div class="card"><div class="sec">Retour.snackbar — jamais de Toast (audit C5)</div>
+  <div class="rw" style="background:var(--on-bg);border-radius:8px;padding:10px 12px;min-height:0"><div class="t" style="color:var(--bg)"><b style="font-weight:400">Cache vidé</b></div><b style="color:var(--pc)">Annuler</b></div>
+  <p class="note">L'action est OPTIONNELLE : un cache vidé se reconstruit, un « Annuler » de pure forme est interdit. L'instance renvoyée permet l'ancrage (setAnchorView).</p>
+ </div>
+</div></div>
+
+</div>
+</body>
+</html>
