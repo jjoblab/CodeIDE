@@ -49,6 +49,17 @@ class VoletsPreviewLayoutTest {
     }
 
     @Test
+    fun `la carte de correctif se gonfle avec son titre, son corps et son bouton`() {
+        // PE11g — ref item_correctif : la carte ambre du bloc « Corrections
+        // rapides » (titre du problème, message, bouton d'action violet).
+        val carte = gonfler(R.layout.item_correctif)
+        assertNotNull(carte.findViewById<View>(R.id.carte_correctif))
+        assertNotNull(carte.findViewById<View>(R.id.titre_correctif))
+        assertNotNull(carte.findViewById<View>(R.id.corps_correctif))
+        assertNotNull(carte.findViewById<View>(R.id.bouton_correctif))
+    }
+
+    @Test
     fun `le volet problèmes se gonfle avec sa liste recyclée et son message vide`() {
         // PE11k — ref fragment_volet_problemes : le message « Aucun
         // problème détecté… » vit dans le LAYOUT (plus de vue en code).

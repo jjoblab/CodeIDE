@@ -337,6 +337,9 @@
         <item name="android:minWidth">0dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <!-- PE11g — grille § 12.4 n° 3 : tout TextView sans le creux de police (la
+             ligne CSS 13,2 px de .prim2 en est l'équivalent — mes 29,2 dp). -->
+        <item name="android:includeFontPadding">false</item>
         <item name="android:paddingStart">10dp</item>
         <item name="android:paddingEnd">10dp</item>
         <item name="android:paddingTop">8dp</item>

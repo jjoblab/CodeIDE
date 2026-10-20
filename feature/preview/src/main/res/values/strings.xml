@@ -307,4 +307,22 @@
     <string name="preview_attr_nom_hint">android:nom</string>
     <string name="preview_attr_valeur_hint">valeur</string>
     <string name="preview_attr_ajouter">Ajouter</string>
+
+    <!-- Problèmes PE11g (miroir computeProblems : les 3 nouveaux genres). -->
+    <string name="preview_probleme_texte_code_titre">Texte codé en dur</string>
+    <string name="preview_probleme_texte_code_message">Utilisez @string/ pour que values-en le traduise.</string>
+    <string name="preview_probleme_tronque_titre">Texte tronqué</string>
+    <string name="preview_probleme_tronque_message">Le contenu dépasse la vue à la police ×%1$s.</string>
+    <string name="preview_probleme_sans_description_titre">%1$s sans contentDescription</string>
+    <string name="preview_probleme_sans_description_message">Un lecteur d\'écran ne sait pas annoncer cette image.</string>
+
+    <!-- Corrections rapides PE11g (miroir quickFixes : carte = problème + action). -->
+    <string name="preview_correctifs_titre">Corrections rapides</string>
+    <string name="preview_correctif_cible_bouton">Passer à 48 dp</string>
+    <string name="preview_correctif_cible_toast">Cible portée à 48 dp</string>
+    <string name="preview_correctif_extraire_bouton">Extraire en @string</string>
+    <string name="preview_correctif_extraire_toast">Texte extrait dans values/strings.xml et values-en/</string>
+    <string name="preview_correctif_tronque_bouton">Autoriser 2 lignes</string>
+    <string name="preview_correctif_tronque_toast" translatable="false">maxLines = 2</string>
+    <string name="preview_correctif_description_bouton">Renseigner</string>
 </resources>

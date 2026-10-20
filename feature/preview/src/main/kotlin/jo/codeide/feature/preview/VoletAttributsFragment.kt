@@ -49,6 +49,7 @@ import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
+import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.ValidationAttribut
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,6 +142,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             override fun auBoutonAutres() {
                 modeCourantsInterne.value = false
                 majAttributs()
+            }
+
+            override fun auCorrectif(action: ActionCorrectif) {
+                declencherCorrectif(action)
             }
         }
 
@@ -318,9 +323,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             val attrs = viewModel.attributsSelection()
             if (attrs == null) {
                 // Un span périmé retombe en LECTURE SEULE avec explication
-                // (miroir piège § 6 du prompt).
+                // (miroir piège § 6 du prompt) — les corrections du rendu
+                // seraient stalles aussi : elles vivent avec l'éditable.
                 add(ItemAttributs.LectureSeule(getString(R.string.preview_edition_impossible_toast)))
             } else {
+                // PE11g — LES CORRECTIONS RAPIDES (miroir quickFixes) : une
+                // carte par problème de la vue qui a UNE action, AVANT les
+                // sections (PREVIEW_UI.md § 8 : item 2 « correctifs »).
+                ajouterCorrectifs(this, vue)
                 val sections = CatalogueAttributs.sections(classe, genreParent)
                 var visibles = 0
                 var masques = 0
@@ -370,6 +380,70 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /** Le titre localisé d'une section (clé sémantique → ressource — table
      * unique, miroir [ETIQUETTES_RES]). */
     private fun titreSectionRes(titre: CatalogueAttributs.TitreSection): String = getString(TITRES_RES.getValue(titre))
+
+    /**
+     * Les cartes de CORRECTION RAPIDE (PE11g — miroir `quickFixes` :
+     * `S.probs.filter(p => p.rid === v.rid)`) : une carte par problème de
+     * la VUE SÉLECTIONNÉE qui a UNE action — le titre de groupe n'apparaît
+     * que s'il y a des cartes (miroir le bloc `.fixes` absent à zéro fix).
+     */
+    private fun ajouterCorrectifs(
+        items: MutableList<ItemAttributs>,
+        vue: InfoVueRendu,
+    ) {
+        val vues = renduCourant?.vues ?: return
+        val cartes =
+            ProblemesPreview
+                .evaluer(vues, viewModel.moteur.profil.densiteDpi)
+                .filter { it.indiceVue == selectionCourante }
+                .mapNotNull { correctifDe(it, vue) }
+        if (cartes.isEmpty()) return
+        items.add(ItemAttributs.TitreGroupe(getString(R.string.preview_correctifs_titre)))
+        items.addAll(cartes)
+    }
+
+    /**
+     * La CARTE d'un problème ACTIONNABLE (miroir `quickFixes` : titre =
+     * `p.title`, corps = `p.msg`, bouton = `fx.b`). `null` = PAS d'action :
+     * « Ajouter la dépendance » de la classe introuvable est HORS périmètre
+     * (brief : « n'afficher le bouton que si l'action existe »).
+     */
+    private fun correctifDe(
+        probleme: ProblemesPreview.ProblemeApercu,
+        vue: InfoVueRendu,
+    ): ItemAttributs.Correctif? {
+        val action =
+            when (probleme.genre) {
+                ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> return null
+                ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> ActionCorrectif.ElargirCible
+                ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> ActionCorrectif.OuvrirContentDescription
+                ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> ActionCorrectif.ExtraireTexte
+                ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> ActionCorrectif.AutoriserDeuxLignes
+            }
+        return ItemAttributs.Correctif(
+            genre = probleme.genre,
+            titre = LibellesProblemes.titre(requireContext(), probleme.genre, vue),
+            message =
+                LibellesProblemes.message(
+                    requireContext(),
+                    probleme.genre,
+                    vue,
+                    viewModel.moteur.profil.densiteDpi,
+                    viewModel.echellePolice,
+                ),
+            bouton = getString(boutonDe(action)),
+            action = action,
+        )
+    }
+
+    /** Le LIBELLÉ localisé du bouton d'une action (miroir `fx.b`). */
+    private fun boutonDe(action: ActionCorrectif): Int =
+        when (action) {
+            ActionCorrectif.ElargirCible -> R.string.preview_correctif_cible_bouton
+            ActionCorrectif.ExtraireTexte -> R.string.preview_correctif_extraire_bouton
+            ActionCorrectif.AutoriserDeuxLignes -> R.string.preview_correctif_tronque_bouton
+            ActionCorrectif.OuvrirContentDescription -> R.string.preview_correctif_description_bouton
+        }
 
     /** L'étiquette localisée d'un contrôle (clé sémantique → ressource). */
     private fun etiquetteRes(etiquette: CatalogueAttributs.Etiquette): String =
@@ -476,6 +550,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         saisie.champSaisie.setText(valeur ?: "")
         saisie.champSaisie.hint = libelle
         saisie.champSaisie.contentDescription = libelle
+        // PE11g — le NOM d'attribut en tag : « Renseigner » amène le champ
+        // du contentDescription par findViewWithTag (miroir `S.focusAttr`).
+        saisie.champSaisie.tag = controle.nom
         val commettre = {
             commiterTexte(saisie.champSaisie) { nouvelle ->
                 viewModel.definirAttributSelection(controle.nom, nouvelle)
@@ -1616,12 +1693,116 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         return false
     }
 
+    /**
+     * Déclenche la CORRECTION (PE11g — miroir `b.onclick` de la maquette :
+     * `fx.go` NAVIGUE sans édition, `fx.run` écrit UNE édition puis le
+     * toast `fx.msg` part — la carte disparaît au re-rendu, critère § 6.7
+     * « produit une édition et fait disparaître le problème »).
+     */
+    private fun declencherCorrectif(action: ActionCorrectif) {
+        when (action) {
+            ActionCorrectif.ElargirCible -> {
+                if (editerOuRecharger { viewModel.elargirCibleSelection() }) {
+                    toastCorrectif(R.string.preview_correctif_cible_toast)
+                }
+            }
+
+            ActionCorrectif.ExtraireTexte -> {
+                extraireTexteCorrectif()
+            }
+
+            ActionCorrectif.AutoriserDeuxLignes -> {
+                if (editerOuRecharger { viewModel.definirAttributSelection(ATTR_MAX_LIGNES, DEUX_LIGNES) }) {
+                    toastCorrectif(R.string.preview_correctif_tronque_toast)
+                }
+            }
+
+            ActionCorrectif.OuvrirContentDescription -> {
+                ouvrirContentDescription()
+            }
+        }
+    }
+
+    /** Le toast de SUCCÈS d'une correction (miroir `mutate(fx.run, fx.msg)`). */
+    private fun toastCorrectif(message: Int) {
+        Toast.makeText(requireContext(), getString(message), Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * « Extraire en @string » (miroir `extractStr`) : le nom proposé vient
+     * de la VALEUR (le même [ExtractionRessource.nomPropose] que la rangée
+     * d'extraction), l'écriture passe par le flux EXISTANT (entrée FR+EN
+     * puis référence) — un refus porte le toast PROPRE à l'extraction.
+     */
+    private fun extraireTexteCorrectif() {
+        val valeur = viewModel.valeurAttributSelection(ATTR_TEXTE).orEmpty()
+        if (
+            editerOuRecharger(R.string.preview_extraire_refuse) {
+                viewModel.extraireEnRessource(ATTR_TEXTE, ExtractionRessource.nomPropose(valeur))
+            }
+        ) {
+            toastCorrectif(R.string.preview_correctif_extraire_toast)
+        }
+    }
+
+    /**
+     * « Renseigner » (miroir `fx.go`) : vide la RECHERCHE, OUVRE la
+     * section qui PORTE le champ et pose le FOCUS dessus — SANS édition.
+     * La maquette vise la section Accessibilité de la 2e vague ; l'app
+     * vise la section qui CONTIENT le contrôle (aujourd'hui Affichage —
+     * l'annexe § 7 la déplacera, la correction suivra par construction).
+     */
+    private fun ouvrirContentDescription() {
+        rechercheInterne.value = ""
+        val classe = viewModel.classeSelection() ?: return
+        val genreParent = viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
+        val section =
+            CatalogueAttributs.sections(classe, genreParent).firstOrNull { parcourue ->
+                parcourue.controles.any { controle ->
+                    controle is CatalogueAttributs.ControleAttribut.Texte &&
+                        controle.nom == ATTR_CONTENT_DESCRIPTION
+                }
+            } ?: return
+        etatSections[section.titre.name] = true
+        majAttributs()
+        liaison.voletAttributs.post { amenerAuChamp(section) }
+    }
+
+    /** Amène la carte à l'écran puis pose le FOCUS sur le champ (miroir `S.focusAttr`). */
+    private fun amenerAuChamp(section: CatalogueAttributs.SectionAttributs) {
+        val position =
+            adaptateur.currentList.indexOfFirst { item ->
+                item is ItemAttributs.Carte && item.section.titre == section.titre
+            }
+        if (position < 0) return
+        liaison.voletAttributs.scrollToPosition(position)
+        liaison.voletAttributs.post {
+            liaison.voletAttributs
+                .findViewHolderForAdapterPosition(position)
+                ?.itemView
+                ?.findViewWithTag<TextView>(ATTR_CONTENT_DESCRIPTION)
+                ?.requestFocus()
+        }
+    }
+
     private companion object {
         /** Les DEUX PREMIÈRES sections de l'éditeur s'ouvrent par défaut (miroir `i < 2`). */
         private const val DEFAUT_OUVERTES: Int = 2
 
         /** La valeur de plateforme pour cibler le PARENT (code, pas UI). */
         private const val VALEUR_PARENT: String = "parent"
+
+        /** PE11g — l'attribut du TEXTE (correctif « Extraire en @string »). */
+        private const val ATTR_TEXTE: String = "android:text"
+
+        /** PE11g — l'attribut visé par « Renseigner » (focus du champ). */
+        private const val ATTR_CONTENT_DESCRIPTION: String = "android:contentDescription"
+
+        /** PE11g — l'attribut écrit par « Autoriser 2 lignes » (miroir setEx). */
+        private const val ATTR_MAX_LIGNES: String = "android:maxLines"
+
+        /** PE11g — la valeur de « Autoriser 2 lignes » (miroir la maquette). */
+        private const val DEUX_LIGNES: String = "2"
 
         /** Largeur du popover CIBLE, en dp (les cibles tiennent en courte). */
         private const val LARGEUR_MENU_CIBLE_DP: Int = 232

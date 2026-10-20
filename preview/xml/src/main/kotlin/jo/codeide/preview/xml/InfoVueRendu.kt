@@ -41,7 +41,7 @@ import android.os.Parcelable
  * PARCELABLE de la frontière AIDL, un CHAMP = un paramètre (le format
  * est le contrat, pas une accumulation — même patron que [ResultatRendu]) ;
  * CyclomaticComplexMethod — equals/hashCode comparent CHAMP POUR CHAMP
- * les 21 champs du miroir, la complexité EST le contrat de parité.
+ * les 24 champs du miroir, la complexité EST le contrat de parité.
  */
 @Suppress("LongParameterList", "CyclomaticComplexMethod")
 public class InfoVueRendu(
@@ -89,6 +89,16 @@ public class InfoVueRendu(
     public val conteneur: Boolean = false,
     /** Orientation d'un LinearLayout (PE6c — [ORIENTATION_SANS_OBJET] ailleurs). */
     public val orientation: Int = ORIENTATION_SANS_OBJET,
+    /** Le texte DÉBORDE de la vue au rendu (PE11g — mesure LayoutLib : une
+     * ligne ellipsée ou plus large que la vue utile, ou un contenu plus
+     * haut — miroir `trunc` de `measure` de la maquette). */
+    public val texteTronque: Boolean = false,
+    /** Vue IMAGE sans `contentDescription` (PE11g — lecture de la vue
+     * rendue : un lecteur d'écran ne sait pas annoncer l'image). */
+    public val sansContentDescription: Boolean = false,
+    /** `android:text` LITTÉRAL au source de l'élément (PE11g — « codé en
+     * dur » : ni `@string/…` ni `?attr/…`, l'extraction le résout). */
+    public val texteCodeDur: Boolean = false,
 ) : Parcelable {
     private constructor(parcel: Parcel) : this(
         gauche = parcel.readInt(),
@@ -113,6 +123,9 @@ public class InfoVueRendu(
         cliquable = parcel.readByte() != 0.toByte(),
         conteneur = parcel.readByte() != 0.toByte(),
         orientation = parcel.readInt(),
+        texteTronque = parcel.readByte() != 0.toByte(),
+        sansContentDescription = parcel.readByte() != 0.toByte(),
+        texteCodeDur = parcel.readByte() != 0.toByte(),
     )
 
     override fun writeToParcel(
@@ -142,6 +155,10 @@ public class InfoVueRendu(
         parcel.writeByte(if (cliquable) 1 else 0)
         parcel.writeByte(if (conteneur) 1 else 0)
         parcel.writeInt(orientation)
+        // PE11g — même ordre que le constructeur privé (contrat maquette).
+        parcel.writeByte(if (texteTronque) 1 else 0)
+        parcel.writeByte(if (sansContentDescription) 1 else 0)
+        parcel.writeByte(if (texteCodeDur) 1 else 0)
     }
 
     override fun describeContents(): Int = 0
@@ -174,7 +191,10 @@ public class InfoVueRendu(
             other.paddingGauche == paddingGauche && other.paddingHaut == paddingHaut &&
             other.paddingDroite == paddingDroite && other.paddingBas == paddingBas &&
             other.cliquable == cliquable && other.conteneur == conteneur &&
-            other.orientation == orientation
+            other.orientation == orientation &&
+            other.texteTronque == texteTronque &&
+            other.sansContentDescription == sansContentDescription &&
+            other.texteCodeDur == texteCodeDur
 
     override fun hashCode(): Int {
         var resultat = gauche
@@ -199,6 +219,9 @@ public class InfoVueRendu(
         resultat = 31 * resultat + if (cliquable) 1 else 0
         resultat = 31 * resultat + if (conteneur) 1 else 0
         resultat = 31 * resultat + orientation
+        resultat = 31 * resultat + if (texteTronque) 1 else 0
+        resultat = 31 * resultat + if (sansContentDescription) 1 else 0
+        resultat = 31 * resultat + if (texteCodeDur) 1 else 0
         return resultat
     }
 

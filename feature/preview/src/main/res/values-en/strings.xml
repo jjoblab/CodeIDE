@@ -290,4 +290,21 @@
     <string name="preview_attr_nom_hint">android:name</string>
     <string name="preview_attr_valeur_hint">value</string>
     <string name="preview_attr_ajouter">Add</string>
+
+    <!-- Problems PE11g (mirror of computeProblems: the three new genres). -->
+    <string name="preview_probleme_texte_code_titre">Hardcoded text</string>
+    <string name="preview_probleme_texte_code_message">This text stays the same in English: it is not in values-en.</string>
+    <string name="preview_probleme_tronque_titre">Truncated text</string>
+    <string name="preview_probleme_tronque_message">The content overflows the view at font scale ×%1$s.</string>
+    <string name="preview_probleme_sans_description_titre">%1$s missing contentDescription</string>
+    <string name="preview_probleme_sans_description_message">A screen reader cannot announce this image.</string>
+
+    <!-- Quick fixes PE11g (mirror of quickFixes: card = problem + action). -->
+    <string name="preview_correctifs_titre">Quick fixes</string>
+    <string name="preview_correctif_cible_bouton">Set to 48 dp</string>
+    <string name="preview_correctif_cible_toast">Target set to 48 dp</string>
+    <string name="preview_correctif_extraire_bouton">Extract to @string</string>
+    <string name="preview_correctif_extraire_toast">Text extracted to values/strings.xml and values-en/</string>
+    <string name="preview_correctif_tronque_bouton">Allow 2 lines</string>
+    <string name="preview_correctif_description_bouton">Fill in</string>
 </resources>
