@@ -16,8 +16,8 @@
         android:background="@drawable/fond_entete_explorateur"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_md_compact">
 
         <ImageView
             android:layout_width="20dp"
@@ -30,7 +30,7 @@
             style="?attr/textAppearanceTitleSmall"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:text="@string/projet_titre" />
 
@@ -40,7 +40,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/projet_actualiser_cd"
-            android:padding="6dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_recherche"
             app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
@@ -78,7 +78,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/spacing_lg"
                 android:visibility="gone" />
 
             <TextView
@@ -86,7 +86,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_md"
                 android:text="@string/projet_chargement"
                 android:visibility="gone" />
 
@@ -95,7 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_md"
                 android:text="@string/projet_erreur_chargement"
                 android:visibility="gone" />
 
@@ -104,7 +104,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_md"
                 android:text="@string/projet_aucun_script"
                 android:visibility="gone" />
 
@@ -128,7 +128,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_md"
                 android:text="@string/projet_aucune_dependance"
                 android:visibility="gone" />
 
@@ -153,7 +153,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/spacing_lg"
                 android:visibility="gone" />
 
             <TextView
@@ -161,7 +161,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_md"
                 android:text="@string/projet_aucune_mise_a_jour"
                 android:visibility="gone" />
 
@@ -178,7 +178,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:padding="24dp"
+            android:padding="@dimen/spacing_lg"
             android:text="@string/projet_variantes_bientot"
             android:visibility="gone" />
 
@@ -192,11 +192,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_ouvrir_taches"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/spacing_lg"
                 android:text="@string/projet_taches_ouvrir" />
         </LinearLayout>
 

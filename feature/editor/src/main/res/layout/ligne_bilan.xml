@@ -7,7 +7,7 @@
     android:gravity="center_vertical"
     android:minHeight="48dp"
     android:orientation="horizontal"
-    android:paddingVertical="9dp">
+    android:paddingVertical="@dimen/spacing_sm">
 
     <TextView
         android:id="@+id/label_bilan"
