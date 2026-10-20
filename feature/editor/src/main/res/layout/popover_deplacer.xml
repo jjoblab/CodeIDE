@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/fond_popover"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="@dimen/spacing_md_compact">
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/titre_deplacer"
@@ -32,39 +32,39 @@
             android:layout_height="wrap_content"
             android:text="@string/popover_deplacer_vers"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="13sp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textStyle="bold" />
 
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/deplacer_origine"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/champ_origine_deplacer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/spacing_2xs"
             android:background="@drawable/fond_champ_inline"
             android:ellipsize="end"
             android:fontFamily="monospace"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="6dp"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs"
             android:singleLine="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11sp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
             tools:text="docs/adr" />
 
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/deplacer_destination"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro" />
 
         <!-- Champ destination + icône liste déroulante (v0.32.1) : un
              seul fond de champ, l'icône vit DANS la boîte au bout ; un
@@ -72,7 +72,7 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp">
+            android:layout_marginTop="@dimen/spacing_2xs">
 
             <EditText
                 android:id="@+id/champ_destination_deplacer"
@@ -83,14 +83,14 @@
                 android:hint="@string/deplacer_destination"
                 android:importantForAutofill="no"
                 android:inputType="textNoSuggestions"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="6dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="32dp"
+                android:paddingHorizontal="@dimen/spacing_sm"
+                android:paddingVertical="@dimen/spacing_xs"
+                android:paddingStart="@dimen/spacing_sm"
+                android:paddingEnd="@dimen/spacing_xl"
                 android:singleLine="true"
                 android:textColor="?attr/colorOnSurface"
                 android:textColorHint="?attr/colorOnSurfaceVariant"
-                android:textSize="11.5sp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
                 tools:text="docs" />
 
             <ImageView
@@ -98,22 +98,22 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="5dp"
+                android:layout_marginEnd="@dimen/spacing_xs"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/deplacer_destination_choisir_cd"
-                android:padding="4dp"
+                android:padding="@dimen/spacing_xs"
                 android:src="@drawable/ic_liste_deroulante"
                 app:tint="?attr/colorOnSurfaceVariant" />
         </FrameLayout>
 
-        <!-- Erreur en ligne (rouge 11 sp, § 10.5). -->
+        <!-- Erreur en ligne (rouge LabelSmall, § 10.5). -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/erreur_deplacer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:textColor="@color/codeide_explorateur_rouge"
-            android:textSize="11sp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
             android:visibility="gone"
             tools:text="Dossier introuvable — chemin relatif attendu"
             tools:visibility="visible" />
@@ -121,7 +121,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/spacing_md_compact"
             android:gravity="end"
             android:orientation="horizontal">
 
@@ -132,25 +132,25 @@
                 android:background="@drawable/fond_action_popover"
                 android:clickable="true"
                 android:focusable="true"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="7dp"
+                android:paddingHorizontal="@dimen/spacing_md_compact"
+                android:paddingVertical="@dimen/spacing_sm"
                 android:text="@string/deplacer_annuler"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="12.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelMedium" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/bouton_valider_deplacer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:background="@drawable/fond_bouton_primaire_popover"
                 android:clickable="true"
                 android:focusable="true"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="7dp"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingVertical="@dimen/spacing_sm"
                 android:text="@string/deplacer_valider"
                 android:textColor="?attr/colorOnPrimary"
-                android:textSize="12.5sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

@@ -22,14 +22,14 @@
         android:layout_height="wrap_content"
         android:background="@drawable/fond_popover"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="@dimen/spacing_md_compact">
 
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/legende_titre"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="13sp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textStyle="bold" />
 
         <!-- Affichage (v0.80.1) : les trois bascules de l'explorateur,
@@ -39,21 +39,21 @@
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/legende_affichage"
             android:textAllCaps="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/case_affichage_compact"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/spacing_2xs"
             android:minHeight="34dp"
             android:text="@string/legende_compact"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" tools:ignore="SmallSp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/case_masquer_fichiers_caches"
@@ -62,7 +62,7 @@
             android:minHeight="34dp"
             android:text="@string/legende_masquer_caches"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" tools:ignore="SmallSp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/case_masquer_dossiers_build"
@@ -71,22 +71,22 @@
             android:minHeight="34dp"
             android:text="@string/legende_masquer_build"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" tools:ignore="SmallSp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/legende_points_etat"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             android:textAllCaps="true" />
 
         <!-- Pastilles : vues VuePointEtat réutilisées à l'état figé. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -99,17 +99,17 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_weight="1"
                 android:text="@string/legende_point_defaut"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -122,17 +122,17 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_weight="1"
                 android:text="@string/legende_point_ouvert"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -145,17 +145,17 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_weight="1"
                 android:text="@string/legende_point_actif"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -168,47 +168,47 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_weight="1"
                 android:text="@string/legende_point_selectionne"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
         </LinearLayout>
 
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/spacing_md_compact"
             android:text="@string/legende_notation"
             android:textAllCaps="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp" />
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/legende_ligne_dossier"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/legende_notation_dossier"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/legende_ligne_guide"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:text="@string/legende_notation_guide"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/legende_ligne_astuce"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:text="@string/legende_notation_astuce"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11.5sp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
     </LinearLayout>
 </FrameLayout>
