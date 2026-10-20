@@ -952,8 +952,9 @@ DÉDIÉS documentés, pas des littéraux.
    `editor_snackbar_marge_bas` — la snackbar flotte au-dessus du
    rail), état vide de l'éditeur (illustration + boutons Tonal/Text
    maison) ; « Quitter pendant un build » affiche TOUJOURS le toast
-   long assumé (il survit à la destruction de l'activité — écart
-   documenté, hors cliquet R6).
+   long assumé (il survit à la destruction de l'activité) — ARBITRÉ EN
+   UI-7 : EXCEPTION R6 documentée, plafonnée à 1 dans la baseline
+   (ADR 0127 §5, décision §2.1c de `CYCLE_DE_VIE.md`).
 
 ## Cohérence UI — migration preview (lot UI-6 → v0.165.0, audit C5/C9, ADR 0127)
 
@@ -992,6 +993,44 @@ au liage inchangées). 360 dp, clair ET sombre.
 7. **Cotes verrouillées** : `CotesEcransMaquetteTest` (7) et
    `CotesPopoversMaquetteTest` (6) restent verts — les cotes mesurées
    (boutons 36, HUD 34, pastille 12…) prouvent l'absence de dérive.
+
+## Cohérence UI — Toast final et règle de bannissement (lot UI-7 → v0.166.0, audit C3/C5, ADR 0127 §3/§5)
+
+Écrans : réglages IA, historique des conversations, détail fournisseur,
+chat du tiroir, assistant de création (wizard), éditeur, terminal.
+Sept Toast « en fenêtre » deviennent des Snackbar thématisées ; le
+scanner `checkUiTokens` est durci (R6 multi-lignes, R5 fins de ligne avec
+exemption du style maison) — tout NOUVEAU Toast, n'importe où, échoue le
+build. 360 dp, clair ET sombre.
+
+1. **Réglages IA** — provoquer un message (ex. test de connexion sans
+   clé, fournisseur inactif) : le retour part en SNACKBAR en bas de
+   l'écran (thématisée, annoncée par TalkBack) — plus de Toast gris.
+2. **Historique des conversations** — effacer une conversation (ou tout
+   effacer) : le message de confirmation d'effacement part en snackbar.
+3. **Détail fournisseur** — tenter d'enregistrer une clé VIDE : « la clé
+   ne peut pas être vide » part en snackbar ancrée à l'écran ; les
+   messages d'effacement/remplacement de clé aussi.
+4. **Chat du tiroir** — copier un message (clic long) : « Copié » part
+   en snackbar (miroir du terminal et du Logcat) ; les messages
+   d'erreurs du chat aussi.
+5. **Assistant de création** — à l'écran d'échec, « Copier les
+   détails » : la confirmation part en snackbar.
+6. **EXCEPTION 1 (à vérifier, pas à corriger)** — éditeur : lancer un
+   build puis QUITTER l'éditeur pendant qu'il tourne : le toast long
+   « build continue en arrière-plan » apparaît encore (il survit à
+   l'écran) et la notification de tooling reste dans le tiroir —
+   comportement §2.1c ratifié, exception R6 plafonnée à 1.
+7. **EXCEPTION 2 (à vérifier, pas à corriger)** — terminal sur un
+   appareil Android < 13 : depuis une session ssh distante, déclencher
+   une copie OSC 52 : le toast court de confirmation
+   apparaît ; sur Android 13+, SEUL le bandeau du système apparaît
+   (aucun doublon) — exception R6 plafonnée à 1, module sans UI.
+8. **Dette R5 inscrite (aucun changement visible attendu)** — les 13
+   icônes sans composant maison (arborescence de l'éditeur, barre IA,
+   rangées de problème, accueil, wizard, réglages/env, terminal) ne
+   changent PAS : elles sont gelées dans la baseline, leur migration
+   (avec captures avant/après) est un lot futur.
 
 ## Réglages LSP « Intelligence du code » (lot LSP-3 → v0.161.0, ADR 0128)
 
