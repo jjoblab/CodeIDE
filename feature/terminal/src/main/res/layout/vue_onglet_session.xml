@@ -36,7 +36,7 @@
         android:layout_width="@dimen/touch_target_min"
         android:layout_height="@dimen/touch_target_min"
         android:contentDescription="@string/terminal_onglet_fermer_cd"
-        android:padding="14dp"
+        android:padding="@dimen/spacing_md_compact"
         android:src="@drawable/ic_fermer_onglet"
         app:tint="?attr/colorOnSurfaceVariant" />
 </LinearLayout>

@@ -17,10 +17,10 @@
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="13dp"
-    android:paddingTop="12dp"
-    android:paddingEnd="8dp"
-    android:paddingBottom="12dp">
+    android:paddingStart="@dimen/spacing_md_compact"
+    android:paddingTop="@dimen/spacing_md_compact"
+    android:paddingEnd="@dimen/spacing_sm"
+    android:paddingBottom="@dimen/spacing_md_compact">
 
     <ImageView
         android:layout_width="17dp"
@@ -32,7 +32,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="11dp"
+        android:layout_marginStart="@dimen/spacing_md_compact"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -43,7 +43,7 @@
             android:ellipsize="end"
             android:singleLine="true"
             android:textColor="@color/codeide_explorateur_texte"
-            android:textSize="12.5sp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             android:textStyle="bold"
             tools:text="main" />
 
@@ -51,12 +51,12 @@
             android:id="@+id/detail_session_carte"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:ellipsize="middle"
             android:fontFamily="monospace"
             android:singleLine="true"
             android:textColor="@color/codeide_explorateur_texte_3"
-            android:textSize="10.5sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             tools:text="~/CodeIDE · 21:42" />
     </LinearLayout>
 
@@ -64,24 +64,24 @@
         android:id="@+id/badge_etat_session"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="@dimen/spacing_sm"
         android:background="@drawable/fond_badge_etat_session"
         android:fontFamily="monospace"
-        android:paddingStart="8dp"
-        android:paddingTop="2dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="2dp"
-        android:textSize="10sp" tools:ignore="SmallSp"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingTop="@dimen/spacing_2xs"
+        android:paddingEnd="@dimen/spacing_sm"
+        android:paddingBottom="@dimen/spacing_2xs"
+        android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
         tools:text="● vivante" />
 
     <ImageView
         android:id="@+id/bouton_agrandir_session"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginStart="2dp"
+        android:layout_marginStart="@dimen/spacing_2xs"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
-        android:padding="10dp"
+        android:padding="@dimen/spacing_sm"
         android:src="@drawable/ic_agrandir_dans_tiroir"
         app:tint="@color/codeide_explorateur_texte_2" />
 
@@ -91,7 +91,7 @@
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
-        android:padding="10dp"
+        android:padding="@dimen/spacing_sm"
         android:src="@drawable/ic_plein_ecran_externe"
         app:tint="@color/codeide_explorateur_texte_2" />
 </LinearLayout>
