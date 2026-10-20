@@ -130,6 +130,9 @@ bougeront de 1–2 dp : c'est le prix de l'unité, atténué par la capture avan
 2. [x] `checkUiTokens` + `config/ui-baseline.json` + CI + tests du moteur de règles (lot UI-2) — livré v0.159.0.
 3. [ ] Migrations par module (UI-3 à UI-7), baseline mise à jour à chaque lot — UI-3 v0.160.0 ✅
    (Settings hors baseline) ; UI-4 v0.163.0 ✅ (install, crash, terminal hors baseline —
-   85 → 69 fichiers) ; RESTENT UI-5 (editor), UI-6 (preview), UI-7 (Toast → Snackbar).
+   85 → 69 fichiers) ; UI-5 v0.164.0 ✅ (editor hors baseline — 354 occurrences → 0,
+   69 → 34 fichiers ; nouveau style `Widget.CodeIDE.CircularProgressIndicator`,
+   4 jetons dédiés editor pour les cotes composées) ; RESTENT UI-6 (preview),
+   UI-7 (Toast → Snackbar).
 4. [x] Mettre à jour `docs/CONVENTIONS.md` (liens vers cet ADR) et `AGENTS.md` (règle 15 :
    « aucun littéral UI ») — livré par UI-2 v0.159.0.

@@ -884,6 +884,77 @@ si disponible.
    contient PLUS AUCUN fichier de `core/crash`, `feature/install` ni
    `feature/terminal` (critère de fin du lot).
 
+## Cohérence UI — migration editor (lot UI-5 → v0.164.0, audit C1/C2/C3/C4/C5/C9, ADR 0127)
+
+Écrans : tout ce que le tiroir de l'éditeur et le panneau inférieur
+affichent — explorateur et arborescence (popovers compris), recherche,
+Git, projet (scripts/dépendances/mises à jour/tâches), console, journal,
+Logcat, feuille Historique, activité (rail, onglets, états vides,
+pastilles flottantes). Le module `feature:editor` quitte la baseline
+`checkUiTokens` (354 occurrences → 0, le plus gros lot de la mission) —
+la migration doit rester INVISIBLE au quotidien : 360 dp, clair ET
+sombre, capture avant/après si disponible. Écarts assumés (table §4) :
+arrondis de 1-2 dp sur les espacements, 13 sp → 12/14 sp (jamais
+inventé), demi-tailles → `Micro`/`LabelSmall` ; les DEUX cotes
+flottantes du tiroir (snackbar 74 dp, pastille de taille 54 dp) et le
+padding des boutons icône maison (14 dp = (48 − 20)/2) sont des JETONS
+DÉDIÉS documentés, pas des littéraux.
+
+1. **Explorateur** — entête (emblème, titre bold 14, chemin monospace
+   Micro, boutons 32 dp espacés de `editor_ecart_actions`), bascule
+   Projet/Privé, fil d'Ariane, barre presse-papiers (padding par
+   `editor_presse_papiers_padding_*`) : mêmes proportions qu'avant ;
+   la barre presse-papiers montre le chemin copié en LabelSmall bold ;
+   la snackbar maison de l'arbre (message + chemin mono + Annuler)
+   garde son fond/bordure dédiés et ses 4 600 ms.
+2. **Popovers de l'arborescence** (actions du nœud, Supprimer,
+   Déplacer, destination, Légende) — coques `fond_popover` avec
+   `editor_popover_padding` (6 dp) ou `spacing_md_compact` (12 dp) ;
+   les TÊTES (icône + nom bold BodyMedium + chemin mono Micro) ne
+   débordent pas à 360 dp ; les boutons Annuler (12/8) et
+   Supprimer/Déplacer (16/8) gardent leur hiérarchie ; les pastilles
+   d'état de la Légende restent alignées sur leur texte LabelSmall.
+3. **Recherche** — entête unifié 12/12 avec les autres tiroirs ; les
+   bascules Aa/ab/.*/Remplacer restent dans leurs zones 32 dp ;
+   « Tout remplacer » est un bouton maison Outlined (plus de style
+   Material brut) ; les résultats monospace et les bandeaux
+   plafond/erreur gardent leurs paddings.
+4. **Git** — badge de branche (8/2), état « pas un dépôt » (padding
+   `state_padding`), « Initialiser » Outlined maison, bouton Commit
+   plein maison, liste des changements LabelSmall monospace.
+5. **Projet & indexation** — les 5 onglets ; lignes de scripts,
+   dépendances et mises à jour (padding 12/8, titres BodyMedium,
+   sous-textes LabelSmall) ; feuille « Détails de l'indexation » :
+   poignée, progression, liste de travail, la note d'impact devient
+   une carte `Widget.CodeIDE.Card` (RAYON 12, ÉLÉVATION 0 par le
+   style, fond `colorSurfaceVariant` conservé, filet 1 dp NOUVEAU —
+   unification C4) ; l'anneau d'étape en cours tourne (masque blanc
+   `anneau_etape_masque` teinté par canal — pas de changement de
+   couleur) ; l'illustration de l'état vide (fenêtre de code,
+   chevrons violets) est identique (couleurs nommées `ill_editeur_*`,
+   mêmes valeurs).
+6. **Panneau inférieur** — barre d'outils console : chip d'action
+   maison `Widget.CodeIDE.Chip.Assist`, boutons Tâches/Configuration/
+   Annuler en `Widget.CodeIDE.Button.Text`, champ stdin dans
+   `Widget.CodeIDE.TextField` ; onglet Journal : 4 chips filtres
+   `Widget.CodeIDE.Chip.Filter` ; onglet Logcat : barre (puce
+   processus, filtre, regex, niveaux, pause, effacer), bandeaux
+   pertes/arrêt/session précédente (padding 12/8, LabelSmall),
+   lignes de la table (12/4, LabelSmall monospace) ; la copie d'une
+   ligne (clic long) confirme par SNACKBAR sur Android < 13 comme
+   sur 13+ (plus de Toast — la confirmation système reste la seule
+   sur 13+) ; « Ouvrir avec » indisponible confirme aussi par
+   snackbar.
+7. **Activité** — rail de fragments (padding 4/8/4, libellé Micro
+   bold), onglets de fichiers (croix dans `editor_bouton_icone_padding`
+   — zone 48 dp, icône 20 dp), zoom/pastille de taille pendant le
+   glissement du tiroir (`editor_pastille_taille_marge_bas`,
+   `editor_snackbar_marge_bas` — la snackbar flotte au-dessus du
+   rail), état vide de l'éditeur (illustration + boutons Tonal/Text
+   maison) ; « Quitter pendant un build » affiche TOUJOURS le toast
+   long assumé (il survit à la destruction de l'activité — écart
+   documenté, hors cliquet R6).
+
 ## Réglages LSP « Intelligence du code » (lot LSP-3 → v0.161.0, ADR 0128)
 
 Écran : Paramètres → « Intelligence du code » (L1) puis L2/L3/L4/L5. À
