@@ -71,6 +71,44 @@
         android:label="@string/settings_editeur_titre"
         tools:layout="@layout/fragment_settings_editeur" />
 
+    <!-- Lot LSP-3 (ADR 0128 §4) : écrans « Intelligence du code » —
+         L1 vue d'ensemble, L2 langage (argument = identifiant
+         LangageLsp), L3 index et cache, L4 environnement d'analyse,
+         L5 état et diagnostic. -->
+    <fragment
+        android:id="@+id/settings_lsp_apercu"
+        android:name="jo.codeide.feature.settings.LangagesFragment"
+        android:label="@string/lsp_apercu_titre"
+        tools:layout="@layout/fragment_lsp_apercu" />
+
+    <fragment
+        android:id="@+id/settings_lsp_langage"
+        android:name="jo.codeide.feature.settings.LangageLspFragment"
+        android:label="@string/lsp_langage_java">
+        <argument
+            android:name="langage"
+            android:defaultValue="JAVA"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settings_lsp_index"
+        android:name="jo.codeide.feature.settings.IndexLspFragment"
+        android:label="@string/lsp_index_titre"
+        tools:layout="@layout/fragment_lsp_index" />
+
+    <fragment
+        android:id="@+id/settings_lsp_environnement"
+        android:name="jo.codeide.feature.settings.EnvironnementLspFragment"
+        android:label="@string/lsp_environnement_titre"
+        tools:layout="@layout/fragment_lsp_environnement" />
+
+    <fragment
+        android:id="@+id/settings_lsp_etat"
+        android:name="jo.codeide.feature.settings.EtatLspFragment"
+        android:label="@string/lsp_etat_titre"
+        tools:layout="@layout/fragment_lsp_etat" />
+
     <fragment
         android:id="@+id/settings_terminal"
         android:name="jo.codeide.feature.settings.TerminalSectionFragment"

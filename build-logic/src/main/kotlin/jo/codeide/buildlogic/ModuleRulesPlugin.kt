@@ -205,6 +205,16 @@ class ModuleRulesPlugin : Plugin<Project> {
             setOf(":core:model", ":core:domain", ":core:database", ":core:datastore", ":core:storage", ":core:logging")
         chemin == ":core:ui" -> setOf(":core:model")
         chemin == ":core:testing" -> setOf(":core:model", ":core:domain")
+        // Mission IA (ADR 0122) puis lot LSP-3 (ADR 0128 §4) : les écrans
+        // « Intelligence du code » vivent dans :feature:settings — ils
+        // consomment le DÉPÔT DÉDIÉ des réglages LSP (LspSettingsStore,
+        // hors AppSettings) : exception EXPLICITE au trio feature
+        // standard, même précédent que :feature:editor (LSP-2) et
+        // :feature:preview (PE7c). L'état des MOTEURS, lui, passe par le
+        // port :core:domain (RegistrePortLsp) — :feature:settings ne voit
+        // JAMAIS :lsp:host (coordonnées externes, hors audit).
+        chemin == ":feature:settings" ->
+            setOf(":core:ui", ":core:domain", ":core:model", ":core:datastore")
         chemin.startsWith(":feature:") -> setOf(":core:ui", ":core:domain", ":core:model")
         else -> null // module non répertorié : pas de contrainte (extensibilité)
     }

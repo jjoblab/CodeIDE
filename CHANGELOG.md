@@ -1,5 +1,124 @@
 # Journal des modifications
 
+## [0.161.0] – 2026-10-20
+
+### LSP-3 — écrans L1-L5 « Intelligence du code » construits avec les composants ADR 0127 uniquement (ADR 0128 §4, maquette `mockups/lsp/lsp-reglages.html`)
+
+#### Ajouté
+
+- **Cinq écrans dans `feature:settings`** (spec `LSP_SPEC_ECRANS.md`, AUCUNE
+  nouvelle Activity) : **L1 Vue d'ensemble** (`LangagesFragment`) — trois
+  rangées moteurs avec pastille `IndicateurEtat` (forme + texte, jamais la
+  couleur seule) et sous-titres composés « Prêt · 191 fichiers indexés ·
+  3 avertissements », trois rangées d'analyse, note d'effet, état « sans
+  projet » (`VueEtat` + action unique « Ouvrir un projet ») ; **L2
+  Langage** (`LangageLspFragment`, UN seul layout ×3) — carte Moteur
+  (nom, description, puce « pack langue — bientôt » pour Kotlin/XML,
+  rangée État observée), carte **Fonctions générée depuis
+  `capacitesAnnoncees(langage)` en ordre FIXE** (spec § 3 — jamais une
+  liste recopiée), filtres « Gravité affichée » et « Réactivité » à la
+  puce « Bientôt » ; **L3 Index et cache** — occupation observée (taille
+  disque + dernier passage + avertissements), budget aux paliers du
+  modèle (Auto/256/512/1024 Mo), surveillance ON/OFF + fréquence
+  2/5/10/30 s, actions Réindexer/Réessayer les échecs/Vider le cache
+  (dialogue de confirmation, refus pendant indexation en DONNÉE, retours
+  `Retour.snackbar` — jamais de Toast) ; **L4 Environnement d'analyse**
+  (lecture seule — JDK, plateforme, mode du moteur, échec JDK →
+  `VueEtat(erreur)` + « Réparer » vers l'écran Environnement) ; **L5
+  État et diagnostic** — résumé par moteur, dernières erreurs (≤ 20,
+  heure absolue, ré-expurgées par `LogRedactor` au rendu), « Copier le
+  diagnostic LSP » vers le presse-papiers + snackbar.
+- **Port des moteurs `:core:domain`** (patron `PortEditeurActif`/IA-5) :
+  `PortLsp` (état `StateFlow<MoteursLsp>`, taille/réindexation/vidage
+  ancrés sur la session vivante, refus en DONNÉE) publié dans
+  `RegistrePortLsp` observable ; `TableCapacitesLsp` (connaissance
+  STATIQUE du frère, lisible éditeur fermé). Implémenté par
+  `:feature:editor` (`PortLspEspace`, mappages purs testés JVM) auprès
+  des sessions que l'espace possède : **`:feature:settings` ne voit
+  JAMAIS `:lsp:host`** — aucune dépendance feature ↔ feature (test
+  d'architecture IA-0 inchangé). Miroirs domaine ↔ hôte verrouillés par
+  test (langages, capacités, phases, résultats de vidage).
+- **`PresentationLsp` pur** (patron `PresentationIndexation`, ADR 0117)
+  : transforme `MoteursLsp` + `LspSettings` + sondes en modèles d'écran
+  (`TexteLsp` résolu au dernier moment, énumérations partout — jamais de
+  chaîne comparable) ; +13 tests JVM (tous états × 3 langages, paliers,
+  ordre fixe des fonctions, bornage des erreurs à 20).
+- **Navigation** : `SectionParametres.LANGAGES` (2ᵉ rangée du groupe
+  Modules, `ic_code` ajouté à `core:ui`), destinations `settings_lsp_*`
+  du graphe, sous-navigation gardée par `DESTINATIONS_LSP` (patron IA),
+  `openReglageEnvironnement()` pour la réparation L4. Chaînes `lsp_*` FR
+  **ET** EN, pluriels inclus.
+- **`LangagesViewModel`** (partagé L1-L5) : réglages par le DÉPÔT DÉDIÉ
+  (mécanisme LSP-2 — l'éditeur applique à l'ouverture puis
+  dynamiquement), état des moteurs OBSERVÉ via le registre, table des
+  capacités statique, sonde L4 tolérante, reprise de surveillance à la
+  DERNIÈRE période choisie.
+
+#### Modifié
+
+- **`EditorViewModel`** publie `PortLspEspace` dans le registre à
+  l'ouverture (`init`), le retire dans `onCleared` AVANT les fermetures
+  de session — les écrans observent l'absence (INACTIFS), jamais une
+  session fermée ; `PortLspEspace` vit dans `viewModelScope` (naît et
+  meurt avec l'espace). `TableCapacitesLspHote` liée `@Singleton` Hilt
+  dans `ModuleSessionProjet` (table du frère, jamais recopiée).
+- **`ModuleRulesPlugin`** : exception documentée
+  `:feature:settings → :core:datastore` (précédents LSP-2/PE7c — le
+  commentaire LSP-2 l'annonçait : « l'écran des réglages vivra côté
+  feature:settings »).
+
+#### Vérifié
+
+- **Tests** : `:feature:settings` **44 verts** (dont `PresentationLspTest`
+  13, `LangagesViewModelTest` 6 — Robolectric, dépôt DataStore RÉEL sur
+  fichier temporaire à l'horloge de test, refus en DONNÉE, reprise de
+  période, suivi du port) + `SectionsParametresLayoutTest` étendu aux
+  CINQ layouts LSP (invariant « une carte = un seul LinearLayout
+  vertical » + non-empilement, miroir ADR 0064) ; `:feature:editor`
+  **408 verts** (dont `PortLspEspaceTest` 9 : parité des miroirs,
+  tableau explicite Java 10/Kotlin 8 sans Formatage ni Indices/XML 7
+  sans Signatures ni Références — le verrou « interrupteurs =
+  capacités annoncées », avancement 62 %, troncature à 20, refus
+  données, session réelle vivante/absente) ; `:core:domain`
+  `RegistrePortLspTest` 6 (remplacement, retrait, observation) ;
+  `:core:ui` 53 inchangés verts.
+- **Chaîne locale** : `spotlessCheck`, `detekt` (exemption ciblée
+  LongParameterList motivée ; mappers statiques du présentateur passés
+  en fonctions de fichier — seuil TooManyFunctions non levé ; spread
+  borné par taille, jamais de copie), `checkModuleDependencies`,
+  `checkUiTokens` (cliquet tenu — les SIX layouts LSP à ZÉRO littéral :
+  jetons, styles et composants uniquement, règle 15), `lintDebug` de
+  `:feature:settings`, `:feature:editor`, `:core:ui` et `:app` (graphe
+  de navigation) verts ; `:core:domain:koverVerify` vert. Le lint RACINE
+  complet reste couvert par la CI (contournement OOM sandbox documenté
+  PE11d).
+- **Formats tous `%1$s` côté présentateur** (args chaînes, patron
+  TexteIndexation) ; pluriels `%1$d` résolus par `getQuantityString` —
+  StringFormatMatches levé par construction.
+
+#### Écarts documentés
+
+- **Interrupteurs de capacités et gravité affichée : PUCES « Bientôt »**
+  (pas d'interrupteurs) — décision LSP-2 assumée : les filtres exigent
+  une évolution de la bibliothèque code-editor ; RIEN n'est persisté sans
+  effet (ADR 0059). Les rangées de Fonctions affichent les capacités
+  ANNONCÉES en lecture seule ; elles deviendront des interrupteurs au
+  chantier code-editor (la table statique est déjà branchée).
+- **Rangée « Version » du moteur (L2)** : OMISE — aucune version de
+  moteur n'est exposée par `:lsp:host` (la définition cel-lsp ne porte
+  que nom/extension) ; ne jamais afficher une donnée inventée.
+- **Lien « Détails de l'indexation » (L3)** : DIFFÉRÉ au lot LSP-4 — le
+  bottom sheet ADR 0117 et son présentateur sont `internal` à
+  `:feature:editor` ; l'ouvrir depuis les réglages demanderait une
+  route app + une publication du modèle (documenté dans
+  `LSP_SPEC_ECRANS.md`).
+- « Dernière activité » (L5) : heure ABSOLUE du dernier passage
+  (« dernier passage à 14:02 »), jamais un temps relatif (fiabilité non
+  tranchée, L6 de la revue).
+- Recette visuelle sur appareil (360 dp, clair + sombre) rejoint
+  `TESTS_MANUELS.md` § LSP-3 — à dérouler au prochain retour
+  propriétaire, comme pour UI-3.
+
 ## [0.160.0] – 2026-10-20
 
 ### UI-3 — Settings : les rangées passent à `RangeeParametre`, les cartes à `Widget.CodeIDE.Card` (audit C6/C4/C3/C1, ADR 0127)
