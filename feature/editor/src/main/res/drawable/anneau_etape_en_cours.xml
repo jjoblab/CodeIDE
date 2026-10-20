@@ -25,6 +25,6 @@
     <path
         android:pathData="M 8 2 A 6 6 0 1 1 2 8"
         android:strokeWidth="2"
-        android:strokeColor="#FFFFFFFF"
+        android:strokeColor="@color/anneau_etape_masque"
         android:strokeLineCap="round" />
 </vector>
