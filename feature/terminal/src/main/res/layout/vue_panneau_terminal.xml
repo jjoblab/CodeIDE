@@ -16,15 +16,15 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:layout_marginEnd="@dimen/spacing_xs"
         android:background="@drawable/fond_mini_entete_panneau"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="10dp"
-        android:paddingTop="3dp"
-        android:paddingEnd="4dp"
-        android:paddingBottom="3dp">
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingTop="@dimen/spacing_xs"
+        android:paddingEnd="@dimen/spacing_xs"
+        android:paddingBottom="@dimen/spacing_xs">
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/libelle_panneau"
@@ -35,7 +35,7 @@
             android:fontFamily="monospace"
             android:singleLine="true"
             android:textColor="@color/codeide_explorateur_texte_2"
-            android:textSize="10.5sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             tools:text="main" />
 
         <ImageView
@@ -44,7 +44,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/tiroir_terminal_retour_liste_cd"
-            android:padding="7dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_retour_liste"
             android:visibility="gone"
             app:tint="@color/codeide_explorateur_texte_2"
@@ -56,7 +56,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/tiroir_terminal_agrandir_dans_tiroir_cd"
-            android:padding="7dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_agrandir_dans_tiroir"
             app:tint="@color/codeide_explorateur_texte_2" />
 
@@ -66,7 +66,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/tiroir_terminal_plein_ecran_cd"
-            android:padding="7dp"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_plein_ecran_externe"
             app:tint="@color/codeide_explorateur_texte_2" />
     </LinearLayout>
