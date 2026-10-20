@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.165.0] – 2026-10-21
+
+### UI-6 — `feature:preview` : zéro littéral, le module quitte la baseline (16 fichiers, 30 occurrences → 0, audit C5/C9, ADR 0127 §4-5)
+
+#### Supprimé
+
+- **3 drawables orphelins** (zéro référence dans les layouts et le code,
+  remplaçants livrés par PE11j/PE11k) : `fond_mode_palette.xml` et
+  `fond_position_placement.xml` (les boutons de mode de la palette et de
+  position du placement vivent sur `apercu_mode_palette_bouton_fond`,
+  « sert aux deux » selon son commentaire — l'ancien `fond_mode_palette`
+  n'était référencé par aucun layout, déjà documenté dans
+  `popover_palette.xml`), `fond_pastille_probleme.xml` (les rangées de
+  problèmes vivent sur `apercu_probleme_point` depuis PE11k).
+
+#### Modifié
+
+- **Masques de ripple et bases tintables** : `#FFFFFFFF` →
+  `@android:color/white` dans `apercu_bouton_icone_fond.xml` (masque de
+  l'ondulation des boutons ronds 36 dp), `apercu_hud_bouton_fond.xml`
+  (masque des boutons du HUD) et `apercu_pastille_menu.xml` (base BLANCHE
+  tintée au liage par `backgroundTintList` — la teinte suit la couche du
+  menu, pixel pour pixel) — même valeur, constante framework (précédent
+  UI-4 terminal).
+- **Ombre du bouton sélectionné** : `#2E000000` de
+  `apercu_mode_palette_bouton_fond.xml` → `@color/apercu_ombre_bouton`,
+  jeton dédié PAR RÔLE (même valeur que `apercu_ecran_trait`, valeurs
+  clair/nuit identiques) — le box-shadow `0 1px 3px rgba(0,0,0,.18)` de
+  la maquette reste cité en commentaire ; un rôle distinct évite qu'une
+  retouche de l'anneau d'écran entraîne l'ombre du bouton.
+- **Les 8 icônes vectorielles des boutons d'aperçu (24 dp, trait 2)** (`apercu_ic_retour`,
+  `_plus`, `_annuler`, `_retablir`, `_dupliquer`, `_supprimer`,
+  `_fermer`, `_bulle`) : traits `#FF000000` → `@android:color/black`,
+  fonds `#00000000` → `@android:color/transparent` — les VALEURS PAR
+  DÉFAUT du format d'origine, inchangées ; la teinte suit le `android:tint`
+  posé au liage (rendu identique).
+- **Volet Attributs — les 2 derniers `Toast` système du module** : le
+  refus d'édition périmée (`editerOuRecharger`) et le succès d'une
+  correction (`annoncerCorrectif`, ex-`toastCorrectif`) passent par le
+  TOAST MAISON de l'activité : nouveau contrat hôte `HoteVoletsApercu`
+  (`VoletFeuilleFragment.kt`) implémenté par `PreviewActivity.annoncer`
+  → `ToastApercu` (ADR 0134 D6 « remplace tout Toast système », le
+  message part en haut-centre au fond inversé, fondu 200 ms / 2,4 s —
+  même présentation que le reste de l'écran, miroir `fx.msg`) ; hôte
+  absent : sans effet, même garde que le contrat hôte de l'éditeur
+  (ADR 0126).
+
+#### Baseline
+
+- `config/ui-baseline.json` : 34 → **18 fichiers** (68 → 38 occurrences) —
+  `feature/preview` ENTIEREMENT hors (16 fichiers sortis). Critère du lot
+  UI-6 atteint (baseline à 0 pour le module). Restent : `feature/ai` (9),
+  `newproject` (7), `diagnostics` (1), `onboarding` (1) — lots futurs ou
+  dette cliquetée ; la part Toast de ces modules part en UI-7.
+- Recette appareil `TESTS_MANUELS.md` § UI-6 : 7 points, 360 dp, clair et
+  sombre — vérifier que les 8 icônes teintées, les masques de ripple (le
+  toucher des boutons ronds et HUD), l'ombre du bouton de mode sélectionné,
+  les pastilles de menus/calques et les DEUX retours du volet Attributs
+  sont identiques à avant.
+
 ## [0.164.0] – 2026-10-21
 
 ### UI-5 — `feature/editor` : zéro littéral, le plus gros module sort de la baseline (354 occurrences → 0 sur 35 fichiers, audit C1/C2/C3/C4/C5/C9, ADR 0127 §4-5)

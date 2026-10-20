@@ -132,7 +132,11 @@ bougeront de 1–2 dp : c'est le prix de l'unité, atténué par la capture avan
    (Settings hors baseline) ; UI-4 v0.163.0 ✅ (install, crash, terminal hors baseline —
    85 → 69 fichiers) ; UI-5 v0.164.0 ✅ (editor hors baseline — 354 occurrences → 0,
    69 → 34 fichiers ; nouveau style `Widget.CodeIDE.CircularProgressIndicator`,
-   4 jetons dédiés editor pour les cotes composées) ; RESTENT UI-6 (preview),
-   UI-7 (Toast → Snackbar).
+   4 jetons dédiés editor pour les cotes composées) ; UI-6 v0.165.0 ✅
+   (preview hors baseline — 16 fichiers, 30 occurrences → 0, baseline
+   34 → 18 fichiers : constantes framework/couleurs nommées dans les 15
+   drawables plafonnés, 3 orphelins supprimés, les 2 derniers Toast du
+   module passent par le toast maison `ToastApercu` d'ADR 0134 D6) ;
+   RESTE UI-7 (Toast → Snackbar final + durcissement du scanner).
 4. [x] Mettre à jour `docs/CONVENTIONS.md` (liens vers cet ADR) et `AGENTS.md` (règle 15 :
    « aucun littéral UI ») — livré par UI-2 v0.159.0.
