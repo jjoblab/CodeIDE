@@ -22,20 +22,20 @@
         android:layout_height="wrap_content"
         android:background="@drawable/fond_popover"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="@dimen/spacing_md_compact">
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/message_supprimer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="12.5sp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             tools:text="Supprimer docs et tout son contenu ? Action définitive." />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="@dimen/spacing_md_compact"
             android:gravity="end"
             android:orientation="horizontal">
 
@@ -46,25 +46,25 @@
                 android:background="@drawable/fond_action_popover"
                 android:clickable="true"
                 android:focusable="true"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="7dp"
+                android:paddingHorizontal="@dimen/spacing_md_compact"
+                android:paddingVertical="@dimen/spacing_sm"
                 android:text="@string/deplacer_annuler"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="12.5sp" />
+                android:textAppearance="?attr/textAppearanceLabelMedium" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/bouton_confirmer_supprimer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:background="@drawable/fond_bouton_dangereux_popover"
                 android:clickable="true"
                 android:focusable="true"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="7dp"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingVertical="@dimen/spacing_sm"
                 android:text="@string/popover_supprimer"
                 android:textColor="?attr/colorOnPrimary"
-                android:textSize="12.5sp"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

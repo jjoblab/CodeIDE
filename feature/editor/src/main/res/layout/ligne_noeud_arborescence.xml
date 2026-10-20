@@ -3,8 +3,8 @@
   Ligne d'un nœud de l'arborescence v2 (étape 31, § 6.1-6.3,
   docs/EXPLORATEUR_V2.md) : guides dessinés par VueGuides, chevron des
   dossiers (20 dp, tourné déplié), point d'état des fichiers (VuePointEtat,
-  20 dp), icône 17 dp, nom 13 sp, compteur d'enfants mono 10 sp, badge de
-  chemin de la racine, états chargement/erreur.
+  20 dp), icône 17 dp, nom 12 sp (BodySmall — table §4 ADR 0127), compteur
+  d'enfants mono Micro, badge de chemin de la racine, états chargement/erreur.
 
   Hauteur 34 dp (38 dp racine) posée à la liaison ; la barre de
   sélection et le fond dégradé viennent de fond_ligne_selectionnee.
@@ -57,13 +57,13 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- Icône du type (17 dp, marges 5/2 § 8). -->
+        <!-- Icône du type (17 dp, marges 5/2 § 8 — arrondies xs/2xs, table §4). -->
         <ImageView
             android:id="@+id/icone_noeud"
             android:layout_width="@dimen/editor_icone_noeud"
             android:layout_height="@dimen/editor_icone_noeud"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="2dp"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:layout_marginEnd="@dimen/spacing_2xs"
             android:contentDescription="@null"
             tools:src="@drawable/ic_fichier_kotlin" />
 
@@ -76,7 +76,7 @@
             android:fontFamily="monospace"
             android:singleLine="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="13sp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             tools:text="Greeter.kt" />
 
         <!-- Énumération en vol (latence SAF réelle du dépliement). -->
@@ -103,7 +103,7 @@
             app:tint="@color/codeide_explorateur_rouge"
             tools:visibility="visible" />
 
-        <!-- Compteur d'enfants du dossier (mono 10 sp, texte 3). -->
+        <!-- Compteur d'enfants du dossier (mono Micro, texte 3). -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/compte_noeud"
             android:layout_width="wrap_content"
@@ -111,12 +111,12 @@
             android:layout_marginStart="@dimen/editor_ecart_actions"
             android:fontFamily="monospace"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="10sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             android:visibility="gone"
             tools:text="12"
             tools:visibility="visible" />
 
-        <!-- Badge de chemin de la racine (mono 9,5 sp, tronqué). -->
+        <!-- Badge de chemin de la racine (mono Micro, tronqué). -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/badge_racine"
             android:layout_width="wrap_content"
@@ -125,13 +125,13 @@
             android:background="@drawable/fond_badge_racine"
             android:ellipsize="middle"
             android:fontFamily="monospace"
-            android:paddingStart="7dp"
-            android:paddingEnd="7dp"
+            android:paddingStart="@dimen/spacing_sm"
+            android:paddingEnd="@dimen/spacing_sm"
             android:paddingBottom="2.5dp"
             android:paddingTop="2.5dp"
             android:singleLine="true"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="9.5sp" tools:ignore="SmallSp"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Micro"
             android:visibility="gone"
             tools:text="/storage/emulated/0/CodeIDE"
             tools:visibility="visible" />
@@ -145,7 +145,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingVertical="4dp"
+        android:paddingVertical="@dimen/spacing_xs"
         android:visibility="gone"
         tools:visibility="visible">
 
@@ -153,7 +153,7 @@
             android:id="@+id/icone_edition"
             android:layout_width="@dimen/editor_icone_noeud"
             android:layout_height="@dimen/editor_icone_noeud"
-            android:layout_marginEnd="4dp"
+            android:layout_marginEnd="@dimen/spacing_xs"
             android:contentDescription="@null"
             tools:src="@drawable/ic_fichier_kotlin" />
 
@@ -168,19 +168,19 @@
             android:imeOptions="actionDone"
             android:importantForAutofill="no"
             android:inputType="textNoSuggestions"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="5dp"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs"
             android:singleLine="true"
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
             tools:text="Greeter.kt" />
 
         <ImageButton
             android:id="@+id/bouton_valider_edition"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginStart="3dp"
+            android:layout_marginStart="@dimen/editor_ecart_actions"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/edition_valider_cd"
             android:src="@drawable/ic_fait"
