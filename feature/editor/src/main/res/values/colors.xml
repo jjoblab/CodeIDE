@@ -100,4 +100,27 @@
     <color name="historique_diff_ajout_fond">#142E7D38</color>
     <color name="historique_diff_retrait_fond">#14C6362D</color>
     <color name="logcat_bandeau_arret_fond">#14B3261E</color>
+
+    <!-- Lot UI-5 (ADR 0127 §4, audit C9/R3) : les hex des drawables non-icônes
+         migrent vers des couleurs NOMMÉES — le cliquet checkUiTokens n'accepte
+         plus aucun littéral dans les drawables, ces points d'ancrage restent
+         l'unique endroit des valeurs hex du module. -->
+
+    <!-- Masque neutre de l'anneau tournant d'étape (anneau_etape_en_cours) :
+         la couleur VISIBLE vient du backgroundTintList posé par
+         EtapeArbreHolder.lier — le blanc n'est qu'un support de teinte. -->
+    <color name="anneau_etape_masque">#FFFFFFFF</color>
+
+    <!-- Illustration de l'état vide de l'éditeur (ill_editeur_code, v0.32.3) :
+         palette ardoise assumée, lisible jour et nuit sans teinte (comme la
+         famille d'icônes de l'explorateur). -->
+    <color name="ill_editeur_fond">#26303E</color>
+    <color name="ill_editeur_point_clair">#8a93a3</color>
+    <color name="ill_editeur_point_moyen">#5d6673</color>
+    <color name="ill_editeur_point_sombre">#3d4552</color>
+    <color name="ill_editeur_ligne_accent">#4A5568</color>
+    <color name="ill_editeur_ligne_longue">#3E4C63</color>
+    <color name="ill_editeur_ligne_courte">#55637A</color>
+    <color name="ill_editeur_ligne_bas">#64748B</color>
+    <color name="ill_editeur_chevron">#cdbaf2</color>
 </resources>
