@@ -1,5 +1,48 @@
 # Journal des modifications
 
+## [0.156.3] – 2026-10-20
+
+### LSP-0 — purge, source unique, numérotation d'ADR (les deux dépôts)
+
+- **Purge des désignations du projet tiers (miroir de l'ADR 0200 du
+  frère)** : 88 remplacements dans l'arbre courant — CHANGELOG (22),
+  ADR 0054/0056/0067/0102/0103, ADR héritées 0109/0110/0111/0115
+  (versions purgées **et à jour** reprises du frère — l'ADR 0110 y
+  porte le statut CLÔTURÉ du 19/10/2026), ROADMAP, 4 rapports d'audit
+  archivés, `PLAN_STABILISATION_LSP` archivé, commentaires de code
+  (`GradleService`, `Projet.kt`, `AndroidApplicationConventionPlugin`,
+  `activity_editor.xml`, `fond_barre_symboles.xml`, `colors.xml`,
+  `strings.xml`, `ci.yml`), signature (`README`, exemple keystore) et
+  un nom d'assertion de test. Désignation neutre « projet de
+  référence » / « auteur tiers », comme la purge propriétaire du
+  frère. **L'historique Git de CodeIDE n'est PAS réécrit** (messages
+  de commits et tags anciens intacts — un `filter-repo` reste à la
+  discrétion du propriétaire, cf. règle 13).
+- **Docs LSP en source unique (L5)** : `LSP_JAVA.md`, `LSP_KOTLIN.md`,
+  `LSP_XML.md` deviennent des **stubs de renvoi** vers
+  `jjoblab/codeide-lsp` — le contenu vit et évolue dans le dépôt du
+  domaine LSP (l'ancienne copie locale citait le projet tiers) ;
+  l'historique intégral reste dans `git log --follow`.
+- **Numérotation d'ADR inter-dépôts (L4)** : règle 14 d'AGENTS.md —
+  CodeIDE 0001–0199 ; `codeide-lsp` : héritage 0001–0120 gelé,
+  décisions propres 0200–0299 ; `codeide-tooling` : 0300–0399 le cas
+  échéant. L'ADR 0121 du frère (rectification de provenance,
+  décision propriétaire du 19/10/2026) est renumérotée **ADR 0200**
+  pour lever la collision avec l'ADR 0121 de CodeIDE.
+- **Côté frère (dépôt `codeide-lsp`, commits `2aaa65a` + correctif)** :
+  README — le moteur Kotlin est le **parseur sur la grammaire
+  vendorée** (K1–K3 ; Analysis API K2 écartée D1, compilation K2
+  différée au tooling D8 : l'arbitrage K1/K2 de la revue) et la
+  publication GitHub Packages est **faite** (v1.0.0+, consommée par
+  CodeIDE 1.0.2) ; section « ADR et numérotation » ; coquille de la
+  purge propriétaire corrigée dans l'ADR 0115 (« L'étudu » →
+  « L'étude du projet de référence »).
+- **Arbitrage K1/K2 (L2)** : la contradiction README-frère (« K2 »)
+  vs `settings.gradle.kts` (« K1 ») est levée par la description
+  factuelle : la désignation « K1 » de CodeIDE désigne l'étape de
+  mission « vendoring grammaire » (LSP_KOTLIN.md, ADR 0115) ; le
+  moteur n'embarque PAS le frontend K2.
+
 ## [0.156.2] – 2026-10-20
 
 ### Outillage (docs)
@@ -2838,7 +2881,7 @@ avant l'écran de revue.
   (16/10/2026)** : réécriture ciblée aux seuls shims niveau A
   objectivés par l'audit (`RuntimeVersion`, `StackWalker`,
   `InputStreamCompat`) — la quasi-totalité des fichiers étant de l'auteur
-  (référence CodeAssist consultée pour l'APPROCHE seulement, « pas au
+  (référence au projet tiers consultée pour l'APPROCHE seulement, « pas au
   mot près ») ; niveau B inchangé, pas de lot G complet. Trace :
   `docs/adr/0110-lsp-java-provenance-licence.md` (statut « accepté
   partiellement ») + PV `docs/LSP_JAVA.md` §18.2 ; le protocole de
@@ -4827,7 +4870,7 @@ avant l'écran de revue.
     plateforme (3 515 ressources publiques, PARSÉ PAR NOTRE PROPRE
     parseur) ; sans catalogue, une référence framework n'est jamais
     signalée ; index froid = DUMB MODE silencieux (même garde que
-    CodeAssist).
+    projet de référence).
   - **Complétion de VALEURS** : `@` → types du projet puis noms du
     type filtrés ; `@android:` → types et noms du framework ;
     `?attr/` → attributs de style du projet ; énumérations et fanions
@@ -4901,7 +4944,7 @@ avant l'écran de revue.
     pack) : le XML Android n'est PAS schématisable (XSD écarté,
     Lemminx écarté) — sa sémantique viendra des données de plateforme
     (XE2) et des ressources du projet (XE3), jamais d'un schéma.
-  - **Parseur TOLÉRANT écrit main** (leçon CodeAssist : un parseur
+  - **Parseur TOLÉRANT écrit main** (leçon du projet de référence : un parseur
     strict, XmlPullParser compris, est inutilisable pour l'ÉDITION) :
     pile de noms ouverts — une balise non fermée se rétablit (marqueur
     sur son NOM, sauf balise EN ÉDITION : le `>` n'est pas encore
@@ -5139,7 +5182,7 @@ avant l'écran de revue.
 - **Previews — étape PE2 : isolation processus `:preview`** (`docs/PREVIEW.md`
   §3 P3/P4, §6) : le rendu des layouts du projet édité quitte le
   processus de l'IDE — une vue framework qui crashe ou bloque tue le
-  processus `:preview`, jamais l'éditeur (motif CodeAssist) :
+  processus `:preview`, jamais l'éditeur (motif du projet de référence) :
   - **Frontière AIDL** (`IRenduApercu.rendre(xml, dossierRes)` +
     `ResultatRendu` Parcelable) : le bitmap voyage **compressé en PNG**
     (une transaction Binder plafonne à ~1 Mo), décompressé côté app ;
@@ -5336,7 +5379,7 @@ avant l'écran de revue.
     6×), pan borné, double-tap de réajustement, damier de transparence,
     bandeau d'erreur lisible en haut, signal discret d'édition en bas,
     accueil — aucun panneau vide, jamais de toast (§3.3).
-  - **Classification `previewKindOf`** (à la CodeAssist) : LAYOUT
+  - **Classification `previewKindOf`** (à la manière du projet de référence) : LAYOUT
     (chemin `res/layout*` ou racine vue/groupe, noms AndroidX normalisés
     au nom simple), DRAWABLE et VALEURS classifiés dès maintenant — le
     RENDU en est réservé à PE3 (état d'accueil honnête).
@@ -5451,8 +5494,8 @@ avant l'écran de revue.
 ### Ajouté
 
 - **Cadrage des trois missions suivantes** (décisions propriétaire du
-  2026-10-13, formalisées suite à l'étude comparative de CodeAssist
-  (tyron12233, GPL — enseignements d'architecture uniquement, zéro code
+  2026-10-13, formalisées suite à l'étude comparative du projet de référence
+  (auteur tiers, GPL — enseignements d'architecture uniquement, zéro code
   réutilisé) et l'analyse directe de jjoblab/LayoutLib v2.1.0) :
   - **`docs/LSP_KOTLIN.md`** — LSP Kotlin **in-process** par parseur
     vendoré (grammaire officielle du compilateur, Apache 2.0, suite de
@@ -5472,7 +5515,7 @@ avant l'écran de revue.
     jjoblab/LayoutLib v2.1.0 (dépendance Maven versionnée, ressources
     par FUSE, isolation processus `:preview` avec AIDL/DeathRecipient/
     repli in-process, PE1–PE3, limitations tracées) ; **Compose** par
-    **interpréteur sur l'arbre résolu** (approche CodeAssist : runtime
+    **interpréteur sur l'arbre résolu** (approche du projet de référence : runtime
     embarqué comme bibliothèque, streaming bitmap + forwarding
     d'entrées, garde-fous obligatoires, C0–C3 **après stabilisation
     LSP Kotlin**) ; ADR 0002 intact (pas de Compose dans l'UI CodeIDE).
@@ -6125,7 +6168,7 @@ avant l'écran de revue.
   de la complétion NOM : contrat « jamais null »**
   (étude §4.2/§4.3 — symptôme « got 0 items » du banc ; docs/
   LSP_JAVA.md §15.6) : les contextes NON capturés par conception
-  (nom de déclaration — parité CodeAssist « ContextAnalyzer ne capture
+  (nom de déclaration — parité avec le projet de référence « ContextAnalyzer ne capture
   pas les noms de déclarations » ; annotation en recovery — les
   annotation-statements ne sont pas une syntaxe Java valide ; position
   après crochets de tableau) faisaient rendre `null` par
@@ -6241,7 +6284,7 @@ avant l'écran de revue.
     `OperationCanceledException`, `CompilationEnvironment` (supprimé à
     terme par le lot C), façades LSP4J, `api/*`, `services/*` ; le
     package du patcher `jo.lspjava.jdtpatch` ne figure pas dans la
-    table — inchangé. Les mentions PROVENANCE de classes CodeAssist
+    table — inchangé. Les mentions PROVENANCE de classes du projet de référence
     (`{@code JdtResolver}`, `JdtEnvironmentCache`…) restent : elles
     documentent l'histoire (audit D3), pas le code présent.
   - Chaîne verte : `:lsp:java` 277 tests (69 skippés
@@ -6255,7 +6298,7 @@ avant l'écran de revue.
   shims ART réécrits depuis la spécification JDK** (prompt 2 §7.1 ;
   ADR 0110 §5.3 lot 1 ; docs/LSP_JAVA.md §15) :
   - `compat/RuntimeVersion` (niveau A : 69 % lignes identiques à
-    CodeAssist / Jaccard 0,93) **réécrit depuis le javadoc JDK +
+    projet de référence / Jaccard 0,93) **réécrit depuis le javadoc JDK +
     JEP 322** en `ArtCompatVersion` — balayage unique de `$VNUM`
     (plus de `split`), garde de segment vide/non numérique/négatif,
     ordre élément par élément (divergence `1.8 < 9` conservée :
@@ -6427,7 +6470,7 @@ avant l'écran de revue.
     `Project.javaexec`), `JO_TEST_JDK_HOME` fourni par le build (les
     sondes du module attrapaient sinon des JRE système sans `src.zip`
     — 6 tests JDK corrigeables par l'environnement), README d'exemption
-    (règle 8) et crédits CodeAssist. Suite vendored : **246 tests
+    (règle 8) et crédits au projet de référence. Suite vendored : **246 tests
     verts**.
 - **Mission 1 (section Git figée) — preuve appareil REÇUE**
   (docs/GIT.md §2.3) : le diagnostic Git exécuté sur l'appareil
@@ -6519,7 +6562,7 @@ avant l'écran de revue.
     `StackWalker` 40 %/0,89 ; `InputStreamCompat` 60 %/0,57) ;
     niveau B : 31 fichiers « portage » déclarés, ressemblance
     textuelle faible mais constantes de score identiques à
-    `CompletionRanker` de CodeAssist ; passes `RelocateTypesInJar`/
+    `CompletionRanker` du projet de référence ; passes `RelocateTypesInJar`/
     `EclipseStreamArtPass` retrouvées ; six noms de fichiers
     identiques. **ADR 0110 PROPOSÉ : quatre options soumises au
     propriétaire** (réécriture cloisonnée — recommandée,
@@ -6528,12 +6571,12 @@ avant l'écran de revue.
   - **ADR** : 0108 (D1, module vendored Java exempté, nouvelles
     couches Kotlin, conversion conditionnelle), 0109 (D2, in-process
     ART + transport abstrait), 0111 (D4, index disque en segments
-    PAR JAR — amélioration du modèle CodeAssist), 0112 (D5,
+    PAR JAR — amélioration du modèle du projet de référence), 0112 (D5,
     `android.jar` seul pour les modules Android, conformité par
     module).
   - **Plan de renommage** complet (préfixe `Ecj*`, package
     `jo.lspjava.ecj`, shims `ArtCompat*` — aucun nom identique à
-    CodeAssist), **étude d'extractibilité** (extraire plus tard,
+    projet de référence), **étude d'extractibilité** (extraire plus tard,
     design extractible conservé), **plan ajusté des étapes 1–5** et
     **procédure de mesure appareil** écrite (exécution aux étapes 3+).
 
@@ -9576,7 +9619,7 @@ professionnel » étapes 1-4/6)
   ref (les runs des tags poussés ensemble ne voient pas la même entrée)
   et évictables (7 jours d'inactivité, pression des caches Gradle) :
   chaque APK repartait d'une clé aléatoire. D'où la référence étudiée :
-  **CodeAssist (tyron12233)** versionne son `debug.keystore` dans le
+  **projet tiers de référence** versionne son `debug.keystore` dans le
   dépôt et résout la clé de release par une échelle hors dépôt
   (`keystore.properties` gitignoré → propriété Gradle → variable
   d'environnement).
@@ -9584,7 +9627,7 @@ professionnel » étapes 1-4/6)
   (identifiants publics par convention Android — magasin et clé
   `android`, alias `androiddebugkey`, sujet `CN=Android Debug,O=Android,C=US`,
   RSA 2048, validité 10 000 jours, PKCS12 legacy comme le
-  `DebugKeystore` de CodeAssist) est commis dans le dépôt et câblé comme
+  `DebugKeystore` du projet de référence) est commis dans le dépôt et câblé comme
   signature de la variante debug par le convention plugin
   `codeide.android.application`. Une clé debug n'est pas un secret —
   c'est le patron des clés de test d'AOSP, publiques par design : la
@@ -9594,7 +9637,7 @@ professionnel » étapes 1-4/6)
   dépôt » est amendée (AGENTS.md règle 7, .gitignore, ADR 0067) : seule
   l'identité debug publique fait exception ; les clés RELEASE restent
   interdites au dépôt.
-- **Échelle de signature release hors dépôt** (patron CodeAssist) :
+- **Échelle de signature release hors dépôt** (patron du projet de référence) :
   `config/signature/keystore.properties` (gitignoré, modèle
   `keystore.properties.example`) → propriété Gradle `-PRELEASE_*` →
   variable d'environnement `RELEASE_*`. Sans keystore résolu, la
@@ -9955,12 +9998,12 @@ professionnel » étapes 1-4/6)
   unique producteur, 339 lignes + 11 tests) part avec : aucun code mort
   ne reste pour un « pour le moment ». Une future reprise partira d'un
   design validé, pas d'une transcription.
-- **Barre de symboles VISIBLE et collée au clavier, patron CodeAssist
+- **Barre de symboles VISIBLE et collée au clavier, patron du projet de référence
   (ADR 0056)** — cause racine enfin trouvée : `enableEdgeToEdge()` rend
   `adjustResize` inerte sur API 30+ (la fenêtre ne rétrécit pas), le
   panneau et sa barre restaient donc DERRIÈRE le clavier — l'astuce de
   peek de la v0.32.4 élargissait un panneau que rien ne remontait. Le
-  dépôt CodeAssist (tyron12233) a été analysé comme demandé : la barre y
+  dépôt projet tiers de référence a été analysé comme demandé : la barre y
   est la DERNIÈRE vue de la colonne éditeur, remontée par les insets
   IME, le dock se cachant pendant la frappe. Transposition : la
   `SymbolBarView` passe du sheet au bas de `zone_centrale` ; le bas de
@@ -10067,7 +10110,7 @@ professionnel » étapes 1-4/6)
 - **Fil d'Ariane de l'éditeur (ADR 0054)** — « dossier › … › fichier ›
   classe › fonction » sous les onglets, au-dessus de la zone d'édition,
   transposé de la `BreadcrumbBar` de la bibliothèque code-editor
-  (`view/chrome/BreadcrumbBar.java`, « à la CodeAssist/IntelliJ ») :
+  (`view/chrome/BreadcrumbBar.java`, « à la manière du projet de référence/IntelliJ ») :
   barre de 28 dp, monospace 12 sp, chevrons ›, dernier segment en gras
   accent. Le SPI `SymbolProvider` n'étant pas encore câblé dans
   cel-ui 3.37.0, le scanner [SymbolesEnglobants] est maison — portées
@@ -10081,7 +10124,7 @@ professionnel » étapes 1-4/6)
   la `SymbolBarView` de la bibliothèque code-editor : touches épinglées
   (Tab, //, ↑, ↓, Dup) + rangée défilante de 28 symboles, sous l'en-tête
   du panneau inférieur, **visible uniquement quand l'IME est ouvert**.
-  Touches en `onTouchEvent` brut (à la CodeAssist) : jamais de vol de
+  Touches en `onTouchEvent` brut (à la manière du projet de référence) : jamais de vol de
   focus, l'éditeur garde le sien et le clavier reste ouvert ; Tab
   indente, // bascule le commentaire de ligne, ↑/↓ déplacent la ligne,
   Dup duplique la sélection, chaque symbole s'insère par `typeChar`

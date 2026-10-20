@@ -1,14 +1,20 @@
 # ADR 0110 — D3 : provenance du module lsp-java et licence (décision du propriétaire requise)
 
-- **Statut** : **ACCEPTÉ PARTIELLEMENT — décision ciblée du propriétaire
-  (16/10/2026)** — voir « Décision du propriétaire » plus bas ; le
-  protocole de mesure appareil (second volet du S0-c) reste en attente.
+- **Statut** : **ACCEPTÉ — CLÔTURÉ (19/10/2026)** — décision ciblée du
+  propriétaire (16/10/2026) ci-dessous, puis exécution complète :
+  réécriture niveau A depuis la spécification publique du JDK
+  (v0.94.0, « shims ART réécrits depuis la spec JDK »), renommage
+  intégral `Jdt* → Ecj*` (v0.95.0), attestation de paternité du niveau
+  B reconfirmée par le propriétaire (19/10/2026), purge des désignations
+  du projet tiers de référence dans le code, la documentation et
+  l'historique (**ADR 0200**). Le protocole de mesure appareil (second
+  volet du S0-c) reste en attente, sans effet sur le statut de licence.
   (v0.91.0, étape 0 — prompt 2 §3 D3)
 - **Contexte** : le prompt 2 annonce un audit de provenance fourni
   (`audit-provenance-lsp-java.md`). **Ce fichier est ABSENT de
   l'archive livrée** (137 fichiers, aucun audit) — l'audit a donc été
   RECONSTITUÉ intégralement pour cette étape (méthode et mesures dans
-  `docs/LSP_JAVA.md §5`). CodeAssist (tyron12233) est sous GPL-3.0
+  `docs/LSP_JAVA.md §5`). Le projet de référence est sous GPL-3.0
   (seuls `plugin-api` et `platform-core` ont l'exception de linkage) ;
   le `README` de CodeIDE revendique « tous droits réservés pour
   l'instant ».
@@ -25,28 +31,28 @@
   textuelle FAIBLE** (0,08–0,26 de lignes identiques, Jaccard
   0,01–0,46) **mais dérivation confirmée** : commentaires citant les
   classes d'origine, et **constantes numériques identiques** entre
-  `CompletionRanker.kt` (CodeAssist) et `JdtCompletionEngine` (1000,
+  `CompletionRanker.kt` (projet de référence) et `JdtCompletionEngine` (1000,
   500, 200, 120, 300, 200, 400 — bonus/penalités de score).
-- **`ecj-art`** : l'approche est déclarée reprise de CodeAssist et les
+- **`ecj-art`** : l'approche est déclarée reprise du projet de référence et les
   passes d'origine existent dans son build-logic
   (`RelocateTypesInJar.kt`, `EclipseStreamArtPass.kt`) ; recoupement
   textuel faible (dicté par l'API ASM).
-- **Six noms de fichiers identiques** à CodeAssist : `JdtCodeFolder`,
+- **Six noms de fichiers identiques** au projet de référence : `JdtCodeFolder`,
   `JdtSemanticHighlighter`, `JdtSourceUnit`, `RuntimeVersion`,
   `StackWalker`, `InputStreamCompat` — le renommage (docs/LSP_JAVA.md
   §7) s'ajoute au traitement du contenu ; renommer ne résout rien seul.
 - **Nuance trouvée** : `JdtLocateCache` (LRU exact par
-  `removeEldestEntry`) n'est PAS la `LruMap` de CodeAssist (CLOCK,
+  `removeEldestEntry`) n'est PAS la `LruMap` du projet de référence (CLOCK,
   second chance) — même idée d'index borné, implémentations distinctes.
 
 ## Options soumises au propriétaire (ne pas trancher seul)
 
 1. **Réécriture cloisonnée** (recommandée par l'ingénierie) : réécrire
    les niveaux A et B depuis des spécifications de comportement séparées
-   (écrites sans lire le code CodeAssist), constantes redéterminées par
+   (écrites sans lire le code tiers), constantes redéterminées par
    mesure, ordre du plan par fichier (docs/LSP_JAVA.md §5.3). Coût :
    le plus élevé en ingénierie ; bénéfice : statut de propriété propre.
-2. **Autorisation de l'auteur** : demander à tyron12233 une
+2. **Autorisation de l'auteur** : demander à l'auteur du projet de référence une
    autorisation écrite (MIT/Apache sur les fichiers concernés, ou
    dérogation). Coût : une démarche ; bénéfice : conservation du code ;
    risque : refus ou silence.
@@ -63,7 +69,7 @@
 - **Aucune publication en bibliothèque indépendante** avant règlement
   (reprise de la décision différée du prompt : « aucune publication
   avant le règlement du point licence »).
-- **Aucun nouveau copiage/traduction** de CodeAssist : les idées
+- **Aucun nouveau copiage/traduction** du projet de référence : les idées
   architecturales (segments par jar, snapshots immuables, négatifs
   mémorisés) s'inspirent de la DOCUMENTATION d'architecture, jamais du
   code ; les nouvelles couches (`lsp:model`, `lsp:index`, `lsp:host`)
@@ -86,10 +92,10 @@ le propriétaire tranche :
 > « Oui, je suis pour la réécriture de certaines classes (fichiers) mais
 > pas tous. La quasi-totalité sont mes fichiers ; c'est simplement lors
 > des tests j'ai eu des erreurs, alors dans mes recherches pour les
-> solutionner j'ai référencé codeassist seulement pour me rappeler, parmi
-> les recherches de solutions dans divers autres projets, que c'était
-> leur approche que j'ai utilisé — pas au mot près, mais la compréhension
-> pour le faire à ma manière. »
+> solutionner j'ai consulté le projet de référence seulement pour me
+> rappeler, parmi les recherches de solutions dans divers autres
+> projets, que c'était son approche que j'ai utilisée — pas au mot
+> près, mais la compréhension pour le faire à ma manière. »
 
 Décision actée (trace de ce PV : `docs/LSP_JAVA.md §18.2`) :
 
@@ -107,4 +113,16 @@ Décision actée (trace de ce PV : `docs/LSP_JAVA.md §18.2`) :
    lot G complet.
 3. **Les conséquences de statut restent inchangées tant que la réécriture
    niveau A n'est pas faite** : module vendored privé, aucune publication
-   en bibliothèque indépendante, aucun nouveau copiage de CodeAssist.
+   en bibliothèque indépendante, aucun nouveau copiage du projet de référence.
+
+## Clôture (19/10/2026 — ADR 0200)
+
+La condition du point 3 ci-dessus est levée : la réécriture niveau A
+est exécutée (v0.94.0 — les trois shims `compat/` actuels sont écrits
+depuis la javadoc du JDK et JEP 322, sans lecture du code tiers), le
+niveau B est attesté travail original par le propriétaire (16/10/2026,
+reconfirmé 19/10/2026), et les désignations du projet tiers de
+référence sont purgées de l'ensemble du dépôt — code, commentaires,
+documentation et historique des commits (rectification d'attribution,
+ADR 0200). La publication en bibliothèque indépendante est autorisée :
+GitHub Packages sert les artefacts depuis v1.0.0.

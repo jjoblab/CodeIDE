@@ -8,7 +8,7 @@
 | **Version analysée** | v0.124.7 (VERSION_CODE 12407, commit `bd6f458`, 2026-10-14) |
 | **Document de référence** | `docs/LSP_JAVA.md` (1 806 lignes — étude étape 0 v0.91.0 + journal de livraison jusqu'à v0.108.0) |
 | **Code audité** | `lsp/java` : 51 fichiers main, 20 698 lignes ; modules connexes `lsp:host`, `lsp:index`, `lsp:model`, `lsp:testing`, `lsp:ecj-art` |
-| **Méthode** | Lecture intégrale de la référence ; lecture ciblée du code (capacités déclarées, handlers LSP4J, services, orchestrateur hôte, session) ; exécution fraîche de la suite de tests (lecture seule) ; comparaison avec Eclipse JDT.LS (README officiel master, vérifié le 2026-10-14), java-language-server, CodeAssist, Android Studio |
+| **Méthode** | Lecture intégrale de la référence ; lecture ciblée du code (capacités déclarées, handlers LSP4J, services, orchestrateur hôte, session) ; exécution fraîche de la suite de tests (lecture seule) ; comparaison avec Eclipse JDT.LS (README officiel master, vérifié le 2026-10-14), java-language-server, le projet de référence, Android Studio |
 | **Date du rapport** | 2026-10-14 |
 
 ---
@@ -19,7 +19,7 @@ Le LSP Java de CodeIDE est **architecturalement sain et fonctionnellement déjà
 
 Cinq constats majeurs tempèrent ce bilan et définissent le chantier de stabilisation :
 
-1. **Le risque n'est pas la qualité du code, mais la dette de provenance (D3/ADR 0110), toujours non réglée** : ~19 fichiers de niveau B dérivés de CodeAssist (GPL-3.0) attendent leur réécriture « lot G » (§16.3 de la référence). Tant que ce lot n'est pas fait — ou autorisé formellement par le propriétaire — toute publication/extraction du moteur est juridiquement bloquée, et la base de code reste un passif.
+1. **Le risque n'est pas la qualité du code, mais la dette de provenance (D3/ADR 0110), toujours non réglée** : ~19 fichiers de niveau B dérivés du projet de référence (GPL-3.0) attendent leur réécriture « lot G » (§16.3 de la référence). Tant que ce lot n'est pas fait — ou autorisé formellement par le propriétaire — toute publication/extraction du moteur est juridiquement bloquée, et la base de code reste un passif.
 2. **La conformité protocolaire LSP 3.17 est bonne sur ce qui est déclaré, mais le serveur reste en dessous du socle feature d'Eclipse JDT.LS** sur des méthodes structurantes pour l'expérience éditeur : `prepareRename` (absent → renommage qui échoue en silence), `workspace/symbol` (aucune recherche de type inter-fichiers à l'échelle du projet hors navigation par symbole), `rangeFormatting`/`onTypeFormatting`, `selectionRange`, tags de diagnostics, hiérarchies d'appels/de types, `codeLens`.
 3. **La conformité de compilation est figée à « 17 »** (constante par défaut de `CompilationEnvironment`) : les diagnostics de niveau de langage sont faux pour un projet Java 8 (acceptera du code illégal) ou Java 21+ (signalera à tort des syntaxes légales). La référence l'identifie déjà (§17.3, « candidat protocole v10 ») — c'est le gap fonctionnel le plus visible côté utilisateur après le renommage silencieux.
 4. **Quelques incohérences doc ↔ code et de convention internes** fragilisent la maintenabilité : négociation de clientCapabilities documentée mais inopérante, machine à états lifecycle documentée comme « doit rejeter » mais jamais consultée par les handlers, convention `null` vs liste vide divergente entre handlers, `ServerInfo.version` codé en dur (« 1.2.0 ») désynchronisé de la version du dépôt, messages de remède français concaténés à des diagnostics ecj anglais.
@@ -33,7 +33,7 @@ Cinq constats majeurs tempèrent ce bilan et définissent le chantier de stabili
 
 ### 2.1 Ce qui a été fait
 
-L'analyse a couvert, dans l'ordre : la lecture intégrale de `docs/LSP_JAVA.md` (1 806 lignes, du cadrage W1–W10 aux correctifs d'exploitation v0.108.0) ; la lecture des passages structurants des ADR 0108 (politique de langage/vendored), 0109 (modèle in-process), 0110 (provenance/licence), 0111 (index disque), 0112 (plateforme android.jar), 0113 (source classpath AGP v2) et 0117 (écran d'indexation, brouillon phase A) ; la lecture du code du module `lsp/java` en privilégiant la couche protocolaire (`ServerCapabilitiesProvider`, `JavaLanguageServer`, `JavaTextDocumentService`, `JavaWorkspaceService`, services `Diagnostic`/`Hover`/`Navigation`/`CodeAction`) et la couche moteur aux points signalés par la référence (`EcjCompletionEngine`, `EcjRenameEngine`, `DiagnosticService`, `StubsIntrinseques`) ; la lecture de l'hôte (`SessionLsp.kt`, `OrchestrateurLsp.kt`) ; l'exécution fraîche et complète des suites de tests des cinq modules LSP sur le clone lecture seule ; enfin la comparaison avec les serveurs de référence, adossée au README officiel d'Eclipse JDT.LS (branche master, consulté le 2026-10-14) et aux faits documentés dans la référence elle-même (audit de provenance CodeAssist, banc de mesures).
+L'analyse a couvert, dans l'ordre : la lecture intégrale de `docs/LSP_JAVA.md` (1 806 lignes, du cadrage W1–W10 aux correctifs d'exploitation v0.108.0) ; la lecture des passages structurants des ADR 0108 (politique de langage/vendored), 0109 (modèle in-process), 0110 (provenance/licence), 0111 (index disque), 0112 (plateforme android.jar), 0113 (source classpath AGP v2) et 0117 (écran d'indexation, brouillon phase A) ; la lecture du code du module `lsp/java` en privilégiant la couche protocolaire (`ServerCapabilitiesProvider`, `JavaLanguageServer`, `JavaTextDocumentService`, `JavaWorkspaceService`, services `Diagnostic`/`Hover`/`Navigation`/`CodeAction`) et la couche moteur aux points signalés par la référence (`EcjCompletionEngine`, `EcjRenameEngine`, `DiagnosticService`, `StubsIntrinseques`) ; la lecture de l'hôte (`SessionLsp.kt`, `OrchestrateurLsp.kt`) ; l'exécution fraîche et complète des suites de tests des cinq modules LSP sur le clone lecture seule ; enfin la comparaison avec les serveurs de référence, adossée au README officiel d'Eclipse JDT.LS (branche master, consulté le 2026-10-14) et aux faits documentés dans la référence elle-même (audit de provenance du projet de référence, banc de mesures).
 
 ### 2.2 Limites assumées
 
@@ -251,9 +251,9 @@ Lecture d'ensemble : **CodeIDE couvre ~70 % du socle feature JDT.LS qui compte p
 
 Serveur léger standalone (javac/javax.lang.model, classpath plat passé en paramètre). Complétion/hover/definition/references/rename/formatting de base, pas d'import de build, index simple. Par rapport à lui, CodeIDE est structurellement en avance (modèle Gradle réel, index disque versionné, moteurs par module, quick-fixes typés). Il n'apporte pas d'idée supplémentaire au plan de stabilisation, si ce n'est la confirmation que la valeur de CodeIDE est précisément dans l'intégration Gradle/Android que les serveurs génériques n'ont pas.
 
-### 7.3 CodeAssist (tyron12233) — la provenance
+### 7.3 Projet tiers de référence — la provenance
 
-L'audit D3 (§5 de la référence) a établi la dérivation : 3 fichiers niveau A (réécrits — lot A v0.94.0), ~31 fichiers mentionnant CodeAssist dont ~19 de niveau B à réécrire (lot G, non fait), 6 noms de fichiers identiques (renommés au lot B v0.95.0), constantes de scoring identiques à `CompletionRanker`. La GPL-3.0 de CodeAssist rend la situation bloquante pour toute publication du moteur tant que le lot G n'est pas traité ou autorisé. **C'est le point unique qui conditionne l'avenir « bibliothèque » du module** (l'étude d'extractibilité §8 concluait déjà : extraire plus tard, jamais avant règlement D3).
+L'audit D3 (§5 de la référence) a établi la dérivation : 3 fichiers niveau A (réécrits — lot A v0.94.0), ~31 fichiers mentionnant le projet de référence dont ~19 de niveau B à réécrire (lot G, non fait), 6 noms de fichiers identiques (renommés au lot B v0.95.0), constantes de scoring identiques à `CompletionRanker`. La GPL-3.0 du projet de référence rend la situation bloquante pour toute publication du moteur tant que le lot G n'est pas traité ou autorisé. **C'est le point unique qui conditionne l'avenir « bibliothèque » du module** (l'étude d'extractibilité §8 concluait déjà : extraire plus tard, jamais avant règlement D3).
 
 ### 7.4 Android Studio (la référence UX implicite)
 
@@ -311,7 +311,7 @@ Quatre limites assumées par la référence : compliance par module (protocole v
 | I12 | `filterText` jamais rempli (risque filtrage client) | `JavaTextDocumentService.java` L1773–1846 | **À vérifier (haute si le client filtre)** | S |
 | I14 | Remèdes FR concaténés aux messages ecj EN | L1048–1050, L1086–1089 | Faible (i18n) | S |
 | I15 | `LSP_JAVA.md` arrêté à v0.108.0 | `docs/LSP_JAVA.md` | Moyenne (maintenabilité) | Continu |
-| D3/G | ~19 fichiers niveau B dérivés CodeAssist non réécrits | `lsp/java` (liste §5.3 de la référence) | **Critique (juridique)** | L (multi-sessions) |
+| D3/G | ~19 fichiers niveau B dérivés du projet de référence non réécrits | `lsp/java` (liste §5.3 de la référence) | **Critique (juridique)** | L (multi-sessions) |
 
 Les W1–W10 historiques, à l'inverse, sont **clos** : W1 (index persisté), W2/W3 (index préfixe), W5 (sourcesets par module), W6 (empreintes de contenu), W7 (persistance validée), W8 (parse cache multi-entrées + moteur par module), W9 (pool LRU conservé), W10 (R/databinding couverts ; les autres générés restent sur constat — assumé).
 
@@ -409,7 +409,7 @@ Sur la machine d'audit (2 cœurs, ~4 Go), l'exécution simultanée des cinq modu
 - `docs/LSP_JAVA.md` (référence de mission, 1 806 l.) ; `docs/adr/0108|0109|0110|0111|0112|0113|0117` ; `docs/audit/INDEXATION_PHASE_A.md` ; `AGENTS.md` (règles impératives + workflow agent IA asynchrone v0.122.2) ; `CHANGELOG.md` (v0.100.0→v0.124.7).
 - Eclipse JDT Language Server — README officiel branche master (liste des features, consulté le 2026-10-14) : compilation 1.8–25, Maven/Gradle (import Android expérimental), as-you-type, complétion, hovers javadoc, organize imports, type search, code actions, outline, folding, navigation, code lens, formatage on-type/selection/file, snippets, surlignage sémantique, sélection sémantique, tags de diagnostics, call/type hierarchy, annotation processing, résolution de sources Maven ; runtime Java 21 min.
 - java-language-server (Georgiy Tugai) — positionnement léger/générique.
-- CodeAssist (tyron12233, GPL-3.0) — source de provenance du moteur (audit D3 §5 de la référence).
+- projet tiers de référence (GPL-3.0) — source de provenance du moteur (audit D3 §5 de la référence).
 - Run de vérification du jour : suites des 5 modules LSP exécutées le 2026-10-14 sur clone lecture seule (498 tests / 0 échec / 76 ignorés), arbre du dépôt resté propre.
 
 *Fin du rapport.*
