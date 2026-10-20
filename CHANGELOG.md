@@ -1,5 +1,24 @@
 # Journal des modifications
 
+## [0.156.1] – 2026-10-20
+
+### Corrigé (docs)
+
+- **Étiquettes de la maquette resynchronisées sur la v6** : les deux
+  spécifications normatives pointaient encore une version périmée de
+  `docs/mockups/apercu-xml.html` — `PREVIEW_UI.md` (partie I) disait
+  « maquette v3 » (l'étiquette d'avant le lot design écrans) et
+  `PREVIEW_UI_ECRANS.md` (partie II) « maquette v5 » (d'avant le
+  redimensionnement de PE11l, v0.153.0). Toutes deux disent désormais
+  **v6** — le fichier réellement porté par le dépôt, dont
+  `docs/mockups/ref/**` (captures, `meas_ecrans_clair.json`,
+  `jetons-maquette.json`, ressources) est extrait. La règle « la
+  maquette gagne » (§ 1 des deux documents) exige que l'étiquette
+  désigne le bon fichier : un lecteur qui ouvrirait une v3/v5 archivée
+  en croyant comparer à la référence comparerait à la MAUVAISE
+  maquette (celle d'avant le chrome système, la barre de navigation et
+  les poignées de redimensionnement).
+
 ## [0.156.0] – 2026-10-20
 
 ### PE11g-corrections — les CORRECTIONS RAPIDES du volet Attributs : 3 nouveaux genres de problèmes (dont la troncature CÔTÉ MOTEUR) + les cartes `item_correctif` + les 4 actions

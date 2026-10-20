@@ -3,7 +3,8 @@
 > **Statut** : normatif (ADR 0131 à 0130). Complète `PREVIEW_UI.md` (partie I : jetons, thème, typographie,
 > écran Attributs) pour **l'écran principal, la palette, le placement, les menus, et les onglets Arbre,
 > Problèmes et Source**.
-> **Source de vérité visuelle** : `docs/mockups/apercu-xml.html` (maquette v5). Si ce document et la maquette
+> **Source de vérité visuelle** : `docs/mockups/apercu-xml.html` (maquette **v6** — resynchronisée par le
+> redimensionnement de PE11l ; l'étiquette disait v5). Si ce document et la maquette
 > divergent, **la maquette gagne**.
 > **Public** : l'agent d'implémentation. Rien n'est à deviner : chaque valeur est une ressource `apercu_*`
 > (dossier `docs/mockups/ref/ressources/`) ou une ligne d'un tableau ci-dessous.
