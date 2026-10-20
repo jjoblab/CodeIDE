@@ -362,6 +362,24 @@ conflit, la plus récente prime.
 > Précédent fondateur v0.134.40 : chaîne ciblée :feature:preview +
 > checkModuleDependencies racine — push vert du premier coup.
 
+### 8. Cycle de vie des documents de planification (`docs/*.md`)
+
+- **Règle propriétaire (2026-10-20)** : dès qu'un document de
+  planification (brief, plan, revue, spécification d'écrans…) a
+  **toutes ses étapes livrées et vérifiées** (lots poussés, CI verte,
+  recette exécutée), il **quitte la racine de `docs/`** et rejoint
+  **`docs/consommes/`** par `git mv` — jamais supprimé : l'historique
+  Git et la traçabilité des décisions sont conservés.
+- La racine de `docs/` ne garde que les documents **vivants** : ceux
+  qui portent encore des étapes ouvertes, les références normatives
+  (maquettes, jetons, spécifications d'usage) et la documentation
+  opérationnelle.
+- Au déplacement : mettre à jour les références croisées pointant vers
+  l'ancien chemin (`AGENTS.md`, `ROADMAP.md`, autres documents) et
+  inscrire le déplacement au `CHANGELOG.md`.
+- Un document consommé **ne se modifie plus** ; toute re-référence
+  cite son nouveau chemin.
+
 ## État d'avancement
 
 - [x] Étape 0 — Environnement, squelette, outillage → v0.1.0

@@ -1,5 +1,30 @@
 # Journal des modifications
 
+## [0.156.2] – 2026-10-20
+
+### Outillage (docs)
+
+- **Règle « documents consommés » (directive propriétaire du
+  2026-10-20)** : un document de planification de la racine de
+  `docs/` (brief, plan, revue, spécification d'écrans) dont
+  **toutes les étapes sont livrées et vérifiées** rejoint
+  **`docs/consommes/`** par `git mv` — jamais supprimé, l'historique
+  et la traçabilité sont conservés. `AGENTS.md` §8 documente la
+  règle ; le dossier est créé avec son `README`. **Aucun déplacement
+  aujourd'hui** : aucun document de planification n'a encore toutes
+  ses étapes consommées (PE11 : reste PE11g-contrôles + PE11h ;
+  IA : reste IA-6/IA-7/IA-9 et les optionnels IA-5b/IA-8 ;
+  LSP : LSP-0 à LSP-4 tous ouverts ; UI-1/UI-2 ouverts).
+- **Spécifications LSP resynchronisées sur `codeide-lsp` v1.1.0**
+  (publiée le 2026-10-19 — renommage borné + formateur XML,
+  correctifs Kotlin KP8/KP1, purge provenance ADR 0121 côté frère) :
+  `LSP_REVUE_REGLAGES.md` gagne une note d'en-tête (les tables
+  §1/§4 reflètent v1.0.2 — le moteur XML a désormais le renommage et
+  le formatage) et la release du lot LSP-1 vise **v1.2.0** (v1.1.0
+  est prise par la stabilisation S3) ; `LSP_SPEC_ECRANS.md` retire
+  « XML sans Renommer » de la règle des interrupteurs ;
+  `ROADMAP.md` alignée sur la même cible.
+
 ## [0.156.1] – 2026-10-20
 
 ### Corrigé (docs)
