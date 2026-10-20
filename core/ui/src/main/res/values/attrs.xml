@@ -27,6 +27,63 @@
         <attr name="errorRetryText" format="string" />
     </declare-styleable>
 
+    <!-- ============================================================
+         Composants partagés ADR 0127 (lot UI-1) : RangeeParametre,
+         VueEtat, IndicateurEtat. Les attributs sont préfixés par
+         composant pour éviter toute collision avec les libs ; les
+         attributs communs stateIcon/stateTitle/stateMessage sont
+         réutilisés par VueEtat (patron du fichier : déclarés une
+         fois, consommés partout).
+         ============================================================ -->
+    <declare-styleable name="RangeeParametre">
+        <!-- Icône de la rangée (facultative : absente, le titre part au bord). -->
+        <attr name="rangeeIcone" format="reference" />
+        <attr name="rangeeTitre" format="string" />
+        <!-- Sous-titre d'état ; vide, la ligne n'est pas gonflée. -->
+        <attr name="rangeeSousTitre" format="string" />
+        <!-- Texte de la valeur affichée à droite (type=valeur). -->
+        <attr name="rangeeValeur" format="string" />
+        <!-- Puce « Bientôt » à la place du contrôle ; la rangée devient
+             non interactive (miroir du badge_bientot des Paramètres). -->
+        <attr name="rangeeBientot" format="boolean" />
+        <!-- Contrôle de droite : chevron naviguant, interrupteur,
+         valeur, ou aucun (lecture seule). -->
+        <attr name="rangeeType" format="enum">
+            <enum name="chevron" value="0" />
+            <enum name="interrupteur" value="1" />
+            <enum name="valeur" value="2" />
+            <enum name="aucun" value="3" />
+        </attr>
+    </declare-styleable>
+
+    <declare-styleable name="VueEtat">
+        <!-- Variante de l'état : fixe l'icône par défaut et remplace
+             l'icône par un indicateur de chargement si besoin. -->
+        <attr name="etatVariante" format="enum">
+            <enum name="vide" value="0" />
+            <enum name="erreur" value="1" />
+            <enum name="horsLigne" value="2" />
+            <enum name="chargement" value="3" />
+        </attr>
+        <attr name="stateIcon" />
+        <attr name="stateTitle" />
+        <attr name="stateMessage" />
+        <!-- Libellé du bouton d'action ; absent, le bouton est masqué. -->
+        <attr name="etatActionLibelle" format="string" />
+    </declare-styleable>
+
+    <declare-styleable name="IndicateurEtat">
+        <!-- Niveau de la pastille : forme ET couleur, jamais la
+             couleur seule (accessibilité ADR 0127 §3). -->
+        <attr name="indicateurEtat" format="enum">
+            <enum name="ok" value="0" />
+            <enum name="avertissement" value="1" />
+            <enum name="erreur" value="2" />
+            <enum name="neutre" value="3" />
+        </attr>
+        <attr name="indicateurTexte" format="string" />
+    </declare-styleable>
+
     <!-- Niveaux de journal (console compacte, écran Diagnostic). -->
     <attr name="colorJournalDebug" format="color" />
     <attr name="colorJournalInfo" format="color" />
@@ -40,6 +97,13 @@
     <!-- États positifs et signal d'information. -->
     <attr name="colorSucces" format="color" />
     <attr name="colorInfo" format="color" />
+
+    <!-- Pastilles d'état ADR 0127 (lot UI-1) : conteneurs des
+         composants IndicateurEtat ; l'erreur reste sur les rôles
+         Material colorError / colorErrorContainer existants. -->
+    <attr name="colorSuccesContainer" format="color" />
+    <attr name="colorAvertissement" format="color" />
+    <attr name="colorAvertissementContainer" format="color" />
 
     <!-- Canaux tooling : Sync, Build, Taches (+ étiquette de pastille). -->
     <attr name="colorCanalSync" format="color" />

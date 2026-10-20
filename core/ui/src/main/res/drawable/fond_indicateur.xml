@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond neutre des pastilles IndicateurEtat (ADR 0127 §3) : rectangle
+     arrondi par le jeton de rayon, teinté en code par backgroundTintList
+     avec le rôle conteneur de l'état (?attr/colorSuccesContainer, …).
+     Le tint SRC_IN remplace la couleur de base : ce drawable ne choisit
+     AUCUNE couleur lui-même (règle : rôles de thème uniquement). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurfaceVariant" />
+    <corners android:radius="@dimen/corner_radius_medium" />
+</shape>

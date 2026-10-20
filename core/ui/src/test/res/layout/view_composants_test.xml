@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout de test des composants partagés ADR 0127 (inflation Robolectric). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_chevron"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeIcone="@drawable/ic_palette"
+        app:rangeeSousTitre="Système · Couleurs dynamiques"
+        app:rangeeTitre="Apparence"
+        app:rangeeType="chevron" />
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_interrupteur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeTitre="Complétion"
+        app:rangeeType="interrupteur" />
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_valeur"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeTitre="Gravité affichée"
+        app:rangeeType="valeur"
+        app:rangeeValeur="Tout" />
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_aucune"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeSousTitre="Fourni par l'environnement"
+        app:rangeeTitre="JDK"
+        app:rangeeType="aucun" />
+
+    <jo.codeide.core.ui.RangeeParametre
+        android:id="@+id/rangee_test_bientot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:rangeeBientot="true"
+        app:rangeeTitre="Réactivité de l'analyse"
+        app:rangeeType="valeur" />
+
+    <jo.codeide.core.ui.IndicateurEtat
+        android:id="@+id/indicateur"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:indicateurEtat="ok"
+        app:indicateurTexte="Prêt" />
+
+    <jo.codeide.core.ui.VueEtat
+        android:id="@+id/vue_etat_vide"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:etatVariante="vide"
+        app:stateTitle="Aucune erreur" />
+
+    <jo.codeide.core.ui.VueEtat
+        android:id="@+id/vue_etat_action"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:etatActionLibelle="Réparer"
+        app:etatVariante="erreur"
+        app:stateTitle="JDK introuvable" />
+
+</LinearLayout>

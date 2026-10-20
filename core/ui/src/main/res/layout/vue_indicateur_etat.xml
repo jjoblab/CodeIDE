@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Enfants de IndicateurEtat (ADR 0127 §3, lot UI-1) — pastille
+  d'état FORME + texte : ok (disque plein), avertissement (triangle),
+  erreur (croix), neutre (cercle ouvert). La couleur seule ne porte
+  JAMAIS le niveau.
+
+  Gonflés par <merge> dans le LinearLayout que la classe teinte
+  (fond_indicateur + backgroundTintList du rôle conteneur).
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <ImageView
+        android:id="@+id/indicateur_icone"
+        android:layout_width="@dimen/indicateur_icone_taille"
+        android:layout_height="@dimen/indicateur_icone_taille"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/ic_indicateur_ok" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/indicateur_texte"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_2xs"
+        android:textAppearance="?attr/textAppearanceLabelSmall" />
+</merge>

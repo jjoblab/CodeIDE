@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Filet horizontal entre deux rangées d'une carte de réglages
+     (ADR 0127 §3) : à poser comme divider d'un LinearLayout vertical
+     (showDividers="middle"), jamais recopié en marge. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <size android:height="@dimen/separateur_epaisseur" />
+    <solid android:color="?attr/colorOutlineVariant" />
+</shape>

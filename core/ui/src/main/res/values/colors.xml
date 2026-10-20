@@ -72,6 +72,14 @@
     <color name="codeide_succes">#2E7D32</color>
     <color name="codeide_info">#1A5FB4</color>
 
+    <!-- Pastilles d'état (ADR 0127, lot UI-1) : fonds conteneurs des
+         composants IndicateurEtat — valeurs ancrées sur la maquette
+         docs/mockups/lsp/lsp-reglages.html, la teinte de texte restant
+         la couleur pleine (succès/avertissement), jamais un on_*_container. -->
+    <color name="codeide_succes_container">#DDEFE0</color>
+    <color name="codeide_avertissement">#9A6700</color>
+    <color name="codeide_avertissement_container">#F6E7C1</color>
+
     <!-- ============================================================
          Canaux tooling (ADR 0056 décision 5) : une couleur par canal —
          Sync (teal), Build (bleu accent), Taches (violet). Valeurs de

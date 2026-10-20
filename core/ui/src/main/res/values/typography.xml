@@ -29,4 +29,18 @@
     <style name="TextAppearance.CodeIDE.LabelMedium" parent="TextAppearance.Material3.LabelMedium" />
     <style name="TextAppearance.CodeIDE.LabelSmall" parent="TextAppearance.Material3.LabelSmall" />
 
+    <!-- Micro (ADR 0127 §2) : 10 sp Medium — rail du tiroir, badges,
+         étiquettes d'outils. Unique point d'ancrage des demi-tailles
+         9,5/10/10,5 sp employées avant le lot UI-1. -->
+    <style name="TextAppearance.CodeIDE.Micro" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">10sp</item>
+    </style>
+
+    <!-- Libellé de section (ADR 0127 §2) : petit titre sobre sur
+         couleur variante — l'en-tête des cartes de réglages, recopié
+         écran par écran avant l'arrivée de RangeeParametre. -->
+    <style name="TextAppearance.CodeIDE.SectionLabel" parent="TextAppearance.CodeIDE.TitleSmall">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
 </resources>

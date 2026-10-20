@@ -57,6 +57,12 @@
     <color name="codeide_succes">#81C995</color>
     <color name="codeide_info">#8AB4F8</color>
 
+    <!-- Pastilles d'état (ADR 0127, lot UI-1) : nuit contrastée,
+         valeurs ancrées sur la maquette lsp-reglages.html (mode sombre). -->
+    <color name="codeide_succes_container">#1F3A1F</color>
+    <color name="codeide_avertissement">#FDD663</color>
+    <color name="codeide_avertissement_container">#5A3D56</color>
+
     <!-- Canaux tooling : déclinaisons nuit contrastées. -->
     <color name="codeide_canal_sync">#5AC8DE</color>
     <color name="codeide_canal_build">#7AB8F5</color>
