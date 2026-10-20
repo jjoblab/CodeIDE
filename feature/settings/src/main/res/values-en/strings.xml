@@ -293,6 +293,9 @@
     <string name="lsp_reactivite">Analysis reactivity</string>
     <string name="lsp_section_occupation">Usage</string>
     <string name="lsp_cache_index">Index cache</string>
+    <!-- Lot LSP-4 (ADR 0117): the detail sheet lives in the editor workspace. -->
+    <string name="lsp_details_indexation">Indexing details</string>
+    <string name="lsp_details_indexation_sous">Work list and last pass summary</string>
     <string name="lsp_section_budget">Budget</string>
     <string name="lsp_taille_maximale">Maximum size</string>
     <string name="lsp_taille_max_sous">Auto adapts to the project size</string>

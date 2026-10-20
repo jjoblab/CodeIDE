@@ -208,6 +208,24 @@ public interface AppNavigator {
     public fun openEditor(projectId: String): Unit
 
     /**
+     * REMONTE l'espace de travail **déjà vivant** (lot LSP-4, ADR 0128 §4)
+     * : miroir exact du routage « éditeur → paramètres » (ADR 0048) —
+     * `EditorActivity` est remontée au premier plan (`REORDER_TO_FRONT |
+     * SINGLE_TOP`) SANS être recréée, la session et l'espace dessous
+     * survivent ; l'instance vivante ignore l'intent, une instance
+     * absente serait créée avec l'identifiant reçu (repli honnête, jamais
+     * une pile doublée).
+     *
+     * Servi par la rangée « Détails de l'indexation » de l'écran L3 des
+     * réglages « Intelligence du code » : la demande d'ouverture du
+     * panneau est déjà posée sur le port des moteurs, l'utilisateur
+     * remonte voir le panneau s'ouvrir au retour.
+     *
+     * @param projectId identifiant du projet de l'espace à remonter.
+     */
+    public fun revenirALEditeur(projectId: String): Unit
+
+    /**
      * Ouvre l'écran d'installation du bootstrap natif (Terminal T3,
      * prompt Terminal-1, sections 3.4 et 6).
      *

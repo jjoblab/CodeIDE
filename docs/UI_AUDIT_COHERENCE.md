@@ -92,7 +92,8 @@ Hors icônes vectorielles (normales) : 13 fichiers (`preview` 6, `terminal` 3, `
 
 ### C10 — Hors UI mais révélateur (🟡)
 Les titres de `docs/LSP_KOTLIN.md` et `docs/LSP_XML.md` (dans CodeIDE **et** `codeide-lsp`)
-citent encore une étude d'un projet tiers (règle 13) — voir `docs/LSP_REVUE_REGLAGES.md`.
+citent encore une étude d'un projet tiers (règle 13) — voir
+`docs/consommes/LSP_REVUE_REGLAGES.md` (purge livrée par le lot LSP-0).
 
 ## 4. Cartographie par module
 

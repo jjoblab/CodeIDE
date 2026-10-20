@@ -1,5 +1,83 @@
 # Journal des modifications
 
+## [0.162.0] – 2026-10-21
+
+### LSP-4 — lien L3 « Détails de l'indexation », test d'architecture des interrupteurs, accessibilité (ADR 0128 ; spec `consommes/LSP_SPEC_ECRANS.md` § 5)
+
+#### Ajouté
+
+- **Lien « Détails de l'indexation » (L3, carte Occupation)** — l'écart (3)
+  différé par LSP-3 est livré : la rangée `RangeeParametre` (chevron,
+  icône `ic_fichier_log`, sous-titre « Liste de travail et bilan du
+  dernier passage ») pose une DEMANDE-ÉTAT sur le port des moteurs
+  (`PortLsp.demandeDetailsIndexation` + `demanderDetailsIndexation()`,
+  `:core:domain`), désactivée sans moteur vivant (spec § 3 L3 : « si un
+  projet est ouvert, sinon désactivé ») ; l'effet
+  `DetailsIndexationDemandes(identifiantProjet)` remonte l'espace
+  éditeur EXISTANT via `AppNavigator.revenirALEditeur` (miroir exact de
+  l'ADR 0048 : `REORDER_TO_FRONT | SINGLE_TOP`, jamais une pile
+  doublée) ; `EditorActivity` consomme la demande en collecte STARTED
+  et ouvre le bottom sheet de l'ADR 0117 — posée l'espace arrêté
+  (l'utilisateur est dans les réglages), la demande SURVIT : état, pas
+  événement (jamais perdue, jamais d'ouverture en arrière-plan) ; la
+  consommation (`consommerDemandeDetailsIndexation`) reste `internal`
+  à `:feature:editor`.
+- **Test d'architecture `ArchitectureInterrupteursLspTest`** (ADR 0128
+  action 5 : « aucun interrupteur sans capacité annoncée ») — JVM :
+  rangées L2 = annoncées ∩ ORDRE FIXE (les dix, une ressource par
+  capacité), table VIDE = zéro rangée, l'ordre vient de la
+  spécification (jamais de la table), aucune rangée pour une capacité
+  non annoncée (l'écran suit la table, pas l'inverse), un pack de
+  langue qui annonce plus obtient ses rangées sans toucher l'écran.
+- **Chaînes** `lsp_details_indexation` (+`_sous`) FR **ET** EN — les
+  107 clés `lsp_*` restent paritaires (105 + 2).
+
+#### Modifié
+
+- `PortLsp` (`:core:domain`) grandit de la demande-état (port public —
+  chaîne RACINE) ; `PortLspEspace` l'implémente (`MutableStateFlow` :
+  la demande vit et meurt avec le port, jamais orpheline) ;
+  `EditorViewModel` garde la RÉFÉRENCE du port publié (expose
+  `demandeDetailsIndexation` + consommation) ; `LangagesViewModel`
+  délègue à `ouvrirDetailsIndexation()` (identifiant lu AVANT la pose —
+  refus honnête `AucunMoteur` sans port ni session, rien n'est posé) ;
+  faux ports des tests alignés (`RegistrePortLspTest`, `PortLspFaux`).
+
+#### Vérifié
+
+- **Tests** : `:feature:settings` **51 verts** (+7 :
+  `ArchitectureInterrupteursLspTest` 5, `LangagesViewModelTest` 8 — la
+  demande passe par le port et porte l'identifiant, refus honnête sans
+  port ni session) ; `:feature:editor` **409 verts**
+  (`PortLspEspaceTest` +1 : posée la demande survit, consommée elle
+  retombe) ; `:core:domain` **592**, `:core:ui` **53**, `:app` **84**
+  inchangés verts.
+- **Chaîne locale RACINE** verte : `spotlessCheck`, `detekt`
+  (extraction `ouvrirDetailsIndexation()` — LongMethod/complexité
+  tenus sans lever de seuil), `checkModuleDependencies`,
+  `checkUiTokens` (cliquet tenu — le layout L3 enrichi reste à ZÉRO
+  littéral, règle 15) ; compile + tests des cinq modules touchés
+  (`core:domain`, `core:ui`, `feature:settings`, `feature:editor`,
+  `app`).
+- **Accessibilité § 5 auditée** (portée par les composants ADR 0127) :
+  rôles complets « Java : Prêt » (`lsp_cd_moteur`), régions live
+  polies (`IndicateurEtat`), cibles tactiles ≥ 48 dp
+  (`RangeeParametre`), police ×1,3 sans troncature — recette sur
+  appareil dans `TESTS_MANUELS.md` § LSP-4.
+
+#### Documentation
+
+- **Documents consommés (AGENTS.md §8)** : `LSP_SPEC_ECRANS.md` et
+  `LSP_REVUE_REGLAGES.md` rejoignent `docs/consommes/` par `git mv`
+  (tous leurs lots livrés, LSP-0 → LSP-4) ; renvois mis à jour
+  (`ROADMAP.md`, `README.md`, `UI_AUDIT_COHERENCE.md`, ADR 0128) ;
+  l'index `docs/consommes/README.md` porte la table des contenus.
+- **ADR 0128** : statut **accepté** (GO propriétaire du 2026-10-20),
+  les cinq actions cochées avec leurs versions de livraison ;
+  `ROADMAP.md` LSP-4 ✅ ; recette visuelle § LSP-4 dans
+  `TESTS_MANUELS.md` (miroir de § LSP-3, à dérouler au prochain retour
+  propriétaire).
+
 ## [0.161.0] – 2026-10-20
 
 ### LSP-3 — écrans L1-L5 « Intelligence du code » construits avec les composants ADR 0127 uniquement (ADR 0128 §4, maquette `mockups/lsp/lsp-reglages.html`)

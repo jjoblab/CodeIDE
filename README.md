@@ -21,9 +21,10 @@ projets directement sur téléphone ou tablette.
 > IA-4 — contexte confidentiel (puces exactes, exclusions +
 > `ia-ignore`, secrets détectés avant envoi, sélecteur `@`) ;
 > ADR 0121–0126, `docs/IA_PLAN_EXECUTION.md`).
-> **Mission UI/LSP en préparation** : audit de cohérence et réglages LSP
-> (ADR 0127/0128 **proposées**, `docs/UI_AUDIT_COHERENCE.md`,
-> `docs/LSP_REVUE_REGLAGES.md`, `docs/LSP_SPEC_ECRANS.md`).
+> **Mission UI/LSP en cours** : audit de cohérence et réglages LSP
+> (ADR 0127/0128 **acceptées**, `docs/UI_AUDIT_COHERENCE.md`,
+> `docs/consommes/LSP_REVUE_REGLAGES.md`,
+> `docs/consommes/LSP_SPEC_ECRANS.md`).
 > Voir `docs/ROADMAP.md` pour le détail des phases et `CHANGELOG.md` pour l'historique.
 
 ## Démarrage rapide

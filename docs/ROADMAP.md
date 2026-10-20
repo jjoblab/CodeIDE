@@ -364,8 +364,8 @@ IA-8 (complétion « texte fantôme », ADR propre).
 > ADR 0127 (cohérence UI + garde-fou à cliquet) et 0128 (réglages LSP pilotés par
 > capacités) **proposées** — les lots démarreront après acceptation par le propriétaire.
 > Documents : [`UI_AUDIT_COHERENCE.md`](UI_AUDIT_COHERENCE.md) (mesures C1–C10),
-> [`LSP_REVUE_REGLAGES.md`](LSP_REVUE_REGLAGES.md) (constats L1–L7),
-> [`LSP_SPEC_ECRANS.md`](LSP_SPEC_ECRANS.md) (écrans L1–L5),
+> [`consommes/LSP_REVUE_REGLAGES.md`](consommes/LSP_REVUE_REGLAGES.md) (constats L1–L7),
+> [`consommes/LSP_SPEC_ECRANS.md`](consommes/LSP_SPEC_ECRANS.md) (écrans L1–L5),
 > [`mockups/lsp/lsp-reglages.html`](mockups/lsp/lsp-reglages.html).
 > **Règle d'ordonnancement : UI-1 et UI-2 d'abord** — aucun écran IA (IA-2+) ni LSP
 > ne se construit avant.
@@ -388,7 +388,7 @@ IA-8 (complétion « texte fantôme », ADR propre).
 | LSP-1 | `codeide-lsp` | `ConfigurationLsp`, `appliquer`, cache et capacités exposés, tests, **v1.2.0** (v1.1.0 = stabilisation S3 du 2026-10-19) | ✅ v1.2.0 `6c23677` (+14 tests : 119 host, 247 index, parité capacités ×3 langages, baseline 216 fichiers) |
 | LSP-2 | CodeIDE | Version vérifiée, `LspSettings` (hors `AppSettings`), câblage, filtres côté client | ✅ v0.157.0 (dépôt dédié `lsp_settings`, câblage DYNAMIQUE sans redémarrer ; filtres d'AFFICHAGE gravité/capacités différés au chantier code-editor — jamais un contrôle sans effet, ADR 0059) |
 | LSP-3 | v0.161.0 | Écrans L1–L5 « Intelligence du code », composants ADR 0127 uniquement (après UI-1/UI-2) | ✅ v0.161.0 (5 écrans feature:settings, port `PortLsp`/`RegistrePortLsp` + `TableCapacitesLsp` core:domain, `PortLspEspace` feature:editor, `PresentationLsp` pur +13 tests JVM, rangée LANGAGES au maître, FR/EN + pluriels ; interrupteurs/gravité en puce « Bientôt » — décision LSP-2, recette visuelle dans `TESTS_MANUELS.md` § LSP-3) |
-| LSP-4 | CodeIDE | « Copier le diagnostic LSP », tests d'architecture, accessibilité, EN/FR | ⬜ |
+| LSP-4 | CodeIDE | « Copier le diagnostic LSP », tests d'architecture, accessibilité, EN/FR | ✅ v0.162.0 (lien L3 « Détails de l'indexation » LIVRÉ : demande-ÉTAT sur `PortLsp` + remontée `revenirALEditeur` REORDER_TO_FRONT, panneau consommé à la reprise STARTED ; test d'architecture `ArchitectureInterrupteursLspTest` « aucun interrupteur sans capacité annoncée » (dérivation ordre fixe, table vide = zéro rangée) + demande verrouillée `PortLspEspaceTest`/`LangagesViewModelTest` ; audit § 5 : a11y portée par les composants — rôles complets « Java : Prêt », liveRegion, 48 dp, ×1,3 sans troncature, recette § LSP-4 ; FR/EN 105+2 clés paritaires ; « Copier le diagnostic » déjà livré par LSP-3 (L5) ; les deux docs de planification LSP consommés → `docs/consommes/`) |
 
 ## Priorisation
 

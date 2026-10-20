@@ -39,6 +39,17 @@ sealed interface EffetEcransLsp {
 
     /** Aucun moteur vivant : les actions sont sans effet (honnête). */
     data object AucunMoteur : EffetEcransLsp
+
+    /**
+     * « Détails de l'indexation » demandés (lot LSP-4, ADR 0117) : la
+     * demande est POSÉE sur le port, l'écran remonte l'espace éditeur
+     * vivant — le panneau s'ouvre à la reprise (collecte STARTED côté
+     * activité) ; `identifiantProjet` `null` : la session vient de
+     * fermer, l'écran reste honnête (message sans effet).
+     */
+    data class DetailsIndexationDemandes(
+        val identifiantProjet: String?,
+    ) : EffetEcransLsp
 }
 
 /** Actions consommables des écrans LSP (patron ActionParametres). */
@@ -63,4 +74,11 @@ sealed interface ActionReglagesLsp {
 
     /** Vide le cache d'index (confirmé par l'écran avant l'action). */
     data object ViderCache : ActionReglagesLsp
+
+    /**
+     * Ouvre le panneau « Détails de l'indexation » de l'espace éditeur
+     * (bottom sheet ADR 0117, lot LSP-4) : la demande voyage par le port
+     * des moteurs — jamais une dépendance feature ↔ feature.
+     */
+    data object OuvrirDetailsIndexation : ActionReglagesLsp
 }

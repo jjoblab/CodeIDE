@@ -217,4 +217,28 @@ public interface PortLsp {
      * ou par [reindexer].
      */
     public fun viderCache(): ResultatVidageCacheLsp?
+
+    /**
+     * Demande d'ouverture du panneau « Détails de l'indexation » (bottom
+     * sheet ADR 0117, lot LSP-4) : la rangée L3 « Détails de l'indexation »
+     * la POSE ici — le panneau vit dans l'espace éditeur (`internal` à
+     * `:feature:editor`), c'est ce port qui est le SEUL point de couture.
+     *
+     * La demande est un ÉTAT (pas un événement) : posée pendant que
+     * l'espace est arrêté (l'utilisateur est dans les réglages), elle
+     * SURVIT jusqu'à ce que l'espace la CONSOMME en repassant au premier
+     * plan — jamais de demande perdue, jamais d'ouverture en arrière-plan
+     * (le fragment du panneau ne se montre que l'activité reprenne).
+     * La consommation ne fait pas partie du contrat public : elle vit
+     * côté espace (`:feature:editor`).
+     */
+    public val demandeDetailsIndexation: StateFlow<Boolean>
+
+    /**
+     * Pose la demande d'ouverture du panneau « Détails de l'indexation »
+     * (idempotente : la re-poser ne change rien). Sans effet de bord sur
+     * les moteurs ; `demandeDetailsIndexation` passe à `true` jusqu'à
+     * consommation par l'espace.
+     */
+    public fun demanderDetailsIndexation()
 }

@@ -390,6 +390,24 @@ internal class AppNavigatorImpl
             activity.startActivity(intention)
         }
 
+        override fun revenirALEditeur(projectId: String) {
+            // Lot LSP-4 (ADR 0128 §4) : miroir EXACT du routage
+            // « éditeur → paramètres » (ADR 0048, relancerMainActivity) :
+            // l'instance VIVANTE remonte au premier plan sans être recréée
+            // (REORDER_TO_FRONT | SINGLE_TOP) — l'espace et sa session
+            // survivent, le panneau « Détails de l'indexation » (demande
+            // déjà posée sur le port) s'ouvre à la reprise (STARTED).
+            // Sans instance vivante, l'intent retombe sur le routage
+            // normal d'ouverture — jamais une pile doublée.
+            logger.d(TAG) { "remontée de l'espace de travail existant" }
+            val intention =
+                Intent(activity, EditorActivity::class.java)
+                    .putExtra(ClesEditor.EXTRA_PROJECT_ID, projectId)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            activity.startActivity(intention)
+        }
+
         override fun openBootstrapInstall() {
             // Garde-fou : un double toucher n'empile qu'un seul écran
             // d'installation — depuis le bandeau de l'accueil (étape T3) ou

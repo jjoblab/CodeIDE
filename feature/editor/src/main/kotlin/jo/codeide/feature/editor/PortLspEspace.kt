@@ -19,8 +19,10 @@ import jo.codeide.lsp.host.SessionLspKotlin
 import jo.codeide.lsp.host.SessionLspXml
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -100,6 +102,31 @@ internal class PortLspEspace(
             // rien à vider — l'écran ré-observera l'absence du port.
             null
         }
+
+    /**
+     * Demande « Détails de l'indexation » (lot LSP-4, ADR 0117) : ÉTAT
+     * posé par la rangée L3 des réglages, CONSOMMÉ par l'espace quand il
+     * repasse au premier plan — vit et meurt avec ce port, jamais une
+     * demande orpheline après la fermeture de l'espace.
+     */
+    private val demandeDetailsInterne = MutableStateFlow(false)
+
+    /** Demande d'ouverture du panneau — CONSOMMÉE par [EditorActivity]. */
+    override val demandeDetailsIndexation: StateFlow<Boolean> = demandeDetailsInterne.asStateFlow()
+
+    /** Pose la demande (idempotente — l'état reste `true` jusqu'à consommation). */
+    override fun demanderDetailsIndexation() {
+        demandeDetailsInterne.value = true
+    }
+
+    /**
+     * CONSOMME la demande : posé par l'activité de l'espace AU MOMENT
+     * d'ouvrir le panneau (jamais avant — l'état `true` est ce qui fait
+     * rouvrir le panneau au retour d'arrière-plan).
+     */
+    internal fun consommerDemandeDetailsIndexation() {
+        demandeDetailsInterne.value = false
+    }
 }
 
 /**

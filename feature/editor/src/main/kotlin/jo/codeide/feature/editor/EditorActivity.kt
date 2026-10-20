@@ -415,6 +415,19 @@ class EditorActivity :
         // ligatures, badges de diagnostic (cel-ui, ADR 0059).
         optionsEditeur.reglages.collectWithLifecycle(this, Lifecycle.State.STARTED) { appliquerReglagesEditeur() }
 
+        // Lot LSP-4 (ADR 0128 §4) : la rangée « Détails de l'indexation »
+        // (L3, réglages) pose sa demande sur le PORT des moteurs — l'espace
+        // la CONSOMME en repassant STARTED et ouvre le panneau (ADR 0117) :
+        // posée l'espace arrêté (l'utilisateur est dans les réglages), la
+        // demande SURVIT (état, pas événement) — jamais d'ouverture en
+        // arrière-plan, jamais de demande perdue.
+        viewModel.demandeDetailsIndexation.collectWithLifecycle(this, Lifecycle.State.STARTED) { demandee ->
+            if (demandee) {
+                viewModel.consommerDemandeDetailsIndexation()
+                ouvrirPanneauDetailIndexation()
+            }
+        }
+
         // Ligne tooling de l'en-tête (v0.32.5 ; v4 correctif n°13) : l'état
         // Gradle — canaux, activité, chronos — rendu par le CONTRÔLEUR
         // (PanneauToolingController) ; l'hôte ne garde que la collecte.

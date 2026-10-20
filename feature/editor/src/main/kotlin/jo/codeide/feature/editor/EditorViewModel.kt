@@ -588,6 +588,33 @@ class EditorViewModel
          */
         private var sessionOuverteParMoi = false
 
+        /**
+         * Port des moteurs publié aux réglages (lot LSP-3) — RÉFÉRENCE
+         * gardée pour la demande « Détails de l'indexation » (lot LSP-4) :
+         * l'activité de l'espace consomme la demande au retour d'arrière-plan.
+         */
+        private var portMoteursLsp: PortLspEspace? = null
+
+        /** Repli de demande quand le port n'est pas encore publié (jamais observé en pratique). */
+        private val sansDemandeDetails = MutableStateFlow(false)
+
+        /**
+         * Lot LSP-4 (ADR 0128 §4) : demande « Détails de l'indexation » posée
+         * par la rangée L3 des réglages — l'activité la consomme en repassant
+         * STARTED et ouvre le panneau (ADR 0117) ; jamais de demande perdue
+         * pendant que l'espace vit sous l'hôte des réglages (ADR 0048).
+         */
+        val demandeDetailsIndexation: StateFlow<Boolean>
+            get() = portMoteursLsp?.demandeDetailsIndexation ?: sansDemandeDetails
+
+        /**
+         * Consomme la demande de détails : posé par l'activité AU MOMENT
+         * d'ouvrir le panneau — jamais avant (l'état `true` déclenche l'ouverture).
+         */
+        fun consommerDemandeDetailsIndexation() {
+            portMoteursLsp?.consommerDemandeDetailsIndexation()
+        }
+
         init {
             val identifiant = sauvetage.get<String>(ClesEditor.EXTRA_PROJECT_ID).orEmpty()
             observerProjet(ProjectId(identifiant))
@@ -609,15 +636,18 @@ class EditorViewModel
             // Lot LSP-3 (ADR 0128 §4) : PUBLICATION du port des moteurs —
             // les écrans de réglages l'observent (RegistrePortLsp) sans
             // jamais voir :lsp:host ; il vit dans viewModelScope : il
-            // naît et meurt avec l'espace (retrait dans onCleared).
-            registrePortLsp.enregistrer(
-                PortLspEspace(
-                    sessionJava = sessionLsp,
-                    sessionKotlin = sessionLspKotlin,
-                    sessionXml = sessionLspXml,
-                    portee = viewModelScope,
-                ),
-            )
+            // naît et meurt avec l'espace (retrait dans onCleared). La
+            // RÉFÉRENCE reste tenue (lot LSP-4) : la demande « Détails de
+            // l'indexation » se consomme côté espace.
+            PortLspEspace(
+                sessionJava = sessionLsp,
+                sessionKotlin = sessionLspKotlin,
+                sessionXml = sessionLspXml,
+                portee = viewModelScope,
+            ).also { port ->
+                portMoteursLsp = port
+                registrePortLsp.enregistrer(port)
+            }
 
             // Mission « Cycle de vie » étape C (ADR 0114) : OUVERTURE de la
             // session de projet — le contrat process-wide I1 (ouvrir B ferme

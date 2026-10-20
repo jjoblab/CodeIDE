@@ -72,6 +72,10 @@ class RegistrePortLspTest {
         object : PortLsp {
             override val moteurs: StateFlow<MoteursLsp> = MutableStateFlow(MoteursLsp.INACTIFS)
 
+            override val demandeDetailsIndexation: StateFlow<Boolean> = MutableStateFlow(false)
+
+            override fun demanderDetailsIndexation() = Unit
+
             override fun tailleCacheOctets(): Long? = null
 
             override fun reindexer(): Boolean = false
