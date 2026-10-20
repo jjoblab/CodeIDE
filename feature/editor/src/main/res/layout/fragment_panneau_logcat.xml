@@ -7,7 +7,7 @@
      arrêt, session précédente, erreur de motif), table monospace
      virtualisée, état vide honnête. Fragment PanneauLogcatFragment — le
      chrome (en-tête, onglets) reste à l'hôte (activity_editor.xml).
-     Jetons § 4.2 : fond #14171d, surfaces, niveaux — jour/nuit par
+     Jetons § 4.2 : fond sombre dédié, surfaces, niveaux — jour/nuit par
      ressources (variantes jour des mêmes jetons). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -25,8 +25,8 @@
         android:gravity="center_vertical"
         android:minHeight="48dp"
         android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:paddingVertical="2dp">
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs">
 
         <!-- Sélecteur de processus (§ 4.1) : puce avec ampoule vivante,
              menu des sessions (vivantes + précédentes). -->
@@ -40,7 +40,7 @@
             android:gravity="center_vertical"
             android:minHeight="48dp"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="@dimen/spacing_md_compact">
 
             <View
                 android:id="@+id/ampoule_processus"
@@ -53,19 +53,19 @@
                 android:id="@+id/nom_processus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:ellipsize="end"
                 android:fontFamily="monospace"
                 android:maxWidth="96dp"
                 android:maxLines="1"
                 android:textColor="@color/explorateur_texte"
-                android:textSize="11sp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
                 tools:text=":monapp" />
 
             <ImageView
                 android:layout_width="12dp"
                 android:layout_height="12dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/spacing_xs"
                 android:contentDescription="@string/logcat_selecteur_processus"
                 android:importantForAccessibility="no"
                 android:rotation="90"
@@ -79,7 +79,7 @@
             android:id="@+id/champ_filtre"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="@dimen/spacing_sm"
             android:layout_weight="1"
             android:background="@drawable/fond_outil_logcat"
             android:fontFamily="monospace"
@@ -89,10 +89,10 @@
             android:inputType="text"
             android:maxLines="1"
             android:minHeight="48dp"
-            android:paddingHorizontal="10dp"
+            android:paddingHorizontal="@dimen/spacing_md_compact"
             android:textColor="@color/explorateur_texte"
             android:textColorHint="@color/explorateur_texte_3"
-            android:textSize="11sp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <!-- Option regex (§ 4.3) : le motif du champ devient une
              expression régulière (erreur signalée en ligne). -->
@@ -106,7 +106,7 @@
             android:minWidth="48dp"
             android:minHeight="48dp"
             android:text="@string/logcat_regex_marque"
-            android:textSize="11sp" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <!-- Filtre de niveau (§ 4.1) : masque les niveaux inférieurs,
              menu Verbose → Assert. -->
@@ -165,10 +165,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/logcat_bandeau_pertes_fond"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="7dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
         android:textColor="@color/logcat_niveau_avertissement"
-        android:textSize="11sp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
         android:visibility="gone"
         tools:text="214 lignes perdues"
         tools:visibility="visible" />
@@ -179,10 +179,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/logcat_bandeau_arret_fond"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="7dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
         android:textColor="@color/logcat_niveau_erreur"
-        android:textSize="11sp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
         android:visibility="gone"
         tools:text="Le processus s'est arrêté : ANR"
         tools:visibility="visible" />
@@ -193,10 +193,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/explorateur_fond_surface"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="7dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
         android:textColor="@color/explorateur_texte_2"
-        android:textSize="11sp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
         android:visibility="gone"
         tools:text="Session précédente — :monapp (pid 18342) · terminée à 14:02"
         tools:visibility="visible" />
@@ -206,10 +206,10 @@
         android:id="@+id/ligne_erreur_motif"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_xs"
         android:textColor="@color/logcat_niveau_erreur"
-        android:textSize="11sp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
         android:visibility="gone"
         tools:text="Motif invalide : *debut"
         tools:visibility="visible" />
@@ -275,7 +275,7 @@
                 android:gravity="center"
                 android:text="@string/logcat_vide_pied"
                 android:textColor="@color/explorateur_texte_3"
-                android:textSize="11sp" />
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>
