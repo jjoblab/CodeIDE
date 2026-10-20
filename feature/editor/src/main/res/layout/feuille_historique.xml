@@ -100,7 +100,7 @@
         android:layout_marginTop="@dimen/spacing_xs"
         android:checkable="true"
         android:text="@string/historique_filtre_supprimes"
-        android:textSize="12sp"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
         android:visibility="gone"
         app:icon="@drawable/ic_supprimer"
         app:iconGravity="textStart"
@@ -154,7 +154,7 @@
                     android:gravity="center"
                     android:text="@string/historique_vide_detail"
                     android:textColor="@color/explorateur_texte_3"
-                    android:textSize="11sp" />
+                    android:textAppearance="?attr/textAppearanceLabelSmall" />
             </LinearLayout>
         </FrameLayout>
 
@@ -199,7 +199,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minHeight="48dp"
-                    android:textSize="12sp"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
                     tools:text="@string/historique_diff_vs_actuel" />
             </LinearLayout>
 
