@@ -1,5 +1,75 @@
 # Journal des modifications
 
+## [0.166.0] – 2026-10-21
+
+### UI-7 — Toast → Snackbar partout + règle de bannissement : la mission UI est close (audit C3/C5, ADR 0127 §3/§5)
+
+#### Modifié
+
+- **`feature/ai` — les 6 derniers Toast du module** → `Retour.snackbar`
+  (ADR 0127 §3) : les messages d'effets des ÉCRANS
+  (`ReglagesIaFragment`, `HistoriqueFragment`, `FournisseurIaFragment`,
+  `ChatFragment` — ancrés `binding.root`/`liaison.root`/`requireView()`,
+  même idiome que les réglages LSP), la clé vide refusée à
+  l'enregistrement (`FournisseurIaFragment.enregistrerCle`) et la
+  confirmation de copie du chat (`ChatFragment.copier` — miroir du
+  terminal et du Logcat).
+- **`feature/newproject` — la copie des détails d'échec du wizard**
+  (`EcranCreationFragment.copierDetails`) → `Retour.snackbar` : même
+  événement, même présentation que la copie de ligne Logcat (UI-5).
+- **Scanner `checkUiTokens` DURCI (règle de bannissement, ADR 0127 §5
+  amendé)** — le scan ligne à ligne laissait échapper deux formes de code
+  formaté, les règles ne « tiraient » jamais en pratique :
+  - **R6 multi-lignes** : l'appel QUALIFIÉ (`android.widget.Toast` puis
+    `.makeText` à la ligne suivante) échappait à la recherche textuelle —
+    le texte ENTIER est désormais parcouru (moteur
+    `MoteurUiTokens.kotlin`, ligne d'occurrence = ligne du jeton) ;
+  - **R5 fins de ligne** : dans le XML formaté (un attribut par ligne),
+    `<ImageButton` vit seul en fin de ligne — la règle attrape désormais
+    la fin de ligne et EXONÈRE la balise porteuse d'un style maison
+    `@style/Widget.CodeIDE.*` (composant dédié, ADR §3 — p. ex. les
+    styles d'aperçu `parent=""` issus de la maquette, ImageButton par
+    nature) ; le regard s'arrête à la ligne qui FERME la balise.
+  - 6 nouveaux cas de test du moteur (`MoteurUiTokensTest`) : fins de
+    ligne, exemption maison, style brut piégé, non-exonération par une
+    balise suivante, appel qualifié multi-lignes, ligne d'occurrence.
+
+#### Baseline — la dette que le durcissement rend visible est INSCRITE au constat exact
+
+- **13 occurrences R5** (audit C3 — icônes sans composant maison,
+  invisibles du scan ligne à ligne depuis l'origine) entrent à la
+  baseline, gelées par le cliquet, migration = lot futur avec captures
+  avant/après sur appareil : `fragment_ia_historique.xml`,
+  `fragment_reglages_ia.xml`, `ligne_conversation.xml` (ai) ;
+  `fragment_panneau_console.xml`, `fragment_panneau_logcat.xml`,
+  `ligne_noeud_arborescence.xml` (×2, boutons d'édition 32 dp — cotes
+  figées UI-5, `Widget.CodeIDE.Button.Icon` est min 48 dp : la migration
+  exige un style dédié), `ligne_probleme.xml`, `vue_barre_consigne_ia.xml`
+  (editor) ; `item_projet.xml` (home) ; `vue_ligne_arborescence.xml`
+  (newproject) ; `rangee_composant_env.xml` (settings) ;
+  `activity_terminal.xml` (terminal).
+- **2 occurrences R6 — les DEUX exceptions assumées** (hors dossier de
+  migration : un Snackbar MEURT avec la vue, l'annonce doit survivre) :
+  1. `EditorActivity` — « build continue en arrière-plan » AVANT
+     `finish()` (décision §2.1c de `docs/CYCLE_DE_VIE.md` RATIFIÉE par le
+     propriétaire ; la notification `ToolingService` reste le détail
+     durable) ;
+  2. `CopieurPressePaiersAndroid` (`core:terminal-runtime`) —
+     confirmation de copie OSC 52 sur Android < 13 : module SANS UI
+     (contexte d'application), copie possible SANS écran visible (sessions
+     dans `TerminalService`), cible pre-33 au cœur de l'audience
+     (targetSdk 28, ADR 0045).
+  Chacune est plafonnée à R6=1 POUR TOUJOURS (toute remontée échoue le
+  build, tout NOUVEAU Toast n'importe où échoue le build) ; KDoc des deux
+  sites enrichis du statut de l'exception.
+- `config/ui-baseline.json` : les fichiers Toast migrés SORTENT (ai ×4,
+  newproject ×1) — 27 fichiers, 46 occurrences ; le critère « 0 Toast »
+  est atteint modulo les deux exceptions documentées.
+- Recette appareil `TESTS_MANUELS.md` § UI-7 (retours IA/wizard en
+  Snackbar, les deux exceptions à vérifier) ; le point 7 de la recette
+  UI-5 est mis à jour (écart « Quitter build » ARBITRÉ : exception
+  documentée).
+
 ## [0.165.0] – 2026-10-21
 
 ### UI-6 — `feature:preview` : zéro littéral, le module quitte la baseline (16 fichiers, 30 occurrences → 0, audit C5/C9, ADR 0127 §4-5)
