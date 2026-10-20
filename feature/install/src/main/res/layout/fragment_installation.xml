@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Écran d'installation de l'environnement (E5, § 7, ADR 0089) : en-tête
      avec progression globale, stepper de 4 cartes, consentement licence,
-     journal repliable, actions contextuelles, récapitulatif final. -->
+     journal repliable, actions contextuelles, récapitulatif final.
+     Lot UI-4 (audit C1/C3/C4, ADR 0127) : jetons d'espacement, cartes
+     Widget.CodeIDE.Card, boutons Widget.CodeIDE.Button.* — zéro littéral. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true">
@@ -11,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/spacing_md">
 
         <TextView
             style="?attr/textAppearanceHeadlineSmall"
@@ -23,13 +26,13 @@
             style="?attr/textAppearanceBodySmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/spacing_2xs"
             android:text="@string/installation_sous_titre" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_md_compact"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -53,7 +56,7 @@
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:max="4" />
 
         <TextView
@@ -61,19 +64,20 @@
             style="?attr/textAppearanceBodySmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="@dimen/spacing_2xs"
             android:visibility="gone" />
 
         <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="@dimen/spacing_md_compact"
+            app:contentPadding="@dimen/spacing_sm">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp">
+                android:orientation="vertical">
 
                 <include
                     android:id="@+id/carte_bootstrap"
@@ -95,16 +99,17 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/carte_licence"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:visibility="gone">
+            android:layout_marginTop="@dimen/spacing_md_compact"
+            android:visibility="gone"
+            app:contentPadding="@dimen/spacing_md_compact">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
+                android:orientation="vertical">
 
                 <TextView
                     style="?attr/textAppearanceTitleMedium"
@@ -116,23 +121,24 @@
                     style="?attr/textAppearanceBodySmall"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/spacing_xs"
                     android:text="@string/installation_licence_texte" />
 
                 <CheckBox
                     android:id="@+id/case_licence"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="@dimen/spacing_xs"
                     android:text="@string/installation_licence_case" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_demarrer"
+            style="@style/Widget.CodeIDE.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_md_compact"
             android:text="@string/installation_demarrer" />
 
         <TextView
@@ -140,63 +146,64 @@
             style="?attr/textAppearanceBodySmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_premier_projet"
+            style="@style/Widget.CodeIDE.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:text="@string/installation_premier_projet"
             android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_sm"
             android:orientation="horizontal">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_annuler"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/installation_env_annuler"
                 android:visibility="gone" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_reessayer"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:text="@string/installation_env_reessayer"
                 android:visibility="gone" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_diagnostic"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:text="@string/installation_diagnostic" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/bouton_terminal"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.CodeIDE.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/spacing_sm"
                 android:text="@string/installation_terminal" />
         </LinearLayout>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_journal"
-            style="?attr/borderlessButtonStyle"
+            style="@style/Widget.CodeIDE.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:text="@string/installation_journal_basculer" />
 
         <!-- Journal en direct repliable (E5, § 7) : NestedScrollView à
@@ -209,7 +216,7 @@
             android:id="@+id/zone_journal"
             android:layout_width="match_parent"
             android:layout_height="@dimen/hauteur_journal_installation"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/spacing_xs"
             android:scrollbars="vertical"
             android:visibility="gone">
 
@@ -219,7 +226,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:padding="8dp"
+                android:padding="@dimen/spacing_sm"
                 android:textIsSelectable="true" />
         </androidx.core.widget.NestedScrollView>
     </LinearLayout>
