@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CORRECTIF RAPIDE (maquette `.fix`) : carte ambre (mélange 9 % / trait 45 %), rayon 10, padding 9/11,
+  titre 12 sp / 600 + corps 12 sp gris, bouton violet plein à droite (largeur max 42 % → 160 dp). Écart 10.
+  Cote : 398×68.6 pour un titre + deux lignes de corps.
+  Conteneur : `.fixes` = titre de groupe « CORRECTIONS » (TitreGroupe) + cartes, écart 6 dp.
+  Écarts PE11g : l'écart 6 dp du conteneur `.fixes` vit en marge BASSE de la carte (liste aplatie du
+  RecyclerView — même valeur, précédent PE11j) ; le littéral 160 dp passe en dimen (grille § 12.4).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/carte_correctif"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/apercu_correctifs_gap"
+    android:background="@drawable/apercu_correctif_fond"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/apercu_correctif_pad_h"
+    android:paddingTop="@dimen/apercu_correctif_pad_v"
+    android:paddingEnd="@dimen/apercu_correctif_pad_h"
+    android:paddingBottom="@dimen/apercu_correctif_pad_v">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/titre_correctif"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.CorrectifTitre" />
+
+        <TextView
+            android:id="@+id/corps_correctif"
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.CodeIDE.Apercu.CorrectifCorps" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_correctif"
+        style="@style/Widget.CodeIDE.Apercu.BoutonNouveau"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/apercu_correctif_gap"
+        android:maxWidth="@dimen/apercu_correctif_bouton_max" />
+</LinearLayout>

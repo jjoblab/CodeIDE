@@ -665,7 +665,7 @@ public class PreviewViewModel
          */
         public fun extractionPossible(nomAttribut: String): Boolean {
             val valeur = valeurAttributSelection(nomAttribut) ?: return false
-            if (valeur.isEmpty() || valeur.startsWith("@") || valeur.startsWith("?")) return false
+            if (!EditionAttributsXml.estLitteral(valeur)) return false
             return sourceStringsOuverte() != null
         }
 
@@ -755,6 +755,19 @@ public class PreviewViewModel
         ): Boolean =
             editerSelection { rendu, span ->
                 EditionAttributsXml.ecrireDimensions(rendu, span, largeurDp, hauteurDp)
+            }
+
+        /**
+         * CORRECTION « Passer à 48 dp » de la sélection (PE11g — carte de
+         * correctif, miroir `quickFixes`) : dimension fixe < 48 → 48 ;
+         * `wrap_content`/`0dp` → `minWidth`/`minHeight` = 48 dp — les
+         * DEUX axes en UNE édition groupée (une seule entrée d'historique,
+         * [EditionAttributsXml.elargirCibleTactile]). `false` = sélection
+         * non éditable, span périmé ou RIEN à élargir.
+         */
+        public fun elargirCibleSelection(): Boolean =
+            editerSelection { rendu, span ->
+                EditionAttributsXml.elargirCibleTactile(rendu, span)
             }
 
         /** DUPLIQUE la vue sélectionnée (miroir `dupSel`) — le libellé de la copie. */

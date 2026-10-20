@@ -2,13 +2,34 @@ package jo.codeide.feature.preview
 
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.EditionAttributsXml
+import jo.codeide.preview.xml.ProblemesPreview
+
+/**
+ * L'ACTION d'une carte de correction (PE11g — miroir `fx` de
+ * `quickFixes` : `run` écrit une édition + toast, `go` navigue SANS
+ * édition). Portée par l'item, l'adaptateur la rend au volet au tap.
+ */
+internal sealed interface ActionCorrectif {
+    /** « Passer à 48 dp » : fixe < 48 → 48, sinon `minWidth`/`minHeight` — UNE édition. */
+    data object ElargirCible : ActionCorrectif
+
+    /** « Extraire en @string » : [ExtractionRessource] existant, valeurs FR et EN. */
+    data object ExtraireTexte : ActionCorrectif
+
+    /** « Autoriser 2 lignes » : `android:maxLines="2"` — UNE édition. */
+    data object AutoriserDeuxLignes : ActionCorrectif
+
+    /** « Renseigner » : ouvre la section du champ et pose le FOCUS — SANS édition. */
+    data object OuvrirContentDescription : ActionCorrectif
+}
 
 /**
  * Les items du volet ATTRIBUTS (PE11b — PREVIEW_UI.md § 8, ADR 0132) :
- * titre, barre d'outils épinglée, cartes de section repliables, trait de
- * fin, groupes de LECTURE SEULE — la liste consommée par
- * [AdaptateurAttributs]. Une carte porte SES attributs lus : son corps
- * n'est gonflé qu'à l'ouverture, une carte fermée ne coûte rien.
+ * titre, barre d'outils épinglée, cartes de correction rapide (PE11g),
+ * cartes de section repliables, trait de fin, groupes de LECTURE
+ * SEULE — la liste consommée par [AdaptateurAttributs]. Une carte porte
+ * SES attributs lus : son corps n'est gonflé qu'à l'ouverture, une
+ * carte fermée ne coûte rien.
  */
 internal sealed interface ItemAttributs {
     /** Item 0 — le titre « MODIFIER · CLASSE » (entete_editeur). */
@@ -18,6 +39,22 @@ internal sealed interface ItemAttributs {
 
     /** Item 1 — la barre d'outils épinglée (barre_outils_attributs). */
     data object BarreOutils : ItemAttributs
+
+    /**
+     * UNE carte de correction rapide (item_correctif, PE11g — miroir
+     * `.fix`) : le PROBLÈME de la vue sélectionnée (titre + message
+     * localisés) et son ACTION. Un problème sans action (classe
+     * introuvable : l'ajout de dépendance n'existe pas) ne produit
+     * JAMAIS de carte (brief : « n'afficher le bouton que si l'action
+     * existe »).
+     */
+    data class Correctif(
+        val genre: ProblemesPreview.GenreProbleme,
+        val titre: String,
+        val message: String,
+        val bouton: String,
+        val action: ActionCorrectif,
+    ) : ItemAttributs
 
     /**
      * Une carte de section repliable (carte_section) : titre, badge « n

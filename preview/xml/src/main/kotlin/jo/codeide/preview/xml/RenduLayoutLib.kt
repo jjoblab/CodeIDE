@@ -6,7 +6,9 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import jo.codeide.core.domain.AppLogger
 import jo.layoutlib.drawables.DrawableResolverImpl
 import jo.layoutlib.inflater.AttributeApplier
@@ -100,7 +102,9 @@ internal fun ligneDeMessageRendu(message: String): Int? =
 
 private val LIGNE_DANS_MESSAGE = Regex("line #(\\d+)")
 
-@Suppress("TooManyFunctions") // Pipeline nommé de PE1, étendu en PE3 (profils, nuit, genres, sélection).
+@Suppress("TooManyFunctions", "LargeClass") // Pipeline nommé de PE1, étendu en PE3 (profils, nuit,
+// genres, sélection) puis PE6c/PE11g (collecte enrichie, détections problèmes) : l'éclater disperserait
+// l'ordre des étapes — même exemption motivée qu'[EditionAttributsXml] (règle 16).
 public class RenduLayoutLib(
     private val contexte: Context,
     private val journal: AppLogger?,
@@ -510,21 +514,33 @@ public class RenduLayoutLib(
         }
         return Array(infos.size) { indice ->
             val element = elements[indice]
-            infos[indice].versInfoVue(element.debut, element.fin, decalageGauche, decalageHaut, attributs[indice])
+            infos[indice].versInfoVue(
+                element.debut,
+                element.fin,
+                decalageGauche,
+                decalageHaut,
+                attributs[indice],
+                texteCodeDur = ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin),
+            )
         }
     }
 
     /**
      * Attributs vivants d'une vue rendue que ViewInfoCollector ne
-     * porte pas (PE6c) : cliquable et orientation LinearLayout.
+     * porte pas (PE6c, PE11g) : cliquable, orientation LinearLayout,
+     * texte tronqué (mesure LayoutLib) et image sans contentDescription
+     * (lecture de la vue — les règles de [ProblemesPreview]).
      */
     private data class AttributsVue(
         val cliquable: Boolean,
         val orientation: Int,
+        val texteTronque: Boolean,
+        val sansContentDescription: Boolean,
     ) {
         companion object {
             /** Repli défensif (écart de marche — jamais de faux attribut). */
-            val PAR_DEFAUT: AttributsVue = AttributsVue(false, InfoVueRendu.ORIENTATION_SANS_OBJET)
+            val PAR_DEFAUT: AttributsVue =
+                AttributsVue(false, InfoVueRendu.ORIENTATION_SANS_OBJET, false, false)
         }
     }
 
@@ -549,7 +565,14 @@ public class RenduLayoutLib(
                 } else {
                     InfoVueRendu.ORIENTATION_SANS_OBJET
                 }
-            resultat.add(AttributsVue(cliquable = vue.isClickable, orientation = orientation))
+            resultat.add(
+                AttributsVue(
+                    cliquable = vue.isClickable,
+                    orientation = orientation,
+                    texteTronque = vue is TextView && ProblemesRendu.texteDepasse(vue),
+                    sansContentDescription = vue is ImageView && vue.contentDescription == null,
+                ),
+            )
             if (vue is ViewGroup) {
                 for (i in 0 until vue.childCount) {
                     val enfant = vue.getChildAt(i) ?: continue
@@ -592,12 +615,17 @@ public class RenduLayoutLib(
         val indiceParent: Int,
         val profondeur: Int,
     ) {
+        // Exemption detekt ciblée : un CHAMP d'[InfoVueRendu] = un
+        // paramètre de la fabrique (même justification que le miroir
+        // PARCELABLE — le format est le contrat, pas une accumulation).
+        @Suppress("LongParameterList")
         fun versInfoVue(
             debutElement: Int,
             finElement: Int,
             decalageGauche: Int = 0,
             decalageHaut: Int = 0,
             attributs: AttributsVue,
+            texteCodeDur: Boolean = false,
         ): InfoVueRendu =
             InfoVueRendu(
                 gauche = info.left + decalageGauche,
@@ -626,6 +654,10 @@ public class RenduLayoutLib(
                 cliquable = attributs.cliquable,
                 conteneur = info.isViewGroup,
                 orientation = attributs.orientation,
+                // PE11g — détections moteur + source (règles de ProblemesPreview).
+                texteTronque = attributs.texteTronque,
+                sansContentDescription = attributs.sansContentDescription,
+                texteCodeDur = texteCodeDur,
             )
     }
 
