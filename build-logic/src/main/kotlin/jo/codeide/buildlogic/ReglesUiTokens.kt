@@ -1,8 +1,8 @@
 package jo.codeide.buildlogic
 
 /**
- * Garde-fou des littéraux UI (ADR 0127 §5, lot UI-2) — moteur PUR de
- * scan, sans aucun type Gradle : testable en JUnit standard, câblé
+ * Garde-fou des littéraux UI (ADR 0127 §5, lots UI-2 puis UI-7) — moteur
+ * PUR de scan, sans aucun type Gradle : testable en JUnit standard, câblé
  * ensuite par [UiTokensPlugin] sur la tâche `checkUiTokens`.
  *
  * Portée (ADR §5) : scan TEXTE des `res/layout*`, `res/drawable*`
@@ -12,6 +12,22 @@ package jo.codeide.buildlogic
  * la dette ne peut que diminuer ; le code NOUVEAU est tenu à zéro
  * littéral (« un fichier inconnu de la baseline avec la moindre
  * occurrence échoue »).
+ *
+ * DURCISSEMENT UI-7 (règle de bannissement) : le scan ligne à ligne
+ * laissait ÉCHAPPER deux formes de code formaté —
+ * - R5 : dans le XML formaté (un attribut par ligne), `<ImageButton`
+ *  est presque toujours en FIN DE LIGNE : la règle ne tirait jamais ;
+ *  elle attrape désormais la fin de ligne et EXONÈRE seule la balise
+ *  portant un style MAISON `@style/Widget.CodeIDE.*` (ADR §3 « ou le
+ *  composant core:ui dédié » — p. ex. `Widget.CodeIDE.Apercu.BoutonIcone`,
+ *  style `parent=""` issu de la maquette, incompatible des métriques
+ *  MaterialButton) ;
+ * - R6 : l'appel QUALIFIÉ multi-lignes (`android.widget.Toast\n.makeText`)
+ *  échappait à `contains("Toast.makeText")` ; l'interdit porte
+ *  désormais sur le TEXTE ENTIER, espacements traversés.
+ * Les exceptions R6 assumées (annonce qui SURVIT à la fenêtre,
+ * ADR 0127 §5 amendé) vivent dans la BASELINE à R6=1 — visibles,
+ * plafonnées pour toujours, jamais extensibles.
  */
 object MoteurUiTokens {
     /** Règles R1-R7, chacune avec son conseil de réparation lisible. */
@@ -23,8 +39,8 @@ object MoteurUiTokens {
         R2("R2", "android:textSize littéral — référencer un textAppearance @style/TextAppearance.CodeIDE.*"),
         R3("R3", "couleur #hex en dur — passer par un rôle de thème ?attr/color… (tools: excepté, ic_ non scanné)"),
         R4("R4", "style Material brut — remplacer par le style Widget.CodeIDE.* correspondant"),
-        R5("R5", "widget nu — remplacer par MaterialButton/MaterialCardView ou le composant core:ui dédié"),
-        R6("R6", "Toast.makeText — utiliser Retour.snackbar(…) de core:ui (ADR 0127 §3)"),
+        R5("R5", "widget nu — remplacer par MaterialButton/MaterialCardView ou le composant core:ui dédié (un style maison Widget.CodeIDE.* exonère)"),
+        R6("R6", "Toast.makeText — utiliser Retour.snackbar(…) de core:ui (ADR 0127 §3) ; l'appel QUALIFIÉ multi-lignes est attrapé aussi"),
         R7("R7", "cardCornerRadius/cardElevation littéral — carte par @style/Widget.CodeIDE.Card, rayon/élévation par jeton"),
     }
 
@@ -55,13 +71,46 @@ object MoteurUiTokens {
     /** Attribut de carte littéral : `app:cardCornerRadius` / `app:cardElevation`. */
     private val VALEUR_CARTE = Regex("""app:card(?:CornerRadius|Elevation)="\s*-?\d+(?:\.\d+)?dp"""")
 
-    /** Widgets nus : `<Button`, `<ImageButton` (balise ouvrante uniquement). */
-    private val WIDGET_NU = Regex("""<(?:Button|ImageButton)[\s>/]""")
+    /** Widgets nus : `<Button`/`<ImageButton` jusqu'à une fin de mot — la
+     *  balise est presque toujours en FIN DE LIGNE dans le XML formaté
+     *  (un attribut par ligne), `\b` couvre ce cas sans piéger
+     *  `<ButtonViewCustom` (UI-7 : la règle devient RÉELLE). */
+    private val WIDGET_NU = Regex("""<(?:Button|ImageButton)\b""")
+
+    /** Style MAISON dans une balise : le widget n'est pas « nu », il
+     *  EST le composant dédié (ADR §3 « ou le composant core:ui dédié »
+     *  — p. ex. les styles d'aperçu à `parent=""` posés par la
+     *  maquette, ImageButton par nature). */
+    private const val STYLE_MAISON = """style="@style/Widget.CodeIDE."""
+
+    /** Appel `Toast.makeText` banni, QUALIFIÉ et MULTI-LIGNES compris
+     *  (`android.widget.Toast\n.makeText(…)`) — la fin de ligne ne
+     *  sauve plus (UI-7 : bannissement effectif). */
+    private val TOAST_BANNI = Regex("""Toast\s*\.\s*makeText""")
+
+    /** Balise XML se terminant ici (XML du dépôt formaté un attribut
+     *  par ligne : la dernière ligne de la balise finit par `>`). */
+    private fun baliseFermee(ligne: String): Boolean = ligne.trimEnd().endsWith(">")
+
+    /** La balise ouverte à [index] porte-t-elle un STYLE MAISON ? Le
+     *  regard s'arrête à la ligne qui FERME la balise — y compris la
+     *  ligne D'OUVERTURE si elle se ferme elle-même (balise tenue sur
+     *  une ligne) : le style d'une balise SUIVANTE n'exonère jamais
+     *  la nôtre. */
+    private fun porteStyleMaison(lignes: List<String>, index: Int): Boolean {
+        for (i in index until lignes.size) {
+            if (lignes[i].contains(STYLE_MAISON)) return true
+            if (baliseFermee(lignes[i])) return false
+            if (i > index + 10) return false
+        }
+        return false
+    }
 
     /** Scan d'un fichier XML (layout ou drawable non-icône) : R1-R5, R7. */
     fun xml(contenu: String): List<Occurrence> {
         val occurrences = mutableListOf<Occurrence>()
-        contenu.lineSequence().forEachIndexed { index, ligne ->
+        val lignes = contenu.lines()
+        lignes.forEachIndexed { index, ligne ->
             val numeroLigne = index + 1
 
             // R1 : marges et paddings littéraux ; 0 dp et 1 dp admis
@@ -93,9 +142,13 @@ object MoteurUiTokens {
                 occurrences += Occurrence(Regle.R4, numeroLigne, ligne.trim())
             }
 
-            // R5 : widgets nus — le Material correspondant est thématisé.
+            // R5 : widgets nus — le Material correspondant est thématisé ;
+            //  un style MAISON sur la balise = composant dédié, exonéré
+            //  (ADR §3 — UI-7 : la fin de ligne n'échappe plus).
             if (WIDGET_NU.containsMatchIn(ligne) || ligne.contains("androidx.cardview.widget.CardView")) {
-                occurrences += Occurrence(Regle.R5, numeroLigne, ligne.trim())
+                if (!porteStyleMaison(lignes, index)) {
+                    occurrences += Occurrence(Regle.R5, numeroLigne, ligne.trim())
+                }
             }
 
             // R7 : rayon et élévation littéraux sur les cartes — le
@@ -107,14 +160,12 @@ object MoteurUiTokens {
         return occurrences
     }
 
-    /** Scan d'un fichier Kotlin : R6 (Toast banni, Snackbar par Retour). */
+    /** Scan d'un fichier Kotlin : R6 (Toast banni, Snackbar par Retour) —
+     *  l'appel est attrapé QUALIFIÉ et MULTI-LIGNES (UI-7). */
     fun kotlin(contenu: String): List<Occurrence> =
-        contenu.lineSequence().mapIndexedNotNull { index, ligne ->
-            if (ligne.contains("Toast.makeText")) {
-                Occurrence(Regle.R6, index + 1, ligne.trim())
-            } else {
-                null
-            }
+        TOAST_BANNI.findAll(contenu).map { correspondance ->
+            val ligne = 1 + contenu.substring(0, correspondance.range.first).count { it == '\n' }
+            Occurrence(Regle.R6, ligne, correspondance.value.replace(Regex("\\s+"), " "))
         }.toList()
 
     /** Décompte par règle d'une liste d'occurrences (format de la baseline). */
