@@ -46,6 +46,7 @@ import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.CouleursProjetXml
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.ExtractionRessource
+import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
@@ -315,8 +316,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 return@buildList
             }
             val classe = viewModel.classeSelection() ?: vue.classe
-            val genreParent =
-                viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
+            val familleParent = viewModel.familleParentSelection() ?: FamilleParent.AUCUN
             add(ItemAttributs.Titre(getString(R.string.preview_modifier_classe, classe)))
             add(ItemAttributs.BarreOutils)
             val attrs = viewModel.attributsSelection()
@@ -330,7 +330,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 // carte par problème de la vue qui a UNE action, AVANT les
                 // sections (PREVIEW_UI.md § 8 : item 2 « correctifs »).
                 ajouterCorrectifs(this, vue)
-                val sections = CatalogueAttributs.sections(classe, genreParent)
+                val sections = CatalogueAttributs.sections(classe, familleParent)
                 var visibles = 0
                 var masques = 0
                 sections.forEachIndexed { position, section ->
@@ -1755,9 +1755,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun ouvrirContentDescription() {
         rechercheInterne.value = ""
         val classe = viewModel.classeSelection() ?: return
-        val genreParent = viewModel.genreParentSelection() ?: CatalogueAttributs.GenreParent.AUCUN
+        val familleParent = viewModel.familleParentSelection() ?: FamilleParent.AUCUN
         val section =
-            CatalogueAttributs.sections(classe, genreParent).firstOrNull { parcourue ->
+            CatalogueAttributs.sections(classe, familleParent).firstOrNull { parcourue ->
                 parcourue.controles.any { controle ->
                     controle is CatalogueAttributs.ControleAttribut.Texte &&
                         controle.nom == ATTR_CONTENT_DESCRIPTION
