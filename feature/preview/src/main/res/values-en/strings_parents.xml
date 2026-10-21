@@ -79,4 +79,7 @@
         <item quantity="one">Renamed to @+id/%1$s · %2$d reference updated</item>
         <item quantity="other">Renamed to @+id/%1$s · %2$d references updated</item>
     </plurals>
+    <!-- Renaming WITHOUT references (mirror of the mock-up: the
+         "· N references" suffix only appears when there are some). -->
+    <string name="preview_renomme_simple">Renamed to @+id/%1$s</string>
 </resources>

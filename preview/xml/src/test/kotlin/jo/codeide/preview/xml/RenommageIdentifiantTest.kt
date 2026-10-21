@@ -164,4 +164,74 @@ public class RenommageIdentifiantTest {
         val perime = InsertionXml.SpanParent(span.debut + 1, span.fin + 1)
         assertNull(RenommageIdentifiant.renommer(formate, perime, "entete"))
     }
+
+    /** RelativeLayout PE12g : les TROIS familles de références vers un même id. */
+    private val familles =
+        """<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/source"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Source" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/source"
+        android:text="Valider" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_anchor="@id/source"
+        app:layout_anchorGravity="bottom|end" />
+
+    <EditText
+        android:id="@+id/champ"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Champ" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:labelFor="@+id/source"
+        android:text="Légende" />
+</RelativeLayout>
+""".trimStart()
+
+    @Test
+    fun `le renommage suit layout_below layout_anchor et labelFor - non regression PE12g`() {
+        // Spec § 10 : le renommage fait déjà le travail — CE test le
+        // GARANTIT (la spécification l'exige, il protège la portée du
+        // remplacement textuel si [RenommageIdentifiant.renommer] est
+        // un jour réécrit par portée d'attributs).
+        val span = spanDe(familles, 1)!!
+        val edition = RenommageIdentifiant.renommer(familles, span, "cible")
+        assertNotNull(edition)
+        val resultat = appliquer(familles, edition!!)
+        assertTrue(resultat.contains("""android:layout_below="@id/cible""""))
+        assertTrue(resultat.contains("""app:layout_anchor="@id/cible""""))
+        assertTrue(resultat.contains("""android:labelFor="@+id/cible""""))
+        assertFalse(resultat.contains("source"))
+        // La gravité d'ancre n'est PAS une référence : elle survit.
+        assertTrue(resultat.contains("""app:layout_anchorGravity="bottom|end""""))
+    }
+
+    @Test
+    fun `compterReferences exclut la declaration`() {
+        // Trois références suivent `source` (règle, ancre, labelFor).
+        assertEquals(3, RenommageIdentifiant.compterReferences(familles, "source"))
+        // Dans le premier document : une seule contrainte vers `titre`.
+        assertEquals(1, RenommageIdentifiant.compterReferences(formate, "titre"))
+        // Déclaration SANS référence : zéro ; nom inconnu : zéro.
+        assertEquals(0, RenommageIdentifiant.compterReferences(formate, "button"))
+        assertEquals(0, RenommageIdentifiant.compterReferences(formate, "inconnu"))
+    }
 }
