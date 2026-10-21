@@ -192,51 +192,18 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         val titre = titreSectionRes(section.titre).lowercase()
         if (requete.isEmpty()) {
             return if (modeCourantsInterne.value) {
-                section.controles.filter { it.courant() }
+                section.controles.filter { it.courant }
             } else {
                 section.controles
             }
         }
         return section.controles.filter { controle ->
-            val noms = nomsDuControle(controle).joinToString(" ").lowercase()
+            val noms = controle.nomsAttributs.joinToString(" ").lowercase()
             val etiquette =
                 etiquetteDuControle(controle)?.let { etiquetteRes(it).lowercase() }.orEmpty()
             titre.contains(requete) || noms.contains(requete) || etiquette.contains(requete)
         }
     }
-
-    /**
-     * Le drapeau Courants d'un contrôle (PE11a du brief PE10 : les
-     * contrôles sans paramètres — dimensions, contraintes — sont
-     * TOUJOURS courants).
-     */
-    private fun CatalogueAttributs.ControleAttribut.courant(): Boolean =
-        when (this) {
-            CatalogueAttributs.ControleAttribut.Dimensions,
-            CatalogueAttributs.ControleAttribut.Contraintes,
-            -> true
-
-            else -> champCourant()
-        }
-
-    /** Le drapeau Courants d'un contrôle À CHAMP (les 13 types nommés du catalogue). */
-    private fun CatalogueAttributs.ControleAttribut.champCourant(): Boolean =
-        when (this) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
-            is CatalogueAttributs.ControleAttribut.Texte -> courant
-            is CatalogueAttributs.ControleAttribut.Nombre -> courant
-            is CatalogueAttributs.ControleAttribut.Choix -> courant
-            is CatalogueAttributs.ControleAttribut.Liste -> courant
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
-            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
-            is CatalogueAttributs.ControleAttribut.Couleur -> courant
-            is CatalogueAttributs.ControleAttribut.Ressource -> courant
-            is CatalogueAttributs.ControleAttribut.Cotes -> courant
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> courant
-            is CatalogueAttributs.ControleAttribut.Bascules -> courant
-            else -> true // Dimensions/Contraintes : déjà routés par le when externe
-        }
 
     /**
      * L'ÉTIQUETTE locale d'un contrôle (miroir `c.l` de la maquette) :
@@ -466,47 +433,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): Int =
         section.controles.count { controle ->
-            nomsDuControle(controle).any { nom ->
+            controle.nomsAttributs.any { nom ->
                 attrs.any { it.nom == nom && it.valeur.isNotEmpty() }
             }
-        }
-
-    /**
-     * Les noms d'attributs d'un contrôle (Dimensions/Contraintes : rien à
-     * compter ; BASCULES : chaque bouton porte SON attribut — le groupe
-     * compte dès qu'UN seul est défini, miroir le `some` de la maquette).
-     */
-    private fun nomsDuControle(controle: CatalogueAttributs.ControleAttribut): List<String> =
-        when (controle) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Texte -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Nombre -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Choix -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Liste -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Bascules -> controle.entrees.map { entree -> entree.nom }
-
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.TriEtat -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Couleur -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Ressource -> listOf(controle.nom)
-
-            is CatalogueAttributs.ControleAttribut.Cotes -> listOf(controle.base)
-
-            CatalogueAttributs.ControleAttribut.Dimensions,
-            CatalogueAttributs.ControleAttribut.Contraintes,
-            -> emptyList()
         }
 
     /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un item layout). */

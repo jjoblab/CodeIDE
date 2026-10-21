@@ -181,11 +181,31 @@ public object CatalogueAttributs {
 
     /** UN contrôle de l'éditeur (variante scellée — miroir § 4.1). */
     public sealed class ControleAttribut {
+        /**
+         * Le drapeau « Courants » du contrôle (PE11f) — les composites
+         * sans champ ([Dimensions], [Contraintes]) sont TOUJOURS
+         * courants. Le miroir du `c.cur` de la maquette vit AVEC le
+         * type : plus de `when` de dispatch dans le volet ni dans les
+         * tests (les trois copies dépassaient le seuil de complexité
+         * detekt — CI de 175ce7a7).
+         */
+        public abstract val courant: Boolean
+
+        /**
+         * Les NOMS d'attributs portés par le contrôle (miroir `some` de
+         * la maquette : le groupe compte dès qu'UN nom est défini) —
+         * les composites sans champ n'en portent AUCUN.
+         */
+        public abstract val nomsAttributs: List<String>
+
         /** L'identifiant de la vue (PE8a : renommage déclaration + références). */
         public data class Identifiant(
             val nom: String,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /**
          * Un texte libre (`android:text`, `contentDescription`…) —
@@ -197,31 +217,43 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val extrayable: Boolean = false,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /** Un nombre avec unité (`"dp"`, `"sp"` ou `""` — alpha sans unité). */
         public data class Nombre(
             val nom: String,
             val etiquette: Etiquette,
             val unite: String,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /** Un choix segmenté — le PREMIER élément est le défaut (retrait). */
         public data class Choix(
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /** Un tri-état (défaut / true / false — défaut = retrait). */
         public data class TriEtat(
             val nom: String,
             val etiquette: Etiquette,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /**
          * Une liste déroulante (PE11c — miroir `list` de la maquette, § 9 :
@@ -234,8 +266,11 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /**
          * Un contrôle à DRAPEAUX (PE11d — miroir `flags` de la maquette, § 9 :
@@ -251,8 +286,11 @@ public object CatalogueAttributs {
             val etiquette: Etiquette,
             val valeurs: List<String>,
             val requiert: String? = null,
-            val courant: Boolean = true,
+            override val courant: Boolean = true,
         ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
             /**
              * Les PARTIES posées de la valeur (miroir
              * `cur.split('|').filter(Boolean)`).
@@ -293,8 +331,11 @@ public object CatalogueAttributs {
             val nom: String,
             val bases: List<String>,
             val modificateurs: List<String>,
-            val courant: Boolean = true,
+            override val courant: Boolean = true,
         ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
             /**
              * La BASE courante : première partie de la valeur dans le
              * catalogue, sinon « text » (miroir
@@ -337,8 +378,11 @@ public object CatalogueAttributs {
         public data class Couleur(
             val nom: String,
             val etiquette: Etiquette,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+        }
 
         /**
          * Le contrôle RESSOURCE (PE11f — miroir `res` de la maquette,
@@ -354,8 +398,11 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val types: List<String>,
-            val courant: Boolean = true,
+            override val courant: Boolean = true,
         ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
             /**
              * La valeur COMPLÉTÉE : un NOM NU (lettres, chiffres, « _ »
              * et « . ») reçoit le PREMIER type (miroir
@@ -374,15 +421,30 @@ public object CatalogueAttributs {
         public data class Cotes(
             val base: String,
             val etiquette: Etiquette,
-            val courant: Boolean = true,
-        ) : ControleAttribut()
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : les quatre côtés partagent la BASE. */
+            override val nomsAttributs: List<String> = listOf(base)
+        }
 
         /** Les dimensions wrap/match/fixe (PE7d — miroir `dimrow`). */
-        public object Dimensions : ControleAttribut()
+        public object Dimensions : ControleAttribut() {
+            /** [ControleAttribut.courant] : composite sans champ, toujours courant. */
+            override val courant: Boolean = true
+
+            /** [ControleAttribut.nomsAttributs] : rien à compter. */
+            override val nomsAttributs: List<String> = emptyList()
+        }
 
         /** Les contraintes du ConstraintLayout parent (ÉDITABLES — PE8b :
          * cible parent/frère + marge par ancre). */
-        public object Contraintes : ControleAttribut()
+        public object Contraintes : ControleAttribut() {
+            /** [ControleAttribut.courant] : composite sans champ, toujours courant. */
+            override val courant: Boolean = true
+
+            /** [ControleAttribut.nomsAttributs] : rien à compter. */
+            override val nomsAttributs: List<String> = emptyList()
+        }
 
         /**
          * Le contrôle RÉFÉRENCE D'ID (PE12c — miroir `idref` de la
@@ -398,8 +460,11 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val portee: Portee,
-            val courant: Boolean = true,
+            override val courant: Boolean = true,
         ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
             /** La portée des candidats (spec § 5.3). */
             public enum class Portee {
                 /** Tous les `@id/` de l'arbre, sauf la vue (prévu pour `labelFor` — 2e vague). */
@@ -424,8 +489,11 @@ public object CatalogueAttributs {
         public data class Bascules(
             val etiquette: Etiquette,
             val entrees: List<Entree>,
-            val courant: Boolean = true,
+            override val courant: Boolean = true,
         ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : chaque bascule porte SON attribut. */
+            override val nomsAttributs: List<String> = entrees.map { entree -> entree.nom }
+
             /** UNE bascule : l'attribut [nom] et la clé de libellé [libelle]. */
             public data class Entree(
                 val nom: String,

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Strings added by the "parent families" wave (ADR 0135). French counterpart: values/strings_parents.xml. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="preview_placement_derriere">Behind</string>
     <string name="preview_placement_devant">In front</string>
     <string name="preview_placement_dessous">Below</string>
@@ -22,8 +22,11 @@
     <string name="preview_cellule_bas_debut">Bottom, start</string>
     <string name="preview_cellule_bas_centre">Bottom, center</string>
     <string name="preview_cellule_bas_fin">Bottom, end</string>
+    <!-- Summaries (the stacking layer is a RANK, not a quantity —
+         semantically wrong plural, lint PluralsCandidate: %d followed
+         by words; precedent installation_progression, v0.31.5). -->
     <string name="preview_placement_resume_regle">%1$s, in %2$s</string>
-    <string name="preview_placement_resume_pile">In %1$s, %2$s, layer %3$d of %4$d</string>
+    <string name="preview_placement_resume_pile" tools:ignore="PluralsCandidate">In %1$s, %2$s, layer %3$d of %4$d</string>
     <string name="preview_placement_defaut">(default)</string>
     <string name="preview_depot_dessous">Below %1$s · margin %2$d dp</string>
     <string name="preview_depot_dessus">Above %1$s · margin %2$d dp</string>
@@ -55,7 +58,15 @@
     <string name="preview_correctif_ajouter_comportement">Add the behavior</string>
     <string name="preview_correctif_casser_boucle">Break the loop</string>
     <string name="preview_bandeau_boucle">Circular dependency in %1$s: %2$s. RelativeLayout refuses a loop of rules.</string>
+    <!-- Layer and deletion (the NUMBER of removed or updated
+         references is a QUANTITY: a plural, no "(s)" hack). -->
     <string name="preview_calque_relations">Relations</string>
-    <string name="preview_supprime_references">%1$s deleted · %2$d reference(s) removed</string>
-    <string name="preview_renomme_references">Renamed to @+id/%1$s · %2$d reference(s) updated</string>
+    <plurals name="preview_supprime_references">
+        <item quantity="one">%1$s deleted · %2$d reference removed</item>
+        <item quantity="other">%1$s deleted · %2$d references removed</item>
+    </plurals>
+    <plurals name="preview_renomme_references">
+        <item quantity="one">Renamed to @+id/%1$s · %2$d reference updated</item>
+        <item quantity="other">Renamed to @+id/%1$s · %2$d references updated</item>
+    </plurals>
 </resources>
