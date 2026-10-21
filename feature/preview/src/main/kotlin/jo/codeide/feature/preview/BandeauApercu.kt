@@ -4,6 +4,7 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
 import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.ProblemesFamilles
 
 /**
  * Le BANDEAU de l'écran d'aperçu (PE11i, D6 — miroir `.banner`, ADR 0134)
@@ -12,6 +13,8 @@ import jo.codeide.preview.xml.EtatPreviewXml
  * (processus `:preview` arrêté), et « Détails » ↔ « Réduire » (déplie le
  * message) ; la BARRE D'ÉDITION descend de 64 dp sous un bandeau visible
  * (miroir `.edit.shift`), le dernier rendu valide reste affiché dessous.
+ * PE12f : l'HABILLAGE § 12 de l'erreur de boucle vit ICI (l'activité pose
+ * l'état du moteur et le texte vivant, le bandeau compose son message).
  *
  * Correctif PE11k (bug rapporté par le propriétaire : « j'ai appuyé sur
  * réessayer, réduire, rien ne fonctionne ») : le bandeau du processus
@@ -42,19 +45,61 @@ internal class BandeauApercu(
         bouton.setOnClickListener { actionBouton?.invoke() }
     }
 
-    /** L'erreur de RENDU : message + « Ligne n » (si la ligne est connue) + « Détails ». */
+    /** L'erreur de RENDU : message + « Ligne n » (si la ligne est connue) + « Détails ».
+     *
+     * PE12f — [texte] est le document VIVANT : quand l'erreur porte la
+     * signature de la boucle `RelativeLayout`, le message HABILLÉ du
+     * cycle y est lu ([habiller], spec § 12) au lieu du message brut de
+     * LayoutLib.
+     */
     fun montrerErreur(
         erreur: EtatPreviewXml.ErreurRendu,
+        texte: String,
         allerALigne: (ligne: Int) -> Unit,
     ) {
-        val ligne = erreur.ligne
+        val (message, ligne) = habiller(erreur, texte)
         montrer(
-            texte = erreur.message,
+            texte = message,
             libelleBouton = ligne?.let { ressources.getString(R.string.preview_bandeau_ligne, it) },
             actionBouton = ligne?.let { l -> { allerALigne(l) } },
             pliable = true,
         )
     }
+
+    /**
+     * L'HABILLAGE § 12 de l'erreur de boucle : quand le message porte la
+     * signature de l'exception `RelativeLayout`, le bandeau nomme le CYCLE
+     * lu dans le texte — « Erreur de rendu · Dépendance circulaire dans
+     * <conteneur> : @id/a → @id/b → @id/a. RelativeLayout refuse une
+     * boucle de règles. » — et son bouton « Ligne N » ouvre la PREMIÈRE
+     * vue du cycle (le message brut ne nomme ni la boucle ni la vue).
+     * Toute autre erreur passe TELLE QUELLE (message lisible du moteur).
+     */
+    private fun habiller(
+        erreur: EtatPreviewXml.ErreurRendu,
+        texte: String,
+    ): Pair<String, Int?> {
+        val boucle = boucleDe(erreur.message, texte) ?: return erreur.message to erreur.ligne
+        val message =
+            ressources.getString(R.string.preview_bandeau_erreur_titre) + " · " +
+                ressources.getString(
+                    R.string.preview_bandeau_boucle,
+                    boucle.conteneur,
+                    boucle.cycle.joinToString(" → ") { "@id/$it" },
+                )
+        return message to ProblemesFamilles.ligneDeLaBoucle(texte, boucle)
+    }
+
+    /** La boucle du texte quand le message de rendu porte sa signature, sinon null. */
+    private fun boucleDe(
+        message: String,
+        texte: String,
+    ): ProblemesFamilles.Probleme? =
+        if (ProblemesFamilles.estBoucleRelativeLayout(message)) {
+            ProblemesFamilles.boucleSurTexte(texte)
+        } else {
+            null
+        }
 
     /** Le processus `:preview` ARRÊTÉ : message honnête COMPLET (miroir
      * `renderStatus` cas crash : deux lignes, AUCUN pliage) + « Réessayer »

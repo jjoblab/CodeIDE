@@ -23,9 +23,12 @@ import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.FeuilleApercu
+import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
+import jo.codeide.preview.xml.ProblemesFamilles
+import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
@@ -823,6 +826,61 @@ public class PreviewViewModel
                 EditionAttributsXml.retirerAttributs(texte, span, noms)
             }
 
+        /**
+         * Le cache des problèmes de FAMILLE (PE12f) : l'évaluation ne se
+         * re-parse que quand le TEXTE a changé — le badge, l'onglet
+         * Problèmes et les cartes de correctif la redemandent à chaque
+         * état du moteur (miroir [cacheArbre]).
+         */
+        private var cacheProblemesFamilles: Pair<String, List<ProblemesFamilles.Probleme>>? = null
+
+        /**
+         * Les problèmes de FAMILLE du document courant (PE12f, spec § 9 —
+         * [ProblemesFamilles.evaluer] sur le TEXTE vivant, mis en
+         * cache par texte) : SANS rendu valide eux aussi — la boucle de
+         * règles se lit alors que le rendu vient d'échouer (§ 12).
+         */
+        public fun problemesFamilles(): List<ProblemesFamilles.Probleme> {
+            val sourceBranchee = source ?: return emptyList()
+            val texte = sourceBranchee.texte()
+            cacheProblemesFamilles?.let { (precedent, problemes) -> if (precedent == texte) return problemes }
+            return ProblemesFamilles
+                .evaluer(texte)
+                .also { problemes -> cacheProblemesFamilles = texte to problemes }
+        }
+
+        /**
+         * CORRIGE un problème de famille (PE12f — miroir les `fixer.run`
+         * de la maquette : retirer les attributs en cause, ou POSER le
+         * comportement de défilement) : l'édition se pose sur le SPAN du
+         * problème, LU DANS LE TEXTE VIVANT — pas sur la sélection du
+         * rendu, qui peut être périmée depuis (le rendu vient d'échouer :
+         * c'est le cas d'emploi de la boucle, § 12). UNE seule édition,
+         * un seul annuler ; rendu immédiat. `false` = problème périmé
+         * (l'attribut visé n'est plus au span — le volet se re-marche et
+         * la carte disparaît).
+         */
+        public fun corrigerProblemeFamille(probleme: ProblemesFamilles.Probleme): Boolean {
+            val sourceBranchee = source ?: return false
+            val texte = sourceBranchee.texte()
+            val span = InsertionXml.SpanParent(probleme.debut, probleme.fin)
+            val edition =
+                if (probleme.genre == ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT) {
+                    EditionAttributsXml.definirReference(
+                        texte,
+                        span,
+                        ATTRIBUT_COMPORTEMENT,
+                        ProblemesFamilles.COMPORTEMENT_DEFILEMENT,
+                    )
+                } else {
+                    EditionAttributsXml.retirerAttributs(texte, span, probleme.attributs)
+                } ?: return false
+            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+            if (!ecrit) return false
+            moteur.soumettreImmediat { sourceBranchee.texte() }
+            return true
+        }
+
         /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
         public fun ecrireDimensionSelection(
             axe: EditionAttributsXml.Axe,
@@ -1182,5 +1240,8 @@ public class PreviewViewModel
 
             /** Taille de la liste des récents (miroir `slice(0, 4)`). */
             private const val RECENTS_MAX: Int = 4
+
+            /** PE12f — l'attribut posé par le correctif « Ajouter le comportement ». */
+            private const val ATTRIBUT_COMPORTEMENT: String = "app:layout_behavior"
         }
     }

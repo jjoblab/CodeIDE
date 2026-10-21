@@ -120,13 +120,13 @@ public class FeuilleApercuFragment : Fragment() {
                     viewModel.moteur.etat.collect { etat ->
                         if (etat is EtatPreviewXml.RenduValide) {
                             renduCourant = etat
-                            majBadgeProblemes(
-                                ProblemesPreview.evaluer(
-                                    etat.vues,
-                                    viewModel.moteur.profil.densiteDpi,
-                                ),
-                            )
                         }
+                        // PE12f — le badge suit AUSSI les problèmes de
+                        // famille lus dans le TEXTE : ils changent à
+                        // chaque état (le texte a bougé), rendu valide ou
+                        // pas — la boucle § 12 se compte alors que le
+                        // rendu vient d'échouer.
+                        majBadgeProblemes()
                         majFilAriane()
                     }
                 }
@@ -272,14 +272,20 @@ public class FeuilleApercuFragment : Fragment() {
 
     /** Le badge compteur de l'onglet Problèmes (miroir `nProbs`, caché à zéro) :
      * la PASTILLE ambre de la maquette (`.tabs .n`) — BadgeDrawable ne porte
-     * pas la police mono (PREVIEW_UI.md § 8). */
-    private fun majBadgeProblemes(problemes: List<ProblemesPreview.ProblemeApercu>) {
+     * pas la police mono (PREVIEW_UI.md § 8). PE12f : compte AUSSI les cinq
+     * genres de FAMILLE lus dans le texte (spec § 9) — comme le `nProbs`
+     * de la maquette, qui compte TOUT `S.probs`. */
+    private fun majBadgeProblemes() {
         val onglet = liaison.ongletsFeuille.getTabAt(ONGLET_PROBLEMES) ?: return
         val pastille = onglet.customView?.findViewById<TextView>(R.id.pastille_onglet) ?: return
-        pastille.isVisible = problemes.isNotEmpty()
+        val vues = renduCourant?.vues.orEmpty()
+        val problemes =
+            ProblemesPreview.evaluer(vues, viewModel.moteur.profil.densiteDpi).size +
+                viewModel.problemesFamilles().size
+        pastille.isVisible = problemes > 0
         // Le compteur est une suite de CHIFFRES neutres (miroir BadgeDrawable
         // .number) — Locale.ROOT explicite pour l'outillage i18n.
-        pastille.text = String.format(Locale.ROOT, "%d", problemes.size)
+        pastille.text = String.format(Locale.ROOT, "%d", problemes)
     }
 
     public companion object {

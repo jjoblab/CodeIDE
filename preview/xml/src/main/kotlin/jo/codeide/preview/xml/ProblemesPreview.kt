@@ -11,6 +11,9 @@ import kotlin.math.min
  * (aucune vue, aucune ressource : les libellés FR/EN sont composés par
  * l'UI à partir du [GenreProbleme], les données portent le fait).
  *
+ * Les genres de FAMILLE (PE12f) partagent le même [GenreProbleme] :
+ * leur ÉVALUATION vit dans [ProblemesFamilles] (sur le TEXTE, spec § 9).
+ *
  * Règles livrées (miroir de `computeProblems` de la maquette, DANS SON
  * ORDRE — classe, description, texte codé, cible, tronc) :
  * - [classeAbsente] : l'inflater a dégradé le tag en cadre de
@@ -51,6 +54,24 @@ public object ProblemesPreview {
 
         /** Le texte déborde de la vue au rendu (mesure LayoutLib — PE11g). */
         TEXTE_TRONQUE,
+
+        /**
+         * Attribut de layout que la famille du PARENT ne comprend pas
+         * (PE12f, spec § 9 — calculé sur le TEXTE, miroir `FAM_ATTRS`).
+         */
+        ATTRIBUT_ORPHELIN,
+
+        /** Règle `RelativeLayout` vers un `@id/` absent des frères (PE12f, spec § 9). */
+        REFERENCE_INTROUVABLE,
+
+        /** `layout_anchor` invalide — LayoutLib refuse le rendu (PE12f, spec § 9). */
+        ANCRE_INVALIDE,
+
+        /** Contenu défilant d'un `CoordinatorLayout` sans `layout_behavior` (PE12f, spec § 9). */
+        COMPORTEMENT_MANQUANT,
+
+        /** Boucle de règles dans un `RelativeLayout` (PE12f, spec § 9 et § 12). */
+        DEPENDANCE_CIRCULAIRE,
     }
 
     /** UN problème détecté, rattaché à la vue par son INDICE dans la liste. */

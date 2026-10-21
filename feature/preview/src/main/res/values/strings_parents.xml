@@ -62,6 +62,16 @@
     <string name="preview_correctif_retirer_ancre">Retirer l\'ancre</string>
     <string name="preview_correctif_ajouter_comportement">Ajouter le comportement</string>
     <string name="preview_correctif_casser_boucle">Casser la boucle</string>
+    <!-- Retours des correctifs de famille (miroir les `fx.msg` de la
+         maquette ; le NOMBRE d'attributs est une QUANTITÉ : un pluriel). -->
+    <plurals name="preview_correctif_orphelin_toast">
+        <item quantity="one">%1$d attribut retiré</item>
+        <item quantity="other">%1$d attributs retirés</item>
+    </plurals>
+    <string name="preview_correctif_regle_toast">%1$s retiré</string>
+    <string name="preview_correctif_ancre_toast">Ancre retirée</string>
+    <string name="preview_correctif_comportement_toast">app:layout_behavior ajouté</string>
+    <string name="preview_correctif_boucle_toast">Règle retirée</string>
     <string name="preview_bandeau_boucle">Dépendance circulaire dans %1$s : %2$s. RelativeLayout refuse une boucle de règles.</string>
     <!-- Calque et suppression (le NOMBRE de références retirées ou
          mises à jour est une QUANTITÉ : un pluriel, pas des « (s) »). -->
