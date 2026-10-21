@@ -757,14 +757,31 @@ public class PreviewActivity :
         toast(R.string.preview_edition_dupliquee_toast, viewModel.libelleVue(indice))
     }
 
-    /** Supprime la vue sélectionnée (miroir `delSel`). */
+    /**
+     * Supprime la vue sélectionnée (miroir `delSel`) — PE12g, spec § 10 :
+     * le toast compte les références mortes parties avec l'élément
+     * (« Button · @+id/x supprimé · 2 références retirées »), le message
+     * simple sans référence (« %1$s supprimé »).
+     */
     private fun supprimer() {
         val libelle = viewModel.libelleVue(viewModel.indiceSelectionne.value)
-        if (!viewModel.supprimerSelection()) {
+        val references = viewModel.supprimerSelection()
+        if (references == null) {
             toast(R.string.preview_edition_impossible_toast)
             return
         }
-        toast(R.string.preview_edition_supprimee_toast, libelle)
+        if (references == 0) {
+            toast(R.string.preview_edition_supprimee_toast, libelle)
+        } else {
+            toast(
+                resources.getQuantityString(
+                    R.plurals.preview_supprime_references,
+                    references,
+                    libelle,
+                    references,
+                ),
+            )
+        }
         majBarreEdition()
     }
 

@@ -33,6 +33,7 @@ import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.RessourcesProjetXml
+import jo.codeide.preview.xml.SuppressionSure
 import jo.codeide.preview.xml.ZonesDepot
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -595,11 +596,23 @@ public class PreviewViewModel
          * édition — la racine y a droit aussi. Le code (`R.id.x`) et les
          * autres fichiers ne sont pas touchés (périmètre du prompt PE7e
          * § 3, signalé dans l'interface).
+         *
+         * PE12g (spec § 10) : le succès remonte le NOMBRE de références
+         * mises à jour (le toast « Renommé en @+id/x · N références
+         * mises à jour ») ; `null` = refus (le volet recharge le champ).
          */
-        public fun renommerIdentifiantSelection(nouveau: String): Boolean =
-            editerSelection(autoriserRacine = true) { rendu, span ->
-                RenommageIdentifiant.renommer(rendu, span, nouveau)
-            }
+        public fun renommerIdentifiantSelection(nouveau: String): Int? {
+            var referencesMisesAJour = 0
+            val ok =
+                editerSelection(autoriserRacine = true) { rendu, span ->
+                    val ancien = RenommageIdentifiant.identifiantActuel(rendu, span)
+                    if (ancien != null) {
+                        referencesMisesAJour = RenommageIdentifiant.compterReferences(rendu, ancien)
+                    }
+                    RenommageIdentifiant.renommer(rendu, span, nouveau)
+                }
+            return if (ok) referencesMisesAJour else null
+        }
 
         /** Écrit UN CÔTÉ de marge/padding sur la sélection (PE7e — miroir `.mrow`). */
         public fun ecrireCoteSelection(
@@ -926,14 +939,30 @@ public class PreviewViewModel
                 EditionAttributsXml.dupliquer(rendu, span)
             }
 
-        /** SUPPRIME la vue sélectionnée (miroir `delSel`). */
-        public fun supprimerSelection(): Boolean {
+        /**
+         * SUPPRIME la vue sélectionnée SANS référence morte (PE12g —
+         * spec § 10, miroir `delSel`) : l'élément et ses descendants
+         * partent AVEC chaque attribut du fichier qui pointe un
+         * identifiant du sous-arbre (règles, ancre — sa gravité suit,
+         * `labelFor`), en UNE SEULE édition ([SuppressionSure.composer]).
+         *
+         * `null` = refus (sélection non éditable, span périmé) ; sinon le
+         * NOMBRE de références retirées — le toast « N références
+         * retirées » du même nom (§ 10).
+         */
+        public fun supprimerSelection(): Int? {
+            var referencesRetirees = 0
             val ok =
                 editerSelection { rendu, span ->
-                    EditionAttributsXml.supprimer(rendu, span)
+                    val suppression = SuppressionSure.composer(rendu, span)
+                    if (suppression != null) {
+                        referencesRetirees = suppression.referencesRetirees
+                    }
+                    suppression?.edition
                 }
-            if (ok) selectionInterne.value = -1
-            return ok
+            if (!ok) return null
+            selectionInterne.value = -1
+            return referencesRetirees
         }
 
         /** Annule la DERNIÈRE édition (port — l'historique reste celui de l'éditeur). */

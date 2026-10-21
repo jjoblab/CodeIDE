@@ -84,4 +84,8 @@
         <item quantity="one">Renommé en @+id/%1$s · %2$d référence mise à jour</item>
         <item quantity="other">Renommé en @+id/%1$s · %2$d références mises à jour</item>
     </plurals>
+    <!-- Le renommage SANS référence (miroir `delSel`/renommage de la
+         maquette : le suffixe « · N références » n'apparaît que s'il y
+         en a). -->
+    <string name="preview_renomme_simple">Renommé en @+id/%1$s</string>
 </resources>
