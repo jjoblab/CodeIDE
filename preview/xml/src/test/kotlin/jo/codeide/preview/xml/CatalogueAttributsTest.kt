@@ -56,7 +56,7 @@ public class CatalogueAttributsTest {
     @Test
     fun `chaque widget de la palette a des sections non vides`() {
         for (entree in CataloguePalette.CATALOGUE) {
-            val sections = CatalogueAttributs.sections(entree.classe, CatalogueAttributs.GenreParent.AUTRE)
+            val sections = CatalogueAttributs.sections(entree.classe, FamilleParent.AUTRE)
             assertTrue(
                 "Le widget ${entree.classe} (${entree.id}) doit avoir des sections",
                 sections.isNotEmpty(),
@@ -76,7 +76,7 @@ public class CatalogueAttributsTest {
             CataloguePalette.CATALOGUE.map { it.classe }.distinct() +
                 listOf("MaterialButton", "SwitchMaterial", "TextInputEditText", "MockView")
         for (classe in classes) {
-            val sections = CatalogueAttributs.sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            val sections = CatalogueAttributs.sections(classe, FamilleParent.AUTRE)
             val tous = sections.flatMap { noms(it) }
             assertEquals(
                 "La classe $classe a un attribut en double",
@@ -90,8 +90,7 @@ public class CatalogueAttributsTest {
     private fun titrePropre(
         classe: String,
         indice: Int = 0,
-    ): CatalogueAttributs.TitreSection =
-        CatalogueAttributs.sections(classe, CatalogueAttributs.GenreParent.AUTRE)[indice].titre
+    ): CatalogueAttributs.TitreSection = CatalogueAttributs.sections(classe, FamilleParent.AUTRE)[indice].titre
 
     @Test
     fun `chaque widget reconnu recoit sa section propre`() {
@@ -114,7 +113,7 @@ public class CatalogueAttributsTest {
         // MaterialButton → Texte + Bouton, SwitchMaterial → Texte + État,
         // TextInputEditText → Saisie (miroir § 4.1 du prompt PE7e).
         val titres = { classe: String ->
-            CatalogueAttributs.sections(classe, CatalogueAttributs.GenreParent.AUTRE).map { it.titre }
+            CatalogueAttributs.sections(classe, FamilleParent.AUTRE).map { it.titre }
         }
         assertTrue(
             titres("MaterialButton").containsAll(
@@ -133,12 +132,12 @@ public class CatalogueAttributsTest {
     fun `la carte recoit l'arrondi et l'elevation, la ligne l'orientation`() {
         val carte =
             CatalogueAttributs
-                .sections("MaterialCardView", CatalogueAttributs.GenreParent.AUTRE)
+                .sections("MaterialCardView", FamilleParent.AUTRE)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
         assertTrue(noms(carte).containsAll(listOf("app:cardCornerRadius", "app:cardElevation")))
         val ligne =
             CatalogueAttributs
-                .sections("LinearLayout", CatalogueAttributs.GenreParent.AUTRE)
+                .sections("LinearLayout", FamilleParent.AUTRE)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
         assertTrue(noms(ligne).containsAll(listOf("android:orientation", "android:gravity")))
         assertFalse(noms(ligne).contains("app:cardCornerRadius"))
@@ -149,7 +148,7 @@ public class CatalogueAttributsTest {
     @Test
     fun `une classe inconnue ne recoit que l'identite et les sections generiques`() {
         val sections =
-            CatalogueAttributs.sections("MockView", CatalogueAttributs.GenreParent.AUTRE).map { it.titre }
+            CatalogueAttributs.sections("MockView", FamilleParent.AUTRE).map { it.titre }
         assertEquals(
             listOf(
                 CatalogueAttributs.TitreSection.IDENTITE,
@@ -162,25 +161,21 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `le parent constraint ajoute les contraintes editables`() {
+        // PE12b (spec § 2.3) : la famille CONSTRAINT couvre racine et
+        // non-racine — l'ancienne distinction GenreParent ne servait à
+        // rien, la section Contraintes est la même.
         val sections =
             CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.CONSTRAINT_RACINE)
+                .sections("TextView", FamilleParent.CONSTRAINT)
                 .map { it.titre }
         assertTrue(sections.contains(CatalogueAttributs.TitreSection.CONTRAINTES))
         val contraintes =
             CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.CONSTRAINT_RACINE)
+                .sections("TextView", FamilleParent.CONSTRAINT)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTRAINTES }
         assertEquals(
             CatalogueAttributs.ControleAttribut.Contraintes,
             contraintes.controles.single(),
-        )
-        // PE8b : un parent ConstraintLayout NON racine donne la MÊME section.
-        assertTrue(
-            CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.CONSTRAINT)
-                .map { it.titre }
-                .contains(CatalogueAttributs.TitreSection.CONTRAINTES),
         )
     }
 
@@ -188,7 +183,7 @@ public class CatalogueAttributsTest {
     fun `le parent lineaire ajoute poids et gravite de mise en page`() {
         val dansParent =
             CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.LINEAR)
+                .sections("TextView", FamilleParent.LINEAR)
                 .first { it.titre == CatalogueAttributs.TitreSection.DANS_PARENT }
         assertEquals(
             listOf("android:layout_weight", "android:layout_gravity"),
@@ -200,7 +195,7 @@ public class CatalogueAttributsTest {
     fun `la racine n'a ni contraintes ni dans le parent`() {
         val titres =
             CatalogueAttributs
-                .sections("LinearLayout", CatalogueAttributs.GenreParent.AUCUN)
+                .sections("LinearLayout", FamilleParent.AUCUN)
                 .map { it.titre }
         assertFalse(titres.contains(CatalogueAttributs.TitreSection.CONTRAINTES))
         assertFalse(titres.contains(CatalogueAttributs.TitreSection.DANS_PARENT))
@@ -213,46 +208,27 @@ public class CatalogueAttributsTest {
     }
 
     @Test
-    fun `genreParent alimente l'alias par la famille du rendu`() {
-        // PE12a (spec § 2.3) : null (aucun parent rendu) → AUCUN ;
-        // CONSTRAINT garde sa distinction racine/non-racine ; LINEAR
-        // inchangé ; toute famille sans section aujourd'hui reste AUTRE.
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUCUN,
-            CatalogueAttributs.genreParent(null, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.CONSTRAINT_RACINE,
-            CatalogueAttributs.genreParent(FamilleParent.CONSTRAINT, parentEstRacine = true),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.CONSTRAINT,
-            CatalogueAttributs.genreParent(FamilleParent.CONSTRAINT, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.LINEAR,
-            CatalogueAttributs.genreParent(FamilleParent.LINEAR, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent(FamilleParent.FRAME, parentEstRacine = true),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent(FamilleParent.RELATIVE, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent(FamilleParent.COORDINATOR, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent(FamilleParent.APPBAR, parentEstRacine = false),
-        )
-        assertEquals(
-            CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent(FamilleParent.AUTRE, parentEstRacine = false),
-        )
+    fun `les familles sans section ne donnent aucune section de parent`() {
+        // PE12b (spec § 5.2) : FRAME, RELATIVE, COORDINATOR et APPBAR
+        // reçoivent leurs sections « Dans le parent » en PE12c —
+        // jusqu'alors, comme AUTRE, aucune section de parent.
+        for (famille in listOf(
+            FamilleParent.FRAME,
+            FamilleParent.RELATIVE,
+            FamilleParent.COORDINATOR,
+            FamilleParent.APPBAR,
+            FamilleParent.AUTRE,
+        )) {
+            val titres = CatalogueAttributs.sections("TextView", famille).map { it.titre }
+            assertFalse(
+                "la famille $famille n'a pas encore de section de contraintes",
+                titres.contains(CatalogueAttributs.TitreSection.CONTRAINTES),
+            )
+            assertFalse(
+                "la famille $famille n'a pas encore de section dans le parent",
+                titres.contains(CatalogueAttributs.TitreSection.DANS_PARENT),
+            )
+        }
     }
 
     // ── Valeurs d'énumération (listes de référence figées — Android) ─────
@@ -265,14 +241,14 @@ public class CatalogueAttributsTest {
     /** Les contrôles CHOIX d'une classe, aplatis avec leur section (helper d'itération). */
     private fun choixDe(classe: String): List<CatalogueAttributs.ControleAttribut.Choix> =
         CatalogueAttributs
-            .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            .sections(classe, FamilleParent.AUTRE)
             .flatMap { it.controles }
             .filterIsInstance<CatalogueAttributs.ControleAttribut.Choix>()
 
     /** Les contrôles LISTE d'une classe (helper d'itération — PE11c). */
     private fun listesDe(classe: String): List<CatalogueAttributs.ControleAttribut.Liste> =
         CatalogueAttributs
-            .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            .sections(classe, FamilleParent.AUTRE)
             .flatMap { it.controles }
             .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
 
@@ -364,7 +340,7 @@ public class CatalogueAttributsTest {
     /** Les contrôles DRAPEAUX d'une classe (helper d'itération — PE11d). */
     private fun drapeauxDe(classe: String): List<CatalogueAttributs.ControleAttribut.Drapeaux> =
         CatalogueAttributs
-            .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+            .sections(classe, FamilleParent.AUTRE)
             .flatMap { it.controles }
             .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
 
@@ -410,7 +386,7 @@ public class CatalogueAttributsTest {
         // La section DANS_PARENT n'existe que pour un parent LinearLayout :
         // layout_gravity y porte le MASQUE complet de la maquette (GRAV).
         val sections =
-            CatalogueAttributs.sections("TextView", CatalogueAttributs.GenreParent.LINEAR)
+            CatalogueAttributs.sections("TextView", FamilleParent.LINEAR)
         val drapeaux =
             sections
                 .flatMap { it.controles }
@@ -441,7 +417,7 @@ public class CatalogueAttributsTest {
             classesCouvertes
                 .flatMap { classe ->
                     CatalogueAttributs
-                        .sections(classe, CatalogueAttributs.GenreParent.AUTRE)
+                        .sections(classe, FamilleParent.AUTRE)
                         .flatMap { it.controles }
                         .filterIsInstance<CatalogueAttributs.ControleAttribut.TypeSaisie>()
                 }.distinctBy { it.nom }
@@ -558,7 +534,7 @@ public class CatalogueAttributsTest {
         // app:icon (Bouton) et android:src (Image), types ['drawable'].
         val bouton =
             CatalogueAttributs
-                .sections("Button", CatalogueAttributs.GenreParent.CONSTRAINT)
+                .sections("Button", FamilleParent.CONSTRAINT)
                 .first { it.titre == CatalogueAttributs.TitreSection.BOUTON }
         val icon =
             bouton.controles.first { it is CatalogueAttributs.ControleAttribut.Ressource }
@@ -573,7 +549,7 @@ public class CatalogueAttributsTest {
         )
         val image =
             CatalogueAttributs
-                .sections("ImageView", CatalogueAttributs.GenreParent.AUCUN)
+                .sections("ImageView", FamilleParent.AUCUN)
                 .first { it.titre == CatalogueAttributs.TitreSection.IMAGE }
         val src =
             image.controles.first { it is CatalogueAttributs.ControleAttribut.Ressource }
@@ -594,7 +570,7 @@ public class CatalogueAttributsTest {
         // la 1re vague est TOUJOURS courante (les attributs non courants
         // arrivent avec l'annexe § 7 de la 2e vague).
         for (classe in listOf("TextView", "Button", "EditText", "ImageView", "LinearLayout")) {
-            for (section in CatalogueAttributs.sections(classe, CatalogueAttributs.GenreParent.CONSTRAINT)) {
+            for (section in CatalogueAttributs.sections(classe, FamilleParent.CONSTRAINT)) {
                 for (controle in section.controles) {
                     assertTrue(
                         "contrôle de $classe/${section.titre}",
@@ -642,7 +618,7 @@ public class CatalogueAttributsTest {
         // + hex + Palette). Premier usager du catalogue : android:textColor.
         val texte =
             CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.AUCUN)
+                .sections("TextView", FamilleParent.AUCUN)
                 .first { it.titre == CatalogueAttributs.TitreSection.TEXTE }
         val controle =
             texte.controles.first { it is CatalogueAttributs.ControleAttribut.Couleur }
@@ -657,7 +633,7 @@ public class CatalogueAttributsTest {
         assertFalse(
             "plus AUCUN champ Texte ne porte l'étiquette COULEUR",
             CatalogueAttributs
-                .sections("TextView", CatalogueAttributs.GenreParent.AUCUN)
+                .sections("TextView", FamilleParent.AUCUN)
                 .any { section ->
                     section.controles.any {
                         it is CatalogueAttributs.ControleAttribut.Texte &&

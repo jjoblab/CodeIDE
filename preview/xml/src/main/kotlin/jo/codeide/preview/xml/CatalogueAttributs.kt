@@ -44,24 +44,6 @@ package jo.codeide.preview.xml
  */
 @Suppress("TooManyFunctions")
 public object CatalogueAttributs {
-    /** Le GENRE du parent de la vue éditée (détermine les sections parent). */
-    public enum class GenreParent {
-        /** La vue EST la racine : ni contraintes, ni « dans le parent ». */
-        AUCUN,
-
-        /** Le parent direct est le ConstraintLayout RACINE : contraintes éditables (PE8b). */
-        CONSTRAINT_RACINE,
-
-        /** Le parent direct est un ConstraintLayout NON racine : mêmes contraintes (PE8b). */
-        CONSTRAINT,
-
-        /** Le parent est un LinearLayout : layout_weight/layout_gravity. */
-        LINEAR,
-
-        /** Tout autre parent (FrameLayout…). */
-        AUTRE,
-    }
-
     /** Les TITRES de sections (clés sémantiques — traduites au chrome). */
     public enum class TitreSection {
         IDENTITE,
@@ -419,19 +401,22 @@ public object CatalogueAttributs {
     private val VISIBILITES: List<String> = listOf("visible", "invisible", "gone")
 
     /**
-     * Les SECTIONS de la vue [classe] avec le [genreParent] de son parent
-     * (miroir `sectionsFor`) : sections PROPRES à la classe (ordre du
-     * catalogue), puis parent (contraintes / dans le parent), puis les
-     * sections GÉNÉRIQUES (Disposition, Affichage).
+     * Les SECTIONS de la vue [classe] avec la [famille] de son parent
+     * (miroir `sectionsFor` — PE12b : la FAMILLE remplace l'ancien
+     * `GenreParent`, spec § 2.3) : sections PROPRES à la classe (ordre
+     * du catalogue), puis parent (contraintes / dans le parent), puis
+     * les sections GÉNÉRIQUES (Disposition, Affichage). Les familles
+     * FRAME, RELATIVE, COORDINATOR et APPBAR reçoivent leurs sections
+     * « Dans le parent » / « Positions relatives » en PE12c (spec § 5.2).
      */
     public fun sections(
         classe: String,
-        genreParent: GenreParent,
+        famille: FamilleParent,
     ): List<SectionAttributs> {
         val propres = sectionsPropres(classe)
         val duParent =
-            when (genreParent) {
-                GenreParent.CONSTRAINT_RACINE, GenreParent.CONSTRAINT -> {
+            when (famille) {
+                FamilleParent.CONSTRAINT -> {
                     listOf(
                         SectionAttributs(
                             TitreSection.CONTRAINTES,
@@ -440,7 +425,7 @@ public object CatalogueAttributs {
                     )
                 }
 
-                GenreParent.LINEAR -> {
+                FamilleParent.LINEAR -> {
                     listOf(
                         SectionAttributs(
                             TitreSection.DANS_PARENT,
@@ -452,7 +437,13 @@ public object CatalogueAttributs {
                     )
                 }
 
-                GenreParent.AUCUN, GenreParent.AUTRE -> {
+                FamilleParent.AUCUN,
+                FamilleParent.FRAME,
+                FamilleParent.RELATIVE,
+                FamilleParent.COORDINATOR,
+                FamilleParent.APPBAR,
+                FamilleParent.AUTRE,
+                -> {
                     emptyList()
                 }
             }
@@ -468,40 +459,6 @@ public object CatalogueAttributs {
             TitreSection.IDENTITE,
             listOf(ControleAttribut.Identifiant("android:id")),
         )
-
-    /**
-     * Le GENRE du parent (alias interne PE12a, spec § 2.3 — GenreParent
-     * disparaît en PE12b) depuis la FAMILLE du parent rendu :
-     * CONSTRAINT garde sa distinction racine/non-racine (la seule qui
-     * change les sections), LINEAR est inchangé, et toute famille sans
-     * section aujourd'hui (FRAME, RELATIVE, COORDINATOR, APPBAR, AUTRE)
-     * reste AUTRE — leurs sections arrivent en PE12c.
-     */
-    public fun genreParent(
-        famille: FamilleParent?,
-        parentEstRacine: Boolean,
-    ): GenreParent =
-        when (famille) {
-            null, FamilleParent.AUCUN -> {
-                GenreParent.AUCUN
-            }
-
-            FamilleParent.CONSTRAINT -> {
-                if (parentEstRacine) {
-                    GenreParent.CONSTRAINT_RACINE
-                } else {
-                    GenreParent.CONSTRAINT
-                }
-            }
-
-            FamilleParent.LINEAR -> {
-                GenreParent.LINEAR
-            }
-
-            else -> {
-                GenreParent.AUTRE
-            }
-        }
 
     /**
      * Les sections PROPRES à la classe (miroir les `if (k === …)` de
