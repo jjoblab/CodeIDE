@@ -1,6 +1,5 @@
 package jo.codeide.feature.preview
 
-import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
@@ -128,9 +127,23 @@ public class PreviewActivity :
     /** Le TOAST en vue (PE11i, D6 — remplace tout Toast système). */
     private val toastApercu: ToastApercu by lazy { ToastApercu(liaison.toastApercu) }
 
+    /** La PASTILLE d'état (PE10a — extraction PE12f, règle 8 LargeClass). */
+    private val pastilleEtat: PastilleEtatApercu by lazy {
+        PastilleEtatApercu(
+            binding = liaison,
+            profil = { viewModel.moteur.profil },
+            paysage = { viewModel.paysage },
+        )
+    }
+
     /** Port du contrat volets (UI-6) : le retour maison part de l'activité. */
     public override fun annoncer(resId: Int) {
         toast(resId)
+    }
+
+    /** Le retour PARAMÉTRÉ (PE12f — pluriels et noms d'attributs des correctifs de famille). */
+    public override fun annoncerTexte(texte: CharSequence) {
+        toastApercu.montrer(texte)
     }
 
     /** Le popover CALQUES (PE11k — extraction chrome pur, miroir `showPop("layers")`). */
@@ -444,55 +457,8 @@ public class PreviewActivity :
     /** Les documents dont le calque Relations a reçu son réglage PAR DÉFAUT (une fois par document). */
     private val calqueRelationsDejaPose: MutableSet<String> = mutableSetOf()
 
-    /**
-     * La PASTILLE D'ÉTAT (PE10a, miroir `renderStatus` de la maquette) :
-     * point coloré + « Rendu · X ms · N vues · W×H dp » (rendu valide),
-     * ambre « XML en cours de frappe » (miroir `.status.edit`), rouge
-     * « Dernier rendu valide conservé » (miroir `.status.err`), masquée
-     * sans document (miroir l'état inactif).
-     */
     private fun majPastilleEtat(etat: EtatPreviewXml) {
-        when (etat) {
-            is EtatPreviewXml.RenduValide -> {
-                val profil = viewModel.moteur.profil
-                val dimensions =
-                    getString(
-                        R.string.preview_pastille_dimensions,
-                        if (viewModel.paysage) profil.hauteurDp else profil.largeurDp,
-                        if (viewModel.paysage) profil.largeurDp else profil.hauteurDp,
-                    )
-                liaison.pastilleEtatTexte.text =
-                    resources.getQuantityString(
-                        R.plurals.preview_pastille_rendu,
-                        etat.nombreVues,
-                        etat.nombreVues,
-                        etat.dureeMs,
-                        dimensions,
-                    )
-                teinterPastille(R.attr.apercuSucces)
-            }
-
-            is EtatPreviewXml.ErreurRendu -> {
-                liaison.pastilleEtatTexte.setText(R.string.preview_pastille_erreur)
-                teinterPastille(R.attr.apercuErreur)
-            }
-
-            EtatPreviewXml.EnEdition -> {
-                liaison.pastilleEtatTexte.setText(R.string.preview_pastille_edition)
-                // L'ambre de la maquette (`.status.edit` — jeton apercuAvert).
-                teinterPastille(R.attr.apercuAvert)
-            }
-
-            EtatPreviewXml.Inactif -> {
-                liaison.pastilleEtat.isVisible = false
-            }
-        }
-    }
-
-    /** La COULEUR du point de la pastille (jeton sémantique du thème). */
-    private fun teinterPastille(attribut: Int) {
-        liaison.pastillePoint.backgroundTintList = ColorStateList.valueOf(StyleVolet.couleur(this, attribut))
-        liaison.pastilleEtat.isVisible = true
+        pastilleEtat.poser(etat)
     }
 
     // ── Bandeau, toast et jetons (PE11i — ADR 0134 D6/D7) ──────────────
@@ -510,7 +476,10 @@ public class PreviewActivity :
             bandeau.masquer()
             return
         }
-        bandeau.montrerErreur(erreur) { ligne -> ouvrirSourceALigne(ligne) }
+        // PE12f — le texte VIVANT accompagne l'erreur : le bandeau y lit
+        // le cycle de la boucle `RelativeLayout` (§ 12 — l'habillage vit
+        // dans [BandeauApercu], règle 8 LargeClass de l'activité).
+        bandeau.montrerErreur(erreur, viewModel.texteCourant()) { ligne -> ouvrirSourceALigne(ligne) }
     }
 
     /**

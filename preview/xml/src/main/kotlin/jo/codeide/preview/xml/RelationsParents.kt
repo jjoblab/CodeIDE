@@ -208,8 +208,12 @@ public object RelationsParents {
         }
     }
 
-    /** Le sous-arbre de [noeud] contient-il une vue d'identifiant [id] ? */
-    private fun contientId(
+    /**
+     * Le sous-arbre de [noeud] contient-il une vue d'identifiant [id] ?
+     * PARTAGÉ avec [ProblemesPreview] (PE12f : l'ancre invalide interroge
+     * le sous-arbre du parent ET celui de la vue ancrée — même parcours).
+     */
+    internal fun contientId(
         noeud: ArbreAttributsXml.Noeud,
         id: String,
     ): Boolean = noeud.id == id || noeud.enfants.any { contientId(it, id) }
@@ -288,9 +292,11 @@ public object RelationsParents {
     /**
      * Règles `RelativeLayout` vers un FRÈRE (miroir `REL_REFS` : l'ordre
      * H puis V reproduit `RelativeLayout.applyHorizontalSizeRules` /
-     * `applyVerticalSizeRules`).
+     * `applyVerticalSizeRules`). PARTAGÉE avec [ProblemesPreview] (PE12f :
+     * références introuvables et boucle à casser parcourent la MÊME table
+     * — une seule source de vérité du miroir).
      */
-    private val REGLES_VERS_FRERE: List<String> =
+    internal val REGLES_VERS_FRERE: List<String> =
         listOf(
             "layout_below",
             "layout_above",

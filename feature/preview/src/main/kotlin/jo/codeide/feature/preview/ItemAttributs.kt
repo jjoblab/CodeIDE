@@ -2,6 +2,7 @@ package jo.codeide.feature.preview
 
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.EditionAttributsXml
+import jo.codeide.preview.xml.ProblemesFamilles
 import jo.codeide.preview.xml.ProblemesPreview
 
 /**
@@ -21,6 +22,16 @@ internal sealed interface ActionCorrectif {
 
     /** « Renseigner » : ouvre la section du champ et pose le FOCUS — SANS édition. */
     data object OuvrirContentDescription : ActionCorrectif
+
+    /**
+     * PE12f — le correctif d'un problème de FAMILLE : l'édition se pose
+     * sur le SPAN du problème (texte vivant), PAS sur la sélection du
+     * rendu — le problème survit à un rendu en erreur (boucle § 12) et
+     * son correctif doit corriger le TEXTE, pas un span périmé.
+     */
+    data class CorrigerFamille(
+        val probleme: ProblemesFamilles.Probleme,
+    ) : ActionCorrectif
 }
 
 /**

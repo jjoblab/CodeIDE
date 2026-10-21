@@ -21,6 +21,13 @@ import kotlinx.coroutines.launch
 internal interface HoteVoletsApercu {
     /** Retour transitoire maison (vue `toast_apercu`, fond inversé). */
     fun annoncer(resId: Int)
+
+    /**
+     * Retour transitoire PARAMÉTRÉ (PE12f — pluriels et noms d'attributs
+     * des correctifs de famille : « 2 attributs retirés », « layout_below
+     * retiré »… composés par le volet, l'hôte les affiche).
+     */
+    fun annoncerTexte(texte: CharSequence)
 }
 
 /**

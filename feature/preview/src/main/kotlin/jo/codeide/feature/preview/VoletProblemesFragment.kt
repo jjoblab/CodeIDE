@@ -15,6 +15,7 @@ import jo.codeide.feature.preview.databinding.FragmentVoletProblemesBinding
 import jo.codeide.feature.preview.databinding.ItemProblemeBinding
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
+import jo.codeide.preview.xml.ProblemesFamilles
 import jo.codeide.preview.xml.ProblemesPreview
 
 /**
@@ -28,6 +29,12 @@ import jo.codeide.preview.xml.ProblemesPreview
  * (`message_aucun_probleme`, plus de vue construite en code). Le badge
  * compteur de l'ONGLET est tenu par la feuille (miroir `nProbs`, masqué
  * à zéro).
+ *
+ * PE12f — les CINQ genres de FAMILLE s'y AJOUTENT, lus dans le TEXTE
+ * vivant (spec § 9) : ils restent listés quand le rendu est en erreur
+ * (la boucle § 12 se lit alors que le dernier rendu valide est
+ * conservé) ; leur tap vise la vue fautive du dernier rendu VALIDE par
+ * le début d'élément, sans effet sans correspondance.
  */
 @AndroidEntryPoint
 internal class VoletProblemesFragment : VoletFeuilleFragment() {
@@ -50,18 +57,13 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     }
 
     override fun marcher() {
-        val vues = renduCourant?.vues ?: return
+        val vues = renduCourant?.vues.orEmpty()
         val problemes = ProblemesPreview.evaluer(vues, viewModel.moteur.profil.densiteDpi)
+        val entrees = problemesMarches(vues, problemes) + famillesMarchees(viewModel.problemesFamilles())
         // Miroir renderProbs : liste VIDE → le message « Aucun problème
         // détecté… » du LAYOUT (plus d'entrée « vide » dans l'adaptateur).
-        liaison.messageAucunProbleme.isVisible = problemes.isEmpty()
-        adaptateur.submitList(
-            if (problemes.isEmpty()) {
-                emptyList()
-            } else {
-                problemesMarches(vues, problemes)
-            },
-        )
+        liaison.messageAucunProbleme.isVisible = entrees.isEmpty()
+        adaptateur.submitList(entrees)
     }
 
     /** Les entrées affichables (données pures) avec leurs textes résolus. */
@@ -76,6 +78,39 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
                 detail = detailProbleme(entree, vues.getOrNull(entree.indiceVue)),
             )
         }
+
+    /**
+     * Les entrées des problèmes de FAMILLE (PE12f — spec § 9) : libellé
+     * de la vue fautive lu dans le TEXTE (balise + identifiant), tap →
+     * vue fautive du dernier rendu VALIDE par le début d'élément — sans
+     * correspondance (rendu périmé) le tap ne sélectionne RIEN.
+     */
+    private fun famillesMarchees(familles: List<ProblemesFamilles.Probleme>): List<EntreeProblemeUi> {
+        val vues = renduCourant?.vues.orEmpty()
+        return familles.map { probleme ->
+            val indice = vues.indexOfFirst { it.debutElement == probleme.debut }
+            EntreeProblemeUi(
+                entree =
+                    FeuilleApercu.EntreeProbleme(
+                        indiceVue = if (indice >= 0) indice else SANS_VUE,
+                        erreur = probleme.severite == ProblemesPreview.Severite.ERREUR,
+                        genre = probleme.genre,
+                    ),
+                titre = LibellesProblemes.titreFamille(requireContext(), probleme),
+                detail =
+                    libelleFamille(probleme) + "\n" +
+                        LibellesProblemes.messageFamille(requireContext(), probleme),
+            )
+        }
+    }
+
+    /**
+     * Le libellé de la vue fautive d'un problème de FAMILLE (« Classe ·
+     * @+id/x » — même formulation que [LibellesVolet.libelleVue], lue du
+     * texte : le rendu peut être en erreur).
+     */
+    private fun libelleFamille(probleme: ProblemesFamilles.Probleme): String =
+        probleme.id?.let { getString(R.string.preview_feuille_libelle, probleme.balise, it) } ?: probleme.balise
 
     /** Le titre localisé d'un problème (miroir `p.title` de `computeProblems`). */
     private fun titreProbleme(
@@ -111,6 +146,9 @@ internal data class EntreeProblemeUi(
     /** Le détail localisé (libellé de la vue, puis message — deux lignes). */
     val detail: String,
 )
+
+/** Indice d'une entrée SANS vue correspondante (le tap ne sélectionne rien — rendu périmé). */
+private const val SANS_VUE: Int = -1
 
 /**
  * L'adaptateur de l'onglet Problèmes (miroir `renderProbs`) : rangée =
