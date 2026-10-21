@@ -194,23 +194,35 @@ public object ProblemesFamilles {
         // Valeur VIDE = absent (miroir `ex()` falsy de la maquette : une
         // frappe en cours ne signale pas une ancre à demi effacée).
         val ancre = noeud.attributs[ATTRIBUT_ANCRE]?.takeUnless { it.isEmpty() }
-        if (ancre != null && ancreInvalide(noeud, parent, ancre)) {
-            problemes.add(
-                Probleme(
-                    genre = ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
-                    severite = ProblemesPreview.Severite.ERREUR,
-                    balise = noeud.balise,
-                    id = noeud.id,
-                    debut = noeud.debut,
-                    fin = noeud.fin,
-                    // Le correctif retire l'ancre ET sa gravité (spec § 9).
-                    attributs = listOf(ATTRIBUT_ANCRE, ATTRIBUT_ANCRE_GRAVITE),
-                    cible = ancre,
-                    libelleParent = "",
-                    cycle = emptyList(),
-                    conteneur = "",
-                ),
-            )
+        if (ancre != null) {
+            // INVALIDE : une vue inconnue ou hors du sous-arbre du parent,
+            // la vue ancrée elle-même, ou un de ses descendants (spec § 3.3
+            // — [RelationsParents.contientId] couvre la vue elle-même, les
+            // trois refus de la maquette se lisent dessus).
+            val cible = ArbreAttributsXml.nomId(ancre)
+            val invalide =
+                cible == null ||
+                    cible == noeud.id ||
+                    !RelationsParents.contientId(parent, cible) ||
+                    RelationsParents.contientId(noeud, cible)
+            if (invalide) {
+                problemes.add(
+                    Probleme(
+                        genre = ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
+                        severite = ProblemesPreview.Severite.ERREUR,
+                        balise = noeud.balise,
+                        id = noeud.id,
+                        debut = noeud.debut,
+                        fin = noeud.fin,
+                        // Le correctif retire l'ancre ET sa gravité (spec § 9).
+                        attributs = listOf(ATTRIBUT_ANCRE, ATTRIBUT_ANCRE_GRAVITE),
+                        cible = ancre,
+                        libelleParent = "",
+                        cycle = emptyList(),
+                        conteneur = "",
+                    ),
+                )
+            }
         }
         val barrePresente =
             parent.enfants.any { FamilleParent.deBalise(it.balise) == FamilleParent.APPBAR }
@@ -236,25 +248,6 @@ public object ProblemesFamilles {
             )
         }
         return problemes
-    }
-
-    /**
-     * L'ancre est-elle INVALIDE ? Valide : une vue du sous-arbre du
-     * parent, hors la vue ancrée ET sa descendance (spec § 3.3 —
-     * [RelationsParents.contientId] couvre la vue elle-même, les trois
-     * refus de la maquette se lisent dessus : inconnue, la vue,
-     * descendante ou hors du conteneur).
-     */
-    private fun ancreInvalide(
-        noeud: ArbreAttributsXml.Noeud,
-        parent: ArbreAttributsXml.Noeud,
-        ancre: String,
-    ): Boolean {
-        val cible = ArbreAttributsXml.nomId(ancre)
-        return cible == null ||
-            cible == noeud.id ||
-            !RelationsParents.contientId(parent, cible) ||
-            RelationsParents.contientId(noeud, cible)
     }
 
     /**
