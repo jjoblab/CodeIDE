@@ -213,26 +213,45 @@ public class CatalogueAttributsTest {
     }
 
     @Test
-    fun `genreParent derive le genre des faits du rendu`() {
+    fun `genreParent alimente l'alias par la famille du rendu`() {
+        // PE12a (spec § 2.3) : null (aucun parent rendu) → AUCUN ;
+        // CONSTRAINT garde sa distinction racine/non-racine ; LINEAR
+        // inchangé ; toute famille sans section aujourd'hui reste AUTRE.
         assertEquals(
             CatalogueAttributs.GenreParent.AUCUN,
             CatalogueAttributs.genreParent(null, parentEstRacine = false),
         )
         assertEquals(
             CatalogueAttributs.GenreParent.CONSTRAINT_RACINE,
-            CatalogueAttributs.genreParent("ConstraintLayout", parentEstRacine = true),
+            CatalogueAttributs.genreParent(FamilleParent.CONSTRAINT, parentEstRacine = true),
         )
         assertEquals(
             CatalogueAttributs.GenreParent.CONSTRAINT,
-            CatalogueAttributs.genreParent("ConstraintLayout", parentEstRacine = false),
+            CatalogueAttributs.genreParent(FamilleParent.CONSTRAINT, parentEstRacine = false),
         )
         assertEquals(
             CatalogueAttributs.GenreParent.LINEAR,
-            CatalogueAttributs.genreParent("LinearLayout", parentEstRacine = false),
+            CatalogueAttributs.genreParent(FamilleParent.LINEAR, parentEstRacine = false),
         )
         assertEquals(
             CatalogueAttributs.GenreParent.AUTRE,
-            CatalogueAttributs.genreParent("FrameLayout", parentEstRacine = true),
+            CatalogueAttributs.genreParent(FamilleParent.FRAME, parentEstRacine = true),
+        )
+        assertEquals(
+            CatalogueAttributs.GenreParent.AUTRE,
+            CatalogueAttributs.genreParent(FamilleParent.RELATIVE, parentEstRacine = false),
+        )
+        assertEquals(
+            CatalogueAttributs.GenreParent.AUTRE,
+            CatalogueAttributs.genreParent(FamilleParent.COORDINATOR, parentEstRacine = false),
+        )
+        assertEquals(
+            CatalogueAttributs.GenreParent.AUTRE,
+            CatalogueAttributs.genreParent(FamilleParent.APPBAR, parentEstRacine = false),
+        )
+        assertEquals(
+            CatalogueAttributs.GenreParent.AUTRE,
+            CatalogueAttributs.genreParent(FamilleParent.AUTRE, parentEstRacine = false),
         )
     }
 
