@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Styles ajoutés par la vague « familles de parents » (ADR 0135). -->
+<resources>
+    <!-- .pos.g3 button : glyphe de gravité, 16 sp, une ligne. -->
+    <style name="TextAppearance.CodeIDE.Apercu.CelluleGlyphe" parent="TextAppearance.CodeIDE.Apercu.Position">
+        <item name="android:textSize">16sp</item>
+        <item name="lineHeight">16sp</item>
+    </style>
+    <!-- Une cellule de la grille 3 × 3 : même fond et même coche que .pos button ; 34 dp, glyphe centré. -->
+    <style name="Widget.CodeIDE.Apercu.CelluleGravite" parent="Widget.CodeIDE.Apercu.PositionBouton">
+        <item name="android:paddingTop">@dimen/apercu_cellule_pad_v</item>
+        <item name="android:paddingBottom">@dimen/apercu_cellule_pad_v</item>
+        <item name="android:textAppearance">@style/TextAppearance.CodeIDE.Apercu.CelluleGlyphe</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <!-- .pop h4.pl : titre de groupe (capitales mono 10) ; marges propres au popup de placement. -->
+    <style name="Widget.CodeIDE.Apercu.TitreGroupePlacement" parent="Widget.CodeIDE.Apercu.MenuTitre">
+        <item name="android:layout_marginTop">@dimen/apercu_titre_groupe_placement_marge_haut</item>
+        <item name="android:layout_marginStart">@dimen/apercu_titre_groupe_placement_marge_h</item>
+        <item name="android:layout_marginEnd">@dimen/apercu_titre_groupe_placement_marge_h</item>
+    </style>
+</resources>

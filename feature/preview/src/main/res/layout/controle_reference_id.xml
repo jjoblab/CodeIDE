@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle « Référence d'id » (maquette `idref`) — RÉFÉRENCE (ADR 0135). Liste déroulante de @id/ + note.
+  Contenu de la liste : « aucun » ; les vues sœurs (règles de RelativeLayout) OU le sous-arbre du parent hors la vue et
+  ses descendants (layout_anchor, ignoreGravity, liftOnScrollTargetViewId) ; une valeur absente de l'arbre ajoute
+  « @id/x (introuvable) ». Une option qui fermerait une boucle est DÉSACTIVÉE et suffixée « (boucle) ».
+  Même habillage que controle_liste.xml ; la note (.note2) n'apparaît que pour la portée « frères » et « ancre ».
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_reference_id"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+        android:id="@+id/liste_references"
+        style="@style/Widget.CodeIDE.Apercu.Champ"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:drawableEnd="@drawable/apercu_fleche_deroulant"
+        android:inputType="none"
+        android:minHeight="36dp" />
+
+    <TextView
+        android:id="@+id/note_reference"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+</LinearLayout>

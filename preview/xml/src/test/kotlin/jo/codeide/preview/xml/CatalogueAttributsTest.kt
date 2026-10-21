@@ -18,37 +18,35 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
+// Exemption detekt ciblée (règle 16) : LargeClass — le contrat couvre
+// les 16 widgets de la palette ET les familles de parent (PE12c), chaque
+// face du catalogue a SES tests ; le regrouper masquerait le miroir.
+@Suppress("LargeClass")
 public class CatalogueAttributsTest {
     /** Les noms d'attributs d'une section (Dimensions/Contraintes : contrôle sans nom). */
     private fun noms(section: CatalogueAttributs.SectionAttributs): List<String> =
-        section.controles.mapNotNull { controle ->
-            when (controle) {
-                is CatalogueAttributs.ControleAttribut.Identifiant -> controle.nom
+        section.controles.mapNotNull { controle -> controle.nomDeChamp() }
 
-                is CatalogueAttributs.ControleAttribut.Texte -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Nombre -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Choix -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.TypeSaisie -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Ressource -> controle.nom
-
-                is CatalogueAttributs.ControleAttribut.Cotes -> controle.base
-
-                CatalogueAttributs.ControleAttribut.Dimensions,
-                CatalogueAttributs.ControleAttribut.Contraintes,
-                -> null
-            }
+    /**
+     * Le NOM d'un contrôle À CHAMP ; null pour les composites sans nom
+     * unique (bascules : chaque bouton porte SON attribut — dimensions,
+     * contraintes : aucun nom).
+     */
+    private fun CatalogueAttributs.ControleAttribut.nomDeChamp(): String? =
+        when (this) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> nom
+            is CatalogueAttributs.ControleAttribut.Texte -> nom
+            is CatalogueAttributs.ControleAttribut.Nombre -> nom
+            is CatalogueAttributs.ControleAttribut.Choix -> nom
+            is CatalogueAttributs.ControleAttribut.Liste -> nom
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> nom
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> nom
+            is CatalogueAttributs.ControleAttribut.TriEtat -> nom
+            is CatalogueAttributs.ControleAttribut.Couleur -> nom
+            is CatalogueAttributs.ControleAttribut.Ressource -> nom
+            is CatalogueAttributs.ControleAttribut.Cotes -> base
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> nom
+            else -> null
         }
 
     // ── Couverture des 16 widgets de la palette ──────────────────────────
@@ -129,18 +127,280 @@ public class CatalogueAttributsTest {
     }
 
     @Test
-    fun `la carte recoit l'arrondi et l'elevation, la ligne l'orientation`() {
-        val carte =
-            CatalogueAttributs
-                .sections("MaterialCardView", FamilleParent.AUTRE)
-                .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
-        assertTrue(noms(carte).containsAll(listOf("app:cardCornerRadius", "app:cardElevation")))
+    fun `la carte garde arrondi et elevation sous le titre Carte - le conteneur devient frame`() {
+        // PE12c — spec § 5.1 : MaterialCardView (famille FRAME) reçoit le
+        // Conteneur FRAME ; ses deux contrôles historiques passent sous
+        // le titre Carte (« + Carte (existant), inchangé »).
+        val sections = CatalogueAttributs.sections("MaterialCardView", FamilleParent.FRAME)
+        val carte = sections.first { it.titre == CatalogueAttributs.TitreSection.CARTE }
+        assertEquals(listOf("app:cardCornerRadius", "app:cardElevation"), noms(carte))
+        val conteneur = sections.first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
+        assertEquals(
+            listOf(
+                "android:foregroundGravity",
+                "android:measureAllChildren",
+                "android:clipChildren",
+                "android:clipToPadding",
+            ),
+            noms(conteneur),
+        )
         val ligne =
             CatalogueAttributs
                 .sections("LinearLayout", FamilleParent.AUTRE)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
         assertTrue(noms(ligne).containsAll(listOf("android:orientation", "android:gravity")))
         assertFalse(noms(ligne).contains("app:cardCornerRadius"))
+    }
+
+    // ── PE12c — sections par famille de parent (spec § 5) ──────────────
+
+    @Test
+    fun `le conteneur lineaire etendu porte les onze attributs des deux vagues`() {
+        // § 5.1 — LINEAR : les trois attributs de la 1re vague + les huit
+        // de la 2e vague (liste identique à l'annexe § 7 du brief PE11).
+        assertEquals(
+            listOf(
+                "android:orientation",
+                "android:gravity",
+                "android:baselineAligned",
+                "android:weightSum",
+                "android:showDividers",
+                "android:divider",
+                "android:dividerPadding",
+                "android:measureWithLargestChild",
+                "android:clipChildren",
+                "android:clipToPadding",
+                "android:animateLayoutChanges",
+            ),
+            noms(
+                CatalogueAttributs.sections("LinearLayout", FamilleParent.AUTRE, FamilleParent.LINEAR).first {
+                    it.titre ==
+                        CatalogueAttributs.TitreSection.CONTENEUR
+                },
+            ),
+        )
+    }
+
+    @Test
+    fun `le conteneur suit la famille de la vue - frame, relative, coordinateur`() {
+        // § 5.1 — FRAME/RELATIVE/COORDINATOR avec LEURS listes propres ;
+        // CONSTRAINT n'a PAS de section Conteneur.
+        assertEquals(
+            listOf(
+                "android:foregroundGravity",
+                "android:measureAllChildren",
+                "android:clipChildren",
+                "android:clipToPadding",
+            ),
+            noms(
+                CatalogueAttributs.sections("FrameLayout", FamilleParent.AUTRE, FamilleParent.FRAME).first {
+                    it.titre ==
+                        CatalogueAttributs.TitreSection.CONTENEUR
+                },
+            ),
+        )
+        assertEquals(
+            listOf("android:gravity", "android:ignoreGravity", "android:clipChildren", "android:clipToPadding"),
+            noms(
+                CatalogueAttributs.sections("RelativeLayout", FamilleParent.AUTRE, FamilleParent.RELATIVE).first {
+                    it.titre ==
+                        CatalogueAttributs.TitreSection.CONTENEUR
+                },
+            ),
+        )
+        assertEquals(
+            listOf("android:fitsSystemWindows", "app:statusBarBackground", "android:clipChildren"),
+            noms(
+                CatalogueAttributs.sections("CoordinatorLayout", FamilleParent.AUTRE, FamilleParent.COORDINATOR).first {
+                    it.titre ==
+                        CatalogueAttributs.TitreSection.CONTENEUR
+                },
+            ),
+        )
+        // CONSTRAINT/AUTRE : le conteneur n'a PAS de section propre.
+        assertFalse(
+            CatalogueAttributs
+                .sections("ConstraintLayout", FamilleParent.AUTRE, FamilleParent.CONSTRAINT)
+                .any { it.titre == CatalogueAttributs.TitreSection.CONTENEUR },
+        )
+    }
+
+    @Test
+    fun `un AppBarLayout selectionne a sa section Barre d application`() {
+        val barre =
+            CatalogueAttributs
+                .sections("AppBarLayout", FamilleParent.LINEAR, FamilleParent.APPBAR)
+                .first { it.titre == CatalogueAttributs.TitreSection.BARRE_APPLICATION }
+        assertEquals(
+            listOf("app:liftOnScroll", "app:liftOnScrollTargetViewId", "android:fitsSystemWindows", "app:expanded"),
+            noms(barre),
+        )
+    }
+
+    @Test
+    fun `sur la racine le conteneur ne repete pas fitsSystemWindows ni clipToPadding`() {
+        // spec § 5.1 — miroir `DUP` : la section Racine de la 2e vague les porte.
+        val coordRacine =
+            CatalogueAttributs
+                .sections("CoordinatorLayout", FamilleParent.AUCUN, FamilleParent.COORDINATOR)
+                .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
+        assertFalse(noms(coordRacine).contains("android:fitsSystemWindows"))
+        val lineaireRacine =
+            CatalogueAttributs
+                .sections("LinearLayout", FamilleParent.AUCUN, FamilleParent.LINEAR)
+                .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
+        assertFalse(noms(lineaireRacine).contains("android:clipToPadding"))
+        // HORS racine, ils restent.
+        val coordEnfant =
+            CatalogueAttributs
+                .sections("CoordinatorLayout", FamilleParent.FRAME, FamilleParent.COORDINATOR)
+                .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
+        assertTrue(noms(coordEnfant).contains("android:fitsSystemWindows"))
+    }
+
+    @Test
+    fun `le parent relatif ajoute l ancrage au parent et les positions relatives`() {
+        val sections = CatalogueAttributs.sections("TextView", FamilleParent.RELATIVE)
+        val dans = sections.first { it.titre == CatalogueAttributs.TitreSection.DANS_PARENT }
+        val bascules =
+            dans.controles.first { it is CatalogueAttributs.ControleAttribut.Bascules }
+                as CatalogueAttributs.ControleAttribut.Bascules
+        assertEquals(
+            listOf(
+                "android:layout_alignParentStart",
+                "android:layout_alignParentEnd",
+                "android:layout_alignParentTop",
+                "android:layout_alignParentBottom",
+                "android:layout_centerHorizontal",
+                "android:layout_centerVertical",
+                "android:layout_centerInParent",
+            ),
+            bascules.entrees.map { entree -> entree.nom },
+        )
+        val positions = sections.first { it.titre == CatalogueAttributs.TitreSection.POSITIONS_RELATIVES }
+        assertEquals(CatalogueAttributs.NoteSection.REGLES_SOEURS, positions.note)
+        val references = positions.controles.filterIsInstance<CatalogueAttributs.ControleAttribut.ReferenceId>()
+        assertEquals(9, references.size)
+        assertTrue(
+            references.all { reference ->
+                reference.portee ==
+                    CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES
+            },
+        )
+        assertTrue(references.first { it.nom == "android:layout_below" }.courant)
+        assertTrue(references.first { it.nom == "android:layout_toEndOf" }.courant)
+        assertFalse(references.first { it.nom == "android:layout_above" }.courant)
+    }
+
+    @Test
+    fun `le parent coordinateur ajoute ancre, gravite d ancre et comportement`() {
+        val sections = CatalogueAttributs.sections("FloatingActionButton", FamilleParent.COORDINATOR)
+        val dans = sections.first { it.titre == CatalogueAttributs.TitreSection.DANS_PARENT }
+        val ancre = dans.controles.filterIsInstance<CatalogueAttributs.ControleAttribut.ReferenceId>().single()
+        assertEquals("app:layout_anchor", ancre.nom)
+        assertEquals(CatalogueAttributs.ControleAttribut.ReferenceId.Portee.SOUS_ARBRE, ancre.portee)
+        val graviteAncre =
+            dans.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
+                .first { it.nom == "app:layout_anchorGravity" }
+        assertEquals("app:layout_anchor", graviteAncre.requiert)
+        val comportement =
+            dans.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
+                .first { it.nom == "app:layout_behavior" }
+        assertTrue(comportement.valeurs.contains("@string/appbar_scrolling_view_behavior"))
+        assertEquals(
+            "app:layout_keyline",
+            dans.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Nombre>()
+                .single()
+                .nom,
+        )
+    }
+
+    @Test
+    fun `le parent appbar ajoute les drapeaux de defilement`() {
+        val sections = CatalogueAttributs.sections("MaterialToolbar", FamilleParent.APPBAR)
+        val dans = sections.first { it.titre == CatalogueAttributs.TitreSection.DANS_PARENT }
+        val drapeaux =
+            dans.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
+                .first { it.nom == "app:layout_scrollFlags" }
+        assertEquals(
+            listOf("scroll", "exitUntilCollapsed", "enterAlways", "enterAlwaysCollapsed", "snap", "snapMargins"),
+            drapeaux.valeurs,
+        )
+        assertEquals(
+            "app:layout_scrollInterpolator",
+            dans.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Texte>()
+                .single()
+                .nom,
+        )
+    }
+
+    @Test
+    fun `le parent frame n ajoute que la gravite`() {
+        val dans =
+            CatalogueAttributs
+                .sections("TextView", FamilleParent.FRAME)
+                .first { it.titre == CatalogueAttributs.TitreSection.DANS_PARENT }
+        assertEquals(listOf("android:layout_gravity"), noms(dans))
+    }
+
+    @Test
+    fun `toolbar et bouton d action ont leurs sections propres`() {
+        val barre =
+            CatalogueAttributs
+                .sections("MaterialToolbar", FamilleParent.COORDINATOR)
+                .first { it.titre == CatalogueAttributs.TitreSection.BARRE_OUTILS }
+        assertEquals(
+            listOf(
+                "app:title",
+                "app:subtitle",
+                "app:navigationIcon",
+                "app:titleCentered",
+                "app:titleTextColor",
+                "app:menu",
+            ),
+            noms(barre),
+        )
+        val fab =
+            CatalogueAttributs
+                .sections("FloatingActionButton", FamilleParent.COORDINATOR)
+                .first { it.titre == CatalogueAttributs.TitreSection.BOUTON_ACTION }
+        assertEquals(
+            listOf(
+                "app:srcCompat",
+                "app:backgroundTint",
+                "app:fabSize",
+                "app:tint",
+                "app:elevation",
+                "app:borderWidth",
+                "app:rippleColor",
+                "app:useCompatPadding",
+            ),
+            noms(fab),
+        )
+    }
+
+    @Test
+    fun `l ordre suit propres puis conteneur puis parent puis generiques`() {
+        // spec § 5 : les deux groupes de famille viennent APRÈS les
+        // sections propres à la classe et AVANT les sections communes.
+        val sections =
+            CatalogueAttributs.sections("LinearLayout", FamilleParent.RELATIVE, FamilleParent.LINEAR)
+        assertEquals(
+            listOf(
+                CatalogueAttributs.TitreSection.IDENTITE,
+                CatalogueAttributs.TitreSection.CONTENEUR,
+                CatalogueAttributs.TitreSection.DANS_PARENT,
+                CatalogueAttributs.TitreSection.POSITIONS_RELATIVES,
+                CatalogueAttributs.TitreSection.DISPOSITION,
+                CatalogueAttributs.TitreSection.AFFICHAGE,
+            ),
+            sections.map { section -> section.titre },
+        )
     }
 
     // ── Classe inconnue et parents ───────────────────────────────────────
@@ -209,14 +469,11 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `les familles sans section ne donnent aucune section de parent`() {
-        // PE12b (spec § 5.2) : FRAME, RELATIVE, COORDINATOR et APPBAR
-        // reçoivent leurs sections « Dans le parent » en PE12c —
-        // jusqu'alors, comme AUTRE, aucune section de parent.
+        // PE12c (spec § 5.2) livre les sections « Dans le parent » de
+        // FRAME/RELATIVE/COORDINATOR/APPBAR — seuls AUCUN (la racine) et
+        // AUTRE (parent inconnu) n'en donnent toujours aucune.
         for (famille in listOf(
-            FamilleParent.FRAME,
-            FamilleParent.RELATIVE,
-            FamilleParent.COORDINATOR,
-            FamilleParent.APPBAR,
+            FamilleParent.AUCUN,
             FamilleParent.AUTRE,
         )) {
             val titres = CatalogueAttributs.sections("TextView", famille).map { it.titre }
@@ -367,6 +624,19 @@ public class CatalogueAttributsTest {
                     ),
                 "android:showDividers" to listOf("beginning", "middle", "end"),
                 "android:scrollbars" to listOf("vertical", "horizontal"),
+                // PE12c (spec § 5.1) : la gravité d'avant-plan du conteneur
+                // FRAME porte le même masque GRAV que gravity.
+                "android:foregroundGravity" to
+                    listOf(
+                        "start",
+                        "end",
+                        "top",
+                        "bottom",
+                        "center_horizontal",
+                        "center_vertical",
+                        "center",
+                        "fill",
+                    ),
             )
         val classeDrapeaux =
             classesCouvertes
@@ -567,10 +837,14 @@ public class CatalogueAttributsTest {
     @Test
     fun `tout controle de la premiere vague est courant - le drapeau existe`() {
         // PE10a/PE11f : le drapeau `courant` existe sur CHAQUE contrôle ;
-        // la 1re vague est TOUJOURS courante (les attributs non courants
-        // arrivent avec l'annexe § 7 de la 2e vague).
+        // la 1re vague est TOUJOURS courante — sauf le Conteneur LINEAR,
+        // étendu dès PE12c (spec § 5.1) des attributs NON courants de la
+        // 2e vague (seuls orientation et gravity, marqués ★, y restent).
         for (classe in listOf("TextView", "Button", "EditText", "ImageView", "LinearLayout")) {
             for (section in CatalogueAttributs.sections(classe, FamilleParent.CONSTRAINT)) {
+                if (classe == "LinearLayout" && section.titre == CatalogueAttributs.TitreSection.CONTENEUR) {
+                    continue
+                }
                 for (controle in section.controles) {
                     assertTrue(
                         "contrôle de $classe/${section.titre}",
@@ -584,31 +858,30 @@ public class CatalogueAttributsTest {
     /** Le drapeau Courants d'un contrôle (objet = toujours courant). */
     private fun CatalogueAttributs.ControleAttribut.estCourant(): Boolean =
         when (this) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
-
-            is CatalogueAttributs.ControleAttribut.Texte -> courant
-
-            is CatalogueAttributs.ControleAttribut.Nombre -> courant
-
-            is CatalogueAttributs.ControleAttribut.Choix -> courant
-
-            is CatalogueAttributs.ControleAttribut.Liste -> courant
-
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
-
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
-
-            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
-
-            is CatalogueAttributs.ControleAttribut.Couleur -> courant
-
-            is CatalogueAttributs.ControleAttribut.Ressource -> courant
-
-            is CatalogueAttributs.ControleAttribut.Cotes -> courant
-
             CatalogueAttributs.ControleAttribut.Dimensions,
             CatalogueAttributs.ControleAttribut.Contraintes,
             -> true
+
+            else -> champCourant()
+        }
+
+    /** Le drapeau Courants d'un contrôle À CHAMP (les 13 types nommés). */
+    private fun CatalogueAttributs.ControleAttribut.champCourant(): Boolean =
+        when (this) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
+            is CatalogueAttributs.ControleAttribut.Texte -> courant
+            is CatalogueAttributs.ControleAttribut.Nombre -> courant
+            is CatalogueAttributs.ControleAttribut.Choix -> courant
+            is CatalogueAttributs.ControleAttribut.Liste -> courant
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
+            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
+            is CatalogueAttributs.ControleAttribut.Couleur -> courant
+            is CatalogueAttributs.ControleAttribut.Ressource -> courant
+            is CatalogueAttributs.ControleAttribut.Cotes -> courant
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> courant
+            is CatalogueAttributs.ControleAttribut.Bascules -> courant
+            else -> true // Dimensions/Contraintes : déjà routés par le when externe
         }
 
     @Test

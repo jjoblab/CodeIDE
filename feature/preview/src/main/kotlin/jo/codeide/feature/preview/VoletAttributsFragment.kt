@@ -1,11 +1,13 @@
 package jo.codeide.feature.preview
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatEditText
@@ -27,9 +29,11 @@ import jo.codeide.feature.preview.databinding.ControleDrapeauxBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
 import jo.codeide.feature.preview.databinding.ControleListeBinding
+import jo.codeide.feature.preview.databinding.ControleReferenceIdBinding
 import jo.codeide.feature.preview.databinding.ControleRessourceBinding
 import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
 import jo.codeide.feature.preview.databinding.ControleTexteBinding
+import jo.codeide.feature.preview.databinding.EnteteChampBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
 import jo.codeide.feature.preview.databinding.ItemAttributGroupeBinding
@@ -50,6 +54,7 @@ import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesPreview
+import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.ValidationAttribut
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,6 +118,9 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 controles: List<CatalogueAttributs.ControleAttribut>,
                 attrs: List<EditionAttributsXml.AttributSource>,
             ) {
+                // La NOTE de section (PE12c — miroir `sc.note` de la
+                // maquette) se rend EN TÊTE du corps, AVANT les contrôles.
+                section.note?.let { carte.corpsSection.addView(vueNoteSection(it)) }
                 controles.forEach { controle ->
                     carte.corpsSection.addView(controleSection(controle, attrs))
                 }
@@ -190,10 +198,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             }
         }
         return section.controles.filter { controle ->
-            val nom = nomDuControle(controle)?.lowercase().orEmpty()
+            val noms = nomsDuControle(controle).joinToString(" ").lowercase()
             val etiquette =
                 etiquetteDuControle(controle)?.let { etiquetteRes(it).lowercase() }.orEmpty()
-            titre.contains(requete) || nom.contains(requete) || etiquette.contains(requete)
+            titre.contains(requete) || noms.contains(requete) || etiquette.contains(requete)
         }
     }
 
@@ -204,31 +212,30 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      */
     private fun CatalogueAttributs.ControleAttribut.courant(): Boolean =
         when (this) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
-
-            is CatalogueAttributs.ControleAttribut.Texte -> courant
-
-            is CatalogueAttributs.ControleAttribut.Nombre -> courant
-
-            is CatalogueAttributs.ControleAttribut.Choix -> courant
-
-            is CatalogueAttributs.ControleAttribut.Liste -> courant
-
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
-
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
-
-            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
-
-            is CatalogueAttributs.ControleAttribut.Couleur -> courant
-
-            is CatalogueAttributs.ControleAttribut.Ressource -> courant
-
-            is CatalogueAttributs.ControleAttribut.Cotes -> courant
-
             CatalogueAttributs.ControleAttribut.Dimensions,
             CatalogueAttributs.ControleAttribut.Contraintes,
             -> true
+
+            else -> champCourant()
+        }
+
+    /** Le drapeau Courants d'un contrôle À CHAMP (les 13 types nommés du catalogue). */
+    private fun CatalogueAttributs.ControleAttribut.champCourant(): Boolean =
+        when (this) {
+            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
+            is CatalogueAttributs.ControleAttribut.Texte -> courant
+            is CatalogueAttributs.ControleAttribut.Nombre -> courant
+            is CatalogueAttributs.ControleAttribut.Choix -> courant
+            is CatalogueAttributs.ControleAttribut.Liste -> courant
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
+            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
+            is CatalogueAttributs.ControleAttribut.Couleur -> courant
+            is CatalogueAttributs.ControleAttribut.Ressource -> courant
+            is CatalogueAttributs.ControleAttribut.Cotes -> courant
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> courant
+            is CatalogueAttributs.ControleAttribut.Bascules -> courant
+            else -> true // Dimensions/Contraintes : déjà routés par le when externe
         }
 
     /**
@@ -256,6 +263,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.Ressource -> controle.etiquette
 
             is CatalogueAttributs.ControleAttribut.Cotes -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> controle.etiquette
+
+            is CatalogueAttributs.ControleAttribut.Bascules -> controle.etiquette
 
             is CatalogueAttributs.ControleAttribut.Identifiant,
             is CatalogueAttributs.ControleAttribut.TypeSaisie,
@@ -317,6 +328,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             }
             val classe = viewModel.classeSelection() ?: vue.classe
             val familleParent = viewModel.familleParentSelection() ?: FamilleParent.AUCUN
+            val familleVue = viewModel.familleVueSelection() ?: FamilleParent.deBalise(classe)
             add(ItemAttributs.Titre(getString(R.string.preview_modifier_classe, classe)))
             add(ItemAttributs.BarreOutils)
             val attrs = viewModel.attributsSelection()
@@ -330,7 +342,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 // carte par problème de la vue qui a UNE action, AVANT les
                 // sections (PREVIEW_UI.md § 8 : item 2 « correctifs »).
                 ajouterCorrectifs(this, vue)
-                val sections = CatalogueAttributs.sections(classe, familleParent)
+                val sections = CatalogueAttributs.sections(classe, familleParent, familleVue)
                 var visibles = 0
                 var masques = 0
                 sections.forEachIndexed { position, section ->
@@ -454,37 +466,47 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): Int =
         section.controles.count { controle ->
-            val nom = nomDuControle(controle)
-            nom != null && attrs.any { it.nom == nom && it.valeur.isNotEmpty() }
+            nomsDuControle(controle).any { nom ->
+                attrs.any { it.nom == nom && it.valeur.isNotEmpty() }
+            }
         }
 
-    /** Le nom d'attribut d'un contrôle (Dimensions/Contraintes : rien à compter). */
-    private fun nomDuControle(controle: CatalogueAttributs.ControleAttribut): String? =
+    /**
+     * Les noms d'attributs d'un contrôle (Dimensions/Contraintes : rien à
+     * compter ; BASCULES : chaque bouton porte SON attribut — le groupe
+     * compte dès qu'UN seul est défini, miroir le `some` de la maquette).
+     */
+    private fun nomsDuControle(controle: CatalogueAttributs.ControleAttribut): List<String> =
         when (controle) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Identifiant -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Texte -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Texte -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Nombre -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Nombre -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Choix -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Choix -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Liste -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Liste -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Drapeaux -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> controle.nom
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.TriEtat -> controle.nom
+            is CatalogueAttributs.ControleAttribut.Bascules -> controle.entrees.map { entree -> entree.nom }
 
-            is CatalogueAttributs.ControleAttribut.Couleur -> controle.nom
+            is CatalogueAttributs.ControleAttribut.TypeSaisie -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Ressource -> controle.nom
+            is CatalogueAttributs.ControleAttribut.TriEtat -> listOf(controle.nom)
 
-            is CatalogueAttributs.ControleAttribut.Cotes,
+            is CatalogueAttributs.ControleAttribut.Couleur -> listOf(controle.nom)
+
+            is CatalogueAttributs.ControleAttribut.Ressource -> listOf(controle.nom)
+
+            is CatalogueAttributs.ControleAttribut.Cotes -> listOf(controle.base)
+
             CatalogueAttributs.ControleAttribut.Dimensions,
             CatalogueAttributs.ControleAttribut.Contraintes,
-            -> null
+            -> emptyList()
         }
 
     /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un item layout). */
@@ -503,9 +525,25 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Ressource -> controleRessource(controle, attrs)
+            else -> controleComposite(controle, attrs)
+        }
+
+    /**
+     * Les contrôles COMPOSITES (miroir de la seconde moitié du `when` de
+     * la maquette) : côtés, référence d'id, bascules, dimensions et
+     * contraintes — chaque type a SA fonction de liage.
+     */
+    private fun controleComposite(
+        controle: CatalogueAttributs.ControleAttribut,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View =
+        when (controle) {
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.ReferenceId -> controleReferenceId(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Bascules -> controleBascules(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
             CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
+            else -> error("contrôle à champ routé par controleSection : $controle")
         }
 
     /** La valeur courante d'un contrôle nommé (lecture dans les attributs lus). */
@@ -513,6 +551,84 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         nom: String,
         attrs: List<EditionAttributsXml.AttributSource>,
     ): String? = attrs.firstOrNull { it.nom == nom }?.valeur
+
+    /**
+     * L'EN-TÊTE commun des contrôles (PE12c — miroir `fieldBox` de la
+     * maquette) : l'ÉTIQUETTE, la PUCHE d'espace de noms (« app » ambrée
+     * / « tools » violette sur l'attribut, cachée pour `android:` —
+     * miroir `.ns`) et le bouton ↺ — visible dès qu'un attribut du
+     * groupe est DÉFINI, il rétablit les défauts de TOUS les attributs
+     * du groupe en UNE SEULE édition (miroir `.rst`).
+     */
+    private fun brancherEntete(
+        entete: EnteteChampBinding,
+        libelle: String,
+        noms: List<String>,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ) {
+        entete.libelleControle.text = libelle
+        when (noms.firstOrNull()?.substringBefore(':')) {
+            "app" -> {
+                entete.pastilleEspaceNoms.text = getString(R.string.preview_pastille_app)
+                entete.pastilleEspaceNoms.contentDescription = getString(R.string.preview_pastille_app_desc)
+                entete.pastilleEspaceNoms.setBackgroundResource(R.drawable.apercu_pastille_app_fond)
+                poserTeinteTexte(entete.pastilleEspaceNoms, R.attr.apercuAvert)
+                entete.pastilleEspaceNoms.visibility = View.VISIBLE
+            }
+
+            "tools" -> {
+                entete.pastilleEspaceNoms.text = getString(R.string.preview_pastille_tools)
+                entete.pastilleEspaceNoms.contentDescription = getString(R.string.preview_pastille_tools_desc)
+                entete.pastilleEspaceNoms.setBackgroundResource(R.drawable.apercu_pastille_tools_fond)
+                poserTeinteTexte(entete.pastilleEspaceNoms, R.attr.apercuNouveau)
+                entete.pastilleEspaceNoms.visibility = View.VISIBLE
+            }
+
+            else -> {
+                entete.pastilleEspaceNoms.visibility = View.GONE
+            }
+        }
+        if (noms.any { nom -> valeurDe(nom, attrs) != null }) {
+            entete.boutonReinitialiser.visibility = View.VISIBLE
+            entete.boutonReinitialiser.setOnClickListener {
+                editerOuRecharger { viewModel.reinitialiserAttributsSelection(noms) }
+            }
+        } else {
+            entete.boutonReinitialiser.visibility = View.GONE
+        }
+    }
+
+    /** Résout une couleur THÈME (?attr) et la pose sur le TEXTE (miroir le `textColor` de Pastille.App/.Tools). */
+    private fun poserTeinteTexte(
+        vue: TextView,
+        attribut: Int,
+    ) {
+        val tape = TypedValue()
+        if (!vue.context.theme.resolveAttribute(attribut, tape, true)) return
+        vue.setTextColor(
+            if (tape.resourceId != 0) vue.context.getColor(tape.resourceId) else tape.data,
+        )
+    }
+
+    /** La NOTE de section (PE12c — miroir `sc.note`) : une ligne .note2 en tête du corps. */
+    private fun vueNoteSection(note: CatalogueAttributs.NoteSection): TextView =
+        when (note) {
+            CatalogueAttributs.NoteSection.REGLES_SOEURS -> {
+                noteSousChamp(getString(R.string.preview_note_regles_soeurs))
+            }
+        }
+
+    /** La note SOUS un champ (miroir `.note2`) : le style Note de la référence, écart d'étiquette en marge haute. */
+    private fun noteSousChamp(texte: String): TextView =
+        TextView(requireContext(), null, 0, R.style.Widget_CodeIDE_Apercu_Note).apply {
+            this.text = texte
+            layoutParams =
+                LinearLayout
+                    .LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { topMargin = resources.getDimensionPixelSize(R.dimen.apercu_gap_etiquette) }
+        }
 
     /** Un bloc LECTURE SEULE (item_lecture_seule.xml — mono sur surface 2). */
     private fun blocLectureSeule(
@@ -533,7 +649,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     ): View {
         val bloc = ControleTexteBinding.inflate(gonfleur())
         val libelle = etiquetteRes(controle.etiquette)
-        bloc.entete.libelleControle.text = libelle
+        brancherEntete(bloc.entete, libelle, listOf(controle.nom), attrs)
         val valeur = valeurDe(controle.nom, attrs)
         if (valeur != null && (valeur.startsWith("@") || valeur.startsWith("?"))) {
             // Une référence se MONTRE, jamais écrasée (miroir la ligne `.ro`).
@@ -770,7 +886,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleSegmentsBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
         val courant = valeurDe(controle.nom, attrs) ?: controle.valeurs.first()
         segmentes(bloc.groupeSegments, controle.valeurs, courant, etiquetteRes(controle.etiquette)) { choix ->
             val valeur = if (choix == controle.valeurs.first()) "" else choix
@@ -791,7 +907,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleListeBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
         val courant = valeurDe(controle.nom, attrs)
         // Miroir maquette : la valeur posée hors catalogue reste visible.
         val valeurs =
@@ -835,13 +951,22 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     ): View {
         val bloc = ControleDrapeauxBinding.inflate(gonfleur())
         val libelle = etiquetteRes(controle.etiquette)
-        bloc.entete.libelleControle.text = libelle
+        brancherEntete(bloc.entete, libelle, listOf(controle.nom), attrs)
         val valeur = valeurDe(controle.nom, attrs)
         val parties = controle.parties(valeur)
+        // PE12c — [Drapeaux.requiert] (spec § 5.2) : la gravité de l'ANCRE
+        // est désactivée tant qu'aucune ancre n'est posée (miroir
+        // `en`/`why` du contrôle de la maquette).
+        val raisonInactive =
+            controle.requiert
+                ?.takeIf { requis -> valeurDe(requis, attrs) == null }
+                ?.let { getString(R.string.preview_ref_ancre_requise) }
         controle.options(valeur).forEach { option ->
             val drapeau = ItemDrapeauBinding.inflate(gonfleur(), bloc.groupeDrapeaux, false)
             drapeau.drapeau.text = option
             drapeau.drapeau.isChecked = option in parties
+            drapeau.drapeau.isEnabled = raisonInactive == null
+            drapeau.drapeau.alpha = if (raisonInactive == null) 1f else ALPHA_DESACTIVE
             drapeau.drapeau.contentDescription = "$libelle : $option"
             drapeau.drapeau.setOnClickListener {
                 editerOuRecharger {
@@ -853,6 +978,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             }
             bloc.groupeDrapeaux.addView(drapeau.root)
         }
+        if (raisonInactive != null) bloc.root.addView(noteSousChamp(raisonInactive))
         return bloc.root
     }
 
@@ -871,7 +997,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleListeBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(CatalogueAttributs.Etiquette.TYPE_SAISIE)
+        brancherEntete(bloc.entete, etiquetteRes(CatalogueAttributs.Etiquette.TYPE_SAISIE), listOf(controle.nom), attrs)
         val valeur = valeurDe(controle.nom, attrs)
         val base = controle.base(valeur)
         val modificateurs = controle.modificateursPoses(valeur)
@@ -937,7 +1063,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleSegmentsBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
         val valeurs =
             listOf(
                 getString(R.string.preview_choix_defaut),
@@ -1000,7 +1126,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleCouleurBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
         val valeur = valeurDe(controle.nom, attrs)
         bloc.pastilleDamier.background = DamierPastille(bloc.root.resources)
         poserTeintePastille(bloc.pastilleTeinte, valeur)
@@ -1287,7 +1413,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleRessourceBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
         val valeur = valeurDe(controle.nom, attrs)
         bloc.champRessource.setText(valeur.orEmpty())
         val libelle = etiquetteRes(controle.etiquette)
@@ -1389,6 +1515,127 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
     }
 
+    /**
+     * Le contrôle RÉFÉRENCE D'ID (PE12c — miroir `idref` de la maquette,
+     * spec `PREVIEW_PARENTS.md` § 5.3, layout `controle_reference_id.xml`) :
+     * liste déroulante « aucun » (retrait) + candidats `@id/…` par
+     * PORTÉE ; une option qui FERMERAIT une boucle est désactivée et
+     * suffixée « (boucle) » — SAUF si elle est la valeur COURANTE, qui
+     * reste choisissable (miroir `o.disabled = bad && cu !== o.value`) ;
+     * une valeur absente de l'arbre s'ajoute en dernier « (introuvable) ».
+     * La note sous le champ ne vient que des portées FRÈRES et ANCRE.
+     */
+    private fun controleReferenceId(
+        controle: CatalogueAttributs.ControleAttribut.ReferenceId,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleReferenceIdBinding.inflate(gonfleur())
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), listOf(controle.nom), attrs)
+        val valeur = valeurDe(controle.nom, attrs)
+        val options = viewModel.optionsReferenceSelection(controle, valeur)
+        val courante = valeur?.replace("@+id/", "@id/").orEmpty()
+        // « aucun » (retrait) puis les candidats, puis l'introuvable.
+        val libelles = mutableListOf(getString(R.string.preview_ref_aucun))
+        val valeurs = mutableListOf("")
+        val grisees = mutableListOf(false)
+        options.entrees.forEach { entree ->
+            val libelle = "@id/${entree.id}"
+            valeurs += libelle
+            libelles +=
+                if (entree.boucle) {
+                    getString(R.string.preview_ref_boucle, libelle)
+                } else {
+                    libelle
+                }
+            grisees += entree.boucle && courante != libelle
+        }
+        options.introuvable?.let {
+            valeurs += it
+            libelles += getString(R.string.preview_ref_introuvable, it)
+            grisees += false
+        }
+        bloc.listeReferences.keyListener = null
+        bloc.listeReferences.setAdapter(AdaptateurReferences(libelles, grisees))
+        bloc.listeReferences.setText(
+            valeurs
+                .indexOf(courante)
+                .takeIf { it >= 0 }
+                ?.let { indice -> libelles.getOrNull(indice) }
+                ?: getString(R.string.preview_ref_aucun),
+            false,
+        )
+        bloc.listeReferences.setOnItemClickListener { _, _, position, _ ->
+            editerOuRecharger {
+                viewModel.definirAttributSelection(controle.nom, valeurs[position])
+            }
+        }
+        // Sans frappe (inputType none), le menu ne s'ouvre qu'au TAP —
+        // miroir du select natif de la maquette (cf. controleListe).
+        bloc.listeReferences.setOnClickListener { vue ->
+            (vue as? AppCompatAutoCompleteTextView)?.showDropDown()
+        }
+        when (options.note) {
+            ReferencesId.Note.FRERES -> {
+                bloc.noteReference.text = getString(R.string.preview_ref_note_freres)
+                bloc.noteReference.visibility = View.VISIBLE
+            }
+
+            ReferencesId.Note.ANCRE -> {
+                bloc.noteReference.text = getString(R.string.preview_ref_note_ancre)
+                bloc.noteReference.visibility = View.VISIBLE
+            }
+
+            ReferencesId.Note.SANS -> {
+                bloc.noteReference.visibility = View.GONE
+            }
+        }
+        return bloc.root
+    }
+
+    /**
+     * L'adaptateur des options d'une référence : les entrées « (boucle) »
+     * sont DÉSACTIVÉES (miroir `o.disabled`), les autres choisissables.
+     */
+    private inner class AdaptateurReferences(
+        libelles: List<String>,
+        private val grisees: List<Boolean>,
+    ) : ArrayAdapter<String>(requireContext(), R.layout.item_option_liste, libelles) {
+        override fun areAllItemsEnabled(): Boolean = false
+
+        override fun isEnabled(position: Int): Boolean = grisees.getOrNull(position) != true
+    }
+
+    /**
+     * Le groupe de BASCULES (PE12c — miroir `tgl` de la maquette, spec
+     * § 5.2, habillage du contrôle drapeaux) : chaque bouton porte SON
+     * PROPRE attribut — appuyé écrit `="true"`, un second appui RETIRE
+     * l'attribut ; le bouton ↺ de l'en-tête réinitialise TOUT le groupe.
+     */
+    private fun controleBascules(
+        controle: CatalogueAttributs.ControleAttribut.Bascules,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleDrapeauxBinding.inflate(gonfleur())
+        val libelle = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, libelle, controle.entrees.map { entree -> entree.nom }, attrs)
+        bloc.groupeDrapeaux.contentDescription = libelle
+        controle.entrees.forEach { entree ->
+            val bascule = ItemDrapeauBinding.inflate(gonfleur(), bloc.groupeDrapeaux, false)
+            val libelleBascule = etiquetteRes(entree.libelle)
+            val posee = valeurDe(entree.nom, attrs) == "true"
+            bascule.drapeau.text = libelleBascule
+            bascule.drapeau.isChecked = posee
+            bascule.drapeau.contentDescription = "$libelle : $libelleBascule"
+            bascule.drapeau.setOnClickListener {
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(entree.nom, if (posee) "" else "true")
+                }
+            }
+            bloc.groupeDrapeaux.addView(bascule.root)
+        }
+        return bloc.root
+    }
+
     /** Un contrôle CÔTÉS (controle_cotes.xml — les QUATRE champs nommés,
      * miroir `.mrow`). */
     private fun controleCotes(
@@ -1396,7 +1643,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         attrs: List<EditionAttributsXml.AttributSource>,
     ): View {
         val bloc = ControleCotesBinding.inflate(gonfleur())
-        bloc.entete.libelleControle.text = etiquetteRes(controle.etiquette)
+        // Le ↺ retire la BASE et les QUATRE côtés (miroir le `also` du
+        // `sides` de la maquette — mêmes suffixes que nomCote).
+        brancherEntete(
+            bloc.entete,
+            etiquetteRes(controle.etiquette),
+            listOf(controle.base) + listOf("Start", "End", "Top", "Bottom").map { controle.base + it },
+            attrs,
+        )
         val cotes =
             listOf(
                 Triple(EditionAttributsXml.Cote.HAUT, R.string.preview_cote_haut, bloc.coteHaut),
@@ -1831,6 +2085,11 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.TitreSection.DANS_PARENT to R.string.preview_section_dans_parent,
                 CatalogueAttributs.TitreSection.DISPOSITION to R.string.preview_section_disposition,
                 CatalogueAttributs.TitreSection.AFFICHAGE to R.string.preview_section_affichage,
+                CatalogueAttributs.TitreSection.BARRE_APPLICATION to R.string.preview_section_barre_application,
+                CatalogueAttributs.TitreSection.POSITIONS_RELATIVES to R.string.preview_section_positions_relatives,
+                CatalogueAttributs.TitreSection.BARRE_OUTILS to R.string.preview_section_barre_outils,
+                CatalogueAttributs.TitreSection.BOUTON_ACTION to R.string.preview_section_bouton_action,
+                CatalogueAttributs.TitreSection.CARTE to R.string.preview_section_carte,
             )
 
         /** La table des étiquettes (clé sémantique → ressource — une seule voie). */
@@ -1870,6 +2129,65 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.Etiquette.ALPHA to R.string.preview_etiquette_alpha,
                 CatalogueAttributs.Etiquette.ACTIF to R.string.preview_etiquette_actif,
                 CatalogueAttributs.Etiquette.DESCRIPTION to R.string.preview_etiquette_description,
+                // ── PE12c — § 5.1 : sections du conteneur par famille ──────
+                CatalogueAttributs.Etiquette.BASELINE_ALIGNE to R.string.preview_etiquette_baseline_aligne,
+                CatalogueAttributs.Etiquette.SOMME_POIDS to R.string.preview_etiquette_somme_poids,
+                CatalogueAttributs.Etiquette.SEPARATEUR to R.string.preview_etiquette_separateur,
+                CatalogueAttributs.Etiquette.SEPARATEUR_PADDING to R.string.preview_etiquette_separateur_padding,
+                CatalogueAttributs.Etiquette.MESURER_PLUS_GRAND to R.string.preview_etiquette_mesurer_plus_grand,
+                CatalogueAttributs.Etiquette.CLIP_ENFANTS to R.string.preview_etiquette_clip_enfants,
+                CatalogueAttributs.Etiquette.CLIP_PADDING to R.string.preview_etiquette_clip_padding,
+                CatalogueAttributs.Etiquette.ANIMER_MISE_EN_PAGE to R.string.preview_etiquette_animer_mise_en_page,
+                CatalogueAttributs.Etiquette.GRAVITE_AVANT_PLAN to R.string.preview_etiquette_gravite_avant_plan,
+                CatalogueAttributs.Etiquette.MESURER_TOUS_ENFANTS to R.string.preview_etiquette_mesurer_tous_enfants,
+                CatalogueAttributs.Etiquette.IGNORER_GRAVITE to R.string.preview_etiquette_ignorer_gravite,
+                CatalogueAttributs.Etiquette.AJUSTER_SYSTEME to R.string.preview_etiquette_ajuster_systeme,
+                CatalogueAttributs.Etiquette.FOND_BARRE_ETAT to R.string.preview_etiquette_fond_barre_etat,
+                CatalogueAttributs.Etiquette.ELEVER_AU_DEFILEMENT to R.string.preview_etiquette_elever_au_defilement,
+                CatalogueAttributs.Etiquette.CIBLE_ELEVEE to R.string.preview_etiquette_cible_elevee,
+                CatalogueAttributs.Etiquette.ETENDU to R.string.preview_etiquette_etendu,
+                // ── PE12c — § 5.2 : dans le parent / positions relatives ──
+                CatalogueAttributs.Etiquette.ANCRAGE_PARENT to R.string.preview_etiquette_ancrage_parent,
+                CatalogueAttributs.Etiquette.ANCRAGE_DEBUT to R.string.preview_etiquette_ancrage_debut,
+                CatalogueAttributs.Etiquette.ANCRAGE_FIN to R.string.preview_etiquette_ancrage_fin,
+                CatalogueAttributs.Etiquette.ANCRAGE_HAUT to R.string.preview_etiquette_ancrage_haut,
+                CatalogueAttributs.Etiquette.ANCRAGE_BAS to R.string.preview_etiquette_ancrage_bas,
+                CatalogueAttributs.Etiquette.ANCRAGE_CENTRE_H to R.string.preview_etiquette_ancrage_centre_h,
+                CatalogueAttributs.Etiquette.ANCRAGE_CENTRE_V to R.string.preview_etiquette_ancrage_centre_v,
+                CatalogueAttributs.Etiquette.ANCRAGE_CENTRE to R.string.preview_etiquette_ancrage_centre,
+                CatalogueAttributs.Etiquette.ALIGNER_SI_ABSENT to R.string.preview_etiquette_aligner_si_absent,
+                CatalogueAttributs.Etiquette.DESSOUS_DE to R.string.preview_etiquette_dessous_de,
+                CatalogueAttributs.Etiquette.DESSUS_DE to R.string.preview_etiquette_dessus_de,
+                CatalogueAttributs.Etiquette.ALIGNE_HAUT_AVEC to R.string.preview_etiquette_aligne_haut_avec,
+                CatalogueAttributs.Etiquette.ALIGNE_BAS_AVEC to R.string.preview_etiquette_aligne_bas_avec,
+                CatalogueAttributs.Etiquette.LIGNE_BASE_AVEC to R.string.preview_etiquette_ligne_base_avec,
+                CatalogueAttributs.Etiquette.A_DROITE_DE to R.string.preview_etiquette_a_droite_de,
+                CatalogueAttributs.Etiquette.A_GAUCHE_DE to R.string.preview_etiquette_a_gauche_de,
+                CatalogueAttributs.Etiquette.ALIGNE_DEBUT_AVEC to R.string.preview_etiquette_aligne_debut_avec,
+                CatalogueAttributs.Etiquette.ALIGNE_FIN_AVEC to R.string.preview_etiquette_aligne_fin_avec,
+                CatalogueAttributs.Etiquette.ANCRE to R.string.preview_etiquette_ancre,
+                CatalogueAttributs.Etiquette.GRAVITE_ANCRE to R.string.preview_etiquette_gravite_ancre,
+                CatalogueAttributs.Etiquette.COMPORTEMENT to R.string.preview_etiquette_comportement,
+                CatalogueAttributs.Etiquette.BORD_INSET to R.string.preview_etiquette_bord_inset,
+                CatalogueAttributs.Etiquette.ESQUIVER_BORDS to R.string.preview_etiquette_esquiver_bords,
+                CatalogueAttributs.Etiquette.KEYLINE to R.string.preview_etiquette_keyline,
+                CatalogueAttributs.Etiquette.DRAPEAUX_DEFILEMENT to R.string.preview_etiquette_drapeaux_defilement,
+                CatalogueAttributs.Etiquette.INTERPOLATEUR_DEFILEMENT to
+                    R.string.preview_etiquette_interpolateur_defilement,
+                // ── PE12c — § 5.4 : barre d'outils / bouton d'action ──────
+                CatalogueAttributs.Etiquette.TITRE to R.string.preview_etiquette_titre,
+                CatalogueAttributs.Etiquette.SOUS_TITRE to R.string.preview_etiquette_sous_titre,
+                CatalogueAttributs.Etiquette.ICONE_NAVIGATION to R.string.preview_etiquette_icone_navigation,
+                CatalogueAttributs.Etiquette.TITRE_CENTRE to R.string.preview_etiquette_titre_centre,
+                CatalogueAttributs.Etiquette.COULEUR_TITRE to R.string.preview_etiquette_couleur_titre,
+                CatalogueAttributs.Etiquette.MENU to R.string.preview_etiquette_menu,
+                CatalogueAttributs.Etiquette.SRC_COMPAT to R.string.preview_etiquette_src_compat,
+                CatalogueAttributs.Etiquette.TEINTE_FOND to R.string.preview_etiquette_teinte_fond,
+                CatalogueAttributs.Etiquette.TAILLE_FAB to R.string.preview_etiquette_taille_fab,
+                CatalogueAttributs.Etiquette.TEINTE to R.string.preview_etiquette_teinte,
+                CatalogueAttributs.Etiquette.LARGEUR_BORDURE to R.string.preview_etiquette_largeur_bordure,
+                CatalogueAttributs.Etiquette.COULEUR_RIPPLE to R.string.preview_etiquette_couleur_ripple,
+                CatalogueAttributs.Etiquette.PADDING_COMPAT to R.string.preview_etiquette_padding_compat,
             )
     }
 }

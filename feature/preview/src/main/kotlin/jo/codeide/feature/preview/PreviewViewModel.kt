@@ -13,6 +13,7 @@ import jo.codeide.core.domain.RegistreSourcesApercu
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.core.domain.SourceApercu
 import jo.codeide.core.model.AppSettings
+import jo.codeide.preview.xml.ArbreAttributsXml
 import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.ClassificateurPreview
@@ -25,6 +26,7 @@ import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
+import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
 import jo.codeide.preview.xml.RessourcesProjetXml
@@ -86,7 +88,11 @@ import kotlin.math.roundToInt
  * [resoudreLabelActivite] et des actions d'édition — chaque garde est
  * une issue DISTINCTE du refus (X4).
  */
-@Suppress("TooManyFunctions", "ReturnCount")
+@Suppress("TooManyFunctions", "ReturnCount", "LargeClass")
+// Exemption detekt ciblée (règle 16) : LargeClass — le ViewModel est
+// l'ORCHESTRATEUR par design (ADR 0132 : la mécanique vit en fonctions
+// pures de :preview:xml, chaque face de la couture a SA méthode) ; PE12c
+// y ajoute les quatre faces de la famille de la vue et des références.
 @HiltViewModel
 public class PreviewViewModel
     // Exemption detekt ciblée (règle 16) : LongParameterList — les 8
@@ -739,6 +745,73 @@ public class PreviewViewModel
             // un faux genre, et ses sections n'arrivent qu'en PE12c.
             return FamilleParent.deNom(parent?.famille) ?: FamilleParent.AUTRE
         }
+
+        /**
+         * La FAMILLE de la vue sélectionnée ELLE-MÊME (PE12c — les
+         * sections du CONTENEUR, spec § 5.1) : la chaîne de
+         * superclasses du rendu réel, repli par balise — `null` sans
+         * rendu.
+         */
+        public fun familleVueSelection(): FamilleParent? {
+            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+            return FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
+        }
+
+        /**
+         * Le cache de l'ARBRE du document (PE12c) : l'arbre ne se
+         * re-parse que quand le TEXTE a changé — le volet le redemande à
+         * chaque contrôle de référence affiché.
+         */
+        private var cacheArbre: Pair<String, List<ArbreAttributsXml.Noeud>>? = null
+
+        /** L'arbre du document courant (PE12c — [ArbreAttributsXml.lire], mis en cache par texte). */
+        private fun arbreSelection(): List<ArbreAttributsXml.Noeud>? {
+            val sourceBranchee = source ?: return null
+            val texte = sourceBranchee.texte()
+            cacheArbre?.let { (precedent, arbre) -> if (precedent == texte) return arbre }
+            return ArbreAttributsXml.lire(texte).also { arbre -> cacheArbre = texte to arbre }
+        }
+
+        /**
+         * Les OPTIONS du contrôle RÉFÉRENCE D'ID de la sélection (PE12c —
+         * spec § 5.3) : candidats par PORTÉE, grisage des boucles
+         * ([RelationsParents.fermeraitBoucle]), valeur introuvable. La
+         * [valeur] courante vient des attributs lus par le volet. Sans
+         * rendu, source ou nœud correspondant : options DÉGRADÉES (aucun
+         * candidat, note conservée, valeur introuvable conservée) — le
+         * contrôle reste utilisable, jamais vide de sens.
+         */
+        public fun optionsReferenceSelection(
+            reference: CatalogueAttributs.ControleAttribut.ReferenceId,
+            valeur: String?,
+        ): ReferencesId.Options {
+            val rendu = dernierRendu
+            val vue = rendu?.vues?.getOrNull(selectionInterne.value)
+            val arbre = arbreSelection()
+            val indice =
+                if (vue == null || arbre == null) {
+                    null
+                } else {
+                    ReferencesId.indiceDe(arbre, vue.debutElement, vue.finElement)
+                }
+            return if (arbre != null && indice != null) {
+                ReferencesId.options(arbre, indice, reference, valeur)
+            } else {
+                ReferencesId.options(emptyList(), -1, reference, valeur)
+            }
+        }
+
+        /**
+         * RÉTABLIT les valeurs par défaut d'un GROUPE d'attributs de la
+         * sélection (PE12c — le bouton ↺ d'un champ : TOUS les attributs
+         * du groupe partent en UNE SEULE édition, un seul annuler —
+         * miroir le `names.forEach` du `fieldBox` de la maquette).
+         * `false` = sélection non éditable ou RIEN de défini.
+         */
+        public fun reinitialiserAttributsSelection(noms: List<String>): Boolean =
+            editerSelection(autoriserRacine = true) { texte, span ->
+                EditionAttributsXml.retirerAttributs(texte, span, noms)
+            }
 
         /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
         public fun ecrireDimensionSelection(
