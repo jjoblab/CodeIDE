@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE cellule de la grille de gravité 3 × 3 (maquette `.pos.g3 button`) — RÉFÉRENCE (ADR 0135). Glyphes ↖ ↑ ↗ ← ● → ↙ ↓ ↘.
+  34 dp de haut ; la largeur est un tiers du groupe (118,7 dp dans le popup mesuré). contentDescription = « Haut, début »…
+  (strings_parents.xml). Coché = fond surface + ombre légère, comme les boutons de position.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cellule_gravite"
+    style="@style/Widget.CodeIDE.Apercu.CelluleGravite"
+    android:layout_width="0dp"
+    android:layout_height="@dimen/apercu_cellule_hauteur"
+    android:layout_columnWeight="1" />

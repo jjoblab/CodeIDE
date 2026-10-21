@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  POPUP de placement — RÉFÉRENCE (ADR 0134), remplace popover_placement.xml. Miroir de `.pop.bot`.
-  Géométrie : collé en BAS du rendu, marge 10 dp à gauche, à droite et en bas, hauteur max 340 dp.
+  POPUP de placement, VARIANTE « familles de parents » — RÉFÉRENCE (ADR 0135), REMPLACE popover_placement.xml (ADR 0130).
+  Miroir de `.pop.bot` et `.pop.bot.tall`. Géométrie : collé en BAS du rendu, marge 10 dp à gauche, à droite et en bas ;
+  hauteur max 340 dp (parent LinearLayout / ConstraintLayout / AppBarLayout) ou min(580 dp, hauteur disponible − 134 dp) quand la
+  grille ou la rangée de marges est visible (« tall »), bornée par le code. Dans ce cas le mini-arbre passe à 100 dp.
+  Contenu selon la famille du PARENT RÉSULTANT (recalculée à chaque changement de référence ou de position) :
+    CONSTRAINT / LINEAR / APPBAR : groupe_position (Avant, Dedans, Après), résumé, bouton.
+    FRAME / COORDINATOR           : groupe_position (Derrière, Dedans, Devant) + titre + grille_gravite 3 × 3.
+    RELATIVE, côté d'une vue      : groupe_position (Dessous, Dessus, Droite, Gauche) + titre + groupe_marge (0/8/16/24 dp).
+    RELATIVE, dedans              : groupe_position (Dedans) + grille_gravite (ancrage) + groupe_marge.
+  Les boutons de position et les cellules sont ajoutés par le code (item_position_bouton, item_cellule_gravite) ;
+  les groupes inutiles sont GONE. Mesures : docs/mockups/ref/parents/meas_popups_parents.json.
   Coque OPAQUE, padding 12, espacement 10. Le mini-arbre (`.mini`) utilise les MÊMES rangées que l'onglet
   Arbre (monogramme surface 2 + classe + id), et la rangée de référence est surlignée en ACCENT doux
   (pas en violet). Écarts avec l'actuel : monogramme violet supprimé, id affiché, positions à sélection
@@ -61,42 +70,52 @@
             android:orientation="vertical" />
     </ScrollView>
 
-    <!-- .pos : trois boutons égaux, surface 2, padding 4, espacement 4. -->
+    <!-- .pos : 1 à 4 boutons égaux (item_position_bouton), surface 2, padding 4, espacement 4 ; remplis par le code. -->
     <LinearLayout
         android:id="@+id/groupe_position"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/apercu_popover_gap"
         android:background="@drawable/apercu_mode_palette_conteneur"
+        android:contentDescription="@string/preview_placement_titre_position"
         android:orientation="horizontal"
-        android:padding="@dimen/apercu_position_pad">
+        android:padding="@dimen/apercu_position_pad" />
 
-        <TextView
-            android:id="@+id/position_avant"
-            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/preview_placement_avant" />
+    <!-- Titre « Ancrage dans le parent » / « Position dans le conteneur » / « Marge » (.pop h4.pl). Texte posé par le code. -->
+    <TextView
+        android:id="@+id/titre_grille"
+        style="@style/Widget.CodeIDE.Apercu.TitreGroupePlacement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/position_dedans"
-            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="@dimen/apercu_position_gap"
-            android:layout_marginEnd="@dimen/apercu_position_gap"
-            android:text="@string/preview_placement_dedans" />
+    <!-- .pos.g3 : 9 cellules (3 colonnes), même habillage que .pos ; 118 dp mesurés. Remplie par le code. -->
+    <GridLayout
+        android:id="@+id/grille_gravite"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/apercu_mode_palette_conteneur"
+        android:columnCount="3"
+        android:padding="@dimen/apercu_position_pad"
+        android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/position_apres"
-            style="@style/Widget.CodeIDE.Apercu.PositionBouton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/preview_placement_apres" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/titre_marge"
+        style="@style/Widget.CodeIDE.Apercu.TitreGroupePlacement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/preview_placement_groupe_marge"
+        android:visibility="gone" />
+
+    <!-- Rangée de marges 0 / 8 / 16 / 24 dp (RelativeLayout seulement) : quatre item_position_bouton. -->
+    <LinearLayout
+        android:id="@+id/groupe_marge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/apercu_mode_palette_conteneur"
+        android:orientation="horizontal"
+        android:padding="@dimen/apercu_position_pad"
+        android:visibility="gone" />
 
     <!-- .res : mono 12, « Dans <b>X</b>, position <b>n</b> sur total » — les <b> en violet (ResumeFort). -->
     <TextView

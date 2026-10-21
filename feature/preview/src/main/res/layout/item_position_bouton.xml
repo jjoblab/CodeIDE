@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UN bouton de position du popup de placement (maquette `.pos button`) — RÉFÉRENCE (ADR 0135). Remplace les trois
+  TextView figés de popover_placement.xml : le jeu change avec la famille du parent (Avant / Dedans / Après,
+  Derrière / Dedans / Devant, Dessous / Dessus / Droite / Gauche) et la rangée des marges (0 / 8 / 16 / 24 dp).
+  Largeur 0 dp + poids 1 ; l'espacement de 4 dp est posé en marge par le code (pas sur le premier).
+  Mesure : 88 × 32,5 dp pour quatre boutons, 118,7 × 32,5 pour trois. Coché : fond surface, ombre légère.
+  Rôle d'accessibilité : bouton radio (AccessibilityNodeInfo.setCheckable + setChecked).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/position_bouton"
+    style="@style/Widget.CodeIDE.Apercu.PositionBouton"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1" />

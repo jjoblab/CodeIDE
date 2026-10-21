@@ -3,6 +3,7 @@ package jo.codeide.preview.xml
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -183,5 +184,168 @@ public class ZonesDepotTest {
         assertNull(ZonesDepot.emplacement(vues, ZonesDepot.CibleDepot(9, 0), 160, 4f))
         // Densité inconnue : repli mdpi (le calque est un dessin), jamais d'exception.
         assertNotNull(ZonesDepot.emplacement(vues, ZonesDepot.CibleDepot(0, 0), 0, 4f))
+    }
+
+    // ── PE12d : plans par famille, ancre FAB, adhérence (§ 6) ───────────
+
+    /** Arbre PE12d : racine CoordinatorLayout, AppBarLayout, RecyclerView, FAB existant. */
+    private fun arbreFil(): List<InfoVueRendu> =
+        listOf(
+            vue(0, 0, 360, 640, "CoordinatorLayout", "root", -1, 0, conteneur = true, famille = "COORDINATOR"),
+            vue(0, 0, 360, 104, "AppBarLayout", "appbar", 0, 1, conteneur = true, famille = "APPBAR"),
+            vue(0, 104, 360, 640, "RecyclerView", "liste", 0, 1),
+            vue(288, 568, 344, 624, "FloatingActionButton", "fab", 0, 1),
+        )
+
+    /** Arbre PE12d : racine FrameLayout (pile) avec un enfant badge. */
+    private fun arbrePile(): List<InfoVueRendu> =
+        listOf(
+            vue(0, 0, 360, 220, "FrameLayout", "root", -1, 0, conteneur = true, famille = "FRAME"),
+            vue(264, 16, 344, 40, "TextView", "badge", 0, 1),
+        )
+
+    /** Le helper local `vue` du fixture existant, exposé aux arbres PE12d. */
+    @Suppress("LongParameterList")
+    private fun vue(
+        gauche: Int,
+        haut: Int,
+        droite: Int,
+        bas: Int,
+        classe: String,
+        id: String,
+        parent: Int,
+        profondeur: Int,
+        conteneur: Boolean = false,
+        famille: String = "",
+    ): InfoVueRendu =
+        InfoVueRendu(
+            gauche = gauche,
+            haut = haut,
+            droite = droite,
+            bas = bas,
+            libelle = "$classe @+id/$id",
+            debutElement = 0,
+            finElement = 1,
+            indiceParent = parent,
+            profondeur = profondeur,
+            classe = classe,
+            idRes = id,
+            conteneur = conteneur,
+            famille = famille,
+        )
+
+    @Test
+    fun `un depot dans une pile porte la cellule et s'ajoute en dernier`() {
+        val vues = arbrePile()
+        val contenu = ZonesDepot.ContenuDepot("<TextView />", "TextView", "tv")
+        // Coin haut-début de la pile (padding nul) : cellule (0, 0) = défaut.
+        val cible = ZonesDepot.cibleSous(vues, 60f, 30f, contenu, 160)
+        assertNotNull(cible)
+        assertEquals(0, cible!!.indiceParent)
+        assertEquals("ajout EN DERNIER (premier plan)", 1, cible.index)
+        val plan = cible.plan
+        assertNotNull("un parent FRAME reçoit un PLAN", plan)
+        assertEquals(PlanInsertionFamille.Cellule(ligne = 0, colonne = 0), plan!!.cellule)
+        // Cellule par défaut : AUCUN layout_gravity, marges début + haut 16.
+        assertTrue(plan.attributs.isEmpty())
+        assertEquals(16, plan.marges.debut)
+        assertEquals(16, plan.marges.haut)
+        // Coin bas-fin : gravité end|bottom + marges fin + bas.
+        val basFin = ZonesDepot.cibleSous(vues, 300f, 200f, contenu, 160)!!
+        assertEquals(listOf("android:layout_gravity" to "end|bottom"), basFin.plan!!.attributs)
+    }
+
+    @Test
+    fun `un fab vise le coordinator ancetre et s'ancre au frere sous le point`() {
+        val vues = arbreFil()
+        // Le point est SUR la liste (enfant direct du CoordinatorLayout) :
+        // la cible devient le CoordinatorLayout, l'ANCRE est la liste.
+        val contenu =
+            ZonesDepot.ContenuDepot(
+                "<com.google.android.material.floatingactionbutton.FloatingActionButton " +
+                    "android:layout_width=\"56dp\" android:layout_height=\"56dp\" />",
+                "FloatingActionButton",
+                "fab",
+            )
+        val cible = ZonesDepot.cibleSous(vues, 10f, 120f, contenu, 160)
+        assertNotNull(cible)
+        assertEquals(0, cible!!.indiceParent)
+        val plan = cible.plan
+        assertNotNull(plan)
+        assertEquals(2, plan!!.indiceAncre)
+        assertEquals(
+            listOf(
+                "app:layout_anchor" to "@id/liste",
+                "app:layout_anchorGravity" to "start|top",
+            ),
+            plan.attributs,
+        )
+        // Marges 16 dp sur les QUATRE côtés (condensées en horizontal).
+        assertEquals(
+            listOf(
+                "android:layout_marginTop" to "16dp",
+                "android:layout_marginBottom" to "16dp",
+                "android:layout_marginHorizontal" to "16dp",
+            ),
+            plan.marges.versAttributs(),
+        )
+    }
+
+    @Test
+    fun `un depot defilant dans un coordinator lie a l appbar ecrit le comportement`() {
+        val vues = arbreFil()
+        val contenu =
+            ZonesDepot.ContenuDepot(
+                "<androidx.recyclerview.widget.RecyclerView android:layout_width=\"match_parent\" " +
+                    "android:layout_height=\"160dp\" />",
+                "RecyclerView",
+                "rv",
+            )
+        // Point en cellule HAUT-DÉBUT (défaut : miroir S11) : le
+        // comportement est posé, les marges sont VIDÉES, la gravité par
+        // défaut reste omise.
+        val cible = ZonesDepot.cibleSous(vues, 10f, 120f, contenu, 160)
+        assertNotNull(cible)
+        val plan = cible!!.plan
+        assertNotNull(plan)
+        assertEquals(
+            listOf("app:layout_behavior" to "@string/appbar_scrolling_view_behavior"),
+            plan!!.attributs,
+        )
+        assertTrue("AUCUNE marge sur un dépôt lié à l'AppBar", plan.marges.versAttributs().isEmpty())
+    }
+
+    @Test
+    fun `un depot sans fab dans le coordinator reste une pile non ancree`() {
+        val vues = arbreFil()
+        // Un TextView déposé sur la liste : le parent visé reste le
+        // CoordinatorLayout (le plus profond SOUS le point), SANS ancre —
+        // la cellule se lit sur le COORDINATOR (padding nul), x = 10 →
+        // colonne 0, y = 300 → ligne 1.
+        val contenu =
+            ZonesDepot.ContenuDepot(
+                "<TextView android:layout_width=\"wrap_content\" android:layout_height=\"wrap_content\" />",
+                "TextView",
+                "tv",
+            )
+        val cible = ZonesDepot.cibleSous(vues, 10f, 300f, contenu, 160)
+        assertNotNull(cible)
+        assertEquals(0, cible!!.indiceParent)
+        assertNull("sans fab, AUCUNE ancre", cible.plan!!.indiceAncre)
+        assertEquals(PlanInsertionFamille.Cellule(ligne = 1, colonne = 0), cible.plan!!.cellule)
+    }
+
+    @Test
+    fun `les parents lineaires gardent la barre d insertion sans plan`() {
+        val vues = arbre()
+        // La carte LinearLayout horizontal : comportement inchangé, AUCUN
+        // plan — x = 300 dépasse les milieux de logo (104) ET d'action
+        // (278) → index 2 (troisième position).
+        val contenu = ZonesDepot.ContenuDepot("<TextView />", "TextView", "tv")
+        val cible = ZonesDepot.cibleSous(vues, 300f, 200f, contenu, 160)
+        assertNotNull(cible)
+        assertEquals(2, cible!!.indiceParent)
+        assertNull(cible.plan)
+        assertEquals("les milieux dépassés comptent comme avant", 2, cible.index)
     }
 }

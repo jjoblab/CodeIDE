@@ -88,20 +88,36 @@ public class CotesPlacementMenusMaquetteTest {
     }
 
     @Test
-    public fun `le popover placement porte la coque l entete et les boutons de position`() {
-        // Coque Popover : padding 12 (§ 5) ; les boutons Avant / Dedans /
-        // Après composent 32,5 dp (padding 10 + ligne 12,5 + 10 — pos_btn
-        // 32,5 ; Robolectric n'applique pas l'interligne à la mesure, la
-        // cote se compose depuis les valeurs CONFIGURÉES, patron § 12.1).
-        val racine = gonfler(R.layout.popover_placement)
+    public fun `le popover placement porte la coque et les items de position et de cellule`() {
+        // Coque Popover : padding 12 (§ 5) ; le BOUTON DE POSITION (PE12d —
+        // item_position_bouton, plus de TextView figés dans le popover)
+        // compose 32,5 dp (padding 10 + ligne 12,5 + 10 — pos_btn 32,5 ;
+        // Robolectric n'applique pas l'interligne à la mesure, la cote se
+        // compose depuis les valeurs CONFIGURÉES, patron § 12.1) et la
+        // CELLULE de gravité fait 34 dp (D9 — meas_popups_parents).
+        val racine = gonfler(R.layout.popover_placement_parents)
         assertEquals("coque Popover padding 12", 12, racine.paddingLeft)
         val fermer = racine.findViewById<View>(R.id.bouton_fermer_placement)
         assertTrue("fermer 36 dp (head_ib)", fermer.measuredHeight in 35..37)
-        val bouton = racine.findViewById<TextView>(R.id.position_avant)
+        val bouton = gonflerSimple(R.layout.item_position_bouton).findViewById<TextView>(R.id.position_bouton)
         val composee = bouton.paddingTop + bouton.lineHeight + bouton.paddingBottom
         assertTrue(
             "pos_btn : composée $composee dp, attendue 32,5 dp (±1)",
             abs(composee - 32.5) <= 1.0,
+        )
+        val cellule =
+            LayoutInflater
+                .from(
+                    contexte,
+                ).inflate(R.layout.item_cellule_gravite, android.widget.GridLayout(contexte), false) as TextView
+        // D9 : la cellule fait 34 dp (padding 9 + ligne 16 + 9) — la
+        // hauteur se COMPOSE depuis les valeurs CONFIGURÉES (patron § 12.1 :
+        // Robolectric n'applique pas l'interligne à la mesure, la cote du
+        // bouton de position se compose pareil).
+        val composeeCellule = cellule.paddingTop + cellule.lineHeight + cellule.paddingBottom
+        assertTrue(
+            "cellule de gravité : composée $composeeCellule dp, attendue 34 dp (D9, ±1)",
+            abs(composeeCellule - 34) <= 1.0,
         )
     }
 

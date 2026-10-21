@@ -1,8 +1,8 @@
 # ADR 0135 — Aperçu : familles de parents (RelativeLayout, CoordinatorLayout, FrameLayout, AppBarLayout) et leurs enfants
 
-- **Statut** : proposé — D1 à D10 découlent de la demande « gérer les vues comme `RelativeLayout` et `CoordinatorLayout`, parents
-  et enfants, de façon complète et professionnelle ». **D6 (valeur de marge par défaut) et D9 (cibles tactiles) sont à confirmer
-  par le propriétaire** avant PE12d.
+- **Statut** : accepté — D1 à D10 découlent de la demande « gérer les vues comme `RelativeLayout` et `CoordinatorLayout`, parents
+  et enfants, de façon complète et professionnelle ». **D6 (valeur de marge par défaut) et D9 (cibles tactiles) confirmées par le
+  propriétaire le 2026-10-21, avant le lancement de PE12d** (aucune réserve, valeurs de la proposition).
 - **Date** : 2026-10-20
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0131 (jetons, thème `Theme.CodeIDE.Apercu`), ADR 0132 (écran Attributs), ADR 0133 (typographie, unités,
@@ -52,7 +52,7 @@ une interaction = une édition = un annuler ; LayoutLib reste la vérité du ren
   invalides sont filtrées, la première valide est choisie.
 - **D5 — Un calque « Relations »** remplace « Contraintes » : lignes pleines pour les règles de côté, pointillées pour les alignements,
   vers le bord du parent, ancre → centre de la vue. **Aucun nouveau jeton** (`--accent`, `--new`, `--new-soft` existent).
-- **D6 — Marge de dépôt : 16 dp** (grille de 8 dp). Alternatives mesurées dans le popup (0, 8, 16, 24). *À confirmer par le propriétaire.*
+- **D6 — Marge de dépôt : 16 dp** (grille de 8 dp). Alternatives mesurées dans le popup (0, 8, 16, 24). *Confirmée par le propriétaire (2026-10-21).*
 - **D7 — Les références ne meurent plus.** Suppression : **une** édition retire l'élément et toute valeur `@id/x` / `@+id/x` visant son sous-arbre
   (`SuppressionSure`) ; `anchorGravity` part avec son ancre. Renommage : `RenommageIdentifiant` suffit déjà (test de non-régression).
   Duplication : les références ne sont pas réécrites.
@@ -60,7 +60,7 @@ une interaction = une édition = un annuler ; LayoutLib reste la vérité du ren
   `DEPENDANCE_CIRCULAIRE`), calculés **sur le texte** (`ArbreAttributsXml`) pour rester disponibles quand le rendu échoue ;
   chacun avec son correctif. Les erreurs de rendu par boucle sont classées comme les erreurs de rendu existantes (dernier rendu valide conservé).
 - **D9 — Cibles tactiles** : mêmes dérogations que l'ADR 0134 (D8) pour les nouveaux contrôles : boutons de position 32,5 dp, cellules
-  34 dp, espacement 4 dp ; `contentDescription` partout. *À confirmer par le propriétaire.*
+  34 dp, espacement 4 dp ; `contentDescription` partout. *Confirmée par le propriétaire (2026-10-21).*
 - **D10 — Palette et inspecteur.** Six entrées (`FrameLayout`, `RelativeLayout`, `CoordinatorLayout`, `AppBarLayout`, `MaterialToolbar`,
   `FloatingActionButton`) ; sections « Dans le parent » et « Conteneur » par famille ; `ControleAttribut.ReferenceId` avec portée
   (`TOUT`, `FRERES`, `SOUS_ARBRE`) et options **grisées si elles ferment une boucle**.

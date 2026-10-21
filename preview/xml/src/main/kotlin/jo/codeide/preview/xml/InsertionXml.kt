@@ -166,34 +166,54 @@ public object InsertionXml {
      * (maquette : « le point de dépôt donne `layout_constraintTop_toTopOf="parent"`
      * et des marges en dp, calculées avec la densité du profil ») : les
      * marges (dp) viennent de la position du dépôt convertie par le
-     * contrôleur.
-     *
-     * Les attributs s'insèrent avant la fermeture de la PREMIÈRE balise,
-     * à l'indentation du dernier attribut existant (multi-lignes) ou sur
-     * la ligne (balise compacte).
+     * contrôleur. Délègue l'injection à [ajouterAttributs].
      */
     public fun contraindre(
         extrait: String,
         margeHautDp: Int,
         margeStartDp: Int,
     ): String {
-        val chevron = chevronOuvrant(extrait, 0) ?: return extrait
         val attributs =
             buildList {
-                add("""app:layout_constraintTop_toTopOf="parent"""")
-                add("""app:layout_constraintStart_toStartOf="parent"""")
-                if (margeHautDp > 0) add("""android:layout_marginTop="${margeHautDp}dp"""")
-                if (margeStartDp > 0) add("""android:layout_marginStart="${margeStartDp}dp"""")
+                add("app:layout_constraintTop_toTopOf" to "parent")
+                add("app:layout_constraintStart_toStartOf" to "parent")
+                if (margeHautDp > 0) add("android:layout_marginTop" to "${margeHautDp}dp")
+                if (margeStartDp > 0) add("android:layout_marginStart" to "${margeStartDp}dp")
             }
+        return ajouterAttributs(extrait, attributs)
+    }
+
+    /**
+     * Injecte des ATTRIBUTS de position dans la première balise de
+     * l'extrait (PE12d — généralisation de [contraindre], miroir
+     * `applyPlan` : « le plan ne fait que choisir les attributs de
+     * l'extrait avant l'appel », spec § 4.3) : les attributs s'insèrent
+     * avant la fermeture de la PREMIÈRE balise, à l'indentation du
+     * dernier attribut existant (multi-lignes) ou sur la ligne (balise
+     * compacte), DANS L'ORDRE de la liste — les plans posent les MARGES
+     * d'abord, puis les règles (convention du fichier d'or S1-S12). Les
+     * attributs déjà présents ne sont PAS dupliqués (même nom → valeur
+     * REMPLACÉE en place, un dépôt n'écrit jamais deux fois le même
+     * attribut).
+     */
+    public fun ajouterAttributs(
+        extrait: String,
+        attributs: List<Pair<String, String>>,
+    ): String {
+        if (attributs.isEmpty()) return extrait
+        val chevron = chevronOuvrant(extrait, 0) ?: return extrait
+        val existants = attributsExistants(extrait, chevron)
+        val aPoser = attributs.filter { (nom, _) -> existants[nom] == null }
+        if (aPoser.isEmpty()) return remplacerValeurs(extrait, attributs, existants)
         val multiline = extrait.indexOf('\n') in 0 until chevron
         val indent = if (multiline) indentationDernierAttribut(extrait, chevron) else ""
         val injection =
             if (multiline) {
                 // Le PREMIER attribut porte aussi l'indentation (joinToString
                 // n'intercale pas de préfixe initial) — un attribut par ligne.
-                "\n$indent" + attributs.joinToString("\n$indent")
+                "\n$indent" + aPoser.joinToString("\n$indent") { (nom, valeur) -> "$nom=\"$valeur\"" }
             } else {
-                attributs.joinToString(" ")
+                aPoser.joinToString(" ") { (nom, valeur) -> "$nom=\"$valeur\"" }
             }
         // Balise auto-fermante : les attributs précèdent le « / » ; paire
         // ouvrante/fermante : ils précèdent le chevron. Multi-lignes : un
@@ -211,6 +231,36 @@ public object InsertionXml {
             }
         return extrait.substring(0, position) + injection + avantFermeture + extrait.substring(position)
     }
+
+    /** Les attributs DÉJÀ POSÉS sur la première balise : nom → plage de la valeur. */
+    private fun attributsExistants(
+        extrait: String,
+        chevron: Int,
+    ): Map<String, IntRange> {
+        val balise = extrait.substring(0, chevron)
+        val existants = LinkedHashMap<String, IntRange>()
+        for (correspondance in REGEX_ATTRIBUT.findAll(balise)) {
+            existants[correspondance.groupValues[1]] = correspondance.range
+        }
+        return existants
+    }
+
+    /** REMPLACE en place la valeur des attributs déjà posés (même nom, nouvelle valeur). */
+    private fun remplacerValeurs(
+        extrait: String,
+        attributs: List<Pair<String, String>>,
+        existants: Map<String, IntRange>,
+    ): String {
+        var resultat = extrait
+        for ((nom, valeur) in attributs) {
+            val plage = existants[nom] ?: continue
+            resultat = resultat.replaceRange(plage, "$nom=\"$valeur\"")
+        }
+        return resultat
+    }
+
+    /** Un attribut de la première balise : nom = « valeur » (le groupe 1 porte le nom, la plage matche la valeur). */
+    private val REGEX_ATTRIBUT: Regex = Regex("""([\w:]+)="([^"]*)"""")
 
     // ── Détails de la dérivation (purs, privés) ─────────────────────────
 

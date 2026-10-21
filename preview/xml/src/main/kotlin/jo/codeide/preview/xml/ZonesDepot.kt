@@ -28,17 +28,27 @@ import kotlin.math.min
  * (arbre vide, conteneur absent, vue dégénérée, hors bornes) est une
  * issue DISTINCTE du hit-test (patron [SelectionPreview]).
  */
-@Suppress("ReturnCount")
+@Suppress("ReturnCount", "TooManyFunctions")
+// Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde du
+// hit-test est une issue DISTINCTE (patron [SelectionPreview]) ;
+// TooManyFunctions — la surface PE7b + PE12d (cible par famille, ancre
+// FAB) vit complète dans cet objet (précédent [InsertionXml]).
 public object ZonesDepot {
     /**
      * La cible de dépôt sous le point (coordonnées bitmap).
      *
      * @property indiceParent indice du CONTENEUR visé dans l'arbre aplati.
      * @property index position d'insertion entre ses frères (0 = premier).
+     * @property plan le PLAN d'insertion par famille (PE12d — `FRAME`,
+     *        `RELATIVE`, `COORDINATOR` et ancre `FloatingActionButton`),
+     *        ou null pour les parents à barre d'insertion (§ 6.2) : les
+     *        attributs restent alors à la charge du contrôleur
+     *        (`InsertionXml.contraindre` pour `ConstraintLayout`).
      */
     public data class CibleDepot(
         val indiceParent: Int,
         val index: Int,
+        val plan: PlanInsertionFamille.Plan? = null,
     )
 
     /**
@@ -102,24 +112,114 @@ public object ZonesDepot {
     /**
      * La cible de dépôt sous le point (coordonnées BITMAP) — le conteneur
      * le plus PROFOND contenant le point (miroir `targetAt` : profondeur
-     * maximale), hors de l'écran rendu → `null`. L'INDEX entre frères se
-     * calcule sur l'ordre du document (frères disjoints dans l'ordre du
-     * tableau aplati) : un frère compte quand son MILIEU — horizontal ?
-     * centre x : centre y — précède le point ; une vue sans orientation
-     * (ConstraintLayout racine) se traite en colonne (miroir maquette,
-     * `orient === 'h'` sinon vertical).
+     * maximale), hors de l'écran rendu → `null`. PE12d (§ 6) :
+     * - un `FloatingActionButton` ([ContenuDepot.idWidget] « fab ») vise le
+     *   plus profond `CoordinatorLayout` ANCEÂTRE de la cible, ancré au
+     *   premier frère sous le point ;
+     * - un parent `FRAME`/`COORDINATOR` reçoit une CELLULE 3 × 3
+     *   ([PlanInsertionFamille.cellule]) et l'enfant est AJOUTÉ EN DERNIER
+     *   (premier plan) ;
+     * - un parent `RELATIVE` reçoit le plan AU POINTEUR
+     *   ([PlanInsertionFamille.auPointeur] : adhérence ≤ 28 dp puis
+     *   ancrage au parent), également ajouté en dernier ;
+     * - les autres familles gardent la BARRE d'insertion (§ 6.2) : l'INDEX
+     *   entre frères se calcule sur l'ordre du document (un frère compte
+     *   quand son MILIEU — horizontal ? centre x : centre y — précède le
+     *   point ; un `LinearLayout` sans orientation se traite en colonne).
+     *
+     * [densiteDpi] sert aux plans (marges dp, fantôme) ; il est ignoré
+     * pour les parents à barre.
      */
     public fun cibleSous(
         vues: List<InfoVueRendu>,
         x: Float,
         y: Float,
+        contenu: ContenuDepot? = null,
+        densiteDpi: Int = 0,
     ): CibleDepot? {
         if (vues.isEmpty()) return null
         val conteneur = conteneurLePlusProfond(vues, x, y)
         if (conteneur < 0) return null
-        val horizontal = vues[conteneur].orientation == InfoVueRendu.ORIENTATION_HORIZONTALE
-        val coordonnee = if (horizontal) x else y
-        return CibleDepot(indiceParent = conteneur, index = indexEntreFreres(vues, conteneur, horizontal, coordonnee))
+        var indiceParent = conteneur
+        var indiceAncre: Int? = null
+        if (contenu?.idWidget == PlanInsertionFamille.ID_FAB) {
+            val cibleFab = cibleFab(vues, conteneur, x, y)
+            if (cibleFab != null) {
+                indiceParent = cibleFab.first
+                indiceAncre = cibleFab.second
+            }
+        }
+        val parent = vues[indiceParent]
+        val famille = familleDuParent(parent)
+        return when (famille) {
+            FamilleParent.FRAME, FamilleParent.COORDINATOR -> {
+                val cellule =
+                    if (indiceAncre != null) {
+                        PlanInsertionFamille.celluleSous(vues, indiceAncre, x, y, avecPadding = false)
+                    } else {
+                        PlanInsertionFamille.celluleSous(vues, indiceParent, x, y)
+                    } ?: return CibleDepot(indiceParent, indexEntreFreres(vues, indiceParent, false, y))
+                val plan =
+                    PlanInsertionFamille.cellule(
+                        vues,
+                        indiceParent,
+                        cellule,
+                        indiceAncre,
+                        PlanInsertionFamille.Depose(contenu?.extraitXml, contenu?.idWidget, densiteDpi),
+                    )
+                CibleDepot(indiceParent, vues.count { it.indiceParent == indiceParent }, plan)
+            }
+
+            FamilleParent.RELATIVE -> {
+                val plan =
+                    PlanInsertionFamille.auPointeur(
+                        vues,
+                        indiceParent,
+                        x,
+                        y,
+                        PlanInsertionFamille.Depose(extrait = contenu?.extraitXml, densiteDpi = densiteDpi),
+                    )
+                CibleDepot(indiceParent, vues.count { it.indiceParent == indiceParent }, plan)
+            }
+
+            else -> {
+                val horizontal = parent.orientation == InfoVueRendu.ORIENTATION_HORIZONTALE
+                val coordonnee = if (horizontal) x else y
+                CibleDepot(indiceParent, indexEntreFreres(vues, indiceParent, horizontal, coordonnee))
+            }
+        }
+    }
+
+    /** La FAMILLE d'une vue rendue (PE12a : nom d'enum du rendu, repli par balise). */
+    internal fun familleDuParent(vue: InfoVueRendu): FamilleParent =
+        FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
+
+    /**
+     * La cible d'un `FloatingActionButton` (miroir `targetAt` : le plus
+     * profond `CoordinatorLayout` ANCEÂTRE de la cible visée — elle-même
+     * comprise — et le PREMIER enfant sous le point comme ANCRE
+     * candidate) : paire (indice du `CoordinatorLayout`, indice de l'ancre
+     * ou null), ou null si aucun ancêtre `CoordinatorLayout`.
+     */
+    private fun cibleFab(
+        vues: List<InfoVueRendu>,
+        indiceVise: Int,
+        x: Float,
+        y: Float,
+    ): Pair<Int, Int?>? {
+        var indice = indiceVise
+        while (indice >= 0) {
+            val vue = vues[indice]
+            if (vue.conteneur && familleDuParent(vue) == FamilleParent.COORDINATOR) {
+                val ancre =
+                    vues.indices.firstOrNull {
+                        it != indice && vues[it].indiceParent == indice && vues[it].contient(x.toInt(), y.toInt())
+                    }
+                return indice to ancre
+            }
+            indice = vue.indiceParent
+        }
+        return null
     }
 
     /** Le conteneur le plus PROFOND contenant le point (-1 si aucun — miroir `targetAt`). */
