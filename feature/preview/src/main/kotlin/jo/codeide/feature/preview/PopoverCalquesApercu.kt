@@ -81,7 +81,7 @@ internal class PopoverCalquesApercu(
             EntreeCalque(R.string.preview_calque_marges_padding, { vueRendu.calquesMargesPadding }, {
                 vueRendu.calquesMargesPadding = it
             }),
-            EntreeCalque(R.string.preview_calque_contraintes, { vueRendu.calquesContraintes }, {
+            EntreeCalque(R.string.preview_calque_relations, { vueRendu.calquesContraintes }, {
                 vueRendu.calquesContraintes = it
             }),
             EntreeCalque(
