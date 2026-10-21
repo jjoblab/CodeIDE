@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Chaînes ajoutées par la vague « familles de parents » (ADR 0135). Pendant anglais : values-en/strings_parents.xml. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Popup de placement : positions selon la famille du parent -->
     <string name="preview_placement_derriere">Derrière</string>
     <string name="preview_placement_devant">Devant</string>
@@ -24,9 +24,11 @@
     <string name="preview_cellule_bas_debut">Bas, début</string>
     <string name="preview_cellule_bas_centre">Bas, centre</string>
     <string name="preview_cellule_bas_fin">Bas, fin</string>
-    <!-- Résumés -->
+    <!-- Résumés (le plan d'empilement est un RANG, pas une quantité —
+         pluriel sémantiquement faux, lint PluralsCandidate : %d suivi
+         de mots ; précédent installation_progression, v0.31.5). -->
     <string name="preview_placement_resume_regle">%1$s, dans %2$s</string>
-    <string name="preview_placement_resume_pile">Dans %1$s, %2$s, plan %3$d sur %4$d</string>
+    <string name="preview_placement_resume_pile" tools:ignore="PluralsCandidate">Dans %1$s, %2$s, plan %3$d sur %4$d</string>
     <string name="preview_placement_defaut">(défaut)</string>
     <!-- Libellés du repère de dépôt -->
     <string name="preview_depot_dessous">Sous %1$s · marge %2$d dp</string>
@@ -61,8 +63,15 @@
     <string name="preview_correctif_ajouter_comportement">Ajouter le comportement</string>
     <string name="preview_correctif_casser_boucle">Casser la boucle</string>
     <string name="preview_bandeau_boucle">Dépendance circulaire dans %1$s : %2$s. RelativeLayout refuse une boucle de règles.</string>
-    <!-- Calque et suppression -->
+    <!-- Calque et suppression (le NOMBRE de références retirées ou
+         mises à jour est une QUANTITÉ : un pluriel, pas des « (s) »). -->
     <string name="preview_calque_relations">Relations</string>
-    <string name="preview_supprime_references">%1$s supprimé · %2$d référence(s) retirée(s)</string>
-    <string name="preview_renomme_references">Renommé en @+id/%1$s · %2$d référence(s) mise(s) à jour</string>
+    <plurals name="preview_supprime_references">
+        <item quantity="one">%1$s supprimé · %2$d référence retirée</item>
+        <item quantity="other">%1$s supprimé · %2$d références retirées</item>
+    </plurals>
+    <plurals name="preview_renomme_references">
+        <item quantity="one">Renommé en @+id/%1$s · %2$d référence mise à jour</item>
+        <item quantity="other">Renommé en @+id/%1$s · %2$d références mises à jour</item>
+    </plurals>
 </resources>

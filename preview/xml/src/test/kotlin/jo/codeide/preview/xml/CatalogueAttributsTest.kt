@@ -848,41 +848,12 @@ public class CatalogueAttributsTest {
                 for (controle in section.controles) {
                     assertTrue(
                         "contrôle de $classe/${section.titre}",
-                        controle.estCourant(),
+                        controle.courant,
                     )
                 }
             }
         }
     }
-
-    /** Le drapeau Courants d'un contrôle (objet = toujours courant). */
-    private fun CatalogueAttributs.ControleAttribut.estCourant(): Boolean =
-        when (this) {
-            CatalogueAttributs.ControleAttribut.Dimensions,
-            CatalogueAttributs.ControleAttribut.Contraintes,
-            -> true
-
-            else -> champCourant()
-        }
-
-    /** Le drapeau Courants d'un contrôle À CHAMP (les 13 types nommés). */
-    private fun CatalogueAttributs.ControleAttribut.champCourant(): Boolean =
-        when (this) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> courant
-            is CatalogueAttributs.ControleAttribut.Texte -> courant
-            is CatalogueAttributs.ControleAttribut.Nombre -> courant
-            is CatalogueAttributs.ControleAttribut.Choix -> courant
-            is CatalogueAttributs.ControleAttribut.Liste -> courant
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> courant
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> courant
-            is CatalogueAttributs.ControleAttribut.TriEtat -> courant
-            is CatalogueAttributs.ControleAttribut.Couleur -> courant
-            is CatalogueAttributs.ControleAttribut.Ressource -> courant
-            is CatalogueAttributs.ControleAttribut.Cotes -> courant
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> courant
-            is CatalogueAttributs.ControleAttribut.Bascules -> courant
-            else -> true // Dimensions/Contraintes : déjà routés par le when externe
-        }
 
     @Test
     fun `tout attribut de couleur porte le controle Couleur - usager textColor`() {
