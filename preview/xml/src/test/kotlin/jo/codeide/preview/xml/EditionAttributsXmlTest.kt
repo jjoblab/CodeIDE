@@ -186,6 +186,52 @@ public class EditionAttributsXmlTest {
         assertNull(EditionAttributsXml.definir(formate, spanTexte(), "android:alpha", ""))
     }
 
+    // ── PE12c — retrait groupé (le bouton ↺ d'un groupe) ────────────────
+
+    @Test
+    fun `retirerAttributs retire plusieurs lignes entieres en une seule edition`() {
+        // android:text et android:paddingHorizontal, seuls sur leurs
+        // lignes : les DEUX lignes partent, UNE édition (un annuler).
+        val edition =
+            EditionAttributsXml.retirerAttributs(
+                formate,
+                spanTexte(),
+                listOf("android:text", "android:paddingHorizontal"),
+            )!!
+        val resultat = appliquer(formate, edition)
+        assertFalse(resultat.contains("android:text="))
+        assertFalse(resultat.contains("android:paddingHorizontal"))
+        assertFalse(resultat.contains("\n\n\n")) // pas de ligne vide résiduelle
+        assertTrue(resultat.contains("android:id=\"@+id/titre\""))
+        assertTrue(resultat.contains("<Button"))
+    }
+
+    @Test
+    fun `retirerAttributs en ligne ne garde qu un separateur`() {
+        // Deux attributs sur la MÊME ligne : le séparateur partagé ne part
+        // qu'une fois (les plages fusionnent par chevauchement).
+        val texte =
+            "<TextView xmlns:android=\"http://schemas.android.com/apk/res/android\" " +
+                "android:id=\"@+id/a\" android:text=\"X\" android:alpha=\"1\" />"
+        val edition =
+            EditionAttributsXml.retirerAttributs(texte, spanDe(texte, 0)!!, listOf("android:text", "android:alpha"))!!
+        val resultat = appliquer(texte, edition)
+        assertFalse(resultat.contains("android:text="))
+        assertFalse(resultat.contains("android:alpha"))
+        assertTrue(resultat.contains("android:id=\"@+id/a\" />"))
+    }
+
+    @Test
+    fun `retirerAttributs ignore les absents et refuse null sans rien de defini`() {
+        assertNull(EditionAttributsXml.retirerAttributs(formate, spanTexte(), listOf("android:alpha", "app:inconnu")))
+        // Un groupe avec UN attribut défini part quand même en une édition.
+        val edition =
+            EditionAttributsXml.retirerAttributs(formate, spanTexte(), listOf("android:alpha", "android:text"))!!
+        val resultat = appliquer(formate, edition)
+        assertFalse(resultat.contains("android:text="))
+        assertTrue(resultat.contains("android:paddingHorizontal"))
+    }
+
     // ── Lecture ──────────────────────────────────────────────────────────
 
     @Test
