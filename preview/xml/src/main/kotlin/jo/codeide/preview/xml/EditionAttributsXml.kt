@@ -943,6 +943,56 @@ public object EditionAttributsXml {
     }
 
     /**
+     * RETIRE plusieurs attributs de la vue au span en UNE SEULE ÉDITION
+     * (PE12c — le bouton ↺ d'un groupe réinitialise TOUS ses attributs,
+     * un seul annuler : miroir le `names.forEach(… setEx(… ''))` du
+     * `fieldBox` de la maquette). Les attributs ABSENTS du document sont
+     * ignorés ; `null` si AUCUN n'est défini (rien à écrire) ou si le
+     * span ne localise pas l'élément. Les plages des retraits se
+     * FUSIONNENT quand elles partagent un séparateur (un espace ne part
+     * qu'une fois — le retrait isolé le préfère APRÈS, au plus près).
+     */
+    public fun retirerAttributs(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        noms: List<String>,
+    ): EditionAttributsXmlResultat? {
+        val localise = localiser(texte, span) ?: return null
+        val balise = texte.substring(localise.debut, localise.chevron + 1)
+        val attrs = analyserAttributs(balise, localise.debut)
+        val retraits =
+            noms
+                .distinct()
+                .mapNotNull { nom -> attrs.firstOrNull { it.nom == nom } }
+                .map { retirerAttribut(texte, it) }
+                .sortedBy { it.debut }
+        if (retraits.isEmpty()) return null
+        // Les plages à supprimer, FUSIONNÉES par chevauchement : tout est
+        // suppression, l'union des caractères suffit (deux retraits qui se
+        // partagent le séparateur ne l'emportent qu'une fois).
+        val plages = mutableListOf(retraits.first().debut..retraits.first().fin)
+        for (retrait in retraits.drop(1)) {
+            val plage = retrait.debut..retrait.fin
+            val derniere = plages.last()
+            if (plage.first <= derniere.last) {
+                plages[plages.size - 1] = derniere.first..maxOf(derniere.last, plage.last)
+            } else {
+                plages += plage
+            }
+        }
+        val debut = plages.first().first
+        val fin = plages.last().last
+        val sb = StringBuilder()
+        var curseur = debut
+        for (plage in plages) {
+            sb.append(texte.substring(curseur, plage.first))
+            curseur = plage.last
+        }
+        sb.append(texte.substring(curseur, fin))
+        return EditionAttributsXmlResultat(debut, fin, sb.toString())
+    }
+
+    /**
      * L'AJOUT à la position conventionnelle : après le dernier attribut
      * du MÊME SEAU ([ordreAttribut]), sinon AVANT le premier attribut de
      * seau supérieur (id d'abord — miroir la convention) — propre ligne à

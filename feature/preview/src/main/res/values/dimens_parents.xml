@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cotes ajoutées par la vague « familles de parents » (ADR 0135). Mesurées sur la maquette v6 :
+  `docs/mockups/ref/parents/meas_popups_parents.json`. Les cotes du popup de placement (.mini, .pos, .res, .prim)
+  restent celles de dimens_ecrans.xml.
+-->
+<resources>
+    <!-- .pop.bot.tall : le popup de placement avec grille 3 × 3 ou rangée de marges. Hauteur = min(580 dp, hauteur
+         disponible − 134 dp), imposée par le code (LayoutParams.height). Contenu mesuré : 463 dp (cadre), 536 dp (relatif). -->
+    <dimen name="apercu_placement_haut_max">580dp</dimen>
+    <!-- .pop.bot.tall .mini : le mini-arbre se réduit à 100 dp pour laisser la place à la grille. -->
+    <dimen name="apercu_mini_hauteur_max_haut">100dp</dimen>
+    <!-- .pos.g3 button : 16 sp, interligne 1, padding vertical 9 dp → 34 dp. Le groupe mesure 118 dp (34 × 3 + 4 × 2 + 4 × 2). -->
+    <dimen name="apercu_cellule_hauteur">34dp</dimen>
+    <dimen name="apercu_cellule_pad_v">9dp</dimen>
+    <!-- .pop h4.pl : titre de groupe du popup, 10 dp de haut, marges 2 / 4 / 0 / 4. -->
+    <dimen name="apercu_titre_groupe_placement_marge_h">4dp</dimen>
+    <dimen name="apercu_titre_groupe_placement_marge_haut">2dp</dimen>
+    <!-- Calque « zone de dépôt » par famille (dessiné par VuePreviewXml, valeurs en dp ÉCRAN, constantes comme 4 / S.z). -->
+    <dimen name="apercu_calque_cellule_trait">2dp</dimen>   <!-- .cell : trait plein violet, fond violet doux -->
+    <dimen name="apercu_calque_cellule_rayon">4dp</dimen>
+    <dimen name="apercu_calque_fantome_trait">1.5dp</dimen>   <!-- .gbox : trait pointillé violet, fond violet doux -->
+    <dimen name="apercu_calque_relation_trait">1.5dp</dimen>   <!-- ligne de relation : pleine (rule) ou pointillée 5 / 3 (alignement) -->
+    <dimen name="apercu_calque_relation_point">3.5dp</dimen>   <!-- rayon des extrémités -->
+    <!-- Seuil d'adhérence au frère le plus proche pour un RelativeLayout, en dp du rendu (ADH). -->
+    <dimen name="apercu_depot_adherence">28dp</dimen>
+</resources>

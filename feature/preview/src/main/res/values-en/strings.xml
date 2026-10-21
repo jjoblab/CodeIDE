@@ -180,6 +180,13 @@
     <string name="preview_section_identite">Identity</string>
     <string name="preview_section_ouverte">▴</string>
     <string name="preview_section_fermee">▾</string>
+    <!-- PE12c — sections par famille de parent (PREVIEW_PARENTS § 5) -->
+    <string name="preview_section_barre_application">App bar</string>
+    <string name="preview_section_positions_relatives">Relative positions</string>
+    <string name="preview_section_barre_outils">Toolbar</string>
+    <string name="preview_section_bouton_action">Action button</string>
+    <string name="preview_section_carte">Card</string>
+    <string name="preview_note_regles_soeurs">Each rule targets a sibling view; a rule that would close a loop is refused.</string>
 
     <!-- Constraint editing (PE8b — ConstraintLayout anchors: parent or
          sibling target + margin per anchor, one edit per gesture). -->
@@ -242,6 +249,64 @@
     <string name="preview_etiquette_alpha">alpha</string>
     <string name="preview_etiquette_actif">enabled</string>
     <string name="preview_etiquette_description">contentDescription</string>
+    <!-- PE12c — § 5.1 : sections du conteneur par famille -->
+    <string name="preview_etiquette_baseline_aligne">baselineAligned</string>
+    <string name="preview_etiquette_somme_poids">weightSum</string>
+    <string name="preview_etiquette_separateur">divider</string>
+    <string name="preview_etiquette_separateur_padding">dividerPadding</string>
+    <string name="preview_etiquette_mesurer_plus_grand">measureWithLargestChild</string>
+    <string name="preview_etiquette_clip_enfants">clipChildren</string>
+    <string name="preview_etiquette_clip_padding">clipToPadding</string>
+    <string name="preview_etiquette_animer_mise_en_page">animateLayoutChanges</string>
+    <string name="preview_etiquette_gravite_avant_plan">foregroundGravity</string>
+    <string name="preview_etiquette_mesurer_tous_enfants">measureAllChildren</string>
+    <string name="preview_etiquette_ignorer_gravite">ignoreGravity</string>
+    <string name="preview_etiquette_ajuster_systeme">fitsSystemWindows</string>
+    <string name="preview_etiquette_fond_barre_etat">statusBarBackground</string>
+    <string name="preview_etiquette_elever_au_defilement">liftOnScroll</string>
+    <string name="preview_etiquette_cible_elevee">liftOnScrollTargetViewId</string>
+    <string name="preview_etiquette_etendu">expanded</string>
+    <!-- PE12c — § 5.2 : dans le parent / positions relatives -->
+    <string name="preview_etiquette_ancrage_parent">anchor to parent</string>
+    <string name="preview_etiquette_ancrage_debut">start</string>
+    <string name="preview_etiquette_ancrage_fin">end</string>
+    <string name="preview_etiquette_ancrage_haut">top</string>
+    <string name="preview_etiquette_ancrage_bas">bottom</string>
+    <string name="preview_etiquette_ancrage_centre_h">center H</string>
+    <string name="preview_etiquette_ancrage_centre_v">center V</string>
+    <string name="preview_etiquette_ancrage_centre">center</string>
+    <string name="preview_etiquette_aligner_si_absent">alignWithParentIfMissing</string>
+    <string name="preview_etiquette_dessous_de">below</string>
+    <string name="preview_etiquette_dessus_de">above</string>
+    <string name="preview_etiquette_aligne_haut_avec">aligned top with</string>
+    <string name="preview_etiquette_aligne_bas_avec">aligned bottom with</string>
+    <string name="preview_etiquette_ligne_base_avec">baseline with</string>
+    <string name="preview_etiquette_a_droite_de">to the end of</string>
+    <string name="preview_etiquette_a_gauche_de">to the start of</string>
+    <string name="preview_etiquette_aligne_debut_avec">aligned start with</string>
+    <string name="preview_etiquette_aligne_fin_avec">aligned end with</string>
+    <string name="preview_etiquette_ancre">anchor</string>
+    <string name="preview_etiquette_gravite_ancre">anchorGravity</string>
+    <string name="preview_etiquette_comportement">behavior</string>
+    <string name="preview_etiquette_bord_inset">insetEdge</string>
+    <string name="preview_etiquette_esquiver_bords">dodgeInsetEdges</string>
+    <string name="preview_etiquette_keyline">keyline</string>
+    <string name="preview_etiquette_drapeaux_defilement">scrollFlags</string>
+    <string name="preview_etiquette_interpolateur_defilement">scrollInterpolator</string>
+    <!-- PE12c — § 5.4 : barre d'outils / bouton d'action -->
+    <string name="preview_etiquette_titre">title</string>
+    <string name="preview_etiquette_sous_titre">subtitle</string>
+    <string name="preview_etiquette_icone_navigation">navigationIcon</string>
+    <string name="preview_etiquette_titre_centre">titleCentered</string>
+    <string name="preview_etiquette_couleur_titre">titleTextColor</string>
+    <string name="preview_etiquette_menu">menu</string>
+    <string name="preview_etiquette_src_compat">srcCompat</string>
+    <string name="preview_etiquette_teinte_fond">backgroundTint</string>
+    <string name="preview_etiquette_taille_fab">fabSize</string>
+    <string name="preview_etiquette_teinte">tint</string>
+    <string name="preview_etiquette_largeur_bordure">borderWidth</string>
+    <string name="preview_etiquette_couleur_ripple">rippleColor</string>
+    <string name="preview_etiquette_padding_compat">useCompatPadding</string>
 
     <!-- The four SIDES of a margin/padding (mirror .mrow). -->
     <string name="preview_cote_haut">top</string>
@@ -270,6 +335,11 @@
     <string name="preview_attr_fleche_ouverte">▴</string>
     <string name="preview_attr_reset_glyphe">↺</string>
     <string name="preview_attr_reset_desc">Reset to default value</string>
+    <!-- PE12c — puce d'espace de noms (miroir .ns de la maquette) -->
+    <string name="preview_pastille_app">app</string>
+    <string name="preview_pastille_tools">tools</string>
+    <string name="preview_pastille_app_desc">app: attribute: LayoutLib rendering may ignore it (limit P3, ADR 0116). Verify on the device.</string>
+    <string name="preview_pastille_tools_desc">tools: attribute: preview only.</string>
     <string name="preview_attr_couleur_apercu_desc">Color preview</string>
     <string name="preview_attr_couleur_hint">#RRGGBB or @color/…</string>
     <string name="preview_attr_palette">Palette</string>

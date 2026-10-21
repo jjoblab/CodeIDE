@@ -4,7 +4,10 @@ package jo.codeide.preview.xml
  * CATALOGUE DES ATTRIBUTS PAR TYPE DE VUE (PE7e, maquette
  * `docs/mockups/apercu-xml.html` § « Attributs en sections selon le type
  * de vue » — miroir `sectionsFor`) — FONCTIONS PURES, SANS ANDROID : la
- * classe de la vue sélectionnée + le genre de son parent → les SECTIONS
+ * classe de la vue sélectionnée + la famille de son parent + la sienne
+ * (PE12c, spec `docs/PREVIEW_PARENTS.md` § 5 : sections du CONTENEUR par
+ * famille de la VUE, sections « Dans le parent » / « Positions relatives »
+ * par famille du PARENT) → les SECTIONS
  * repliables de l'onglet Attributs, chacune portant ses CONTRÔLES.
  *
  * Familles par HÉRITAGE (miroir § 4.1 du prompt PE7e) : `View` →
@@ -60,6 +63,21 @@ public object CatalogueAttributs {
         DANS_PARENT,
         DISPOSITION,
         AFFICHAGE,
+
+        /** PE12c — § 5.1 : la vue sélectionnée EST un AppBarLayout. */
+        BARRE_APPLICATION,
+
+        /** PE12c — § 5.2 : les règles d'un enfant de RelativeLayout vers un frère. */
+        POSITIONS_RELATIVES,
+
+        /** PE12c — § 5.4 : section propre de MaterialToolbar. */
+        BARRE_OUTILS,
+
+        /** PE12c — § 5.4 : section propre du FloatingActionButton. */
+        BOUTON_ACTION,
+
+        /** PE12c — § 5.1 : la section Carte de MaterialCardView (ex-Conteneur). */
+        CARTE,
     }
 
     /** Les ÉTIQUETTES de contrôles (clés sémantiques — traduites au chrome). */
@@ -98,6 +116,67 @@ public object CatalogueAttributs {
         ALPHA,
         ACTIF,
         DESCRIPTION,
+
+        // ── PE12c — § 5.1 : sections du conteneur par famille ───────────
+        BASELINE_ALIGNE,
+        SOMME_POIDS,
+        SEPARATEUR,
+        SEPARATEUR_PADDING,
+        MESURER_PLUS_GRAND,
+        CLIP_ENFANTS,
+        CLIP_PADDING,
+        ANIMER_MISE_EN_PAGE,
+        GRAVITE_AVANT_PLAN,
+        MESURER_TOUS_ENFANTS,
+        IGNORER_GRAVITE,
+        AJUSTER_SYSTEME,
+        FOND_BARRE_ETAT,
+        ELEVER_AU_DEFILEMENT,
+        CIBLE_ELEVEE,
+        ETENDU,
+
+        // ── PE12c — § 5.2 : dans le parent / positions relatives ───────
+        ANCRAGE_PARENT,
+        ANCRAGE_DEBUT,
+        ANCRAGE_FIN,
+        ANCRAGE_HAUT,
+        ANCRAGE_BAS,
+        ANCRAGE_CENTRE_H,
+        ANCRAGE_CENTRE_V,
+        ANCRAGE_CENTRE,
+        ALIGNER_SI_ABSENT,
+        DESSOUS_DE,
+        DESSUS_DE,
+        ALIGNE_HAUT_AVEC,
+        ALIGNE_BAS_AVEC,
+        LIGNE_BASE_AVEC,
+        A_DROITE_DE,
+        A_GAUCHE_DE,
+        ALIGNE_DEBUT_AVEC,
+        ALIGNE_FIN_AVEC,
+        ANCRE,
+        GRAVITE_ANCRE,
+        COMPORTEMENT,
+        BORD_INSET,
+        ESQUIVER_BORDS,
+        KEYLINE,
+        DRAPEAUX_DEFILEMENT,
+        INTERPOLATEUR_DEFILEMENT,
+
+        // ── PE12c — § 5.4 : barre d'outils / bouton d'action ────────────
+        TITRE,
+        SOUS_TITRE,
+        ICONE_NAVIGATION,
+        TITRE_CENTRE,
+        COULEUR_TITRE,
+        MENU,
+        SRC_COMPAT,
+        TEINTE_FOND,
+        TAILLE_FAB,
+        TEINTE,
+        LARGEUR_BORDURE,
+        COULEUR_RIPPLE,
+        PADDING_COMPAT,
     }
 
     /** UN contrôle de l'éditeur (variante scellée — miroir § 4.1). */
@@ -171,6 +250,7 @@ public object CatalogueAttributs {
             val nom: String,
             val etiquette: Etiquette,
             val valeurs: List<String>,
+            val requiert: String? = null,
             val courant: Boolean = true,
         ) : ControleAttribut() {
             /**
@@ -303,13 +383,73 @@ public object CatalogueAttributs {
         /** Les contraintes du ConstraintLayout parent (ÉDITABLES — PE8b :
          * cible parent/frère + marge par ancre). */
         public object Contraintes : ControleAttribut()
+
+        /**
+         * Le contrôle RÉFÉRENCE D'ID (PE12c — miroir `idref` de la
+         * maquette, spec § 5.3) : une liste déroulante de `@id/…` bornée
+         * par une [Portee]. Première option « aucun » (retire
+         * l'attribut) ; une option qui FERMERAIT une boucle est
+         * désactivée et suffixée « (boucle) » ; une valeur absente de
+         * l'arbre s'ajoute en dernière option « (introuvable) ». Les
+         * CANDIDATS se calculent sur l'arbre du document
+         * ([ReferencesId.options]) ; le contrôle ne porte que la DÉCLARATION.
+         */
+        public data class ReferenceId(
+            val nom: String,
+            val etiquette: Etiquette,
+            val portee: Portee,
+            val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** La portée des candidats (spec § 5.3). */
+            public enum class Portee {
+                /** Tous les `@id/` de l'arbre, sauf la vue (prévu pour `labelFor` — 2e vague). */
+                TOUT,
+
+                /** Les frères DIRECTS de la vue, sauf elle-même (règles de RelativeLayout). */
+                FRERES,
+
+                /** Le sous-arbre du PARENT pour `layout_anchor` ; de la VUE
+                 * pour `ignoreGravity` / `liftOnScrollTargetViewId`. */
+                SOUS_ARBRE,
+            }
+        }
+
+        /**
+         * Un groupe de BASCULES (PE12c — miroir `tgl` de la maquette,
+         * spec § 5.2) : chaque bouton porte SON PROPRE attribut — un
+         * appui écrit `="true"`, un second appui RETIRE l'attribut ; le
+         * bouton ↺ de l'en-tête réinitialise TOUS les attributs du
+         * groupe (une seule édition).
+         */
+        public data class Bascules(
+            val etiquette: Etiquette,
+            val entrees: List<Entree>,
+            val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** UNE bascule : l'attribut [nom] et la clé de libellé [libelle]. */
+            public data class Entree(
+                val nom: String,
+                val libelle: Etiquette,
+            )
+        }
     }
 
-    /** UNE section repliable (titre + contrôles — miroir `.sec2`). */
+    /**
+     * UNE section repliable (titre + contrôles — miroir `.sec2`). La
+     * [note] optionnelle (PE12c — miroir `sc.note` de la maquette) se
+     * rend EN TÊTE du corps, avant les contrôles.
+     */
     public data class SectionAttributs(
         val titre: TitreSection,
         val controles: List<ControleAttribut>,
+        val note: NoteSection? = null,
     )
+
+    /** Les notes de section (clés sémantiques — traduites au chrome). */
+    public enum class NoteSection {
+        /** « Chaque règle vise une vue sœur ; une règle qui fermerait une boucle est refusée. » */
+        REGLES_SOEURS,
+    }
 
     /**
      * Les 8 drapeaux du masque gravity (GRAV de la maquette — attrs.xml
@@ -400,22 +540,64 @@ public object CatalogueAttributs {
         )
     private val VISIBILITES: List<String> = listOf("visible", "invisible", "gone")
 
+    // PE12c — § 5.2 (miroir BEHAVIORS / EDGES / SCROLLF de la maquette) :
+    // les comportements de CoordinatorLayout, les bords d'insertion, leurs
+    // drapeaux d'esquive et les drapeaux de défilement d'AppBarLayout.
+    private val COMPORTEMENTS: List<String> =
+        listOf(
+            "@string/appbar_scrolling_view_behavior",
+            "@string/bottom_sheet_behavior",
+            "com.google.android.material.behavior.HideBottomViewOnScrollBehavior",
+            "com.google.android.material.behavior.SwipeDismissBehavior",
+        )
+    private val BORDS_INSET: List<String> = listOf("none", "top", "bottom", "left", "right", "start", "end")
+    private val DRAPEAUX_ESQUIVE: List<String> = listOf("top", "bottom", "left", "right", "start", "end", "all")
+    private val DRAPEAUX_DEFILEMENT: List<String> =
+        listOf("scroll", "exitUntilCollapsed", "enterAlways", "enterAlwaysCollapsed", "snap", "snapMargins")
+
+    // PE12c — § 5.4 : les trois tailles du FloatingActionButton (fabSize).
+    private val TAILLES_FAB: List<String> = listOf("auto", "normal", "mini")
+
+    // Les types acceptés par le FOND DE BARRE D'ÉTAT (§ 5.1) — miroir
+    // C.res('app:statusBarBackground', …, ['drawable', 'color']).
+    private val TYPES_FOND_BARRE: List<String> = listOf("drawable", "color")
+
     /**
-     * Les SECTIONS de la vue [classe] avec la [famille] de son parent
-     * (miroir `sectionsFor` — PE12b : la FAMILLE remplace l'ancien
-     * `GenreParent`, spec § 2.3) : sections PROPRES à la classe (ordre
-     * du catalogue), puis parent (contraintes / dans le parent), puis
-     * les sections GÉNÉRIQUES (Disposition, Affichage). Les familles
-     * FRAME, RELATIVE, COORDINATOR et APPBAR reçoivent leurs sections
-     * « Dans le parent » / « Positions relatives » en PE12c (spec § 5.2).
+     * Sur la RACINE, `fitsSystemWindows` et `clipToPadding` ne se
+     * répètent pas dans Conteneur (spec § 5.1 — miroir `DUP` de la
+     * maquette : la section Racine de la 2e vague les porte).
+     */
+    private val DOUBLES_RACINE: Set<String> = setOf("android:fitsSystemWindows", "android:clipToPadding")
+
+    private fun List<ControleAttribut>.sansDoublesRacine(racine: Boolean): List<ControleAttribut> =
+        if (!racine) {
+            this
+        } else {
+            filterNot { controle ->
+                controle is ControleAttribut.TriEtat && controle.nom in DOUBLES_RACINE
+            }
+        }
+
+    /**
+     * Les SECTIONS de la vue [classe] avec la [familleParent] de son
+     * parent et la [familleVue] de la vue ELLE-MÊME (PE12c, spec § 5) :
+     * sections PROPRES à la classe (ordre du catalogue), puis conteneur
+     * (§ 5.1 — la famille de la VUE décide), puis parent (§ 5.2 — la
+     * famille du PARENT décide), puis les sections GÉNÉRIQUES
+     * (Disposition, Affichage). Sur la RACINE ([familleParent] =
+     * [FamilleParent.AUCUN]), `fitsSystemWindows` et `clipToPadding` ne
+     * se répètent pas dans Conteneur (section Racine de la 2e vague —
+     * miroir `DUP` de la maquette).
      */
     public fun sections(
         classe: String,
-        famille: FamilleParent,
+        familleParent: FamilleParent,
+        familleVue: FamilleParent,
     ): List<SectionAttributs> {
         val propres = sectionsPropres(classe)
+        val conteneur = sectionsConteneur(classe, familleVue, racine = familleParent == FamilleParent.AUCUN)
         val duParent =
-            when (famille) {
+            when (familleParent) {
                 FamilleParent.CONSTRAINT -> {
                     listOf(
                         SectionAttributs(
@@ -437,11 +619,23 @@ public object CatalogueAttributs {
                     )
                 }
 
+                FamilleParent.FRAME -> {
+                    listOf(sectionDansParentFrame())
+                }
+
+                FamilleParent.RELATIVE -> {
+                    listOf(sectionDansParentRelatif(), sectionPositionsRelatives())
+                }
+
+                FamilleParent.COORDINATOR -> {
+                    listOf(sectionDansParentCoordonnateur())
+                }
+
+                FamilleParent.APPBAR -> {
+                    listOf(sectionDansParentBarre())
+                }
+
                 FamilleParent.AUCUN,
-                FamilleParent.FRAME,
-                FamilleParent.RELATIVE,
-                FamilleParent.COORDINATOR,
-                FamilleParent.APPBAR,
                 FamilleParent.AUTRE,
                 -> {
                     emptyList()
@@ -450,8 +644,19 @@ public object CatalogueAttributs {
         // L'IDENTITÉ ouvre TOUTE fiche (PE8a) : le renommage est
         // indépendant de la classe — la racine y a droit aussi (l'édit de
         // la racine reste borné à Identité/Disposition/Affichage).
-        return listOf(sectionIdentite()) + propres + duParent + generiques()
+        return listOf(sectionIdentite()) + propres + conteneur + duParent + generiques()
     }
+
+    /**
+     * Variante à DEUX paramètres (PE12c) : la famille de la vue se
+     * déduit de sa CLASSE par balise — le repli des vues dégradées
+     * (spec § 2.2) ; le rendu réel fournit la sienne via
+     * [InfoVueRendu.famille].
+     */
+    public fun sections(
+        classe: String,
+        familleParent: FamilleParent,
+    ): List<SectionAttributs> = sections(classe, familleParent, FamilleParent.deBalise(classe))
 
     /** La section IDENTITÉ (PE8a : le seul contrôle de renommage). */
     private fun sectionIdentite(): SectionAttributs =
@@ -474,7 +679,8 @@ public object CatalogueAttributs {
             sectionBouton(classe),
             sectionEtat(classe),
             sectionImage(classe),
-            sectionConteneur(classe),
+            sectionBarreOutils(classe),
+            sectionBoutonAction(classe),
             sectionProgression(classe),
             sectionListe(classe),
         )
@@ -565,35 +771,362 @@ public object CatalogueAttributs {
             )
         }
 
-    /** La section CONTENEUR (LinearLayout : orientation/gravity ; carte : arrondi/élévation). */
-    private fun sectionConteneur(classe: String): SectionAttributs? {
-        val controles =
-            when (classe) {
-                "LinearLayout" -> {
-                    listOf(
-                        ControleAttribut.Choix(
-                            "android:orientation",
-                            Etiquette.ORIENTATION,
-                            ORIENTATIONS,
-                        ),
-                        ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
-                        ControleAttribut.Drapeaux("android:showDividers", Etiquette.SHOW_DIVIDERS, SEPARATEURS),
-                    )
-                }
+    // ── PE12c — § 5.1 : sections du conteneur par famille ────────────
 
-                "MaterialCardView" -> {
+    /**
+     * Les sections du CONTENEUR (spec § 5.1, miroir `containerSecs`) :
+     * la vue sélectionnée EST un parent — SA famille décide de la
+     * section. MaterialCardView garde SA section Carte, inchangée
+     * (§ 5.1 : « + Carte (existant) »).
+     */
+    private fun sectionsConteneur(
+        classe: String,
+        familleVue: FamilleParent,
+        racine: Boolean,
+    ): List<SectionAttributs> {
+        val conteneur =
+            when (familleVue) {
+                FamilleParent.LINEAR -> sectionConteneurLineaire(racine)
+
+                FamilleParent.FRAME -> sectionConteneurFrame(racine)
+
+                FamilleParent.RELATIVE -> sectionConteneurRelatif(racine)
+
+                FamilleParent.COORDINATOR -> sectionConteneurCoordonnateur(racine)
+
+                FamilleParent.APPBAR -> listOf(sectionBarreApplication(racine))
+
+                FamilleParent.AUCUN,
+                FamilleParent.CONSTRAINT,
+                FamilleParent.AUTRE,
+                -> emptyList()
+            }
+        return conteneur + sectionCarte(classe)
+    }
+
+    /** LINEAR (§ 5.1, miroir le Conteneur étendu de la maquette) : 11 attributs. */
+    private fun sectionConteneurLineaire(racine: Boolean): List<SectionAttributs> =
+        listOf(
+            SectionAttributs(
+                TitreSection.CONTENEUR,
+                listOf(
+                    ControleAttribut.Choix("android:orientation", Etiquette.ORIENTATION, ORIENTATIONS),
+                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                    ControleAttribut.TriEtat("android:baselineAligned", Etiquette.BASELINE_ALIGNE, courant = false),
+                    ControleAttribut.Nombre("android:weightSum", Etiquette.SOMME_POIDS, "", courant = false),
+                    ControleAttribut.Drapeaux(
+                        "android:showDividers",
+                        Etiquette.SHOW_DIVIDERS,
+                        SEPARATEURS,
+                        courant = false,
+                    ),
+                    ControleAttribut.Ressource(
+                        "android:divider",
+                        Etiquette.SEPARATEUR,
+                        TYPES_DESSINABLE,
+                        courant = false,
+                    ),
+                    ControleAttribut.Nombre(
+                        "android:dividerPadding",
+                        Etiquette.SEPARATEUR_PADDING,
+                        "dp",
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat(
+                        "android:measureWithLargestChild",
+                        Etiquette.MESURER_PLUS_GRAND,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+                    ControleAttribut.TriEtat(
+                        "android:animateLayoutChanges",
+                        Etiquette.ANIMER_MISE_EN_PAGE,
+                        courant = false,
+                    ),
+                ).sansDoublesRacine(racine),
+            ),
+        )
+
+    /** FRAME (§ 5.1) : gravité d'avant-plan, mesure, découpage. */
+    private fun sectionConteneurFrame(racine: Boolean): List<SectionAttributs> =
+        listOf(
+            SectionAttributs(
+                TitreSection.CONTENEUR,
+                listOf(
+                    ControleAttribut.Drapeaux(
+                        "android:foregroundGravity",
+                        Etiquette.GRAVITE_AVANT_PLAN,
+                        GRAVITES,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat(
+                        "android:measureAllChildren",
+                        Etiquette.MESURER_TOUS_ENFANTS,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+                ).sansDoublesRacine(racine),
+            ),
+        )
+
+    /** RELATIVE (§ 5.1) : gravité, gravité ignorée (référence, sous-arbre). */
+    private fun sectionConteneurRelatif(racine: Boolean): List<SectionAttributs> =
+        listOf(
+            SectionAttributs(
+                TitreSection.CONTENEUR,
+                listOf(
+                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                    ControleAttribut.ReferenceId(
+                        "android:ignoreGravity",
+                        Etiquette.IGNORER_GRAVITE,
+                        ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+                ).sansDoublesRacine(racine),
+            ),
+        )
+
+    /** COORDINATOR (§ 5.1) : ajustement système, fond de barre d'état. */
+    private fun sectionConteneurCoordonnateur(racine: Boolean): List<SectionAttributs> =
+        listOf(
+            SectionAttributs(
+                TitreSection.CONTENEUR,
+                listOf(
+                    ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME),
+                    ControleAttribut.Ressource(
+                        "app:statusBarBackground",
+                        Etiquette.FOND_BARRE_ETAT,
+                        TYPES_FOND_BARRE,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                ).sansDoublesRacine(racine),
+            ),
+        )
+
+    /** APPBAR (§ 5.1) : la section « Barre d'application » du parent lui-même. */
+    private fun sectionBarreApplication(racine: Boolean): SectionAttributs =
+        SectionAttributs(
+            TitreSection.BARRE_APPLICATION,
+            listOf(
+                ControleAttribut.TriEtat("app:liftOnScroll", Etiquette.ELEVER_AU_DEFILEMENT),
+                ControleAttribut.ReferenceId(
+                    "app:liftOnScrollTargetViewId",
+                    Etiquette.CIBLE_ELEVEE,
+                    ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME, courant = false),
+                ControleAttribut.TriEtat("app:expanded", Etiquette.ETENDU, courant = false),
+            ).sansDoublesRacine(racine),
+        )
+
+    /** La section CARTE de MaterialCardView (§ 5.1 : « + Carte (existant), inchangé »). */
+    private fun sectionCarte(classe: String): List<SectionAttributs> =
+        if (classe != "MaterialCardView") {
+            emptyList()
+        } else {
+            listOf(
+                SectionAttributs(
+                    TitreSection.CARTE,
                     listOf(
                         ControleAttribut.Nombre("app:cardCornerRadius", Etiquette.ARRONDI, "dp"),
                         ControleAttribut.Nombre("app:cardElevation", Etiquette.ELEVATION, "dp"),
-                    )
-                }
+                    ),
+                ),
+            )
+        }
 
-                else -> {
-                    return null
-                }
-            }
-        return SectionAttributs(TitreSection.CONTENEUR, controles)
-    }
+    // ── PE12c — § 5.2 : sections « Dans le parent » par famille ───────
+
+    /** FRAME (§ 5.2) : la gravité seule. */
+    private fun sectionDansParentFrame(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.DANS_PARENT,
+            listOf(
+                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+            ),
+        )
+
+    /** RELATIVE (§ 5.2) : l'ANCRAGE AU PARENT (7 bascules) + alignWithParentIfMissing. */
+    private fun sectionDansParentRelatif(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.DANS_PARENT,
+            listOf(
+                ControleAttribut.Bascules(
+                    Etiquette.ANCRAGE_PARENT,
+                    listOf(
+                        ControleAttribut.Bascules.Entree("android:layout_alignParentStart", Etiquette.ANCRAGE_DEBUT),
+                        ControleAttribut.Bascules.Entree("android:layout_alignParentEnd", Etiquette.ANCRAGE_FIN),
+                        ControleAttribut.Bascules.Entree("android:layout_alignParentTop", Etiquette.ANCRAGE_HAUT),
+                        ControleAttribut.Bascules.Entree("android:layout_alignParentBottom", Etiquette.ANCRAGE_BAS),
+                        ControleAttribut.Bascules.Entree("android:layout_centerHorizontal", Etiquette.ANCRAGE_CENTRE_H),
+                        ControleAttribut.Bascules.Entree("android:layout_centerVertical", Etiquette.ANCRAGE_CENTRE_V),
+                        ControleAttribut.Bascules.Entree("android:layout_centerInParent", Etiquette.ANCRAGE_CENTRE),
+                    ),
+                ),
+                ControleAttribut.TriEtat(
+                    "android:layout_alignWithParentIfMissing",
+                    Etiquette.ALIGNER_SI_ABSENT,
+                    courant = false,
+                ),
+            ),
+        )
+
+    /** RELATIVE (§ 5.2) : les 9 règles vers un frère — portée FRÈRES (miroir REL_V + REL_H). */
+    private fun sectionPositionsRelatives(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.POSITIONS_RELATIVES,
+            listOf(
+                ControleAttribut.ReferenceId(
+                    "android:layout_below",
+                    Etiquette.DESSOUS_DE,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_above",
+                    Etiquette.DESSUS_DE,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_alignTop",
+                    Etiquette.ALIGNE_HAUT_AVEC,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_alignBottom",
+                    Etiquette.ALIGNE_BAS_AVEC,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_alignBaseline",
+                    Etiquette.LIGNE_BASE_AVEC,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_toEndOf",
+                    Etiquette.A_DROITE_DE,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_toStartOf",
+                    Etiquette.A_GAUCHE_DE,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_alignStart",
+                    Etiquette.ALIGNE_DEBUT_AVEC,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+                ControleAttribut.ReferenceId(
+                    "android:layout_alignEnd",
+                    Etiquette.ALIGNE_FIN_AVEC,
+                    ControleAttribut.ReferenceId.Portee.FRERES,
+                    courant = false,
+                ),
+            ),
+            note = NoteSection.REGLES_SOEURS,
+        )
+
+    /** COORDINATOR (§ 5.2) : gravité, ancre (+ sa gravité), comportement, bords, keyline. */
+    private fun sectionDansParentCoordonnateur(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.DANS_PARENT,
+            listOf(
+                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+                ControleAttribut.ReferenceId(
+                    "app:layout_anchor",
+                    Etiquette.ANCRE,
+                    ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
+                ),
+                ControleAttribut.Drapeaux(
+                    "app:layout_anchorGravity",
+                    Etiquette.GRAVITE_ANCRE,
+                    GRAVITES,
+                    requiert = "app:layout_anchor",
+                    courant = false,
+                ),
+                ControleAttribut.Liste("app:layout_behavior", Etiquette.COMPORTEMENT, COMPORTEMENTS),
+                ControleAttribut.Liste("app:layout_insetEdge", Etiquette.BORD_INSET, BORDS_INSET, courant = false),
+                ControleAttribut.Drapeaux(
+                    "app:layout_dodgeInsetEdges",
+                    Etiquette.ESQUIVER_BORDS,
+                    DRAPEAUX_ESQUIVE,
+                    courant = false,
+                ),
+                ControleAttribut.Nombre("app:layout_keyline", Etiquette.KEYLINE, "", courant = false),
+            ),
+        )
+
+    /** APPBAR (§ 5.2) : drapeaux de défilement, interpolateur, gravité. */
+    private fun sectionDansParentBarre(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.DANS_PARENT,
+            listOf(
+                ControleAttribut.Drapeaux("app:layout_scrollFlags", Etiquette.DRAPEAUX_DEFILEMENT, DRAPEAUX_DEFILEMENT),
+                ControleAttribut.Texte(
+                    "app:layout_scrollInterpolator",
+                    Etiquette.INTERPOLATEUR_DEFILEMENT,
+                    courant = false,
+                ),
+                ControleAttribut.Drapeaux(
+                    "android:layout_gravity",
+                    Etiquette.GRAVITE_PARENT,
+                    GRAVITES,
+                    courant = false,
+                ),
+            ),
+        )
+
+    // ── PE12c — § 5.4 : sections propres des nouvelles classes ───────
+
+    /** La section BARRE D'OUTILS de MaterialToolbar (§ 5.4). */
+    private fun sectionBarreOutils(classe: String): SectionAttributs? =
+        if (classe != "MaterialToolbar") {
+            null
+        } else {
+            SectionAttributs(
+                TitreSection.BARRE_OUTILS,
+                listOf(
+                    ControleAttribut.Texte("app:title", Etiquette.TITRE, extrayable = true),
+                    ControleAttribut.Texte("app:subtitle", Etiquette.SOUS_TITRE, extrayable = true, courant = false),
+                    ControleAttribut.Ressource("app:navigationIcon", Etiquette.ICONE_NAVIGATION, TYPES_DESSINABLE),
+                    ControleAttribut.TriEtat("app:titleCentered", Etiquette.TITRE_CENTRE, courant = false),
+                    ControleAttribut.Couleur("app:titleTextColor", Etiquette.COULEUR_TITRE, courant = false),
+                    ControleAttribut.Ressource("app:menu", Etiquette.MENU, listOf("menu"), courant = false),
+                ),
+            )
+        }
+
+    /** La section BOUTON D'ACTION du FloatingActionButton (§ 5.4). */
+    private fun sectionBoutonAction(classe: String): SectionAttributs? =
+        if (classe != "FloatingActionButton") {
+            null
+        } else {
+            SectionAttributs(
+                TitreSection.BOUTON_ACTION,
+                listOf(
+                    ControleAttribut.Ressource("app:srcCompat", Etiquette.SRC_COMPAT, TYPES_DESSINABLE),
+                    ControleAttribut.Couleur("app:backgroundTint", Etiquette.TEINTE_FOND),
+                    ControleAttribut.Choix("app:fabSize", Etiquette.TAILLE_FAB, TAILLES_FAB),
+                    ControleAttribut.Couleur("app:tint", Etiquette.TEINTE, courant = false),
+                    ControleAttribut.Nombre("app:elevation", Etiquette.ELEVATION, "dp", courant = false),
+                    ControleAttribut.Nombre("app:borderWidth", Etiquette.LARGEUR_BORDURE, "dp", courant = false),
+                    ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
+                    ControleAttribut.TriEtat("app:useCompatPadding", Etiquette.PADDING_COMPAT, courant = false),
+                ),
+            )
+        }
 
     /** La section PROGRESSION (ProgressBar : + indeterminate ; SeekBar : max/progress). */
     private fun sectionProgression(classe: String): SectionAttributs? {
