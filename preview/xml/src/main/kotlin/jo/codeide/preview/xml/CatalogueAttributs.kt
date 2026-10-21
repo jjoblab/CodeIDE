@@ -469,17 +469,38 @@ public object CatalogueAttributs {
             listOf(ControleAttribut.Identifiant("android:id")),
         )
 
-    /** Le GENRE de parent dérivé du nom de classe (purs — ViewModel fournit les faits). */
+    /**
+     * Le GENRE du parent (alias interne PE12a, spec § 2.3 — GenreParent
+     * disparaît en PE12b) depuis la FAMILLE du parent rendu :
+     * CONSTRAINT garde sa distinction racine/non-racine (la seule qui
+     * change les sections), LINEAR est inchangé, et toute famille sans
+     * section aujourd'hui (FRAME, RELATIVE, COORDINATOR, APPBAR, AUTRE)
+     * reste AUTRE — leurs sections arrivent en PE12c.
+     */
     public fun genreParent(
-        classeParente: String?,
+        famille: FamilleParent?,
         parentEstRacine: Boolean,
     ): GenreParent =
-        when {
-            classeParente == null -> GenreParent.AUCUN
-            classeParente == "ConstraintLayout" && parentEstRacine -> GenreParent.CONSTRAINT_RACINE
-            classeParente == "ConstraintLayout" -> GenreParent.CONSTRAINT
-            classeParente == "LinearLayout" -> GenreParent.LINEAR
-            else -> GenreParent.AUTRE
+        when (famille) {
+            null, FamilleParent.AUCUN -> {
+                GenreParent.AUCUN
+            }
+
+            FamilleParent.CONSTRAINT -> {
+                if (parentEstRacine) {
+                    GenreParent.CONSTRAINT_RACINE
+                } else {
+                    GenreParent.CONSTRAINT
+                }
+            }
+
+            FamilleParent.LINEAR -> {
+                GenreParent.LINEAR
+            }
+
+            else -> {
+                GenreParent.AUTRE
+            }
         }
 
     /**

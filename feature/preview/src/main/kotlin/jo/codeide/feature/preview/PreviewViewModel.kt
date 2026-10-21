@@ -20,6 +20,7 @@ import jo.codeide.preview.xml.CouleursProjetXml
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ExtractionRessource
+import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InsertionXml
 import jo.codeide.preview.xml.MoteurPreviewXml
@@ -728,7 +729,14 @@ public class PreviewViewModel
             val vue = rendu.vues.getOrNull(indice) ?: return null
             if (vue.indiceParent < 0) return CatalogueAttributs.GenreParent.AUCUN
             val parent = rendu.vues.getOrNull(vue.indiceParent)
-            return CatalogueAttributs.genreParent(parent?.classe, parentEstRacine = vue.indiceParent == 0)
+            // PE12a — la famille du parent voyage dans le rendu (chaîne
+            // de superclasses du rendu réel, repli par balise) : plus
+            // fiable que le nom simple de classe (MotionLayout est un
+            // CONSTRAINT, spec § 2).
+            return CatalogueAttributs.genreParent(
+                FamilleParent.deNom(parent?.famille),
+                parentEstRacine = vue.indiceParent == 0,
+            )
         }
 
         /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */

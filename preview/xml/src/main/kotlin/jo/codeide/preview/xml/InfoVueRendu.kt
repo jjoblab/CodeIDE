@@ -31,6 +31,10 @@ import android.os.Parcelable
  * - [conteneur] : la vue est un ViewGroup (zones de dépôt PE7b) ;
  * - [orientation] : orientation d'un LinearLayout (constantes
  *   [ORIENTATION_SANS_OBJET]/[ORIENTATION_HORIZONTALE]/[ORIENTATION_VERTICALE]).
+ * - [famille] : nom d'entrée de [FamilleParent] — la famille de cette vue
+ *   comme CONTENEUR (PE12a, PREVIEW_PARENTS.md § 2.2 : chaîne de
+ *   superclasses du rendu réel, repli par balise pour les MockView) ;
+ *   vide quand l'information manque.
  *
  * ⚠ CONTRAT PARCEL (maquette : « les écrire et les lire dans le même
  * ordre dans le constructeur Parcel et writeToParcel ») : le constructeur
@@ -41,7 +45,7 @@ import android.os.Parcelable
  * PARCELABLE de la frontière AIDL, un CHAMP = un paramètre (le format
  * est le contrat, pas une accumulation — même patron que [ResultatRendu]) ;
  * CyclomaticComplexMethod — equals/hashCode comparent CHAMP POUR CHAMP
- * les 24 champs du miroir, la complexité EST le contrat de parité.
+ * les 26 champs du miroir, la complexité EST le contrat de parité.
  */
 @Suppress("LongParameterList", "CyclomaticComplexMethod")
 public class InfoVueRendu(
@@ -99,6 +103,10 @@ public class InfoVueRendu(
     /** `android:text` LITTÉRAL au source de l'élément (PE11g — « codé en
      * dur » : ni `@string/…` ni `?attr/…`, l'extraction le résout). */
     public val texteCodeDur: Boolean = false,
+    /** Famille de cette vue comme CONTENEUR — nom d'entrée de
+     * [FamilleParent] (PE12a), DERNIER champ du contrat Parcel ; vide
+     * quand l'information manque (spec § 2.2). */
+    public val famille: String = "",
 ) : Parcelable {
     private constructor(parcel: Parcel) : this(
         gauche = parcel.readInt(),
@@ -126,6 +134,7 @@ public class InfoVueRendu(
         texteTronque = parcel.readByte() != 0.toByte(),
         sansContentDescription = parcel.readByte() != 0.toByte(),
         texteCodeDur = parcel.readByte() != 0.toByte(),
+        famille = parcel.readString() ?: "",
     )
 
     override fun writeToParcel(
@@ -159,6 +168,8 @@ public class InfoVueRendu(
         parcel.writeByte(if (texteTronque) 1 else 0)
         parcel.writeByte(if (sansContentDescription) 1 else 0)
         parcel.writeByte(if (texteCodeDur) 1 else 0)
+        // PE12a — DERNIER champ du contrat Parcel (spec § 2.2 : ajouté à la fin).
+        parcel.writeString(famille)
     }
 
     override fun describeContents(): Int = 0
@@ -194,7 +205,8 @@ public class InfoVueRendu(
             other.orientation == orientation &&
             other.texteTronque == texteTronque &&
             other.sansContentDescription == sansContentDescription &&
-            other.texteCodeDur == texteCodeDur
+            other.texteCodeDur == texteCodeDur &&
+            other.famille == famille
 
     override fun hashCode(): Int {
         var resultat = gauche
@@ -222,6 +234,7 @@ public class InfoVueRendu(
         resultat = 31 * resultat + if (texteTronque) 1 else 0
         resultat = 31 * resultat + if (sansContentDescription) 1 else 0
         resultat = 31 * resultat + if (texteCodeDur) 1 else 0
+        resultat = 31 * resultat + famille.hashCode()
         return resultat
     }
 
