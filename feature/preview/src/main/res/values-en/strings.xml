@@ -37,7 +37,6 @@
 
     <string name="preview_calque_parent_freres">Parent and siblings</string>
     <string name="preview_calque_marges_padding">Margins and padding</string>
-    <string name="preview_calque_contraintes">Constraints</string>
     <string name="preview_calque_problemes">Problems</string>
     <string name="preview_calque_bornes">Bounds of every view</string>
     <string name="preview_calque_grille">8 dp grid</string>

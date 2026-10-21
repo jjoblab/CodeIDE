@@ -22,8 +22,11 @@ import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuAppareilBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuCalquesBinding
+import jo.codeide.preview.xml.ArbreAttributsXml
+import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.CataloguePalette
 import jo.codeide.preview.xml.EtatPreviewXml
+import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.ModeApercu
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.PlanInsertionFamille
@@ -319,6 +322,7 @@ public class PreviewActivity :
                 majTitre()
                 majPastilleEtat(etat)
                 majBandeau(etat)
+                majRelations(etat)
             }
         }
         launch {
@@ -411,6 +415,34 @@ public class PreviewActivity :
             )
         liaison.bullePalette.reposer()
     }
+
+    /**
+     * Le calque RELATIONS suit le rendu (PE12e — spec § 8) : les lignes
+     * se composent à chaque rendu VALIDE (règles sur le TEXTE via
+     * [CalquesApercu.lignesRelations], bornes du rendu — elles restent
+     * affichées sur le dernier rendu en cas d'erreur, miroir
+     * `buildBoards`). Au PREMIER rendu d'un document dont la RACINE est
+     * `RelativeLayout` ou `CoordinatorLayout`, le calque s'active PAR
+     * DÉFAUT (miroir `loadDoc` : `S.layers.con = !!d.rel` ; réglage
+     * utilisateur ensuite, jamais réimposé).
+     */
+    private fun majRelations(etat: EtatPreviewXml) {
+        val rendu = etat as? EtatPreviewXml.RenduValide ?: return
+        liaison.vuePreview.lignesRelations =
+            CalquesApercu.lignesRelations(rendu.vues, ArbreAttributsXml.lire(viewModel.texteCourant()))
+        val document = viewModel.nomFichierCourant()
+        if (document.isNotEmpty() && document !in calqueRelationsDejaPose) {
+            calqueRelationsDejaPose.add(document)
+            val racine = rendu.vues.firstOrNull() ?: return
+            val famille = FamilleParent.deNom(racine.famille) ?: FamilleParent.deBalise(racine.classe)
+            if (famille == FamilleParent.RELATIVE || famille == FamilleParent.COORDINATOR) {
+                liaison.vuePreview.calquesContraintes = true
+            }
+        }
+    }
+
+    /** Les documents dont le calque Relations a reçu son réglage PAR DÉFAUT (une fois par document). */
+    private val calqueRelationsDejaPose: MutableSet<String> = mutableSetOf()
 
     /**
      * La PASTILLE D'ÉTAT (PE10a, miroir `renderStatus` de la maquette) :
