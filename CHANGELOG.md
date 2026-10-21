@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.166.2] – 2026-10-21
+
+### Le brief PE12 et le manifeste du lot rejoignent le dépôt (documentation)
+
+#### Ajouté
+
+- **`docs/PE12-parents-brief.md`** : le brief original de la série PE12
+  (objectif, état du code au clone v0.153.0, découpage PE12a-h,
+  ressources à copier, règles du dépôt, critères d'acceptation sur
+  appareil, pièges connus) est désormais **versionné** — il vivait hors
+  du dépôt (collé dans les sessions d'agent). Les renvois de
+  `docs/PREVIEW_PARENTS.md` § 0 et de l'ADR 0135 (« Brief d'exécution :
+  `PE12-parents-brief.md` ») résolvent maintenant vers ce fichier,
+  même répertoire `docs/`.
+- **`LISEZMOI.md`** (racine) : le manifeste de transfert du lot
+  « familles de parents » (contenu des 51 entrées, ordre des chantiers,
+  parité des 39 jetons) est versionné — le lot est désormais
+  **intégralement** dans le dépôt, à la demande du propriétaire. Sa
+  mention « le brief ne va pas dans le dépôt » décrit le plan de
+  transfert d'origine et est caduque (décision propriétaire du
+  2026-10-21 : tous les fichiers du lot sont versionnés).
+- Relecture règle 13 préalable : aucun nom d'éditeur ou d'IDE tiers
+  dans les deux documents (vérifié par recherche exhaustive) ; le brief
+  reste la référence d'intention, la maquette la source de vérité
+  visuelle.
+- La série démarre sur l'ordre recommandé du brief : PE12a (famille de
+  parent) d'abord ; D6 (marge 16 dp) et D9 (cibles tactiles) de l'ADR
+  0135 restent à confirmer par le propriétaire avant PE12d.
+
 ## [0.166.1] – 2026-10-21
 
 ### Lot « familles de parents » (PE12, docs)
