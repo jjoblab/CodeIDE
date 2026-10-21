@@ -75,6 +75,18 @@ public object RenommageIdentifiant {
     }
 
     /**
+     * Le NOMBRE de références à [nom] dans le fichier, la DÉCLARATION
+     * exclue — le toast du renommage (PE12g, spec § 10 : « Renommé en
+     * @+id/x · 3 références mises à jour »). Compte exactement ce que
+     * [renommer] réécrit (TOUTES les occurrences textuelles) ; 0 si le
+     * nom n'existe pas.
+     */
+    public fun compterReferences(
+        texte: String,
+        nom: String,
+    ): Int = (occurrences(texte, nom).size - 1).coerceAtLeast(0)
+
+    /**
      * RENOMME l'identifiant de la vue au span : déclaration + références
      * du fichier en UNE édition. `null` = refus (cf. KDoc de l'objet) —
      * l'appelant recharge le volet et ne touche jamais au texte.

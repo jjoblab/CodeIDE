@@ -829,13 +829,38 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             }
 
             else -> {
-                if (viewModel.renommerIdentifiantSelection(saisie)) {
+                val references = viewModel.renommerIdentifiantSelection(saisie)
+                if (references != null) {
+                    annoncerRenommage(saisie, references)
                     true
                 } else {
                     editerOuRecharger(R.string.preview_identite_refuse) { false }
                 }
             }
         }
+    }
+
+    /**
+     * Le toast du RENOMMAGE (PE12g, spec § 10 — miroir le `toast('Renommé
+     * en …')` de la maquette) : « Renommé en @+id/x · N références mises
+     * à jour » au pluriel, le message simple sans référence.
+     */
+    private fun annoncerRenommage(
+        nouveau: String,
+        references: Int,
+    ) {
+        val texte =
+            if (references == 0) {
+                getString(R.string.preview_renomme_simple, nouveau)
+            } else {
+                resources.getQuantityString(
+                    R.plurals.preview_renomme_references,
+                    references,
+                    nouveau,
+                    references,
+                )
+            }
+        (activity as? HoteVoletsApercu)?.annoncerTexte(texte)
     }
 
     /** Un contrôle NOMBRE (saisie_nombre.xml) avec unité — saisie refusée
