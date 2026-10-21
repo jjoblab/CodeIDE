@@ -262,4 +262,58 @@ public class InsertionXmlTest {
     fun `contraindre — extrait malforme rendu tel quel`() {
         assertEquals("pas un extrait", InsertionXml.contraindre("pas un extrait", 8, 8))
     }
+
+    // ── PE12d : ajouterAttributs (généralisation, miroir applyPlan) ────
+
+    @Test
+    fun `ajouterAttributs — marges puis regles d un plan RelativeLayout (S1)`() {
+        // Le plan S1 du fichier d'or : marginTop 16 + below + alignStart,
+        // DANS L'ORDRE de la liste (marges d'abord, convention d'or).
+        val extrait = "<Button\n    android:id=\"@+id/button1\"\n    android:layout_width=\"wrap_content\" />"
+        val faconne =
+            InsertionXml.ajouterAttributs(
+                extrait,
+                listOf(
+                    "android:layout_marginTop" to "16dp",
+                    "android:layout_below" to "@id/bio",
+                    "android:layout_alignStart" to "@id/bio",
+                ),
+            )
+        assertTrue(faconne.contains("\n    android:layout_marginTop=\"16dp\""))
+        assertTrue(faconne.contains("\n    android:layout_below=\"@id/bio\""))
+        assertTrue(faconne.contains("\n    android:layout_alignStart=\"@id/bio\""))
+        assertTrue("l'attribut d'origine reste", faconne.contains("android:id=\"@+id/button1\""))
+        assertTrue("la balise reste auto-fermante", faconne.trimEnd().endsWith("/>"))
+    }
+
+    @Test
+    fun `ajouterAttributs — balise compacte, l injection suit la convention de contraindre`() {
+        // La balise compacte existante portait déjà son espace avant le « / »
+        // (le guillemet fermant le précède) : l'injection se colle au
+        // dernier attribut, la fermeture reste collée — MÊME convention que
+        // [contraindre] depuis PE7 (les extraits du catalogue sont
+        // multi-lignes : un espace précède la fermeture).
+        val faconne =
+            InsertionXml.ajouterAttributs(
+                """<TextView android:id="@+id/t" />""",
+                listOf("android:layout_gravity" to "end|bottom"),
+            )
+        assertEquals("""<TextView android:id="@+id/t" android:layout_gravity="end|bottom"/>""", faconne)
+    }
+
+    @Test
+    fun `ajouterAttributs — un attribut deja pose est REMPLACE en place, jamais duplique`() {
+        val faconne =
+            InsertionXml.ajouterAttributs(
+                """<TextView android:layout_gravity="center" />""",
+                listOf("android:layout_gravity" to "end|bottom"),
+            )
+        assertEquals("""<TextView android:layout_gravity="end|bottom" />""", faconne)
+    }
+
+    @Test
+    fun `ajouterAttributs — liste vide et extrait malforme rendus tels quels`() {
+        assertEquals("<TextView />", InsertionXml.ajouterAttributs("<TextView />", emptyList()))
+        assertEquals("pas un extrait", InsertionXml.ajouterAttributs("pas un extrait", listOf("a:b" to "c")))
+    }
 }

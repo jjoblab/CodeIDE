@@ -327,15 +327,17 @@ public class PreviewViewModel
         }
 
         /**
-         * Le DÉPÔT de la palette (PE7b) : cible le conteneur sous le
-         * point, façonne l'extrait (identifiant libre — miroir `nextId`,
-         * contraintes + marges en dp calculées avec la densité du PROFIL
-         * pour un parent ConstraintLayout — maquette PE7a), compose
-         * l'ÉDITION UNIQUE ([InsertionXml.inserer]) et l'écrit dans la
-         * session ([SourceApercu.remplacer] — une seule entrée
-         * d'historique). Le rendu repart par le chemin normal (mutation →
-         * écouteur → moteur). Refus silencieux hors cible ou span périmé
-         * (X4 — jamais d'écriture hasardeuse).
+         * Le DÉPÔT de la palette (PE7b, étendu PE12d) : cible le conteneur
+         * sous le point (le CONTENU participe — ancre FAB, taille du
+         * déposé, comportement lié), façonne l'extrait (identifiant libre —
+         * miroir `nextId`, PLAN de famille via [InsertionXml.ajouterAttributs]
+         * — marges d’abord puis règles ; contraintes + marges en dp pour
+         * un parent ConstraintLayout, maquette PE7a), compose l'ÉDITION
+         * UNIQUE ([InsertionXml.inserer]) et l'écrit dans la session
+         * ([SourceApercu.remplacer] — une seule entrée d'historique). Le
+         * rendu repart par le chemin normal (mutation → écouteur →
+         * moteur). Refus silencieux hors cible ou span périmé (X4 — jamais
+         * d'écriture hasardeuse).
          *
          * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde
          * (rendu, source, cible, parent, span, édition) est une issue
@@ -350,12 +352,16 @@ public class PreviewViewModel
             val rendu = dernierRendu ?: return false
             val sourceBranchee = source ?: return false
             val vues = rendu.vues
-            val cible = ZonesDepot.cibleSous(vues, x, y) ?: return false
+            val cible =
+                ZonesDepot.cibleSous(vues, x, y, contenu, moteur.profil.densiteDpi) ?: return false
             val parent = vues.getOrNull(cible.indiceParent) ?: return false
             if (!parent.selectable) return false
             val texte = sourceBranchee.texte()
             var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
-            if (parent.classe.endsWith("ConstraintLayout")) {
+            val plan = cible.plan
+            if (plan != null) {
+                extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
+            } else if (parent.classe.endsWith("ConstraintLayout")) {
                 val densite = moteur.profil.densiteDpi
                 val margeHaut = CalquesApercu.pxVersDp((y - parent.haut).roundToInt().coerceAtLeast(0), densite)
                 val margeStart = CalquesApercu.pxVersDp((x - parent.gauche).roundToInt().coerceAtLeast(0), densite)
@@ -492,13 +498,14 @@ public class PreviewViewModel
         }
 
         /**
-         * Le PLACEMENT PAR POPUP (PE7c — miroir `insertAt(w, parentRid,
-         * index)`) : la cible vient de [PlacementPopup.cible] (Avant,
-         * Dedans, Après) — le MÊME façonnage que le dépôt PE7b
-         * ([renumeroter] + [contraindre] pour un parent ConstraintLayout,
-         * marges par DÉFAUT de la maquette : `mt=16`, `ml/mr=24` à la
-         * racine) et l'édition UNIQUE passe par le port. Refus hors
-         * cible/span périmé (X4 — jamais d'écriture hasardeuse).
+         * Le PLACEMENT PAR POPUP (PE7c, étendu PE12d — miroir `insertAt(w,
+         * parentRid, index)`) : la cible vient de [PlacementPopup.cible] (le
+         * jeu de positions de la famille, § 7) et PORTE son plan — le même
+         * façonnage que le dépôt ([renumeroter] + [ajouterAttributs] du plan,
+         * marges d'abord puis règles) ; SANS plan, le parent `ConstraintLayout`
+         * garde les marges par DÉFAUT de la maquette (`mt=16`, `ml/mr=24` à la
+         * racine). L'édition UNIQUE passe par le port. Refus hors cible/span
+         * périmé (X4 — jamais d'écriture hasardeuse).
          */
         public fun appliquerPlacement(
             contenu: ZonesDepot.ContenuDepot,
@@ -510,7 +517,10 @@ public class PreviewViewModel
             if (!parent.selectable) return false
             val texte = sourceBranchee.texte()
             var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
-            if (parent.classe.endsWith("ConstraintLayout")) {
+            val plan = cible.plan
+            if (plan != null) {
+                extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
+            } else if (parent.classe.endsWith("ConstraintLayout")) {
                 extrait =
                     InsertionXml.contraindre(
                         extrait,
