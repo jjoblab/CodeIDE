@@ -57,6 +57,16 @@
     <string name="preview_correctif_retirer_ancre">Remove the anchor</string>
     <string name="preview_correctif_ajouter_comportement">Add the behavior</string>
     <string name="preview_correctif_casser_boucle">Break the loop</string>
+    <!-- Feedback of the family quick fixes (mirroring the mockup's
+         `fx.msg`; the NUMBER of attributes is a QUANTITY: a plural). -->
+    <plurals name="preview_correctif_orphelin_toast">
+        <item quantity="one">%1$d attribute removed</item>
+        <item quantity="other">%1$d attributes removed</item>
+    </plurals>
+    <string name="preview_correctif_regle_toast">%1$s removed</string>
+    <string name="preview_correctif_ancre_toast">Anchor removed</string>
+    <string name="preview_correctif_comportement_toast">app:layout_behavior added</string>
+    <string name="preview_correctif_boucle_toast">Rule removed</string>
     <string name="preview_bandeau_boucle">Circular dependency in %1$s: %2$s. RelativeLayout refuses a loop of rules.</string>
     <!-- Layer and deletion (the NUMBER of removed or updated
          references is a QUANTITY: a plural, no "(s)" hack). -->

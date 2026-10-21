@@ -53,6 +53,7 @@ import jo.codeide.preview.xml.ExtractionRessource
 import jo.codeide.preview.xml.FamilleParent
 import jo.codeide.preview.xml.FeuilleApercu
 import jo.codeide.preview.xml.InfoVueRendu
+import jo.codeide.preview.xml.ProblemesFamilles
 import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
@@ -374,11 +375,22 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         vue: InfoVueRendu,
     ) {
         val vues = renduCourant?.vues ?: return
+        // PE12f — les problèmes de FAMILLE, lus dans le TEXTE VIVANT :
+        // ils se rattachent à la sélection par le DÉBUT de l'élément (le
+        // span du rendu peut dater d'avant la frappe, mais le début d'un
+        // élément ne bouge pas quand l'édit se fait À L'INTÉRIEUR — le
+        // cas d'emploi de la boucle : une VALEUR de règle éditée à la
+        // main, § 12). Le rendu peut être en ERREUR : les cartes restent.
+        val familles =
+            viewModel
+                .problemesFamilles()
+                .filter { it.debut == vue.debutElement }
+                .map { correctifFamilleDe(it) }
         val cartes =
             ProblemesPreview
                 .evaluer(vues, viewModel.moteur.profil.densiteDpi)
                 .filter { it.indiceVue == selectionCourante }
-                .mapNotNull { correctifDe(it, vue) }
+                .mapNotNull { correctifDe(it, vue) } + familles
         if (cartes.isEmpty()) return
         items.add(ItemAttributs.TitreGroupe(getString(R.string.preview_correctifs_titre)))
         items.addAll(cartes)
@@ -394,14 +406,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         probleme: ProblemesPreview.ProblemeApercu,
         vue: InfoVueRendu,
     ): ItemAttributs.Correctif? {
-        val action =
-            when (probleme.genre) {
-                ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> return null
-                ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> ActionCorrectif.ElargirCible
-                ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> ActionCorrectif.OuvrirContentDescription
-                ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> ActionCorrectif.ExtraireTexte
-                ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> ActionCorrectif.AutoriserDeuxLignes
-            }
+        val action = actionDe(probleme.genre) ?: return null
         return ItemAttributs.Correctif(
             genre = probleme.genre,
             titre = LibellesProblemes.titre(requireContext(), probleme.genre, vue),
@@ -418,6 +423,49 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         )
     }
 
+    /**
+     * L'ACTION d'un problème de RENDU (PE11g — miroir `quickFixesBase`) :
+     * `null` = PAS d'action — la classe introuvable (« Ajouter la
+     * dépendance » est HORS périmètre) et les genres de FAMILLE (PE12f :
+     * ils passent par [correctifFamilleDe], leur correctif vit sur le
+     * SPAN du texte, pas sur la sélection du rendu).
+     */
+    private fun actionDe(genre: ProblemesPreview.GenreProbleme): ActionCorrectif? =
+        when (genre) {
+            ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> null
+
+            ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> ActionCorrectif.ElargirCible
+
+            ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> ActionCorrectif.OuvrirContentDescription
+
+            ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> ActionCorrectif.ExtraireTexte
+
+            ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> ActionCorrectif.AutoriserDeuxLignes
+
+            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
+            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
+            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
+            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
+            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+            -> null
+        }
+
+    /**
+     * La CARTE d'un problème de FAMILLE (PE12f — miroir les `fixer` de la
+     * moitié famille de `computeProblems`) : titre et message composés
+     * du problème TEXTE, bouton par genre (l'orphelin distingue le
+     * singulier), l'action PORTE le problème — son correctif s'écrit sur
+     * son span du texte vivant.
+     */
+    private fun correctifFamilleDe(probleme: ProblemesFamilles.Probleme): ItemAttributs.Correctif =
+        ItemAttributs.Correctif(
+            genre = probleme.genre,
+            titre = LibellesProblemes.titreFamille(requireContext(), probleme),
+            message = LibellesProblemes.messageFamille(requireContext(), probleme),
+            bouton = getString(boutonFamille(probleme)),
+            action = ActionCorrectif.CorrigerFamille(probleme),
+        )
+
     /** Le LIBELLÉ localisé du bouton d'une action (miroir `fx.b`). */
     private fun boutonDe(action: ActionCorrectif): Int =
         when (action) {
@@ -425,6 +473,43 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ActionCorrectif.ExtraireTexte -> R.string.preview_correctif_extraire_bouton
             ActionCorrectif.AutoriserDeuxLignes -> R.string.preview_correctif_tronque_bouton
             ActionCorrectif.OuvrirContentDescription -> R.string.preview_correctif_description_bouton
+            is ActionCorrectif.CorrigerFamille -> boutonFamille(action.probleme)
+        }
+
+    /**
+     * Le LIBELLÉ du bouton d'un problème de FAMILLE (PE12f, spec § 9) :
+     * « Retirer cet attribut » au singulier, « ces attributs » sinon
+     * (miroir `orph.length > 1`).
+     */
+    private fun boutonFamille(probleme: ProblemesFamilles.Probleme): Int =
+        when (probleme.genre) {
+            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
+                if (probleme.attributs.size == 1) {
+                    R.string.preview_correctif_retirer_attribut
+                } else {
+                    R.string.preview_correctif_retirer_attributs
+                }
+            }
+
+            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
+                R.string.preview_correctif_retirer_regle
+            }
+
+            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
+                R.string.preview_correctif_retirer_ancre
+            }
+
+            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
+                R.string.preview_correctif_ajouter_comportement
+            }
+
+            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
+                R.string.preview_correctif_casser_boucle
+            }
+
+            else -> {
+                error("genre de rendu : pas de bouton de famille — $probleme")
+            }
         }
 
     /** L'étiquette localisée d'un contrôle (clé sémantique → ressource). */
@@ -1907,12 +1992,64 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ActionCorrectif.OuvrirContentDescription -> {
                 ouvrirContentDescription()
             }
+
+            is ActionCorrectif.CorrigerFamille -> {
+                // PE12f — l'édition se pose sur le SPAN du problème (le
+                // texte vivant) : un refus = problème périmé, le volet se
+                // re-marche et la carte disparaît (même retour que les
+                // autres correctifs).
+                if (editerOuRecharger { viewModel.corrigerProblemeFamille(action.probleme) }) {
+                    annoncerCorrectifFamille(action.probleme)
+                }
+            }
         }
     }
 
     /** Le retour maison de SUCCÈS d'une correction (miroir `mutate(fx.run, fx.msg)`). */
     private fun annoncerCorrectif(message: Int) {
         (activity as? HoteVoletsApercu)?.annoncer(message)
+    }
+
+    /**
+     * Le retour maison PARAMÉTRÉ d'une correction de FAMILLE (PE12f —
+     * miroir les `fx.msg` : « 2 attributs retirés », « layout_below
+     * retiré »…). Les noms d'attributs ne se traduisent pas (spec § 13).
+     */
+    private fun annoncerCorrectifFamille(probleme: ProblemesFamilles.Probleme) {
+        val texte =
+            when (probleme.genre) {
+                ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
+                    resources.getQuantityString(
+                        R.plurals.preview_correctif_orphelin_toast,
+                        probleme.attributs.size,
+                        probleme.attributs.size,
+                    )
+                }
+
+                ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
+                    getString(
+                        R.string.preview_correctif_regle_toast,
+                        probleme.attributs.first().substringAfter(':'),
+                    )
+                }
+
+                ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
+                    getString(R.string.preview_correctif_ancre_toast)
+                }
+
+                ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
+                    getString(R.string.preview_correctif_comportement_toast)
+                }
+
+                ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
+                    getString(R.string.preview_correctif_boucle_toast)
+                }
+
+                else -> {
+                    error("genre de rendu : pas de retour de famille — $probleme")
+                }
+            }
+        (activity as? HoteVoletsApercu)?.annoncerTexte(texte)
     }
 
     /**
