@@ -16,9 +16,9 @@ package jo.codeide.preview.xml
  * sans information de rendu.
  *
  * [AUCUN] ne sort JAMAIS de [deClasses] ni de [deBalise] : il décrit la
- * vue RACINE (aucun parent), pas une famille de conteneur. Le temps de
- * PE12a, [CatalogueAttributs.GenreParent] reste l'alias interne
- * alimenté par cette famille (spec § 2.3 — il disparaît en PE12b).
+ * vue RACINE (aucun parent), pas une famille de conteneur. Depuis
+ * PE12b, [CatalogueAttributs.sections] la prend TELLE QUELLE :
+ * l'ancien alias `GenreParent` a disparu (spec § 2.3).
  */
 public enum class FamilleParent {
     /** La vue est la racine : aucun parent, aucune section de position. */

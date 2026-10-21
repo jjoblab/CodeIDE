@@ -720,23 +720,24 @@ public class PreviewViewModel
         public fun classeSelection(): String? = dernierRendu?.vues?.getOrNull(selectionInterne.value)?.classe
 
         /**
-         * Le GENRE du parent de la sélection (le catalogue en dérive les
-         * sections Contraintes / Dans le parent) — `null` sans rendu.
+         * La FAMILLE du parent de la sélection (le catalogue en dérive les
+         * sections Contraintes / Dans le parent — PE12b : l'ancien
+         * `GenreParent` a disparu, la famille voyage telle quelle, spec
+         * § 2.3) — `null` sans rendu.
          */
-        public fun genreParentSelection(): CatalogueAttributs.GenreParent? {
+        public fun familleParentSelection(): FamilleParent? {
             val rendu = dernierRendu ?: return null
             val indice = selectionInterne.value
             val vue = rendu.vues.getOrNull(indice) ?: return null
-            if (vue.indiceParent < 0) return CatalogueAttributs.GenreParent.AUCUN
+            if (vue.indiceParent < 0) return FamilleParent.AUCUN
             val parent = rendu.vues.getOrNull(vue.indiceParent)
             // PE12a — la famille du parent voyage dans le rendu (chaîne
             // de superclasses du rendu réel, repli par balise) : plus
             // fiable que le nom simple de classe (MotionLayout est un
-            // CONSTRAINT, spec § 2).
-            return CatalogueAttributs.genreParent(
-                FamilleParent.deNom(parent?.famille),
-                parentEstRacine = vue.indiceParent == 0,
-            )
+            // CONSTRAINT, spec § 2). Une famille INCONNUE (rendu ancien,
+            // chaîne altérée sur la frontière AIDL) reste AUTRE — jamais
+            // un faux genre, et ses sections n'arrivent qu'en PE12c.
+            return FamilleParent.deNom(parent?.famille) ?: FamilleParent.AUTRE
         }
 
         /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
