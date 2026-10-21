@@ -509,6 +509,7 @@ public class RenduLayoutLib(
                     decalageGauche,
                     decalageHaut,
                     attributs[indice],
+                    famille = familleDefinitive(attributs[indice], ""),
                 )
             }
         }
@@ -521,6 +522,7 @@ public class RenduLayoutLib(
                 decalageHaut,
                 attributs[indice],
                 texteCodeDur = ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin),
+                famille = familleDefinitive(attributs[indice], element.nomBalise),
             )
         }
     }
@@ -529,18 +531,23 @@ public class RenduLayoutLib(
      * Attributs vivants d'une vue rendue que ViewInfoCollector ne
      * porte pas (PE6c, PE11g) : cliquable, orientation LinearLayout,
      * texte tronqué (mesure LayoutLib) et image sans contentDescription
-     * (lecture de la vue — les règles de [ProblemesPreview]).
+     * (lecture de la vue — les règles de [ProblemesPreview]) ; famille
+     * de CONTENEUR par la chaîne de superclasses et drapeau de classe
+     * de remplacement (PE12a — spec § 2.2).
      */
     private data class AttributsVue(
         val cliquable: Boolean,
         val orientation: Int,
         val texteTronque: Boolean,
         val sansContentDescription: Boolean,
+        val famille: FamilleParent?,
+        val remplacement: Boolean,
     ) {
         companion object {
-            /** Repli défensif (écart de marche — jamais de faux attribut). */
+            /** Repli défensif (écart de marche — jamais de faux attribut).
+             * Famille INCONNUE (null) : le repli par balise tranche. */
             val PAR_DEFAUT: AttributsVue =
-                AttributsVue(false, InfoVueRendu.ORIENTATION_SANS_OBJET, false, false)
+                AttributsVue(false, InfoVueRendu.ORIENTATION_SANS_OBJET, false, false, null, false)
         }
     }
 
@@ -571,6 +578,10 @@ public class RenduLayoutLib(
                     orientation = orientation,
                     texteTronque = vue is TextView && ProblemesRendu.texteDepasse(vue),
                     sansContentDescription = vue is ImageView && vue.contentDescription == null,
+                    // PE12a — famille PAR NOM de classe (spec § 2.2 : jamais
+                    // instanceof, pas de dépendance Material/AndroidX ici).
+                    famille = FamilleParent.deClasses(chaineSuperclasses(vue)),
+                    remplacement = vue.javaClass.simpleName == InfoVueRendu.CLASSE_REMPLACEMENT,
                 ),
             )
             if (vue is ViewGroup) {
@@ -589,6 +600,40 @@ public class RenduLayoutLib(
         }
         return resultat
     }
+
+    /**
+     * La chaîne des noms QUALIFIÉS des classes de [vue], de la classe
+     * réelle jusqu'à `Object` incluse (spec § 2.2) — les faits bruts du
+     * rendu, que [FamilleParent.deClasses] interprète PAR NOM (jamais
+     * d'instanceof : les classes Material/AndroidX ne sont pas sur le
+     * classpath de compilation de ce module).
+     */
+    private fun chaineSuperclasses(vue: View): List<String> {
+        val noms = mutableListOf<String>()
+        var classe: Class<*>? = vue.javaClass
+        while (classe != null) {
+            noms.add(classe.name)
+            classe = classe.superclass
+        }
+        return noms
+    }
+
+    /**
+     * La famille DÉFINITIVE d'une vue (spec § 2.2) : celle du rendu
+     * (chaîne de superclasses), REMPLACÉE par la table des balises
+     * pour un `MockView` (classe introuvable à l'inflation) ou quand
+     * l'information manque (repli défensif) — jamais pour une classe
+     * réellement inconnue, qui reste [FamilleParent.AUTRE].
+     */
+    private fun familleDefinitive(
+        attributs: AttributsVue,
+        balise: String,
+    ): FamilleParent =
+        if (attributs.remplacement || attributs.famille == null) {
+            FamilleParent.deBalise(balise)
+        } else {
+            attributs.famille
+        }
 
     /** Aplatit l'arbre ViewInfo en pré-ordre (parent avant enfants), avec indice de parent. */
     private fun aplatir(racine: ViewInfoCollector.ViewInfo): List<ViewInfoAplatie> {
@@ -626,6 +671,7 @@ public class RenduLayoutLib(
             decalageHaut: Int = 0,
             attributs: AttributsVue,
             texteCodeDur: Boolean = false,
+            famille: FamilleParent = FamilleParent.AUTRE,
         ): InfoVueRendu =
             InfoVueRendu(
                 gauche = info.left + decalageGauche,
@@ -658,6 +704,8 @@ public class RenduLayoutLib(
                 texteTronque = attributs.texteTronque,
                 sansContentDescription = attributs.sansContentDescription,
                 texteCodeDur = texteCodeDur,
+                // PE12a — famille de CONTENEUR (spec § 2.2), DERNIER champ.
+                famille = famille.name,
             )
     }
 
