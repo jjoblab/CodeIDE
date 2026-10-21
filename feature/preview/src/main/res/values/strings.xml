@@ -45,7 +45,6 @@
     <!-- Popover Calques (PE6b, miroir showPop("layers") de la maquette). -->
     <string name="preview_calque_parent_freres">Parent et frères</string>
     <string name="preview_calque_marges_padding">Marges et padding</string>
-    <string name="preview_calque_contraintes">Contraintes</string>
     <string name="preview_calque_problemes">Problèmes</string>
     <string name="preview_calque_bornes">Bornes de toutes les vues</string>
     <string name="preview_calque_grille">Grille 8 dp</string>

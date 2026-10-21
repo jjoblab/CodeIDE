@@ -139,6 +139,20 @@ public class VuePreviewXml :
     /** Problèmes du dernier rendu (PE6c — pastilles de la maquette). */
     private var problemes: List<ProblemesPreview.ProblemeApercu> = emptyList()
 
+    /**
+     * Les lignes de RELATIONS du calque (PE12e — spec § 8, miroir
+     * `drawRelations`) : règles et ancres de chaque parent
+     * `RelativeLayout`/`CoordinatorLayout`, composées par l'activité
+     * ([CalquesApercu.lignesRelations] — les règles se lisent sur le
+     * TEXTE pour rester justes quand le rendu s'interrompt, les bornes
+     * viennent du dernier rendu).
+     */
+    public var lignesRelations: List<CalquesApercu.LigneRelation> = emptyList()
+        set(valeur) {
+            field = valeur
+            invalidate()
+        }
+
     // ── Calques activables (PE6b — popover « Calques » de la maquette) ──
 
     /** Parent pointillés + frères filigrane (PE6a, activables PE6b). */
@@ -921,6 +935,7 @@ public class VuePreviewXml :
         dessinerFreres(canevas, jetons)
         dessinerParent(canevas, jetons)
         dessinerContraintes(canevas, jetons)
+        dessinerRelations(canevas, jetons)
         dessinerMargesPadding(canevas, jetons)
         dessinerSurlignage(canevas, jetons)
         dessinerRedimensionnement(canevas, jetons)
@@ -1134,6 +1149,64 @@ public class VuePreviewXml :
                 dessinerPillValeur(canevas, jetons, ligne.valeurDp, milieuX, milieuY - decalage)
             }
         }
+    }
+
+    /**
+     * Le calque RELATIONS (PE12e — spec § 8, miroir `drawRelations`) :
+     * pour chaque ligne du document — trait PLEIN pour les règles de
+     * côté et les bords du parent, POINTILLÉ pour les alignements, les
+     * centres et les ancres — extrémités en disques 3,5 dp, trait 1,5 dp,
+     * couleur accent (§ 8 : AUCUN nouveau jeton) ; l'étiquette (nom de
+     * la règle, « parent », « anchor · gravité ») ne se dessine que pour
+     * la vue SÉLECTIONNÉE.
+     */
+    private fun dessinerRelations(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+    ) {
+        if (!calquesContraintes || lignesRelations.isEmpty()) return
+        peintContrainte.color = jetons.accent
+        peintContrainte.strokeWidth = tailleEcran(LARGEUR_TRAIT_RELATION_DP)
+        val rayonPoint = tailleEcran(RAYON_POINT_RELATION_DP)
+        peintEtiquette.textSize = tailleTexteEcran(TAILLE_TEXTE_ETIQUETTE_DP)
+        for (relation in lignesRelations) {
+            peintContrainte.pathEffect = if (relation.pointillee) EFFET_POINTILLES else null
+            canevas.drawLine(
+                relation.x1.toFloat(),
+                relation.y1.toFloat(),
+                relation.x2.toFloat(),
+                relation.y2.toFloat(),
+                peintContrainte,
+            )
+            peintPin.color = jetons.accent
+            canevas.drawCircle(relation.x1.toFloat(), relation.y1.toFloat(), rayonPoint, peintPin)
+            canevas.drawCircle(relation.x2.toFloat(), relation.y2.toFloat(), rayonPoint, peintPin)
+            if (relation.indiceVue == indiceSurligne) {
+                etiquetteRelation(canevas, jetons, relation)
+            }
+        }
+    }
+
+    /** L'ÉTIQUETTE d'une relation de la vue sélectionnée (miroir chip `dim`, au milieu du segment). */
+    private fun etiquetteRelation(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+        relation: CalquesApercu.LigneRelation,
+    ) {
+        val texte = relation.etiquette ?: return
+        val centreX = (relation.x1 + relation.x2) / 2f
+        val centreY = (relation.y1 + relation.y2) / 2f - tailleEcran(DECALAGE_ETIQUETTE_RELATION_DP)
+        val largeurTexte = peintEtiquette.measureText(texte)
+        val padH = tailleEcran(MARGE_ETIQUETTE_H_DP)
+        val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
+        peintPill.color = jetons.texte
+        peintEtiquette.color = jetons.fond
+        dessinerEtiquetteRectangle(
+            canevas,
+            texte,
+            centreX - largeurTexte / 2f - padH,
+            centreY - demiHauteur,
+        )
     }
 
     /**
@@ -1976,6 +2049,17 @@ public class VuePreviewXml :
 
         /** Rayon des EXTRÉMITÉS du trait de règle, en dp écran (miroir `3 / z` de `relLine`). */
         private const val RAYON_POINT_REGLE_DP = 3f
+
+        // ── Calque Relations PE12e (spec § 8 : trait 1,5 dp, disques 3,5 dp — accent) ──
+
+        /** Trait d'une ligne de relation, en dp écran (miroir `1.5 / z` de `drawRelations`). */
+        private const val LARGEUR_TRAIT_RELATION_DP = 1.5f
+
+        /** Rayon des EXTRÉMITÉS d'une relation, en dp écran (miroir `3.5 / z`). */
+        private const val RAYON_POINT_RELATION_DP = 3.5f
+
+        /** Décalage de l'étiquette AU-DESSUS du milieu du segment (miroir `11 / z`). */
+        private const val DECALAGE_ETIQUETTE_RELATION_DP = 11f
 
         // ── Calques PE6b/PE6c (miroir des jetons de la maquette) ──
 
