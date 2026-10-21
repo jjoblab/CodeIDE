@@ -169,6 +169,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         liaison.voletAttributs.layoutManager = LinearLayoutManager(requireContext())
         liaison.voletAttributs.adapter = adaptateur
         liaison.voletAttributs.addItemDecoration(DecorationBarreCollante())
+        // Correctif du lot parents : les 10 dp de `.secs` entre les cartes
+        // (et les 6 dp de `.fixes` entre correctifs) — la décoration
+        // connaît les voisins, les marges d'items non.
+        liaison.voletAttributs.addItemDecoration(DecorationEspaceSections(requireContext()))
         return liaison.root
     }
 
