@@ -59,6 +59,10 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     // Fakes du domaine (TestDispatcherProvider : horloge virtuelle unique).
     testImplementation(project(":core:testing"))
+    // org.json réel pour les tests JVM purs : le fichier d'or PE12d
+    // (insertions_or.json) se lit sans démarrer Android (précédent
+    // core:crash — les classes du framework sont des stubs hors Robolectric).
+    testImplementation(libs.org.json)
 }
 
 kover {

@@ -26,6 +26,7 @@ import jo.codeide.preview.xml.CataloguePalette
 import jo.codeide.preview.xml.EtatPreviewXml
 import jo.codeide.preview.xml.ModeApercu
 import jo.codeide.preview.xml.PlacementPopup
+import jo.codeide.preview.xml.PlanInsertionFamille
 import jo.codeide.preview.xml.ProfilPeripherique
 import jo.codeide.preview.xml.RegimeRendu
 import jo.codeide.preview.xml.RequeteRendu
@@ -150,6 +151,12 @@ public class PreviewActivity :
 
     /** La position du placement (miroir `S.place.pos`). */
     private var positionPlacement: PlacementPopup.Position = PlacementPopup.Position.DEDANS
+
+    /** La cellule de gravité du placement (miroir `S.place.cell` — PE12d). */
+    private var cellulePlacement: PlanInsertionFamille.Cellule = PlanInsertionFamille.Cellule(ligne = 0, colonne = 0)
+
+    /** La marge du placement, en dp (miroir `S.place.mg` — D6 : 16 par défaut). */
+    private var margePlacement: Int = PlanInsertionFamille.MARGE_DEFAUT_DP
 
     /** La cible dérivée (miroir `placeTarget`) — le repère suit. */
     private var ciblePlacement: ZonesDepot.CibleDepot? = null
@@ -646,10 +653,14 @@ public class PreviewActivity :
         popupCourante.auFermer = { masquerPlacement() }
         popupCourante.auReference = { indice -> majPlacement(reference = indice) }
         popupCourante.auPosition = { position -> majPlacement(position = position) }
+        popupCourante.auCellule = { cellule -> majPlacement(cellule = cellule) }
+        popupCourante.auMarge = { marge -> majPlacement(marge = marge) }
         popupCourante.auConfirmer = { confirmerPlacement() }
         liaison.conteneurPlacement.visibility = View.VISIBLE
 
         indiceReferencePlacement = viewModel.indiceSelectionne.value.takeIf { it in vues.indices } ?: 0
+        cellulePlacement = PlanInsertionFamille.Cellule(ligne = 0, colonne = 0)
+        margePlacement = PlanInsertionFamille.MARGE_DEFAUT_DP
         positionPlacement =
             PlacementPopup.positionInitiale(vues, indiceReferencePlacement) ?: PlacementPopup.Position.APRES
         majPlacement()
@@ -657,9 +668,11 @@ public class PreviewActivity :
 
     /**
      * RE-MARCHE le placement (miroir `drawPlace`) : la position tombe
-     * dans les AUTORISÉES de la référence (miroir `normPos`), la cible se
-     * dérive ([PlacementPopup.cible]), le popup se redessine et le
-     * REPÈRE EN DIRECT suit la cible (zones de dépôt PE7b — un calque).
+     * dans les AUTORISÉES de la référence (miroir `normPos` : Dedans si
+     * conteneur, sinon Après, sinon la première — Dessous pour un frère
+     * `RelativeLayout`), la cible se dérive ([PlacementPopup.cible] —
+     * PLAN de famille compris, PE12d), le popup se redessine et le
+     * REPÈRE EN DIRECT suit la cible (zones de dépôt + repère de plan).
      *
      * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde est
      * une issue DISTINCTE du refus (X4 : pas de rendu, popup fermé,
@@ -669,12 +682,16 @@ public class PreviewActivity :
     private fun majPlacement(
         reference: Int? = null,
         position: PlacementPopup.Position? = null,
+        cellule: PlanInsertionFamille.Cellule? = null,
+        marge: Int? = null,
     ) {
         val vues = viewModel.dernierRendu?.vues ?: return
         val popupCourante = popupPlacement ?: return
         val widget = widgetEnPlacement ?: return
         if (reference != null) indiceReferencePlacement = reference
         if (position != null) positionPlacement = position
+        if (cellule != null) cellulePlacement = cellule
+        if (marge != null) margePlacement = marge
         // Position non autorisée pour la nouvelle référence → repli
         // déterministe (miroir `normPos` : feuille → after, racine → in).
         val autorisees = PlacementPopup.positionsAutorisees(vues, indiceReferencePlacement)
@@ -683,9 +700,22 @@ public class PreviewActivity :
                 PlacementPopup.positionInitiale(vues, indiceReferencePlacement)
                     ?: PlacementPopup.Position.APRES
         }
-        ciblePlacement = PlacementPopup.cible(vues, indiceReferencePlacement, positionPlacement)
+        ciblePlacement =
+            PlacementPopup.cible(
+                vues,
+                indiceReferencePlacement,
+                positionPlacement,
+                cellulePlacement,
+                margePlacement,
+                PlanInsertionFamille.Depose(widget.extraitXml, widget.idWidget, viewModel.moteur.profil.densiteDpi),
+            )
         popupCourante.definirTitre(widget.nomAffiche)
-        popupCourante.afficher(vues, indiceReferencePlacement, positionPlacement, ciblePlacement)
+        popupCourante.afficher(
+            vues,
+            indiceReferencePlacement,
+            PopupPlacement.ChoixPlacement(positionPlacement, cellulePlacement, margePlacement),
+            ciblePlacement,
+        )
         liaison.vuePreview.montrerApercuPlacement(widget)
         liaison.vuePreview.cibleDepot = ciblePlacement
     }

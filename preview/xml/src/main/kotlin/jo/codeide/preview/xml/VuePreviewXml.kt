@@ -850,7 +850,9 @@ public class VuePreviewXml :
                 // même position sur la planche design.
                 val (x, y) =
                     CalculsVuePreview.coordonneesPlanche(xContenu, yContenu, decalagePlancheHit())
-                cibleDepot = ZonesDepot.cibleSous(vues, x, y)
+                // PE12d : le contenu glissé participe à la cible (ancre
+                // `FloatingActionButton`, taille du déposé, comportement lié).
+                cibleDepot = ZonesDepot.cibleSous(vues, x, y, contenu, densiteDpi)
             }
 
             DragEvent.ACTION_DRAG_EXITED -> {
@@ -1341,9 +1343,29 @@ public class VuePreviewXml :
                 auDessus,
             ),
         )
-        // 4. La BARRE d'insertion (miroir `.slot` : halo doux PUIS barre pleine)
-        //    + pill « + Nom · i/n » sous la barre.
+        // 4. Le REPÈRE DU PLAN par famille (PE12d, miroir `drawDrop` kinds
+        //    `frame`/`rel`) : cellule 3 × 3 (fond violet doux, trait violet
+        //    2 dp, rayon 4 dp), FANTÔME pointillé du déposé, TRAIT DE RÈGLE
+        //    vers le frère, pill « + Nom · libellé » — sinon la BARRE (§ 6.2).
         val contenu = contenuGlisse ?: return
+        val plan = cible.plan
+        if (plan != null) {
+            dessinerReperePlan(canevas, jetons, cible, plan, contenu.nomAffiche)
+            return
+        }
+        dessinerBarreDepot(canevas, jetons, cible, contenu.nomAffiche)
+    }
+
+    /**
+     * La BARRE d'insertion (miroir `.slot` : halo doux PUIS barre pleine)
+     * + pill « + Nom · i/n » sous la barre — le parent à barre (§ 6.2).
+     */
+    private fun dessinerBarreDepot(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+        cible: ZonesDepot.CibleDepot,
+        nomWidget: String,
+    ) {
         val epaisseur = tailleEcran(EPAISSEUR_BARRE_DP)
         val barre = ZonesDepot.emplacement(vues, cible, densiteDpi, epaisseur) ?: return
         val halo = tailleEcran(HALO_BARRE_DP)
@@ -1355,7 +1377,7 @@ public class VuePreviewXml :
         pillInsertion(
             canevas,
             jetons,
-            ZonesDepot.libelleInsertion(vues, cible, contenu.nomAffiche),
+            ZonesDepot.libelleInsertion(vues, cible, nomWidget),
             barre.gauche,
             centreEtiquetteBord(
                 barre.bas + tailleEcran(DECALAGE_PILL_BARRE_DP),
@@ -1363,6 +1385,134 @@ public class VuePreviewXml :
             ),
         )
     }
+
+    /**
+     * Le REPÈRE D'UN PLAN PAR FAMILLE (PE12d — miroir `drawDrop`, kinds
+     * `frame` et `rel`) : la vue ANCRE marquée (dz on), la CELLULE du plan
+     * (sur le parent, ou sur l'ancre SANS padding — miroir
+     * `cellRect(S.b[h.anchor], PAD0, …)`), le FANTÔME pointillé du déposé,
+     * le TRAIT DE RÈGLE du fantôme vers le frère visé (trait plein 1,5 dp,
+     * extrémités 3 dp — miroir `relLine`) et la pill « + Nom · libellé »
+     * sous la cellule (frame) ou le fantôme (rel).
+     *
+     * Exemption detekt ciblée (règle 16) : ReturnCount — chaque absence
+     * (ancre, cellule, pill) est une issue DISTINCTE du dessin partiel.
+     */
+    @Suppress("ReturnCount")
+    private fun dessinerReperePlan(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+        cible: ZonesDepot.CibleDepot,
+        plan: PlanInsertionFamille.Plan,
+        nomWidget: String,
+    ) {
+        // 1. La vue ANCRE d'un `FloatingActionButton` : marquée comme le
+        //    conteneur visé (miroir `box('dz on', …)` sur l'ancre).
+        val ancre = plan.indiceAncre?.let { vues.getOrNull(it) }
+        if (ancre != null) {
+            peintZoneCible.color = jetons.nouveauDoux
+            canevas.drawRect(
+                RectF(ancre.gauche.toFloat(), ancre.haut.toFloat(), ancre.droite.toFloat(), ancre.bas.toFloat()),
+                peintZoneCible,
+            )
+        }
+        // 2. La CELLULE du plan : fond violet doux + trait violet 2 dp, à
+        //    COINS ARRONDIS 4 dp (miroir `.cell`).
+        val cellule =
+            plan.cellule?.let {
+                PlanInsertionFamille.rectangleCellule(vues, cible.indiceParent, it, plan.indiceAncre)
+            }
+        if (cellule != null) {
+            val rect = RectF(cellule.gauche, cellule.haut, cellule.droite, cellule.bas)
+            val rayon = tailleEcran(RAYON_CELLULE_DP)
+            peintZoneCible.color = jetons.nouveauDoux
+            canevas.drawRoundRect(rect, rayon, rayon, peintZoneCible)
+            peintZone.pathEffect = null
+            peintZone.alpha = ALPHA_PLEIN
+            peintZone.color = jetons.nouveau
+            peintZone.strokeWidth = tailleEcran(TRAIT_CELLULE_DP)
+            canevas.drawRoundRect(rect, rayon, rayon, peintZone)
+        }
+        // 3. Le FANTÔME du déposé : fond violet doux + trait pointillé
+        //    1,5 dp (miroir `.gbox`).
+        val fantome = plan.fantome
+        if (fantome != null) {
+            val rect = RectF(fantome.gauche, fantome.haut, fantome.droite, fantome.bas)
+            peintZoneCible.color = jetons.nouveauDoux
+            canevas.drawRect(rect, peintZoneCible)
+            peintZone.pathEffect = EFFET_POINTILLES
+            peintZone.color = jetons.nouveau
+            peintZone.strokeWidth = tailleEcran(TRAIT_FANTOME_DP)
+            canevas.drawRect(rect, peintZone)
+        }
+        // 4. Le TRAIT DE RÈGLE vers le frère visé (miroir `relLine` : trait
+        //    plein, extrémités 3 dp, la RÈGLE PRINCIPALE = premier attribut).
+        val frere = plan.indiceReference?.let { vues.getOrNull(it) }
+        if (frere != null && fantome != null && plan.traitRegle) {
+            peintZoneCible.color = jetons.nouveauDoux
+            canevas.drawRect(
+                RectF(frere.gauche.toFloat(), frere.haut.toFloat(), frere.droite.toFloat(), frere.bas.toFloat()),
+                peintZoneCible,
+            )
+            dessinerTraitRegle(canevas, jetons, plan, fantome, frere)
+        }
+        // 5. La pill « + Nom · libellé » sous la CELLULE (frame) ou le
+        //    FANTÔME (rel) — miroir `chip(ov, 'nw', '+ ' + dv.w.name + ' · ' + h.text, …)`.
+        val ancrePill = cellule ?: fantome ?: return
+        peintEtiquette.textSize = tailleTexteEcran(TAILLE_TEXTE_ETIQUETTE_DP)
+        pillInsertion(
+            canevas,
+            jetons,
+            "+ $nomWidget · ${plan.libelle}",
+            ancrePill.gauche,
+            centreEtiquetteBord(ancrePill.bas + tailleEcran(DECALAGE_PILL_BARRE_DP), auDessus = false),
+        )
+    }
+
+    /**
+     * Le trait de règle du FANTÔME vers le FRÈRE (miroir `relLine` :
+     * `below` → du haut du fantôme au bas du frère, `above` → du bas au
+     * haut, `toEndOf` → de la gauche à la droite, `toStartOf` → l'inverse).
+     */
+    private fun dessinerTraitRegle(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+        plan: PlanInsertionFamille.Plan,
+        fantome: ZonesDepot.RectangleDepot,
+        frere: InfoVueRendu,
+    ) {
+        val regle =
+            plan.attributs
+                .firstOrNull()
+                ?.first
+                ?.substringAfterLast(':') ?: return
+        val xFantome = (fantome.gauche + fantome.droite) / 2f
+        val yFantome = (fantome.haut + fantome.bas) / 2f
+        val ligne =
+            when (regle) {
+                "below" -> LigneRegle(xFantome, fantome.haut, xFantome, frere.bas.toFloat())
+                "above" -> LigneRegle(xFantome, fantome.bas, xFantome, frere.haut.toFloat())
+                "toEndOf" -> LigneRegle(fantome.gauche, yFantome, frere.droite.toFloat(), yFantome)
+                else -> LigneRegle(fantome.droite, yFantome, frere.gauche.toFloat(), yFantome)
+            }
+        peintZone.pathEffect = null
+        peintZone.alpha = ALPHA_PLEIN
+        peintZone.color = jetons.nouveau
+        peintZone.strokeWidth = tailleEcran(TRAIT_FANTOME_DP)
+        canevas.drawLine(ligne.x1, ligne.y1, ligne.x2, ligne.y2, peintZone)
+        peintPin.color = jetons.nouveau
+        val rayon = tailleEcran(RAYON_POINT_REGLE_DP)
+        canevas.drawCircle(ligne.x1, ligne.y1, rayon, peintPin)
+        canevas.drawCircle(ligne.x2, ligne.y2, rayon, peintPin)
+    }
+
+    /** Les extrémités d'un trait de règle (dessin — pas de quadruplet en Kotlin). */
+    private class LigneRegle(
+        val x1: Float,
+        val y1: Float,
+        val x2: Float,
+        val y2: Float,
+    )
 
     /**
      * Pill d'insertion (miroir `.lab.nw` : fond `nouveau`, texte
@@ -1812,6 +1962,20 @@ public class VuePreviewXml :
 
         /** Décalage de la pill d'insertion sous la barre, en dp écran (miroir 6 px). */
         private const val DECALAGE_PILL_BARRE_DP = 6f
+
+        // ── Repères de plan PE12d (miroir `.cell`, `.gbox`, `relLine` — ADR 0135) ──
+
+        /** Trait de la CELLULE du plan, en dp écran (miroir 2 px de `.cell`). */
+        private const val TRAIT_CELLULE_DP = 2f
+
+        /** Rayon des COINS de la cellule, en dp écran (miroir 4 px de `.cell`). */
+        private const val RAYON_CELLULE_DP = 4f
+
+        /** Trait du FANTÔME du déposé, en dp écran (miroir 1,5 px de `.gbox`). */
+        private const val TRAIT_FANTOME_DP = 1.5f
+
+        /** Rayon des EXTRÉMITÉS du trait de règle, en dp écran (miroir `3 / z` de `relLine`). */
+        private const val RAYON_POINT_REGLE_DP = 3f
 
         // ── Calques PE6b/PE6c (miroir des jetons de la maquette) ──
 
