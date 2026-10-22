@@ -207,7 +207,10 @@
                 android:background="?attr/apercuTrait" />
         </LinearLayout>
 
-        <!-- .canvas : le damier et le rendu sont dessinés par VuePreviewXml ; les .hud sont des vues. -->
+        <!-- .canvas : le damier et le rendu sont dessinés par VuePreviewXml ; les .hud sont des vues.
+             v0.166.5 : le RETRAIT BAS est posé par le code (PreviewActivity.
+             majRetraitFeuille) au bord courant de la feuille inférieure —
+             le rendu et les pièces basses ne passent JAMAIS dessous. -->
         <FrameLayout
             android:id="@+id/conteneur_rendu"
             android:layout_width="match_parent"
@@ -320,7 +323,8 @@
                 android:maxWidth="@dimen/apercu_toast_largeur_max"
                 android:visibility="gone" />
 
-            <!-- .status : pilule bas-gauche ; le code la remonte avec la feuille (translationY). -->
+            <!-- .status : pilule bas-gauche ; le retrait du canvas (v0.166.5) la
+                 maintient au-dessus de la feuille, repliée comprise. -->
             <LinearLayout
                 android:id="@+id/pastille_etat"
                 style="@style/Widget.CodeIDE.Apercu.Etat"

@@ -133,10 +133,14 @@ s'étend aux vues exclues et ce PV est complété.
   ni `paddingHorizontal`/`paddingVertical` — API 26) : profil `separateur`/`bio`/`stats` perdent leurs marges
   horizontales (x 0 contre 16, largeur 393 contre 361) ; carte `titre`/`sous_titre` x 0 contre 16 (padding de la
   légende) ; fil `f_tout` x 0 contre 16.
-- **C1 — l'action bar du chrome ne se retire pas** (`ChromeSysteme.attrBool` interroge
+- **C1 — l'action bar du chrome ne se retirait pas** (`ChromeSysteme.attrBool` interrogeait
   `ThemeResolver.getStyleAttribute(null, nom)` qui rend TOUJOURS null quand le style n'est pas nommé — et null de toute
-  façon au premier argument) : le fil est rendu AVEC l'action bar, sa racine garde 723 dp contre 779 à la planche
-  `noBar` ; la HAUTEUR de la racine du fil n'est pas comparée.
+  façon au premier argument) : le fil était rendu AVEC l'action bar, sa racine gardait 723 dp contre 779 à la planche
+  `noBar` ; la HAUTEUR de la racine du fil n'était pas comparée. **CORRIGÉ en v0.166.5** : la lecture passe par
+  `resolveAttr("?android:attr/…")` (les attributs fenêtre vivent dans le namespace android) ; le diagnostic a de plus
+  révélé que le résolveur vivait en REPLI NATIF sur toute la fixture (un commentaire XML de `parents/res` citait
+  textuellement un jeton CSS à double tiret — illégal en commentaire XML — : le scan du dossier échouait en silence,
+  `catch` → repli sans thèmes) ; la hauteur de la racine du fil (779 dp) est DÉSORMAIS comparée.
 - **F4 — métriques de texte gonflées (~×2,7)** : les `TextView`/`Button` `wrap_content` mesurent bien plus que le texte
   (profil `nom` 377 dp de large contre ~143 attendu, `btn_message` clampé au parent) — cause non isolée (suspect :
   double conversion sp de l'AttributeApplier), sans effet sur les bornes comparées (elles sont fixes) ; les captures

@@ -1,5 +1,109 @@
 # Journal des modifications
 
+## [0.166.5] – 2026-10-22
+
+### La feuille déployée monte jusqu'au appbar, le rendu ne passe plus jamais dessous, la status bar du chrome gagne ses icônes
+
+#### Ajouté
+
+- **L'expansion de la feuille inférieure arrive jusqu'au appbar** (retour
+  propriétaire du 2026-10-22 : « ajoute la possibilité pour que
+  l'expansion arrive aussi jusqu'au appbar ») — les volets ne portent
+  plus 48 % de l'écran (`RATIO_VOLET`, PE9d) : leur hauteur REMPLIT
+  l'espace sous l'en-tête (appbar + puces + inset de barre d'état),
+  moins le chrome fixe de la feuille (poignée + onglets) et la barre de
+  navigation. La feuille `wrap_content` égalant alors exactement cet
+  espace, son état `expanded` (fit-to-contents du BottomSheetBehavior)
+  cale son bord haut SUR le bas de l'en-tête. La géométrie vit dans
+  l'ACTIVITÉ ([GestionnaireFeuilleApercu], formules pures
+  [GeometrieFeuilleApercu] — 8 tests) : le fragment ne pose plus rien
+  (`PEEK_DP`/`RATIO_VOLET` partent), elle seule connaît l'inset de
+  navigation, le CLAVIER et la hauteur de l'en-tête.
+- **La feuille déployée respecte le CLAVIER** (« petit problème lorsque
+  le bottomsheet behavior est expand avec le keyboard visible ») —
+  `PreviewActivity` reçoit `windowSoftInputMode="adjustResize"`
+  (miroir ADR 0118 de l'éditeur) et UN SEUL écouteur d'insets pour
+  l'écran : la hauteur des volets retranche l'IME — la feuille
+  déployée s'arrête AU-DESSUS du clavier, le champ frappé du volet
+  Attributs reste visible ; le peek (78 dp) COUVRE la barre de
+  navigation et le contenu de la feuille reçoit l'inset en padding
+  bas (la poignée et les onglets ne passent jamais sous les gestes).
+
+#### Corrigé
+
+- **La feuille ne cache plus le zoom, la pastille « rendue · n vues » ni
+  le bas du preview — même repliée** (« le bottomsheet behavior cache
+  une partie de la section zoom et rendue • nVues… il faut réarranger
+  la hiérarchie, comme ça le bottomsheet même en collapse ne cache
+  plus aussi la partie bottom du preview ») — le canvas
+  `conteneur_rendu` se RETIRE désormais du bord courant de la feuille :
+  un padding bas animé 250 ms (miroir `transition: bottom .25s ease`
+  de `applySheet`) le fait terminer au bord de la feuille + la marge
+  du HUD, à CHAQUE état posé (collapsed, expanded, half-expanded —
+  l'ancienne `translationY` [GlissadeFeuilleApercu] ne couvrait NI le
+  half-expanded NI la barre de gestes : c'est de là que venaient les
+  pièces cachées). Le rendu, la colonne de zoom (bas-droite) et la
+  pastille d'état (bas-gauche) vivent dans la zone restante : plus
+  JAMAIS sous la feuille. La même valeur porte la réserve de la bulle
+  de palette (miroir le `sh` UNIQUE de la maquette : le décalage du
+  zoom EST la réserve de la bulle).
+- **Le zoom survit AUSSI au retrait du canvas** — `VuePreviewXml` ne
+  re-fit plus une planche déjà posée au redimensionnement de sa zone
+  (le déploiement de la feuille retaille le canvas en continu) :
+  l'échelle est conservée, seul le pan se re-borne ; le FIT reste au
+  premier dimensionnement et aux gestes explicites (⤢, double-tap).
+  2 tests (`VuePreviewXmlTest`) : le zoom survit au rétrécissement ET
+  à la réouverture du canvas ; le premier dimensionnement d'une
+  planche posée s'ajuste toujours.
+- **La status bar du rendu porte enfin ses icônes** (« le statutbar
+  n'est pas similaire à celui de la maquette (n'a pas les icônes) ») —
+  `ChromeSysteme.creerStatusBar` posait une `View` NUE : la barre
+  dessine désormais son contenu maquette (`GlyphesBarreStatut`,
+  miroir `.sbar` ligne 1080 : « 9:41 » à gauche, « 5G ▮▮▮ 100% » à
+  droite, sans-serif-medium 11, padding 12), la couleur du contenu
+  suivant la LUMINANCE du fond ([LisibiliteChrome] — blanc sur sombre,
+  `#0C2264` sur clair, miroir `--s-onpri`) ; les fonds PAR DÉFAUT
+  prennent les jetons de la planche (`--s-dark` `#2B2F7A` jour /
+  `#0C1030` nuit ; `--s-pri` `#43559E` jour / `#BAC4FF` nuit — plus
+  le teal Material des premières versions).
+- **L'appbar du rendu « trop gros » : le correctif C1** (ADR 0135) —
+  `ChromeSysteme.attrBool` lisait `getStyleAttribute(null, …)` qui rend
+  TOUJOURS null : `windowNoTitle`/`windowActionBar`/`windowFullscreen`
+  n'étaient jamais lus et l'action bar du chrome INCRUSTAIT tout
+  document, y compris ceux qui portent leur propre toolbar (d'où la
+  double barre et l'appbar visée par le propriétaire). La lecture
+  passe par `resolveAttr("?android:attr/…")` : la planche `noBar` du
+  fil rend enfin sans action bar (`MesureRenduParentsTest` : la
+  hauteur de la racine du fil, 779 dp, est DÉSORMAIS comparée) et le
+  titre suit la maquette (20 sans-serif-medium). AU PASSAGE, la cause
+  RÉELLE du repli du résolveur est réparée : un commentaire XML de la
+  fixture de mesure citait textuellement un jeton CSS à double tiret
+  (`--accent`) — ILLÉGAL dans un commentaire XML — et le scan des
+  ressources du dossier échouait EN SILENCE (catch → repli natif sans
+  résolveur) : tout `MesureRenduParentsTest` tournait sans thèmes.
+  7 tests `ChromeSystemeTest` (contenu de la status bar, retrait et
+  maintien de l'action bar, plein écran, fonds jour/nuit, lisibilité,
+  luminance) + 1 pipeline complet (`RenduLayoutLibV3Test`).
+- **L'arbre du popup de placement ressort de l'écran** (« la section
+  arbre du popup n'est pas similaire à la maquette ») — le retrait des
+  rangées était REMULTIPLIÉ : `EntreeArbre.indentation` porte DÉJÀ le
+  retrait complet (8 + profondeur × 16 dp) et le code le remultipliait
+  par 16 dp (`retraitBase + indentation × retraitNiveau` — 392 dp à la
+  profondeur 1, 648 dp à 2 : régression PE11j, commit fc63ee9e). Le
+  MÊME calcul que l'onglet Arbre est repris (`StyleVolet.dp(indentation)`
+  — miroir `style.paddingLeft = (8 + f.d * 16)`), le dimen
+  orphelin `apercu_rangee_indent` part ; test de cote dans
+  `CotesPlacementMenusMaquetteTest` (profondeur 0 → 8 dp, profondeur
+  1 → 24 dp).
+
+#### Défaut du frère signalé
+
+- `LayoutLib` journalise « AttachInfo injection échouée :
+  NoSuchFieldException: mIgnoreDirtyState » sur le SDK 33 de Robolectric
+  (champ renommé dans les AttachInfo récents) — repli NON bloquant,
+  découvert en branchant un journal au pipeline pendant le diagnostic
+  du repli silencieux ci-dessus.
+
 ## [0.166.4] – 2026-10-22
 
 ### Le zoom survit aux éditions, le rendu voyage sans PNG, et la palette Material rend enfin de vraies vues
