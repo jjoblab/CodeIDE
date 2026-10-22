@@ -1,5 +1,6 @@
 package jo.codeide.preview.xml
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -717,7 +718,20 @@ public class RenduLayoutLib(
         }
     }
 
-    /** Parse une valeur android:background en Drawable. */
+    /**
+     * Parse une valeur android:background en Drawable.
+     *
+     * Exemption lint ciblée (UseCompatLoadingForDrawables — v0.166.4) :
+     * appcompat est entré sur le classpath de compilation par le biais de
+     * LayoutLib 3.4.9 (module-inflater embarque les bibliothèques de son
+     * registre), ce qui ARME la règle ; mais le chargement visé est un
+     * drawable SYSTÈME résolu par réflexion (android.R.drawable), et le
+     * minSdk du projet est 26 — `Context.getDrawable` (API 21) est la voie
+     * directe, `AppCompatResources` n'apporte RIEN ici (il sert le
+     * pré-21 et les resources d'app — ce module n'a AUCUNE dépendance
+     * androidx de production).
+     */
+    @SuppressLint("UseCompatLoadingForDrawables") // minSdk 26 ≥ API 21 — voir KDoc
     @Suppress("CyclomaticComplexMethod") // parseBackground = un when exhaustif par type de valeur
     private fun parseBackground(valeur: String): Drawable? =
         when {
