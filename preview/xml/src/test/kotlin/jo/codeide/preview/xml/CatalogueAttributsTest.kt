@@ -512,13 +512,17 @@ public class CatalogueAttributsTest {
     @Test
     fun `les valeurs d'enumeration sont valides pour la plateforme`() {
         // Listes de référence : attrs.xml d'AOSP (visibility) + Material
-        // Components (boxBackgroundMode, endIconMode) + LinearLayout
+        // Components (boxBackgroundMode, endIconMode, fabSize) + LinearLayout
         // (orientation). Les masques | (textStyle, gravity, layout_gravity)
         // et le type de saisie sont des DRAPEAUX/TypeSaisie — testés plus bas.
+        // PE12h : FloatingActionButton entre dans les classes couvertes quand
+        // la palette offre le bouton (§ 11) — sa section propre (PE12c, § 5.4)
+        // porte le Choix fabSize.
         val reference =
             mapOf(
                 "app:boxBackgroundMode" to listOf("outline", "filled"),
                 "app:endIconMode" to listOf("none", "password_toggle", "clear_text"),
+                "app:fabSize" to listOf("auto", "normal", "mini"),
                 "android:orientation" to listOf("vertical", "horizontal"),
                 "android:visibility" to listOf("visible", "invisible", "gone"),
             )
