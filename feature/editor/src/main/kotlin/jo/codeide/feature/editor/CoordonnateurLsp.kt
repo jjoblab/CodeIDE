@@ -33,6 +33,13 @@ import jo.codeide.lsp.host.SessionLspXml
  * .java sans serveur retombe sur la coloration lexicale (comportement
  * de l'ancienne app, honnête).
  *
+ * Chantier « Capacités LSP fermées par défaut » (ADR 0136) : un onglet
+ * sans serveur ⇒ `debrancher()` (coloration lexicale seule) — et à
+ * partir de code-editor 3.74.0, la DÉCONNEXION ferme aussi les
+ * capacités côté bibliothèque (l'ancien défaut ≤ 3.73.0 laissait le
+ * LspLanguage posé sur la vue après un onglet sans serveur ; la
+ * correction appartient à la bibliothèque, ADR 0136 D2).
+ *
  * @param journal journal applicatif (règle 11 — rien de personnel dans
  *   les messages : chemins et noms de fichiers seulement).
  */
@@ -98,13 +105,18 @@ internal class CoordonnateurLsp(
             // signal « LSP branché » demandé par l'utilisateur ; en DEBUG
             // il était filtré et la connexion semblait muette (§16.2.2).
             .thenRun {
-                val langue =
-                    when {
-                        cheminFuse.endsWith(".kts", true) || cheminFuse.endsWith(".kt", true) -> "Kotlin"
-                        cheminFuse.endsWith(".xml", true) -> "XML"
-                        else -> "Java"
-                    }
-                journal.i(TAG) { "LSP $langue connecté ($cheminFuse)" }
+                // P1-a (ADR 0136) — journal HONNÊTE : l'ancien
+                // `else -> "Java"` étiquetait N'IMPORTE QUEL fichier sans
+                // extension .kt/.xml de « Java », faussant le diagnostic
+                // (un .txt branché par langage reconnu se disait Java).
+                // La résolution réutilise les prédicats d'EXTENSION des
+                // onglets [extensionJava]/[extensionKotlin]/[extensionXml]
+                // — une seule écriture du repli ; un fichier sans extension
+                // de langage est dit SANS langage, jamais Java.
+                when (val langue = langageLspDuFichier(cheminFuse)) {
+                    null -> journal.w(TAG) { "LSP connecté sans langage reconnu ($cheminFuse) — coloration seule" }
+                    else -> journal.i(TAG) { "LSP $langue connecté ($cheminFuse)" }
+                }
             }.exceptionally { echec ->
                 journal.w(TAG, echec) { "LSP : échec de connexion ($cheminFuse) — coloration seule" }
                 null

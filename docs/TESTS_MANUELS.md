@@ -1119,3 +1119,34 @@ d'architecture des interrupteurs y sont livrés.
    survit, consommée elle retombe), `LangagesViewModelTest` (la demande
    passe par le port et porte l'identifiant du projet ; refus honnête
    sans port ni session).
+
+## Capacités LSP fermées par défaut et action « Formater » (chantier LSP-fermeture → v0.167.0, ADR 0136)
+
+Écran : éditeur (`EditorActivity`), plusieurs onglets de types DIFFÉRENTS ouverts dans le même
+espace (un `.java` ou `.kt`, un `.txt` sans serveur, un `.xml`). À vérifier sur appareil 360 dp,
+clair ET sombre, clavier logiciel présent. ⚠ **Les scénarios 2 à 4 échoueront tant que la montée
+code-editor 3.74.0 n'est pas consommée (phase 2 du chantier)** : le défaut ≤ 3.73.0
+(`disconnect()` n'enlève pas le `LspLanguage` de la vue) est corrigé DANS LA BIBLIOTHÈQUE —
+ADR 0136 D1 interdit tout contournement local ; noter l'écart constaté et le re-vérifier après
+la montée.
+
+1. **Branchement honnête (P1-a)** — ouvrir un `.java` : le journal (écran Diagnostic) dit
+   « LSP Java connecté (…) » ; le menu « Formater » est PROPOSÉ. Ouvrir un `.txt` : le journal ne
+   dit JAMAIS « Java » pour lui (le coordinateur n'est d'ailleurs pas branché : pas de
+   complétion, pas de survol — coloration seule).
+2. **Fermeture des capacités au changement d'onglet (3.74.0 requis)** — sur le `.java` : taper,
+   attendre la complétion (elle apparaît) ; passer au `.txt` : AUCUNE complétion, AUCUN survol,
+   aucune marque de diagnostic, la mise en forme ne fait RIEN. Avec 3.73.0 : la complétion du
+   Java fuitera encore sur le `.txt` — écart CONNU, documenté ADR 0136 D1.
+3. **Retour au `.java` (3.74.0 requis)** — tout revient : complétion, survol, diagnostics,
+   formatage. La coloration du `.txt` reste lexicale.
+4. **Changement d'onglet très rapide pendant la connexion (3.74.0 requis)** — enchaîner
+   4-5 changements d'onglet au moment où le journal annonce la connexion : pas de marque
+   résiduelle sur l'onglet final, pas de plantage (le renoncement de branchement est journalisé).
+5. **Action « Formater » (P1-b, livré phase 1)** — sur un `.java` ou un `.xml` mal indenté :
+   le menu (toolbar, icône baguette, ou débordement si la toolbar est dense) FORMATE le document,
+   SUCCESSION d'une seule frappe à l'historique ; le texte modifié n'affiche AUCUN message. Sur un
+   document déjà conforme : « Déjà formaté ». Sur un `.kt` (le serveur Kotlin n'annonce pas la
+   mise en forme) : « Mise en forme indisponible pour ce fichier : aucun serveur ne la propose ou
+   elle est désactivée dans les réglages de langage ». Sur un onglet sans serveur (`.txt`) :
+   l'action N'EST PAS PROPOSÉE. Sans aucun onglet : le menu n'existe pas / ne lance rien.

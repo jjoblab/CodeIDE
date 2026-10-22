@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Action « Formater le document » (ADR 0136 — P1-b) : la commande
+     existe déjà au clavier physique côté bibliothèque, rien ne l'offrait
+     au toucher. Visible quand l'onglet actif a une session de langue
+     vivante (phase 1) ; motif de action_enregistrer (icône teintée par
+     jeton, ifRoom : bascule au débordement sur son titre si la toolbar
+     est dense). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- La baguette de reformatage (étoile + trait incliné) : le même
+         glyphe que l'action « Reformater » des environnements de
+         bureau, teinté par iconTint (jamais en dur — jeton). -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M21.55,2.61l-1.98,1.98l-1.98,-1.98l-1.42,1.42l1.98,1.98l-1.98,1.98l1.42,1.42l1.98,-1.98l1.98,1.98l1.42,-1.42l-1.98,-1.98l1.98,-1.98z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.5,9.41l1.41,1.41l-11.19,11.18l-1.41,0l0,-1.41z" />
+</vector>

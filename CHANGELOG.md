@@ -1,5 +1,60 @@
 # Journal des modifications
 
+## [0.167.0] – 2026-10-22
+
+### Action « Formater » au toucher et journal LSP honnête — phase 1 de « Capacités LSP fermées par défaut » (ADR 0136)
+
+#### Ajouté
+
+- **L'action « Formater » rejoint le menu de l'éditeur** (ADR 0136 D3 —
+  phase 1 du chantier) : la commande clavier physique existait côté
+  bibliothèque (`EditorView.formatDocument`, vérifié dans l'artefact
+  3.72.0), RIEN ne l'offrait au toucher. Entrée `action_formater` de
+  `menu_editeur.xml` (icône baguette `ic_formater` teintée par jeton
+  `?attr/colorOnSurfaceVariant`, `ifRoom` — bascule au débordement sur
+  son titre si la toolbar est dense — textes FR/EN, motif
+  `action_enregistrer`). L'activité ne fait que RELAYER le clic
+  (règle 1) : la VUE mène le formatage ; le callback (thread UI) vaut
+  `true` (texte modifié → AUCUN message, l'utilisateur le voit),
+  `false` (« Déjà formaté ») ou `null` (« Mise en forme indisponible
+  pour ce fichier : aucun serveur ne la propose ou elle est désactivée
+  dans les réglages de langage » — Snackbar sur la racine, motif du
+  retour « chemin copié »). Ne lance RIEN si aucun onglet n'est ouvert.
+  La décision (visibilité, message) est PURE — [DecisionFormater],
+  testée JVM sans cadre Android (`DecisionFormaterTest`, 9 tests).
+- **La visibilité suit la session de langue de l'onglet actif**
+  (phase 1) : l'action n'apparaît que si le serveur du TYPE du fichier
+  courant vit (Java, Kotlin, XML — [serveurPretDe], la MÊME garde que
+  le branchement, refactorée en UNE écriture partagée avec
+  `brancherLspSiNecessaire`). La phase 2 pilotera par `canFormat()`
+  (code-editor 3.74.0) et ajoutera « Formater la sélection ».
+
+#### Corrigé
+
+- **Le journal du branchement LSP n'étiquette plus « Java » n'importe
+  quel fichier** (ADR 0136 D2 — P1-a) : `CoordonnateurLsp.brancher`
+  étiquetait `else -> "Java"` TOUT chemin sans extension `.kt`/`.xml`
+  (un `.txt` branché par langage reconnu se disait « Java » — diagnostic
+  faux). La résolution réutilise les prédicats d'EXTENSION des onglets
+  — EXTRAIT partagé `extensionJava`/`extensionKotlin`/`extensionXml` +
+  `langageLspDuFichier` (le repli de `EditorTabState.estJava/estKotlin/
+  estXml` et le journal du coordinateur partagent UNE écriture) ; un
+  fichier sans extension de langue est journalisé « sans langage reconnu
+  — coloration seule » en WARN, jamais « Java ».
+
+#### En attente (phase 2)
+
+- La fermeture des capacités au changement d'onglet appartient à la
+  BIBLIOTHÈQUE (défaut ≤ 3.73.0 : `disconnect()` n'enlève pas le
+  `LspLanguage` — corrigé en 3.74.0 par l'agent du dépôt frère) :
+  AUCUN contournement local (ADR 0136 D1). La phase 2 (montée 3.74.0,
+  `canFormat()`/`canFormatSelection()`, options de formatage depuis
+  `TailleTabulation`, ADR « Accepté ») ne démarre QUE sur la note de
+  passage (`docs/MISE-A-JOUR-CODEIDE.md` § 3.74.0 du dépôt frère,
+  conditions §3.1 du prompt du chantier) ; les scénarios d'appareil 2
+  à 4 de `docs/TESTS_MANUELS.md` échoueront tant qu'elle n'est pas
+  consommée.
+
 ## [0.166.5] – 2026-10-22
 
 ### La feuille déployée monte jusqu'au appbar, le rendu ne passe plus jamais dessous, la status bar du chrome gagne ses icônes
