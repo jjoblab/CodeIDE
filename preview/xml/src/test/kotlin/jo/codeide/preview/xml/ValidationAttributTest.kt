@@ -336,4 +336,57 @@ public class ValidationAttributTest {
         )
         assertTrue("Vide", ValidationAttribut.nomAttributLibre("") is ValidationAttribut.Resultat.Erreur)
     }
+
+    @Test
+    fun `le nom d activite de tools context suit la maquette`() {
+        // PE11 § 7 — miroir `/^[.\w]+$/` du `C.str('tools:context', …)` :
+        // `.MainActivity`, la forme PLEINEMENT qualifiée et le simple nom
+        // passent ; le VIDE reste VALIDE (c'est le RETRAIT) ; espaces,
+        // tirets et slashs sont des ERREURS qui n'écrivent RIEN.
+        assertTrue("Vide = retrait", ValidationAttribut.nomActivite("") is ValidationAttribut.Resultat.Valide)
+        assertTrue(
+            "Point + classe",
+            ValidationAttribut.nomActivite(".MainActivity") is ValidationAttribut.Resultat.Valide,
+        )
+        assertTrue(
+            "Pleinement qualifie",
+            ValidationAttribut.nomActivite("com.exemple.ConnexionActivity") is ValidationAttribut.Resultat.Valide,
+        )
+        assertTrue("Nom nu", ValidationAttribut.nomActivite("MainActivity") is ValidationAttribut.Resultat.Valide)
+        assertTrue(
+            "L espace est refuse",
+            ValidationAttribut.nomActivite(".Main Activity") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Le tiret est refuse",
+            ValidationAttribut.nomActivite("com.exemple-activite") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Le slash est refuse",
+            ValidationAttribut.nomActivite("com/exemple") is ValidationAttribut.Resultat.Erreur,
+        )
+    }
+
+    @Test
+    fun `le nom de methode java de onclick suit la maquette`() {
+        // PE11 § 7 — miroir `/^[A-Za-z_$][\w$]*$/` du `C.str('android:onClick',
+        // …)` : un identifiant Java nu (le `$` compris) ; le VIDE reste
+        // VALIDE (retrait) ; chiffre en tête, point, espaces = ERREURS.
+        assertTrue("Vide = retrait", ValidationAttribut.nomMethodeJava("") is ValidationAttribut.Resultat.Valide)
+        assertTrue("Nom simple", ValidationAttribut.nomMethodeJava("onConnexion") is ValidationAttribut.Resultat.Valide)
+        assertTrue("Soulignement", ValidationAttribut.nomMethodeJava("_prive1") is ValidationAttribut.Resultat.Valide)
+        assertTrue("Dollar", ValidationAttribut.nomMethodeJava("\$cached") is ValidationAttribut.Resultat.Valide)
+        assertTrue(
+            "Chiffre en tete refuse",
+            ValidationAttribut.nomMethodeJava("1clic") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Le point du paquet est refuse",
+            ValidationAttribut.nomMethodeJava("com.exemple.clic") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "L espace est refuse",
+            ValidationAttribut.nomMethodeJava("on clic") is ValidationAttribut.Resultat.Erreur,
+        )
+    }
 }

@@ -63,6 +63,12 @@ public object ValidationAttribut {
 
         /** « Nom attendu : android:…, app:… ou tools:…. » (erreur — attribut libre, PE11h). */
         NOM_ATTRIBUT_LIBRE,
+
+        /** « Nom d'activité attendu, par exemple .MainActivity. » (erreur — tools:context, § 7). */
+        NOM_ACTIVITE_ATTENDU,
+
+        /** « Nom de méthode Java attendu, par exemple onConnexion. » (erreur — android:onClick, § 7). */
+        NOM_METHODE_ATTENDU,
     }
 
     /**
@@ -288,5 +294,44 @@ public object ValidationAttribut {
             Resultat.Valide
         } else {
             Resultat.Erreur(GenreMessage.NOM_ATTRIBUT_LIBRE)
+        }
+
+    /**
+     * Un nom d'ACTIVITÉ pour `tools:context` (PE11 § 7 — miroir le
+     * `/^[.\w]+$/` du `C.str('tools:context', …)` de la maquette) :
+     * lettres, chiffres, traits de soulignement et POINTS (`.MainActivity`,
+     * `com.exemple.ExempleActivity`). Le VIDE reste VALIDE (c'est le
+     * RETRAIT, réglé au liage).
+     */
+    private val NOM_ACTIVITE: Regex = Regex("""^[.\w]+$""")
+
+    /**
+     * Valide une saisie de `tools:context` : une ERREUR n'écrit RIEN
+     * (miroir `showMsg(f, {err})` — le champ garde son contenu, le
+     * message s'affiche dessous).
+     */
+    public fun nomActivite(valeur: String): Resultat =
+        if (valeur.isBlank() || NOM_ACTIVITE.matches(valeur.trim())) {
+            Resultat.Valide
+        } else {
+            Resultat.Erreur(GenreMessage.NOM_ACTIVITE_ATTENDU)
+        }
+
+    /**
+     * Un nom de MÉTHODE Java pour `android:onClick` (PE11 § 7 — miroir le
+     * `/^[A-Za-z_$][\w$]*$/` du `C.str('android:onClick', …)` de la
+     * maquette) : identifiant Java nu, `$` compris.
+     */
+    private val NOM_METHODE: Regex = Regex("""^[A-Za-z_$][\w$]*$""")
+
+    /**
+     * Valide une saisie de `android:onClick` : une ERREUR n'écrit RIEN
+     * (miroir `showMsg(f, {err})`). Le VIDE reste VALIDE (RETRAIT).
+     */
+    public fun nomMethodeJava(valeur: String): Resultat =
+        if (valeur.isBlank() || NOM_METHODE.matches(valeur.trim())) {
+            Resultat.Valide
+        } else {
+            Resultat.Erreur(GenreMessage.NOM_METHODE_ATTENDU)
         }
 }

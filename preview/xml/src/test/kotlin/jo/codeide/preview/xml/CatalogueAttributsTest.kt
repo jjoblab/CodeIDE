@@ -79,14 +79,19 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `chaque widget reconnu recoit sa section propre`() {
-        // Le miroir `sectionsFor` : Texte pour TextView, Saisie pour EditText,
-        // Champ pour TextInputLayout, Image pour ImageView, etc.
+        // Le miroir `sectionsFor` v6 : Texte pour TextView, Saisie pour EditText
+        // (APRÈS Typographie, Lignes et Icônes du texte — § 7), Champ pour
+        // TextInputLayout, Image pour ImageView, etc.
         assertEquals(CatalogueAttributs.TitreSection.IDENTITE, titrePropre("TextView"))
         assertEquals(CatalogueAttributs.TitreSection.TEXTE, titrePropre("TextView", indice = 1))
-        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titrePropre("EditText", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.TYPOGRAPHIE, titrePropre("EditText", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titrePropre("EditText", indice = 4))
         assertEquals(CatalogueAttributs.TitreSection.CHAMP, titrePropre("TextInputLayout", indice = 1))
-        assertEquals(CatalogueAttributs.TitreSection.BOUTON, titrePropre("Button", indice = 2))
-        assertEquals(CatalogueAttributs.TitreSection.ETAT, titrePropre("CheckBox", indice = 2))
+        assertEquals(CatalogueAttributs.TitreSection.AIDES_CHAMP, titrePropre("TextInputLayout", indice = 2))
+        assertEquals(CatalogueAttributs.TitreSection.ICONES, titrePropre("TextInputLayout", indice = 3))
+        assertEquals(CatalogueAttributs.TitreSection.CONTOUR, titrePropre("TextInputLayout", indice = 4))
+        assertEquals(CatalogueAttributs.TitreSection.BOUTON, titrePropre("Button", indice = 5))
+        assertEquals(CatalogueAttributs.TitreSection.ETAT, titrePropre("CheckBox", indice = 5))
         assertEquals(CatalogueAttributs.TitreSection.IMAGE, titrePropre("ImageView", indice = 1))
         assertEquals(CatalogueAttributs.TitreSection.CONTENEUR, titrePropre("LinearLayout", indice = 1))
         assertEquals(CatalogueAttributs.TitreSection.PROGRESSION, titrePropre("ProgressBar", indice = 1))
@@ -110,17 +115,24 @@ public class CatalogueAttributsTest {
                 listOf(CatalogueAttributs.TitreSection.TEXTE, CatalogueAttributs.TitreSection.ETAT),
             ),
         )
-        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titres("TextInputEditText").get(1))
+        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titres("TextInputEditText").get(4))
     }
 
     @Test
     fun `la carte garde arrondi et elevation sous le titre Carte - le conteneur devient frame`() {
         // PE12c — spec § 5.1 : MaterialCardView (famille FRAME) reçoit le
-        // Conteneur FRAME ; ses deux contrôles historiques passent sous
-        // le titre Carte (« + Carte (existant), inchangé »).
+        // Conteneur FRAME ; PE11 § 7 ÉTEND la section Carte (fond, arrondi,
+        // élévation puis variante, bordure, ripple, padding, réglages).
         val sections = CatalogueAttributs.sections("MaterialCardView", FamilleParent.FRAME)
         val carte = sections.first { it.titre == CatalogueAttributs.TitreSection.CARTE }
-        assertEquals(listOf("app:cardCornerRadius", "app:cardElevation"), noms(carte))
+        assertEquals(
+            "Les trois courants de la § 7 ouvrent la carte",
+            listOf("app:cardBackgroundColor", "app:cardCornerRadius", "app:cardElevation"),
+            noms(carte).take(3),
+        )
+        assertTrue(
+            noms(carte).containsAll(listOf("style", "app:strokeColor", "app:contentPadding", "android:checkable")),
+        )
         val conteneur = sections.first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
         assertEquals(
             listOf(
@@ -376,7 +388,9 @@ public class CatalogueAttributsTest {
         // spec § 5 : les deux groupes de famille viennent APRÈS les
         // sections propres à la classe et AVANT les sections communes ;
         // PE11h — la section Autres attributs CLÔT la fiche (miroir le
-        // `sec('Autres attributs', …)` en fin de `sectionsFor`).
+        // `sec('Autres attributs', …)` en fin de `sectionsFor`) ; PE11 § 7 —
+        // le bloc COMMUN s'étend (Apparence, Transformation, Interaction,
+        // Accessibilité, Aperçu uniquement — miroir v6, même ordre).
         val sections =
             CatalogueAttributs.sections("LinearLayout", FamilleParent.RELATIVE, FamilleParent.LINEAR)
         assertEquals(
@@ -386,7 +400,12 @@ public class CatalogueAttributsTest {
                 CatalogueAttributs.TitreSection.DANS_PARENT,
                 CatalogueAttributs.TitreSection.POSITIONS_RELATIVES,
                 CatalogueAttributs.TitreSection.DISPOSITION,
+                CatalogueAttributs.TitreSection.APPARENCE,
                 CatalogueAttributs.TitreSection.AFFICHAGE,
+                CatalogueAttributs.TitreSection.TRANSFORMATION,
+                CatalogueAttributs.TitreSection.INTERACTION,
+                CatalogueAttributs.TitreSection.ACCESSIBILITE,
+                CatalogueAttributs.TitreSection.APERCU,
                 CatalogueAttributs.TitreSection.AUTRES,
             ),
             sections.map { section -> section.titre },
@@ -397,13 +416,22 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `une classe inconnue ne recoit que l'identite et les sections generiques`() {
+        // PE11 § 7 — le bloc COMMUN de la v6 : Disposition, Apparence,
+        // Affichage, Transformation, Interaction, Accessibilité, Aperçu
+        // uniquement + Autres ; AUCUNE section propre (jamais un contrôle
+        // qui pourrait être faux).
         val sections =
             CatalogueAttributs.sections("MockView", FamilleParent.AUTRE).map { it.titre }
         assertEquals(
             listOf(
                 CatalogueAttributs.TitreSection.IDENTITE,
                 CatalogueAttributs.TitreSection.DISPOSITION,
+                CatalogueAttributs.TitreSection.APPARENCE,
                 CatalogueAttributs.TitreSection.AFFICHAGE,
+                CatalogueAttributs.TitreSection.TRANSFORMATION,
+                CatalogueAttributs.TitreSection.INTERACTION,
+                CatalogueAttributs.TitreSection.ACCESSIBILITE,
+                CatalogueAttributs.TitreSection.APERCU,
                 // PE11h — la section Autres attributs clôt TOUTE fiche non
                 // racine, la vue dégradée comprise (elle édite le document).
                 CatalogueAttributs.TitreSection.AUTRES,
@@ -428,6 +456,9 @@ public class CatalogueAttributsTest {
             CatalogueAttributs
                 .sections("TextView", FamilleParent.CONSTRAINT)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTRAINTES }
+        // PE11 § 7 — la section POURSUIT par les réglages du ConstraintLayout
+        // (biais, pourcentage, ratio, bornes) : l'ORDRE ancres lues →
+        // éditable reste la TÊTE de la liste (testés aux nouveaux tests § 7).
         assertEquals(
             listOf(
                 CatalogueAttributs.ControleAttribut.ContraintesLecture(
@@ -435,7 +466,7 @@ public class CatalogueAttributsTest {
                 ),
                 CatalogueAttributs.ControleAttribut.Contraintes,
             ),
-            contraintes.controles,
+            contraintes.controles.take(2),
         )
     }
 
@@ -536,6 +567,10 @@ public class CatalogueAttributsTest {
 
     @Test
     fun `la racine n'a ni contraintes ni dans le parent`() {
+        // PE11 § 7 — miroir le RETOUR ANTICIPÉ de `sectionsFor` v6 : la
+        // racine vit Identité + RACINE + Conteneur (famille), SANS les
+        // génériques ni Autres — la section Racine porte le fond, le
+        // padding et compagnie (le piège § 5 de la 1re vague est clos).
         val titres =
             CatalogueAttributs
                 .sections("LinearLayout", FamilleParent.AUCUN)
@@ -545,11 +580,18 @@ public class CatalogueAttributsTest {
         // PE11h — la section Autres attributs est aussi ABSENTE de la
         // racine (miroir le retour anticipé de `sectionsFor`).
         assertFalse(titres.contains(CatalogueAttributs.TitreSection.AUTRES))
-        // La racine reste éditable pour Disposition et Affichage (piège § 5).
-        assertTrue(
-            titres.containsAll(
-                listOf(CatalogueAttributs.TitreSection.DISPOSITION, CatalogueAttributs.TitreSection.AFFICHAGE),
+        // La RACINE remplace Disposition/Affichage (annexe « Racine »).
+        assertTrue(titres.contains(CatalogueAttributs.TitreSection.RACINE))
+        assertFalse(titres.contains(CatalogueAttributs.TitreSection.DISPOSITION))
+        assertFalse(titres.contains(CatalogueAttributs.TitreSection.AFFICHAGE))
+        // La fiche racine ENTIÈRE : Identité, Racine, Conteneur (LINEAR).
+        assertEquals(
+            listOf(
+                CatalogueAttributs.TitreSection.IDENTITE,
+                CatalogueAttributs.TitreSection.RACINE,
+                CatalogueAttributs.TitreSection.CONTENEUR,
             ),
+            titres,
         )
     }
 
@@ -595,22 +637,83 @@ public class CatalogueAttributsTest {
             .flatMap { it.controles }
             .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
 
+    /**
+     * Les valeurs de référence des LISTES § 7 (constantes de la maquette
+     * v6 : SCALE, ALIGN, APPEAR, FONTS, WEIGHTS, ELLIP, IME, AUTOFILL,
+     * TINTMODE, LMGR, OVERSCROLL, IMPORTANT_A11Y…).
+     */
+    private val referenceListes: Map<String, List<String>> =
+        mapOf(
+            "android:scaleType" to
+                listOf(
+                    "matrix",
+                    "fitXY",
+                    "fitStart",
+                    "fitCenter",
+                    "fitEnd",
+                    "center",
+                    "centerCrop",
+                    "centerInside",
+                ),
+            "android:textAlignment" to listOf("gravity", "textStart", "center", "textEnd", "viewStart", "viewEnd"),
+            "android:textAppearance" to
+                listOf(
+                    "?attr/textAppearanceHeadlineLarge",
+                    "?attr/textAppearanceHeadlineMedium",
+                    "?attr/textAppearanceTitleLarge",
+                    "?attr/textAppearanceTitleMedium",
+                    "?attr/textAppearanceBodyLarge",
+                    "?attr/textAppearanceBodyMedium",
+                    "?attr/textAppearanceLabelLarge",
+                ),
+            "android:fontFamily" to
+                listOf("sans-serif", "sans-serif-medium", "sans-serif-light", "serif", "monospace", "cursive"),
+            "android:textFontWeight" to listOf("100", "200", "300", "400", "500", "600", "700", "800", "900"),
+            "android:ellipsize" to listOf("none", "start", "middle", "end", "marquee"),
+            "android:imeOptions" to
+                listOf("actionNone", "actionGo", "actionSearch", "actionSend", "actionNext", "actionDone"),
+            "android:autofillHints" to
+                listOf(
+                    "emailAddress",
+                    "username",
+                    "password",
+                    "newPassword",
+                    "name",
+                    "phone",
+                    "postalAddress",
+                    "postalCode",
+                    "smsOTPCode",
+                ),
+            "android:importantForAutofill" to listOf("auto", "yes", "no", "noExcludeDescendants"),
+            "app:endIconMode" to
+                listOf("none", "password_toggle", "clear_text", "custom", "dropdown_menu"),
+            "app:iconGravity" to listOf("start", "textStart", "end", "textEnd", "top", "textTop"),
+            "android:tintMode" to listOf("src_in", "src_atop", "multiply", "screen", "add"),
+            "app:layoutManager" to
+                listOf(
+                    "androidx.recyclerview.widget.LinearLayoutManager",
+                    "androidx.recyclerview.widget.GridLayoutManager",
+                    "androidx.recyclerview.widget.StaggeredGridLayoutManager",
+                ),
+            "android:overScrollMode" to listOf("always", "ifContentScrolls", "never"),
+            "android:importantForAccessibility" to listOf("auto", "yes", "no", "noHideDescendants"),
+        )
+
     @Test
     fun `les valeurs d'enumeration sont valides pour la plateforme`() {
         // Listes de référence : attrs.xml d'AOSP (visibility) + Material
-        // Components (boxBackgroundMode, endIconMode, fabSize) + LinearLayout
-        // (orientation). Les masques | (textStyle, gravity, layout_gravity)
-        // et le type de saisie sont des DRAPEAUX/TypeSaisie — testés plus bas.
-        // PE12h : FloatingActionButton entre dans les classes couvertes quand
-        // la palette offre le bouton (§ 11) — sa section propre (PE12c, § 5.4)
-        // porte le Choix fabSize.
+        // Components (boxBackgroundMode § 7 avec « none », fabSize) +
+        // LinearLayout (orientation). PE11 § 7 : endIconMode quitte les CHOIX
+        // (5 valeurs → LISTE testée plus bas), autoSizeTextType entre
+        // (none, uniform — attrs.xml d'AOSP).
         val reference =
             mapOf(
-                "app:boxBackgroundMode" to listOf("outline", "filled"),
-                "app:endIconMode" to listOf("none", "password_toggle", "clear_text"),
+                "app:boxBackgroundMode" to listOf("outline", "filled", "none"),
                 "app:fabSize" to listOf("auto", "normal", "mini"),
                 "android:orientation" to listOf("vertical", "horizontal"),
                 "android:visibility" to listOf("visible", "invisible", "gone"),
+                "android:autoSizeTextType" to listOf("none", "uniform"),
+                "tools:visibility" to listOf("visible", "invisible", "gone"),
             )
         val classeChoix =
             classesCouvertes
@@ -632,9 +735,10 @@ public class CatalogueAttributsTest {
         val defauts =
             mapOf(
                 "android:visibility" to "visible",
+                "tools:visibility" to "visible",
                 "app:boxBackgroundMode" to "outline",
-                "app:endIconMode" to "none",
                 "android:orientation" to "vertical",
+                "android:autoSizeTextType" to "none",
             )
         val classeChoix =
             classesCouvertes
@@ -653,33 +757,64 @@ public class CatalogueAttributsTest {
     @Test
     fun `les enums de plus de 4 valeurs sont des listes deroulantes`() {
         // Miroir § 9 / maquette « Liste » : un enum de plus de 4 valeurs
-        // porte le contrôle LISTE (liste déroulante) ; scaleType est le
-        // premier usager (8 valeurs plateforme, SCALE de la maquette).
-        val reference =
-            mapOf(
-                "android:scaleType" to
-                    listOf(
-                        "matrix",
-                        "fitXY",
-                        "fitStart",
-                        "fitCenter",
-                        "fitEnd",
-                        "center",
-                        "centerCrop",
-                        "centerInside",
-                    ),
-            )
+        // porte le contrôle LISTE (liste déroulante) — et PE11 § 7 en pose
+        // BEAUCOUP (l'annexe liste même des enums COURTS : importantFor*,
+        // overScrollMode, layoutManager — le catalogue curé décide, la
+        // règle > 4 n'est que le DÉFAUT de dérivation). Les valeurs de
+        // référence vivent en PROPRIÉTÉ (les constantes de la maquette v6 :
+        // APPEAR, FONTS, WEIGHTS, ELLIP, IME, AUTOFILL, TINTMODE, LMGR…).
         val classeListes =
             classesCouvertes
                 .flatMap { classe -> listesDe(classe).map { classe to it } }
+                // Les TROIS listes « style » (Champ, Bouton « variante »,
+                // Carte) portent le même NOM avec des VALEURS propres —
+                // testées à part juste après.
+                .filter { it.second.nom != "style" }
                 .distinctBy { it.second.nom }
         for ((classe, liste) in classeListes) {
             assertEquals(
                 "Valeurs de ${liste.nom} ($classe)",
-                reference[liste.nom],
+                referenceListes[liste.nom],
                 liste.valeurs,
             )
         }
+    }
+
+    @Test
+    fun `les variantes de style § 7 - @style plein, affiche au dernier segment`() {
+        // Les TROIS listes « style » (Champ, Bouton « variante », Carte)
+        // portent le même NOM avec des VALEURS propres (annexe § 7) : la
+        // VALEUR écrite est la forme `@style/` PLEINE, l'affiche retient le
+        // DERNIER SEGMENT (miroir `x.replace(/^.*[./]/, '')`).
+        assertEquals(
+            "La variante du Button",
+            listOf(
+                "@style/Widget.Material3.Button",
+                "@style/Widget.Material3.Button.OutlinedButton",
+                "@style/Widget.Material3.Button.TextButton",
+                "@style/Widget.Material3.Button.TonalButton",
+                "@style/Widget.Material3.Button.ElevatedButton",
+            ),
+            listesDe("Button").first { it.nom == "style" }.valeurs,
+        )
+        assertEquals(
+            "La variante du TextInputLayout",
+            listOf(
+                "@style/Widget.Material3.TextInputLayout.OutlinedBox",
+                "@style/Widget.Material3.TextInputLayout.FilledBox",
+                "@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense",
+            ),
+            listesDe("TextInputLayout").first { it.nom == "style" }.valeurs,
+        )
+        assertEquals(
+            "La variante de la MaterialCardView",
+            listOf(
+                "@style/Widget.Material3.CardView.Elevated",
+                "@style/Widget.Material3.CardView.Filled",
+                "@style/Widget.Material3.CardView.Outlined",
+            ),
+            listesDe("MaterialCardView").first { it.nom == "style" }.valeurs,
+        )
     }
 
     // ── PE11d : les masques multi-valeurs (miroir `flags` de la maquette) ─
@@ -727,6 +862,9 @@ public class CatalogueAttributsTest {
                         "center",
                         "fill",
                     ),
+                // PE11 § 7 (Lignes et débordement) : le masque des liens
+                // automatiques (AUTOLINK de la maquette).
+                "android:autoLink" to listOf("web", "email", "phone", "map", "all"),
             )
         val classeDrapeaux =
             classesCouvertes
@@ -909,7 +1047,7 @@ public class CatalogueAttributsTest {
         )
         val image =
             CatalogueAttributs
-                .sections("ImageView", FamilleParent.AUCUN)
+                .sections("ImageView", FamilleParent.AUTRE)
                 .first { it.titre == CatalogueAttributs.TitreSection.IMAGE }
         val src =
             image.controles.first { it is CatalogueAttributs.ControleAttribut.Ressource }
@@ -925,24 +1063,73 @@ public class CatalogueAttributsTest {
     }
 
     @Test
-    fun `tout controle de la premiere vague est courant - le drapeau existe`() {
-        // PE10a/PE11f : le drapeau `courant` existe sur CHAQUE contrôle ;
-        // la 1re vague est TOUJOURS courante — sauf le Conteneur LINEAR,
-        // étendu dès PE12c (spec § 5.1) des attributs NON courants de la
-        // 2e vague (seuls orientation et gravity, marqués ★, y restent).
-        for (classe in listOf("TextView", "Button", "EditText", "ImageView", "LinearLayout")) {
-            for (section in CatalogueAttributs.sections(classe, FamilleParent.CONSTRAINT)) {
-                if (classe == "LinearLayout" && section.titre == CatalogueAttributs.TitreSection.CONTENEUR) {
-                    continue
-                }
-                for (controle in section.controles) {
-                    assertTrue(
-                        "contrôle de $classe/${section.titre}",
-                        controle.courant,
-                    )
-                }
+    fun `le drapeau courant suit l annexe § 7 - huit sections maximum en mode courants`() {
+        // PE11 § 7 (brief PE11d) : le champ `courant` de CHAQUE contrôle
+        // suit la DERNIÈRE COLONNE de l'annexe — l'IDENTITÉ (id c:0, tag)
+        // n'est PAS courante, Apparence/Transformation/Interaction/
+        // Accessibilité ne montrent que leurs têtes (background s'écrit en
+        // Racine, enabled garde son étoile, contentDescription aussi), et
+        // AUCUNE classe n'affiche PLUS DE HUIT SECTIONS en mode Courants.
+        for (classe in classesCouvertes) {
+            for ((famille, plafond) in listOf(
+                FamilleParent.CONSTRAINT to 8,
+                FamilleParent.LINEAR to 8,
+                FamilleParent.FRAME to 8,
+                FamilleParent.COORDINATOR to 8,
+                FamilleParent.APPBAR to 8,
+                FamilleParent.RELATIVE to 9,
+            )) {
+                // RELATIVE porte DEUX sections de parent (PE12c — ancrage +
+                // positions relatives) : son plafond monte à NEUF, l'écart
+                // voulu de la spec § 5.2 (le « 6 à 8 sections » du brief
+                // PE11d précédait PE12c — la 2e vague ne le régresse pas).
+                val visibles =
+                    CatalogueAttributs
+                        .sections(classe, famille)
+                        .filter { section -> section.controles.any { it.courant } }
+                assertTrue(
+                    "La fiche Courants de $classe (parent $famille) dépasse $plafond sections : " +
+                        visibles.map { it.titre },
+                    visibles.size <= plafond,
+                )
             }
         }
+        // L'IDENTITÉ n'est plus courante (miroir `c:0` du champ id v6).
+        val identite =
+            CatalogueAttributs
+                .sections("TextView", FamilleParent.AUTRE)
+                .first { it.titre == CatalogueAttributs.TitreSection.IDENTITE }
+        assertTrue(identite.controles.none { it.courant })
+        assertEquals(listOf("android:id", "android:tag"), noms(identite))
+        // Les étoiles déménagées : enabled (Interaction), contentDescription
+        // (Accessibilité), onClick (Interaction, validé) restent courants ;
+        // l'AFFICHAGE se réduit à visibility + alpha.
+        val generiques = CatalogueAttributs.sections("TextView", FamilleParent.AUTRE)
+        assertEquals(
+            listOf("android:visibility", "android:alpha"),
+            noms(generiques.first { it.titre == CatalogueAttributs.TitreSection.AFFICHAGE }),
+        )
+        assertTrue(
+            generiques
+                .first { it.titre == CatalogueAttributs.TitreSection.APPARENCE }
+                .controles
+                .none { it.courant },
+        )
+        assertTrue(
+            generiques
+                .first { it.titre == CatalogueAttributs.TitreSection.TRANSFORMATION }
+                .controles
+                .none { it.courant },
+        )
+        assertTrue(
+            "Le Contrôleur du Conteneur LINEAR garde ses deux étoiles PE12c",
+            CatalogueAttributs
+                .sections("LinearLayout", FamilleParent.AUTRE)
+                .first { it.titre == CatalogueAttributs.TitreSection.CONTENEUR }
+                .controles
+                .take(2)
+                .all { it.courant },
+        )
     }
 
     @Test
@@ -950,9 +1137,10 @@ public class CatalogueAttributsTest {
         // Règle § 9 (PE11e) : un attribut de COULEUR n'est jamais un
         // champ texte libre — le contrôle `col` de la maquette (pastille
         // + hex + Palette). Premier usager du catalogue : android:textColor.
+        // (parent AUTRE — AUCUN est la RACINE depuis § 7, retour anticipé.)
         val texte =
             CatalogueAttributs
-                .sections("TextView", FamilleParent.AUCUN)
+                .sections("TextView", FamilleParent.AUTRE)
                 .first { it.titre == CatalogueAttributs.TitreSection.TEXTE }
         val controle =
             texte.controles.first { it is CatalogueAttributs.ControleAttribut.Couleur }
@@ -967,7 +1155,7 @@ public class CatalogueAttributsTest {
         assertFalse(
             "plus AUCUN champ Texte ne porte l'étiquette COULEUR",
             CatalogueAttributs
-                .sections("TextView", FamilleParent.AUCUN)
+                .sections("TextView", FamilleParent.AUTRE)
                 .any { section ->
                     section.controles.any {
                         it is CatalogueAttributs.ControleAttribut.Texte &&
@@ -1143,6 +1331,346 @@ public class CatalogueAttributsTest {
                 CatalogueAttributs.ControleAttribut.Ratio.Prereglage("3:4", "3", "4"),
             ),
             CatalogueAttributs.ControleAttribut.Ratio.PREDEFINIS,
+        )
+    }
+
+    // ── PE11 § 7 : le catalogue curé de la deuxième vague ──────────────────
+
+    /** Les contrôles d'une section donnée (helper des tests § 7). */
+    private fun controlesDe(
+        classe: String,
+        titre: CatalogueAttributs.TitreSection,
+    ): List<CatalogueAttributs.ControleAttribut> =
+        CatalogueAttributs
+            .sections(classe, FamilleParent.AUTRE)
+            .first { it.titre == titre }
+            .controles
+
+    @Test
+    fun `la saisie gagne imeOptions et longueur max - maxLines demenage en lignes`() {
+        // Annexe § 7 « Saisie » : hint, inputType, imeOptions et maxLength
+        // en courants, digits/autofill/selectAll/cursorVisible/textColorHint
+        // ensuite — maxLines a DÉMÉNAGÉ vers « Lignes et débordement »
+        // (bornes [1 à 50], non courant).
+        assertEquals(
+            listOf(
+                "android:hint",
+                "android:inputType",
+                "android:imeOptions",
+                "android:maxLength",
+                "android:digits",
+                "android:autofillHints",
+                "android:importantForAutofill",
+                "android:selectAllOnFocus",
+                "android:cursorVisible",
+                "android:textColorHint",
+            ),
+            controlesDe("EditText", CatalogueAttributs.TitreSection.SAISIE).flatMap { it.nomsAttributs },
+        )
+        assertFalse(
+            "maxLength est courant",
+            controlesDe("EditText", CatalogueAttributs.TitreSection.SAISIE)[3].courant.not(),
+        )
+        val lignes = controlesDe("EditText", CatalogueAttributs.TitreSection.LIGNES)
+        assertEquals(
+            "maxLines ouvre Lignes et débordement",
+            "android:maxLines",
+            lignes.first().nomsAttributs.single(),
+        )
+        val maxLines =
+            lignes
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Nombre>()
+                .first { it.nom == "android:maxLines" }
+        assertEquals(CatalogueAttributs.Bornes(1f, 50f), maxLines.bornes)
+        assertFalse(maxLines.courant)
+    }
+
+    @Test
+    fun `le champ gagne aides compteur icones et contour - les coins comptent quatre attributs`() {
+        // Annexe § 7 « Champ » : + style et hintEnabled ; Aides et compteur,
+        // Icônes (endIconMode passe à la LISTE à cinq valeurs), Contour.
+        assertTrue(
+            controlesDe("TextInputLayout", CatalogueAttributs.TitreSection.CHAMP)
+                .flatMap { it.nomsAttributs }
+                .containsAll(listOf("style", "app:hintEnabled")),
+        )
+        assertEquals(
+            listOf(
+                "app:helperText",
+                "app:errorEnabled",
+                "app:counterEnabled",
+                "app:counterMaxLength",
+                "app:placeholderText",
+                "app:prefixText",
+                "app:suffixText",
+            ),
+            controlesDe("TextInputLayout", CatalogueAttributs.TitreSection.AIDES_CHAMP).flatMap { it.nomsAttributs },
+        )
+        // Le contrôle COINS porte les QUATRE attributs de coin (miroir
+        // `[c.a].concat(c.also)`) — un par champ de la rangée `.mrow`.
+        val coins =
+            controlesDe("TextInputLayout", CatalogueAttributs.TitreSection.CONTOUR)
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Coins>()
+                .single()
+        assertEquals(
+            listOf(
+                "app:boxCornerRadiusTopStart",
+                "app:boxCornerRadiusTopEnd",
+                "app:boxCornerRadiusBottomEnd",
+                "app:boxCornerRadiusBottomStart",
+            ),
+            coins.nomsAttributs,
+        )
+    }
+
+    @Test
+    fun `l etat separe la case de l interrupteur - l image garde ses bornes max`() {
+        // Annexe § 7 « État » : la CheckBox teint sa CASE (buttonTint +
+        // button), l'interrupteur teint POUCE et PISTE (+ textOn/textOff).
+        assertEquals(
+            listOf("android:checked", "app:buttonTint", "android:button"),
+            controlesDe("CheckBox", CatalogueAttributs.TitreSection.ETAT).flatMap { it.nomsAttributs },
+        )
+        assertEquals(
+            listOf(
+                "android:checked",
+                "android:thumbTint",
+                "android:trackTint",
+                "android:showText",
+                "android:textOn",
+                "android:textOff",
+            ),
+            controlesDe("Switch", CatalogueAttributs.TitreSection.ETAT).flatMap { it.nomsAttributs },
+        )
+        // Annexe « Image » : srcCompat, adjustViewBounds, tint, tintMode,
+        // cropToPadding et LES BORNES MAX — que la DISPOSITION de la famille
+        // image ne répète PAS (miroir le filtre /max/ v6).
+        assertEquals(
+            listOf(
+                "android:src",
+                "app:srcCompat",
+                "android:scaleType",
+                "android:adjustViewBounds",
+                "app:tint",
+                "android:tintMode",
+                "android:cropToPadding",
+                "android:maxWidth",
+                "android:maxHeight",
+            ),
+            controlesDe("ImageView", CatalogueAttributs.TitreSection.IMAGE).flatMap { it.nomsAttributs },
+        )
+        val dispositionImage =
+            controlesDe("ImageView", CatalogueAttributs.TitreSection.DISPOSITION)
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Nombre>()
+                .map { it.nom }
+        assertFalse("Pas de maxWidth dans la Disposition de l'image", dispositionImage.contains("android:maxWidth"))
+        assertFalse("Pas de maxHeight dans la Disposition de l'image", dispositionImage.contains("android:maxHeight"))
+        assertTrue("minHeight y reste", dispositionImage.contains("android:minHeight"))
+        assertTrue("minWidth y reste", dispositionImage.contains("android:minWidth"))
+    }
+
+    @Test
+    fun `les communs § 7 - apparence transformation interaction accessibilite et apercu`() {
+        // Annexe § 7, sections communes : Apparence (6), Transformation
+        // (6 curseurs), Interaction (enabled + onClick validé en courants),
+        // Accessibilité (contentDescription, importantForAccessibility,
+        // accessibilityHeading, labelFor en RÉFÉRENCE D'ID portée TOUT,
+        // tooltipText, screenReaderFocusable), Aperçu uniquement (note
+        // OUTILS_APERCU + la première entrée suit la classe).
+        assertEquals(
+            listOf(
+                "android:background",
+                "android:backgroundTint",
+                "android:foreground",
+                "android:elevation",
+                "android:clipToOutline",
+                "android:theme",
+            ),
+            controlesDe("TextView", CatalogueAttributs.TitreSection.APPARENCE).flatMap { it.nomsAttributs },
+        )
+        assertEquals(
+            listOf(
+                "android:rotation",
+                "android:scaleX",
+                "android:scaleY",
+                "android:translationX",
+                "android:translationY",
+                "android:translationZ",
+            ),
+            controlesDe("TextView", CatalogueAttributs.TitreSection.TRANSFORMATION).flatMap { it.nomsAttributs },
+        )
+        val interaction = controlesDe("TextView", CatalogueAttributs.TitreSection.INTERACTION)
+        assertEquals(
+            "onClick porte la validation de nom de méthode",
+            CatalogueAttributs.GenreValidationTexte.NOM_METHODE_JAVA,
+            interaction
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Texte>()
+                .first { it.nom == "android:onClick" }
+                .validation,
+        )
+        val acces = controlesDe("TextView", CatalogueAttributs.TitreSection.ACCESSIBILITE)
+        assertEquals(
+            listOf(
+                "android:contentDescription",
+                "android:importantForAccessibility",
+                "android:accessibilityHeading",
+                "android:labelFor",
+                "android:tooltipText",
+                "android:screenReaderFocusable",
+            ),
+            acces.flatMap { it.nomsAttributs },
+        )
+        assertEquals(
+            "labelFor est une référence d'id portée TOUT (mémo § 2)",
+            CatalogueAttributs.ControleAttribut.ReferenceId.Portee.TOUT,
+            acces
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.ReferenceId>()
+                .first { it.nom == "android:labelFor" }
+                .portee,
+        )
+    }
+
+    @Test
+    fun `l apercu uniquement suit la classe - tools text src et itemCount`() {
+        // Annexe § 7 « Aperçu uniquement » : la PREMIÈRE entrée suit la
+        // classe (tools:text pour la famille texte, tools:src pour l'image,
+        // tools:itemCount pour RecyclerView, RIEN pour les autres), puis
+        // tools:visibility et tools:ignore pour toutes — avec la NOTE
+        // dédiée (miroir la `note` de la maquette).
+        val apercu =
+            CatalogueAttributs
+                .sections("TextView", FamilleParent.AUTRE)
+                .first { it.titre == CatalogueAttributs.TitreSection.APERCU }
+        assertEquals(CatalogueAttributs.NoteSection.OUTILS_APERCU, apercu.note)
+        assertEquals(
+            "tools:text pour la famille texte",
+            listOf(
+                "tools:text",
+                "tools:visibility",
+                "tools:ignore",
+            ),
+            apercu.controles.flatMap {
+                it.nomsAttributs
+            },
+        )
+        assertEquals(
+            "tools:src pour l'image",
+            listOf("tools:src", "tools:visibility", "tools:ignore"),
+            controlesDe("ImageView", CatalogueAttributs.TitreSection.APERCU).flatMap { it.nomsAttributs },
+        )
+        assertEquals(
+            "tools:itemCount pour RecyclerView",
+            listOf("tools:itemCount", "tools:visibility", "tools:ignore"),
+            controlesDe("RecyclerView", CatalogueAttributs.TitreSection.APERCU).flatMap { it.nomsAttributs },
+        )
+        assertEquals(
+            "Rien de classe pour LinearLayout",
+            listOf("tools:visibility", "tools:ignore"),
+            controlesDe("LinearLayout", CatalogueAttributs.TitreSection.APERCU).flatMap { it.nomsAttributs },
+        )
+    }
+
+    @Test
+    fun `les contraintes gagnent biais pourcentage ratio et bornes de largeur`() {
+        // Annexe § 7 « Contraintes » : après les ancres LUES (PE11h) et
+        // l'éditable par côtés (PE8b), les réglages du ConstraintLayout —
+        // biais H courant, biais V désactivé sans contraintes haut+bas,
+        // pourcentage, RATIO (premier usager du contrôle), bornes min/max.
+        val contraintes =
+            CatalogueAttributs
+                .sections("Button", FamilleParent.CONSTRAINT)
+                .first { it.titre == CatalogueAttributs.TitreSection.CONTRAINTES }
+        assertEquals(
+            listOf(
+                "app:layout_constraintHorizontal_bias",
+                "app:layout_constraintVertical_bias",
+                "app:layout_constraintWidth_percent",
+                "app:layout_constraintDimensionRatio",
+                "app:layout_constraintWidth_min",
+                "app:layout_constraintWidth_max",
+            ),
+            contraintes.controles.drop(2).flatMap { it.nomsAttributs },
+        )
+        val horizontal =
+            contraintes.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Curseur>()
+                .first { it.nom == "app:layout_constraintHorizontal_bias" }
+        assertTrue("Le biais horizontal est courant (annexe ★)", horizontal.courant)
+        assertEquals(0.5f, horizontal.defaut)
+        val vertical =
+            contraintes.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Curseur>()
+                .first { it.nom == "app:layout_constraintVertical_bias" }
+        assertFalse("Le biais vertical n'est pas courant", vertical.courant)
+        assertTrue(
+            "Le biais vertical se désactive sans contraintes haut ET bas",
+            vertical.requiertContraintesVerticales,
+        )
+        val ratio =
+            contraintes.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Ratio>()
+                .single()
+        assertEquals("app:layout_constraintDimensionRatio", ratio.nom)
+        assertEquals(CatalogueAttributs.Etiquette.RATIO, ratio.etiquette)
+    }
+
+    @Test
+    fun `la racine porte tools context valide - fond couleur et padding`() {
+        // Annexe § 7 « Racine » : tools:context COURANT et VALIDÉ (nom
+        // d'activité), background couleur, padding côtés, ajustement
+        // système, découpage et hauteur min — le tout après le retour
+        // anticipé, SANS les génériques.
+        val racine =
+            CatalogueAttributs
+                .sections("ConstraintLayout", FamilleParent.AUCUN, FamilleParent.CONSTRAINT)
+                .first { it.titre == CatalogueAttributs.TitreSection.RACINE }
+        assertEquals(
+            listOf(
+                "tools:context",
+                "android:background",
+                "android:padding",
+                "android:fitsSystemWindows",
+                "android:clipToPadding",
+                "android:minHeight",
+            ),
+            racine.controles.flatMap { it.nomsAttributs },
+        )
+        val contexte =
+            racine.controles
+                .filterIsInstance<CatalogueAttributs.ControleAttribut.Texte>()
+                .first { it.nom == "tools:context" }
+        assertEquals(CatalogueAttributs.GenreValidationTexte.NOM_ACTIVITE, contexte.validation)
+        assertTrue("tools:context est courant (annexe ★)", contexte.courant)
+        assertTrue(
+            "android:background est le contrôle couleur de la Racine",
+            racine.controles.any {
+                it is CatalogueAttributs.ControleAttribut.Couleur && it.nom == "android:background"
+            },
+        )
+    }
+
+    @Test
+    fun `l identite gagne android tag - le switch n a pas d icones du texte`() {
+        // Annexe § 7 « Identité — toutes les vues » : android:id (renommage)
+        // + android:tag (texte). « Icônes du texte » suit le miroir v6 :
+        // `T && k !== 'switch' || k === 'edit'` — l'INTERRUPTEUR n'en a pas.
+        assertTrue(
+            "Le Switch n'a pas la section Icônes du texte",
+            CatalogueAttributs
+                .sections("Switch", FamilleParent.AUTRE)
+                .none { it.titre == CatalogueAttributs.TitreSection.ICONES_TEXTE },
+        )
+        assertTrue(
+            "La CheckBox a la section Icônes du texte",
+            CatalogueAttributs
+                .sections("CheckBox", FamilleParent.AUTRE)
+                .any { it.titre == CatalogueAttributs.TitreSection.ICONES_TEXTE },
+        )
+        assertTrue(
+            "L'EditText a la section Icônes du texte",
+            CatalogueAttributs
+                .sections("EditText", FamilleParent.AUTRE)
+                .any { it.titre == CatalogueAttributs.TitreSection.ICONES_TEXTE },
         )
     }
 }
