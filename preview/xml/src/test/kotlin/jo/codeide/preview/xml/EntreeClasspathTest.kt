@@ -46,6 +46,24 @@ class EntreeClasspathTest {
     }
 
     @Test
+    fun `parcel aller-retour - entree APK (v0_166_3 vraies vues)`() {
+        // L'APK dexé du projet : le genre traverse la frontière AIDL comme
+        // les autres — l'ordinal est APPENDÉ (compat ascendante du Parcel,
+        // un ancien :preview lirait JAR par repli getOrElse).
+        val source = EntreeClasspath("/projet/app/build/outputs/apk/debug/app-debug.apk", GenreEntreeClasspath.APK)
+        val parcel = Parcel.obtain()
+        try {
+            source.writeToParcel(parcel, 0)
+            parcel.setDataPosition(0)
+            val relu = EntreeClasspath.CREATOR.createFromParcel(parcel)
+            assertEquals(source.chemin, relu.chemin)
+            assertEquals(GenreEntreeClasspath.APK, relu.genre)
+        } finally {
+            parcel.recycle()
+        }
+    }
+
+    @Test
     fun `equals hashCode - genres differents`() {
         val a = EntreeClasspath("/x.jar", GenreEntreeClasspath.JAR)
         val b = EntreeClasspath("/x.jar", GenreEntreeClasspath.AAR)

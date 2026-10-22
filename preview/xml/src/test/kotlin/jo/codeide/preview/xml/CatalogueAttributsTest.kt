@@ -119,6 +119,44 @@ public class CatalogueAttributsTest {
     }
 
     @Test
+    fun `l extension palette v0_166_3 - familles des nouvelles entrees`() {
+        val titres = { classe: String ->
+            CatalogueAttributs.sections(classe, FamilleParent.AUTRE).map { it.titre }
+        }
+        // v0.166.3 « palette plus complète » : les MÊMES familles par
+        // héritage de nom couvrent les 19 extensions — la fiche d'un
+        // nouveau widget N'EST PAS nue.
+        // AutoCompleteTextView (EditText descendant) : Typographie,
+        // Lignes, Icônes du texte puis SAISIE — l'ordre § 7 d'EditText.
+        assertEquals(CatalogueAttributs.TitreSection.TYPOGRAPHIE, titrePropre("AutoCompleteTextView", indice = 1))
+        assertEquals(CatalogueAttributs.TitreSection.SAISIE, titrePropre("AutoCompleteTextView", indice = 4))
+        // Les à-état de l'extension (RadioButton, ToggleButton, Chip)
+        // reçoivent TEXTE + ÉTAT comme CheckBox (§ 7 : `checked`).
+        listOf("RadioButton", "ToggleButton", "Chip").forEach { classe ->
+            assertTrue(
+                "La classe $classe devrait porter Texte + État",
+                titres(classe).containsAll(
+                    listOf(CatalogueAttributs.TitreSection.TEXTE, CatalogueAttributs.TitreSection.ETAT),
+                ),
+            )
+        }
+        // RatingBar reçoit la PROGRESSION de base (max/progress), SANS
+        // indéterminé (ProgressBar) ni pouce (SeekBar).
+        assertEquals(CatalogueAttributs.TitreSection.PROGRESSION, titrePropre("RatingBar", indice = 1))
+        val progression =
+            CatalogueAttributs
+                .sections("RatingBar", FamilleParent.AUTRE)
+                .first { it.titre == CatalogueAttributs.TitreSection.PROGRESSION }
+        assertTrue(noms(progression).containsAll(listOf("android:max", "android:progress")))
+        assertFalse(noms(progression).contains("android:indeterminate"))
+        assertFalse(noms(progression).contains("android:thumbTint"))
+        // Les nouveaux conteneurs restent cohérents : ScrollView reçoit le
+        // CONTENEUR de sa famille FRAME (miroir § 2.2 par balise).
+        assertEquals(CatalogueAttributs.TitreSection.CONTENEUR, titrePropre("ScrollView", indice = 1))
+        assertTrue(titres("HorizontalScrollView").contains(CatalogueAttributs.TitreSection.CONTENEUR))
+    }
+
+    @Test
     fun `la carte garde arrondi et elevation sous le titre Carte - le conteneur devient frame`() {
         // PE12c — spec § 5.1 : MaterialCardView (famille FRAME) reçoit le
         // Conteneur FRAME ; PE11 § 7 ÉTEND la section Carte (fond, arrondi,

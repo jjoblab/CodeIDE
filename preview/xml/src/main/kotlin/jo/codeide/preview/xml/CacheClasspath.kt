@@ -34,6 +34,12 @@ import java.security.MessageDigest
  * En v0.132, on supporte JAR/MODULE/AAR (déjà dexés) et DOSSIER de
  * `.class` (via PathClassLoader qui accepte les dirs sur certaines
  * implémentations).
+ *
+ * v0.166.3 (« vraies vues ») : le genre [GenreEntreeClasspath.APK]
+ * charge l'APK DEXÉ du projet — le SEUL genre garanti chargeable sur
+ * ART (un jar de `.class` n'y lève que ClassNotFoundException) ; la
+ * découverte vit côté `:feature:preview` (ClasspathApercu), le cache
+ * n'y regarde pas : un chemin de plus dans la même signature.
  */
 public class CacheClasspath {
     private val verrou = Any()
@@ -89,10 +95,12 @@ public class CacheClasspath {
                 GenreEntreeClasspath.JAR,
                 GenreEntreeClasspath.AAR,
                 GenreEntreeClasspath.MODULE,
+                GenreEntreeClasspath.APK,
                 -> {
                     // Content hash du fichier (les jars sont stables entre
                     // builds identiques — Gradle recompile, mais le contenu
-                    // est identique si le source est identique).
+                    // est identique si le source est identique ; l'APK est
+                    // un fichier PLEIN, même règle — un rebuild le change).
                     condense.update(fichier.readBytes())
                 }
 

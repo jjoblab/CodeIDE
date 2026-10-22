@@ -181,6 +181,23 @@ class FamilleParentTest {
     }
 
     @Test
+    fun `deBalise - les extensions palette v0_166_3 vers FRAME`() {
+        // v0.166.3 « palette plus complète » : les nouveaux conteneurs
+        // de la palette arrivent par balise (HorizontalScrollView, TabLayout
+        // — HorizontalScrollView en vrai, ViewPager2 — FrameLayout).
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("HorizontalScrollView"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("TabLayout"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("ViewPager2"))
+        assertEquals(
+            FamilleParent.FRAME,
+            FamilleParent.deBalise("androidx.viewpager2.widget.ViewPager2"),
+        )
+        // Les NON-parents restent AUTRE (un widget n'est pas un conteneur).
+        assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("RadioButton"))
+        assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("WebView"))
+    }
+
+    @Test
     fun `deBalise - balise inconnue ou vide vers AUTRE`() {
         assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("GridLayout"))
         assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("TextView"))
