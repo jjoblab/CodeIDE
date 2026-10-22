@@ -70,10 +70,11 @@ import kotlin.math.abs
  *   `stats`/`separateur`/`bio` du profil et de la `legende` de la carte
  *   sont perdus.
  * - **C1 — action bar du chrome incruste** (`ChromeSysteme.attrBool`
- *   interroge `getStyleAttribute(null, …)` qui rend TOUJOURS null) : le
- *   thème ne peut pas retirer l'action bar ; le fil est donc rendu avec
- *   elle et sa racine garde 723 dp au lieu des 779 dp de la planche
- *   `noBar` — la HAUTEUR de la racine du fil n'est pas comparée.
+ *   interrogeait `getStyleAttribute(null, …)` qui rend TOUJOURS null) :
+ *   le thème ne pouvait PAS retirer l'action bar, le fil était rendu avec
+ *   elle et sa racine gardait 723 dp au lieu des 779 dp de la planche
+ *   `noBar`. CORRIGÉ en v0.166.5 (`resolveAttr("?android:attr/…")`) : la
+ *   hauteur de la racine du fil est DÉSORMAIS comparée (779 dp attendus).
  * - **F4 — métriques de texte gonflées** : les `TextView` wrap_content
  *   mesurent ~2,7× l'attendu (clampés au parent) — sans effet sur les
  *   bornes comparées (fixes) ; police maquette ≠ police appareil (§ 12.1
@@ -382,9 +383,10 @@ public class MesureRenduParentsTest {
         /** CoordinatorLayout + AppBarLayout : la barre empilée, la racine. */
         private val CHAMPS_FIL: Map<String, List<Champ>> =
             mapOf(
-                // La HAUTEUR n'est pas comparée : l'action bar du chrome
-                // reste posée (C1) — 723 dp mesurés contre 779 attendus.
-                "root" to listOf(Champ.X, Champ.Y, Champ.LARGEUR),
+                // v0.166.5 : le correctif C1 retire enfin l'action bar du
+                // chrome pour le thème SansBarre — la racine fait 779 dp
+                // (miroir de la planche noBar) et sa hauteur est comparée.
+                "root" to listOf(Champ.X, Champ.Y, Champ.LARGEUR, Champ.HAUTEUR),
                 // wrap_content vertical : toolbar 56 + filtres 48 = 104.
                 "appbar" to listOf(Champ.X, Champ.Y, Champ.LARGEUR, Champ.HAUTEUR),
                 // 56 dp fixe, premier enfant de la barre.

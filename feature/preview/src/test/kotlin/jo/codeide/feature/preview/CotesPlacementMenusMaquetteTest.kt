@@ -5,9 +5,12 @@ import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.material.theme.MaterialComponentsViewInflater
+import jo.codeide.preview.xml.InfoVueRendu
+import jo.codeide.preview.xml.PlacementPopup
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,6 +79,62 @@ public class CotesPlacementMenusMaquetteTest {
             View.MeasureSpec.UNSPECIFIED,
         )
         verifierCote("mini_row", rangee.measuredHeight, mesuresPlacement)
+    }
+
+    /** Deux vues témoins : une racine LinearLayout et son enfant TextView. */
+    private val vuesMiniArbre =
+        listOf(
+            InfoVueRendu(
+                gauche = 0,
+                haut = 0,
+                droite = 100,
+                bas = 100,
+                libelle = "LinearLayout",
+                debutElement = 0,
+                finElement = 40,
+                indiceParent = -1,
+                profondeur = 0,
+                classe = "LinearLayout",
+                idRes = "racine",
+                conteneur = true,
+            ),
+            InfoVueRendu(
+                gauche = 0,
+                haut = 0,
+                droite = 80,
+                bas = 20,
+                libelle = "TextView",
+                debutElement = 20,
+                finElement = 38,
+                indiceParent = 0,
+                profondeur = 1,
+                classe = "TextView",
+                idRes = "libelle",
+            ),
+        )
+
+    @Test
+    public fun `v0_166_5 - le mini arbre reprend l indentation de l arbre sans remultiplier`() {
+        // Retour propriétaire (« la section arbre du popup n'est pas
+        // similaire à la maquette ») : le retrait était REMULTIPLIÉ
+        // (`retraitBase + indentation × 16 dp` — [EntreeArbre.indentation]
+        // porte DÉJÀ le retrait complet 8 + profondeur × 16 : la profondeur
+        // 1 recevait 8 + 24 × 16 = 392 dp et l'arbre sortait de l'écran).
+        // Le MÊME calcul que VoletArbreFragment est repris : indentation
+        // en dp, UNE fois (miroir `style.paddingLeft = (8 + f.d * 16)`).
+        val popup = PopupPlacement(contexte)
+        popup.afficher(
+            vues = vuesMiniArbre,
+            indiceReference = 0,
+            choix = PopupPlacement.ChoixPlacement(position = PlacementPopup.Position.DEDANS),
+            cible = null,
+        )
+        val lignes = popup.findViewById<LinearLayout>(R.id.lignes_arbre_placement)
+        assertEquals("deux rangées posées", 2, lignes.childCount)
+        val racine = lignes.getChildAt(0)
+        val enfant = lignes.getChildAt(1)
+        assertEquals("profondeur 0 : retrait 8 dp", 8, racine.paddingStart)
+        assertEquals("profondeur 1 : retrait 8 + 16 dp", 24, enfant.paddingStart)
     }
 
     @Test

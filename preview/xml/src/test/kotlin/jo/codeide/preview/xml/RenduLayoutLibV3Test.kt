@@ -438,6 +438,54 @@ class RenduLayoutLibV3Test {
     }
 
     @Test
+    fun `chrome v0_166_5 - le theme du dossier res retire l action bar - correctif c1`() {
+        // Le pipeline COMPLET (dossier res/ réel, ThemeResolver branché) :
+        // un thème `windowNoTitle` + `windowActionBar=false` retire la
+        // 2e pièce du chrome — la racine suit DIRECTEMENT la status bar
+        // (miroir de la planche noBar du fil, mesure 779 dp).
+        val dossier =
+            java.nio.file.Files
+                .createTempDirectory("res-c1")
+                .toFile()
+        dossier.resolve("values").mkdirs()
+        dossier
+            .resolve("values/styles.xml")
+            .writeText(
+                """
+                <resources>
+                    <style name="Theme.Test.SansBarre">
+                        <item name="android:windowNoTitle">true</item>
+                        <item name="android:windowActionBar">false</item>
+                    </style>
+                </resources>
+                """.trimIndent(),
+            )
+        val requete =
+            RequeteRendu(
+                texte = xmlRacineMatchParent,
+                dossierRes = dossier.absolutePath,
+                genre = GenrePreview.LAYOUT,
+                profil = ProfilPeripherique.PAR_DEFAUT,
+                nuit = false,
+                themeName = "Theme.Test.SansBarre",
+            )
+        val resultat = pipeline.rendre(requete).rendu
+        assertTrue("le rendu doit réussir", resultat.ok)
+        assertTrue("des vues attendues", resultat.vues.isNotEmpty())
+        val densite = ProfilPeripherique.PAR_DEFAUT.densiteDpi / 160f
+        assertEquals(
+            "la racine suit la status bar SEULE (24 dp, pas d'action bar)",
+            (24 * densite).toInt(),
+            resultat.vues.first().haut,
+        )
+        assertEquals(
+            "la racine finit au-dessus de la barre de navigation (48 dp)",
+            resultat.hauteur - (48 * densite).toInt(),
+            resultat.vues.first().bas,
+        )
+    }
+
+    @Test
     fun `sans chrome - les bounds restent inchangées (comportement v0_132_x)`() {
         val resultat =
             rendre(

@@ -148,8 +148,6 @@ public class PopupPlacement(
         liaison.lignesArbrePlacement.removeAllViews()
         if (vues.isEmpty()) return
         val entrees = FeuilleApercu.entreesArbre(vues, problemes = emptyList(), densiteDpi = 0)
-        val retraitBase = resources.getDimensionPixelSize(R.dimen.apercu_rangee_pad_h)
-        val retraitNiveau = resources.getDimensionPixelSize(R.dimen.apercu_rangee_indent)
         for (entree in entrees) {
             // PE11j : la rangée vient de l'item layout réel (miroir `.mini`,
             // MÊMES rangées que l'arbre — monogramme, classe, id).
@@ -162,10 +160,16 @@ public class PopupPlacement(
             // La référence surlignée = isSelected → accent DOUX du sélecteur
             // (miroir `.row.on` — PE11j retire le violet posé en code).
             rangee.rangeePlacement.isSelected = entree.indice == indiceReference
-            // L'indentation de profondeur suit l'arbre (8 + profondeur × 16 —
-            // miroir `style.paddingLeft`, le reste du padding vient du style).
+            // v0.166.5 — correctif du retour propriétaire (« la section
+            // arbre du popup n'est pas similaire à la maquette ») : le retrait
+            // était REMULTIPLIÉ (`retraitBase + indentation × 16 dp`) alors que
+            // [FeuilleApercu.entreesArbre] porte DÉJÀ le retrait complet en dp
+            // (8 + profondeur × 16) — à la profondeur 2 le padding valait
+            // 648 dp et l'arbre sortait de l'écran. Le MÊME calcul que
+            // [VoletArbreFragment] est repris : indentation en dp, une seule
+            // fois (miroir `style.paddingLeft = (8 + f.d * 16)`).
             rangee.rangeePlacement.setPadding(
-                retraitBase + entree.indentation * retraitNiveau,
+                StyleVolet.dp(context, entree.indentation),
                 rangee.rangeePlacement.paddingTop,
                 rangee.rangeePlacement.paddingEnd,
                 rangee.rangeePlacement.paddingBottom,

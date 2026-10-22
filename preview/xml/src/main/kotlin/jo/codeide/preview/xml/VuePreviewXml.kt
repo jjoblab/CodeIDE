@@ -92,6 +92,15 @@ public class VuePreviewXml :
     View.OnDragListener {
     private var bitmap: Bitmap? = null
     private var echelle = 1f
+
+    /**
+     * La planche a-t-elle déjà été AJUSTÉE (fit) dans cette session ?
+     * v0.166.5 : le canvas de l'aperçu se RETAILLE au fil de la feuille
+     * inférieure (repli/déploiement — le rendu ne passe jamais sous la
+     * feuille) ; le resize ne RE-FIT plus une planche déjà posée : le zoom
+     * de l'utilisateur SURVIT, seul le pan se re-borne ([bornerPan]).
+     */
+    private var plancheAjustee = false
     private var decalageX = 0f
     private var decalageY = 0f
     private var accueilAffiche = true
@@ -648,6 +657,7 @@ public class VuePreviewXml :
         densiteDpi = 0
         problemes = emptyList()
         accueilAffiche = true
+        plancheAjustee = false
         notifierEchelle()
         invalidate()
     }
@@ -721,7 +731,18 @@ public class VuePreviewXml :
     ) {
         super.onSizeChanged(largeur, hauteur, ancienneLargeur, ancienneHauteur)
         if (largeur != ancienneLargeur || hauteur != ancienneHauteur) {
-            ajusterALaVue()
+            if (largeur <= 0 || hauteur <= 0) return
+            // v0.166.5 — retour propriétaire : « le zoom pendant l'édition
+            // n'est pas respecté » prolongé au RESIZE du canvas (la feuille
+            // inférieure le retaille en continu) : une planche DÉJÀ AJUSTÉE
+            // garde son échelle, seul le pan se re-borne ; le FIT reste
+            // réservé au PREMIER dimensionnement d'une planche posée (et à
+            // ⤢/double-tap, les gestes EXPLICITES de l'utilisateur).
+            if (bitmap != null && plancheAjustee) {
+                bornerPan()
+            } else {
+                ajusterALaVue()
+            }
             notifierEchelle()
             invalidate()
         }
@@ -1940,6 +1961,9 @@ public class VuePreviewXml :
             )
         decalageX = (width - largeurContenu() * echelle) / 2f
         decalageY = (height - bmp.height * echelle) / 2f
+        // v0.166.5 : un ajustement délivré = la planche est POSÉE — le
+        // prochain resize (la feuille, la rotation) conserve le zoom.
+        plancheAjustee = true
     }
 
     /** Maintient le contenu visible pendant le pan. */

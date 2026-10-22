@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Couleurs du projet de mesure (PE12h) : la seule couleur référencée
      par les fixtures (badge de la carte, android:background="@color/accent").
-     Valeur du jeton --accent de la maquette (docs/mockups/apercu-xml.html). -->
+     Valeur du jeton « accent » de la maquette (docs/mockups/apercu-xml.html ;
+     v0.166.5 : le préfixe à double tiret des variables CSS est INTERDIT
+     dans un commentaire XML — l'ancienne mention textuelle du jeton
+     faisait ÉCHOUER tout le scan des ressources du dossier et basculait
+     le rendu en repli natif SANS résolveur de thèmes). -->
 <resources>
     <color name="accent">#FF1E6EC8</color>
 </resources>
