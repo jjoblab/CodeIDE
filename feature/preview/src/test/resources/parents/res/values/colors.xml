@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couleurs du projet de mesure (PE12h) : la seule couleur référencée
+     par les fixtures (badge de la carte, android:background="@color/accent").
+     Valeur du jeton --accent de la maquette (docs/mockups/apercu-xml.html). -->
+<resources>
+    <color name="accent">#FF1E6EC8</color>
+</resources>

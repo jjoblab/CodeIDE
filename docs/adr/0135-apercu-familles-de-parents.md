@@ -91,3 +91,69 @@ une interaction = une édition = un annuler ; LayoutLib reste la vérité du ren
 - **Forcer une marge de 0 dp au dépôt** : place la vue contre le bord ; moins lisible et à rebours des pratiques Material (16 dp).
 - **Bloquer l'insertion qui ferme une boucle** : l'éditeur de texte peut de toute façon l'écrire ; on **grise l'option** dans l'inspecteur
   et on **explique** l'erreur dans l'aperçu.
+
+## Annexe — PV de la mesure PE12h (§ 15.3, consigné 2026-10-22)
+
+Cadre : les trois fixtures (`activity_profil.xml`, `activity_carte.xml`, `activity_fil.xml`) rendues par le pipeline
+`RenduLayoutLib` sous Robolectric NATIVE (la même LayoutLib que l'appareil, métriques de police réelles), profil Pixel 4
+(393 × 851 dp, 440 dpi), français, police ×1, chrome système complet (24 + 56 + 48 dp ; le fil est rendu avec l'action bar,
+voir C1). Relevé maquette : `docs/mockups/ref/parents/meas_rendu_parents.json` (planche Design, `S.b` après `loadDoc`).
+La comparaison est RELATIVE à la racine du document, tolérance ±1 dp (spec § 15.3) ; les bornes qui dépendent d'une métrique
+de TEXTE ne sont pas comparées (§ 12.1 de la partie II : la police de la maquette n'est pas celle de l'appareil). La séance
+sur VRAI appareil (`PROTOCOLE_MESURE_APPAREIL.md`) reste à la charge du propriétaire ; ce PV en garantit l'attendu.
+
+### Ce qui est mesuré et VERT (écarts ≤ 1 dp)
+
+- **Profil (`RelativeLayout`)** : racine 393 × 723 ; `avatar` coin (16, 16) en 80 × 80 (alignParentStart/Top + marges) ;
+  `btn_suivre` droite 377 et hauteur 40 (alignParentEnd) ; `separateur` hauteur 1 ; `btn_message` bas de racine − 24 − 48,
+  hauteur 48 (alignParentBottom + centerHorizontal).
+- **Carte (`FrameLayout`) — la famille INTÉGRALEMENT mesurée** : `fond` plein parent ; `badge` coin haut-fin (droite 377,
+  y 16) par `layout_gravity top|end` ; `btn_lecture` (164.4 ; 329.5) en 64 × 64 par `layout_gravity center` ;
+  `legende` pleine largeur au bas par `layout_gravity bottom`.
+- **Fil (`CoordinatorLayout` + `AppBarLayout`)** : `appbar` 393 × 104 en haut (toolbar 56 + filtres 48, empilement
+  `LinearLayout` vertical natif) ; `toolbar` et `filtres` aux bornes exactes ; `liste` x 0, pleine largeur ; `fab_nouveau`
+  56 × 56.
+
+### Constats de défauts du moteur (limitent la table de comparaison)
+
+Chaque constat porte la cause exacte relevée dans le code ; le correctif appartient au **frère LayoutLib** (dépôt
+`jjoblab/LayoutLib`, tag épinglé v2.2.0) ou au chrome du pipeline — après bump, la table de `MesureRenduParentsTest`
+s'étend aux vues exclues et ce PV est complété.
+
+- **F1 — références d'id inertes dans les règles** (`BridgeInflater.resolveIdReference` : quand l'id n'est pas déclaré
+  dans les `Resources` du contexte, la boucle `idToView` est VIDE et la fonction rend `View.generateViewId()` — un id
+  aléatoire qui ne correspond à AUCUNE vue). `layout_below`/`toEndOf`/`alignTop`/`alignStart`… et `app:layout_anchor`
+  sont donc ignorés : la vue tombe au coin haut-début. Chiffré : profil `nom` (16 ; 4) mesuré contre (112 ; 20) attendu ;
+  `separateur` y 16 mesuré contre 112 attendu ; fil `fab_nouveau` (0 ; 0) contre (321 ; 76). Touchés : `nom`, `role`,
+  `separateur` (y), `bio`, `stats`, `n_projets`, `btn_suivre` (y), `fab_nouveau` (x, y).
+- **F2 — comportement non résolu** (`createCoordinatorLayoutParams` fait `Class.forName` de la VALEUR LITTÉRALE de
+  `app:layout_behavior` : `@string/appbar_scrolling_view_behavior` n'est jamais résolu en nom de classe). La `liste` du
+  fil couvre la barre au lieu de s'y arrêter : (0 ; 0 ; 393 ; 723) mesuré contre (0 ; 104 ; 393 ; 675) attendu.
+- **F3 — attributs agrégés non lus** (`produceLayoutParams` ne lit pas `layout_marginHorizontal`/`layout_marginVertical`,
+  ni `paddingHorizontal`/`paddingVertical` — API 26) : profil `separateur`/`bio`/`stats` perdent leurs marges
+  horizontales (x 0 contre 16, largeur 393 contre 361) ; carte `titre`/`sous_titre` x 0 contre 16 (padding de la
+  légende) ; fil `f_tout` x 0 contre 16.
+- **C1 — l'action bar du chrome ne se retire pas** (`ChromeSysteme.attrBool` interroge
+  `ThemeResolver.getStyleAttribute(null, nom)` qui rend TOUJOURS null quand le style n'est pas nommé — et null de toute
+  façon au premier argument) : le fil est rendu AVEC l'action bar, sa racine garde 723 dp contre 779 à la planche
+  `noBar` ; la HAUTEUR de la racine du fil n'est pas comparée.
+- **F4 — métriques de texte gonflées (~×2,7)** : les `TextView`/`Button` `wrap_content` mesurent bien plus que le texte
+  (profil `nom` 377 dp de large contre ~143 attendu, `btn_message` clampé au parent) — cause non isolée (suspect :
+  double conversion sp de l'AttributeApplier), sans effet sur les bornes comparées (elles sont fixes) ; les captures
+  de recette § 15.2 le MONTRENT, c'est leur rôle.
+
+### Captures § 15.2
+
+`CapturesRecetteParentsTest` produit les paires application (popup des trois familles `relatif_cote`/`cadre_devant`/
+`coordinateur_devant`, calque Relations sur profil et fil, rendus — clair ET nuit) : PNG écrits dans
+`build/captures-pe12h/` du module (hors dépôt, miroir du protocole — jamais de binaire au dépôt), paires maquette
+archivées à côté pour la séance de recette du propriétaire. Les défauts ci-dessus restent VISIBLES sur les captures.
+
+### Décision
+
+La mesure a été menée AVANT de figer les rendus (§ 15.3) et remplit son rôle : la CARTE (FrameLayout, gravités
+naties) est intégralement vérifiée à ±1 dp ; les règles `RelativeLayout`, l'ancre et le comportement `CoordinatorLayout`
+attendent le correctif du frère. **La maquette n'est PAS en cause** (elle simule la sémantique Android de référence) :
+la règle « la maquette est corrigée, pas le moteur » ne s'applique à AUCUN de ces constats — le moteur est contredit
+par le framework (un vrai `RelativeLayout` applique `below`). Suivra : dépôt des correctifs au frère (bump LayoutLib
+au-delà de v2.2.0), re-mesure, extension de la table, PUIS séance appareil du propriétaire.

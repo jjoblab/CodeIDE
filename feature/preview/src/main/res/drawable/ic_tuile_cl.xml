@@ -1,0 +1,15 @@
+<!-- Icône de tuile de la palette (PE12h — miroir ICO.cl de la maquette
+     docs/mockups/apercu-xml.html, vague « familles de parents »). Couleur = jeton violet de la feature. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,4h12a2,2 0 0 1 2,2v12a2,2 0 0 1 -2,2h-12a2,2 0 0 1 -2,-2v-12a2,2 0 0 1 2,-2z M4,4h16v5h-16z M14,9a2.5,2.5 0 1 0 5,0a2.5,2.5 0 1 0 -5,0"
+        android:strokeColor="@color/preview_palette_icone"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

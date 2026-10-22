@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawable de mesure (PE12h) : avatar de la fixture profil. Placeholder
+     neutre — seule la TAILLE fixe (80 dp) compte pour les bornes. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FFC4C2CC" />
+</shape>

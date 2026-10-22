@@ -1,0 +1,188 @@
+{
+ "meta": {
+  "source": "maquette v6 docs/mockups/apercu-xml.html — relevé S.b après loadDoc, planche Design, mesure(sc) : bornes en dp dans l'ÉCRAN complet (chrome compris)",
+  "device": {
+   "nom": "Pixel 4",
+   "l": 393,
+   "h": 851,
+   "dpi": 440
+  },
+  "chrome": "barre d'état 24 dp + barre d'action 56 dp (profil, carte — fil sans) + barre de navigation 48 dp ; racine 393x723 (profil, carte) et 393x779 (fil)",
+  "regime": "jour, français, police x1,0",
+  "pe12h": "Relevé pour la mesure LayoutLib (spec PREVIEW_PARENTS § 15.3). Les bornes TEXTE-dépendantes (largeur wrap_content, hauteur de texte, positions qui en dérivent) sont INDICATIVES : la maquette rend le texte avec la police du navigateur, l'application avec celle de l'appareil — elles ne sont PAS comparées par MesureRenduParentsTest (précédent § 12.1 : « les largeurs de texte ne sont pas comparées »). Chaque valeur est un rect [x, y, largeur, hauteur] arrondi au dixième de dp."
+ },
+ "profil": {
+  "root": [
+   0,
+   80,
+   393,
+   723
+  ],
+  "avatar": [
+   16,
+   96,
+   80,
+   80
+  ],
+  "nom": [
+   112,
+   100,
+   142.9,
+   31
+  ],
+  "role": [
+   112,
+   131,
+   142.3,
+   21.7
+  ],
+  "btn_suivre": [
+   305,
+   96,
+   72.5,
+   40
+  ],
+  "separateur": [
+   16,
+   192,
+   361,
+   1
+  ],
+  "bio": [
+   16,
+   205,
+   361,
+   21.7
+  ],
+  "stats": [
+   16,
+   243,
+   361,
+   21.7
+  ],
+  "n_projets": [
+   16,
+   243,
+   120.3,
+   21.7
+  ],
+  "n_abonnes": [
+   136.3,
+   243,
+   120.3,
+   21.7
+  ],
+  "n_suivis": [
+   256.7,
+   243,
+   120.3,
+   21.7
+  ],
+  "btn_message": [
+   107,
+   731,
+   179,
+   48
+  ]
+ },
+ "carte": {
+  "root": [
+   0,
+   80,
+   393,
+   723
+  ],
+  "fond": [
+   0,
+   80,
+   393,
+   723
+  ],
+  "badge": [
+   305,
+   96,
+   71.6,
+   26.6
+  ],
+  "btn_lecture": [
+   164.5,
+   409.5,
+   64,
+   64
+  ],
+  "legende": [
+   0,
+   729,
+   393,
+   73.6
+  ],
+  "titre": [
+   16,
+   741,
+   151,
+   27.9
+  ],
+  "sous_titre": [
+   16,
+   768.9,
+   198.2,
+   21.7
+  ]
+ },
+ "fil": {
+  "root": [
+   0,
+   24,
+   393,
+   779
+  ],
+  "appbar": [
+   0,
+   24,
+   393,
+   104
+  ],
+  "toolbar": [
+   0,
+   24,
+   393,
+   56
+  ],
+  "filtres": [
+   0,
+   80,
+   393,
+   48
+  ],
+  "f_tout": [
+   16,
+   93.2,
+   28.6,
+   21.7
+  ],
+  "f_amis": [
+   60.6,
+   93.2,
+   31.5,
+   21.7
+  ],
+  "f_suivis": [
+   108.1,
+   93.2,
+   36.8,
+   21.7
+  ],
+  "liste": [
+   0,
+   128,
+   393,
+   675
+  ],
+  "fab_nouveau": [
+   321,
+   100,
+   56,
+   56
+  ]
+ }
+}
