@@ -110,6 +110,18 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /** La requête de recherche courante (miroir `S.attrQ`, minuscule à la comparaison). */
     private val rechercheInterne = MutableStateFlow("")
 
+    /**
+     * Les POSITIONS des sections ouvertes PAR DÉFAUT (PE11 § 7 — miroir
+     * `sc.t !== 'Identité' && ++opened <= 2` de la maquette) : les DEUX
+     * premières sections VISIBLES hors Identité, recomptées à chaque
+     * [itemsVolet] (les positions comptent les sections FILTRÉES, pas la
+     * liste complète).
+     */
+    private var ouvertesParDefaut: Set<Int> = emptySet()
+
+    /** Le compteur d'ouvertes par défaut de la passe [itemsVolet] en cours. */
+    private var ouvertesComptees: Int = 0
+
     /** Le mode Courants (vrai) ou Tous (miroir `S.attrMode` — défaut Courants). */
     private val modeCourantsInterne = MutableStateFlow(true)
 
@@ -176,7 +188,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                     }
 
                     else -> {
-                        etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
+                        ouvertureParDefaut(section, position)
                     }
                 }
 
@@ -301,6 +313,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /** La LISTE des items du volet (PREVIEW_UI.md § 8, de haut en bas). */
     private fun itemsVolet(vue: InfoVueRendu?): List<ItemAttributs> =
         buildList {
+            // PE11 § 7 — les ouvertures PAR DÉFAUT se recomptent sur la
+            // liste FILTRÉE de CETTE passe (miroir `++opened` de `fill`).
+            ouvertesParDefaut = emptySet()
+            ouvertesComptees = 0
             if (vue == null) {
                 add(ItemAttributs.Vide)
                 return@buildList
@@ -328,13 +344,17 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                     // La section AUTRES (PE11h — miroir `sc.other`) : les
                     // rangées viennent du DOCUMENT, pas du catalogue.
                     if (section.autres) {
-                        if (ajouterSectionAutres(this, attrs, section, position)) visibles++
+                        if (ajouterSectionAutres(this, attrs, section, position)) {
+                            visibles++
+                            noterOuvertureParDefaut(section, position)
+                        }
                         return@forEachIndexed
                     }
                     val controles = controlesFiltres(section)
                     if (controles.isEmpty()) return@forEachIndexed
                     masques += section.controles.size - controles.size
                     visibles++
+                    noterOuvertureParDefaut(section, position)
                     add(
                         ItemAttributs.Carte(
                             section = section,
@@ -397,6 +417,33 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             )
         }
         return visible
+    }
+
+    /**
+     * L'ouverture PAR DÉFAUT d'une section (PE11 § 7 — miroir
+     * `sc.t !== 'Identité' && ++opened <= 2`) : les DEUX premières
+     * sections VISIBLES hors Identité s'ouvrent, comptées sur la liste
+     * FILTRÉE par [itemsVolet] (l'ordre de rendu, pas le catalogue nu).
+     */
+    private fun ouvertureParDefaut(
+        section: CatalogueAttributs.SectionAttributs,
+        position: Int,
+    ): Boolean = position in ouvertesParDefaut && section.titre != CatalogueAttributs.TitreSection.IDENTITE
+
+    /**
+     * NOTE une section VISIBLE pour l'ouverture par défaut (appelé par
+     * [itemsVolet] dans l'ordre de rendu — l'Identité ne compte jamais).
+     */
+    private fun noterOuvertureParDefaut(
+        section: CatalogueAttributs.SectionAttributs,
+        position: Int,
+    ) {
+        if (section.titre != CatalogueAttributs.TitreSection.IDENTITE) {
+            ouvertesComptees++
+            if (ouvertesComptees <= OUVERTES_DEFAUT) {
+                ouvertesParDefaut = ouvertesParDefaut + position
+            }
+        }
     }
 
     /**
@@ -622,6 +669,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     ): View =
         when (controle) {
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Coins -> controleCoins(controle, attrs)
             is CatalogueAttributs.ControleAttribut.ReferenceId -> controleReferenceId(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Bascules -> controleBascules(controle, attrs)
             is CatalogueAttributs.ControleAttribut.ActionRapide -> controleActionRapide(controle)
@@ -701,6 +749,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             CatalogueAttributs.NoteSection.REGLES_SOEURS -> {
                 noteSousChamp(getString(R.string.preview_note_regles_soeurs))
             }
+
+            CatalogueAttributs.NoteSection.OUTILS_APERCU -> {
+                noteSousChamp(getString(R.string.preview_note_outils_apercu))
+            }
         }
 
     /** La note SOUS un champ (miroir `.note2`) : le style Note de la référence, écart d'étiquette en marge haute. */
@@ -755,7 +807,19 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         saisie.champSaisie.tag = controle.nom
         val commettre = {
             commiterTexte(saisie.champSaisie) { nouvelle ->
-                viewModel.definirAttributSelection(controle.nom, nouvelle)
+                // PE11 § 7 — [Texte.validation] (miroir les `pat`/`msg` du
+                // `C.str`) : une ERREUR n'écrit RIEN, le message s'affiche
+                // DESSOUS (setError — le champ garde sa saisie).
+                when (val verdict = verdictTexte(controle.validation, nouvelle)) {
+                    is ValidationAttribut.Resultat.Erreur -> {
+                        saisie.champSaisie.error = messageValidation(verdict.genre, verdict.arguments)
+                        false
+                    }
+
+                    else -> {
+                        viewModel.definirAttributSelection(controle.nom, nouvelle)
+                    }
+                }
             }
         }
         saisie.champSaisie.setOnEditorActionListener { _, action, _ ->
@@ -789,6 +853,32 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 .orEmpty()
         if (saisie.isNotEmpty()) editerOuRecharger { action(saisie) }
     }
+
+    /**
+     * Le VERDICT de validation d'un champ TEXTE (PE11 § 7) : `null` = AUCUNE
+     * validation posée (tout s'écrit) ; sinon [ValidationAttribut.nomActivite]
+     * ou [ValidationAttribut.nomMethodeJava] selon le genre.
+     */
+    private fun verdictTexte(
+        genre: CatalogueAttributs.GenreValidationTexte?,
+        valeur: String,
+    ): ValidationAttribut.Resultat? =
+        when (genre) {
+            CatalogueAttributs.GenreValidationTexte.NOM_ACTIVITE -> ValidationAttribut.nomActivite(valeur)
+            CatalogueAttributs.GenreValidationTexte.NOM_METHODE_JAVA -> ValidationAttribut.nomMethodeJava(valeur)
+            null -> null
+        }
+
+    /** Le TEXTE localisé d'un message de validation (règle 3 — jamais de chaîne en dur). */
+    private fun messageValidation(
+        genre: ValidationAttribut.GenreMessage,
+        arguments: List<String>,
+    ): String =
+        when (arguments.size) {
+            0 -> getString(messageRessource(genre))
+            1 -> getString(messageRessource(genre), arguments[0])
+            else -> getString(messageRessource(genre), arguments[0], arguments[1])
+        }
 
     /** La rangée d'EXTRACTION (controle_extraction.xml, PE8c) : le bouton
      * révèle le champ du nom (pré-rempli par [ExtractionRessource.nomPropose])
@@ -956,7 +1046,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         return bloc.root
     }
 
-    /** Le commit d'un NOMBRE : vide = rien, non numérique = refus visuel (repli). */
+    /** Le commit d'un NOMBRE : vide = rien, non numérique ou HORS BORNES = refus visuel (repli). */
     private fun commiterNombre(
         champ: EditText,
         controle: CatalogueAttributs.ControleAttribut.Nombre,
@@ -967,21 +1057,32 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 ?.toString()
                 ?.trim()
                 .orEmpty()
-        return when {
-            saisie.isEmpty() -> {
-                false
-            }
+        if (saisie.isEmpty()) return false
+        val nombre = saisie.toFloatOrNull()
+        // PE11 § 7 — [Nombre.bornes] (miroir `min`/`max` du `C.num`) : hors
+        // bornes = ERREUR qui n'écrit RIEN ; sans bornes, la 1re vague
+        // rejette les NÉGATIFS (comportement historique conservé).
+        val horsBornes =
+            when (val bornes = controle.bornes) {
+                null -> {
+                    nombre != null && nombre < 0f
+                }
 
-            // Retour visuel : la saisie non numérique est REPLACÉE (pas d'édition).
-            saisie.toFloatOrNull() == null || saisie.toFloat() < 0f -> {
-                champ.setText(valeurDe(controle.nom, attrs)?.trimEnd('d', 'p', 's') ?: "")
-                false
+                else -> {
+                    val minimum = bornes.minimum
+                    val maximum = bornes.maximum
+                    nombre == null ||
+                        (minimum != null && nombre < minimum) ||
+                        (maximum != null && nombre > maximum)
+                }
             }
-
-            else -> {
-                val valeur = formaterNombre(saisie.toFloat()) + controle.unite
-                editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
-            }
+        return if (nombre == null || horsBornes) {
+            // Retour visuel : la saisie refusée est REPLACÉE (pas d'édition).
+            champ.setText(valeurDe(controle.nom, attrs)?.trimEnd('d', 'p', 's') ?: "")
+            false
+        } else {
+            val valeur = formaterNombre(nombre) + controle.unite
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
         }
     }
 
@@ -1022,17 +1123,21 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             } else {
                 controle.valeurs
             }
-        val options = listOf(getString(R.string.preview_choix_defaut)) + valeurs
-        bloc.listeDeroulante.setText(courant ?: getString(R.string.preview_choix_defaut), false)
+        // PE11 § 7 — le LIBELLÉ d'une option retient le DERNIER SEGMENT
+        // (miroir `x.replace(/^.*[./]/, '')`) : les styles `@style/…` et les
+        // gestionnaires pleinement qualifiés s'affichent courts, la VALEUR
+        // écrite reste la forme pleine.
+        val libelles = listOf(getString(R.string.preview_choix_defaut)) + valeurs.map(::dernierSegment)
+        bloc.listeDeroulante.setText(courant?.let(::dernierSegment) ?: getString(R.string.preview_choix_defaut), false)
         // Garantie de non-saisie (miroir select) : le layout pose déjà
         // focusable=false + inputType none — le keyListener null l'assure
         // aussi sur les appareils où inputType none laisse passer l'IME.
         bloc.listeDeroulante.keyListener = null
         bloc.listeDeroulante.setAdapter(
-            ArrayAdapter(requireContext(), R.layout.item_option_liste, options),
+            ArrayAdapter(requireContext(), R.layout.item_option_liste, libelles),
         )
         bloc.listeDeroulante.setOnItemClickListener { _, _, position, _ ->
-            val valeur = if (position == 0) "" else options[position]
+            val valeur = if (position == 0) "" else valeurs[position - 1]
             editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
         }
         // Sans frappe (inputType none), le menu ne s'ouvre qu'au TAP —
@@ -1042,6 +1147,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
         return bloc.root
     }
+
+    /**
+     * Le DERNIER SEGMENT d'une valeur de LISTE (PE11 § 7 — miroir
+     * `x.replace(/^.*[./]/, '')`) : « `@style/Widget.Material3.Button` » →
+     * « `Button` », « `androidx.…LinearLayoutManager` » → « `LinearLayoutManager` »,
+     * une valeur SANS point ni barre passe TELLE QUELLE.
+     */
+    private fun dernierSegment(valeur: String): String = valeur.replace(Regex("^.*[./]"), "")
 
     /**
      * Un contrôle DRAPEAUX (controle_drapeaux.xml — miroir `.flg`, PE11d) :
@@ -1435,6 +1548,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
             ValidationAttribut.GenreMessage.VALEUR_BORNEE -> R.string.preview_attr_curseur_bornes
             ValidationAttribut.GenreMessage.RATIO_INVALIDE -> R.string.preview_attr_ratio_invalide
+            ValidationAttribut.GenreMessage.NOM_ACTIVITE_ATTENDU -> R.string.preview_attr_activite_attendue
+            ValidationAttribut.GenreMessage.NOM_METHODE_ATTENDU -> R.string.preview_attr_methode_attendue
             ValidationAttribut.GenreMessage.NOM_ATTRIBUT_LIBRE -> R.string.preview_attr_libre_nom_invalide
         }
 
@@ -1653,6 +1768,17 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         bloc.champCurseur.setText(formaterNombre(affichee))
         val libelleValeur = getString(R.string.preview_attr_curseur_valeur, libelle)
         bloc.champCurseur.contentDescription = libelleValeur
+        // PE11 § 7 — [Curseur.requiertContraintesVerticales] (miroir
+        // `en:!both` + `why` du `Vertical_bias`) : le biais vertical se
+        // DÉSACTIVE, explication sous le champ, tant que la vue n'a pas
+        // une contrainte en haut ET en bas.
+        if (controle.requiertContraintesVerticales) {
+            raisonContraintesVerticales()?.let { raison ->
+                bloc.curseur.isEnabled = false
+                bloc.champCurseur.isEnabled = false
+                bloc.root.addView(noteSousChamp(raison))
+            }
+        }
         // Le glissement met le champ à jour SANS écrire (miroir `r.oninput`).
         bloc.curseur.addOnChangeListener { _, valeurCurseur, _ ->
             bloc.champCurseur.setText(formaterNombre(valeurCurseur))
@@ -1681,6 +1807,21 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             if (!aFocus) commettre()
         }
         return bloc.root
+    }
+
+    /**
+     * La RAISON d'inactivité du BIAIS VERTICAL (PE11 § 7) : `null` quand
+     * la vue porte une contrainte en HAUT et en BAS
+     * ([viewModel.lireContraintesSelection] — les deux côtés ont une
+     * CIBLE), quand la lecture est impossible (span périmé — le contrôle
+     * reste utilisable, l'écriture tranchera), sinon le libellé de la
+     * note (miroir le `why` du `Vertical_bias`).
+     */
+    private fun raisonContraintesVerticales(): String? {
+        val lues = viewModel.lireContraintesSelection() ?: return null
+        val haut = lues.firstOrNull { it.cote == EditionAttributsXml.Cote.HAUT }?.cible
+        val bas = lues.firstOrNull { it.cote == EditionAttributsXml.Cote.BAS }?.cible
+        return if (haut != null && bas != null) null else getString(R.string.preview_note_biais_vertical)
     }
 
     /**
@@ -2033,6 +2174,88 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             lierCote(controle, cote, getString(libelleRes), champ, attrs)
         }
         return bloc.root
+    }
+
+    /**
+     * Le contrôle COINS (PE11 § 7 — miroir `corners` de la maquette, layout
+     * `controle_cotes` réutilisé, brief PE11f) : UN champ par coin
+     * (`boxCornerRadiusTopStart` puis fin haut, fin bas, début bas — l'ordre
+     * de la rangée), chacun s'écrit SEUL ; VIDE ou `0` RETIRE l'attribut,
+     * sinon `Ndp` (miroir `i.value === '' || +i.value <= 0 ? '' :
+     * Math.max(0, +i.value) + 'dp'`) ; le ↺ réinitialise les QUATRE coins.
+     */
+    private fun controleCoins(
+        controle: CatalogueAttributs.ControleAttribut.Coins,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleCotesBinding.inflate(gonfleur())
+        val libelle = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, libelle, controle.nomsAttributs, attrs)
+        val coins =
+            listOf(
+                bloc.coteHaut to R.string.preview_coin_haut_gauche,
+                bloc.coteDroite to R.string.preview_coin_haut_droite,
+                bloc.coteBas to R.string.preview_coin_bas_droite,
+                bloc.coteGauche to R.string.preview_coin_bas_gauche,
+            )
+        coins.forEachIndexed { indice, (champ, libelleRes) ->
+            val nom = controle.nomsAttributs[indice]
+            val nomCoin = getString(libelleRes)
+            champ.setText(nombreEnTete(valeurDe(nom, attrs)))
+            champ.hint = nomCoin
+            champ.contentDescription = getString(R.string.preview_coin_cd, libelle, nomCoin)
+            val commettre = {
+                val saisie =
+                    champ.text
+                        ?.toString()
+                        ?.trim()
+                        .orEmpty()
+                val nombre = saisie.toFloatOrNull()
+                when {
+                    // Vide = rien (miroir les champs de côtés — le ↺ du
+                    // groupe retire les quatre coins d'une édition).
+                    saisie.isEmpty() -> {
+                        false
+                    }
+
+                    // Non numérique ou négatif : repli visuel (pas d'édition).
+                    nombre == null || nombre < 0f -> {
+                        champ.setText(nombreEnTete(valeurDe(nom, attrs)))
+                        false
+                    }
+
+                    // 0 RETIRE l'attribut (brief § 4 : « 0 ou vide retire » —
+                    // miroir `+i.value <= 0 ? ''`).
+                    nombre == 0f -> {
+                        editerOuRecharger { viewModel.definirAttributSelection(nom, "") }
+                    }
+
+                    // Sinon le nombre et son unité (miroir `Math.max(0, +i.value) + 'dp'`).
+                    else -> {
+                        val valeur = formaterNombre(nombre) + "dp"
+                        editerOuRecharger { viewModel.definirAttributSelection(nom, valeur) }
+                    }
+                }
+            }
+            champ.setOnEditorActionListener { _, action, _ ->
+                if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    if (commettre()) champ.clearFocus()
+                    true
+                } else {
+                    false
+                }
+            }
+            champ.setOnFocusChangeListener { _, aFocus ->
+                if (!aFocus) commettre()
+            }
+        }
+        return bloc.root
+    }
+
+    /** Le NOMBRE en tête d'une valeur de coin (« 8dp » → « 8 », miroir `parseFloat(ex(…)) || ''`). */
+    private fun nombreEnTete(valeur: String?): String {
+        val nombre = Regex("^[-+]?(?:\\d+\\.?\\d*|\\.\\d+)").find(valeur.orEmpty())?.value ?: return ""
+        return formaterNombre(nombre.toFloat())
     }
 
     /** UN champ de côté (commit IME/perte de focus, miroir `.mrow`). */
@@ -2706,8 +2929,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     private companion object {
-        /** Les DEUX PREMIÈRES sections de l'éditeur s'ouvrent par défaut (miroir `i < 2`). */
-        private const val DEFAUT_OUVERTES: Int = 2
+        /** Le NOMBRE de sections ouvertes par défaut (miroir `++opened <= 2` de la maquette). */
+        private const val OUVERTES_DEFAUT: Int = 2
 
         /** La valeur de plateforme pour cibler le PARENT (code, pas UI). */
         private const val VALEUR_PARENT: String = "parent"
@@ -2764,6 +2987,18 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.TitreSection.BARRE_OUTILS to R.string.preview_section_barre_outils,
                 CatalogueAttributs.TitreSection.BOUTON_ACTION to R.string.preview_section_bouton_action,
                 CatalogueAttributs.TitreSection.CARTE to R.string.preview_section_carte,
+                CatalogueAttributs.TitreSection.TYPOGRAPHIE to R.string.preview_section_typographie,
+                CatalogueAttributs.TitreSection.LIGNES to R.string.preview_section_lignes,
+                CatalogueAttributs.TitreSection.ICONES_TEXTE to R.string.preview_section_icones_texte,
+                CatalogueAttributs.TitreSection.AIDES_CHAMP to R.string.preview_section_aides_champ,
+                CatalogueAttributs.TitreSection.ICONES to R.string.preview_section_icones,
+                CatalogueAttributs.TitreSection.CONTOUR to R.string.preview_section_contour,
+                CatalogueAttributs.TitreSection.APPARENCE to R.string.preview_section_apparence,
+                CatalogueAttributs.TitreSection.TRANSFORMATION to R.string.preview_section_transformation,
+                CatalogueAttributs.TitreSection.INTERACTION to R.string.preview_section_interaction,
+                CatalogueAttributs.TitreSection.ACCESSIBILITE to R.string.preview_section_accessibilite,
+                CatalogueAttributs.TitreSection.APERCU to R.string.preview_section_apercu,
+                CatalogueAttributs.TitreSection.RACINE to R.string.preview_section_racine,
                 CatalogueAttributs.TitreSection.AUTRES to R.string.preview_section_autres,
             )
 
@@ -2867,6 +3102,137 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.Etiquette.ACTIONS to R.string.preview_etiquette_actions,
                 CatalogueAttributs.Etiquette.CONTRAINTES_LUES to R.string.preview_etiquette_contraintes_lues,
                 CatalogueAttributs.Etiquette.REMPLIR_ESPACE to R.string.preview_etiquette_remplir_espace,
+                // ── PE11 § 7 — Identité, Texte, Typographie, Lignes ────
+                CatalogueAttributs.Etiquette.TAG to R.string.preview_etiquette_tag,
+                CatalogueAttributs.Etiquette.ALIGNEMENT_TEXTE to R.string.preview_etiquette_alignement_texte,
+                CatalogueAttributs.Etiquette.APPARENCE_TEXTE to R.string.preview_etiquette_apparence_texte,
+                CatalogueAttributs.Etiquette.FAMILLE_POLICE to R.string.preview_etiquette_famille_police,
+                CatalogueAttributs.Etiquette.GRAISSE_POLICE to R.string.preview_etiquette_graisse_police,
+                CatalogueAttributs.Etiquette.MAJUSCULES to R.string.preview_etiquette_majuscules,
+                CatalogueAttributs.Etiquette.ESPACEMENT_LETTRES to R.string.preview_etiquette_espacement_lettres,
+                CatalogueAttributs.Etiquette.INTERLIGNE to R.string.preview_etiquette_interligne,
+                CatalogueAttributs.Etiquette.INTERLIGNE_MULT to R.string.preview_etiquette_interligne_mult,
+                CatalogueAttributs.Etiquette.PADDING_POLICE to R.string.preview_etiquette_padding_police,
+                CatalogueAttributs.Etiquette.LIGNES_MIN to R.string.preview_etiquette_lignes_min,
+                CatalogueAttributs.Etiquette.ELLIPSIZE to R.string.preview_etiquette_ellipsize,
+                CatalogueAttributs.Etiquette.LIENS_AUTO to R.string.preview_etiquette_liens_auto,
+                CatalogueAttributs.Etiquette.TEXTE_SELECTIONNABLE to R.string.preview_etiquette_texte_selectionnable,
+                CatalogueAttributs.Etiquette.TAILLE_AUTO to R.string.preview_etiquette_taille_auto,
+                CatalogueAttributs.Etiquette.TAILLE_AUTO_MIN to R.string.preview_etiquette_taille_auto_min,
+                CatalogueAttributs.Etiquette.TAILLE_AUTO_MAX to R.string.preview_etiquette_taille_auto_max,
+                // ── PE11 § 7 — Icônes du texte, Saisie ────────────────
+                CatalogueAttributs.Etiquette.DRAWABLE_DEBUT to R.string.preview_etiquette_drawable_debut,
+                CatalogueAttributs.Etiquette.DRAWABLE_FIN to R.string.preview_etiquette_drawable_fin,
+                CatalogueAttributs.Etiquette.DRAWABLE_HAUT to R.string.preview_etiquette_drawable_haut,
+                CatalogueAttributs.Etiquette.DRAWABLE_BAS to R.string.preview_etiquette_drawable_bas,
+                CatalogueAttributs.Etiquette.DRAWABLE_PADDING to R.string.preview_etiquette_drawable_padding,
+                CatalogueAttributs.Etiquette.DRAWABLE_TEINTE to R.string.preview_etiquette_drawable_teinte,
+                CatalogueAttributs.Etiquette.OPTIONS_IME to R.string.preview_etiquette_options_ime,
+                CatalogueAttributs.Etiquette.LONGUEUR_MAX to R.string.preview_etiquette_longueur_max,
+                CatalogueAttributs.Etiquette.CHIFFRES to R.string.preview_etiquette_chiffres,
+                CatalogueAttributs.Etiquette.SUGGESTIONS_AUTOFILL to R.string.preview_etiquette_suggestions_autofill,
+                CatalogueAttributs.Etiquette.IMPORTANCE_AUTOFILL to R.string.preview_etiquette_importance_autofill,
+                CatalogueAttributs.Etiquette.TOUT_SELECTIONNER to R.string.preview_etiquette_tout_selectionner,
+                CatalogueAttributs.Etiquette.CURSEUR_VISIBLE to R.string.preview_etiquette_curseur_visible,
+                CatalogueAttributs.Etiquette.COULEUR_INDICATION to R.string.preview_etiquette_couleur_indication,
+                // ── PE11 § 7 — Champ, Aides et compteur, Icônes, Contour ─
+                CatalogueAttributs.Etiquette.INDICATION_ACTIVEE to R.string.preview_etiquette_indication_activee,
+                CatalogueAttributs.Etiquette.TEXTE_AIDE to R.string.preview_etiquette_texte_aide,
+                CatalogueAttributs.Etiquette.ERREUR_ACTIVEE to R.string.preview_etiquette_erreur_activee,
+                CatalogueAttributs.Etiquette.COMPTEUR_ACTIVE to R.string.preview_etiquette_compteur_active,
+                CatalogueAttributs.Etiquette.COMPTEUR_LONGUEUR to R.string.preview_etiquette_compteur_longueur,
+                CatalogueAttributs.Etiquette.TEXTE_SUBSTITUTION to R.string.preview_etiquette_texte_substitution,
+                CatalogueAttributs.Etiquette.PREFIXE to R.string.preview_etiquette_prefixe,
+                CatalogueAttributs.Etiquette.SUFFIXE to R.string.preview_etiquette_suffixe,
+                CatalogueAttributs.Etiquette.ICONE_DEBUT to R.string.preview_etiquette_icone_debut,
+                CatalogueAttributs.Etiquette.TEINTE_ICONE_FIN to R.string.preview_etiquette_teinte_icone_fin,
+                CatalogueAttributs.Etiquette.TRAIT_FOND to R.string.preview_etiquette_trait_fond,
+                CatalogueAttributs.Etiquette.EPAISSEUR_TRAIT to R.string.preview_etiquette_epaisseur_trait,
+                CatalogueAttributs.Etiquette.FOND_BOITE to R.string.preview_etiquette_fond_boite,
+                CatalogueAttributs.Etiquette.COINS to R.string.preview_etiquette_coins,
+                // ── PE11 § 7 — Bouton, État, Image, Carte ─────────────
+                CatalogueAttributs.Etiquette.VARIANTE to R.string.preview_etiquette_variante,
+                CatalogueAttributs.Etiquette.GRAVITE_ICONE to R.string.preview_etiquette_gravite_icone,
+                CatalogueAttributs.Etiquette.PADDING_ICONE to R.string.preview_etiquette_padding_icone,
+                CatalogueAttributs.Etiquette.TEINTE_ICONE to R.string.preview_etiquette_teinte_icone,
+                CatalogueAttributs.Etiquette.TAILLE_ICONE to R.string.preview_etiquette_taille_icone,
+                CatalogueAttributs.Etiquette.COULEUR_BORDURE to R.string.preview_etiquette_couleur_bordure,
+                CatalogueAttributs.Etiquette.EPAISSEUR_BORDURE to R.string.preview_etiquette_epaisseur_bordure,
+                CatalogueAttributs.Etiquette.INSET_HAUT to R.string.preview_etiquette_inset_haut,
+                CatalogueAttributs.Etiquette.INSET_BAS to R.string.preview_etiquette_inset_bas,
+                CatalogueAttributs.Etiquette.TEINTE_CASE to R.string.preview_etiquette_teinte_case,
+                CatalogueAttributs.Etiquette.CASE to R.string.preview_etiquette_case,
+                CatalogueAttributs.Etiquette.TEINTE_POUCE to R.string.preview_etiquette_teinte_pouce,
+                CatalogueAttributs.Etiquette.TEINTE_PISTE to R.string.preview_etiquette_teinte_piste,
+                CatalogueAttributs.Etiquette.AFFICHER_TEXTE to R.string.preview_etiquette_afficher_texte,
+                CatalogueAttributs.Etiquette.TEXTE_ACTIF to R.string.preview_etiquette_texte_actif,
+                CatalogueAttributs.Etiquette.TEXTE_INACTIF to R.string.preview_etiquette_texte_inactif,
+                CatalogueAttributs.Etiquette.AJUSTER_BORNES to R.string.preview_etiquette_ajuster_bornes,
+                CatalogueAttributs.Etiquette.MODE_TEINTE to R.string.preview_etiquette_mode_teinte,
+                CatalogueAttributs.Etiquette.ROGNER_PADDING to R.string.preview_etiquette_rogner_padding,
+                CatalogueAttributs.Etiquette.LARGEUR_MAX to R.string.preview_etiquette_largeur_max,
+                CatalogueAttributs.Etiquette.HAUTEUR_MAX to R.string.preview_etiquette_hauteur_max,
+                CatalogueAttributs.Etiquette.FOND_CARTE to R.string.preview_etiquette_fond_carte,
+                CatalogueAttributs.Etiquette.PADDING_CONTENU to R.string.preview_etiquette_padding_contenu,
+                CatalogueAttributs.Etiquette.EMPECHER_CHEVAUCHEMENT to
+                    R.string.preview_etiquette_empecher_chevauchement,
+                CatalogueAttributs.Etiquette.COCHABLE to R.string.preview_etiquette_cochable,
+                // ── PE11 § 7 — Progression, Liste, Contraintes ──────
+                CatalogueAttributs.Etiquette.MINIMUM to R.string.preview_etiquette_minimum,
+                CatalogueAttributs.Etiquette.PROGRESSION_SECONDAIRE to
+                    R.string.preview_etiquette_progression_secondaire,
+                CatalogueAttributs.Etiquette.TEINTE_PROGRESSION to R.string.preview_etiquette_teinte_progression,
+                CatalogueAttributs.Etiquette.TEINTE_FOND_PROGRESSION to
+                    R.string.preview_etiquette_teinte_fond_progression,
+                CatalogueAttributs.Etiquette.TEINTE_INDETERMINEE to R.string.preview_etiquette_teinte_indeterminee,
+                CatalogueAttributs.Etiquette.POUCE to R.string.preview_etiquette_pouce,
+                CatalogueAttributs.Etiquette.PISTE_FENDUE to R.string.preview_etiquette_piste_fendue,
+                CatalogueAttributs.Etiquette.REPERE to R.string.preview_etiquette_repere,
+                CatalogueAttributs.Etiquette.NOMBRE_COLONNES to R.string.preview_etiquette_nombre_colonnes,
+                CatalogueAttributs.Etiquette.INVERSER to R.string.preview_etiquette_inverser,
+                CatalogueAttributs.Etiquette.EMPILER_FIN to R.string.preview_etiquette_empiler_fin,
+                CatalogueAttributs.Etiquette.DEBORDEMENT to R.string.preview_etiquette_debordement,
+                CatalogueAttributs.Etiquette.DEFILEMENT_IMBRIQUE to R.string.preview_etiquette_defilement_imbrique,
+                CatalogueAttributs.Etiquette.NOMBRE_ITEMS to R.string.preview_etiquette_nombre_items,
+                CatalogueAttributs.Etiquette.BIAIS_HORIZONTAL to R.string.preview_etiquette_biais_horizontal,
+                CatalogueAttributs.Etiquette.BIAIS_VERTICAL to R.string.preview_etiquette_biais_vertical,
+                CatalogueAttributs.Etiquette.POURCENTAGE_LARGEUR to R.string.preview_etiquette_pourcentage_largeur,
+                CatalogueAttributs.Etiquette.RATIO to R.string.preview_etiquette_ratio,
+                CatalogueAttributs.Etiquette.LARGEUR_MIN_CONTRAINTE to
+                    R.string.preview_etiquette_largeur_min_contrainte,
+                CatalogueAttributs.Etiquette.LARGEUR_MAX_CONTRAINTE to
+                    R.string.preview_etiquette_largeur_max_contrainte,
+                // ── PE11 § 7 — Apparence, Transformation, Interaction,
+                //    Accessibilité, Aperçu, Racine, Disposition ─────
+                CatalogueAttributs.Etiquette.HAUTEUR_MIN to R.string.preview_etiquette_hauteur_min,
+                CatalogueAttributs.Etiquette.LARGEUR_MIN to R.string.preview_etiquette_largeur_min,
+                CatalogueAttributs.Etiquette.FOND_BRUT to R.string.preview_etiquette_fond_brut,
+                CatalogueAttributs.Etiquette.AVANT_PLAN to R.string.preview_etiquette_avant_plan,
+                CatalogueAttributs.Etiquette.ELEVATION_BRUTE to R.string.preview_etiquette_elevation_brute,
+                CatalogueAttributs.Etiquette.DECOUPE_CONTOUR to R.string.preview_etiquette_decoupe_contour,
+                CatalogueAttributs.Etiquette.THEME to R.string.preview_etiquette_theme,
+                CatalogueAttributs.Etiquette.ROTATION to R.string.preview_etiquette_rotation,
+                CatalogueAttributs.Etiquette.ECHELLE_X to R.string.preview_etiquette_echelle_x,
+                CatalogueAttributs.Etiquette.ECHELLE_Y to R.string.preview_etiquette_echelle_y,
+                CatalogueAttributs.Etiquette.TRANSLATION_X to R.string.preview_etiquette_translation_x,
+                CatalogueAttributs.Etiquette.TRANSLATION_Y to R.string.preview_etiquette_translation_y,
+                CatalogueAttributs.Etiquette.TRANSLATION_Z to R.string.preview_etiquette_translation_z,
+                CatalogueAttributs.Etiquette.CLIQUABLE to R.string.preview_etiquette_cliquable,
+                CatalogueAttributs.Etiquette.FOCUSABLE to R.string.preview_etiquette_focusable,
+                CatalogueAttributs.Etiquette.FOCUSABLE_TACTILE to R.string.preview_etiquette_focusable_tactile,
+                CatalogueAttributs.Etiquette.CLIQUABLE_LONG to R.string.preview_etiquette_cliquable_long,
+                CatalogueAttributs.Etiquette.AU_CLIC to R.string.preview_etiquette_au_clic,
+                CatalogueAttributs.Etiquette.IMPORTANCE_ACCESSIBILITE to
+                    R.string.preview_etiquette_importance_accessibilite,
+                CatalogueAttributs.Etiquette.TITRE_ACCESSIBILITE to R.string.preview_etiquette_titre_accessibilite,
+                CatalogueAttributs.Etiquette.LIBELLE_POUR to R.string.preview_etiquette_libelle_pour,
+                CatalogueAttributs.Etiquette.INFOBULLE to R.string.preview_etiquette_infobulle,
+                CatalogueAttributs.Etiquette.LECTEUR_ECRAN to R.string.preview_etiquette_lecteur_ecran,
+                CatalogueAttributs.Etiquette.TOOLS_TEXTE to R.string.preview_etiquette_tools_texte,
+                CatalogueAttributs.Etiquette.TOOLS_SRC to R.string.preview_etiquette_tools_src,
+                CatalogueAttributs.Etiquette.TOOLS_VISIBILITE to R.string.preview_etiquette_tools_visibilite,
+                CatalogueAttributs.Etiquette.TOOLS_IGNORE to R.string.preview_etiquette_tools_ignore,
+                CatalogueAttributs.Etiquette.CONTEXTE to R.string.preview_etiquette_contexte,
             )
     }
 }
